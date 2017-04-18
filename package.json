@@ -1,0 +1,19 @@
+{
+  "name": "jenie",
+  "version": "1.0.0",
+  "description": "Coming Soon",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "browserify src/index.js -o dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlexanderElias/jenie.git"
+  },
+  "author": "Alexander Elias",
+  "license": "MPL-2.0",
+  "bugs": {
+    "url": "https://github.com/AlexanderElias/jenie/issues"
+  },
+  "homepage": "https://github.com/AlexanderElias/jenie#readme"
+}
