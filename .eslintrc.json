@@ -6,8 +6,7 @@
 		"es6": true
 	},
 	"globals": {
-		"Curium": false,
-		"Swathe": false
+		"Jenie": false
 	},
 	"parserOptions": {
 		"sourceType": "module"

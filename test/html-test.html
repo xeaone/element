@@ -1,0 +1,28 @@
+
+<template>
+	<p j-text="text"></p>
+</template>
+
+<script>
+	Jenie.register({
+		tag: 'html-test',
+		model: {
+			text: 'Hello from html test'
+		},
+		created: function () {
+			console.log('created');
+		},
+		attached: function () {
+			console.log('attached');
+		},
+		detached: function () {
+			console.log('detached');
+		},
+		attributed: function (name, oldValue, newValue) {
+			console.log('attributed');
+			console.log(name);
+			console.log(oldValue);
+			console.log(newValue);
+		}
+	});
+</script>

@@ -13,7 +13,7 @@ function Controller (data, callback) {
 	this.sValue = data.prefix + '-value';
 	this.sFor = data.prefix + '-for-(.*?)="';
 	this.sAccepts = data.prefix + '-' + '(.*?)="';
-	this.sRejects = data.prefix + '-controller=|' + data.rejects;
+	this.sRejects = data.prefix + '-controller=|<\w+-\w+|iframe|object|script';
 	this.query = '[' + data.prefix + '-controller=' + data.name + ']';
 
 	this.rPath = /(\s)?\|(.*?)$/;
@@ -24,8 +24,9 @@ function Controller (data, callback) {
 	this.rAccepts = new RegExp(this.sAccepts);
 	this.rRejects = new RegExp(this.sRejects);
 
-	this.scope = data.doc.querySelector(this.query);
-	if (!this.scope) throw new Error('missing attribute s-controller ' + data.name);
+	this.scope = data.scope || data.doc.querySelector(this.query);
+
+	if (!this.scope) throw new Error('missing attribute options.scope or ' + data.prefix + '-controller ');
 
 	if (callback) callback.call(this);
 }
@@ -70,16 +71,12 @@ Controller.prototype.render = function () {
 };
 
 module.exports = {
-	prefix: 's',
-	doc: document,
 	controllers: {},
-	rejects: 'iframe|object|script',
 	controller: function (data, callback) {
 		if (!data.name) throw new Error('Controller - name parameter required');
 
-		data.doc = data.doc || this.doc;
-		data.prefix = data.prefix || this.prefix;
-		data.rejects = data.rejects || this.rejects;
+		data.doc = data.doc || document;
+		data.prefix = data.prefix || 'j';
 
 		this.controllers[data.name] = new Controller(data, callback);
 		if (!callback) this.controllers[data.name].render();

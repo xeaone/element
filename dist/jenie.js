@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Jenie = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var Utility = require('./utility');
 
 function Component (element, controller) {
@@ -207,7 +207,7 @@ function Controller (data, callback) {
 	this.sValue = data.prefix + '-value';
 	this.sFor = data.prefix + '-for-(.*?)="';
 	this.sAccepts = data.prefix + '-' + '(.*?)="';
-	this.sRejects = data.prefix + '-controller=|' + data.rejects;
+	this.sRejects = data.prefix + '-controller=|<\w+-\w+|iframe|object|script';
 	this.query = '[' + data.prefix + '-controller=' + data.name + ']';
 
 	this.rPath = /(\s)?\|(.*?)$/;
@@ -218,8 +218,9 @@ function Controller (data, callback) {
 	this.rAccepts = new RegExp(this.sAccepts);
 	this.rRejects = new RegExp(this.sRejects);
 
-	this.scope = data.doc.querySelector(this.query);
-	if (!this.scope) throw new Error('missing attribute s-controller ' + data.name);
+	this.scope = data.scope || data.doc.querySelector(this.query);
+
+	if (!this.scope) throw new Error('missing attribute options.scope or ' + data.prefix + '-controller ');
 
 	if (callback) callback.call(this);
 }
@@ -264,16 +265,12 @@ Controller.prototype.render = function () {
 };
 
 module.exports = {
-	prefix: 's',
-	doc: document,
 	controllers: {},
-	rejects: 'iframe|object|script',
 	controller: function (data, callback) {
 		if (!data.name) throw new Error('Controller - name parameter required');
 
-		data.doc = data.doc || this.doc;
-		data.prefix = data.prefix || this.prefix;
-		data.rejects = data.rejects || this.rejects;
+		data.doc = data.doc || document;
+		data.prefix = data.prefix || 'j';
 
 		this.controllers[data.name] = new Controller(data, callback);
 		if (!callback) this.controllers[data.name].render();
@@ -483,193 +480,6 @@ module.exports = {
 // },
 
 },{}],5:[function(require,module,exports){
-var Binder = require('../binder');
-
-function getTemplateUrl (path, callback) {
-	var xhr = new XMLHttpRequest();
-
-	xhr.open('GET', path, true);
-	xhr.onreadystatechange = onreadystatechange;
-	xhr.send();
-
-	function onreadystatechange () {
-		if (xhr.readyState === xhr.DONE && xhr.status === 200) return callback(xhr.response);
-		else if (xhr.readyState === xhr.DONE && xhr.status !== 200) throw new Error('getTemplateUrl: ' + xhr.status + ' ' + xhr.statusText);
-	}
-}
-
-function multiline (fn) {
-	var multilineComment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
-
-	if (typeof fn !== 'function') throw new TypeError('Multiline function missing');
-
-	var match = multilineComment.exec(fn.toString());
-
-	if (!match) throw new TypeError('Multiline comment missing');
-
-	return match[1];
-}
-
-function getAttributeObject (element, attribute) {
-	var attributes = element.attributes;
-	var self = {};
-
-	for (var c = 0; c < element.attributes.length; c++) {
-		attribute[attributes[c].name] = attributes[c].value;
-	}
-
-	function options (name) {
-		return {
-			enumerable:true,
-			configurable: true,
-			get: function () {
-				return attribute[name];
-			},
-			set: function (value) {
-				attribute[name] = value;
-				element.setAttribute(name, value);
-			}
-		};
-	}
-
-	for (var i = 0; i < attributes.length; i++) {
-		var name = attributes[i].name;
-		Object.defineProperty(self, name, options(name));
-	}
-
-	return self;
-}
-
-function toDom (data) {
-	if (typeof data === 'function') data = multiline(data);
-	var container = document.createElement('container');
-	container.innerHTML = data;
-	return container.children[0];
-}
-
-var isUrl = new RegExp('(^https?:\\/\\/)|(^\\/[^\\/\\*])|(^\\.\\/)', 'i');
-var isHtml = new RegExp('(^<.*?>)', 'i');
-
-/*
-	main
-*/
-
-function Component (opt) {
-	var self = this;
-
-	if (!opt) throw new Error('Curium.component: missing options');
-	if (!opt.tag) throw new Error('Curium.component: missing tag');
-
-	if (!opt.template) {
-		self.template = document.createElement('template');
-	} else if (opt.template.constructor.name === 'Function') {
-		self.template = toDom(opt.template);
-	} else if (opt.template.constructor.name === 'String') {
-		if (isUrl.test(opt.template)) {
-			self.template = null;
-		} else if (isHtml.test(opt.template)) {
-			self.template = toDom(opt.template);
-		} else {
-			self.template = document.currentScript ?  document.currentScript.ownerDocument.querySelector(opt.template) : document._currentScript.ownerDocument.querySelector(opt.template);
-		}
-	} else {
-		self.template = opt.template;
-	}
-
-	if (opt.proto) opt.proto = Object.create(opt.proto);
-	else opt.proto = Object.create(HTMLElement.prototype);
-
-	self.tag = opt.tag;
-	self.model = opt.model;
-	self.controller = opt.controller;
-	self.element = document.querySelector(opt.tag);
-	self.attribute = getAttributeObject(self.element, {});
-
-	self.render = function (element) {
-		if (opt.created) opt.created(self);
-		var name = self.tag + '-'  + Date.now().toString();
-		element.appendChild(document.importNode(self.template.content, true));
-		element.setAttribute('c-controller', name);
-		Binder.controller({ prefix: 'c', name: name, model: self.model, }, self.controller);
-	};
-
-	opt.proto.attachedCallback = function () {
-		if (opt.attached) opt.attached(self);
-	};
-
-	opt.proto.detachedCallback = function () {
-		if (opt.detached) opt.detached(self);
-	};
-
-	opt.proto.attributeChangedCallback = function (name, oldValue, newValue) {
-		if (opt.attributed) opt.attributed(self, name, oldValue, newValue);
-	};
-
-	opt.proto.createdCallback = function () {
-		var element = this;
-
-		if (self.template) {
-			self.render(element);
-		} else if (opt.template) {
-			getTemplateUrl(opt.template, function (data) {
-				self.template = toDom(data);
-				self.render(element);
-			});
-		} else if (opt.created) {
-			opt.created(self);
-		}
-	};
-
-	document.registerElement(opt.tag, {
-		prototype: opt.proto,
-		extends: opt.extends
-	});
-
-}
-
-module.exports = {
-	components: {},
-	component: function (opt) {
-		return this.components[opt.tag] = new Component(opt);
-	},
-	query: function (query) {
-		return document.currentScript ? document.currentScript.ownerDocument.querySelector(query) : document._currentScript.ownerDocument.querySelector(query);
-	},
-	script: function () {
-		return document.currentScript ? document.currentScript : document._currentScript;
-	},
-	document: function () {
-		return document.currentScript ? document.currentScript.ownerDocument : document._currentScript.ownerDocument;
-	}
-};
-
-// if (!window.Curium) {
-// 	window.addEventListener('DOMContentLoaded', function () {
-// 		document.body.style.opacity = 0; // hide body
-// 	});
-//
-// 	window.addEventListener('WebComponentsReady', function() {
-// 		document.body.style.opacity = 1; // show body
-// 	});
-//
-// 	window.Curium = {
-// 		components: {},
-// 		component: function (opt) {
-// 			return this.components[opt.tag] = new Component(opt);
-// 		},
-// 		query: function (query) {
-// 			return document.currentScript ? document.currentScript.ownerDocument.querySelector(query) : document._currentScript.ownerDocument.querySelector(query);
-// 		},
-// 		script: function () {
-// 			return document.currentScript ? document.currentScript : document._currentScript;
-// 		},
-// 		document: function () {
-// 			return document.currentScript ? document.currentScript.ownerDocument : document._currentScript.ownerDocument;
-// 		}
-// 	};
-// }
-
-},{"../binder":2}],6:[function(require,module,exports){
 
 var mime = {
 	html: 'text/html',
@@ -761,20 +571,152 @@ module.exports = {
 	serialize: serialize
 };
 
-},{}],7:[function(require,module,exports){
-var Component = require('./component');
+},{}],6:[function(require,module,exports){
+var Register = require('./register');
 var Binder = require('./binder');
 var Router = require('./router');
 var Http = require('./http');
 
 module.exports = {
-	component: Component,
+
+	register: Register,
 	binder: Binder,
 	router: Router,
-	http: Http
+	http: Http,
+
+	query: function (query) {
+		return document.currentScript ? document.currentScript.ownerDocument.querySelector(query) : document._currentScript.ownerDocument.querySelector(query);
+	},
+	script: function () {
+		return document.currentScript ? document.currentScript : document._currentScript;
+	},
+	document: function () {
+		return document.currentScript ? document.currentScript.ownerDocument : document._currentScript.ownerDocument;
+	}
+
 };
 
-},{"./binder":2,"./component":5,"./http":6,"./router":8}],8:[function(require,module,exports){
+},{"./binder":2,"./http":5,"./register":7,"./router":8}],7:[function(require,module,exports){
+var Binder = require('../binder');
+var Http = require('../http');
+var Uuid = require('../uuid');
+
+var isUrl = new RegExp('^http|^\\/|^\\.\\/', 'i');
+// var isHtml = new RegExp('<|>', 'i');
+
+function getTemplateUrl (path, callback) {
+	Http.fetch({
+		action: path,
+		success: function (result) {
+			return callback(result.response);
+		},
+		error: function (result) {
+			throw new Error('getTemplateUrl: ' + result.status + ' ' + result.statusText);
+		}
+	});
+
+	// var xhr = new XMLHttpRequest();
+	//
+	// xhr.open('GET', path, true);
+	// xhr.onreadystatechange = onreadystatechange;
+	// xhr.send();
+	//
+	// function onreadystatechange () {
+	// 	if (xhr.readyState === xhr.DONE && xhr.status === 200) return callback(xhr.response);
+	// 	else if (xhr.readyState === xhr.DONE && xhr.status !== 200) throw new Error('getTemplateUrl: ' + xhr.status + ' ' + xhr.statusText);
+	// }
+}
+
+function multiline (method) {
+	var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
+
+	if (typeof method !== 'function') throw new TypeError('Multiline function missing');
+
+	var match = comment.exec(method.toString());
+
+	if (!match) throw new TypeError('Multiline comment missing');
+
+	return match[1];
+}
+
+function toDom (data) {
+	if (typeof data === 'function') data = multiline(data);
+	var container = document.createElement('container');
+	container.innerHTML = data;
+	return container.children[0];
+}
+
+module.exports = function (options) {
+	if (!options) throw new Error('Component: missing options');
+	if (!options.tag) throw new Error('Component: missing tag');
+
+	var component = {};
+
+	component.template = options.template;
+
+	if (!component.template) {
+		component.template = document.currentScript ? document.currentScript.ownerDocument.querySelector('template') : document._currentScript.ownerDocument.querySelector('template');
+	} else if (component.template.constructor.name === 'Function') {
+		component.template = toDom(component.template);
+	} else if (component.template.constructor.name === 'String') {
+		if (isUrl.test(component.template)) {
+			component.isUrl = true;
+		} else {
+			component.isUrl = false;
+			component.template = toDom(component.template);
+		}
+	} else {
+		component.template = options.template;
+	}
+
+	component.created = options.created;
+	component.attached = options.attached;
+	component.detached = options.detached;
+	component.attributed = options.attributed;
+
+	component.isCreated = false;
+	component.tag = options.tag;
+	component.model = options.model;
+	component.extends = options.extends;
+	component.controller = options.controller;
+	component.proto = Object.create(options.proto || HTMLElement.prototype);
+
+	if (component.attached) component.proto.attachedCallback = component.attached.bind(component);
+	if (component.detached) component.proto.detachedCallback = component.detached.bind(component);
+	if (component.attributed) component.proto.attributeChangedCallback = component.attributed.bind(component);
+
+	component.proto.createdCallback = function () {
+		component.element = this;
+
+		function create () {
+			if (!component.element.id) {
+				component.element.id = Uuid();
+			}
+
+			component.element.innerHTML = '';
+			component.element.appendChild(document.importNode(component.template.content, true));
+			Binder.controller({ name: component.element.id, scope: component.element,  model: component.model }, component.controller);
+			if (component.created) component.created.call(component);
+		}
+
+		if (component.isUrl) {
+			getTemplateUrl(options.template, function (data) {
+				component.template = toDom(data);
+				create();
+			});
+		} else {
+			create();
+		}
+	};
+
+	document.registerElement(component.tag, {
+		prototype: component.proto,
+		extends: component.extends
+	});
+
+};
+
+},{"../binder":2,"../http":5,"../uuid":13}],8:[function(require,module,exports){
 var Utility = require('./utility');
 var Render = require('./render');
 var Request = require('./request');
@@ -1083,7 +1025,7 @@ module.exports = function (data) {
 	return new Response(data);
 };
 
-},{"../http":6,"./render":9}],12:[function(require,module,exports){
+},{"../http":5,"./render":9}],12:[function(require,module,exports){
 
 function has (string, search) {
 	return string.indexOf(search) !== -1;
@@ -1121,4 +1063,31 @@ module.exports = {
 	getPathname: getPathname
 };
 
-},{}]},{},[7]);
+},{}],13:[function(require,module,exports){
+// https://gist.github.com/Wind4/3baa40b26b89b686e4f2
+
+var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+
+module.exports = function () {
+	var chars = CHARS, uuid = [];
+
+	// rfc4122, version 4 form
+	var r;
+
+	// rfc4122 requires these characters
+	uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+	uuid[14] = '4';
+
+	// Fill in random data. At i==19 set the high bits of clock sequence as per rfc4122, sec. 4.1.5
+	for (var i = 0; i < 36; i++) {
+		if (!uuid[i]) {
+			r = 0 | Math.random() * 16;
+			uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+		}
+	}
+
+	return uuid.join('');
+};
+
+},{}]},{},[6])(6)
+});

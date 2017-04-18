@@ -2,9 +2,10 @@
   "name": "jenie",
   "version": "1.0.0",
   "description": "Coming Soon",
-  "main": "src/index.js",
+  "main": "src/jenie.js",
   "scripts": {
-    "build": "browserify src/index.js -o dist/index.js"
+	"test": "http-server . -c-1",
+    "build": "browserify src/jenie.js -o dist/jenie.js -s Jenie"
   },
   "repository": {
     "type": "git",
