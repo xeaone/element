@@ -1,10 +1,4 @@
 Coming Soon
 
 TODO
-- hook up
-- create flow
-- clean up
-
-REMBER
-- handle in mem componets
-- handle route changes
+- hash mode route change back then forward not working

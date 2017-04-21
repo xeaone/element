@@ -3,18 +3,20 @@ var Observer = require('./observer');
 var Utility = require('./utility');
 
 function Controller (data, callback) {
-	this.doc = data.doc;
 	this.name = data.name;
+	this.scope = data.scope;
 	this.view = data.view || {};
 	this.model = data.model || {};
+	this.doc = data.doc || document;
+	this.prefix = data.prefix || 'j';
 	this.modifiers = data.modifiers || {};
 
-	this.sPrefix = data.prefix + '-';
-	this.sValue = data.prefix + '-value';
-	this.sFor = data.prefix + '-for-(.*?)="';
-	this.sAccepts = data.prefix + '-' + '(.*?)="';
-	this.sRejects = data.prefix + '-controller=|<\w+-\w+|iframe|object|script';
-	this.query = '[' + data.prefix + '-controller=' + data.name + ']';
+	this.sPrefix = this.prefix + '-';
+	this.sValue = this.prefix + '-value';
+	this.sFor = this.prefix + '-for-(.*?)="';
+	this.sAccepts = this.prefix + '-' + '(.*?)="';
+	this.sRejects = this.prefix + '-controller=|<\w+-\w+|iframe|object|script';
+	this.query = '[' + this.prefix + '-controller=' + this.name + ']';
 
 	this.rPath = /(\s)?\|(.*?)$/;
 	this.rModifier = /^(.*?)\|(\s)?/;
@@ -24,9 +26,8 @@ function Controller (data, callback) {
 	this.rAccepts = new RegExp(this.sAccepts);
 	this.rRejects = new RegExp(this.sRejects);
 
-	this.scope = data.scope || data.doc.querySelector(this.query);
-
-	if (!this.scope) throw new Error('missing attribute options.scope or ' + data.prefix + '-controller ');
+	// || data.doc.querySelector(this.query);
+	// if (!this.scope) throw new Error('missing attribute options.scope or ' + this.prefix + '-controller ');
 
 	if (callback) callback.call(this);
 }
@@ -70,16 +71,8 @@ Controller.prototype.render = function () {
 	self.insert(self.scope.getElementsByTagName('*'));
 };
 
-module.exports = {
-	controllers: {},
-	controller: function (data, callback) {
-		if (!data.name) throw new Error('Controller - name parameter required');
-
-		data.doc = data.doc || document;
-		data.prefix = data.prefix || 'j';
-
-		this.controllers[data.name] = new Controller(data, callback);
-		if (!callback) this.controllers[data.name].render();
-		return this.controllers[data.name];
-	}
+module.exports = function (data, callback) {
+	var controller = new Controller(data, callback);
+	controller.render();
+	return controller;
 };

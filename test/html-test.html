@@ -5,24 +5,19 @@
 
 <script>
 	Jenie.register({
-		tag: 'html-test',
+		name: 'html-test',
+		template: 'template',
 		model: {
 			text: 'Hello from html test'
 		},
 		created: function () {
-			console.log('created');
+			console.log('created ' + this.name);
 		},
 		attached: function () {
-			console.log('attached');
+			console.log('attached ' + this.name);
 		},
 		detached: function () {
-			console.log('detached');
-		},
-		attributed: function (name, oldValue, newValue) {
-			console.log('attributed');
-			console.log(name);
-			console.log(oldValue);
-			console.log(newValue);
+			console.log('detached ' + this.name);
 		}
 	});
 </script>

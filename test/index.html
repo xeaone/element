@@ -7,13 +7,31 @@
 	<script src="../dist/jenie.js"></script>
 
 	<link rel="import" href="html-test.html">
+	<script src="js-test.js"></script>
 </head>
 <body>
 
-	<html-test></html-test>
-	<js-test></js-test>
-	<js-test></js-test>
+	<ul>
+		<li><a href="/test/js">JS</a></li>
+	</ul>
 
-	<script src="js-test.js"></script>
+	<j-view></j-view>
+
+	<script>
+		Jenie.router.setup({
+			base: '/test',
+			// mode: false,
+			routes: [
+				{
+					path: '/',
+					component: 'html-test'
+				},
+				{
+					path: '/js',
+					component: 'js-test'
+				}
+			]
+		});
+	</script>
 </body>
 </html>

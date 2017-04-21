@@ -2,10 +2,10 @@ var Binder = require('../binder');
 var Http = require('../http');
 var Uuid = require('../uuid');
 
-var isUrl = new RegExp('^http|^\\/|^\\.\\/', 'i');
-// var isHtml = new RegExp('<|>', 'i');
+var url = new RegExp('^http|^\\/|^\\.\\/', 'i');
+var html = new RegExp('<|>', 'i');
 
-function getTemplateUrl (path, callback) {
+function getTemplate (path, callback) {
 	Http.fetch({
 		action: path,
 		success: function (result) {
@@ -15,17 +15,6 @@ function getTemplateUrl (path, callback) {
 			throw new Error('getTemplateUrl: ' + result.status + ' ' + result.statusText);
 		}
 	});
-
-	// var xhr = new XMLHttpRequest();
-	//
-	// xhr.open('GET', path, true);
-	// xhr.onreadystatechange = onreadystatechange;
-	// xhr.send();
-	//
-	// function onreadystatechange () {
-	// 	if (xhr.readyState === xhr.DONE && xhr.status === 200) return callback(xhr.response);
-	// 	else if (xhr.readyState === xhr.DONE && xhr.status !== 200) throw new Error('getTemplateUrl: ' + xhr.status + ' ' + xhr.statusText);
-	// }
 }
 
 function multiline (method) {
@@ -49,59 +38,49 @@ function toDom (data) {
 
 module.exports = function (options) {
 	if (!options) throw new Error('Component: missing options');
-	if (!options.tag) throw new Error('Component: missing tag');
+	if (!options.name) throw new Error('Component: missing name');
 
-	var component = {};
+	var component = Object.create(HTMLElement.prototype);
+	var isUrl = false;
 
+	component.model = options.model;
 	component.template = options.template;
+	component.controller = options.controller;
 
-	if (!component.template) {
-		component.template = document.currentScript ? document.currentScript.ownerDocument.querySelector('template') : document._currentScript.ownerDocument.querySelector('template');
-	} else if (component.template.constructor.name === 'Function') {
-		component.template = toDom(component.template);
-	} else if (component.template.constructor.name === 'String') {
-		if (isUrl.test(component.template)) {
-			component.isUrl = true;
-		} else {
-			component.isUrl = false;
+	if (component.template) {
+		if (component.template.constructor.name === 'Function') {
 			component.template = toDom(component.template);
+		} else if (component.template.constructor.name === 'String') {
+			if (url.test(component.template)) {
+				isUrl = true;
+			} else if (html.test(component.template)) {
+				component.template = toDom(component.template);
+			} else {
+				component.template = document.currentScript ?
+				document.currentScript.ownerDocument.querySelector(component.template) :
+				document._currentScript.ownerDocument.querySelector(component.template);
+			}
+		} else {
+			component.template = options.template;
 		}
-	} else {
-		component.template = options.template;
 	}
 
-	component.created = options.created;
-	component.attached = options.attached;
-	component.detached = options.detached;
-	component.attributed = options.attributed;
+	if (options.attached) component.attachedCallback = options.attached.bind(component);
+	if (options.detached) component.detachedCallback = options.detached.bind(component);
+	if (options.attributed) component.attributeChangedCallback = options.attributed.bind(component);
 
-	component.isCreated = false;
-	component.tag = options.tag;
-	component.model = options.model;
-	component.extends = options.extends;
-	component.controller = options.controller;
-	component.proto = Object.create(options.proto || HTMLElement.prototype);
-
-	if (component.attached) component.proto.attachedCallback = component.attached.bind(component);
-	if (component.detached) component.proto.detachedCallback = component.detached.bind(component);
-	if (component.attributed) component.proto.attributeChangedCallback = component.attributed.bind(component);
-
-	component.proto.createdCallback = function () {
+	component.createdCallback = function () {
 		component.element = this;
 
 		function create () {
-			if (!component.element.id) {
-				component.element.id = Uuid();
-			}
-
-			component.element.innerHTML = '';
+			component.uuid = Uuid();
 			component.element.appendChild(document.importNode(component.template.content, true));
-			Binder.controller({ name: component.element.id, scope: component.element,  model: component.model }, component.controller);
-			if (component.created) component.created.call(component);
+			component.binder = Binder({ name: component.uuid, scope: component.element,  model: component.model }, component.controller);
+			if (options.created) options.created.call(component);
 		}
 
-		if (component.isUrl) {
-			getTemplateUrl(options.template, function (data) {
+		if (isUrl) {
+			getTemplate(component.template, function (data) {
 				component.template = toDom(data);
 				create();
 			});
@@ -110,9 +89,9 @@ module.exports = function (options) {
 		}
 	};
 
-	document.registerElement(component.tag, {
-		prototype: component.proto,
-		extends: component.extends
+	document.registerElement(options.name, {
+		prototype: component,
+		extends: options.extends
 	});
 
 };
