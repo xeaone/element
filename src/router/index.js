@@ -11,23 +11,32 @@ module.exports = {
 		self.components = {};
 		self.routes = options.routes || [];
 		self.redirects = options.redirects || [];
-		self.authorize = options.authorize || function () { return true; };
-		self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
-
-		self.isChangeEvent = true;
 
 		self.mode = options.mode;
 		self.mode = self.mode === null || self.mode === undefined ? true : self.mode;
 		self.mode = 'history' in window && 'pushState' in window.history ? self.mode : false;
 
+		self.ready = 0;
+		self.isChangeEvent = true;
 		self.base = options.base || '';
 		self.external = options.external || '';
 		self.root = options.root || (self.mode ? '/' : '/#');
 		self.state = { root: self.root, base: self.base, origin: self.path.normalize(self.base + self.root) };
 
-		window.addEventListener('WebComponentsReady', function() {
+		function init () {
+			self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
 			self.navigate({ path: window.location.href }, true);
-		});
+		}
+
+		window.addEventListener('DOMContentLoaded', function () {
+			self.ready++;
+			if (self.ready === 2) init();
+		}, false);
+
+		window.addEventListener('WebComponentsReady', function() {
+			self.ready++;
+			if (self.ready === 2) init();
+		}, false);
 
 		window.addEventListener(self.mode ? 'popstate' : 'hashchange', function (e) {
 			if (self.isChangeEvent) {

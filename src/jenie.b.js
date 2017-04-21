@@ -1,3 +1,10 @@
+/*
+	@preserve
+	name: jenie
+	version: 1.0.3
+	author: alexander elias
+*/
+
 var Register = require('./register');
 var Binder = require('./binder');
 var Router = require('./router');
@@ -15,6 +22,8 @@ module.exports = {
 	router: Router,
 	binder: Binder,
 	http: Http,
+
+	services: {},
 
 	query: function (query) {
 		return document.currentScript ? document.currentScript.ownerDocument.querySelector(query) : document._currentScript.ownerDocument.querySelector(query);

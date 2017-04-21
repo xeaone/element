@@ -13,6 +13,9 @@ Jenie.register({
 	*/},
 	created: function () {
 		console.log('created ' + this.name);
+		console.log(this);
+		this.services.say('hello world');
+		this.binder.model.text = 'Hello from js test new';
 	},
 	attached: function () {
 		console.log('attached ' + this.name);

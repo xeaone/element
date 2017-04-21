@@ -40,10 +40,15 @@ module.exports = function (options) {
 	if (!options) throw new Error('Component: missing options');
 	if (!options.name) throw new Error('Component: missing name');
 
-	var component = Object.create(HTMLElement.prototype);
+	var component = {};
 	var isUrl = false;
 
+	component.services = this.services;
+	component.proto = Object.create(HTMLElement.prototype);
+
+	component.name = options.name;
 	component.model = options.model;
+	component.extends = options.extends;
 	component.template = options.template;
 	component.controller = options.controller;
 
@@ -65,11 +70,11 @@ module.exports = function (options) {
 		}
 	}
 
-	if (options.attached) component.attachedCallback = options.attached.bind(component);
-	if (options.detached) component.detachedCallback = options.detached.bind(component);
-	if (options.attributed) component.attributeChangedCallback = options.attributed.bind(component);
+	component.proto.attachedCallback = options.attached ? options.attached.bind(component) : null;
+	component.proto.detachedCallback = options.detached ? options.detached.bind(component) : null;
+	component.proto.attributeChangedCallback = options.attributed ? options.attributed.bind(component) : null;
 
-	component.createdCallback = function () {
+	component.proto.createdCallback = function () {
 		component.element = this;
 
 		function create () {
@@ -89,9 +94,9 @@ module.exports = function (options) {
 		}
 	};
 
-	document.registerElement(options.name, {
-		prototype: component,
-		extends: options.extends
+	document.registerElement(component.name, {
+		prototype: component.proto,
+		extends: component.extends
 	});
 
 };

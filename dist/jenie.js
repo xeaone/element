@@ -565,10 +565,18 @@ module.exports = {
 };
 
 },{}],6:[function(require,module,exports){
+/*
+	name: jenie
+	version: 1.0.3
+	author: alexander elias
+*/
+
 var Register = require('./register');
 var Binder = require('./binder');
 var Router = require('./router');
 var Http = require('./http');
+
+document.createElement('style').appendChild(document.createTextNode(''));
 
 document.registerElement('j-view', {
 	prototype: Object.create(HTMLElement.prototype)
@@ -577,10 +585,11 @@ document.registerElement('j-view', {
 module.exports = {
 
 	register: Register,
+	router: Router,
 	binder: Binder,
 	http: Http,
 
-	router: Router,
+	services: {},
 
 	query: function (query) {
 		return document.currentScript ? document.currentScript.ownerDocument.querySelector(query) : document._currentScript.ownerDocument.querySelector(query);
@@ -637,10 +646,15 @@ module.exports = function (options) {
 	if (!options) throw new Error('Component: missing options');
 	if (!options.name) throw new Error('Component: missing name');
 
-	var component = Object.create(options.proto || HTMLElement.prototype);
+	var component = {};
 	var isUrl = false;
 
+	component.services = this.services;
+	component.proto = Object.create(HTMLElement.prototype);
+
+	component.name = options.name;
 	component.model = options.model;
+	component.extends = options.extends;
 	component.template = options.template;
 	component.controller = options.controller;
 
@@ -662,11 +676,11 @@ module.exports = function (options) {
 		}
 	}
 
-	if (options.attached) component.attachedCallback = options.attached.bind(component);
-	if (options.detached) component.detachedCallback = options.detached.bind(component);
-	if (options.attributed) component.attributeChangedCallback = options.attributed.bind(component);
+	component.proto.attachedCallback = options.attached ? options.attached.bind(component) : null;
+	component.proto.detachedCallback = options.detached ? options.detached.bind(component) : null;
+	component.proto.attributeChangedCallback = options.attributed ? options.attributed.bind(component) : null;
 
-	component.createdCallback = function () {
+	component.proto.createdCallback = function () {
 		component.element = this;
 
 		function create () {
@@ -686,9 +700,9 @@ module.exports = function (options) {
 		}
 	};
 
-	document.registerElement(options.name, {
-		prototype: component,
-		extends: options.extends
+	document.registerElement(component.name, {
+		prototype: component.proto,
+		extends: component.extends
 	});
 
 };
@@ -707,23 +721,32 @@ module.exports = {
 		self.components = {};
 		self.routes = options.routes || [];
 		self.redirects = options.redirects || [];
-		self.authorize = options.authorize || function () { return true; };
-		self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
-
-		self.isChangeEvent = true;
 
 		self.mode = options.mode;
 		self.mode = self.mode === null || self.mode === undefined ? true : self.mode;
 		self.mode = 'history' in window && 'pushState' in window.history ? self.mode : false;
 
+		self.ready = 0;
+		self.isChangeEvent = true;
 		self.base = options.base || '';
 		self.external = options.external || '';
 		self.root = options.root || (self.mode ? '/' : '/#');
 		self.state = { root: self.root, base: self.base, origin: self.path.normalize(self.base + self.root) };
 
-		window.addEventListener('WebComponentsReady', function() {
+		function init () {
+			self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
 			self.navigate({ path: window.location.href }, true);
-		});
+		}
+
+		window.addEventListener('DOMContentLoaded', function () {
+			self.ready++;
+			if (self.ready === 2) init();
+		}, false);
+
+		window.addEventListener('WebComponentsReady', function() {
+			self.ready++;
+			if (self.ready === 2) init();
+		}, false);
 
 		window.addEventListener(self.mode ? 'popstate' : 'hashchange', function (e) {
 			if (self.isChangeEvent) {
