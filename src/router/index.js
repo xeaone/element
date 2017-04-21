@@ -140,10 +140,10 @@ module.exports = {
 		var self = this;
 
 		if (self.mode) {
-			window.history[replace ? 'replaceState' : 'pushState'](state, state.title, state.origin + state.path);
+			window.history[replace ? 'replaceState' : 'pushState'](state, state.title, self.path.normalize(state.origin + state.path));
 		} else {
 			self.isChangeEvent = false;
-			window.location = state.origin + state.path;
+			window.location = self.path.normalize(state.origin + state.path);
 		}
 
 		return self;
@@ -158,8 +158,6 @@ module.exports = {
 
 		self.route = self.get(self.state.path);
 		self.state.title = self.route.title;
-
-		console.log(self.state);
 
 		self.change(self.state, replace);
 

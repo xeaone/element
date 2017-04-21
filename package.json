@@ -1,11 +1,11 @@
 {
   "name": "jenie",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Coming Soon",
   "main": "src/jenie.js",
   "scripts": {
 	"test": "http-server . -c-1",
-    "build": "browserify src/jenie.js -o dist/jenie.js -s Jenie",
+    "build": "browserify src/jenie.b.js -o dist/jenie.js -s Jenie",
 	"build-min": "muleify pack src/jenie.b.js dist/jenie.min.js -m"
   },
   "repository": {
