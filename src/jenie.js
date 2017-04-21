@@ -3,6 +3,8 @@ var Binder = require('./binder');
 var Router = require('./router');
 var Http = require('./http');
 
+document.createElement('style').appendChild(document.createTextNode(''));
+
 document.registerElement('j-view', {
 	prototype: Object.create(HTMLElement.prototype)
 });
@@ -10,10 +12,9 @@ document.registerElement('j-view', {
 module.exports = {
 
 	register: Register,
+	router: Router,
 	binder: Binder,
 	http: Http,
-
-	router: Router,
 
 	query: function (query) {
 		return document.currentScript ? document.currentScript.ownerDocument.querySelector(query) : document._currentScript.ownerDocument.querySelector(query);
