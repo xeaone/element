@@ -48,6 +48,7 @@ module.exports = function (options) {
 
 	component.name = options.name;
 	component.model = options.model;
+	component.modifiers = options.modifiers;
 	component.extends = options.extends;
 	component.template = options.template;
 	component.controller = options.controller;
@@ -80,7 +81,14 @@ module.exports = function (options) {
 		function create () {
 			component.uuid = Uuid();
 			component.element.appendChild(document.importNode(component.template.content, true));
-			component.binder = Binder({ name: component.uuid, scope: component.element,  model: component.model }, component.controller);
+
+			component.binder = Binder({
+				name: component.uuid,
+				model: component.model,
+				scope: component.element,
+				modifiers: component.modifiers
+			}, component.controller);
+
 			if (options.created) options.created.call(component);
 		}
 

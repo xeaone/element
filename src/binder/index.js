@@ -1,78 +1,80 @@
-var Component = require('./component');
-var Observer = require('./observer');
-var Utility = require('./utility');
+var Model = require('./model');
+var View = require('./view');
+var Unit = require('./unit');
 
-function Controller (data, callback) {
-	this.name = data.name;
-	this.scope = data.scope;
-	this.view = data.view || {};
-	this.model = data.model || {};
-	this.doc = data.doc || document;
-	this.prefix = data.prefix || 'j';
-	this.modifiers = data.modifiers || {};
+function Binder () {}
 
-	this.sPrefix = this.prefix + '-';
-	this.sValue = this.prefix + '-value';
-	this.sFor = this.prefix + '-for-(.*?)="';
-	this.sAccepts = this.prefix + '-' + '(.*?)="';
-	this.sRejects = this.prefix + '-controller=|<\w+-\w+|iframe|object|script';
-	this.query = '[' + this.prefix + '-controller=' + this.name + ']';
-
-	this.rPath = /(\s)?\|(.*?)$/;
-	this.rModifier = /^(.*?)\|(\s)?/;
-
-	this.rFor = new RegExp(this.sFor);
-	this.rPrefix = new RegExp(this.sPrefix);
-	this.rAccepts = new RegExp(this.sAccepts);
-	this.rRejects = new RegExp(this.sRejects);
-
-	// || data.doc.querySelector(this.query);
-	// if (!this.scope) throw new Error('missing attribute options.scope or ' + this.prefix + '-controller ');
-
-	if (callback) callback.call(this);
-}
-
-Controller.prototype.insert = function (elements) {
+Binder.prototype.parseModifiers = function (value) {
 	var self = this;
 
-	Utility.eachElement(elements, self.rRejects, null, self.rAccepts, function (element, index) {
-		var component = new Component(element, self);
+	if (value.indexOf('|') === -1) return [];
 
-		component.eachAttribute(self.rAccepts, function (attribute) {
-			if (self.rFor.test(attribute.name)) index = index + 1;
-			if (self.view[attribute.value]) self.view[attribute.value].push(component);
-			else self.view[attribute.value] = [component];
-			component.render(attribute);
+	var modifiers = value.replace(self.rModifier, '').split(' ');
+
+	return modifiers.map(function (modifier) {
+		return self.modifiers[modifier];
+	});
+};
+
+Binder.prototype.createView = function (elements) {
+	var self = this;
+
+	return View(elements || self.elements, self.rRejects, self.rAccepts, function (element, attribute) {
+		return Unit({
+			controller: self,
+			element: element,
+			attribute: attribute,
+			modifiers: self.parseModifiers(attribute.value)
 		});
 	});
 };
 
-Controller.prototype.render = function () {
+Binder.prototype.createModel = function () {
 	var self = this;
 
-	self.model = Observer(self.model, function (path) {
-		var paths = path.split('.');
-		if (paths.length > 1 && !isNaN(paths.slice(-1))) {
-			path = paths.slice(0, -1).join('.');
-		}
-
-		var components = self.view[path];
-		if (components) {
-			for (var i = 0, l = components.length, component; i < l; i++) {
-				component = components[i];
-
-				component.eachAttribute(self.sAccepts + path, function (attribute) {
-					component.render(attribute);
-				});
-			}
-		}
+	return Model(self.model, function (key, value) {
+		self.view[key].forEach(function (unit) {
+			unit.value = value;
+			unit.render();
+		});
 	});
+};
 
-	self.insert(self.scope.getElementsByTagName('*'));
+Binder.prototype.create = function (data, callback) {
+	var self = this;
+
+	self.name = data.name;
+	self.scope = data.scope;
+	self.elements = self.scope.getElementsByTagName('*');
+
+	self.view = data.view || {};
+	self.model = data.model || {};
+	self.modifiers = data.modifiers || {};
+
+	self.prefix = '(data-)?j-';
+	self.sPrefix = self.prefix;
+	self.sValue = self.prefix + 'value';
+	self.sFor = self.prefix + 'for-(.*?)=';
+
+	self.sAccepts = self.prefix;
+	self.sRejects = self.prefix + '^\w+(-\w+)+|^iframe|^object|^script';
+
+	self.rPath = /(\s)?\|(.*?)$/;
+	self.rModifier = /^(.*?)\|(\s)?/;
+
+	self.rFor = new RegExp(self.sFor);
+	self.rPrefix = new RegExp(self.sPrefix);
+	self.rAccepts = new RegExp(self.sAccepts);
+	self.rRejects = new RegExp(self.sRejects);
+
+	self.view = self.createView();
+	self.model = self.createModel();
+
+	self.model.text = 'new stuff is rendered';
+
+	if (callback) callback.call(self);
 };
 
 module.exports = function (data, callback) {
-	var controller = new Controller(data, callback);
-	controller.render();
-	return controller;
+	return new Binder().create(data, callback);
 };

@@ -17,20 +17,6 @@ module.exports = {
 		});
 	},
 
-	// ensureBoolean: function (value) {
-	// 	if (typeof value === 'string') return value === 'true';
-	// 	else return value;
-	// },
-	//
-	// ensureString: function (value) {
-	// 	if (typeof value === 'object') return JSON.stringify(value);
-	// 	else return value.toString();
-	// },
-
-	/*
-		object
-	*/
-
 	interact: function (type, collection, path, value) {
 		// var keys = this.toCamelCase(path).split('.');
 		var keys = path.split('.');
@@ -67,52 +53,30 @@ module.exports = {
 		return this.interact(this.SET, collection, path, value);
 	},
 
-	/*
-		DOM
-	*/
-
-	glance: function (element) {
-		var attribute, glance = element.nodeName.toLowerCase();
-
-		for (var i = 0, l = element.attributes.length; i < l; i++) {
-			attribute = element.attributes[i];
-			glance = glance + ' ' + attribute.name + '="' + attribute.value + '"';
-		}
-
-		return glance;
-	},
-
-	eachElement: function (elements, reject, skip, accept, callback) {
-		for (var index = 0, element, glance; index < elements.length; index++) {
-			element = elements[index];
-			glance = this.glance(element);
-
-			if (reject && reject.test(glance)) {
-				index += element.children.length;
-			} else if (skip && skip.test(glance)) {
-				continue;
-			} else if (accept && accept.test(glance)) {
-				callback(element, index);
-			}
-		}
-	}
+	// glance: function (element) {
+	// 	var attribute, glance = element.nodeName.toLowerCase();
+	//
+	// 	for (var i = 0, l = element.attributes.length; i < l; i++) {
+	// 		attribute = element.attributes[i];
+	// 		glance = glance + ' ' + attribute.name + '="' + attribute.value + '"';
+	// 	}
+	//
+	// 	return glance;
+	// },
+	//
+	// eachElement: function (elements, reject, skip, accept, callback) {
+	// 	for (var index = 0, element, glance; index < elements.length; index++) {
+	// 		element = elements[index];
+	// 		glance = this.glance(element);
+	//
+	// 		if (reject && reject.test(glance)) {
+	// 			index += element.children.length;
+	// 		} else if (skip && skip.test(glance)) {
+	// 			continue;
+	// 		} else if (accept && accept.test(glance)) {
+	// 			callback(element, index);
+	// 		}
+	// 	}
+	// }
 
 };
-
-// uid: function () {
-// 	return Math.random().toString(36).substr(2, 9);
-// },
-
-// eachAttribute: function (attributes, pattern, callback) {
-// 	for (var index = 0, attribute; index < attributes.length; index++) {
-// 		attribute = {
-// 			name: attributes[index].name,
-// 			value: attributes[index].value,
-// 			full: attributes[index].name + '="' + attributes[index].value + '"'
-// 		};
-//
-// 		if (pattern && pattern.test(attribute.full)) {
-// 			callback(attribute, index);
-// 		}
-// 	}
-// },

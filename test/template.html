@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Template</title>
+		<script src="template.js"></script>
+	</head>
+	<body>
+
+		<div class="view"></div>
+
+		<script type="tpl">
+			<div j-text="text">{{text}}</div>
+		</script>
+
+		<script>
+			var data = { text: 'Hello Wolrd' };
+			var string = document.querySelector('[type="tpl"]').innerHTML;
+			var view = document.querySelector('.view');
+
+			render(string);
+
+		</script>
+	</body>
+</html>

@@ -1,6 +1,6 @@
 
 <template>
-	<p j-text="text"></p>
+	<p j-text="text | upper"></p>
 </template>
 
 <script>
@@ -9,6 +9,11 @@
 		template: 'template',
 		model: {
 			text: 'Hello from html test'
+		},
+		modifiers: {
+			upper: function () {
+				return this.toUpperCase();
+			}
 		},
 		created: function () {
 			console.log('created ' + this.name);

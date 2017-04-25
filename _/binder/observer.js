@@ -1,21 +1,7 @@
 
-function Obsr () {}
+function Observer () {}
 
-Obsr.prototype.descriptor = function (k, v, c) {
-	return {
-		configurable: true,
-		enumerable: true,
-		get: function () {
-			return v;
-		},
-		set: function (nv) {
-			v = nv;
-			c(k, v);
-		}
-	};
-};
-
-Obsr.prototype.ins = function (observed, callback, prefix, key, value) {
+Observer.prototype.ins = function (observed, callback, prefix, key, value) {
 
 	if (value.constructor.name === 'Object' || value.constructor.name === 'Array') {
 		value = this.create(value, callback, prefix + key, true);
@@ -33,7 +19,7 @@ Obsr.prototype.ins = function (observed, callback, prefix, key, value) {
 	if (callback) callback(prefix + key, value);
 };
 
-Obsr.prototype.del = function (observed, callback, prefix, key) {
+Observer.prototype.del = function (observed, callback, prefix, key) {
 	if (observed.constructor.name === 'Object') {
 		delete observed[key];
 	} else if (observed.constructor.name === 'Array') {
@@ -45,7 +31,21 @@ Obsr.prototype.del = function (observed, callback, prefix, key) {
 	if (callback) callback(prefix + key, undefined);
 };
 
-Obsr.prototype.create = function (observable, callback, prefix, trigger) {
+Observer.prototype.descriptor = function (k, v, c) {
+	return {
+		configurable: true,
+		enumerable: true,
+		get: function () {
+			return v;
+		},
+		set: function (nv) {
+			v = nv;
+			c(k, v);
+		}
+	};
+};
+
+Observer.prototype.create = function (observable, callback, prefix, trigger) {
 	var observed, key, value, type;
 
 	if (!prefix) prefix = '';
@@ -75,5 +75,5 @@ Obsr.prototype.create = function (observable, callback, prefix, trigger) {
 };
 
 module.exports = function (observable, callback) {
-	return new Obsr().create(observable, callback);
+	return new Observer().create(observable, callback);
 };
