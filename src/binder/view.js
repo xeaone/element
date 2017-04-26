@@ -1,5 +1,10 @@
-var PATH = /(\s)?\|(.*?)$/;
-var PREFIX = /(data-)?j-/;
+var Global = require('../global');
+
+var PATH = Global.rPath;
+var PREFIX = Global.rPrefix;
+var ATTRIBUTE_ACCEPTS = Global.rAttributeAccepts;
+var ELEMENT_ACCEPTS = Global.rElementAccepts;
+var ELEMENT_REJECTS = Global.rElementRejects;
 
 function View () {}
 
@@ -9,24 +14,24 @@ View.prototype.glance = function (element) {
 	.replace(/^</, '');
 };
 
-View.prototype.eachElement = function (elements, reject, accept, callback) { //skip,
+View.prototype.eachElement = function (elements, callback) { //skip,
 	var element, glance, i;
 
 	for (i = 0; i < elements.length; i++) {
 		element = elements[i];
 		glance = this.glance(element);
 
-		if (reject && reject.test(glance)) {
+		if (ELEMENT_REJECTS.test(glance)) {
 			i += element.children.length;
 		// } else if (skip && skip.test(glance)) {
 		// 	continue;
-		} else if (accept && accept.test(glance)) {
+		} else if (ELEMENT_ACCEPTS.test(glance)) {
 			callback(element);
 		}
 	}
 };
 
-View.prototype.eachAttribute = function (element, pattern, callback) {
+View.prototype.eachAttribute = function (element, callback) {
 	var attribute = {}, i;
 
 	for (i = 0; i < element.attributes.length; i++) {
@@ -37,18 +42,18 @@ View.prototype.eachAttribute = function (element, pattern, callback) {
 		attribute.command = attribute.name.replace(PREFIX, '');
 		attribute.cmds = attribute.command.split('-');
 
-		if (pattern.test(attribute.name)) {
+		if (ATTRIBUTE_ACCEPTS.test(attribute.name)) {
 			callback(attribute);
 		}
 
 	}
 };
 
-View.prototype.create = function (elements, reject, accept, callback) {
+View.prototype.create = function (elements, callback) {
 	var self = this, view = {};
 
-	self.eachElement(elements, reject, accept, function (element) {
-		self.eachAttribute(element, accept, function (attribute) {
+	self.eachElement(elements, function (element) {
+		self.eachAttribute(element, function (attribute) {
 			if (!(attribute.path in view)) view[attribute.path] = [];
 			view[attribute.path].push(callback(element, attribute));
 		});
@@ -57,6 +62,6 @@ View.prototype.create = function (elements, reject, accept, callback) {
 	return view;
 };
 
-module.exports = function (elements, reject, accept, callback) {
-	return new View().create(elements, reject, accept, callback);
+module.exports = function (elements, callback) {
+	return new View().create(elements, callback);
 };

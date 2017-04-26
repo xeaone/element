@@ -3,7 +3,7 @@ Jenie.services.say = function (string) {
 	console.log(string);
 };
 
-Jenie.router.setup({
+Jenie.router({
 	base: '/test',
 	// mode: false,
 	routes: [

@@ -1,5 +1,5 @@
 
-Jenie.register({
+Jenie.component({
 	name: 'js-test',
 	model: {
 		text: 'Hello from js test'
@@ -13,9 +13,8 @@ Jenie.register({
 	*/},
 	created: function () {
 		console.log('created ' + this.name);
-		console.log(this);
-		this.services.say('hello world');
-		this.binder.model.text = 'Hello from js test new';
+		Jenie.services.say('hello world');
+		this.model.text = 'new js render';
 	},
 	attached: function () {
 		console.log('attached ' + this.name);

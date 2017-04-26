@@ -32,16 +32,16 @@ Model.prototype.del = function (model, callback, prefix, key) {
 	if (callback) callback(prefix + key, undefined);
 };
 
-Model.prototype.descriptor = function (k, v, c) {
+Model.prototype.descriptor = function (key, value, callback) {
 	return {
 		configurable: true,
 		enumerable: true,
 		get: function () {
-			return v;
+			return value;
 		},
-		set: function (nv) {
-			v = nv;
-			c(k, v);
+		set: function (newValue) {
+			value = newValue;
+			callback(key, value);
 		}
 	};
 };

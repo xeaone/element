@@ -1,5 +1,7 @@
 
-var mime = {
+function Http () {}
+
+Http.prototype.mime = {
 	html: 'text/html',
 	text: 'text/plain',
 	xml: 'application/xml, text/xml',
@@ -8,7 +10,7 @@ var mime = {
 	script: 'text/javascript, application/javascript, application/x-javascript'
 };
 
-function serialize (data) {
+Http.prototype.serialize = function (data) {
 	var string = '';
 
 	for (var name in data) {
@@ -17,9 +19,11 @@ function serialize (data) {
 	}
 
 	return string;
-}
+};
 
-function fetch (options) {
+Http.prototype.fetch = function (options) {
+	var self = this;
+
 	if (!options) throw new Error('fetch: requires options');
 	if (!options.action) throw new Error('fetch: requires options.action');
 	if (!options.method) options.method = 'GET';
@@ -27,31 +31,31 @@ function fetch (options) {
 
 	if (options.data) {
 		if (options.method === 'GET') {
-			options.action = options.action + '?' + serialize(options.data);
+			options.action = options.action + '?' + self.serialize(options.data);
 			options.data = null;
 		} else {
 			options.requestType = options.requestType ? options.requestType.toLowerCase() : '';
 			options.responseType = options.responseType ? options.responseType.toLowerCase() : '';
 
 			switch (options.requestType) {
-				case 'script': options.contentType = mime.script; break;
-				case 'json': options.contentType = mime.json; break;
-				case 'xml': options.contentType = mime.xm; break;
-				case 'html': options.contentType = mime.html; break;
-				case 'text': options.contentType = mime.text; break;
-				default: options.contentType = mime.urlencoded;
+				case 'script': options.contentType = self.mime.script; break;
+				case 'json': options.contentType = self.self.mime.json; break;
+				case 'xml': options.contentType = self.mime.xm; break;
+				case 'html': options.contentType = self.mime.html; break;
+				case 'text': options.contentType = self.mime.text; break;
+				default: options.contentType = self.mime.urlencoded;
 			}
 
 			switch (options.responseType) {
-				case 'script': options.accept = mime.script; break;
-				case 'json': options.accept = mime.json; break;
-				case 'xml': options.accept = mime.xml; break;
-				case 'html': options.accept = mime.html; break;
-				case 'text': options.accept = mime.text; break;
+				case 'script': options.accept = self.mime.script; break;
+				case 'json': options.accept = self.mime.json; break;
+				case 'xml': options.accept = self.mime.xml; break;
+				case 'html': options.accept = self.mime.html; break;
+				case 'text': options.accept = self.mime.text; break;
 			}
 
-			if (options.contentType === mime.json) options.data = JSON.stringify(options.data);
-			if (options.contentType === mime.urlencoded) options.data = serialize(options.data);
+			if (options.contentType === self.mime.json) options.data = JSON.stringify(options.data);
+			if (options.contentType === self.mime.urlencoded) options.data = self.serialize(options.data);
 		}
 	}
 
@@ -81,10 +85,14 @@ function fetch (options) {
 	};
 
 	xhr.send(options.data);
-}
+};
 
-module.exports = {
-	mime: mime,
-	fetch: fetch,
-	serialize: serialize
+Http.prototype.create = function () {
+	var self = this;
+
+	return self;
+};
+
+module.exports = function () {
+	return new Http().create();
 };

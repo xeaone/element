@@ -6,10 +6,8 @@ module.exports = function (route) {
 	if (route.title) document.title = route.title;
 
 	if (typeof route.component === 'string') {
-		component = self.components[route.component];
-		if (!component) {
-			component = self.components[route.component] = document.createElement(route.component);
-		}
+		if (route.component in self.components) component = self.components[route.component];
+		else component = self.components[route.component] = document.createElement(route.component);
 	} else {
 		component = route.component;
 	}

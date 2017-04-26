@@ -16,7 +16,6 @@ Unit.prototype.attributes = {
 		self.listeners[methodName] = function (e) {
 			e.preventDefault();
 			self.value.call(self, e);
-			// self.value.call(self.controller.model, e);
 		};
 
 		self.element.addEventListener(eventName, self.listeners[methodName], false);
@@ -39,7 +38,7 @@ Unit.prototype.attributes = {
 		}
 
 		self.element.innerHTML = inner;
-		
+
 		var view = self.controller.createView(self.element.getElementsByTagName('*'));
 
 		for (var path in view) {
@@ -52,7 +51,6 @@ Unit.prototype.attributes = {
 		var self = this;
 
 		if (self.element.type === 'checkbox' || self.element.type === 'radio') {
-			// self.value = self.modifiers(self.attribute.value, self.value);
 			self.element.value = self.value;
 			self.element.checked = self.value;
 		}
@@ -66,18 +64,8 @@ Unit.prototype.attributes = {
 
 			var element = e.target;
 			var value = element.type === 'checkbox' || element.type === 'radio' ? element.checked : element.value;
-			var path = element.getAttribute(self.controller.sValue);
 
-			value = self.modifiers(path, value);
-			path = path.replace(self.controller.rPath, '');
-
-			// if (element.multiple) {
-			// 	var v = Utility.getByPath(self.controller.model, path);
-			// 	v.push();
-			// 	value = v;
-			// }
-
-			Utility.setByPath(self.controller.model, path, value);
+			Utility.setByPath(self.controller.model, self.attribute.opts[0], value);
 			self.isChanging = false;
 		};
 
@@ -89,11 +77,11 @@ Unit.prototype.attributes = {
 		this.controller.insert(this.element.getElementsByTagName('*'));
 	},
 	css: function () {
-		if (this.cmds.length > 1) this.value = this.cmds.slice(1).join('-') + ': ' +  this.value + ';';
+		if (this.attribute.cmds.length > 1) this.value = this.attribute.cmds.slice(1).join('-') + ': ' +  this.value + ';';
 		this.element.style.cssText += this.value;
 	},
 	class: function () {
-		var className = this.cmds.slice(1).join('-');
+		var className = this.attribute.cmds.slice(1).join('-');
 		this.element.classList.toggle(className, this.value);
 	},
 	text: function () {
@@ -121,7 +109,7 @@ Unit.prototype.attributes = {
 		this.element.selectedIndex = this.value;
 	},
 	default: function () {
-		var path = Utility.toCamelCase(this.cmds);
+		var path = Utility.toCamelCase(this.attribute.cmds);
 		Utility.setByPath(this.element, path, this.value);
 	}
 };
@@ -154,7 +142,6 @@ Unit.prototype.create = function (options) {
 			self._value = value;
 		}
 	});
-
 
 	// if (self.value === null || self.value === undefined) return self;
 	if (self.attribute.cmds[0] in self.attributes) self.render = self.attributes[self.attribute.cmds[0]];

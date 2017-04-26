@@ -1,38 +1,46 @@
 /*
 	@preserve
 	name: jenie
-	version: 1.0.4
+	version: 1.0.5
 	author: alexander elias
 */
 
-var Register = require('./register');
+var Component = require('./component');
+var Global = require('./global');
 var Binder = require('./binder');
 var Router = require('./router');
 var Http = require('./http');
 
-document.createElement('style').appendChild(document.createTextNode(''));
+var S_VIEW_ELEMENT = Global.sViewElement;
 
-document.registerElement('j-view', {
+document.registerElement(S_VIEW_ELEMENT, {
 	prototype: Object.create(HTMLElement.prototype)
 });
 
 module.exports = {
 
-	register: Register,
-	router: Router,
-	binder: Binder,
-	http: Http,
-
 	services: {},
 
+	component: function (options) {
+		return Component(options);
+	},
+	router: function (options) {
+		return this.router = Router(options);
+	},
+	binder: function (options, callback) {
+		return Binder(options, callback);
+	},
+	http: function () {
+		return this.http = Http();
+	},
 	query: function (query) {
-		return document.currentScript ? document.currentScript.ownerDocument.querySelector(query) : document._currentScript.ownerDocument.querySelector(query);
+		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 	},
 	script: function () {
-		return document.currentScript ? document.currentScript : document._currentScript;
+		return (document._currentScript || document.currentScript);
 	},
 	document: function () {
-		return document.currentScript ? document.currentScript.ownerDocument : document._currentScript.ownerDocument;
+		return (document._currentScript || document.currentScript).ownerDocument;
 	}
 
 };
