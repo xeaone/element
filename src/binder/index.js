@@ -41,18 +41,37 @@ Binder.prototype.createModel = function (collection) {
 	});
 };
 
-Binder.prototype.create = function (data, callback) {
+Binder.prototype.create = function (options, callback) {
 	var self = this;
 
-	self.name = data.name;
-	self.scope = data.scope.shadowRoot || data.scope;
+	Object.defineProperties(self, {
+		name: {
+			enumerable: true,
+			value: options.name
+		},
+		modifiers: {
+			enumerable: true,
+			value: options.modifiers || {}
+		},
+		_view: {
+			get: function () {
+				return (options.view.shadowRoot || options.view).querySelectorAll('*');
+			}
+		},
+		_model: {
+			value: options.model || {}
+		}
+	});
 
-	self.model = data.model || {};
-	self.modifiers = data.modifiers || {};
-	self.view = data.view || self.scope.querySelectorAll('*');
+	Object.defineProperty(self, 'view', {
+		enumerable: true,
+		value: self.createView(self._view)
+	});
 
-	self.view = self.createView(self.view);
-	self.model = self.createModel(self.model);
+	Object.defineProperty(self, 'model', {
+		enumerable: true,
+		value: self.createModel(self._model)
+	});
 
 	if (callback) callback.call(self);
 

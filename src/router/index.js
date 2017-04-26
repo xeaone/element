@@ -9,8 +9,8 @@ Router.prototype.render = function (route) {
 	if (route.title) document.title = route.title;
 
 	if (typeof route.component === 'string') {
-		if (route.component in self.components) component = self.components[route.component];
-		else component = self.components[route.component] = document.createElement(route.component);
+		if (route.component in self.cache) component = self.cache[route.component];
+		else component = self.cache[route.component] = document.createElement(route.component);
 	} else {
 		component = route.component;
 	}
@@ -18,17 +18,7 @@ Router.prototype.render = function (route) {
 	if (self.view.firstChild) self.view.removeChild(self.view.firstChild);
 	self.view.appendChild(component);
 	window.scroll(0, 0);
-
-	// execute scripts
-	// var scripts = data.content.match(/<script>[\s\S]+<\/script>/g);
-	//
-	// if (scripts) {
-	// 	scripts.forEach(function (script) {
-	// 		script = script.replace(/(<script>)|(<\/script>)/g, '');
-	// 		eval(script);
-	// 	});
-	// }
-
+	return self;
 };
 
 Router.prototype.redirect = function (route) {
@@ -132,18 +122,17 @@ Router.prototype.navigate = function (state, replace) {
 Router.prototype.create = function (options) {
 	var self = this;
 
-	self.components = {};
-	self.routes = options.routes || [];
-	self.redirects = options.redirects || [];
-
 	self.mode = options.mode;
 	self.mode = self.mode === null || self.mode === undefined ? true : self.mode;
 	self.mode = 'history' in window && 'pushState' in window.history ? self.mode : false;
 
-	self.isChangeEvent = true;
 	self.base = options.base || '';
+	self.routes = options.routes || [];
 	self.external = options.external || '';
-	self.root = options.root || (self.mode ? '/' : '/#');
+
+	self.cache = {};
+	self.isChangeEvent = true;
+	self.root = self.mode ? '/' : '/#';
 	self.state = { root: self.root, base: self.base, origin: Utility.normalize(self.base + self.root) };
 
 	window.addEventListener('DOMContentLoaded', function () {

@@ -1,7 +1,7 @@
 /*
 	@preserve
 	name: jenie
-	version: 1.0.5
+	version: 1.0.6
 	author: alexander elias
 */
 
@@ -18,20 +18,16 @@ document.registerElement(S_VIEW_ELEMENT, {
 });
 
 module.exports = {
-
 	services: {},
-
+	http: Http(),
 	component: function (options) {
 		return Component(options);
-	},
-	router: function (options) {
-		return this.router = Router(options);
 	},
 	binder: function (options, callback) {
 		return Binder(options, callback);
 	},
-	http: function () {
-		return this.http = Http();
+	router: function (options) {
+		return this.router = Router(options);
 	},
 	query: function (query) {
 		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
@@ -42,5 +38,4 @@ module.exports = {
 	document: function () {
 		return (document._currentScript || document.currentScript).ownerDocument;
 	}
-
 };

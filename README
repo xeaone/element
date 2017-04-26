@@ -1,8 +1,0 @@
-Coming Soon
-
-TODO
-- hash mode route change back then forward not working
-- refine register and router
-
-- try to remove controller from unit (make rCrap, sCrap, PATH, PREFIX global)
-- move createView and createModel to Utility

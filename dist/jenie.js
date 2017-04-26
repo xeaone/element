@@ -42,18 +42,37 @@ Binder.prototype.createModel = function (collection) {
 	});
 };
 
-Binder.prototype.create = function (data, callback) {
+Binder.prototype.create = function (options, callback) {
 	var self = this;
 
-	self.name = data.name;
-	self.scope = data.scope.shadowRoot || data.scope;
+	Object.defineProperties(self, {
+		name: {
+			enumerable: true,
+			value: options.name
+		},
+		modifiers: {
+			enumerable: true,
+			value: options.modifiers || {}
+		},
+		_view: {
+			get: function () {
+				return (options.view.shadowRoot || options.view).querySelectorAll('*');
+			}
+		},
+		_model: {
+			value: options.model || {}
+		}
+	});
 
-	self.model = data.model || {};
-	self.modifiers = data.modifiers || {};
-	self.view = data.view || self.scope.querySelectorAll('*');
+	Object.defineProperty(self, 'view', {
+		enumerable: true,
+		value: self.createView(self._view)
+	});
 
-	self.view = self.createView(self.view);
-	self.model = self.createModel(self.model);
+	Object.defineProperty(self, 'model', {
+		enumerable: true,
+		value: self.createModel(self._model)
+	});
 
 	if (callback) callback.call(self);
 
@@ -515,7 +534,7 @@ Component.prototype.create = function (options) {
 
 	self.name = options.name;
 	self.model = options.model;
-	self.services = options.services;
+	// self.services = options.services;
 	self.modifiers = options.modifiers;
 	self.controller = options.controller;
 	self.currentScript = (document._currentScript || document.currentScript);
@@ -537,14 +556,16 @@ Component.prototype.create = function (options) {
 			self.uuid = Uuid();
 			self.element.appendChild(document.importNode(self.template.content, true));
 
-			self.binder = Binder({
-				name: self.uuid,
-				scope: self.element,
-				model: self.model,
-				modifiers: self.modifiers
-			}, self.controller);
+			if (self.model || self.controller) {
+				self.binder = Binder({
+					name: self.uuid,
+					model: self.model,
+					view: self.element,
+					modifiers: self.modifiers
+				}, self.controller);
 
-			self.model = self.binder.model;
+				self.model = self.binder.model;
+			}
 
 			if (self.created) self.created.call(self);
 		}
@@ -690,7 +711,7 @@ module.exports = function () {
 /*
 	@preserve
 	name: jenie
-	version: 1.0.5
+	version: 1.0.6
 	author: alexander elias
 */
 
@@ -707,20 +728,16 @@ document.registerElement(S_VIEW_ELEMENT, {
 });
 
 module.exports = {
-
 	services: {},
-
+	http: Http(),
 	component: function (options) {
 		return Component(options);
-	},
-	router: function (options) {
-		return this.router = Router(options);
 	},
 	binder: function (options, callback) {
 		return Binder(options, callback);
 	},
-	http: function () {
-		return this.http = Http();
+	router: function (options) {
+		return this.router = Router(options);
 	},
 	query: function (query) {
 		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
@@ -731,7 +748,6 @@ module.exports = {
 	document: function () {
 		return (document._currentScript || document.currentScript).ownerDocument;
 	}
-
 };
 
 },{"./binder":1,"./component":6,"./global":7,"./http":8,"./router":10}],10:[function(require,module,exports){
@@ -746,8 +762,8 @@ Router.prototype.render = function (route) {
 	if (route.title) document.title = route.title;
 
 	if (typeof route.component === 'string') {
-		if (route.component in self.components) component = self.components[route.component];
-		else component = self.components[route.component] = document.createElement(route.component);
+		if (route.component in self.cache) component = self.cache[route.component];
+		else component = self.cache[route.component] = document.createElement(route.component);
 	} else {
 		component = route.component;
 	}
@@ -755,17 +771,7 @@ Router.prototype.render = function (route) {
 	if (self.view.firstChild) self.view.removeChild(self.view.firstChild);
 	self.view.appendChild(component);
 	window.scroll(0, 0);
-
-	// execute scripts
-	// var scripts = data.content.match(/<script>[\s\S]+<\/script>/g);
-	//
-	// if (scripts) {
-	// 	scripts.forEach(function (script) {
-	// 		script = script.replace(/(<script>)|(<\/script>)/g, '');
-	// 		eval(script);
-	// 	});
-	// }
-
+	return self;
 };
 
 Router.prototype.redirect = function (route) {
@@ -869,18 +875,17 @@ Router.prototype.navigate = function (state, replace) {
 Router.prototype.create = function (options) {
 	var self = this;
 
-	self.components = {};
-	self.routes = options.routes || [];
-	self.redirects = options.redirects || [];
-
 	self.mode = options.mode;
 	self.mode = self.mode === null || self.mode === undefined ? true : self.mode;
 	self.mode = 'history' in window && 'pushState' in window.history ? self.mode : false;
 
-	self.isChangeEvent = true;
 	self.base = options.base || '';
+	self.routes = options.routes || [];
 	self.external = options.external || '';
-	self.root = options.root || (self.mode ? '/' : '/#');
+
+	self.cache = {};
+	self.isChangeEvent = true;
+	self.root = self.mode ? '/' : '/#';
 	self.state = { root: self.root, base: self.base, origin: Utility.normalize(self.base + self.root) };
 
 	window.addEventListener('DOMContentLoaded', function () {
