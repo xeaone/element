@@ -1,5 +1,4 @@
 var Utility = require('./utility');
-// var Uuid = require('../uuid');
 
 function Unit () {}
 
@@ -29,7 +28,7 @@ Unit.prototype.attributes = {
 		if (!self.children) self.children = [];
 
 		var variable = self.attribute.cmds.slice(1).join('.');
-		var pattern = new RegExp('(((data-)?j(-(\\w)+)+=\"))' + variable + '(((\\.(\\w)+)+)?\")', 'g');
+		var pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
 		self.data.forEach(function (data, index) {
 			self.container.innerHTML = self.clone.cloneNode(true).innerHTML

@@ -25,9 +25,9 @@ View.prototype.eachElement = function (elements, callback) { //skip,
 		glance = this.glance(element);
 
 		if (ELEMENT_REJECTS.test(glance)) {
-			i += element.children.length;
+			i += element.querySelectorAll('*').length;
 		} else if (ELEMENT_REJECTS_CHILDREN.test(glance)) {
-			i += element.children.length;
+			i += element.querySelectorAll('*').length;
 			callback(element);
 		// } else if (skip && skip.test(glance)) {
 		// 	continue;

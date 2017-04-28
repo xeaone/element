@@ -232,7 +232,6 @@
 	};
 
 	var Utility$1 = utility;
-	// var Uuid = require('../uuid');
 
 	function Unit$1 () {}
 
@@ -262,7 +261,7 @@
 			if (!self.children) self.children = [];
 
 			var variable = self.attribute.cmds.slice(1).join('.');
-			var pattern = new RegExp('(((data-)?j(-(\\w)+)+=\"))' + variable + '(((\\.(\\w)+)+)?\")', 'g');
+			var pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
 			self.data.forEach(function (data, index) {
 				self.container.innerHTML = self.clone.cloneNode(true).innerHTML
@@ -445,9 +444,9 @@
 			glance = this.glance(element);
 
 			if (ELEMENT_REJECTS.test(glance)) {
-				i += element.children.length;
+				i += element.querySelectorAll('*').length;
 			} else if (ELEMENT_REJECTS_CHILDREN.test(glance)) {
-				i += element.children.length;
+				i += element.querySelectorAll('*').length;
 				callback(element);
 			// } else if (skip && skip.test(glance)) {
 			// 	continue;
@@ -1060,7 +1059,7 @@
 	/*
 		@preserve
 		name: jenie
-		version: 1.0.9
+		version: 1.0.90
 		author: alexander elias
 	*/
 
