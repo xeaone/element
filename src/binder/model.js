@@ -18,7 +18,6 @@ Model.prototype.ins = function (model, callback, prefix, key, value) {
 	// }
 
 	model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
-
 	if (callback) callback(prefix.slice(0, -1), model);
 	// if (callback) callback(prefix + key, value);
 };

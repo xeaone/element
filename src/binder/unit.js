@@ -29,11 +29,11 @@ Unit.prototype.attributes = {
 		if (!self.children) self.children = [];
 
 		var variable = self.attribute.cmds.slice(1).join('.');
-		var pattern = new RegExp('((data-)?j(-(\\w)+)+=\")' + variable + '\"', 'g');
+		var pattern = new RegExp('(((data-)?j(-(\\w)+)+=\"))' + variable + '(((\\.(\\w)+)+)?\")', 'g');
 
 		self.data.forEach(function (data, index) {
 			self.container.innerHTML = self.clone.cloneNode(true).innerHTML
-			.replace(pattern, '$1' + self.attribute.path + '.' + index.toString() + '\"');
+			.replace(pattern, '$1' + self.attribute.path + '.' + index.toString() + '$6');
 
 			if (self.element.children[index]) {
 				self.element.replaceChild(self.container.children[0], self.element.children[index]);

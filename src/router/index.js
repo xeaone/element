@@ -40,10 +40,10 @@ Router.prototype.add = function (route) {
 };
 
 Router.prototype.remove = function (path) {
-	var self = this;
+	var self = this, route;
 
 	for (var i = 0, l = self.routes.length; i < l; i++) {
-		var route = self.routes[i];
+		route = self.routes[i];
 
 		if (path === route.path) {
 			self.routes.splice(i, 1);
@@ -76,10 +76,10 @@ Router.prototype.get = function (path) {
 		}
 	}
 
-	route = {};
-	route.title = '404';
-	route.component = document.createElement('div');
-	route.component.innerHTML = '{ "statusCode": 404, "error": "Not Found" }';
+	// route = {};
+	// route.title = '404';
+	// route.component = document.createElement('div');
+	// route.component.innerHTML = '{ "statusCode": 404, "error": "Not Found" }';
 
 	return route;
 };

@@ -2,9 +2,9 @@
 <template>
 	<p j-text="text | upper">{{NULL}}</p>
 	<input type="text" j-value="text" placeholder="text">
-	<input type="text" j-value="items.0" placeholder="items.0">
+	<input type="text" j-value="items.value.0" placeholder="items.value.0">
 	<div style="height: 300px;" j-each-item="items">
-		<div j-text="item"></div>
+		<div j-text="item.value"></div>
 	</div>
 </template>
 
@@ -15,9 +15,9 @@
 		model: {
 			text: 'Hello from html test',
 			items: [
-				'foo',
-				'bar',
-				'baz'
+				{ value: 'foo' },
+				{ value: 'bar' },
+				{ value: 'baz' }
 			]
 		},
 		modifiers: {
@@ -42,7 +42,7 @@
 					}, 500);
 				}
 
-				self.model.items.ins(self.model.items.length, self.model.items.length);
+				self.model.items.ins(self.model.items.length, { value: self.model.items.length });
 			}, 500);
 
 			console.log(self.binder);

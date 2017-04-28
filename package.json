@@ -1,7 +1,7 @@
 {
   "name": "jenie",
-  "version": "1.0.7",
-  "description": "Coming Soon",
+  "version": "1.0.8",
+  "description": "Light weight powerful web components framework",
   "main": "src/jenie.js",
   "scripts": {
 	"test": "browserify src/jenie.b.js -o dist/jenie.js -s Jenie && http-server . -c-1",
