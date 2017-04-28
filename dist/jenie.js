@@ -365,10 +365,8 @@
 		}
 	};
 
-	Unit$1.prototype.render = function () { //data
+	Unit$1.prototype.render = function () {
 		var self = this;
-
-		// self.data = data === undefined ? self.data : self.data = data;
 
 		self.attributes[
 			self.attribute.cmds[0] in self.attributes ?
@@ -398,9 +396,9 @@
 			enumerable: true,
 			get: function () {
 
-				// if (self._data === undefined) {
-				// 	self._data = self.binder._model.get(self.attribute.path);
-				// }
+				if (self._data === undefined) {
+					self._data = self.binder._model.get(self.attribute.path);
+				}
 
 				self.attribute.modifiers.forEach(function (modifier) {
 					self._data = self.binder.modifiers[modifier].call(self._data);
@@ -1062,7 +1060,7 @@
 	/*
 		@preserve
 		name: jenie
-		version: 1.0.8
+		version: 1.0.9
 		author: alexander elias
 	*/
 

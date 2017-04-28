@@ -132,10 +132,8 @@ Unit.prototype.attributes = {
 	}
 };
 
-Unit.prototype.render = function () { //data
+Unit.prototype.render = function () {
 	var self = this;
-
-	// self.data = data === undefined ? self.data : self.data = data;
 
 	self.attributes[
 		self.attribute.cmds[0] in self.attributes ?
@@ -165,9 +163,9 @@ Unit.prototype.create = function (options) {
 		enumerable: true,
 		get: function () {
 
-			// if (self._data === undefined) {
-			// 	self._data = self.binder._model.get(self.attribute.path);
-			// }
+			if (self._data === undefined) {
+				self._data = self.binder._model.get(self.attribute.path);
+			}
 
 			self.attribute.modifiers.forEach(function (modifier) {
 				self._data = self.binder.modifiers[modifier].call(self._data);
