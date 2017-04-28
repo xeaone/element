@@ -5,8 +5,8 @@
   "main": "src/jenie.js",
   "scripts": {
 	"test": "browserify src/jenie.b.js -o dist/jenie.js -s Jenie && http-server . -c-1",
-    "build": "browserify src/jenie.b.js -o dist/jenie.js -s Jenie",
-	"build-min": "muleify pack src/jenie.b.js dist/jenie.min.js -m"
+	"b": "browserify src/jenie.b.js -o dist/jenie.js -s Jenie",
+    "build": "muleify pack src/jenie.b.js dist/jenie.js && muleify pack src/jenie.b.js dist/jenie.min.js -m"
   },
   "repository": {
     "type": "git",

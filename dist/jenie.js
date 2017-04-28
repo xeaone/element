@@ -215,7 +215,6 @@ Unit.prototype.attributes = {
 		if (!self.container) self.container = document.createElement('div');
 		if (!self.clone) self.clone = self.element.cloneNode(true);
 		if (!self.children) self.children = [];
-		console.log(this);
 
 		var variable = self.attribute.cmds.slice(1).join('.');
 		var pattern = new RegExp('((data-)?j(-(\\w)+)+=\")' + variable + '\"', 'g');
