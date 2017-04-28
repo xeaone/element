@@ -18,7 +18,6 @@ module.exports = {
 	},
 
 	interact: function (type, collection, path, value) {
-		// var keys = this.toCamelCase(path).split('.');
 		var keys = path.split('.');
 		var last = keys.length - 1;
 		var temporary = collection;

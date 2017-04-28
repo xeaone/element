@@ -22,6 +22,7 @@ module.exports = {
 	rAttributeAccepts: /(data-)?j-/,
 
 	rElementAccepts: /(data-)?j-/,
-	rElementRejects: /^\w+(-\w+)+|^iframe|^object|^script/,
+	rElementRejectsChildren: /(data-)?j-each/,
+	rElementRejects: /^\w+(-\w+)+|^iframe|^object|^script/
 
 };

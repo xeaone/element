@@ -4,7 +4,7 @@
   "description": "Coming Soon",
   "main": "src/jenie.js",
   "scripts": {
-	"test": "http-server . -c-1",
+	"test": "browserify src/jenie.b.js -o dist/jenie.js -s Jenie && http-server . -c-1",
     "build": "browserify src/jenie.b.js -o dist/jenie.js -s Jenie",
 	"build-min": "muleify pack src/jenie.b.js dist/jenie.min.js -m"
   },
