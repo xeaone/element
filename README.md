@@ -69,38 +69,41 @@ Jenie.router({
 Returns a Jenie component and defines a web component.
 
 #### Options
-- name **Required**
-- template **Required**
-- model
-- modifiers
-- controller
-- created
-- attached
-- detached
-- attributed
+- `name` **Required**
+- `template` **Required**
+- `model`
+- `modifiers`
+- `controller`
+- `created`
+- `attached`
+- `detached`
+- `attributed`
 
 ### Jenie.router(Object: options) || Jenie.router
 After initialized `Jenie.router` is no longer a Function but a router instance.
 
 #### Options
-- mode
-- base
-- routes
-- external
+- `mode`
+- `base`
+- `routes`
+- `external` - If `true` then the response will not be handle by the router. If `false` then the router will handle the response.
+	- `RegExp`
+	- `String` - Converted to a `RegExp`.
+	- `Function` - Argument provided is the request path. Expects a boolean return.
 
 ### Jenie.binder(Object: options, Function: callback)
 Returns an instance of a new binder.
 
 #### Options
-- name
-- view
-- model
-- modifiers
+- `name`
+- `view`
+- `model`
+- `modifiers`
 
 ### Jenie.http
-- mime
-- fetch
-- serialize
+- `mime`
+- `fetch`
+- `serialize`
 
 ### Jenie.services
 An `object` to store `functions`. Basically a module system. This might change to `Jenie.module` and or might be come more of a robust system.

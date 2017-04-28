@@ -157,8 +157,12 @@ Router.prototype.create = function (options) {
 		while (target && 'A' !== target.nodeName) target = target.parentNode;
 		if (!target || 'A' !== target.nodeName) return;
 
-		// if external not equal the url then ignore
-		if (self.external && Utility.path(target.href, self.state.base, self.state.root).indexOf(self.external) !== 0) return;
+		// if external is true then default action
+		if (self.external) {
+			if (self.external.constructor.name === 'Function' && self.external(target.href)) return;
+			else if (self.external.constructor.name === 'RegExp' && self.external.test(target.href)) return;
+			else if (self.external.constructor.name === 'String' && new RegExp(self.external).test(target.href)) return;
+		}
 
 		// check non acceptable attributes
 		if (target.hasAttribute('download') || target.getAttribute('rel') === 'external') return;

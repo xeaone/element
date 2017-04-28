@@ -1,1 +1,3 @@
 - hash mode route change back then forward not working
+- this.binder.model.ins( breaks
+- j-each
