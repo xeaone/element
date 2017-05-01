@@ -1,12 +1,15 @@
 {
   "name": "jenie",
-  "version": "1.0.90",
+  "version": "1.0.91",
   "description": "Light weight powerful web components framework",
   "main": "src/jenie.js",
   "scripts": {
-	"test": "browserify src/jenie.b.js -o dist/jenie.js -s Jenie && http-server . -c-1",
-	"b": "browserify src/jenie.b.js -o dist/jenie.js -s Jenie",
-    "build": "muleify pack src/jenie.b.js dist/jenie.js && muleify pack src/jenie.b.js dist/jenie.min.js -m"
+	"serve": "muleify serve -s test",
+	"watch": "muleify pack -w src/jenie.b.js dist/jenie.js",
+	"build-dev": "muleify pack src/jenie.b.js dist/jenie.js",
+    "build-min": "muleify pack -m src/jenie.b.js dist/jenie.min.js",
+	"build-pol": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
+	"build-all": "npm run build-dev && npm run build-min && npm run build-pol"
   },
   "repository": {
     "type": "git",
