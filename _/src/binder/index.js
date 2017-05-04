@@ -42,20 +42,9 @@ Binder.prototype.create = function (options, callback) {
 	});
 
 	self._model.setup(self.collection, function (path, value) {
-		console.log('\n');
-		console.log(path);
-		console.log(value);
-		console.log('\n');
-
-		self._view.eachPath('^' + path + '', function (units) {
-			units.forEach(function (unit, index) {
-				if (value === undefined) {
-					self._view.remove(path, index);
-				} else {
-					// unit.data = value;
-					unit.render();
-				}
-			});
+		self._view.units(path).forEach(function (unit) {
+			unit.data = value;
+			unit.render();
 		});
 	});
 

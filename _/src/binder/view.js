@@ -13,7 +13,7 @@ function View () {}
 
 View.prototype.glance = function (element) {
 	return element.outerHTML
-	.replace(/\/?>([\s\S])*/, '')
+	.replace(/(\/)?>.*$/, '')
 	.replace(/^</, '');
 };
 
@@ -63,24 +63,26 @@ View.prototype.eachAttribute = function (element, callback) {
 	}
 };
 
-View.prototype.eachPath = function (path, callback) {
-	var self = this, key;
-
-	path = typeof path === 'string' ? new RegExp(path) : path;
-
-	for (key in self.data) {
-		if (path.test(key)) {
-			callback(self.data[key], key);
-		}
-	}
-};
-
 View.prototype.units = function (path) {
 	return this.data[path] || [];
 };
 
 View.prototype.paths = function () {
 	return Object.keys(this.data);
+};
+
+View.prototype.setup = function (elements, callback) {
+	var self = this;
+
+	self.eachElement(elements, function (element) {
+		self.eachAttribute(element, function (attribute) {
+			if (!(attribute.path in self.data)) self.data[attribute.path] = [];
+			self.data[attribute.path].push(callback(Unit({ element: element, attribute: attribute })));
+
+		});
+	});
+
+	return self;
 };
 
 View.prototype.set = function (elements, callback) {
@@ -102,48 +104,12 @@ View.prototype.set = function (elements, callback) {
 	return self;
 };
 
-View.prototype.removeAll = function (pattern) {
-	var self = this, path, index, length;
-
-	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-
-	for (path in self.data) {
-		index = 0, length = self.data[path].length;
-		for (index; index < length; index++) {
-			if (pattern.test(path + '.' + index.toString())) {
-				self.data[path].splice(index, 1);
-			}
-		}
-	}
-};
-
-View.prototype.removeOne = function (pattern) {
-	var self = this, path, index, length;
-
-	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-
-	for (path in self.data) {
-		index = 0, length = self.data[path].length;
-		for (index; index < length; index++) {
-			if (pattern.test(path + '.' + index.toString())) {
-				self.data[path].slice(index, 1);
-				break;
-			}
-		}
-	}
-};
-
-View.prototype.setup = function (elements, callback) {
+View.prototype.remove = function (path, index) {
 	var self = this;
-
-	self.eachElement(elements, function (element) {
-		self.eachAttribute(element, function (attribute) {
-			if (!(attribute.path in self.data)) self.data[attribute.path] = [];
-			self.data[attribute.path].push(callback(Unit({ element: element, attribute: attribute })));
-
-		});
-	});
-
+	if (path in self.data) {
+		self.data[path].splice(index, 1);
+		if (self.data[path].length === 0) delete self.data[path];
+	}
 	return self;
 };
 

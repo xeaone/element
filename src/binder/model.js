@@ -2,35 +2,31 @@ var Utility = require('./utility');
 
 function Model () {}
 
-Model.prototype.ins = function (model, callback, prefix, key, value) {
+Model.prototype.every = function (collection, callback, path) {
+	var self = this, key, type;
 
-	if (value.constructor.name === 'Object' || value.constructor.name === 'Array') {
-		// could callback on each added here
-		value = this.observe(value, callback, prefix + key, true);
+	path = !path ? '' : path += '.';
+	type = collection === null || collection === undefined ? collection : collection.constructor.name;
+
+	if (type !== 'Array' && type !== 'Object') return;
+
+	function action (c, k, p) {
+		var v = c[k];
+		callback(p, v, k, c);
+		if (v && (v.constructor.name === 'Array' || v.constructor.name === 'Object')) {
+			self.every(v, null, callback, p);
+		}
 	}
 
-	// if (model.constructor.name === 'Array' && key == -1) {
-	// 	key = 0;
-	// 	model.splice(key, 0, value);
-	// 	model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
-	// 	key = model.length-1;
-	// 	value = model[key];
-	// }
-
-	model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
-	if (callback) callback(prefix.slice(0, -1), model);
-	// if (callback) callback(prefix + key, value);
-};
-
-Model.prototype.del = function (model, callback, prefix, key) {
-	if (model.constructor.name === 'Object') {
-		delete model[key];
-		if (callback) callback(prefix + key, undefined);
-	} else if (model.constructor.name === 'Array') {
-		// var l = model.length - 1;
-		model.splice(key, 1);
-		// key = l;
-		if (callback) callback(prefix.slice(0, -1), model);
+	if (type === 'Array') {
+		if (collection.length === 0) return;
+		for (key = 0; key < collection.length; key++) {
+			action(collection, key, path + key);
+		}
+	} else if (type === 'Object') {
+		for (key in collection) {
+			action(collection, key, path + key);
+		}
 	}
 };
 
@@ -52,7 +48,62 @@ Model.prototype.each = function (collection, callback) {
 	}
 };
 
-Model.prototype.descriptor = function (key, value, callback) {
+// Model.prototype.notify = function (path, collection, callback) {
+// 	if (collection && (collection.constructor.name === 'Array' || collection.constructor.name === 'Object')) {
+// 		this.every(collection, function (v, k, c, p) {
+// 			callback(path + '.' + p, v);
+// 		});
+// 	}
+// };
+
+Model.prototype.ins = function (model, callback, prefix, key, value) {
+	var self = this, type;
+
+	type = model === null || model === undefined ? model : model.constructor.name;
+
+	if (type === 'Object' || type === 'Array') {
+		value = self.observe(value, callback, prefix + key, true);
+	}
+
+	model = Object.defineProperty(model, key, self.descriptor(prefix + key, value, callback));
+
+	if (callback) callback(prefix + key, value);
+
+	// if (model.constructor.name === 'Array' && key == -1) {
+	// 	key = 0;
+	// 	model.splice(key, 0, value);
+	// 	model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
+	// 	key = model.length-1;
+	// 	value = model[key];
+	// }
+
+};
+
+Model.prototype.del = function (model, callback, path, key) {
+	var self = this, type;
+
+	type = model === null || model === undefined ? model : model.constructor.name;
+
+	if (type === 'Array') {
+		model.splice(key, 1);
+		callback(path.slice(0, -1), model);
+			// self.every(model[key], function (p) {
+			// 	callback(path + key + '.' + p, undefined);
+			// });
+
+	} else if (type === 'Object') {
+		self.every(model[key], function (v, k, c, p) {
+			callback(path + key + '.' + p, undefined);
+		});
+		callback(path + key, undefined);
+		delete model[key];
+	}
+
+};
+
+Model.prototype.descriptor = function (path, value, callback) {
+	var self = this;
+
 	return {
 		configurable: true,
 		enumerable: true,
@@ -61,12 +112,17 @@ Model.prototype.descriptor = function (key, value, callback) {
 		},
 		set: function (newValue) {
 			value = newValue;
-			callback(key, value);
+
+			self.every(value, function (p, v) {
+				callback(path + '.' + p, v);
+			});
+
+			callback(path, value);
 		}
 	};
 };
 
-Model.prototype.observe = function (collection, callback, prefix) {
+Model.prototype.observe = function (collection, callback, prefix, notify) {
 	var self = this, properties = {}, data;
 
 	prefix = !prefix ? '' : prefix += '.';
@@ -88,6 +144,8 @@ Model.prototype.observe = function (collection, callback, prefix) {
 		}
 
 		properties[key] = self.descriptor(prefix + key, value, callback);
+
+		if (callback && notify) callback(prefix + key, value);
 	});
 
 	return Object.defineProperties(data, properties);

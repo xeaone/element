@@ -5,8 +5,8 @@
   "main": "src/jenie.js",
   "scripts": {
 	"serve": "muleify serve -s test",
-	"watch": "muleify pack -w src/jenie.b.js dist/jenie.js",
-	"build-dev": "muleify pack src/jenie.b.js dist/jenie.js",
+	"watch": "muleify pack -p src -w src/jenie.b.js test/jenie.js",
+	"build-dev": "muleify pack src/jenie.b.js test/jenie.js",
     "build-min": "muleify pack -m src/jenie.b.js dist/jenie.min.js",
 	"build-pol": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
 	"build-all": "npm run build-dev && npm run build-min && npm run build-pol"

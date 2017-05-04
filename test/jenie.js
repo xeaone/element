@@ -89,35 +89,31 @@
 
 	function Model$1 () {}
 
-	Model$1.prototype.ins = function (model, callback, prefix, key, value) {
+	Model$1.prototype.every = function (collection, callback, path) {
+		var self = this, key, type;
 
-		if (value.constructor.name === 'Object' || value.constructor.name === 'Array') {
-			// could callback on each added here
-			value = this.observe(value, callback, prefix + key, true);
+		path = !path ? '' : path += '.';
+		type = collection === null || collection === undefined ? collection : collection.constructor.name;
+
+		if (type !== 'Array' && type !== 'Object') return;
+
+		function action (c, k, p) {
+			var v = c[k];
+			callback(p, v, k, c);
+			if (v && (v.constructor.name === 'Array' || v.constructor.name === 'Object')) {
+				self.every(v, null, callback, p);
+			}
 		}
 
-		// if (model.constructor.name === 'Array' && key == -1) {
-		// 	key = 0;
-		// 	model.splice(key, 0, value);
-		// 	model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
-		// 	key = model.length-1;
-		// 	value = model[key];
-		// }
-
-		model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
-		if (callback) callback(prefix.slice(0, -1), model);
-		// if (callback) callback(prefix + key, value);
-	};
-
-	Model$1.prototype.del = function (model, callback, prefix, key) {
-		if (model.constructor.name === 'Object') {
-			delete model[key];
-			if (callback) callback(prefix + key, undefined);
-		} else if (model.constructor.name === 'Array') {
-			// var l = model.length - 1;
-			model.splice(key, 1);
-			// key = l;
-			if (callback) callback(prefix.slice(0, -1), model);
+		if (type === 'Array') {
+			if (collection.length === 0) return;
+			for (key = 0; key < collection.length; key++) {
+				action(collection, key, path + key);
+			}
+		} else if (type === 'Object') {
+			for (key in collection) {
+				action(collection, key, path + key);
+			}
 		}
 	};
 
@@ -139,7 +135,62 @@
 		}
 	};
 
-	Model$1.prototype.descriptor = function (key, value, callback) {
+	// Model.prototype.notify = function (path, collection, callback) {
+	// 	if (collection && (collection.constructor.name === 'Array' || collection.constructor.name === 'Object')) {
+	// 		this.every(collection, function (v, k, c, p) {
+	// 			callback(path + '.' + p, v);
+	// 		});
+	// 	}
+	// };
+
+	Model$1.prototype.ins = function (model, callback, prefix, key, value) {
+		var self = this, type;
+
+		type = model === null || model === undefined ? model : model.constructor.name;
+
+		if (type === 'Object' || type === 'Array') {
+			value = self.observe(value, callback, prefix + key, true);
+		}
+
+		model = Object.defineProperty(model, key, self.descriptor(prefix + key, value, callback));
+
+		if (callback) callback(prefix + key, value);
+
+		// if (model.constructor.name === 'Array' && key == -1) {
+		// 	key = 0;
+		// 	model.splice(key, 0, value);
+		// 	model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
+		// 	key = model.length-1;
+		// 	value = model[key];
+		// }
+
+	};
+
+	Model$1.prototype.del = function (model, callback, path, key) {
+		var self = this, type;
+
+		type = model === null || model === undefined ? model : model.constructor.name;
+
+		if (type === 'Array') {
+			model.splice(key, 1);
+			callback(path.slice(0, -1), model);
+				// self.every(model[key], function (p) {
+				// 	callback(path + key + '.' + p, undefined);
+				// });
+
+		} else if (type === 'Object') {
+			self.every(model[key], function (v, k, c, p) {
+				callback(path + key + '.' + p, undefined);
+			});
+			callback(path + key, undefined);
+			delete model[key];
+		}
+
+	};
+
+	Model$1.prototype.descriptor = function (path, value, callback) {
+		var self = this;
+
 		return {
 			configurable: true,
 			enumerable: true,
@@ -148,12 +199,17 @@
 			},
 			set: function (newValue) {
 				value = newValue;
-				callback(key, value);
+
+				self.every(value, function (p, v) {
+					callback(path + '.' + p, v);
+				});
+
+				callback(path, value);
 			}
 		};
 	};
 
-	Model$1.prototype.observe = function (collection, callback, prefix) {
+	Model$1.prototype.observe = function (collection, callback, prefix, notify) {
 		var self = this, properties = {}, data;
 
 		prefix = !prefix ? '' : prefix += '.';
@@ -175,6 +231,8 @@
 			}
 
 			properties[key] = self.descriptor(prefix + key, value, callback);
+
+			if (callback && notify) callback(prefix + key, value);
 		});
 
 		return Object.defineProperties(data, properties);
@@ -233,9 +291,7 @@
 
 	var Utility$1 = utility;
 
-	function Unit$1 () {}
-
-	Unit$1.prototype.attributes = {
+	var renders = {
 		on: function () {
 			var self = this;
 
@@ -254,44 +310,39 @@
 			self.element.addEventListener(eventName, self.listeners[methodName], false);
 		},
 		each: function () {
-			var self = this;
+			var self = this, pattern, last;
 
-			if (!self.container) self.container = document.createElement('div');
-			if (!self.clone) self.clone = self.element.cloneNode(true);
-			if (!self.children) self.children = [];
+			if (self.length) {
+				if (self.data.length < self.length) {
+					last = self.data.length.toString();
+					pattern = '^' + self.attribute.path + '\\.' + last;
+					console.log(pattern);
+					self.binder._view.removeAll(pattern);
 
-			var variable = self.attribute.cmds.slice(1).join('.');
-			var pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+					self.binder._view.eachPath('^' + self.attribute.path + '\\.\\d+', function (units) {
+						units.forEach(function (unit, index) {
+							console.log(unit);
+						});
+					});
+				} else {
+					// self.container.innerHTML = self.clone.replace(self.pattern, '$1' + self.attribute.path + '.' + (self.data.length-1).toString() + '$6');
+					// self.element.appendChild(self.container.children[0]);
+				}
+			} else {
+				self.container = document.createElement('div');
+				self.variable = self.attribute.cmds.slice(1).join('.');
+				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
+				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
-			self.data.forEach(function (data, index) {
-				self.container.innerHTML = self.clone.cloneNode(true).innerHTML
-				.replace(pattern, '$1' + self.attribute.path + '.' + index.toString() + '$6');
-
-				if (self.element.children[index]) {
-					self.element.replaceChild(self.container.children[0], self.element.children[index]);
-				} else if (self.element.children.length < self.data.length) {
+				self.data.forEach(function (data, index) {
+					self.container.innerHTML = self.clone.replace(self.pattern, '$1' + self.attribute.path + '.' + index.toString() + '$6');
 					self.element.appendChild(self.container.children[0]);
-				}
-			});
+				});
 
-			if (self.element.children.length > self.data.length) {
-				while (self.element.children.length > self.data.length) {
-					self.element.removeChild(self.element.children[self.element.children.length-1]);
-				}
+				self.bindChildren();
 			}
 
-			self.children.forEach(function (child, index) {
-				self.children.slice(index, 1);
-				self.binder._view.remove(child.path, child.index);
-			});
-
-			self.binder._view.set(self.element.getElementsByTagName('*'), function (unit, path, index) {
-				unit.binder = self.binder;
-				unit.data = self.binder._model.get(unit.attribute.path);
-				unit.render();
-				self.children.push({ path: path, index: index });
-				return unit;
-			});
+			self.length = self.data.length;
 
 		},
 		value: function () {
@@ -364,15 +415,35 @@
 		}
 	};
 
-	Unit$1.prototype.render = function () {
+	var Renders = renders;
+
+	function Unit$1 () {}
+
+	Unit$1.prototype.renders = Renders;
+
+	Unit$1.prototype.bindChildren = function () {
 		var self = this;
 
-		self.attributes[
-			self.attribute.cmds[0] in self.attributes ?
-			self.attribute.cmds[0] :
-			'default'
-		].call(self);
+		self.binder._view.set(self.element.getElementsByTagName('*'), function (unit) {
+			unit.binder = self.binder;
+			unit.data = self.binder._model.get(unit.attribute.path);
+			unit.render();
+			return unit;
+		});
 
+		return self;
+	};
+
+	Unit$1.prototype.unrender = function () {
+		var self = this;
+		self.element.parentNode.removeChild(self.element);
+		return self;
+	};
+
+	Unit$1.prototype.render = function () {
+		var self = this;
+		self.data = self.binder._model.get(self.attribute.path);
+		self.renders[self.renderName].call(self);
 		return self;
 	};
 
@@ -388,6 +459,8 @@
 		self.isNew = true;
 		self.listeners = {};
 
+		self.renderName = options.renderName || self.attribute.cmds[0] in self.renders ? self.attribute.cmds[0] : 'default';
+
 		self._data, self.clone;
 
 		Object.defineProperty(self, 'data', {
@@ -395,13 +468,15 @@
 			enumerable: true,
 			get: function () {
 
-				if (self._data === undefined) {
-					self._data = self.binder._model.get(self.attribute.path);
-				}
+				// if (self._data === undefined) {
+				// 	self._data = self.binder._model.get(self.attribute.path);
+				// }
 
-				self.attribute.modifiers.forEach(function (modifier) {
-					self._data = self.binder.modifiers[modifier].call(self._data);
-				});
+				if (self.binder.modifiers && self.attribute.modifiers) {
+					self.attribute.modifiers.forEach(function (modifier) {
+						self._data = self.binder.modifiers[modifier].call(self._data);
+					});
+				}
 
 				return self._data;
 			},
@@ -413,12 +488,12 @@
 		return self;
 	};
 
-	var unit = function (options) {
+	var index$6 = function (options) {
 		return new Unit$1().create(options);
 	};
 
 	var Global$1 = index$4;
-	var Unit = unit;
+	var Unit = index$6;
 
 	var PATH = Global$1.rPath;
 	var PREFIX = Global$1.rPrefix;
@@ -432,7 +507,7 @@
 
 	View$1.prototype.glance = function (element) {
 		return element.outerHTML
-		.replace(/(\/)?>.*$/, '')
+		.replace(/\/?>([\s\S])*/, '')
 		.replace(/^</, '');
 	};
 
@@ -482,26 +557,24 @@
 		}
 	};
 
+	View$1.prototype.eachPath = function (path, callback) {
+		var self = this, key;
+
+		path = typeof path === 'string' ? new RegExp(path) : path;
+
+		for (key in self.data) {
+			if (path.test(key)) {
+				callback(self.data[key], key);
+			}
+		}
+	};
+
 	View$1.prototype.units = function (path) {
 		return this.data[path] || [];
 	};
 
 	View$1.prototype.paths = function () {
 		return Object.keys(this.data);
-	};
-
-	View$1.prototype.setup = function (elements, callback) {
-		var self = this;
-
-		self.eachElement(elements, function (element) {
-			self.eachAttribute(element, function (attribute) {
-				if (!(attribute.path in self.data)) self.data[attribute.path] = [];
-				self.data[attribute.path].push(callback(Unit({ element: element, attribute: attribute })));
-
-			});
-		});
-
-		return self;
 	};
 
 	View$1.prototype.set = function (elements, callback) {
@@ -523,12 +596,48 @@
 		return self;
 	};
 
-	View$1.prototype.remove = function (path, index) {
-		var self = this;
-		if (path in self.data) {
-			self.data[path].splice(index, 1);
-			if (self.data[path].length === 0) delete self.data[path];
+	View$1.prototype.removeAll = function (pattern) {
+		var self = this, path, index, length;
+
+		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+
+		for (path in self.data) {
+			index = 0, length = self.data[path].length;
+			for (index; index < length; index++) {
+				if (pattern.test(path + '.' + index.toString())) {
+					self.data[path].splice(index, 1);
+				}
+			}
 		}
+	};
+
+	View$1.prototype.removeOne = function (pattern) {
+		var self = this, path, index, length;
+
+		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+
+		for (path in self.data) {
+			index = 0, length = self.data[path].length;
+			for (index; index < length; index++) {
+				if (pattern.test(path + '.' + index.toString())) {
+					self.data[path].slice(index, 1);
+					break;
+				}
+			}
+		}
+	};
+
+	View$1.prototype.setup = function (elements, callback) {
+		var self = this;
+
+		self.eachElement(elements, function (element) {
+			self.eachAttribute(element, function (attribute) {
+				if (!(attribute.path in self.data)) self.data[attribute.path] = [];
+				self.data[attribute.path].push(callback(Unit({ element: element, attribute: attribute })));
+
+			});
+		});
+
 		return self;
 	};
 
@@ -587,9 +696,20 @@
 		});
 
 		self._model.setup(self.collection, function (path, value) {
-			self._view.units(path).forEach(function (unit) {
-				unit.data = value;
-				unit.render();
+			console.log('\n');
+			console.log(path);
+			console.log(value);
+			console.log('\n');
+
+			self._view.eachPath('^' + path + '', function (units) {
+				units.forEach(function (unit, index) {
+					if (value === undefined) {
+						self._view.remove(path, index);
+					} else {
+						// unit.data = value;
+						unit.render();
+					}
+				});
 			});
 		});
 
@@ -613,7 +733,7 @@
 
 	var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
-	var index$6 = function () {
+	var index$8 = function () {
 		var chars = CHARS, uuid = [];
 
 		// rfc4122, version 4 form
@@ -635,7 +755,7 @@
 	};
 
 	var Binder$1 = index$2;
-	var Uuid = index$6;
+	var Uuid = index$8;
 
 	function Component$1 () {}
 
@@ -954,7 +1074,7 @@
 		return self;
 	};
 
-	var index$8 = function (options) {
+	var index$10 = function (options) {
 		return new Router$1().create(options);
 	};
 
@@ -1052,7 +1172,7 @@
 		return self;
 	};
 
-	var index$10 = function () {
+	var index$12 = function () {
 		return new Http$1().create();
 	};
 
@@ -1066,8 +1186,8 @@
 	var Component = index;
 	var Global = index$4;
 	var Binder = index$2;
-	var Router = index$8;
-	var Http = index$10;
+	var Router = index$10;
+	var Http = index$12;
 
 	var S_VIEW_ELEMENT = Global.sViewElement;
 

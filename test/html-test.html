@@ -1,10 +1,14 @@
 
 <template>
-	<p j-text="text | upper">{{NULL}}</p>
-	<input type="text" j-value="text" placeholder="text">
-	<input type="text" j-value="items.value.0" placeholder="items.value.0">
-	<div style="height: 300px;" j-each-item="items">
-		<div j-text="item.value"></div>
+	<div>
+		<div>
+			<p j-text="text | upper">{{NULL}}</p>
+			<input type="text" j-value="text" placeholder="text">
+			<input type="text" j-value="items.value.0" placeholder="items.value.0">
+			<div j-each-item="items">
+				<div j-text="item.value"></div>
+			</div>
+		</div>
 	</div>
 </template>
 
@@ -26,29 +30,37 @@
 			}
 		},
 		created: function () {
-			var self = this;
-
-			console.log('created ' + self.name);
-			self.model.text = 'new html render';
-			this.model.items.del('0');
-
-			var increaseInterval = setInterval(function () {
-				if (self.model.items.length === 5) {
-					clearInterval(increaseInterval);
-
-					var decreaseInterval = setInterval(function () {
-						if (self.model.items.length === 3) clearInterval(decreaseInterval);
-						self.model.items.del(self.model.items.length-1);
-					}, 500);
-				}
-
-				self.model.items.ins(self.model.items.length, { value: self.model.items.length });
-			}, 500);
-
-			console.log(self.binder);
+			// console.log('created ' + self.name);
 		},
 		attached: function () {
-			console.log('attached ' + this.name);
+			// console.log('attached ' + this.name);
+			var self = this;
+
+			self.model.text = 'new html render';
+
+			setTimeout(function () {
+				self.model.items.del('0');
+			}, 1500);
+
+			// setTimeout(function () {
+			// 	self.model.items.ins(self.model.items.length-1, 'taz');
+			// }, 1000);
+
+			// var increaseInterval = setInterval(function () {
+			// 	if (self.model.items.length === 5) {
+			// 		clearInterval(increaseInterval);
+			//
+			// 		var decreaseInterval = setInterval(function () {
+			// 			if (self.model.items.length === 3) clearInterval(decreaseInterval);
+			// 			self.model.items.del(self.model.items.length-1);
+			// 		}, 1000);
+			// 	}
+			//
+			// 	self.model.items.ins(self.model.items.length, { value: self.model.items.length });
+			// }, 1000);
+
+			// console.log(self.binder);
+
 		},
 		detached: function () {
 			console.log('detached ' + this.name);

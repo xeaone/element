@@ -1,4 +1,8 @@
+
 module.exports = {
+	has: function (string, search) {
+		return string.indexOf(search) !== -1;
+	},
 	normalize: function (path) {
 		path = decodeURI(path)
 		.replace(/\/{2,}/g, '/')
@@ -22,11 +26,5 @@ module.exports = {
 			.replace(base, '/')
 			.replace(root, '/')
 		);
-	},
-	// isSameOrigin: function (path) {
-	// 	return path && path.indexOf(window.location.origin) > -1;
-	// },
-	// isSamePath: function (pathOne, pathTwo) {
-	// 	return this.path(pathOne || '') === this.path(pathTwo || '');
-	// },
+	}
 };
