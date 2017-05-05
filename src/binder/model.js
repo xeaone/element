@@ -1,4 +1,4 @@
-var Utility = require('./utility');
+var Utility = require('../utility');
 
 function Model () {}
 
