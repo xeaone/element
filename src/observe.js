@@ -24,13 +24,14 @@ function Model () {}
 Model.prototype.ins = function (data, callback, path, key, value) {
 	var self = this;
 
-	path += key;
+	path += key.toString();
 
 	if (Utility.is(value, 'Object') || Utility.is(value, 'Array')) {
-		data[key] = self.observer(value, callback, path, true);
-	} else {
-		Object.defineProperty(data, key, self.property(key, path, callback))
+		self.defineProperties(value, callback, path, true);
 	}
+
+	var property = self.property(key, path, callback);
+	Object.defineProperty(data, key, property);
 
 	data.meta[key] = value;
 	callback(path, value);
@@ -41,23 +42,26 @@ Model.prototype.ins = function (data, callback, path, key, value) {
 Model.prototype.del = function (data, callback, path, key) {
 	var self = this;
 
-	path += key;
-
 	if (Utility.is(data.meta, 'Object')) {
+		path += key.toString();
+		self.removeListeners(data.meta[key], callback, path);
 		delete data.meta[key];
 		delete data[key];
+		callback(path, undefined);
 	} else if (Utility.is(data.meta, 'Array')) {
-		// console.log(data.meta);
-		// console.log(data);
-		// if (Utility.is(data.meta[key], 'Object') || Utility.is(data.meta[key], 'Array')) {
-		// 	self.removeListeners(data.meta[key], callback, path);
-		// }
+		var length = data.meta.length;
+		var last = length === 0 ? 0 : length-1;
+		path += last.toString();
+		self.removeListeners(data.meta[last], callback, path);
 		data.meta.splice(key, 1);
-		delete data[key];
-		data.splice(key, 1);
-	}
+		data.splice(last, 1);
 
-	callback(path, undefined);
+		data.forEach(function (value, index, array) {
+			array[index] = value;
+		});
+
+		callback(path, undefined);
+	}
 
 	return undefined;
 };
@@ -81,24 +85,32 @@ Model.prototype.property = function (key, path, callback) {
 	};
 };
 
-Model.prototype.properties = function (data, callback, path, notify) {
+Model.prototype.defineProperties = function (data, callback, path, notify) {
 	var self = this;
 
 	path = path ? path += '.' : '';
 
-	var properties = {
-		meta: {
+	var properties = {};
+
+	if (!data.meta) {
+		properties.meta = {
 			writable: true,
 			configurable: true,
 			value: data.constructor()
-		},
-		ins: {
+		};
+	}
+
+	if (!data.ins) {
+		properties.ins = {
 			value: self.ins.bind(self, data, callback, path)
-		},
-		del: {
+		};
+	}
+
+	if (!data.del) {
+		properties.del = {
 			value: self.del.bind(self, data, callback, path)
-		}
-	};
+		};
+	}
 
 	Object.keys(data).forEach(function (key) {
 		var value = data[key];
@@ -106,10 +118,15 @@ Model.prototype.properties = function (data, callback, path, notify) {
 		if (value !== undefined) {
 
 			if (Utility.is(value, 'Object') || Utility.is(value, 'Array')) {
-				Object.defineProperties(value, self.properties(value, callback, path + key, notify));
+				self.defineProperties(value, callback, path + key, notify);
 			}
 
-			properties.meta.value[key] = value;
+			if (!data.meta) {
+				properties.meta.value[key] = value;
+			} else {
+				data.meta[key] = value;
+			}
+
 			properties[key] = self.property(key, path, callback);
 
 			if (notify) {
@@ -119,10 +136,14 @@ Model.prototype.properties = function (data, callback, path, notify) {
 		}
 	});
 
-	return properties;
+	return Object.defineProperties(data, properties);
 };
 
 Model.prototype.removeListeners = function (data, callback, path) {
+	if (!Utility.is(data, 'Object') && !Utility.is(data, 'Array')) {
+		return callback(path, undefined);
+	}
+
 	var self = this;
 	path = path ? path += '.' : '';
 
@@ -137,8 +158,8 @@ Model.prototype.removeListeners = function (data, callback, path) {
 
 Model.prototype.addListeners = function (data, callback) {
 	var self = this;
-	var properties = self.properties(data, callback);
-	return Object.defineProperties(data, properties);
+	return self.defineProperties(data, callback);
+	// return Object.defineProperties(data, properties);
 };
 
 Model.prototype.setup = function (data, callback) {
@@ -160,7 +181,7 @@ Model.prototype.setup = function (data, callback) {
 
 var object = {
 	o: { zero: '0', hello: 'test' },
-	a: [0, 1, 2 , 3, 4],
+	a: [0, 1, 2, 3, { num: 4 }],
 	n: null
 };
 

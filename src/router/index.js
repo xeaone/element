@@ -165,7 +165,7 @@ Router.prototype.create = function (options) {
 		}
 
 		// check non acceptable attributes
-		if (target.hasAttribute('download') || target.getAttribute('rel') === 'external') return;
+		if (target.hasAttribute('download') || target.hasAttribute('external')) return;
 
 		// check non acceptable href
 		if (Utility.has(target.href, 'mailto:')) return;
