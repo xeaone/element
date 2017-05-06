@@ -1,6 +1,8 @@
-# Jenie
+# Jene
+
 **Beta**
-Light weight powerful web components framework. Web components, data-binding, front-end routing, and more.
+
+Lightweight powerful web components framework. Web components, data-binding, front-end routing, and more.
 
 ## Support
 
