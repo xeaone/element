@@ -5,17 +5,17 @@
 		return variable && variable.constructor.name === name;
 	},
 
-	clone: function (object) {
-		if (object === null || typeof object !== 'object') return object;
-
-		var data = object.constructor(), key;
-
-		for (key in object) {
-			data[key] = this.clone(object[key]);
-		}
-
-		return data;
-	}
+	// clone: function (object) {
+	// 	if (object === null || typeof object !== 'object') return object;
+	//
+	// 	var data = object.constructor(), key;
+	//
+	// 	for (key in object) {
+	// 		data[key] = this.clone(object[key]);
+	// 	}
+	//
+	// 	return data;
+	// }
 
 };
 
@@ -27,12 +27,10 @@ Model.prototype.ins = function (data, callback, path, key, value) {
 	path += key.toString();
 
 	if (Utility.is(value, 'Object') || Utility.is(value, 'Array')) {
-		self.defineProperties(value, callback, path, true);
+		self.addListeners(value, callback, path, true);
 	}
 
-	var property = self.property(key, path, callback);
-	Object.defineProperty(data, key, property);
-
+	self.defineProperty(data, key, path, callback);
 	data.meta[key] = value;
 	callback(path, value);
 
@@ -43,33 +41,32 @@ Model.prototype.del = function (data, callback, path, key) {
 	var self = this;
 
 	if (Utility.is(data.meta, 'Object')) {
-		path += key.toString();
-		self.removeListeners(data.meta[key], callback, path);
 		delete data.meta[key];
 		delete data[key];
-		callback(path, undefined);
+		self.removeListeners(data.meta[key], callback, path + key.toString());
 	} else if (Utility.is(data.meta, 'Array')) {
 		var length = data.meta.length;
-		var last = length === 0 ? 0 : length-1;
-		path += last.toString();
-		self.removeListeners(data.meta[last], callback, path);
+		var lastIndex = length === 0 ? 0 : length - 1;
+		var lastItem = data.meta[lastIndex];
+
 		data.meta.splice(key, 1);
-		data.splice(last, 1);
 
 		data.forEach(function (value, index, array) {
 			array[index] = value;
 		});
 
-		callback(path, undefined);
+		data.splice(lastIndex, 1); // should go here but infinit loop
+
+		self.removeListeners(lastItem, callback, path + lastIndex.toString());
 	}
 
 	return undefined;
 };
 
-Model.prototype.property = function (key, path, callback) {
+Model.prototype.defineProperty = function (data, key, path, callback) {
 	var self = this;
 
-	return {
+	return Object.defineProperty(data, key, {
 		enumerable: true,
 		configurable: true,
 		get: function () {
@@ -82,61 +79,7 @@ Model.prototype.property = function (key, path, callback) {
 				self.ins(this, callback, path, key, value);
 			}
 		}
-	};
-};
-
-Model.prototype.defineProperties = function (data, callback, path, notify) {
-	var self = this;
-
-	path = path ? path += '.' : '';
-
-	var properties = {};
-
-	if (!data.meta) {
-		properties.meta = {
-			writable: true,
-			configurable: true,
-			value: data.constructor()
-		};
-	}
-
-	if (!data.ins) {
-		properties.ins = {
-			value: self.ins.bind(self, data, callback, path)
-		};
-	}
-
-	if (!data.del) {
-		properties.del = {
-			value: self.del.bind(self, data, callback, path)
-		};
-	}
-
-	Object.keys(data).forEach(function (key) {
-		var value = data[key];
-
-		if (value !== undefined) {
-
-			if (Utility.is(value, 'Object') || Utility.is(value, 'Array')) {
-				self.defineProperties(value, callback, path + key, notify);
-			}
-
-			if (!data.meta) {
-				properties.meta.value[key] = value;
-			} else {
-				data.meta[key] = value;
-			}
-
-			properties[key] = self.property(key, path, callback);
-
-			if (notify) {
-				callback(path + key, value);
-			}
-
-		}
 	});
-
-	return Object.defineProperties(data, properties);
 };
 
 Model.prototype.removeListeners = function (data, callback, path) {
@@ -156,10 +99,54 @@ Model.prototype.removeListeners = function (data, callback, path) {
 	});
 };
 
-Model.prototype.addListeners = function (data, callback) {
+Model.prototype.addListeners = function (data, callback, path, notify) {
 	var self = this;
-	return self.defineProperties(data, callback);
-	// return Object.defineProperties(data, properties);
+
+	path = path ? path += '.' : '';
+
+	// if (!data.meta) {
+	//
+	// }
+
+	Object.defineProperty(data, 'meta', {
+		writable: true,
+		configurable: true,
+		value: data.constructor()
+	});
+
+	if (!data.ins) {
+		Object.defineProperty(data, 'ins', {
+			value: self.ins.bind(self, data, callback, path)
+		});
+	}
+
+	if (!data.del) {
+		Object.defineProperty(data, 'del', {
+			value: self.del.bind(self, data, callback, path)
+		});
+	}
+
+	Object.keys(data).forEach(function (key) {
+		var value = data[key];
+
+		if (value !== undefined) {
+
+
+			if (Utility.is(value, 'Object') || Utility.is(value, 'Array')) {
+				self.addListeners(value, callback, path + key, notify);
+			}
+
+			self.defineProperty(data, key, path, callback);
+			data.meta[key] = value;
+
+			if (notify) {
+				callback(path + key, data.meta[key]);
+			}
+
+		}
+	});
+
+	return data;
 };
 
 Model.prototype.setup = function (data, callback) {
