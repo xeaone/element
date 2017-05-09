@@ -1,71 +1,95 @@
-
- var Utility = {
-
+var Utility = {
 	is: function (variable, name) {
 		return variable && variable.constructor.name === name;
 	},
-
-	// clone: function (object) {
-	// 	if (object === null || typeof object !== 'object') return object;
-	//
-	// 	var data = object.constructor(), key;
-	//
-	// 	for (key in object) {
-	// 		data[key] = this.clone(object[key]);
-	// 	}
-	//
-	// 	return data;
-	// }
-
+	isCollection: function (variable) {
+		return variable !== null && typeof variable === 'object';
+	},
 };
+
+function Events () {}
+
+Events.prototype.on = function (name, callback) {
+	if (!this.events[name]) this.events[name] = [];
+	this.events[name].push(callback);
+};
+
+Events.prototype.off = function (name, callback) {
+	if (!this.events[name]) return;
+	var index = this.events[name].indexOf(callback);
+	if (this.events[name].indexOf(callback) > -1) this.events[name].splice(index, 1);
+};
+
+Events.prototype.emit = function (name) {
+	if (!this.events[name]) return;
+	var args = [].slice.call(arguments, 1);
+	var events = this.events[name].slice();
+	for (var i = 0, l = events.length; i < l; i++) events[i].apply(this, args);
+};
+
+// --------------------------------------------------------------------------------------------------------------------
 
 function Model () {}
 
-Model.prototype.ins = function (data, callback, path, key, value) {
-	var self = this;
+Model.prototype = Object.create(Events.prototype);
+Model.prototype.constructor = Model;
 
-	path += key.toString();
-
-	if (Utility.is(value, 'Object') || Utility.is(value, 'Array')) {
-		self.addListeners(value, callback, path, true);
-	}
-
-	self.defineProperty(data, key, path, callback);
-	data.meta[key] = value;
-	callback(path, value);
-
-	return data[key];
+Model.prototype.path = function () {
+	return Array.prototype.join
+	.call(arguments, '.')
+	.replace(/\.{2,}/g, '.')
+	.replace(/^\.|\.$/g, '');
 };
 
-Model.prototype.del = function (data, callback, path, key) {
-	var self = this;
+Model.prototype.each = function (data, callback, index) {
+	Object.keys(data).slice(index).forEach(function (key) {
+		callback.call(this, data[key], key, data);
+	}, this);
+};
 
-	if (Utility.is(data.meta, 'Object')) {
+Model.prototype.every = function (data, callback, index, path) {
+	if (Utility.isCollection(data)) {
+		this.each(data, function (value, key) {
+			this.every(value, callback, 0, this.path(path, key));
+		}, index);
+	}
+	// this is calling the parent before undefined last calls
+	callback.call(this, data, path || '');
+};
+
+Model.prototype.ins = function (data, path, key, value) {
+	var self = this;
+	path += key;
+
+	if (Utility.isCollection(value)) self.define(value, path, true);
+	self.defineProperty(data, key);
+	data.meta[key] = value;
+	this.emit('*', path, value);
+};
+
+Model.prototype.del = function (data, path, key) {
+	if (Utility.is(data, 'Object')) {
+		var item = data[key];
 		delete data.meta[key];
 		delete data[key];
-		self.removeListeners(data.meta[key], callback, path + key.toString());
-	} else if (Utility.is(data.meta, 'Array')) {
-		var length = data.meta.length;
-		var lastIndex = length === 0 ? 0 : length - 1;
-		var lastItem = data.meta[lastIndex];
 
-		data.meta.splice(key, 1);
-
-		data.forEach(function (value, index, array) {
-			array[index] = value;
+		this.every(item, function (value, p) {
+			this.emit('*', this.path(path, key, p), undefined);
 		});
+		// might need to emit the item it self
+	} else if (Utility.is(data, 'Array')) {
+		data.meta.splice(key, 1);
+		data.splice(data.length-1, 1);
 
-		data.splice(lastIndex, 1); // should go here but infinit loop
+		this.every(data, function (value, p) {
+			this.emit('*', this.path(path, p), value);
+		}, parseInt(key));
 
-		self.removeListeners(lastItem, callback, path + lastIndex.toString());
+		this.emit('*', this.path(path, data.length.toString()), undefined);
 	}
-
-	return undefined;
 };
 
-Model.prototype.defineProperty = function (data, key, path, callback) {
-	var self = this;
-
+Model.prototype.defineProperty = function (data, key) {
 	return Object.defineProperty(data, key, {
 		enumerable: true,
 		configurable: true,
@@ -74,109 +98,65 @@ Model.prototype.defineProperty = function (data, key, path, callback) {
 		},
 		set: function (value) {
 			if (value === undefined) {
-				self.del(this, callback, path, key, value);
+				this.del(self, key);
 			} else {
-				self.ins(this, callback, path, key, value);
+				this.ins(self, key, value);
 			}
 		}
 	});
 };
 
-Model.prototype.removeListeners = function (data, callback, path) {
-	if (!Utility.is(data, 'Object') && !Utility.is(data, 'Array')) {
-		return callback(path, undefined);
-	}
-
-	var self = this;
-	path = path ? path += '.' : '';
-
-	Object.keys(data).forEach(function (key) {
-		if (Utility.is(data[key], 'Object') || Utility.is(data[key], 'Array')) {
-			self.removeListeners(data[key], callback, path + key);
-		}
-
-		callback(path + key, undefined);
-	});
-};
-
-Model.prototype.addListeners = function (data, callback, path, notify) {
+Model.prototype.define = function (data, path, emit) {
 	var self = this;
 
-	path = path ? path += '.' : '';
-
-	// if (!data.meta) {
-	//
-	// }
-
-	Object.defineProperty(data, 'meta', {
-		writable: true,
-		configurable: true,
-		value: data.constructor()
+	Object.defineProperties(data, {
+		meta: {
+			writable: true,
+			configurable: true,
+			value: data.constructor()
+		},
+		ins: {
+			value: self.ins.bind(self, data, path || '')
+		},
+		del: {
+			value: self.del.bind(self, data, path || '')
+		}
 	});
 
-	if (!data.ins) {
-		Object.defineProperty(data, 'ins', {
-			value: self.ins.bind(self, data, callback, path)
-		});
-	}
+	this.each(data, function (value, key) {
+		if (value === undefined) return;
 
-	if (!data.del) {
-		Object.defineProperty(data, 'del', {
-			value: self.del.bind(self, data, callback, path)
-		});
-	}
-
-	Object.keys(data).forEach(function (key) {
-		var value = data[key];
-
-		if (value !== undefined) {
-
-
-			if (Utility.is(value, 'Object') || Utility.is(value, 'Array')) {
-				self.addListeners(value, callback, path + key, notify);
-			}
-
-			self.defineProperty(data, key, path, callback);
-			data.meta[key] = value;
-
-			if (notify) {
-				callback(path + key, data.meta[key]);
-			}
-
-		}
+		if (Utility.isCollection(value)) this.define(value, this.path(path || '', key), emit);
+		this.defineProperty(data, key);
+		data.meta[key] = value;
+		if (emit) this.emit('*', this.path(path || '', key), data.meta[key]);
 	});
 
 	return data;
 };
 
-Model.prototype.setup = function (data, callback) {
-	var self = this;
-	self.data = self.addListeners(data, callback);
-	return self;
+Model.prototype.create = function (data) {
+	this.events = {};
+	this.data = this.define(data);
+	return this;
 };
-//
-// Model.prototype.create = function (options) {
-// 	var self = this;
-// 	options = options || {};
-// 	self.data = options.data || {};
-// 	return self;
-// };
 
-// module.exports = function (options) {
-// 	return new Model().create(options);
+// module.exports = function (data) {
+// 	return new Model().create(data);
 // };
 
 var object = {
 	o: { zero: '0', hello: 'test' },
-	a: [0, 1, 2, 3, { num: 4 }],
+	a: [0, 1, 2, { num: 3 }, { num: 4 }],
 	n: null
 };
 
-var model = new Model().setup(object, function (path, value) {
+var model = new Model().create(object);
+
+model.on('*', function (path, value) {
 	console.log(path);
 	console.log(value);
-	console.log('\n');
-}).data;
+});
 
 // model.o.hello = 'wolrd';
 // model.o.zero = undefined;
@@ -190,3 +170,24 @@ var model = new Model().setup(object, function (path, value) {
 // model.n = 1;
 // console.log(model);
 // console.log('\n');
+
+
+
+
+// Object.defineProperty(data, 'meta', {
+// 	writable: true,
+// 	configurable: true,
+// 	value: data.constructor()
+// });
+//
+// if (!data.ins) {
+// 	Object.defineProperty(data, 'ins', {
+// 		value: self.ins.bind(self, data, path)
+// 	});
+// }
+//
+// if (!data.del) {
+// 	Object.defineProperty(data, 'del', {
+// 		value: self.del.bind(self, data, path)
+// 	});
+// }
