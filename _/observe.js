@@ -1,10 +1,16 @@
 var Utility = {
+	path: function () {
+		return Array.prototype.join
+		.call(arguments, '.')
+		.replace(/\.{2,}/g, '.')
+		.replace(/^\.|\.$/g, '');
+	},
 	is: function (variable, name) {
 		return variable && variable.constructor.name === name;
 	},
 	isCollection: function (variable) {
 		return variable !== null && typeof variable === 'object';
-	},
+	}
 };
 
 function Events () {}
@@ -34,58 +40,51 @@ function Model () {}
 Model.prototype = Object.create(Events.prototype);
 Model.prototype.constructor = Model;
 
-Model.prototype.path = function () {
-	return Array.prototype.join
-	.call(arguments, '.')
-	.replace(/\.{2,}/g, '.')
-	.replace(/^\.|\.$/g, '');
-};
-
 Model.prototype.each = function (data, callback, index) {
 	Object.keys(data).slice(index).forEach(function (key) {
 		callback.call(this, data[key], key, data);
 	}, this);
 };
 
-Model.prototype.every = function (data, callback, index, path) {
+Model.prototype.every = function (data, callback, index, emit, path) {
 	if (Utility.isCollection(data)) {
 		this.each(data, function (value, key) {
-			this.every(value, callback, 0, this.path(path, key));
+			this.every(value, callback, 0, true, Utility.path(path, key));
 		}, index);
 	}
-	// this is calling the parent before undefined last calls
-	callback.call(this, data, path || '');
+
+	if (emit) callback.call(this, data, path || '');
 };
 
-Model.prototype.ins = function (data, path, key, value) {
+Model.prototype.ins = function (data, key, value) {
 	var self = this;
-	path += key;
 
-	if (Utility.isCollection(value)) self.define(value, path, true);
+	if (Utility.isCollection(value)) self.define(value, Utility.path(data._path, key), true);
 	self.defineProperty(data, key);
-	data.meta[key] = value;
-	this.emit('*', path, value);
+	data._meta[key] = value;
+	this.emit('*', Utility.path(data._path, key), value);
 };
 
-Model.prototype.del = function (data, path, key) {
+Model.prototype.del = function (data, key) {
 	if (Utility.is(data, 'Object')) {
 		var item = data[key];
-		delete data.meta[key];
+		delete data._meta[key];
 		delete data[key];
 
 		this.every(item, function (value, p) {
-			this.emit('*', this.path(path, key, p), undefined);
+			this.emit('*', Utility.path(data._path, key, p), undefined);
 		});
-		// might need to emit the item it self
+
+		this.emit('*', Utility.path(data._path, key), undefined);
 	} else if (Utility.is(data, 'Array')) {
-		data.meta.splice(key, 1);
+		data._meta.splice(key, 1);
 		data.splice(data.length-1, 1);
 
 		this.every(data, function (value, p) {
-			this.emit('*', this.path(path, p), value);
+			this.emit('*', Utility.path(data._path, p), value);
 		}, parseInt(key));
 
-		this.emit('*', this.path(path, data.length.toString()), undefined);
+		this.emit('*', Utility.path(data._path, data.length.toString()), undefined);
 	}
 };
 
@@ -94,13 +93,13 @@ Model.prototype.defineProperty = function (data, key) {
 		enumerable: true,
 		configurable: true,
 		get: function () {
-			return this.meta[key];
+			return this._meta[key];
 		},
 		set: function (value) {
 			if (value === undefined) {
-				this.del(self, key);
+				this.del(key);
 			} else {
-				this.ins(self, key, value);
+				this.ins(key, value);
 			}
 		}
 	});
@@ -110,26 +109,30 @@ Model.prototype.define = function (data, path, emit) {
 	var self = this;
 
 	Object.defineProperties(data, {
-		meta: {
+		_meta: {
 			writable: true,
 			configurable: true,
 			value: data.constructor()
 		},
+		_path: {
+			configurable: true,
+			value: path || ''
+		},
 		ins: {
-			value: self.ins.bind(self, data, path || '')
+			value: self.ins.bind(self, data)
 		},
 		del: {
-			value: self.del.bind(self, data, path || '')
+			value: self.del.bind(self, data)
 		}
 	});
 
 	this.each(data, function (value, key) {
 		if (value === undefined) return;
 
-		if (Utility.isCollection(value)) this.define(value, this.path(path || '', key), emit);
+		if (Utility.isCollection(value)) this.define(value, Utility.path(path || '', key), emit);
 		this.defineProperty(data, key);
-		data.meta[key] = value;
-		if (emit) this.emit('*', this.path(path || '', key), data.meta[key]);
+		data._meta[key] = value;
+		if (emit) this.emit('*', Utility.path(path || '', key), data._meta[key]);
 	});
 
 	return data;
@@ -174,7 +177,7 @@ model.on('*', function (path, value) {
 
 
 
-// Object.defineProperty(data, 'meta', {
+// Object.defineProperty(data, '_meta', {
 // 	writable: true,
 // 	configurable: true,
 // 	value: data.constructor()

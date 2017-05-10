@@ -2,9 +2,20 @@
 module.exports = {
 	GET: 2,
 	SET: 3,
-	
+
+	path: function () {
+		return Array.prototype.join
+		.call(arguments, '.')
+		.replace(/\.{2,}/g, '.')
+		.replace(/^\.|\.$/g, '');
+	},
+
 	is: function (variable, name) {
 		return variable && variable.constructor.name === name;
+	},
+
+	isCollection: function (variable) {
+		return variable !== null && typeof variable === 'object';
 	},
 
 	toCamelCase: function (data) {

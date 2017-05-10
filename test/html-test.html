@@ -1,13 +1,20 @@
 
+<style>
+	[j-each-item] {
+		min-height: 150px;
+	}
+</style>
+
 <template>
 	<div>
 		<div>
 			<p j-text="text | upper">{{NULL}}</p>
 			<input type="text" j-value="text" placeholder="text">
-			<input type="text" j-value="items.value.0" placeholder="items.value.0">
+			<input type="text" j-value="items.0.it.value" placeholder="items.0.it.value">
 			<div j-each-item="items">
-				<div j-text="item.value"></div>
+				<div j-text="item.it.value"></div>
 			</div>
+			<button j-on-click="say">Say Hello</button>
 		</div>
 	</div>
 </template>
@@ -19,10 +26,13 @@
 		model: {
 			text: 'Hello from html test',
 			items: [
-				{ value: 'foo' },
-				{ value: 'bar' },
-				{ value: 'baz' }
-			]
+				{ it: { value: 'foo' } },
+				{ it: { value: 'bar' } },
+				{ it: { value: 'baz' } }
+			],
+			say: function () {
+				console.log('hello');
+			}
 		},
 		modifiers: {
 			upper: function () {
@@ -36,10 +46,11 @@
 			// console.log('attached ' + this.name);
 			var self = this;
 
-			self.model.text = 'new html render';
+			// self.model.text = 'new html render';
 
 			setTimeout(function () {
 				self.model.items.del('0');
+				console.log(self.model);
 			}, 1500);
 
 			// setTimeout(function () {
@@ -63,7 +74,7 @@
 
 		},
 		detached: function () {
-			console.log('detached ' + this.name);
+			// console.log('detached ' + this.name);
 		}
 	});
 </script>

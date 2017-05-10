@@ -32,18 +32,7 @@ Component.prototype._template = function (template) {
 	return template;
 };
 
-Component.prototype.define = function (options) {
-	var key, name;
-
-	for (key in options) {
-		if (key === 'name') {
-			name = options.name;
-			delete options.name;
-		} else {
-			options[key] = { value: options[key] };
-		}
-	}
-
+Component.prototype.define = function (name, options) {
 	return document.registerElement(name, {
 		prototype: Object.create(HTMLElement.prototype, options)
 	});
@@ -58,11 +47,9 @@ Component.prototype.create = function (options) {
 
 	self.name = options.name;
 	self.model = options.model;
-	// self.services = options.services;
 	self.modifiers = options.modifiers;
 	self.controller = options.controller;
 	self.currentScript = (document._currentScript || document.currentScript);
-
 	self.template = self._template(options.template);
 
 	if (options.created) self.created = options.created.bind(self);
@@ -70,28 +57,30 @@ Component.prototype.create = function (options) {
 	if (options.detached) self.detached = options.detached.bind(self);
 	if (options.attributed) self.attributed = options.attributed.bind(self);
 
-	self.proto = self.define({
-		name: self.name,
-		attachedCallback: self.attached,
-		detachedCallback: self.detached,
-		attributeChangedCallback: self.attributed,
-		createdCallback: function () {
-			self.element = this;
-			self.uuid = Uuid();
-			self.element.appendChild(document.importNode(self.template.content, true));
+	self.proto = self.define(self.name, {
+		attachedCallback: { value: self.attached },
+		detachedCallback: { value: self.detached },
+		attributeChangedCallback: { value: self.attributed },
+		createdCallback: {
+			value: function () {
+				self.element = this;
+				self.uuid = Uuid();
+				self.element.appendChild(document.importNode(self.template.content, true));
 
-			if (self.model || self.controller) {
-				self.binder = Binder({
-					name: self.uuid,
-					model: self.model,
-					view: self.element,
-					modifiers: self.modifiers
-				}, self.controller);
+				if (self.created) self.created.call(self);
 
-				self.model = self.binder.model;
+				if (self.model || self.controller) {
+					self.binder = Binder({
+						name: self.uuid,
+						model: self.model,
+						view: self.element,
+						modifiers: self.modifiers
+					}, self.controller);
+
+					self.model = self.binder.model;
+				}
+
 			}
-
-			if (self.created) self.created.call(self);
 		}
 	});
 

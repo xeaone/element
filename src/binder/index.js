@@ -13,9 +13,6 @@ Binder.prototype.create = function (options, callback) {
 		modifiers: {
 			value: options.modifiers || {}
 		},
-		collection: {
-			value: options.model || {}
-		},
 		_view: {
 			value: View()
 		},
@@ -41,30 +38,36 @@ Binder.prototype.create = function (options, callback) {
 		}
 	});
 
-	self._model.setup(self.collection, function (path, value) {
-		console.log('\n');
-		console.log(path);
-		console.log(value);
-		console.log('\n');
+	self._model.on('*', function (path, value) {
+		// console.log(path);
+		// console.log(value);
+		// console.log('\n');
 
-		self._view.eachPath('^' + path + '', function (units) {
-			units.forEach(function (unit, index) {
-				if (value === undefined) {
-					self._view.remove(path, index);
-				} else {
-					// unit.data = value;
-					unit.render();
-				}
-			});
-		});
+		if (value === undefined) {
+			self._view.removeAll('^' + path + '.*');
+		} else {
+			self._view.renderAll(path);
+		}
+
 	});
 
-	self._view.setup(self.elements, function (unit) {
-		unit.binder = self;
-		unit.data = self._model.get(unit.attribute.path);
-		unit.render();
-		return unit;
+	self._view.setup({
+		elements: (options.view.shadowRoot || options.view).querySelectorAll('*'),
+		getter: function () {
+			this._data = self._model.get(this.attribute.path);
+
+			this.attribute.modifiers.forEach(function (modifier) {
+				this._data = self.modifiers[modifier].call(this._data);
+			}, this);
+
+			return this._data;
+		},
+		setter: function (value) {
+			this._data = self._model.set(this.attribute.path, value);
+		}
 	});
+
+	self._model.setup(options.model || {});
 
 	if (callback) callback.call(self);
 

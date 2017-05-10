@@ -1,3 +1,4 @@
+var Attributes = require('./attributes');
 var Global = require('../global');
 var Unit = require('./unit');
 
@@ -17,10 +18,10 @@ View.prototype.glance = function (element) {
 	.replace(/^</, '');
 };
 
-View.prototype.eachElement = function (elements, callback) { //skip,
-	var element, glance, i;
+View.prototype.eachElement = function (elements, callback) {
+	var element, glance;
 
-	for (i = 0; i < elements.length; i++) {
+	for (var i = 0; i < elements.length; i++) {
 		element = elements[i];
 		glance = this.glance(element);
 
@@ -29,8 +30,6 @@ View.prototype.eachElement = function (elements, callback) { //skip,
 		} else if (ELEMENT_REJECTS_CHILDREN.test(glance)) {
 			i += element.querySelectorAll('*').length;
 			callback(element);
-		// } else if (skip && skip.test(glance)) {
-		// 	continue;
 		} else if (ELEMENT_ACCEPTS.test(glance)) {
 			callback(element);
 		}
@@ -38,9 +37,9 @@ View.prototype.eachElement = function (elements, callback) { //skip,
 };
 
 View.prototype.eachAttribute = function (element, callback) {
-	var attributes = element.attributes, attribute, i;
+	var attributes = element.attributes, attribute;
 
-	for (i = 0; i < attributes.length; i++) {
+	for (var i = 0; i < attributes.length; i++) {
 		attribute = {};
 		attribute.name = attributes[i].name;
 		attribute.value = attributes[i].value;
@@ -63,83 +62,61 @@ View.prototype.eachAttribute = function (element, callback) {
 	}
 };
 
-View.prototype.eachPath = function (path, callback) {
-	var self = this, key;
-
-	path = typeof path === 'string' ? new RegExp(path) : path;
-
-	for (key in self.data) {
-		if (path.test(key)) {
-			callback(self.data[key], key);
-		}
-	}
-};
-
-View.prototype.units = function (path) {
-	return this.data[path] || [];
-};
-
-View.prototype.paths = function () {
-	return Object.keys(this.data);
-};
-
-View.prototype.set = function (elements, callback) {
-	var self = this;
-
-	self.eachElement(elements, function (element) {
-		self.eachAttribute(element, function (attribute) {
-			if (!(attribute.path in self.data)) self.data[attribute.path] = [];
-			self.data[attribute.path].push(
-				callback(
-					Unit({ element: element, attribute: attribute }),
-					attribute.path, self.data[attribute.path].length-1
-				)
-			);
-
-		});
-	});
-
-	return self;
-};
-
 View.prototype.removeAll = function (pattern) {
-	var self = this, path, index, length;
-
 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
-	for (path in self.data) {
-		index = 0, length = self.data[path].length;
-		for (index; index < length; index++) {
-			if (pattern.test(path + '.' + index.toString())) {
-				self.data[path].splice(index, 1);
+	Object.keys(this.data).forEach(function (path) {
+		this.data[path].forEach(function (_, index) {
+			if (pattern.test(path + '.' + index)) {
+				this.data[path][index].unrender();
+				this.data[path].splice(index, 1);
 			}
-		}
-	}
+		}, this);
+	}, this);
 };
 
-View.prototype.removeOne = function (pattern) {
-	var self = this, path, index, length;
+// View.prototype.removeOne = function (pattern) {
+// 	var self = this, path, index, length;
+//
+// 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+//
+// 	for (path in self.data) {
+// 		index = 0, length = self.data[path].length;
+// 		for (index; index < length; index++) {
+// 			if (pattern.test(path + '.' + index.toString())) {
+// 				self.data[path].slice(index, 1);
+// 				break;
+// 			}
+// 		}
+// 	}
+// };
 
-	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-
-	for (path in self.data) {
-		index = 0, length = self.data[path].length;
-		for (index; index < length; index++) {
-			if (pattern.test(path + '.' + index.toString())) {
-				self.data[path].slice(index, 1);
-				break;
-			}
-		}
-	}
+View.prototype.renderAll = function (path) {
+	(this.data[path] || []).forEach(function (unit) {
+		unit.render();
+	}, this);
 };
 
-View.prototype.setup = function (elements, callback) {
-	var self = this;
+View.prototype.add = function (elements, render) {
+	var self = this, unit;
 
 	self.eachElement(elements, function (element) {
 		self.eachAttribute(element, function (attribute) {
+
 			if (!(attribute.path in self.data)) self.data[attribute.path] = [];
-			self.data[attribute.path].push(callback(Unit({ element: element, attribute: attribute })));
+
+			unit = Unit({
+				view: self,
+				element: element,
+				attribute: attribute,
+				method: Attributes[attribute.cmds[0]] || Attributes['default'],
+				getter: self.getter,
+				setter: self.setter
+			});
+
+			if (render) unit.render();
+
+			self.data[attribute.path].push(unit);
 
 		});
 	});
@@ -147,13 +124,18 @@ View.prototype.setup = function (elements, callback) {
 	return self;
 };
 
-View.prototype.create = function (options) {
-	var self = this;
-	options = options || {};
-	self.data = options.data || {};
+View.prototype.setup = function (options) {
+	this.setter = options.setter;
+	this.getter = options.getter;
+	this.data = {};
+	this.add(options.elements);
 	return self;
 };
 
-module.exports = function (options) {
-	return new View().create(options);
+View.prototype.create = function () {
+	return this;
+};
+
+module.exports = function () {
+	return new View().create();
 };

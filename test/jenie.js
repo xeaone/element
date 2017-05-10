@@ -8,6 +8,21 @@
 		GET: 2,
 		SET: 3,
 
+		path: function () {
+			return Array.prototype.join
+			.call(arguments, '.')
+			.replace(/\.{2,}/g, '.')
+			.replace(/^\.|\.$/g, '');
+		},
+
+		is: function (variable, name) {
+			return variable && variable.constructor.name === name;
+		},
+
+		isCollection: function (variable) {
+			return variable !== null && typeof variable === 'object';
+		},
+
 		toCamelCase: function (data) {
 			if (data.constructor.name === 'Array') data = data.join('-');
 			return data.replace(/-[a-z]/g, function (match) {
@@ -57,185 +72,140 @@
 			return this.interact(this.SET, collection, path, value);
 		},
 
-		// glance: function (element) {
-		// 	var attribute, glance = element.nodeName.toLowerCase();
-		//
-		// 	for (var i = 0, l = element.attributes.length; i < l; i++) {
-		// 		attribute = element.attributes[i];
-		// 		glance = glance + ' ' + attribute.name + '="' + attribute.value + '"';
-		// 	}
-		//
-		// 	return glance;
-		// },
-		//
-		// eachElement: function (elements, reject, skip, accept, callback) {
-		// 	for (var index = 0, element, glance; index < elements.length; index++) {
-		// 		element = elements[index];
-		// 		glance = this.glance(element);
-		//
-		// 		if (reject && reject.test(glance)) {
-		// 			index += element.children.length;
-		// 		} else if (skip && skip.test(glance)) {
-		// 			continue;
-		// 		} else if (accept && accept.test(glance)) {
-		// 			callback(element, index);
-		// 		}
-		// 	}
-		// }
-
 	};
 
+	function Events$1 () {}
+
+	Events$1.prototype.on = function (name, callback) {
+		if (!this.events[name]) this.events[name] = [];
+		this.events[name].push(callback);
+	};
+
+	Events$1.prototype.off = function (name, callback) {
+		if (!this.events[name]) return;
+		var index = this.events[name].indexOf(callback);
+		if (this.events[name].indexOf(callback) > -1) this.events[name].splice(index, 1);
+	};
+
+	Events$1.prototype.emit = function (name) {
+		if (!this.events[name]) return;
+		var args = [].slice.call(arguments, 1);
+		var events = this.events[name].slice();
+		for (var i = 0, l = events.length; i < l; i++) events[i].apply(this, args);
+	};
+
+	var events = Events$1;
+
 	var Utility = utility;
+	var Events = events;
 
 	function Model$1 () {}
 
-	Model$1.prototype.every = function (collection, callback, path) {
-		var self = this, key, type;
+	Model$1.prototype = Object.create(Events.prototype);
+	Model$1.prototype.constructor = Model$1;
 
-		path = !path ? '' : path += '.';
-		type = collection === null || collection === undefined ? collection : collection.constructor.name;
-
-		if (type !== 'Array' && type !== 'Object') return;
-
-		function action (c, k, p) {
-			var v = c[k];
-			callback(p, v, k, c);
-			if (v && (v.constructor.name === 'Array' || v.constructor.name === 'Object')) {
-				self.every(v, null, callback, p);
-			}
-		}
-
-		if (type === 'Array') {
-			if (collection.length === 0) return;
-			for (key = 0; key < collection.length; key++) {
-				action(collection, key, path + key);
-			}
-		} else if (type === 'Object') {
-			for (key in collection) {
-				action(collection, key, path + key);
-			}
-		}
+	Model$1.prototype.each = function (data, callback, index) {
+		Object.keys(data).slice(index).forEach(function (key) {
+			callback.call(this, data[key], key, data);
+		}, this);
 	};
 
-	Model$1.prototype.each = function (collection, callback) {
-		var key;
-
-		if (!collection) {
-			throw new Error('not a collection');
-		} else if (collection.constructor.name === 'Array') {
-			if (collection.length === 0) return;
-			for (key = 0; key < collection.length; key++) {
-				callback(collection[key], key);
-			}
-		} else if (collection.constructor.name === 'Object') {
-			if (Object.keys(collection).length === 0) return;
-			for (key in collection) {
-				callback(collection[key], key);
-			}
-		}
-	};
-
-	// Model.prototype.notify = function (path, collection, callback) {
-	// 	if (collection && (collection.constructor.name === 'Array' || collection.constructor.name === 'Object')) {
-	// 		this.every(collection, function (v, k, c, p) {
-	// 			callback(path + '.' + p, v);
-	// 		});
-	// 	}
-	// };
-
-	Model$1.prototype.ins = function (model, callback, prefix, key, value) {
-		var self = this, type;
-
-		type = model === null || model === undefined ? model : model.constructor.name;
-
-		if (type === 'Object' || type === 'Array') {
-			value = self.observe(value, callback, prefix + key, true);
+	Model$1.prototype.every = function (data, callback, index, emit, path) {
+		if (Utility.isCollection(data)) {
+			this.each(data, function (value, key) {
+				this.every(value, callback, 0, true, Utility.path(path, key));
+			}, index);
 		}
 
-		model = Object.defineProperty(model, key, self.descriptor(prefix + key, value, callback));
-
-		if (callback) callback(prefix + key, value);
-
-		// if (model.constructor.name === 'Array' && key == -1) {
-		// 	key = 0;
-		// 	model.splice(key, 0, value);
-		// 	model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
-		// 	key = model.length-1;
-		// 	value = model[key];
-		// }
-
+		if (emit) callback.call(this, data, path || '');
 	};
 
-	Model$1.prototype.del = function (model, callback, path, key) {
-		var self = this, type;
-
-		type = model === null || model === undefined ? model : model.constructor.name;
-
-		if (type === 'Array') {
-			model.splice(key, 1);
-			callback(path.slice(0, -1), model);
-				// self.every(model[key], function (p) {
-				// 	callback(path + key + '.' + p, undefined);
-				// });
-
-		} else if (type === 'Object') {
-			self.every(model[key], function (v, k, c, p) {
-				callback(path + key + '.' + p, undefined);
-			});
-			callback(path + key, undefined);
-			delete model[key];
-		}
-
-	};
-
-	Model$1.prototype.descriptor = function (path, value, callback) {
+	Model$1.prototype.ins = function (data, key, value) {
 		var self = this;
 
-		return {
-			configurable: true,
-			enumerable: true,
-			get: function () {
-				return value;
-			},
-			set: function (newValue) {
-				value = newValue;
-
-				self.every(value, function (p, v) {
-					callback(path + '.' + p, v);
-				});
-
-				callback(path, value);
-			}
-		};
+		data._meta[key] = value;
+		self.define(value, Utility.path(data._path, key), true);
+		self.defineProperty(data, key);
+		this.emit('*', Utility.path(data._path, key), value);
 	};
 
-	Model$1.prototype.observe = function (collection, callback, prefix, notify) {
-		var self = this, properties = {}, data;
+	Model$1.prototype.del = function (data, key) {
+		if (Utility.is(data, 'Object')) {
+			var item = data[key];
+			delete data._meta[key];
+			delete data[key];
 
-		prefix = !prefix ? '' : prefix += '.';
-		data = collection.constructor.name === 'Object' ? {} : [];
+			this.every(item, function (value, path) {
+				path = Utility.path(data._path, key, path);
+				this.emit('*', path, undefined);
+			});
 
-		properties.ins = {
-			value: self.ins.bind(self, data, callback, prefix)
-		};
+			this.emit('*', Utility.path(data._path, key), undefined);
+		} else if (Utility.is(data, 'Array')) {
+			data._meta.splice(key, 1);
+			data.splice(data.length-1, 1);
 
-		properties.del = {
-			value: self.del.bind(self, data, callback, prefix)
-		};
+			this.every(data, function (value, path) {
+				path = Utility.path(data._path, path);
 
-		self.each(collection, function (value, key) {
-			if (value !== null && value !== undefined) {
-				if (value.constructor.name === 'Object' || value.constructor.name === 'Array') {
-					value = self.observe(value, callback, prefix + key);
+				// update _path to match index change
+				if (Utility.isCollection(value)) value._path = path;
+				this.emit('*', path, value);
+			}, parseInt(key));
+
+			this.emit('*', Utility.path(data._path, data.length.toString()), undefined);
+		}
+	};
+
+	Model$1.prototype.defineProperty = function (data, key) {
+		Object.defineProperty(data, key, {
+			enumerable: true,
+			configurable: true,
+			get: function () {
+				return this._meta[key];
+			},
+			set: function (value) {
+				if (value === undefined) {
+					this.del(key);
+				} else {
+					this.ins(key, value);
 				}
 			}
+		});
+	};
 
-			properties[key] = self.descriptor(prefix + key, value, callback);
+	Model$1.prototype.define = function (data, path, emit) {
+		if (!Utility.isCollection(data)) return;
 
-			if (callback && notify) callback(prefix + key, value);
+		var self = this;
+
+		Object.defineProperties(data, {
+			_meta: {
+				writable: true,
+				configurable: true,
+				value: data.constructor()
+			},
+			_path: {
+				writable: true,
+				configurable: true,
+				value: path || ''
+			},
+			ins: {
+				value: self.ins.bind(self, data)
+			},
+			del: {
+				value: self.del.bind(self, data)
+			}
 		});
 
-		return Object.defineProperties(data, properties);
+		Object.keys(data).forEach(function (key) {
+			if (data[key] === undefined) return;
+			data._meta[key] = data[key];
+			this.define(data[key], Utility.path(path || '', key), emit);
+			this.defineProperty(data, key);
+			if (emit) this.emit('*', Utility.path(path || '', key), data[key]);
+		}, this);
+
 	};
 
 	Model$1.prototype.get = function (path) {
@@ -246,133 +216,242 @@
 		return Utility.setByPath(this.data, path, data);
 	};
 
-	Model$1.prototype.setup = function (collection, callback) {
-		this.data = this.observe(collection, callback);
+	Model$1.prototype.setup = function (data) {
+		this.data = data;
+		this.define(this.data, null, true);
+		return this;
 	};
 
-	Model$1.prototype.create = function (options) {
-		var self = this;
-		options = options || {};
-		self.data = options.data || {};
-		return self;
+	Model$1.prototype.create = function () {
+		this.events = {};
+		return this;
 	};
 
-	var model = function (options) {
-		return new Model$1().create(options);
+	var model = function (data) {
+		return new Model$1().create(data);
 	};
 
-	var index$4 = {
-
-		sViewElement: 'j-view',
-
-		sPrefix: '(data-)?j-',
-		sValue: '(data-)?j-value',
-		sFor: '(data-)?j-for-(.*?)=',
-
-		sAccepts: '(data-)?j-',
-		sRejects: '^\w+(-\w+)+|^iframe|^object|^script',
-
-		rPath: /\s?\|(.*?)$/,
-		rPrefix: /(data-)?j-/,
-		rValue: /(data-)?j-value/,
-		rModifier: /^(.*?)\|\s?/,
-		rFor: /(data-)?j-for-(.*?)=/,
-
-		rAccepts: /(data-)?j-/,
-		rRejects: /^\w+(-\w+)+|^iframe|^object|^script/,
-
-		rAttributeAccepts: /(data-)?j-/,
-
-		rElementAccepts: /(data-)?j-/,
-		rElementRejectsChildren: /(data-)?j-each/,
-		rElementRejects: /^\w+(-\w+)+|^iframe|^object|^script/
-
-	};
+	// Model.prototype.every = function (collection, callback, path) {
+	// 	var self = this, key, type;
+	//
+	// 	path = !path ? '' : path += '.';
+	// 	type = collection === null || collection === undefined ? collection : collection.constructor.name;
+	//
+	// 	if (type !== 'Array' && type !== 'Object') return;
+	//
+	// 	function action (c, k, p) {
+	// 		var v = c[k];
+	// 		callback(p, v, k, c);
+	// 		if (v && (v.constructor.name === 'Array' || v.constructor.name === 'Object')) {
+	// 			self.every(v, null, callback, p);
+	// 		}
+	// 	}
+	//
+	// 	if (type === 'Array') {
+	// 		if (collection.length === 0) return;
+	// 		for (key = 0; key < collection.length; key++) {
+	// 			action(collection, key, path + key);
+	// 		}
+	// 	} else if (type === 'Object') {
+	// 		for (key in collection) {
+	// 			action(collection, key, path + key);
+	// 		}
+	// 	}
+	// };
+	//
+	// Model.prototype.each = function (collection, callback) {
+	// 	var key;
+	//
+	// 	if (!collection) {
+	// 		throw new Error('not a collection');
+	// 	} else if (collection.constructor.name === 'Array') {
+	// 		if (collection.length === 0) return;
+	// 		for (key = 0; key < collection.length; key++) {
+	// 			callback(collection[key], key);
+	// 		}
+	// 	} else if (collection.constructor.name === 'Object') {
+	// 		if (Object.keys(collection).length === 0) return;
+	// 		for (key in collection) {
+	// 			callback(collection[key], key);
+	// 		}
+	// 	}
+	// };
+	//
+	// // Model.prototype.notify = function (path, collection, callback) {
+	// // 	if (collection && (collection.constructor.name === 'Array' || collection.constructor.name === 'Object')) {
+	// // 		this.every(collection, function (v, k, c, p) {
+	// // 			callback(path + '.' + p, v);
+	// // 		});
+	// // 	}
+	// // };
+	//
+	// Model.prototype.ins = function (model, callback, prefix, key, value) {
+	// 	var self = this, type;
+	//
+	// 	type = model === null || model === undefined ? model : model.constructor.name;
+	//
+	// 	if (type === 'Object' || type === 'Array') {
+	// 		value = self.observe(value, callback, prefix + key, true);
+	// 	}
+	//
+	// 	model = Object.defineProperty(model, key, self.descriptor(prefix + key, value, callback));
+	//
+	// 	if (callback) callback(prefix + key, value);
+	//
+	// 	// if (model.constructor.name === 'Array' && key == -1) {
+	// 	// 	key = 0;
+	// 	// 	model.splice(key, 0, value);
+	// 	// 	model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
+	// 	// 	key = model.length-1;
+	// 	// 	value = model[key];
+	// 	// }
+	//
+	// };
+	//
+	// Model.prototype.del = function (model, callback, path, key) {
+	// 	var self = this, type;
+	//
+	// 	type = model === null || model === undefined ? model : model.constructor.name;
+	//
+	// 	if (type === 'Array') {
+	// 		model.splice(key, 1);
+	// 		callback(path.slice(0, -1), model);
+	// 			// self.every(model[key], function (p) {
+	// 			// 	callback(path + key + '.' + p, undefined);
+	// 			// });
+	//
+	// 	} else if (type === 'Object') {
+	// 		self.every(model[key], function (v, k, c, p) {
+	// 			callback(path + key + '.' + p, undefined);
+	// 		});
+	// 		callback(path + key, undefined);
+	// 		delete model[key];
+	// 	}
+	//
+	// };
+	//
+	// Model.prototype.descriptor = function (path, value, callback) {
+	// 	var self = this;
+	//
+	// 	return {
+	// 		configurable: true,
+	// 		enumerable: true,
+	// 		get: function () {
+	// 			return value;
+	// 		},
+	// 		set: function (newValue) {
+	// 			value = newValue;
+	//
+	// 			self.every(value, function (p, v) {
+	// 				callback(path + '.' + p, v);
+	// 			});
+	//
+	// 			callback(path, value);
+	// 		}
+	// 	};
+	// };
+	//
+	// Model.prototype.observe = function (collection, callback, prefix, notify) {
+	// 	var self = this, properties = {}, data;
+	//
+	// 	prefix = !prefix ? '' : prefix += '.';
+	// 	data = collection.constructor.name === 'Object' ? {} : [];
+	//
+	// 	properties.ins = {
+	// 		value: self.ins.bind(self, data, callback, prefix)
+	// 	};
+	//
+	// 	properties.del = {
+	// 		value: self.del.bind(self, data, callback, prefix)
+	// 	};
+	//
+	// 	self.each(collection, function (value, key) {
+	// 		if (value !== null && value !== undefined) {
+	// 			if (value.constructor.name === 'Object' || value.constructor.name === 'Array') {
+	// 				value = self.observe(value, callback, prefix + key);
+	// 			}
+	// 		}
+	//
+	// 		properties[key] = self.descriptor(prefix + key, value, callback);
+	//
+	// 		if (callback && notify) callback(prefix + key, value);
+	// 	});
+	//
+	// 	return Object.defineProperties(data, properties);
+	// };
+	//
+	// Model.prototype.get = function (path) {
+	// 	return Utility.getByPath(this.data, path);
+	// };
+	//
+	// Model.prototype.set = function (path, data) {
+	// 	return Utility.setByPath(this.data, path, data);
+	// };
+	//
+	// Model.prototype.setup = function (collection, callback) {
+	// 	this.data = this.observe(collection, callback);
+	// };
+	//
+	// Model.prototype.create = function (options) {
+	// 	var self = this;
+	// 	options = options || {};
+	// 	self.data = options.data || {};
+	// 	return self;
+	// };
+	//
 
 	var Utility$1 = utility;
 
-	var renders = {
+	var attributes = {
 		on: function () {
-			var self = this;
-
-			if (typeof self.data !== 'function') return;
-
-			var eventName = self.attribute.cmds[1];
-			var methodName = self.attribute.opts[self.attribute.opts.length-1];
-
-			self.element.removeEventListener(eventName, self.listeners[methodName], false);
-
-			self.listeners[methodName] = function (e) {
-				e.preventDefault();
-				self.data.call(self, e);
-			};
-
-			self.element.addEventListener(eventName, self.listeners[methodName], false);
+			var eventName = this.attribute.cmds[1];
+			this.element.removeEventListener(eventName, this.data, false);
+			this.element.addEventListener(eventName, this.data, false);
 		},
 		each: function () {
-			var self = this, pattern, last;
+			// does not account for addtions
+			if (this.length === undefined) {
+				this.length = this.data.length;
+				this.variable = this.attribute.cmds.slice(1).join('.');
+				this.clone = this.element.removeChild(this.element.children[0]).outerHTML;
+				this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
-			if (self.length) {
-				if (self.data.length < self.length) {
-					last = self.data.length.toString();
-					pattern = '^' + self.attribute.path + '\\.' + last;
-					console.log(pattern);
-					self.binder._view.removeAll(pattern);
+				this.data.forEach(function (data, index) {
+					this.element.insertAdjacentHTML(
+						'beforeend',
+						this.clone.replace(
+							this.pattern, '$1' + this.attribute.path + '.' + index + '$6'
+						)
+					);
+				}, this);
 
-					self.binder._view.eachPath('^' + self.attribute.path + '\\.\\d+', function (units) {
-						units.forEach(function (unit, index) {
-							console.log(unit);
-						});
-					});
-				} else {
-					// self.container.innerHTML = self.clone.replace(self.pattern, '$1' + self.attribute.path + '.' + (self.data.length-1).toString() + '$6');
-					// self.element.appendChild(self.container.children[0]);
-				}
-			} else {
-				self.container = document.createElement('div');
-				self.variable = self.attribute.cmds.slice(1).join('.');
-				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
-				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
-
-				self.data.forEach(function (data, index) {
-					self.container.innerHTML = self.clone.replace(self.pattern, '$1' + self.attribute.path + '.' + index.toString() + '$6');
-					self.element.appendChild(self.container.children[0]);
-				});
-
-				self.bindChildren();
+				this.view.add(this.element.getElementsByTagName('*'), true);
 			}
-
-			self.length = self.data.length;
-
+			// else if (this.length > this.data.length) {
+			// 	this.length--;
+			//
+			// 	this.element.insertAdjacentHTML(
+			// 		'afterbegin',
+			// 		this.clone.replace(
+			// 			this.pattern, '$1' + this.attribute.path + '.' + this.length + '$6'
+			// 		)
+			// 	);
+			//
+			// 	this.view.add(this.element.getElementsByTagName('*'), true);
+			// } else if (this.length < this.data.length) {
+			// 	this.length = this.data.length;
+			//
+			// }
 		},
 		value: function () {
-			var self = this;
-
-			if (self.element.type === 'checkbox' || self.element.type === 'radio') {
-				self.element.value = self.data;
-				self.element.checked = self.data;
-			}
-
-			if (self.isChangeEventAdded) return;
-			else self.isChangeEventAdded = true;
-
-			var change = function (e) {
-				if (self.isChanging) return;
-				else self.isChanging = true;
-
-				var element = e.target;
-				var value = element.type === 'checkbox' || element.type === 'radio' ? element.checked : element.value;
-
-				self.binder._model.set(self.attribute.path, value);
-				self.isChanging = false;
-			};
-
-			self.element.addEventListener('change', change);
-			self.element.addEventListener('keyup', change);
+			if (this.change) return;
+			this.change = function () { this.data = this.element.value || this.element.checked; };
+			this.element.addEventListener('change', this.change.bind(this));
+			this.element.addEventListener('keyup', this.change.bind(this));
 		},
 		html: function () {
 			this.element.innerHTML = this.data;
-			// this.binder.insert(this.element.getElementsByTagName('*'));
+			this.view.add(this.element.getElementsByTagName('*'), true);
 		},
 		css: function () {
 			var css = this.data;
@@ -415,85 +494,69 @@
 		}
 	};
 
-	var Renders = renders;
+	var index$4 = {
+
+		sViewElement: 'j-view',
+
+		sPrefix: '(data-)?j-',
+		sValue: '(data-)?j-value',
+		sFor: '(data-)?j-for-(.*?)=',
+
+		sAccepts: '(data-)?j-',
+		sRejects: '^\w+(-\w+)+|^iframe|^object|^script',
+
+		rPath: /\s?\|(.*?)$/,
+		rPrefix: /(data-)?j-/,
+		rValue: /(data-)?j-value/,
+		rModifier: /^(.*?)\|\s?/,
+		rFor: /(data-)?j-for-(.*?)=/,
+
+		rAccepts: /(data-)?j-/,
+		rRejects: /^\w+(-\w+)+|^iframe|^object|^script/,
+
+		rAttributeAccepts: /(data-)?j-/,
+
+		rElementAccepts: /(data-)?j-/,
+		rElementRejectsChildren: /(data-)?j-each/,
+		rElementRejects: /^\w+(-\w+)+|^iframe|^object|^script/
+
+	};
 
 	function Unit$1 () {}
 
-	Unit$1.prototype.renders = Renders;
-
-	Unit$1.prototype.bindChildren = function () {
-		var self = this;
-
-		self.binder._view.set(self.element.getElementsByTagName('*'), function (unit) {
-			unit.binder = self.binder;
-			unit.data = self.binder._model.get(unit.attribute.path);
-			unit.render();
-			return unit;
-		});
-
-		return self;
-	};
-
 	Unit$1.prototype.unrender = function () {
-		var self = this;
-		self.element.parentNode.removeChild(self.element);
-		return self;
+		this.element.parentNode.removeChild(this.element);
+		return this;
 	};
 
 	Unit$1.prototype.render = function () {
-		var self = this;
-		self.data = self.binder._model.get(self.attribute.path);
-		self.renders[self.renderName].call(self);
-		return self;
+		this.method();
+		return this;
 	};
 
 	Unit$1.prototype.create = function (options) {
-		var self = this;
+		this.view = options.view;
+		this.element = options.element;
+		this.attribute = options.attribute;
+		this.method = options.method.bind(this);
 
-		self.attribute = options.attribute;
-		self.element = options.element;
-		self.binder = options.binder;
-
-		self.isChangeEventAdded = false;
-		self.isChanging = false;
-		self.isNew = true;
-		self.listeners = {};
-
-		self.renderName = options.renderName || self.attribute.cmds[0] in self.renders ? self.attribute.cmds[0] : 'default';
-
-		self._data, self.clone;
-
-		Object.defineProperty(self, 'data', {
-			configurable: true,
+		Object.defineProperty(this, 'data', {
 			enumerable: true,
-			get: function () {
-
-				// if (self._data === undefined) {
-				// 	self._data = self.binder._model.get(self.attribute.path);
-				// }
-
-				if (self.binder.modifiers && self.attribute.modifiers) {
-					self.attribute.modifiers.forEach(function (modifier) {
-						self._data = self.binder.modifiers[modifier].call(self._data);
-					});
-				}
-
-				return self._data;
-			},
-			set: function (value) {
-				self._data = value;
-			}
+			configurable: true,
+			get: options.getter,
+			set: options.setter
 		});
 
-		return self;
+		return this;
 	};
 
-	var index$6 = function (options) {
+	var unit = function (options) {
 		return new Unit$1().create(options);
 	};
 
+	var Attributes = attributes;
 	var Global$1 = index$4;
-	var Unit = index$6;
+	var Unit = unit;
 
 	var PATH = Global$1.rPath;
 	var PREFIX = Global$1.rPrefix;
@@ -511,10 +574,10 @@
 		.replace(/^</, '');
 	};
 
-	View$1.prototype.eachElement = function (elements, callback) { //skip,
-		var element, glance, i;
+	View$1.prototype.eachElement = function (elements, callback) {
+		var element, glance;
 
-		for (i = 0; i < elements.length; i++) {
+		for (var i = 0; i < elements.length; i++) {
 			element = elements[i];
 			glance = this.glance(element);
 
@@ -523,8 +586,6 @@
 			} else if (ELEMENT_REJECTS_CHILDREN.test(glance)) {
 				i += element.querySelectorAll('*').length;
 				callback(element);
-			// } else if (skip && skip.test(glance)) {
-			// 	continue;
 			} else if (ELEMENT_ACCEPTS.test(glance)) {
 				callback(element);
 			}
@@ -532,12 +593,12 @@
 	};
 
 	View$1.prototype.eachAttribute = function (element, callback) {
-		var attributes = element.attributes, attribute, i;
+		var attributes$$1 = element.attributes, attribute;
 
-		for (i = 0; i < attributes.length; i++) {
+		for (var i = 0; i < attributes$$1.length; i++) {
 			attribute = {};
-			attribute.name = attributes[i].name;
-			attribute.value = attributes[i].value;
+			attribute.name = attributes$$1[i].name;
+			attribute.value = attributes$$1[i].value;
 
 			if (ATTRIBUTE_ACCEPTS.test(attribute.name)) {
 				attribute.path = attribute.value.replace(PATH, '');
@@ -557,83 +618,61 @@
 		}
 	};
 
-	View$1.prototype.eachPath = function (path, callback) {
-		var self = this, key;
-
-		path = typeof path === 'string' ? new RegExp(path) : path;
-
-		for (key in self.data) {
-			if (path.test(key)) {
-				callback(self.data[key], key);
-			}
-		}
-	};
-
-	View$1.prototype.units = function (path) {
-		return this.data[path] || [];
-	};
-
-	View$1.prototype.paths = function () {
-		return Object.keys(this.data);
-	};
-
-	View$1.prototype.set = function (elements, callback) {
-		var self = this;
-
-		self.eachElement(elements, function (element) {
-			self.eachAttribute(element, function (attribute) {
-				if (!(attribute.path in self.data)) self.data[attribute.path] = [];
-				self.data[attribute.path].push(
-					callback(
-						Unit({ element: element, attribute: attribute }),
-						attribute.path, self.data[attribute.path].length-1
-					)
-				);
-
-			});
-		});
-
-		return self;
-	};
-
 	View$1.prototype.removeAll = function (pattern) {
-		var self = this, path, index, length;
-
 		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
-		for (path in self.data) {
-			index = 0, length = self.data[path].length;
-			for (index; index < length; index++) {
-				if (pattern.test(path + '.' + index.toString())) {
-					self.data[path].splice(index, 1);
+		Object.keys(this.data).forEach(function (path) {
+			this.data[path].forEach(function (_, index) {
+				if (pattern.test(path + '.' + index)) {
+					this.data[path][index].unrender();
+					this.data[path].splice(index, 1);
 				}
-			}
-		}
+			}, this);
+		}, this);
 	};
 
-	View$1.prototype.removeOne = function (pattern) {
-		var self = this, path, index, length;
+	// View.prototype.removeOne = function (pattern) {
+	// 	var self = this, path, index, length;
+	//
+	// 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+	//
+	// 	for (path in self.data) {
+	// 		index = 0, length = self.data[path].length;
+	// 		for (index; index < length; index++) {
+	// 			if (pattern.test(path + '.' + index.toString())) {
+	// 				self.data[path].slice(index, 1);
+	// 				break;
+	// 			}
+	// 		}
+	// 	}
+	// };
 
-		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-
-		for (path in self.data) {
-			index = 0, length = self.data[path].length;
-			for (index; index < length; index++) {
-				if (pattern.test(path + '.' + index.toString())) {
-					self.data[path].slice(index, 1);
-					break;
-				}
-			}
-		}
+	View$1.prototype.renderAll = function (path) {
+		(this.data[path] || []).forEach(function (unit$$1) {
+			unit$$1.render();
+		}, this);
 	};
 
-	View$1.prototype.setup = function (elements, callback) {
-		var self = this;
+	View$1.prototype.add = function (elements, render) {
+		var self = this, unit$$1;
 
 		self.eachElement(elements, function (element) {
 			self.eachAttribute(element, function (attribute) {
+
 				if (!(attribute.path in self.data)) self.data[attribute.path] = [];
-				self.data[attribute.path].push(callback(Unit({ element: element, attribute: attribute })));
+
+				unit$$1 = Unit({
+					view: self,
+					element: element,
+					attribute: attribute,
+					method: Attributes[attribute.cmds[0]] || Attributes['default'],
+					getter: self.getter,
+					setter: self.setter
+				});
+
+				if (render) unit$$1.render();
+
+				self.data[attribute.path].push(unit$$1);
 
 			});
 		});
@@ -641,15 +680,20 @@
 		return self;
 	};
 
-	View$1.prototype.create = function (options) {
-		var self = this;
-		options = options || {};
-		self.data = options.data || {};
+	View$1.prototype.setup = function (options) {
+		this.setter = options.setter;
+		this.getter = options.getter;
+		this.data = {};
+		this.add(options.elements);
 		return self;
 	};
 
-	var view = function (options) {
-		return new View$1().create(options);
+	View$1.prototype.create = function () {
+		return this;
+	};
+
+	var view = function () {
+		return new View$1().create();
 	};
 
 	var Model = model;
@@ -666,9 +710,6 @@
 			},
 			modifiers: {
 				value: options.modifiers || {}
-			},
-			collection: {
-				value: options.model || {}
 			},
 			_view: {
 				value: View()
@@ -695,30 +736,36 @@
 			}
 		});
 
-		self._model.setup(self.collection, function (path, value) {
-			console.log('\n');
-			console.log(path);
-			console.log(value);
-			console.log('\n');
+		self._model.on('*', function (path, value) {
+			// console.log(path);
+			// console.log(value);
+			// console.log('\n');
 
-			self._view.eachPath('^' + path + '', function (units) {
-				units.forEach(function (unit, index) {
-					if (value === undefined) {
-						self._view.remove(path, index);
-					} else {
-						// unit.data = value;
-						unit.render();
-					}
-				});
-			});
+			if (value === undefined) {
+				self._view.removeAll('^' + path + '.*');
+			} else {
+				self._view.renderAll(path);
+			}
+
 		});
 
-		self._view.setup(self.elements, function (unit) {
-			unit.binder = self;
-			unit.data = self._model.get(unit.attribute.path);
-			unit.render();
-			return unit;
+		self._view.setup({
+			elements: (options.view.shadowRoot || options.view).querySelectorAll('*'),
+			getter: function () {
+				this._data = self._model.get(this.attribute.path);
+
+				this.attribute.modifiers.forEach(function (modifier) {
+					this._data = self.modifiers[modifier].call(this._data);
+				}, this);
+
+				return this._data;
+			},
+			setter: function (value) {
+				this._data = self._model.set(this.attribute.path, value);
+			}
 		});
+
+		self._model.setup(options.model || {});
 
 		if (callback) callback.call(self);
 
@@ -733,7 +780,7 @@
 
 	var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
-	var index$8 = function () {
+	var index$6 = function () {
 		var chars = CHARS, uuid = [];
 
 		// rfc4122, version 4 form
@@ -755,7 +802,7 @@
 	};
 
 	var Binder$1 = index$2;
-	var Uuid = index$8;
+	var Uuid = index$6;
 
 	function Component$1 () {}
 
@@ -788,18 +835,7 @@
 		return template;
 	};
 
-	Component$1.prototype.define = function (options) {
-		var key, name;
-
-		for (key in options) {
-			if (key === 'name') {
-				name = options.name;
-				delete options.name;
-			} else {
-				options[key] = { value: options[key] };
-			}
-		}
-
+	Component$1.prototype.define = function (name, options) {
 		return document.registerElement(name, {
 			prototype: Object.create(HTMLElement.prototype, options)
 		});
@@ -814,11 +850,9 @@
 
 		self.name = options.name;
 		self.model = options.model;
-		// self.services = options.services;
 		self.modifiers = options.modifiers;
 		self.controller = options.controller;
 		self.currentScript = (document._currentScript || document.currentScript);
-
 		self.template = self._template(options.template);
 
 		if (options.created) self.created = options.created.bind(self);
@@ -826,28 +860,30 @@
 		if (options.detached) self.detached = options.detached.bind(self);
 		if (options.attributed) self.attributed = options.attributed.bind(self);
 
-		self.proto = self.define({
-			name: self.name,
-			attachedCallback: self.attached,
-			detachedCallback: self.detached,
-			attributeChangedCallback: self.attributed,
-			createdCallback: function () {
-				self.element = this;
-				self.uuid = Uuid();
-				self.element.appendChild(document.importNode(self.template.content, true));
+		self.proto = self.define(self.name, {
+			attachedCallback: { value: self.attached },
+			detachedCallback: { value: self.detached },
+			attributeChangedCallback: { value: self.attributed },
+			createdCallback: {
+				value: function () {
+					self.element = this;
+					self.uuid = Uuid();
+					self.element.appendChild(document.importNode(self.template.content, true));
 
-				if (self.model || self.controller) {
-					self.binder = Binder$1({
-						name: self.uuid,
-						model: self.model,
-						view: self.element,
-						modifiers: self.modifiers
-					}, self.controller);
+					if (self.created) self.created.call(self);
 
-					self.model = self.binder.model;
+					if (self.model || self.controller) {
+						self.binder = Binder$1({
+							name: self.uuid,
+							model: self.model,
+							view: self.element,
+							modifiers: self.modifiers
+						}, self.controller);
+
+						self.model = self.binder.model;
+					}
+
 				}
-
-				if (self.created) self.created.call(self);
 			}
 		});
 
@@ -1055,7 +1091,7 @@
 			}
 
 			// check non acceptable attributes
-			if (target.hasAttribute('download') || target.getAttribute('rel') === 'external') return;
+			if (target.hasAttribute('download') || target.hasAttribute('external')) return;
 
 			// check non acceptable href
 			if (Utility$2.has(target.href, 'mailto:')) return;
@@ -1074,7 +1110,7 @@
 		return self;
 	};
 
-	var index$10 = function (options) {
+	var index$8 = function (options) {
 		return new Router$1().create(options);
 	};
 
@@ -1172,7 +1208,7 @@
 		return self;
 	};
 
-	var index$12 = function () {
+	var index$10 = function () {
 		return new Http$1().create();
 	};
 
@@ -1186,8 +1222,8 @@
 	var Component = index;
 	var Global = index$4;
 	var Binder = index$2;
-	var Router = index$10;
-	var Http = index$12;
+	var Router = index$8;
+	var Http = index$10;
 
 	var S_VIEW_ELEMENT = Global.sViewElement;
 
