@@ -1,6 +1,6 @@
 {
   "name": "jenie",
-  "version": "1.0.93",
+  "version": "1.0.94",
   "description": "Light weight powerful web components framework",
   "main": "src/jenie.js",
   "scripts": {
