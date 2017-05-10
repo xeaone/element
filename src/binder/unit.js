@@ -2,7 +2,7 @@
 function Unit () {}
 
 Unit.prototype.unrender = function () {
-	this.element.parentNode.removeChild(this.element);
+	// this.element.parentNode.removeChild(this.element);
 	return this;
 };
 

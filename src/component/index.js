@@ -48,7 +48,6 @@ Component.prototype.create = function (options) {
 	self.name = options.name;
 	self.model = options.model;
 	self.modifiers = options.modifiers;
-	self.controller = options.controller;
 	self.currentScript = (document._currentScript || document.currentScript);
 	self.template = self._template(options.template);
 
@@ -67,17 +66,18 @@ Component.prototype.create = function (options) {
 				self.uuid = Uuid();
 				self.element.appendChild(document.importNode(self.template.content, true));
 
-				if (self.created) self.created.call(self);
-
-				if (self.model || self.controller) {
+				if (self.model) {
 					self.binder = Binder({
 						name: self.uuid,
 						model: self.model,
 						view: self.element,
 						modifiers: self.modifiers
-					}, self.controller);
-
-					self.model = self.binder.model;
+					}, function () {
+						self.model = this.model;
+						if (self.created) self.created.call(self);
+					});
+				} else {
+					if (self.created) self.created.call(self);
 				}
 
 			}

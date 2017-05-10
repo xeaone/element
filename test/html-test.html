@@ -23,16 +23,18 @@
 	Jenie.component({
 		name: 'html-test',
 		template: 'template',
-		model: {
-			text: 'Hello from html test',
-			items: [
-				{ it: { value: 'foo' } },
-				{ it: { value: 'bar' } },
-				{ it: { value: 'baz' } }
-			],
-			say: function () {
-				console.log('hello');
-			}
+		model: function (done) {
+			setTimeout(function () {
+				done({
+					text: 'Hello from html test',
+					items: [
+						{ it: { value: 0 } },
+					],
+					say: function () {
+						console.log('hello');
+					}
+				});
+			}, 500);
 		},
 		modifiers: {
 			upper: function () {
@@ -40,41 +42,21 @@
 			}
 		},
 		created: function () {
-			// console.log('created ' + self.name);
-		},
-		attached: function () {
-			// console.log('attached ' + this.name);
 			var self = this;
 
-			// self.model.text = 'new html render';
+			var increaseInterval = setInterval(function () {
+				if (self.model.items.length === 15) {
+					clearInterval(increaseInterval);
 
-			setTimeout(function () {
-				self.model.items.del('0');
-				console.log(self.model);
-			}, 1500);
+					var decreaseInterval = setInterval(function () {
+						if (self.model.items.length === 5) clearInterval(decreaseInterval);
+						self.model.items.del(self.model.items.length-1);
+					}, 100);
+				}
 
-			// setTimeout(function () {
-			// 	self.model.items.ins(self.model.items.length-1, 'taz');
-			// }, 1000);
+				self.model.items.ins(self.model.items.length, { it: { value: self.model.items.length } });
+			}, 100);
 
-			// var increaseInterval = setInterval(function () {
-			// 	if (self.model.items.length === 5) {
-			// 		clearInterval(increaseInterval);
-			//
-			// 		var decreaseInterval = setInterval(function () {
-			// 			if (self.model.items.length === 3) clearInterval(decreaseInterval);
-			// 			self.model.items.del(self.model.items.length-1);
-			// 		}, 1000);
-			// 	}
-			//
-			// 	self.model.items.ins(self.model.items.length, { value: self.model.items.length });
-			// }, 1000);
-
-			// console.log(self.binder);
-
-		},
-		detached: function () {
-			// console.log('detached ' + this.name);
 		}
 	});
 </script>

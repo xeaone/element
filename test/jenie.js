@@ -23,6 +23,41 @@
 			return variable !== null && typeof variable === 'object';
 		},
 
+		// router start
+		has: function (string, search) {
+			return string.indexOf(search) !== -1;
+		},
+
+		normalize: function (path) {
+			path = decodeURI(path)
+			.replace(/\/{2,}/g, '/')
+			.replace(/\?.*/, '')
+			.replace(/\/$/, '');
+			return path === '' ? '/' : path;
+		},
+
+		getHash: function (path) {
+			return this.normalize(path
+				.split('?')[0].split('#')[1] || ''
+			);
+		},
+
+		getSearch: function (path) {
+			return this.normalize(path
+				.split('?')[1] || ''
+			);
+		},
+
+		getPath: function (path, base, root) {
+			return this.normalize(path
+				.replace(window.location.origin, '/')
+				.replace(base, '/')
+				.replace(root, '/')
+			);
+		},
+		// router end
+
+		// view/model start
 		toCamelCase: function (data) {
 			if (data.constructor.name === 'Array') data = data.join('-');
 			return data.replace(/-[a-z]/g, function (match) {
@@ -71,6 +106,7 @@
 		setByPath: function (collection, path, value) {
 			return this.interact(this.SET, collection, path, value);
 		},
+		// view/model end
 
 	};
 
@@ -126,7 +162,9 @@
 		data._meta[key] = value;
 		self.define(value, Utility.path(data._path, key), true);
 		self.defineProperty(data, key);
+
 		this.emit('*', Utility.path(data._path, key), value);
+		this.emit('*', Utility.path(data._path), data);
 	};
 
 	Model$1.prototype.del = function (data, key) {
@@ -148,12 +186,13 @@
 			this.every(data, function (value, path) {
 				path = Utility.path(data._path, path);
 
-				// update _path to match index change
+				// updateS _path to match index change
 				if (Utility.isCollection(value)) value._path = path;
 				this.emit('*', path, value);
 			}, parseInt(key));
 
-			this.emit('*', Utility.path(data._path, data.length.toString()), undefined);
+			this.emit('*', Utility.path(data._path, data.length), undefined);
+			this.emit('*', Utility.path(data._path), data);
 		}
 	};
 
@@ -409,7 +448,6 @@
 			this.element.addEventListener(eventName, this.data, false);
 		},
 		each: function () {
-			// does not account for addtions
 			if (this.length === undefined) {
 				this.length = this.data.length;
 				this.variable = this.attribute.cmds.slice(1).join('.');
@@ -417,31 +455,19 @@
 				this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
 				this.data.forEach(function (data, index) {
-					this.element.insertAdjacentHTML(
-						'beforeend',
-						this.clone.replace(
-							this.pattern, '$1' + this.attribute.path + '.' + index + '$6'
-						)
-					);
+					this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, '$1' + this.attribute.path + '.' + index + '$6'));
 				}, this);
 
 				this.view.add(this.element.getElementsByTagName('*'), true);
+			} else if (this.length > this.data.length) {
+				this.length--;
+				this.element.removeChild(this.element.lastChild);
+			} else if (this.length < this.data.length) {
+				this.length++;
+				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, '$1' + this.attribute.path + '.' + (this.length-1) + '$6'));
+				this.view.addOne(this.element.lastChild, true);
+				this.view.add(this.element.lastChild.getElementsByTagName('*'), true);
 			}
-			// else if (this.length > this.data.length) {
-			// 	this.length--;
-			//
-			// 	this.element.insertAdjacentHTML(
-			// 		'afterbegin',
-			// 		this.clone.replace(
-			// 			this.pattern, '$1' + this.attribute.path + '.' + this.length + '$6'
-			// 		)
-			// 	);
-			//
-			// 	this.view.add(this.element.getElementsByTagName('*'), true);
-			// } else if (this.length < this.data.length) {
-			// 	this.length = this.data.length;
-			//
-			// }
 		},
 		value: function () {
 			if (this.change) return;
@@ -525,7 +551,7 @@
 	function Unit$1 () {}
 
 	Unit$1.prototype.unrender = function () {
-		this.element.parentNode.removeChild(this.element);
+		// this.element.parentNode.removeChild(this.element);
 		return this;
 	};
 
@@ -631,26 +657,35 @@
 		}, this);
 	};
 
-	// View.prototype.removeOne = function (pattern) {
-	// 	var self = this, path, index, length;
-	//
-	// 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-	//
-	// 	for (path in self.data) {
-	// 		index = 0, length = self.data[path].length;
-	// 		for (index; index < length; index++) {
-	// 			if (pattern.test(path + '.' + index.toString())) {
-	// 				self.data[path].slice(index, 1);
-	// 				break;
-	// 			}
-	// 		}
-	// 	}
-	// };
-
 	View$1.prototype.renderAll = function (path) {
 		(this.data[path] || []).forEach(function (unit$$1) {
 			unit$$1.render();
 		}, this);
+	};
+
+	View$1.prototype.addOne = function (element, render) {
+		var self = this, unit$$1;
+
+		self.eachAttribute(element, function (attribute) {
+
+			if (!(attribute.path in self.data)) self.data[attribute.path] = [];
+
+			unit$$1 = Unit({
+				view: self,
+				element: element,
+				attribute: attribute,
+				method: Attributes[attribute.cmds[0]] || Attributes['default'],
+				getter: self.getter,
+				setter: self.setter
+			});
+
+			if (render) unit$$1.render();
+
+			self.data[attribute.path].push(unit$$1);
+
+		});
+
+		return self;
 	};
 
 	View$1.prototype.add = function (elements, render) {
@@ -701,7 +736,7 @@
 
 	function Binder$2 () {}
 
-	Binder$2.prototype.create = function (options, callback) {
+	Binder$2.prototype.setup = function (options) {
 		var self = this;
 
 		Object.defineProperties(self, {
@@ -767,7 +802,22 @@
 
 		self._model.setup(options.model || {});
 
-		if (callback) callback.call(self);
+		return self;
+	};
+
+	Binder$2.prototype.create = function (options, callback) {
+		var self = this;
+
+		if (options.model && typeof options.model === 'function') {
+			options.model.call(self, function (model$$1) {
+				options.model = model$$1;
+				self.setup(options);
+				if (callback) return callback.call(self);
+			});
+		} else {
+			self.setup(options);
+			if (callback) return callback.call(self);
+		}
 
 		return self;
 	};
@@ -851,7 +901,6 @@
 		self.name = options.name;
 		self.model = options.model;
 		self.modifiers = options.modifiers;
-		self.controller = options.controller;
 		self.currentScript = (document._currentScript || document.currentScript);
 		self.template = self._template(options.template);
 
@@ -870,17 +919,18 @@
 					self.uuid = Uuid();
 					self.element.appendChild(document.importNode(self.template.content, true));
 
-					if (self.created) self.created.call(self);
-
-					if (self.model || self.controller) {
+					if (self.model) {
 						self.binder = Binder$1({
 							name: self.uuid,
 							model: self.model,
 							view: self.element,
 							modifiers: self.modifiers
-						}, self.controller);
-
-						self.model = self.binder.model;
+						}, function () {
+							self.model = this.model;
+							if (self.created) self.created.call(self);
+						});
+					} else {
+						if (self.created) self.created.call(self);
 					}
 
 				}
@@ -894,37 +944,7 @@
 		return new Component$1().create(options);
 	};
 
-	var utility$2 = {
-		has: function (string, search) {
-			return string.indexOf(search) !== -1;
-		},
-		normalize: function (path) {
-			path = decodeURI(path)
-			.replace(/\/{2,}/g, '/')
-			.replace(/\?.*/, '')
-			.replace(/\/$/, '');
-			return path === '' ? '/' : path;
-		},
-		getHash: function (path) {
-			return this.normalize(path
-				.split('?')[0].split('#')[1] || ''
-			);
-		},
-		getSearch: function (path) {
-			return this.normalize(path
-				.split('?')[1] || ''
-			);
-		},
-		getPath: function (path, base, root) {
-			return this.normalize(path
-				.replace(window.location.origin, '/')
-				.replace(base, '/')
-				.replace(root, '/')
-			);
-		}
-	};
-
-	var Utility$2 = utility$2;
+	var Utility$2 = utility;
 
 	function Router$1 () {}
 
@@ -1215,7 +1235,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.0.91
+		version: 1.0.93
 		author: alexander elias
 	*/
 

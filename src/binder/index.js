@@ -3,7 +3,7 @@ var View = require('./view');
 
 function Binder () {}
 
-Binder.prototype.create = function (options, callback) {
+Binder.prototype.setup = function (options) {
 	var self = this;
 
 	Object.defineProperties(self, {
@@ -69,7 +69,22 @@ Binder.prototype.create = function (options, callback) {
 
 	self._model.setup(options.model || {});
 
-	if (callback) callback.call(self);
+	return self;
+};
+
+Binder.prototype.create = function (options, callback) {
+	var self = this;
+
+	if (options.model && typeof options.model === 'function') {
+		options.model.call(self, function (model) {
+			options.model = model;
+			self.setup(options);
+			if (callback) return callback.call(self);
+		});
+	} else {
+		self.setup(options);
+		if (callback) return callback.call(self);
+	}
 
 	return self;
 };

@@ -7,7 +7,6 @@ module.exports = {
 		this.element.addEventListener(eventName, this.data, false);
 	},
 	each: function () {
-		// does not account for addtions
 		if (this.length === undefined) {
 			this.length = this.data.length;
 			this.variable = this.attribute.cmds.slice(1).join('.');
@@ -15,31 +14,19 @@ module.exports = {
 			this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
 			this.data.forEach(function (data, index) {
-				this.element.insertAdjacentHTML(
-					'beforeend',
-					this.clone.replace(
-						this.pattern, '$1' + this.attribute.path + '.' + index + '$6'
-					)
-				);
+				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, '$1' + this.attribute.path + '.' + index + '$6'));
 			}, this);
 
 			this.view.add(this.element.getElementsByTagName('*'), true);
+		} else if (this.length > this.data.length) {
+			this.length--;
+			this.element.removeChild(this.element.lastChild);
+		} else if (this.length < this.data.length) {
+			this.length++;
+			this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, '$1' + this.attribute.path + '.' + (this.length-1) + '$6'));
+			this.view.addOne(this.element.lastChild, true);
+			this.view.add(this.element.lastChild.getElementsByTagName('*'), true);
 		}
-		// else if (this.length > this.data.length) {
-		// 	this.length--;
-		//
-		// 	this.element.insertAdjacentHTML(
-		// 		'afterbegin',
-		// 		this.clone.replace(
-		// 			this.pattern, '$1' + this.attribute.path + '.' + this.length + '$6'
-		// 		)
-		// 	);
-		//
-		// 	this.view.add(this.element.getElementsByTagName('*'), true);
-		// } else if (this.length < this.data.length) {
-		// 	this.length = this.data.length;
-		//
-		// }
 	},
 	value: function () {
 		if (this.change) return;

@@ -28,7 +28,9 @@ Model.prototype.ins = function (data, key, value) {
 	data._meta[key] = value;
 	self.define(value, Utility.path(data._path, key), true);
 	self.defineProperty(data, key);
+
 	this.emit('*', Utility.path(data._path, key), value);
+	this.emit('*', Utility.path(data._path), data);
 };
 
 Model.prototype.del = function (data, key) {
@@ -50,12 +52,13 @@ Model.prototype.del = function (data, key) {
 		this.every(data, function (value, path) {
 			path = Utility.path(data._path, path);
 
-			// update _path to match index change
+			// updateS _path to match index change
 			if (Utility.isCollection(value)) value._path = path;
 			this.emit('*', path, value);
 		}, parseInt(key));
 
-		this.emit('*', Utility.path(data._path, data.length.toString()), undefined);
+		this.emit('*', Utility.path(data._path, data.length), undefined);
+		this.emit('*', Utility.path(data._path), data);
 	}
 };
 

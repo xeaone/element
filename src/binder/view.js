@@ -75,26 +75,35 @@ View.prototype.removeAll = function (pattern) {
 	}, this);
 };
 
-// View.prototype.removeOne = function (pattern) {
-// 	var self = this, path, index, length;
-//
-// 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-//
-// 	for (path in self.data) {
-// 		index = 0, length = self.data[path].length;
-// 		for (index; index < length; index++) {
-// 			if (pattern.test(path + '.' + index.toString())) {
-// 				self.data[path].slice(index, 1);
-// 				break;
-// 			}
-// 		}
-// 	}
-// };
-
 View.prototype.renderAll = function (path) {
 	(this.data[path] || []).forEach(function (unit) {
 		unit.render();
 	}, this);
+};
+
+View.prototype.addOne = function (element, render) {
+	var self = this, unit;
+
+	self.eachAttribute(element, function (attribute) {
+
+		if (!(attribute.path in self.data)) self.data[attribute.path] = [];
+
+		unit = Unit({
+			view: self,
+			element: element,
+			attribute: attribute,
+			method: Attributes[attribute.cmds[0]] || Attributes['default'],
+			getter: self.getter,
+			setter: self.setter
+		});
+
+		if (render) unit.render();
+
+		self.data[attribute.path].push(unit);
+
+	});
+
+	return self;
 };
 
 View.prototype.add = function (elements, render) {
