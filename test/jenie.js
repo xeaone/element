@@ -8,13 +8,6 @@
 		GET: 2,
 		SET: 3,
 
-		path: function () {
-			return Array.prototype.join
-			.call(arguments, '.')
-			.replace(/\.{2,}/g, '.')
-			.replace(/^\.|\.$/g, '');
-		},
-
 		is: function (variable, name) {
 			return variable && variable.constructor.name === name;
 		},
@@ -27,35 +20,6 @@
 		has: function (string, search) {
 			return string.indexOf(search) !== -1;
 		},
-
-		normalize: function (path) {
-			path = decodeURI(path)
-			.replace(/\/{2,}/g, '/')
-			.replace(/\?.*/, '')
-			.replace(/\/$/, '');
-			return path === '' ? '/' : path;
-		},
-
-		getHash: function (path) {
-			return this.normalize(path
-				.split('?')[0].split('#')[1] || ''
-			);
-		},
-
-		getSearch: function (path) {
-			return this.normalize(path
-				.split('?')[1] || ''
-			);
-		},
-
-		getPath: function (path, base, root) {
-			return this.normalize(path
-				.replace(window.location.origin, '/')
-				.replace(base, '/')
-				.replace(root, '/')
-			);
-		},
-		// router end
 
 		// view/model start
 		toCamelCase: function (data) {
@@ -140,6 +104,13 @@
 	Model$1.prototype = Object.create(Events.prototype);
 	Model$1.prototype.constructor = Model$1;
 
+	Model$1.prototype.join = function () {
+		return Array.prototype.join
+		.call(arguments, '.')
+		.replace(/\.{2,}/g, '.')
+		.replace(/^\.|\.$/g, '');
+	};
+
 	Model$1.prototype.each = function (data, callback, index) {
 		Object.keys(data).slice(index).forEach(function (key) {
 			callback.call(this, data[key], key, data);
@@ -149,7 +120,7 @@
 	Model$1.prototype.every = function (data, callback, index, emit, path) {
 		if (Utility.isCollection(data)) {
 			this.each(data, function (value, key) {
-				this.every(value, callback, 0, true, Utility.path(path, key));
+				this.every(value, callback, 0, true, this.join(path, key));
 			}, index);
 		}
 
@@ -157,14 +128,13 @@
 	};
 
 	Model$1.prototype.ins = function (data, key, value) {
-		var self = this;
-
 		data._meta[key] = value;
-		self.define(value, Utility.path(data._path, key), true);
-		self.defineProperty(data, key);
 
-		this.emit('*', Utility.path(data._path, key), value);
-		this.emit('*', Utility.path(data._path), data);
+		this.define(value, this.join(data._path, key), true);
+		this.defineProperty(data, key);
+
+		this.emit('*', this.join(data._path, key), value);
+		this.emit('*', this.join(data._path), data);
 	};
 
 	Model$1.prototype.del = function (data, key) {
@@ -174,25 +144,25 @@
 			delete data[key];
 
 			this.every(item, function (value, path) {
-				path = Utility.path(data._path, key, path);
+				path = this.join(data._path, key, path);
 				this.emit('*', path, undefined);
 			});
 
-			this.emit('*', Utility.path(data._path, key), undefined);
+			this.emit('*', this.join(data._path, key), undefined);
 		} else if (Utility.is(data, 'Array')) {
 			data._meta.splice(key, 1);
 			data.splice(data.length-1, 1);
 
 			this.every(data, function (value, path) {
-				path = Utility.path(data._path, path);
+				path = this.join(data._path, path);
 
 				// updateS _path to match index change
 				if (Utility.isCollection(value)) value._path = path;
 				this.emit('*', path, value);
 			}, parseInt(key));
 
-			this.emit('*', Utility.path(data._path, data.length), undefined);
-			this.emit('*', Utility.path(data._path), data);
+			this.emit('*', this.join(data._path, data.length), undefined);
+			this.emit('*', this.join(data._path), data);
 		}
 	};
 
@@ -239,10 +209,13 @@
 
 		Object.keys(data).forEach(function (key) {
 			if (data[key] === undefined) return;
+
 			data._meta[key] = data[key];
-			this.define(data[key], Utility.path(path || '', key), emit);
+
+			this.define(data[key], this.join(path || '', key), emit);
 			this.defineProperty(data, key);
-			if (emit) this.emit('*', Utility.path(path || '', key), data[key]);
+
+			if (emit) this.emit('*', this.join(path || '', key), data[key]);
 		}, this);
 
 	};
@@ -946,192 +919,208 @@
 
 	var Utility$2 = utility;
 
-	function Router$1 () {}
-
-	Router$1.prototype.render = function (route) {
-		var self = this;
-		var component = null;
-
-		if (route.title) document.title = route.title;
-
-		if (typeof route.component === 'string') {
-			if (route.component in self.cache) component = self.cache[route.component];
-			else component = self.cache[route.component] = document.createElement(route.component);
-		} else {
-			component = route.component;
-		}
-
-		if (self.view.firstChild) self.view.removeChild(self.view.firstChild);
-		self.view.appendChild(component);
-		window.scroll(0, 0);
-		return self;
-	};
-
-	Router$1.prototype.redirect = function (route) {
-		var self = this;
-		window.location = route.path;
-		return self;
-	};
-
-	Router$1.prototype.add = function (route) {
+	function Router$1 (options) {
 		var self = this;
 
-		if (route.constructor.name === 'Object') {
-			self.routes.push(route);
-		} else if (route.constructor.name === 'Array') {
-			self.routes = self.routes.concat(route);
-		}
-
-		return self;
-	};
-
-	Router$1.prototype.remove = function (path) {
-		var self = this, route;
-
-		for (var i = 0, l = self.routes.length; i < l; i++) {
-			route = self.routes[i];
-
-			if (path === route.path) {
-				self.routes.splice(i, 1);
-				break;
-			}
-		}
-
-		return self;
-	};
-
-	Router$1.prototype.get = function (path) {
-		var self = this;
-
-		var index = 0;
-		var route = null;
-		var length = self.routes.length;
-
-		for (index; index < length; index++) {
-			route = self.routes[index];
-			if (!route.path) {
-				throw new Error('Router: missing path option');
-			} else if (typeof route.path === 'string') {
-				if (route.path === path || route.path === '/' + path) {
-					return route;
-				}
-			} else if (typeof route.path === 'function') {
-				if (route.path.test(path)) {
-					return route;
-				}
-			}
-		}
-
-		// route = {};
-		// route.title = '404';
-		// route.component = document.createElement('div');
-		// route.component.innerHTML = '{ "statusCode": 404, "error": "Not Found" }';
-
-		return route;
-	};
-
-	Router$1.prototype.change = function (state, replace) {
-		var self = this;
-
-		if (self.mode) {
-			window.history[replace ? 'replaceState' : 'pushState'](state, state.title, Utility$2.normalize(state.origin + state.path));
-		} else {
-			self.isChangeEvent = false;
-			window.location = Utility$2.normalize(state.origin + state.path);
-		}
-
-		return self;
-	};
-
-	Router$1.prototype.navigate = function (state, replace) {
-		var self = this;
-
-		self.state.path = Utility$2.getPath(state.path, self.state.base, self.state.root);
-		self.state.hash = Utility$2.getHash(self.state.path);
-		self.state.search = Utility$2.getSearch(self.state.path);
-		self.state.href = Utility$2.normalize(window.location.href);
-
-		self.route = self.get(self.state.path);
-		self.state.title = self.route.title;
-
-		self.change(self.state, replace);
-
-		if (self.route.redirect) {
-			self.redirect(self.route);
-		} else {
-			self.render(self.route);
-		}
-
-		return self;
-	};
-
-	Router$1.prototype.create = function (options) {
-		var self = this;
-
-		self.mode = options.mode;
-		self.mode = self.mode === null || self.mode === undefined ? true : self.mode;
-		self.mode = 'history' in window && 'pushState' in window.history ? self.mode : false;
-
-		self.base = options.base || '';
+		self.external = options.external;
 		self.routes = options.routes || [];
-		self.external = options.external || '';
+		self.hash = options.hash === null || options.hash === undefined ? false : options.hash;
 
 		self.cache = {};
-		self.isChangeEvent = true;
-		self.root = self.mode ? '/' : '/#';
-		self.state = { root: self.root, base: self.base, origin: Utility$2.normalize(self.base + self.root) };
+		self.state = {};
+		self.base = options.base;
+		self.origin = window.location.origin;
+		self.root = options.root || '' + (self.hash ? '/#/' : '/');
 
-		window.addEventListener('DOMContentLoaded', function () {
-			self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
-			self.navigate({ path: window.location.href }, true);
-		}, false);
+		self.loaded = function () {
 
-		window.addEventListener(self.mode ? 'popstate' : 'hashchange', function (e) {
-			if (self.isChangeEvent) {
-				var state = self.mode ? e.state : { path: e.newURL }; //&& e.state
-				self.navigate(state, true);
-			} else {
-				self.isChangeEvent = true;
+			if (!self.base) {
+				self.base = document.querySelector('base');
+				self.base = self.base ? self.base.getAttribute('href') : '/';
+				self.base = self.base === '' ? '/' : self.base;
+				self.base = self.base[self.base.length-1] === '/' ? self.base.slice(0, -1) : self.base;
 			}
-		}, false);
 
-		window.addEventListener('click', function (e) {
+			self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
+			self.navigate(window.location.href, true);
+			window.removeEventListener('DOMContentLoaded', self.loaded);
+		};
+
+		self.popstate = function (e) {
+			self.navigate(e.state || window.location.href, true);
+		};
+
+		self.click = function (e) {
 			if (e.metaKey || e.ctrlKey || e.shiftKey) return;
 
 			// ensure target is anchor tag use shadow dom if available
 			var target = e.path ? e.path[0] : e.target;
 			while (target && 'A' !== target.nodeName) target = target.parentNode;
 			if (!target || 'A' !== target.nodeName) return;
+			var href = target.getAttribute('href');
 
 			// if external is true then default action
 			if (self.external) {
-				if (self.external.constructor.name === 'Function' && self.external(target.href)) return;
-				else if (self.external.constructor.name === 'RegExp' && self.external.test(target.href)) return;
-				else if (self.external.constructor.name === 'String' && new RegExp(self.external).test(target.href)) return;
+				if (self.external.constructor.name === 'Function' && self.external(href)) return;
+				else if (self.external.constructor.name === 'RegExp' && self.external.test(href)) return;
+				else if (self.external.constructor.name === 'String' && new RegExp(self.external).test(href)) return;
 			}
 
 			// check non acceptable attributes
 			if (target.hasAttribute('download') || target.hasAttribute('external')) return;
 
 			// check non acceptable href
-			if (Utility$2.has(target.href, 'mailto:')) return;
-			if (Utility$2.has(target.href, 'tel:')) return;
-			if (Utility$2.has(target.href, 'file:')) return;
-			if (Utility$2.has(target.href, 'ftp:')) return;
-
-			// check non acceptable origin
-			// if (!Utility.isSameOrigin(state.path)) return;
+			if (Utility$2.has(href, 'mailto:')) return;
+			if (Utility$2.has(href, 'tel:')) return;
+			if (Utility$2.has(href, 'file:')) return;
+			if (Utility$2.has(href, 'ftp:')) return;
 
 			e.preventDefault();
-			// if (!Utility.isSamePath(target.href, self.state.path))
-			self.navigate({ path: target.href });
-		}, false);
+			self.navigate(href);
+		};
+
+		window.addEventListener('DOMContentLoaded', self.loaded, true);
+		window.addEventListener('popstate', self.popstate, true);
+		window.addEventListener('click', self.click, true);
 
 		return self;
+	}
+
+	Router$1.prototype.scroll = function (x, y) {
+		window.scroll(x, y);
+		return this;
+	};
+
+	Router$1.prototype.normalize = function (path) {
+		path = decodeURI(path).replace(/\/{2,}/g, '/')
+		.replace(/(http(s)?:\/)/, '$1/')
+		.replace(/\?.*/, '');
+
+		return 	path = path === '' ? '/' : path;
+	};
+
+	Router$1.prototype.join = function () {
+		return this.normalize(Array.prototype.join.call(arguments, '/'));
+	};
+
+	Router$1.prototype.url = function (path) {
+		var url = {};
+
+		url.root = this.root;
+		url.origin = this.origin;
+
+		url.base = this.normalize(this.base);
+
+		url.path = path;
+		url.path = url.path.indexOf(url.origin) === 0 ? url.path.replace(url.origin, '') : url.path;
+		url.path = url.base !== '/' ? url.path.replace(url.base, '') : url.path;
+		url.path = url.path.indexOf(url.root) === 0 ? url.path.replace(url.root, '/') : url.path;
+		url.path = this.normalize(url.path);
+		url.path = url.path[0] === '/' ? url.path : '/' + url.path;
+
+		url.href = this.join(url.origin, url.base, url.root, url.path);
+
+		return url;
+	};
+
+	Router$1.prototype.render = function (route) {
+		var component = this.cache[route.component];
+
+		if (route.title) {
+			document.title = route.title;
+		}
+
+		if (route.cache === true || route.cache === undefined) {
+			component = this.cache[route.component];
+
+			if (!component) {
+				component = this.cache[route.component] = document.createElement(route.component);
+			}
+		} else {
+			component = document.createElement(route.component);
+		}
+
+		if (this.view.firstChild) {
+			this.view.removeChild(this.view.firstChild);
+		}
+
+		this.view.appendChild(component);
+
+		return this;
+	};
+
+	Router$1.prototype.add = function (route) {
+		if (route.constructor.name === 'Object') this.routes.push(route);
+		else if (route.constructor.name === 'Array') this.routes = this.routes.concat(route);
+		return this;
+	};
+
+	Router$1.prototype.remove = function (path) {
+
+		for (var i = 0, l = this.routes.length; i < l; i++) {
+			if (path === this.routes[i].path) {
+				this.routes.splice(i, 1);
+				break;
+			}
+		}
+
+		return this;
+	};
+
+	Router$1.prototype.redirect = function (path) {
+		window.location.href = path;
+		return this;
+	};
+
+	Router$1.prototype.get = function (path) {
+
+		for (var r, i = 0, l = this.routes.length; i < l; i++) {
+			r = this.routes[i];
+
+			if (typeof r.path === 'string') {
+				if (r.path === path) {
+					return r;
+				}
+			} else if (typeof r.path === 'function') {
+				if (r.path.test(path)) {
+					return r;
+				}
+			}
+
+		}
+
+		throw new Error('could not find ' + path + ' in routes');
+
+	};
+
+	Router$1.prototype.navigate = function (data, replace) {
+
+		if (typeof data === 'string') {
+			this.state.url = this.url(data);
+			this.state.route = this.get(this.state.url.path);
+		} else {
+			this.state = data;
+		}
+
+		// update state with scroll position
+		window.history.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
+		window.history.replaceState(window.history.state, window.history.state.route.title, window.history.state.url.href);
+
+		// add state
+		window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.route.title, this.state.url.href);
+
+		if (this.state.route.redirect) this.redirect(this.state.route);
+		else this.render(this.state.route);
+
+		if (window.history.state.scroll && (window.history.state.scroll.x !== 0 || window.history.state.scroll.y !== 0)) {
+			this.scroll(window.history.state.scroll.x, window.history.state.scroll.y);
+		}
+
+		return this;
 	};
 
 	var index$8 = function (options) {
-		return new Router$1().create(options);
+		return new Router$1(options);
 	};
 
 	function Http$1 () {}

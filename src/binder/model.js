@@ -6,6 +6,13 @@ function Model () {}
 Model.prototype = Object.create(Events.prototype);
 Model.prototype.constructor = Model;
 
+Model.prototype.join = function () {
+	return Array.prototype.join
+	.call(arguments, '.')
+	.replace(/\.{2,}/g, '.')
+	.replace(/^\.|\.$/g, '');
+};
+
 Model.prototype.each = function (data, callback, index) {
 	Object.keys(data).slice(index).forEach(function (key) {
 		callback.call(this, data[key], key, data);
@@ -15,7 +22,7 @@ Model.prototype.each = function (data, callback, index) {
 Model.prototype.every = function (data, callback, index, emit, path) {
 	if (Utility.isCollection(data)) {
 		this.each(data, function (value, key) {
-			this.every(value, callback, 0, true, Utility.path(path, key));
+			this.every(value, callback, 0, true, this.join(path, key));
 		}, index);
 	}
 
@@ -23,14 +30,13 @@ Model.prototype.every = function (data, callback, index, emit, path) {
 };
 
 Model.prototype.ins = function (data, key, value) {
-	var self = this;
-
 	data._meta[key] = value;
-	self.define(value, Utility.path(data._path, key), true);
-	self.defineProperty(data, key);
 
-	this.emit('*', Utility.path(data._path, key), value);
-	this.emit('*', Utility.path(data._path), data);
+	this.define(value, this.join(data._path, key), true);
+	this.defineProperty(data, key);
+
+	this.emit('*', this.join(data._path, key), value);
+	this.emit('*', this.join(data._path), data);
 };
 
 Model.prototype.del = function (data, key) {
@@ -40,25 +46,25 @@ Model.prototype.del = function (data, key) {
 		delete data[key];
 
 		this.every(item, function (value, path) {
-			path = Utility.path(data._path, key, path);
+			path = this.join(data._path, key, path);
 			this.emit('*', path, undefined);
 		});
 
-		this.emit('*', Utility.path(data._path, key), undefined);
+		this.emit('*', this.join(data._path, key), undefined);
 	} else if (Utility.is(data, 'Array')) {
 		data._meta.splice(key, 1);
 		data.splice(data.length-1, 1);
 
 		this.every(data, function (value, path) {
-			path = Utility.path(data._path, path);
+			path = this.join(data._path, path);
 
 			// updateS _path to match index change
 			if (Utility.isCollection(value)) value._path = path;
 			this.emit('*', path, value);
 		}, parseInt(key));
 
-		this.emit('*', Utility.path(data._path, data.length), undefined);
-		this.emit('*', Utility.path(data._path), data);
+		this.emit('*', this.join(data._path, data.length), undefined);
+		this.emit('*', this.join(data._path), data);
 	}
 };
 
@@ -105,10 +111,13 @@ Model.prototype.define = function (data, path, emit) {
 
 	Object.keys(data).forEach(function (key) {
 		if (data[key] === undefined) return;
+
 		data._meta[key] = data[key];
-		this.define(data[key], Utility.path(path || '', key), emit);
+
+		this.define(data[key], this.join(path || '', key), emit);
 		this.defineProperty(data, key);
-		if (emit) this.emit('*', Utility.path(path || '', key), data[key]);
+
+		if (emit) this.emit('*', this.join(path || '', key), data[key]);
 	}, this);
 
 };

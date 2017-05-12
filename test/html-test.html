@@ -14,6 +14,7 @@
 			<div j-each-item="items">
 				<div j-text="item.it.value"></div>
 			</div>
+			<a href="/js">/js</a>
 			<button j-on-click="say">Say Hello</button>
 		</div>
 	</div>
@@ -45,17 +46,17 @@
 			var self = this;
 
 			var increaseInterval = setInterval(function () {
-				if (self.model.items.length === 15) {
+				if (self.model.items.length === 100) {
 					clearInterval(increaseInterval);
 
-					var decreaseInterval = setInterval(function () {
-						if (self.model.items.length === 5) clearInterval(decreaseInterval);
-						self.model.items.del(self.model.items.length-1);
-					}, 100);
+					// var decreaseInterval = setInterval(function () {
+					// 	if (self.model.items.length === 5) clearInterval(decreaseInterval);
+					// 	self.model.items.del(self.model.items.length-1);
+					// }, 100);
 				}
 
 				self.model.items.ins(self.model.items.length, { it: { value: self.model.items.length } });
-			}, 100);
+			}, 10);
 
 		}
 	});

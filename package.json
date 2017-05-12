@@ -9,7 +9,8 @@
 	"build-dev": "muleify pack src/jenie.b.js test/jenie.js",
     "build-min": "muleify pack -m src/jenie.b.js dist/jenie.min.js",
 	"build-pol": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
-	"build-all": "npm run build-dev && npm run build-min && npm run build-pol"
+	"build-all": "npm run build-dev && npm run build-min && npm run build-pol",
+	"peaks": "muleify pack -p src -w src/jenie.b.js test/src/assets/js/jenie.polly.min.js && cat dist/webcomponents-lite.min.js test/src/assets/js/jenie.polly.min.js > test/src/assets/js/jenie.polly.min.js"
   },
   "repository": {
     "type": "git",

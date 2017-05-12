@@ -2,6 +2,7 @@
 <html>
 <head>
 	<title>Web Components</title>
+	<base href="/sub/">
 	<script src="/webcomponents-lite.min.js"></script>
 	<script src="/jenie.js"></script>
 	<script src="/js-test.js"></script>
@@ -24,6 +25,8 @@
 		};
 
 		Jenie.router({
+			// base: '/sub',
+			hash: true,
 			routes: [
 				{
 					title: 'html',
@@ -33,7 +36,6 @@
 				{
 					title: 'js',
 					path: '/js',
-					cache: false,
 					component: 'js-test'
 				}
 			]
