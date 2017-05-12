@@ -1,3 +1,1 @@
-- hash mode route change back then forward not working
-- this.binder.model.ins( breaks
-- look at Model.observe maybe undefineds can triiger remove, and then add a callback for inserts
+- recreating binder throws redfine error

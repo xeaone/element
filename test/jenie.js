@@ -34,43 +34,7 @@
 			return data.replace(/[A-Z]/g, function (match) {
 				return '-' + match.toLowerCase();
 			});
-		},
-
-		interact: function (type, collection, path, value) {
-			var keys = path.split('.');
-			var last = keys.length - 1;
-			var temporary = collection;
-
-			for (var i = 0; i < last; i++) {
-				var property = keys[i];
-
-				if (temporary[property] === null || temporary[property] === undefined) {
-					if (type === this.GET) {
-						return undefined;
-					} else if (type === this.SET) {
-						temporary[property] = {};
-					}
-				}
-
-				temporary = temporary[property];
-			}
-
-			if (type === this.GET) {
-				return temporary[keys[last]];
-			} else if (type === this.SET) {
-				temporary[keys[last]] = value;
-				return collection;
-			}
-		},
-
-		getByPath: function (collection, path) {
-			return this.interact(this.GET, collection, path);
-		},
-
-		setByPath: function (collection, path, value) {
-			return this.interact(this.SET, collection, path, value);
-		},
-		// view/model end
+		}
 
 	};
 
@@ -125,6 +89,33 @@
 		}
 
 		if (emit) callback.call(this, data, path || '');
+	};
+
+	Model$1.prototype.get = function (path) {
+		var keys = path.split('.');
+		var last = keys.length - 1;
+		var collection = this.data;
+
+		for (var i = 0; i < last; i++) {
+			if (!collection[keys[i]]) return undefined;
+			else collection = collection[keys[i]];
+		}
+
+		return collection[keys[last]];
+	};
+
+	Model$1.prototype.set = function (path, value) {
+		var keys = path.split('.');
+		var last = keys.length - 1;
+		var collection = this.data;
+
+		for (var i = 0, key; i < last; i++) {
+			key = keys[i];
+			if (collection[key] === undefined) collection[key] = {};
+			collection = collection[key];
+		}
+
+		return collection[keys[last]] = value;
 	};
 
 	Model$1.prototype.ins = function (data, key, value) {
@@ -220,14 +211,6 @@
 
 	};
 
-	Model$1.prototype.get = function (path) {
-		return Utility.getByPath(this.data, path);
-	};
-
-	Model$1.prototype.set = function (path, data) {
-		return Utility.setByPath(this.data, path, data);
-	};
-
 	Model$1.prototype.setup = function (data) {
 		this.data = data;
 		this.define(this.data, null, true);
@@ -242,175 +225,6 @@
 	var model = function (data) {
 		return new Model$1().create(data);
 	};
-
-	// Model.prototype.every = function (collection, callback, path) {
-	// 	var self = this, key, type;
-	//
-	// 	path = !path ? '' : path += '.';
-	// 	type = collection === null || collection === undefined ? collection : collection.constructor.name;
-	//
-	// 	if (type !== 'Array' && type !== 'Object') return;
-	//
-	// 	function action (c, k, p) {
-	// 		var v = c[k];
-	// 		callback(p, v, k, c);
-	// 		if (v && (v.constructor.name === 'Array' || v.constructor.name === 'Object')) {
-	// 			self.every(v, null, callback, p);
-	// 		}
-	// 	}
-	//
-	// 	if (type === 'Array') {
-	// 		if (collection.length === 0) return;
-	// 		for (key = 0; key < collection.length; key++) {
-	// 			action(collection, key, path + key);
-	// 		}
-	// 	} else if (type === 'Object') {
-	// 		for (key in collection) {
-	// 			action(collection, key, path + key);
-	// 		}
-	// 	}
-	// };
-	//
-	// Model.prototype.each = function (collection, callback) {
-	// 	var key;
-	//
-	// 	if (!collection) {
-	// 		throw new Error('not a collection');
-	// 	} else if (collection.constructor.name === 'Array') {
-	// 		if (collection.length === 0) return;
-	// 		for (key = 0; key < collection.length; key++) {
-	// 			callback(collection[key], key);
-	// 		}
-	// 	} else if (collection.constructor.name === 'Object') {
-	// 		if (Object.keys(collection).length === 0) return;
-	// 		for (key in collection) {
-	// 			callback(collection[key], key);
-	// 		}
-	// 	}
-	// };
-	//
-	// // Model.prototype.notify = function (path, collection, callback) {
-	// // 	if (collection && (collection.constructor.name === 'Array' || collection.constructor.name === 'Object')) {
-	// // 		this.every(collection, function (v, k, c, p) {
-	// // 			callback(path + '.' + p, v);
-	// // 		});
-	// // 	}
-	// // };
-	//
-	// Model.prototype.ins = function (model, callback, prefix, key, value) {
-	// 	var self = this, type;
-	//
-	// 	type = model === null || model === undefined ? model : model.constructor.name;
-	//
-	// 	if (type === 'Object' || type === 'Array') {
-	// 		value = self.observe(value, callback, prefix + key, true);
-	// 	}
-	//
-	// 	model = Object.defineProperty(model, key, self.descriptor(prefix + key, value, callback));
-	//
-	// 	if (callback) callback(prefix + key, value);
-	//
-	// 	// if (model.constructor.name === 'Array' && key == -1) {
-	// 	// 	key = 0;
-	// 	// 	model.splice(key, 0, value);
-	// 	// 	model = Object.defineProperty(model, key, this.descriptor(prefix + key, value, callback));
-	// 	// 	key = model.length-1;
-	// 	// 	value = model[key];
-	// 	// }
-	//
-	// };
-	//
-	// Model.prototype.del = function (model, callback, path, key) {
-	// 	var self = this, type;
-	//
-	// 	type = model === null || model === undefined ? model : model.constructor.name;
-	//
-	// 	if (type === 'Array') {
-	// 		model.splice(key, 1);
-	// 		callback(path.slice(0, -1), model);
-	// 			// self.every(model[key], function (p) {
-	// 			// 	callback(path + key + '.' + p, undefined);
-	// 			// });
-	//
-	// 	} else if (type === 'Object') {
-	// 		self.every(model[key], function (v, k, c, p) {
-	// 			callback(path + key + '.' + p, undefined);
-	// 		});
-	// 		callback(path + key, undefined);
-	// 		delete model[key];
-	// 	}
-	//
-	// };
-	//
-	// Model.prototype.descriptor = function (path, value, callback) {
-	// 	var self = this;
-	//
-	// 	return {
-	// 		configurable: true,
-	// 		enumerable: true,
-	// 		get: function () {
-	// 			return value;
-	// 		},
-	// 		set: function (newValue) {
-	// 			value = newValue;
-	//
-	// 			self.every(value, function (p, v) {
-	// 				callback(path + '.' + p, v);
-	// 			});
-	//
-	// 			callback(path, value);
-	// 		}
-	// 	};
-	// };
-	//
-	// Model.prototype.observe = function (collection, callback, prefix, notify) {
-	// 	var self = this, properties = {}, data;
-	//
-	// 	prefix = !prefix ? '' : prefix += '.';
-	// 	data = collection.constructor.name === 'Object' ? {} : [];
-	//
-	// 	properties.ins = {
-	// 		value: self.ins.bind(self, data, callback, prefix)
-	// 	};
-	//
-	// 	properties.del = {
-	// 		value: self.del.bind(self, data, callback, prefix)
-	// 	};
-	//
-	// 	self.each(collection, function (value, key) {
-	// 		if (value !== null && value !== undefined) {
-	// 			if (value.constructor.name === 'Object' || value.constructor.name === 'Array') {
-	// 				value = self.observe(value, callback, prefix + key);
-	// 			}
-	// 		}
-	//
-	// 		properties[key] = self.descriptor(prefix + key, value, callback);
-	//
-	// 		if (callback && notify) callback(prefix + key, value);
-	// 	});
-	//
-	// 	return Object.defineProperties(data, properties);
-	// };
-	//
-	// Model.prototype.get = function (path) {
-	// 	return Utility.getByPath(this.data, path);
-	// };
-	//
-	// Model.prototype.set = function (path, data) {
-	// 	return Utility.setByPath(this.data, path, data);
-	// };
-	//
-	// Model.prototype.setup = function (collection, callback) {
-	// 	this.data = this.observe(collection, callback);
-	// };
-	//
-	// Model.prototype.create = function (options) {
-	// 	var self = this;
-	// 	options = options || {};
-	// 	self.data = options.data || {};
-	// 	return self;
-	// };
-	//
 
 	var Utility$1 = utility;
 
@@ -444,9 +258,14 @@
 		},
 		value: function () {
 			if (this.change) return;
-			this.change = function () { this.data = this.element.value || this.element.checked; };
-			this.element.addEventListener('change', this.change.bind(this));
-			this.element.addEventListener('keyup', this.change.bind(this));
+			if (this.element.type === 'button' || this.element.type === 'reset') return this.change = true;
+
+			this.change = function () {
+				this.data = this.element.type !== 'radio' && this.element.type !== 'checked' ? this.element.value : this.element.checked;
+			};
+
+			this.element.addEventListener('change', this.change.bind(this), true);
+			this.element.addEventListener('keyup', this.change.bind(this), true);
 		},
 		html: function () {
 			this.element.innerHTML = this.data;

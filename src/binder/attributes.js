@@ -30,9 +30,14 @@ module.exports = {
 	},
 	value: function () {
 		if (this.change) return;
-		this.change = function () { this.data = this.element.value || this.element.checked; };
-		this.element.addEventListener('change', this.change.bind(this));
-		this.element.addEventListener('keyup', this.change.bind(this));
+		if (this.element.type === 'button' || this.element.type === 'reset') return this.change = true;
+
+		this.change = function () {
+			this.data = this.element.type !== 'radio' && this.element.type !== 'checked' ? this.element.value : this.element.checked;
+		};
+
+		this.element.addEventListener('change', this.change.bind(this), true);
+		this.element.addEventListener('keyup', this.change.bind(this), true);
 	},
 	html: function () {
 		this.element.innerHTML = this.data;
