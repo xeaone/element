@@ -184,8 +184,10 @@ Router.prototype.navigate = function (data, replace) {
 	}
 
 	// update state with scroll position
-	window.history.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
-	window.history.replaceState(window.history.state, window.history.state.route.title, window.history.state.url.href);
+	if  (window.history.state) {
+		window.history.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
+		window.history.replaceState(window.history.state, window.history.state.route.title, window.history.state.url.href);
+	}
 
 	// add state
 	window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.route.title, this.state.url.href);
@@ -193,7 +195,7 @@ Router.prototype.navigate = function (data, replace) {
 	if (this.state.route.redirect) this.redirect(this.state.route);
 	else this.render(this.state.route);
 
-	if (window.history.state.scroll && (window.history.state.scroll.x !== 0 || window.history.state.scroll.y !== 0)) {
+	if (window.history.state && window.history.state.scroll && (window.history.state.scroll.x !== 0 || window.history.state.scroll.y !== 0)) {
 		this.scroll(window.history.state.scroll.x, window.history.state.scroll.y);
 	}
 
