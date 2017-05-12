@@ -917,6 +917,7 @@
 		if (typeof data === 'string') {
 			this.state.url = this.url(data);
 			this.state.route = this.get(this.state.url.path);
+			this.state.title = this.state.route.title;
 		} else {
 			this.state = data;
 		}
@@ -924,7 +925,7 @@
 		// update state with scroll position
 		if  (window.history.state) {
 			window.history.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
-			window.history.replaceState(window.history.state, window.history.state.route.title, window.history.state.url.href);
+			window.history.replaceState(window.history.state, window.history.state.title, window.history.state.url.href);
 		}
 
 		// add state
@@ -1045,7 +1046,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.1.0
+		version: 1.1.1
 		author: alexander elias
 	*/
 
