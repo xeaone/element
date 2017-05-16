@@ -1,7 +1,7 @@
 
 module.exports = {
 
-	sViewElement: 'j-view',
+	// sViewElement: 'j-view',
 
 	sPrefix: '(data-)?j-',
 	sValue: '(data-)?j-value',

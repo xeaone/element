@@ -1,23 +1,28 @@
 /*
 	@banner
 	name: jenie
-	version: 1.1.1
+	version: 1.1.2
 	author: alexander elias
 */
 
 var Component = require('./component');
-var Global = require('./global');
 var Binder = require('./binder');
 var Router = require('./router');
 var Http = require('./http');
 
-var S_VIEW_ELEMENT = Global.sViewElement;
+var sStyle = 'j-view, j-view > :first-child { display: block; }';
+var eStyle = document.createElement('style');
+var nStyle = document.createTextNode(sStyle);
 
-document.registerElement(S_VIEW_ELEMENT, {
+eStyle.appendChild(nStyle);
+document.head.appendChild(eStyle);
+
+document.registerElement('j-view', {
 	prototype: Object.create(HTMLElement.prototype)
 });
 
 module.exports = {
+	module: {},
 	services: {},
 	http: Http(),
 	component: function (options) {
@@ -29,13 +34,13 @@ module.exports = {
 	router: function (options) {
 		return this.router = Router(options);
 	},
-	query: function (query) {
-		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
-	},
 	script: function () {
 		return (document._currentScript || document.currentScript);
 	},
 	document: function () {
 		return (document._currentScript || document.currentScript).ownerDocument;
+	},
+	query: function (query) {
+		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 	}
 };

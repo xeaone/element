@@ -29,22 +29,6 @@ Model.prototype.every = function (data, callback, index, emit, path) {
 	if (emit) callback.call(this, data, path || '');
 };
 
-Model.prototype.clone = function (data) {
-	var collection = Object.create(Object.getPrototypeOf(data));
-
-	Object.keys(data).forEach(function (key) {
-		if (data[key] && typeof data[key] === 'object') {
-			collection[key] = this.clone(data[key]);
-		} else {
-			Object.defineProperty(collection, key,
-				Object.getOwnPropertyDescriptor(data, key)
-			);
-		}
-	}, this);
-
-	return collection;
-};
-
 Model.prototype.get = function (path) {
 	var keys = path.split('.');
 	var last = keys.length - 1;
@@ -75,7 +59,7 @@ Model.prototype.set = function (path, value) {
 Model.prototype.ins = function (data, key, value) {
 	data._meta[key] = value;
 
-	data[key] = this.define(value, this.join(data._path, key), true);
+	this.define(value, this.join(data._path, key), true);
 	this.defineProperty(data, key);
 
 	this.emit('*', this.join(data._path, key), value);
@@ -101,7 +85,7 @@ Model.prototype.del = function (data, key) {
 		this.every(data, function (value, path) {
 			path = this.join(data._path, path);
 
-			// update _path to match index change
+			// updateS _path to match index change
 			if (Utility.isCollection(value)) value._path = path;
 			this.emit('*', path, value);
 		}, parseInt(key));
@@ -129,14 +113,11 @@ Model.prototype.defineProperty = function (data, key) {
 };
 
 Model.prototype.define = function (data, path, emit) {
-	if (!Utility.isCollection(data)) return data;
+	if (!Utility.isCollection(data)) return;
 
-	var value;
 	var self = this;
 
-	// clone
-
-	var collection = Object.defineProperties(data.constructor(), {
+	Object.defineProperties(data, {
 		_meta: {
 			writable: true,
 			configurable: true,
@@ -148,35 +129,29 @@ Model.prototype.define = function (data, path, emit) {
 			value: path || ''
 		},
 		ins: {
-			value: self.ins.bind(self, collection)
+			value: self.ins.bind(self, data)
 		},
 		del: {
-			value: self.del.bind(self, collection)
+			value: self.del.bind(self, data)
 		}
 	});
 
 	Object.keys(data).forEach(function (key) {
-		value = data[key];
+		if (data[key] === undefined) return;
 
-		if (value === undefined) return;
+		data._meta[key] = data[key];
 
-		collection._meta[key] = value;
-		collection[key] = this.define(value, this.join(path || '', key), emit);
-		this.defineProperty(collection, key);
+		this.define(data[key], this.join(path || '', key), emit);
+		this.defineProperty(data, key);
 
-		if (emit) {
-			this.emit('*', this.join(path || '', key), value);
-		}
-
+		if (emit) this.emit('*', this.join(path || '', key), data[key]);
 	}, this);
 
-	console.log(collection);
-
-	return collection;
 };
 
 Model.prototype.setup = function (data) {
-	this.data = this.define(data, null, true);
+	this.data = data;
+	this.define(this.data, null, true);
 	return this;
 };
 

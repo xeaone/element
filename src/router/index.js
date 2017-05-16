@@ -180,24 +180,27 @@ Router.prototype.navigate = function (data, replace) {
 		this.state.url = this.url(data);
 		this.state.route = this.get(this.state.url.path);
 		this.state.title = this.state.route.title;
+		this.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
 	} else {
 		this.state = data;
 	}
 
-	// update state with scroll position
-	if  (window.history.state) {
+	// update scroll position
+	if  (!replace) {
 		window.history.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
 		window.history.replaceState(window.history.state, window.history.state.title, window.history.state.url.href);
 	}
 
-	// add state
 	window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.route.title, this.state.url.href);
 
-	if (this.state.route.redirect) this.redirect(this.state.route);
-	else this.render(this.state.route);
+	if (this.state.route.redirect) {
+		this.redirect(this.state.route);
+	} else {
+		this.render(this.state.route);
 
-	if (window.history.state && window.history.state.scroll && (window.history.state.scroll.x !== 0 || window.history.state.scroll.y !== 0)) {
-		this.scroll(window.history.state.scroll.x, window.history.state.scroll.y);
+		if (replace && this.state.scroll) {
+			this.scroll(this.state.scroll.x, this.state.scroll.y);
+		}
 	}
 
 	return this;

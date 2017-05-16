@@ -88,9 +88,7 @@ Http.prototype.fetch = function (options) {
 };
 
 Http.prototype.create = function () {
-	var self = this;
-
-	return self;
+	return this;
 };
 
 module.exports = function () {

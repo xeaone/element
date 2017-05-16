@@ -91,6 +91,10 @@
 		if (emit) callback.call(this, data, path || '');
 	};
 
+	Model$1.prototype.clone = function (data) {
+		Object.getOwnPropertyDescriptors(data);
+	};
+
 	Model$1.prototype.get = function (path) {
 		var keys = path.split('.');
 		var last = keys.length - 1;
@@ -121,7 +125,7 @@
 	Model$1.prototype.ins = function (data, key, value) {
 		data._meta[key] = value;
 
-		this.define(value, this.join(data._path, key), true);
+		data[key] = this.define(value, this.join(data._path, key), true);
 		this.defineProperty(data, key);
 
 		this.emit('*', this.join(data._path, key), value);
@@ -175,11 +179,12 @@
 	};
 
 	Model$1.prototype.define = function (data, path, emit) {
-		if (!Utility.isCollection(data)) return;
+		if (!Utility.isCollection(data)) return data;
 
+		var value;
 		var self = this;
 
-		Object.defineProperties(data, {
+		var collection = Object.defineProperties(data.constructor(), {
 			_meta: {
 				writable: true,
 				configurable: true,
@@ -191,29 +196,35 @@
 				value: path || ''
 			},
 			ins: {
-				value: self.ins.bind(self, data)
+				value: self.ins.bind(self, collection)
 			},
 			del: {
-				value: self.del.bind(self, data)
+				value: self.del.bind(self, collection)
 			}
 		});
 
 		Object.keys(data).forEach(function (key) {
-			if (data[key] === undefined) return;
+			value = data[key];
 
-			data._meta[key] = data[key];
+			if (value === undefined) return;
 
-			this.define(data[key], this.join(path || '', key), emit);
-			this.defineProperty(data, key);
+			collection._meta[key] = value;
+			collection[key] = this.define(value, this.join(path || '', key), emit);
+			this.defineProperty(collection, key);
 
-			if (emit) this.emit('*', this.join(path || '', key), data[key]);
+			if (emit) {
+				this.emit('*', this.join(path || '', key), value);
+			}
+
 		}, this);
 
+		console.log(collection);
+
+		return collection;
 	};
 
 	Model$1.prototype.setup = function (data) {
-		this.data = data;
-		this.define(this.data, null, true);
+		this.data = this.define(data, null, true);
 		return this;
 	};
 
@@ -312,9 +323,9 @@
 		}
 	};
 
-	var index$4 = {
+	var global = {
 
-		sViewElement: 'j-view',
+		// sViewElement: 'j-view',
 
 		sPrefix: '(data-)?j-',
 		sValue: '(data-)?j-value',
@@ -373,16 +384,16 @@
 	};
 
 	var Attributes = attributes;
-	var Global$1 = index$4;
+	var Global = global;
 	var Unit = unit;
 
-	var PATH = Global$1.rPath;
-	var PREFIX = Global$1.rPrefix;
-	var MODIFIERS = Global$1.rModifier;
-	var ATTRIBUTE_ACCEPTS = Global$1.rAttributeAccepts;
-	var ELEMENT_ACCEPTS = Global$1.rElementAccepts;
-	var ELEMENT_REJECTS = Global$1.rElementRejects;
-	var ELEMENT_REJECTS_CHILDREN = Global$1.rElementRejectsChildren;
+	var PATH = Global.rPath;
+	var PREFIX = Global.rPrefix;
+	var MODIFIERS = Global.rModifier;
+	var ATTRIBUTE_ACCEPTS = Global.rAttributeAccepts;
+	var ELEMENT_ACCEPTS = Global.rElementAccepts;
+	var ELEMENT_REJECTS = Global.rElementRejects;
+	var ELEMENT_REJECTS_CHILDREN = Global.rElementRejectsChildren;
 
 	function View$1 () {}
 
@@ -622,7 +633,7 @@
 
 	var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
-	var index$6 = function () {
+	var uuid = function () {
 		var chars = CHARS, uuid = [];
 
 		// rfc4122, version 4 form
@@ -644,7 +655,7 @@
 	};
 
 	var Binder$1 = index$2;
-	var Uuid = index$6;
+	var Uuid = uuid;
 
 	function Component$1 () {}
 
@@ -918,30 +929,33 @@
 			this.state.url = this.url(data);
 			this.state.route = this.get(this.state.url.path);
 			this.state.title = this.state.route.title;
+			this.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
 		} else {
 			this.state = data;
 		}
 
-		// update state with scroll position
-		if  (window.history.state) {
+		// update scroll position
+		if  (!replace) {
 			window.history.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
 			window.history.replaceState(window.history.state, window.history.state.title, window.history.state.url.href);
 		}
 
-		// add state
 		window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.route.title, this.state.url.href);
 
-		if (this.state.route.redirect) this.redirect(this.state.route);
-		else this.render(this.state.route);
+		if (this.state.route.redirect) {
+			this.redirect(this.state.route);
+		} else {
+			this.render(this.state.route);
 
-		if (window.history.state && window.history.state.scroll && (window.history.state.scroll.x !== 0 || window.history.state.scroll.y !== 0)) {
-			this.scroll(window.history.state.scroll.x, window.history.state.scroll.y);
+			if (replace && this.state.scroll) {
+				this.scroll(this.state.scroll.x, this.state.scroll.y);
+			}
 		}
 
 		return this;
 	};
 
-	var index$8 = function (options) {
+	var index$4 = function (options) {
 		return new Router$1(options);
 	};
 
@@ -1034,35 +1048,38 @@
 	};
 
 	Http$1.prototype.create = function () {
-		var self = this;
-
-		return self;
+		return this;
 	};
 
-	var index$10 = function () {
+	var http = function () {
 		return new Http$1().create();
 	};
 
 	/*
 		@banner
 		name: jenie
-		version: 1.1.1
+		version: 1.1.2
 		author: alexander elias
 	*/
 
 	var Component = index;
-	var Global = index$4;
 	var Binder = index$2;
-	var Router = index$8;
-	var Http = index$10;
+	var Router = index$4;
+	var Http = http;
 
-	var S_VIEW_ELEMENT = Global.sViewElement;
+	var sStyle = 'j-view, j-view > :first-child { display: block; }';
+	var eStyle = document.createElement('style');
+	var nStyle = document.createTextNode(sStyle);
 
-	document.registerElement(S_VIEW_ELEMENT, {
+	eStyle.appendChild(nStyle);
+	document.head.appendChild(eStyle);
+
+	document.registerElement('j-view', {
 		prototype: Object.create(HTMLElement.prototype)
 	});
 
 	var jenie_b = {
+		module: {},
 		services: {},
 		http: Http(),
 		component: function (options) {
@@ -1074,14 +1091,14 @@
 		router: function (options) {
 			return this.router = Router(options);
 		},
-		query: function (query) {
-			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
-		},
 		script: function () {
 			return (document._currentScript || document.currentScript);
 		},
 		document: function () {
 			return (document._currentScript || document.currentScript).ownerDocument;
+		},
+		query: function (query) {
+			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 		}
 	};
 
