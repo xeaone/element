@@ -73,17 +73,13 @@ Model.prototype.set = function (path, value) {
 };
 
 Model.prototype.ins = function (data, key, value) {
+	data._meta[key] = value;
 
-	if (Utility.isCollection(value)) {
-		this.define(data[key], value, this.join(data._path, key), true);
-	}
+	data[key] = this.define(value, this.join(data._path, key), true);
+	this.defineProperty(data, key);
 
-	if (data[key] === undefined) {
-		this.defineProperty(data, key);
-	}
-
-	this.emit('change', this.join(data._path, key), data[key]);
-	this.emit('change', this.join(data._path), data);
+	this.emit('*', this.join(data._path, key), value);
+	this.emit('*', this.join(data._path), data);
 };
 
 Model.prototype.del = function (data, key) {
@@ -94,10 +90,10 @@ Model.prototype.del = function (data, key) {
 
 		this.every(item, function (value, path) {
 			path = this.join(data._path, key, path);
-			this.emit('change', path, undefined);
+			this.emit('*', path, undefined);
 		});
 
-		this.emit('change', this.join(data._path, key), undefined);
+		this.emit('*', this.join(data._path, key), undefined);
 	} else if (Utility.is(data, 'Array')) {
 		data._meta.splice(key, 1);
 		data.splice(data.length-1, 1);
@@ -107,11 +103,11 @@ Model.prototype.del = function (data, key) {
 
 			// update _path to match index change
 			if (Utility.isCollection(value)) value._path = path;
-			this.emit('change', path, value);
+			this.emit('*', path, value);
 		}, parseInt(key));
 
-		this.emit('change', this.join(data._path, data.length), undefined);
-		this.emit('change', this.join(data._path), data);
+		this.emit('*', this.join(data._path, data.length), undefined);
+		this.emit('*', this.join(data._path), data);
 	}
 };
 
@@ -123,8 +119,6 @@ Model.prototype.defineProperty = function (data, key) {
 			return this._meta[key];
 		},
 		set: function (value) {
-			this._meta[key] = value;
-
 			if (value === undefined) {
 				this.del(key);
 			} else {
@@ -134,60 +128,62 @@ Model.prototype.defineProperty = function (data, key) {
 	});
 };
 
-Model.prototype.define = function (target, source, path, emit) {
-	path = path || '';
-	// target = target || source.constructor();
-	// console.log(source);
+Model.prototype.define = function (data, path, emit) {
+	if (!Utility.isCollection(data)) return data;
 
-	Object.defineProperties(target, {
+	var value;
+	var self = this;
+
+	path = path || '';
+
+	// clone
+	var collection = data.constructor();
+
+	Object.defineProperties(collection, {
 		_meta: {
-			value: source.constructor(),
+			// value: data,
 			// writable: true,
 			configurable: true,
-			// get: function () {
-			// 	return source;
-			// }
+			get: function () {
+				return data;
+			}
+			// value: data.constructor()
 		},
 		_path: {
-			value: path,
-			// writable: true,
-			configurable: true
+			writable: true,
+			configurable: true,
+			value: path || ''
 		},
 		ins: {
-			value: this.ins.bind(this, target)
+			value: self.ins.bind(self, collection)
 		},
 		del: {
-			value: this.del.bind(this, target)
+			value: self.del.bind(self, collection)
 		}
 	});
 
-	Object.keys(source).forEach(function (key) {
-		if (source[key] !== undefined) {
+	Object.keys(data).forEach(function (key) {
+		value = data[key];
 
-			if (Utility.isCollection(source[key])) {
-				target[key] = source[key].constructor();
-				this.define(target[key], source[key], this.join(path, key), emit);
-				target._meta[key] = target[key];
-			} else {
-				target._meta[key] = source[key];
-			}
+		if (value === undefined) return;
 
-			this.defineProperty(target, key);
+		// collection._meta[key] = value;
+		collection[key] = this.define(value, this.join(path, key), emit);
+		this.defineProperty(collection, key, path);
 
-			if (emit) {
-				this.emit('change', this.join(path || '', key), target[key]);
-			}
-
+		if (emit) {
+			this.emit('*', this.join(path || '', key), value);
 		}
+
 	}, this);
 
-	console.log(source);
-	return target;
+	// console.log(collection);
+
+	return collection;
 };
 
 Model.prototype.setup = function (data) {
-	this.data = data.constructor();
-	this.define(this.data, data);
+	this.data = this.define(data, null, true);
 	return this;
 };
 

@@ -1,6 +1,6 @@
-var Collection = require('../collection');
-var Events = require('../events');
+var Attributes = require('./attributes');
 var Global = require('../global');
+var Unit = require('./unit');
 
 var PATH = Global.rPath;
 var PREFIX = Global.rPrefix;
@@ -10,12 +10,7 @@ var ELEMENT_ACCEPTS = Global.rElementAccepts;
 var ELEMENT_REJECTS = Global.rElementRejects;
 var ELEMENT_REJECTS_CHILDREN = Global.rElementRejectsChildren;
 
-function View () {
-	Events.call(this);
-}
-
-View.prototype = Object.create(Events.prototype);
-View.prototype.constructor = View;
+function View () {}
 
 View.prototype.glance = function (element) {
 	return element.outerHTML
@@ -34,9 +29,9 @@ View.prototype.eachElement = function (elements, callback) {
 			i += element.querySelectorAll('*').length;
 		} else if (ELEMENT_REJECTS_CHILDREN.test(glance)) {
 			i += element.querySelectorAll('*').length;
-			callback.call(this, element);
+			callback(element);
 		} else if (ELEMENT_ACCEPTS.test(glance)) {
-			callback.call(this, element);
+			callback(element);
 		}
 	}
 };
@@ -54,7 +49,6 @@ View.prototype.eachAttribute = function (element, callback) {
 			attribute.opts = attribute.path.split('.');
 			attribute.command = attribute.name.replace(PREFIX, '');
 			attribute.cmds = attribute.command.split('-');
-			attribute.key = attribute.opts.slice(-1);
 
 			if (attribute.value.indexOf('|') === -1) {
 				attribute.modifiers = [];
@@ -62,7 +56,7 @@ View.prototype.eachAttribute = function (element, callback) {
 				attribute.modifiers = attribute.value.replace(MODIFIERS, '').split(' ');
 			}
 
-			callback.call(this, attribute);
+			callback(attribute);
 		}
 
 	}
@@ -71,56 +65,83 @@ View.prototype.eachAttribute = function (element, callback) {
 View.prototype.removeAll = function (pattern) {
 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
-	this.data.forEach(function (paths, path) {
-		paths.forEach(function (unit) {
-			if (pattern.test(path)) {
-				unit.unrender();
+	Object.keys(this.data).forEach(function (path) {
+		this.data[path].forEach(function (_, index) {
+			if (pattern.test(path + '.' + index)) {
+				this.data[path][index].unrender();
+				this.data[path].splice(index, 1);
 			}
 		}, this);
 	}, this);
 };
 
-View.prototype.renderAll = function (pattern) {
-	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-
-	this.data.forEach(function (paths, path) {
-		paths.forEach(function (unit) {
-			if (pattern.test(path)) {
-				// it is possible that sorting the shortest or first will allow the render to take place upon array replace and re insert
-				console.log(path);
-				unit.render();
-			}
-		}, this);
+View.prototype.renderAll = function (path) {
+	(this.data[path] || []).forEach(function (unit) {
+		unit.render();
 	}, this);
 };
 
-View.prototype.addOne = function (element) {
-	var self = this;
+View.prototype.addOne = function (element, render) {
+	var self = this, unit;
 
 	self.eachAttribute(element, function (attribute) {
 
-		if (!self.data.has(attribute.path)) {
-			self.data.set(attribute.path, new Collection());
-		}
+		if (!(attribute.path in self.data)) self.data[attribute.path] = [];
 
-		self.emit('add', element, attribute);
+		unit = Unit({
+			view: self,
+			element: element,
+			attribute: attribute,
+			method: Attributes[attribute.cmds[0]] || Attributes['default'],
+			getter: self.getter,
+			setter: self.setter
+		});
+
+		if (render) unit.render();
+
+		self.data[attribute.path].push(unit);
+
 	});
+
+	return self;
 };
 
-View.prototype.addAll = function (elements) {
-	this.eachElement(elements, function (element) {
-		this.addOne(element);
+View.prototype.add = function (elements, render) {
+	var self = this, unit;
+
+	self.eachElement(elements, function (element) {
+		self.eachAttribute(element, function (attribute) {
+
+			if (!(attribute.path in self.data)) self.data[attribute.path] = [];
+
+			unit = Unit({
+				view: self,
+				element: element,
+				attribute: attribute,
+				method: Attributes[attribute.cmds[0]] || Attributes['default'],
+				getter: self.getter,
+				setter: self.setter
+			});
+
+			if (render) unit.render();
+
+			self.data[attribute.path].push(unit);
+
+		});
 	});
+
+	return self;
 };
 
-View.prototype.setup = function (elements) {
-	this.addAll(elements);
-	return this;
+View.prototype.setup = function (options) {
+	this.setter = options.setter;
+	this.getter = options.getter;
+	this.data = {};
+	this.add(options.elements);
+	return self;
 };
 
 View.prototype.create = function () {
-	this.data = new Collection();
-	// this.events = {};
 	return this;
 };
 

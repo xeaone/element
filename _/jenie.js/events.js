@@ -1,7 +1,5 @@
 
-function Events () {
-	this.events = {};
-}
+function Events () {}
 
 Events.prototype.on = function (name, callback) {
 	if (!this.events[name]) this.events[name] = [];

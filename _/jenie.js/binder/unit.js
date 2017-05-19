@@ -2,32 +2,19 @@ var Utility = require('../utility');
 
 function Unit () {}
 
-Unit.prototype.renderMethods = {
+Unit.prototype.attributes = {
 	on: function () {
 		var eventName = this.attribute.cmds[1];
 		this.element.removeEventListener(eventName, this.data, false);
 		this.element.addEventListener(eventName, this.data, false);
 	},
 	each: function () {
-		// console.log(this.data);
-		if (!this.data || this.data.length < 1){
-			while (this.element.lastChild) {
-				this.element.removeChild(this.element.lastChild);
-			}
-
-			this.length = 0;
-		} else if (this.length === undefined) {
+		if (this.length === undefined) {
 			this.length = this.data.length;
 			this.variable = this.attribute.cmds.slice(1).join('.');
 			this.clone = this.element.removeChild(this.element.children[0]).outerHTML;
 			this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
-			this.data.forEach(function (data, index) {
-				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, '$1' + this.attribute.path + '.' + index + '$6'));
-			}, this);
-
-			this.view.addAll(this.element.getElementsByTagName('*'), true);
-		} else if (this.length === 0) {
 			this.data.forEach(function (data, index) {
 				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, '$1' + this.attribute.path + '.' + index + '$6'));
 			}, this);
@@ -99,57 +86,32 @@ Unit.prototype.renderMethods = {
 	}
 };
 
-Unit.prototype.unrenderMethods = {
-	on: function () {
-		var eventName = this.attribute.cmds[1];
-		this.element.removeEventListener(eventName, this.data, false);
-	},
-	each: function () {
-		while (this.element.lastChild) {
-			this.element.removeChild(this.element.lastChild);
-		}
-	},
-	value: function () {
-		this.element.removeEventListener('change', this.change.bind(this));
-		this.element.removeEventListener('keyup', this.change.bind(this));
-	},
-	html: function () {
-		this.element.innerHTML = 'undefined';
-	},
-	text: function () {
-		this.element.innerText = 'undefined';
-	},
-	default: function () {
-
-	}
-};
-
 Unit.prototype.unrender = function () {
-	this.unrenderMethod();
+	// this.element.parentNode.removeChild(this.element);
 	return this;
 };
 
-Unit.prototype.render = function () {
-	this.renderMethod();
+Unit.prototype.render = function (data) {
+	this._data = data;
+	this.method();
 	return this;
 };
 
 Unit.prototype.create = function (options) {
 	this.view = options.view;
-	this.model = options.model;
 	this.data = options.data;
+	this._data = options._data;
 	this.element = options.element;
 	this.attribute = options.attribute;
 	this.modifiers = options.modifiers;
 
-	this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
-	this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
+	this.method = (this.attributes[this.attribute.cmds[0]] || this.attributes['default']).bind(this);
 
 	Object.defineProperty(this, 'data', {
 		enumerable: true,
 		configurable: true,
 		get: function () {
-			var data = this.model.get(this.attribute.path);
+			var data = this._data[this.attribute.key];
 
 			this.modifiers.forEach(function (modifier) {
 				data = modifier.call(data);
@@ -158,11 +120,11 @@ Unit.prototype.create = function (options) {
 			return data;
 		},
 		set: function (value) {
-			return this.model.set(this.attribute.path, value);
+			return this._data[this.attribute.key] = value;
 		}
 	});
 
-	this.renderMethod();
+	this.method();
 
 	return this;
 };

@@ -1,9 +1,6 @@
-var Utility = require('../utility');
 var Events = require('../events');
 
-function Model () {
-	Events.call(this);
-}
+function Model () {}
 
 Model.prototype = Object.create(Events.prototype);
 Model.prototype.constructor = Model;
@@ -27,13 +24,15 @@ Model.prototype.every = function (data, callback, index, path) {
 };
 
 Model.prototype.clone = function (source, target) {
-	target = target || source.constructor();
+	target = target || Object.create(Object.getPrototypeOf(source));
 
 	Object.keys(source).forEach(function (key) {
 		if (source[key] && source[key].constructor.name === 'Object' || source[key].constructor.name === 'Array') {
 			target[key] = this.clone(source[key]);
 		} else {
-			target[key] = source[key];
+			Object.defineProperty(target, key,
+				Object.getOwnPropertyDescriptor(source, key)
+			);
 		}
 	}, this);
 
@@ -41,14 +40,18 @@ Model.prototype.clone = function (source, target) {
 };
 
 Model.prototype.defineArrayMethod = function (context, method, path, argument) {
-	var self = this, result, index;
+	var self = this, result, index, values;
 
 	if (method === 'splice') {
-		Array.prototype.slice.call(argument, 2).forEach(function (value) {
-			if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) value = self.define(path, value, true);
-			Array.prototype.splice.call(context.meta, argument[0], argument[1], value);
-			self.defineProperty(path, context, context.meta.length-1);
+		values = Array.prototype.slice.call(argument, 2).map(function (value) {
+			if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
+				return self.define(path, value);
+			} else {
+				return value;
+			}
 		});
+
+		Array.prototype.splice.apply(context, [argument[0], argument[1]].concat(values));
 
 		self.every(context, function (d, p, k) {
 			self.emit('change', self.join(path, p), d, k);
@@ -57,34 +60,36 @@ Model.prototype.defineArrayMethod = function (context, method, path, argument) {
 	} else if (method === 'push' || method === 'unshift') {
 		index = method === 'push' ? -1 : 0;
 
-		Array.prototype.forEach.call(argument, function (value) {
-			if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) value = self.define(path, value);
-			result = Array.prototype[method].call(context.meta, value);
-			self.defineProperty(path, context, context.meta.length-1);
+		values = Array.prototype.map.call(argument, function (value) {
+			if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
+				return self.define(path, value);
+			} else {
+				return value;
+			}
 		});
 
-		self.emit('change', self.join(path), context);
+		result = Array.prototype[method].apply(context, values);
 
-		// self.every(context, function (d, p, k) {
-		// 	self.emit('change', self.join(path, p), d, k);
-		// }, index);
+		self.every(context, function (d, p, k) {
+			self.emit('change', self.join(path, p), d, k);
+		}, index);
 
 	} else if (method === 'pop' || method === 'shift') {
 		index = context.length.toString();
 		result = Array.prototype[method].call(context);
 
-		// self.every(result, function (d, p, k) {
-		// 	d[k] = undefined;
-		// 	self.emit('change', self.join(path, index, p), d, k);
-		// });
+		self.every(result, function (d, p, k) {
+			d[k] = undefined;
+			self.emit('change', self.join(path, index, p), d, k);
+		});
 
-		self.emit('change', self.join(path, index), undefined);
+		self.emit('change', self.join(path, index), [], index);
 
-		// if (method === 'shift') {
-		// 	self.every(context, function (d, p, k) {
-		// 		self.emit('change', self.join(path, p), d, k);
-		// 	});
-		// }
+		if (method === 'shift') {
+			self.every(context, function (d, p, k) {
+				self.emit('change', self.join(path, p), d, k);
+			});
+		}
 	}
 
 	return result;
@@ -129,7 +134,7 @@ Model.prototype.defineObject = function (path, data) {
 		set: {
 			value: function (key, value) {
 				if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
-					this.meta[key] = self.define(path, value, true);
+					this.meta[key] = self.define(path, value);
 				} else {
 					this.meta[key] = value;
 				}
@@ -161,25 +166,25 @@ Model.prototype.defineProperty = function (path, data, key) {
 				delete this[key];
 				delete this.meta[key];
 
-				self.every(item, function (d, p) {
-					self.emit('change', self.join(key, path, p), undefined);
-				});
+				console.log(item);
 
-				self.emit('change', self.join(key, path), undefined);
+				// self.every(item, function (d, p, k) {
+				// 	self.emit('change', self.join(path, p), d, k);
+				// });
+
+				// this.emit('change', this.join(path, key), undefined);
 			} else {
 				if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
-					this.meta[key] = self.define(self.join(path, key), value, true);
-				} else {
-					this.meta[key] = value;
+					this.meta[key] = self.define(path, value);
 				}
 
-				self.emit('change', self.join(path, key), data, key);
+				self.defineProperty(self.join(path, key), data, key);
 			}
 		}
 	});
 };
 
-Model.prototype.define = function (path, source, emit) {
+Model.prototype.define = function (path, source) {
 	var type = source ? source.constructor.name : '';
 	if (type !== 'Object' && type !== 'Array' ) return source;
 
@@ -194,7 +199,7 @@ Model.prototype.define = function (path, source, emit) {
 	Object.defineProperty(target, 'meta', {
 		writable: true,
 		configurable: true,
-		value: target.constructor()
+		value: Object.getPrototypeOf(target)
 	});
 
 	Object.keys(target).forEach(function (key) {
@@ -206,19 +211,11 @@ Model.prototype.define = function (path, source, emit) {
 
 			target.meta[key] = target[key];
 			this.defineProperty(path, target, key);
-			if (emit) this.emit('change', this.join(path, key), target, key);
+			// if (emit) self.emit('change', self.join(path, key), target, key);
 		}
 	}, this);
 
 	return target;
-};
-
-Model.prototype.set = function (path, value) {
-	return Utility.setByPath(this.data, path, value);
-};
-
-Model.prototype.get = function (path) {
-	return Utility.getByPath(this.data, path);
 };
 
 Model.prototype.setup = function (data) {
@@ -234,3 +231,68 @@ Model.prototype.create = function () {
 module.exports = function (data) {
 	return new Model().create(data);
 };
+
+// Model.prototype.ins = function (path, data, key, value) {
+// 	console.log(typeof value);
+//
+// 	if (value && typeof value === 'object') {
+// 		data[key] = this.define(path, value);
+//
+// 		this.every(data[key], function (v, p) {
+// 			this.emit('change', path + '.' + p, v);
+// 		});
+//
+// 	} else {
+// 		data[key] = value;
+// 	}
+//
+// 	this.emit('change', path, data[key]);
+// };
+//
+// Model.prototype.del = function (path, data, key) {
+// 	if (Utility.is(data, 'Object')) {
+// 		var item = data[key];
+// 		delete data[key];
+//
+// 		this.every(item, function (v, p) {
+// 			this.emit('change', path + '.' + p, undefined);
+// 		});
+//
+// 	} else if (Utility.is(data, 'Array')) {
+// 		data.splice(data.length-1, 1);
+//
+// 		this.every(data, function (v, p) {
+// 			this.emit('change', path + '.' + p, v);
+// 		}, parseInt(key));
+//
+// 		this.emit('change', path + '.' + data.length, undefined);
+// 	}
+//
+// 	this.emit('change', path, undefined);
+// };
+//
+// Model.prototype.callback = function (path, data, key, value) {
+// 	if (value === undefined) {
+// 		this.del(path, data, key);
+// 	} else {
+// 		this.ins(path, data, key, value);
+// 	}
+// };
+//
+// Model.prototype.define = function (target, path) {
+// 	var self = this;
+//
+// 	path = typeof path === 'string' ? path : '';
+//
+// 	return new Proxy (target, {
+// 		set: function (data, key, value) {
+// 			self.callback(path + key, data, key, value);
+// 			return true;
+// 		},
+// 		get: function (data, key) {
+// 			var value = data[key];
+// 			if (value && typeof value === 'object') return self.define(path, value + key + '.');
+// 			return value;
+// 		}
+// 	});
+// };

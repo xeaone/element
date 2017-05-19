@@ -52,9 +52,7 @@
 		}
 	};
 
-	function Events$1 () {
-		this.events = {};
-	}
+	function Events$1 () {}
 
 	Events$1.prototype.on = function (name, callback) {
 		if (!this.events[name]) this.events[name] = [];
@@ -76,12 +74,9 @@
 
 	var events = Events$1;
 
-	var Utility = utility;
 	var Events = events;
 
-	function Model$1 () {
-		Events.call(this);
-	}
+	function Model$1 () {}
 
 	Model$1.prototype = Object.create(Events.prototype);
 	Model$1.prototype.constructor = Model$1;
@@ -105,13 +100,15 @@
 	};
 
 	Model$1.prototype.clone = function (source, target) {
-		target = target || source.constructor();
+		target = target || Object.create(Object.getPrototypeOf(source));
 
 		Object.keys(source).forEach(function (key) {
 			if (source[key] && source[key].constructor.name === 'Object' || source[key].constructor.name === 'Array') {
 				target[key] = this.clone(source[key]);
 			} else {
-				target[key] = source[key];
+				Object.defineProperty(target, key,
+					Object.getOwnPropertyDescriptor(source, key)
+				);
 			}
 		}, this);
 
@@ -119,14 +116,18 @@
 	};
 
 	Model$1.prototype.defineArrayMethod = function (context, method, path, argument) {
-		var self = this, result, index;
+		var self = this, result, index, values;
 
 		if (method === 'splice') {
-			Array.prototype.slice.call(argument, 2).forEach(function (value) {
-				if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) value = self.define(path, value, true);
-				Array.prototype.splice.call(context.meta, argument[0], argument[1], value);
-				self.defineProperty(path, context, context.meta.length-1);
+			values = Array.prototype.slice.call(argument, 2).map(function (value) {
+				if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
+					return self.define(path, value);
+				} else {
+					return value;
+				}
 			});
+
+			Array.prototype.splice.apply(context, [argument[0], argument[1]].concat(values));
 
 			self.every(context, function (d, p, k) {
 				self.emit('change', self.join(path, p), d, k);
@@ -135,34 +136,36 @@
 		} else if (method === 'push' || method === 'unshift') {
 			index = method === 'push' ? -1 : 0;
 
-			Array.prototype.forEach.call(argument, function (value) {
-				if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) value = self.define(path, value);
-				result = Array.prototype[method].call(context.meta, value);
-				self.defineProperty(path, context, context.meta.length-1);
+			values = Array.prototype.map.call(argument, function (value) {
+				if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
+					return self.define(path, value);
+				} else {
+					return value;
+				}
 			});
 
-			self.emit('change', self.join(path), context);
+			result = Array.prototype[method].apply(context, values);
 
-			// self.every(context, function (d, p, k) {
-			// 	self.emit('change', self.join(path, p), d, k);
-			// }, index);
+			self.every(context, function (d, p, k) {
+				self.emit('change', self.join(path, p), d, k);
+			}, index);
 
 		} else if (method === 'pop' || method === 'shift') {
 			index = context.length.toString();
 			result = Array.prototype[method].call(context);
 
-			// self.every(result, function (d, p, k) {
-			// 	d[k] = undefined;
-			// 	self.emit('change', self.join(path, index, p), d, k);
-			// });
+			self.every(result, function (d, p, k) {
+				d[k] = undefined;
+				self.emit('change', self.join(path, index, p), d, k);
+			});
 
-			self.emit('change', self.join(path, index), undefined);
+			self.emit('change', self.join(path, index), [], index);
 
-			// if (method === 'shift') {
-			// 	self.every(context, function (d, p, k) {
-			// 		self.emit('change', self.join(path, p), d, k);
-			// 	});
-			// }
+			if (method === 'shift') {
+				self.every(context, function (d, p, k) {
+					self.emit('change', self.join(path, p), d, k);
+				});
+			}
 		}
 
 		return result;
@@ -207,7 +210,7 @@
 			set: {
 				value: function (key, value) {
 					if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
-						this.meta[key] = self.define(path, value, true);
+						this.meta[key] = self.define(path, value);
 					} else {
 						this.meta[key] = value;
 					}
@@ -239,25 +242,25 @@
 					delete this[key];
 					delete this.meta[key];
 
-					self.every(item, function (d, p) {
-						self.emit('change', self.join(key, path, p), undefined);
-					});
+					console.log(item);
 
-					self.emit('change', self.join(key, path), undefined);
+					// self.every(item, function (d, p, k) {
+					// 	self.emit('change', self.join(path, p), d, k);
+					// });
+
+					// this.emit('change', this.join(path, key), undefined);
 				} else {
 					if (value && (value.constructor.name === 'Object' || value.constructor.name === 'Array')) {
-						this.meta[key] = self.define(self.join(path, key), value, true);
-					} else {
-						this.meta[key] = value;
+						this.meta[key] = self.define(path, value);
 					}
 
-					self.emit('change', self.join(path, key), data, key);
+					self.defineProperty(self.join(path, key), data, key);
 				}
 			}
 		});
 	};
 
-	Model$1.prototype.define = function (path, source, emit) {
+	Model$1.prototype.define = function (path, source) {
 		var type = source ? source.constructor.name : '';
 		if (type !== 'Object' && type !== 'Array' ) return source;
 
@@ -272,7 +275,7 @@
 		Object.defineProperty(target, 'meta', {
 			writable: true,
 			configurable: true,
-			value: target.constructor()
+			value: Object.getPrototypeOf(target)
 		});
 
 		Object.keys(target).forEach(function (key) {
@@ -284,19 +287,11 @@
 
 				target.meta[key] = target[key];
 				this.defineProperty(path, target, key);
-				if (emit) this.emit('change', this.join(path, key), target, key);
+				// if (emit) self.emit('change', self.join(path, key), target, key);
 			}
 		}, this);
 
 		return target;
-	};
-
-	Model$1.prototype.set = function (path, value) {
-		return Utility.setByPath(this.data, path, value);
-	};
-
-	Model$1.prototype.get = function (path) {
-		return Utility.getByPath(this.data, path);
 	};
 
 	Model$1.prototype.setup = function (data) {
@@ -313,66 +308,70 @@
 		return new Model$1().create(data);
 	};
 
-	function Collection$1 (data) {
-		Object.defineProperty(this, 'data', {
-			value: data || []
-		});
-	}
-
-	Collection$1.prototype.get = function (key) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
-			if (key === this.data[i][0]) {
-				return this.data[i][1];
-			}
-		}
-	};
-
-	Collection$1.prototype.remove = function (key) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
-			if (key === this.data[i][0]) {
-				return this.data.splice(i, 1)[0][1];
-			}
-		}
-	};
-
-	Collection$1.prototype.has = function (key) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
-			if (key === this.data[i][0]) {
-				return true;
-			}
-		}
-
-		return false;
-	};
-
-	Collection$1.prototype.set = function (key, value) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
-			if (key === this.data[i][0]) {
-				return this.data[i][1] = value;
-			}
-		}
-
-		return this.data[l] = [key, value];
-	};
-
-	Collection$1.prototype.push = function (value) {
-		this.data[this.data.length] = [this.data.length, value];
-		return value;
-	};
-
-	Collection$1.prototype.size = function () {
-		return this.data.length;
-	};
-
-	Collection$1.prototype.forEach = function (callback, context) {
-		context = context || null;
-
-		for (var i = 0, l = this.data.length; i < l; i++) {
-			callback.call(context, this.data[i][1], this.data[i][0], this.data[i]);
-		}
-	};
-
-	var collection = Collection$1;
+	// Model.prototype.ins = function (path, data, key, value) {
+	// 	console.log(typeof value);
+	//
+	// 	if (value && typeof value === 'object') {
+	// 		data[key] = this.define(path, value);
+	//
+	// 		this.every(data[key], function (v, p) {
+	// 			this.emit('change', path + '.' + p, v);
+	// 		});
+	//
+	// 	} else {
+	// 		data[key] = value;
+	// 	}
+	//
+	// 	this.emit('change', path, data[key]);
+	// };
+	//
+	// Model.prototype.del = function (path, data, key) {
+	// 	if (Utility.is(data, 'Object')) {
+	// 		var item = data[key];
+	// 		delete data[key];
+	//
+	// 		this.every(item, function (v, p) {
+	// 			this.emit('change', path + '.' + p, undefined);
+	// 		});
+	//
+	// 	} else if (Utility.is(data, 'Array')) {
+	// 		data.splice(data.length-1, 1);
+	//
+	// 		this.every(data, function (v, p) {
+	// 			this.emit('change', path + '.' + p, v);
+	// 		}, parseInt(key));
+	//
+	// 		this.emit('change', path + '.' + data.length, undefined);
+	// 	}
+	//
+	// 	this.emit('change', path, undefined);
+	// };
+	//
+	// Model.prototype.callback = function (path, data, key, value) {
+	// 	if (value === undefined) {
+	// 		this.del(path, data, key);
+	// 	} else {
+	// 		this.ins(path, data, key, value);
+	// 	}
+	// };
+	//
+	// Model.prototype.define = function (target, path) {
+	// 	var self = this;
+	//
+	// 	path = typeof path === 'string' ? path : '';
+	//
+	// 	return new Proxy (target, {
+	// 		set: function (data, key, value) {
+	// 			self.callback(path + key, data, key, value);
+	// 			return true;
+	// 		},
+	// 		get: function (data, key) {
+	// 			var value = data[key];
+	// 			if (value && typeof value === 'object') return self.define(path, value + key + '.');
+	// 			return value;
+	// 		}
+	// 	});
+	// };
 
 	var global = {
 
@@ -402,7 +401,6 @@
 
 	};
 
-	var Collection = collection;
 	var Events$2 = events;
 	var Global = global;
 
@@ -414,9 +412,7 @@
 	var ELEMENT_REJECTS = Global.rElementRejects;
 	var ELEMENT_REJECTS_CHILDREN = Global.rElementRejectsChildren;
 
-	function View$1 () {
-		Events$2.call(this);
-	}
+	function View$1 () {}
 
 	View$1.prototype = Object.create(Events$2.prototype);
 	View$1.prototype.constructor = View$1;
@@ -475,39 +471,26 @@
 	View$1.prototype.removeAll = function (pattern) {
 		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
-		this.data.forEach(function (paths, path) {
-			paths.forEach(function (unit) {
-				if (pattern.test(path)) {
-					unit.unrender();
+		Object.keys(this.data).forEach(function (path) {
+			this.data[path].forEach(function (_, index) {
+				if (pattern.test(path + '.' + index)) {
+					this.data[path][index].unrender();
+					this.data[path].splice(index, 1);
 				}
 			}, this);
 		}, this);
 	};
 
-	View$1.prototype.renderAll = function (pattern) {
-		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-
-		this.data.forEach(function (paths, path) {
-			paths.forEach(function (unit) {
-				if (pattern.test(path)) {
-					// it is possible that sorting the shortest or first will allow the render to take place upon array replace and re insert
-					console.log(path);
-					unit.render();
-				}
-			}, this);
+	View$1.prototype.renderAll = function (path, data) {
+		(this.data[path] || []).forEach(function (unit) {
+			unit.render(data);
 		}, this);
 	};
 
 	View$1.prototype.addOne = function (element) {
-		var self = this;
-
-		self.eachAttribute(element, function (attribute) {
-
-			if (!self.data.has(attribute.path)) {
-				self.data.set(attribute.path, new Collection());
-			}
-
-			self.emit('add', element, attribute);
+		this.eachAttribute(element, function (attribute) {
+			if (!(attribute.path in this.data)) this.data[attribute.path] = [];
+			this.emit('add', element, attribute);
 		});
 	};
 
@@ -523,8 +506,8 @@
 	};
 
 	View$1.prototype.create = function () {
-		this.data = new Collection();
-		// this.events = {};
+		this.data = {};
+		this.events = {};
 		return this;
 	};
 
@@ -532,184 +515,8 @@
 		return new View$1().create();
 	};
 
-	var Utility$1 = utility;
-
-	function Unit$1 () {}
-
-	Unit$1.prototype.renderMethods = {
-		on: function () {
-			var eventName = this.attribute.cmds[1];
-			this.element.removeEventListener(eventName, this.data, false);
-			this.element.addEventListener(eventName, this.data, false);
-		},
-		each: function () {
-			// console.log(this.data);
-			if (!this.data || this.data.length < 1){
-				while (this.element.lastChild) {
-					this.element.removeChild(this.element.lastChild);
-				}
-
-				this.length = 0;
-			} else if (this.length === undefined) {
-				this.length = this.data.length;
-				this.variable = this.attribute.cmds.slice(1).join('.');
-				this.clone = this.element.removeChild(this.element.children[0]).outerHTML;
-				this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
-
-				this.data.forEach(function (data, index) {
-					this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, '$1' + this.attribute.path + '.' + index + '$6'));
-				}, this);
-
-				this.view.addAll(this.element.getElementsByTagName('*'), true);
-			} else if (this.length === 0) {
-				this.data.forEach(function (data, index) {
-					this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, '$1' + this.attribute.path + '.' + index + '$6'));
-				}, this);
-
-				this.view.addAll(this.element.getElementsByTagName('*'), true);
-			} else if (this.length > this.data.length) {
-				this.length--;
-				this.element.removeChild(this.element.lastChild);
-			} else if (this.length < this.data.length) {
-				this.length++;
-				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, '$1' + this.attribute.path + '.' + (this.length-1) + '$6'));
-				this.view.addOne(this.element.lastChild);
-				this.view.addAll(this.element.lastChild.getElementsByTagName('*'));
-			}
-		},
-		value: function () {
-			if (this.change) return;
-			if (this.element.type === 'button' || this.element.type === 'reset') return this.change = true;
-
-			this.change = function () {
-				this.data = this.element.type !== 'radio' && this.element.type !== 'checked' ? this.element.value : this.element.checked;
-			};
-
-			this.element.addEventListener('change', this.change.bind(this), true);
-			this.element.addEventListener('keyup', this.change.bind(this), true);
-		},
-		html: function () {
-			this.element.innerHTML = this.data;
-			this.view.addAll(this.element.getElementsByTagName('*'));
-		},
-		css: function () {
-			var css = this.data;
-			if (this.attribute.cmds.length > 1) css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
-			this.element.style.cssText += css;
-			// if (this.attribute.cmds.length > 1) this.data = this.attribute.cmds.slice(1).join('-') + ': ' +  this.data + ';';
-			// this.element.style.cssText += this.data;
-		},
-		class: function () {
-			var className = this.attribute.cmds.slice(1).join('-');
-			this.element.classList.toggle(className, this.data);
-		},
-		text: function () {
-			this.element.innerText = this.data;
-		},
-		enable: function () {
-			this.element.disabled = !this.data;
-		},
-		disable: function () {
-			this.element.disabled = this.data;
-		},
-		show: function () {
-			this.element.hidden = !this.data;
-		},
-		hide: function () {
-			this.element.hidden = this.data;
-		},
-		write: function () {
-			this.element.readOnly = !this.data;
-		},
-		read: function () {
-			this.element.readOnly = this.data;
-		},
-		selected: function () {
-			this.element.selectedIndex = this.data;
-		},
-		default: function () {
-			var path = Utility$1.toCamelCase(this.attribute.cmds);
-			Utility$1.setByPath(this.element, path, this.data);
-		}
-	};
-
-	Unit$1.prototype.unrenderMethods = {
-		on: function () {
-			var eventName = this.attribute.cmds[1];
-			this.element.removeEventListener(eventName, this.data, false);
-		},
-		each: function () {
-			while (this.element.lastChild) {
-				this.element.removeChild(this.element.lastChild);
-			}
-		},
-		value: function () {
-			this.element.removeEventListener('change', this.change.bind(this));
-			this.element.removeEventListener('keyup', this.change.bind(this));
-		},
-		html: function () {
-			this.element.innerHTML = 'undefined';
-		},
-		text: function () {
-			this.element.innerText = 'undefined';
-		},
-		default: function () {
-
-		}
-	};
-
-	Unit$1.prototype.unrender = function () {
-		this.unrenderMethod();
-		return this;
-	};
-
-	Unit$1.prototype.render = function () {
-		this.renderMethod();
-		return this;
-	};
-
-	Unit$1.prototype.create = function (options) {
-		this.view = options.view;
-		this.model = options.model;
-		this.data = options.data;
-		this.element = options.element;
-		this.attribute = options.attribute;
-		this.modifiers = options.modifiers;
-
-		this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
-		this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
-
-		Object.defineProperty(this, 'data', {
-			enumerable: true,
-			configurable: true,
-			get: function () {
-				var data = this.model.get(this.attribute.path);
-
-				this.modifiers.forEach(function (modifier) {
-					data = modifier.call(data);
-				});
-
-				return data;
-			},
-			set: function (value) {
-				return this.model.set(this.attribute.path, value);
-			}
-		});
-
-		this.renderMethod();
-
-		return this;
-	};
-
-	var unit = function (options) {
-		return new Unit$1().create(options);
-	};
-
-	// var Utility = require('../utility');
 	var Model = model;
 	var View = view;
-	var Unit = unit;
-
 	function Binder$2 () {}
 
 	Binder$2.prototype.setup = function (options) {
@@ -720,36 +527,43 @@
 		self.name = options.name;
 		self.modifiers = options.modifiers || {};
 
-		self._model.on('change', function (path, data) {
+		self._model.on('change', function (path, data, key) {
+			console.log(path);
+			console.log(data[key]);
 
-			if (data === undefined) {
+			if (data[key] === undefined) {
 				self._view.removeAll('^' + path + '.*');
 			} else {
-				self._view.renderAll('^' + path);
+				self._view.renderAll(path, data);
 			}
 		});
 
-		self._view.on('add', function (element, attribute) {
-			// var path = attribute.opts.slice(0, -1).join('.');
+		// self._view.on('add', function (element, attribute) {
+		// 	var path = attribute.opts.slice(0, -1).join('.');
+		//
+		// 	self._view.data[attribute.path].push(Unit({
+		// 		view: self._view,
+		// 		element: element,
+		// 		attribute: attribute,
+		// 		_data: path === '' ? self._model.data : Utility.getByPath(self._model.data, path),
+		// 		modifiers: attribute.modifiers.map(function (modifier) {
+		// 			return self.modifiers[modifier];
+		// 		})
+		// 	}));
+		//
+		// });
 
-			self._view.data.get(attribute.path).push(Unit({
-				view: self._view,
-				model: self._model,
-				element: element,
-				attribute: attribute,
-				// _data: path === '' ? self._model.data : Utility.getByPath(self._model.data, path),
-				modifiers: attribute.modifiers.map(function (modifier) {
-					return self.modifiers[modifier];
-				})
-			}));
-
-		});
+		// self._model.data.items.unshift({ hello: 'world' });
+		// self._model.data.items.splice(-1, 1, { hello: 'world' });
+		// console.log(r);
+		// console.log(self._model);
+		// throw 'stop'
 
 		self._model.setup(options.model || {});
 		self._view.setup((options.view.shadowRoot || options.view).querySelectorAll('*'));
 
-		self.model = self._model.data;
 		self.view = self._view.data;
+		self.model = self._model.data;
 
 		return self;
 	};

@@ -1,4 +1,3 @@
-var Collection = require('../collection');
 var Events = require('../events');
 var Global = require('../global');
 
@@ -10,9 +9,7 @@ var ELEMENT_ACCEPTS = Global.rElementAccepts;
 var ELEMENT_REJECTS = Global.rElementRejects;
 var ELEMENT_REJECTS_CHILDREN = Global.rElementRejectsChildren;
 
-function View () {
-	Events.call(this);
-}
+function View () {}
 
 View.prototype = Object.create(Events.prototype);
 View.prototype.constructor = View;
@@ -71,39 +68,26 @@ View.prototype.eachAttribute = function (element, callback) {
 View.prototype.removeAll = function (pattern) {
 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
-	this.data.forEach(function (paths, path) {
-		paths.forEach(function (unit) {
-			if (pattern.test(path)) {
-				unit.unrender();
+	Object.keys(this.data).forEach(function (path) {
+		this.data[path].forEach(function (_, index) {
+			if (pattern.test(path + '.' + index)) {
+				this.data[path][index].unrender();
+				this.data[path].splice(index, 1);
 			}
 		}, this);
 	}, this);
 };
 
-View.prototype.renderAll = function (pattern) {
-	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-
-	this.data.forEach(function (paths, path) {
-		paths.forEach(function (unit) {
-			if (pattern.test(path)) {
-				// it is possible that sorting the shortest or first will allow the render to take place upon array replace and re insert
-				console.log(path);
-				unit.render();
-			}
-		}, this);
+View.prototype.renderAll = function (path, data) {
+	(this.data[path] || []).forEach(function (unit) {
+		unit.render(data);
 	}, this);
 };
 
 View.prototype.addOne = function (element) {
-	var self = this;
-
-	self.eachAttribute(element, function (attribute) {
-
-		if (!self.data.has(attribute.path)) {
-			self.data.set(attribute.path, new Collection());
-		}
-
-		self.emit('add', element, attribute);
+	this.eachAttribute(element, function (attribute) {
+		if (!(attribute.path in this.data)) this.data[attribute.path] = [];
+		this.emit('add', element, attribute);
 	});
 };
 
@@ -119,8 +103,8 @@ View.prototype.setup = function (elements) {
 };
 
 View.prototype.create = function () {
-	this.data = new Collection();
-	// this.events = {};
+	this.data = {};
+	this.events = {};
 	return this;
 };
 
