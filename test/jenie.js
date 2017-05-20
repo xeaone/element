@@ -934,6 +934,7 @@
 			self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
 			self.navigate(window.location.href, true);
 			window.removeEventListener('DOMContentLoaded', self.loaded);
+
 		};
 
 		self.popstate = function (e) {
@@ -1084,20 +1085,14 @@
 	};
 
 	Router$1.prototype.navigate = function (data, replace) {
+		console.log('navigate');
 
 		if (typeof data === 'string') {
 			this.state.url = this.url(data);
 			this.state.route = this.get(this.state.url.path);
 			this.state.title = this.state.route.title;
-			this.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
 		} else {
 			this.state = data;
-		}
-
-		// update scroll position
-		if  (!replace) {
-			window.history.state.scroll = { x: window.pageXOffset, y: window.pageYOffset };
-			window.history.replaceState(window.history.state, window.history.state.title, window.history.state.url.href);
 		}
 
 		window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.route.title, this.state.url.href);
@@ -1106,10 +1101,10 @@
 			this.redirect(this.state.route);
 		} else {
 			this.render(this.state.route);
+		}
 
-			if (replace && this.state.scroll) {
-				this.scroll(this.state.scroll.x, this.state.scroll.y);
-			}
+		if (!replace) {
+			this.scroll(0, 0);
 		}
 
 		return this;
