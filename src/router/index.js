@@ -176,7 +176,6 @@ Router.prototype.get = function (path) {
 };
 
 Router.prototype.navigate = function (data, replace) {
-	console.log('navigate');
 
 	if (typeof data === 'string') {
 		this.state.url = this.url(data);
