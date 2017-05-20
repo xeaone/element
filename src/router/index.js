@@ -156,22 +156,28 @@ Router.prototype.redirect = function (path) {
 
 Router.prototype.get = function (path) {
 
-	for (var r, i = 0, l = this.routes.length; i < l; i++) {
-		r = this.routes[i];
+	for (var i = 0, l = this.routes.length; i < l; i++) {
+		var route = this.routes[i];
 
-		if (typeof r.path === 'string') {
-			if (r.path === path) {
-				return r;
+		if (typeof route.path === 'string') {
+			if (route.path === path) {
+				return route;
 			}
-		} else if (typeof r.path === 'function') {
-			if (r.path.test(path)) {
-				return r;
+		} else if (typeof route.path === 'function') {
+			if (route.path.test(path)) {
+				return route;
 			}
 		}
 
 	}
 
-	throw new Error('could not find ' + path + ' in routes');
+	var component = document.createElement('div');
+	component.innerHTML = '{ "statusCode": 404, "error": "Not Found" }';
+
+	return {
+		title: '404',
+		component: component
+	};
 
 };
 
