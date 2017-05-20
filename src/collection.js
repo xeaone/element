@@ -21,6 +21,10 @@ Collection.prototype.remove = function (key) {
 	}
 };
 
+Collection.prototype.removeById = function (id) {
+	return this.data.splice(id, 1);
+};
+
 Collection.prototype.has = function (key) {
 	for (var i = 0, l = this.data.length; i < l; i++) {
 		if (key === this.data[i][0]) {
@@ -54,7 +58,7 @@ Collection.prototype.forEach = function (callback, context) {
 	context = context || null;
 
 	for (var i = 0, l = this.data.length; i < l; i++) {
-		callback.call(context, this.data[i][1], this.data[i][0], this.data[i]);
+		callback.call(context, this.data[i][1], this.data[i][0], i, this.data);
 	}
 };
 

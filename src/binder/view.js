@@ -17,58 +17,46 @@ function View () {
 View.prototype = Object.create(Events.prototype);
 View.prototype.constructor = View;
 
-View.prototype.glance = function (element) {
+View.prototype.preview = function (element) {
 	return element.outerHTML
 	.replace(/\/?>([\s\S])*/, '')
 	.replace(/^</, '');
 };
 
 View.prototype.eachElement = function (elements, callback) {
-	var element, glance;
-
 	for (var i = 0; i < elements.length; i++) {
-		element = elements[i];
-		glance = this.glance(element);
+		var element = elements[i];
+		var preview = this.preview(element);
 
-		if (ELEMENT_REJECTS.test(glance)) {
+		if (ELEMENT_REJECTS.test(preview)) {
 			i += element.querySelectorAll('*').length;
-		} else if (ELEMENT_REJECTS_CHILDREN.test(glance)) {
+		} else if (ELEMENT_REJECTS_CHILDREN.test(preview)) {
 			i += element.querySelectorAll('*').length;
 			callback.call(this, element);
-		} else if (ELEMENT_ACCEPTS.test(glance)) {
+		} else if (ELEMENT_ACCEPTS.test(preview)) {
 			callback.call(this, element);
 		}
 	}
 };
 
 View.prototype.eachAttribute = function (element, callback) {
-	var attributes = element.attributes, attribute;
-
-	for (var i = 0; i < attributes.length; i++) {
-		attribute = {};
-		attribute.name = attributes[i].name;
-		attribute.value = attributes[i].value;
-
-		if (ATTRIBUTE_ACCEPTS.test(attribute.name)) {
+	Array.prototype.forEach.call(element.attributes, function (ea) {
+		if (ATTRIBUTE_ACCEPTS.test(ea.name)) {
+			var attribute = {};
+			attribute.name = ea.name;
+			attribute.value = ea.value;
 			attribute.path = attribute.value.replace(PATH, '');
 			attribute.opts = attribute.path.split('.');
 			attribute.command = attribute.name.replace(PREFIX, '');
 			attribute.cmds = attribute.command.split('-');
 			attribute.key = attribute.opts.slice(-1);
-
-			if (attribute.value.indexOf('|') === -1) {
-				attribute.modifiers = [];
-			} else {
-				attribute.modifiers = attribute.value.replace(MODIFIERS, '').split(' ');
-			}
-
+			attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(MODIFIERS, '').split(' ');
 			callback.call(this, attribute);
 		}
-
-	}
+	}, this);
 };
 
-View.prototype.removeAll = function (pattern) {
+View.prototype.unrenderAll = function (pattern) {
 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
 	this.data.forEach(function (paths, path) {
@@ -86,11 +74,25 @@ View.prototype.renderAll = function (pattern) {
 	this.data.forEach(function (paths, path) {
 		paths.forEach(function (unit) {
 			if (pattern.test(path)) {
-				// it is possible that sorting the shortest or first will allow the render to take place upon array replace and re insert
-				console.log(path);
 				unit.render();
 			}
 		}, this);
+	}, this);
+};
+
+View.prototype.removeOne = function (element) {
+	this.data.forEach(function (paths) {
+		paths.forEach(function (unit, _, id) {
+			if (element === unit.element) {
+				paths.removeById(id);
+			}
+		}, this);
+	}, this);
+};
+
+View.prototype.removeAll = function (elements) {
+	Array.prototype.forEach.call(elements, function (element) {
+		this.removeOne(element);
 	}, this);
 };
 
@@ -114,13 +116,13 @@ View.prototype.addAll = function (elements) {
 };
 
 View.prototype.setup = function (elements) {
-	this.addAll(elements);
+	this.elements = elements;
+	this.addAll(this.elements);
 	return this;
 };
 
 View.prototype.create = function () {
 	this.data = new Collection();
-	// this.events = {};
 	return this;
 };
 

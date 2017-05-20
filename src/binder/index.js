@@ -13,10 +13,9 @@ Binder.prototype.setup = function (options) {
 	self.name = options.name;
 	self.modifiers = options.modifiers || {};
 
-	self._model.on('change', function (path, data) {
-
+	self._model.on('change', function (path, data) {		
 		if (data === undefined) {
-			self._view.removeAll('^' + path + '.*');
+			self._view.unrenderAll('^' + path + '.*');
 		} else {
 			self._view.renderAll('^' + path);
 		}
