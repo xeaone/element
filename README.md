@@ -73,7 +73,7 @@ Returns a Jenie component and defines a web component.
 #### Options
 - `name` **Required**
 - `template` **Required**
-- `model` After the model is returned by the binder there are helper functions deeply attached i.e. `model.del(String, Number: key)` and `model.ins(String, Number: key, Any: value)`. Also setting a property to `udnefined` will delete or splice it.
+- `model` After the model is returned by the binder there are helper functions deeply attached `model.remove(String, Number: key)` and `model.set(String, Number: key, Any: value)`. Also setting a property to `undefined` will trigger delete on object properties.
 	- `Array` Object to be observed.
 	- `Object` Object to be observed.
 	- `Function` Async task to return the model in argument `resolve(Object: model)` provided.
