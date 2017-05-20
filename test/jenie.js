@@ -97,24 +97,6 @@
 		return data && (data.constructor.name === 'Object' || data.constructor.name === 'Array');
 	};
 
-	Model$1.prototype.clone = function (source, target) {
-		var self = this;
-
-		target = target || source.constructor();
-
-		Object.keys(source).forEach(function (key) {
-
-			if (self.isCollection(source[key])) {
-				target[key] = self.clone(source[key]);
-			} else {
-				target[key] = source[key];
-			}
-
-		});
-
-		return target;
-	};
-
 	Model$1.prototype.defineSplice = function (path, data, argument) {
 		var self = this;
 
@@ -207,7 +189,7 @@
 				value: function (key, value) {
 
 					if (this.isCollection(value)) {
-						this.meta[key] = self.observeCollection(path, value);
+						this.meta[key] = self.observeCollection(self.join(path, key), value);
 					} else {
 						this.meta[key] = value;
 					}
@@ -264,13 +246,12 @@
 
 	};
 
-	Model$1.prototype.observeCollection = function (path, source) {
+	Model$1.prototype.observeCollection = function (path, source, target) {
 		var self = this;
 
 		var type = source ? source.constructor.name : '';
 		if (type !== 'Object' && type !== 'Array' ) return source;
-
-		var target = self.clone(source);
+		if (target === undefined) target = source.constructor();
 
 		if (type === 'Object') {
 			self.defineObject(path, target);
@@ -279,20 +260,20 @@
 		}
 
 		Object.defineProperty(target, 'meta', {
+			value: source,
 			writable: true,
-			configurable: true,
-			value: target.constructor()
+			configurable: true
 		});
 
-		Object.keys(target).forEach(function (key) {
+		Object.keys(source).forEach(function (key) {
 
-			if (target[key] !== undefined) {
+			if (source[key] !== undefined) {
 
-				if (self.isCollection(target[key])) {
-					target[key] = self.observeCollection(self.join(path, key), target[key]);
+				if (self.isCollection(source[key])) {
+					target[key] = self.observeCollection(self.join(path, key), source[key]);
+					target.meta[key] = target[key];
 				}
 
-				target.meta[key] = target[key];
 				self.observeProperty(path, target, key);
 
 			}
@@ -390,8 +371,6 @@
 	var collection = Collection$1;
 
 	var global = {
-
-		// sViewElement: 'j-view',
 
 		sPrefix: '(data-)?j-',
 		sValue: '(data-)?j-value',
@@ -720,7 +699,6 @@
 		return new Unit$1().create(options);
 	};
 
-	// var Utility = require('../utility');
 	var Model = model;
 	var View = view;
 	var Unit = unit;
@@ -735,7 +713,7 @@
 		self.name = options.name;
 		self.modifiers = options.modifiers || {};
 
-		self._model.on('change', function (path, data) {		
+		self._model.on('change', function (path, data) {
 			if (data === undefined) {
 				self._view.unrenderAll('^' + path + '.*');
 			} else {
@@ -744,14 +722,12 @@
 		});
 
 		self._view.on('add', function (element, attribute) {
-			// var path = attribute.opts.slice(0, -1).join('.');
 
 			self._view.data.get(attribute.path).push(Unit({
 				view: self._view,
 				model: self._model,
 				element: element,
 				attribute: attribute,
-				// _data: path === '' ? self._model.data : Utility.getByPath(self._model.data, path),
 				modifiers: attribute.modifiers.map(function (modifier) {
 					return self.modifiers[modifier];
 				})
@@ -1085,7 +1061,6 @@
 	};
 
 	Router$1.prototype.navigate = function (data, replace) {
-		console.log('navigate');
 
 		if (typeof data === 'string') {
 			this.state.url = this.url(data);

@@ -1,8 +1,6 @@
 
 module.exports = {
 
-	// sViewElement: 'j-view',
-
 	sPrefix: '(data-)?j-',
 	sValue: '(data-)?j-value',
 	sFor: '(data-)?j-for-(.*?)=',

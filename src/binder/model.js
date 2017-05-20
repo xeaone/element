@@ -19,24 +19,6 @@ Model.prototype.isCollection = function (data) {
 	return data && (data.constructor.name === 'Object' || data.constructor.name === 'Array');
 };
 
-Model.prototype.clone = function (source, target) {
-	var self = this;
-
-	target = target || source.constructor();
-
-	Object.keys(source).forEach(function (key) {
-
-		if (self.isCollection(source[key])) {
-			target[key] = self.clone(source[key]);
-		} else {
-			target[key] = source[key];
-		}
-
-	});
-
-	return target;
-};
-
 Model.prototype.defineSplice = function (path, data, argument) {
 	var self = this;
 
@@ -129,7 +111,7 @@ Model.prototype.defineObject = function (path, data) {
 			value: function (key, value) {
 
 				if (this.isCollection(value)) {
-					this.meta[key] = self.observeCollection(path, value);
+					this.meta[key] = self.observeCollection(self.join(path, key), value);
 				} else {
 					this.meta[key] = value;
 				}
@@ -186,13 +168,12 @@ Model.prototype.observeProperty = function (path, data, key) {
 
 };
 
-Model.prototype.observeCollection = function (path, source) {
+Model.prototype.observeCollection = function (path, source, target) {
 	var self = this;
 
 	var type = source ? source.constructor.name : '';
 	if (type !== 'Object' && type !== 'Array' ) return source;
-
-	var target = self.clone(source);
+	if (target === undefined) target = source.constructor();
 
 	if (type === 'Object') {
 		self.defineObject(path, target);
@@ -201,20 +182,20 @@ Model.prototype.observeCollection = function (path, source) {
 	}
 
 	Object.defineProperty(target, 'meta', {
+		value: source,
 		writable: true,
-		configurable: true,
-		value: target.constructor()
+		configurable: true
 	});
 
-	Object.keys(target).forEach(function (key) {
+	Object.keys(source).forEach(function (key) {
 
-		if (target[key] !== undefined) {
+		if (source[key] !== undefined) {
 
-			if (self.isCollection(target[key])) {
-				target[key] = self.observeCollection(self.join(path, key), target[key]);
+			if (self.isCollection(source[key])) {
+				target[key] = self.observeCollection(self.join(path, key), source[key]);
+				target.meta[key] = target[key];
 			}
 
-			target.meta[key] = target[key];
 			self.observeProperty(path, target, key);
 
 		}

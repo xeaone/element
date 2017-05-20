@@ -1,16 +1,17 @@
 
-function clone (data) {
-	var collection = Object.create(Object.getPrototypeOf(data));
+function clone (target, source) {
 
-	Object.keys(data).forEach(function (key) {
-		if (data[key] && typeof data[key] === 'object') {
-			collection[key] = this.clone(data[key]);
+	target = target || source.constructor();
+
+	Object.keys(source).forEach(function (key) {
+
+		if (self.isCollection(source[key])) {
+			target[key] = clone(source[key]);
 		} else {
-			Object.defineProperty(collection, key,
-				Object.getOwnPropertyDescriptor(data, key)
-			);
+			target[key] = source[key];
 		}
-	}, this);
 
-	return collection;
+	});
+
+	return target;
 }

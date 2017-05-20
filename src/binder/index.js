@@ -1,4 +1,3 @@
-// var Utility = require('../utility');
 var Model = require('./model');
 var View = require('./view');
 var Unit = require('./unit');
@@ -13,7 +12,7 @@ Binder.prototype.setup = function (options) {
 	self.name = options.name;
 	self.modifiers = options.modifiers || {};
 
-	self._model.on('change', function (path, data) {		
+	self._model.on('change', function (path, data) {
 		if (data === undefined) {
 			self._view.unrenderAll('^' + path + '.*');
 		} else {
@@ -22,14 +21,12 @@ Binder.prototype.setup = function (options) {
 	});
 
 	self._view.on('add', function (element, attribute) {
-		// var path = attribute.opts.slice(0, -1).join('.');
 
 		self._view.data.get(attribute.path).push(Unit({
 			view: self._view,
 			model: self._model,
 			element: element,
 			attribute: attribute,
-			// _data: path === '' ? self._model.data : Utility.getByPath(self._model.data, path),
 			modifiers: attribute.modifiers.map(function (modifier) {
 				return self.modifiers[modifier];
 			})
