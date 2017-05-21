@@ -97,113 +97,107 @@
 		return data && (data.constructor.name === 'Object' || data.constructor.name === 'Array');
 	};
 
-	Model$1.prototype.defineSplice = function (path, data, argument) {
+	Model$1.prototype.defineSplice = function (path, meta, target, argument) {
 		var self = this;
 
-		Array.prototype.slice.call(argument, 2).forEach(function (value) {
+		if (argument[2]) {
 
-			if (self.isCollection(value)) value = self.observeCollection(path, value);
-			Array.prototype.splice.call(data.meta, argument[0], argument[1], value);
-			self.observeProperty(path, data, data.meta.length-1);
-			self.emit('change', self.join(path), data);
+			Array.prototype.splice.call(meta, argument[0], argument[1]);
+			self.emit('change', self.join(path), target);
 
-		});
+		} else {
+
+			Array.prototype.slice.call(argument, 2).forEach(function (value) {
+
+				value = self.observe(path, value);
+				Array.prototype.splice.call(meta, argument[0], argument[1], value);
+				target = self.defineProperty(path, meta, target, meta.length-1);
+				self.emit('change', self.join(path), target);
+
+			});
+
+		}
 
 	};
 
-	Model$1.prototype.defineSplice = function (path, data, argument) {
-		var self = this;
-
-		Array.prototype.slice.call(argument, 2).forEach(function (value) {
-
-			if (self.isCollection(value)) value = self.observeCollection(path, value);
-			Array.prototype.splice.call(data.meta, argument[0], argument[1], value);
-			self.observeProperty(path, data, data.meta.length-1);
-			self.emit('change', self.join(path), data);
-
-		});
-
-	};
-
-	Model$1.prototype.arrayPushUnshift = function (path, data, method, argument) {
+	Model$1.prototype.arrayPushUnshift = function (path, meta, target, method, argument) {
 		var self = this;
 
 		Array.prototype.forEach.call(argument, function (value) {
 
-			if (self.isCollection(value)) value = self.observeCollection(path, value);
-			Array.prototype[method].call(data.meta, value);
-			self.observeProperty(path, data, data.meta.length-1);
-			self.emit('change', self.join(path), data);
+			value = self.observe(path, value);
+			Array.prototype[method].call(meta, value);
+			target = self.defineProperty(path, meta, target, meta.length-1);
+			self.emit('change', self.join(path), target);
 
 		});
 
 	};
 
-	Model$1.prototype.arrayPopShift = function (path, data, method) {
+	Model$1.prototype.arrayPopShift = function (path, meta, target, method) {
 		var self = this;
 
-		Array.prototype[method].call(data.meta);
-		Array.prototype['pop'].call(data);
-		self.emit('change', self.join(path), data);
+		Array.prototype[method].call(meta);
+		Array.prototype.pop.call(target);
+		self.emit('change', self.join(path), target);
 
 	};
 
-	Model$1.prototype.defineArray = function (path, data) {
+	Model$1.prototype.defineArray = function (path, meta, target) {
 		var self = this;
 
-		return Object.defineProperties(data, {
+		return Object.defineProperties(target, {
 			splice: {
 				value: function () {
-					return self.defineSplice(path, this, arguments);
+					return self.defineSplice(path, meta, target, arguments);
 				}
 			},
 			push: {
 				value: function () {
-					return self.arrayPushUnshift(path, this, 'push', arguments);
+					return self.arrayPushUnshift(path, meta, target, 'push', arguments);
 				}
 			},
 			unshift: {
 				value: function () {
-					return self.arrayPushUnshift(path, this, 'unshift', arguments);
+					return self.arrayPushUnshift(path, meta, target, 'unshift', arguments);
 				}
 			},
 			pop: {
 				value: function () {
-					return self.arrayPopShift(path, this, 'pop');
+					return self.arrayPopShift(path, meta, target, 'pop');
 				}
 			},
 			shift: {
 				value: function () {
-					return self.arrayPopShift(path, this, 'shift');
+					return self.arrayPopShift(path, meta, target, 'shift');
 				}
 			}
 		});
 
 	};
 
-	Model$1.prototype.defineObject = function (path, data) {
+	Model$1.prototype.defineObject = function (path, meta, target) {
 		var self = this;
 
-		return Object.defineProperties(data, {
+		return Object.defineProperties(target, {
 			set: {
 				value: function (key, value) {
 
-					if (this.isCollection(value)) {
-						this.meta[key] = self.observeCollection(self.join(path, key), value);
-					} else {
-						this.meta[key] = value;
+					if (self.isCollection(value)) {
+						value = self.observe(self.join(path, key), value);
 					}
 
-					self.observeProperty(path, this, key);
-					self.emit('change', self.join(path, key), this[key]);
+					meta[key] = value;
+					target = self.defineProperty(path, meta, target, key);
+					self.emit('change', self.join(path, key), target[key]);
 
 				}
 			},
 			remove: {
 				value: function (key) {
 
-					delete this[key];
-					delete this.meta[key];
+					delete target[key];
+					delete meta[key];
 					self.emit('change', self.join(path, key), undefined);
 
 				}
@@ -212,32 +206,31 @@
 
 	};
 
-	Model$1.prototype.observeProperty = function (path, data, key) {
+	Model$1.prototype.defineProperty = function (path, meta, target, key) {
 		var self = this;
 
-		return Object.defineProperty(data, key, {
+		return Object.defineProperty(target, key, {
 			enumerable: true,
 			configurable: true,
 			get: function () {
-				return this.meta[key];
+				return meta[key];
 			},
 			set: function (value) {
 
-				if (value === undefined) {
+				if (meta[key] !== value) {
 
-					delete this[key];
-					delete this.meta[key];
-					self.emit('change', self.join(path, key), undefined);
+					if (value === undefined) {
 
-				} else {
+						delete meta[key];
+						delete target[key];
+						self.emit('change', self.join(path, key), undefined);
 
-					if (self.isCollection(value)) {
-						this.meta[key] = self.observeCollection(self.join(path, key), value);
 					} else {
-						this.meta[key] = value;
-					}
 
-					self.emit('change', self.join(path, key), this[key]);
+						meta[key] = self.observe(self.join(path, key), value);
+						self.emit('change', self.join(path, key), target[key]);
+
+					}
 
 				}
 
@@ -246,35 +239,27 @@
 
 	};
 
-	Model$1.prototype.observeCollection = function (path, source, target) {
+	Model$1.prototype.observe = function (path, source) {
 		var self = this;
 
+		if (!self.isCollection(source)) return source;
+
 		var type = source ? source.constructor.name : '';
-		if (type !== 'Object' && type !== 'Array' ) return source;
-		if (target === undefined) target = source.constructor();
+		var target = source.constructor();
+		var meta = source.constructor();
 
 		if (type === 'Object') {
-			self.defineObject(path, target);
+			target = self.defineObject(path, meta, target);
 		} else if (type === 'Array') {
-			self.defineArray(path, target);
+			target = self.defineArray(path, meta, target);
 		}
-
-		Object.defineProperty(target, 'meta', {
-			value: source,
-			writable: true,
-			configurable: true
-		});
 
 		Object.keys(source).forEach(function (key) {
 
 			if (source[key] !== undefined) {
 
-				if (self.isCollection(source[key])) {
-					target[key] = self.observeCollection(self.join(path, key), source[key]);
-					target.meta[key] = target[key];
-				}
-
-				self.observeProperty(path, target, key);
+				meta[key] = self.observe(self.join(path, key), source[key]);
+				target = self.defineProperty(path, meta, target, key);
 
 			}
 
@@ -292,7 +277,7 @@
 	};
 
 	Model$1.prototype.setup = function (data) {
-		this.data = this.observeCollection('', data);
+		this.data = this.observe('', data);
 		return this;
 	};
 
@@ -1041,22 +1026,28 @@
 
 	Router$1.prototype.get = function (path) {
 
-		for (var r, i = 0, l = this.routes.length; i < l; i++) {
-			r = this.routes[i];
+		for (var i = 0, l = this.routes.length; i < l; i++) {
+			var route = this.routes[i];
 
-			if (typeof r.path === 'string') {
-				if (r.path === path) {
-					return r;
+			if (typeof route.path === 'string') {
+				if (route.path === path) {
+					return route;
 				}
-			} else if (typeof r.path === 'function') {
-				if (r.path.test(path)) {
-					return r;
+			} else if (typeof route.path === 'function') {
+				if (route.path.test(path)) {
+					return route;
 				}
 			}
 
 		}
 
-		throw new Error('could not find ' + path + ' in routes');
+		var component = document.createElement('div');
+		component.innerHTML = '{ "statusCode": 404, "error": "Not Found" }';
+
+		return {
+			title: '404',
+			component: component
+		};
 
 	};
 
@@ -1188,7 +1179,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.1.2
+		version: 1.1.3
 		author: alexander elias
 	*/
 

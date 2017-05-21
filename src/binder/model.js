@@ -19,113 +19,107 @@ Model.prototype.isCollection = function (data) {
 	return data && (data.constructor.name === 'Object' || data.constructor.name === 'Array');
 };
 
-Model.prototype.defineSplice = function (path, data, argument) {
+Model.prototype.defineSplice = function (path, meta, target, argument) {
 	var self = this;
 
-	Array.prototype.slice.call(argument, 2).forEach(function (value) {
+	if (argument[2]) {
 
-		if (self.isCollection(value)) value = self.observeCollection(path, value);
-		Array.prototype.splice.call(data.meta, argument[0], argument[1], value);
-		self.observeProperty(path, data, data.meta.length-1);
-		self.emit('change', self.join(path), data);
+		Array.prototype.splice.call(meta, argument[0], argument[1]);
+		self.emit('change', self.join(path), target);
 
-	});
+	} else {
+
+		Array.prototype.slice.call(argument, 2).forEach(function (value) {
+
+			value = self.observe(path, value);
+			Array.prototype.splice.call(meta, argument[0], argument[1], value);
+			target = self.defineProperty(path, meta, target, meta.length-1);
+			self.emit('change', self.join(path), target);
+
+		});
+
+	}
 
 };
 
-Model.prototype.defineSplice = function (path, data, argument) {
-	var self = this;
-
-	Array.prototype.slice.call(argument, 2).forEach(function (value) {
-
-		if (self.isCollection(value)) value = self.observeCollection(path, value);
-		Array.prototype.splice.call(data.meta, argument[0], argument[1], value);
-		self.observeProperty(path, data, data.meta.length-1);
-		self.emit('change', self.join(path), data);
-
-	});
-
-};
-
-Model.prototype.arrayPushUnshift = function (path, data, method, argument) {
+Model.prototype.arrayPushUnshift = function (path, meta, target, method, argument) {
 	var self = this;
 
 	Array.prototype.forEach.call(argument, function (value) {
 
-		if (self.isCollection(value)) value = self.observeCollection(path, value);
-		Array.prototype[method].call(data.meta, value);
-		self.observeProperty(path, data, data.meta.length-1);
-		self.emit('change', self.join(path), data);
+		value = self.observe(path, value);
+		Array.prototype[method].call(meta, value);
+		target = self.defineProperty(path, meta, target, meta.length-1);
+		self.emit('change', self.join(path), target);
 
 	});
 
 };
 
-Model.prototype.arrayPopShift = function (path, data, method) {
+Model.prototype.arrayPopShift = function (path, meta, target, method) {
 	var self = this;
 
-	Array.prototype[method].call(data.meta);
-	Array.prototype['pop'].call(data);
-	self.emit('change', self.join(path), data);
+	Array.prototype[method].call(meta);
+	Array.prototype.pop.call(target);
+	self.emit('change', self.join(path), target);
 
 };
 
-Model.prototype.defineArray = function (path, data) {
+Model.prototype.defineArray = function (path, meta, target) {
 	var self = this;
 
-	return Object.defineProperties(data, {
+	return Object.defineProperties(target, {
 		splice: {
 			value: function () {
-				return self.defineSplice(path, this, arguments);
+				return self.defineSplice(path, meta, target, arguments);
 			}
 		},
 		push: {
 			value: function () {
-				return self.arrayPushUnshift(path, this, 'push', arguments);
+				return self.arrayPushUnshift(path, meta, target, 'push', arguments);
 			}
 		},
 		unshift: {
 			value: function () {
-				return self.arrayPushUnshift(path, this, 'unshift', arguments);
+				return self.arrayPushUnshift(path, meta, target, 'unshift', arguments);
 			}
 		},
 		pop: {
 			value: function () {
-				return self.arrayPopShift(path, this, 'pop');
+				return self.arrayPopShift(path, meta, target, 'pop');
 			}
 		},
 		shift: {
 			value: function () {
-				return self.arrayPopShift(path, this, 'shift');
+				return self.arrayPopShift(path, meta, target, 'shift');
 			}
 		}
 	});
 
 };
 
-Model.prototype.defineObject = function (path, data) {
+Model.prototype.defineObject = function (path, meta, target) {
 	var self = this;
 
-	return Object.defineProperties(data, {
+	return Object.defineProperties(target, {
 		set: {
 			value: function (key, value) {
 
-				if (this.isCollection(value)) {
-					this.meta[key] = self.observeCollection(self.join(path, key), value);
-				} else {
-					this.meta[key] = value;
+				if (self.isCollection(value)) {
+					value = self.observe(self.join(path, key), value);
 				}
 
-				self.observeProperty(path, this, key);
-				self.emit('change', self.join(path, key), this[key]);
+				meta[key] = value;
+				target = self.defineProperty(path, meta, target, key);
+				self.emit('change', self.join(path, key), target[key]);
 
 			}
 		},
 		remove: {
 			value: function (key) {
 
-				delete this[key];
-				delete this.meta[key];
+				delete target[key];
+				delete meta[key];
 				self.emit('change', self.join(path, key), undefined);
 
 			}
@@ -134,32 +128,31 @@ Model.prototype.defineObject = function (path, data) {
 
 };
 
-Model.prototype.observeProperty = function (path, data, key) {
+Model.prototype.defineProperty = function (path, meta, target, key) {
 	var self = this;
 
-	return Object.defineProperty(data, key, {
+	return Object.defineProperty(target, key, {
 		enumerable: true,
 		configurable: true,
 		get: function () {
-			return this.meta[key];
+			return meta[key];
 		},
 		set: function (value) {
 
-			if (value === undefined) {
+			if (meta[key] !== value) {
 
-				delete this[key];
-				delete this.meta[key];
-				self.emit('change', self.join(path, key), undefined);
+				if (value === undefined) {
 
-			} else {
+					delete meta[key];
+					delete target[key];
+					self.emit('change', self.join(path, key), undefined);
 
-				if (self.isCollection(value)) {
-					this.meta[key] = self.observeCollection(self.join(path, key), value);
 				} else {
-					this.meta[key] = value;
-				}
 
-				self.emit('change', self.join(path, key), this[key]);
+					meta[key] = self.observe(self.join(path, key), value);
+					self.emit('change', self.join(path, key), target[key]);
+
+				}
 
 			}
 
@@ -168,35 +161,27 @@ Model.prototype.observeProperty = function (path, data, key) {
 
 };
 
-Model.prototype.observeCollection = function (path, source, target) {
+Model.prototype.observe = function (path, source) {
 	var self = this;
 
+	if (!self.isCollection(source)) return source;
+
 	var type = source ? source.constructor.name : '';
-	if (type !== 'Object' && type !== 'Array' ) return source;
-	if (target === undefined) target = source.constructor();
+	var target = source.constructor();
+	var meta = source.constructor();
 
 	if (type === 'Object') {
-		self.defineObject(path, target);
+		target = self.defineObject(path, meta, target);
 	} else if (type === 'Array') {
-		self.defineArray(path, target);
+		target = self.defineArray(path, meta, target);
 	}
-
-	Object.defineProperty(target, 'meta', {
-		value: source,
-		writable: true,
-		configurable: true
-	});
 
 	Object.keys(source).forEach(function (key) {
 
 		if (source[key] !== undefined) {
 
-			if (self.isCollection(source[key])) {
-				target[key] = self.observeCollection(self.join(path, key), source[key]);
-				target.meta[key] = target[key];
-			}
-
-			self.observeProperty(path, target, key);
+			meta[key] = self.observe(self.join(path, key), source[key]);
+			target = self.defineProperty(path, meta, target, key);
 
 		}
 
@@ -214,7 +199,7 @@ Model.prototype.get = function (path) {
 };
 
 Model.prototype.setup = function (data) {
-	this.data = this.observeCollection('', data);
+	this.data = this.observe('', data);
 	return this;
 };
 
