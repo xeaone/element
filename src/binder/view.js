@@ -78,11 +78,19 @@ View.prototype.renderAll = function (pattern) {
 };
 
 View.prototype.removeOne = function (element) {
-	this.data.forEach(function (paths) {
-		paths.forEach(function (unit, _, id) {
+	this.data.forEach(function (paths, _, did) {
+		paths.forEach(function (unit, _, pid) {
+
 			if (element === unit.element) {
-				paths.removeById(id);
+
+				paths.removeById(pid);
+
+				if (paths.size() === 0) {
+					this.data.removeById(did);
+				}
+
 			}
+
 		}, this);
 	}, this);
 };
