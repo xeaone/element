@@ -4,87 +4,7 @@
 	(global.Jenie = factory());
 }(this, (function () { 'use strict';
 
-	var utility = {
-		GET: 2,
-		SET: 3,
-		is: function (variable, name) {
-			return variable && variable.constructor.name === name;
-		},
-		// router start
-		has: function (string, search) {
-			return string.indexOf(search) !== -1;
-		},
-		// view/model start
-		toCamelCase: function (data) {
-			if (data.constructor.name === 'Array') data = data.join('-');
-			return data.replace(/-[a-z]/g, function (match) {
-				return match[1].toUpperCase();
-			});
-		},
-		toDashCase: function (data) {
-			if (data.constructor.name === 'Array') data = data.join('');
-			return data.replace(/[A-Z]/g, function (match) {
-				return '-' + match.toLowerCase();
-			});
-		},
-		getByPath: function (collection, path) {
-			var keys = path.split('.');
-			var last = keys.length - 1;
-
-			for (var i = 0; i < last; i++) {
-				if (!collection[keys[i]]) return undefined;
-				else collection = collection[keys[i]];
-			}
-
-			return collection[keys[last]];
-		},
-		setByPath: function (collection, path, value) {
-			var keys = path.split('.');
-			var last = keys.length - 1;
-
-			for (var i = 0, key; i < last; i++) {
-				key = keys[i];
-				if (collection[key] === undefined) collection[key] = {};
-				collection = collection[key];
-			}
-
-			return collection[keys[last]] = value;
-		}
-	};
-
-	function Events$1 () {
-		this.events = {};
-	}
-
-	Events$1.prototype.on = function (name, callback) {
-		if (!this.events[name]) this.events[name] = [];
-		this.events[name].push(callback);
-	};
-
-	Events$1.prototype.off = function (name, callback) {
-		if (!this.events[name]) return;
-		var index = this.events[name].indexOf(callback);
-		if (this.events[name].indexOf(callback) > -1) this.events[name].splice(index, 1);
-	};
-
-	Events$1.prototype.emit = function (name) {
-		if (!this.events[name]) return;
-		var args = [].slice.call(arguments, 1);
-		var events = this.events[name].slice();
-		for (var i = 0, l = events.length; i < l; i++) events[i].apply(this, args);
-	};
-
-	var events = Events$1;
-
-	var Utility = utility;
-	var Events = events;
-
-	function Model$1 () {
-		Events.call(this);
-	}
-
-	Model$1.prototype = Object.create(Events.prototype);
-	Model$1.prototype.constructor = Model$1;
+	function Model$1 () {}
 
 	Model$1.prototype.join = function () {
 		return Array.prototype.join
@@ -103,7 +23,7 @@
 		if (argument[2]) {
 
 			Array.prototype.splice.call(meta, argument[0], argument[1]);
-			self.emit('change', self.join(path), target);
+			self.emit(self.join(path), target);
 
 		} else {
 
@@ -112,7 +32,7 @@
 				value = self.observe(path, value);
 				Array.prototype.splice.call(meta, argument[0], argument[1], value);
 				target = self.defineProperty(path, meta, target, meta.length-1);
-				self.emit('change', self.join(path), target);
+				self.emit(self.join(path), target);
 
 			});
 
@@ -128,7 +48,7 @@
 			value = self.observe(path, value);
 			Array.prototype[method].call(meta, value);
 			target = self.defineProperty(path, meta, target, meta.length-1);
-			self.emit('change', self.join(path), target);
+			self.emit(self.join(path), target);
 
 		});
 
@@ -139,7 +59,7 @@
 
 		Array.prototype[method].call(meta);
 		Array.prototype.pop.call(target);
-		self.emit('change', self.join(path), target);
+		self.emit(self.join(path), target);
 
 	};
 
@@ -189,7 +109,7 @@
 
 					meta[key] = value;
 					target = self.defineProperty(path, meta, target, key);
-					self.emit('change', self.join(path, key), target[key]);
+					self.emit(self.join(path, key), target[key]);
 
 				}
 			},
@@ -198,7 +118,7 @@
 
 					delete target[key];
 					delete meta[key];
-					self.emit('change', self.join(path, key), undefined);
+					self.emit(self.join(path, key), undefined);
 
 				}
 			}
@@ -223,12 +143,12 @@
 
 						delete meta[key];
 						delete target[key];
-						self.emit('change', self.join(path, key), undefined);
+						self.emit(self.join(path, key), undefined);
 
 					} else {
 
 						meta[key] = self.observe(self.join(path, key), value);
-						self.emit('change', self.join(path, key), target[key]);
+						self.emit(self.join(path, key), target[key]);
 
 					}
 
@@ -269,14 +189,34 @@
 	};
 
 	Model$1.prototype.set = function (path, value) {
-		return Utility.setByPath(this.data, path, value);
+		var keys = path.split('.');
+		var last = keys.length - 1;
+		var collection = this.data;
+
+		for (var i = 0, key; i < last; i++) {
+			key = keys[i];
+			if (collection[key] === undefined) collection[key] = {};
+			collection = collection[key];
+		}
+
+		return collection[keys[last]] = value;
 	};
 
 	Model$1.prototype.get = function (path) {
-		return Utility.getByPath(this.data, path);
+		var keys = path.split('.');
+		var last = keys.length - 1;
+		var collection = this.data;
+
+		for (var i = 0; i < last; i++) {
+			if (!collection[keys[i]]) return undefined;
+			else collection = collection[keys[i]];
+		}
+
+		return collection[keys[last]];
 	};
 
-	Model$1.prototype.setup = function (data) {
+	Model$1.prototype.setup = function (data, callback) {
+		this.emit = callback;
 		this.data = this.observe('', data);
 		return this;
 	};
@@ -382,7 +322,6 @@
 	};
 
 	var Collection = collection;
-	var Events$2 = events;
 	var Global = global;
 
 	var PATH = Global.rPath;
@@ -393,12 +332,7 @@
 	var ELEMENT_REJECTS = Global.rElementRejects;
 	var ELEMENT_REJECTS_CHILDREN = Global.rElementRejectsChildren;
 
-	function View$1 () {
-		Events$2.call(this);
-	}
-
-	View$1.prototype = Object.create(Events$2.prototype);
-	View$1.prototype.constructor = View$1;
+	function View$1 () {}
 
 	View$1.prototype.preview = function (element) {
 		return element.outerHTML
@@ -488,7 +422,7 @@
 				self.data.set(attribute.path, new Collection());
 			}
 
-			self.emit('add', element, attribute);
+			self.emit(element, attribute);
 		});
 	};
 
@@ -498,8 +432,9 @@
 		});
 	};
 
-	View$1.prototype.setup = function (elements) {
+	View$1.prototype.setup = function (elements, callback) {
 		this.elements = elements;
+		this.emit = callback;
 		this.addAll(this.elements);
 		return this;
 	};
@@ -513,7 +448,32 @@
 		return new View$1().create();
 	};
 
-	var Utility$1 = utility;
+	var utility = {
+		GET: 2,
+		SET: 3,
+		is: function (variable, name) {
+			return variable && variable.constructor.name === name;
+		},
+		// router start
+		has: function (string, search) {
+			return string.indexOf(search) !== -1;
+		},
+		// view/model start
+		toCamelCase: function (data) {
+			if (data.constructor.name === 'Array') data = data.join('-');
+			return data.replace(/-[a-z]/g, function (match) {
+				return match[1].toUpperCase();
+			});
+		},
+		toDashCase: function (data) {
+			if (data.constructor.name === 'Array') data = data.join('');
+			return data.replace(/[A-Z]/g, function (match) {
+				return '-' + match.toLowerCase();
+			});
+		}
+	};
+
+	var Utility = utility;
 
 	function Unit$1 () {}
 
@@ -607,8 +567,8 @@
 			this.element.selectedIndex = this.data;
 		},
 		default: function () {
-			var path = Utility$1.toCamelCase(this.attribute.cmds);
-			Utility$1.setByPath(this.element, path, this.data);
+			var path = Utility.toCamelCase(this.attribute.cmds);
+			Utility.setByPath(this.element, path, this.data);
 		}
 	};
 
@@ -698,15 +658,17 @@
 		self.name = options.name;
 		self.modifiers = options.modifiers || {};
 
-		self._model.on('change', function (path, data) {
+		self._model.setup(options.model || {}, function (path, data) {
+
 			if (data === undefined) {
 				self._view.unrenderAll('^' + path + '.*');
 			} else {
 				self._view.renderAll('^' + path);
 			}
+
 		});
 
-		self._view.on('add', function (element, attribute) {
+		self._view.setup((options.view.shadowRoot || options.view).querySelectorAll('*'),  function (element, attribute) {
 
 			self._view.data.get(attribute.path).push(Unit({
 				view: self._view,
@@ -719,9 +681,6 @@
 			}));
 
 		});
-
-		self._model.setup(options.model || {});
-		self._view.setup((options.view.shadowRoot || options.view).querySelectorAll('*'));
 
 		self.model = self._model.data;
 		self.view = self._view.data;
@@ -868,7 +827,7 @@
 		return new Component$1().create(options);
 	};
 
-	var Utility$2 = utility;
+	var Utility$1 = utility;
 
 	function Router$1 (options) {
 		var self = this;
@@ -922,10 +881,10 @@
 			if (target.hasAttribute('download') || target.hasAttribute('external')) return;
 
 			// check non acceptable href
-			if (Utility$2.has(href, 'mailto:')) return;
-			if (Utility$2.has(href, 'tel:')) return;
-			if (Utility$2.has(href, 'file:')) return;
-			if (Utility$2.has(href, 'ftp:')) return;
+			if (Utility$1.has(href, 'mailto:')) return;
+			if (Utility$1.has(href, 'tel:')) return;
+			if (Utility$1.has(href, 'file:')) return;
+			if (Utility$1.has(href, 'ftp:')) return;
 
 			e.preventDefault();
 			self.navigate(href);

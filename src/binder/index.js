@@ -12,15 +12,17 @@ Binder.prototype.setup = function (options) {
 	self.name = options.name;
 	self.modifiers = options.modifiers || {};
 
-	self._model.on('change', function (path, data) {
+	self._model.setup(options.model || {}, function (path, data) {
+
 		if (data === undefined) {
 			self._view.unrenderAll('^' + path + '.*');
 		} else {
 			self._view.renderAll('^' + path);
 		}
+
 	});
 
-	self._view.on('add', function (element, attribute) {
+	self._view.setup((options.view.shadowRoot || options.view).querySelectorAll('*'),  function (element, attribute) {
 
 		self._view.data.get(attribute.path).push(Unit({
 			view: self._view,
@@ -33,9 +35,6 @@ Binder.prototype.setup = function (options) {
 		}));
 
 	});
-
-	self._model.setup(options.model || {});
-	self._view.setup((options.view.shadowRoot || options.view).querySelectorAll('*'));
 
 	self.model = self._model.data;
 	self.view = self._view.data;

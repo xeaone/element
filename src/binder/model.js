@@ -1,12 +1,5 @@
-var Utility = require('../utility');
-var Events = require('../events');
 
-function Model () {
-	Events.call(this);
-}
-
-Model.prototype = Object.create(Events.prototype);
-Model.prototype.constructor = Model;
+function Model () {}
 
 Model.prototype.join = function () {
 	return Array.prototype.join
@@ -25,7 +18,7 @@ Model.prototype.defineSplice = function (path, meta, target, argument) {
 	if (argument[2]) {
 
 		Array.prototype.splice.call(meta, argument[0], argument[1]);
-		self.emit('change', self.join(path), target);
+		self.emit(self.join(path), target);
 
 	} else {
 
@@ -34,7 +27,7 @@ Model.prototype.defineSplice = function (path, meta, target, argument) {
 			value = self.observe(path, value);
 			Array.prototype.splice.call(meta, argument[0], argument[1], value);
 			target = self.defineProperty(path, meta, target, meta.length-1);
-			self.emit('change', self.join(path), target);
+			self.emit(self.join(path), target);
 
 		});
 
@@ -50,7 +43,7 @@ Model.prototype.arrayPushUnshift = function (path, meta, target, method, argumen
 		value = self.observe(path, value);
 		Array.prototype[method].call(meta, value);
 		target = self.defineProperty(path, meta, target, meta.length-1);
-		self.emit('change', self.join(path), target);
+		self.emit(self.join(path), target);
 
 	});
 
@@ -61,7 +54,7 @@ Model.prototype.arrayPopShift = function (path, meta, target, method) {
 
 	Array.prototype[method].call(meta);
 	Array.prototype.pop.call(target);
-	self.emit('change', self.join(path), target);
+	self.emit(self.join(path), target);
 
 };
 
@@ -111,7 +104,7 @@ Model.prototype.defineObject = function (path, meta, target) {
 
 				meta[key] = value;
 				target = self.defineProperty(path, meta, target, key);
-				self.emit('change', self.join(path, key), target[key]);
+				self.emit(self.join(path, key), target[key]);
 
 			}
 		},
@@ -120,7 +113,7 @@ Model.prototype.defineObject = function (path, meta, target) {
 
 				delete target[key];
 				delete meta[key];
-				self.emit('change', self.join(path, key), undefined);
+				self.emit(self.join(path, key), undefined);
 
 			}
 		}
@@ -145,12 +138,12 @@ Model.prototype.defineProperty = function (path, meta, target, key) {
 
 					delete meta[key];
 					delete target[key];
-					self.emit('change', self.join(path, key), undefined);
+					self.emit(self.join(path, key), undefined);
 
 				} else {
 
 					meta[key] = self.observe(self.join(path, key), value);
-					self.emit('change', self.join(path, key), target[key]);
+					self.emit(self.join(path, key), target[key]);
 
 				}
 
@@ -191,14 +184,34 @@ Model.prototype.observe = function (path, source) {
 };
 
 Model.prototype.set = function (path, value) {
-	return Utility.setByPath(this.data, path, value);
+	var keys = path.split('.');
+	var last = keys.length - 1;
+	var collection = this.data;
+
+	for (var i = 0, key; i < last; i++) {
+		key = keys[i];
+		if (collection[key] === undefined) collection[key] = {};
+		collection = collection[key];
+	}
+
+	return collection[keys[last]] = value;
 };
 
 Model.prototype.get = function (path) {
-	return Utility.getByPath(this.data, path);
+	var keys = path.split('.');
+	var last = keys.length - 1;
+	var collection = this.data;
+
+	for (var i = 0; i < last; i++) {
+		if (!collection[keys[i]]) return undefined;
+		else collection = collection[keys[i]];
+	}
+
+	return collection[keys[last]];
 };
 
-Model.prototype.setup = function (data) {
+Model.prototype.setup = function (data, callback) {
+	this.emit = callback;
 	this.data = this.observe('', data);
 	return this;
 };

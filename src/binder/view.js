@@ -1,5 +1,4 @@
 var Collection = require('../collection');
-var Events = require('../events');
 var Global = require('../global');
 
 var PATH = Global.rPath;
@@ -10,12 +9,7 @@ var ELEMENT_ACCEPTS = Global.rElementAccepts;
 var ELEMENT_REJECTS = Global.rElementRejects;
 var ELEMENT_REJECTS_CHILDREN = Global.rElementRejectsChildren;
 
-function View () {
-	Events.call(this);
-}
-
-View.prototype = Object.create(Events.prototype);
-View.prototype.constructor = View;
+function View () {}
 
 View.prototype.preview = function (element) {
 	return element.outerHTML
@@ -105,7 +99,7 @@ View.prototype.addOne = function (element) {
 			self.data.set(attribute.path, new Collection());
 		}
 
-		self.emit('add', element, attribute);
+		self.emit(element, attribute);
 	});
 };
 
@@ -115,8 +109,9 @@ View.prototype.addAll = function (elements) {
 	});
 };
 
-View.prototype.setup = function (elements) {
+View.prototype.setup = function (elements, callback) {
 	this.elements = elements;
+	this.emit = callback;
 	this.addAll(this.elements);
 	return this;
 };
