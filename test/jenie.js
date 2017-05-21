@@ -29,7 +29,7 @@
 
 			Array.prototype.slice.call(argument, 2).forEach(function (value) {
 
-				value = self.observe(path, value);
+				value = self.defineCollection(path, value);
 				Array.prototype.splice.call(meta, argument[0], argument[1], value);
 				target = self.defineProperty(path, meta, target, meta.length-1);
 				self.emit(self.join(path), target);
@@ -45,7 +45,7 @@
 
 		Array.prototype.forEach.call(argument, function (value) {
 
-			value = self.observe(path, value);
+			value = self.defineCollection(path, value);
 			Array.prototype[method].call(meta, value);
 			target = self.defineProperty(path, meta, target, meta.length-1);
 			self.emit(self.join(path), target);
@@ -104,7 +104,7 @@
 				value: function (key, value) {
 
 					if (self.isCollection(value)) {
-						value = self.observe(self.join(path, key), value);
+						value = self.defineCollection(self.join(path, key), value);
 					}
 
 					meta[key] = value;
@@ -147,7 +147,7 @@
 
 					} else {
 
-						meta[key] = self.observe(self.join(path, key), value);
+						meta[key] = self.defineCollection(self.join(path, key), value);
 						self.emit(self.join(path, key), target[key]);
 
 					}
@@ -159,7 +159,7 @@
 
 	};
 
-	Model$1.prototype.observe = function (path, source) {
+	Model$1.prototype.defineCollection = function (path, source) {
 		var self = this;
 
 		if (!self.isCollection(source)) return source;
@@ -178,7 +178,7 @@
 
 			if (source[key] !== undefined) {
 
-				meta[key] = self.observe(self.join(path, key), source[key]);
+				meta[key] = self.defineCollection(self.join(path, key), source[key]);
 				target = self.defineProperty(path, meta, target, key);
 
 			}
@@ -215,20 +215,15 @@
 		return collection[keys[last]];
 	};
 
-	Model$1.prototype.setup = function (data, callback) {
-		this.emit = callback;
-		this.data = this.observe('', data);
-		return this;
+	Model$1.prototype.listener = function (listener) {
+		this.emit = listener;
 	};
 
-	Model$1.prototype.create = function () {
-		this.events = {};
-		return this;
+	Model$1.prototype.run = function (data) {
+		this.data = this.defineCollection('', data);
 	};
 
-	var model = function (data) {
-		return new Model$1().create(data);
-	};
+	var model = Model$1;
 
 	function Collection$1 (data) {
 		Object.defineProperty(this, 'data', {
@@ -295,44 +290,21 @@
 
 	var collection = Collection$1;
 
-	var global = {
-
-		sPrefix: '(data-)?j-',
-		sValue: '(data-)?j-value',
-		sFor: '(data-)?j-for-(.*?)=',
-
-		sAccepts: '(data-)?j-',
-		sRejects: '^\w+(-\w+)+|^iframe|^object|^script',
-
-		rPath: /\s?\|(.*?)$/,
-		rPrefix: /(data-)?j-/,
-		rValue: /(data-)?j-value/,
-		rModifier: /^(.*?)\|\s?/,
-		rFor: /(data-)?j-for-(.*?)=/,
-
-		rAccepts: /(data-)?j-/,
-		rRejects: /^\w+(-\w+)+|^iframe|^object|^script/,
-
-		rAttributeAccepts: /(data-)?j-/,
-
-		rElementAccepts: /(data-)?j-/,
-		rElementRejectsChildren: /(data-)?j-each/,
-		rElementRejects: /^\w+(-\w+)+|^iframe|^object|^script/
-
-	};
-
 	var Collection = collection;
-	var Global = global;
 
-	var PATH = Global.rPath;
-	var PREFIX = Global.rPrefix;
-	var MODIFIERS = Global.rModifier;
-	var ATTRIBUTE_ACCEPTS = Global.rAttributeAccepts;
-	var ELEMENT_ACCEPTS = Global.rElementAccepts;
-	var ELEMENT_REJECTS = Global.rElementRejects;
-	var ELEMENT_REJECTS_CHILDREN = Global.rElementRejectsChildren;
+	function View$1 () {
+		this.data = new Collection();
+	}
 
-	function View$1 () {}
+	View$1.prototype.regexp = {
+		PATH: /\s?\|(.*?)$/,
+		PREFIX: /(data-)?j-/,
+		MODIFIERS: /^(.*?)\|\s?/,
+		ATTRIBUTE_ACCEPTS: /(data-)?j-/,
+		ELEMENT_ACCEPTS: /(data-)?j-/,
+		ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
+		ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script/
+	};
 
 	View$1.prototype.preview = function (element) {
 		return element.outerHTML
@@ -345,12 +317,12 @@
 			var element = elements[i];
 			var preview = this.preview(element);
 
-			if (ELEMENT_REJECTS.test(preview)) {
+			if (this.regexp.ELEMENT_REJECTS.test(preview)) {
 				i += element.querySelectorAll('*').length;
-			} else if (ELEMENT_REJECTS_CHILDREN.test(preview)) {
+			} else if (this.regexp.ELEMENT_REJECTS_CHILDREN.test(preview)) {
 				i += element.querySelectorAll('*').length;
 				callback.call(this, element);
-			} else if (ELEMENT_ACCEPTS.test(preview)) {
+			} else if (this.regexp.ELEMENT_ACCEPTS.test(preview)) {
 				callback.call(this, element);
 			}
 		}
@@ -358,16 +330,16 @@
 
 	View$1.prototype.eachAttribute = function (element, callback) {
 		Array.prototype.forEach.call(element.attributes, function (ea) {
-			if (ATTRIBUTE_ACCEPTS.test(ea.name)) {
+			if (this.regexp.ATTRIBUTE_ACCEPTS.test(ea.name)) {
 				var attribute = {};
 				attribute.name = ea.name;
 				attribute.value = ea.value;
-				attribute.path = attribute.value.replace(PATH, '');
+				attribute.path = attribute.value.replace(this.regexp.PATH, '');
 				attribute.opts = attribute.path.split('.');
-				attribute.command = attribute.name.replace(PREFIX, '');
+				attribute.command = attribute.name.replace(this.regexp.PREFIX, '');
 				attribute.cmds = attribute.command.split('-');
 				attribute.key = attribute.opts.slice(-1);
-				attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(MODIFIERS, '').split(' ');
+				attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.regexp.MODIFIERS, '').split(' ');
 				callback.call(this, attribute);
 			}
 		}, this);
@@ -432,50 +404,38 @@
 		});
 	};
 
-	View$1.prototype.setup = function (elements, callback) {
+	View$1.prototype.listener = function (listener) {
+		this.emit = listener;
+	};
+
+	View$1.prototype.run = function (elements) {
 		this.elements = elements;
-		this.emit = callback;
 		this.addAll(this.elements);
-		return this;
 	};
 
-	View$1.prototype.create = function () {
-		this.data = new Collection();
-		return this;
-	};
-
-	var view = function () {
-		return new View$1().create();
-	};
-
-	var utility = {
-		GET: 2,
-		SET: 3,
-		is: function (variable, name) {
-			return variable && variable.constructor.name === name;
-		},
-		// router start
-		has: function (string, search) {
-			return string.indexOf(search) !== -1;
-		},
-		// view/model start
-		toCamelCase: function (data) {
-			if (data.constructor.name === 'Array') data = data.join('-');
-			return data.replace(/-[a-z]/g, function (match) {
-				return match[1].toUpperCase();
-			});
-		},
-		toDashCase: function (data) {
-			if (data.constructor.name === 'Array') data = data.join('');
-			return data.replace(/[A-Z]/g, function (match) {
-				return '-' + match.toLowerCase();
-			});
-		}
-	};
-
-	var Utility = utility;
+	var view = View$1;
 
 	function Unit$1 () {}
+
+	Unit$1.prototype.setByPath = function (collection, path, value) {
+		var keys = path.split('.');
+		var last = keys.length - 1;
+
+		for (var i = 0, key; i < last; i++) {
+			key = keys[i];
+			if (collection[key] === undefined) collection[key] = {};
+			collection = collection[key];
+		}
+
+		return collection[keys[last]] = value;
+	};
+
+	Unit$1.prototype.toCamelCase = function (data) {
+		if (data.constructor.name === 'Array') data = data.join('-');
+		return data.replace(/-[a-z]/g, function (match) {
+			return match[1].toUpperCase();
+		});
+	};
 
 	Unit$1.prototype.renderMethods = {
 		on: function () {
@@ -567,8 +527,8 @@
 			this.element.selectedIndex = this.data;
 		},
 		default: function () {
-			var path = Utility.toCamelCase(this.attribute.cmds);
-			Utility.setByPath(this.element, path, this.data);
+			var path = this.toCamelCase(this.attribute.cmds);
+			this.setByPath(this.element, path, this.data);
 		}
 	};
 
@@ -648,31 +608,33 @@
 	var View = view;
 	var Unit = unit;
 
-	function Binder$2 () {}
-
-	Binder$2.prototype.setup = function (options) {
+	function Binder$2 (options, callback) {
 		var self = this;
 
-		self._view = View();
-		self._model = Model();
+		self.view = new View();
+		self.model = new Model();
+
+		self._model = options.model || {};
+		self._view = (options.view.shadowRoot || options.view).querySelectorAll('*');
+
 		self.name = options.name;
 		self.modifiers = options.modifiers || {};
 
-		self._model.setup(options.model || {}, function (path, data) {
+		self.model.listener(function (path, data) {
 
 			if (data === undefined) {
-				self._view.unrenderAll('^' + path + '.*');
+				self.view.unrenderAll('^' + path + '.*');
 			} else {
-				self._view.renderAll('^' + path);
+				self.view.renderAll('^' + path);
 			}
 
 		});
 
-		self._view.setup((options.view.shadowRoot || options.view).querySelectorAll('*'),  function (element, attribute) {
+		self.view.listener(function (element, attribute) {
 
-			self._view.data.get(attribute.path).push(Unit({
-				view: self._view,
-				model: self._model,
+			self.view.data.get(attribute.path).push(Unit({
+				view: self.view,
+				model: self.model,
 				element: element,
 				attribute: attribute,
 				modifiers: attribute.modifiers.map(function (modifier) {
@@ -682,32 +644,34 @@
 
 		});
 
-		self.model = self._model.data;
-		self.view = self._view.data;
+		if (typeof options.model === 'function') {
 
-		return self;
-	};
+			self._model.call(self, function (model$$1) {
 
-	Binder$2.prototype.create = function (options, callback) {
-		var self = this;
+				self._model = model$$1;
+				self.model.run(self._model);
+				self.view.run(self._view);
 
-		if (options.model && typeof options.model === 'function') {
-			options.model.call(self, function (model$$1) {
-				options.model = model$$1;
-				self.setup(options);
-				if (callback) return callback.call(self);
+				if (callback) {
+					return callback.call(self);
+				}
+
 			});
+
 		} else {
-			self.setup(options);
-			if (callback) return callback.call(self);
+
+			self.model.run(self._model);
+			self.view.run(self._view);
+
+			if (callback) {
+				return callback.call(self);
+			}
+
 		}
 
-		return self;
-	};
+	}
 
-	var index$2 = function (options, callback) {
-		return new Binder$2().create(options, callback);
-	};
+	var index$2 = Binder$2;
 
 	// https://gist.github.com/Wind4/3baa40b26b89b686e4f2
 
@@ -737,47 +701,10 @@
 	var Binder$1 = index$2;
 	var Uuid = uuid;
 
-	function Component$1 () {}
-
-	Component$1.prototype.comment = function (method) {
-		if (typeof method !== 'function') throw new Error('Comment must be a function');
-		var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
-		var match = comment.exec(method.toString());
-		if (!match) throw new Error('Comment missing');
-		return match[1];
-	};
-
-	Component$1.prototype.dom = function (string) {
-		var temporary = document.createElement('div');
-		temporary.innerHTML = string;
-		return temporary.children[0];
-	};
-
-	Component$1.prototype._template = function (template) {
-		if (template.constructor.name === 'Function') {
-			template = this.comment(template);
-			template = this.dom(template);
-		} else if (template.constructor.name === 'String') {
-			if (/<|>/.test(template)) {
-				template = this.dom(template);
-			} else {
-				template = this.currentScript.ownerDocument.querySelector(template);
-			}
-		}
-
-		return template;
-	};
-
-	Component$1.prototype.define = function (name, options) {
-		return document.registerElement(name, {
-			prototype: Object.create(HTMLElement.prototype, options)
-		});
-	};
-
-	Component$1.prototype.create = function (options) {
-		if (!options) throw new Error('missing options');
-		if (!options.name) throw new Error('missing options.name');
-		if (!options.template) throw new Error('missing options.template');
+	function Component$1 (options) {
+		if (!options) throw new Error('Component missing options');
+		if (!options.name) throw new Error('Component missing options.name');
+		if (!options.template) throw new Error('Component missing options.template');
 
 		var self = this;
 
@@ -787,15 +714,21 @@
 		self.currentScript = (document._currentScript || document.currentScript);
 		self.template = self._template(options.template);
 
-		if (options.created) self.created = options.created.bind(self);
-		if (options.attached) self.attached = options.attached.bind(self);
-		if (options.detached) self.detached = options.detached.bind(self);
-		if (options.attributed) self.attributed = options.attributed.bind(self);
+		self.created = options.created ? options.created.bind(self) : undefined;
+		self.attached = options.attached ? options.attached.bind(self) : undefined;
+		self.detached = options.detached ? options.detached.bind(self) : undefined;
+		self.attributed = options.attributed ? options.attributed.bind(self) : undefined;
 
-		self.proto = self.define(self.name, {
-			attachedCallback: { value: self.attached },
-			detachedCallback: { value: self.detached },
-			attributeChangedCallback: { value: self.attributed },
+		self.proto = self._define(self.name, {
+			attachedCallback: {
+				value: self.attached
+			},
+			detachedCallback: {
+				value: self.detached
+			},
+			attributeChangedCallback: {
+				value: self.attributed
+			},
 			createdCallback: {
 				value: function () {
 					self.element = this;
@@ -803,31 +736,77 @@
 					self.element.appendChild(document.importNode(self.template.content, true));
 
 					if (self.model) {
-						self.binder = Binder$1({
+
+						self.binder = new Binder$1({
 							name: self.uuid,
 							model: self.model,
 							view: self.element,
 							modifiers: self.modifiers
 						}, function () {
-							self.model = this.model;
-							if (self.created) self.created.call(self);
+							self.model = this.model.data;
+							self.view = this.view.data;
+
+							if (self.created) {
+								self.created(self);
+							}
+
 						});
+
 					} else {
-						if (self.created) self.created.call(self);
+
+						if (self.created) {
+							self.created(self);
+						}
+
 					}
 
 				}
 			}
 		});
 
-		return self;
+	}
+
+	Component$1.prototype._comment = function (method) {
+		if (typeof method !== 'function') throw new Error('Comment must be a function');
+		var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
+		var match = comment.exec(method.toString());
+		if (!match) throw new Error('Comment missing');
+		return match[1];
 	};
 
-	var index = function (options) {
-		return new Component$1().create(options);
+	Component$1.prototype._dom = function (string) {
+		var temporary = document.createElement('div');
+		temporary.innerHTML = string;
+		return temporary.children[0];
 	};
 
-	var Utility$1 = utility;
+	Component$1.prototype._template = function (template) {
+
+		if (template.constructor.name === 'Function') {
+
+			template = this._comment(template);
+			template = this._dom(template);
+
+		} else if (template.constructor.name === 'String') {
+
+			if (/<|>/.test(template)) {
+				template = this._dom(template);
+			} else {
+				template = this.currentScript.ownerDocument.querySelector(template);
+			}
+
+		}
+
+		return template;
+	};
+
+	Component$1.prototype._define = function (name, options) {
+		return document.registerElement(name, {
+			prototype: Object.create(HTMLElement.prototype, options)
+		});
+	};
+
+	var index = Component$1;
 
 	function Router$1 (options) {
 		var self = this;
@@ -881,10 +860,10 @@
 			if (target.hasAttribute('download') || target.hasAttribute('external')) return;
 
 			// check non acceptable href
-			if (Utility$1.has(href, 'mailto:')) return;
-			if (Utility$1.has(href, 'tel:')) return;
-			if (Utility$1.has(href, 'file:')) return;
-			if (Utility$1.has(href, 'ftp:')) return;
+			if (href.indexOf('mailto:') !== -1) return;
+			if (href.indexOf('tel:') !== -1) return;
+			if (href.indexOf('file:') !== -1) return;
+			if (href.indexOf('ftp:') !== -1) return;
 
 			e.preventDefault();
 			self.navigate(href);
@@ -942,11 +921,13 @@
 		}
 
 		if (route.cache === true || route.cache === undefined) {
+
 			component = this.cache[route.component];
 
 			if (!component) {
 				component = this.cache[route.component] = document.createElement(route.component);
 			}
+
 		} else {
 			component = document.createElement(route.component);
 		}
@@ -961,18 +942,25 @@
 	};
 
 	Router$1.prototype.add = function (route) {
-		if (route.constructor.name === 'Object') this.routes.push(route);
-		else if (route.constructor.name === 'Array') this.routes = this.routes.concat(route);
+
+		if (route.constructor.name === 'Object') {
+			this.routes.push(route);
+		} else if (route.constructor.name === 'Array') {
+			this.routes = this.routes.concat(route);
+		}
+
 		return this;
 	};
 
 	Router$1.prototype.remove = function (path) {
 
 		for (var i = 0, l = this.routes.length; i < l; i++) {
+
 			if (path === this.routes[i].path) {
 				this.routes.splice(i, 1);
 				break;
 			}
+
 		}
 
 		return this;
@@ -988,25 +976,17 @@
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 			var route = this.routes[i];
 
-			if (typeof route.path === 'string') {
-				if (route.path === path) {
-					return route;
-				}
-			} else if (typeof route.path === 'function') {
-				if (route.path.test(path)) {
-					return route;
-				}
+			if (!route.path) {
+				continue;
+			} else if (route.path.constructor.name === 'String') {
+				if (route.path === path) return route;
+			} else if (route.path.constructor.name === 'RegExp') {
+				if (route.path.test(path)) return route;
+			} else if (route.path.constructor.name === 'Function') {
+				if (route.path(path)) return route;
 			}
 
 		}
-
-		var component = document.createElement('div');
-		component.innerHTML = '{ "statusCode": 404, "error": "Not Found" }';
-
-		return {
-			title: '404',
-			component: component
-		};
 
 	};
 
@@ -1035,9 +1015,7 @@
 		return this;
 	};
 
-	var index$4 = function (options) {
-		return new Router$1(options);
-	};
+	var index$4 = Router$1;
 
 	function Http$1 () {}
 
@@ -1127,13 +1105,7 @@
 		xhr.send(options.data);
 	};
 
-	Http$1.prototype.create = function () {
-		return this;
-	};
-
-	var http = function () {
-		return new Http$1().create();
-	};
+	var http = Http$1;
 
 	/*
 		@banner
@@ -1160,16 +1132,19 @@
 
 	var jenie_b = {
 		module: {},
+		modules: {},
 		services: {},
-		http: Http(),
-		component: function (options) {
-			return Component(options);
-		},
-		binder: function (options, callback) {
-			return Binder(options, callback);
+		http: function () {
+			return this.http = new Http();
 		},
 		router: function (options) {
-			return this.router = Router(options);
+			return this.router = new Router(options);
+		},
+		component: function (options) {
+			return new Component(options);
+		},
+		binder: function (options, callback) {
+			return new Binder(options, callback);
 		},
 		script: function () {
 			return (document._currentScript || document.currentScript);

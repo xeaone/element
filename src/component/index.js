@@ -1,47 +1,10 @@
 var Binder = require('../binder');
 var Uuid = require('../uuid');
 
-function Component () {}
-
-Component.prototype.comment = function (method) {
-	if (typeof method !== 'function') throw new Error('Comment must be a function');
-	var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
-	var match = comment.exec(method.toString());
-	if (!match) throw new Error('Comment missing');
-	return match[1];
-};
-
-Component.prototype.dom = function (string) {
-	var temporary = document.createElement('div');
-	temporary.innerHTML = string;
-	return temporary.children[0];
-};
-
-Component.prototype._template = function (template) {
-	if (template.constructor.name === 'Function') {
-		template = this.comment(template);
-		template = this.dom(template);
-	} else if (template.constructor.name === 'String') {
-		if (/<|>/.test(template)) {
-			template = this.dom(template);
-		} else {
-			template = this.currentScript.ownerDocument.querySelector(template);
-		}
-	}
-
-	return template;
-};
-
-Component.prototype.define = function (name, options) {
-	return document.registerElement(name, {
-		prototype: Object.create(HTMLElement.prototype, options)
-	});
-};
-
-Component.prototype.create = function (options) {
-	if (!options) throw new Error('missing options');
-	if (!options.name) throw new Error('missing options.name');
-	if (!options.template) throw new Error('missing options.template');
+function Component (options) {
+	if (!options) throw new Error('Component missing options');
+	if (!options.name) throw new Error('Component missing options.name');
+	if (!options.template) throw new Error('Component missing options.template');
 
 	var self = this;
 
@@ -51,15 +14,21 @@ Component.prototype.create = function (options) {
 	self.currentScript = (document._currentScript || document.currentScript);
 	self.template = self._template(options.template);
 
-	if (options.created) self.created = options.created.bind(self);
-	if (options.attached) self.attached = options.attached.bind(self);
-	if (options.detached) self.detached = options.detached.bind(self);
-	if (options.attributed) self.attributed = options.attributed.bind(self);
+	self.created = options.created ? options.created.bind(self) : undefined;
+	self.attached = options.attached ? options.attached.bind(self) : undefined;
+	self.detached = options.detached ? options.detached.bind(self) : undefined;
+	self.attributed = options.attributed ? options.attributed.bind(self) : undefined;
 
-	self.proto = self.define(self.name, {
-		attachedCallback: { value: self.attached },
-		detachedCallback: { value: self.detached },
-		attributeChangedCallback: { value: self.attributed },
+	self.proto = self._define(self.name, {
+		attachedCallback: {
+			value: self.attached
+		},
+		detachedCallback: {
+			value: self.detached
+		},
+		attributeChangedCallback: {
+			value: self.attributed
+		},
 		createdCallback: {
 			value: function () {
 				self.element = this;
@@ -67,26 +36,74 @@ Component.prototype.create = function (options) {
 				self.element.appendChild(document.importNode(self.template.content, true));
 
 				if (self.model) {
-					self.binder = Binder({
+
+					self.binder = new Binder({
 						name: self.uuid,
 						model: self.model,
 						view: self.element,
 						modifiers: self.modifiers
 					}, function () {
-						self.model = this.model;
-						if (self.created) self.created.call(self);
+						self.model = this.model.data;
+						self.view = this.view.data;
+
+						if (self.created) {
+							self.created(self);
+						}
+
 					});
+
 				} else {
-					if (self.created) self.created.call(self);
+
+					if (self.created) {
+						self.created(self);
+					}
+
 				}
 
 			}
 		}
 	});
 
-	return self;
+}
+
+Component.prototype._comment = function (method) {
+	if (typeof method !== 'function') throw new Error('Comment must be a function');
+	var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
+	var match = comment.exec(method.toString());
+	if (!match) throw new Error('Comment missing');
+	return match[1];
 };
 
-module.exports = function (options) {
-	return new Component().create(options);
+Component.prototype._dom = function (string) {
+	var temporary = document.createElement('div');
+	temporary.innerHTML = string;
+	return temporary.children[0];
 };
+
+Component.prototype._template = function (template) {
+
+	if (template.constructor.name === 'Function') {
+
+		template = this._comment(template);
+		template = this._dom(template);
+
+	} else if (template.constructor.name === 'String') {
+
+		if (/<|>/.test(template)) {
+			template = this._dom(template);
+		} else {
+			template = this.currentScript.ownerDocument.querySelector(template);
+		}
+
+	}
+
+	return template;
+};
+
+Component.prototype._define = function (name, options) {
+	return document.registerElement(name, {
+		prototype: Object.create(HTMLElement.prototype, options)
+	});
+};
+
+module.exports = Component;

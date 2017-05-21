@@ -2,31 +2,33 @@ var Model = require('./model');
 var View = require('./view');
 var Unit = require('./unit');
 
-function Binder () {}
-
-Binder.prototype.setup = function (options) {
+function Binder (options, callback) {
 	var self = this;
 
-	self._view = View();
-	self._model = Model();
+	self.view = new View();
+	self.model = new Model();
+
+	self._model = options.model || {};
+	self._view = (options.view.shadowRoot || options.view).querySelectorAll('*');
+
 	self.name = options.name;
 	self.modifiers = options.modifiers || {};
 
-	self._model.setup(options.model || {}, function (path, data) {
+	self.model.listener(function (path, data) {
 
 		if (data === undefined) {
-			self._view.unrenderAll('^' + path + '.*');
+			self.view.unrenderAll('^' + path + '.*');
 		} else {
-			self._view.renderAll('^' + path);
+			self.view.renderAll('^' + path);
 		}
 
 	});
 
-	self._view.setup((options.view.shadowRoot || options.view).querySelectorAll('*'),  function (element, attribute) {
+	self.view.listener(function (element, attribute) {
 
-		self._view.data.get(attribute.path).push(Unit({
-			view: self._view,
-			model: self._model,
+		self.view.data.get(attribute.path).push(Unit({
+			view: self.view,
+			model: self.model,
 			element: element,
 			attribute: attribute,
 			modifiers: attribute.modifiers.map(function (modifier) {
@@ -36,29 +38,31 @@ Binder.prototype.setup = function (options) {
 
 	});
 
-	self.model = self._model.data;
-	self.view = self._view.data;
+	if (typeof options.model === 'function') {
 
-	return self;
-};
+		self._model.call(self, function (model) {
 
-Binder.prototype.create = function (options, callback) {
-	var self = this;
+			self._model = model;
+			self.model.run(self._model);
+			self.view.run(self._view);
 
-	if (options.model && typeof options.model === 'function') {
-		options.model.call(self, function (model) {
-			options.model = model;
-			self.setup(options);
-			if (callback) return callback.call(self);
+			if (callback) {
+				return callback.call(self);
+			}
+
 		});
+
 	} else {
-		self.setup(options);
-		if (callback) return callback.call(self);
+
+		self.model.run(self._model);
+		self.view.run(self._view);
+
+		if (callback) {
+			return callback.call(self);
+		}
+
 	}
 
-	return self;
-};
+}
 
-module.exports = function (options, callback) {
-	return new Binder().create(options, callback);
-};
+module.exports = Binder;

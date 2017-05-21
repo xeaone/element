@@ -87,10 +87,4 @@ Http.prototype.fetch = function (options) {
 	xhr.send(options.data);
 };
 
-Http.prototype.create = function () {
-	return this;
-};
-
-module.exports = function () {
-	return new Http().create();
-};
+module.exports = Http;

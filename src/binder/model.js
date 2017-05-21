@@ -24,7 +24,7 @@ Model.prototype.defineSplice = function (path, meta, target, argument) {
 
 		Array.prototype.slice.call(argument, 2).forEach(function (value) {
 
-			value = self.observe(path, value);
+			value = self.defineCollection(path, value);
 			Array.prototype.splice.call(meta, argument[0], argument[1], value);
 			target = self.defineProperty(path, meta, target, meta.length-1);
 			self.emit(self.join(path), target);
@@ -40,7 +40,7 @@ Model.prototype.arrayPushUnshift = function (path, meta, target, method, argumen
 
 	Array.prototype.forEach.call(argument, function (value) {
 
-		value = self.observe(path, value);
+		value = self.defineCollection(path, value);
 		Array.prototype[method].call(meta, value);
 		target = self.defineProperty(path, meta, target, meta.length-1);
 		self.emit(self.join(path), target);
@@ -99,7 +99,7 @@ Model.prototype.defineObject = function (path, meta, target) {
 			value: function (key, value) {
 
 				if (self.isCollection(value)) {
-					value = self.observe(self.join(path, key), value);
+					value = self.defineCollection(self.join(path, key), value);
 				}
 
 				meta[key] = value;
@@ -142,7 +142,7 @@ Model.prototype.defineProperty = function (path, meta, target, key) {
 
 				} else {
 
-					meta[key] = self.observe(self.join(path, key), value);
+					meta[key] = self.defineCollection(self.join(path, key), value);
 					self.emit(self.join(path, key), target[key]);
 
 				}
@@ -154,7 +154,7 @@ Model.prototype.defineProperty = function (path, meta, target, key) {
 
 };
 
-Model.prototype.observe = function (path, source) {
+Model.prototype.defineCollection = function (path, source) {
 	var self = this;
 
 	if (!self.isCollection(source)) return source;
@@ -173,7 +173,7 @@ Model.prototype.observe = function (path, source) {
 
 		if (source[key] !== undefined) {
 
-			meta[key] = self.observe(self.join(path, key), source[key]);
+			meta[key] = self.defineCollection(self.join(path, key), source[key]);
 			target = self.defineProperty(path, meta, target, key);
 
 		}
@@ -210,17 +210,12 @@ Model.prototype.get = function (path) {
 	return collection[keys[last]];
 };
 
-Model.prototype.setup = function (data, callback) {
-	this.emit = callback;
-	this.data = this.observe('', data);
-	return this;
+Model.prototype.listener = function (listener) {
+	this.emit = listener;
 };
 
-Model.prototype.create = function () {
-	this.events = {};
-	return this;
+Model.prototype.run = function (data) {
+	this.data = this.defineCollection('', data);
 };
 
-module.exports = function (data) {
-	return new Model().create(data);
-};
+module.exports = Model;

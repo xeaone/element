@@ -1,15 +1,18 @@
 var Collection = require('../collection');
-var Global = require('../global');
 
-var PATH = Global.rPath;
-var PREFIX = Global.rPrefix;
-var MODIFIERS = Global.rModifier;
-var ATTRIBUTE_ACCEPTS = Global.rAttributeAccepts;
-var ELEMENT_ACCEPTS = Global.rElementAccepts;
-var ELEMENT_REJECTS = Global.rElementRejects;
-var ELEMENT_REJECTS_CHILDREN = Global.rElementRejectsChildren;
+function View () {
+	this.data = new Collection();
+}
 
-function View () {}
+View.prototype.regexp = {
+	PATH: /\s?\|(.*?)$/,
+	PREFIX: /(data-)?j-/,
+	MODIFIERS: /^(.*?)\|\s?/,
+	ATTRIBUTE_ACCEPTS: /(data-)?j-/,
+	ELEMENT_ACCEPTS: /(data-)?j-/,
+	ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
+	ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script/
+};
 
 View.prototype.preview = function (element) {
 	return element.outerHTML
@@ -22,12 +25,12 @@ View.prototype.eachElement = function (elements, callback) {
 		var element = elements[i];
 		var preview = this.preview(element);
 
-		if (ELEMENT_REJECTS.test(preview)) {
+		if (this.regexp.ELEMENT_REJECTS.test(preview)) {
 			i += element.querySelectorAll('*').length;
-		} else if (ELEMENT_REJECTS_CHILDREN.test(preview)) {
+		} else if (this.regexp.ELEMENT_REJECTS_CHILDREN.test(preview)) {
 			i += element.querySelectorAll('*').length;
 			callback.call(this, element);
-		} else if (ELEMENT_ACCEPTS.test(preview)) {
+		} else if (this.regexp.ELEMENT_ACCEPTS.test(preview)) {
 			callback.call(this, element);
 		}
 	}
@@ -35,16 +38,16 @@ View.prototype.eachElement = function (elements, callback) {
 
 View.prototype.eachAttribute = function (element, callback) {
 	Array.prototype.forEach.call(element.attributes, function (ea) {
-		if (ATTRIBUTE_ACCEPTS.test(ea.name)) {
+		if (this.regexp.ATTRIBUTE_ACCEPTS.test(ea.name)) {
 			var attribute = {};
 			attribute.name = ea.name;
 			attribute.value = ea.value;
-			attribute.path = attribute.value.replace(PATH, '');
+			attribute.path = attribute.value.replace(this.regexp.PATH, '');
 			attribute.opts = attribute.path.split('.');
-			attribute.command = attribute.name.replace(PREFIX, '');
+			attribute.command = attribute.name.replace(this.regexp.PREFIX, '');
 			attribute.cmds = attribute.command.split('-');
 			attribute.key = attribute.opts.slice(-1);
-			attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(MODIFIERS, '').split(' ');
+			attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.regexp.MODIFIERS, '').split(' ');
 			callback.call(this, attribute);
 		}
 	}, this);
@@ -109,18 +112,13 @@ View.prototype.addAll = function (elements) {
 	});
 };
 
-View.prototype.setup = function (elements, callback) {
+View.prototype.listener = function (listener) {
+	this.emit = listener;
+};
+
+View.prototype.run = function (elements) {
 	this.elements = elements;
-	this.emit = callback;
 	this.addAll(this.elements);
-	return this;
 };
 
-View.prototype.create = function () {
-	this.data = new Collection();
-	return this;
-};
-
-module.exports = function () {
-	return new View().create();
-};
+module.exports = View;

@@ -6,10 +6,11 @@
 	<script src="/webcomponents-lite.min.js"></script>
 	<script src="/jenie.js"></script>
 	<script src="/js-test.js"></script>
+	<link rel="import" href="/j-404.html">
 	<link rel="import" href="/html-test.html">
 	<style>
 		body {
-			height: 120vh;	
+			height: 120vh;
 		}
 	</style>
 </head>
@@ -41,6 +42,11 @@
 					path: '/js',
 					// cache: false,
 					component: 'js-test'
+				},
+				{
+					title: '404',
+					path: /.*/,
+					component: 'j-404'
 				}
 			]
 		});

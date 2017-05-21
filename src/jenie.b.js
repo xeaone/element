@@ -23,16 +23,19 @@ document.registerElement('j-view', {
 
 module.exports = {
 	module: {},
+	modules: {},
 	services: {},
-	http: Http(),
-	component: function (options) {
-		return Component(options);
-	},
-	binder: function (options, callback) {
-		return Binder(options, callback);
+	http: function () {
+		return this.http = new Http();
 	},
 	router: function (options) {
-		return this.router = Router(options);
+		return this.router = new Router(options);
+	},
+	component: function (options) {
+		return new Component(options);
+	},
+	binder: function (options, callback) {
+		return new Binder(options, callback);
 	},
 	script: function () {
 		return (document._currentScript || document.currentScript);

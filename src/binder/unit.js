@@ -1,6 +1,25 @@
-var Utility = require('../utility');
 
 function Unit () {}
+
+Unit.prototype.setByPath = function (collection, path, value) {
+	var keys = path.split('.');
+	var last = keys.length - 1;
+
+	for (var i = 0, key; i < last; i++) {
+		key = keys[i];
+		if (collection[key] === undefined) collection[key] = {};
+		collection = collection[key];
+	}
+
+	return collection[keys[last]] = value;
+};
+
+Unit.prototype.toCamelCase = function (data) {
+	if (data.constructor.name === 'Array') data = data.join('-');
+	return data.replace(/-[a-z]/g, function (match) {
+		return match[1].toUpperCase();
+	});
+};
 
 Unit.prototype.renderMethods = {
 	on: function () {
@@ -92,8 +111,8 @@ Unit.prototype.renderMethods = {
 		this.element.selectedIndex = this.data;
 	},
 	default: function () {
-		var path = Utility.toCamelCase(this.attribute.cmds);
-		Utility.setByPath(this.element, path, this.data);
+		var path = this.toCamelCase(this.attribute.cmds);
+		this.setByPath(this.element, path, this.data);
 	}
 };
 

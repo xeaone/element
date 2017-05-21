@@ -1,4 +1,3 @@
-var Utility = require('../utility');
 
 function Router (options) {
 	var self = this;
@@ -52,10 +51,10 @@ function Router (options) {
 		if (target.hasAttribute('download') || target.hasAttribute('external')) return;
 
 		// check non acceptable href
-		if (Utility.has(href, 'mailto:')) return;
-		if (Utility.has(href, 'tel:')) return;
-		if (Utility.has(href, 'file:')) return;
-		if (Utility.has(href, 'ftp:')) return;
+		if (href.indexOf('mailto:') !== -1) return;
+		if (href.indexOf('tel:') !== -1) return;
+		if (href.indexOf('file:') !== -1) return;
+		if (href.indexOf('ftp:') !== -1) return;
 
 		e.preventDefault();
 		self.navigate(href);
@@ -113,11 +112,13 @@ Router.prototype.render = function (route) {
 	}
 
 	if (route.cache === true || route.cache === undefined) {
+
 		component = this.cache[route.component];
 
 		if (!component) {
 			component = this.cache[route.component] = document.createElement(route.component);
 		}
+
 	} else {
 		component = document.createElement(route.component);
 	}
@@ -132,18 +133,25 @@ Router.prototype.render = function (route) {
 };
 
 Router.prototype.add = function (route) {
-	if (route.constructor.name === 'Object') this.routes.push(route);
-	else if (route.constructor.name === 'Array') this.routes = this.routes.concat(route);
+
+	if (route.constructor.name === 'Object') {
+		this.routes.push(route);
+	} else if (route.constructor.name === 'Array') {
+		this.routes = this.routes.concat(route);
+	}
+
 	return this;
 };
 
 Router.prototype.remove = function (path) {
 
 	for (var i = 0, l = this.routes.length; i < l; i++) {
+
 		if (path === this.routes[i].path) {
 			this.routes.splice(i, 1);
 			break;
 		}
+
 	}
 
 	return this;
@@ -159,25 +167,17 @@ Router.prototype.get = function (path) {
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 		var route = this.routes[i];
 
-		if (typeof route.path === 'string') {
-			if (route.path === path) {
-				return route;
-			}
-		} else if (typeof route.path === 'function') {
-			if (route.path.test(path)) {
-				return route;
-			}
+		if (!route.path) {
+			continue;
+		} else if (route.path.constructor.name === 'String') {
+			if (route.path === path) return route;
+		} else if (route.path.constructor.name === 'RegExp') {
+			if (route.path.test(path)) return route;
+		} else if (route.path.constructor.name === 'Function') {
+			if (route.path(path)) return route;
 		}
 
 	}
-
-	var component = document.createElement('div');
-	component.innerHTML = '{ "statusCode": 404, "error": "Not Found" }';
-
-	return {
-		title: '404',
-		component: component
-	};
 
 };
 
@@ -206,6 +206,4 @@ Router.prototype.navigate = function (data, replace) {
 	return this;
 };
 
-module.exports = function (options) {
-	return new Router(options);
-};
+module.exports = Router;
