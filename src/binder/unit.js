@@ -142,13 +142,23 @@ Unit.prototype.unrenderMethods = {
 };
 
 Unit.prototype.unrender = function () {
-	this.unrenderMethod();
-	return this;
+	var self = this;
+
+	window.requestAnimationFrame(function () {
+		self.unrenderMethod();
+	});
+
+	return self;
 };
 
 Unit.prototype.render = function () {
-	this.renderMethod();
-	return this;
+	var self = this;
+
+	window.requestAnimationFrame(function () {
+		self.renderMethod();
+	});
+
+	return self;
 };
 
 Unit.prototype.create = function (options) {

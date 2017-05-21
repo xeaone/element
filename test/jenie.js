@@ -558,13 +558,23 @@
 	};
 
 	Unit$1.prototype.unrender = function () {
-		this.unrenderMethod();
-		return this;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.unrenderMethod();
+		});
+
+		return self;
 	};
 
 	Unit$1.prototype.render = function () {
-		this.renderMethod();
-		return this;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.renderMethod();
+		});
+
+		return self;
 	};
 
 	Unit$1.prototype.create = function (options) {

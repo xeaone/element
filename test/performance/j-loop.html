@@ -1,0 +1,59 @@
+
+<style>
+	html, body, j-loop {
+		width: 100%;
+		display: block;
+	}
+	[j-text] {
+		margin: 5px;
+		padding: 5px;
+		background: grey;
+		display: inline-block;
+	}
+</style>
+
+<template>
+	<div j-each-item="items">
+		<div j-text="item.number"></div>
+	</div>
+</template>
+
+<script>
+	Jenie.component({
+		name: 'j-loop',
+		template: 'template',
+		model: {
+			items: [
+				{ number: 0 },
+			]
+		},
+		created: function () {
+			var self = this;
+
+			setTimeout(function () {
+
+				var increaseInterval = setInterval(function () {
+
+					if (self.model.items.length === 500) {
+						clearInterval(increaseInterval);
+
+						var decreaseInterval = setInterval(function () {
+
+							if (self.model.items.length === 5) {
+								clearInterval(decreaseInterval);
+							}
+
+							self.model.items.pop();
+
+						}, 10);
+					}
+
+					self.model.items.push({ number: self.model.items.length });
+
+				}, 10);
+
+			}, 1000);
+
+		}
+	});
+</script>
