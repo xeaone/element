@@ -4,8 +4,8 @@
 	"description": "Light weight powerful web components framework",
 	"main": "dist/jenie.min.js",
 	"scripts": {
-		"serve": "muleify serve -s test",
-		"watch": "muleify pack -p src -w src/jenie.b.js test/jenie.js",
+		"serve": "muleify serve -s docs",
+		"watch": "muleify pack -p src -w src/jenie.b.js docs/jenie.js",
 		"build-dev": "muleify pack src/jenie.b.js dist/jenie.js",
 		"build-min": "muleify pack -m src/jenie.b.js dist/jenie.min.js",
 		"build-pol": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
