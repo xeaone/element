@@ -943,12 +943,15 @@
 
 	Router$1.prototype.loaded = function () {
 		var self = this;
+		var base = document.querySelector('base');
 
-		if (!self.base) {
-			self.base = document.querySelector('base');
-			self.base = self.base ? self.base.getAttribute('href') : '/';
-			self.base = self.base === '' ? '/' : self.base;
-			self.base = self.base[self.base.length-1] === '/' ? self.base.slice(0, -1) : self.base;
+		if (base) {
+			self.base = base.href.replace(window.location.origin, '');
+		} else {
+			base = document.createElement('base');
+			base.href = '/';
+			document.head.appendChild(base);
+			self.base = '/';
 		}
 
 		self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
@@ -1057,7 +1060,7 @@
 			}
 
 			self.view.appendChild(component);
-			
+
 		});
 
 	};
