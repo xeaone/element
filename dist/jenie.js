@@ -4,87 +4,7 @@
 	(global.Jenie = factory());
 }(this, (function () { 'use strict';
 
-	var utility = {
-		GET: 2,
-		SET: 3,
-		is: function (variable, name) {
-			return variable && variable.constructor.name === name;
-		},
-		// router start
-		has: function (string, search) {
-			return string.indexOf(search) !== -1;
-		},
-		// view/model start
-		toCamelCase: function (data) {
-			if (data.constructor.name === 'Array') data = data.join('-');
-			return data.replace(/-[a-z]/g, function (match) {
-				return match[1].toUpperCase();
-			});
-		},
-		toDashCase: function (data) {
-			if (data.constructor.name === 'Array') data = data.join('');
-			return data.replace(/[A-Z]/g, function (match) {
-				return '-' + match.toLowerCase();
-			});
-		},
-		getByPath: function (collection, path) {
-			var keys = path.split('.');
-			var last = keys.length - 1;
-
-			for (var i = 0; i < last; i++) {
-				if (!collection[keys[i]]) return undefined;
-				else collection = collection[keys[i]];
-			}
-
-			return collection[keys[last]];
-		},
-		setByPath: function (collection, path, value) {
-			var keys = path.split('.');
-			var last = keys.length - 1;
-
-			for (var i = 0, key; i < last; i++) {
-				key = keys[i];
-				if (collection[key] === undefined) collection[key] = {};
-				collection = collection[key];
-			}
-
-			return collection[keys[last]] = value;
-		}
-	};
-
-	function Events$1 () {
-		this.events = {};
-	}
-
-	Events$1.prototype.on = function (name, callback) {
-		if (!this.events[name]) this.events[name] = [];
-		this.events[name].push(callback);
-	};
-
-	Events$1.prototype.off = function (name, callback) {
-		if (!this.events[name]) return;
-		var index = this.events[name].indexOf(callback);
-		if (this.events[name].indexOf(callback) > -1) this.events[name].splice(index, 1);
-	};
-
-	Events$1.prototype.emit = function (name) {
-		if (!this.events[name]) return;
-		var args = [].slice.call(arguments, 1);
-		var events = this.events[name].slice();
-		for (var i = 0, l = events.length; i < l; i++) events[i].apply(this, args);
-	};
-
-	var events = Events$1;
-
-	var Utility = utility;
-	var Events = events;
-
-	function Model$1 () {
-		Events.call(this);
-	}
-
-	Model$1.prototype = Object.create(Events.prototype);
-	Model$1.prototype.constructor = Model$1;
+	function Model$1 () {}
 
 	Model$1.prototype.join = function () {
 		return Array.prototype.join
@@ -97,114 +17,108 @@
 		return data && (data.constructor.name === 'Object' || data.constructor.name === 'Array');
 	};
 
-	Model$1.prototype.defineSplice = function (path, data, argument) {
+	Model$1.prototype.defineSplice = function (path, meta, target, argument) {
 		var self = this;
 
-		Array.prototype.slice.call(argument, 2).forEach(function (value) {
+		if (argument[2]) {
 
-			if (self.isCollection(value)) value = self.observeCollection(path, value);
-			Array.prototype.splice.call(data.meta, argument[0], argument[1], value);
-			self.observeProperty(path, data, data.meta.length-1);
-			self.emit('change', self.join(path), data);
+			Array.prototype.splice.call(meta, argument[0], argument[1]);
+			self.emit(self.join(path), target);
 
-		});
+		} else {
+
+			Array.prototype.slice.call(argument, 2).forEach(function (value) {
+
+				value = self.defineCollection(path, value);
+				Array.prototype.splice.call(meta, argument[0], argument[1], value);
+				target = self.defineProperty(path, meta, target, meta.length-1);
+				self.emit(self.join(path), target);
+
+			});
+
+		}
 
 	};
 
-	Model$1.prototype.defineSplice = function (path, data, argument) {
-		var self = this;
-
-		Array.prototype.slice.call(argument, 2).forEach(function (value) {
-
-			if (self.isCollection(value)) value = self.observeCollection(path, value);
-			Array.prototype.splice.call(data.meta, argument[0], argument[1], value);
-			self.observeProperty(path, data, data.meta.length-1);
-			self.emit('change', self.join(path), data);
-
-		});
-
-	};
-
-	Model$1.prototype.arrayPushUnshift = function (path, data, method, argument) {
+	Model$1.prototype.arrayPushUnshift = function (path, meta, target, method, argument) {
 		var self = this;
 
 		Array.prototype.forEach.call(argument, function (value) {
 
-			if (self.isCollection(value)) value = self.observeCollection(path, value);
-			Array.prototype[method].call(data.meta, value);
-			self.observeProperty(path, data, data.meta.length-1);
-			self.emit('change', self.join(path), data);
+			value = self.defineCollection(path, value);
+			Array.prototype[method].call(meta, value);
+			target = self.defineProperty(path, meta, target, meta.length-1);
+			self.emit(self.join(path), target);
 
 		});
 
 	};
 
-	Model$1.prototype.arrayPopShift = function (path, data, method) {
+	Model$1.prototype.arrayPopShift = function (path, meta, target, method) {
 		var self = this;
 
-		Array.prototype[method].call(data.meta);
-		Array.prototype['pop'].call(data);
-		self.emit('change', self.join(path), data);
+		Array.prototype[method].call(meta);
+		Array.prototype.pop.call(target);
+		self.emit(self.join(path), target);
 
 	};
 
-	Model$1.prototype.defineArray = function (path, data) {
+	Model$1.prototype.defineArray = function (path, meta, target) {
 		var self = this;
 
-		return Object.defineProperties(data, {
+		return Object.defineProperties(target, {
 			splice: {
 				value: function () {
-					return self.defineSplice(path, this, arguments);
+					return self.defineSplice(path, meta, target, arguments);
 				}
 			},
 			push: {
 				value: function () {
-					return self.arrayPushUnshift(path, this, 'push', arguments);
+					return self.arrayPushUnshift(path, meta, target, 'push', arguments);
 				}
 			},
 			unshift: {
 				value: function () {
-					return self.arrayPushUnshift(path, this, 'unshift', arguments);
+					return self.arrayPushUnshift(path, meta, target, 'unshift', arguments);
 				}
 			},
 			pop: {
 				value: function () {
-					return self.arrayPopShift(path, this, 'pop');
+					return self.arrayPopShift(path, meta, target, 'pop');
 				}
 			},
 			shift: {
 				value: function () {
-					return self.arrayPopShift(path, this, 'shift');
+					return self.arrayPopShift(path, meta, target, 'shift');
 				}
 			}
 		});
 
 	};
 
-	Model$1.prototype.defineObject = function (path, data) {
+	Model$1.prototype.defineObject = function (path, meta, target) {
 		var self = this;
 
-		return Object.defineProperties(data, {
+		return Object.defineProperties(target, {
 			set: {
 				value: function (key, value) {
 
-					if (this.isCollection(value)) {
-						this.meta[key] = self.observeCollection(self.join(path, key), value);
-					} else {
-						this.meta[key] = value;
+					if (self.isCollection(value)) {
+						value = self.defineCollection(self.join(path, key), value);
 					}
 
-					self.observeProperty(path, this, key);
-					self.emit('change', self.join(path, key), this[key]);
+					meta[key] = value;
+					target = self.defineProperty(path, meta, target, key);
+					self.emit(self.join(path, key), target[key]);
 
 				}
 			},
 			remove: {
 				value: function (key) {
 
-					delete this[key];
-					delete this.meta[key];
-					self.emit('change', self.join(path, key), undefined);
+					delete target[key];
+					delete meta[key];
+					self.emit(self.join(path, key), undefined);
 
 				}
 			}
@@ -212,32 +126,31 @@
 
 	};
 
-	Model$1.prototype.observeProperty = function (path, data, key) {
+	Model$1.prototype.defineProperty = function (path, meta, target, key) {
 		var self = this;
 
-		return Object.defineProperty(data, key, {
+		return Object.defineProperty(target, key, {
 			enumerable: true,
 			configurable: true,
 			get: function () {
-				return this.meta[key];
+				return meta[key];
 			},
 			set: function (value) {
 
-				if (value === undefined) {
+				if (meta[key] !== value) {
 
-					delete this[key];
-					delete this.meta[key];
-					self.emit('change', self.join(path, key), undefined);
+					if (value === undefined) {
 
-				} else {
+						delete meta[key];
+						delete target[key];
+						self.emit(self.join(path, key), undefined);
 
-					if (self.isCollection(value)) {
-						this.meta[key] = self.observeCollection(self.join(path, key), value);
 					} else {
-						this.meta[key] = value;
-					}
 
-					self.emit('change', self.join(path, key), this[key]);
+						meta[key] = self.defineCollection(self.join(path, key), value);
+						self.emit(self.join(path, key), target[key]);
+
+					}
 
 				}
 
@@ -246,35 +159,27 @@
 
 	};
 
-	Model$1.prototype.observeCollection = function (path, source, target) {
+	Model$1.prototype.defineCollection = function (path, source) {
 		var self = this;
 
+		if (!self.isCollection(source)) return source;
+
 		var type = source ? source.constructor.name : '';
-		if (type !== 'Object' && type !== 'Array' ) return source;
-		if (target === undefined) target = source.constructor();
+		var target = source.constructor();
+		var meta = source.constructor();
 
 		if (type === 'Object') {
-			self.defineObject(path, target);
+			target = self.defineObject(path, meta, target);
 		} else if (type === 'Array') {
-			self.defineArray(path, target);
+			target = self.defineArray(path, meta, target);
 		}
-
-		Object.defineProperty(target, 'meta', {
-			value: source,
-			writable: true,
-			configurable: true
-		});
 
 		Object.keys(source).forEach(function (key) {
 
 			if (source[key] !== undefined) {
 
-				if (self.isCollection(source[key])) {
-					target[key] = self.observeCollection(self.join(path, key), source[key]);
-					target.meta[key] = target[key];
-				}
-
-				self.observeProperty(path, target, key);
+				meta[key] = self.defineCollection(self.join(path, key), source[key]);
+				target = self.defineProperty(path, meta, target, key);
 
 			}
 
@@ -284,26 +189,41 @@
 	};
 
 	Model$1.prototype.set = function (path, value) {
-		return Utility.setByPath(this.data, path, value);
+		var keys = path.split('.');
+		var last = keys.length - 1;
+		var collection = this.data;
+
+		for (var i = 0, key; i < last; i++) {
+			key = keys[i];
+			if (collection[key] === undefined) collection[key] = {};
+			collection = collection[key];
+		}
+
+		return collection[keys[last]] = value;
 	};
 
 	Model$1.prototype.get = function (path) {
-		return Utility.getByPath(this.data, path);
+		var keys = path.split('.');
+		var last = keys.length - 1;
+		var collection = this.data;
+
+		for (var i = 0; i < last; i++) {
+			if (!collection[keys[i]]) return undefined;
+			else collection = collection[keys[i]];
+		}
+
+		return collection[keys[last]];
 	};
 
-	Model$1.prototype.setup = function (data) {
-		this.data = this.observeCollection('', data);
-		return this;
+	Model$1.prototype.listener = function (listener) {
+		this.emit = listener;
 	};
 
-	Model$1.prototype.create = function () {
-		this.events = {};
-		return this;
+	Model$1.prototype.run = function (data) {
+		this.data = this.defineCollection('', data);
 	};
 
-	var model = function (data) {
-		return new Model$1().create(data);
-	};
+	var model = Model$1;
 
 	function Collection$1 (data) {
 		Object.defineProperty(this, 'data', {
@@ -370,50 +290,21 @@
 
 	var collection = Collection$1;
 
-	var global = {
-
-		sPrefix: '(data-)?j-',
-		sValue: '(data-)?j-value',
-		sFor: '(data-)?j-for-(.*?)=',
-
-		sAccepts: '(data-)?j-',
-		sRejects: '^\w+(-\w+)+|^iframe|^object|^script',
-
-		rPath: /\s?\|(.*?)$/,
-		rPrefix: /(data-)?j-/,
-		rValue: /(data-)?j-value/,
-		rModifier: /^(.*?)\|\s?/,
-		rFor: /(data-)?j-for-(.*?)=/,
-
-		rAccepts: /(data-)?j-/,
-		rRejects: /^\w+(-\w+)+|^iframe|^object|^script/,
-
-		rAttributeAccepts: /(data-)?j-/,
-
-		rElementAccepts: /(data-)?j-/,
-		rElementRejectsChildren: /(data-)?j-each/,
-		rElementRejects: /^\w+(-\w+)+|^iframe|^object|^script/
-
-	};
-
 	var Collection = collection;
-	var Events$2 = events;
-	var Global = global;
-
-	var PATH = Global.rPath;
-	var PREFIX = Global.rPrefix;
-	var MODIFIERS = Global.rModifier;
-	var ATTRIBUTE_ACCEPTS = Global.rAttributeAccepts;
-	var ELEMENT_ACCEPTS = Global.rElementAccepts;
-	var ELEMENT_REJECTS = Global.rElementRejects;
-	var ELEMENT_REJECTS_CHILDREN = Global.rElementRejectsChildren;
 
 	function View$1 () {
-		Events$2.call(this);
+		this.data = new Collection();
 	}
 
-	View$1.prototype = Object.create(Events$2.prototype);
-	View$1.prototype.constructor = View$1;
+	View$1.prototype.regexp = {
+		PATH: /\s?\|(.*?)$/,
+		PREFIX: /(data-)?j-/,
+		MODIFIERS: /^(.*?)\|\s?/,
+		ATTRIBUTE_ACCEPTS: /(data-)?j-/,
+		ELEMENT_ACCEPTS: /(data-)?j-/,
+		ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
+		ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script/
+	};
 
 	View$1.prototype.preview = function (element) {
 		return element.outerHTML
@@ -426,12 +317,12 @@
 			var element = elements[i];
 			var preview = this.preview(element);
 
-			if (ELEMENT_REJECTS.test(preview)) {
+			if (this.regexp.ELEMENT_REJECTS.test(preview)) {
 				i += element.querySelectorAll('*').length;
-			} else if (ELEMENT_REJECTS_CHILDREN.test(preview)) {
+			} else if (this.regexp.ELEMENT_REJECTS_CHILDREN.test(preview)) {
 				i += element.querySelectorAll('*').length;
 				callback.call(this, element);
-			} else if (ELEMENT_ACCEPTS.test(preview)) {
+			} else if (this.regexp.ELEMENT_ACCEPTS.test(preview)) {
 				callback.call(this, element);
 			}
 		}
@@ -439,16 +330,16 @@
 
 	View$1.prototype.eachAttribute = function (element, callback) {
 		Array.prototype.forEach.call(element.attributes, function (ea) {
-			if (ATTRIBUTE_ACCEPTS.test(ea.name)) {
+			if (this.regexp.ATTRIBUTE_ACCEPTS.test(ea.name)) {
 				var attribute = {};
 				attribute.name = ea.name;
 				attribute.value = ea.value;
-				attribute.path = attribute.value.replace(PATH, '');
+				attribute.path = attribute.value.replace(this.regexp.PATH, '');
 				attribute.opts = attribute.path.split('.');
-				attribute.command = attribute.name.replace(PREFIX, '');
+				attribute.command = attribute.name.replace(this.regexp.PREFIX, '');
 				attribute.cmds = attribute.command.split('-');
 				attribute.key = attribute.opts.slice(-1);
-				attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(MODIFIERS, '').split(' ');
+				attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.regexp.MODIFIERS, '').split(' ');
 				callback.call(this, attribute);
 			}
 		}, this);
@@ -479,11 +370,19 @@
 	};
 
 	View$1.prototype.removeOne = function (element) {
-		this.data.forEach(function (paths) {
-			paths.forEach(function (unit, _, id) {
+		this.data.forEach(function (paths, _, did) {
+			paths.forEach(function (unit, _, pid) {
+
 				if (element === unit.element) {
-					paths.removeById(id);
+
+					paths.removeById(pid);
+
+					if (paths.size() === 0) {
+						this.data.removeById(did);
+					}
+
 				}
+
 			}, this);
 		}, this);
 	};
@@ -503,7 +402,7 @@
 				self.data.set(attribute.path, new Collection());
 			}
 
-			self.emit('add', element, attribute);
+			self.emit(element, attribute);
 		});
 	};
 
@@ -513,24 +412,52 @@
 		});
 	};
 
-	View$1.prototype.setup = function (elements) {
+	View$1.prototype.listener = function (listener) {
+		this.emit = listener;
+	};
+
+	View$1.prototype.run = function (elements) {
 		this.elements = elements;
 		this.addAll(this.elements);
-		return this;
 	};
 
-	View$1.prototype.create = function () {
-		this.data = new Collection();
-		return this;
-	};
-
-	var view = function () {
-		return new View$1().create();
-	};
-
-	var Utility$1 = utility;
+	var view = View$1;
 
 	function Unit$1 () {}
+
+	Unit$1.prototype.setByPath = function (collection, path, value) {
+		var keys = path.split('.');
+		var last = keys.length - 1;
+
+		for (var i = 0, key; i < last; i++) {
+			key = keys[i];
+			if (collection[key] === undefined) collection[key] = {};
+			collection = collection[key];
+		}
+
+		return collection[keys[last]] = value;
+	};
+
+	Unit$1.prototype.toCamelCase = function (data) {
+		if (data.constructor.name === 'Array') data = data.join('-');
+		return data.replace(/-[a-z]/g, function (match) {
+			return match[1].toUpperCase();
+		});
+	};
+
+	// Unit.prototype.animation = function (condition, callback) {
+	// 	var index = -1;
+	//
+	// 	window.requestAnimationFrame(function repeat () {
+	// 		index++;
+	//
+	// 		if (condition(index)) {
+	// 			callback(index);
+	// 			window.requestAnimationFrame(repeat);
+	// 		}
+	//
+	// 	});
+	// };
 
 	Unit$1.prototype.renderMethods = {
 		on: function () {
@@ -539,94 +466,186 @@
 			this.element.addEventListener(eventName, this.data, false);
 		},
 		each: function () {
-			if (!this.clone) {
-				this.variable = this.attribute.cmds.slice(1).join('.');
-				this.clone = this.element.removeChild(this.element.children[0]).outerHTML;
-				this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+			var self = this, animate;
 
-				this.data.forEach(function (data, index) {
-					this.element.insertAdjacentHTML(
+			if (!self.clone) {
+
+				self.variable = self.attribute.cmds.slice(1).join('.');
+				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
+				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+
+				animate = function () {
+
+					self.element.insertAdjacentHTML(
 						'beforeend',
-						this.clone.replace(
-							this.pattern, '$1' + this.attribute.path + '.' + index + '$6'
+						self.clone.replace(
+							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
 						)
 					);
-				}, this);
 
-				this.view.addAll(this.element.getElementsByTagName('*'));
-			} else if (this.element.children.length > this.data.length) {
-				while (this.element.children.length > this.data.length) {
-					this.view.removeAll(this.element.lastChild.getElementsByTagName('*'));
-					this.view.removeOne(this.element.lastChild);
-					this.element.removeChild(this.element.lastChild);
-				}
-			} else if (this.element.children.length < this.data.length) {
-				while (this.element.children.length < this.data.length) {
-					this.element.insertAdjacentHTML(
+					self.view.addOne(self.element.lastChild);
+					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+
+					if (self.element.children.length < self.data.length) {
+						window.requestAnimationFrame(animate);
+					}
+
+				};
+
+				window.requestAnimationFrame(animate);
+
+			} else if (self.element.children.length > self.data.length) {
+
+				animate = function () {
+
+					self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.removeOne(self.element.lastChild);
+					self.element.removeChild(self.element.lastChild);
+
+					if (self.element.children.length > self.data.length) {
+						window.requestAnimationFrame(animate);
+					}
+
+				};
+
+				window.requestAnimationFrame(animate);
+
+			} else if (self.element.children.length < self.data.length) {
+
+				animate = function () {
+
+					self.element.insertAdjacentHTML(
 						'beforeend',
-						this.clone.replace(
-							this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
+						self.clone.replace(
+							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
 						)
 					);
-					this.view.addOne(this.element.lastChild);
-					this.view.addAll(this.element.lastChild.getElementsByTagName('*'));
-				}
+
+					self.view.addOne(self.element.lastChild);
+					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+
+					if (self.element.children.length < self.data.length) {
+						window.requestAnimationFrame(animate);
+					}
+
+				};
+
+				window.requestAnimationFrame(animate);
+
 			}
+
 		},
 		value: function () {
-			if (this.change) return;
-			if (this.element.type === 'button' || this.element.type === 'reset') return this.change = true;
+			var self = this;
 
-			this.change = function () {
-				this.data = this.element.type !== 'radio' && this.element.type !== 'checked' ? this.element.value : this.element.checked;
+			if (self.change) return;
+			if (self.element.type === 'button' || self.element.type === 'reset') return self.change = true;
+
+			self.change = function () {
+				self.data = self.element.type !== 'radio' && self.element.type !== 'checked' ? self.element.value : self.element.checked;
 			};
 
-			this.element.addEventListener('change', this.change.bind(this), true);
-			this.element.addEventListener('keyup', this.change.bind(this), true);
+			window.requestAnimationFrame(function () {
+				self.element.addEventListener('change', self.change.bind(self), true);
+				self.element.addEventListener('keyup', self.change.bind(self), true);
+			});
 		},
 		html: function () {
-			this.element.innerHTML = this.data;
-			this.view.addAll(this.element.getElementsByTagName('*'));
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.innerHTML = self.data;
+				self.view.addAll(self.element.getElementsByTagName('*'));
+			});
 		},
 		css: function () {
+			var self = this;
 			var css = this.data;
-			if (this.attribute.cmds.length > 1) css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
-			this.element.style.cssText += css;
+
+			window.requestAnimationFrame(function () {
+
+				if (self.attribute.cmds.length > 1) {
+					css = self.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
+				}
+
+				self.element.style.cssText += css;
+			});
 		},
 		class: function () {
-			var className = this.attribute.cmds.slice(1).join('-');
-			this.element.classList.toggle(className, this.data);
+			var self = this;
+			var className = self.attribute.cmds.slice(1).join('-');
+
+			window.requestAnimationFrame(function () {
+				self.element.classList.toggle(className, self.data);
+			});
 		},
 		text: function () {
-			this.element.innerText = this.data;
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.innerText = self.data;
+			});
 		},
 		enable: function () {
-			this.element.disabled = !this.data;
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.disabled = !self.data;
+			});
 		},
 		disable: function () {
-			this.element.disabled = this.data;
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.disabled = self.data;
+			});
 		},
 		show: function () {
-			this.element.hidden = !this.data;
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.hidden = !self.data;
+			});
 		},
 		hide: function () {
-			this.element.hidden = this.data;
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.hidden = self.data;
+			});
 		},
 		write: function () {
-			this.element.readOnly = !this.data;
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.readOnly = !self.data;
+			});
 		},
 		read: function () {
-			this.element.readOnly = this.data;
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.readOnly = self.data;
+			});
 		},
 		selected: function () {
-			this.element.selectedIndex = this.data;
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.selectedIndex = self.data;
+			});
 		},
 		default: function () {
-			var path = Utility$1.toCamelCase(this.attribute.cmds);
-			Utility$1.setByPath(this.element, path, this.data);
+			var self = this;
+			var path = this.toCamelCase(this.attribute.cmds);
+
+			window.requestAnimationFrame(function () {
+				self.setByPath(self.element, path, self.data);
+			});
 		}
 	};
 
+	// TODO add requestAnimationFrame
 	Unit$1.prototype.unrenderMethods = {
 		on: function () {
 			var eventName = this.attribute.cmds[1];
@@ -703,29 +722,33 @@
 	var View = view;
 	var Unit = unit;
 
-	function Binder$2 () {}
-
-	Binder$2.prototype.setup = function (options) {
+	function Binder$2 (options, callback) {
 		var self = this;
 
-		self._view = View();
-		self._model = Model();
+		self.view = new View();
+		self.model = new Model();
+
+		self._model = options.model || {};
+		self._view = (options.view.shadowRoot || options.view).querySelectorAll('*');
+
 		self.name = options.name;
 		self.modifiers = options.modifiers || {};
 
-		self._model.on('change', function (path, data) {
+		self.model.listener(function (path, data) {
+
 			if (data === undefined) {
-				self._view.unrenderAll('^' + path + '.*');
+				self.view.unrenderAll('^' + path + '.*');
 			} else {
-				self._view.renderAll('^' + path);
+				self.view.renderAll('^' + path);
 			}
+
 		});
 
-		self._view.on('add', function (element, attribute) {
+		self.view.listener(function (element, attribute) {
 
-			self._view.data.get(attribute.path).push(Unit({
-				view: self._view,
-				model: self._model,
+			self.view.data.get(attribute.path).push(Unit({
+				view: self.view,
+				model: self.model,
 				element: element,
 				attribute: attribute,
 				modifiers: attribute.modifiers.map(function (modifier) {
@@ -735,35 +758,34 @@
 
 		});
 
-		self._model.setup(options.model || {});
-		self._view.setup((options.view.shadowRoot || options.view).querySelectorAll('*'));
+		if (typeof options.model === 'function') {
 
-		self.model = self._model.data;
-		self.view = self._view.data;
+			self._model.call(self, function (model$$1) {
 
-		return self;
-	};
+				self._model = model$$1;
+				self.model.run(self._model);
+				self.view.run(self._view);
 
-	Binder$2.prototype.create = function (options, callback) {
-		var self = this;
+				if (callback) {
+					return callback.call(self);
+				}
 
-		if (options.model && typeof options.model === 'function') {
-			options.model.call(self, function (model$$1) {
-				options.model = model$$1;
-				self.setup(options);
-				if (callback) return callback.call(self);
 			});
+
 		} else {
-			self.setup(options);
-			if (callback) return callback.call(self);
+
+			self.model.run(self._model);
+			self.view.run(self._view);
+
+			if (callback) {
+				return callback.call(self);
+			}
+
 		}
 
-		return self;
-	};
+	}
 
-	var index$2 = function (options, callback) {
-		return new Binder$2().create(options, callback);
-	};
+	var index$2 = Binder$2;
 
 	// https://gist.github.com/Wind4/3baa40b26b89b686e4f2
 
@@ -793,47 +815,10 @@
 	var Binder$1 = index$2;
 	var Uuid = uuid;
 
-	function Component$1 () {}
-
-	Component$1.prototype.comment = function (method) {
-		if (typeof method !== 'function') throw new Error('Comment must be a function');
-		var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
-		var match = comment.exec(method.toString());
-		if (!match) throw new Error('Comment missing');
-		return match[1];
-	};
-
-	Component$1.prototype.dom = function (string) {
-		var temporary = document.createElement('div');
-		temporary.innerHTML = string;
-		return temporary.children[0];
-	};
-
-	Component$1.prototype._template = function (template) {
-		if (template.constructor.name === 'Function') {
-			template = this.comment(template);
-			template = this.dom(template);
-		} else if (template.constructor.name === 'String') {
-			if (/<|>/.test(template)) {
-				template = this.dom(template);
-			} else {
-				template = this.currentScript.ownerDocument.querySelector(template);
-			}
-		}
-
-		return template;
-	};
-
-	Component$1.prototype.define = function (name, options) {
-		return document.registerElement(name, {
-			prototype: Object.create(HTMLElement.prototype, options)
-		});
-	};
-
-	Component$1.prototype.create = function (options) {
-		if (!options) throw new Error('missing options');
-		if (!options.name) throw new Error('missing options.name');
-		if (!options.template) throw new Error('missing options.template');
+	function Component$1 (options) {
+		if (!options) throw new Error('Component missing options');
+		if (!options.name) throw new Error('Component missing options.name');
+		if (!options.template) throw new Error('Component missing options.template');
 
 		var self = this;
 
@@ -843,15 +828,21 @@
 		self.currentScript = (document._currentScript || document.currentScript);
 		self.template = self._template(options.template);
 
-		if (options.created) self.created = options.created.bind(self);
-		if (options.attached) self.attached = options.attached.bind(self);
-		if (options.detached) self.detached = options.detached.bind(self);
-		if (options.attributed) self.attributed = options.attributed.bind(self);
+		self.created = options.created ? options.created.bind(self) : undefined;
+		self.attached = options.attached ? options.attached.bind(self) : undefined;
+		self.detached = options.detached ? options.detached.bind(self) : undefined;
+		self.attributed = options.attributed ? options.attributed.bind(self) : undefined;
 
-		self.proto = self.define(self.name, {
-			attachedCallback: { value: self.attached },
-			detachedCallback: { value: self.detached },
-			attributeChangedCallback: { value: self.attributed },
+		self.proto = self._define(self.name, {
+			attachedCallback: {
+				value: self.attached
+			},
+			detachedCallback: {
+				value: self.detached
+			},
+			attributeChangedCallback: {
+				value: self.attributed
+			},
 			createdCallback: {
 				value: function () {
 					self.element = this;
@@ -859,31 +850,77 @@
 					self.element.appendChild(document.importNode(self.template.content, true));
 
 					if (self.model) {
-						self.binder = Binder$1({
+
+						self.binder = new Binder$1({
 							name: self.uuid,
 							model: self.model,
 							view: self.element,
 							modifiers: self.modifiers
 						}, function () {
-							self.model = this.model;
-							if (self.created) self.created.call(self);
+							self.model = this.model.data;
+							self.view = this.view.data;
+
+							if (self.created) {
+								self.created(self);
+							}
+
 						});
+
 					} else {
-						if (self.created) self.created.call(self);
+
+						if (self.created) {
+							self.created(self);
+						}
+
 					}
 
 				}
 			}
 		});
 
-		return self;
+	}
+
+	Component$1.prototype._comment = function (method) {
+		if (typeof method !== 'function') throw new Error('Comment must be a function');
+		var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
+		var match = comment.exec(method.toString());
+		if (!match) throw new Error('Comment missing');
+		return match[1];
 	};
 
-	var index = function (options) {
-		return new Component$1().create(options);
+	Component$1.prototype._dom = function (string) {
+		var temporary = document.createElement('div');
+		temporary.innerHTML = string;
+		return temporary.children[0];
 	};
 
-	var Utility$2 = utility;
+	Component$1.prototype._template = function (template) {
+
+		if (template.constructor.name === 'Function') {
+
+			template = this._comment(template);
+			template = this._dom(template);
+
+		} else if (template.constructor.name === 'String') {
+
+			if (/<|>/.test(template)) {
+				template = this._dom(template);
+			} else {
+				template = this.currentScript.ownerDocument.querySelector(template);
+			}
+
+		}
+
+		return template;
+	};
+
+	Component$1.prototype._define = function (name, options) {
+		return document.registerElement(name, {
+			prototype: Object.create(HTMLElement.prototype, options)
+		});
+	};
+
+	var index = Component$1;
 
 	function Router$1 (options) {
 		var self = this;
@@ -898,64 +935,65 @@
 		self.origin = window.location.origin;
 		self.root = options.root || '' + (self.hash ? '/#/' : '/');
 
-		self.loaded = function () {
+		window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);
+		window.addEventListener('popstate', self.popstate.bind(self), true);
+		window.addEventListener('click', self.click.bind(self), true);
 
-			if (!self.base) {
-				self.base = document.querySelector('base');
-				self.base = self.base ? self.base.getAttribute('href') : '/';
-				self.base = self.base === '' ? '/' : self.base;
-				self.base = self.base[self.base.length-1] === '/' ? self.base.slice(0, -1) : self.base;
-			}
-
-			self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
-			self.navigate(window.location.href, true);
-			window.removeEventListener('DOMContentLoaded', self.loaded);
-
-		};
-
-		self.popstate = function (e) {
-			self.navigate(e.state || window.location.href, true);
-		};
-
-		self.click = function (e) {
-			if (e.metaKey || e.ctrlKey || e.shiftKey) return;
-
-			// ensure target is anchor tag use shadow dom if available
-			var target = e.path ? e.path[0] : e.target;
-			while (target && 'A' !== target.nodeName) target = target.parentNode;
-			if (!target || 'A' !== target.nodeName) return;
-			var href = target.getAttribute('href');
-
-			// if external is true then default action
-			if (self.external) {
-				if (self.external.constructor.name === 'Function' && self.external(href)) return;
-				else if (self.external.constructor.name === 'RegExp' && self.external.test(href)) return;
-				else if (self.external.constructor.name === 'String' && new RegExp(self.external).test(href)) return;
-			}
-
-			// check non acceptable attributes
-			if (target.hasAttribute('download') || target.hasAttribute('external')) return;
-
-			// check non acceptable href
-			if (Utility$2.has(href, 'mailto:')) return;
-			if (Utility$2.has(href, 'tel:')) return;
-			if (Utility$2.has(href, 'file:')) return;
-			if (Utility$2.has(href, 'ftp:')) return;
-
-			e.preventDefault();
-			self.navigate(href);
-		};
-
-		window.addEventListener('DOMContentLoaded', self.loaded, true);
-		window.addEventListener('popstate', self.popstate, true);
-		window.addEventListener('click', self.click, true);
-
-		return self;
 	}
 
-	Router$1.prototype.scroll = function (x, y) {
-		window.scroll(x, y);
-		return this;
+	Router$1.prototype.loaded = function () {
+		var self = this;
+		var base = document.querySelector('base');
+
+		if (base) {
+			self.base = base.href.replace(window.location.origin, '');
+		} else {
+			base = document.createElement('base');
+			base.href = '/';
+			document.head.appendChild(base);
+			self.base = '/';
+		}
+
+		self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
+		self.navigate(window.location.href, true);
+		window.removeEventListener('DOMContentLoaded', self.loaded);
+
+	};
+
+	Router$1.prototype.popstate = function (e) {
+		var self = this;
+		self.navigate(e.state || window.location.href, true);
+	};
+
+	Router$1.prototype.click = function (e) {
+		var self = this;
+
+		if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+
+		// ensure target is anchor tag use shadow dom if available
+		var target = e.path ? e.path[0] : e.target;
+		while (target && 'A' !== target.nodeName) target = target.parentNode;
+		if (!target || 'A' !== target.nodeName) return;
+		var href = target.getAttribute('href');
+
+		// if external is true then default action
+		if (self.external) {
+			if (self.external.constructor.name === 'Function' && self.external(href)) return;
+			else if (self.external.constructor.name === 'RegExp' && self.external.test(href)) return;
+			else if (self.external.constructor.name === 'String' && new RegExp(self.external).test(href)) return;
+		}
+
+		// check non acceptable attributes
+		if (target.hasAttribute('download') || target.hasAttribute('external')) return;
+
+		// check non acceptable href
+		if (href.indexOf('mailto:') !== -1) return;
+		if (href.indexOf('tel:') !== -1) return;
+		if (href.indexOf('file:') !== -1) return;
+		if (href.indexOf('ftp:') !== -1) return;
+
+		e.preventDefault();
+		self.navigate(href);
 	};
 
 	Router$1.prototype.normalize = function (path) {
@@ -970,130 +1008,137 @@
 		return this.normalize(Array.prototype.join.call(arguments, '/'));
 	};
 
+	Router$1.prototype.scroll = function (x, y) {
+		window.scroll(x, y);
+	};
+
 	Router$1.prototype.url = function (path) {
+		var self = this;
 		var url = {};
 
-		url.root = this.root;
-		url.origin = this.origin;
+		url.root = self.root;
+		url.origin = self.origin;
 
-		url.base = this.normalize(this.base);
+		url.base = self.normalize(self.base);
 
 		url.path = path;
 		url.path = url.path.indexOf(url.origin) === 0 ? url.path.replace(url.origin, '') : url.path;
 		url.path = url.base !== '/' ? url.path.replace(url.base, '') : url.path;
 		url.path = url.path.indexOf(url.root) === 0 ? url.path.replace(url.root, '/') : url.path;
-		url.path = this.normalize(url.path);
+		url.path = self.normalize(url.path);
 		url.path = url.path[0] === '/' ? url.path : '/' + url.path;
 
-		url.href = this.join(url.origin, url.base, url.root, url.path);
+		url.href = self.join(url.origin, url.base, url.root, url.path);
 
 		return url;
 	};
 
 	Router$1.prototype.render = function (route) {
-		var component = this.cache[route.component];
+		var self = this;
+		var component = self.cache[route.component];
 
 		if (route.title) {
 			document.title = route.title;
 		}
 
 		if (route.cache === true || route.cache === undefined) {
-			component = this.cache[route.component];
+
+			component = self.cache[route.component];
 
 			if (!component) {
-				component = this.cache[route.component] = document.createElement(route.component);
+				component = self.cache[route.component] = document.createElement(route.component);
 			}
+
 		} else {
 			component = document.createElement(route.component);
 		}
 
-		if (this.view.firstChild) {
-			this.view.removeChild(this.view.firstChild);
-		}
+		window.requestAnimationFrame(function () {
 
-		this.view.appendChild(component);
+			if (self.view.firstChild) {
+				self.view.removeChild(self.view.firstChild);
+			}
 
-		return this;
+			self.view.appendChild(component);
+
+		});
+
 	};
 
 	Router$1.prototype.add = function (route) {
-		if (route.constructor.name === 'Object') this.routes.push(route);
-		else if (route.constructor.name === 'Array') this.routes = this.routes.concat(route);
-		return this;
+		var self = this;
+
+		if (route.constructor.name === 'Object') {
+			self.routes.push(route);
+		} else if (route.constructor.name === 'Array') {
+			self.routes = self.routes.concat(route);
+		}
+
 	};
 
 	Router$1.prototype.remove = function (path) {
+		var self = this;
 
-		for (var i = 0, l = this.routes.length; i < l; i++) {
-			if (path === this.routes[i].path) {
-				this.routes.splice(i, 1);
-				break;
+		for (var i = 0, l = self.routes.length; i < l; i++) {
+
+			if (path === self.routes[i].path) {
+				return self.routes.splice(i, 1);
 			}
+
 		}
 
-		return this;
 	};
 
 	Router$1.prototype.redirect = function (path) {
 		window.location.href = path;
-		return this;
 	};
 
 	Router$1.prototype.get = function (path) {
+		var self = this;
 
-		for (var i = 0, l = this.routes.length; i < l; i++) {
-			var route = this.routes[i];
+		for (var i = 0, l = self.routes.length; i < l; i++) {
+			var route = self.routes[i];
 
-			if (typeof route.path === 'string') {
-				if (route.path === path) {
-					return route;
-				}
-			} else if (typeof route.path === 'function') {
-				if (route.path.test(path)) {
-					return route;
-				}
+			if (!route.path) {
+				continue;
+			} else if (route.path.constructor.name === 'String') {
+				if (route.path === path) return route;
+			} else if (route.path.constructor.name === 'RegExp') {
+				if (route.path.test(path)) return route;
+			} else if (route.path.constructor.name === 'Function') {
+				if (route.path(path)) return route;
 			}
 
 		}
 
-		var component = document.createElement('div');
-		component.innerHTML = '{ "statusCode": 404, "error": "Not Found" }';
-
-		return {
-			title: '404',
-			component: component
-		};
-
 	};
 
 	Router$1.prototype.navigate = function (data, replace) {
+		var self = this;
 
 		if (typeof data === 'string') {
-			this.state.url = this.url(data);
-			this.state.route = this.get(this.state.url.path);
-			this.state.title = this.state.route.title;
+			self.state.url = self.url(data);
+			self.state.route = self.get(self.state.url.path);
+			self.state.title = self.state.route.title;
 		} else {
-			this.state = data;
+			self.state = data;
 		}
 
-		window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.route.title, this.state.url.href);
+		window.history[replace ? 'replaceState' : 'pushState'](self.state, self.state.route.title, self.state.url.href);
 
-		if (this.state.route.redirect) {
-			this.redirect(this.state.route);
+		if (self.state.route.redirect) {
+			self.redirect(self.state.route);
 		} else {
-			this.render(this.state.route);
+			self.render(self.state.route);
 		}
 
 		if (!replace) {
-			this.scroll(0, 0);
+			self.scroll(0, 0);
 		}
 
-		return this;
 	};
 
-	var index$4 = function (options) {
-		return new Router$1(options);
-	};
+	var index$4 = Router$1;
 
 	function Http$1 () {}
 
@@ -1183,20 +1228,25 @@
 		xhr.send(options.data);
 	};
 
-	Http$1.prototype.create = function () {
-		return this;
-	};
-
-	var http = function () {
-		return new Http$1().create();
-	};
+	var http = Http$1;
 
 	/*
 		@banner
 		name: jenie
-		version: 1.1.2
+		version: 1.1.4
 		author: alexander elias
 	*/
+
+	// if (
+	// 	!('registerElement' in document) &&
+	// 	!('import' in document.createElement('link')) &&
+	// 	!('content' in document.createElement('template'))
+	// ) {
+	// 	// polyfill the platform
+	// 	var eScript = document.createElement('script');
+	// 	eScript.src = '/webcomponents-lite.min.js';
+	// 	document.body.appendChild(eScript);
+	// }
 
 	var Component = index;
 	var Binder = index$2;
@@ -1216,16 +1266,19 @@
 
 	var jenie_b = {
 		module: {},
+		modules: {},
 		services: {},
-		http: Http(),
-		component: function (options) {
-			return Component(options);
-		},
-		binder: function (options, callback) {
-			return Binder(options, callback);
+		http: function () {
+			return this.http = new Http();
 		},
 		router: function (options) {
-			return this.router = Router(options);
+			return this.router = new Router(options);
+		},
+		component: function (options) {
+			return new Component(options);
+		},
+		binder: function (options, callback) {
+			return new Binder(options, callback);
 		},
 		script: function () {
 			return (document._currentScript || document.currentScript);
