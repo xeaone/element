@@ -1,0 +1,32 @@
+{
+	"name": "jenie",
+	"description": "Light weight powerful web components framework",
+	"main": "dist/jenie.min.js",
+	"authors": [
+		"Alexander Elias"
+	],
+	"license": "MPL-2.0",
+	"keywords": [
+	"web",
+	"components",
+	"web-components",
+	"js",
+	"html",
+	"css",
+	"framework",
+	"data-binding",
+	"data",
+	"binding",
+	"routing",
+	"router",
+	"front-end"
+	],
+	"homepage": "https://github.com/AlexanderElias/jenie",
+	"ignore": [
+		"**/.*",
+		"node_modules",
+		"bower_components",
+		"test",
+		"tests"
+	]
+}
