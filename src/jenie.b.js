@@ -1,9 +1,20 @@
 /*
 	@banner
 	name: jenie
-	version: 1.1.3
+	version: 1.1.4
 	author: alexander elias
 */
+
+// if (
+// 	!('registerElement' in document) &&
+// 	!('import' in document.createElement('link')) &&
+// 	!('content' in document.createElement('template'))
+// ) {
+// 	// polyfill the platform
+// 	var eScript = document.createElement('script');
+// 	eScript.src = '/webcomponents-lite.min.js';
+// 	document.body.appendChild(eScript);
+// }
 
 var Component = require('./component');
 var Binder = require('./binder');
