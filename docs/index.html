@@ -1,57 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+	<meta charset="utf-8">
 	<base href="/jenie/">
-	<title>Web Components</title>
-	<script src="webcomponents-lite.min.js"></script>
-	<script src="jenie.js"></script>
-	<script src="js-test.js"></script>
-	<link rel="import" href="j-404.html">
-	<link rel="import" href="html-test.html">
-	<style>
-		body {
-			height: 120vh;
-		}
-	</style>
+	<title>Jenie</title>
 </head>
 <body>
 
+	<h1>Jenie Awesomeness Comming Soon!</h1>
+
+	<br>
+	<p>For now check out the dev tests for some live action.</p>
+	<br>
+
 	<ul>
-		<li><a href="/">/</a></li>
-		<li><a href="js">js</a></li>
-		<li><a href="/js">/js</a></li>
-		<li><a href="/#/js">/#/js</a></li>
+		<ul>
+			<li><a href="dev/">Dev</a></li>
+			<li><a href="perf/">Perf</a></li>
+			<!-- <li><a href="vs/">Vs</a></li> -->
+		</ul>
 	</ul>
-
-	<j-view></j-view>
-
-	<script>
-		Jenie.services.say = function (string) {
-			console.log(string);
-		};
-
-		Jenie.router({
-			routes: [
-				{
-					title: 'html',
-					path: '/',
-					component: 'html-test'
-				},
-				{
-					title: 'js',
-					path: '/js',
-					// cache: false,
-					component: 'js-test'
-				},
-				{
-					title: '404',
-					path: /.*/,
-					component: 'j-404'
-				}
-			]
-		});
-	</script>
 
 </body>
 </html>
