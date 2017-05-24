@@ -24,16 +24,20 @@ Http.prototype.serialize = function (data) {
 Http.prototype.fetch = function (options) {
 	var self = this;
 
-	if (!options) throw new Error('fetch: requires options');
-	if (!options.action) throw new Error('fetch: requires options.action');
-	if (!options.method) options.method = 'GET';
-	if (!options.headers) options.headers = {};
+	options = options ? options : {};
+	options.action = options.action ? options.action : window.location.href;
+	options.method = options.method ? options.method.toUpperCase() : 'GET';
+	options.headers = options.headers ? options.headers : {};
 
 	if (options.data) {
+
 		if (options.method === 'GET') {
+
 			options.action = options.action + '?' + self.serialize(options.data);
 			options.data = null;
+
 		} else {
+
 			options.requestType = options.requestType ? options.requestType.toLowerCase() : '';
 			options.responseType = options.responseType ? options.responseType.toLowerCase() : '';
 
@@ -54,19 +58,37 @@ Http.prototype.fetch = function (options) {
 				case 'text': options.accept = self.mime.text; break;
 			}
 
-			if (options.contentType === self.mime.json) options.data = JSON.stringify(options.data);
-			if (options.contentType === self.mime.urlencoded) options.data = self.serialize(options.data);
+			if (options.contentType === self.mime.json) {
+				options.data = JSON.stringify(options.data);
+			}
+
+			if (options.contentType === self.mime.urlencoded) {
+				options.data = self.serialize(options.data);
+			}
+
 		}
+
 	}
 
 	var xhr = new XMLHttpRequest();
-	xhr.open(options.method.toUpperCase(), options.action, true, options.username, options.password);
 
-	if (options.mimeType) xhr.overrideMimeType(options.mimeType);
-	if (options.withCredentials) xhr.withCredentials = options.withCredentials;
+	xhr.open(options.method, options.action, true, options.username, options.password);
 
-	if (options.accept) options.headers['Accept'] = options.accept;
-	if (options.contentType) options.headers['Content-Type'] = options.contentType;
+	if (options.mimeType) {
+		xhr.overrideMimeType(options.mimeType);
+	}
+
+	if (options.withCredentials) {
+		xhr.withCredentials = options.withCredentials;
+	}
+
+	if (options.accept) {
+		options.headers['Accept'] = options.accept;
+	}
+
+	if (options.contentType) {
+		options.headers['Content-Type'] = options.contentType;
+	}
 
 	if (options.headers) {
 		for (var name in options.headers) {

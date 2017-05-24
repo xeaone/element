@@ -445,20 +445,6 @@
 		});
 	};
 
-	// Unit.prototype.animation = function (condition, callback) {
-	// 	var index = -1;
-	//
-	// 	window.requestAnimationFrame(function repeat () {
-	// 		index++;
-	//
-	// 		if (condition(index)) {
-	// 			callback(index);
-	// 			window.requestAnimationFrame(repeat);
-	// 		}
-	//
-	// 	});
-	// };
-
 	Unit$1.prototype.renderMethods = {
 		on: function () {
 			var eventName = this.attribute.cmds[1];
@@ -498,12 +484,16 @@
 
 				animate = function () {
 
-					self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
-					self.view.removeOne(self.element.lastChild);
-					self.element.removeChild(self.element.lastChild);
-
 					if (self.element.children.length > self.data.length) {
-						window.requestAnimationFrame(animate);
+
+						self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
+						self.view.removeOne(self.element.lastChild);
+						self.element.removeChild(self.element.lastChild);
+
+						if (self.element.children.length > self.data.length) {
+							window.requestAnimationFrame(animate);
+						}
+
 					}
 
 				};
@@ -514,18 +504,22 @@
 
 				animate = function () {
 
-					self.element.insertAdjacentHTML(
-						'beforeend',
-						self.clone.replace(
-							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
-						)
-					);
-
-					self.view.addOne(self.element.lastChild);
-					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
-
 					if (self.element.children.length < self.data.length) {
-						window.requestAnimationFrame(animate);
+
+						self.element.insertAdjacentHTML(
+							'beforeend',
+							self.clone.replace(
+								self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+							)
+						);
+
+						self.view.addOne(self.element.lastChild);
+						self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+
+						if (self.element.children.length < self.data.length) {
+							window.requestAnimationFrame(animate);
+						}
+
 					}
 
 				};
@@ -545,10 +539,8 @@
 				self.data = self.element.type !== 'radio' && self.element.type !== 'checked' ? self.element.value : self.element.checked;
 			};
 
-			window.requestAnimationFrame(function () {
-				self.element.addEventListener('change', self.change.bind(self), true);
-				self.element.addEventListener('keyup', self.change.bind(self), true);
-			});
+			self.element.addEventListener('change', self.change.bind(self), true);
+			self.element.addEventListener('keyup', self.change.bind(self), true);
 		},
 		html: function () {
 			var self = this;
@@ -562,12 +554,11 @@
 			var self = this;
 			var css = this.data;
 
+			if (self.attribute.cmds.length > 1) {
+				css = self.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
+			}
+
 			window.requestAnimationFrame(function () {
-
-				if (self.attribute.cmds.length > 1) {
-					css = self.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
-				}
-
 				self.element.style.cssText += css;
 			});
 		},
@@ -637,7 +628,7 @@
 		},
 		default: function () {
 			var self = this;
-			var path = this.toCamelCase(this.attribute.cmds);
+			var path = self.toCamelCase(self.attribute.cmds);
 
 			window.requestAnimationFrame(function () {
 				self.setByPath(self.element, path, self.data);
@@ -645,26 +636,38 @@
 		}
 	};
 
-	// TODO add requestAnimationFrame
 	Unit$1.prototype.unrenderMethods = {
 		on: function () {
 			var eventName = this.attribute.cmds[1];
 			this.element.removeEventListener(eventName, this.data, false);
 		},
 		each: function () {
-			while (this.element.lastChild) {
-				this.element.removeChild(this.element.lastChild);
-			}
+			var self = this;
+
+			var animate = function () {
+				self.element.removeChild(self.element.lastChild);
+				if (self.element.lastChild) animate();
+			};
+
+			window.requestAnimationFrame(animate);
 		},
 		value: function () {
 			this.element.removeEventListener('change', this.change.bind(this));
 			this.element.removeEventListener('keyup', this.change.bind(this));
 		},
 		html: function () {
-			this.element.innerHTML = 'undefined';
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.innerText = '';
+			});
 		},
 		text: function () {
-			this.element.innerText = 'undefined';
+			var self = this;
+
+			window.requestAnimationFrame(function () {
+				self.element.innerText = '';
+			});
 		},
 		default: function () {
 
@@ -1165,16 +1168,20 @@
 	Http$1.prototype.fetch = function (options) {
 		var self = this;
 
-		if (!options) throw new Error('fetch: requires options');
-		if (!options.action) throw new Error('fetch: requires options.action');
-		if (!options.method) options.method = 'GET';
-		if (!options.headers) options.headers = {};
+		options = options ? options : {};
+		options.action = options.action ? options.action : window.location.href;
+		options.method = options.method ? options.method.toUpperCase() : 'GET';
+		options.headers = options.headers ? options.headers : {};
 
 		if (options.data) {
+
 			if (options.method === 'GET') {
+
 				options.action = options.action + '?' + self.serialize(options.data);
 				options.data = null;
+
 			} else {
+
 				options.requestType = options.requestType ? options.requestType.toLowerCase() : '';
 				options.responseType = options.responseType ? options.responseType.toLowerCase() : '';
 
@@ -1195,19 +1202,37 @@
 					case 'text': options.accept = self.mime.text; break;
 				}
 
-				if (options.contentType === self.mime.json) options.data = JSON.stringify(options.data);
-				if (options.contentType === self.mime.urlencoded) options.data = self.serialize(options.data);
+				if (options.contentType === self.mime.json) {
+					options.data = JSON.stringify(options.data);
+				}
+
+				if (options.contentType === self.mime.urlencoded) {
+					options.data = self.serialize(options.data);
+				}
+
 			}
+
 		}
 
 		var xhr = new XMLHttpRequest();
-		xhr.open(options.method.toUpperCase(), options.action, true, options.username, options.password);
 
-		if (options.mimeType) xhr.overrideMimeType(options.mimeType);
-		if (options.withCredentials) xhr.withCredentials = options.withCredentials;
+		xhr.open(options.method, options.action, true, options.username, options.password);
 
-		if (options.accept) options.headers['Accept'] = options.accept;
-		if (options.contentType) options.headers['Content-Type'] = options.contentType;
+		if (options.mimeType) {
+			xhr.overrideMimeType(options.mimeType);
+		}
+
+		if (options.withCredentials) {
+			xhr.withCredentials = options.withCredentials;
+		}
+
+		if (options.accept) {
+			options.headers['Accept'] = options.accept;
+		}
+
+		if (options.contentType) {
+			options.headers['Content-Type'] = options.contentType;
+		}
 
 		if (options.headers) {
 			for (var name in options.headers) {
