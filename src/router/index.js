@@ -9,7 +9,7 @@ function Router (options) {
 	self.cache = {};
 	self.state = {};
 	self.base = options.base;
-	self.origin = window.location.origin;
+	self.origin = window.location.origin + (options.origin || '');
 	self.root = options.root || '' + (self.hash ? '/#/' : '/');
 
 	window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);

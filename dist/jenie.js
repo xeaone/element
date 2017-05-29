@@ -937,7 +937,7 @@
 		self.cache = {};
 		self.state = {};
 		self.base = options.base;
-		self.origin = window.location.origin;
+		self.origin = window.location.origin + (options.origin || '');
 		self.root = options.root || '' + (self.hash ? '/#/' : '/');
 
 		window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);
@@ -1260,7 +1260,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.1.7
+		version: 1.1.8
 		author: alexander elias
 	*/
 
