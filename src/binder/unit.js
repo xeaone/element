@@ -30,7 +30,9 @@ Unit.prototype.renderMethods = {
 	each: function () {
 		var self = this, animate;
 
-		if (!self.clone) {
+		if (!self.data) {
+			return;
+		} else if (!self.clone) {
 
 			self.variable = self.attribute.cmds.slice(1).join('.');
 			self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
