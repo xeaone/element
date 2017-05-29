@@ -1,7 +1,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.1.6
+	version: 1.1.7
 	author: alexander elias
 */
 

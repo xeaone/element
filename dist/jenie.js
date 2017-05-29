@@ -454,7 +454,9 @@
 		each: function () {
 			var self = this, animate;
 
-			if (!self.clone) {
+			if (!self.data) {
+				return;
+			} else if (!self.clone) {
 
 				self.variable = self.attribute.cmds.slice(1).join('.');
 				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
@@ -1258,7 +1260,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.1.6
+		version: 1.1.7
 		author: alexander elias
 	*/
 
