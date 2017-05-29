@@ -33,7 +33,10 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 		name: 'j-home',
 		template: 'template',
 		model: {
-			title: 'Home Component'
+			title: 'Old Title'
+		},
+		created: function () {
+			this.model.title = 'New Title';
 		}
 	});
 </script>
@@ -109,7 +112,14 @@ Returns an instance of a new binder.
 - `view`
 - `model` After the model is returned by the binder there are helper functions deeply attached i.e. `model.del(String, Number: key)` and `model.ins(String, Number: key, Any: value)`. Also setting a property to `udnefined` will delete or splice it.
 	- `Array` Object to be observed.
+		- `splice` Triggers the callback.
+		- `push` Triggers the callback.
+		- `shift` Triggers the callback.
+		- `pop` Triggers the callback.
+		- `unshift` Triggers the callback.
 	- `Object` Object to be observed.
+		- `remove` Function attached deep removes/deletes a property and triggers the callback.
+		- `set` Function attached deeply sets or adds a new property to be observed triggers the callback.
 	- `Function` Async task to return the model in argument `resolve(Object: model)` provided.
 - `modifiers`
 
