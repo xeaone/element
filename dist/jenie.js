@@ -936,31 +936,35 @@
 
 		self.cache = {};
 		self.state = {};
-		self.base = options.base;
-		self.origin = window.location.origin + (options.origin || '');
+		self.base = options.base || '';
+		self.origin = window.location.origin;
 		self.root = options.root || '' + (self.hash ? '/#/' : '/');
+		self.view = document.querySelector('j-view');
 
 		window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);
 		window.addEventListener('popstate', self.popstate.bind(self), true);
-		window.addEventListener('click', self.click.bind(self), true);
 
 	}
 
 	Router$1.prototype.loaded = function () {
 		var self = this;
-		var base = document.querySelector('base');
 
-		if (base) {
-			self.base = base.href.replace(window.location.origin, '');
-		} else {
-			base = document.createElement('base');
-			base.href = '/';
-			document.head.appendChild(base);
-			self.base = '/';
-		}
+		// if (self.base) {
+		// 	var base = document.querySelector('base');
+		//
+		// 	if (!base) {
+		// 		base = document.createElement('base');
+		// 		document.head.appendChild(base);
+		// 	}
+		//
+		// 	base.href = self.base;
+		// }
 
 		self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
+
 		self.navigate(window.location.href, true);
+		self.view.addEventListener('click', self.click.bind(self), true);
+
 		window.removeEventListener('DOMContentLoaded', self.loaded);
 
 	};
@@ -978,7 +982,9 @@
 		// ensure target is anchor tag use shadow dom if available
 		var target = e.path ? e.path[0] : e.target;
 		while (target && 'A' !== target.nodeName) target = target.parentNode;
+
 		if (!target || 'A' !== target.nodeName) return;
+
 		var href = target.getAttribute('href');
 
 		// if external is true then default action
@@ -1021,15 +1027,28 @@
 		var self = this;
 		var url = {};
 
+		url.base = self.base;
 		url.root = self.root;
 		url.origin = self.origin;
 
-		url.base = self.normalize(self.base);
-
 		url.path = path;
-		url.path = url.path.indexOf(url.origin) === 0 ? url.path.replace(url.origin, '') : url.path;
-		url.path = url.base !== '/' ? url.path.replace(url.base, '') : url.path;
-		url.path = url.path.indexOf(url.root) === 0 ? url.path.replace(url.root, '/') : url.path;
+
+		if (url.path.indexOf(url.origin) === 0) {
+			url.path = url.path.replace(url.origin, '');
+		}
+
+		if (url.path.indexOf(url.base) === 0) {
+			url.path = url.path.replace(url.base, '');
+		}
+
+		if (url.path.indexOf(window.location.origin) === 0) {
+			url.path = url.path.replace(window.location.origin, '');
+		}
+
+		if (url.path.indexOf(url.root) === 0) {
+			url.path = url.path.replace(url.root, '/');
+		}
+
 		url.path = self.normalize(url.path);
 		url.path = url.path[0] === '/' ? url.path : '/' + url.path;
 
@@ -1260,7 +1279,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.1.8
+		version: 1.1.9
 		author: alexander elias
 	*/
 

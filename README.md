@@ -91,9 +91,9 @@ Returns a Jenie component and defines a web component.
 After initialized `Jenie.router` is no longer a Function but a router instance.
 
 #### Options
-- `origin` 
+- `origin`
 - `hash: Boolean` Hash url mode. The default is `false`.
-- `base: String` Defines the base for relative urls. Can also use the html base tag.
+- `base: String` Sets the base for all urls the order of append is Origin + Base + Root.
 - `routes: Array` Should contain route objects.
 	- `route: Object`
 		- `path: String` An absolute path.
