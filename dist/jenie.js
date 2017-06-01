@@ -932,14 +932,15 @@
 
 		self.external = options.external;
 		self.routes = options.routes || [];
-		self.hash = options.hash === null || options.hash === undefined ? false : options.hash;
+
+		self.hash = !options.hash ? false : options.hash;
+		self.contain = !options.contain ? false : options.contain;
 
 		self.cache = {};
 		self.state = {};
 		self.base = options.base || '';
 		self.origin = window.location.origin;
 		self.root = options.root || '' + (self.hash ? '/#/' : '/');
-		self.view = document.querySelector('j-view');
 
 		window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);
 		window.addEventListener('popstate', self.popstate.bind(self), true);
@@ -949,21 +950,10 @@
 	Router$1.prototype.loaded = function () {
 		var self = this;
 
-		// if (self.base) {
-		// 	var base = document.querySelector('base');
-		//
-		// 	if (!base) {
-		// 		base = document.createElement('base');
-		// 		document.head.appendChild(base);
-		// 	}
-		//
-		// 	base.href = self.base;
-		// }
-
 		self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
 
 		self.navigate(window.location.href, true);
-		self.view.addEventListener('click', self.click.bind(self), true);
+		(self.contain ? self.view : window).addEventListener('click', self.click.bind(self), true);
 
 		window.removeEventListener('DOMContentLoaded', self.loaded);
 
@@ -1143,7 +1133,7 @@
 		if (typeof data === 'string') {
 			self.state.url = self.url(data);
 			self.state.route = self.get(self.state.url.path);
-			self.state.title = self.state.route.title;
+			self.state.title = self.state.route.title || '';
 		} else {
 			self.state = data;
 		}
@@ -1279,7 +1269,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.1.9
+		version: 1.1.90
 		author: alexander elias
 	*/
 
