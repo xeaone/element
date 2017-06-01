@@ -11,7 +11,8 @@ function Router (options) {
 	self.base = options.base || '';
 	self.origin = window.location.origin;
 	self.root = options.root || '' + (self.hash ? '/#/' : '/');
-	self.view = document.querySelector('j-view');
+
+	self.contain = options.contain === undefined || options.contain === null ? true : options.contain;
 
 	window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);
 	window.addEventListener('popstate', self.popstate.bind(self), true);
@@ -35,7 +36,7 @@ Router.prototype.loaded = function () {
 	self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
 
 	self.navigate(window.location.href, true);
-	self.view.addEventListener('click', self.click.bind(self), true);
+	(self.contain ? self.view : window).addEventListener('click', self.click.bind(self), true);
 
 	window.removeEventListener('DOMContentLoaded', self.loaded);
 
