@@ -93,6 +93,7 @@ After initialized `Jenie.router` is no longer a Function but a router instance.
 #### Options
 - `origin`
 - `hash: Boolean` Hash url mode. The default is `false`.
+- `contain: Boolean` Sets the click listener for hrefs to the j-view element if `true`. Defaults to `false` which is window.
 - `base: String` Sets the base for all urls the order of append is Origin + Base + Root.
 - `routes: Array` Should contain route objects.
 	- `route: Object`

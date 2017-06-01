@@ -4,15 +4,15 @@ function Router (options) {
 
 	self.external = options.external;
 	self.routes = options.routes || [];
-	self.hash = options.hash === null || options.hash === undefined ? false : options.hash;
+
+	self.hash = !options.hash ? false : options.hash;
+	self.contain = !options.contain ? false : options.contain;
 
 	self.cache = {};
 	self.state = {};
 	self.base = options.base || '';
 	self.origin = window.location.origin;
 	self.root = options.root || '' + (self.hash ? '/#/' : '/');
-
-	self.contain = options.contain === undefined || options.contain === null ? true : options.contain;
 
 	window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);
 	window.addEventListener('popstate', self.popstate.bind(self), true);
@@ -21,17 +21,6 @@ function Router (options) {
 
 Router.prototype.loaded = function () {
 	var self = this;
-
-	// if (self.base) {
-	// 	var base = document.querySelector('base');
-	//
-	// 	if (!base) {
-	// 		base = document.createElement('base');
-	// 		document.head.appendChild(base);
-	// 	}
-	//
-	// 	base.href = self.base;
-	// }
 
 	self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
 
@@ -216,7 +205,7 @@ Router.prototype.navigate = function (data, replace) {
 	if (typeof data === 'string') {
 		self.state.url = self.url(data);
 		self.state.route = self.get(self.state.url.path);
-		self.state.title = self.state.route.title;
+		self.state.title = self.state.route.title || '';
 	} else {
 		self.state = data;
 	}
