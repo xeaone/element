@@ -1,7 +1,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.1.90
+	version: 1.1.91
 	author: alexander elias
 */
 
@@ -19,6 +19,7 @@
 var Component = require('./component');
 var Binder = require('./binder');
 var Router = require('./router');
+var Module = require('./module');
 var Http = require('./http');
 
 var sStyle = 'j-view, j-view > :first-child { display: block; }';
@@ -33,11 +34,13 @@ document.registerElement('j-view', {
 });
 
 module.exports = {
-	module: {},
 	modules: {},
 	services: {},
 	http: function () {
 		return this.http = new Http();
+	},
+	module: function (modules) {
+		return this.module = new Module(modules);
 	},
 	router: function (options) {
 		return this.router = new Router(options);
