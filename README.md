@@ -133,6 +133,10 @@ Returns an instance of a new binder.
 ### Jenie.services
 An `object` to store `functions`. Basically a module system. This might change to `Jenie.module` and or might be come more of a robust system.
 
+### Jenie.module(name, method)
+- `name: String` The module name.
+- `method: Function` The module method.
+
 ### Jenie.query(String: querySelector)
 Returns the result of a querySelector in the **current** document `document.currentScript.ownerDocument.querySelector()`
 

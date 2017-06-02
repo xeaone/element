@@ -29,7 +29,8 @@
 			{ it: { val: 1 } }
 		],
 		say: function () {
-			console.log('hello');
+			var say = Jenie.module('say');
+			say('hello from button');
 		}
 	};
 

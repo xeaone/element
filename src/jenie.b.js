@@ -36,11 +36,16 @@ document.registerElement('j-view', {
 module.exports = {
 	modules: {},
 	services: {},
+	_module: new Module(),
+	module: function (name, method) {
+		if (method) {
+			return this._module.set(name, method);
+		} else {
+			return this._module.get(name);
+		}
+	},
 	http: function () {
 		return this.http = new Http();
-	},
-	module: function (modules) {
-		return this.module = new Module(modules);
 	},
 	router: function (options) {
 		return this.router = new Router(options);

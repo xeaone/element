@@ -35,9 +35,10 @@
 	<j-view></j-view>
 
 	<script>
-		Jenie.services.say = function (string) {
+
+		Jenie.module('say', function (string) {
 			console.log(string);
-		};
+		});
 
 		Jenie.router({
 			routes: [

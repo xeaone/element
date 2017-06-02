@@ -13,7 +13,6 @@ Jenie.component({
 	*/},
 	created: function () {
 		console.log('created ' + this.name);
-		Jenie.services.say('hello world');
 		this.model.text = 'new js render';
 	},
 	attached: function () {

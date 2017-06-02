@@ -454,7 +454,9 @@
 		each: function () {
 			var self = this, animate;
 
-			if (!self.clone) {
+			if (!self.data) {
+				return;
+			} else if (!self.clone) {
 
 				self.variable = self.attribute.cmds.slice(1).join('.');
 				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
@@ -930,35 +932,29 @@
 
 		self.external = options.external;
 		self.routes = options.routes || [];
-		self.hash = options.hash === null || options.hash === undefined ? false : options.hash;
+
+		self.hash = !options.hash ? false : options.hash;
+		self.contain = !options.contain ? false : options.contain;
 
 		self.cache = {};
 		self.state = {};
-		self.base = options.base;
+		self.base = options.base || '';
 		self.origin = window.location.origin;
 		self.root = options.root || '' + (self.hash ? '/#/' : '/');
 
 		window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);
 		window.addEventListener('popstate', self.popstate.bind(self), true);
-		window.addEventListener('click', self.click.bind(self), true);
 
 	}
 
 	Router$1.prototype.loaded = function () {
 		var self = this;
-		var base = document.querySelector('base');
-
-		if (base) {
-			self.base = base.href.replace(window.location.origin, '');
-		} else {
-			base = document.createElement('base');
-			base.href = '/';
-			document.head.appendChild(base);
-			self.base = '/';
-		}
 
 		self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
+
 		self.navigate(window.location.href, true);
+		(self.contain ? self.view : window).addEventListener('click', self.click.bind(self), true);
+
 		window.removeEventListener('DOMContentLoaded', self.loaded);
 
 	};
@@ -976,7 +972,9 @@
 		// ensure target is anchor tag use shadow dom if available
 		var target = e.path ? e.path[0] : e.target;
 		while (target && 'A' !== target.nodeName) target = target.parentNode;
+
 		if (!target || 'A' !== target.nodeName) return;
+
 		var href = target.getAttribute('href');
 
 		// if external is true then default action
@@ -1019,15 +1017,28 @@
 		var self = this;
 		var url = {};
 
+		url.base = self.base;
 		url.root = self.root;
 		url.origin = self.origin;
 
-		url.base = self.normalize(self.base);
-
 		url.path = path;
-		url.path = url.path.indexOf(url.origin) === 0 ? url.path.replace(url.origin, '') : url.path;
-		url.path = url.base !== '/' ? url.path.replace(url.base, '') : url.path;
-		url.path = url.path.indexOf(url.root) === 0 ? url.path.replace(url.root, '/') : url.path;
+
+		if (url.path.indexOf(url.origin) === 0) {
+			url.path = url.path.replace(url.origin, '');
+		}
+
+		if (url.path.indexOf(url.base) === 0) {
+			url.path = url.path.replace(url.base, '');
+		}
+
+		if (url.path.indexOf(window.location.origin) === 0) {
+			url.path = url.path.replace(window.location.origin, '');
+		}
+
+		if (url.path.indexOf(url.root) === 0) {
+			url.path = url.path.replace(url.root, '/');
+		}
+
 		url.path = self.normalize(url.path);
 		url.path = url.path[0] === '/' ? url.path : '/' + url.path;
 
@@ -1122,7 +1133,7 @@
 		if (typeof data === 'string') {
 			self.state.url = self.url(data);
 			self.state.route = self.get(self.state.url.path);
-			self.state.title = self.state.route.title;
+			self.state.title = self.state.route.title || '';
 		} else {
 			self.state = data;
 		}
@@ -1142,6 +1153,28 @@
 	};
 
 	var index$4 = Router$1;
+
+	function Module$1 () {
+		this.modules = {};
+	}
+
+	Module$1.prototype.set = function (name, method) {
+		if (name in this.modules) {
+			throw new Error('module ' + name + ' is defined');
+		} else {
+			return this.modules[name] = method;
+		}
+	};
+
+	Module$1.prototype.get = function (name) {
+		if (name in this.modules) {
+			return this.modules[name];
+		} else {
+			throw new Error('module ' + name + ' is not defined');
+		}
+	};
+
+	var module$1 = Module$1;
 
 	function Http$1 () {}
 
@@ -1258,7 +1291,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.1.4
+		version: 1.1.91
 		author: alexander elias
 	*/
 
@@ -1276,6 +1309,7 @@
 	var Component = index;
 	var Binder = index$2;
 	var Router = index$4;
+	var Module = module$1;
 	var Http = http;
 
 	var sStyle = 'j-view, j-view > :first-child { display: block; }';
@@ -1290,9 +1324,16 @@
 	});
 
 	var jenie_b = {
-		module: {},
 		modules: {},
 		services: {},
+		_module: new Module(),
+		module: function (name, method) {
+			if (method) {
+				return this._module.set(name, method);
+			} else {
+				return this._module.get(name);
+			}
+		},
 		http: function () {
 			return this.http = new Http();
 		},
