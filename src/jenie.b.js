@@ -1,7 +1,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.1.91
+	version: 1.1.92
 	author: alexander elias
 */
 
@@ -37,9 +37,9 @@ module.exports = {
 	modules: {},
 	services: {},
 	_module: new Module(),
-	module: function (name, method) {
-		if (method) {
-			return this._module.set(name, method);
+	module: function (name, dependencies, method) {
+		if (dependencies || method) {
+			return this._module.set(name, dependencies, method);
 		} else {
 			return this._module.get(name);
 		}

@@ -36,8 +36,18 @@
 
 	<script>
 
-		Jenie.module('say', function (string) {
+		Jenie.module('one', function () {
+			return 1;
+		});
+
+		Jenie.module('two', function () {
+			return 2;
+		});
+
+		Jenie.module('say', ['one', 'two'], function (one, two, string) {
 			console.log(string);
+			console.log(one);
+			console.log(two);
 		});
 
 		Jenie.router({
