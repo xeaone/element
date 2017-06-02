@@ -1154,6 +1154,28 @@
 
 	var index$4 = Router$1;
 
+	function Module$1 () {
+		this.modules = {};
+	}
+
+	Module$1.prototype.set = function (name, method) {
+		if (name in this.modules) {
+			throw new Error('module ' + name + ' is defined');
+		} else {
+			return this.modules[name] = method;
+		}
+	};
+
+	Module$1.prototype.get = function (name) {
+		if (name in this.modules) {
+			return this.modules[name];
+		} else {
+			throw new Error('module ' + name + ' is not defined');
+		}
+	};
+
+	var module$1 = Module$1;
+
 	function Http$1 () {}
 
 	Http$1.prototype.mime = {
@@ -1269,7 +1291,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.1.90
+		version: 1.1.91
 		author: alexander elias
 	*/
 
@@ -1287,6 +1309,7 @@
 	var Component = index;
 	var Binder = index$2;
 	var Router = index$4;
+	var Module = module$1;
 	var Http = http;
 
 	var sStyle = 'j-view, j-view > :first-child { display: block; }';
@@ -1301,9 +1324,16 @@
 	});
 
 	var jenie_b = {
-		module: {},
 		modules: {},
 		services: {},
+		_module: new Module(),
+		module: function (name, method) {
+			if (method) {
+				return this._module.set(name, method);
+			} else {
+				return this._module.get(name);
+			}
+		},
 		http: function () {
 			return this.http = new Http();
 		},
