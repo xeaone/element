@@ -2,11 +2,11 @@ var Binder = require('../binder');
 var Uuid = require('../uuid');
 
 function Component (options) {
+	var self = this;
+
 	if (!options) throw new Error('Component missing options');
 	if (!options.name) throw new Error('Component missing options.name');
 	if (!options.template) throw new Error('Component missing options.template');
-
-	var self = this;
 
 	self.name = options.name;
 	self.model = options.model;
@@ -14,55 +14,39 @@ function Component (options) {
 	self.currentScript = (document._currentScript || document.currentScript);
 	self.template = self._template(options.template);
 
-	self.created = options.created ? options.created.bind(self) : undefined;
-	self.attached = options.attached ? options.attached.bind(self) : undefined;
-	self.detached = options.detached ? options.detached.bind(self) : undefined;
-	self.attributed = options.attributed ? options.attributed.bind(self) : undefined;
+	self.elementPrototype = Object.create(HTMLElement.prototype);
 
-	self.proto = self._define(self.name, {
-		attachedCallback: {
-			value: self.attached
-		},
-		detachedCallback: {
-			value: self.detached
-		},
-		attributeChangedCallback: {
-			value: self.attributed
-		},
-		createdCallback: {
-			value: function () {
-				self.element = this;
-				self.uuid = Uuid();
-				self.element.appendChild(document.importNode(self.template.content, true));
+	self.elementPrototype.attachedCallback = options.attached;
+	self.elementPrototype.detachedCallback = options.detached;
+	self.elementPrototype.attributeChangedCallback = options.attributed;
 
-				if (self.model) {
+	self.elementPrototype.createdCallback = function () {
+		var elementInstance = this;
 
-					self.binder = new Binder({
-						name: self.uuid,
-						model: self.model,
-						view: self.element,
-						modifiers: self.modifiers
-					}, function () {
-						self.model = this.model.data;
-						self.view = this.view.data;
+		elementInstance.uuid = Uuid();
+		elementInstance.appendChild(document.importNode(self.template.content, true));
 
-						if (self.created) {
-							self.created(self);
-						}
+		if (self.model) {
 
-					});
+			elementInstance.binder = new Binder({
+				view: elementInstance,
+				name: elementInstance.uuid,
+				model: self.model,
+				modifiers: self.modifiers
+			}, function () {
+				var binderInstance = this;
+				elementInstance.model = binderInstance.model.data;
+				elementInstance.view = binderInstance.view.data;
+				if (options.created) options.created.call(elementInstance);
+			});
 
-				} else {
-
-					if (self.created) {
-						self.created(self);
-					}
-
-				}
-
-			}
+		} else if (options.created) {
+			options.created.call(elementInstance);
 		}
-	});
+
+	};
+
+	self._define();
 
 }
 
@@ -100,9 +84,9 @@ Component.prototype._template = function (template) {
 	return template;
 };
 
-Component.prototype._define = function (name, options) {
-	return document.registerElement(name, {
-		prototype: Object.create(HTMLElement.prototype, options)
+Component.prototype._define = function () {
+	document.registerElement(this.name, {
+		prototype: this.elementPrototype
 	});
 };
 
