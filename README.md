@@ -42,18 +42,6 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 </script>
 ```
 
-```javascript
-// index.js
-Jenie.router({
-	routes: [
-		{
-			path: '/',
-			component: 'j-home'
-		}
-	]
-});
-```
-
 ```html
 <!-- index.html -->
 <html>
@@ -64,87 +52,116 @@ Jenie.router({
 </head>
 <body>
 	<j-view></j-view>
+	<script>
+		Jenie.router({
+			routes: [
+				{
+					path: '/',
+					component: 'j-home'
+				}
+			]
+		});
+	</script>
 </body>
 </html>
 ```
 
 ## API
 
-### Jenie.component(Object: options)
+### Jenie.component(options)
 Returns a Jenie component and defines a web component.
 
-#### Options
-- `name` **Required**
-- `template` **Required**
-- `model` After the model is returned by the binder there are helper functions deeply attached `model.remove(String, Number: key)` and `model.set(String, Number: key, Any: value)`. Also setting a property to `undefined` will trigger delete on object properties.
-	- `Array` Object to be observed.
-	- `Object` Object to be observed.
-	- `Function` Async task to return the model in argument `resolve(Object: model)` provided.
-- `modifiers`
-- `controller`
-- `created`
-- `attached`
-- `detached`
-- `attributed`
+- `options: Object`
+	- `name: String` **Required**
+	- `template: Element, String, QueryString, MultiLineCommentString` **Required**
+	- `model: Object` See Jenie.binder().model
+	- `modifiers: Object` See Jenie.binder().modifiers
+	- `created: Function` Triggered once on creation.
+	- `attached: Function` Triggered on each dom attachment.
+	- `detached: Function` Triggered on each dom detachment.
+	- `attributed: Function` Triggered on changed.
 
-### Jenie.router(Object: options) || Jenie.router
-After initialized `Jenie.router` is no longer a Function but a router instance.
+### Jenie.binder(options, callback)
+Returns an instance of a new binder.
 
-#### Options
-- `origin`
+- `options: Object`
+	- `name`
+	- `view`
+	- `model` Copies the provided and observes it's properties. Setting a property to `udnefined` will delete or splice it's self.
+		- `Array` Object to be observed.
+			- `splice` Triggers the callback.
+			- `push` Triggers the callback.
+			- `shift` Triggers the callback.
+			- `pop` Triggers the callback.
+			- `unshift` Triggers the callback.
+		- `Object` Object to be observed.
+			- `remove` Function attached deep removes/deletes a property and triggers the callback.
+			- `set` Function attached deeply sets or adds a new property to be observed triggers the callback.
+		- `Function` Async return of the model. Argument provided `resolve(Object: model)`.
+	- `modifiers`
+- `callback: Function`
+
+### Jenie.router
+Custom element router.
+
 - `hash: Boolean` Hash url mode. The default is `false`.
 - `contain: Boolean` Sets the click listener for hrefs to the j-view element if `true`. Defaults to `false` which is window.
 - `base: String` Sets the base for all urls the order of append is Origin + Base + Root.
-- `routes: Array` Should contain route objects.
+- `routes: Array`
 	- `route: Object`
 		- `path: String` An absolute path.
 		- `cache: Boolean` Default is true.
 		- `title: String` the title for the page.
 		- `component: String` The name of a `Jenie.component`.
-- `external` - If `true` then the response will not be handle by the router. If `false` then the router will handle the response.
+- `external` If `true` then the response will not be handle by the router. If `false` then the router will handle the response.
 	- `RegExp`
-	- `String` - Converted to a `RegExp`.
-	- `Function` - Argument provided is the request path. Expects a boolean return.
+	- `String` Converted to a `RegExp`.
+	- `Function` Argument provided is the request path. Expects a boolean return.
+- `listen: Function` Called to start listening.
+	- `options: Object`
+- `normalize: Function`
+- `join: Function`
+- `scroll: Function`
+- `url: Function`
+- `render: Function`
+- `redirect: Function`
+- `add: Function`
+- `remove: Function`
+- `get: Function`
+- `navigate: Function`
 
-### Jenie.binder(Object: options, Function: callback)
-Returns an instance of a new binder.
+### Jenie.module
+Light weight mostly sync module system.
 
-#### Options
-- `name`
-- `view`
-- `model` After the model is returned by the binder there are helper functions deeply attached i.e. `model.del(String, Number: key)` and `model.ins(String, Number: key, Any: value)`. Also setting a property to `udnefined` will delete or splice it.
-	- `Array` Object to be observed.
-		- `splice` Triggers the callback.
-		- `push` Triggers the callback.
-		- `shift` Triggers the callback.
-		- `pop` Triggers the callback.
-		- `unshift` Triggers the callback.
-	- `Object` Object to be observed.
-		- `remove` Function attached deep removes/deletes a property and triggers the callback.
-		- `set` Function attached deeply sets or adds a new property to be observed triggers the callback.
-	- `Function` Async task to return the model in argument `resolve(Object: model)` provided.
-- `modifiers`
+- Returns: `Object`
+	- `load: Function` Downloads module scripts async but executes sync.
+		- `paths: Array<String>` The src path to the module.
+	- `export: Function` Sets the module.
+		- `name: String` The module name.
+		- `dependencies: Array` Injects the dependencies.
+		- `method: Function` The module method.
+	- `import: Function` Gets the module.
+		- `name: String` The module name.
 
 ### Jenie.http
-- `mime`
-- `fetch`
-- `serialize`
-
-### Jenie.services
-An `object` to store `functions`. Basically a module system. This might change to `Jenie.module` and or might be come more of a robust system.
-
-### Jenie.module(name, method)
-- `name: String` The module name.
-- `method: Function` The module method.
+- Returns: `Object`
+	- `mime: Object`
+	- `fetch: Function`
+	- `serialize: Function`
 
 ### Jenie.query(String: querySelector)
-Returns the result of a querySelector in the **current** document `document.currentScript.ownerDocument.querySelector()`
+The result of a querySelector in the **current** document `document.currentScript.ownerDocument.querySelector()`
+
+- Returns: `document.currentScript.ownerDocument.querySelector()`
 
 ### Jenie.script()
-Returns `document.currentScript`
+- Returns: `document.currentScript`
 
 ### Jenie.document()
-Returns `document.currentScript.ownerDocument`
+- Returns: `document.currentScript.ownerDocument`
+
+### Jenie.services DEPRECATED
+- Returns: `Object` to store values.
 
 ## Authors
 **Alexander Elias** - [AlexanderElias](https://github.com/AlexanderElias)

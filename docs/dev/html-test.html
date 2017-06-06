@@ -1,22 +1,19 @@
 
-<style>
-	[j-each-item] {
-		min-height: 150px;
-	}
-</style>
-
 <template>
+	<style>
+		[j-each-item] {
+			min-height: 150px;
+		}
+	</style>
 	<div>
-		<div>
-			<p j-text="text | upper">{{NULL}}</p>
-			<input type="text" j-value="text" placeholder="text">
-			<input type="text" j-value="items.0.it.val" placeholder="items.0.it.val">
-			<div j-each-item="items">
-				<div j-text="item.it.val"></div>
-			</div>
-			<a href="/js">/js</a>
-			<button j-on-click="say">Say Hello</button>
+		<p j-text="text | upper">{{NULL}}</p>
+		<input type="text" j-value="text" placeholder="text">
+		<input type="text" j-value="items.0.it.val" placeholder="items.0.it.val">
+		<div j-each-item="items">
+			<div j-text="item.it.val"></div>
 		</div>
+		<a href="/js">/js</a>
+		<button j-on-click="say">Say Hello</button>
 	</div>
 </template>
 
@@ -29,7 +26,7 @@
 			{ it: { val: 1 } }
 		],
 		say: function () {
-			var say = Jenie.module('say');
+			var say = Jenie.module.import('say');
 			say('hello from button');
 		}
 	};
@@ -50,17 +47,22 @@
 		},
 		created: function () {
 			var self = this;
-			window.self = self;
 
 			setTimeout(function () {
 				var increaseInterval = setInterval(function () {
+
 					if (self.model.items.length === 100) {
 						clearInterval(increaseInterval);
 
 						var decreaseInterval = setInterval(function () {
-							if (self.model.items.length === 5) clearInterval(decreaseInterval);
+
+							if (self.model.items.length === 5) {
+								clearInterval(decreaseInterval);
+							}
+
 							self.model.items.pop();
 						}, 10);
+
 					}
 
 					self.model.items.push({ it: { val: self.model.items.length } });

@@ -36,21 +36,22 @@
 
 	<script>
 
-		Jenie.module('one', function () {
+		Jenie.module.export('one', function () {
 			return 1;
 		});
 
-		Jenie.module('two', function () {
+		Jenie.module.export('two', function () {
 			return 2;
 		});
 
-		Jenie.module('say', ['one', 'two'], function (one, two, string) {
+		Jenie.module.export('say', ['one', 'two'], function (one, two, string) {
 			console.log(string);
 			console.log(one);
 			console.log(two);
 		});
 
-		Jenie.router({
+		Jenie.router.listen({
+			base: '/dev',
 			routes: [
 				{
 					title: 'html',
@@ -70,6 +71,7 @@
 				}
 			]
 		});
+
 	</script>
 
 </body>

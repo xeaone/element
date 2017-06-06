@@ -794,38 +794,68 @@
 
 	// https://gist.github.com/Wind4/3baa40b26b89b686e4f2
 
-	var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+	var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
-	var uuid = function () {
-		var chars = CHARS, uuid = [];
+	var uuid = function (length) {
+		var uuid = [], i;
 
-		// rfc4122, version 4 form
-		var r;
+		if (length) {
 
-		// rfc4122 requires these characters
-		uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
-		uuid[14] = '4';
-
-		// Fill in random data. At i==19 set the high bits of clock sequence as per rfc4122, sec. 4.1.5
-		for (var i = 0; i < 36; i++) {
-			if (!uuid[i]) {
-				r = 0 | Math.random() * 16;
-				uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+			for (i = 0; i < length; i++) {
+				uuid[i] = chars[0 | Math.random() * length];
 			}
+
+		} else {
+
+			// rfc4122, version 4 form
+			var r;
+
+			// rfc4122 requires these characters
+			uuid[8] = '-', uuid[13] = '-', uuid[14] = '4', uuid[18] = '-', uuid[23] = '-';
+
+			// Fill in random data. At i==19 set the high bits of clock sequence as per rfc4122, sec. 4.1.5
+			for (i = 0; i < 36; i++) {
+				if (!uuid[i]) {
+					r = 0 | Math.random() * 16;
+					uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+				}
+			}
+
 		}
 
 		return uuid.join('');
 	};
 
+	// https://gist.github.com/jed/982883
+	// function uuid (a) {
+	// 	return a                 // if the placeholder was passed, return
+	// 		? (                  // a random number from 0 to 15
+	// 			a ^              // unless b is 8,
+	// 			Math.random()	 // in which case
+	// 			* 16             // a random number from
+	// 			>> a / 4         // 8 to 11
+	// 			).toString(16)   // in hexadecimal
+	// 		: (                  // or otherwise a concatenated string:
+	// 			[1e7] +          // 10000000 +
+	// 			-1e3 +           // -1000 +
+	// 			-4e3 +           // -4000 +
+	// 			-8e3 +           // -80000000 +
+	// 			-1e11            // -100000000000,
+	// 			).replace(       // replacing
+	// 				/[018]/g,    // zeroes, ones, and eights with
+	// 				uuid         // random hex digits
+	// 			);
+	// }
+
 	var Binder$1 = index$2;
 	var Uuid = uuid;
 
 	function Component$1 (options) {
+		var self = this;
+
 		if (!options) throw new Error('Component missing options');
 		if (!options.name) throw new Error('Component missing options.name');
 		if (!options.template) throw new Error('Component missing options.template');
-
-		var self = this;
 
 		self.name = options.name;
 		self.model = options.model;
@@ -833,55 +863,39 @@
 		self.currentScript = (document._currentScript || document.currentScript);
 		self.template = self._template(options.template);
 
-		self.created = options.created ? options.created.bind(self) : undefined;
-		self.attached = options.attached ? options.attached.bind(self) : undefined;
-		self.detached = options.detached ? options.detached.bind(self) : undefined;
-		self.attributed = options.attributed ? options.attributed.bind(self) : undefined;
+		self.elementPrototype = Object.create(HTMLElement.prototype);
 
-		self.proto = self._define(self.name, {
-			attachedCallback: {
-				value: self.attached
-			},
-			detachedCallback: {
-				value: self.detached
-			},
-			attributeChangedCallback: {
-				value: self.attributed
-			},
-			createdCallback: {
-				value: function () {
-					self.element = this;
-					self.uuid = Uuid();
-					self.element.appendChild(document.importNode(self.template.content, true));
+		self.elementPrototype.attachedCallback = options.attached;
+		self.elementPrototype.detachedCallback = options.detached;
+		self.elementPrototype.attributeChangedCallback = options.attributed;
 
-					if (self.model) {
+		self.elementPrototype.createdCallback = function () {
+			var elementInstance = this;
 
-						self.binder = new Binder$1({
-							name: self.uuid,
-							model: self.model,
-							view: self.element,
-							modifiers: self.modifiers
-						}, function () {
-							self.model = this.model.data;
-							self.view = this.view.data;
+			elementInstance.uuid = Uuid();
+			elementInstance.appendChild(document.importNode(self.template.content, true));
 
-							if (self.created) {
-								self.created(self);
-							}
+			if (self.model) {
 
-						});
+				elementInstance.binder = new Binder$1({
+					view: elementInstance,
+					name: elementInstance.uuid,
+					model: self.model,
+					modifiers: self.modifiers
+				}, function () {
+					var binderInstance = this;
+					elementInstance.model = binderInstance.model.data;
+					elementInstance.view = binderInstance.view.data;
+					if (options.created) options.created.call(elementInstance);
+				});
 
-					} else {
-
-						if (self.created) {
-							self.created(self);
-						}
-
-					}
-
-				}
+			} else if (options.created) {
+				options.created.call(elementInstance);
 			}
-		});
+
+		};
+
+		self._define();
 
 	}
 
@@ -919,9 +933,9 @@
 		return template;
 	};
 
-	Component$1.prototype._define = function (name, options) {
-		return document.registerElement(name, {
-			prototype: Object.create(HTMLElement.prototype, options)
+	Component$1.prototype._define = function () {
+		document.registerElement(this.name, {
+			prototype: this.elementPrototype
 		});
 	};
 
@@ -930,41 +944,35 @@
 	function Router$1 (options) {
 		var self = this;
 
+		options = options || {};
+
+		self.cache = {};
+		self.state = {};
+		self.origin = window.location.origin;
+
 		self.external = options.external;
 		self.routes = options.routes || [];
+		self.view = options.view || 'j-view';
 
 		self.hash = !options.hash ? false : options.hash;
 		self.contain = !options.contain ? false : options.contain;
 
-		self.cache = {};
-		self.state = {};
 		self.base = options.base || '';
-		self.origin = window.location.origin;
-		self.root = options.root || '' + (self.hash ? '/#/' : '/');
 
-		window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);
-		window.addEventListener('popstate', self.popstate.bind(self), true);
+		Object.defineProperty(this, 'root', {
+			enumerable: true,
+			get: function () {
+				return this.hash ? '/#/' : '/';
+			}
+		});
 
 	}
 
-	Router$1.prototype.loaded = function () {
-		var self = this;
-
-		self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
-
-		self.navigate(window.location.href, true);
-		(self.contain ? self.view : window).addEventListener('click', self.click.bind(self), true);
-
-		window.removeEventListener('DOMContentLoaded', self.loaded);
-
+	Router$1.prototype._popstate = function (e) {
+		this.navigate(e.state || window.location.href, true);
 	};
 
-	Router$1.prototype.popstate = function (e) {
-		var self = this;
-		self.navigate(e.state || window.location.href, true);
-	};
-
-	Router$1.prototype.click = function (e) {
+	Router$1.prototype._click = function (e) {
 		var self = this;
 
 		if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -995,6 +1003,32 @@
 
 		e.preventDefault();
 		self.navigate(href);
+	};
+
+	Router$1.prototype._loaded = function () {
+		this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
+
+		(this.contain ? this.view : window).addEventListener('click', this._click.bind(this));
+		window.addEventListener('popstate', this._popstate.bind(this));
+		window.removeEventListener('DOMContentLoaded', this._loaded);
+
+		this.navigate(window.location.href, true);
+	};
+
+	Router$1.prototype.listen = function (options) {
+
+		if (options) {
+			for (var key in options) {
+				this[key] = options[key];
+			}
+		}
+
+		if (document.readyState === 'complete' || document.readyState === 'loaded') {
+			this._loaded();
+		} else {
+			window.addEventListener('DOMContentLoaded', this._loaded.bind(this), true);
+		}
+
 	};
 
 	Router$1.prototype.normalize = function (path) {
@@ -1079,6 +1113,10 @@
 
 	};
 
+	Router$1.prototype.redirect = function (path) {
+		window.location.href = path;
+	};
+
 	Router$1.prototype.add = function (route) {
 		var self = this;
 
@@ -1101,10 +1139,6 @@
 
 		}
 
-	};
-
-	Router$1.prototype.redirect = function (path) {
-		window.location.href = path;
 	};
 
 	Router$1.prototype.get = function (path) {
@@ -1158,7 +1192,32 @@
 		this.modules = {};
 	}
 
-	Module$1.prototype.set = function (name, dependencies, method) {
+	Module$1.prototype.load = function (paths) {
+
+		paths.forEach(function(path) {
+			var script = document.createElement('script');
+
+			script.src = path;
+			script.async = false;
+			script.type = 'text/javascript';
+
+			document.head.appendChild(script);
+		});
+
+	};
+
+	Module$1.prototype.import = function (name) {
+		var self = this;
+
+		if (name in self.modules) {
+			return self.modules[name];
+		} else {
+			throw new Error('module ' + name + ' is not defined');
+		}
+
+	};
+
+	Module$1.prototype.export = function (name, dependencies, method) {
 		var self = this;
 
 		if (name in self.modules) {
@@ -1172,22 +1231,11 @@
 
 			if (typeof method === 'function') {
 				dependencies.forEach(function (dependency) {
-					method = method.bind(null, self.get(dependency)());
+					method = method.bind(null, self.import(dependency)());
 				});
 			}
 
 			return self.modules[name] = method;
-		}
-
-	};
-
-	Module$1.prototype.get = function (name) {
-		var self = this;
-
-		if (name in self.modules) {
-			return self.modules[name];
-		} else {
-			throw new Error('module ' + name + ' is not defined');
 		}
 
 	};
@@ -1309,7 +1357,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.1.91
+		version: 1.2.0
 		author: alexander elias
 	*/
 
@@ -1342,37 +1390,32 @@
 	});
 
 	var jenie_b = {
-		modules: {},
 		services: {},
-		_module: new Module(),
-		module: function (name, dependencies, method) {
-			if (dependencies || method) {
-				return this._module.set(name, dependencies, method);
-			} else {
-				return this._module.get(name);
-			}
-		},
-		http: function () {
-			return this.http = new Http();
-		},
-		router: function (options) {
-			return this.router = new Router(options);
-		},
+
+		http: new Http(),
+		module: new Module(),
+		router: new Router(),
+
 		component: function (options) {
 			return new Component(options);
 		},
 		binder: function (options, callback) {
 			return new Binder(options, callback);
 		},
+
 		script: function () {
 			return (document._currentScript || document.currentScript);
 		},
 		document: function () {
 			return (document._currentScript || document.currentScript).ownerDocument;
 		},
+		element: function (name) {
+			return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
+		},
 		query: function (query) {
 			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 		}
+
 	};
 
 	return jenie_b;

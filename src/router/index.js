@@ -2,41 +2,35 @@
 function Router (options) {
 	var self = this;
 
+	options = options || {};
+
+	self.cache = {};
+	self.state = {};
+	self.origin = window.location.origin;
+
 	self.external = options.external;
 	self.routes = options.routes || [];
+	self.view = options.view || 'j-view';
 
 	self.hash = !options.hash ? false : options.hash;
 	self.contain = !options.contain ? false : options.contain;
 
-	self.cache = {};
-	self.state = {};
 	self.base = options.base || '';
-	self.origin = window.location.origin;
-	self.root = options.root || '' + (self.hash ? '/#/' : '/');
 
-	window.addEventListener('DOMContentLoaded', self.loaded.bind(self), true);
-	window.addEventListener('popstate', self.popstate.bind(self), true);
+	Object.defineProperty(this, 'root', {
+		enumerable: true,
+		get: function () {
+			return this.hash ? '/#/' : '/';
+		}
+	});
 
 }
 
-Router.prototype.loaded = function () {
-	var self = this;
-
-	self.view = document.querySelector('j-view') || document.querySelector('[j-view]');
-
-	self.navigate(window.location.href, true);
-	(self.contain ? self.view : window).addEventListener('click', self.click.bind(self), true);
-
-	window.removeEventListener('DOMContentLoaded', self.loaded);
-
+Router.prototype._popstate = function (e) {
+	this.navigate(e.state || window.location.href, true);
 };
 
-Router.prototype.popstate = function (e) {
-	var self = this;
-	self.navigate(e.state || window.location.href, true);
-};
-
-Router.prototype.click = function (e) {
+Router.prototype._click = function (e) {
 	var self = this;
 
 	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -67,6 +61,32 @@ Router.prototype.click = function (e) {
 
 	e.preventDefault();
 	self.navigate(href);
+};
+
+Router.prototype._loaded = function () {
+	this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
+
+	(this.contain ? this.view : window).addEventListener('click', this._click.bind(this));
+	window.addEventListener('popstate', this._popstate.bind(this));
+	window.removeEventListener('DOMContentLoaded', this._loaded);
+
+	this.navigate(window.location.href, true);
+};
+
+Router.prototype.listen = function (options) {
+
+	if (options) {
+		for (var key in options) {
+			this[key] = options[key];
+		}
+	}
+
+	if (document.readyState === 'complete' || document.readyState === 'loaded') {
+		this._loaded();
+	} else {
+		window.addEventListener('DOMContentLoaded', this._loaded.bind(this), true);
+	}
+
 };
 
 Router.prototype.normalize = function (path) {
@@ -151,6 +171,10 @@ Router.prototype.render = function (route) {
 
 };
 
+Router.prototype.redirect = function (path) {
+	window.location.href = path;
+};
+
 Router.prototype.add = function (route) {
 	var self = this;
 
@@ -173,10 +197,6 @@ Router.prototype.remove = function (path) {
 
 	}
 
-};
-
-Router.prototype.redirect = function (path) {
-	window.location.href = path;
 };
 
 Router.prototype.get = function (path) {

@@ -1,7 +1,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.1.92
+	version: 1.2.0
 	author: alexander elias
 */
 
@@ -34,27 +34,11 @@ document.registerElement('j-view', {
 });
 
 module.exports = {
-	modules: {},
 	services: {},
-	
-	_http: new Http(),
-	_module: new Module(),
 
-	http: function (options) {
-		return this._http(options);
-	},
-
-	module: function (name, dependencies, method) {
-		if (dependencies || method) {
-			return this._module.set(name, dependencies, method);
-		} else {
-			return this._module.get(name);
-		}
-	},
-
-	router: function (options) {
-		return this.router = new Router(options);
-	},
+	http: new Http(),
+	module: new Module(),
+	router: new Router(),
 
 	component: function (options) {
 		return new Component(options);
