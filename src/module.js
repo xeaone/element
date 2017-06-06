@@ -21,7 +21,7 @@ Module.prototype.import = function (name) {
 	var self = this;
 
 	if (name in self.modules) {
-		return self.modules[name];
+		return  typeof self.modules[name] === 'function' ? self.modules[name]() : self.modules[name];
 	} else {
 		throw new Error('module ' + name + ' is not defined');
 	}
@@ -46,7 +46,7 @@ Module.prototype.export = function (name, dependencies, method) {
 			});
 		}
 
-		return self.modules[name] = typeof method === 'function' ? method() : method;
+		return self.modules[name] = method;
 	}
 
 };
