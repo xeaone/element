@@ -30,9 +30,11 @@ Unit.prototype.renderMethods = {
 	each: function () {
 		var self = this, animate;
 
-		if (!self.data) {
-			return;
-		} else if (!self.clone) {
+		// if (!self.data) {
+		// 	return;
+		// } else
+
+		if (!self.clone) {
 
 			self.variable = self.attribute.cmds.slice(1).join('.');
 			self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
@@ -40,17 +42,19 @@ Unit.prototype.renderMethods = {
 
 			animate = function () {
 
-				self.element.insertAdjacentHTML(
-					'beforeend',
-					self.clone.replace(
-						self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
-					)
-				);
+				if (!self.data || self.data.length === 0) {
+					self.element.removeChild(self.element.lastChild);
+				} else if (self.element.children.length < self.data.length) {
 
-				self.view.addOne(self.element.lastChild);
-				self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+					self.element.insertAdjacentHTML(
+						'beforeend',
+						self.clone.replace(
+							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+						)
+					);
 
-				if (self.element.children.length < self.data.length) {
+					self.view.addOne(self.element.lastChild);
+					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
 					window.requestAnimationFrame(animate);
 				}
 
@@ -61,19 +65,12 @@ Unit.prototype.renderMethods = {
 		} else if (self.element.children.length > self.data.length) {
 
 			animate = function () {
-
 				if (self.element.children.length > self.data.length) {
-
 					self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
 					self.view.removeOne(self.element.lastChild);
 					self.element.removeChild(self.element.lastChild);
-
-					if (self.element.children.length > self.data.length) {
-						window.requestAnimationFrame(animate);
-					}
-
+					window.requestAnimationFrame(animate);
 				}
-
 			};
 
 			window.requestAnimationFrame(animate);
@@ -93,10 +90,7 @@ Unit.prototype.renderMethods = {
 
 					self.view.addOne(self.element.lastChild);
 					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
-
-					if (self.element.children.length < self.data.length) {
-						window.requestAnimationFrame(animate);
-					}
+					window.requestAnimationFrame(animate);
 
 				}
 
@@ -104,6 +98,18 @@ Unit.prototype.renderMethods = {
 
 			window.requestAnimationFrame(animate);
 
+		} else if (!self.data) {
+
+			animate = function () {
+				if (self.element.lastChild) {
+					self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.removeOne(self.element.lastChild);
+					self.element.removeChild(self.element.lastChild);
+					window.requestAnimationFrame(animate);
+				}
+			};
+
+			window.requestAnimationFrame(animate);
 		}
 
 	},
@@ -223,8 +229,13 @@ Unit.prototype.unrenderMethods = {
 		var self = this;
 
 		var animate = function () {
+
 			self.element.removeChild(self.element.lastChild);
-			if (self.element.lastChild) animate();
+
+			if (self.element.lastChild) {
+				window.requestAnimationFrame(animate);
+			}
+
 		};
 
 		window.requestAnimationFrame(animate);
