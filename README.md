@@ -168,3 +168,4 @@ The result of a querySelector in the **current** document `document.currentScrip
 
 ## License
 This project is licensed under the MPL-2.0 License - [LICENSE.md](LICENSE.md)
+[Why You Should Cheose MPL-2.0](http://veldstra.org/2016/12/09/you-should-choose-mpl2-for-your-opensource-project.html)

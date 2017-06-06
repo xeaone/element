@@ -2,19 +2,13 @@
 	@banner
 	name: jenie
 	version: 1.2.0
+	license: MPL-2.0
 	author: alexander elias
-*/
 
-// if (
-// 	!('registerElement' in document) &&
-// 	!('import' in document.createElement('link')) &&
-// 	!('content' in document.createElement('template'))
-// ) {
-// 	// polyfill the platform
-// 	var eScript = document.createElement('script');
-// 	eScript.src = '/webcomponents-lite.min.js';
-// 	document.body.appendChild(eScript);
-// }
+	This Source Code Form is subject to the terms of the Mozilla Public
+	License, v. 2.0. If a copy of the MPL was not distributed with this
+	file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 
 var Component = require('./component');
 var Binder = require('./binder');
