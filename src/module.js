@@ -42,11 +42,11 @@ Module.prototype.export = function (name, dependencies, method) {
 
 		if (typeof method === 'function') {
 			dependencies.forEach(function (dependency) {
-				method = method.bind(null, self.import(dependency)());
+				method = method.bind(null, self.import(dependency));
 			});
 		}
 
-		return self.modules[name] = method;
+		return self.modules[name] = typeof method === 'function' ? method() : method;
 	}
 
 };
