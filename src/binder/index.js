@@ -27,7 +27,6 @@ function Binder (options, callback) {
 	self.view.listener(function (element, attribute) {
 
 		self.view.data.get(attribute.path).push(Unit({
-			binder: self,
 			view: self.view,
 			model: self.model,
 			element: element,

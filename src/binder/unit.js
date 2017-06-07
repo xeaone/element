@@ -27,7 +27,7 @@ Unit.prototype.renderMethods = {
 
 		if (!self.eventName) {
 			self.eventName = self.attribute.cmds[1];
-			self.data = self.data.bind(self.binder);
+			self.data = self.data.bind(self.model.data);
 		}
 
 		self.element.removeEventListener(self.eventName, self.data);
@@ -276,7 +276,6 @@ Unit.prototype.render = function () {
 };
 
 Unit.prototype.create = function (options) {
-	this.binder = options.binder;
 	this.view = options.view;
 	this.model = options.model;
 	this.data = options.data;
