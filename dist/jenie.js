@@ -447,16 +447,18 @@
 
 	Unit$1.prototype.renderMethods = {
 		on: function () {
-			var eventName = this.attribute.cmds[1];
-			this.element.removeEventListener(eventName, this.data, false);
-			this.element.addEventListener(eventName, this.data, false);
+			var self = this;
+
+			if (!self.eventName) {
+				self.eventName = self.attribute.cmds[1];
+				self.data = self.data.bind(self.binder);
+			}
+
+			self.element.removeEventListener(self.eventName, self.data);
+			self.element.addEventListener(self.eventName, self.data);
 		},
 		each: function () {
 			var self = this, animate;
-
-			// if (!self.data) {
-			// 	return;
-			// } else
 
 			if (!self.clone) {
 
@@ -698,6 +700,7 @@
 	};
 
 	Unit$1.prototype.create = function (options) {
+		this.binder = options.binder;
 		this.view = options.view;
 		this.model = options.model;
 		this.data = options.data;
@@ -763,6 +766,7 @@
 		self.view.listener(function (element, attribute) {
 
 			self.view.data.get(attribute.path).push(Unit({
+				binder: self,
 				view: self.view,
 				model: self.model,
 				element: element,
@@ -1368,8 +1372,8 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.1
-		license: MPL-2.0
+		version: 1.2.2
+		license: mpl-2.0
 		author: alexander elias
 
 		This Source Code Form is subject to the terms of the Mozilla Public
