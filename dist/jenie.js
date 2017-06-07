@@ -451,7 +451,7 @@
 
 			if (!self.eventName) {
 				self.eventName = self.attribute.cmds[1];
-				self.data = self.data.bind(self.binder);
+				self.data = self.data.bind(self.model.data);
 			}
 
 			self.element.removeEventListener(self.eventName, self.data);
@@ -700,7 +700,6 @@
 	};
 
 	Unit$1.prototype.create = function (options) {
-		this.binder = options.binder;
 		this.view = options.view;
 		this.model = options.model;
 		this.data = options.data;
@@ -766,7 +765,6 @@
 		self.view.listener(function (element, attribute) {
 
 			self.view.data.get(attribute.path).push(Unit({
-				binder: self,
 				view: self.view,
 				model: self.model,
 				element: element,
@@ -1372,7 +1370,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.2
+		version: 1.2.3
 		license: mpl-2.0
 		author: alexander elias
 
