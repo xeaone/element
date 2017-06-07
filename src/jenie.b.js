@@ -1,8 +1,8 @@
 /*
 	@banner
 	name: jenie
-	version: 1.2.1
-	license: MPL-2.0
+	version: 1.2.2
+	license: mpl-2.0
 	author: alexander elias
 
 	This Source Code Form is subject to the terms of the Mozilla Public

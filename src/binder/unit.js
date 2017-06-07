@@ -23,16 +23,18 @@ Unit.prototype.toCamelCase = function (data) {
 
 Unit.prototype.renderMethods = {
 	on: function () {
-		var eventName = this.attribute.cmds[1];
-		this.element.removeEventListener(eventName, this.data, false);
-		this.element.addEventListener(eventName, this.data, false);
+		var self = this;
+
+		if (!self.eventName) {
+			self.eventName = self.attribute.cmds[1];
+			self.data = self.data.bind(self.binder);
+		}
+
+		self.element.removeEventListener(self.eventName, self.data);
+		self.element.addEventListener(self.eventName, self.data);
 	},
 	each: function () {
 		var self = this, animate;
-
-		// if (!self.data) {
-		// 	return;
-		// } else
 
 		if (!self.clone) {
 
@@ -274,6 +276,7 @@ Unit.prototype.render = function () {
 };
 
 Unit.prototype.create = function (options) {
+	this.binder = options.binder;
 	this.view = options.view;
 	this.model = options.model;
 	this.data = options.data;
