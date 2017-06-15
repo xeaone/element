@@ -146,8 +146,40 @@ Light weight mostly sync module system.
 ### Jenie.http
 - Returns: `Object`
 	- `mime: Object`
-	- `fetch: Function`
 	- `serialize: Function`
+	- `fetch: Function`
+		- `options: Object`
+			- `action: String` Resource action url. **Required**
+			- `success: Function` **Required**
+			- `error: Function` **Required**
+
+			- `method: String` Valid methods get, post, put, delete
+			- `data: Object` If method is `GET` than data is concatenated to the `action/url` as parameters.
+
+			- `requestType: String` Converts the request data before sending.
+				- `script` 'text/javascript, application/javascript, application/x-javascript'
+				- `json` 'application/json' stringify `options.data`
+				- `xml` 'application/xml, text/xml'
+				- `html` 'text/html'
+				- `text` 'text/plain'
+				- DEFAULT 'application/x-www-form-urlencoded' serialized `options.data`
+
+			- `responseType: String` Converts the response data after sending.
+				- `script` 'text/javascript, application/javascript, application/x-javascript'
+				- `json` 'application/json'
+				- `xml` 'application/xml, text/xml'
+				- `html` 'text/html'
+				- `text` 'text/plain'
+
+			- `contentType: String` Short hand to set the Content-Type Headers. (For request)
+			- `accept: String` Short hand to set the Accept Headers. (For response)
+
+			- `mimeType: String` Overwrites return type.
+			- `username: String`
+			- `password: String`
+			- `withCredentials: Boolean`
+			- `headers: Object`    A low level headers object it will map directly to the XHR header. The Will overwrite any above options.
+
 
 ### Jenie.query(String: querySelector)
 The result of a querySelector in the **current** document `document.currentScript.ownerDocument.querySelector()`
