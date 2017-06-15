@@ -232,7 +232,7 @@
 	}
 
 	Collection$1.prototype.get = function (key) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return this.data[i][1];
 			}
@@ -240,7 +240,7 @@
 	};
 
 	Collection$1.prototype.remove = function (key) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return this.data.splice(i, 1)[0][1];
 			}
@@ -252,7 +252,7 @@
 	};
 
 	Collection$1.prototype.has = function (key) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return true;
 			}
@@ -262,13 +262,13 @@
 	};
 
 	Collection$1.prototype.set = function (key, value) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return this.data[i][1] = value;
 			}
 		}
 
-		return this.data[l] = [key, value];
+		return this.data[this.data.length] = [key, value];
 	};
 
 	Collection$1.prototype.push = function (value) {
@@ -283,7 +283,7 @@
 	Collection$1.prototype.forEach = function (callback, context) {
 		context = context || null;
 
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			callback.call(context, this.data[i][1], this.data[i][0], i, this.data);
 		}
 	};
@@ -479,8 +479,8 @@
 							)
 						);
 
-						self.view.addOne(self.element.lastChild);
 						self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+						self.view.addOne(self.element.lastChild);
 						window.requestAnimationFrame(animate);
 					}
 
@@ -514,8 +514,8 @@
 							)
 						);
 
-						self.view.addOne(self.element.lastChild);
 						self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+						self.view.addOne(self.element.lastChild);
 						window.requestAnimationFrame(animate);
 
 					}

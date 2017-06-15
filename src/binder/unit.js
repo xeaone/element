@@ -55,8 +55,8 @@ Unit.prototype.renderMethods = {
 						)
 					);
 
-					self.view.addOne(self.element.lastChild);
 					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.addOne(self.element.lastChild);
 					window.requestAnimationFrame(animate);
 				}
 
@@ -90,8 +90,8 @@ Unit.prototype.renderMethods = {
 						)
 					);
 
-					self.view.addOne(self.element.lastChild);
 					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.addOne(self.element.lastChild);
 					window.requestAnimationFrame(animate);
 
 				}

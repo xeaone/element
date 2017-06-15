@@ -6,7 +6,7 @@ function Collection (data) {
 }
 
 Collection.prototype.get = function (key) {
-	for (var i = 0, l = this.data.length; i < l; i++) {
+	for (var i = 0; i < this.data.length; i++) {
 		if (key === this.data[i][0]) {
 			return this.data[i][1];
 		}
@@ -14,7 +14,7 @@ Collection.prototype.get = function (key) {
 };
 
 Collection.prototype.remove = function (key) {
-	for (var i = 0, l = this.data.length; i < l; i++) {
+	for (var i = 0; i < this.data.length; i++) {
 		if (key === this.data[i][0]) {
 			return this.data.splice(i, 1)[0][1];
 		}
@@ -26,7 +26,7 @@ Collection.prototype.removeById = function (id) {
 };
 
 Collection.prototype.has = function (key) {
-	for (var i = 0, l = this.data.length; i < l; i++) {
+	for (var i = 0; i < this.data.length; i++) {
 		if (key === this.data[i][0]) {
 			return true;
 		}
@@ -36,13 +36,13 @@ Collection.prototype.has = function (key) {
 };
 
 Collection.prototype.set = function (key, value) {
-	for (var i = 0, l = this.data.length; i < l; i++) {
+	for (var i = 0; i < this.data.length; i++) {
 		if (key === this.data[i][0]) {
 			return this.data[i][1] = value;
 		}
 	}
 
-	return this.data[l] = [key, value];
+	return this.data[this.data.length] = [key, value];
 };
 
 Collection.prototype.push = function (value) {
@@ -57,7 +57,7 @@ Collection.prototype.size = function () {
 Collection.prototype.forEach = function (callback, context) {
 	context = context || null;
 
-	for (var i = 0, l = this.data.length; i < l; i++) {
+	for (var i = 0; i < this.data.length; i++) {
 		callback.call(context, this.data[i][1], this.data[i][0], i, this.data);
 	}
 };

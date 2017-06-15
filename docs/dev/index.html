@@ -44,10 +44,12 @@
 			return 2;
 		});
 
-		Jenie.module.export('say', ['one', 'two'], function (one, two, string) {
-			console.log(string);
-			console.log(one);
-			console.log(two);
+		Jenie.module.export('say', ['one', 'two'], function (one, two) {
+			return function (string) {
+				console.log(string);
+				console.log(one);
+				console.log(two);
+			}
 		});
 
 		Jenie.router.listen({
