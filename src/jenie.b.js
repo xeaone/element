@@ -1,7 +1,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.2.4
+	version: 1.2.5
 	license: mpl-2.0
 	author: alexander elias
 

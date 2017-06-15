@@ -27,11 +27,11 @@ Unit.prototype.renderMethods = {
 
 		if (!self.eventName) {
 			self.eventName = self.attribute.cmds[1];
-			self.data = self.data.bind(self.model.data);
+			self.eventMethod = self.data.bind(self.model.data);
 		}
 
-		self.element.removeEventListener(self.eventName, self.data);
-		self.element.addEventListener(self.eventName, self.data);
+		self.element.removeEventListener(self.eventName, self.eventMethod);
+		self.element.addEventListener(self.eventName, self.eventMethod);
 	},
 	each: function () {
 		var self = this, animate;

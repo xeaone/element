@@ -451,11 +451,11 @@
 
 			if (!self.eventName) {
 				self.eventName = self.attribute.cmds[1];
-				self.data = self.data.bind(self.model.data);
+				self.eventMethod = self.data.bind(self.model.data);
 			}
 
-			self.element.removeEventListener(self.eventName, self.data);
-			self.element.addEventListener(self.eventName, self.data);
+			self.element.removeEventListener(self.eventName, self.eventMethod);
+			self.element.addEventListener(self.eventName, self.eventMethod);
 		},
 		each: function () {
 			var self = this, animate;
@@ -1370,7 +1370,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.4
+		version: 1.2.5
 		license: mpl-2.0
 		author: alexander elias
 
