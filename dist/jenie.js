@@ -959,8 +959,8 @@
 
 		options = options || {};
 
-		self.cache = {};
 		self.state = {};
+		self.cache = {};
 		self.origin = window.location.origin;
 
 		self.external = options.external;
@@ -1045,17 +1045,40 @@
 	};
 
 	Router$1.prototype.normalize = function (path) {
-		path = decodeURI(path).replace(/\/{2,}/g, '/')
+		path = decodeURI(path)
+		.replace(/\/{2,}/g, '/')
 		.replace(/(http(s)?:\/)/, '$1/')
-		.replace(/\?.*/, '');
+		.replace(/\?.*?/, '');
 
-		if (!this.hash) path = path.replace(/#.*?/, '');
+		if (!this.hash) path = path.replace(/#.*?$/, '');
 
 		return 	path = path === '' ? '/' : path;
 	};
 
-	Router$1.prototype.extension = function (path) {
-		return this.normalize(path.match(/\.\w+$/));
+	Router$1.prototype.parse = function (path) {
+		return new RegExp('^'+ path
+			.replace(/{\*}/g, '(?:.*)')
+			.replace(/{(\w+)}/g, '([^\/]+)')
+			+ '(\/)?$'
+		);
+	};
+
+	Router$1.prototype.parameters = function (routePath, userPath) {
+		var name;
+		var parameters = {};
+		var brackets = /{|}/g;
+		var pattern = /{(\w+)}/;
+		var userPaths = userPath.split('/');
+		var routePaths = routePath.split('/');
+
+		routePaths.forEach(function (path, index) {
+			if (pattern.test(path)) {
+				name = path.replace(brackets, '');
+				parameters[name] = userPaths[index];
+			}
+		});
+
+		return parameters;
 	};
 
 	Router$1.prototype.join = function () {
@@ -1090,10 +1113,11 @@
 			url.path = url.path.replace(url.root, '/');
 		}
 
-		url.path = this.normalize(url.path);
-		url.path = url.path[0] === '/' ? url.path : '/' + url.path;
-		url.path = this.extension(url.path) ? url.path : url.path + '/';
+		if (url.path[0] !== '/') {
+			url.path = this.join(window.location.pathname.replace(this.base, ''), url.path);
+		}
 
+		url.path = this.join(url.path, '/');
 		url.href = this.join(url.origin, url.base, url.root, url.path);
 
 		return url;
@@ -1107,7 +1131,7 @@
 			document.title = route.title;
 		}
 
-		if (route.cache === true || route.cache === undefined) {
+		if (route.cache === undefined || route.cache === true) {
 
 			component = self.cache[route.component];
 
@@ -1168,11 +1192,18 @@
 			if (!route.path) {
 				continue;
 			} else if (route.path.constructor.name === 'String') {
-				if (route.path === path) return route;
+				if (self.parse(route.path).test(path)) {
+					route.parameters = self.parameters(route.path, path);
+					return route;
+				}
 			} else if (route.path.constructor.name === 'RegExp') {
-				if (route.path.test(path)) return route;
+				if (route.path.test(path)) {
+					return route;
+				}
 			} else if (route.path.constructor.name === 'Function') {
-				if (route.path(path)) return route;
+				if (route.path(path)){
+					return route;
+				}
 			}
 
 		}
@@ -1184,7 +1215,8 @@
 
 		if (typeof data === 'string') {
 			self.state.url = self.url(data);
-			self.state.route = self.get(self.state.url.path);
+			self.state.route = self.get(self.state.url.path) || {};
+			self.state.parameters = self.state.route.parameters || {};
 			self.state.title = self.state.route.title || '';
 		} else {
 			self.state = data;
@@ -1375,7 +1407,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.5
+		version: 1.2.6
 		license: mpl-2.0
 		author: alexander elias
 
