@@ -261,6 +261,7 @@ Router.prototype.navigate = function (data, replace) {
 	if (typeof data === 'string') {
 		self.state.url = self.url(data);
 		self.state.route = self.get(self.state.url.path) || {};
+		self.state.parameters = self.state.route.parameters || {};
 		self.state.title = self.state.route.title || '';
 	} else {
 		self.state = data;
