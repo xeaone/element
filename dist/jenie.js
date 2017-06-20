@@ -1049,7 +1049,13 @@
 		.replace(/(http(s)?:\/)/, '$1/')
 		.replace(/\?.*/, '');
 
+		if (!this.hash) path = path.replace(/#.*?/, '');
+
 		return 	path = path === '' ? '/' : path;
+	};
+
+	Router$1.prototype.extension = function (path) {
+		return this.normalize(path.match(/\.\w+$/));
 	};
 
 	Router$1.prototype.join = function () {
@@ -1061,14 +1067,12 @@
 	};
 
 	Router$1.prototype.url = function (path) {
-		var self = this;
 		var url = {};
 
-		url.base = self.base;
-		url.root = self.root;
-		url.origin = self.origin;
-
 		url.path = path;
+		url.base = this.base;
+		url.root = this.root;
+		url.origin = this.origin;
 
 		if (url.path.indexOf(url.origin) === 0) {
 			url.path = url.path.replace(url.origin, '');
@@ -1086,10 +1090,11 @@
 			url.path = url.path.replace(url.root, '/');
 		}
 
-		url.path = self.normalize(url.path);
+		url.path = this.normalize(url.path);
 		url.path = url.path[0] === '/' ? url.path : '/' + url.path;
+		url.path = this.extension(url.path) ? url.path : url.path + '/';
 
-		url.href = self.join(url.origin, url.base, url.root, url.path);
+		url.href = this.join(url.origin, url.base, url.root, url.path);
 
 		return url;
 	};

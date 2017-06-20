@@ -4,8 +4,8 @@ function Router (options) {
 
 	options = options || {};
 
-	self.cache = {};
 	self.state = {};
+	self.cache = {};
 	self.origin = window.location.origin;
 
 	self.external = options.external;
@@ -90,11 +90,40 @@ Router.prototype.listen = function (options) {
 };
 
 Router.prototype.normalize = function (path) {
-	path = decodeURI(path).replace(/\/{2,}/g, '/')
+	path = decodeURI(path)
+	.replace(/\/{2,}/g, '/')
 	.replace(/(http(s)?:\/)/, '$1/')
-	.replace(/\?.*/, '');
+	.replace(/\?.*?/, '');
+
+	if (!this.hash) path = path.replace(/#.*?$/, '');
 
 	return 	path = path === '' ? '/' : path;
+};
+
+Router.prototype.parse = function (path) {
+	return new RegExp('^'+ path
+		.replace(/{\*}/g, '(?:.*)')
+		.replace(/{(\w+)}/g, '([^\/]+)')
+		+ '(\/)?$'
+	);
+};
+
+Router.prototype.parameters = function (routePath, userPath) {
+	var name;
+	var parameters = {};
+	var brackets = /{|}/g;
+	var pattern = /{(\w+)}/;
+	var userPaths = userPath.split('/');
+	var routePaths = routePath.split('/');
+
+	routePaths.forEach(function (path, index) {
+		if (pattern.test(path)) {
+			name = path.replace(brackets, '');
+			parameters[name] = userPaths[index];
+		}
+	});
+
+	return parameters;
 };
 
 Router.prototype.join = function () {
@@ -106,14 +135,12 @@ Router.prototype.scroll = function (x, y) {
 };
 
 Router.prototype.url = function (path) {
-	var self = this;
 	var url = {};
 
-	url.base = self.base;
-	url.root = self.root;
-	url.origin = self.origin;
-
 	url.path = path;
+	url.base = this.base;
+	url.root = this.root;
+	url.origin = this.origin;
 
 	if (url.path.indexOf(url.origin) === 0) {
 		url.path = url.path.replace(url.origin, '');
@@ -131,10 +158,12 @@ Router.prototype.url = function (path) {
 		url.path = url.path.replace(url.root, '/');
 	}
 
-	url.path = self.normalize(url.path);
-	url.path = url.path[0] === '/' ? url.path : '/' + url.path;
+	if (url.path[0] !== '/') {
+		url.path = this.join(window.location.pathname.replace(this.base, ''), url.path);
+	}
 
-	url.href = self.join(url.origin, url.base, url.root, url.path);
+	url.path = this.join(url.path, '/');
+	url.href = this.join(url.origin, url.base, url.root, url.path);
 
 	return url;
 };
@@ -147,7 +176,7 @@ Router.prototype.render = function (route) {
 		document.title = route.title;
 	}
 
-	if (route.cache === true || route.cache === undefined) {
+	if (route.cache === undefined || route.cache === true) {
 
 		component = self.cache[route.component];
 
@@ -208,11 +237,18 @@ Router.prototype.get = function (path) {
 		if (!route.path) {
 			continue;
 		} else if (route.path.constructor.name === 'String') {
-			if (route.path === path) return route;
+			if (self.parse(route.path).test(path)) {
+				route.parameters = self.parameters(route.path, path);
+				return route;
+			}
 		} else if (route.path.constructor.name === 'RegExp') {
-			if (route.path.test(path)) return route;
+			if (route.path.test(path)) {
+				return route;
+			}
 		} else if (route.path.constructor.name === 'Function') {
-			if (route.path(path)) return route;
+			if (route.path(path)){
+				return route;
+			}
 		}
 
 	}
@@ -224,7 +260,7 @@ Router.prototype.navigate = function (data, replace) {
 
 	if (typeof data === 'string') {
 		self.state.url = self.url(data);
-		self.state.route = self.get(self.state.url.path);
+		self.state.route = self.get(self.state.url.path) || {};
 		self.state.title = self.state.route.title || '';
 	} else {
 		self.state = data;

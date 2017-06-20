@@ -30,6 +30,8 @@
 		<li><a href="js">js</a></li>
 		<li><a href="/js">/js</a></li>
 		<li><a href="/#/js">/#/js</a></li>
+		<li><a href="/404">/404</a></li>
+		<li><a href="/404/bad/request">/404/bad/request</a></li>
 	</ul>
 
 	<j-view></j-view>
@@ -68,7 +70,12 @@
 				},
 				{
 					title: '404',
-					path: /.*/,
+					path: '/{param}',
+					component: 'j-404'
+				},
+				{
+					title: '404',
+					path: '/{*}',
 					component: 'j-404'
 				}
 			]

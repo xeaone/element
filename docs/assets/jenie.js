@@ -232,7 +232,7 @@
 	}
 
 	Collection$1.prototype.get = function (key) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return this.data[i][1];
 			}
@@ -240,7 +240,7 @@
 	};
 
 	Collection$1.prototype.remove = function (key) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return this.data.splice(i, 1)[0][1];
 			}
@@ -252,7 +252,7 @@
 	};
 
 	Collection$1.prototype.has = function (key) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return true;
 			}
@@ -262,13 +262,13 @@
 	};
 
 	Collection$1.prototype.set = function (key, value) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return this.data[i][1] = value;
 			}
 		}
 
-		return this.data[l] = [key, value];
+		return this.data[this.data.length] = [key, value];
 	};
 
 	Collection$1.prototype.push = function (value) {
@@ -283,7 +283,7 @@
 	Collection$1.prototype.forEach = function (callback, context) {
 		context = context || null;
 
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (var i = 0; i < this.data.length; i++) {
 			callback.call(context, this.data[i][1], this.data[i][0], i, this.data);
 		}
 	};
@@ -447,16 +447,20 @@
 
 	Unit$1.prototype.renderMethods = {
 		on: function () {
-			var eventName = this.attribute.cmds[1];
-			this.element.removeEventListener(eventName, this.data, false);
-			this.element.addEventListener(eventName, this.data, false);
+			var self = this;
+
+			if (!self.eventName) {
+				self.eventName = self.attribute.cmds[1];
+				self.eventMethod = self.data.bind(self.model.data);
+			}
+
+			self.element.removeEventListener(self.eventName, self.eventMethod);
+			self.element.addEventListener(self.eventName, self.eventMethod);
 		},
 		each: function () {
 			var self = this, animate;
 
-			if (!self.data) {
-				return;
-			} else if (!self.clone) {
+			if (!self.clone) {
 
 				self.variable = self.attribute.cmds.slice(1).join('.');
 				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
@@ -464,17 +468,19 @@
 
 				animate = function () {
 
-					self.element.insertAdjacentHTML(
-						'beforeend',
-						self.clone.replace(
-							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
-						)
-					);
+					if (!self.data || self.data.length === 0) {
+						self.element.removeChild(self.element.lastChild);
+					} else if (self.element.children.length < self.data.length) {
 
-					self.view.addOne(self.element.lastChild);
-					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+						self.element.insertAdjacentHTML(
+							'beforeend',
+							self.clone.replace(
+								self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+							)
+						);
 
-					if (self.element.children.length < self.data.length) {
+						self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+						self.view.addOne(self.element.lastChild);
 						window.requestAnimationFrame(animate);
 					}
 
@@ -485,19 +491,12 @@
 			} else if (self.element.children.length > self.data.length) {
 
 				animate = function () {
-
 					if (self.element.children.length > self.data.length) {
-
 						self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
 						self.view.removeOne(self.element.lastChild);
 						self.element.removeChild(self.element.lastChild);
-
-						if (self.element.children.length > self.data.length) {
-							window.requestAnimationFrame(animate);
-						}
-
+						window.requestAnimationFrame(animate);
 					}
-
 				};
 
 				window.requestAnimationFrame(animate);
@@ -515,12 +514,9 @@
 							)
 						);
 
-						self.view.addOne(self.element.lastChild);
 						self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
-
-						if (self.element.children.length < self.data.length) {
-							window.requestAnimationFrame(animate);
-						}
+						self.view.addOne(self.element.lastChild);
+						window.requestAnimationFrame(animate);
 
 					}
 
@@ -528,6 +524,18 @@
 
 				window.requestAnimationFrame(animate);
 
+			} else if (!self.data) {
+
+				animate = function () {
+					if (self.element.lastChild) {
+						self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
+						self.view.removeOne(self.element.lastChild);
+						self.element.removeChild(self.element.lastChild);
+						window.requestAnimationFrame(animate);
+					}
+				};
+
+				window.requestAnimationFrame(animate);
 			}
 
 		},
@@ -647,8 +655,13 @@
 			var self = this;
 
 			var animate = function () {
+
 				self.element.removeChild(self.element.lastChild);
-				if (self.element.lastChild) animate();
+
+				if (self.element.lastChild) {
+					window.requestAnimationFrame(animate);
+				}
+
 			};
 
 			window.requestAnimationFrame(animate);
@@ -946,8 +959,8 @@
 
 		options = options || {};
 
-		self.cache = {};
 		self.state = {};
+		self.cache = {};
 		self.origin = window.location.origin;
 
 		self.external = options.external;
@@ -1032,11 +1045,40 @@
 	};
 
 	Router$1.prototype.normalize = function (path) {
-		path = decodeURI(path).replace(/\/{2,}/g, '/')
+		path = decodeURI(path)
+		.replace(/\/{2,}/g, '/')
 		.replace(/(http(s)?:\/)/, '$1/')
-		.replace(/\?.*/, '');
+		.replace(/\?.*?/, '');
+
+		if (!this.hash) path = path.replace(/#.*?$/, '');
 
 		return 	path = path === '' ? '/' : path;
+	};
+
+	Router$1.prototype.parse = function (path) {
+		return new RegExp('^'+ path
+			.replace(/{\*}/g, '(?:.*)')
+			.replace(/{(\w+)}/g, '([^\/]+)')
+			+ '(\/)?$'
+		);
+	};
+
+	Router$1.prototype.parameters = function (routePath, userPath) {
+		var name;
+		var parameters = {};
+		var brackets = /{|}/g;
+		var pattern = /{(\w+)}/;
+		var userPaths = userPath.split('/');
+		var routePaths = routePath.split('/');
+
+		routePaths.forEach(function (path, index) {
+			if (pattern.test(path)) {
+				name = path.replace(brackets, '');
+				parameters[name] = userPaths[index];
+			}
+		});
+
+		return parameters;
 	};
 
 	Router$1.prototype.join = function () {
@@ -1048,14 +1090,12 @@
 	};
 
 	Router$1.prototype.url = function (path) {
-		var self = this;
 		var url = {};
 
-		url.base = self.base;
-		url.root = self.root;
-		url.origin = self.origin;
-
 		url.path = path;
+		url.base = this.base;
+		url.root = this.root;
+		url.origin = this.origin;
 
 		if (url.path.indexOf(url.origin) === 0) {
 			url.path = url.path.replace(url.origin, '');
@@ -1073,10 +1113,12 @@
 			url.path = url.path.replace(url.root, '/');
 		}
 
-		url.path = self.normalize(url.path);
-		url.path = url.path[0] === '/' ? url.path : '/' + url.path;
+		if (url.path[0] !== '/') {
+			url.path = this.join(window.location.pathname.replace(this.base, ''), url.path);
+		}
 
-		url.href = self.join(url.origin, url.base, url.root, url.path);
+		url.path = this.join(url.path, '/');
+		url.href = this.join(url.origin, url.base, url.root, url.path);
 
 		return url;
 	};
@@ -1089,7 +1131,7 @@
 			document.title = route.title;
 		}
 
-		if (route.cache === true || route.cache === undefined) {
+		if (route.cache === undefined || route.cache === true) {
 
 			component = self.cache[route.component];
 
@@ -1150,11 +1192,18 @@
 			if (!route.path) {
 				continue;
 			} else if (route.path.constructor.name === 'String') {
-				if (route.path === path) return route;
+				if (self.parse(route.path).test(path)) {
+					route.parameters = self.parameters(route.path, path);
+					return route;
+				}
 			} else if (route.path.constructor.name === 'RegExp') {
-				if (route.path.test(path)) return route;
+				if (route.path.test(path)) {
+					return route;
+				}
 			} else if (route.path.constructor.name === 'Function') {
-				if (route.path(path)) return route;
+				if (route.path(path)){
+					return route;
+				}
 			}
 
 		}
@@ -1166,7 +1215,7 @@
 
 		if (typeof data === 'string') {
 			self.state.url = self.url(data);
-			self.state.route = self.get(self.state.url.path);
+			self.state.route = self.get(self.state.url.path) || {};
 			self.state.title = self.state.route.title || '';
 		} else {
 			self.state = data;
@@ -1210,7 +1259,7 @@
 		var self = this;
 
 		if (name in self.modules) {
-			return self.modules[name];
+			return  typeof self.modules[name] === 'function' ? self.modules[name]() : self.modules[name];
 		} else {
 			throw new Error('module ' + name + ' is not defined');
 		}
@@ -1235,7 +1284,7 @@
 				});
 			}
 
-			return self.modules[name] = typeof method === 'function' ? method() : method;
+			return self.modules[name] = method;
 		}
 
 	};
@@ -1357,8 +1406,8 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.0
-		license: MPL-2.0
+		version: 1.2.5
+		license: mpl-2.0
 		author: alexander elias
 
 		This Source Code Form is subject to the terms of the Mozilla Public
