@@ -1,8 +1,11 @@
+var Events = require('events');
 
 function Router (options) {
 	var self = this;
 
 	options = options || {};
+
+	Events.call(self);
 
 	self.state = {};
 	self.cache = {};
@@ -25,6 +28,9 @@ function Router (options) {
 	});
 
 }
+
+Router.prototype = Object.create(Events.prototype);
+Router.prototype.constructor = Router;
 
 Router.prototype._popstate = function (e) {
 	this.navigate(e.state || window.location.href, true);
@@ -168,7 +174,7 @@ Router.prototype.url = function (path) {
 	return url;
 };
 
-Router.prototype.render = function (route) {
+Router.prototype.render = function (route, callback) {
 	var self = this;
 	var component = self.cache[route.component];
 
@@ -196,12 +202,15 @@ Router.prototype.render = function (route) {
 
 		self.view.appendChild(component);
 
+		return callback();
+
 	});
 
 };
 
-Router.prototype.redirect = function (path) {
+Router.prototype.redirect = function (path, callback) {
 	window.location.href = path;
+	return callback();
 };
 
 Router.prototype.add = function (route) {
@@ -270,13 +279,15 @@ Router.prototype.navigate = function (data, replace) {
 	window.history[replace ? 'replaceState' : 'pushState'](self.state, self.state.route.title, self.state.url.href);
 
 	if (self.state.route.redirect) {
-		self.redirect(self.state.route);
+		self.redirect(self.state.route, function () {
+			if (!replace) self.scroll(0, 0);
+			self.emit('navigated');
+		});
 	} else {
-		self.render(self.state.route);
-	}
-
-	if (!replace) {
-		self.scroll(0, 0);
+		self.render(self.state.route, function () {
+			if (!replace) self.scroll(0, 0);
+			self.emit('navigated');
+		});
 	}
 
 };
