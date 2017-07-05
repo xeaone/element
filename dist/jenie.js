@@ -1067,17 +1067,19 @@
 		self.navigate(href);
 	};
 
-	Router$1.prototype._loaded = function () {
+	Router$1.prototype._load = function (callback) {
 		this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
 
 		(this.contain ? this.view : window).addEventListener('click', this._click.bind(this));
 		window.addEventListener('popstate', this._popstate.bind(this));
-		window.removeEventListener('DOMContentLoaded', this._loaded);
+		window.removeEventListener('DOMContentLoaded', this._load);
 
 		this.navigate(window.location.href, true);
+
+		if (callback) return callback();
 	};
 
-	Router$1.prototype.listen = function (options) {
+	Router$1.prototype.listen = function (options, callback) {
 
 		if (options) {
 			for (var key in options) {
@@ -1086,9 +1088,9 @@
 		}
 
 		if (document.readyState === 'complete' || document.readyState === 'loaded') {
-			this._loaded();
+			this._load(callback);
 		} else {
-			window.addEventListener('DOMContentLoaded', this._loaded.bind(this), true);
+			window.addEventListener('DOMContentLoaded', this._load.bind(this, callback), true);
 		}
 
 	};
@@ -1461,7 +1463,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.7
+		version: 1.2.8
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1493,6 +1495,20 @@
 		http: new Http(),
 		module: new Module(),
 		router: new Router(),
+
+		setup: function (data, callback) {
+			var self = this;
+
+			if (data.module) {
+				data.module.forEach(function (parameters) {
+					self.module.export.apply(self, parameters);
+				});
+			}
+
+			self.router.listen(data.router, function () {
+				return callback();
+			});
+		},
 
 		component: function (options) {
 			return new Component(options);
