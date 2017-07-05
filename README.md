@@ -68,6 +68,16 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 
 ## API
 
+### Jenie.setup(options, callback)
+Is the recommend entery point.
+
+- `options: Object`
+	- `module: Array` parameters for each module to export.
+		- `name: String` module name.
+		- `dependencies: Array` optional array of dependencies.
+		- `method: Function` module function to export.
+	- `router: Object` router options please see Jenie.router.
+
 ### Jenie.component(options)
 Returns a Jenie component and defines a web component.
 
@@ -118,7 +128,8 @@ Custom element router.
 	- `String` Converted to a `RegExp`.
 	- `Function` Argument provided is the request path. Expects a boolean return.
 - `listen: Function` Called to start listening.
-	- `options: Object`
+	- `options: Object` Same as Jenie.router options.
+	- `callback: Function` Called after routing is ready and DOMContentLoaded.
 - `normalize: Function`
 - `join: Function`
 - `scroll: Function`
@@ -129,6 +140,8 @@ Custom element router.
 - `remove: Function`
 - `get: Function`
 - `navigate: Function`
+- `on: EventEmitter`
+	- `navigated: Event`
 
 ### Jenie.module
 Light weight mostly sync module system.

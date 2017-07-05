@@ -1,7 +1,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.2.7
+	version: 1.2.8
 	license: mpl-2.0
 	author: alexander elias
 
@@ -33,6 +33,20 @@ module.exports = {
 	http: new Http(),
 	module: new Module(),
 	router: new Router(),
+
+	setup: function (data, callback) {
+		var self = this;
+
+		if (data.module) {
+			data.module.forEach(function (parameters) {
+				self.module.export.apply(self, parameters);
+			});
+		}
+
+		self.router.listen(data.router, function () {
+			return callback();
+		});
+	},
 
 	component: function (options) {
 		return new Component(options);

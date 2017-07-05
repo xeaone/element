@@ -69,17 +69,19 @@ Router.prototype._click = function (e) {
 	self.navigate(href);
 };
 
-Router.prototype._loaded = function () {
+Router.prototype._load = function (callback) {
 	this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
 
 	(this.contain ? this.view : window).addEventListener('click', this._click.bind(this));
 	window.addEventListener('popstate', this._popstate.bind(this));
-	window.removeEventListener('DOMContentLoaded', this._loaded);
+	window.removeEventListener('DOMContentLoaded', this._load);
 
 	this.navigate(window.location.href, true);
+
+	if (callback) return callback();
 };
 
-Router.prototype.listen = function (options) {
+Router.prototype.listen = function (options, callback) {
 
 	if (options) {
 		for (var key in options) {
@@ -88,9 +90,9 @@ Router.prototype.listen = function (options) {
 	}
 
 	if (document.readyState === 'complete' || document.readyState === 'loaded') {
-		this._loaded();
+		this._load(callback);
 	} else {
-		window.addEventListener('DOMContentLoaded', this._loaded.bind(this), true);
+		window.addEventListener('DOMContentLoaded', this._load.bind(this, callback), true);
 	}
 
 };
