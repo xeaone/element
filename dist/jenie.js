@@ -954,10 +954,56 @@
 
 	var index = Component$1;
 
+	function Events$1 () {
+	    this.events = {};
+	}
+
+	Events$1.prototype.on = function (name, listener) {
+	    if (typeof this.events[name] !== 'object') {
+	        this.events[name] = [];
+	    }
+
+	    this.events[name].push(listener);
+	};
+
+	Events$1.prototype.off = function (name, listener) {
+	    if (typeof this.events[name] === 'object') {
+			var index = this.events[name].indexOf(listener);
+
+	        if (index > -1) {
+	            this.events[name].splice(index, 1);
+	        }
+	    }
+	};
+
+	Events$1.prototype.once = function (name, listener) {
+		this.on(name, function f () {
+			this.off(name, f);
+			listener.apply(this, arguments);
+		});
+	};
+
+	Events$1.prototype.emit = function (name) {
+	    if (typeof this.events[name] === 'object') {
+	        var listeners = this.events[name].slice();
+			var args = [].slice.call(arguments, 1);
+
+	        for (var i = 0, l = listeners.length; i < l; i++) {
+	            listeners[i].apply(this, args);
+	        }
+	    }
+	};
+
+	var events = Events$1;
+
+	var Events = events;
+
 	function Router$1 (options) {
 		var self = this;
 
 		options = options || {};
+
+		Events.call(self);
 
 		self.state = {};
 		self.cache = {};
@@ -980,6 +1026,9 @@
 		});
 
 	}
+
+	Router$1.prototype = Object.create(Events.prototype);
+	Router$1.prototype.constructor = Router$1;
 
 	Router$1.prototype._popstate = function (e) {
 		this.navigate(e.state || window.location.href, true);
@@ -1123,7 +1172,7 @@
 		return url;
 	};
 
-	Router$1.prototype.render = function (route) {
+	Router$1.prototype.render = function (route, callback) {
 		var self = this;
 		var component = self.cache[route.component];
 
@@ -1151,12 +1200,15 @@
 
 			self.view.appendChild(component);
 
+			return callback();
+
 		});
 
 	};
 
-	Router$1.prototype.redirect = function (path) {
+	Router$1.prototype.redirect = function (path, callback) {
 		window.location.href = path;
+		return callback();
 	};
 
 	Router$1.prototype.add = function (route) {
@@ -1225,13 +1277,15 @@
 		window.history[replace ? 'replaceState' : 'pushState'](self.state, self.state.route.title, self.state.url.href);
 
 		if (self.state.route.redirect) {
-			self.redirect(self.state.route);
+			self.redirect(self.state.route, function () {
+				if (!replace) self.scroll(0, 0);
+				self.emit('navigated');
+			});
 		} else {
-			self.render(self.state.route);
-		}
-
-		if (!replace) {
-			self.scroll(0, 0);
+			self.render(self.state.route, function () {
+				if (!replace) self.scroll(0, 0);
+				self.emit('navigated');
+			});
 		}
 
 	};
@@ -1407,7 +1461,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.6
+		version: 1.2.7
 		license: mpl-2.0
 		author: alexander elias
 

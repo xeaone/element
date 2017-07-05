@@ -1,4 +1,4 @@
-var Events = require('events');
+var Events = require('../events');
 
 function Router (options) {
 	var self = this;
