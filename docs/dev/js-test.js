@@ -7,10 +7,13 @@ Jenie.component({
 	template: function () {/*
 
 		<template>
+
 			<p j-text="text"></p>
-			
-			<slot name="one"></slot>
-			<slot name="two"></slot>
+			<div>
+				<slot name="one"></slot>
+				<slot name="two"></slot>
+			</div>
+
 		</template>
 
 	*/},

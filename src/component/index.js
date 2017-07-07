@@ -34,7 +34,7 @@ function Component (options) {
 				var elementSlot = elementSlots[i];
 				var name = elementSlot.getAttribute('slot');
 				var templateSlot = templateInstance.querySelector('slot[name='+ name + ']');
-				templateInstance.replaceChild(elementSlot, templateSlot);
+				templateSlot.parentNode.replaceChild(elementSlot, templateSlot);
 			}
 		}
 
