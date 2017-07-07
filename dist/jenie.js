@@ -901,7 +901,6 @@
 			}
 
 			// might want to handle default slot
-
 			// might want to overwrite content
 			elementInstance.appendChild(templateInstance);
 
@@ -1480,7 +1479,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.8
+		version: 1.2.9
 		license: mpl-2.0
 		author: alexander elias
 
