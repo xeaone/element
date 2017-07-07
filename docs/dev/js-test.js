@@ -8,6 +8,9 @@ Jenie.component({
 
 		<template>
 			<p j-text="text"></p>
+			
+			<slot name="one"></slot>
+			<slot name="two"></slot>
 		</template>
 
 	*/},

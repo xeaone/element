@@ -884,9 +884,25 @@
 
 		self.elementPrototype.createdCallback = function () {
 			var elementInstance = this;
+			var templateInstance = document.importNode(self.template.content, true);
 
 			elementInstance.uuid = Uuid();
-			elementInstance.appendChild(document.importNode(self.template.content, true));
+
+			// handle slots
+			var elementSlots = elementInstance.querySelectorAll('[slot]');
+
+			if (elementSlots.length > 0) {
+				for (var i = 0, l = elementSlots.length; i < l; i++) {
+					var elementSlot = elementSlots[i];
+					var name = elementSlot.getAttribute('slot');
+					var templateSlot = templateInstance.querySelector('slot[name='+ name + ']');
+					templateInstance.replaceChild(elementSlot, templateSlot);
+				}
+			}
+
+			// might want to handle default slot
+			// might want to overwrite content
+			elementInstance.appendChild(templateInstance);
 
 			if (self.model) {
 
@@ -954,10 +970,56 @@
 
 	var index = Component$1;
 
+	function Events$1 () {
+	    this.events = {};
+	}
+
+	Events$1.prototype.on = function (name, listener) {
+	    if (typeof this.events[name] !== 'object') {
+	        this.events[name] = [];
+	    }
+
+	    this.events[name].push(listener);
+	};
+
+	Events$1.prototype.off = function (name, listener) {
+	    if (typeof this.events[name] === 'object') {
+			var index = this.events[name].indexOf(listener);
+
+	        if (index > -1) {
+	            this.events[name].splice(index, 1);
+	        }
+	    }
+	};
+
+	Events$1.prototype.once = function (name, listener) {
+		this.on(name, function f () {
+			this.off(name, f);
+			listener.apply(this, arguments);
+		});
+	};
+
+	Events$1.prototype.emit = function (name) {
+	    if (typeof this.events[name] === 'object') {
+	        var listeners = this.events[name].slice();
+			var args = [].slice.call(arguments, 1);
+
+	        for (var i = 0, l = listeners.length; i < l; i++) {
+	            listeners[i].apply(this, args);
+	        }
+	    }
+	};
+
+	var events = Events$1;
+
+	var Events = events;
+
 	function Router$1 (options) {
 		var self = this;
 
 		options = options || {};
+
+		Events.call(self);
 
 		self.state = {};
 		self.cache = {};
@@ -980,6 +1042,9 @@
 		});
 
 	}
+
+	Router$1.prototype = Object.create(Events.prototype);
+	Router$1.prototype.constructor = Router$1;
 
 	Router$1.prototype._popstate = function (e) {
 		this.navigate(e.state || window.location.href, true);
@@ -1018,17 +1083,19 @@
 		self.navigate(href);
 	};
 
-	Router$1.prototype._loaded = function () {
+	Router$1.prototype._load = function (callback) {
 		this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
 
 		(this.contain ? this.view : window).addEventListener('click', this._click.bind(this));
 		window.addEventListener('popstate', this._popstate.bind(this));
-		window.removeEventListener('DOMContentLoaded', this._loaded);
+		window.removeEventListener('DOMContentLoaded', this._load);
 
 		this.navigate(window.location.href, true);
+
+		if (callback) return callback();
 	};
 
-	Router$1.prototype.listen = function (options) {
+	Router$1.prototype.listen = function (options, callback) {
 
 		if (options) {
 			for (var key in options) {
@@ -1037,9 +1104,9 @@
 		}
 
 		if (document.readyState === 'complete' || document.readyState === 'loaded') {
-			this._loaded();
+			this._load(callback);
 		} else {
-			window.addEventListener('DOMContentLoaded', this._loaded.bind(this), true);
+			window.addEventListener('DOMContentLoaded', this._load.bind(this, callback), true);
 		}
 
 	};
@@ -1123,7 +1190,7 @@
 		return url;
 	};
 
-	Router$1.prototype.render = function (route) {
+	Router$1.prototype.render = function (route, callback) {
 		var self = this;
 		var component = self.cache[route.component];
 
@@ -1151,12 +1218,15 @@
 
 			self.view.appendChild(component);
 
+			return callback();
+
 		});
 
 	};
 
-	Router$1.prototype.redirect = function (path) {
+	Router$1.prototype.redirect = function (path, callback) {
 		window.location.href = path;
+		return callback();
 	};
 
 	Router$1.prototype.add = function (route) {
@@ -1216,6 +1286,7 @@
 		if (typeof data === 'string') {
 			self.state.url = self.url(data);
 			self.state.route = self.get(self.state.url.path) || {};
+			self.state.parameters = self.state.route.parameters || {};
 			self.state.title = self.state.route.title || '';
 		} else {
 			self.state = data;
@@ -1224,13 +1295,15 @@
 		window.history[replace ? 'replaceState' : 'pushState'](self.state, self.state.route.title, self.state.url.href);
 
 		if (self.state.route.redirect) {
-			self.redirect(self.state.route);
+			self.redirect(self.state.route, function () {
+				if (!replace) self.scroll(0, 0);
+				self.emit('navigated');
+			});
 		} else {
-			self.render(self.state.route);
-		}
-
-		if (!replace) {
-			self.scroll(0, 0);
+			self.render(self.state.route, function () {
+				if (!replace) self.scroll(0, 0);
+				self.emit('navigated');
+			});
 		}
 
 	};
@@ -1406,7 +1479,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.5
+		version: 1.2.8
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1438,6 +1511,20 @@
 		http: new Http(),
 		module: new Module(),
 		router: new Router(),
+
+		setup: function (data, callback) {
+			var self = this;
+
+			if (data.module) {
+				data.module.forEach(function (parameters) {
+					self.module.export.apply(self, parameters);
+				});
+			}
+
+			self.router.listen(data.router, function () {
+				return callback();
+			});
+		},
 
 		component: function (options) {
 			return new Component(options);

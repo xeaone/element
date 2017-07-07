@@ -884,9 +884,26 @@
 
 		self.elementPrototype.createdCallback = function () {
 			var elementInstance = this;
+			var templateInstance = document.importNode(self.template.content, true);
 
 			elementInstance.uuid = Uuid();
-			elementInstance.appendChild(document.importNode(self.template.content, true));
+
+			// handle slots
+			var elementSlots = elementInstance.querySelectorAll('[slot]');
+
+			if (elementSlots.length > 0) {
+				for (var i = 0, l = elementSlots.length; i < l; i++) {
+					var elementSlot = elementSlots[i];
+					var name = elementSlot.getAttribute('slot');
+					var templateSlot = templateInstance.querySelector('slot[name='+ name + ']');
+					templateInstance.replaceChild(elementSlot, templateSlot);
+				}
+			}
+
+			// might want to handle default slot
+
+			// might want to overwrite content
+			elementInstance.appendChild(templateInstance);
 
 			if (self.model) {
 
