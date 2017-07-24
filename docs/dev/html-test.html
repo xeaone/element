@@ -9,7 +9,7 @@
 
 	<div>
 		<p j-text="text | upper">{{NULL}}</p>
-		<input type="text" j-value="text" placeholder="text">
+		<input type="text" j-value="text | lower" placeholder="text">
 		<input type="text" j-value="items.0.it.val" placeholder="items.0.it.val">
 		<div j-each-item="items">
 			<div j-on-click="foo" j-text="item.it.val"></div>
@@ -48,6 +48,9 @@
 		// 	}, 1000);
 		// },
 		modifiers: {
+			lower: function () {
+				return this.toLowerCase();
+			},
 			upper: function () {
 				return this.toUpperCase();
 			}

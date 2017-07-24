@@ -723,6 +723,11 @@
 				return data;
 			},
 			set: function (value) {
+
+				this.modifiers.forEach(function (modifier) {
+					value = modifier.call(value);
+				});
+
 				return this.model.set(this.attribute.path, value);
 			}
 		});
@@ -1479,7 +1484,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.10
+		version: 1.2.12
 		license: mpl-2.0
 		author: alexander elias
 
