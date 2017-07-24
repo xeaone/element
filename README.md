@@ -53,13 +53,15 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 <body>
 	<j-view></j-view>
 	<script>
-		Jenie.router({
-			routes: [
-				{
-					path: '/',
-					component: 'j-home'
-				}
-			]
+		Jenie.setup({
+			router: {
+				routes: [
+					{
+						path: '/',
+						component: 'j-home'
+					}
+				]
+			}
 		});
 	</script>
 </body>

@@ -299,6 +299,11 @@ Unit.prototype.create = function (options) {
 			return data;
 		},
 		set: function (value) {
+
+			this.modifiers.forEach(function (modifier) {
+				value = modifier.call(value);
+			});
+
 			return this.model.set(this.attribute.path, value);
 		}
 	});
