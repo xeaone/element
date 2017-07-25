@@ -22,19 +22,19 @@ Jenie.router.listen({
 			title: 'html',
 			path: '/',
 			component: 'html-test',
-			componentUrl: 'html-test.html'
+			componentUrl: './html-test.html'
 		},
 		{
 			title: 'js',
 			path: '/js',
 			component: 'js-test',
-			componentUrl: 'js-test.js'
+			componentUrl: './js-test.js'
 		},
 		{
 			title: '404',
 			path: '/{*}',
 			component: 'j-404',
-			componentUrl: 'j-404.html'
+			componentUrl: './j-404.html'
 		}
 	]
 });
