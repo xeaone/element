@@ -1,5 +1,5 @@
 
-function Model () {}
+export default function Model () {}
 
 Model.prototype.join = function () {
 	return Array.prototype.join
@@ -217,5 +217,3 @@ Model.prototype.listener = function (listener) {
 Model.prototype.run = function (data) {
 	this.data = this.defineCollection('', data);
 };
-
-module.exports = Model;

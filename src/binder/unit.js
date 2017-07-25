@@ -1,5 +1,39 @@
 
-function Unit () {}
+export default function Unit (options) {
+	this.view = options.view;
+	this.model = options.model;
+	this.data = options.data;
+	this.element = options.element;
+	this.attribute = options.attribute;
+	this.modifiers = options.modifiers;
+
+	this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
+	this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
+
+	Object.defineProperty(this, 'data', {
+		enumerable: true,
+		configurable: true,
+		get: function () {
+			var data = this.model.get(this.attribute.path);
+
+			this.modifiers.forEach(function (modifier) {
+				data = modifier.call(data);
+			});
+
+			return data;
+		},
+		set: function (value) {
+
+			this.modifiers.forEach(function (modifier) {
+				value = modifier.call(value);
+			});
+
+			return this.model.set(this.attribute.path, value);
+		}
+	});
+
+	this.renderMethod();
+}
 
 Unit.prototype.setByPath = function (collection, path, value) {
 	var keys = path.split('.');
@@ -185,46 +219,4 @@ Unit.prototype.unrender = function () {
 Unit.prototype.render = function () {
 	this.renderMethod();
 	return this;
-};
-
-Unit.prototype.create = function (options) {
-	this.view = options.view;
-	this.model = options.model;
-	this.data = options.data;
-	this.element = options.element;
-	this.attribute = options.attribute;
-	this.modifiers = options.modifiers;
-
-	this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
-	this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
-
-	Object.defineProperty(this, 'data', {
-		enumerable: true,
-		configurable: true,
-		get: function () {
-			var data = this.model.get(this.attribute.path);
-
-			this.modifiers.forEach(function (modifier) {
-				data = modifier.call(data);
-			});
-
-			return data;
-		},
-		set: function (value) {
-
-			this.modifiers.forEach(function (modifier) {
-				value = modifier.call(value);
-			});
-
-			return this.model.set(this.attribute.path, value);
-		}
-	});
-
-	this.renderMethod();
-
-	return this;
-};
-
-module.exports = function (options) {
-	return new Unit().create(options);
 };

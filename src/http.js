@@ -1,5 +1,5 @@
 
-function Http () {}
+export default function Http () {}
 
 Http.prototype.mime = {
 	html: 'text/html',
@@ -108,5 +108,3 @@ Http.prototype.fetch = function (options) {
 
 	xhr.send(options.data);
 };
-
-module.exports = Http;

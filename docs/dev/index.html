@@ -9,12 +9,9 @@
 
 	<title>Web Components</title>
 
-	<script src="/assets/webcomponents-lite.min.js"></script>
-	<script src="/assets/jenie.js"></script>
-
-	<!-- <script src="js-test.js"></script> -->
-	<!-- <link rel="import" href="j-404.html"> -->
-	<!-- <link rel="import" href="html-test.html"> -->
+	<script src="/assets/webcomponents-lite.min.js" defer></script>
+	<script src="/assets/jenie.js" defer></script>
+	<script src="./index.js" defer></script>
 
 	<style>
 		body {
@@ -40,55 +37,6 @@
 	</ul>
 
 	<j-view></j-view>
-
-	<script>
-
-		Jenie.module.export('one', function () {
-			return 1;
-		});
-
-		Jenie.module.export('two', function () {
-			return 2;
-		});
-
-		Jenie.module.export('say', ['one', 'two'], function (one, two) {
-			return function (string) {
-				console.log(string);
-				console.log(one);
-				console.log(two);
-			}
-		});
-
-		Jenie.router.listen({
-			base: '/dev',
-			routes: [
-				{
-					title: 'html',
-					path: '/',
-					component: 'html-test',
-					componentUrl: 'html-test.html'
-				},
-				{
-					title: 'js',
-					path: '/js',
-					component: 'js-test',
-					componentUrl: 'js-test.js'
-				},
-				// {
-				// 	title: '404',
-				// 	path: '/{param}',
-				// 	component: 'j-404',
-				// },
-				{
-					title: '404',
-					path: '/{*}',
-					component: 'j-404',
-					componentUrl: 'j-404.html'
-				}
-			]
-		});
-
-	</script>
 
 </body>
 </html>

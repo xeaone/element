@@ -1,7 +1,7 @@
-var Binder = require('../binder');
-var Uuid = require('../uuid');
+import Binder from '../binder';
+import Uuid from '../uuid';
 
-function Component (options) {
+export default function Component (options) {
 	var self = this;
 
 	if (!options) throw new Error('Component missing options');
@@ -105,5 +105,3 @@ Component.prototype._define = function () {
 		prototype: this.elementPrototype
 	});
 };
-
-module.exports = Component;

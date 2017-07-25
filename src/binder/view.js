@@ -1,6 +1,6 @@
-var Collection = require('../collection');
+import Collection from '../collection';
 
-function View () {
+export default function View () {
 	this.data = new Collection();
 }
 
@@ -128,5 +128,3 @@ View.prototype.run = function (elements) {
 	this.elements = elements;
 	this.addAll(this.elements);
 };
-
-module.exports = View;

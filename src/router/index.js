@@ -1,6 +1,6 @@
-var Events = require('../events');
+import Events from '../events';
 
-function Router (options) {
+export default function Router (options) {
 	var self = this;
 
 	options = options || {};
@@ -27,9 +27,14 @@ function Router (options) {
 		}
 	});
 
+	document.registerElement('j-view', {
+		prototype: Object.create(HTMLElement.prototype)
+	});
+
 }
 
 Router.prototype = Object.create(Events.prototype);
+
 Router.prototype.constructor = Router;
 
 Router.prototype._popstate = function (e) {
@@ -68,6 +73,7 @@ Router.prototype._click = function (e) {
 	e.preventDefault();
 	self.navigate(href);
 };
+
 
 Router.prototype._load = function (callback) {
 	this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
@@ -176,7 +182,7 @@ Router.prototype.url = function (path) {
 	return url;
 };
 
-Router.prototype.appendComponentTag = function (url, callback) {
+Router.prototype.appendComponentElement = function (url, callback) {
 	var element;
 
 	if (/\.html$/.test(url)) {
@@ -192,7 +198,7 @@ Router.prototype.appendComponentTag = function (url, callback) {
 	}
 
 	element.onload = callback;
-	element.setAttribute('async', 'true');
+	element.setAttribute('async', '');
 	document.head.appendChild(element);
 };
 
@@ -203,7 +209,8 @@ Router.prototype.render = function (route, callback) {
 		document.title = route.title;
 	}
 
-	var complete = function () {
+	var appendView = function () {
+
 		if (self.view.firstChild) {
 			self.view.removeChild(self.view.firstChild);
 		}
@@ -214,13 +221,13 @@ Router.prototype.render = function (route, callback) {
 
 		self.view.appendChild(self.cache[route.component]);
 
-		callback();
+		if (callback) return callback();
 	};
 
 	if (route.componentUrl && !self.cache[route.component]) {
-		self.appendComponentTag(route.componentUrl, complete);
+		self.appendComponentElement(route.componentUrl, appendView);
 	} else {
-		complete();
+		appendView();
 	}
 
 };
@@ -293,8 +300,6 @@ Router.prototype.navigate = function (data, replace) {
 		self.state = data;
 	}
 
-	console.log(self.state);
-
 	window.history[replace ? 'replaceState' : 'pushState'](self.state, self.state.route.title, self.state.url.href);
 
 	if (self.state.route.redirect) {
@@ -310,5 +315,3 @@ Router.prototype.navigate = function (data, replace) {
 	}
 
 };
-
-module.exports = Router;

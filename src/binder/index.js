@@ -1,8 +1,8 @@
-var Model = require('./model');
-var View = require('./view');
-var Unit = require('./unit');
+import Model from './model';
+import View from './view';
+import Unit from './unit';
 
-function Binder (options, callback) {
+export default function Binder (options, callback) {
 	var self = this;
 
 	self.view = new View();
@@ -26,7 +26,7 @@ function Binder (options, callback) {
 
 	self.view.listener(function (element, attribute) {
 
-		self.view.data.get(attribute.path).push(Unit({
+		self.view.data.get(attribute.path).push(new Unit({
 			view: self.view,
 			model: self.model,
 			element: element,
@@ -64,5 +64,3 @@ function Binder (options, callback) {
 	}
 
 }
-
-module.exports = Binder;

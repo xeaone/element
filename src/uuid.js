@@ -2,7 +2,7 @@
 
 var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
-module.exports = function (length) {
+export default function (length) {
 	var uuid = [], i;
 
 	if (length) {
@@ -30,7 +30,7 @@ module.exports = function (length) {
 	}
 
 	return uuid.join('');
-};
+}
 
 // https://gist.github.com/jed/982883
 // function uuid (a) {

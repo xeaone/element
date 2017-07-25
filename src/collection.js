@@ -1,5 +1,5 @@
 
-function Collection (data) {
+export default function Collection (data) {
 	Object.defineProperty(this, 'data', {
 		value: data || []
 	});
@@ -61,5 +61,3 @@ Collection.prototype.forEach = function (callback, context) {
 		callback.call(context, this.data[i][1], this.data[i][0], i, this.data);
 	}
 };
-
-module.exports = Collection;

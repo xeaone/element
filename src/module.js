@@ -1,5 +1,5 @@
 
-function Module () {
+export default function Module () {
 	this.modules = {};
 }
 
@@ -50,5 +50,3 @@ Module.prototype.export = function (name, dependencies, method) {
 	}
 
 };
-
-module.exports = Module;

@@ -4,20 +4,20 @@
 	(global.Jenie = factory());
 }(this, (function () { 'use strict';
 
-	function Model$1 () {}
+	function Model () {}
 
-	Model$1.prototype.join = function () {
+	Model.prototype.join = function () {
 		return Array.prototype.join
 		.call(arguments, '.')
 		.replace(/\.{2,}/g, '.')
 		.replace(/^\.|\.$/g, '');
 	};
 
-	Model$1.prototype.isCollection = function (data) {
+	Model.prototype.isCollection = function (data) {
 		return data && (data.constructor.name === 'Object' || data.constructor.name === 'Array');
 	};
 
-	Model$1.prototype.defineSplice = function (path, meta, target, argument) {
+	Model.prototype.defineSplice = function (path, meta, target, argument) {
 		var self = this;
 
 		if (argument[2]) {
@@ -40,7 +40,7 @@
 
 	};
 
-	Model$1.prototype.arrayPushUnshift = function (path, meta, target, method, argument) {
+	Model.prototype.arrayPushUnshift = function (path, meta, target, method, argument) {
 		var self = this;
 
 		Array.prototype.forEach.call(argument, function (value) {
@@ -54,7 +54,7 @@
 
 	};
 
-	Model$1.prototype.arrayPopShift = function (path, meta, target, method) {
+	Model.prototype.arrayPopShift = function (path, meta, target, method) {
 		var self = this;
 
 		Array.prototype[method].call(meta);
@@ -63,7 +63,7 @@
 
 	};
 
-	Model$1.prototype.defineArray = function (path, meta, target) {
+	Model.prototype.defineArray = function (path, meta, target) {
 		var self = this;
 
 		return Object.defineProperties(target, {
@@ -96,7 +96,7 @@
 
 	};
 
-	Model$1.prototype.defineObject = function (path, meta, target) {
+	Model.prototype.defineObject = function (path, meta, target) {
 		var self = this;
 
 		return Object.defineProperties(target, {
@@ -126,7 +126,7 @@
 
 	};
 
-	Model$1.prototype.defineProperty = function (path, meta, target, key) {
+	Model.prototype.defineProperty = function (path, meta, target, key) {
 		var self = this;
 
 		return Object.defineProperty(target, key, {
@@ -159,7 +159,7 @@
 
 	};
 
-	Model$1.prototype.defineCollection = function (path, source) {
+	Model.prototype.defineCollection = function (path, source) {
 		var self = this;
 
 		if (!self.isCollection(source)) return source;
@@ -188,7 +188,7 @@
 		return target;
 	};
 
-	Model$1.prototype.set = function (path, value) {
+	Model.prototype.set = function (path, value) {
 		var keys = path.split('.');
 		var last = keys.length - 1;
 		var collection = this.data;
@@ -202,7 +202,7 @@
 		return collection[keys[last]] = value;
 	};
 
-	Model$1.prototype.get = function (path) {
+	Model.prototype.get = function (path) {
 		var keys = path.split('.');
 		var last = keys.length - 1;
 		var collection = this.data;
@@ -215,23 +215,21 @@
 		return collection[keys[last]];
 	};
 
-	Model$1.prototype.listener = function (listener) {
+	Model.prototype.listener = function (listener) {
 		this.emit = listener;
 	};
 
-	Model$1.prototype.run = function (data) {
+	Model.prototype.run = function (data) {
 		this.data = this.defineCollection('', data);
 	};
 
-	var model = Model$1;
-
-	function Collection$1 (data) {
+	function Collection (data) {
 		Object.defineProperty(this, 'data', {
 			value: data || []
 		});
 	}
 
-	Collection$1.prototype.get = function (key) {
+	Collection.prototype.get = function (key) {
 		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return this.data[i][1];
@@ -239,7 +237,7 @@
 		}
 	};
 
-	Collection$1.prototype.remove = function (key) {
+	Collection.prototype.remove = function (key) {
 		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return this.data.splice(i, 1)[0][1];
@@ -247,11 +245,11 @@
 		}
 	};
 
-	Collection$1.prototype.removeById = function (id) {
+	Collection.prototype.removeById = function (id) {
 		return this.data.splice(id, 1);
 	};
 
-	Collection$1.prototype.has = function (key) {
+	Collection.prototype.has = function (key) {
 		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return true;
@@ -261,7 +259,7 @@
 		return false;
 	};
 
-	Collection$1.prototype.set = function (key, value) {
+	Collection.prototype.set = function (key, value) {
 		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
 				return this.data[i][1] = value;
@@ -271,16 +269,16 @@
 		return this.data[this.data.length] = [key, value];
 	};
 
-	Collection$1.prototype.push = function (value) {
+	Collection.prototype.push = function (value) {
 		this.data[this.data.length] = [this.data.length, value];
 		return value;
 	};
 
-	Collection$1.prototype.size = function () {
+	Collection.prototype.size = function () {
 		return this.data.length;
 	};
 
-	Collection$1.prototype.forEach = function (callback, context) {
+	Collection.prototype.forEach = function (callback, context) {
 		context = context || null;
 
 		for (var i = 0; i < this.data.length; i++) {
@@ -288,15 +286,11 @@
 		}
 	};
 
-	var collection = Collection$1;
-
-	var Collection = collection;
-
-	function View$1 () {
+	function View () {
 		this.data = new Collection();
 	}
 
-	View$1.prototype.regexp = {
+	View.prototype.regexp = {
 		PATH: /\s?\|(.*?)$/,
 		PREFIX: /(data-)?j-/,
 		MODIFIERS: /^(.*?)\|\s?/,
@@ -306,13 +300,13 @@
 		ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script/
 	};
 
-	View$1.prototype.preview = function (element) {
+	View.prototype.preview = function (element) {
 		return element.outerHTML
 		.replace(/\/?>([\s\S])*/, '')
 		.replace(/^</, '');
 	};
 
-	View$1.prototype.eachElement = function (elements, callback) {
+	View.prototype.eachElement = function (elements, callback) {
 		for (var i = 0; i < elements.length; i++) {
 			var element = elements[i];
 			var preview = this.preview(element);
@@ -328,7 +322,7 @@
 		}
 	};
 
-	View$1.prototype.eachAttribute = function (element, callback) {
+	View.prototype.eachAttribute = function (element, callback) {
 		Array.prototype.forEach.call(element.attributes, function (ea) {
 			if (this.regexp.ATTRIBUTE_ACCEPTS.test(ea.name)) {
 				var attribute = {};
@@ -345,7 +339,7 @@
 		}, this);
 	};
 
-	View$1.prototype.unrenderAll = function (pattern) {
+	View.prototype.unrenderAll = function (pattern) {
 		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
 		this.data.forEach(function (paths, path) {
@@ -357,7 +351,7 @@
 		}, this);
 	};
 
-	View$1.prototype.renderAll = function (pattern) {
+	View.prototype.renderAll = function (pattern) {
 		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
 		this.data.forEach(function (paths, path) {
@@ -369,7 +363,7 @@
 		}, this);
 	};
 
-	View$1.prototype.removeOne = function (element) {
+	View.prototype.removeOne = function (element) {
 		this.data.forEach(function (paths, _, did) {
 			paths.forEach(function (unit, _, pid) {
 
@@ -387,13 +381,13 @@
 		}, this);
 	};
 
-	View$1.prototype.removeAll = function (elements) {
+	View.prototype.removeAll = function (elements) {
 		Array.prototype.forEach.call(elements, function (element) {
 			this.removeOne(element);
 		}, this);
 	};
 
-	View$1.prototype.addOne = function (element) {
+	View.prototype.addOne = function (element) {
 		var self = this;
 
 		self.eachAttribute(element, function (attribute) {
@@ -406,26 +400,58 @@
 		});
 	};
 
-	View$1.prototype.addAll = function (elements) {
+	View.prototype.addAll = function (elements) {
 		this.eachElement(elements, function (element) {
 			this.addOne(element);
 		});
 	};
 
-	View$1.prototype.listener = function (listener) {
+	View.prototype.listener = function (listener) {
 		this.emit = listener;
 	};
 
-	View$1.prototype.run = function (elements) {
+	View.prototype.run = function (elements) {
 		this.elements = elements;
 		this.addAll(this.elements);
 	};
 
-	var view = View$1;
+	function Unit (options) {
+		this.view = options.view;
+		this.model = options.model;
+		this.data = options.data;
+		this.element = options.element;
+		this.attribute = options.attribute;
+		this.modifiers = options.modifiers;
 
-	function Unit$1 () {}
+		this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
+		this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
 
-	Unit$1.prototype.setByPath = function (collection, path, value) {
+		Object.defineProperty(this, 'data', {
+			enumerable: true,
+			configurable: true,
+			get: function () {
+				var data = this.model.get(this.attribute.path);
+
+				this.modifiers.forEach(function (modifier) {
+					data = modifier.call(data);
+				});
+
+				return data;
+			},
+			set: function (value) {
+
+				this.modifiers.forEach(function (modifier) {
+					value = modifier.call(value);
+				});
+
+				return this.model.set(this.attribute.path, value);
+			}
+		});
+
+		this.renderMethod();
+	}
+
+	Unit.prototype.setByPath = function (collection, path, value) {
 		var keys = path.split('.');
 		var last = keys.length - 1;
 
@@ -438,14 +464,14 @@
 		return collection[keys[last]] = value;
 	};
 
-	Unit$1.prototype.toCamelCase = function (data) {
+	Unit.prototype.toCamelCase = function (data) {
 		if (data.constructor.name === 'Array') data = data.join('-');
 		return data.replace(/-[a-z]/g, function (match) {
 			return match[1].toUpperCase();
 		});
 	};
 
-	Unit$1.prototype.renderMethods = {
+	Unit.prototype.renderMethods = {
 		on: function () {
 			var self = this;
 
@@ -576,7 +602,7 @@
 		}
 	};
 
-	Unit$1.prototype.unrenderMethods = {
+	Unit.prototype.unrenderMethods = {
 		on: function () {
 			var eventName = this.attribute.cmds[1];
 			this.element.removeEventListener(eventName, this.data, false);
@@ -601,63 +627,17 @@
 		}
 	};
 
-	Unit$1.prototype.unrender = function () {
+	Unit.prototype.unrender = function () {
 		this.unrenderMethod();
 		return this;
 	};
 
-	Unit$1.prototype.render = function () {
+	Unit.prototype.render = function () {
 		this.renderMethod();
 		return this;
 	};
 
-	Unit$1.prototype.create = function (options) {
-		this.view = options.view;
-		this.model = options.model;
-		this.data = options.data;
-		this.element = options.element;
-		this.attribute = options.attribute;
-		this.modifiers = options.modifiers;
-
-		this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
-		this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
-
-		Object.defineProperty(this, 'data', {
-			enumerable: true,
-			configurable: true,
-			get: function () {
-				var data = this.model.get(this.attribute.path);
-
-				this.modifiers.forEach(function (modifier) {
-					data = modifier.call(data);
-				});
-
-				return data;
-			},
-			set: function (value) {
-
-				this.modifiers.forEach(function (modifier) {
-					value = modifier.call(value);
-				});
-
-				return this.model.set(this.attribute.path, value);
-			}
-		});
-
-		this.renderMethod();
-
-		return this;
-	};
-
-	var unit = function (options) {
-		return new Unit$1().create(options);
-	};
-
-	var Model = model;
-	var View = view;
-	var Unit = unit;
-
-	function Binder$2 (options, callback) {
+	function Binder (options, callback) {
 		var self = this;
 
 		self.view = new View();
@@ -681,7 +661,7 @@
 
 		self.view.listener(function (element, attribute) {
 
-			self.view.data.get(attribute.path).push(Unit({
+			self.view.data.get(attribute.path).push(new Unit({
 				view: self.view,
 				model: self.model,
 				element: element,
@@ -695,9 +675,9 @@
 
 		if (typeof options.model === 'function') {
 
-			self._model.call(self, function (model$$1) {
+			self._model.call(self, function (model) {
 
-				self._model = model$$1;
+				self._model = model;
 				self.model.run(self._model);
 				self.view.run(self._view);
 
@@ -720,13 +700,11 @@
 
 	}
 
-	var index$2 = Binder$2;
-
 	// https://gist.github.com/Wind4/3baa40b26b89b686e4f2
 
 	var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
-	var uuid = function (length) {
+	var Uuid = function (length) {
 		var uuid = [], i;
 
 		if (length) {
@@ -777,10 +755,7 @@
 	// 			);
 	// }
 
-	var Binder$1 = index$2;
-	var Uuid = uuid;
-
-	function Component$1 (options) {
+	function Component (options) {
 		var self = this;
 
 		if (!options) throw new Error('Component missing options');
@@ -823,7 +798,7 @@
 
 			if (self.model) {
 
-				elementInstance.binder = new Binder$1({
+				elementInstance.binder = new Binder({
 					view: elementInstance,
 					name: elementInstance.uuid,
 					model: self.model,
@@ -845,7 +820,7 @@
 
 	}
 
-	Component$1.prototype._comment = function (method) {
+	Component.prototype._comment = function (method) {
 		if (typeof method !== 'function') throw new Error('Comment must be a function');
 		var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
 		var match = comment.exec(method.toString());
@@ -853,13 +828,13 @@
 		return match[1];
 	};
 
-	Component$1.prototype._dom = function (string) {
+	Component.prototype._dom = function (string) {
 		var temporary = document.createElement('div');
 		temporary.innerHTML = string;
 		return temporary.children[0];
 	};
 
-	Component$1.prototype._template = function (template) {
+	Component.prototype._template = function (template) {
 
 		if (template.constructor.name === 'Function') {
 
@@ -879,59 +854,53 @@
 		return template;
 	};
 
-	Component$1.prototype._define = function () {
+	Component.prototype._define = function () {
 		document.registerElement(this.name, {
 			prototype: this.elementPrototype
 		});
 	};
 
-	var index = Component$1;
-
-	function Events$1 () {
-	    this.events = {};
+	function Events () {
+		this.events = {};
 	}
 
-	Events$1.prototype.on = function (name, listener) {
-	    if (typeof this.events[name] !== 'object') {
-	        this.events[name] = [];
-	    }
+	Events.prototype.on = function (name, listener) {
+		if (typeof this.events[name] !== 'object') {
+			this.events[name] = [];
+		}
 
-	    this.events[name].push(listener);
+		this.events[name].push(listener);
 	};
 
-	Events$1.prototype.off = function (name, listener) {
-	    if (typeof this.events[name] === 'object') {
+	Events.prototype.off = function (name, listener) {
+		if (typeof this.events[name] === 'object') {
 			var index = this.events[name].indexOf(listener);
 
-	        if (index > -1) {
-	            this.events[name].splice(index, 1);
-	        }
-	    }
+			if (index > -1) {
+				this.events[name].splice(index, 1);
+			}
+		}
 	};
 
-	Events$1.prototype.once = function (name, listener) {
+	Events.prototype.once = function (name, listener) {
 		this.on(name, function f () {
 			this.off(name, f);
 			listener.apply(this, arguments);
 		});
 	};
 
-	Events$1.prototype.emit = function (name) {
-	    if (typeof this.events[name] === 'object') {
-	        var listeners = this.events[name].slice();
+	Events.prototype.emit = function (name) {
+		if (typeof this.events[name] === 'object') {
+			var listeners = this.events[name].slice();
 			var args = [].slice.call(arguments, 1);
 
-	        for (var i = 0, l = listeners.length; i < l; i++) {
-	            listeners[i].apply(this, args);
-	        }
-	    }
+			for (var i = 0, l = listeners.length; i < l; i++) {
+				listeners[i].apply(this, args);
+			}
+		}
 	};
 
-	var events = Events$1;
-
-	var Events = events;
-
-	function Router$1 (options) {
+	function Router (options) {
 		var self = this;
 
 		options = options || {};
@@ -958,16 +927,21 @@
 			}
 		});
 
+		document.registerElement('j-view', {
+			prototype: Object.create(HTMLElement.prototype)
+		});
+
 	}
 
-	Router$1.prototype = Object.create(Events.prototype);
-	Router$1.prototype.constructor = Router$1;
+	Router.prototype = Object.create(Events.prototype);
 
-	Router$1.prototype._popstate = function (e) {
+	Router.prototype.constructor = Router;
+
+	Router.prototype._popstate = function (e) {
 		this.navigate(e.state || window.location.href, true);
 	};
 
-	Router$1.prototype._click = function (e) {
+	Router.prototype._click = function (e) {
 		var self = this;
 
 		if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -1000,7 +974,8 @@
 		self.navigate(href);
 	};
 
-	Router$1.prototype._load = function (callback) {
+
+	Router.prototype._load = function (callback) {
 		this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
 
 		(this.contain ? this.view : window).addEventListener('click', this._click.bind(this));
@@ -1012,7 +987,7 @@
 		if (callback) return callback();
 	};
 
-	Router$1.prototype.listen = function (options, callback) {
+	Router.prototype.listen = function (options, callback) {
 
 		if (options) {
 			for (var key in options) {
@@ -1028,7 +1003,7 @@
 
 	};
 
-	Router$1.prototype.normalize = function (path) {
+	Router.prototype.normalize = function (path) {
 		path = decodeURI(path)
 		.replace(/\/{2,}/g, '/')
 		.replace(/(http(s)?:\/)/, '$1/')
@@ -1039,7 +1014,7 @@
 		return 	path = path === '' ? '/' : path;
 	};
 
-	Router$1.prototype.parse = function (path) {
+	Router.prototype.parse = function (path) {
 		return new RegExp('^'+ path
 			.replace(/{\*}/g, '(?:.*)')
 			.replace(/{(\w+)}/g, '([^\/]+)')
@@ -1047,7 +1022,7 @@
 		);
 	};
 
-	Router$1.prototype.parameters = function (routePath, userPath) {
+	Router.prototype.parameters = function (routePath, userPath) {
 		var name;
 		var parameters = {};
 		var brackets = /{|}/g;
@@ -1065,15 +1040,15 @@
 		return parameters;
 	};
 
-	Router$1.prototype.join = function () {
+	Router.prototype.join = function () {
 		return this.normalize(Array.prototype.join.call(arguments, '/'));
 	};
 
-	Router$1.prototype.scroll = function (x, y) {
+	Router.prototype.scroll = function (x, y) {
 		window.scroll(x, y);
 	};
 
-	Router$1.prototype.url = function (path) {
+	Router.prototype.url = function (path) {
 		var url = {};
 
 		url.path = path;
@@ -1107,7 +1082,7 @@
 		return url;
 	};
 
-	Router$1.prototype.appendComponentTag = function (url, callback) {
+	Router.prototype.appendComponentElement = function (url, callback) {
 		var element;
 
 		if (/\.html$/.test(url)) {
@@ -1123,18 +1098,19 @@
 		}
 
 		element.onload = callback;
-		element.setAttribute('async', 'true');
+		element.setAttribute('async', '');
 		document.head.appendChild(element);
 	};
 
-	Router$1.prototype.render = function (route, callback) {
+	Router.prototype.render = function (route, callback) {
 		var self = this;
 
 		if (route.title) {
 			document.title = route.title;
 		}
 
-		var complete = function () {
+		var appendView = function () {
+
 			if (self.view.firstChild) {
 				self.view.removeChild(self.view.firstChild);
 			}
@@ -1145,23 +1121,23 @@
 
 			self.view.appendChild(self.cache[route.component]);
 
-			callback();
+			if (callback) return callback();
 		};
 
 		if (route.componentUrl && !self.cache[route.component]) {
-			self.appendComponentTag(route.componentUrl, complete);
+			self.appendComponentElement(route.componentUrl, appendView);
 		} else {
-			complete();
+			appendView();
 		}
 
 	};
 
-	Router$1.prototype.redirect = function (path, callback) {
+	Router.prototype.redirect = function (path, callback) {
 		window.location.href = path;
 		return callback();
 	};
 
-	Router$1.prototype.add = function (route) {
+	Router.prototype.add = function (route) {
 		var self = this;
 
 		if (route.constructor.name === 'Object') {
@@ -1172,7 +1148,7 @@
 
 	};
 
-	Router$1.prototype.remove = function (path) {
+	Router.prototype.remove = function (path) {
 		var self = this;
 
 		for (var i = 0, l = self.routes.length; i < l; i++) {
@@ -1185,7 +1161,7 @@
 
 	};
 
-	Router$1.prototype.get = function (path) {
+	Router.prototype.get = function (path) {
 		var self = this;
 
 		for (var i = 0, l = self.routes.length; i < l; i++) {
@@ -1212,7 +1188,7 @@
 
 	};
 
-	Router$1.prototype.navigate = function (data, replace) {
+	Router.prototype.navigate = function (data, replace) {
 		var self = this;
 
 		if (typeof data === 'string') {
@@ -1223,8 +1199,6 @@
 		} else {
 			self.state = data;
 		}
-
-		console.log(self.state);
 
 		window.history[replace ? 'replaceState' : 'pushState'](self.state, self.state.route.title, self.state.url.href);
 
@@ -1242,13 +1216,11 @@
 
 	};
 
-	var index$4 = Router$1;
-
-	function Module$1 () {
+	function Module () {
 		this.modules = {};
 	}
 
-	Module$1.prototype.load = function (paths) {
+	Module.prototype.load = function (paths) {
 
 		paths.forEach(function(path) {
 			var script = document.createElement('script');
@@ -1262,7 +1234,7 @@
 
 	};
 
-	Module$1.prototype.import = function (name) {
+	Module.prototype.import = function (name) {
 		var self = this;
 
 		if (name in self.modules) {
@@ -1273,7 +1245,7 @@
 
 	};
 
-	Module$1.prototype.export = function (name, dependencies, method) {
+	Module.prototype.export = function (name, dependencies, method) {
 		var self = this;
 
 		if (name in self.modules) {
@@ -1296,11 +1268,9 @@
 
 	};
 
-	var module$1 = Module$1;
+	function Http () {}
 
-	function Http$1 () {}
-
-	Http$1.prototype.mime = {
+	Http.prototype.mime = {
 		html: 'text/html',
 		text: 'text/plain',
 		xml: 'application/xml, text/xml',
@@ -1309,7 +1279,7 @@
 		script: 'text/javascript, application/javascript, application/x-javascript'
 	};
 
-	Http$1.prototype.serialize = function (data) {
+	Http.prototype.serialize = function (data) {
 		var string = '';
 
 		for (var name in data) {
@@ -1320,7 +1290,7 @@
 		return string;
 	};
 
-	Http$1.prototype.fetch = function (options) {
+	Http.prototype.fetch = function (options) {
 		var self = this;
 
 		options = options ? options : {};
@@ -1408,12 +1378,10 @@
 		xhr.send(options.data);
 	};
 
-	var http = Http$1;
-
 	/*
 		@banner
 		name: jenie
-		version: 1.3.1
+		version: 1.3.2
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1422,31 +1390,21 @@
 		file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	*/
 
-	var Component = index;
-	var Binder = index$2;
-	var Router = index$4;
-	var Module = module$1;
-	var Http = http;
+	function Jenie () {
+		var sStyle = 'j-view, j-view > :first-child { display: block; }';
+		var eStyle = document.createElement('style');
+		var nStyle = document.createTextNode(sStyle);
 
-	var sStyle = 'j-view, j-view > :first-child { display: block; }';
-	var eStyle = document.createElement('style');
-	var nStyle = document.createTextNode(sStyle);
+		eStyle.appendChild(nStyle);
+		document.head.appendChild(eStyle);
 
-	eStyle.appendChild(nStyle);
-	document.head.appendChild(eStyle);
+		this.services = {};
 
-	document.registerElement('j-view', {
-		prototype: Object.create(HTMLElement.prototype)
-	});
+		this.http = new Http();
+		this.module = new Module();
+		this.router = new Router();
 
-	var jenie_b = {
-		services: {},
-
-		http: new Http(),
-		module: new Module(),
-		router: new Router(),
-
-		setup: function (data, callback) {
+		this.setup = function (data, callback) {
 			var self = this;
 
 			if (data.module) {
@@ -1458,29 +1416,35 @@
 			self.router.listen(data.router, function () {
 				return callback();
 			});
-		},
+		};
 
-		component: function (options) {
+		this.component = function (options) {
 			return new Component(options);
-		},
-		binder: function (options, callback) {
+		};
+
+		this.binder = function (options, callback) {
 			return new Binder(options, callback);
-		},
+		};
 
-		script: function () {
+		this.script = function () {
 			return (document._currentScript || document.currentScript);
-		},
-		document: function () {
-			return (document._currentScript || document.currentScript).ownerDocument;
-		},
-		element: function (name) {
-			return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
-		},
-		query: function (query) {
-			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
-		}
+		};
 
-	};
+		this.document = function () {
+			return (document._currentScript || document.currentScript).ownerDocument;
+		};
+
+		this.element = function (name) {
+			return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
+		};
+
+		this.query = function (query) {
+			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
+		};
+
+	}
+
+	var jenie_b = new Jenie();
 
 	return jenie_b;
 
