@@ -17,8 +17,8 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 ## Installing
 
 - `npm install jenie --save`
-- Pollyfills not included `node_modules/jenie/dist/jenie.min.js`
-- Pollyfills are included `node_modules/jenie/dist/jenie.polly.min.js`
+- Pollyfills not included UMD `node_modules/jenie/dist/jenie.min.js`
+- Pollyfills are included UMD `node_modules/jenie/dist/jenie.polly.min.js`
 - Pollyfills `node_modules/jenie/dist/webcomponents-lite.min.js`
 
 ## Example
