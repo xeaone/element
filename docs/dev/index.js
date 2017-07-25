@@ -15,26 +15,28 @@ Jenie.module.export('say', ['one', 'two'], function (one, two) {
 	};
 });
 
+var base = window.location.pathname;
+
 Jenie.router.listen({
-	// base: '/dev',
+	base: base,
 	routes: [
 		{
 			title: 'html',
 			path: '/',
 			component: 'html-test',
-			componentUrl: './html-test.html'
+			componentUrl: base + '/html-test.html'
 		},
 		{
 			title: 'js',
 			path: '/js',
 			component: 'js-test',
-			componentUrl: './js-test.js'
+			componentUrl: base + '/js-test.js'
 		},
 		{
 			title: '404',
 			path: '/{*}',
 			component: 'j-404',
-			componentUrl: './j-404.html'
+			componentUrl: base + '/j-404.html'
 		}
 	]
 });
