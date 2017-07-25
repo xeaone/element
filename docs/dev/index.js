@@ -16,7 +16,7 @@ Jenie.module.export('say', ['one', 'two'], function (one, two) {
 });
 
 Jenie.router.listen({
-	base: '/dev',
+	// base: '/dev',
 	routes: [
 		{
 			title: 'html',
