@@ -204,21 +204,17 @@ Router.prototype.render = function (route, callback) {
 	}
 
 	var complete = function () {
-		window.requestAnimationFrame(function () {
+		if (self.view.firstChild) {
+			self.view.removeChild(self.view.firstChild);
+		}
 
-			if (self.view.firstChild) {
-				self.view.removeChild(self.view.firstChild);
-			}
+		if (!self.cache[route.component]) {
+			self.cache[route.component] = document.createElement(route.component);
+		}
 
-			if (!self.cache[route.component]) {
-				self.cache[route.component] = document.createElement(route.component);
-			}
+		self.view.appendChild(self.cache[route.component]);
 
-			self.view.appendChild(self.cache[route.component]);
-
-			callback();
-
-		});
+		callback();
 	};
 
 	if (route.componentUrl && !self.cache[route.component]) {

@@ -458,7 +458,7 @@
 			self.element.addEventListener(self.eventName, self.eventMethod);
 		},
 		each: function () {
-			var self = this, animate;
+			var self = this;
 
 			if (!self.clone) {
 
@@ -466,8 +466,7 @@
 				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
 				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
-				animate = function () {
-
+				while ((!self.data || self.data.length === 0) || (self.element.children.length < self.data.length)) {
 					if (!self.data || self.data.length === 0) {
 						self.element.removeChild(self.element.lastChild);
 					} else if (self.element.children.length < self.data.length) {
@@ -481,61 +480,39 @@
 
 						self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
 						self.view.addOne(self.element.lastChild);
-						window.requestAnimationFrame(animate);
 					}
-
-				};
-
-				window.requestAnimationFrame(animate);
+				}
 
 			} else if (self.element.children.length > self.data.length) {
 
-				animate = function () {
-					if (self.element.children.length > self.data.length) {
-						self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
-						self.view.removeOne(self.element.lastChild);
-						self.element.removeChild(self.element.lastChild);
-						window.requestAnimationFrame(animate);
-					}
-				};
-
-				window.requestAnimationFrame(animate);
+				while (self.element.children.length > self.data.length) {
+					self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.removeOne(self.element.lastChild);
+					self.element.removeChild(self.element.lastChild);
+				}
 
 			} else if (self.element.children.length < self.data.length) {
 
-				animate = function () {
+				while (self.element.children.length < self.data.length) {
+					self.element.insertAdjacentHTML(
+						'beforeend',
+						self.clone.replace(
+							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+						)
+					);
 
-					if (self.element.children.length < self.data.length) {
-
-						self.element.insertAdjacentHTML(
-							'beforeend',
-							self.clone.replace(
-								self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
-							)
-						);
-
-						self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
-						self.view.addOne(self.element.lastChild);
-						window.requestAnimationFrame(animate);
-
-					}
-
-				};
-
-				window.requestAnimationFrame(animate);
+					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.addOne(self.element.lastChild);
+				}
 
 			} else if (!self.data) {
 
-				animate = function () {
-					if (self.element.lastChild) {
-						self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
-						self.view.removeOne(self.element.lastChild);
-						self.element.removeChild(self.element.lastChild);
-						window.requestAnimationFrame(animate);
-					}
-				};
+				while (self.element.lastChild) {
+					self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.removeOne(self.element.lastChild);
+					self.element.removeChild(self.element.lastChild);
+				}
 
-				window.requestAnimationFrame(animate);
 			}
 
 		},
@@ -553,96 +530,49 @@
 			self.element.addEventListener('keyup', self.change.bind(self), true);
 		},
 		html: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.innerHTML = self.data;
-				self.view.addAll(self.element.getElementsByTagName('*'));
-			});
+			this.element.innerHTML = this.data;
+			this.view.addAll(this.element.getElementsByTagName('*'));
 		},
 		css: function () {
-			var self = this;
 			var css = this.data;
 
-			if (self.attribute.cmds.length > 1) {
-				css = self.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
+			if (this.attribute.cmds.length > 1) {
+				css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
 			}
 
-			window.requestAnimationFrame(function () {
-				self.element.style.cssText += css;
-			});
+			this.element.style.cssText += css;
 		},
 		class: function () {
-			var self = this;
-			var className = self.attribute.cmds.slice(1).join('-');
-
-			window.requestAnimationFrame(function () {
-				self.element.classList.toggle(className, self.data);
-			});
+			var className = this.attribute.cmds.slice(1).join('-');
+			this.element.classList.toggle(className, this.data);
 		},
 		text: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.innerText = self.data;
-			});
+			this.element.innerText = this.data;
 		},
 		enable: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.disabled = !self.data;
-			});
+			this.element.disabled = !this.data;
 		},
 		disable: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.disabled = self.data;
-			});
+			this.element.disabled = this.data;
 		},
 		show: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.hidden = !self.data;
-			});
+			this.element.hidden = !this.data;
 		},
 		hide: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.hidden = self.data;
-			});
+			this.element.hidden = this.data;
 		},
 		write: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.readOnly = !self.data;
-			});
+			this.element.readOnly = !this.data;
 		},
 		read: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.readOnly = self.data;
-			});
+			this.element.readOnly = this.data;
 		},
 		selected: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.selectedIndex = self.data;
-			});
+			this.element.selectedIndex = this.data;
 		},
 		default: function () {
-			var self = this;
-			var path = self.toCamelCase(self.attribute.cmds);
-
-			window.requestAnimationFrame(function () {
-				self.setByPath(self.element, path, self.data);
-			});
+			var path = this.toCamelCase(this.attribute.cmds);
+			this.setByPath(this.element, path, this.data);
 		}
 	};
 
@@ -652,37 +582,19 @@
 			this.element.removeEventListener(eventName, this.data, false);
 		},
 		each: function () {
-			var self = this;
-
-			var animate = function () {
-
-				self.element.removeChild(self.element.lastChild);
-
-				if (self.element.lastChild) {
-					window.requestAnimationFrame(animate);
-				}
-
-			};
-
-			window.requestAnimationFrame(animate);
+			while (this.element.lastChild) {
+				this.element.removeChild(this.element.lastChild);
+			}
 		},
 		value: function () {
 			this.element.removeEventListener('change', this.change.bind(this));
 			this.element.removeEventListener('keyup', this.change.bind(this));
 		},
 		html: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.innerText = '';
-			});
+			this.element.innerText = '';
 		},
 		text: function () {
-			var self = this;
-
-			window.requestAnimationFrame(function () {
-				self.element.innerText = '';
-			});
+			this.element.innerText = '';
 		},
 		default: function () {
 
@@ -1223,21 +1135,17 @@
 		}
 
 		var complete = function () {
-			window.requestAnimationFrame(function () {
+			if (self.view.firstChild) {
+				self.view.removeChild(self.view.firstChild);
+			}
 
-				if (self.view.firstChild) {
-					self.view.removeChild(self.view.firstChild);
-				}
+			if (!self.cache[route.component]) {
+				self.cache[route.component] = document.createElement(route.component);
+			}
 
-				if (!self.cache[route.component]) {
-					self.cache[route.component] = document.createElement(route.component);
-				}
+			self.view.appendChild(self.cache[route.component]);
 
-				self.view.appendChild(self.cache[route.component]);
-
-				callback();
-
-			});
+			callback();
 		};
 
 		if (route.componentUrl && !self.cache[route.component]) {
@@ -1505,7 +1413,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.3.0
+		version: 1.3.1
 		license: mpl-2.0
 		author: alexander elias
 

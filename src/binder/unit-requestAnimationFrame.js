@@ -34,7 +34,7 @@ Unit.prototype.renderMethods = {
 		self.element.addEventListener(self.eventName, self.eventMethod);
 	},
 	each: function () {
-		var self = this;
+		var self = this, animate;
 
 		if (!self.clone) {
 
@@ -42,7 +42,8 @@ Unit.prototype.renderMethods = {
 			self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
 			self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
-			while ((!self.data || self.data.length === 0) || (self.element.children.length < self.data.length)) {
+			animate = function () {
+
 				if (!self.data || self.data.length === 0) {
 					self.element.removeChild(self.element.lastChild);
 				} else if (self.element.children.length < self.data.length) {
@@ -56,39 +57,61 @@ Unit.prototype.renderMethods = {
 
 					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
 					self.view.addOne(self.element.lastChild);
+					window.requestAnimationFrame(animate);
 				}
-			}
+
+			};
+
+			window.requestAnimationFrame(animate);
 
 		} else if (self.element.children.length > self.data.length) {
 
-			while (self.element.children.length > self.data.length) {
-				self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
-				self.view.removeOne(self.element.lastChild);
-				self.element.removeChild(self.element.lastChild);
-			}
+			animate = function () {
+				if (self.element.children.length > self.data.length) {
+					self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.removeOne(self.element.lastChild);
+					self.element.removeChild(self.element.lastChild);
+					window.requestAnimationFrame(animate);
+				}
+			};
+
+			window.requestAnimationFrame(animate);
 
 		} else if (self.element.children.length < self.data.length) {
 
-			while (self.element.children.length < self.data.length) {
-				self.element.insertAdjacentHTML(
-					'beforeend',
-					self.clone.replace(
-						self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
-					)
-				);
+			animate = function () {
 
-				self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
-				self.view.addOne(self.element.lastChild);
-			}
+				if (self.element.children.length < self.data.length) {
+
+					self.element.insertAdjacentHTML(
+						'beforeend',
+						self.clone.replace(
+							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+						)
+					);
+
+					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.addOne(self.element.lastChild);
+					window.requestAnimationFrame(animate);
+
+				}
+
+			};
+
+			window.requestAnimationFrame(animate);
 
 		} else if (!self.data) {
 
-			while (self.element.lastChild) {
-				self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
-				self.view.removeOne(self.element.lastChild);
-				self.element.removeChild(self.element.lastChild);
-			}
+			animate = function () {
+				if (self.element.lastChild) {
+					self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
+					self.view.removeOne(self.element.lastChild);
+					self.element.removeChild(self.element.lastChild);
+					window.requestAnimationFrame(animate);
+				}
+			};
 
+			window.requestAnimationFrame(animate);
 		}
 
 	},
@@ -106,49 +129,96 @@ Unit.prototype.renderMethods = {
 		self.element.addEventListener('keyup', self.change.bind(self), true);
 	},
 	html: function () {
-		this.element.innerHTML = this.data;
-		this.view.addAll(this.element.getElementsByTagName('*'));
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.innerHTML = self.data;
+			self.view.addAll(self.element.getElementsByTagName('*'));
+		});
 	},
 	css: function () {
+		var self = this;
 		var css = this.data;
 
-		if (this.attribute.cmds.length > 1) {
-			css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
+		if (self.attribute.cmds.length > 1) {
+			css = self.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
 		}
 
-		this.element.style.cssText += css;
+		window.requestAnimationFrame(function () {
+			self.element.style.cssText += css;
+		});
 	},
 	class: function () {
-		var className = this.attribute.cmds.slice(1).join('-');
-		this.element.classList.toggle(className, this.data);
+		var self = this;
+		var className = self.attribute.cmds.slice(1).join('-');
+
+		window.requestAnimationFrame(function () {
+			self.element.classList.toggle(className, self.data);
+		});
 	},
 	text: function () {
-		this.element.innerText = this.data;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.innerText = self.data;
+		});
 	},
 	enable: function () {
-		this.element.disabled = !this.data;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.disabled = !self.data;
+		});
 	},
 	disable: function () {
-		this.element.disabled = this.data;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.disabled = self.data;
+		});
 	},
 	show: function () {
-		this.element.hidden = !this.data;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.hidden = !self.data;
+		});
 	},
 	hide: function () {
-		this.element.hidden = this.data;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.hidden = self.data;
+		});
 	},
 	write: function () {
-		this.element.readOnly = !this.data;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.readOnly = !self.data;
+		});
 	},
 	read: function () {
-		this.element.readOnly = this.data;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.readOnly = self.data;
+		});
 	},
 	selected: function () {
-		this.element.selectedIndex = this.data;
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.selectedIndex = self.data;
+		});
 	},
 	default: function () {
-		var path = this.toCamelCase(this.attribute.cmds);
-		this.setByPath(this.element, path, this.data);
+		var self = this;
+		var path = self.toCamelCase(self.attribute.cmds);
+
+		window.requestAnimationFrame(function () {
+			self.setByPath(self.element, path, self.data);
+		});
 	}
 };
 
@@ -158,19 +228,37 @@ Unit.prototype.unrenderMethods = {
 		this.element.removeEventListener(eventName, this.data, false);
 	},
 	each: function () {
-		while (this.element.lastChild) {
-			this.element.removeChild(this.element.lastChild);
-		}
+		var self = this;
+
+		var animate = function () {
+
+			self.element.removeChild(self.element.lastChild);
+
+			if (self.element.lastChild) {
+				window.requestAnimationFrame(animate);
+			}
+
+		};
+
+		window.requestAnimationFrame(animate);
 	},
 	value: function () {
 		this.element.removeEventListener('change', this.change.bind(this));
 		this.element.removeEventListener('keyup', this.change.bind(this));
 	},
 	html: function () {
-		this.element.innerText = '';
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.innerText = '';
+		});
 	},
 	text: function () {
-		this.element.innerText = '';
+		var self = this;
+
+		window.requestAnimationFrame(function () {
+			self.element.innerText = '';
+		});
 	},
 	default: function () {
 
