@@ -12,9 +12,9 @@
 	<script src="/assets/webcomponents-lite.min.js"></script>
 	<script src="/assets/jenie.js"></script>
 
-	<script src="js-test.js"></script>
-	<link rel="import" href="j-404.html">
-	<link rel="import" href="html-test.html">
+	<!-- <script src="js-test.js"></script> -->
+	<!-- <link rel="import" href="j-404.html"> -->
+	<!-- <link rel="import" href="html-test.html"> -->
 
 	<style>
 		body {
@@ -65,23 +65,25 @@
 				{
 					title: 'html',
 					path: '/',
-					component: 'html-test'
+					component: 'html-test',
+					componentUrl: 'html-test.html'
 				},
 				{
 					title: 'js',
 					path: '/js',
-					// cache: false,
-					component: 'js-test'
+					component: 'js-test',
+					componentUrl: 'js-test.js'
 				},
-				{
-					title: '404',
-					path: '/{param}',
-					component: 'j-404'
-				},
+				// {
+				// 	title: '404',
+				// 	path: '/{param}',
+				// 	component: 'j-404',
+				// },
 				{
 					title: '404',
 					path: '/{*}',
-					component: 'j-404'
+					component: 'j-404',
+					componentUrl: 'j-404.html'
 				}
 			]
 		});

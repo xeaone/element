@@ -1195,37 +1195,56 @@
 		return url;
 	};
 
+	Router$1.prototype.appendComponentTag = function (url, callback) {
+		var element;
+
+		if (/\.html$/.test(url)) {
+			element = document.createElement('link');
+			element.setAttribute('href', url);
+			element.setAttribute('rel', 'import');
+		} else if (/\.js$/.test(url)) {
+			element = document.createElement('script');
+			element.setAttribute('src', url);
+			element.setAttribute('type', 'text/javascript');
+		} else {
+			throw new Error('Invalid extension type');
+		}
+
+		element.onload = callback;
+		element.setAttribute('async', 'true');
+		document.head.appendChild(element);
+	};
+
 	Router$1.prototype.render = function (route, callback) {
 		var self = this;
-		var component = self.cache[route.component];
 
 		if (route.title) {
 			document.title = route.title;
 		}
 
-		if (route.cache === undefined || route.cache === true) {
+		var complete = function () {
+			window.requestAnimationFrame(function () {
 
-			component = self.cache[route.component];
+				if (self.view.firstChild) {
+					self.view.removeChild(self.view.firstChild);
+				}
 
-			if (!component) {
-				component = self.cache[route.component] = document.createElement(route.component);
-			}
+				if (!self.cache[route.component]) {
+					self.cache[route.component] = document.createElement(route.component);
+				}
 
+				self.view.appendChild(self.cache[route.component]);
+
+				callback();
+
+			});
+		};
+
+		if (route.componentUrl && !self.cache[route.component]) {
+			self.appendComponentTag(route.componentUrl, complete);
 		} else {
-			component = document.createElement(route.component);
+			complete();
 		}
-
-		window.requestAnimationFrame(function () {
-
-			if (self.view.firstChild) {
-				self.view.removeChild(self.view.firstChild);
-			}
-
-			self.view.appendChild(component);
-
-			return callback();
-
-		});
 
 	};
 
@@ -1296,6 +1315,8 @@
 		} else {
 			self.state = data;
 		}
+
+		console.log(self.state);
 
 		window.history[replace ? 'replaceState' : 'pushState'](self.state, self.state.route.title, self.state.url.href);
 
@@ -1484,7 +1505,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.2.12
+		version: 1.3.0
 		license: mpl-2.0
 		author: alexander elias
 

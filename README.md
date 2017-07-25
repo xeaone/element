@@ -122,9 +122,9 @@ Custom element router.
 - `routes: Array`
 	- `route: Object`
 		- `path: String` An absolute path.
-		- `cache: Boolean` Default is true.
-		- `title: String` the title for the page.
-		- `component: String` The name of a `Jenie.component`.
+		- `title: String` The title for the page.
+		- `component: String` The name of a component.
+		- `componentUrl: String` The url path to a component. Appends the html or js file to the head.
 - `external` If `true` then the response will not be handle by the router. If `false` then the router will handle the response.
 	- `RegExp`
 	- `String` Converted to a `RegExp`.
