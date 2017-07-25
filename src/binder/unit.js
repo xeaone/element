@@ -70,35 +70,22 @@ Unit.prototype.renderMethods = {
 	each: function () {
 		var self = this;
 
+		self.data = self.data || [];
+
 		if (!self.clone) {
 
 			self.variable = self.attribute.cmds.slice(1).join('.');
 			self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
 			self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 
-			while ((!self.data || self.data.length === 0) || (self.element.children.length < self.data.length)) {
-				if (!self.data || self.data.length === 0) {
-					self.element.removeChild(self.element.lastChild);
-				} else if (self.element.children.length < self.data.length) {
+		}
 
-					self.element.insertAdjacentHTML(
-						'beforeend',
-						self.clone.replace(
-							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
-						)
-					);
-
-					self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
-					self.view.addOne(self.element.lastChild);
-				}
-			}
-
-		} else if (self.element.children.length > self.data.length) {
+		if (self.element.children.length > self.data.length) {
 
 			while (self.element.children.length > self.data.length) {
-				self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
-				self.view.removeOne(self.element.lastChild);
-				self.element.removeChild(self.element.lastChild);
+				self.view.removeAll(self.element.children[self.element.children.length-1].getElementsByTagName('*'));
+				self.view.removeOne(self.element.children[self.element.children.length-1]);
+				self.element.removeChild(self.element.children[self.element.children.length-1]);
 			}
 
 		} else if (self.element.children.length < self.data.length) {
@@ -110,17 +97,8 @@ Unit.prototype.renderMethods = {
 						self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
 					)
 				);
-
-				self.view.addAll(self.element.lastChild.getElementsByTagName('*'));
-				self.view.addOne(self.element.lastChild);
-			}
-
-		} else if (!self.data) {
-
-			while (self.element.lastChild) {
-				self.view.removeAll(self.element.lastChild.getElementsByTagName('*'));
-				self.view.removeOne(self.element.lastChild);
-				self.element.removeChild(self.element.lastChild);
+				self.view.addAll(self.element.children[self.element.children.length-1].getElementsByTagName('*'));
+				self.view.addOne(self.element.children[self.element.children.length-1]);
 			}
 
 		}
