@@ -41,7 +41,7 @@ function Jenie () {
 		}
 
 		self.router.listen(data.router, function () {
-			return callback();
+			if (callback) return callback();
 		});
 	};
 
