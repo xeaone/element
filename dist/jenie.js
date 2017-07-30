@@ -1359,7 +1359,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.3.5
+		version: 1.3.6
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1392,7 +1392,7 @@
 			}
 
 			self.router.listen(data.router, function () {
-				return callback();
+				if (callback) return callback();
 			});
 		};
 
