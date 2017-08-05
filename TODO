@@ -1,1 +1,5 @@
-using the g option in the path regex thros an error
+
+Idea:
+	MODEL > DOM
+	var body = document.body.innerHtml;
+	onload or html insert query either the body snapshot or the insert. regex obtain j-atts="foo.bar" query those elements
