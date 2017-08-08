@@ -4,6 +4,219 @@
 	(global.Jenie = factory());
 }(this, (function () { 'use strict';
 
+	var Utility = {
+
+		setByPath: function (collection, path, value) {
+			var keys = path.split('.');
+			var last = keys.length - 1;
+
+			for (var i = 0, key; i < last; i++) {
+				key = keys[i];
+				if (collection[key] === undefined) collection[key] = {};
+				collection = collection[key];
+			}
+
+			return collection[keys[last]] = value;
+		},
+
+		getByPath: function (collection, path) {
+			var keys = path.split('.');
+			var last = keys.length - 1;
+
+			for (var i = 0; i < last; i++) {
+				if (!collection[keys[i]]) return undefined;
+				else collection = collection[keys[i]];
+			}
+
+			return collection[keys[last]];
+		},
+
+		toCamelCase: function (data) {
+			if (data.constructor.name === 'Array') data = data.join('-');
+			return data.replace(/-[a-z]/g, function (match) {
+				return match[1].toUpperCase();
+			});
+		}
+
+	};
+
+	function Binder (options) {
+		var self = this;
+
+		self.data = options.data;
+		self.view = options.view;
+		self.model = options.model;
+		self.events = options.events;
+		self.element = options.element;
+		self.attribute = options.attribute;
+		self.modifiers = options.modifiers;
+
+		self.renderMethod = (self.renderMethods[self.attribute.cmds[0]] || self.renderMethods['default']).bind(self);
+		self.unrenderMethod = (self.unrenderMethods[self.attribute.cmds[0]] || self.unrenderMethods['default']).bind(self);
+
+		Object.defineProperty(self, 'data', {
+			enumerable: true,
+			configurable: true,
+			get: function () {
+				var data = Utility.getByPath(self.model.data, self.attribute.path);
+
+				self.modifiers.forEach(function (modifier) {
+					data = modifier.call(data);
+				});
+
+				return data;
+			},
+			set: function (value) {
+
+				self.modifiers.forEach(function (modifier) {
+					value = modifier.call(value);
+				});
+
+				return Utility.setByPath(self.model.data, self.attribute.path, value);
+			}
+		});
+
+		self.renderMethod();
+	}
+
+	Binder.prototype.renderMethods = {
+		on: function () {
+			var self = this;
+
+			if (!self.eventName) {
+				self.eventName = self.attribute.cmds[1];
+				self.eventMethod = Utility.getByPath(self.events, self.attribute.path).bind(self.model.data);
+			}
+
+			self.element.removeEventListener(self.eventName, self.eventMethod);
+			self.element.addEventListener(self.eventName, self.eventMethod);
+		},
+		each: function () {
+			var self = this;
+
+			self.data = self.data || [];
+
+			if (!self.clone) {
+				self.variable = self.attribute.cmds.slice(1).join('.');
+				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
+				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+			}
+
+			if (self.element.children.length > self.data.length) {
+				while (self.element.children.length > self.data.length) {
+					self.view.removeAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
+					self.view.removeOne(self.element.children[self.element.children.length-1]);
+					self.element.removeChild(self.element.children[self.element.children.length-1]);
+				}
+			} else if (self.element.children.length < self.data.length) {
+				while (self.element.children.length < self.data.length) {
+					self.element.insertAdjacentHTML(
+						'beforeend',
+						self.clone.replace(
+							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+						)
+					);
+					self.view.addAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
+					self.view.addOne(self.element.children[self.element.children.length-1]);
+				}
+			}
+
+		},
+		value: function () {
+			var self = this;
+
+			if (self.change) return;
+			if (self.element.type === 'button' || self.element.type === 'reset') return self.change = true;
+
+			self.change = function () {
+				self.data = self.element.type !== 'radio' && self.element.type !== 'checked' ? self.element.value : self.element.checked;
+			};
+
+			self.element.addEventListener('change', self.change.bind(self), true);
+			self.element.addEventListener('keyup', self.change.bind(self), true);
+		},
+		html: function () {
+			this.element.innerHTML = this.data;
+			this.view.addAll(this.element.querySelectorAll('*'));
+		},
+		css: function () {
+			var css = this.data;
+
+			if (this.attribute.cmds.length > 1) {
+				css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
+			}
+
+			this.element.style.cssText += css;
+		},
+		class: function () {
+			var className = this.attribute.cmds.slice(1).join('-');
+			this.element.classList.toggle(className, this.data);
+		},
+		text: function () {
+			this.element.innerText = this.data;
+		},
+		enable: function () {
+			this.element.disabled = !this.data;
+		},
+		disable: function () {
+			this.element.disabled = this.data;
+		},
+		show: function () {
+			this.element.hidden = !this.data;
+		},
+		hide: function () {
+			this.element.hidden = this.data;
+		},
+		write: function () {
+			this.element.readOnly = !this.data;
+		},
+		read: function () {
+			this.element.readOnly = this.data;
+		},
+		selected: function () {
+			this.element.selectedIndex = this.data;
+		},
+		default: function () {
+			var path = Utility.toCamelCase(this.attribute.cmds);
+			Utility.setByPath(this.element, path, this.data);
+		}
+	};
+
+	Binder.prototype.unrenderMethods = {
+		on: function () {
+			var eventName = this.attribute.cmds[1];
+			this.element.removeEventListener(eventName, this.data, false);
+		},
+		each: function () {
+			while (this.element.lastChild) {
+				this.element.removeChild(this.element.lastChild);
+			}
+		},
+		value: function () {
+			this.element.removeEventListener('change', this.change.bind(this));
+			this.element.removeEventListener('keyup', this.change.bind(this));
+		},
+		html: function () {
+			this.element.innerText = '';
+		},
+		text: function () {
+			this.element.innerText = '';
+		},
+		default: function () {
+
+		}
+	};
+
+	Binder.prototype.unrender = function () {
+		this.unrenderMethod();
+		return this;
+	};
+
+	Binder.prototype.render = function () {
+		this.renderMethod();
+		return this;
+	};
+
 	function Model () {}
 
 	Model.prototype.join = function () {
@@ -100,7 +313,7 @@
 		var self = this;
 
 		return Object.defineProperties(target, {
-			set: {
+			$set: {
 				value: function (key, value) {
 
 					if (self.isCollection(value)) {
@@ -113,7 +326,7 @@
 
 				}
 			},
-			remove: {
+			$remove: {
 				value: function (key) {
 
 					delete target[key];
@@ -186,33 +399,6 @@
 		});
 
 		return target;
-	};
-
-	Model.prototype.set = function (path, value) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-		var collection = this.data;
-
-		for (var i = 0, key; i < last; i++) {
-			key = keys[i];
-			if (collection[key] === undefined) collection[key] = {};
-			collection = collection[key];
-		}
-
-		return collection[keys[last]] = value;
-	};
-
-	Model.prototype.get = function (path) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-		var collection = this.data;
-
-		for (var i = 0; i < last; i++) {
-			if (!collection[keys[i]]) return undefined;
-			else collection = collection[keys[i]];
-		}
-
-		return collection[keys[last]];
 	};
 
 	Model.prototype.listener = function (listener) {
@@ -297,7 +483,7 @@
 		ATTRIBUTE_ACCEPTS: /(data-)?j-/,
 		ELEMENT_ACCEPTS: /(data-)?j-/,
 		ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
-		ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script/
+		ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script|^style|^svg/
 	};
 
 	View.prototype.preview = function (element) {
@@ -307,7 +493,7 @@
 	};
 
 	View.prototype.eachElement = function (elements, callback) {
-		for (var i = 0; i < elements.length; i++) {
+		for (var i = 0, l = elements.length; i < l; i++) {
 			var element = elements[i];
 			var preview = this.preview(element);
 
@@ -388,15 +574,13 @@
 	};
 
 	View.prototype.addOne = function (element) {
-		var self = this;
+		this.eachAttribute(element, function (attribute) {
 
-		self.eachAttribute(element, function (attribute) {
-
-			if (!self.data.has(attribute.path)) {
-				self.data.set(attribute.path, new Collection());
+			if (!this.data.has(attribute.path)) {
+				this.data.set(attribute.path, new Collection());
 			}
 
-			self.emit(element, attribute);
+			this.emit(element, attribute);
 		});
 	};
 
@@ -415,212 +599,13 @@
 		this.addAll(this.elements);
 	};
 
-	function Unit (options) {
-		this.view = options.view;
-		this.model = options.model;
-		this.data = options.data;
-		this.element = options.element;
-		this.attribute = options.attribute;
-		this.modifiers = options.modifiers;
-
-		this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
-		this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
-
-		Object.defineProperty(this, 'data', {
-			enumerable: true,
-			configurable: true,
-			get: function () {
-				var data = this.model.get(this.attribute.path);
-
-				this.modifiers.forEach(function (modifier) {
-					data = modifier.call(data);
-				});
-
-				return data;
-			},
-			set: function (value) {
-
-				this.modifiers.forEach(function (modifier) {
-					value = modifier.call(value);
-				});
-
-				return this.model.set(this.attribute.path, value);
-			}
-		});
-
-		this.renderMethod();
-	}
-
-	Unit.prototype.setByPath = function (collection, path, value) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-
-		for (var i = 0, key; i < last; i++) {
-			key = keys[i];
-			if (collection[key] === undefined) collection[key] = {};
-			collection = collection[key];
-		}
-
-		return collection[keys[last]] = value;
-	};
-
-	Unit.prototype.toCamelCase = function (data) {
-		if (data.constructor.name === 'Array') data = data.join('-');
-		return data.replace(/-[a-z]/g, function (match) {
-			return match[1].toUpperCase();
-		});
-	};
-
-	Unit.prototype.renderMethods = {
-		on: function () {
-			var self = this;
-
-			if (!self.eventName) {
-				self.eventName = self.attribute.cmds[1];
-				self.eventMethod = self.data.bind(self.model.data);
-			}
-
-			self.element.removeEventListener(self.eventName, self.eventMethod);
-			self.element.addEventListener(self.eventName, self.eventMethod);
-		},
-		each: function () {
-			var self = this;
-
-			self.data = self.data || [];
-
-			if (!self.clone) {
-
-				self.variable = self.attribute.cmds.slice(1).join('.');
-				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
-				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
-
-			}
-
-			if (self.element.children.length > self.data.length) {
-
-				while (self.element.children.length > self.data.length) {
-					self.view.removeAll(self.element.children[self.element.children.length-1].getElementsByTagName('*'));
-					self.view.removeOne(self.element.children[self.element.children.length-1]);
-					self.element.removeChild(self.element.children[self.element.children.length-1]);
-				}
-
-			} else if (self.element.children.length < self.data.length) {
-
-				while (self.element.children.length < self.data.length) {
-					self.element.insertAdjacentHTML(
-						'beforeend',
-						self.clone.replace(
-							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
-						)
-					);
-					self.view.addAll(self.element.children[self.element.children.length-1].getElementsByTagName('*'));
-					self.view.addOne(self.element.children[self.element.children.length-1]);
-				}
-
-			}
-
-		},
-		value: function () {
-			var self = this;
-
-			if (self.change) return;
-			if (self.element.type === 'button' || self.element.type === 'reset') return self.change = true;
-
-			self.change = function () {
-				self.data = self.element.type !== 'radio' && self.element.type !== 'checked' ? self.element.value : self.element.checked;
-			};
-
-			self.element.addEventListener('change', self.change.bind(self), true);
-			self.element.addEventListener('keyup', self.change.bind(self), true);
-		},
-		html: function () {
-			this.element.innerHTML = this.data;
-			this.view.addAll(this.element.getElementsByTagName('*'));
-		},
-		css: function () {
-			var css = this.data;
-
-			if (this.attribute.cmds.length > 1) {
-				css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
-			}
-
-			this.element.style.cssText += css;
-		},
-		class: function () {
-			var className = this.attribute.cmds.slice(1).join('-');
-			this.element.classList.toggle(className, this.data);
-		},
-		text: function () {
-			this.element.innerText = this.data;
-		},
-		enable: function () {
-			this.element.disabled = !this.data;
-		},
-		disable: function () {
-			this.element.disabled = this.data;
-		},
-		show: function () {
-			this.element.hidden = !this.data;
-		},
-		hide: function () {
-			this.element.hidden = this.data;
-		},
-		write: function () {
-			this.element.readOnly = !this.data;
-		},
-		read: function () {
-			this.element.readOnly = this.data;
-		},
-		selected: function () {
-			this.element.selectedIndex = this.data;
-		},
-		default: function () {
-			var path = this.toCamelCase(this.attribute.cmds);
-			this.setByPath(this.element, path, this.data);
-		}
-	};
-
-	Unit.prototype.unrenderMethods = {
-		on: function () {
-			var eventName = this.attribute.cmds[1];
-			this.element.removeEventListener(eventName, this.data, false);
-		},
-		each: function () {
-			while (this.element.lastChild) {
-				this.element.removeChild(this.element.lastChild);
-			}
-		},
-		value: function () {
-			this.element.removeEventListener('change', this.change.bind(this));
-			this.element.removeEventListener('keyup', this.change.bind(this));
-		},
-		html: function () {
-			this.element.innerText = '';
-		},
-		text: function () {
-			this.element.innerText = '';
-		},
-		default: function () {
-
-		}
-	};
-
-	Unit.prototype.unrender = function () {
-		this.unrenderMethod();
-		return this;
-	};
-
-	Unit.prototype.render = function () {
-		this.renderMethod();
-		return this;
-	};
-
-	function Binder (options, callback) {
+	function Controller (options, callback) {
 		var self = this;
 
 		self.view = new View();
 		self.model = new Model();
 
+		self.events = options.events || {};
 		self._model = options.model || {};
 		self._view = (options.view.shadowRoot || options.view).querySelectorAll('*');
 
@@ -628,52 +613,37 @@
 		self.modifiers = options.modifiers || {};
 
 		self.model.listener(function (path, data) {
-
 			if (data === undefined) {
 				self.view.unrenderAll('^' + path + '.*');
 			} else {
 				self.view.renderAll('^' + path);
 			}
-
 		});
 
 		self.view.listener(function (element, attribute) {
-
-			self.view.data.get(attribute.path).push(new Unit({
+			self.view.data.get(attribute.path).push(new Binder({
 				view: self.view,
 				model: self.model,
+				events: self.events,
 				element: element,
 				attribute: attribute,
 				modifiers: attribute.modifiers.map(function (modifier) {
 					return self.modifiers[modifier];
 				})
 			}));
-
 		});
 
 		if (typeof options.model === 'function') {
-
 			self._model.call(self, function (model) {
-
 				self._model = model;
 				self.model.run(self._model);
 				self.view.run(self._view);
-
-				if (callback) {
-					return callback.call(self);
-				}
-
+				if (callback) return callback.call(self);
 			});
-
 		} else {
-
 			self.model.run(self._model);
 			self.view.run(self._view);
-
-			if (callback) {
-				return callback.call(self);
-			}
-
+			if (callback) callback.call(self);
 		}
 
 	}
@@ -736,105 +706,94 @@
 	function Component (options) {
 		var self = this;
 
-		if (!options) throw new Error('Component missing options');
+		options = options || {};
+
 		if (!options.name) throw new Error('Component missing options.name');
 		if (!options.template) throw new Error('Component missing options.template');
 
 		self.name = options.name;
 		self.model = options.model;
+		self.style = options.style;
+		self.events = options.events;
 		self.modifiers = options.modifiers;
 		self.currentScript = (document._currentScript || document.currentScript);
-		self.template = self._template(options.template);
+		self.template = self.toTemplate(options.template);
 
-		self.elementPrototype = Object.create(HTMLElement.prototype);
+		self.proto = Object.create(HTMLElement.prototype);
 
-		self.elementPrototype.attachedCallback = options.attached;
-		self.elementPrototype.detachedCallback = options.detached;
-		self.elementPrototype.attributeChangedCallback = options.attributed;
+		self.proto.attachedCallback = options.attached;
+		self.proto.detachedCallback = options.detached;
+		self.proto.attributeChangedCallback = options.attributed;
 
-		self.elementPrototype.createdCallback = function () {
-			var elementInstance = this;
-			var templateInstance = document.importNode(self.template.content, true);
-
-			elementInstance.uuid = Uuid();
+		self.proto.createdCallback = function () {
+			self.element = this;
+			self.element.uuid = Uuid();
 
 			// handle slots
-			var elementSlots = elementInstance.querySelectorAll('[slot]');
-
-			if (elementSlots.length > 0) {
-				for (var i = 0, l = elementSlots.length; i < l; i++) {
-					var elementSlot = elementSlots[i];
-					var name = elementSlot.getAttribute('slot');
-					var templateSlot = templateInstance.querySelector('slot[name='+ name + ']');
-					templateSlot.parentNode.replaceChild(elementSlot, templateSlot);
-				}
-			}
-
 			// might want to handle default slot
 			// might want to overwrite content
-			elementInstance.appendChild(templateInstance);
+			self.slotify();
+
+			self.element.appendChild(
+				document.importNode(self.template.content, true)
+			);
 
 			if (self.model) {
-
-				elementInstance.binder = new Binder({
-					view: elementInstance,
-					name: elementInstance.uuid,
+				self.element.controller = new Controller({
 					model: self.model,
+					view: self.element,
+					events: self.events,
+					name: self.element.uuid,
 					modifiers: self.modifiers
 				}, function () {
-					var binderInstance = this;
-					elementInstance.model = binderInstance.model.data;
-					elementInstance.view = binderInstance.view.data;
-					if (options.created) options.created.call(elementInstance);
+					self.element.view = this.view.data;
+					self.element.model = this.model.data;
+					if (options.created) options.created.call(self.element);
 				});
-
 			} else if (options.created) {
-				options.created.call(elementInstance);
+				options.created.call(self.element);
 			}
 
 		};
 
-		self._define();
+		self.define();
 
 	}
 
-	Component.prototype._comment = function (method) {
-		if (typeof method !== 'function') throw new Error('Comment must be a function');
-		var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
-		var match = comment.exec(method.toString());
-		if (!match) throw new Error('Comment missing');
-		return match[1];
+	Component.prototype.slotify = function () {
+		var self = this;
+		var eSlots = self.element.querySelectorAll('[slot]');
+
+		for (var i = 0, l = eSlots.length; i < l; i++) {
+			var eSlot = eSlots[i];
+			var sName = eSlot.getAttribute('slot');
+			var tSlot = self.template.content.querySelector('slot[name='+ sName + ']');
+			tSlot.parentNode.replaceChild(eSlot, tSlot);
+		}
 	};
 
-	Component.prototype._dom = function (string) {
-		var temporary = document.createElement('div');
-		temporary.innerHTML = string;
-		return temporary.children[0];
+	Component.prototype.toDom = function (string) {
+		var template = document.createElement('template');
+		template.innerHTML = string;
+		return template;
 	};
 
-	Component.prototype._template = function (template) {
+	Component.prototype.toTemplate = function (template) {
 
-		if (template.constructor.name === 'Function') {
-
-			template = this._comment(template);
-			template = this._dom(template);
-
-		} else if (template.constructor.name === 'String') {
-
+		if (template.constructor.name === 'String') {
 			if (/<|>/.test(template)) {
-				template = this._dom(template);
+				template = this.toDom(template);
 			} else {
 				template = this.currentScript.ownerDocument.querySelector(template);
 			}
-
 		}
 
 		return template;
 	};
 
-	Component.prototype._define = function () {
+	Component.prototype.define = function () {
 		document.registerElement(this.name, {
-			prototype: this.elementPrototype
+			prototype: this.proto
 		});
 	};
 
@@ -898,10 +857,10 @@
 
 		self.base = options.base || '';
 
-		Object.defineProperty(this, 'root', {
+		Object.defineProperty(self, 'root', {
 			enumerable: true,
 			get: function () {
-				return this.hash ? '/#/' : '/';
+				return self.hash ? '/#/' : '/';
 			}
 		});
 
@@ -1199,7 +1158,6 @@
 	}
 
 	Module.prototype.load = function (paths) {
-
 		paths.forEach(function(path) {
 			var script = document.createElement('script');
 
@@ -1209,24 +1167,18 @@
 
 			document.head.appendChild(script);
 		});
-
 	};
 
 	Module.prototype.import = function (name) {
-		var self = this;
-
-		if (name in self.modules) {
-			return  typeof self.modules[name] === 'function' ? self.modules[name]() : self.modules[name];
+		if (name in this.modules) {
+			return  typeof this.modules[name] === 'function' ? this.modules[name]() : this.modules[name];
 		} else {
 			throw new Error('module ' + name + ' is not defined');
 		}
-
 	};
 
 	Module.prototype.export = function (name, dependencies, method) {
-		var self = this;
-
-		if (name in self.modules) {
+		if (name in this.modules) {
 			throw new Error('module ' + name + ' is defined');
 		} else {
 
@@ -1237,13 +1189,12 @@
 
 			if (typeof method === 'function') {
 				dependencies.forEach(function (dependency) {
-					method = method.bind(null, self.import(dependency));
-				});
+					method = method.bind(null, this.import(dependency));
+				}, this);
 			}
 
-			return self.modules[name] = method;
+			return this.modules[name] = method;
 		}
-
 	};
 
 	function Http () {}
@@ -1400,8 +1351,8 @@
 			return new Component(options);
 		};
 
-		this.binder = function (options, callback) {
-			return new Binder(options, callback);
+		this.controller = function (options, callback) {
+			return new Controller(options, callback);
 		};
 
 		this.script = function () {
