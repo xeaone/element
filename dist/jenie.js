@@ -838,29 +838,27 @@
 	};
 
 	function Router (options) {
-		var self = this;
-
 		options = options || {};
 
-		Events.call(self);
+		Events.call(this);
 
-		self.state = {};
-		self.cache = {};
-		self.origin = window.location.origin;
+		this.state = {};
+		this.cache = {};
+		this.origin = window.location.origin;
 
-		self.external = options.external;
-		self.routes = options.routes || [];
-		self.view = options.view || 'j-view';
+		this.external = options.external;
+		this.routes = options.routes || [];
+		this.view = options.view || 'j-view';
 
-		self.hash = !options.hash ? false : options.hash;
-		self.contain = !options.contain ? false : options.contain;
+		this.hash = !options.hash ? false : options.hash;
+		this.contain = !options.contain ? false : options.contain;
 
-		self.base = options.base || '';
+		this.base = options.base || '';
 
-		Object.defineProperty(self, 'root', {
+		Object.defineProperty(this, 'root', {
 			enumerable: true,
 			get: function () {
-				return self.hash ? '/#/' : '/';
+				return this.hash ? '/#/' : '/';
 			}
 		});
 
@@ -871,7 +869,6 @@
 	}
 
 	Router.prototype = Object.create(Events.prototype);
-
 	Router.prototype.constructor = Router;
 
 	Router.prototype._popstate = function (e) {
@@ -889,28 +886,25 @@
 
 		if (!target || 'A' !== target.nodeName) return;
 
-		var href = target.getAttribute('href');
-
 		// if external is true then default action
-		if (self.external) {
-			if (self.external.constructor.name === 'Function' && self.external(href)) return;
-			else if (self.external.constructor.name === 'RegExp' && self.external.test(href)) return;
-			else if (self.external.constructor.name === 'String' && new RegExp(self.external).test(href)) return;
-		}
+		if (self.external && (
+			self.external.constructor.name === 'Function' && self.external(target.href) ||
+			self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+			self.external.constructor.name === 'String' && new RegExp(self.external).test(target.href)
+		)) return;
 
-		// check non acceptable attributes
-		if (target.hasAttribute('download') || target.hasAttribute('external')) return;
-
-		// check non acceptable href
-		if (href.indexOf('mailto:') !== -1) return;
-		if (href.indexOf('tel:') !== -1) return;
-		if (href.indexOf('file:') !== -1) return;
-		if (href.indexOf('ftp:') !== -1) return;
+		// check non acceptable attributes and href
+		if (target.hasAttribute('download') ||
+			target.hasAttribute('external') ||
+			target.href.indexOf('mailto:') !== -1 ||
+			target.href.indexOf('file:') !== -1 ||
+			target.href.indexOf('tel:') !== -1 ||
+			target.href.indexOf('ftp:') !== -1
+		) return;
 
 		e.preventDefault();
-		self.navigate(href);
+		self.navigate(target.href);
 	};
-
 
 	Router.prototype._load = function (callback) {
 		this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
@@ -942,9 +936,9 @@
 
 	Router.prototype.normalize = function (path) {
 		path = decodeURI(path)
-		.replace(/\/{2,}/g, '/')
-		.replace(/(http(s)?:\/)/, '$1/')
-		.replace(/\?.*?/, '');
+			.replace(/\/{2,}/g, '/')
+			.replace(/(http(s)?:\/)/, '$1/')
+			.replace(/\?.*?/, '');
 
 		if (!this.hash) path = path.replace(/#.*?$/, '');
 
@@ -967,12 +961,14 @@
 		var userPaths = userPath.split('/');
 		var routePaths = routePath.split('/');
 
-		routePaths.forEach(function (path, index) {
+		for (var i = 0, l = routePaths.length, path; i < l; i++) {
+			path = routePaths[i];
+
 			if (pattern.test(path)) {
 				name = path.replace(brackets, '');
-				parameters[name] = userPaths[index];
+				parameters[name] = userPaths[i];
 			}
-		});
+		}
 
 		return parameters;
 	};
@@ -1075,40 +1071,30 @@
 	};
 
 	Router.prototype.add = function (route) {
-		var self = this;
-
 		if (route.constructor.name === 'Object') {
-			self.routes.push(route);
+			this.routes.push(route);
 		} else if (route.constructor.name === 'Array') {
-			self.routes = self.routes.concat(route);
+			this.routes = this.routes.concat(route);
 		}
-
 	};
 
 	Router.prototype.remove = function (path) {
-		var self = this;
-
-		for (var i = 0, l = self.routes.length; i < l; i++) {
-
-			if (path === self.routes[i].path) {
-				return self.routes.splice(i, 1);
+		for (var i = 0, l = this.routes.length; i < l; i++) {
+			if (path === this.routes[i].path) {
+				return this.routes.splice(i, 1);
 			}
-
 		}
-
 	};
 
 	Router.prototype.get = function (path) {
-		var self = this;
-
-		for (var i = 0, l = self.routes.length; i < l; i++) {
-			var route = self.routes[i];
+		for (var i = 0, l = this.routes.length, route; i < l; i++) {
+			route = this.routes[i];
 
 			if (!route.path) {
 				continue;
 			} else if (route.path.constructor.name === 'String') {
-				if (self.parse(route.path).test(path)) {
-					route.parameters = self.parameters(route.path, path);
+				if (this.parse(route.path).test(path)) {
+					route.parameters = this.parameters(route.path, path);
 					return route;
 				}
 			} else if (route.path.constructor.name === 'RegExp') {
@@ -1122,7 +1108,6 @@
 			}
 
 		}
-
 	};
 
 	Router.prototype.navigate = function (data, replace) {
@@ -1310,7 +1295,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.3.6
+		version: 1.4.1
 		license: mpl-2.0
 		author: alexander elias
 
