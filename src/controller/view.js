@@ -11,7 +11,7 @@ View.prototype.regexp = {
 	ATTRIBUTE_ACCEPTS: /(data-)?j-/,
 	ELEMENT_ACCEPTS: /(data-)?j-/,
 	ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
-	ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script/
+	ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script|^style|^svg/
 };
 
 View.prototype.preview = function (element) {
@@ -21,7 +21,7 @@ View.prototype.preview = function (element) {
 };
 
 View.prototype.eachElement = function (elements, callback) {
-	for (var i = 0; i < elements.length; i++) {
+	for (var i = 0, l = elements.length; i < l; i++) {
 		var element = elements[i];
 		var preview = this.preview(element);
 

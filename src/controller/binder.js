@@ -1,22 +1,26 @@
+import Utility from '../utility';
 
 export default function Binder (options) {
-	this.view = options.view;
-	this.model = options.model;
-	this.data = options.data;
-	this.element = options.element;
-	this.attribute = options.attribute;
-	this.modifiers = options.modifiers;
+	var self = this;
 
-	this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
-	this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
+	self.data = options.data;
+	self.view = options.view;
+	self.model = options.model;
+	self.events = options.events;
+	self.element = options.element;
+	self.attribute = options.attribute;
+	self.modifiers = options.modifiers;
 
-	Object.defineProperty(this, 'data', {
+	self.renderMethod = (self.renderMethods[self.attribute.cmds[0]] || self.renderMethods['default']).bind(self);
+	self.unrenderMethod = (self.unrenderMethods[self.attribute.cmds[0]] || self.unrenderMethods['default']).bind(self);
+
+	Object.defineProperty(self, 'data', {
 		enumerable: true,
 		configurable: true,
 		get: function () {
-			var data = this.model.get(this.attribute.path);
+			var data = Utility.getByPath(self.model.data, self.attribute.path);
 
-			this.modifiers.forEach(function (modifier) {
+			self.modifiers.forEach(function (modifier) {
 				data = modifier.call(data);
 			});
 
@@ -24,36 +28,16 @@ export default function Binder (options) {
 		},
 		set: function (value) {
 
-			this.modifiers.forEach(function (modifier) {
+			self.modifiers.forEach(function (modifier) {
 				value = modifier.call(value);
 			});
 
-			return this.model.set(this.attribute.path, value);
+			return Utility.setByPath(self.model.data, self.attribute.path, value);
 		}
 	});
 
-	this.renderMethod();
+	self.renderMethod();
 }
-
-Binder.prototype.setByPath = function (collection, path, value) {
-	var keys = path.split('.');
-	var last = keys.length - 1;
-
-	for (var i = 0, key; i < last; i++) {
-		key = keys[i];
-		if (collection[key] === undefined) collection[key] = {};
-		collection = collection[key];
-	}
-
-	return collection[keys[last]] = value;
-};
-
-Binder.prototype.toCamelCase = function (data) {
-	if (data.constructor.name === 'Array') data = data.join('-');
-	return data.replace(/-[a-z]/g, function (match) {
-		return match[1].toUpperCase();
-	});
-};
 
 Binder.prototype.renderMethods = {
 	on: function () {
@@ -61,7 +45,7 @@ Binder.prototype.renderMethods = {
 
 		if (!self.eventName) {
 			self.eventName = self.attribute.cmds[1];
-			self.eventMethod = self.data.bind(self.model.data);
+			self.eventMethod = Utility.getByPath(self.events, self.attribute.path).bind(self.model.data);
 		}
 
 		self.element.removeEventListener(self.eventName, self.eventMethod);
@@ -73,23 +57,18 @@ Binder.prototype.renderMethods = {
 		self.data = self.data || [];
 
 		if (!self.clone) {
-
 			self.variable = self.attribute.cmds.slice(1).join('.');
 			self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
 			self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
-
 		}
 
 		if (self.element.children.length > self.data.length) {
-
 			while (self.element.children.length > self.data.length) {
-				self.view.removeAll(self.element.children[self.element.children.length-1].getElementsByTagName('*'));
+				self.view.removeAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
 				self.view.removeOne(self.element.children[self.element.children.length-1]);
 				self.element.removeChild(self.element.children[self.element.children.length-1]);
 			}
-
 		} else if (self.element.children.length < self.data.length) {
-
 			while (self.element.children.length < self.data.length) {
 				self.element.insertAdjacentHTML(
 					'beforeend',
@@ -97,10 +76,9 @@ Binder.prototype.renderMethods = {
 						self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
 					)
 				);
-				self.view.addAll(self.element.children[self.element.children.length-1].getElementsByTagName('*'));
+				self.view.addAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
 				self.view.addOne(self.element.children[self.element.children.length-1]);
 			}
-
 		}
 
 	},
@@ -119,7 +97,7 @@ Binder.prototype.renderMethods = {
 	},
 	html: function () {
 		this.element.innerHTML = this.data;
-		this.view.addAll(this.element.getElementsByTagName('*'));
+		this.view.addAll(this.element.querySelectorAll('*'));
 	},
 	css: function () {
 		var css = this.data;
@@ -159,8 +137,8 @@ Binder.prototype.renderMethods = {
 		this.element.selectedIndex = this.data;
 	},
 	default: function () {
-		var path = this.toCamelCase(this.attribute.cmds);
-		this.setByPath(this.element, path, this.data);
+		var path = Utility.toCamelCase(this.attribute.cmds);
+		Utility.setByPath(this.element, path, this.data);
 	}
 };
 

@@ -10,8 +10,9 @@ export default function Component (options) {
 	if (!options.template) throw new Error('Component missing options.template');
 
 	self.name = options.name;
-	// self.style = options.style;
 	self.model = options.model;
+	self.style = options.style;
+	self.events = options.events;
 	self.modifiers = options.modifiers;
 	self.currentScript = (document._currentScript || document.currentScript);
 	self.template = self.toTemplate(options.template);
@@ -39,6 +40,7 @@ export default function Component (options) {
 			self.element.controller = new Controller({
 				model: self.model,
 				view: self.element,
+				events: self.events,
 				name: self.element.uuid,
 				modifiers: self.modifiers
 			}, function () {

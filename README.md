@@ -1,11 +1,13 @@
 # Jenie
 
 **Beta**
-
 Lightweight powerful web components framework. Web components, data-binding, front-end routing, and more.
 
-## Support
+**1.4 important Changes**
+- removed Jenie.component.template as comment.
+- j-on binder events have been moved from Jenie.controller.model to  Jenie.controller.events.
 
+## Support
 - IE10 (flaky)
 - IE11
 - Chrome
@@ -15,11 +17,10 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 - Chrome Android
 
 ## Installing
-
 - `npm install jenie --save`
-- Pollyfills not included UMD `node_modules/jenie/dist/jenie.min.js`
-- Pollyfills are included UMD `node_modules/jenie/dist/jenie.polly.min.js`
-- Pollyfills `node_modules/jenie/dist/webcomponents-lite.min.js`
+- UMD `node_modules/jenie/dist/jenie.min.js`
+- Web Component Pollyfills included UMD `node_modules/jenie/dist/jenie.polly.min.js`
+- Web Component Pollyfill `node_modules/jenie/dist/webcomponents-lite.min.js`
 
 ## Example
 
@@ -46,7 +47,7 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 <!-- index.html -->
 <html>
 <head>
-	<script src="node_modules/dist/jenie.polly.min.js"></script>
+	<script src="node_modules/dist/jenie.min.js"></script>
 	<script src="index.js"></script>
 	<link rel="import" href="j-home.html">
 </head>
@@ -71,7 +72,7 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 ## API
 
 ### Jenie.setup(options, callback)
-Is the recommend entery point.
+Is the recommend entry point.
 
 - `options: Object`
 	- `module: Array` parameters for each module to export.
@@ -84,10 +85,11 @@ Is the recommend entery point.
 Returns a Jenie component and defines a web component.
 
 - `options: Object`
-	- `name: String` **Required**
+	- `name: String` **Required** the tag name
 	- `template: Element, String, Query` **Required** (If using string do not include template)
-	- `model: Object` See Jenie.controller().model
-	- `modifiers: Object` See Jenie.controller().modifiers
+	- `model: Object<Any>` See Jenie.controller().model
+	- `modifiers: Object<Function>` See Jenie.controller().modifiers
+	- `events: Object<Function>` See Jenie.controller().events
 	- `created: Function` Triggered once on creation.
 	- `attached: Function` Triggered on each dom attachment.
 	- `detached: Function` Triggered on each dom detachment.
@@ -99,7 +101,9 @@ Returns an instance of a new controller.
 - `options: Object`
 	- `name`
 	- `view`
-	- `model` Copies the provided and observes it's properties. Setting a property to `udnefined` will delete or splice it's self.
+	- `events: Object<Function>` j-on-[event name]= binder
+	- `modifiers: Object<Function>` j-[\*]="\* | modifier name"
+	- `model` Copies the provided and observes it's properties. Setting a property to `undefined` will delete or splice it's self.
 		- `Array` Object to be observed.
 			- `splice` Triggers the callback.
 			- `push` Triggers the callback.
@@ -107,10 +111,9 @@ Returns an instance of a new controller.
 			- `pop` Triggers the callback.
 			- `unshift` Triggers the callback.
 		- `Object` Object to be observed.
-			- `remove` Function attached deep removes/deletes a property and triggers the callback.
-			- `set` Function attached deeply sets or adds a new property to be observed triggers the callback.
+			- `$remove` Function attached deep removes/deletes a property and triggers the callback.
+			- `$set` Function attached deeply sets or adds a new property to be observed triggers the callback.
 		- `Function` Async return of the model. Argument provided `resolve(Object: model)`.
-	- `modifiers`
 - `callback: Function`
 
 ### Jenie.router

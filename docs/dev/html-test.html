@@ -27,15 +27,7 @@
 		items: [
 			{ it: { val: 0 } },
 			{ it: { val: 1 } }
-		],
-		foo: function () {
-			console.log('foo');
-		},
-		say: function (e) {
-			console.log(e);
-			var say = Jenie.module.import('say');
-			say('hello from button');
-		}
+		]
 	};
 
 	Jenie.component({
@@ -53,6 +45,16 @@
 			},
 			upper: function () {
 				return this.toUpperCase();
+			}
+		},
+		events: {
+			foo: function () {
+				console.log('foo');
+			},
+			say: function (e) {
+				console.log(e);
+				var say = Jenie.module.import('say');
+				say('hello from button');
 			}
 		},
 		created: function () {

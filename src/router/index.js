@@ -20,10 +20,10 @@ export default function Router (options) {
 
 	self.base = options.base || '';
 
-	Object.defineProperty(this, 'root', {
+	Object.defineProperty(self, 'root', {
 		enumerable: true,
 		get: function () {
-			return this.hash ? '/#/' : '/';
+			return self.hash ? '/#/' : '/';
 		}
 	});
 

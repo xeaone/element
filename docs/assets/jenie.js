@@ -4,24 +4,63 @@
 	(global.Jenie = factory());
 }(this, (function () { 'use strict';
 
+	var Utility = {
+
+		setByPath: function (collection, path, value) {
+			var keys = path.split('.');
+			var last = keys.length - 1;
+
+			for (var i = 0, key; i < last; i++) {
+				key = keys[i];
+				if (collection[key] === undefined) collection[key] = {};
+				collection = collection[key];
+			}
+
+			return collection[keys[last]] = value;
+		},
+
+		getByPath: function (collection, path) {
+			var keys = path.split('.');
+			var last = keys.length - 1;
+
+			for (var i = 0; i < last; i++) {
+				if (!collection[keys[i]]) return undefined;
+				else collection = collection[keys[i]];
+			}
+
+			return collection[keys[last]];
+		},
+
+		toCamelCase: function (data) {
+			if (data.constructor.name === 'Array') data = data.join('-');
+			return data.replace(/-[a-z]/g, function (match) {
+				return match[1].toUpperCase();
+			});
+		}
+
+	};
+
 	function Binder (options) {
-		this.view = options.view;
-		this.model = options.model;
-		this.data = options.data;
-		this.element = options.element;
-		this.attribute = options.attribute;
-		this.modifiers = options.modifiers;
+		var self = this;
 
-		this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
-		this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
+		self.data = options.data;
+		self.view = options.view;
+		self.model = options.model;
+		self.events = options.events;
+		self.element = options.element;
+		self.attribute = options.attribute;
+		self.modifiers = options.modifiers;
 
-		Object.defineProperty(this, 'data', {
+		self.renderMethod = (self.renderMethods[self.attribute.cmds[0]] || self.renderMethods['default']).bind(self);
+		self.unrenderMethod = (self.unrenderMethods[self.attribute.cmds[0]] || self.unrenderMethods['default']).bind(self);
+
+		Object.defineProperty(self, 'data', {
 			enumerable: true,
 			configurable: true,
 			get: function () {
-				var data = this.model.get(this.attribute.path);
+				var data = Utility.getByPath(self.model.data, self.attribute.path);
 
-				this.modifiers.forEach(function (modifier) {
+				self.modifiers.forEach(function (modifier) {
 					data = modifier.call(data);
 				});
 
@@ -29,36 +68,16 @@
 			},
 			set: function (value) {
 
-				this.modifiers.forEach(function (modifier) {
+				self.modifiers.forEach(function (modifier) {
 					value = modifier.call(value);
 				});
 
-				return this.model.set(this.attribute.path, value);
+				return Utility.setByPath(self.model.data, self.attribute.path, value);
 			}
 		});
 
-		this.renderMethod();
+		self.renderMethod();
 	}
-
-	Binder.prototype.setByPath = function (collection, path, value) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-
-		for (var i = 0, key; i < last; i++) {
-			key = keys[i];
-			if (collection[key] === undefined) collection[key] = {};
-			collection = collection[key];
-		}
-
-		return collection[keys[last]] = value;
-	};
-
-	Binder.prototype.toCamelCase = function (data) {
-		if (data.constructor.name === 'Array') data = data.join('-');
-		return data.replace(/-[a-z]/g, function (match) {
-			return match[1].toUpperCase();
-		});
-	};
 
 	Binder.prototype.renderMethods = {
 		on: function () {
@@ -66,7 +85,7 @@
 
 			if (!self.eventName) {
 				self.eventName = self.attribute.cmds[1];
-				self.eventMethod = self.data.bind(self.model.data);
+				self.eventMethod = Utility.getByPath(self.events, self.attribute.path).bind(self.model.data);
 			}
 
 			self.element.removeEventListener(self.eventName, self.eventMethod);
@@ -78,23 +97,18 @@
 			self.data = self.data || [];
 
 			if (!self.clone) {
-
 				self.variable = self.attribute.cmds.slice(1).join('.');
 				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
 				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
-
 			}
 
 			if (self.element.children.length > self.data.length) {
-
 				while (self.element.children.length > self.data.length) {
-					self.view.removeAll(self.element.children[self.element.children.length-1].getElementsByTagName('*'));
+					self.view.removeAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
 					self.view.removeOne(self.element.children[self.element.children.length-1]);
 					self.element.removeChild(self.element.children[self.element.children.length-1]);
 				}
-
 			} else if (self.element.children.length < self.data.length) {
-
 				while (self.element.children.length < self.data.length) {
 					self.element.insertAdjacentHTML(
 						'beforeend',
@@ -102,10 +116,9 @@
 							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
 						)
 					);
-					self.view.addAll(self.element.children[self.element.children.length-1].getElementsByTagName('*'));
+					self.view.addAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
 					self.view.addOne(self.element.children[self.element.children.length-1]);
 				}
-
 			}
 
 		},
@@ -124,7 +137,7 @@
 		},
 		html: function () {
 			this.element.innerHTML = this.data;
-			this.view.addAll(this.element.getElementsByTagName('*'));
+			this.view.addAll(this.element.querySelectorAll('*'));
 		},
 		css: function () {
 			var css = this.data;
@@ -164,8 +177,8 @@
 			this.element.selectedIndex = this.data;
 		},
 		default: function () {
-			var path = this.toCamelCase(this.attribute.cmds);
-			this.setByPath(this.element, path, this.data);
+			var path = Utility.toCamelCase(this.attribute.cmds);
+			Utility.setByPath(this.element, path, this.data);
 		}
 	};
 
@@ -388,33 +401,6 @@
 		return target;
 	};
 
-	Model.prototype.set = function (path, value) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-		var collection = this.data;
-
-		for (var i = 0, key; i < last; i++) {
-			key = keys[i];
-			if (collection[key] === undefined) collection[key] = {};
-			collection = collection[key];
-		}
-
-		return collection[keys[last]] = value;
-	};
-
-	Model.prototype.get = function (path) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-		var collection = this.data;
-
-		for (var i = 0; i < last; i++) {
-			if (!collection[keys[i]]) return undefined;
-			else collection = collection[keys[i]];
-		}
-
-		return collection[keys[last]];
-	};
-
 	Model.prototype.listener = function (listener) {
 		this.emit = listener;
 	};
@@ -497,7 +483,7 @@
 		ATTRIBUTE_ACCEPTS: /(data-)?j-/,
 		ELEMENT_ACCEPTS: /(data-)?j-/,
 		ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
-		ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script/
+		ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script|^style|^svg/
 	};
 
 	View.prototype.preview = function (element) {
@@ -507,7 +493,7 @@
 	};
 
 	View.prototype.eachElement = function (elements, callback) {
-		for (var i = 0; i < elements.length; i++) {
+		for (var i = 0, l = elements.length; i < l; i++) {
 			var element = elements[i];
 			var preview = this.preview(element);
 
@@ -619,6 +605,7 @@
 		self.view = new View();
 		self.model = new Model();
 
+		self.events = options.events || {};
 		self._model = options.model || {};
 		self._view = (options.view.shadowRoot || options.view).querySelectorAll('*');
 
@@ -637,6 +624,7 @@
 			self.view.data.get(attribute.path).push(new Binder({
 				view: self.view,
 				model: self.model,
+				events: self.events,
 				element: element,
 				attribute: attribute,
 				modifiers: attribute.modifiers.map(function (modifier) {
@@ -724,8 +712,9 @@
 		if (!options.template) throw new Error('Component missing options.template');
 
 		self.name = options.name;
-		// self.style = options.style;
 		self.model = options.model;
+		self.style = options.style;
+		self.events = options.events;
 		self.modifiers = options.modifiers;
 		self.currentScript = (document._currentScript || document.currentScript);
 		self.template = self.toTemplate(options.template);
@@ -753,6 +742,7 @@
 				self.element.controller = new Controller({
 					model: self.model,
 					view: self.element,
+					events: self.events,
 					name: self.element.uuid,
 					modifiers: self.modifiers
 				}, function () {
@@ -867,10 +857,10 @@
 
 		self.base = options.base || '';
 
-		Object.defineProperty(this, 'root', {
+		Object.defineProperty(self, 'root', {
 			enumerable: true,
 			get: function () {
-				return this.hash ? '/#/' : '/';
+				return self.hash ? '/#/' : '/';
 			}
 		});
 
@@ -1168,7 +1158,6 @@
 	}
 
 	Module.prototype.load = function (paths) {
-
 		paths.forEach(function(path) {
 			var script = document.createElement('script');
 
@@ -1178,24 +1167,18 @@
 
 			document.head.appendChild(script);
 		});
-
 	};
 
 	Module.prototype.import = function (name) {
-		var self = this;
-
-		if (name in self.modules) {
-			return  typeof self.modules[name] === 'function' ? self.modules[name]() : self.modules[name];
+		if (name in this.modules) {
+			return  typeof this.modules[name] === 'function' ? this.modules[name]() : this.modules[name];
 		} else {
 			throw new Error('module ' + name + ' is not defined');
 		}
-
 	};
 
 	Module.prototype.export = function (name, dependencies, method) {
-		var self = this;
-
-		if (name in self.modules) {
+		if (name in this.modules) {
 			throw new Error('module ' + name + ' is defined');
 		} else {
 
@@ -1206,13 +1189,12 @@
 
 			if (typeof method === 'function') {
 				dependencies.forEach(function (dependency) {
-					method = method.bind(null, self.import(dependency));
-				});
+					method = method.bind(null, this.import(dependency));
+				}, this);
 			}
 
-			return self.modules[name] = method;
+			return this.modules[name] = method;
 		}
-
 	};
 
 	function Http () {}

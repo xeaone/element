@@ -8,6 +8,7 @@ export default function Controller (options, callback) {
 	self.view = new View();
 	self.model = new Model();
 
+	self.events = options.events || {};
 	self._model = options.model || {};
 	self._view = (options.view.shadowRoot || options.view).querySelectorAll('*');
 
@@ -26,6 +27,7 @@ export default function Controller (options, callback) {
 		self.view.data.get(attribute.path).push(new Binder({
 			view: self.view,
 			model: self.model,
+			events: self.events,
 			element: element,
 			attribute: attribute,
 			modifiers: attribute.modifiers.map(function (modifier) {

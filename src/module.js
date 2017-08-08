@@ -4,7 +4,6 @@ export default function Module () {
 }
 
 Module.prototype.load = function (paths) {
-
 	paths.forEach(function(path) {
 		var script = document.createElement('script');
 
@@ -14,24 +13,18 @@ Module.prototype.load = function (paths) {
 
 		document.head.appendChild(script);
 	});
-
 };
 
 Module.prototype.import = function (name) {
-	var self = this;
-
-	if (name in self.modules) {
-		return  typeof self.modules[name] === 'function' ? self.modules[name]() : self.modules[name];
+	if (name in this.modules) {
+		return  typeof this.modules[name] === 'function' ? this.modules[name]() : this.modules[name];
 	} else {
 		throw new Error('module ' + name + ' is not defined');
 	}
-
 };
 
 Module.prototype.export = function (name, dependencies, method) {
-	var self = this;
-
-	if (name in self.modules) {
+	if (name in this.modules) {
 		throw new Error('module ' + name + ' is defined');
 	} else {
 
@@ -42,11 +35,10 @@ Module.prototype.export = function (name, dependencies, method) {
 
 		if (typeof method === 'function') {
 			dependencies.forEach(function (dependency) {
-				method = method.bind(null, self.import(dependency));
-			});
+				method = method.bind(null, this.import(dependency));
+			}, this);
 		}
 
-		return self.modules[name] = method;
+		return this.modules[name] = method;
 	}
-
 };
