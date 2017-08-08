@@ -1,5 +1,5 @@
-import Controller from '../controller';
-import Uuid from '../uuid';
+import Controller from './controller';
+import Uuid from './uuid';
 
 export default function Component (options) {
 	var self = this;
