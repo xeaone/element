@@ -85,16 +85,16 @@ Returns a Jenie component and defines a web component.
 
 - `options: Object`
 	- `name: String` **Required**
-	- `template: Element, String, QueryString, MultiLineCommentString` **Required**
-	- `model: Object` See Jenie.binder().model
-	- `modifiers: Object` See Jenie.binder().modifiers
+	- `template: Element, String, Query` **Required** (If using string do not include template)
+	- `model: Object` See Jenie.controller().model
+	- `modifiers: Object` See Jenie.controller().modifiers
 	- `created: Function` Triggered once on creation.
 	- `attached: Function` Triggered on each dom attachment.
 	- `detached: Function` Triggered on each dom detachment.
 	- `attributed: Function` Triggered on changed.
 
-### Jenie.binder(options, callback)
-Returns an instance of a new binder.
+### Jenie.controller(options, callback)
+Returns an instance of a new controller.
 
 - `options: Object`
 	- `name`

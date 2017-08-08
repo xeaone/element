@@ -12,7 +12,7 @@
 */
 
 import Component from './component';
-import Binder from './binder';
+import Controller from './controller';
 import Router from './router';
 import Module from './module';
 import Http from './http';
@@ -49,8 +49,8 @@ function Jenie () {
 		return new Component(options);
 	};
 
-	this.binder = function (options, callback) {
-		return new Binder(options, callback);
+	this.controller = function (options, callback) {
+		return new Controller(options, callback);
 	};
 
 	this.script = function () {

@@ -1,5 +1,5 @@
 
-export default function Unit (options) {
+export default function Binder (options) {
 	this.view = options.view;
 	this.model = options.model;
 	this.data = options.data;
@@ -35,7 +35,7 @@ export default function Unit (options) {
 	this.renderMethod();
 }
 
-Unit.prototype.setByPath = function (collection, path, value) {
+Binder.prototype.setByPath = function (collection, path, value) {
 	var keys = path.split('.');
 	var last = keys.length - 1;
 
@@ -48,14 +48,14 @@ Unit.prototype.setByPath = function (collection, path, value) {
 	return collection[keys[last]] = value;
 };
 
-Unit.prototype.toCamelCase = function (data) {
+Binder.prototype.toCamelCase = function (data) {
 	if (data.constructor.name === 'Array') data = data.join('-');
 	return data.replace(/-[a-z]/g, function (match) {
 		return match[1].toUpperCase();
 	});
 };
 
-Unit.prototype.renderMethods = {
+Binder.prototype.renderMethods = {
 	on: function () {
 		var self = this;
 
@@ -164,7 +164,7 @@ Unit.prototype.renderMethods = {
 	}
 };
 
-Unit.prototype.unrenderMethods = {
+Binder.prototype.unrenderMethods = {
 	on: function () {
 		var eventName = this.attribute.cmds[1];
 		this.element.removeEventListener(eventName, this.data, false);
@@ -189,12 +189,12 @@ Unit.prototype.unrenderMethods = {
 	}
 };
 
-Unit.prototype.unrender = function () {
+Binder.prototype.unrender = function () {
 	this.unrenderMethod();
 	return this;
 };
 
-Unit.prototype.render = function () {
+Binder.prototype.render = function () {
 	this.renderMethod();
 	return this;
 };

@@ -95,7 +95,7 @@ Model.prototype.defineObject = function (path, meta, target) {
 	var self = this;
 
 	return Object.defineProperties(target, {
-		set: {
+		$set: {
 			value: function (key, value) {
 
 				if (self.isCollection(value)) {
@@ -108,7 +108,7 @@ Model.prototype.defineObject = function (path, meta, target) {
 
 			}
 		},
-		remove: {
+		$remove: {
 			value: function (key) {
 
 				delete target[key];

@@ -102,15 +102,13 @@ View.prototype.removeAll = function (elements) {
 };
 
 View.prototype.addOne = function (element) {
-	var self = this;
+	this.eachAttribute(element, function (attribute) {
 
-	self.eachAttribute(element, function (attribute) {
-
-		if (!self.data.has(attribute.path)) {
-			self.data.set(attribute.path, new Collection());
+		if (!this.data.has(attribute.path)) {
+			this.data.set(attribute.path, new Collection());
 		}
 
-		self.emit(element, attribute);
+		this.emit(element, attribute);
 	});
 };
 

@@ -1,107 +1,94 @@
-import Binder from '../binder';
+import Controller from '../controller';
 import Uuid from '../uuid';
 
 export default function Component (options) {
 	var self = this;
 
-	if (!options) throw new Error('Component missing options');
+	options = options || {};
+
 	if (!options.name) throw new Error('Component missing options.name');
 	if (!options.template) throw new Error('Component missing options.template');
 
 	self.name = options.name;
+	// self.style = options.style;
 	self.model = options.model;
 	self.modifiers = options.modifiers;
 	self.currentScript = (document._currentScript || document.currentScript);
-	self.template = self._template(options.template);
+	self.template = self.toTemplate(options.template);
 
-	self.elementPrototype = Object.create(HTMLElement.prototype);
+	self.proto = Object.create(HTMLElement.prototype);
 
-	self.elementPrototype.attachedCallback = options.attached;
-	self.elementPrototype.detachedCallback = options.detached;
-	self.elementPrototype.attributeChangedCallback = options.attributed;
+	self.proto.attachedCallback = options.attached;
+	self.proto.detachedCallback = options.detached;
+	self.proto.attributeChangedCallback = options.attributed;
 
-	self.elementPrototype.createdCallback = function () {
-		var elementInstance = this;
-		var templateInstance = document.importNode(self.template.content, true);
-
-		elementInstance.uuid = Uuid();
+	self.proto.createdCallback = function () {
+		self.element = this;
+		self.element.uuid = Uuid();
 
 		// handle slots
-		var elementSlots = elementInstance.querySelectorAll('[slot]');
-
-		if (elementSlots.length > 0) {
-			for (var i = 0, l = elementSlots.length; i < l; i++) {
-				var elementSlot = elementSlots[i];
-				var name = elementSlot.getAttribute('slot');
-				var templateSlot = templateInstance.querySelector('slot[name='+ name + ']');
-				templateSlot.parentNode.replaceChild(elementSlot, templateSlot);
-			}
-		}
-
 		// might want to handle default slot
 		// might want to overwrite content
-		elementInstance.appendChild(templateInstance);
+		self.slotify();
+
+		self.element.appendChild(
+			document.importNode(self.template.content, true)
+		);
 
 		if (self.model) {
-
-			elementInstance.binder = new Binder({
-				view: elementInstance,
-				name: elementInstance.uuid,
+			self.element.controller = new Controller({
 				model: self.model,
+				view: self.element,
+				name: self.element.uuid,
 				modifiers: self.modifiers
 			}, function () {
-				var binderInstance = this;
-				elementInstance.model = binderInstance.model.data;
-				elementInstance.view = binderInstance.view.data;
-				if (options.created) options.created.call(elementInstance);
+				self.element.view = this.view.data;
+				self.element.model = this.model.data;
+				if (options.created) options.created.call(self.element);
 			});
-
 		} else if (options.created) {
-			options.created.call(elementInstance);
+			options.created.call(self.element);
 		}
 
 	};
 
-	self._define();
+	self.define();
 
 }
 
-Component.prototype._comment = function (method) {
-	if (typeof method !== 'function') throw new Error('Comment must be a function');
-	var comment = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
-	var match = comment.exec(method.toString());
-	if (!match) throw new Error('Comment missing');
-	return match[1];
+Component.prototype.slotify = function () {
+	var self = this;
+	var eSlots = self.element.querySelectorAll('[slot]');
+
+	for (var i = 0, l = eSlots.length; i < l; i++) {
+		var eSlot = eSlots[i];
+		var sName = eSlot.getAttribute('slot');
+		var tSlot = self.template.content.querySelector('slot[name='+ sName + ']');
+		tSlot.parentNode.replaceChild(eSlot, tSlot);
+	}
 };
 
-Component.prototype._dom = function (string) {
-	var temporary = document.createElement('div');
-	temporary.innerHTML = string;
-	return temporary.children[0];
+Component.prototype.toDom = function (string) {
+	var template = document.createElement('template');
+	template.innerHTML = string;
+	return template;
 };
 
-Component.prototype._template = function (template) {
+Component.prototype.toTemplate = function (template) {
 
-	if (template.constructor.name === 'Function') {
-
-		template = this._comment(template);
-		template = this._dom(template);
-
-	} else if (template.constructor.name === 'String') {
-
+	if (template.constructor.name === 'String') {
 		if (/<|>/.test(template)) {
-			template = this._dom(template);
+			template = this.toDom(template);
 		} else {
 			template = this.currentScript.ownerDocument.querySelector(template);
 		}
-
 	}
 
 	return template;
 };
 
-Component.prototype._define = function () {
+Component.prototype.define = function () {
 	document.registerElement(this.name, {
-		prototype: this.elementPrototype
+		prototype: this.proto
 	});
 };
