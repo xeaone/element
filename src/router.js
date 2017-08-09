@@ -1,9 +1,9 @@
 import Events from './events';
 
 export default function Router (options) {
-	options = options || {};
-
 	Events.call(this);
+
+	options = options || {};
 
 	this.state = {};
 	this.cache = {};
@@ -25,20 +25,16 @@ export default function Router (options) {
 		}
 	});
 
-	document.registerElement('j-view', {
-		prototype: Object.create(HTMLElement.prototype)
-	});
-
 }
 
 Router.prototype = Object.create(Events.prototype);
 Router.prototype.constructor = Router;
 
-Router.prototype._popstate = function (e) {
+Router.prototype.popstate = function (e) {
 	this.navigate(e.state || window.location.href, true);
 };
 
-Router.prototype._click = function (e) {
+Router.prototype.click = function (e) {
 	var self = this;
 
 	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -48,52 +44,34 @@ Router.prototype._click = function (e) {
 	while (target && 'A' !== target.nodeName) target = target.parentNode;
 
 	if (!target || 'A' !== target.nodeName) return;
+	var href = target.getAttribute('href');
 
 	// if external is true then default action
 	if (self.external && (
-		self.external.constructor.name === 'Function' && self.external(target.href) ||
-		self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
-		self.external.constructor.name === 'String' && new RegExp(self.external).test(target.href)
+		self.external.constructor.name === 'Function' && self.external(href) ||
+		self.external.constructor.name === 'RegExp' && self.external.test(href) ||
+		self.external.constructor.name === 'String' && new RegExp(self.external).test(href)
 	)) return;
 
 	// check non acceptable attributes and href
 	if (target.hasAttribute('download') ||
 		target.hasAttribute('external') ||
-		target.href.indexOf('mailto:') !== -1 ||
-		target.href.indexOf('file:') !== -1 ||
-		target.href.indexOf('tel:') !== -1 ||
-		target.href.indexOf('ftp:') !== -1
+		href.indexOf('mailto:') !== -1 ||
+		href.indexOf('file:') !== -1 ||
+		href.indexOf('tel:') !== -1 ||
+		href.indexOf('ftp:') !== -1
 	) return;
 
 	e.preventDefault();
-	self.navigate(target.href);
+	self.navigate(href);
 };
 
-Router.prototype._load = function (callback) {
+Router.prototype.start = function () {
 	this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
 
-	(this.contain ? this.view : window).addEventListener('click', this._click.bind(this));
-	window.addEventListener('popstate', this._popstate.bind(this));
-	window.removeEventListener('DOMContentLoaded', this._load);
-
+	(this.contain ? this.view : window).addEventListener('click', this.click.bind(this));
+	window.addEventListener('popstate', this.popstate.bind(this));
 	this.navigate(window.location.href, true);
-
-	if (callback) return callback();
-};
-
-Router.prototype.listen = function (options, callback) {
-
-	if (options) {
-		for (var key in options) {
-			this[key] = options[key];
-		}
-	}
-
-	if (document.readyState === 'complete' || document.readyState === 'loaded') {
-		this._load(callback);
-	} else {
-		window.addEventListener('DOMContentLoaded', this._load.bind(this, callback), true);
-	}
 
 };
 
@@ -101,9 +79,11 @@ Router.prototype.normalize = function (path) {
 	path = decodeURI(path)
 		.replace(/\/{2,}/g, '/')
 		.replace(/(http(s)?:\/)/, '$1/')
-		.replace(/\?.*?/, '');
+		.replace(/\?.*?$/, '');
 
-	if (!this.hash) path = path.replace(/#.*?$/, '');
+	if (!this.hash) {
+		path = path.replace(/#.*?$/, '');
+	}
 
 	return 	path = path === '' ? '/' : path;
 };
@@ -124,14 +104,12 @@ Router.prototype.parameters = function (routePath, userPath) {
 	var userPaths = userPath.split('/');
 	var routePaths = routePath.split('/');
 
-	for (var i = 0, l = routePaths.length, path; i < l; i++) {
-		path = routePaths[i];
-
+	routePaths.forEach(function (path, index) {
 		if (pattern.test(path)) {
 			name = path.replace(brackets, '');
-			parameters[name] = userPaths[i];
+			parameters[name] = userPaths[index];
 		}
-	}
+	});
 
 	return parameters;
 };
@@ -253,9 +231,7 @@ Router.prototype.get = function (path) {
 	for (var i = 0, l = this.routes.length, route; i < l; i++) {
 		route = this.routes[i];
 
-		if (!route.path) {
-			continue;
-		} else if (route.path.constructor.name === 'String') {
+		if (route.path.constructor.name === 'String') {
 			if (this.parse(route.path).test(path)) {
 				route.parameters = this.parameters(route.path, path);
 				return route;
@@ -271,6 +247,24 @@ Router.prototype.get = function (path) {
 		}
 
 	}
+};
+
+Router.prototype.findRoute = function (path) {
+	return this.routes.find(function (route) {
+		if (route.path.constructor.name === 'String') {
+			return this.parse(route.path).test(path);
+		} else if (route.path.constructor.name === 'RegExp') {
+			return route.path.test(path);
+		} else if (route.path.constructor.name === 'Function') {
+			return route.path(path);
+		}
+	});
+};
+
+Router.prototype.findRoutes = function (pattern) {
+	return this.routes.filter(function (route) {
+		return pattern.test(route.path);
+	}, this);
 };
 
 Router.prototype.navigate = function (data, replace) {

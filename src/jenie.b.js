@@ -2,7 +2,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.4.1
+	version: 1.4.2
 	license: mpl-2.0
 	author: alexander elias
 
@@ -13,62 +13,60 @@
 
 import Component from './component';
 import Controller from './controller';
+import Polyfills from './polyfills';
 import Router from './router';
 import Module from './module';
 import Http from './http';
 
-function Jenie () {
-	var sStyle = 'j-view, j-view > :first-child { display: block; }';
-	var eStyle = document.createElement('style');
-	var nStyle = document.createTextNode(sStyle);
+var sStyle = 'j-view, j-view > :first-child { display: block; }';
+var eStyle = document.createElement('style');
+var nStyle = document.createTextNode(sStyle);
 
-	eStyle.appendChild(nStyle);
-	document.head.appendChild(eStyle);
+eStyle.appendChild(nStyle);
+document.head.appendChild(eStyle);
 
-	this.services = {};
+document.registerElement('j-view', {
+	prototype: Object.create(HTMLElement.prototype)
+});
 
-	this.http = new Http();
-	this.module = new Module();
-	this.router = new Router();
+Polyfills();
 
-	this.setup = function (data, callback) {
-		var self = this;
+export default {
 
-		if (data.module) {
-			data.module.forEach(function (parameters) {
-				self.module.export.apply(self, parameters);
-			});
-		}
+	http: new Http(),
+	module: new Module(),
+	router: new Router(),
 
-		self.router.listen(data.router, function () {
-			if (callback) return callback();
-		});
-	};
+	setup: function (options) {
+		options = (typeof options === 'function' ? options.call(this) : options) || {};
+		if (options.http) this.http = new Http(options.http);
+		if (options.module) this.module = new Module(options.module);
+		if (options.router) this.router = new Router(options.router);
+		this.router.start();
+	},
 
-	this.component = function (options) {
+	component: function (options) {
 		return new Component(options);
-	};
+	},
 
-	this.controller = function (options, callback) {
+	controller: function (options, callback) {
 		return new Controller(options, callback);
-	};
+	},
 
-	this.script = function () {
+	script: function () {
 		return (document._currentScript || document.currentScript);
-	};
+	},
 
-	this.document = function () {
+	document: function () {
 		return (document._currentScript || document.currentScript).ownerDocument;
-	};
+	},
 
-	this.element = function (name) {
+	element: function (name) {
 		return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
-	};
+	},
 
-	this.query = function (query) {
+	query: function (query) {
 		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
-	};
+	}
 
-}
-
-export default new Jenie();
+};

@@ -1,5 +1,9 @@
 
-export default function Http () {}
+export default function Http (options) {
+	options = options || {};
+	this.request = options.request;
+	this.response = options.response;
+}
 
 Http.prototype.mime = {
 	html: 'text/html',
@@ -13,16 +17,16 @@ Http.prototype.mime = {
 Http.prototype.serialize = function (data) {
 	var string = '';
 
-	for (var name in data) {
+	Object.keys(data).forEach(function (name) {
 		string = string.length > 0 ? string + '&' : string;
 		string = string + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
-	}
+	});
 
 	return string;
 };
 
 Http.prototype.fetch = function (options) {
-	var self = this;
+	var self = this, xhr, request, response;
 
 	options = options ? options : {};
 	options.action = options.action ? options.action : window.location.href;
@@ -70,7 +74,7 @@ Http.prototype.fetch = function (options) {
 
 	}
 
-	var xhr = new XMLHttpRequest();
+	xhr = new XMLHttpRequest();
 
 	xhr.open(options.method, options.action, true, options.username, options.password);
 
@@ -91,20 +95,41 @@ Http.prototype.fetch = function (options) {
 	}
 
 	if (options.headers) {
-		for (var name in options.headers) {
+		Object.keys(options.headers).forEach(function (name) {
 			xhr.setRequestHeader(name, options.headers[name]);
-		}
+		});
 	}
 
-	xhr.onreadystatechange = function () {
-		if (xhr.readyState === 4) {
-			if (xhr.status >= 200 && xhr.status < 400) {
-				return options.success(xhr);
-			} else {
-				return options.error(xhr);
-			}
-		}
-	};
+	if (typeof this.request === 'function') {
+		request = this.request(options);
+	}
 
-	xhr.send(options.data);
+	if (request === undefined || request === true) {
+
+		xhr.onreadystatechange = function () {
+
+			if (xhr.readyState === 4) {
+
+				if (typeof this.response === 'function') {
+					response = this.response(options, xhr);
+				}
+
+				if (response === undefined || response === true) {
+
+					if (xhr.status >= 200 && xhr.status < 400) {
+						return options.success(xhr);
+					} else {
+						return options.error(xhr);
+					}
+
+				}
+
+			}
+
+		};
+
+		xhr.send(options.data);
+
+	}
+
 };

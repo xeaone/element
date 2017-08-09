@@ -47,14 +47,30 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 <!-- index.html -->
 <html>
 <head>
-	<script src="node_modules/dist/jenie.min.js"></script>
-	<script src="index.js"></script>
+	<script src="jenie.min.js" defer></script>
 	<link rel="import" href="j-home.html">
 </head>
 <body>
 	<j-view></j-view>
 	<script>
 		Jenie.setup({
+			http: {
+				request: function (fetchOptions) {
+					return true; // false will cancel the http.fetch
+				},
+				response: function (fetchOptions, xhrResponse) {
+					return true; // false will cancel the http.fetch handlers
+				}
+			},
+			module: {
+				modules: [
+					{
+						name: 'num',
+						method: function () {
+							return function () { return 1; };
+						}
+					}
+			},
 			router: {
 				routes: [
 					{
@@ -64,6 +80,7 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 				]
 			}
 		});
+
 	</script>
 </body>
 </html>
@@ -71,18 +88,16 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 
 ## API
 
-### Jenie.setup(options, callback)
-Is the recommend entry point.
+### Jenie.setup(options)
+The recommend entry point. This allows you to setup Jenie and automatically starts the router.
 
 - `options: Object`
-	- `module: Array` parameters for each module to export.
-		- `name: String` module name.
-		- `dependencies: Array` optional array of dependencies.
-		- `method: Function` module function to export.
-	- `router: Object` router options please see Jenie.router.
+	- `http: Object` Jenie.http options.
+	- `module: Object` Jenie.module options.
+	- `router: Object` Jenie.router options.
 
 ### Jenie.component(options)
-Returns a Jenie component and defines a web component.
+Returns a new Jenie component and defines a new web component.
 
 - `options: Object`
 	- `name: String` **Required** the tag name
@@ -117,24 +132,22 @@ Returns an instance of a new controller.
 - `callback: Function`
 
 ### Jenie.router
-Custom element router.
+- `options: Object` The setup options for Jenie.setup.
+	- `hash: Boolean` Hash url mode. The default is false.
+	- `contain: Boolean` Sets the click listener for hrefs to the j-view element if true. Defaults to false which is window.
+	- `base: String` Sets the base for all urls the order of append is Origin + Base + Root.
+	- `routes: Array`
+		- `route: Object`
+			- `path: String` An absolute path.
+			- `title: String` The title for the page.
+			- `component: String` The name of a component.
+			- `componentUrl: String` The url path to a component. Appends the html or js file to the head.
+	- `external` If true then the response will not be handle by the router. If false then the router will handle the response.
+		- `RegExp`
+		- `String` Converted to a `RegExp`.
+		- `Function` Argument provided is the request path. Expects a boolean return.
 
-- `hash: Boolean` Hash url mode. The default is `false`.
-- `contain: Boolean` Sets the click listener for hrefs to the j-view element if `true`. Defaults to `false` which is window.
-- `base: String` Sets the base for all urls the order of append is Origin + Base + Root.
-- `routes: Array`
-	- `route: Object`
-		- `path: String` An absolute path.
-		- `title: String` The title for the page.
-		- `component: String` The name of a component.
-		- `componentUrl: String` The url path to a component. Appends the html or js file to the head.
-- `external` If `true` then the response will not be handle by the router. If `false` then the router will handle the response.
-	- `RegExp`
-	- `String` Converted to a `RegExp`.
-	- `Function` Argument provided is the request path. Expects a boolean return.
-- `listen: Function` Called to start listening.
-	- `options: Object` Same as Jenie.router options.
-	- `callback: Function` Called after routing is ready and DOMContentLoaded.
+- `start: Function` Must be called after <j-view></j-view>
 - `normalize: Function`
 - `join: Function`
 - `scroll: Function`
@@ -144,59 +157,74 @@ Custom element router.
 - `add: Function`
 - `remove: Function`
 - `get: Function`
+- `findRoute: Function`
+	- `route.path: String, RegExp, Function`
+- `findRoutes: Function`
+	- `route.path: RegExp`
 - `navigate: Function`
 - `on: EventEmitter`
 	- `navigated: Event`
 
 ### Jenie.module
-Light weight mostly sync module system.
+- `options: Object` The setup options for Jenie.setup.
+	- `modules: Array`
+		- `module: Object`
+			- `name: String` module name.
+			- `dependencies: Array` optional array of dependencies.
+			- `method: Function` module function to export.
 
-- Returns: `Object`
-	- `load: Function` Downloads module scripts async but executes sync.
-		- `paths: Array<String>` The src path to the module.
-	- `export: Function` Sets the module.
+- `load: Function` Downloads module scripts async but executes sync.
+	- `paths: Array<String>` The src path to the module.
+- `export: Function` Sets the module.
+	- `name: String` The module name.
+	- `dependencies: Array` The module dependencies.
 		- `name: String` The module name.
-		- `dependencies: Array` Injects the dependencies.
-		- `method: Function` The module method.
-	- `import: Function` Gets the module.
-		- `name: String` The module name.
+	- `method: Function` The module method.
+- `import: Function` Gets the module.
+	- `name: String` The module name.
 
 ### Jenie.http
-- Returns: `Object`
-	- `mime: Object`
-	- `serialize: Function`
-	- `fetch: Function`
-		- `options: Object`
-			- `action: String` Resource action url. **Required**
-			- `success: Function` **Required**
-			- `error: Function` **Required**
+- `options: Object` The setup options for Jenie.setup.
+	- `request: Function` Intercepts the request. If the return value is false the fetch will not be triggered.
+		- `fetchOptions: Object`
+	- `response: Function` Intercepts the request. If the return value is false the fetch success and error will not be triggered.
+		- `fetchOptions: Object`
+		- `xhr: Object`
 
-			- `method: String` Valid methods get, post, put, delete
-			- `data: Object` If method is `GET` than data is concatenated to the `action/url` as parameters.
+- `mime: Object`
+- `serialize: Function`
+- `fetch: Function` A fetch request.
+	- `options: Object`
+		- `action: String` Resource action url. **Required**
+		- `success: Function` **Required** The fetch response.
+		- `error: Function` **Required** The fetch response.
 
-			- `requestType: String` Converts the request data before sending.
-				- `script` 'text/javascript, application/javascript, application/x-javascript'
-				- `json` 'application/json' stringify `options.data`
-				- `xml` 'application/xml, text/xml'
-				- `html` 'text/html'
-				- `text` 'text/plain'
-				- DEFAULT 'application/x-www-form-urlencoded' serialized `options.data`
+		- `method: String` Valid methods get, post, put, delete
+		- `data: Object` If method is `GET` than data is concatenated to the `action/url` as parameters.
 
-			- `responseType: String` Converts the response data after sending.
-				- `script` 'text/javascript, application/javascript, application/x-javascript'
-				- `json` 'application/json'
-				- `xml` 'application/xml, text/xml'
-				- `html` 'text/html'
-				- `text` 'text/plain'
+		- `requestType: String` Converts the request data before sending.
+			- `script` 'text/javascript, application/javascript, application/x-javascript'
+			- `json` 'application/json' stringify `options.data`
+			- `xml` 'application/xml, text/xml'
+			- `html` 'text/html'
+			- `text` 'text/plain'
+			- DEFAULT 'application/x-www-form-urlencoded' serialized `options.data`
 
-			- `contentType: String` Short hand to set the Content-Type Headers. (For request)
-			- `accept: String` Short hand to set the Accept Headers. (For response)
+		- `responseType: String` Converts the response data after sending.
+			- `script` 'text/javascript, application/javascript, application/x-javascript'
+			- `json` 'application/json'
+			- `xml` 'application/xml, text/xml'
+			- `html` 'text/html'
+			- `text` 'text/plain'
 
-			- `mimeType: String` Overwrites return type.
-			- `username: String`
-			- `password: String`
-			- `withCredentials: Boolean`
-			- `headers: Object`    A low level headers object it will map directly to the XHR header. The Will overwrite any above options.
+		- `contentType: String` Short hand to set the Content-Type Headers. (For request)
+		- `accept: String` Short hand to set the Accept Headers. (For response)
+
+		- `mimeType: String` Overwrites return type.
+		- `username: String`
+		- `password: String`
+		- `withCredentials: Boolean`
+		- `headers: Object` A low level headers object it will map directly to the XHR header. The Will overwrite any above options.
 
 
 ### Jenie.query(String: querySelector)
@@ -209,9 +237,6 @@ The result of a querySelector in the **current** document `document.currentScrip
 
 ### Jenie.document()
 - Returns: `document.currentScript.ownerDocument`
-
-### Jenie.services DEPRECATED
-- Returns: `Object` to store values.
 
 ## Authors
 **Alexander Elias** - [AlexanderElias](https://github.com/AlexanderElias)

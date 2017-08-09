@@ -1,6 +1,19 @@
 
-export default function Module () {
+export default function Module (options) {
+	options = options || {};
 	this.modules = {};
+
+	if (options.modules) {
+		options.modules.forEach(function (module) {
+			this.export.call(
+				this,
+				module.name,
+				module.dependencies || module.method,
+				module.dependencies ? module.method : null
+			);
+		}, this);
+	}
+
 }
 
 Module.prototype.load = function (paths) {
