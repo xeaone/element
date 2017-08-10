@@ -1338,8 +1338,8 @@
 			});
 		}
 
-		if (typeof this.request === 'function') {
-			request = this.request(options);
+		if (typeof self.request === 'function') {
+			request = self.request(options);
 		}
 
 		if (request === undefined || request === true) {
@@ -1348,8 +1348,8 @@
 
 				if (xhr.readyState === 4) {
 
-					if (typeof this.response === 'function') {
-						response = this.response(options, xhr);
+					if (typeof self.response === 'function') {
+						response = self.response(options, xhr);
 					}
 
 					if (response === undefined || response === true) {
@@ -1375,7 +1375,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.3
+		version: 1.4.4
 		license: mpl-2.0
 		author: alexander elias
 
