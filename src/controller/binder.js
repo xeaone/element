@@ -121,6 +121,9 @@ Binder.prototype.renderMethods = {
 	disable: function () {
 		this.element.disabled = this.data;
 	},
+	readOnly: function () {
+		this.element.readOnly = this.data;
+	},
 	show: function () {
 		this.element.hidden = !this.data;
 	},
