@@ -76,35 +76,35 @@ Http.prototype.fetch = function (options) {
 
 	xhr = new XMLHttpRequest();
 
-	xhr.open(options.method, options.action, true, options.username, options.password);
-
-	if (options.mimeType) {
-		xhr.overrideMimeType(options.mimeType);
-	}
-
-	if (options.withCredentials) {
-		xhr.withCredentials = options.withCredentials;
-	}
-
-	if (options.accept) {
-		options.headers['Accept'] = options.accept;
-	}
-
-	if (options.contentType) {
-		options.headers['Content-Type'] = options.contentType;
-	}
-
-	if (options.headers) {
-		Object.keys(options.headers).forEach(function (name) {
-			xhr.setRequestHeader(name, options.headers[name]);
-		});
-	}
-
 	if (typeof self.request === 'function') {
-		request = self.request(options);
+		request = self.request(options, xhr);
 	}
 
 	if (request === undefined || request === true) {
+
+		xhr.open(options.method, options.action, true, options.username, options.password);
+
+		if (options.mimeType) {
+			xhr.overrideMimeType(options.mimeType);
+		}
+
+		if (options.withCredentials) {
+			xhr.withCredentials = options.withCredentials;
+		}
+
+		if (options.accept) {
+			options.headers['Accept'] = options.accept;
+		}
+
+		if (options.contentType) {
+			options.headers['Content-Type'] = options.contentType;
+		}
+
+		if (options.headers) {
+			Object.keys(options.headers).forEach(function (name) {
+				xhr.setRequestHeader(name, options.headers[name]);
+			});
+		}
 
 		xhr.onreadystatechange = function () {
 
