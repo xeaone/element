@@ -1,99 +1,122 @@
 import Utility from '../utility';
 
 export default function Binder (options) {
-	var self = this;
+	this.data = options.data;
+	this.view = options.view;
+	this.model = options.model;
+	this.events = options.events;
+	this.element = options.element;
+	this.modifiers = options.modifiers;
+	this.attribute = options.attribute;
+	this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
+	this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
 
-	self.data = options.data;
-	self.view = options.view;
-	self.model = options.model;
-	self.events = options.events;
-	self.element = options.element;
-	self.attribute = options.attribute;
-	self.modifiers = options.modifiers;
-
-	self.renderMethod = (self.renderMethods[self.attribute.cmds[0]] || self.renderMethods['default']).bind(self);
-	self.unrenderMethod = (self.unrenderMethods[self.attribute.cmds[0]] || self.unrenderMethods['default']).bind(self);
-
-	Object.defineProperty(self, 'data', {
+	Object.defineProperty(this, 'data', {
 		enumerable: true,
 		configurable: true,
 		get: function () {
-			var data = Utility.getByPath(self.model.data, self.attribute.path);
+			var data = Utility.getByPath(this.model.data, this.attribute.path);
 
-			self.modifiers.forEach(function (modifier) {
+			this.modifiers.forEach(function (modifier) {
 				data = modifier.call(data);
 			});
 
 			return data;
 		},
-		set: function (value) {
+		set: function (data) {
 
-			self.modifiers.forEach(function (modifier) {
-				value = modifier.call(value);
+			this.modifiers.forEach(function (modifier) {
+				data = modifier.call(data);
 			});
 
-			return Utility.setByPath(self.model.data, self.attribute.path, value);
+			return Utility.setByPath(this.model.data, this.attribute.path, data);
 		}
 	});
 
-	self.renderMethod();
+	this.renderMethod();
 }
 
 Binder.prototype.renderMethods = {
 	on: function () {
-		var self = this;
-
-		if (!self.eventName) {
-			self.eventName = self.attribute.cmds[1];
-			self.eventMethod = Utility.getByPath(self.events, self.attribute.path).bind(self.model.data);
+		if (!this.eventName) {
+			this.eventName = this.attribute.cmds[1];
+			this.eventMethod = Utility.getByPath(this.events, this.attribute.path).bind(this.model.data);
 		}
 
-		self.element.removeEventListener(self.eventName, self.eventMethod);
-		self.element.addEventListener(self.eventName, self.eventMethod);
+		this.element.removeEventListener(this.eventName, this.eventMethod);
+		this.element.addEventListener(this.eventName, this.eventMethod);
 	},
 	each: function () {
-		var self = this;
+		this.data = this.data || [];
 
-		self.data = self.data || [];
-
-		if (!self.clone) {
-			self.variable = self.attribute.cmds.slice(1).join('.');
-			self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
-			self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+		if (!this.clone) {
+			this.variable = this.attribute.cmds.slice(1).join('.');
+			this.clone = this.element.removeChild(this.element.children[0]).outerHTML;
+			this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 		}
 
-		if (self.element.children.length > self.data.length) {
-			while (self.element.children.length > self.data.length) {
-				self.view.removeAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
-				self.view.removeOne(self.element.children[self.element.children.length-1]);
-				self.element.removeChild(self.element.children[self.element.children.length-1]);
+		if (this.element.children.length > this.data.length) {
+			while (this.element.children.length > this.data.length) {
+				this.view.removeAll(this.element.children[this.element.children.length-1].querySelectorAll('*'));
+				this.view.removeOne(this.element.children[this.element.children.length-1]);
+				this.element.removeChild(this.element.children[this.element.children.length-1]);
 			}
-		} else if (self.element.children.length < self.data.length) {
-			while (self.element.children.length < self.data.length) {
-				self.element.insertAdjacentHTML(
+		} else if (this.element.children.length < this.data.length) {
+			while (this.element.children.length < this.data.length) {
+				this.element.insertAdjacentHTML(
 					'beforeend',
-					self.clone.replace(
-						self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+					this.clone.replace(
+						this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
 					)
 				);
-				self.view.addAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
-				self.view.addOne(self.element.children[self.element.children.length-1]);
+				this.view.addAll(this.element.children[this.element.children.length-1].querySelectorAll('*'));
+				this.view.addOne(this.element.children[this.element.children.length-1]);
 			}
 		}
 
 	},
 	value: function () {
-		var self = this;
+		if (this.element.type !== 'button' || this.element.type !== 'reset') {
+			if (this.element.type === 'checkbox') {
+				if (this.isSetup && this.data !== this.element.checked) {
+					this.data = this.element.checked;
+				} else {
+					this.isSetup = true;
+					this.element.checked = this.data;
+				}
+			} else if (this.element.type === 'radio') {
+				var i = 0, radios, index;
 
-		if (self.change) return;
-		if (self.element.type === 'button' || self.element.type === 'reset') return self.change = true;
+				if (this.isSetup) {
+					if (this.element.checked) {
+						radios = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
 
-		self.change = function () {
-			self.data = self.element.type !== 'radio' && self.element.type !== 'checked' ? self.element.value : self.element.checked;
-		};
+						for (i; i < radios.length; i++) {
+							if (radios[i] === this.element) index = i;
+							else radios[i].checked = false;
+						}
 
-		self.element.addEventListener('change', self.change.bind(self), true);
-		self.element.addEventListener('keyup', self.change.bind(self), true);
+						if (this.data !== index) this.data = index;
+					}
+				} else {
+					radios = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
+
+					for (i; i < radios.length; i++) {
+						if (i === this.data) radios[i].checked = true;
+						else radios[i].checked = false;
+					}
+
+					this.isSetup = true;
+				}
+			} else {
+				if (this.isSetup && this.data !== this.element.value) {
+					this.data = this.element.value;
+				} else {
+					this.isSetup = true;
+					this.element.value = this.data;
+				}
+			}
+		}
 	},
 	html: function () {
 		this.element.innerHTML = this.data;
@@ -156,8 +179,7 @@ Binder.prototype.unrenderMethods = {
 		}
 	},
 	value: function () {
-		this.element.removeEventListener('change', this.change.bind(this));
-		this.element.removeEventListener('keyup', this.change.bind(this));
+
 	},
 	html: function () {
 		this.element.innerText = '';

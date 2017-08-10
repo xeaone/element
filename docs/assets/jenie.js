@@ -6,6 +6,10 @@
 
 	var Utility = {
 
+		PATH: /\s?\|(.*?)$/,
+		PREFIX: /(data-)?j-/,
+		MODIFIERS: /^(.*?)\|\s?/,
+
 		setByPath: function (collection, path, value) {
 			var keys = path.split('.');
 			var last = keys.length - 1;
@@ -36,104 +40,140 @@
 			return data.replace(/-[a-z]/g, function (match) {
 				return match[1].toUpperCase();
 			});
+		},
+
+		attribute: function (name, value) {
+			var attribute = {};
+			attribute.name = name;
+			attribute.value = value;
+			attribute.path = attribute.value.replace(this.PATH, '');
+			attribute.opts = attribute.path.split('.');
+			attribute.command = attribute.name.replace(this.PREFIX, '');
+			attribute.cmds = attribute.command.split('-');
+			attribute.key = attribute.opts.slice(-1);
+			attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
+			return attribute;
 		}
 
 	};
 
 	function Binder (options) {
-		var self = this;
+		this.data = options.data;
+		this.view = options.view;
+		this.model = options.model;
+		this.events = options.events;
+		this.element = options.element;
+		this.modifiers = options.modifiers;
+		this.attribute = options.attribute;
+		this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
+		this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
 
-		self.data = options.data;
-		self.view = options.view;
-		self.model = options.model;
-		self.events = options.events;
-		self.element = options.element;
-		self.attribute = options.attribute;
-		self.modifiers = options.modifiers;
-
-		self.renderMethod = (self.renderMethods[self.attribute.cmds[0]] || self.renderMethods['default']).bind(self);
-		self.unrenderMethod = (self.unrenderMethods[self.attribute.cmds[0]] || self.unrenderMethods['default']).bind(self);
-
-		Object.defineProperty(self, 'data', {
+		Object.defineProperty(this, 'data', {
 			enumerable: true,
 			configurable: true,
 			get: function () {
-				var data = Utility.getByPath(self.model.data, self.attribute.path);
+				var data = Utility.getByPath(this.model.data, this.attribute.path);
 
-				self.modifiers.forEach(function (modifier) {
+				this.modifiers.forEach(function (modifier) {
 					data = modifier.call(data);
 				});
 
 				return data;
 			},
-			set: function (value) {
+			set: function (data) {
 
-				self.modifiers.forEach(function (modifier) {
-					value = modifier.call(value);
+				this.modifiers.forEach(function (modifier) {
+					data = modifier.call(data);
 				});
 
-				return Utility.setByPath(self.model.data, self.attribute.path, value);
+				return Utility.setByPath(this.model.data, this.attribute.path, data);
 			}
 		});
 
-		self.renderMethod();
+		this.renderMethod();
 	}
 
 	Binder.prototype.renderMethods = {
 		on: function () {
-			var self = this;
-
-			if (!self.eventName) {
-				self.eventName = self.attribute.cmds[1];
-				self.eventMethod = Utility.getByPath(self.events, self.attribute.path).bind(self.model.data);
+			if (!this.eventName) {
+				this.eventName = this.attribute.cmds[1];
+				this.eventMethod = Utility.getByPath(this.events, this.attribute.path).bind(this.model.data);
 			}
 
-			self.element.removeEventListener(self.eventName, self.eventMethod);
-			self.element.addEventListener(self.eventName, self.eventMethod);
+			this.element.removeEventListener(this.eventName, this.eventMethod);
+			this.element.addEventListener(this.eventName, this.eventMethod);
 		},
 		each: function () {
-			var self = this;
+			this.data = this.data || [];
 
-			self.data = self.data || [];
-
-			if (!self.clone) {
-				self.variable = self.attribute.cmds.slice(1).join('.');
-				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
-				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+			if (!this.clone) {
+				this.variable = this.attribute.cmds.slice(1).join('.');
+				this.clone = this.element.removeChild(this.element.children[0]).outerHTML;
+				this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 			}
 
-			if (self.element.children.length > self.data.length) {
-				while (self.element.children.length > self.data.length) {
-					self.view.removeAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
-					self.view.removeOne(self.element.children[self.element.children.length-1]);
-					self.element.removeChild(self.element.children[self.element.children.length-1]);
+			if (this.element.children.length > this.data.length) {
+				while (this.element.children.length > this.data.length) {
+					this.view.removeAll(this.element.children[this.element.children.length-1].querySelectorAll('*'));
+					this.view.removeOne(this.element.children[this.element.children.length-1]);
+					this.element.removeChild(this.element.children[this.element.children.length-1]);
 				}
-			} else if (self.element.children.length < self.data.length) {
-				while (self.element.children.length < self.data.length) {
-					self.element.insertAdjacentHTML(
+			} else if (this.element.children.length < this.data.length) {
+				while (this.element.children.length < this.data.length) {
+					this.element.insertAdjacentHTML(
 						'beforeend',
-						self.clone.replace(
-							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+						this.clone.replace(
+							this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
 						)
 					);
-					self.view.addAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
-					self.view.addOne(self.element.children[self.element.children.length-1]);
+					this.view.addAll(this.element.children[this.element.children.length-1].querySelectorAll('*'));
+					this.view.addOne(this.element.children[this.element.children.length-1]);
 				}
 			}
 
 		},
 		value: function () {
-			var self = this;
+			if (this.element.type !== 'button' || this.element.type !== 'reset') {
+				if (this.element.type === 'checkbox') {
+					if (this.isSetup && this.data !== this.element.checked) {
+						this.data = this.element.checked;
+					} else {
+						this.isSetup = true;
+						this.element.checked = this.data;
+					}
+				} else if (this.element.type === 'radio') {
+					var i = 0, radios, index;
 
-			if (self.change) return;
-			if (self.element.type === 'button' || self.element.type === 'reset') return self.change = true;
+					if (this.isSetup) {
+						if (this.element.checked) {
+							radios = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
 
-			self.change = function () {
-				self.data = self.element.type !== 'radio' && self.element.type !== 'checked' ? self.element.value : self.element.checked;
-			};
+							for (i; i < radios.length; i++) {
+								if (radios[i] === this.element) index = i;
+								else radios[i].checked = false;
+							}
 
-			self.element.addEventListener('change', self.change.bind(self), true);
-			self.element.addEventListener('keyup', self.change.bind(self), true);
+							if (this.data !== index) this.data = index;
+						}
+					} else {
+						radios = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
+
+						for (i; i < radios.length; i++) {
+							if (i === this.data) radios[i].checked = true;
+							else radios[i].checked = false;
+						}
+
+						this.isSetup = true;
+					}
+				} else {
+					if (this.isSetup && this.data !== this.element.value) {
+						this.data = this.element.value;
+					} else {
+						this.isSetup = true;
+						this.element.value = this.data;
+					}
+				}
+			}
 		},
 		html: function () {
 			this.element.innerHTML = this.data;
@@ -173,6 +213,9 @@
 		read: function () {
 			this.element.readOnly = this.data;
 		},
+		readOnly: function () {
+			this.element.readOnly = this.data;
+		},
 		selected: function () {
 			this.element.selectedIndex = this.data;
 		},
@@ -193,8 +236,7 @@
 			}
 		},
 		value: function () {
-			this.element.removeEventListener('change', this.change.bind(this));
-			this.element.removeEventListener('keyup', this.change.bind(this));
+
 		},
 		html: function () {
 			this.element.innerText = '';
@@ -415,6 +457,14 @@
 		});
 	}
 
+	Collection.prototype.find = function (method) {
+		for (var i = 0; i < this.data.length; i++) {
+			if (method(this.data[i][1], this.data[i][0], i) === true) {
+				return this.data[i][1];
+			}
+		}
+	};
+
 	Collection.prototype.get = function (key) {
 		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
@@ -477,9 +527,6 @@
 	}
 
 	View.prototype.regexp = {
-		PATH: /\s?\|(.*?)$/,
-		PREFIX: /(data-)?j-/,
-		MODIFIERS: /^(.*?)\|\s?/,
 		ATTRIBUTE_ACCEPTS: /(data-)?j-/,
 		ELEMENT_ACCEPTS: /(data-)?j-/,
 		ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
@@ -509,18 +556,9 @@
 	};
 
 	View.prototype.eachAttribute = function (element, callback) {
-		Array.prototype.forEach.call(element.attributes, function (ea) {
-			if (this.regexp.ATTRIBUTE_ACCEPTS.test(ea.name)) {
-				var attribute = {};
-				attribute.name = ea.name;
-				attribute.value = ea.value;
-				attribute.path = attribute.value.replace(this.regexp.PATH, '');
-				attribute.opts = attribute.path.split('.');
-				attribute.command = attribute.name.replace(this.regexp.PREFIX, '');
-				attribute.cmds = attribute.command.split('-');
-				attribute.key = attribute.opts.slice(-1);
-				attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.regexp.MODIFIERS, '').split(' ');
-				callback.call(this, attribute);
+		Array.prototype.forEach.call(element.attributes, function (attribute) {
+			if (this.regexp.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
+				callback.call(this, Utility.attribute(attribute.name, attribute.value));
 			}
 		}, this);
 	};
@@ -529,11 +567,11 @@
 		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
 		this.data.forEach(function (paths, path) {
-			paths.forEach(function (unit) {
-				if (pattern.test(path)) {
+			if (pattern.test(path)) {
+				paths.forEach(function (unit) {
 					unit.unrender();
-				}
-			}, this);
+				}, this);
+			}
 		}, this);
 	};
 
@@ -541,11 +579,11 @@
 		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
 		this.data.forEach(function (paths, path) {
-			paths.forEach(function (unit) {
-				if (pattern.test(path)) {
+			if (pattern.test(path)) {
+				paths.forEach(function (unit) {
 					unit.render();
-				}
-			}, this);
+				}, this);
+			}
 		}, this);
 	};
 
@@ -605,9 +643,10 @@
 		self.view = new View();
 		self.model = new Model();
 
+		self.element = (options.view.shadowRoot || options.view);
 		self.events = options.events || {};
 		self._model = options.model || {};
-		self._view = (options.view.shadowRoot || options.view).querySelectorAll('*');
+		self._view = self.element.querySelectorAll('*');
 
 		self.name = options.name;
 		self.modifiers = options.modifiers || {};
@@ -631,6 +670,26 @@
 					return self.modifiers[modifier];
 				})
 			}));
+		});
+
+		self.inputHandler = function (element) {
+			if (element.hasAttribute('j-value')) {
+				var attribute = Utility.attribute('j-value', element.getAttribute('j-value'));
+				self.view.data.get(attribute.path).find(function (binder) {
+					return binder.element === element;
+				}).render();
+			}
+		};
+
+		self.element.addEventListener('change', function (e) {
+			if (e.type === 'change' && (e.target.type === 'checkbox' || e.target.type === 'radio')) {
+				self.inputHandler(e.target);
+			}
+		});
+
+		// might want keyup
+		self.element.addEventListener('input', function (e) {
+			self.inputHandler(e.target);
 		});
 
 		if (typeof options.model === 'function') {
@@ -1314,42 +1373,42 @@
 
 		xhr = new XMLHttpRequest();
 
-		xhr.open(options.method, options.action, true, options.username, options.password);
-
-		if (options.mimeType) {
-			xhr.overrideMimeType(options.mimeType);
-		}
-
-		if (options.withCredentials) {
-			xhr.withCredentials = options.withCredentials;
-		}
-
-		if (options.accept) {
-			options.headers['Accept'] = options.accept;
-		}
-
-		if (options.contentType) {
-			options.headers['Content-Type'] = options.contentType;
-		}
-
-		if (options.headers) {
-			Object.keys(options.headers).forEach(function (name) {
-				xhr.setRequestHeader(name, options.headers[name]);
-			});
-		}
-
-		if (typeof this.request === 'function') {
-			request = this.request(options);
+		if (typeof self.request === 'function') {
+			request = self.request(options, xhr);
 		}
 
 		if (request === undefined || request === true) {
+
+			xhr.open(options.method, options.action, true, options.username, options.password);
+
+			if (options.mimeType) {
+				xhr.overrideMimeType(options.mimeType);
+			}
+
+			if (options.withCredentials) {
+				xhr.withCredentials = options.withCredentials;
+			}
+
+			if (options.accept) {
+				options.headers['Accept'] = options.accept;
+			}
+
+			if (options.contentType) {
+				options.headers['Content-Type'] = options.contentType;
+			}
+
+			if (options.headers) {
+				Object.keys(options.headers).forEach(function (name) {
+					xhr.setRequestHeader(name, options.headers[name]);
+				});
+			}
 
 			xhr.onreadystatechange = function () {
 
 				if (xhr.readyState === 4) {
 
-					if (typeof this.response === 'function') {
-						response = this.response(options, xhr);
+					if (typeof self.response === 'function') {
+						response = self.response(options, xhr);
 					}
 
 					if (response === undefined || response === true) {
@@ -1375,7 +1434,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.2
+		version: 1.4.6
 		license: mpl-2.0
 		author: alexander elias
 

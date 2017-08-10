@@ -5,6 +5,14 @@ export default function Collection (data) {
 	});
 }
 
+Collection.prototype.find = function (method) {
+	for (var i = 0; i < this.data.length; i++) {
+		if (method(this.data[i][1], this.data[i][0], i) === true) {
+			return this.data[i][1];
+		}
+	}
+};
+
 Collection.prototype.get = function (key) {
 	for (var i = 0; i < this.data.length; i++) {
 		if (key === this.data[i][0]) {

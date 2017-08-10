@@ -1,13 +1,11 @@
 import Collection from '../collection';
+import Utility from '../utility';
 
 export default function View () {
 	this.data = new Collection();
 }
 
 View.prototype.regexp = {
-	PATH: /\s?\|(.*?)$/,
-	PREFIX: /(data-)?j-/,
-	MODIFIERS: /^(.*?)\|\s?/,
 	ATTRIBUTE_ACCEPTS: /(data-)?j-/,
 	ELEMENT_ACCEPTS: /(data-)?j-/,
 	ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
@@ -37,18 +35,9 @@ View.prototype.eachElement = function (elements, callback) {
 };
 
 View.prototype.eachAttribute = function (element, callback) {
-	Array.prototype.forEach.call(element.attributes, function (ea) {
-		if (this.regexp.ATTRIBUTE_ACCEPTS.test(ea.name)) {
-			var attribute = {};
-			attribute.name = ea.name;
-			attribute.value = ea.value;
-			attribute.path = attribute.value.replace(this.regexp.PATH, '');
-			attribute.opts = attribute.path.split('.');
-			attribute.command = attribute.name.replace(this.regexp.PREFIX, '');
-			attribute.cmds = attribute.command.split('-');
-			attribute.key = attribute.opts.slice(-1);
-			attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.regexp.MODIFIERS, '').split(' ');
-			callback.call(this, attribute);
+	Array.prototype.forEach.call(element.attributes, function (attribute) {
+		if (this.regexp.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
+			callback.call(this, Utility.attribute(attribute.name, attribute.value));
 		}
 	}, this);
 };
@@ -57,11 +46,11 @@ View.prototype.unrenderAll = function (pattern) {
 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
 	this.data.forEach(function (paths, path) {
-		paths.forEach(function (unit) {
-			if (pattern.test(path)) {
+		if (pattern.test(path)) {
+			paths.forEach(function (unit) {
 				unit.unrender();
-			}
-		}, this);
+			}, this);
+		}
 	}, this);
 };
 
@@ -69,11 +58,11 @@ View.prototype.renderAll = function (pattern) {
 	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
 	this.data.forEach(function (paths, path) {
-		paths.forEach(function (unit) {
-			if (pattern.test(path)) {
+		if (pattern.test(path)) {
+			paths.forEach(function (unit) {
 				unit.render();
-			}
-		}, this);
+			}, this);
+		}
 	}, this);
 };
 

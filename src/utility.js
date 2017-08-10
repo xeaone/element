@@ -1,6 +1,10 @@
 
 export default {
 
+	PATH: /\s?\|(.*?)$/,
+	PREFIX: /(data-)?j-/,
+	MODIFIERS: /^(.*?)\|\s?/,
+
 	setByPath: function (collection, path, value) {
 		var keys = path.split('.');
 		var last = keys.length - 1;
@@ -31,6 +35,19 @@ export default {
 		return data.replace(/-[a-z]/g, function (match) {
 			return match[1].toUpperCase();
 		});
+	},
+
+	attribute: function (name, value) {
+		var attribute = {};
+		attribute.name = name;
+		attribute.value = value;
+		attribute.path = attribute.value.replace(this.PATH, '');
+		attribute.opts = attribute.path.split('.');
+		attribute.command = attribute.name.replace(this.PREFIX, '');
+		attribute.cmds = attribute.command.split('-');
+		attribute.key = attribute.opts.slice(-1);
+		attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
+		return attribute;
 	}
 
 };

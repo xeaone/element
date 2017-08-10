@@ -1,3 +1,4 @@
+import Utility from '../utility';
 import Binder from './binder';
 import Model from './model';
 import View from './view';
@@ -8,9 +9,10 @@ export default function Controller (options, callback) {
 	self.view = new View();
 	self.model = new Model();
 
+	self.element = (options.view.shadowRoot || options.view);
 	self.events = options.events || {};
 	self._model = options.model || {};
-	self._view = (options.view.shadowRoot || options.view).querySelectorAll('*');
+	self._view = self.element.querySelectorAll('*');
 
 	self.name = options.name;
 	self.modifiers = options.modifiers || {};
@@ -34,6 +36,26 @@ export default function Controller (options, callback) {
 				return self.modifiers[modifier];
 			})
 		}));
+	});
+
+	self.inputHandler = function (element) {
+		if (element.hasAttribute('j-value')) {
+			var attribute = Utility.attribute('j-value', element.getAttribute('j-value'));
+			self.view.data.get(attribute.path).find(function (binder) {
+				return binder.element === element;
+			}).render();
+		}
+	};
+
+	self.element.addEventListener('change', function (e) {
+		if (e.type === 'change' && (e.target.type === 'checkbox' || e.target.type === 'radio')) {
+			self.inputHandler(e.target);
+		}
+	});
+
+	// might want keyup
+	self.element.addEventListener('input', function (e) {
+		self.inputHandler(e.target);
 	});
 
 	if (typeof options.model === 'function') {
