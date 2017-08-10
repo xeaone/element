@@ -1,39 +1,42 @@
 {
-	"name": "jenie",
-	"version": "1.4.5",
-	"description": "Light weight powerful web components framework",
-	"main": "dist/jenie.min.js",
-	"scripts": {
-		"serve": "muleify serve -s docs",
-		"watch": "muleify pack -p src -w src/jenie.b.js docs/assets/jenie.js",
-		"build-dev": "muleify pack src/jenie.b.js dist/jenie.js",
-		"build-min": "muleify pack -m src/jenie.b.js dist/jenie.min.js",
-		"build-pol": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
-		"build-all": "npm run build-dev && npm run build-min && npm run build-pol"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/AlexanderElias/jenie.git"
-	},
-	"author": "Alexander Elias",
-	"license": "MPL-2.0",
-	"bugs": {
-		"url": "https://github.com/AlexanderElias/jenie/issues"
-	},
-	"homepage": "https://github.com/AlexanderElias/jenie#readme",
-	"keywords": [
-		"web",
-		"components",
-		"web-components",
-		"js",
-		"html",
-		"css",
-		"framework",
-		"data-binding",
-		"data",
-		"binding",
-		"routing",
-		"router",
-		"front-end"
-	]
+  "name": "jenie",
+  "version": "1.4.5",
+  "description": "Light weight powerful web components framework",
+  "main": "dist/jenie.min.js",
+  "scripts": {
+    "s": "muleify serve -s docs",
+    "w": "muleify pack -p src -w src/jenie.b.js docs/assets/jenie.js",
+    "bd": "muleify pack src/jenie.b.js dist/jenie.js",
+    "bm": "muleify pack -m src/jenie.b.js dist/jenie.min.js",
+    "bp": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
+    "ba": "npm run bd && npm run bm && npm run bp"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlexanderElias/jenie.git"
+  },
+  "author": "Alexander Elias",
+  "license": "MPL-2.0",
+  "bugs": {
+    "url": "https://github.com/AlexanderElias/jenie/issues"
+  },
+  "homepage": "https://github.com/AlexanderElias/jenie#readme",
+  "keywords": [
+    "web",
+    "components",
+    "web-components",
+    "js",
+    "html",
+    "css",
+    "framework",
+    "data-binding",
+    "data",
+    "binding",
+    "routing",
+    "router",
+    "front-end"
+  ],
+  "directories": {
+    "doc": "docs"
+  }
 }

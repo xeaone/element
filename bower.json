@@ -1,6 +1,6 @@
 {
 	"name": "jenie",
-	"description": "Light weight powerful web components framework",
+	"description": "Web Components Framework & Library",
 	"main": "dist/jenie.min.js",
 	"authors": [
 		"Alexander Elias"
