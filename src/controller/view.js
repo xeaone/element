@@ -5,12 +5,10 @@ export default function View () {
 	this.data = new Collection();
 }
 
-View.prototype.regexp = {
-	ATTRIBUTE_ACCEPTS: /(data-)?j-/,
-	ELEMENT_ACCEPTS: /(data-)?j-/,
-	ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
-	ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script|^style|^svg/
-};
+View.prototype.ELEMENT_ACCEPTS = /(data-)?j-/;
+View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/;
+View.prototype.ELEMENT_REJECTS_CHILDREN = /(data-)?j-each/;
+View.prototype.ELEMENT_REJECTS = /^\w+(-\w+)+|^iframe|^object|^script|^style|^svg/;
 
 View.prototype.preview = function (element) {
 	return element.outerHTML
@@ -23,12 +21,12 @@ View.prototype.eachElement = function (elements, callback) {
 		var element = elements[i];
 		var preview = this.preview(element);
 
-		if (this.regexp.ELEMENT_REJECTS.test(preview)) {
+		if (this.ELEMENT_REJECTS.test(preview)) {
 			i += element.querySelectorAll('*').length;
-		} else if (this.regexp.ELEMENT_REJECTS_CHILDREN.test(preview)) {
+		} else if (this.ELEMENT_REJECTS_CHILDREN.test(preview)) {
 			i += element.querySelectorAll('*').length;
 			callback.call(this, element);
-		} else if (this.regexp.ELEMENT_ACCEPTS.test(preview)) {
+		} else if (this.ELEMENT_ACCEPTS.test(preview)) {
 			callback.call(this, element);
 		}
 	}
@@ -36,7 +34,7 @@ View.prototype.eachElement = function (elements, callback) {
 
 View.prototype.eachAttribute = function (element, callback) {
 	Array.prototype.forEach.call(element.attributes, function (attribute) {
-		if (this.regexp.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
+		if (this.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
 			callback.call(this, Utility.attribute(attribute.name, attribute.value));
 		}
 	}, this);

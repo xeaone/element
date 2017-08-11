@@ -11,27 +11,54 @@
 		<p j-text="text | upper"></p>
 		<p j-text="text | lower"></p>
 		<input type="text" j-value="text | lower" placeholder="text">
-		<input type="text" j-value="items.0.it.val" placeholder="items.0.it.val">
 
+		<br>
 		<br>
 
 		<div j-text="isChecked"></div>
 		<input type="checkbox" j-value="isChecked">
 
 		<br>
+		<br>
 
 		<div j-text="numRadio"></div>
-
 		<input type="radio" j-value="numRadio">
 		<input type="radio" j-value="numRadio">
 
 		<br>
+		<br>
 
+		<div j-text="car"></div>
+		<select j-value="car">
+			<option value="audi">Audi</option>
+			<option value="saab">Saab</option>
+			<option value="volvo">Volvo</option>
+			<option value="mercedes">Mercedes</option>
+		</select>
+
+		<br>
+		<br>
+
+		<div j-text="cars"></div>
+		<select j-value="cars" multiple>
+			<option value="audi">Audi</option>
+			<option value="saab">Saab</option>
+			<option value="volvo">Volvo</option>
+			<option j-value="mcar">Mercedes</option>
+		</select>
+
+		<br>
+		<br>
+
+		<input type="text" j-value="items.0.it.val">
 		<div j-each-item="items">
 			<div j-on-click="foo" j-text="item.it.val"></div>
 		</div>
 		<a href="/js">/js</a>
 		<button j-on-click="say">Say Hello</button>
+
+		<input type="button" value="button">
+		<input type="reset" value="reset">
 	</div>
 
 </template>
@@ -41,6 +68,9 @@
 		name: 'html-test',
 		template: 'template',
 		model: {
+			mcar: 'Mercedes',
+			car: '',
+			cars: [],
 			numRadio: 0,
 			isChecked: true,
 			text: 'Hello from html test',

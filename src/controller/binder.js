@@ -8,8 +8,8 @@ export default function Binder (options) {
 	this.element = options.element;
 	this.modifiers = options.modifiers;
 	this.attribute = options.attribute;
-	this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
-	this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
+	this.renderMethod = this.renderMethods[this.attribute.cmds[0]]; // || this.renderMethods['default'];
+	this.unrenderMethod = this.unrenderMethods[this.attribute.cmds[0]]; // || this.unrenderMethods['default'];
 
 	Object.defineProperty(this, 'data', {
 		enumerable: true,
@@ -76,47 +76,35 @@ Binder.prototype.renderMethods = {
 
 	},
 	value: function () {
-		if (this.element.type !== 'button' || this.element.type !== 'reset') {
-			if (this.element.type === 'checkbox') {
-				if (this.isSetup && this.data !== this.element.checked) {
-					this.data = this.element.checked;
-				} else {
-					this.isSetup = true;
-					this.element.checked = this.data;
-				}
-			} else if (this.element.type === 'radio') {
-				var i = 0, radios, index;
+		// NOTE this fires for every change
+		if (this.isSetup) return;
 
-				if (this.isSetup) {
-					if (this.element.checked) {
-						radios = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
-
-						for (i; i < radios.length; i++) {
-							if (radios[i] === this.element) index = i;
-							else radios[i].checked = false;
-						}
-
-						if (this.data !== index) this.data = index;
-					}
-				} else {
-					radios = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
-
-					for (i; i < radios.length; i++) {
-						if (i === this.data) radios[i].checked = true;
-						else radios[i].checked = false;
-					}
-
-					this.isSetup = true;
-				}
-			} else {
-				if (this.isSetup && this.data !== this.element.value) {
-					this.data = this.element.value;
-				} else {
-					this.isSetup = true;
-					this.element.value = this.data;
-				}
+		if (this.element.type === 'checkbox') {
+			if (this.element.checked !== this.data) {
+				this.element.value = this.element.checked = this.data;
 			}
+		} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
+			if (this.element.options.length !== this.data.length) {
+				Array.prototype.forEach.call(this.element.options, function (option, index) {
+					if (option.value === this.data[index]) {
+						option.selected;
+					}
+				}, this);
+			}
+		} else if (this.element.type === 'radio') {
+			Array.prototype.forEach.call(
+				this.element.parentNode.querySelectorAll(
+					'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
+				),
+				function (radio, index) {
+					radio.checked = index === this.data;
+				},
+			this);
+		} else {
+			this.element.value = this.data;
 		}
+
+		this.isSetup = true;
 	},
 	html: function () {
 		this.element.innerHTML = this.data;
@@ -136,7 +124,7 @@ Binder.prototype.renderMethods = {
 		this.element.classList.toggle(className, this.data);
 	},
 	text: function () {
-		this.element.innerText = this.data;
+		this.element.innerText = this.data.toString();
 	},
 	enable: function () {
 		this.element.disabled = !this.data;
@@ -156,16 +144,14 @@ Binder.prototype.renderMethods = {
 	read: function () {
 		this.element.readOnly = this.data;
 	},
-	readOnly: function () {
-		this.element.readOnly = this.data;
-	},
 	selected: function () {
 		this.element.selectedIndex = this.data;
-	},
-	default: function () {
-		var path = Utility.toCamelCase(this.attribute.cmds);
-		Utility.setByPath(this.element, path, this.data);
 	}
+	// ,
+	// default: function () {
+	// 	var path = Utility.toCamelCase(this.attribute.cmds);
+	// 	Utility.setByPath(this.element, path, this.data);
+	// }
 };
 
 Binder.prototype.unrenderMethods = {
@@ -178,17 +164,40 @@ Binder.prototype.unrenderMethods = {
 			this.element.removeChild(this.element.lastChild);
 		}
 	},
-	value: function () {
-
-	},
 	html: function () {
 		this.element.innerText = '';
 	},
 	text: function () {
 		this.element.innerText = '';
-	},
-	default: function () {
+	}
+	// ,
+	// default: function () {
+	//
+	// }
+};
 
+Binder.prototype.updateModel = function () {
+	if (this.element.type === 'checkbox') {
+		this.data = this.element.value = this.element.checked;
+	} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
+		this.data = Array.prototype.filter.call(this.element.options, function (option) {
+			return option.selected;
+		}).map(function (option) {
+			return option.value;
+		});
+	} else if (this.element.type === 'radio') {
+		Array.prototype.forEach.call(
+			this.element.parentNode.querySelectorAll(
+				'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
+			),
+			function (radio, index) {
+				if (radio === this.element) this.data = index;
+				else radio.checked = false;
+
+			},
+		this);
+	} else {
+		this.data = this.element.value;
 	}
 };
 

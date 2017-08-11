@@ -65,8 +65,8 @@
 		this.element = options.element;
 		this.modifiers = options.modifiers;
 		this.attribute = options.attribute;
-		this.renderMethod = (this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default']).bind(this);
-		this.unrenderMethod = (this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default']).bind(this);
+		this.renderMethod = this.renderMethods[this.attribute.cmds[0]]; // || this.renderMethods['default'];
+		this.unrenderMethod = this.unrenderMethods[this.attribute.cmds[0]]; // || this.unrenderMethods['default'];
 
 		Object.defineProperty(this, 'data', {
 			enumerable: true,
@@ -133,47 +133,35 @@
 
 		},
 		value: function () {
-			if (this.element.type !== 'button' || this.element.type !== 'reset') {
-				if (this.element.type === 'checkbox') {
-					if (this.isSetup && this.data !== this.element.checked) {
-						this.data = this.element.checked;
-					} else {
-						this.isSetup = true;
-						this.element.checked = this.data;
-					}
-				} else if (this.element.type === 'radio') {
-					var i = 0, radios, index;
+			// NOTE this fires for every change
+			if (this.isSetup) return;
 
-					if (this.isSetup) {
-						if (this.element.checked) {
-							radios = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
-
-							for (i; i < radios.length; i++) {
-								if (radios[i] === this.element) index = i;
-								else radios[i].checked = false;
-							}
-
-							if (this.data !== index) this.data = index;
-						}
-					} else {
-						radios = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
-
-						for (i; i < radios.length; i++) {
-							if (i === this.data) radios[i].checked = true;
-							else radios[i].checked = false;
-						}
-
-						this.isSetup = true;
-					}
-				} else {
-					if (this.isSetup && this.data !== this.element.value) {
-						this.data = this.element.value;
-					} else {
-						this.isSetup = true;
-						this.element.value = this.data;
-					}
+			if (this.element.type === 'checkbox') {
+				if (this.element.checked !== this.data) {
+					this.element.value = this.element.checked = this.data;
 				}
+			} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
+				if (this.element.options.length !== this.data.length) {
+					Array.prototype.forEach.call(this.element.options, function (option, index) {
+						if (option.value === this.data[index]) {
+							option.selected;
+						}
+					}, this);
+				}
+			} else if (this.element.type === 'radio') {
+				Array.prototype.forEach.call(
+					this.element.parentNode.querySelectorAll(
+						'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
+					),
+					function (radio, index) {
+						radio.checked = index === this.data;
+					},
+				this);
+			} else {
+				this.element.value = this.data;
 			}
+
+			this.isSetup = true;
 		},
 		html: function () {
 			this.element.innerHTML = this.data;
@@ -193,7 +181,7 @@
 			this.element.classList.toggle(className, this.data);
 		},
 		text: function () {
-			this.element.innerText = this.data;
+			this.element.innerText = this.data.toString();
 		},
 		enable: function () {
 			this.element.disabled = !this.data;
@@ -213,16 +201,14 @@
 		read: function () {
 			this.element.readOnly = this.data;
 		},
-		readOnly: function () {
-			this.element.readOnly = this.data;
-		},
 		selected: function () {
 			this.element.selectedIndex = this.data;
-		},
-		default: function () {
-			var path = Utility.toCamelCase(this.attribute.cmds);
-			Utility.setByPath(this.element, path, this.data);
 		}
+		// ,
+		// default: function () {
+		// 	var path = Utility.toCamelCase(this.attribute.cmds);
+		// 	Utility.setByPath(this.element, path, this.data);
+		// }
 	};
 
 	Binder.prototype.unrenderMethods = {
@@ -235,17 +221,40 @@
 				this.element.removeChild(this.element.lastChild);
 			}
 		},
-		value: function () {
-
-		},
 		html: function () {
 			this.element.innerText = '';
 		},
 		text: function () {
 			this.element.innerText = '';
-		},
-		default: function () {
+		}
+		// ,
+		// default: function () {
+		//
+		// }
+	};
 
+	Binder.prototype.updateModel = function () {
+		if (this.element.type === 'checkbox') {
+			this.data = this.element.value = this.element.checked;
+		} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
+			this.data = Array.prototype.filter.call(this.element.options, function (option) {
+				return option.selected;
+			}).map(function (option) {
+				return option.value;
+			});
+		} else if (this.element.type === 'radio') {
+			Array.prototype.forEach.call(
+				this.element.parentNode.querySelectorAll(
+					'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
+				),
+				function (radio, index) {
+					if (radio === this.element) this.data = index;
+					else radio.checked = false;
+
+				},
+			this);
+		} else {
+			this.data = this.element.value;
 		}
 	};
 
@@ -526,12 +535,10 @@
 		this.data = new Collection();
 	}
 
-	View.prototype.regexp = {
-		ATTRIBUTE_ACCEPTS: /(data-)?j-/,
-		ELEMENT_ACCEPTS: /(data-)?j-/,
-		ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
-		ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script|^style|^svg/
-	};
+	View.prototype.ELEMENT_ACCEPTS = /(data-)?j-/;
+	View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/;
+	View.prototype.ELEMENT_REJECTS_CHILDREN = /(data-)?j-each/;
+	View.prototype.ELEMENT_REJECTS = /^\w+(-\w+)+|^iframe|^object|^script|^style|^svg/;
 
 	View.prototype.preview = function (element) {
 		return element.outerHTML
@@ -544,12 +551,12 @@
 			var element = elements[i];
 			var preview = this.preview(element);
 
-			if (this.regexp.ELEMENT_REJECTS.test(preview)) {
+			if (this.ELEMENT_REJECTS.test(preview)) {
 				i += element.querySelectorAll('*').length;
-			} else if (this.regexp.ELEMENT_REJECTS_CHILDREN.test(preview)) {
+			} else if (this.ELEMENT_REJECTS_CHILDREN.test(preview)) {
 				i += element.querySelectorAll('*').length;
 				callback.call(this, element);
-			} else if (this.regexp.ELEMENT_ACCEPTS.test(preview)) {
+			} else if (this.ELEMENT_ACCEPTS.test(preview)) {
 				callback.call(this, element);
 			}
 		}
@@ -557,7 +564,7 @@
 
 	View.prototype.eachAttribute = function (element, callback) {
 		Array.prototype.forEach.call(element.attributes, function (attribute) {
-			if (this.regexp.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
+			if (this.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
 				callback.call(this, Utility.attribute(attribute.name, attribute.value));
 			}
 		}, this);
@@ -677,20 +684,19 @@
 				var attribute = Utility.attribute('j-value', element.getAttribute('j-value'));
 				self.view.data.get(attribute.path).find(function (binder) {
 					return binder.element === element;
-				}).render();
+				}).updateModel();
 			}
 		};
 
 		self.element.addEventListener('change', function (e) {
-			if (e.type === 'change' && (e.target.type === 'checkbox' || e.target.type === 'radio')) {
+			if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
 				self.inputHandler(e.target);
 			}
-		});
+		}, true);
 
-		// might want keyup
 		self.element.addEventListener('input', function (e) {
 			self.inputHandler(e.target);
-		});
+		}, true);
 
 		if (typeof options.model === 'function') {
 			self._model.call(self, function (model) {

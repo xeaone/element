@@ -43,20 +43,19 @@ export default function Controller (options, callback) {
 			var attribute = Utility.attribute('j-value', element.getAttribute('j-value'));
 			self.view.data.get(attribute.path).find(function (binder) {
 				return binder.element === element;
-			}).render();
+			}).updateModel();
 		}
 	};
 
 	self.element.addEventListener('change', function (e) {
-		if (e.type === 'change' && (e.target.type === 'checkbox' || e.target.type === 'radio')) {
+		if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
 			self.inputHandler(e.target);
 		}
-	});
+	}, true);
 
-	// might want keyup
 	self.element.addEventListener('input', function (e) {
 		self.inputHandler(e.target);
-	});
+	}, true);
 
 	if (typeof options.model === 'function') {
 		self._model.call(self, function (model) {
