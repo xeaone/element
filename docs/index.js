@@ -2,6 +2,7 @@
 var base = document.baseURI;
 
 Jenie.setup({
+	base: '/jenie/',
 	module: {
 		modules: [
 			{
