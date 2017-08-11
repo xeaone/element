@@ -24,6 +24,7 @@ Jenie.setup({
 		]
 	},
 	router: {
+		base: '/jenie',
 		routes: [
 			{
 				title: 'Root',
