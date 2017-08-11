@@ -2,7 +2,6 @@
 var base = document.baseURI;
 
 Jenie.setup({
-	base: '/jenie/',
 	module: {
 		modules: [
 			{
@@ -27,6 +26,7 @@ Jenie.setup({
 		]
 	},
 	router: {
+		base: '/jenie/',
 		routes: [
 			{
 				title: 'Root',
