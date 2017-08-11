@@ -1442,7 +1442,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.6
+		version: 1.4.7
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1500,6 +1500,34 @@
 
 		query: function (query) {
 			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
+		},
+
+		comments: function (query) {
+			var comments = [], node;
+
+			var pattern = new RegExp('^' + query);
+			var iterator = document.createNodeIterator((document._currentScript || document.currentScript).ownerDocument, NodeFilter.SHOW_COMMENT, NodeFilter.FILTER_ACCEPT);
+
+			while (node = iterator.nextNode()) {
+				if (query) {
+					if (pattern.test(node.nodeValue)) {
+						return node.nodeValue.replace(query, '');
+					}
+				} else {
+					comments.push(node.nodeValue);
+				}
+			}
+
+			return comments;
+		},
+
+		escape: function (text) {
+			return text
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#039;');
 		}
 
 	};

@@ -1,11 +1,12 @@
 {
   "name": "jenie",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "description": "Light weight powerful web components framework",
   "main": "dist/jenie.min.js",
   "scripts": {
     "s": "muleify serve -s docs",
-    "w": "muleify pack -p src -w src/jenie.b.js docs/assets/jenie.js",
+    "wj": "muleify pack -p src -w src/jenie.b.js docs/assets/jenie.js",
+    "wr": "muleify pack -w docs/views/v-root.e.js docs/views/v-root.js",
     "bd": "muleify pack src/jenie.b.js dist/jenie.js",
     "bm": "muleify pack -m src/jenie.b.js dist/jenie.min.js",
     "bp": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
@@ -38,5 +39,7 @@
   ],
   "directories": {
     "doc": "docs"
+  },
+  "dependencies": {
   }
 }

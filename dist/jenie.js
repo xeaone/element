@@ -6,6 +6,10 @@
 
 	var Utility = {
 
+		PATH: /\s?\|(.*?)$/,
+		PREFIX: /(data-)?j-/,
+		MODIFIERS: /^(.*?)\|\s?/,
+
 		setByPath: function (collection, path, value) {
 			var keys = path.split('.');
 			var last = keys.length - 1;
@@ -36,111 +40,137 @@
 			return data.replace(/-[a-z]/g, function (match) {
 				return match[1].toUpperCase();
 			});
+		},
+
+		attribute: function (name, value) {
+			var attribute = {};
+			attribute.name = name;
+			attribute.value = value;
+			attribute.path = attribute.value.replace(this.PATH, '');
+			attribute.opts = attribute.path.split('.');
+			attribute.command = attribute.name.replace(this.PREFIX, '');
+			attribute.cmds = attribute.command.split('-');
+			attribute.key = attribute.opts.slice(-1);
+			attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
+			return attribute;
 		}
 
 	};
 
 	function Binder (options) {
-		var self = this;
+		// this.data = options.data;
+		this.view = options.view;
+		this.model = options.model;
+		this.events = options.events;
+		this.element = options.element;
+		this.modifiers = options.modifiers;
+		this.attribute = options.attribute;
+		this.renderMethod = this.renderMethods[this.attribute.cmds[0]]; // || this.renderMethods['default'];
+		this.unrenderMethod = this.unrenderMethods[this.attribute.cmds[0]]; // || this.unrenderMethods['default'];
 
-		self.data = options.data;
-		self.view = options.view;
-		self.model = options.model;
-		self.events = options.events;
-		self.element = options.element;
-		self.attribute = options.attribute;
-		self.modifiers = options.modifiers;
+		// NOTE might be able to cache the parent object
+		// this.key = this.attribute.path.split('.').pop();
+		// this.data = Utility.getByPath(this.model.data, this.attribute.path);
+		// this.data = typeof this.data === 'object' ? this.data : Utility.getByPath(this.model.data, this.attribute.path.split('.').slice(0, -1).join('.'));
 
-		self.renderMethod = (self.renderMethods[self.attribute.cmds[0]] || self.renderMethods['default']).bind(self);
-		self.unrenderMethod = (self.unrenderMethods[self.attribute.cmds[0]] || self.unrenderMethods['default']).bind(self);
+		this.renderMethod();
+	}
 
-		Object.defineProperty(self, 'data', {
-			enumerable: true,
-			configurable: true,
-			get: function () {
-				var data = Utility.getByPath(self.model.data, self.attribute.path);
-
-				self.modifiers.forEach(function (modifier) {
-					data = modifier.call(data);
-				});
-
-				return data;
-			},
-			set: function (value) {
-
-				self.modifiers.forEach(function (modifier) {
-					value = modifier.call(value);
-				});
-
-				return Utility.setByPath(self.model.data, self.attribute.path, value);
-			}
+	Binder.prototype.setModel = function (data) {
+		this.modifiers.forEach(function (modifier) {
+			data = modifier.call(data);
 		});
 
-		self.renderMethod();
-	}
+		return Utility.setByPath(this.model.data, this.attribute.path, data);
+	};
+
+	Binder.prototype.getModel = function () {
+		var data = Utility.getByPath(this.model.data, this.attribute.path);
+
+		this.modifiers.forEach(function (modifier) {
+			data = modifier.call(data);
+		});
+
+		return data;
+	};
 
 	Binder.prototype.renderMethods = {
 		on: function () {
-			var self = this;
-
-			if (!self.eventName) {
-				self.eventName = self.attribute.cmds[1];
-				self.eventMethod = Utility.getByPath(self.events, self.attribute.path).bind(self.model.data);
+			if (!this.eventName) {
+				this.eventName = this.attribute.cmds[1];
+				this.eventMethod = Utility.getByPath(this.events, this.attribute.path).bind(this.getModel());
 			}
 
-			self.element.removeEventListener(self.eventName, self.eventMethod);
-			self.element.addEventListener(self.eventName, self.eventMethod);
+			this.element.removeEventListener(this.eventName, this.eventMethod);
+			this.element.addEventListener(this.eventName, this.eventMethod);
 		},
 		each: function () {
-			var self = this;
+			var model = this.getModel();
 
-			self.data = self.data || [];
-
-			if (!self.clone) {
-				self.variable = self.attribute.cmds.slice(1).join('.');
-				self.clone = self.element.removeChild(self.element.children[0]).outerHTML;
-				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+			if (!this.clone) {
+				this.variable = this.attribute.cmds.slice(1).join('.');
+				this.clone = this.element.removeChild(this.element.children[0]).outerHTML;
+				this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 			}
 
-			if (self.element.children.length > self.data.length) {
-				while (self.element.children.length > self.data.length) {
-					self.view.removeAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
-					self.view.removeOne(self.element.children[self.element.children.length-1]);
-					self.element.removeChild(self.element.children[self.element.children.length-1]);
+			if (this.element.children.length > model.length) {
+				while (this.element.children.length > model.length) {
+					this.view.removeAll(this.element.children[this.element.children.length-1].querySelectorAll('*'));
+					this.view.removeOne(this.element.children[this.element.children.length-1]);
+					this.element.removeChild(this.element.children[this.element.children.length-1]);
 				}
-			} else if (self.element.children.length < self.data.length) {
-				while (self.element.children.length < self.data.length) {
-					self.element.insertAdjacentHTML(
+			} else if (this.element.children.length < model.length) {
+				while (this.element.children.length < model.length) {
+					this.element.insertAdjacentHTML(
 						'beforeend',
-						self.clone.replace(
-							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+						this.clone.replace(
+							this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
 						)
 					);
-					self.view.addAll(self.element.children[self.element.children.length-1].querySelectorAll('*'));
-					self.view.addOne(self.element.children[self.element.children.length-1]);
+					this.view.addAll(this.element.children[this.element.children.length-1].querySelectorAll('*'));
+					this.view.addOne(this.element.children[this.element.children.length-1]);
 				}
 			}
-
 		},
 		value: function () {
-			var self = this;
+			// NOTE this fires for every change
+			if (this.isSetup) return;
 
-			if (self.change) return;
-			if (self.element.type === 'button' || self.element.type === 'reset') return self.change = true;
+			var model = this.getModel();
 
-			self.change = function () {
-				self.data = self.element.type !== 'radio' && self.element.type !== 'checked' ? self.element.value : self.element.checked;
-			};
+			if (this.element.type === 'checkbox') {
+				if (this.element.checked !== model) {
+					this.element.value = this.element.checked = model;
+				}
+			} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
+				if (this.element.options.length !== model.length) {
+					Array.prototype.forEach.call(this.element.options, function (option, index) {
+						if (option.value === model[index]) {
+							option.selected;
+						}
+					}, this);
+				}
+			} else if (this.element.type === 'radio') {
+				Array.prototype.forEach.call(
+					this.element.parentNode.querySelectorAll(
+						'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
+					),
+					function (radio, index) {
+						radio.checked = index === model;
+					},
+				this);
+			} else {
+				this.element.value = model;
+			}
 
-			self.element.addEventListener('change', self.change.bind(self), true);
-			self.element.addEventListener('keyup', self.change.bind(self), true);
+			this.isSetup = true;
 		},
 		html: function () {
-			this.element.innerHTML = this.data;
+			this.element.innerHTML = this.getModel();
 			this.view.addAll(this.element.querySelectorAll('*'));
 		},
 		css: function () {
-			var css = this.data;
+			var css = this.getModel();
 
 			if (this.attribute.cmds.length > 1) {
 				css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
@@ -150,63 +180,83 @@
 		},
 		class: function () {
 			var className = this.attribute.cmds.slice(1).join('-');
-			this.element.classList.toggle(className, this.data);
+			this.element.classList.toggle(className, this.getModel());
 		},
 		text: function () {
-			this.element.innerText = this.data;
+			this.element.innerText = this.getModel().toString();
 		},
 		enable: function () {
-			this.element.disabled = !this.data;
+			this.element.disabled = !this.getModel();
 		},
 		disable: function () {
-			this.element.disabled = this.data;
+			this.element.disabled = this.getModel();
 		},
 		show: function () {
-			this.element.hidden = !this.data;
+			this.element.hidden = !this.getModel();
 		},
 		hide: function () {
-			this.element.hidden = this.data;
+			this.element.hidden = this.getModel();
 		},
 		write: function () {
-			this.element.readOnly = !this.data;
+			this.element.readOnly = !this.getModel();
 		},
 		read: function () {
-			this.element.readOnly = this.data;
-		},
-		readOnly: function () {
-			this.element.readOnly = this.data;
+			this.element.readOnly = this.getModel();
 		},
 		selected: function () {
-			this.element.selectedIndex = this.data;
-		},
-		default: function () {
-			var path = Utility.toCamelCase(this.attribute.cmds);
-			Utility.setByPath(this.element, path, this.data);
+			this.element.selectedIndex = this.getModel();
 		}
+		// ,
+		// default: function () {
+		// 	var path = Utility.toCamelCase(this.attribute.cmds);
+		// 	Utility.setByPath(this.element, path, this.getModel());
+		// }
 	};
 
 	Binder.prototype.unrenderMethods = {
 		on: function () {
 			var eventName = this.attribute.cmds[1];
-			this.element.removeEventListener(eventName, this.data, false);
+			this.element.removeEventListener(eventName, this.getModel(), false);
 		},
 		each: function () {
 			while (this.element.lastChild) {
 				this.element.removeChild(this.element.lastChild);
 			}
 		},
-		value: function () {
-			this.element.removeEventListener('change', this.change.bind(this));
-			this.element.removeEventListener('keyup', this.change.bind(this));
-		},
 		html: function () {
 			this.element.innerText = '';
 		},
 		text: function () {
 			this.element.innerText = '';
-		},
-		default: function () {
+		}
+		// ,
+		// default: function () {
+		//
+		// }
+	};
 
+	Binder.prototype.updateModel = function () {
+		if (this.element.type === 'checkbox') {
+			this.setModel(this.element.value = this.element.checked);
+		} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
+			this.setModel(Array.prototype.filter.call(this.element.options, function (option) {
+				return option.selected;
+			}).map(function (option) {
+				return option.value;
+			}));
+		} else if (this.element.type === 'radio') {
+			Array.prototype.forEach.call(
+				this.element.parentNode.querySelectorAll(
+					'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
+				),
+				function (radio, index) {
+					if (radio === this.element) this.setModel(index);
+					else radio.checked = false;
+
+				},
+			this);
+		} else {
+			this.setModel(this.element.value);
 		}
 	};
 
@@ -418,6 +468,14 @@
 		});
 	}
 
+	Collection.prototype.find = function (method) {
+		for (var i = 0; i < this.data.length; i++) {
+			if (method(this.data[i][1], this.data[i][0], i) === true) {
+				return this.data[i][1];
+			}
+		}
+	};
+
 	Collection.prototype.get = function (key) {
 		for (var i = 0; i < this.data.length; i++) {
 			if (key === this.data[i][0]) {
@@ -479,15 +537,10 @@
 		this.data = new Collection();
 	}
 
-	View.prototype.regexp = {
-		PATH: /\s?\|(.*?)$/,
-		PREFIX: /(data-)?j-/,
-		MODIFIERS: /^(.*?)\|\s?/,
-		ATTRIBUTE_ACCEPTS: /(data-)?j-/,
-		ELEMENT_ACCEPTS: /(data-)?j-/,
-		ELEMENT_REJECTS_CHILDREN: /(data-)?j-each/,
-		ELEMENT_REJECTS: /^\w+(-\w+)+|^iframe|^object|^script|^style|^svg/
-	};
+	View.prototype.ELEMENT_ACCEPTS = /(data-)?j-/;
+	View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/;
+	View.prototype.ELEMENT_REJECTS_CHILDREN = /(data-)?j-each/;
+	View.prototype.ELEMENT_REJECTS = /^\w+(-\w+)+|^iframe|^object|^script|^style|^svg/;
 
 	View.prototype.preview = function (element) {
 		return element.outerHTML
@@ -500,30 +553,21 @@
 			var element = elements[i];
 			var preview = this.preview(element);
 
-			if (this.regexp.ELEMENT_REJECTS.test(preview)) {
+			if (this.ELEMENT_REJECTS.test(preview)) {
 				i += element.querySelectorAll('*').length;
-			} else if (this.regexp.ELEMENT_REJECTS_CHILDREN.test(preview)) {
+			} else if (this.ELEMENT_REJECTS_CHILDREN.test(preview)) {
 				i += element.querySelectorAll('*').length;
 				callback.call(this, element);
-			} else if (this.regexp.ELEMENT_ACCEPTS.test(preview)) {
+			} else if (this.ELEMENT_ACCEPTS.test(preview)) {
 				callback.call(this, element);
 			}
 		}
 	};
 
 	View.prototype.eachAttribute = function (element, callback) {
-		Array.prototype.forEach.call(element.attributes, function (ea) {
-			if (this.regexp.ATTRIBUTE_ACCEPTS.test(ea.name)) {
-				var attribute = {};
-				attribute.name = ea.name;
-				attribute.value = ea.value;
-				attribute.path = attribute.value.replace(this.regexp.PATH, '');
-				attribute.opts = attribute.path.split('.');
-				attribute.command = attribute.name.replace(this.regexp.PREFIX, '');
-				attribute.cmds = attribute.command.split('-');
-				attribute.key = attribute.opts.slice(-1);
-				attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.regexp.MODIFIERS, '').split(' ');
-				callback.call(this, attribute);
+		Array.prototype.forEach.call(element.attributes, function (attribute) {
+			if (this.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
+				callback.call(this, Utility.attribute(attribute.name, attribute.value));
 			}
 		}, this);
 	};
@@ -532,11 +576,11 @@
 		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
 		this.data.forEach(function (paths, path) {
-			paths.forEach(function (unit) {
-				if (pattern.test(path)) {
+			if (pattern.test(path)) {
+				paths.forEach(function (unit) {
 					unit.unrender();
-				}
-			}, this);
+				}, this);
+			}
 		}, this);
 	};
 
@@ -544,11 +588,11 @@
 		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
 
 		this.data.forEach(function (paths, path) {
-			paths.forEach(function (unit) {
-				if (pattern.test(path)) {
+			if (pattern.test(path)) {
+				paths.forEach(function (unit) {
 					unit.render();
-				}
-			}, this);
+				}, this);
+			}
 		}, this);
 	};
 
@@ -608,9 +652,10 @@
 		self.view = new View();
 		self.model = new Model();
 
+		self.element = (options.view.shadowRoot || options.view);
 		self.events = options.events || {};
 		self._model = options.model || {};
-		self._view = (options.view.shadowRoot || options.view).querySelectorAll('*');
+		self._view = self.element.querySelectorAll('*');
 
 		self.name = options.name;
 		self.modifiers = options.modifiers || {};
@@ -635,6 +680,25 @@
 				})
 			}));
 		});
+
+		self.inputHandler = function (element) {
+			if (element.hasAttribute('j-value')) {
+				var attribute = Utility.attribute('j-value', element.getAttribute('j-value'));
+				self.view.data.get(attribute.path).find(function (binder) {
+					return binder.element === element;
+				}).updateModel();
+			}
+		};
+
+		self.element.addEventListener('change', function (e) {
+			if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
+				self.inputHandler(e.target);
+			}
+		}, true);
+
+		self.element.addEventListener('input', function (e) {
+			self.inputHandler(e.target);
+		}, true);
 
 		if (typeof options.model === 'function') {
 			self._model.call(self, function (model) {
@@ -1378,7 +1442,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.6
+		version: 1.4.7
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1436,6 +1500,34 @@
 
 		query: function (query) {
 			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
+		},
+
+		comments: function (query) {
+			var comments = [], node;
+
+			var pattern = new RegExp('^' + query);
+			var iterator = document.createNodeIterator((document._currentScript || document.currentScript).ownerDocument, NodeFilter.SHOW_COMMENT, NodeFilter.FILTER_ACCEPT);
+
+			while (node = iterator.nextNode()) {
+				if (query) {
+					if (pattern.test(node.nodeValue)) {
+						return node.nodeValue.replace(query, '');
+					}
+				} else {
+					comments.push(node.nodeValue);
+				}
+			}
+
+			return comments;
+		},
+
+		escape: function (text) {
+			return text
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#039;');
 		}
 
 	};

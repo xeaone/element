@@ -1,14 +1,14 @@
 # Jenie
 
 **Beta**
-Lightweight powerful web components framework. Web components, data-binding, front-end routing, and more.
+The Web Components Framework/Library
 
 **1.4 important Changes**
 - removed Jenie.component.template as comment.
 - j-on binder events have been moved from Jenie.controller.model to  Jenie.controller.events.
 
 ## Support
-- IE10 (flaky)
+- IE10~
 - IE11
 - Chrome
 - Firefox
@@ -16,11 +16,11 @@ Lightweight powerful web components framework. Web components, data-binding, fro
 - Mobile Safari
 - Chrome Android
 
-## Installing
+## Install
 - `npm install jenie --save`
-- UMD `node_modules/jenie/dist/jenie.min.js`
-- Web Component Pollyfills included UMD `node_modules/jenie/dist/jenie.polly.min.js`
-- Web Component Pollyfill `node_modules/jenie/dist/webcomponents-lite.min.js`
+- UMD `dist/jenie.min.js`
+- Web Component Pollyfill included UMD `dist/jenie.polly.min.js`
+- Web Component Pollyfill `dist/webcomponents-lite.min.js`
 
 ## Example
 

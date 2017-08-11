@@ -6,6 +6,7 @@
 		"es6": true
 	},
 	"globals": {
+		"Prism": true,
 		"Jenie": false
 	},
 	"parserOptions": {
@@ -17,6 +18,7 @@
 		"no-console": 0,
 		"no-extra-semi": 1,
 		"no-unused-vars": 1,
+		"no-cond-assign": 0,
 		"indent": [1, "tab", { "SwitchCase": 1 }],
 		"semi": [1, "always"],
 		"quotes": [1, "single", "avoid-escape"],

@@ -1,6 +1,4 @@
 
-var base = window.location.pathname;
-
 Jenie.setup({
 	module: {
 		modules: [
@@ -26,25 +24,24 @@ Jenie.setup({
 		]
 	},
 	router: {
-		base: base,
 		routes: [
 			{
-				title: 'html',
+				title: 'Root',
 				path: '/',
-				component: 'html-test',
-				componentUrl: base + 'html-test.html'
+				component: 'v-root',
+				componentUrl: '/views/v-root.js'
 			},
 			{
-				title: 'js',
-				path: '/js',
-				component: 'js-test',
-				componentUrl: base + 'js-test.js'
+				title: 'Test',
+				path: '/test',
+				component: 'v-test',
+				componentUrl: '/views/v-test.html'
 			},
 			{
 				title: '404',
 				path: '/{*}',
-				component: 'j-404',
-				componentUrl: base + 'j-404.html'
+				component: 'v-404',
+				componentUrl: '/views/v-404.html'
 			}
 		]
 	}
