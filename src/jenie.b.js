@@ -2,7 +2,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.4.7
+	version: 1.4.8
 	license: mpl-2.0
 	author: alexander elias
 
@@ -13,7 +13,6 @@
 
 import Component from './component';
 import Controller from './controller';
-import Polyfills from './polyfills';
 import Router from './router';
 import Module from './module';
 import Http from './http';
@@ -28,8 +27,6 @@ document.head.appendChild(eStyle);
 document.registerElement('j-view', {
 	prototype: Object.create(HTMLElement.prototype)
 });
-
-Polyfills();
 
 export default {
 

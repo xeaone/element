@@ -53,7 +53,15 @@
 			attribute.key = attribute.opts.slice(-1);
 			attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
 			return attribute;
-		}
+		},
+
+		each: function (array, method, context) {
+			method = method.bind(context);
+			for (var i = 0, l = array.length; i < l; i++) {
+				method(array[i], i, array);
+			}
+			return array;
+		},
 
 	};
 
@@ -864,54 +872,6 @@
 		});
 	};
 
-	function pollies () {
-
-		if (!Array.prototype.find) {
-			Object.defineProperty(Array.prototype, 'find', {
-				value: function(predicate) {
-					// 1. Let O be ? ToObject(this value).
-					if (this == null) {
-						throw new TypeError('"this" is null or not defined');
-					}
-
-					var o = Object(this);
-
-					// 2. Let len be ? ToLength(? Get(O, "length")).
-					var len = o.length >>> 0;
-
-					// 3. If IsCallable(predicate) is false, throw a TypeError exception.
-					if (typeof predicate !== 'function') {
-						throw new TypeError('predicate must be a function');
-					}
-
-					// 4. If thisArg was supplied, let T be thisArg; else let T be undefined.
-					var thisArg = arguments[1];
-
-					// 5. Let k be 0.
-					var k = 0;
-
-					// 6. Repeat, while k < len
-					while (k < len) {
-						// a. Let Pk be ! ToString(k).
-						// b. Let kValue be ? Get(O, Pk).
-						// c. Let testResult be ToBoolean(? Call(predicate, T, « kValue, k, O »)).
-						// d. If testResult is true, return kValue.
-						var kValue = o[k];
-						if (predicate.call(thisArg, kValue, k, o)) {
-							return kValue;
-						}
-						// e. Increase k by 1.
-						k++;
-					}
-
-					// 7. Return undefined.
-					return undefined;
-				}
-			});
-		}
-
-	}
-
 	function Events () {
 		this.events = {};
 	}
@@ -959,23 +919,18 @@
 
 		this.state = {};
 		this.cache = {};
-		this.origin = window.location.origin;
+		this.location = {};
 
 		this.external = options.external;
+		this.container = options.container;
 		this.routes = options.routes || [];
 		this.view = options.view || 'j-view';
 
-		this.hash = !options.hash ? false : options.hash;
-		this.contain = !options.contain ? false : options.contain;
+		this.started = false;
+		this.hash = options.hash === undefined ? false : options.hash;
+		this.trailing = options.trailing === undefined ? false : options.trailing;
 
-		this.base = options.base || '';
-
-		Object.defineProperty(this, 'root', {
-			enumerable: true,
-			get: function () {
-				return this.hash ? '/#/' : '/';
-			}
-		});
+		this.eBase = document.head.querySelector('base');
 
 	}
 
@@ -996,116 +951,38 @@
 		while (target && 'A' !== target.nodeName) target = target.parentNode;
 
 		if (!target || 'A' !== target.nodeName) return;
-		var href = target.getAttribute('href');
 
 		// if external is true then default action
 		if (self.external && (
-			self.external.constructor.name === 'Function' && self.external(href) ||
-			self.external.constructor.name === 'RegExp' && self.external.test(href) ||
-			self.external.constructor.name === 'String' && new RegExp(self.external).test(href)
+			self.external.constructor.name === 'Function' && self.external(target.href) ||
+			self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+			self.external.constructor.name === 'String' && self.external === target.href
 		)) return;
 
 		// check non acceptable attributes and href
 		if (target.hasAttribute('download') ||
 			target.hasAttribute('external') ||
-			href.indexOf('mailto:') !== -1 ||
-			href.indexOf('file:') !== -1 ||
-			href.indexOf('tel:') !== -1 ||
-			href.indexOf('ftp:') !== -1
+			target.hasAttribute('target') ||
+			target.href.indexOf('mailto:') !== -1 ||
+			target.href.indexOf('file:') !== -1 ||
+			target.href.indexOf('tel:') !== -1 ||
+			target.href.indexOf('ftp:') !== -1
 		) return;
 
 		e.preventDefault();
-		self.navigate(href);
+		self.navigate(target.href);
 	};
 
 	Router.prototype.start = function () {
-		this.view = typeof this.view === 'string' ? document.querySelector(this.view) : this.view;
-
-		(this.contain ? this.view : window).addEventListener('click', this.click.bind(this));
+		if (this.started) return;
+		this.view = document.querySelector(this.view);
+		(this.container || window).addEventListener('click', this.click.bind(this));
 		window.addEventListener('popstate', this.popstate.bind(this));
 		this.navigate(window.location.href, true);
-
-	};
-
-	Router.prototype.normalize = function (path) {
-		path = decodeURI(path)
-			.replace(/\/{2,}/g, '/')
-			.replace(/(http(s)?:\/)/, '$1/')
-			.replace(/\?.*?$/, '');
-
-		if (!this.hash) {
-			path = path.replace(/#.*?$/, '');
-		}
-
-		return 	path = path === '' ? '/' : path;
-	};
-
-	Router.prototype.parse = function (path) {
-		return new RegExp('^'+ path
-			.replace(/{\*}/g, '(?:.*)')
-			.replace(/{(\w+)}/g, '([^\/]+)')
-			+ '(\/)?$'
-		);
-	};
-
-	Router.prototype.parameters = function (routePath, userPath) {
-		var name;
-		var parameters = {};
-		var brackets = /{|}/g;
-		var pattern = /{(\w+)}/;
-		var userPaths = userPath.split('/');
-		var routePaths = routePath.split('/');
-
-		routePaths.forEach(function (path, index) {
-			if (pattern.test(path)) {
-				name = path.replace(brackets, '');
-				parameters[name] = userPaths[index];
-			}
-		});
-
-		return parameters;
-	};
-
-	Router.prototype.join = function () {
-		return this.normalize(Array.prototype.join.call(arguments, '/'));
 	};
 
 	Router.prototype.scroll = function (x, y) {
 		window.scroll(x, y);
-	};
-
-	Router.prototype.url = function (path) {
-		var url = {};
-
-		url.path = path;
-		url.base = this.base;
-		url.root = this.root;
-		url.origin = this.origin;
-
-		if (url.path.indexOf(url.origin) === 0) {
-			url.path = url.path.replace(url.origin, '');
-		}
-
-		if (url.path.indexOf(url.base) === 0) {
-			url.path = url.path.replace(url.base, '');
-		}
-
-		if (url.path.indexOf(window.location.origin) === 0) {
-			url.path = url.path.replace(window.location.origin, '');
-		}
-
-		if (url.path.indexOf(url.root) === 0) {
-			url.path = url.path.replace(url.root, '/');
-		}
-
-		if (url.path[0] !== '/') {
-			url.path = this.join(window.location.pathname.replace(this.base, ''), url.path);
-		}
-
-		url.path = this.join(url.path, '/');
-		url.href = this.join(url.origin, url.base, url.root, url.path);
-
-		return url;
 	};
 
 	Router.prototype.appendComponentElement = function (url, callback) {
@@ -1147,7 +1024,7 @@
 
 			self.view.appendChild(self.cache[route.component]);
 
-			if (callback) return callback();
+			if (callback) return callback.call(self);
 		};
 
 		if (route.componentUrl && !self.cache[route.component]) {
@@ -1158,9 +1035,24 @@
 
 	};
 
-	Router.prototype.redirect = function (path, callback) {
+	Router.prototype.joinPath = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/\/{2,}/g, '/')
+			.replace(/^(http(s)?:\/)/, '$1/');
+	};
+
+	Router.prototype.testPath = function (routePath, userPath) {
+		return new RegExp(
+			'^' + routePath
+			.replace(/{\*}/g, '(?:.*)')
+			.replace(/{(\w+)}/g, '([^\/]+)')
+			+ '(\/)?$'
+		).test(userPath);
+	};
+
+	Router.prototype.redirect = function (path) {
 		window.location.href = path;
-		return callback();
 	};
 
 	Router.prototype.add = function (route) {
@@ -1174,74 +1066,154 @@
 	Router.prototype.remove = function (path) {
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 			if (path === this.routes[i].path) {
-				return this.routes.splice(i, 1);
+				this.routes.splice(i, 1);
 			}
 		}
 	};
 
 	Router.prototype.get = function (path) {
-		for (var i = 0, l = this.routes.length, route; i < l; i++) {
-			route = this.routes[i];
-
-			if (route.path.constructor.name === 'String') {
-				if (this.parse(route.path).test(path)) {
-					route.parameters = this.parameters(route.path, path);
-					return route;
-				}
-			} else if (route.path.constructor.name === 'RegExp') {
-				if (route.path.test(path)) {
-					return route;
-				}
-			} else if (route.path.constructor.name === 'Function') {
-				if (route.path(path)){
-					return route;
-				}
+		for (var i = 0, l = this.routes.length, r; i < l; i++) {
+			r = this.routes[i];
+			if (path === r.path) {
+				return r;
 			}
-
 		}
 	};
 
-	Router.prototype.findRoute = function (path) {
-		return this.routes.find(function (route) {
-			if (route.path.constructor.name === 'String') {
-				return this.parse(route.path).test(path);
-			} else if (route.path.constructor.name === 'RegExp') {
-				return route.path.test(path);
-			} else if (route.path.constructor.name === 'Function') {
-				return route.path(path);
+	Router.prototype.getRoute = function (path) {
+		for (var i = 0, l = this.routes.length, r; i < l; i++) {
+			r = this.routes[i];
+			if (this.testPath(r.path, path)) {
+				return r;
 			}
-		});
+		}
 	};
 
-	Router.prototype.findRoutes = function (pattern) {
-		return this.routes.filter(function (route) {
-			return pattern.test(route.path);
-		}, this);
+	Router.prototype.toParameterObject = function (routePath, userPath) {
+		var name;
+		var parameters = {};
+		var brackets = /{|}/g;
+		var pattern = /{(\w+)}/;
+		var userPaths = userPath.split('/');
+		var routePaths = routePath.split('/');
+
+		routePaths.forEach(function (path, index) {
+			if (pattern.test(path)) {
+				name = path.replace(brackets, '');
+				parameters[name] = userPaths[index];
+			}
+		});
+
+		return parameters;
+	};
+
+	Router.prototype.toQueryString = function (data) {
+		var query = '?';
+
+		Object.keys(data).forEach(function (key) {
+			query += key + '=' + data[key] + '&';
+		});
+
+		// return and remove trailing &
+		return query.slice(-1);
+	};
+
+
+	Router.prototype.toQueryObject = function (path) {
+		var queries = {};
+
+		if (path) {
+			path.slice(1).split('&').forEach(function (query) {
+				query = query.split('=');
+				queries[query[0]] = query[1];
+			});
+		}
+
+		return queries;
+	};
+
+	Router.prototype.getLocation = function (path) {
+		var location = {};
+
+		location.pathname = decodeURI(path);
+		location.origin = window.location.origin;
+		location.base = this.eBase ? this.eBase.href : window.location.origin + '/';
+
+		if (location.pathname.indexOf(location.origin) === 0) {
+			location.pathname = location.pathname.slice(location.origin.length);
+		}
+
+		if (location.pathname.indexOf(location.base) === 0) {
+			location.pathname = location.pathname.slice(location.base.length);
+		}
+
+		if (location.pathname.indexOf('/#/') === 0) {
+			location.pathname = location.pathname.slice(2);
+		}
+
+		if (location.pathname.indexOf('#/') === 0) {
+			location.pathname = location.pathname.slice(1);
+		}
+
+		var hashIndex = this.hash ? location.pathname.indexOf('#', location.pathname.indexOf('#')) : location.pathname.indexOf('#');
+		if (hashIndex !== -1) {
+			location.hash = location.pathname.slice(hashIndex);
+			location.pathname = location.pathname.slice(0, hashIndex);
+		} else {
+			location.hash = '';
+		}
+
+		var searchIndex = location.pathname.indexOf('?');
+		if (searchIndex !== -1) {
+			location.search = location.pathname.slice(searchIndex);
+			location.pathname = location.pathname.slice(0, searchIndex);
+		} else {
+			location.search = '';
+		}
+
+		if (this.trailing) {
+			location.pathname = this.join(location.pathname, '/');
+		} else {
+			location.pathname = location.pathname.replace(/\/$/, '');
+		}
+
+		if (location.pathname.charAt(0) !== '/') {
+			location.pathname = '/' + location.pathname;
+		}
+
+		if (this.hash) {
+			location.href = this.joinPath(location.base, '/#/', location.pathname);
+		} else {
+			location.href = this.joinPath(location.base, '/', location.pathname);
+		}
+
+		location.href += location.search;
+		location.href += location.hash;
+
+		return location;
 	};
 
 	Router.prototype.navigate = function (data, replace) {
-		var self = this;
 
 		if (typeof data === 'string') {
-			self.state.url = self.url(data);
-			self.state.route = self.get(self.state.url.path) || {};
-			self.state.parameters = self.state.route.parameters || {};
-			self.state.title = self.state.route.title || '';
+			this.state.location = this.getLocation(data);
+			this.state.route = this.getRoute(this.state.location.pathname) || {};
+			this.state.query = this.toQueryObject(this.state.location.search) || {};
+			this.state.parameters = this.toParameterObject(this.state.route.path, this.state.location.pathname) || {};
+			this.state.title = this.state.route.title || '';
+			this.location = this.state.location;
 		} else {
-			self.state = data;
+			this.state = data;
 		}
 
-		window.history[replace ? 'replaceState' : 'pushState'](self.state, self.state.route.title, self.state.url.href);
+		window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.title, this.state.location.href);
 
-		if (self.state.route.redirect) {
-			self.redirect(self.state.route, function () {
-				if (!replace) self.scroll(0, 0);
-				self.emit('navigated');
-			});
+		if (this.state.route.redirect) {
+			this.redirect(this.state.route.redirect);
 		} else {
-			self.render(self.state.route, function () {
-				if (!replace) self.scroll(0, 0);
-				self.emit('navigated');
+			this.render(this.state.route, function () {
+				if (!replace) this.scroll(0, 0);
+				this.emit('navigated');
 			});
 		}
 
@@ -1442,7 +1414,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.7
+		version: 1.4.8
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1461,8 +1433,6 @@
 	document.registerElement('j-view', {
 		prototype: Object.create(HTMLElement.prototype)
 	});
-
-	pollies();
 
 	var jenie_b = {
 

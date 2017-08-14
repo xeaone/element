@@ -1,6 +1,4 @@
 
-var base = document.baseURI;
-
 Jenie.setup({
 	module: {
 		modules: [
@@ -26,25 +24,32 @@ Jenie.setup({
 		]
 	},
 	router: {
-		base: '/jenie/',
+		// trailing: true,
+		// hash: true,
 		routes: [
 			{
 				title: 'Root',
 				path: '/',
 				component: 'v-root',
-				componentUrl: base + 'views/v-root.js'
+				componentUrl: '/views/v-root.js'
 			},
 			{
 				title: 'Test',
 				path: '/test',
 				component: 'v-test',
-				componentUrl: base + 'views/v-test.html'
+				componentUrl: '/views/v-test.html'
+			},
+			{
+				title: 'JS',
+				path: '/js',
+				component: 'v-js',
+				componentUrl: '/views/v-js.js'
 			},
 			{
 				title: '404',
 				path: '/{*}',
 				component: 'v-404',
-				componentUrl: base + 'views/v-404.html'
+				componentUrl: '/views/v-404.html'
 			}
 		]
 	}

@@ -8,11 +8,12 @@
 
 	<title>Jenie</title>
 
-	<base id="base" href="/">
-
 	<script>
-		if (window.location.origin === 'https://alexanderelias.github.io') {
-			document.getElementById('base').href = '/jenie/';
+		var href = '/jenie/';
+		var origin = 'https://alexanderelias.github.io';
+		if (window.location.origin === origin) {
+			var base = document.createElement('base'); base.href = href;
+			document.head.insertBefore(document.head.firstChild, base);
 		}
 	</script>
 

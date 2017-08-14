@@ -1,11 +1,15 @@
 # Jenie
 
-**Beta**
+**Beta API Can Change**
 The Web Components Framework/Library
 
-**1.4 important Changes**
+**1.4 Breaking Changes**
+- Jenie.router.contain removed and changed to Jenie.router.container<Element>
+- Jenie.router.external<String> no longer converts to RegExp
 - removed Jenie.component.template as comment.
 - j-on binder events have been moved from Jenie.controller.model to  Jenie.controller.events.
+
+**Use NPM for the latest stable version**
 
 ## Support
 - IE10~
@@ -47,6 +51,7 @@ The Web Components Framework/Library
 <!-- index.html -->
 <html>
 <head>
+	<base href="/">
 	<script src="jenie.min.js" defer></script>
 	<link rel="import" href="j-home.html">
 </head>
@@ -112,7 +117,6 @@ Returns a new Jenie component and defines a new web component.
 
 ### Jenie.controller(options, callback)
 Returns an instance of a new controller.
-
 - `options: Object`
 	- `name`
 	- `view`
@@ -132,22 +136,23 @@ Returns an instance of a new controller.
 - `callback: Function`
 
 ### Jenie.router
-- `options: Object` The setup options for Jenie.setup.
-	- `hash: Boolean` Hash url mode. The default is false.
-	- `contain: Boolean` Sets the click listener for hrefs to the j-view element if true. Defaults to false which is window.
-	- `base: String` Sets the base for all urls the order of append is Origin + Base + Root.
+- `options: Object`
+	- `hash: Boolean` Hash url mode. Default is false.
+	- `trailing: Boolean` Trailing slash. Default is false.
+	- `container: Element` Sets the click listener for hrefs to the container. Default is window.
 	- `routes: Array`
 		- `route: Object`
-			- `path: String` An absolute path.
+			- `path: String` Any path.
+				- `parameters: String` Named '/account/{user}', or catchalls '{\*}',
 			- `title: String` The title for the page.
 			- `component: String` The name of a component.
 			- `componentUrl: String` The url path to a component. Appends the html or js file to the head.
 	- `external` If true then the response will not be handle by the router. If false then the router will handle the response.
 		- `RegExp`
-		- `String` Converted to a `RegExp`.
+		- `String`
 		- `Function` Argument provided is the request path. Expects a boolean return.
 
-- `start: Function` Must be called after <j-view></j-view>
+- `start: Function` Must be called after <j-view></j-view> is created
 - `normalize: Function`
 - `join: Function`
 - `scroll: Function`

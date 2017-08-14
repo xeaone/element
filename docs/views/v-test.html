@@ -54,12 +54,36 @@
 		<div j-each-item="items">
 			<span j-on-click="foo" j-text="item.it.val"></span>
 		</div>
-		<a href="/js">/js</a>
-		<button j-on-click="say">Say Hello</button>
 
+
+		<button j-on-click="say">Say Hello</button>
 		<input type="text" j-value="none.nope">
 		<input type="button" value="button">
 		<input type="reset" value="reset">
+
+		<br>
+
+		<ul>
+			<li>
+				<a href="test/">test</a>
+			</li>
+			<li>
+				<a href="js">js</a>
+			</li>
+			<li>
+				<a href="js/?name=ferret&color=purple#hash">js/?name=ferret&amp;color=purple#hash</a>
+			</li>
+			<li>
+				<a href="https://google.com/">google</a>
+			</li>
+			<li>
+				<a href="https://google.com/" external>google external</a>
+			</li>
+			<li>
+				<a href="https://google.com/" target="_blank">google target_blank</a>
+			</li>
+		</ul>
+
 	</div>
 
 </template>

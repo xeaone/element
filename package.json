@@ -4,7 +4,7 @@
   "description": "Light weight powerful web components framework",
   "main": "dist/jenie.min.js",
   "scripts": {
-    "s": "muleify serve -s docs",
+    "sd": "muleify serve -s docs",
     "wj": "muleify pack -p src -w src/jenie.b.js docs/assets/jenie.js",
     "wr": "muleify pack -w docs/views/v-root.e.js docs/views/v-root.js",
     "bd": "muleify pack src/jenie.b.js dist/jenie.js",

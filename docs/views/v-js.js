@@ -1,6 +1,6 @@
 
 Jenie.component({
-	name: 'js-test',
+	name: 'v-js',
 	model: {
 		text: 'Hello from js test'
 	},

@@ -48,6 +48,14 @@ export default {
 		attribute.key = attribute.opts.slice(-1);
 		attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
 		return attribute;
-	}
+	},
+
+	each: function (array, method, context) {
+		method = method.bind(context);
+		for (var i = 0, l = array.length; i < l; i++) {
+			method(array[i], i, array);
+		}
+		return array;
+	},
 
 };
