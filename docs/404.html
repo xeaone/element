@@ -2,20 +2,19 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<base href="/">
+
+	<script>
+		var href = '/jenie/';
+		var origin = 'https://alexanderelias.github.io';
+		if (window.location.origin === origin) document.head.querySelector('base').href = href;
+	</script>
+
 	<meta charset="utf-8">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
 
 	<title>Jenie</title>
-
-	<script>
-		var href = '/jenie/';
-		var origin = 'https://alexanderelias.github.io';
-		if (window.location.origin === origin) {
-			var base = document.createElement('base'); base.href = href;
-			document.head.insertBefore(document.head.firstChild, base);
-		}
-	</script>
 
 	<script src="assets/webcomponents-lite.min.js" defer></script>
 	<script src="assets/jenie.js" defer></script>

@@ -31,25 +31,25 @@ Jenie.setup({
 				title: 'Root',
 				path: '/',
 				component: 'v-root',
-				componentUrl: '/views/v-root.js'
+				componentUrl: 'views/v-root.js'
 			},
 			{
 				title: 'Test',
 				path: '/test',
 				component: 'v-test',
-				componentUrl: '/views/v-test.html'
+				componentUrl: 'views/v-test.html'
 			},
 			{
 				title: 'JS',
 				path: '/js',
 				component: 'v-js',
-				componentUrl: '/views/v-js.js'
+				componentUrl: 'views/v-js.js'
 			},
 			{
 				title: '404',
 				path: '/{*}',
 				component: 'v-404',
-				componentUrl: '/views/v-404.html'
+				componentUrl: 'views/v-404.html'
 			}
 		]
 	}
