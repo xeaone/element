@@ -1139,12 +1139,12 @@
 		location.origin = window.location.origin;
 		location.base = this.eBase ? this.eBase.href : window.location.origin + '/';
 
-		if (location.pathname.indexOf(location.origin) === 0) {
-			location.pathname = location.pathname.slice(location.origin.length);
-		}
-
 		if (location.pathname.indexOf(location.base) === 0) {
 			location.pathname = location.pathname.slice(location.base.length);
+		}
+
+		if (location.pathname.indexOf(location.origin) === 0) {
+			location.pathname = location.pathname.slice(location.origin.length);
 		}
 
 		if (location.pathname.indexOf('/#/') === 0) {
