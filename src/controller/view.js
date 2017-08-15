@@ -45,8 +45,8 @@ View.prototype.unrenderAll = function (pattern) {
 
 	this.data.forEach(function (paths, path) {
 		if (pattern.test(path)) {
-			paths.forEach(function (unit) {
-				unit.unrender();
+			paths.forEach(function (binder) {
+				binder.unrender();
 			}, this);
 		}
 	}, this);
@@ -57,8 +57,8 @@ View.prototype.renderAll = function (pattern) {
 
 	this.data.forEach(function (paths, path) {
 		if (pattern.test(path)) {
-			paths.forEach(function (unit) {
-				unit.render();
+			paths.forEach(function (binder) {
+				binder.render();
 			}, this);
 		}
 	}, this);
@@ -66,9 +66,9 @@ View.prototype.renderAll = function (pattern) {
 
 View.prototype.removeOne = function (element) {
 	this.data.forEach(function (paths, _, did) {
-		paths.forEach(function (unit, _, pid) {
+		paths.forEach(function (binder, _, pid) {
 
-			if (element === unit.element) {
+			if (element === binder.element) {
 
 				paths.removeById(pid);
 
