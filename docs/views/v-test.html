@@ -11,6 +11,7 @@
 		<p j-text="text | upper"></p>
 		<p j-text="text | lower"></p>
 		<input type="text" j-value="text | lower" placeholder="text">
+		<input type="text" j-value="text | upper" placeholder="text">
 
 		<br>
 		<br>
@@ -52,7 +53,9 @@
 
 		<input type="text" j-value="items.0.it.val">
 		<div j-each-item="items">
-			<span j-on-click="foo" j-text="item.it.val"></span>
+			<span>
+				<span j-on-click="foo" j-text="item.it.val"></span><span>,</span>
+			</span>
 		</div>
 
 
@@ -117,8 +120,7 @@
 			},
 			say: function (e) {
 				console.log(e);
-				var say = Jenie.module.import('say');
-				say('hello from button');
+				window.alert('hello from button');
 			}
 		},
 		created: function () {

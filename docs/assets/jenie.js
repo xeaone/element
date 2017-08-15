@@ -84,12 +84,21 @@
 		this.renderMethod();
 	}
 
-	Binder.prototype.setModel = function (data) {
+	Binder.prototype.setModel = function (value) {
 		this.modifiers.forEach(function (modifier) {
-			data = modifier.call(data);
+			value = modifier.call(value);
 		});
 
-		return Utility.setByPath(this.model.data, this.attribute.path, data);
+		// this dynamically creates the props
+		// var tmp = this.model.data;
+		// var paths = this.attribute.path.split('.');
+		// var key = paths.pop();
+		// paths.forEach(function (path) {
+		// 	tmp = tmp[path];
+		// });
+		// tmp.$set(key, value);
+
+		return Utility.setByPath(this.model.data, this.attribute.path, value);
 	};
 
 	Binder.prototype.getModel = function () {
@@ -141,7 +150,7 @@
 			}
 		},
 		value: function () {
-			// NOTE this fires for every change
+			// triggered on every change
 			if (this.isSetup) return;
 
 			var model = this.getModel();
@@ -191,7 +200,7 @@
 			this.element.classList.toggle(className, this.getModel());
 		},
 		text: function () {
-			this.element.innerText = this.getModel().toString();
+			this.element.innerText = this.getModel();
 		},
 		enable: function () {
 			this.element.disabled = !this.getModel();
@@ -292,49 +301,32 @@
 	};
 
 	Model.prototype.defineSplice = function (path, meta, target, argument) {
-		var self = this;
-
 		if (argument[2]) {
-
 			Array.prototype.splice.call(meta, argument[0], argument[1]);
-			self.emit(self.join(path), target);
-
+			this.emit(this.join(path), target);
 		} else {
-
 			Array.prototype.slice.call(argument, 2).forEach(function (value) {
-
-				value = self.defineCollection(path, value);
+				value = this.defineCollection(path, value);
 				Array.prototype.splice.call(meta, argument[0], argument[1], value);
-				target = self.defineProperty(path, meta, target, meta.length-1);
-				self.emit(self.join(path), target);
-
-			});
-
+				target = this.defineProperty(path, meta, target, meta.length-1);
+				this.emit(this.join(path), target);
+			}, this);
 		}
-
 	};
 
 	Model.prototype.arrayPushUnshift = function (path, meta, target, method, argument) {
-		var self = this;
-
 		Array.prototype.forEach.call(argument, function (value) {
-
-			value = self.defineCollection(path, value);
+			value = this.defineCollection(path, value);
 			Array.prototype[method].call(meta, value);
-			target = self.defineProperty(path, meta, target, meta.length-1);
-			self.emit(self.join(path), target);
-
-		});
-
+			target = this.defineProperty(path, meta, target, meta.length-1);
+			this.emit(this.join(path), target);
+		}, this);
 	};
 
 	Model.prototype.arrayPopShift = function (path, meta, target, method) {
-		var self = this;
-
 		Array.prototype[method].call(meta);
 		Array.prototype.pop.call(target);
-		self.emit(self.join(path), target);
-
+		this.emit(this.join(path), target);
 	};
 
 	Model.prototype.defineArray = function (path, meta, target) {
@@ -367,7 +359,6 @@
 				}
 			}
 		});
-
 	};
 
 	Model.prototype.defineObject = function (path, meta, target) {
@@ -376,7 +367,6 @@
 		return Object.defineProperties(target, {
 			$set: {
 				value: function (key, value) {
-
 					if (self.isCollection(value)) {
 						value = self.defineCollection(self.join(path, key), value);
 					}
@@ -384,20 +374,16 @@
 					meta[key] = value;
 					target = self.defineProperty(path, meta, target, key);
 					self.emit(self.join(path, key), target[key]);
-
 				}
 			},
 			$remove: {
 				value: function (key) {
-
 					delete target[key];
 					delete meta[key];
 					self.emit(self.join(path, key), undefined);
-
 				}
 			}
 		});
-
 	};
 
 	Model.prototype.defineProperty = function (path, meta, target, key) {
@@ -410,24 +396,16 @@
 				return meta[key];
 			},
 			set: function (value) {
-
 				if (meta[key] !== value) {
-
 					if (value === undefined) {
-
 						delete meta[key];
 						delete target[key];
 						self.emit(self.join(path, key), undefined);
-
 					} else {
-
 						meta[key] = self.defineCollection(self.join(path, key), value);
 						self.emit(self.join(path, key), target[key]);
-
 					}
-
 				}
-
 			}
 		});
 
@@ -449,14 +427,10 @@
 		}
 
 		Object.keys(source).forEach(function (key) {
-
 			if (source[key] !== undefined) {
-
 				meta[key] = self.defineCollection(self.join(path, key), source[key]);
 				target = self.defineProperty(path, meta, target, key);
-
 			}
-
 		});
 
 		return target;
@@ -668,12 +642,13 @@
 		self.name = options.name;
 		self.modifiers = options.modifiers || {};
 
-		self.model.listener(function (path, data) {
-			if (data === undefined) {
-				self.view.unrenderAll('^' + path + '.*');
-			} else {
-				self.view.renderAll('^' + path);
-			}
+		self.model.listener(function (path) { // , data
+			// if (data === undefined) {
+			// 	self.view.unrenderAll('^' + path + '.*');
+			// } else {
+			// 	self.view.renderAll('^' + path);
+			// }
+			self.view.renderAll('^' + path);
 		});
 
 		self.view.listener(function (element, attribute) {

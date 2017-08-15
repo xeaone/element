@@ -17,12 +17,13 @@ export default function Controller (options, callback) {
 	self.name = options.name;
 	self.modifiers = options.modifiers || {};
 
-	self.model.listener(function (path, data) {
-		if (data === undefined) {
-			self.view.unrenderAll('^' + path + '.*');
-		} else {
-			self.view.renderAll('^' + path);
-		}
+	self.model.listener(function (path) { // , data
+		// if (data === undefined) {
+		// 	self.view.unrenderAll('^' + path + '.*');
+		// } else {
+		// 	self.view.renderAll('^' + path);
+		// }
+		self.view.renderAll('^' + path);
 	});
 
 	self.view.listener(function (element, attribute) {

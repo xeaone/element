@@ -19,12 +19,21 @@ export default function Binder (options) {
 	this.renderMethod();
 }
 
-Binder.prototype.setModel = function (data) {
+Binder.prototype.setModel = function (value) {
 	this.modifiers.forEach(function (modifier) {
-		data = modifier.call(data);
+		value = modifier.call(value);
 	});
 
-	return Utility.setByPath(this.model.data, this.attribute.path, data);
+	// this dynamically creates the props
+	// var tmp = this.model.data;
+	// var paths = this.attribute.path.split('.');
+	// var key = paths.pop();
+	// paths.forEach(function (path) {
+	// 	tmp = tmp[path];
+	// });
+	// tmp.$set(key, value);
+
+	return Utility.setByPath(this.model.data, this.attribute.path, value);
 };
 
 Binder.prototype.getModel = function () {
@@ -76,7 +85,7 @@ Binder.prototype.renderMethods = {
 		}
 	},
 	value: function () {
-		// NOTE this fires for every change
+		// triggered on every change
 		if (this.isSetup) return;
 
 		var model = this.getModel();
@@ -126,7 +135,7 @@ Binder.prototype.renderMethods = {
 		this.element.classList.toggle(className, this.getModel());
 	},
 	text: function () {
-		this.element.innerText = this.getModel().toString();
+		this.element.innerText = this.getModel();
 	},
 	enable: function () {
 		this.element.disabled = !this.getModel();

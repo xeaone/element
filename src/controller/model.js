@@ -13,49 +13,32 @@ Model.prototype.isCollection = function (data) {
 };
 
 Model.prototype.defineSplice = function (path, meta, target, argument) {
-	var self = this;
-
 	if (argument[2]) {
-
 		Array.prototype.splice.call(meta, argument[0], argument[1]);
-		self.emit(self.join(path), target);
-
+		this.emit(this.join(path), target);
 	} else {
-
 		Array.prototype.slice.call(argument, 2).forEach(function (value) {
-
-			value = self.defineCollection(path, value);
+			value = this.defineCollection(path, value);
 			Array.prototype.splice.call(meta, argument[0], argument[1], value);
-			target = self.defineProperty(path, meta, target, meta.length-1);
-			self.emit(self.join(path), target);
-
-		});
-
+			target = this.defineProperty(path, meta, target, meta.length-1);
+			this.emit(this.join(path), target);
+		}, this);
 	}
-
 };
 
 Model.prototype.arrayPushUnshift = function (path, meta, target, method, argument) {
-	var self = this;
-
 	Array.prototype.forEach.call(argument, function (value) {
-
-		value = self.defineCollection(path, value);
+		value = this.defineCollection(path, value);
 		Array.prototype[method].call(meta, value);
-		target = self.defineProperty(path, meta, target, meta.length-1);
-		self.emit(self.join(path), target);
-
-	});
-
+		target = this.defineProperty(path, meta, target, meta.length-1);
+		this.emit(this.join(path), target);
+	}, this);
 };
 
 Model.prototype.arrayPopShift = function (path, meta, target, method) {
-	var self = this;
-
 	Array.prototype[method].call(meta);
 	Array.prototype.pop.call(target);
-	self.emit(self.join(path), target);
-
+	this.emit(this.join(path), target);
 };
 
 Model.prototype.defineArray = function (path, meta, target) {
@@ -88,7 +71,6 @@ Model.prototype.defineArray = function (path, meta, target) {
 			}
 		}
 	});
-
 };
 
 Model.prototype.defineObject = function (path, meta, target) {
@@ -97,7 +79,6 @@ Model.prototype.defineObject = function (path, meta, target) {
 	return Object.defineProperties(target, {
 		$set: {
 			value: function (key, value) {
-
 				if (self.isCollection(value)) {
 					value = self.defineCollection(self.join(path, key), value);
 				}
@@ -105,20 +86,16 @@ Model.prototype.defineObject = function (path, meta, target) {
 				meta[key] = value;
 				target = self.defineProperty(path, meta, target, key);
 				self.emit(self.join(path, key), target[key]);
-
 			}
 		},
 		$remove: {
 			value: function (key) {
-
 				delete target[key];
 				delete meta[key];
 				self.emit(self.join(path, key), undefined);
-
 			}
 		}
 	});
-
 };
 
 Model.prototype.defineProperty = function (path, meta, target, key) {
@@ -131,24 +108,16 @@ Model.prototype.defineProperty = function (path, meta, target, key) {
 			return meta[key];
 		},
 		set: function (value) {
-
 			if (meta[key] !== value) {
-
 				if (value === undefined) {
-
 					delete meta[key];
 					delete target[key];
 					self.emit(self.join(path, key), undefined);
-
 				} else {
-
 					meta[key] = self.defineCollection(self.join(path, key), value);
 					self.emit(self.join(path, key), target[key]);
-
 				}
-
 			}
-
 		}
 	});
 
@@ -170,14 +139,10 @@ Model.prototype.defineCollection = function (path, source) {
 	}
 
 	Object.keys(source).forEach(function (key) {
-
 		if (source[key] !== undefined) {
-
 			meta[key] = self.defineCollection(self.join(path, key), source[key]);
 			target = self.defineProperty(path, meta, target, key);
-
 		}
-
 	});
 
 	return target;
