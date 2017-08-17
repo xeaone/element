@@ -1,6 +1,94 @@
 
-function overrideArrayMethods (array, callback, path) {
-	return Object.defineProperties(array, {
+function Observer (data, callback, path) {
+	path = path ? path + '.' : '';
+
+	for (var key in data) {
+		defineProperty(data, key, data[key], callback, path);
+	}
+
+	if (data.constructor === Object) {
+		overrideObjectMethods(data, callback, path);
+	} else if (data.constructor === Array) {
+		overrideArrayMethods(data, callback, path);
+	}
+
+	return data;
+}
+
+function defineProperty (data, key, value, callback, path) {
+	var property = Object.getOwnPropertyDescriptor(data, key);
+
+	if (property && property.configurable === false) {
+		return;
+	}
+
+	var getter = property && property.get;
+	var setter = property && property.set;
+
+	// recursive
+	if (value && typeof value === 'object') {
+		Observer(value, callback, path + key);
+	}
+
+	// the property value if previously defined
+	if (getter && setter) {
+		console.log('defined');
+		setter.call(data, value);
+		return;
+	}
+
+	Object.defineProperty(data, key, {
+		enumerable: true,
+		configurable: true,
+		get: function () {
+			return getter ? getter.call(data) : value;
+		},
+		set: function (newValue) {
+			var oldValue = getter ? getter.call(data) : value;
+
+			// set the value with the same value not updated
+			if (newValue === oldValue) {
+				return;
+			}
+
+			if (setter) {
+				setter.call(data, newValue);
+			} else {
+				value = newValue;
+			}
+
+			//	adds attributes to new valued property getter setter
+			if (newValue && typeof newValue === 'object') {
+				Observer(newValue, callback, path + key);
+			}
+
+			return callback(newValue, path + key, key, data);
+		}
+	});
+}
+
+function overrideObjectMethods (data, callback, path) {
+	Object.defineProperties(data, {
+		$set: {
+			value: function (key, value) {
+				if (typeof key === 'string' && value !== undefined) {
+					defineProperty(data, key, value, callback, path);
+				}
+			}
+		},
+		$remove: {
+			value: function (key) {
+				if (typeof key === 'string') {
+					delete data[key];
+					callback(undefined, path + key, key, data);
+				}
+			}
+		}
+	});
+}
+
+function overrideArrayMethods (data, callback, path) {
+	Object.defineProperties(data, {
 		push: {
 			value: function () {
 				if (arguments.length) {
@@ -157,65 +245,6 @@ function overrideArrayMethods (array, callback, path) {
 	});
 }
 
-function defineProperty (collection, key, value, callback, path) {
-	var property = Object.getOwnPropertyDescriptor(collection, key);
-
-	if (property && property.configurable === false) {
-		return;
-	}
-
-	var getter = property && property.get;
-	var setter = property && property.set;
-
-	// recursive
-	if (value && typeof value === 'object') {
-		value = Observer(value, callback, path + key);
-	}
-
-	Object.defineProperty(collection, key, {
-		enumerable: true,
-		configurable: true,
-		get: function () {
-			return getter ? getter.call(collection) : value;
-		},
-		set: function (newValue) {
-			var oldValue = getter ? getter.call(collection) : value;
-
-			// set the value with the same value not updated
-			if (newValue === oldValue) {
-				return;
-			}
-
-			if (setter) {
-				setter.call(collection, newValue);
-			} else {
-				value = newValue;
-			}
-
-			//	adds attributes to new valued property getter setter
-			if (newValue && typeof newValue === 'object') {
-				newValue = Observer(newValue, callback, path + key);
-			}
-
-			return callback(newValue, path + key, key, collection);
-		}
-	});
-}
-
-function Observer (collection, callback, path) {
-	path = path ? path + '.' : '';
-
-	Object.keys(collection).forEach(function (key) {
-		defineProperty(collection, key, collection[key], callback, path);
-	});
-
-	if (collection.constructor === Array) {
-		collection = overrideArrayMethods(collection, callback, path);
-	}
-
-	return collection;
-}
-
 var model = {
 	num: 1,
 	foo0: 'bar0',
@@ -235,21 +264,38 @@ var m1 = Observer(model, function (value, path, key, collection) {
 	console.log(collection);
 });
 
+
+// Object $set new
+// FIXME not working
+m1.$set('num2', 2);
+console.log(m1.num2);
+
+
+// Object $set old
+// m1.$set('num', 3);
+// console.log(m1.num);
+
+
+// Object $remove
+// m1.$remove('num');
+// console.log(m1.num);
+
+
 // Array Push
 // m1.arr.push('five', 'six');
 
 
 // Array Unshift
-// m1.arr.unshift('zero', 'one', 'two');
-// console.log(m1.arr);
+// m1.data.arr.unshift('zero', 'one', 'two');
+// console.log(m1.data.arr);
 
 
 // Array Pop
-// console.log(m1.arr.pop());
+// console.log(m1.data.arr.pop());
 
 
 // Array Shift
-// console.log(m1.arr.shift());
+// console.log(m1.data.arr.shift());
 
 
 
