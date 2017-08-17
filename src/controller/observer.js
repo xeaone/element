@@ -1,58 +1,159 @@
 
 function overrideArrayMethods (array, callback, path) {
 	return Object.defineProperties(array, {
-		splice: {
-			value: function () {
-				Array.prototype.splice.apply(this, arguments);
-				callback(arguments[0], path, null, this);
-			}
-		},
 		push: {
 			value: function () {
 				if (arguments.length) {
-					Array.prototype.forEach.call(arguments, function (argument) {
-						defineProperty(this, this.length, argument, callback, path);
-						callback(this[this.length-1], path, null, this);
-					}, this);
+					var i = 0;
+					var l = arguments.length;
+					while (l--) {
+						defineProperty(this, this.length, arguments[i++], callback, path);
+						callback(this.length, path + 'length', 'length', this);
+						callback(this[this.length-1], path + (this.length-1), this.length-1, this);
+					}
 				}
+
+				return this.length;
 			}
 		},
 		unshift: {
 			value: function () {
 				if (arguments.length) {
+					var index = 0;
+					var count = 0;
+					var backup = [];
+					var thisLength = this.length;
+					var argumentsLength = arguments.length;
+					var length = argumentsLength + thisLength;
 
-					var nIndex, oIndex;
-					var oLength = this.length;
-					var nLength = oLength + arguments.length;
+					while (length--) {
+						backup[index] = this[index];
 
-					while (oLength) {
-						nIndex = nLength-1;
-						oIndex = oLength-1;
-						Object.defineProperty(this, nIndex, Object.getOwnPropertyDescriptor(this, oIndex));
-						callback(this[nIndex], path + nIndex, nIndex, this);
-						nLength--;
-						oLength--;
+						if (index < argumentsLength) {
+							if (index < thisLength) {
+								this[index] = arguments[index];
+							} else {
+								defineProperty(this, index, arguments[index], path);
+								callback(this.length, path + 'length', 'length', this);
+								callback(this[index], path + index, index, this);
+							}
+						} else {
+							if (index < thisLength) {
+								this[index] = backup[count];
+							} else {
+								defineProperty(this, index, backup[count], path);
+								callback(this.length, path + 'length', 'length', this);
+								callback(this[index], path + index, index, this);
+							}
+
+							count++;
+						}
+
+						index++;
 					}
-
-					Array.prototype.forEach.call(arguments, function (argument, index) {
-						this[index] = argument;
-					}, this);
-
 				}
+
+				return this.length;
 			}
 		},
 		pop: {
 			value: function () {
-				Array.prototype.pop.apply(this, arguments);
-				callback(arguments[0], path, null, this);
+				if (this.length) {
+					var index = this.length-1;
+					var value = this[index];
+					this.length--;
+					callback(index, path + 'length', 'length', this);
+					callback(value, path + index, index, this);
+					return value;
+				}
 			}
 		},
 		shift: {
 			value: function () {
-				Array.prototype.shift.apply(this, arguments);
-				callback(arguments[0], path, null, this);
+				if (this.length) {
+					var index = this.length-1;
+					var item = this[index];
+					var value = this[0];
+
+					this.length--;
+					callback(index, path + 'length', 'length', this);
+
+					for (var i = 0, l = this.length-1; i < l; i++) {
+						this[i] = this[i+1];
+					}
+
+					this[l] = item;
+
+					return value;
+				}
 			}
-		}
+		},
+		splice: {
+			value: function (array, start, deleteCount) {
+				var argLen = arguments.length;
+				var arrLen = array.length;
+				var removed = [];
+				var result = [];
+				var i;
+
+				// Follow spec more or less
+				start = parseInt(start, 10);
+				deleteCount = parseInt(deleteCount, 10);
+
+				// Deal with negative start per spec
+				// Don't assume support for Math.min/max
+				if (start < 0) {
+					start = arrLen + start;
+					start = (start > 0)? start : 0;
+				} else {
+					start = (start < arrLen)? start : arrLen;
+				}
+
+				// Deal with deleteCount per spec
+				if (deleteCount < 0) deleteCount = 0;
+
+				if (deleteCount > (arrLen - start)) {
+					deleteCount = arrLen - start;
+				}
+
+				// Copy members up to start
+				for (i = 0; i < start; i++) {
+					result[i] = array[i];
+				}
+
+				// Add new elements supplied as args
+				for (i = 3; i < argLen; i++) {
+					result.push(arguments[i]);
+				}
+
+				// Copy removed items to removed array
+				for (i = start; i < start + deleteCount; i++) {
+					removed.push(array[i]);
+				}
+
+				// Add those after start + deleteCount
+				for (i = start + (deleteCount || 0); i < arrLen; i++) {
+					result.push(array[i]);
+				}
+
+				// Update original array
+				var lengthChange = result.length - array.length;
+
+				i = result.length;
+				array.length = i;
+
+				if (lengthChange) {
+					callback(i, path + 'length', 'length', this);
+				}
+
+				while (i--) {
+					array[i] = result[i];
+				}
+
+				// Return array of removed elements
+				return removed;
+			}
+		},
 	});
 }
 
@@ -66,7 +167,7 @@ function defineProperty (collection, key, value, callback, path) {
 	var getter = property && property.get;
 	var setter = property && property.set;
 
-	//  recursive way to add attributes to the property getter setter
+	// recursive
 	if (value && typeof value === 'object') {
 		value = Observer(value, callback, path + key);
 	}
@@ -91,7 +192,7 @@ function defineProperty (collection, key, value, callback, path) {
 				value = newValue;
 			}
 
-			//  adds attributes to new valued property getter setter
+			//	adds attributes to new valued property getter setter
 			if (newValue && typeof newValue === 'object') {
 				newValue = Observer(newValue, callback, path + key);
 			}
@@ -134,18 +235,22 @@ var m1 = Observer(model, function (value, path, key, collection) {
 	console.log(collection);
 });
 
-// m1.obj0.obj1.foo2 = 'new foo';
-
 // Array Push
-// m1.arr.push('three');
-// console.log(m1.arr[m1.arr.length-1]);
-// console.log('');
+// m1.arr.push('five', 'six');
+
 
 // Array Unshift
-m1.arr.unshift('zero', 'one', 'two');
-// console.log(m1.arr[0]);
-// console.log(m1.arr[1]);
-// console.log('');
+// m1.arr.unshift('zero', 'one', 'two');
+// console.log(m1.arr);
+
+
+// Array Pop
+// console.log(m1.arr.pop());
+
+
+// Array Shift
+// console.log(m1.arr.shift());
+
 
 
 // var m2 = Observer(model, function () {
@@ -155,13 +260,3 @@ m1.arr.unshift('zero', 'one', 'two');
 
 // m2.num = 2;
 // console.log(m2 === m1);
-
-/*
-
-	if type is array && insert
-		add element at index
-		get all greater than index and
-		update values
-
-
-*/

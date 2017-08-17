@@ -8,8 +8,8 @@ export default function Binder (options) {
 	this.element = options.element;
 	this.modifiers = options.modifiers;
 	this.attribute = options.attribute;
-	this.renderMethod = this.renderMethods[this.attribute.cmds[0]]; // || this.renderMethods['default'];
-	this.unrenderMethod = this.unrenderMethods[this.attribute.cmds[0]]; // || this.unrenderMethods['default'];
+	this.renderMethod = this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default'];
+	this.unrenderMethod = this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default'];
 
 	// NOTE might be able to cache the parent object
 	// this.key = this.attribute.path.split('.').pop();
@@ -19,10 +19,13 @@ export default function Binder (options) {
 	this.renderMethod();
 }
 
-Binder.prototype.setModel = function (value) {
-	this.modifiers.forEach(function (modifier) {
-		value = modifier.call(value);
-	});
+Binder.prototype.setModel = function (data) {
+
+	if (data !== undefined) {
+		this.modifiers.forEach(function (modifier) {
+			data = modifier.call(data);
+		});
+	}
 
 	// this dynamically creates the props
 	// var tmp = this.model.data;
@@ -31,17 +34,19 @@ Binder.prototype.setModel = function (value) {
 	// paths.forEach(function (path) {
 	// 	tmp = tmp[path];
 	// });
-	// tmp.$set(key, value);
+	// tmp.$set(key, data);
 
-	return Utility.setByPath(this.model.data, this.attribute.path, value);
+	return Utility.setByPath(this.model.data, this.attribute.path, data);
 };
 
 Binder.prototype.getModel = function () {
 	var data = Utility.getByPath(this.model.data, this.attribute.path);
 
-	this.modifiers.forEach(function (modifier) {
-		data = modifier.call(data);
-	});
+	if (data !== undefined) {
+		this.modifiers.forEach(function (modifier) {
+			data = modifier.call(data);
+		});
+	}
 
 	return data;
 };
@@ -157,12 +162,11 @@ Binder.prototype.renderMethods = {
 	},
 	selected: function () {
 		this.element.selectedIndex = this.getModel();
+	},
+	default: function () {
+		var path = Utility.toCamelCase(this.attribute.cmds);
+		Utility.setByPath(this.element, path, this.getModel());
 	}
-	// ,
-	// default: function () {
-	// 	var path = Utility.toCamelCase(this.attribute.cmds);
-	// 	Utility.setByPath(this.element, path, this.getModel());
-	// }
 };
 
 Binder.prototype.unrenderMethods = {
@@ -180,11 +184,10 @@ Binder.prototype.unrenderMethods = {
 	},
 	text: function () {
 		this.element.innerText = '';
+	},
+	default: function () {
+
 	}
-	// ,
-	// default: function () {
-	//
-	// }
 };
 
 Binder.prototype.updateModel = function () {
