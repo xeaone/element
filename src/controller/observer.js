@@ -4,14 +4,14 @@ export default function Observer (data, callback, path) {
 	return data;
 }
 
-function defineProperties (data, callback, path, redfine) {
+function defineProperties (data, callback, path, redefine) {
 	path = path ? path + '.' : '';
-	for (var key in data) defineProperty(data, key, data[key], callback, path, redfine);
+	for (var key in data) defineProperty(data, key, data[key], callback, path, redefine);
 	if (data.constructor === Object) overrideObjectMethods(data, callback, path);
 	else if (data.constructor === Array) overrideArrayMethods(data, callback, path);
 }
 
-function defineProperty (data, key, value, callback, path, redfine) {
+function defineProperty (data, key, value, callback, path, redefine) {
 	var property = Object.getOwnPropertyDescriptor(data, key);
 
 	if (property && property.configurable === false) return;
@@ -20,10 +20,10 @@ function defineProperty (data, key, value, callback, path, redfine) {
 	var setter = property && property.set;
 
 	// recursive observe child properties
-	if (value && typeof value === 'object') defineProperties(value, callback, path + key, redfine);
+	if (value && typeof value === 'object') defineProperties(value, callback, path + key, redefine);
 
-	// set the property value if getter setter previously defined and redfine is not true
-	if (getter && setter && redfine === false) return setter.call(data, value);
+	// set the property value if getter setter previously defined and redefine is not true
+	if (getter && setter && redefine === false) return setter.call(data, value);
 
 	Object.defineProperty(data, key, {
 		enumerable: true,
@@ -41,7 +41,7 @@ function defineProperty (data, key, value, callback, path, redfine) {
 			else value = newValue;
 
 			//	adds attributes to new valued property getter setter
-			if (newValue && typeof newValue === 'object') defineProperties(newValue, callback, path + key, redfine);
+			if (newValue && typeof newValue === 'object') defineProperties(newValue, callback, path + key, redefine);
 
 			if (callback) callback(newValue, path + key, key, data);
 		}

@@ -1,42 +1,30 @@
 import Utility from '../utility';
-import Binder from './binder';
 import Model from './model';
 import View from './view';
 
 export default function Controller (options, callback) {
 	var self = this;
 
-	self.view = new View();
-	self.model = new Model();
+	self.view = new View({
+		controller: self
+	});
 
-	self.element = (options.view.shadowRoot || options.view);
+	self.model = new Model({
+		controller: self
+	});
+
 	self.events = options.events || {};
-	self._model = options.model || {};
-	self._view = self.element.querySelectorAll('*');
+	self.element = (options.view.shadowRoot || options.view);
 
 	self.name = options.name;
 	self.modifiers = options.modifiers || {};
 
-	self.model.listener(function (path) { // , data
-		// if (data === undefined) {
-		// 	self.view.unrenderAll('^' + path + '.*');
-		// } else {
-		// 	self.view.renderAll('^' + path);
-		// }
-		self.view.renderAll('^' + path);
-	});
-
-	self.view.listener(function (element, attribute) {
-		self.view.data.get(attribute.path).push(new Binder({
-			view: self.view,
-			model: self.model,
-			events: self.events,
-			element: element,
-			attribute: attribute,
-			modifiers: attribute.modifiers.map(function (modifier) {
-				return self.modifiers[modifier];
-			})
-		}));
+	self.model.setListener(function (data, path) {
+		if (data === undefined) {
+			self.view.unrenderAll('^' + path + '.*');
+		} else {
+			self.view.renderAll('^' + path);
+		}
 	});
 
 	self.inputHandler = function (element) {
@@ -59,15 +47,18 @@ export default function Controller (options, callback) {
 	}, true);
 
 	if (typeof options.model === 'function') {
-		self._model.call(self, function (model) {
-			self._model = model;
-			self.model.run(self._model);
-			self.view.run(self._view);
-			if (callback) return callback.call(self);
+		options.model.call(self, function (model) {
+			self.model.setData(model || {});
+			self.view.setElement(self.element);
+			self.model.run();
+			self.view.run();
+			if (callback) callback.call(self);
 		});
 	} else {
-		self.model.run(self._model);
-		self.view.run(self._view);
+		self.model.setData(options.model || {});
+		self.view.setElement(self.element);
+		self.model.run();
+		self.view.run();
 		if (callback) callback.call(self);
 	}
 

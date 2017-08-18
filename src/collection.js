@@ -54,8 +54,9 @@ Collection.prototype.set = function (key, value) {
 };
 
 Collection.prototype.push = function (value) {
+	if (!arguments.length) return this.length;
 	this.data[this.data.length] = [this.data.length, value];
-	return value;
+	return this.data.length;
 };
 
 Collection.prototype.size = function () {
@@ -63,9 +64,9 @@ Collection.prototype.size = function () {
 };
 
 Collection.prototype.forEach = function (callback, context) {
-	context = context || null;
+	callback = callback.bind(context);
 
 	for (var i = 0; i < this.data.length; i++) {
-		callback.call(context, this.data[i][1], this.data[i][0], i, this.data);
+		callback(this.data[i][1], this.data[i][0], i, this.data);
 	}
 };

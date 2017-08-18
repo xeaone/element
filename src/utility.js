@@ -46,6 +46,7 @@ export default {
 		attribute.command = attribute.name.replace(this.PREFIX, '');
 		attribute.cmds = attribute.command.split('-');
 		attribute.key = attribute.opts.slice(-1);
+		attribute.vpath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
 		attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
 		return attribute;
 	},
