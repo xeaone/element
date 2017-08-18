@@ -40,6 +40,8 @@
   "directories": {
     "doc": "docs"
   },
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
+    "node-es-module-loader": "^0.3.8"
   }
 }

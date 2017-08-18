@@ -1,41 +1,29 @@
 
-function Observer (data, callback, path) {
-	path = path ? path + '.' : '';
-
-	for (var key in data) {
-		defineProperty(data, key, data[key], callback, path);
-	}
-
-	if (data.constructor === Object) {
-		overrideObjectMethods(data, callback, path);
-	} else if (data.constructor === Array) {
-		overrideArrayMethods(data, callback, path);
-	}
-
+export default function Observer (data, callback, path) {
+	defineProperties(data, callback, path, true);
 	return data;
 }
 
-function defineProperty (data, key, value, callback, path) {
+function defineProperties (data, callback, path, redfine) {
+	path = path ? path + '.' : '';
+	for (var key in data) defineProperty(data, key, data[key], callback, path, redfine);
+	if (data.constructor === Object) overrideObjectMethods(data, callback, path);
+	else if (data.constructor === Array) overrideArrayMethods(data, callback, path);
+}
+
+function defineProperty (data, key, value, callback, path, redfine) {
 	var property = Object.getOwnPropertyDescriptor(data, key);
 
-	if (property && property.configurable === false) {
-		return;
-	}
+	if (property && property.configurable === false) return;
 
 	var getter = property && property.get;
 	var setter = property && property.set;
 
-	// recursive
-	if (value && typeof value === 'object') {
-		Observer(value, callback, path + key);
-	}
+	// recursive observe child properties
+	if (value && typeof value === 'object') defineProperties(value, callback, path + key, redfine);
 
-	// the property value if previously defined
-	if (getter && setter) {
-		console.log('defined');
-		setter.call(data, value);
-		return;
-	}
+	// set the property value if getter setter previously defined and redfine is not true
+	if (getter && setter && redfine === false) return setter.call(data, value);
 
 	Object.defineProperty(data, key, {
 		enumerable: true,
@@ -47,22 +35,15 @@ function defineProperty (data, key, value, callback, path) {
 			var oldValue = getter ? getter.call(data) : value;
 
 			// set the value with the same value not updated
-			if (newValue === oldValue) {
-				return;
-			}
+			if (newValue === oldValue) return;
 
-			if (setter) {
-				setter.call(data, newValue);
-			} else {
-				value = newValue;
-			}
+			if (setter) setter.call(data, newValue);
+			else value = newValue;
 
 			//	adds attributes to new valued property getter setter
-			if (newValue && typeof newValue === 'object') {
-				Observer(newValue, callback, path + key);
-			}
+			if (newValue && typeof newValue === 'object') defineProperties(newValue, callback, path + key, redfine);
 
-			return callback(newValue, path + key, key, data);
+			if (callback) callback(newValue, path + key, key, data);
 		}
 	});
 }
@@ -70,18 +51,20 @@ function defineProperty (data, key, value, callback, path) {
 function overrideObjectMethods (data, callback, path) {
 	Object.defineProperties(data, {
 		$set: {
+			configurable: true,
 			value: function (key, value) {
-				if (typeof key === 'string' && value !== undefined) {
-					defineProperty(data, key, value, callback, path);
-				}
+				if (typeof key !== 'string' || value === undefined) return;
+				var isNew = !(key in data);
+				defineProperty(data, key, value, callback, path);
+				if (isNew && callback) callback(data[key], path + key, key, data);
 			}
 		},
 		$remove: {
+			configurable: true,
 			value: function (key) {
-				if (typeof key === 'string') {
-					delete data[key];
-					callback(undefined, path + key, key, data);
-				}
+				if (typeof key !== 'string') return;
+				delete data[key];
+				if (callback) callback(undefined, path + key, key, data);
 			}
 		}
 	});
@@ -90,219 +73,176 @@ function overrideObjectMethods (data, callback, path) {
 function overrideArrayMethods (data, callback, path) {
 	Object.defineProperties(data, {
 		push: {
+			configurable: true,
 			value: function () {
-				if (arguments.length) {
-					var i = 0;
-					var l = arguments.length;
-					while (l--) {
-						defineProperty(this, this.length, arguments[i++], callback, path);
-						callback(this.length, path + 'length', 'length', this);
-						callback(this[this.length-1], path + (this.length-1), this.length-1, this);
+				if (!arguments.length || !data.length) return data.length;
+
+				var i = 0, l = arguments.length;
+
+				for (i; i < l; i++) {
+					defineProperty(data, data.length, arguments[i], callback, path);
+
+					if (callback) {
+						callback(data.length, path + 'length', 'length', data);
+						callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 					}
+
 				}
 
-				return this.length;
+				return data.length;
 			}
 		},
 		unshift: {
+			configurable: true,
 			value: function () {
-				if (arguments.length) {
-					var index = 0;
-					var count = 0;
-					var backup = [];
-					var thisLength = this.length;
-					var argumentsLength = arguments.length;
-					var length = argumentsLength + thisLength;
+				if (!arguments.length || !data.length) return data.length;
 
-					while (length--) {
-						backup[index] = this[index];
+				var i, l, result = [];
 
-						if (index < argumentsLength) {
-							if (index < thisLength) {
-								this[index] = arguments[index];
-							} else {
-								defineProperty(this, index, arguments[index], path);
-								callback(this.length, path + 'length', 'length', this);
-								callback(this[index], path + index, index, this);
-							}
-						} else {
-							if (index < thisLength) {
-								this[index] = backup[count];
-							} else {
-								defineProperty(this, index, backup[count], path);
-								callback(this.length, path + 'length', 'length', this);
-								callback(this[index], path + index, index, this);
-							}
-
-							count++;
-						}
-
-						index++;
-					}
-				}
-
-				return this.length;
-			}
-		},
-		pop: {
-			value: function () {
-				if (this.length) {
-					var index = this.length-1;
-					var value = this[index];
-					this.length--;
-					callback(index, path + 'length', 'length', this);
-					callback(value, path + index, index, this);
-					return value;
-				}
-			}
-		},
-		shift: {
-			value: function () {
-				if (this.length) {
-					var index = this.length-1;
-					var item = this[index];
-					var value = this[0];
-
-					this.length--;
-					callback(index, path + 'length', 'length', this);
-
-					for (var i = 0, l = this.length-1; i < l; i++) {
-						this[i] = this[i+1];
-					}
-
-					this[l] = item;
-
-					return value;
-				}
-			}
-		},
-		splice: {
-			value: function (array, start, deleteCount) {
-				var argLen = arguments.length;
-				var arrLen = array.length;
-				var removed = [];
-				var result = [];
-				var i;
-
-				// Follow spec more or less
-				start = parseInt(start, 10);
-				deleteCount = parseInt(deleteCount, 10);
-
-				// Deal with negative start per spec
-				// Don't assume support for Math.min/max
-				if (start < 0) {
-					start = arrLen + start;
-					start = (start > 0)? start : 0;
-				} else {
-					start = (start < arrLen)? start : arrLen;
-				}
-
-				// Deal with deleteCount per spec
-				if (deleteCount < 0) deleteCount = 0;
-
-				if (deleteCount > (arrLen - start)) {
-					deleteCount = arrLen - start;
-				}
-
-				// Copy members up to start
-				for (i = 0; i < start; i++) {
-					result[i] = array[i];
-				}
-
-				// Add new elements supplied as args
-				for (i = 3; i < argLen; i++) {
+				for (i = 0, l = arguments.length; i < l; i++) {
 					result.push(arguments[i]);
 				}
 
-				// Copy removed items to removed array
-				for (i = start; i < start + deleteCount; i++) {
-					removed.push(array[i]);
+				for (i = 0, l = data.length; i < l; i++) {
+					result.push(data[i]);
 				}
 
-				// Add those after start + deleteCount
-				for (i = start + (deleteCount || 0); i < arrLen; i++) {
-					result.push(array[i]);
+				for (i = 0, l = data.length; i < l; i++) {
+					data[i] = result[i];
 				}
 
-				// Update original array
-				var lengthChange = result.length - array.length;
-
-				i = result.length;
-				array.length = i;
-
-				if (lengthChange) {
-					callback(i, path + 'length', 'length', this);
+				for (i, l = result.length; i < l; i++) {
+					defineProperty(data, data.length, result[i], callback, path);
+					if (callback) {
+						callback(data.length, path + 'length', 'length', data);
+						callback(data[data.length-1], path + (data.length-1), data.length-1, data);
+					}
 				}
 
-				while (i--) {
-					array[i] = result[i];
-				}
-
-				// Return array of removed elements
-				return removed;
+				return data.length;
 			}
 		},
+		pop: {
+			configurable: true,
+			value: function () {
+				if (!data.length) return;
+
+				var value = data[data.length-1];
+
+				data.length--;
+
+				if (callback) {
+					callback(data.length, path + 'length', 'length', data);
+					callback(undefined, path + data.length, data.length, data);
+				}
+
+				return value;
+			}
+		},
+		shift: {
+			configurable: true,
+			value: function () {
+				if (!data.length) return;
+
+				var i = 0, l = data.length-1, value = data[0];
+
+				for (i; i < l; i++) {
+					data[i] = data[i+1];
+				}
+
+				data.length--;
+
+				if (callback) {
+					callback(data.length, path + 'length', 'length', data);
+					callback(undefined, path + data.length, data.length, data);
+				}
+
+				return value;
+			}
+		},
+		splice: {
+			configurable: true,
+			value: function (startIndex, deleteCount) {
+				if (!data.length || (typeof startIndex !== 'number' && typeof deleteCount !== 'number')) return [];
+				if (typeof startIndex !== 'number') startIndex = 0;
+				if (typeof deleteCount !== 'number') deleteCount = data.length;
+
+				var removed = [];
+				var result = [];
+				var index, i, l;
+
+				// follow spec more or less
+				// startIndex = parseInt(startIndex, 10);
+				// deleteCount = parseInt(deleteCount, 10);
+
+				// handle negative startIndex
+				if (startIndex < 0) {
+					startIndex = data.length + startIndex;
+					startIndex = startIndex > 0 ? startIndex : 0;
+				} else {
+					startIndex = startIndex < data.length ? startIndex : data.length;
+				}
+
+				// handle negative deleteCount
+				if (deleteCount < 0) {
+					deleteCount = 0;
+				} else if (deleteCount > (data.length - startIndex)) {
+					deleteCount = data.length - startIndex;
+				}
+
+				// copy items up to startIndex
+				for (i = 0; i < startIndex; i++) {
+					result[i] = data[i];
+				}
+
+				// add new items from arguments
+				for (i = 2, l = arguments.length; i < l; i++) {
+					result.push(arguments[i]);
+				}
+
+				// copy removed items
+				for (i = startIndex, l = startIndex + deleteCount; i < l; i++) {
+					removed.push(data[i]);
+				}
+
+				// add the items after startIndex + deleteCount
+				for (i = startIndex + deleteCount, l = data.length; i < l; i++) {
+					result.push(data[i]);
+				}
+
+				index = 0;
+				i = result.length - data.length;
+				i = result.length - (i < 0 ? 0 : i);
+
+				// update all observed items
+				while (i--) {
+					data[index] = result[index];
+					index++;
+				}
+
+				i = result.length - data.length;
+
+				// add and observe or remove items
+				if (i > 0) {
+					while (i--) {
+						defineProperty(data, data.length, result[index++], callback, path);
+						if (callback) {
+							callback(data.length, path + 'length', 'length', data);
+							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
+						}
+					}
+				} else if (i < 0) {
+					while (i++) {
+						data.length--;
+						if (callback) {
+							callback(data.length, path + 'length', 'length', data);
+							callback(undefined, path + data.length, data.length, data);
+						}
+					}
+				}
+
+				return removed;
+			}
+		}
 	});
 }
-
-var model = {
-	num: 1,
-	foo0: 'bar0',
-	obj0: {
-		foo1: 'bar1',
-		obj1: {
-			foo2: 'bar2',
-		}
-	},
-	arr: ['three', 'four']
-};
-
-var m1 = Observer(model, function (value, path, key, collection) {
-	console.log('value: ' + value);
-	console.log('path: ' + path);
-	console.log('key: ' + key);
-	console.log(collection);
-});
-
-
-// Object $set new
-// FIXME not working
-m1.$set('num2', 2);
-console.log(m1.num2);
-
-
-// Object $set old
-// m1.$set('num', 3);
-// console.log(m1.num);
-
-
-// Object $remove
-// m1.$remove('num');
-// console.log(m1.num);
-
-
-// Array Push
-// m1.arr.push('five', 'six');
-
-
-// Array Unshift
-// m1.data.arr.unshift('zero', 'one', 'two');
-// console.log(m1.data.arr);
-
-
-// Array Pop
-// console.log(m1.data.arr.pop());
-
-
-// Array Shift
-// console.log(m1.data.arr.shift());
-
-
-
-// var m2 = Observer(model, function () {
-	// console.log('cb2');
-	// console.log(arguments);
-// });
-
-// m2.num = 2;
-// console.log(m2 === m1);
