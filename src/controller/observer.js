@@ -77,9 +77,7 @@ function overrideArrayMethods (data, callback, path) {
 			value: function () {
 				if (!arguments.length || !data.length) return data.length;
 
-				var i = 0, l = arguments.length;
-
-				for (i; i < l; i++) {
+				for (var i = 0, l = arguments.length; i < l; i++) {
 					defineProperty(data, data.length, arguments[i], callback, path);
 
 					if (callback) {
@@ -144,9 +142,9 @@ function overrideArrayMethods (data, callback, path) {
 			value: function () {
 				if (!data.length) return;
 
-				var i = 0, l = data.length-1, value = data[0];
+				var value = data[0];
 
-				for (i; i < l; i++) {
+				for (var i = 0, l = data.length-1; i < l; i++) {
 					data[i] = data[i+1];
 				}
 

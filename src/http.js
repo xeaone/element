@@ -17,10 +17,10 @@ Http.prototype.mime = {
 Http.prototype.serialize = function (data) {
 	var string = '';
 
-	Object.keys(data).forEach(function (name) {
+	for (var name in data) {
 		string = string.length > 0 ? string + '&' : string;
 		string = string + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
-	});
+	}
 
 	return string;
 };
@@ -101,9 +101,9 @@ Http.prototype.fetch = function (options) {
 		}
 
 		if (options.headers) {
-			Object.keys(options.headers).forEach(function (name) {
+			for (var name in options.headers) {
 				xhr.setRequestHeader(name, options.headers[name]);
-			});
+			}
 		}
 
 		xhr.onreadystatechange = function () {

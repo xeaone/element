@@ -1,99 +1,104 @@
-import Collection from '../collection';
-import Utility from '../utility';
+import Collection from './collection';
 import Binder from './binder';
 
 export default function View (options) {
-	this.controller = options.controller;
-	this.data = new Collection();
+	var self = this;
+	self.isRan = false;
+	self.data = new Collection();
+	self.controller = options.controller;
 }
 
-View.prototype.ELEMENT_ACCEPTS = /(data-)?j-/;
-View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/;
-View.prototype.ELEMENT_REJECTS = /^iframe/;
-View.prototype.ELEMENT_REJECTS_CHILDREN = /^\w+(-\w+)+|^object|^script|^style|^svg/;
+View.prototype.PATH = /\s?\|(.*?)$/;
+View.prototype.PREFIX = /(data-)?j-/;
+View.prototype.MODIFIERS = /^(.*?)\|\s?/;
+View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
+View.prototype.ELEMENT_SKIPS = /^\w+(-\w+)+|iframe|object|script|style|svg/i;
 
-View.prototype.preview = function (element) {
-	var html = element.outerHTML;
-	html = html.slice(1, html.indexOf('>'));
-	html = html.replace(/\/$/, '');
-	return html;
-	// return element.outerHTML
-	// .replace(/\/?>([\s\S])*/, '')
-	// .replace(/^</, '');
+View.prototype.attribute = function (name, value) {
+	var self = this;
+	var attribute = {};
+	attribute.name = name;
+	attribute.value = value;
+	attribute.path = attribute.value.replace(self.PATH, '');
+	attribute.opts = attribute.path.split('.');
+	attribute.command = attribute.name.replace(self.PREFIX, '');
+	attribute.cmds = attribute.command.split('-');
+	attribute.key = attribute.opts.slice(-1);
+	attribute.vpath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
+	attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(self.MODIFIERS, '').split(' ');
+	return attribute;
+};
+
+View.prototype.nodeSkipsTest = function (node) {
+	var self = this;
+	return self.ELEMENT_SKIPS.test(node.nodeName);
+};
+
+View.prototype.nodeAcceptsTest = function (node) {
+	var self = this;
+	var attributes = node.attributes;
+	for (var i = 0, l = attributes.length; i < l; i++) {
+		if (self.ATTRIBUTE_ACCEPTS.test(attributes[i].name)) {
+			return true;
+		}
+	}
+	return false;
 };
 
 View.prototype.eachElement = function (elements, callback) {
-	var element, preview, i;
-
-	for (i = 0; i < elements.length; i++) {
-		element = elements[i];
-		preview = this.preview(element);
-		if (this.ELEMENT_REJECTS.test(preview)) {
-			i += element.getElementsByTagName('*').length;
-		} else if (this.ELEMENT_REJECTS_CHILDREN.test(preview)) {
-			i += element.getElementsByTagName('*').length;
-			callback.call(this, element);
-		} else if (this.ELEMENT_ACCEPTS.test(preview)) {
-			callback.call(this, element);
+	var self = this;
+	// NOTE might throw an error if node list length changes
+	for (var i = 0, l = elements.length; i < l; i++) {
+		if (self.nodeSkipsTest(elements[i])) {
+			i += elements[i].getElementsByTagName('*').length;
+			callback(elements[i]);
+		} else if (self.nodeAcceptsTest(elements[i])) {
+			callback(elements[i]);
 		}
 	}
 };
 
 View.prototype.eachAttribute = function (element, callback) {
-	var attribute, i = 0, l = element.attributes.length;
-	for (i; i < l; i++) {
-		attribute = element.attributes[i];
-		if (this.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
-			callback.call(this, Utility.attribute(attribute.name, attribute.value));
+	var self = this, attributes = element.attributes, attribute;
+	for (var i = 0, l = attributes.length; i < l; i++) {
+		attribute = attributes[i];
+		if (self.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
+			callback(self.attribute(attribute.name, attribute.value));
 		}
 	}
 };
 
-View.prototype.unrenderAll = function (pattern) {
-	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-	this.data.forEach(function (paths, path) {
+View.prototype.unrender = function (pattern) {
+	var self = this;
+	self.data.forEach(function (paths, path, id) {
 		if (pattern.test(path)) {
-			paths.forEach(function (binder) {
+
+			paths.forEach(function (binder, _, id) {
 				binder.unrender();
-			}, this);
+				paths.remove(id);
+			});
+
+			if (paths.size() === 0) {
+				self.data.remove(id);
+			}
+
 		}
-	}, this);
+	});
 };
 
-View.prototype.renderAll = function (pattern) {
-	pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-	this.data.forEach(function (paths, path) {
+View.prototype.render = function (pattern) {
+	var self = this;
+	self.data.forEach(function (paths, path) {
 		if (pattern.test(path)) {
 			paths.forEach(function (binder) {
 				binder.render();
-			}, this);
+			});
 		}
-	}, this);
+	});
 };
 
-View.prototype.removeOne = function (element) {
-	this.data.forEach(function (paths, _, did) {
-		paths.forEach(function (binder, _, pid) {
-			if (element === binder.element) {
-				paths.removeById(pid);
-				if (paths.size() === 0) {
-					this.data.removeById(did);
-				}
-			}
-		}, this);
-	}, this);
-};
-
-View.prototype.removeAll = function (elements) {
-	var i = 0, l = elements.length;
-	for (i; i < l; i++) {
-		this.removeOne(elements[i]);
-	}
-};
-
-View.prototype.addOne = function (element) {
+View.prototype.addElement = function (element) {
 	var self = this;
-
 	self.eachAttribute(element, function (attribute) {
 		if (!self.data.has(attribute.vpath)) {
 			self.data.set(attribute.vpath, new Collection());
@@ -106,43 +111,59 @@ View.prototype.addOne = function (element) {
 	});
 };
 
-View.prototype.addAll = function (elements) {
+View.prototype.addElements = function (elements) {
 	var self = this;
 	self.eachElement(elements, function (element) {
-		self.addOne(element);
+		self.addElement(element);
 	});
 };
 
-View.prototype.setListener = function (listener) {
-	this.listener = listener;
+View.prototype.mutationListener = function (mutations) {
+	var self = this, i, l, c, s, node, nodes;
+	for (i = 0, l = mutations.length; i < l; i++) {
+		nodes = mutations[i].addedNodes;
+		for (c = 0, s = nodes.length; c < s; c++) {
+			node = nodes[c];
+			if (node.nodeType === 1) {
+				self.addElements(node.getElementsByTagName('*'));
+				self.addElement(node);
+			}
+		}
+	}
 };
 
-View.prototype.setElement = function (element) {
-	this.element = element;
-	this.elements = element.getElementsByTagName('*');
+View.prototype.inputListener = function (element) {
+	var self = this, value = element.getAttribute('j-value');
+	if (value) {
+		var attribute = self.attribute('j-value', value);
+		self.data.get(attribute.path).find(function (binder) {
+			return binder.element === element;
+		}).updateModel();
+	}
 };
 
 View.prototype.run = function () {
 	var self = this;
 
-	self.addAll(self.elements);
+	if (self.isRan) return;
+	else self.isRan = true;
 
-	self.observer = new MutationObserver(function(mutations) {
-		mutations.forEach(function(mutation) {
-			if (mutation.addedNodes.length > 0) {
-				mutation.addedNodes.forEach(function (node) {
-					if (node.nodeType === 1) {
-						self.addAll(node.getElementsByTagName('*'));
-						self.addOne(node);
-					}
-				});
-			}
-		});
-	});
+	self.controller._view.addEventListener('change', function (e) {
+		if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
+			self.inputListener.call(self, e.target);
+		}
+	}, true);
 
-	self.observer.observe(self.element, {
+	self.controller._view.addEventListener('input', function (e) {
+		self.inputListener.call(self, e.target);
+	}, true);
+
+	self.addElements(self.controller._view.getElementsByTagName('*'));
+
+	self.observer = new MutationObserver(self.mutationListener.bind(self));
+
+	self.observer.observe(self.controller._view, {
 		childList: true,
 		subtree: true
 	});
-
 };

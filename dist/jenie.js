@@ -4,68 +4,6 @@
 	(global.Jenie = factory());
 }(this, (function () { 'use strict';
 
-	var Utility = {
-
-		PATH: /\s?\|(.*?)$/,
-		PREFIX: /(data-)?j-/,
-		MODIFIERS: /^(.*?)\|\s?/,
-
-		setByPath: function (collection, path, value) {
-			var keys = path.split('.');
-			var last = keys.length - 1;
-
-			for (var i = 0, key; i < last; i++) {
-				key = keys[i];
-				if (collection[key] === undefined) collection[key] = {};
-				collection = collection[key];
-			}
-
-			return collection[keys[last]] = value;
-		},
-
-		getByPath: function (collection, path) {
-			var keys = path.split('.');
-			var last = keys.length - 1;
-
-			for (var i = 0; i < last; i++) {
-				if (!collection[keys[i]]) return undefined;
-				else collection = collection[keys[i]];
-			}
-
-			return collection[keys[last]];
-		},
-
-		toCamelCase: function (data) {
-			if (data.constructor.name === 'Array') data = data.join('-');
-			return data.replace(/-[a-z]/g, function (match) {
-				return match[1].toUpperCase();
-			});
-		},
-
-		attribute: function (name, value) {
-			var attribute = {};
-			attribute.name = name;
-			attribute.value = value;
-			attribute.path = attribute.value.replace(this.PATH, '');
-			attribute.opts = attribute.path.split('.');
-			attribute.command = attribute.name.replace(this.PREFIX, '');
-			attribute.cmds = attribute.command.split('-');
-			attribute.key = attribute.opts.slice(-1);
-			attribute.vpath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
-			attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
-			return attribute;
-		},
-
-		each: function (array, method, context) {
-			method = method.bind(context);
-			for (var i = 0, l = array.length; i < l; i++) {
-				method(array[i], i, array);
-			}
-			return array;
-		},
-
-	};
-
 	function Observer (data, callback, path) {
 		defineProperties(data, callback, path, true);
 		return data;
@@ -144,9 +82,7 @@
 				value: function () {
 					if (!arguments.length || !data.length) return data.length;
 
-					var i = 0, l = arguments.length;
-
-					for (i; i < l; i++) {
+					for (var i = 0, l = arguments.length; i < l; i++) {
 						defineProperty(data, data.length, arguments[i], callback, path);
 
 						if (callback) {
@@ -211,9 +147,9 @@
 				value: function () {
 					if (!data.length) return;
 
-					var i = 0, l = data.length-1, value = data[0];
+					var value = data[0];
 
-					for (i; i < l; i++) {
+					for (var i = 0, l = data.length-1; i < l; i++) {
 						data[i] = data[i+1];
 					}
 
@@ -314,18 +250,46 @@
 		});
 	}
 
-	function Model () {}
+	function Model (options) {
+		var self = this;
+		self.isRan = false;
+		self.controller = options.controller;
+	}
 
-	Model.prototype.setListener = function (listener) {
-		this.listener = listener;
+	Model.prototype.listener = function (data, path) {
+		var self = this;
+		var pattern = new RegExp('^' + path);
+
+		if (data === undefined) {
+			self.controller.view.unrender(pattern);
+		} else {
+			self.controller.view.render(pattern);
+		}
 	};
 
-	Model.prototype.setData = function (data) {
-		this.data = data;
+	Model.prototype.overwrite = function (data) {
+		var self = this;
+
+		self.data = data;
+
+		Observer(
+			self.data,
+			self.listener.bind(self)
+		);
 	};
 
 	Model.prototype.run = function () {
-		Observer(this.data, this.listener);
+		var self = this;
+
+		if (self.isRan) return;
+		else self.isRan = true;
+
+		self.data = self.controller._model;
+
+		Observer(
+			self.data,
+			self.listener.bind(self)
+		);
 	};
 
 	function Collection (data) {
@@ -335,7 +299,7 @@
 	}
 
 	Collection.prototype.find = function (method) {
-		for (var i = 0; i < this.data.length; i++) {
+		for (var i = 0, l = this.data.length; i < l; i++) {
 			if (method(this.data[i][1], this.data[i][0], i) === true) {
 				return this.data[i][1];
 			}
@@ -343,27 +307,27 @@
 	};
 
 	Collection.prototype.get = function (key) {
-		for (var i = 0; i < this.data.length; i++) {
+		for (var i = 0, l = this.data.length; i < l; i++) {
 			if (key === this.data[i][0]) {
 				return this.data[i][1];
 			}
 		}
 	};
 
-	Collection.prototype.remove = function (key) {
-		for (var i = 0; i < this.data.length; i++) {
-			if (key === this.data[i][0]) {
-				return this.data.splice(i, 1)[0][1];
-			}
-		}
-	};
+	// Collection.prototype.remove = function (key) {
+	// 	for (var i = 0, l = this.data.length; i < l; i++) {
+	// 		if (key === this.data[i][0]) {
+	// 			return this.data.splice(i, 1)[0][1];
+	// 		}
+	// 	}
+	// };
 
-	Collection.prototype.removeById = function (id) {
+	Collection.prototype.remove = function (id) {
 		return this.data.splice(id, 1);
 	};
 
 	Collection.prototype.has = function (key) {
-		for (var i = 0; i < this.data.length; i++) {
+		for (var i = 0, l = this.data.length; i < l; i++) {
 			if (key === this.data[i][0]) {
 				return true;
 			}
@@ -373,7 +337,7 @@
 	};
 
 	Collection.prototype.set = function (key, value) {
-		for (var i = 0; i < this.data.length; i++) {
+		for (var i = 0, l = this.data.length; i < l; i++) {
 			if (key === this.data[i][0]) {
 				return this.data[i][1] = value;
 			}
@@ -392,39 +356,74 @@
 		return this.data.length;
 	};
 
-	Collection.prototype.forEach = function (callback, context) {
-		callback = callback.bind(context);
-
-		for (var i = 0; i < this.data.length; i++) {
+	Collection.prototype.forEach = function (callback) {
+		for (var i = 0, l = this.data.length; i < l; i++) {
 			callback(this.data[i][1], this.data[i][0], i, this.data);
 		}
 	};
 
-	function Binder (options) {
-		this.controller = options.controller;
-		this.view = options.controller.view;
-		this.model = options.controller.model;
-		this.events = options.controller.events;
+	var Utility = {
 
+		setByPath: function (collection, path, value) {
+			var keys = path.split('.');
+			var last = keys.length - 1;
+
+			for (var i = 0; i < last; i++) {
+				var key = keys[i];
+				if (collection[key] === undefined) collection[key] = {};
+				collection = collection[key];
+			}
+
+			return collection[keys[last]] = value;
+		},
+
+		getByPath: function (collection, path) {
+			var keys = path.split('.');
+			var last = keys.length - 1;
+
+			for (var i = 0; i < last; i++) {
+				if (!collection[keys[i]]) return undefined;
+				else collection = collection[keys[i]];
+			}
+
+			return collection[keys[last]];
+		},
+
+		toCamelCase: function (data) {
+			if (data.constructor.name === 'Array') data = data.join('-');
+			return data.replace(/-[a-z]/g, function (match) {
+				return match[1].toUpperCase();
+			});
+		}
+
+	};
+
+	function Binder (options) {
 		this.element = options.element;
 		this.attribute = options.attribute;
+		// this.view = options.controller.view;
+		this.controller = options.controller;
+		// this.model = options.controller.model;
+		// this.events = options.controller.events;
+		this.renderType = this.attribute.cmds[0] || 'default';
 
-		this.renderMethod = this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default'];
-		this.unrenderMethod = this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default'];
+		if (this.renderType === 'on') {
+			this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model);
+		} else {
+			this.modifiers = this.attribute.modifiers.map(function (modifier) {
+				return this.controller.modifiers[modifier];
+			}, this);
 
-		this.modifiers = this.attribute.modifiers.map(function (modifier) {
-			return this.controller.modifiers[modifier];
-		}, this);
-
-		this.paths = this.attribute.path.split('.');
-		this.key = this.paths.slice(-1)[0];
-		this.path = this.paths.slice(0, -1).join('.');
-		this.data = this.path ? Utility.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
+			this.paths = this.attribute.path.split('.');
+			this.key = this.paths.slice(-1)[0];
+			this.path = this.paths.slice(0, -1).join('.');
+			this.data = this.path ? Utility.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
+		}
 
 		this.render();
 	}
 
-	Binder.prototype.setModel = function (data) {
+	Binder.prototype.setData = function (data) {
 		if (!this.data) return;
 
 		if (data !== undefined) {
@@ -436,7 +435,7 @@
 		return this.data[this.key] = data;
 	};
 
-	Binder.prototype.getModel = function () {
+	Binder.prototype.getData = function () {
 		if (!this.data) return;
 
 		var data = this.data[this.key];
@@ -452,42 +451,36 @@
 
 	Binder.prototype.updateModel = function () {
 		if (this.element.type === 'checkbox') {
-			this.setModel(this.element.value = this.element.checked);
+			this.setData(this.element.value = this.element.checked);
 		} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
-			this.setModel(Array.prototype.filter.call(this.element.options, function (option) {
+			this.setData(Array.prototype.filter.call(this.element.options, function (option) {
 				return option.selected;
 			}).map(function (option) {
 				return option.value;
 			}));
 		} else if (this.element.type === 'radio') {
-			Array.prototype.forEach.call(
-				this.element.parentNode.querySelectorAll(
-					'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
-				),
-				function (radio, index) {
-					if (radio === this.element) this.setModel(index);
-					else radio.checked = false;
-
-				},
-			this);
+			var elements = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
+			for (var i = 0, l = elements.length, radio; i < l; i++) {
+				radio = elements[i];
+				if (radio === this.element) {
+					this.setData(i);
+				} else {
+					radio.checked = false;
+				}
+			}
 		} else {
-			this.setModel(this.element.value);
+			this.setData(this.element.value);
 		}
 	};
 
 	Binder.prototype.renderMethods = {
-		on: function () {
-			if (!this.eventName) {
-				this.eventName = this.attribute.cmds[1];
-				this.eventMethod = Utility.getByPath(this.events, this.attribute.path).bind(this.getModel());
-			}
-
-			this.element.removeEventListener(this.eventName, this.eventMethod);
-			this.element.addEventListener(this.eventName, this.eventMethod);
-		},
-		each: function () {
+		on: function (data) {
 			var self = this;
-			var model = self.getModel();
+			self.element.removeEventListener(self.attribute.cmds[1], data);
+			self.element.addEventListener(self.attribute.cmds[1], data);
+		},
+		each: function (data) {
+			var self = this;
 
 			if (!self.clone) {
 				self.variable = self.attribute.cmds.slice(1).join('.');
@@ -495,64 +488,55 @@
 				self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 			}
 
-			if (self.element.children.length > model.length) {
+			if (self.element.children.length > data.length) {
 				self.element.removeChild(self.element.children[self.element.children.length-1]);
-				// var element = self.element.children[self.element.children.length-1];
-				// var elements = element.getElementsByTagName('*');
-				// self.controller.view.removeAll(elements);
-				// self.controller.view.removeOne(element);
-			} else if (self.element.children.length < model.length) {
+			} else if (self.element.children.length < data.length) {
 				self.element.insertAdjacentHTML(
 					'beforeend',
 					self.clone.replace(
 						self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
 					)
 				);
-				// var element = self.element.children[self.element.children.length-1];
-				// var elements = element.getElementsByTagName('*');
-				// self.controller.view.addAll(elements);
-				// self.controller.view.addOne(element);
 			}
 		},
-		value: function () {
-			// triggered on every change
+		value: function (data) {
+			// NOTE triggered on every change
 			if (this.isSetup) return;
+			var self = this, i, l;
 
-			var model = this.getModel();
-
-			if (this.element.type === 'checkbox') {
-				if (this.element.checked !== model) {
-					this.element.value = this.element.checked = model;
+			if (self.element.type === 'checkbox') {
+				if (self.element.checked !== data) {
+					self.element.value = self.element.checked = data;
 				}
-			} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
-				if (this.element.options.length !== model.length) {
-					Array.prototype.forEach.call(this.element.options, function (option, index) {
-						if (option.value === model[index]) {
+			} if (self.element.nodeName === 'SELECT' && self.element.multiple) {
+				if (self.element.options.length !== data.length) {
+					var options = self.element.options;
+					for (i = 0, l = options.length; i < l; i++) {
+						var option = options[i];
+						if (option.value === data[i]) {
 							option.selected;
 						}
-					}, this);
+					}
 				}
-			} else if (this.element.type === 'radio') {
-				Array.prototype.forEach.call(
-					this.element.parentNode.querySelectorAll(
-						'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
-					),
-					function (radio, index) {
-						radio.checked = index === model;
-					},
-				this);
+			} else if (self.element.type === 'radio') {
+				var elements = self.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + self.attribute.value + '"]');
+				for (i = 0, l = elements.length; i < l; i++) {
+					var radio = elements[i];
+					radio.checked = i === data;
+				}
 			} else {
-				this.element.value = model;
+				self.element.value = data;
 			}
 
-			this.isSetup = true;
+			self.isSetup = true;
 		},
-		html: function () {
-			this.element.innerHTML = this.getModel();
-			this.view.addAll(this.element.querySelectorAll('*'));
+		html: function (data) {
+			var self = this;
+			// FIXME not rendering j-*
+			self.element.innerHTML = data;
 		},
-		css: function () {
-			var css = this.getModel();
+		css: function (data) {
+			var css = data;
 
 			if (this.attribute.cmds.length > 1) {
 				css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
@@ -560,44 +544,43 @@
 
 			this.element.style.cssText += css;
 		},
-		class: function () {
+		class: function (data) {
 			var className = this.attribute.cmds.slice(1).join('-');
-			this.element.classList.toggle(className, this.getModel());
+			this.element.classList.toggle(className, data);
 		},
-		text: function () {
-			this.element.innerText = this.getModel();
+		text: function (data) {
+			this.element.innerText = data;
 		},
-		enable: function () {
-			this.element.disabled = !this.getModel();
+		enable: function (data) {
+			this.element.disabled = !data;
 		},
-		disable: function () {
-			this.element.disabled = this.getModel();
+		disable: function (data) {
+			this.element.disabled = data;
 		},
-		show: function () {
-			this.element.hidden = !this.getModel();
+		show: function (data) {
+			this.element.hidden = !data;
 		},
-		hide: function () {
-			this.element.hidden = this.getModel();
+		hide: function (data) {
+			this.element.hidden = data;
 		},
-		write: function () {
-			this.element.readOnly = !this.getModel();
+		write: function (data) {
+			this.element.readOnly = !data;
 		},
-		read: function () {
-			this.element.readOnly = this.getModel();
+		read: function (data) {
+			this.element.readOnly = data;
 		},
-		selected: function () {
-			this.element.selectedIndex = this.getModel();
+		selected: function (data) {
+			this.element.selectedIndex = data;
 		},
-		default: function () {
+		default: function (data) {
 			var path = Utility.toCamelCase(this.attribute.cmds);
-			Utility.setByPath(this.element, path, this.getModel());
+			Utility.setByPath(this.element, path, data);
 		}
 	};
 
 	Binder.prototype.unrenderMethods = {
-		on: function () {
-			var eventName = this.attribute.cmds[1];
-			this.element.removeEventListener(eventName, this.getModel(), false);
+		on: function (data) {
+			this.element.removeEventListener(this.attribute.cmds[1], data, false);
 		},
 		each: function () {
 			while (this.element.lastChild) {
@@ -616,107 +599,118 @@
 	};
 
 	Binder.prototype.unrender = function () {
-		this.unrenderMethod();
-		return this;
+		var self = this;
+		var data = self.renderType === 'on' ? self.data : undefined;
+		self.unrenderMethods[self.renderType].call(self, data);
+		return self;
 	};
 
 	Binder.prototype.render = function () {
-		this.renderMethod();
-		return this;
+		var self = this;
+		var data = self.renderType === 'on' ? self.data : self.getData();
+		if (data === undefined) return;
+		self.renderMethods[self.renderType].call(self, data);
+		return self;
 	};
 
 	function View (options) {
-		this.controller = options.controller;
-		this.data = new Collection();
+		var self = this;
+		self.isRan = false;
+		self.data = new Collection();
+		self.controller = options.controller;
 	}
 
-	View.prototype.ELEMENT_ACCEPTS = /(data-)?j-/;
-	View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/;
-	View.prototype.ELEMENT_REJECTS = /^iframe/;
-	View.prototype.ELEMENT_REJECTS_CHILDREN = /^\w+(-\w+)+|^object|^script|^style|^svg/;
+	View.prototype.PATH = /\s?\|(.*?)$/;
+	View.prototype.PREFIX = /(data-)?j-/;
+	View.prototype.MODIFIERS = /^(.*?)\|\s?/;
+	View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
+	View.prototype.ELEMENT_SKIPS = /^\w+(-\w+)+|iframe|object|script|style|svg/i;
 
-	View.prototype.preview = function (element) {
-		var html = element.outerHTML;
-		html = html.slice(1, html.indexOf('>'));
-		html = html.replace(/\/$/, '');
-		return html;
-		// return element.outerHTML
-		// .replace(/\/?>([\s\S])*/, '')
-		// .replace(/^</, '');
+	View.prototype.attribute = function (name, value) {
+		var self = this;
+		var attribute = {};
+		attribute.name = name;
+		attribute.value = value;
+		attribute.path = attribute.value.replace(self.PATH, '');
+		attribute.opts = attribute.path.split('.');
+		attribute.command = attribute.name.replace(self.PREFIX, '');
+		attribute.cmds = attribute.command.split('-');
+		attribute.key = attribute.opts.slice(-1);
+		attribute.vpath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
+		attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(self.MODIFIERS, '').split(' ');
+		return attribute;
+	};
+
+	View.prototype.nodeSkipsTest = function (node) {
+		var self = this;
+		return self.ELEMENT_SKIPS.test(node.nodeName);
+	};
+
+	View.prototype.nodeAcceptsTest = function (node) {
+		var self = this;
+		var attributes = node.attributes;
+		for (var i = 0, l = attributes.length; i < l; i++) {
+			if (self.ATTRIBUTE_ACCEPTS.test(attributes[i].name)) {
+				return true;
+			}
+		}
+		return false;
 	};
 
 	View.prototype.eachElement = function (elements, callback) {
-		var element, preview, i;
-
-		for (i = 0; i < elements.length; i++) {
-			element = elements[i];
-			preview = this.preview(element);
-			if (this.ELEMENT_REJECTS.test(preview)) {
-				i += element.getElementsByTagName('*').length;
-			} else if (this.ELEMENT_REJECTS_CHILDREN.test(preview)) {
-				i += element.getElementsByTagName('*').length;
-				callback.call(this, element);
-			} else if (this.ELEMENT_ACCEPTS.test(preview)) {
-				callback.call(this, element);
+		var self = this;
+		// NOTE might throw an error if node list length changes
+		for (var i = 0, l = elements.length; i < l; i++) {
+			if (self.nodeSkipsTest(elements[i])) {
+				i += elements[i].getElementsByTagName('*').length;
+				callback(elements[i]);
+			} else if (self.nodeAcceptsTest(elements[i])) {
+				callback(elements[i]);
 			}
 		}
 	};
 
 	View.prototype.eachAttribute = function (element, callback) {
-		var attribute, i = 0, l = element.attributes.length;
-		for (i; i < l; i++) {
-			attribute = element.attributes[i];
-			if (this.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
-				callback.call(this, Utility.attribute(attribute.name, attribute.value));
+		var self = this, attributes = element.attributes, attribute;
+		for (var i = 0, l = attributes.length; i < l; i++) {
+			attribute = attributes[i];
+			if (self.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
+				callback(self.attribute(attribute.name, attribute.value));
 			}
 		}
 	};
 
-	View.prototype.unrenderAll = function (pattern) {
-		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-		this.data.forEach(function (paths, path) {
+	View.prototype.unrender = function (pattern) {
+		var self = this;
+		self.data.forEach(function (paths, path, id) {
 			if (pattern.test(path)) {
-				paths.forEach(function (binder) {
+
+				paths.forEach(function (binder, _, id) {
 					binder.unrender();
-				}, this);
+					paths.remove(id);
+				});
+
+				if (paths.size() === 0) {
+					self.data.remove(id);
+				}
+
 			}
-		}, this);
+		});
 	};
 
-	View.prototype.renderAll = function (pattern) {
-		pattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-		this.data.forEach(function (paths, path) {
+	View.prototype.render = function (pattern) {
+		var self = this;
+		self.data.forEach(function (paths, path) {
 			if (pattern.test(path)) {
 				paths.forEach(function (binder) {
 					binder.render();
-				}, this);
+				});
 			}
-		}, this);
+		});
 	};
 
-	View.prototype.removeOne = function (element) {
-		this.data.forEach(function (paths, _, did) {
-			paths.forEach(function (binder, _, pid) {
-				if (element === binder.element) {
-					paths.removeById(pid);
-					if (paths.size() === 0) {
-						this.data.removeById(did);
-					}
-				}
-			}, this);
-		}, this);
-	};
-
-	View.prototype.removeAll = function (elements) {
-		var i = 0, l = elements.length;
-		for (i; i < l; i++) {
-			this.removeOne(elements[i]);
-		}
-	};
-
-	View.prototype.addOne = function (element) {
+	View.prototype.addElement = function (element) {
 		var self = this;
-
 		self.eachAttribute(element, function (attribute) {
 			if (!self.data.has(attribute.vpath)) {
 				self.data.set(attribute.vpath, new Collection());
@@ -729,49 +723,72 @@
 		});
 	};
 
-	View.prototype.addAll = function (elements) {
+	View.prototype.addElements = function (elements) {
 		var self = this;
 		self.eachElement(elements, function (element) {
-			self.addOne(element);
+			self.addElement(element);
 		});
 	};
 
-	View.prototype.setListener = function (listener) {
-		this.listener = listener;
+	View.prototype.mutationListener = function (mutations) {
+		var self = this, i, l, c, s, node, nodes;
+		for (i = 0, l = mutations.length; i < l; i++) {
+			nodes = mutations[i].addedNodes;
+			for (c = 0, s = nodes.length; c < s; c++) {
+				node = nodes[c];
+				if (node.nodeType === 1) {
+					self.addElements(node.getElementsByTagName('*'));
+					self.addElement(node);
+				}
+			}
+		}
 	};
 
-	View.prototype.setElement = function (element) {
-		this.element = element;
-		this.elements = element.getElementsByTagName('*');
+	View.prototype.inputListener = function (element) {
+		var self = this, value = element.getAttribute('j-value');
+		if (value) {
+			var attribute = self.attribute('j-value', value);
+			self.data.get(attribute.path).find(function (binder) {
+				return binder.element === element;
+			}).updateModel();
+		}
 	};
 
 	View.prototype.run = function () {
 		var self = this;
 
-		self.addAll(self.elements);
+		if (self.isRan) return;
+		else self.isRan = true;
 
-		self.observer = new MutationObserver(function(mutations) {
-			mutations.forEach(function(mutation) {
-				if (mutation.addedNodes.length > 0) {
-					mutation.addedNodes.forEach(function (node) {
-						if (node.nodeType === 1) {
-							self.addAll(node.getElementsByTagName('*'));
-							self.addOne(node);
-						}
-					});
-				}
-			});
-		});
+		self.controller._view.addEventListener('change', function (e) {
+			if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
+				self.inputListener.call(self, e.target);
+			}
+		}, true);
 
-		self.observer.observe(self.element, {
+		self.controller._view.addEventListener('input', function (e) {
+			self.inputListener.call(self, e.target);
+		}, true);
+
+		self.addElements(self.controller._view.getElementsByTagName('*'));
+
+		self.observer = new MutationObserver(self.mutationListener.bind(self));
+
+		self.observer.observe(self.controller._view, {
 			childList: true,
 			subtree: true
 		});
-
 	};
 
 	function Controller (options, callback) {
 		var self = this;
+
+		self.name = options.name || '';
+		self.events = options.events || {};
+		self.modifiers = options.modifiers || {};
+
+		self._model = options.model || {};
+		self._view = (options.view.shadowRoot || options.view);
 
 		self.view = new View({
 			controller: self
@@ -781,50 +798,14 @@
 			controller: self
 		});
 
-		self.events = options.events || {};
-		self.element = (options.view.shadowRoot || options.view);
-
-		self.name = options.name;
-		self.modifiers = options.modifiers || {};
-
-		self.model.setListener(function (data, path) {
-			if (data === undefined) {
-				self.view.unrenderAll('^' + path + '.*');
-			} else {
-				self.view.renderAll('^' + path);
-			}
-		});
-
-		self.inputHandler = function (element) {
-			if (element.hasAttribute('j-value')) {
-				var attribute = Utility.attribute('j-value', element.getAttribute('j-value'));
-				self.view.data.get(attribute.path).find(function (binder) {
-					return binder.element === element;
-				}).updateModel();
-			}
-		};
-
-		self.element.addEventListener('change', function (e) {
-			if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
-				self.inputHandler(e.target);
-			}
-		}, true);
-
-		self.element.addEventListener('input', function (e) {
-			self.inputHandler(e.target);
-		}, true);
-
-		if (typeof options.model === 'function') {
-			options.model.call(self, function (model) {
-				self.model.setData(model || {});
-				self.view.setElement(self.element);
+		if (typeof self._model === 'function') {
+			self._model.call(self, function (model) {
+				self._model = model;
 				self.model.run();
 				self.view.run();
 				if (callback) callback.call(self);
 			});
 		} else {
-			self.model.setData(options.model || {});
-			self.view.setElement(self.element);
 			self.model.run();
 			self.view.run();
 			if (callback) callback.call(self);
@@ -930,8 +911,21 @@
 					name: self.element.uuid,
 					modifiers: self.modifiers
 				}, function () {
-					self.element.view = this.view.data;
-					self.element.model = this.model.data;
+					var controller = this;
+					self.element.view = controller.view.data;
+
+					Object.defineProperty(self.element, 'model', {
+						enumerable: true,
+						configurable: true,
+						set: function (data) {
+							controller.model.overwrite(data);
+							// TODO need to render view
+						},
+						get: function () {
+							return controller.model.data;
+						}
+					});
+
 					if (options.created) options.created.call(self.element);
 				});
 			} else if (options.created) {
@@ -1181,64 +1175,65 @@
 	};
 
 	Router.prototype.get = function (path) {
-		for (var i = 0, l = this.routes.length, r; i < l; i++) {
-			r = this.routes[i];
-			if (path === r.path) {
-				return r;
+		for (var i = 0, l = this.routes.length; i < l; i++) {
+			var route = this.routes[i];
+			if (path === route.path) {
+				return route;
 			}
 		}
 	};
 
 	Router.prototype.getRoute = function (path) {
-		for (var i = 0, l = this.routes.length, r; i < l; i++) {
-			r = this.routes[i];
-			if (this.testPath(r.path, path)) {
-				return r;
+		for (var i = 0, l = this.routes.length; i < l; i++) {
+			var route = this.routes[i];
+			if (this.testPath(route.path, path)) {
+				return route;
 			}
 		}
 	};
 
 	Router.prototype.toParameterObject = function (routePath, userPath) {
-		var name;
 		var parameters = {};
 		var brackets = /{|}/g;
 		var pattern = /{(\w+)}/;
 		var userPaths = userPath.split('/');
 		var routePaths = routePath.split('/');
 
-		routePaths.forEach(function (path, index) {
-			if (pattern.test(path)) {
-				name = path.replace(brackets, '');
-				parameters[name] = userPaths[index];
+		for (var i = 0, l = routePaths.length; i < l; i++) {
+			if (pattern.test(routePaths[i])) {
+				var name = routePaths[i].replace(brackets, '');
+				parameters[name] = userPaths[i];
 			}
-		});
+		}
 
 		return parameters;
 	};
 
 	Router.prototype.toQueryString = function (data) {
+		if (!data) return;
+
 		var query = '?';
 
-		Object.keys(data).forEach(function (key) {
+		for (var key in data) {
 			query += key + '=' + data[key] + '&';
-		});
+		}
 
-		// return and remove trailing &
-		return query.slice(-1);
+		return query.slice(-1); // remove trailing &
 	};
 
 
 	Router.prototype.toQueryObject = function (path) {
-		var queries = {};
+		if (!path) return;
 
-		if (path) {
-			path.slice(1).split('&').forEach(function (query) {
-				query = query.split('=');
-				queries[query[0]] = query[1];
-			});
+		var result = {};
+		var queries = path.slice(1).split('&');
+
+		for (var i = 0, l = queries.length; i < l; i++) {
+			var query = queries[i].split('=');
+			result[query[0]] = query[1];
 		}
 
-		return queries;
+		return result;
 	};
 
 	Router.prototype.getLocation = function (path) {
@@ -1333,28 +1328,28 @@
 		this.modules = {};
 
 		if (options.modules) {
-			options.modules.forEach(function (module) {
+			for (var i = 0, l = options.modules.length; i < l; i++) {
+				var module = options.modules[i];
 				this.export.call(
 					this,
 					module.name,
 					module.dependencies || module.method,
 					module.dependencies ? module.method : null
 				);
-			}, this);
+			}
 		}
-
+		
 	}
 
 	Module.prototype.load = function (paths) {
-		paths.forEach(function(path) {
+		for (var i = 0, l = paths.length; i < l; i++) {
+			var path = paths[i];
 			var script = document.createElement('script');
-
 			script.src = path;
 			script.async = false;
 			script.type = 'text/javascript';
-
 			document.head.appendChild(script);
-		});
+		}
 	};
 
 	Module.prototype.import = function (name) {
@@ -1376,9 +1371,10 @@
 			}
 
 			if (typeof method === 'function') {
-				dependencies.forEach(function (dependency) {
+				for (var i = 0, l = dependencies.length; i < l; i++) {
+					var dependency = dependencies[i];
 					method = method.bind(null, this.import(dependency));
-				}, this);
+				}
 			}
 
 			return this.modules[name] = method;
@@ -1403,10 +1399,10 @@
 	Http.prototype.serialize = function (data) {
 		var string = '';
 
-		Object.keys(data).forEach(function (name) {
+		for (var name in data) {
 			string = string.length > 0 ? string + '&' : string;
 			string = string + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
-		});
+		}
 
 		return string;
 	};
@@ -1487,9 +1483,9 @@
 			}
 
 			if (options.headers) {
-				Object.keys(options.headers).forEach(function (name) {
+				for (var name in options.headers) {
 					xhr.setRequestHeader(name, options.headers[name]);
-				});
+				}
 			}
 
 			xhr.onreadystatechange = function () {
@@ -1523,7 +1519,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.8
+		version: 1.4.9
 		license: mpl-2.0
 		author: alexander elias
 

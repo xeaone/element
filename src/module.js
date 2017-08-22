@@ -4,28 +4,28 @@ export default function Module (options) {
 	this.modules = {};
 
 	if (options.modules) {
-		options.modules.forEach(function (module) {
+		for (var i = 0, l = options.modules.length; i < l; i++) {
+			var module = options.modules[i];
 			this.export.call(
 				this,
 				module.name,
 				module.dependencies || module.method,
 				module.dependencies ? module.method : null
 			);
-		}, this);
+		}
 	}
-
+	
 }
 
 Module.prototype.load = function (paths) {
-	paths.forEach(function(path) {
+	for (var i = 0, l = paths.length; i < l; i++) {
+		var path = paths[i];
 		var script = document.createElement('script');
-
 		script.src = path;
 		script.async = false;
 		script.type = 'text/javascript';
-
 		document.head.appendChild(script);
-	});
+	}
 };
 
 Module.prototype.import = function (name) {
@@ -47,9 +47,10 @@ Module.prototype.export = function (name, dependencies, method) {
 		}
 
 		if (typeof method === 'function') {
-			dependencies.forEach(function (dependency) {
+			for (var i = 0, l = dependencies.length; i < l; i++) {
+				var dependency = dependencies[i];
 				method = method.bind(null, this.import(dependency));
-			}, this);
+			}
 		}
 
 		return this.modules[name] = method;

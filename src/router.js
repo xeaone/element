@@ -160,64 +160,65 @@ Router.prototype.remove = function (path) {
 };
 
 Router.prototype.get = function (path) {
-	for (var i = 0, l = this.routes.length, r; i < l; i++) {
-		r = this.routes[i];
-		if (path === r.path) {
-			return r;
+	for (var i = 0, l = this.routes.length; i < l; i++) {
+		var route = this.routes[i];
+		if (path === route.path) {
+			return route;
 		}
 	}
 };
 
 Router.prototype.getRoute = function (path) {
-	for (var i = 0, l = this.routes.length, r; i < l; i++) {
-		r = this.routes[i];
-		if (this.testPath(r.path, path)) {
-			return r;
+	for (var i = 0, l = this.routes.length; i < l; i++) {
+		var route = this.routes[i];
+		if (this.testPath(route.path, path)) {
+			return route;
 		}
 	}
 };
 
 Router.prototype.toParameterObject = function (routePath, userPath) {
-	var name;
 	var parameters = {};
 	var brackets = /{|}/g;
 	var pattern = /{(\w+)}/;
 	var userPaths = userPath.split('/');
 	var routePaths = routePath.split('/');
 
-	routePaths.forEach(function (path, index) {
-		if (pattern.test(path)) {
-			name = path.replace(brackets, '');
-			parameters[name] = userPaths[index];
+	for (var i = 0, l = routePaths.length; i < l; i++) {
+		if (pattern.test(routePaths[i])) {
+			var name = routePaths[i].replace(brackets, '');
+			parameters[name] = userPaths[i];
 		}
-	});
+	}
 
 	return parameters;
 };
 
 Router.prototype.toQueryString = function (data) {
+	if (!data) return;
+
 	var query = '?';
 
-	Object.keys(data).forEach(function (key) {
+	for (var key in data) {
 		query += key + '=' + data[key] + '&';
-	});
+	}
 
-	// return and remove trailing &
-	return query.slice(-1);
+	return query.slice(-1); // remove trailing &
 };
 
 
 Router.prototype.toQueryObject = function (path) {
-	var queries = {};
+	if (!path) return;
 
-	if (path) {
-		path.slice(1).split('&').forEach(function (query) {
-			query = query.split('=');
-			queries[query[0]] = query[1];
-		});
+	var result = {};
+	var queries = path.slice(1).split('&');
+
+	for (var i = 0, l = queries.length; i < l; i++) {
+		var query = queries[i].split('=');
+		result[query[0]] = query[1];
 	}
 
-	return queries;
+	return result;
 };
 
 Router.prototype.getLocation = function (path) {

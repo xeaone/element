@@ -6,7 +6,7 @@ export default function Collection (data) {
 }
 
 Collection.prototype.find = function (method) {
-	for (var i = 0; i < this.data.length; i++) {
+	for (var i = 0, l = this.data.length; i < l; i++) {
 		if (method(this.data[i][1], this.data[i][0], i) === true) {
 			return this.data[i][1];
 		}
@@ -14,27 +14,27 @@ Collection.prototype.find = function (method) {
 };
 
 Collection.prototype.get = function (key) {
-	for (var i = 0; i < this.data.length; i++) {
+	for (var i = 0, l = this.data.length; i < l; i++) {
 		if (key === this.data[i][0]) {
 			return this.data[i][1];
 		}
 	}
 };
 
-Collection.prototype.remove = function (key) {
-	for (var i = 0; i < this.data.length; i++) {
-		if (key === this.data[i][0]) {
-			return this.data.splice(i, 1)[0][1];
-		}
-	}
-};
+// Collection.prototype.remove = function (key) {
+// 	for (var i = 0, l = this.data.length; i < l; i++) {
+// 		if (key === this.data[i][0]) {
+// 			return this.data.splice(i, 1)[0][1];
+// 		}
+// 	}
+// };
 
-Collection.prototype.removeById = function (id) {
+Collection.prototype.remove = function (id) {
 	return this.data.splice(id, 1);
 };
 
 Collection.prototype.has = function (key) {
-	for (var i = 0; i < this.data.length; i++) {
+	for (var i = 0, l = this.data.length; i < l; i++) {
 		if (key === this.data[i][0]) {
 			return true;
 		}
@@ -44,7 +44,7 @@ Collection.prototype.has = function (key) {
 };
 
 Collection.prototype.set = function (key, value) {
-	for (var i = 0; i < this.data.length; i++) {
+	for (var i = 0, l = this.data.length; i < l; i++) {
 		if (key === this.data[i][0]) {
 			return this.data[i][1] = value;
 		}
@@ -63,10 +63,8 @@ Collection.prototype.size = function () {
 	return this.data.length;
 };
 
-Collection.prototype.forEach = function (callback, context) {
-	callback = callback.bind(context);
-
-	for (var i = 0; i < this.data.length; i++) {
+Collection.prototype.forEach = function (callback) {
+	for (var i = 0, l = this.data.length; i < l; i++) {
 		callback(this.data[i][1], this.data[i][0], i, this.data);
 	}
 };

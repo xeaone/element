@@ -1,16 +1,12 @@
 
 export default {
 
-	PATH: /\s?\|(.*?)$/,
-	PREFIX: /(data-)?j-/,
-	MODIFIERS: /^(.*?)\|\s?/,
-
 	setByPath: function (collection, path, value) {
 		var keys = path.split('.');
 		var last = keys.length - 1;
 
-		for (var i = 0, key; i < last; i++) {
-			key = keys[i];
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
 			if (collection[key] === undefined) collection[key] = {};
 			collection = collection[key];
 		}
@@ -35,28 +31,6 @@ export default {
 		return data.replace(/-[a-z]/g, function (match) {
 			return match[1].toUpperCase();
 		});
-	},
-
-	attribute: function (name, value) {
-		var attribute = {};
-		attribute.name = name;
-		attribute.value = value;
-		attribute.path = attribute.value.replace(this.PATH, '');
-		attribute.opts = attribute.path.split('.');
-		attribute.command = attribute.name.replace(this.PREFIX, '');
-		attribute.cmds = attribute.command.split('-');
-		attribute.key = attribute.opts.slice(-1);
-		attribute.vpath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
-		attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
-		return attribute;
-	},
-
-	each: function (array, method, context) {
-		method = method.bind(context);
-		for (var i = 0, l = array.length; i < l; i++) {
-			method(array[i], i, array);
-		}
-		return array;
-	},
+	}
 
 };

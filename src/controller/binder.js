@@ -1,30 +1,31 @@
 import Utility from '../utility';
 
 export default function Binder (options) {
-	this.controller = options.controller;
-	this.view = options.controller.view;
-	this.model = options.controller.model;
-	this.events = options.controller.events;
-
 	this.element = options.element;
 	this.attribute = options.attribute;
+	// this.view = options.controller.view;
+	this.controller = options.controller;
+	// this.model = options.controller.model;
+	// this.events = options.controller.events;
+	this.renderType = this.attribute.cmds[0] || 'default';
 
-	this.renderMethod = this.renderMethods[this.attribute.cmds[0]] || this.renderMethods['default'];
-	this.unrenderMethod = this.unrenderMethods[this.attribute.cmds[0]] || this.unrenderMethods['default'];
+	if (this.renderType === 'on') {
+		this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model);
+	} else {
+		this.modifiers = this.attribute.modifiers.map(function (modifier) {
+			return this.controller.modifiers[modifier];
+		}, this);
 
-	this.modifiers = this.attribute.modifiers.map(function (modifier) {
-		return this.controller.modifiers[modifier];
-	}, this);
-
-	this.paths = this.attribute.path.split('.');
-	this.key = this.paths.slice(-1)[0];
-	this.path = this.paths.slice(0, -1).join('.');
-	this.data = this.path ? Utility.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
+		this.paths = this.attribute.path.split('.');
+		this.key = this.paths.slice(-1)[0];
+		this.path = this.paths.slice(0, -1).join('.');
+		this.data = this.path ? Utility.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
+	}
 
 	this.render();
 }
 
-Binder.prototype.setModel = function (data) {
+Binder.prototype.setData = function (data) {
 	if (!this.data) return;
 
 	if (data !== undefined) {
@@ -36,7 +37,7 @@ Binder.prototype.setModel = function (data) {
 	return this.data[this.key] = data;
 };
 
-Binder.prototype.getModel = function () {
+Binder.prototype.getData = function () {
 	if (!this.data) return;
 
 	var data = this.data[this.key];
@@ -52,42 +53,36 @@ Binder.prototype.getModel = function () {
 
 Binder.prototype.updateModel = function () {
 	if (this.element.type === 'checkbox') {
-		this.setModel(this.element.value = this.element.checked);
+		this.setData(this.element.value = this.element.checked);
 	} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
-		this.setModel(Array.prototype.filter.call(this.element.options, function (option) {
+		this.setData(Array.prototype.filter.call(this.element.options, function (option) {
 			return option.selected;
 		}).map(function (option) {
 			return option.value;
 		}));
 	} else if (this.element.type === 'radio') {
-		Array.prototype.forEach.call(
-			this.element.parentNode.querySelectorAll(
-				'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
-			),
-			function (radio, index) {
-				if (radio === this.element) this.setModel(index);
-				else radio.checked = false;
-
-			},
-		this);
+		var elements = this.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]');
+		for (var i = 0, l = elements.length, radio; i < l; i++) {
+			radio = elements[i];
+			if (radio === this.element) {
+				this.setData(i);
+			} else {
+				radio.checked = false;
+			}
+		}
 	} else {
-		this.setModel(this.element.value);
+		this.setData(this.element.value);
 	}
 };
 
 Binder.prototype.renderMethods = {
-	on: function () {
-		if (!this.eventName) {
-			this.eventName = this.attribute.cmds[1];
-			this.eventMethod = Utility.getByPath(this.events, this.attribute.path).bind(this.getModel());
-		}
-
-		this.element.removeEventListener(this.eventName, this.eventMethod);
-		this.element.addEventListener(this.eventName, this.eventMethod);
-	},
-	each: function () {
+	on: function (data) {
 		var self = this;
-		var model = self.getModel();
+		self.element.removeEventListener(self.attribute.cmds[1], data);
+		self.element.addEventListener(self.attribute.cmds[1], data);
+	},
+	each: function (data) {
+		var self = this;
 
 		if (!self.clone) {
 			self.variable = self.attribute.cmds.slice(1).join('.');
@@ -95,64 +90,55 @@ Binder.prototype.renderMethods = {
 			self.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + self.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 		}
 
-		if (self.element.children.length > model.length) {
+		if (self.element.children.length > data.length) {
 			self.element.removeChild(self.element.children[self.element.children.length-1]);
-			// var element = self.element.children[self.element.children.length-1];
-			// var elements = element.getElementsByTagName('*');
-			// self.controller.view.removeAll(elements);
-			// self.controller.view.removeOne(element);
-		} else if (self.element.children.length < model.length) {
+		} else if (self.element.children.length < data.length) {
 			self.element.insertAdjacentHTML(
 				'beforeend',
 				self.clone.replace(
 					self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
 				)
 			);
-			// var element = self.element.children[self.element.children.length-1];
-			// var elements = element.getElementsByTagName('*');
-			// self.controller.view.addAll(elements);
-			// self.controller.view.addOne(element);
 		}
 	},
-	value: function () {
-		// triggered on every change
+	value: function (data) {
+		// NOTE triggered on every change
 		if (this.isSetup) return;
+		var self = this, i, l;
 
-		var model = this.getModel();
-
-		if (this.element.type === 'checkbox') {
-			if (this.element.checked !== model) {
-				this.element.value = this.element.checked = model;
+		if (self.element.type === 'checkbox') {
+			if (self.element.checked !== data) {
+				self.element.value = self.element.checked = data;
 			}
-		} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
-			if (this.element.options.length !== model.length) {
-				Array.prototype.forEach.call(this.element.options, function (option, index) {
-					if (option.value === model[index]) {
+		} if (self.element.nodeName === 'SELECT' && self.element.multiple) {
+			if (self.element.options.length !== data.length) {
+				var options = self.element.options;
+				for (i = 0, l = options.length; i < l; i++) {
+					var option = options[i];
+					if (option.value === data[i]) {
 						option.selected;
 					}
-				}, this);
+				}
 			}
-		} else if (this.element.type === 'radio') {
-			Array.prototype.forEach.call(
-				this.element.parentNode.querySelectorAll(
-					'input[type="radio"][type="radio"][j-value="' + this.attribute.value + '"]'
-				),
-				function (radio, index) {
-					radio.checked = index === model;
-				},
-			this);
+		} else if (self.element.type === 'radio') {
+			var elements = self.element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + self.attribute.value + '"]');
+			for (i = 0, l = elements.length; i < l; i++) {
+				var radio = elements[i];
+				radio.checked = i === data;
+			}
 		} else {
-			this.element.value = model;
+			self.element.value = data;
 		}
 
-		this.isSetup = true;
+		self.isSetup = true;
 	},
-	html: function () {
-		this.element.innerHTML = this.getModel();
-		this.view.addAll(this.element.querySelectorAll('*'));
+	html: function (data) {
+		var self = this;
+		// FIXME not rendering j-*
+		self.element.innerHTML = data;
 	},
-	css: function () {
-		var css = this.getModel();
+	css: function (data) {
+		var css = data;
 
 		if (this.attribute.cmds.length > 1) {
 			css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
@@ -160,44 +146,43 @@ Binder.prototype.renderMethods = {
 
 		this.element.style.cssText += css;
 	},
-	class: function () {
+	class: function (data) {
 		var className = this.attribute.cmds.slice(1).join('-');
-		this.element.classList.toggle(className, this.getModel());
+		this.element.classList.toggle(className, data);
 	},
-	text: function () {
-		this.element.innerText = this.getModel();
+	text: function (data) {
+		this.element.innerText = data;
 	},
-	enable: function () {
-		this.element.disabled = !this.getModel();
+	enable: function (data) {
+		this.element.disabled = !data;
 	},
-	disable: function () {
-		this.element.disabled = this.getModel();
+	disable: function (data) {
+		this.element.disabled = data;
 	},
-	show: function () {
-		this.element.hidden = !this.getModel();
+	show: function (data) {
+		this.element.hidden = !data;
 	},
-	hide: function () {
-		this.element.hidden = this.getModel();
+	hide: function (data) {
+		this.element.hidden = data;
 	},
-	write: function () {
-		this.element.readOnly = !this.getModel();
+	write: function (data) {
+		this.element.readOnly = !data;
 	},
-	read: function () {
-		this.element.readOnly = this.getModel();
+	read: function (data) {
+		this.element.readOnly = data;
 	},
-	selected: function () {
-		this.element.selectedIndex = this.getModel();
+	selected: function (data) {
+		this.element.selectedIndex = data;
 	},
-	default: function () {
+	default: function (data) {
 		var path = Utility.toCamelCase(this.attribute.cmds);
-		Utility.setByPath(this.element, path, this.getModel());
+		Utility.setByPath(this.element, path, data);
 	}
 };
 
 Binder.prototype.unrenderMethods = {
-	on: function () {
-		var eventName = this.attribute.cmds[1];
-		this.element.removeEventListener(eventName, this.getModel(), false);
+	on: function (data) {
+		this.element.removeEventListener(this.attribute.cmds[1], data, false);
 	},
 	each: function () {
 		while (this.element.lastChild) {
@@ -216,11 +201,16 @@ Binder.prototype.unrenderMethods = {
 };
 
 Binder.prototype.unrender = function () {
-	this.unrenderMethod();
-	return this;
+	var self = this;
+	var data = self.renderType === 'on' ? self.data : undefined;
+	self.unrenderMethods[self.renderType].call(self, data);
+	return self;
 };
 
 Binder.prototype.render = function () {
-	this.renderMethod();
-	return this;
+	var self = this;
+	var data = self.renderType === 'on' ? self.data : self.getData();
+	if (data === undefined) return;
+	self.renderMethods[self.renderType].call(self, data);
+	return self;
 };

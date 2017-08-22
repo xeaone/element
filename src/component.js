@@ -44,8 +44,21 @@ export default function Component (options) {
 				name: self.element.uuid,
 				modifiers: self.modifiers
 			}, function () {
-				self.element.view = this.view.data;
-				self.element.model = this.model.data;
+				var controller = this;
+				self.element.view = controller.view.data;
+
+				Object.defineProperty(self.element, 'model', {
+					enumerable: true,
+					configurable: true,
+					set: function (data) {
+						controller.model.overwrite(data);
+						// TODO need to render view
+					},
+					get: function () {
+						return controller.model.data;
+					}
+				});
+
 				if (options.created) options.created.call(self.element);
 			});
 		} else if (options.created) {
