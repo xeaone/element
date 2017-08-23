@@ -1305,7 +1305,7 @@
 			this.state.location = this.getLocation(data);
 			this.state.route = this.find(this.state.location.pathname) || {};
 			this.state.query = this.toQueryObject(this.state.location.search) || {};
-			this.state.parameters = this.toParameterObject(this.state.route.path, this.state.location.pathname) || {};
+			this.state.parameters = this.toParameterObject(this.state.route.path || '', this.state.location.pathname) || {};
 			this.state.title = this.state.route.title || '';
 			this.location = this.state.location;
 		} else {
