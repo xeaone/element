@@ -15,10 +15,21 @@ export default function Router (options) {
 	this.view = options.view || 'j-view';
 
 	this.started = false;
+	this.base = options.base || '';
 	this.hash = options.hash === undefined ? false : options.hash;
 	this.trailing = options.trailing === undefined ? false : options.trailing;
 
-	this.eBase = document.head.querySelector('base');
+	if (this.base) {
+		var base = document.head.querySelector('base');
+
+		if (!base) {
+			base = document.createElement('base');
+			document.head.insertBefore(base, document.head.firstChild);
+		}
+
+		base.href = this.base;
+		this.base = base.href;
+	}
 
 }
 
@@ -230,8 +241,20 @@ Router.prototype.getLocation = function (path) {
 
 	location.pathname = decodeURI(path);
 	location.origin = window.location.origin;
-	location.base = this.eBase ? this.eBase.href : window.location.origin + '/';
+	location.base = this.base ? this.base : location.origin;
 
+	if (location.base.slice(-3) === '/#/') {
+		location.base = location.base.slice(0, -3);
+	}
+
+	if (location.base.slice(-2) === '/#') {
+		location.base = location.base.slice(0, -2);
+	}
+
+	if (location.base.slice(-1) === '/') {
+		location.base = location.base.slice(0, -1);
+	}
+	
 	if (location.pathname.indexOf(location.base) === 0) {
 		location.pathname = location.pathname.slice(location.base.length);
 	}
