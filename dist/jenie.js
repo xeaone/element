@@ -401,10 +401,7 @@
 	function Binder (options) {
 		this.element = options.element;
 		this.attribute = options.attribute;
-		// this.view = options.controller.view;
 		this.controller = options.controller;
-		// this.model = options.controller.model;
-		// this.events = options.controller.events;
 		this.renderType = this.attribute.cmds[0] || 'default';
 
 		if (this.renderType === 'on') {
@@ -418,15 +415,22 @@
 			this.key = this.paths.slice(-1)[0];
 			this.path = this.paths.slice(0, -1).join('.');
 			this.data = this.path ? Utility.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
+
+			// dyncamically set observed property on model
+			if (this.attribute.cmds[0] === 'value' && this.data && this.data[this.key] === undefined) {
+				this.data.$set(this.key, null);
+				this.updateModel();
+			}
+
 		}
 
 		this.render();
 	}
 
 	Binder.prototype.setData = function (data) {
-		if (!this.data) return;
+		if (this.data === undefined) return;
 
-		if (data !== undefined) {
+		if (data !== null) {
 			for (var i = 0, l = this.modifiers.length; i < l; i++) {
 				data = this.modifiers[i].call(data);
 			}
@@ -436,11 +440,11 @@
 	};
 
 	Binder.prototype.getData = function () {
-		if (!this.data) return;
+		if (this.data === undefined) return;
 
 		var data = this.data[this.key];
 
-		if (data !== undefined) {
+		if (data !== null) {
 			for (var i = 0, l = this.modifiers.length; i < l; i++) {
 				data = this.modifiers[i].call(data);
 			}
@@ -451,8 +455,9 @@
 
 	Binder.prototype.updateModel = function () {
 		if (this.element.type === 'checkbox') {
-			this.setData(this.element.value = this.element.checked);
-		} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
+			this.element.value = this.element.checked;
+			this.setData(this.element.checked);
+		} else if (this.element.nodeName === 'SELECT' && this.element.multiple) {
 			this.setData(Array.prototype.filter.call(this.element.options, function (option) {
 				return option.selected;
 			}).map(function (option) {
@@ -506,7 +511,8 @@
 
 			if (self.element.type === 'checkbox') {
 				if (self.element.checked !== data) {
-					self.element.value = self.element.checked = data;
+					self.element.value = data;
+					self.element.checked = data;
 				}
 			} if (self.element.nodeName === 'SELECT' && self.element.multiple) {
 				if (self.element.options.length !== data.length) {
@@ -571,6 +577,9 @@
 		},
 		selected: function (data) {
 			this.element.selectedIndex = data;
+		},
+		href: function (data) {
+			this.element.href = data;
 		},
 		default: function (data) {
 			var path = Utility.toCamelCase(this.attribute.cmds);
@@ -1525,7 +1534,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.13
+		version: 1.4.14
 		license: mpl-2.0
 		author: alexander elias
 

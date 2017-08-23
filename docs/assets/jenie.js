@@ -401,14 +401,11 @@
 	function Binder (options) {
 		this.element = options.element;
 		this.attribute = options.attribute;
-		// this.view = options.controller.view;
 		this.controller = options.controller;
-		// this.model = options.controller.model;
-		// this.events = options.controller.events;
 		this.renderType = this.attribute.cmds[0] || 'default';
 
 		if (this.renderType === 'on') {
-			this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model);
+			this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model.data);
 		} else {
 			this.modifiers = this.attribute.modifiers.map(function (modifier) {
 				return this.controller.modifiers[modifier];
@@ -418,15 +415,22 @@
 			this.key = this.paths.slice(-1)[0];
 			this.path = this.paths.slice(0, -1).join('.');
 			this.data = this.path ? Utility.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
+
+			// dyncamically set observed property on model
+			if (this.attribute.cmds[0] === 'value' && this.data && this.data[this.key] === undefined) {
+				this.data.$set(this.key, null);
+				this.updateModel();
+			}
+
 		}
 
 		this.render();
 	}
 
 	Binder.prototype.setData = function (data) {
-		if (!this.data) return;
+		if (this.data === undefined) return;
 
-		if (data !== undefined) {
+		if (data !== null) {
 			for (var i = 0, l = this.modifiers.length; i < l; i++) {
 				data = this.modifiers[i].call(data);
 			}
@@ -436,11 +440,11 @@
 	};
 
 	Binder.prototype.getData = function () {
-		if (!this.data) return;
+		if (this.data === undefined) return;
 
 		var data = this.data[this.key];
 
-		if (data !== undefined) {
+		if (data !== null) {
 			for (var i = 0, l = this.modifiers.length; i < l; i++) {
 				data = this.modifiers[i].call(data);
 			}
@@ -451,8 +455,9 @@
 
 	Binder.prototype.updateModel = function () {
 		if (this.element.type === 'checkbox') {
-			this.setData(this.element.value = this.element.checked);
-		} if (this.element.nodeName === 'SELECT' && this.element.multiple) {
+			this.element.value = this.element.checked;
+			this.setData(this.element.checked);
+		} else if (this.element.nodeName === 'SELECT' && this.element.multiple) {
 			this.setData(Array.prototype.filter.call(this.element.options, function (option) {
 				return option.selected;
 			}).map(function (option) {
@@ -506,7 +511,8 @@
 
 			if (self.element.type === 'checkbox') {
 				if (self.element.checked !== data) {
-					self.element.value = self.element.checked = data;
+					self.element.value = data;
+					self.element.checked = data;
 				}
 			} if (self.element.nodeName === 'SELECT' && self.element.multiple) {
 				if (self.element.options.length !== data.length) {
@@ -571,6 +577,9 @@
 		},
 		selected: function (data) {
 			this.element.selectedIndex = data;
+		},
+		href: function (data) {
+			this.element.href = data;
 		},
 		default: function (data) {
 			var path = Utility.toCamelCase(this.attribute.cmds);
@@ -642,11 +651,13 @@
 	};
 
 	View.prototype.nodeSkipsTest = function (node) {
+		if (!node) return false;
 		var self = this;
 		return self.ELEMENT_SKIPS.test(node.nodeName);
 	};
 
 	View.prototype.nodeAcceptsTest = function (node) {
+		if (!node) return false;
 		var self = this;
 		var attributes = node.attributes;
 		for (var i = 0, l = attributes.length; i < l; i++) {
@@ -903,7 +914,7 @@
 				document.importNode(self.template.content, true)
 			);
 
-			if (self.model) {
+			if (self.model || self.events || self.modifiers) {
 				self.element.controller = new Controller({
 					model: self.model,
 					view: self.element,
@@ -1040,6 +1051,42 @@
 	Router.prototype = Object.create(Events.prototype);
 	Router.prototype.constructor = Router;
 
+	Router.prototype.appendComponentElement = function (url, callback) {
+		var element;
+
+		if (/\.html$/.test(url)) {
+			element = document.createElement('link');
+			element.setAttribute('href', url);
+			element.setAttribute('rel', 'import');
+		} else if (/\.js$/.test(url)) {
+			element = document.createElement('script');
+			element.setAttribute('src', url);
+			element.setAttribute('type', 'text/javascript');
+		} else {
+			throw new Error('Invalid extension type');
+		}
+
+		element.onload = callback;
+		element.setAttribute('async', '');
+		document.head.appendChild(element);
+	};
+
+	Router.prototype.joinPath = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/\/{2,}/g, '/')
+			.replace(/^(http(s)?:\/)/, '$1/');
+	};
+
+	Router.prototype.testPath = function (routePath, userPath) {
+		return new RegExp(
+			'^' + routePath
+			.replace(/{\*}/g, '(?:.*)')
+			.replace(/{(\w+)}/g, '([^\/]+)')
+			+ '(\/)?$'
+		).test(userPath);
+	};
+
 	Router.prototype.popstate = function (e) {
 		this.navigate(e.state || window.location.href, true);
 	};
@@ -1088,26 +1135,6 @@
 		window.scroll(x, y);
 	};
 
-	Router.prototype.appendComponentElement = function (url, callback) {
-		var element;
-
-		if (/\.html$/.test(url)) {
-			element = document.createElement('link');
-			element.setAttribute('href', url);
-			element.setAttribute('rel', 'import');
-		} else if (/\.js$/.test(url)) {
-			element = document.createElement('script');
-			element.setAttribute('src', url);
-			element.setAttribute('type', 'text/javascript');
-		} else {
-			throw new Error('Invalid extension type');
-		}
-
-		element.onload = callback;
-		element.setAttribute('async', '');
-		document.head.appendChild(element);
-	};
-
 	Router.prototype.render = function (route, callback) {
 		var self = this;
 
@@ -1138,20 +1165,8 @@
 
 	};
 
-	Router.prototype.joinPath = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/\/{2,}/g, '/')
-			.replace(/^(http(s)?:\/)/, '$1/');
-	};
-
-	Router.prototype.testPath = function (routePath, userPath) {
-		return new RegExp(
-			'^' + routePath
-			.replace(/{\*}/g, '(?:.*)')
-			.replace(/{(\w+)}/g, '([^\/]+)')
-			+ '(\/)?$'
-		).test(userPath);
+	Router.prototype.back = function () {
+		window.history.back();
 	};
 
 	Router.prototype.redirect = function (path) {
@@ -1183,7 +1198,7 @@
 		}
 	};
 
-	Router.prototype.getRoute = function (path) {
+	Router.prototype.find = function (path) {
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 			var route = this.routes[i];
 			if (this.testPath(route.path, path)) {
@@ -1301,9 +1316,9 @@
 
 		if (typeof data === 'string') {
 			this.state.location = this.getLocation(data);
-			this.state.route = this.getRoute(this.state.location.pathname) || {};
+			this.state.route = this.find(this.state.location.pathname) || {};
 			this.state.query = this.toQueryObject(this.state.location.search) || {};
-			this.state.parameters = this.toParameterObject(this.state.route.path, this.state.location.pathname) || {};
+			this.state.parameters = this.toParameterObject(this.state.route.path || '', this.state.location.pathname) || {};
 			this.state.title = this.state.route.title || '';
 			this.location = this.state.location;
 		} else {
@@ -1519,7 +1534,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.9
+		version: 1.4.14
 		license: mpl-2.0
 		author: alexander elias
 
