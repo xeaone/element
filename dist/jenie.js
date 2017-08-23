@@ -642,11 +642,13 @@
 	};
 
 	View.prototype.nodeSkipsTest = function (node) {
+		if (!node) return false;
 		var self = this;
 		return self.ELEMENT_SKIPS.test(node.nodeName);
 	};
 
 	View.prototype.nodeAcceptsTest = function (node) {
+		if (!node) return false;
 		var self = this;
 		var attributes = node.attributes;
 		for (var i = 0, l = attributes.length; i < l; i++) {
@@ -1519,7 +1521,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.10
+		version: 1.4.11
 		license: mpl-2.0
 		author: alexander elias
 
