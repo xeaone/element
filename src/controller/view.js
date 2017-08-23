@@ -30,11 +30,13 @@ View.prototype.attribute = function (name, value) {
 };
 
 View.prototype.nodeSkipsTest = function (node) {
+	if (!node) return false;
 	var self = this;
 	return self.ELEMENT_SKIPS.test(node.nodeName);
 };
 
 View.prototype.nodeAcceptsTest = function (node) {
+	if (!node) return false;
 	var self = this;
 	var attributes = node.attributes;
 	for (var i = 0, l = attributes.length; i < l; i++) {
