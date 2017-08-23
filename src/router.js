@@ -139,6 +139,10 @@ Router.prototype.render = function (route, callback) {
 
 };
 
+Router.prototype.back = function () {
+	window.history.back();
+};
+
 Router.prototype.redirect = function (path) {
 	window.location.href = path;
 };

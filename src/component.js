@@ -36,7 +36,7 @@ export default function Component (options) {
 			document.importNode(self.template.content, true)
 		);
 
-		if (self.model) {
+		if (self.model || self.events || self.modifiers) {
 			self.element.controller = new Controller({
 				model: self.model,
 				view: self.element,

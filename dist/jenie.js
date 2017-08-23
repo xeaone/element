@@ -905,7 +905,7 @@
 				document.importNode(self.template.content, true)
 			);
 
-			if (self.model) {
+			if (self.model || self.events || self.modifiers) {
 				self.element.controller = new Controller({
 					model: self.model,
 					view: self.element,
@@ -1154,6 +1154,10 @@
 			appendView();
 		}
 
+	};
+
+	Router.prototype.back = function () {
+		window.history.back();
 	};
 
 	Router.prototype.redirect = function (path) {
@@ -1521,7 +1525,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.12
+		version: 1.4.13
 		license: mpl-2.0
 		author: alexander elias
 
