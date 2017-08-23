@@ -10,7 +10,7 @@ export default function Binder (options) {
 	this.renderType = this.attribute.cmds[0] || 'default';
 
 	if (this.renderType === 'on') {
-		this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model);
+		this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model.data);
 	} else {
 		this.modifiers = this.attribute.modifiers.map(function (modifier) {
 			return this.controller.modifiers[modifier];

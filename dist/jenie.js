@@ -408,7 +408,7 @@
 		this.renderType = this.attribute.cmds[0] || 'default';
 
 		if (this.renderType === 'on') {
-			this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model);
+			this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model.data);
 		} else {
 			this.modifiers = this.attribute.modifiers.map(function (modifier) {
 				return this.controller.modifiers[modifier];
@@ -1040,6 +1040,42 @@
 	Router.prototype = Object.create(Events.prototype);
 	Router.prototype.constructor = Router;
 
+	Router.prototype.appendComponentElement = function (url, callback) {
+		var element;
+
+		if (/\.html$/.test(url)) {
+			element = document.createElement('link');
+			element.setAttribute('href', url);
+			element.setAttribute('rel', 'import');
+		} else if (/\.js$/.test(url)) {
+			element = document.createElement('script');
+			element.setAttribute('src', url);
+			element.setAttribute('type', 'text/javascript');
+		} else {
+			throw new Error('Invalid extension type');
+		}
+
+		element.onload = callback;
+		element.setAttribute('async', '');
+		document.head.appendChild(element);
+	};
+
+	Router.prototype.joinPath = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/\/{2,}/g, '/')
+			.replace(/^(http(s)?:\/)/, '$1/');
+	};
+
+	Router.prototype.testPath = function (routePath, userPath) {
+		return new RegExp(
+			'^' + routePath
+			.replace(/{\*}/g, '(?:.*)')
+			.replace(/{(\w+)}/g, '([^\/]+)')
+			+ '(\/)?$'
+		).test(userPath);
+	};
+
 	Router.prototype.popstate = function (e) {
 		this.navigate(e.state || window.location.href, true);
 	};
@@ -1088,26 +1124,6 @@
 		window.scroll(x, y);
 	};
 
-	Router.prototype.appendComponentElement = function (url, callback) {
-		var element;
-
-		if (/\.html$/.test(url)) {
-			element = document.createElement('link');
-			element.setAttribute('href', url);
-			element.setAttribute('rel', 'import');
-		} else if (/\.js$/.test(url)) {
-			element = document.createElement('script');
-			element.setAttribute('src', url);
-			element.setAttribute('type', 'text/javascript');
-		} else {
-			throw new Error('Invalid extension type');
-		}
-
-		element.onload = callback;
-		element.setAttribute('async', '');
-		document.head.appendChild(element);
-	};
-
 	Router.prototype.render = function (route, callback) {
 		var self = this;
 
@@ -1136,22 +1152,6 @@
 			appendView();
 		}
 
-	};
-
-	Router.prototype.joinPath = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/\/{2,}/g, '/')
-			.replace(/^(http(s)?:\/)/, '$1/');
-	};
-
-	Router.prototype.testPath = function (routePath, userPath) {
-		return new RegExp(
-			'^' + routePath
-			.replace(/{\*}/g, '(?:.*)')
-			.replace(/{(\w+)}/g, '([^\/]+)')
-			+ '(\/)?$'
-		).test(userPath);
 	};
 
 	Router.prototype.redirect = function (path) {
@@ -1183,7 +1183,7 @@
 		}
 	};
 
-	Router.prototype.getRoute = function (path) {
+	Router.prototype.find = function (path) {
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 			var route = this.routes[i];
 			if (this.testPath(route.path, path)) {
@@ -1301,7 +1301,7 @@
 
 		if (typeof data === 'string') {
 			this.state.location = this.getLocation(data);
-			this.state.route = this.getRoute(this.state.location.pathname) || {};
+			this.state.route = this.find(this.state.location.pathname) || {};
 			this.state.query = this.toQueryObject(this.state.location.search) || {};
 			this.state.parameters = this.toParameterObject(this.state.route.path, this.state.location.pathname) || {};
 			this.state.title = this.state.route.title || '';
@@ -1519,7 +1519,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.9
+		version: 1.4.10
 		license: mpl-2.0
 		author: alexander elias
 

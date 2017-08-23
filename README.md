@@ -153,17 +153,15 @@ Returns an instance of a new controller.
 		- `Function` Argument provided is the request path. Expects a boolean return.
 
 - `start: Function` Must be called after <j-view></j-view> is created
-- `normalize: Function`
-- `join: Function`
-- `scroll: Function`
-- `url: Function`
-- `render: Function`
 - `redirect: Function`
 - `add: Function`
+	- `path: String`
 - `remove: Function`
+	- `path: String`
 - `get: Function`
-- `findRoute: Function`
-	- `route.path: String, RegExp, Function`
+	- `path: String` Exact path matching, route path variables are not taken into account.
+- `find: Function` Approximate path matching, route path variables are taken into account.
+	- `path: String`
 - `findRoutes: Function`
 	- `route.path: RegExp`
 - `navigate: Function`
