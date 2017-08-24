@@ -1,4 +1,5 @@
 import Events from './events';
+import Loader from './loader';
 
 export default function Router (options) {
 	Events.call(this);
@@ -8,6 +9,7 @@ export default function Router (options) {
 	this.state = {};
 	this.cache = {};
 	this.location = {};
+	this.loader = new Loader();
 
 	this.external = options.external;
 	this.container = options.container;
@@ -35,26 +37,6 @@ export default function Router (options) {
 
 Router.prototype = Object.create(Events.prototype);
 Router.prototype.constructor = Router;
-
-Router.prototype.appendComponentElement = function (url, callback) {
-	var element;
-
-	if (/\.html$/.test(url)) {
-		element = document.createElement('link');
-		element.setAttribute('href', url);
-		element.setAttribute('rel', 'import');
-	} else if (/\.js$/.test(url)) {
-		element = document.createElement('script');
-		element.setAttribute('src', url);
-		element.setAttribute('type', 'text/javascript');
-	} else {
-		throw new Error('Invalid extension type');
-	}
-
-	element.onload = callback;
-	element.setAttribute('async', '');
-	document.head.appendChild(element);
-};
 
 Router.prototype.joinPath = function () {
 	return Array.prototype.join
@@ -120,34 +102,32 @@ Router.prototype.scroll = function (x, y) {
 	window.scroll(x, y);
 };
 
-Router.prototype.render = function (route, callback) {
-	var self = this;
+Router.prototype.rendered = function (route, callback) {
+	while (this.view.lastChild) {
+		this.view.removeChild(this.view.lastChild);
+	}
 
+	if (!(route.component in this.cache)) {
+		this.cache[route.component] = document.createElement(route.component);
+	}
+
+	this.view.appendChild(this.cache[route.component]);
+
+	if (callback) {
+		callback.call(this);
+	}
+};
+
+Router.prototype.render = function (route, callback) {
 	if (route.title) {
 		document.title = route.title;
 	}
 
-	var appendView = function () {
-
-		if (self.view.firstChild) {
-			self.view.removeChild(self.view.firstChild);
-		}
-
-		if (!self.cache[route.component]) {
-			self.cache[route.component] = document.createElement(route.component);
-		}
-
-		self.view.appendChild(self.cache[route.component]);
-
-		if (callback) return callback.call(self);
-	};
-
-	if (route.componentUrl && !self.cache[route.component]) {
-		self.appendComponentElement(route.componentUrl, appendView);
+	if (route.componentUrl && !(route.component in this.cache)) {
+		this.loader.inject(route.componentUrl, this.rendered.bind(this, route, callback));
 	} else {
-		appendView();
+		this.rendered(route, callback);
 	}
-
 };
 
 Router.prototype.back = function () {
@@ -254,7 +234,7 @@ Router.prototype.getLocation = function (path) {
 	if (location.base.slice(-1) === '/') {
 		location.base = location.base.slice(0, -1);
 	}
-	
+
 	if (location.pathname.indexOf(location.base) === 0) {
 		location.pathname = location.pathname.slice(location.base.length);
 	}

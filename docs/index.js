@@ -1,5 +1,21 @@
 
 Jenie.setup({
+	loader: {
+		loads: [
+			// {
+			// 	group: 'async',
+			// 	path: 'index.css'
+			// },
+			{
+				group: 'defer',
+				path: 'assets/prism-default.css'
+			},
+			{
+				group: 'defer',
+				path: 'assets/prism.js'
+			}
+		]
+	},
 	module: {
 		modules: [
 			{

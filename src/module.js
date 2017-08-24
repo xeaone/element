@@ -14,7 +14,7 @@ export default function Module (options) {
 			);
 		}
 	}
-	
+
 }
 
 Module.prototype.load = function (paths) {

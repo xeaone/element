@@ -7,7 +7,9 @@
 	<script>
 		var href = '/jenie/';
 		var origin = 'https://alexanderelias.github.io';
-		if (window.location.origin === origin) document.head.querySelector('base').href = href;
+		if (window.location.origin === origin) {
+			document.head.querySelector('base').href = href;
+		}
 	</script>
 
 	<meta charset="utf-8">
@@ -19,10 +21,8 @@
 	<script src="assets/webcomponents-lite.min.js" defer></script>
 	<script src="assets/jenie.js" defer></script>
 	<script src="index.js" defer></script>
-
 	<link rel="stylesheet" href="index.css" async>
-	<link rel="stylesheet" href="assets/prism-default.css" async>
-	<script src="assets/prism.js" async></script>
+
 </head>
 <body>
 

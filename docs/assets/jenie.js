@@ -1026,6 +1026,83 @@
 		}
 	};
 
+	function Loader (options) {
+		options = options || {};
+		this.loads = {};
+		this.counts = {};
+
+		if (options.loads && options.loads.length) {
+			this.setup(options.loads);
+		}
+	}
+
+	Loader.prototype.setup = function (loads) {
+		for (var i = 0, l = loads.length, load; i < l; i++) {
+			load = loads[i];
+
+			if (!load.group) {
+				throw new Error('Missing load group');
+			}
+
+			if (!load.path) {
+				throw new Error('Missing load path');
+			}
+
+			if (!(load.group in this.loads)) {
+				this.counts[load.group] = 0;
+				this.loads[load.group] = [];
+			}
+
+			this.loads[load.group].push(load);
+		}
+	};
+
+	Loader.prototype.inject = function (load, callback) {
+		var element;
+
+		load = typeof load === 'string' ? { path: load } : load;
+		load.type = load.type || 'async';
+
+		if (/\.css$/.test(load.path)) {
+			element = document.createElement('link');
+			element.setAttribute('rel', 'stylesheet');
+			element.setAttribute('href', load.path);
+			element.setAttribute(load.type, '');
+		} else if (/\.html$/.test(load.path)) {
+			element = document.createElement('link');
+			element.setAttribute('rel', 'import');
+			element.setAttribute('href', load.path);
+			element.setAttribute(load.type, '');
+		} else if (/\.js$/.test(load.path)) {
+			element = document.createElement('script');
+			element.setAttribute('src', load.path);
+			element.setAttribute(load.type, '');
+		} else {
+			throw new Error('Unrecognized extension');
+		}
+
+		element.onload = callback;
+		document.head.appendChild(element);
+	};
+
+	Loader.prototype.listener = function (group, listener) {
+		if (++this.counts[group] === this.loads[group].length) {
+			if (listener) listener();
+		}
+	};
+
+	Loader.prototype.start = function (group, listener) {
+		if (!group) throw new Error('Missing inject group');
+		if (!this.loads[group]) return console.warn('Missing group');
+
+		for (var i = 0, l = this.loads[group].length; i < l; i++) {
+			this.inject(
+				this.loads[group][i],
+				this.listener.bind(this, group, listener)
+			);
+		}
+	};
+
 	function Router (options) {
 		Events.call(this);
 
@@ -1034,6 +1111,7 @@
 		this.state = {};
 		this.cache = {};
 		this.location = {};
+		this.loader = new Loader();
 
 		this.external = options.external;
 		this.container = options.container;
@@ -1061,26 +1139,6 @@
 
 	Router.prototype = Object.create(Events.prototype);
 	Router.prototype.constructor = Router;
-
-	Router.prototype.appendComponentElement = function (url, callback) {
-		var element;
-
-		if (/\.html$/.test(url)) {
-			element = document.createElement('link');
-			element.setAttribute('href', url);
-			element.setAttribute('rel', 'import');
-		} else if (/\.js$/.test(url)) {
-			element = document.createElement('script');
-			element.setAttribute('src', url);
-			element.setAttribute('type', 'text/javascript');
-		} else {
-			throw new Error('Invalid extension type');
-		}
-
-		element.onload = callback;
-		element.setAttribute('async', '');
-		document.head.appendChild(element);
-	};
 
 	Router.prototype.joinPath = function () {
 		return Array.prototype.join
@@ -1146,34 +1204,32 @@
 		window.scroll(x, y);
 	};
 
-	Router.prototype.render = function (route, callback) {
-		var self = this;
+	Router.prototype.rendered = function (route, callback) {
+		while (this.view.lastChild) {
+			this.view.removeChild(this.view.lastChild);
+		}
 
+		if (!(route.component in this.cache)) {
+			this.cache[route.component] = document.createElement(route.component);
+		}
+
+		this.view.appendChild(this.cache[route.component]);
+
+		if (callback) {
+			callback.call(this);
+		}
+	};
+
+	Router.prototype.render = function (route, callback) {
 		if (route.title) {
 			document.title = route.title;
 		}
 
-		var appendView = function () {
-
-			if (self.view.firstChild) {
-				self.view.removeChild(self.view.firstChild);
-			}
-
-			if (!self.cache[route.component]) {
-				self.cache[route.component] = document.createElement(route.component);
-			}
-
-			self.view.appendChild(self.cache[route.component]);
-
-			if (callback) return callback.call(self);
-		};
-
-		if (route.componentUrl && !self.cache[route.component]) {
-			self.appendComponentElement(route.componentUrl, appendView);
+		if (route.componentUrl && !(route.component in this.cache)) {
+			this.loader.inject(route.componentUrl, this.rendered.bind(this, route, callback));
 		} else {
-			appendView();
+			this.rendered(route, callback);
 		}
-
 	};
 
 	Router.prototype.back = function () {
@@ -1280,7 +1336,7 @@
 		if (location.base.slice(-1) === '/') {
 			location.base = location.base.slice(0, -1);
 		}
-		
+
 		if (location.pathname.indexOf(location.base) === 0) {
 			location.pathname = location.pathname.slice(location.base.length);
 		}
@@ -1376,7 +1432,7 @@
 				);
 			}
 		}
-		
+
 	}
 
 	Module.prototype.load = function (paths) {
@@ -1557,7 +1613,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.15
+		version: 1.4.16
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1580,15 +1636,21 @@
 	var jenie_b = {
 
 		http: new Http(),
+		loader: new Loader(),
 		module: new Module(),
 		router: new Router(),
 
 		setup: function (options) {
 			options = (typeof options === 'function' ? options.call(this) : options) || {};
+
 			if (options.http) this.http = new Http(options.http);
+			if (options.loader) this.loader = new Loader(options.loader);
 			if (options.module) this.module = new Module(options.module);
 			if (options.router) this.router = new Router(options.router);
-			this.router.start();
+			this.loader.start('async');
+			this.loader.start('defer', function () {
+				this.router.start();
+			}.bind(this));
 		},
 
 		component: function (options) {

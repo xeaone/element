@@ -2,7 +2,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.4.15
+	version: 1.4.16
 	license: mpl-2.0
 	author: alexander elias
 
@@ -14,6 +14,7 @@
 import Component from './component';
 import Controller from './controller';
 import Router from './router';
+import Loader from './loader';
 import Module from './module';
 import Http from './http';
 
@@ -31,15 +32,21 @@ document.registerElement('j-view', {
 export default {
 
 	http: new Http(),
+	loader: new Loader(),
 	module: new Module(),
 	router: new Router(),
 
 	setup: function (options) {
 		options = (typeof options === 'function' ? options.call(this) : options) || {};
+
 		if (options.http) this.http = new Http(options.http);
+		if (options.loader) this.loader = new Loader(options.loader);
 		if (options.module) this.module = new Module(options.module);
 		if (options.router) this.router = new Router(options.router);
-		this.router.start();
+		this.loader.start('async');
+		this.loader.start('defer', function () {
+			this.router.start();
+		}.bind(this));
 	},
 
 	component: function (options) {
