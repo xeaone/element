@@ -4,15 +4,21 @@ Jenie.component({
 	model: {
 		text: 'Hello from js test'
 	},
-	template: '\n\t\t<p j-text="text"></p>\n\t\t<div>\n\t\t\t<slot name="one"></slot>\n\t\t\t<slot name="two"></slot>\n\t\t</div>\n\t',
-	created: function created() {
+	template: `
+		<p j-text="text"></p>
+		<div>
+			<slot name="one"></slot>
+			<slot name="two"></slot>
+		</div>
+	`,
+	created: function () {
 		console.log('created ' + this.name);
 		this.model.text = 'new js render';
 	},
-	attached: function attached() {
+	attached: function () {
 		console.log('attached ' + this.name);
 	},
-	detached: function detached() {
+	detached: function () {
 		console.log('detached ' + this.name);
-	}
+	},
 });

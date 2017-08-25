@@ -1,9 +1,12 @@
 
 export default function Http (options) {
-	options = options || {};
+	this.setup(options || {});
+}
+
+Http.prototype.setup = function (options) {
 	this.request = options.request;
 	this.response = options.response;
-}
+};
 
 Http.prototype.mime = {
 	html: 'text/html',

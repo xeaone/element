@@ -4,12 +4,18 @@ import Loader from './loader';
 export default function Router (options) {
 	Events.call(this);
 
-	options = options || {};
-
 	this.state = {};
 	this.cache = {};
 	this.location = {};
 	this.loader = new Loader();
+
+	this.setup(options || {});
+}
+
+Router.prototype = Object.create(Events.prototype);
+Router.prototype.constructor = Router;
+
+Router.prototype.setup = function (options) {
 
 	this.external = options.external;
 	this.container = options.container;
@@ -29,14 +35,13 @@ export default function Router (options) {
 			document.head.insertBefore(base, document.head.firstChild);
 		}
 
-		base.href = this.base;
+		if (typeof this.base === 'string') {
+			base.href = this.base;
+		}
+
 		this.base = base.href;
 	}
-
-}
-
-Router.prototype = Object.create(Events.prototype);
-Router.prototype.constructor = Router;
+};
 
 Router.prototype.joinPath = function () {
 	return Array.prototype.join
@@ -123,8 +128,8 @@ Router.prototype.render = function (route, callback) {
 		document.title = route.title;
 	}
 
-	if (route.componentUrl && !(route.component in this.cache)) {
-		this.loader.inject(route.componentUrl, this.rendered.bind(this, route, callback));
+	if (route.load && !(route.component in this.cache)) {
+		this.loader.inject(route.load, this.rendered.bind(this, route, callback));
 	} else {
 		this.rendered(route, callback);
 	}

@@ -1,6 +1,9 @@
 
-export default function Module (options) {
-	options = options || {};
+export default function Module (options) {	
+	this.setup(options || {});
+}
+
+Module.prototype.setup = function (options) {
 	this.modules = {};
 
 	if (options.modules) {
@@ -14,8 +17,7 @@ export default function Module (options) {
 			);
 		}
 	}
-
-}
+};
 
 Module.prototype.load = function (paths) {
 	for (var i = 0, l = paths.length; i < l; i++) {

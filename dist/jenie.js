@@ -362,41 +362,41 @@
 		}
 	};
 
-	function Utility () {}
+	var Utility = {
 
-	Utility.prototype.setByPath = function (collection, path, value) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
+		setByPath: function (collection, path, value) {
+			var keys = path.split('.');
+			var last = keys.length - 1;
 
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (collection[key] === undefined) collection[key] = {};
-			collection = collection[key];
+			for (var i = 0; i < last; i++) {
+				var key = keys[i];
+				if (collection[key] === undefined) collection[key] = {};
+				collection = collection[key];
+			}
+
+			return collection[keys[last]] = value;
+		},
+
+		getByPath: function (collection, path) {
+			var keys = path.split('.');
+			var last = keys.length - 1;
+
+			for (var i = 0; i < last; i++) {
+				if (!collection[keys[i]]) return undefined;
+				else collection = collection[keys[i]];
+			}
+
+			return collection[keys[last]];
+		},
+
+		toCamelCase: function (data) {
+			if (data.constructor.name === 'Array') data = data.join('-');
+			return data.replace(/-[a-z]/g, function (match) {
+				return match[1].toUpperCase();
+			});
 		}
 
-		return collection[keys[last]] = value;
 	};
-
-	Utility.prototype.getByPath = function (collection, path) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			if (!collection[keys[i]]) return undefined;
-			else collection = collection[keys[i]];
-		}
-
-		return collection[keys[last]];
-	};
-
-	Utility.prototype.toCamelCase = function (data) {
-		if (data.constructor.name === 'Array') data = data.join('-');
-		return data.replace(/-[a-z]/ig, function (match) {
-			return match[1].toUpperCase();
-		});
-	};
-
-	var Utility$1 = new Utility();
 
 	function Binder (options) {
 		this.element = options.element;
@@ -405,7 +405,7 @@
 		this.renderType = this.attribute.cmds[0] || 'default';
 
 		if (this.renderType === 'on') {
-			this.data = Utility$1.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model.data);
+			this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model.data);
 		} else {
 			this.modifiers = this.attribute.modifiers.map(function (modifier) {
 				return this.controller.modifiers[modifier];
@@ -414,7 +414,7 @@
 			this.paths = this.attribute.path.split('.');
 			this.key = this.paths.slice(-1)[0];
 			this.path = this.paths.slice(0, -1).join('.');
-			this.data = this.path ? Utility$1.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
+			this.data = this.path ? Utility.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
 
 			// dyncamically set observed property on model
 			if (this.attribute.cmds[0] === 'value' && this.data && this.data[this.key] === undefined) {
@@ -582,8 +582,8 @@
 			this.element.href = data;
 		},
 		default: function (data) {
-			var path = Utility$1.toCamelCase(this.attribute.cmds);
-			Utility$1.setByPath(this.element, path, data);
+			var path = Utility.toCamelCase(this.attribute.cmds);
+			Utility.setByPath(this.element, path, data);
 		}
 	};
 
@@ -950,19 +950,20 @@
 	}
 
 	Component.prototype.slotify = function () {
-		var eSlots = this.element.querySelectorAll('[slot]');
+		var self = this;
+		var eSlots = self.element.querySelectorAll('[slot]');
 
 		for (var i = 0, l = eSlots.length; i < l; i++) {
 			var eSlot = eSlots[i];
 			var sName = eSlot.getAttribute('slot');
-			var tSlot = this.template.content.querySelector('slot[name='+ sName + ']');
+			var tSlot = self.template.content.querySelector('slot[name='+ sName + ']');
 			tSlot.parentNode.replaceChild(eSlot, tSlot);
 		}
 	};
 
-	Component.prototype.toHTML = function (html) {
+	Component.prototype.toDom = function (string) {
 		var template = document.createElement('template');
-		template.innerHTML = html;
+		template.innerHTML = string;
 		return template;
 	};
 
@@ -970,7 +971,7 @@
 
 		if (template.constructor.name === 'String') {
 			if (/<|>/.test(template)) {
-				template = this.toHTML(template);
+				template = this.toDom(template);
 			} else {
 				template = this.currentScript.ownerDocument.querySelector(template);
 			}
@@ -1025,118 +1026,14 @@
 		}
 	};
 
-	function Loader (options) {
-		this.setup(options || {});
-	}
-
-	Loader.prototype.setup = function (options) {
-		this.loads = {};
-		this.counts = {};
-
-		if (options.loads && options.loads.length) {
-			this.insert(options.loads);
-		}
-	};
-
-	Loader.prototype.insert = function (loads) {
-		for (var i = 0, l = loads.length, load; i < l; i++) {
-			load = loads[i];
-
-			if (!load.group) {
-				throw new Error('Missing load group');
-			}
-
-			if (!load.path) {
-				throw new Error('Missing load path');
-			}
-
-			if (!load.execution) {
-				load.execution = 'defer';
-			}
-
-			if (!(load.group in this.loads)) {
-				this.counts[load.group] = 0;
-				this.loads[load.group] = [];
-			}
-
-			this.loads[load.group].push(load);
-		}
-	};
-
-	Loader.prototype.inject = function (load, callback) {
-		if (load.done) {
-			if (callback) callback();
-			return;
-		}
-
-		var element;
-
-		load = typeof load === 'string' ? { path: load } : load;
-		load.attributes = load.attributes || {};
-
-		for (var attribute in load.attributes) {
-			element.setAttribute(attribute, load.attributes[attribute]);
-		}
-
-		if (/\.css$/.test(load.path)) {
-			element = document.createElement('link');
-			element.setAttribute('rel', 'stylesheet');
-			element.setAttribute('href', load.path);
-		} else if (/\.html$/.test(load.path)) {
-			element = document.createElement('link');
-			element.setAttribute('rel', 'import');
-			element.setAttribute('href', load.path);
-			if (!('async' in load.attributes || 'defer' in load.attributes)) {
-				element.setAttribute('defer', '');
-			}
-		} else if (/\.js$/.test(load.path)) {
-			element = document.createElement('script');
-			element.setAttribute('src', load.path);
-			if (!('async' in load.attributes || 'defer' in load.attributes)) {
-				element.setAttribute('defer', '');
-			}
-		} else {
-			throw new Error('Unrecognized extension');
-		}
-
-		element.onload = callback;
-		document.head.appendChild(element);
-		load.done = true;
-	};
-
-	Loader.prototype.listener = function (group, listener) {
-		if (++this.counts[group] === this.loads[group].length) {
-			if (listener) listener();
-		}
-	};
-
-	Loader.prototype.start = function (group, listener) {
-		if (!group) throw new Error('Missing inject group');
-		if (!this.loads[group]) return console.warn('Missing group');
-
-		for (var i = 0, l = this.loads[group].length; i < l; i++) {
-			this.inject(
-				this.loads[group][i],
-				this.listener.bind(this, group, listener)
-			);
-		}
-	};
-
 	function Router (options) {
 		Events.call(this);
+
+		options = options || {};
 
 		this.state = {};
 		this.cache = {};
 		this.location = {};
-		this.loader = new Loader();
-
-		this.setup(options || {});
-	}
-
-	Router.prototype = Object.create(Events.prototype);
-	Router.prototype.constructor = Router;
-
-	Router.prototype.setup = function (options) {
 
 		this.external = options.external;
 		this.container = options.container;
@@ -1156,12 +1053,33 @@
 				document.head.insertBefore(base, document.head.firstChild);
 			}
 
-			if (typeof this.base === 'string') {
-				base.href = this.base;
-			}
-
+			base.href = this.base;
 			this.base = base.href;
 		}
+
+	}
+
+	Router.prototype = Object.create(Events.prototype);
+	Router.prototype.constructor = Router;
+
+	Router.prototype.appendComponentElement = function (url, callback) {
+		var element;
+
+		if (/\.html$/.test(url)) {
+			element = document.createElement('link');
+			element.setAttribute('href', url);
+			element.setAttribute('rel', 'import');
+		} else if (/\.js$/.test(url)) {
+			element = document.createElement('script');
+			element.setAttribute('src', url);
+			element.setAttribute('type', 'text/javascript');
+		} else {
+			throw new Error('Invalid extension type');
+		}
+
+		element.onload = callback;
+		element.setAttribute('async', '');
+		document.head.appendChild(element);
 	};
 
 	Router.prototype.joinPath = function () {
@@ -1228,32 +1146,34 @@
 		window.scroll(x, y);
 	};
 
-	Router.prototype.rendered = function (route, callback) {
-		while (this.view.lastChild) {
-			this.view.removeChild(this.view.lastChild);
-		}
-
-		if (!(route.component in this.cache)) {
-			this.cache[route.component] = document.createElement(route.component);
-		}
-
-		this.view.appendChild(this.cache[route.component]);
-
-		if (callback) {
-			callback.call(this);
-		}
-	};
-
 	Router.prototype.render = function (route, callback) {
+		var self = this;
+
 		if (route.title) {
 			document.title = route.title;
 		}
 
-		if (route.load && !(route.component in this.cache)) {
-			this.loader.inject(route.load, this.rendered.bind(this, route, callback));
+		var appendView = function () {
+
+			if (self.view.firstChild) {
+				self.view.removeChild(self.view.firstChild);
+			}
+
+			if (!self.cache[route.component]) {
+				self.cache[route.component] = document.createElement(route.component);
+			}
+
+			self.view.appendChild(self.cache[route.component]);
+
+			if (callback) return callback.call(self);
+		};
+
+		if (route.componentUrl && !self.cache[route.component]) {
+			self.appendComponentElement(route.componentUrl, appendView);
 		} else {
-			this.rendered(route, callback);
+			appendView();
 		}
+
 	};
 
 	Router.prototype.back = function () {
@@ -1360,7 +1280,7 @@
 		if (location.base.slice(-1) === '/') {
 			location.base = location.base.slice(0, -1);
 		}
-
+		
 		if (location.pathname.indexOf(location.base) === 0) {
 			location.pathname = location.pathname.slice(location.base.length);
 		}
@@ -1441,11 +1361,8 @@
 
 	};
 
-	function Module (options) {	
-		this.setup(options || {});
-	}
-
-	Module.prototype.setup = function (options) {
+	function Module (options) {
+		options = options || {};
 		this.modules = {};
 
 		if (options.modules) {
@@ -1459,7 +1376,8 @@
 				);
 			}
 		}
-	};
+		
+	}
 
 	Module.prototype.load = function (paths) {
 		for (var i = 0, l = paths.length; i < l; i++) {
@@ -1502,13 +1420,10 @@
 	};
 
 	function Http (options) {
-		this.setup(options || {});
-	}
-
-	Http.prototype.setup = function (options) {
+		options = options || {};
 		this.request = options.request;
 		this.response = options.response;
-	};
+	}
 
 	Http.prototype.mime = {
 		html: 'text/html',
@@ -1642,7 +1557,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.16
+		version: 1.4.15
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1651,92 +1566,84 @@
 		file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	*/
 
-	function Jenie () {
-		var sStyle = 'j-view, j-view > :first-child { display: block; }';
-		var eStyle = document.createElement('style');
-		var nStyle = document.createTextNode(sStyle);
+	var sStyle = 'j-view, j-view > :first-child { display: block; }';
+	var eStyle = document.createElement('style');
+	var nStyle = document.createTextNode(sStyle);
 
-		eStyle.appendChild(nStyle);
-		document.head.appendChild(eStyle);
+	eStyle.appendChild(nStyle);
+	document.head.appendChild(eStyle);
 
-		document.registerElement('j-view', {
-			prototype: Object.create(HTMLElement.prototype)
-		});
+	document.registerElement('j-view', {
+		prototype: Object.create(HTMLElement.prototype)
+	});
 
-		this.http = new Http();
-		this.loader = new Loader();
-		this.module = new Module();
-		this.router = new Router();
+	var jenie_b = {
 
-	}
+		http: new Http(),
+		module: new Module(),
+		router: new Router(),
 
-	Jenie.prototype.setup = function (options) {
-		options = (typeof options === 'function' ? options.call(this) : options) || {};
-
-		if (options.http) this.http.setup(options.http);
-		if (options.loader) this.loader.setup(options.loader);
-		if (options.module) this.module.setup(options.module);
-		if (options.router) this.router.setup(options.router);
-
-		this.loader.start('async');
-		this.loader.start('defer', function () {
+		setup: function (options) {
+			options = (typeof options === 'function' ? options.call(this) : options) || {};
+			if (options.http) this.http = new Http(options.http);
+			if (options.module) this.module = new Module(options.module);
+			if (options.router) this.router = new Router(options.router);
 			this.router.start();
-		}.bind(this));
-	};
+		},
 
-	Jenie.prototype.component = function (options) {
-		return new Component(options);
-	};
+		component: function (options) {
+			return new Component(options);
+		},
 
-	Jenie.prototype.controller = function (options, callback) {
-		return new Controller(options, callback);
-	};
+		controller: function (options, callback) {
+			return new Controller(options, callback);
+		},
 
-	Jenie.prototype.script = function () {
-		return (document._currentScript || document.currentScript);
-	};
+		script: function () {
+			return (document._currentScript || document.currentScript);
+		},
 
-	Jenie.prototype.document = function () {
-		return (document._currentScript || document.currentScript).ownerDocument;
-	};
+		document: function () {
+			return (document._currentScript || document.currentScript).ownerDocument;
+		},
 
-	Jenie.prototype.element = function (name) {
-		return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
-	};
+		element: function (name) {
+			return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
+		},
 
-	Jenie.prototype.query = function (query) {
-		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
-	};
+		query: function (query) {
+			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
+		},
 
-	Jenie.prototype.comments = function (query) {
-		var comments = [], node;
+		comments: function (query) {
+			var comments = [], node;
 
-		var pattern = new RegExp('^' + query);
-		var iterator = document.createNodeIterator((document._currentScript || document.currentScript).ownerDocument, NodeFilter.SHOW_COMMENT, NodeFilter.FILTER_ACCEPT);
+			var pattern = new RegExp('^' + query);
+			var iterator = document.createNodeIterator((document._currentScript || document.currentScript).ownerDocument, NodeFilter.SHOW_COMMENT, NodeFilter.FILTER_ACCEPT);
 
-		while (node = iterator.nextNode()) {
-			if (query) {
-				if (pattern.test(node.nodeValue)) {
-					return node.nodeValue.replace(query, '');
+			while (node = iterator.nextNode()) {
+				if (query) {
+					if (pattern.test(node.nodeValue)) {
+						return node.nodeValue.replace(query, '');
+					}
+				} else {
+					comments.push(node.nodeValue);
 				}
-			} else {
-				comments.push(node.nodeValue);
 			}
+
+			return comments;
+		},
+
+		escape: function (text) {
+			return text
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#039;');
 		}
 
-		return comments;
 	};
-
-	Jenie.prototype.escape = function (text) {
-		return text
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#039;');
-	};
-
-	var jenie_b = new Jenie();
 
 	return jenie_b;
 

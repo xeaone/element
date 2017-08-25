@@ -72,20 +72,19 @@ export default function Component (options) {
 }
 
 Component.prototype.slotify = function () {
-	var self = this;
-	var eSlots = self.element.querySelectorAll('[slot]');
+	var eSlots = this.element.querySelectorAll('[slot]');
 
 	for (var i = 0, l = eSlots.length; i < l; i++) {
 		var eSlot = eSlots[i];
 		var sName = eSlot.getAttribute('slot');
-		var tSlot = self.template.content.querySelector('slot[name='+ sName + ']');
+		var tSlot = this.template.content.querySelector('slot[name='+ sName + ']');
 		tSlot.parentNode.replaceChild(eSlot, tSlot);
 	}
 };
 
-Component.prototype.toDom = function (string) {
+Component.prototype.toHTML = function (html) {
 	var template = document.createElement('template');
-	template.innerHTML = string;
+	template.innerHTML = html;
 	return template;
 };
 
@@ -93,7 +92,7 @@ Component.prototype.toTemplate = function (template) {
 
 	if (template.constructor.name === 'String') {
 		if (/<|>/.test(template)) {
-			template = this.toDom(template);
+			template = this.toHTML(template);
 		} else {
 			template = this.currentScript.ownerDocument.querySelector(template);
 		}

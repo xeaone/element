@@ -1,6 +1,5 @@
 
-<template>
-
+var template = `
 	<style>
 		[j-each-item] {
 			min-height: 150px;
@@ -93,76 +92,71 @@
 	</ul>
 
 	<div j-html="html"></div>
+`;
 
-</template>
+var model = {
+	mcar: 'Mercedes',
+	car: '',
+	cars: [],
+	numRadio: 0,
+	isChecked: true,
+	text: 'Hello from html test',
+	items: [
+		{ it: { val: 0 } },
+	],
+	// jhtml: 'j-html Binder',
+	html: '<h3 j-text="text"></h3>'
+};
 
-<script>
-
-	var m = {
-		mcar: 'Mercedes',
-		car: '',
-		cars: [],
-		numRadio: 0,
-		isChecked: true,
-		text: 'Hello from html test',
-		items: [
-			{ it: { val: 0 } },
-		],
-		// jhtml: 'j-html Binder',
-		html: '<h3 j-text="text"></h3>'
-	};
-
-	Jenie.component({
-		name: 'v-test',
-		template: 'template',
-		model: m,
-		// model: {},
-		modifiers: {
-			lower: function () {
-				return this.toLowerCase();
-			},
-			upper: function () {
-				return this.toUpperCase();
-			}
+Jenie.component({
+	name: 'v-test',
+	template: template,
+	model: model,
+	modifiers: {
+		lower: function () {
+			return this.toLowerCase();
 		},
-		events: {
-			foo: function () {
-				console.log('foo');
-			},
-			say: function (e) {
-				console.log(e);
-				window.alert('hello from button');
-			}
-		},
-		created: function () {
-			var self = this;
-
-			window.SELF = self;
-
-			// self.model = m;
-
-			setTimeout(function () {
-				var increaseInterval = setInterval(function () {
-
-					if (self.model.items.length === 100) {
-						clearInterval(increaseInterval);
-
-						var decreaseInterval = setInterval(function () {
-
-							if (self.model.items.length === 5) {
-								clearInterval(decreaseInterval);
-							}
-
-							self.model.items.pop();
-						}, 10);
-
-					}
-
-					self.model.items.push({ it: { val: self.model.items.length } });
-
-				}, 10);
-			}, 1000);
-
+		upper: function () {
+			return this.toUpperCase();
 		}
-	});
-</script>
+	},
+	events: {
+		foo: function () {
+			console.log('foo');
+		},
+		say: function (e) {
+			console.log(e);
+			window.alert('hello from button');
+		}
+	},
+	created: function () {
+		var self = this;
+
+		window.SELF = self;
+
+		// self.model = m;
+
+		setTimeout(function () {
+			var increaseInterval = setInterval(function () {
+
+				if (self.model.items.length === 100) {
+					clearInterval(increaseInterval);
+
+					var decreaseInterval = setInterval(function () {
+
+						if (self.model.items.length === 5) {
+							clearInterval(decreaseInterval);
+						}
+
+						self.model.items.pop();
+					}, 10);
+
+				}
+
+				self.model.items.push({ it: { val: self.model.items.length } });
+
+			}, 10);
+		}, 1000);
+
+	}
+});
