@@ -103,6 +103,8 @@ var model = {
 	text: 'Hello from html test',
 	items: [
 		{ it: { val: 0 } },
+		{ it: { val: 1 } },
+		{ it: { val: 2 } }
 	],
 	// jhtml: 'j-html Binder',
 	html: '<h3 j-text="text"></h3>'
@@ -133,8 +135,6 @@ Jenie.component({
 		var self = this;
 
 		window.SELF = self;
-
-		// self.model = m;
 
 		setTimeout(function () {
 			var increaseInterval = setInterval(function () {

@@ -494,14 +494,18 @@
 			}
 
 			if (self.element.children.length > data.length) {
-				self.element.removeChild(self.element.children[self.element.children.length-1]);
+				while (self.element.children.length > data.length) {
+					self.element.removeChild(self.element.children[self.element.children.length-1]);
+				}
 			} else if (self.element.children.length < data.length) {
-				self.element.insertAdjacentHTML(
-					'beforeend',
-					self.clone.replace(
-						self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
-					)
-				);
+				while (self.element.children.length < data.length) {
+					self.element.insertAdjacentHTML(
+						'beforeend',
+						self.clone.replace(
+							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+						)
+					);
+				}
 			}
 		},
 		value: function (data) {
@@ -1642,7 +1646,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.16
+		version: 1.4.17
 		license: mpl-2.0
 		author: alexander elias
 
