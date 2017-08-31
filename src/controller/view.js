@@ -49,8 +49,7 @@ View.prototype.nodeAcceptsTest = function (node) {
 
 View.prototype.eachElement = function (elements, callback) {
 	var self = this;
-	// NOTE might throw an error if node list length changes
-	for (var i = 0, l = elements.length; i < l; i++) {
+	for (var i = 0; i < elements.length; i++) {
 		if (self.nodeSkipsTest(elements[i])) {
 			i += elements[i].getElementsByTagName('*').length;
 			callback(elements[i]);
@@ -62,7 +61,7 @@ View.prototype.eachElement = function (elements, callback) {
 
 View.prototype.eachAttribute = function (element, callback) {
 	var self = this, attributes = element.attributes, attribute;
-	for (var i = 0, l = attributes.length; i < l; i++) {
+	for (var i = 0; i < attributes.length; i++) {
 		attribute = attributes[i];
 		if (self.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
 			callback(self.attribute(attribute.name, attribute.value));
@@ -160,7 +159,7 @@ View.prototype.run = function () {
 		self.inputListener.call(self, e.target);
 	}, true);
 
+	self.addElements(self.controller._view.getElementsByTagName('*'));
 	self.observer = new MutationObserver(self.mutationListener.bind(self));
 	self.observer.observe(self.controller._view, { childList: true, subtree: true });
-	self.addElements(self.controller._view.getElementsByTagName('*'));
 };
