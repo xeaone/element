@@ -637,7 +637,7 @@
 	View.prototype.PREFIX = /(data-)?j-/;
 	View.prototype.MODIFIERS = /^(.*?)\|\s?/;
 	View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
-	View.prototype.ELEMENT_SKIPS = /^\w+(-\w+)+|iframe|object|script|style|svg/i;
+	View.prototype.ELEMENT_SKIPS = /\w+(-\w+)+|iframe|object|script|style|svg/i;
 
 	View.prototype.attribute = function (name, value) {
 		var self = this;
@@ -674,8 +674,7 @@
 
 	View.prototype.eachElement = function (elements, callback) {
 		var self = this;
-		// NOTE might throw an error if node list length changes
-		for (var i = 0, l = elements.length; i < l; i++) {
+		for (var i = 0; i < elements.length; i++) {
 			if (self.nodeSkipsTest(elements[i])) {
 				i += elements[i].getElementsByTagName('*').length;
 				callback(elements[i]);
@@ -687,7 +686,7 @@
 
 	View.prototype.eachAttribute = function (element, callback) {
 		var self = this, attributes = element.attributes, attribute;
-		for (var i = 0, l = attributes.length; i < l; i++) {
+		for (var i = 0; i < attributes.length; i++) {
 			attribute = attributes[i];
 			if (self.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
 				callback(self.attribute(attribute.name, attribute.value));
@@ -786,13 +785,8 @@
 		}, true);
 
 		self.addElements(self.controller._view.getElementsByTagName('*'));
-
 		self.observer = new MutationObserver(self.mutationListener.bind(self));
-
-		self.observer.observe(self.controller._view, {
-			childList: true,
-			subtree: true
-		});
+		self.observer.observe(self.controller._view, { childList: true, subtree: true });
 	};
 
 	function Controller (options, callback) {
@@ -1096,11 +1090,12 @@
 		} else if (/\.js$/.test(load.path)) {
 			element = document.createElement('script');
 			element.setAttribute('src', load.path);
-			if (!('async' in load.attributes || 'defer' in load.attributes)) {
-				element.setAttribute('defer', '');
-			}
 		} else {
 			throw new Error('Unrecognized extension');
+		}
+
+		if (!('async' in load.attributes || 'defer' in load.attributes)) {
+			element.async = false;
 		}
 
 		element.onload = callback;
@@ -1646,7 +1641,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.17
+		version: 1.4.20
 		license: mpl-2.0
 		author: alexander elias
 

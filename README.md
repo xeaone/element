@@ -3,10 +3,8 @@
 **Beta API Can Change**
 The Web Components Framework/Library
 
-**1.5 Breaking Changes**
-- Jenie.router.route.componentUrl changed to Jenie.router.route.load
-
 **1.4 Breaking Changes**
+- Jenie.router.route.componentUrl changed to Jenie.router.route.load
 - Jenie.router.contain removed and changed to Jenie.router.container<Element>
 - Jenie.router.external<String> no longer converts to RegExp
 - removed Jenie.component.template as comment.

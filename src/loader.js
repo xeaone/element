@@ -54,23 +54,21 @@ Loader.prototype.inject = function (load, callback) {
 
 	if (/\.css$/.test(load.path)) {
 		element = document.createElement('link');
-		element.setAttribute('rel', 'stylesheet');
-		element.setAttribute('href', load.path);
+		element.rel = 'stylesheet';
+		element.href = load.path;
 	} else if (/\.html$/.test(load.path)) {
 		element = document.createElement('link');
-		element.setAttribute('rel', 'import');
-		element.setAttribute('href', load.path);
-		if (!('async' in load.attributes || 'defer' in load.attributes)) {
-			element.setAttribute('defer', '');
-		}
+		element.rel = 'import';
+		element.href = load.path;
 	} else if (/\.js$/.test(load.path)) {
 		element = document.createElement('script');
-		element.setAttribute('src', load.path);
-		if (!('async' in load.attributes || 'defer' in load.attributes)) {
-			element.setAttribute('defer', '');
-		}
+		element.src = load.path;
 	} else {
 		throw new Error('Unrecognized extension');
+	}
+
+	if (!('async' in load.attributes || 'defer' in load.attributes)) {
+		element.async = false;
 	}
 
 	element.onload = callback;
