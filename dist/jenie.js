@@ -637,7 +637,7 @@
 	View.prototype.PREFIX = /(data-)?j-/;
 	View.prototype.MODIFIERS = /^(.*?)\|\s?/;
 	View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
-	View.prototype.ELEMENT_SKIPS = /^\w+(-\w+)+|iframe|object|script|style|svg/i;
+	View.prototype.ELEMENT_SKIPS = /\w+(-\w+)+|iframe|object|script|style|svg/i;
 
 	View.prototype.attribute = function (name, value) {
 		var self = this;
@@ -785,14 +785,9 @@
 			self.inputListener.call(self, e.target);
 		}, true);
 
-		self.addElements(self.controller._view.getElementsByTagName('*'));
-
 		self.observer = new MutationObserver(self.mutationListener.bind(self));
-
-		self.observer.observe(self.controller._view, {
-			childList: true,
-			subtree: true
-		});
+		self.observer.observe(self.controller._view, { childList: true, subtree: true });
+		self.addElements(self.controller._view.getElementsByTagName('*'));
 	};
 
 	function Controller (options, callback) {
@@ -1646,7 +1641,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.17
+		version: 1.4.18
 		license: mpl-2.0
 		author: alexander elias
 
