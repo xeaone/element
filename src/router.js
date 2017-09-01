@@ -1,14 +1,13 @@
 import Events from './events';
-import Loader from './loader';
+// import Loader from './loader';
 
 export default function Router (options) {
 	Events.call(this);
-
 	this.state = {};
 	this.cache = {};
 	this.location = {};
-	this.loader = new Loader();
-
+	this.loader = options.loader;
+	// this.loader = new Loader();
 	this.setup(options || {});
 }
 
@@ -124,14 +123,21 @@ Router.prototype.rendered = function (route, callback) {
 };
 
 Router.prototype.render = function (route, callback) {
+	var self = this;
+
 	if (route.title) {
 		document.title = route.title;
 	}
 
-	if (route.load && !(route.component in this.cache)) {
-		this.loader.inject(route.load, this.rendered.bind(this, route, callback));
+	if (route.file && !(route.component in this.cache)) {
+		self.loader.run(route.file.constructor === Object ? route.file : {
+			// interpret: true,
+			file: route.file
+		}, function () {
+			self.rendered(route, callback);
+		});
 	} else {
-		this.rendered(route, callback);
+		self.rendered(route, callback);
 	}
 };
 

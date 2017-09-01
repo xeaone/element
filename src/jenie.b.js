@@ -14,41 +14,54 @@
 import Controller from './controller';
 import Component from './component';
 import Router from './router';
-import Module from './module';
+// import Module from './module';
 import Loader from './loader';
 import Http from './http';
 
 function Jenie () {
-	var sStyle = 'j-view, j-view > :first-child { display: block; }';
-	var eStyle = document.createElement('style');
-	var nStyle = document.createTextNode(sStyle);
+	this.eScript = (document._currentScript || document.currentScript);
+	this.http = new Http();
+	this.loader = new Loader();
 
-	eStyle.appendChild(nStyle);
-	document.head.appendChild(eStyle);
+	// this.module = new Module({
+	// 	loader: this.loader
+	// });
+
+	this.router = new Router({
+		loader: this.loader
+	});
+
+	this.eStyle = document.createElement('style');
+	this.eStyle.setAttribute('title', 'Jenie');
+	this.eStyle.setAttribute('type', 'text/css');
+	this.eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
+	this.eScript.insertAdjacentElement('beforebegin', this.eStyle);
 
 	document.registerElement('j-view', {
 		prototype: Object.create(HTMLElement.prototype)
 	});
 
-	this.http = new Http();
-	this.loader = new Loader();
-	this.module = new Module();
-	this.router = new Router();
-
+	// j-index="index.js"
+	// this.sIndex = this.eScript.getAttribute('j-index');
+	// if (this.sIndex) {
+	// 	this.eIndex = document.createElement('script');
+	// 	this.eIndex.setAttribute('src', this.sIndex);
+	// 	this.eIndex.setAttribute('async', 'false');
+	// 	this.eScript.insertAdjacentElement('afterend', this.eIndex);
+	// }
 }
 
 Jenie.prototype.setup = function (options) {
-	options = (typeof options === 'function' ? options.call(this) : options) || {};
+	var self = this;
 
-	if (options.http) this.http.setup(options.http);
-	if (options.loader) this.loader.setup(options.loader);
-	if (options.module) this.module.setup(options.module);
-	if (options.router) this.router.setup(options.router);
+	options = (typeof options === 'function' ? options.call(self) : options) || {};
 
-	this.loader.start('async');
-	this.loader.start('defer', function () {
-		this.router.start();
-	}.bind(this));
+	if (options.http) self.http.setup(options.http);
+	if (options.loader) self.loader.setup(options.loader);
+	// if (options.module) self.module.setup(options.module);
+	if (options.router) self.router.setup(options.router);
+
+	self.router.start();
 };
 
 Jenie.prototype.component = function (options) {

@@ -1023,112 +1023,15 @@
 		}
 	};
 
-	function Loader (options) {
-		this.setup(options || {});
-	}
-
-	Loader.prototype.setup = function (options) {
-		this.loads = {};
-		this.counts = {};
-
-		if (options.loads && options.loads.length) {
-			this.insert(options.loads);
-		}
-	};
-
-	Loader.prototype.insert = function (loads) {
-		for (var i = 0, l = loads.length, load; i < l; i++) {
-			load = loads[i];
-
-			if (!load.group) {
-				throw new Error('Missing load group');
-			}
-
-			if (!load.path) {
-				throw new Error('Missing load path');
-			}
-
-			if (!load.execution) {
-				load.execution = 'defer';
-			}
-
-			if (!(load.group in this.loads)) {
-				this.counts[load.group] = 0;
-				this.loads[load.group] = [];
-			}
-
-			this.loads[load.group].push(load);
-		}
-	};
-
-	Loader.prototype.inject = function (load, callback) {
-		if (load.done) {
-			if (callback) callback();
-			return;
-		}
-
-		var element;
-
-		load = typeof load === 'string' ? { path: load } : load;
-		load.attributes = load.attributes || {};
-
-		for (var attribute in load.attributes) {
-			element.setAttribute(attribute, load.attributes[attribute]);
-		}
-
-		if (/\.css$/.test(load.path)) {
-			element = document.createElement('link');
-			element.setAttribute('rel', 'stylesheet');
-			element.setAttribute('href', load.path);
-		} else if (/\.html$/.test(load.path)) {
-			element = document.createElement('link');
-			element.setAttribute('rel', 'import');
-			element.setAttribute('href', load.path);
-			if (!('async' in load.attributes || 'defer' in load.attributes)) {
-				element.setAttribute('defer', '');
-			}
-		} else if (/\.js$/.test(load.path)) {
-			element = document.createElement('script');
-			element.setAttribute('src', load.path);
-		} else {
-			throw new Error('Unrecognized extension');
-		}
-
-		if (!('async' in load.attributes || 'defer' in load.attributes)) {
-			element.async = false;
-		}
-
-		element.onload = callback;
-		document.head.appendChild(element);
-		load.done = true;
-	};
-
-	Loader.prototype.listener = function (group, listener) {
-		if (++this.counts[group] === this.loads[group].length) {
-			if (listener) listener();
-		}
-	};
-
-	Loader.prototype.start = function (group, listener) {
-		if (!group) throw new Error('Missing inject group');
-		if (!this.loads[group]) return console.warn('Missing group');
-
-		for (var i = 0, l = this.loads[group].length; i < l; i++) {
-			this.inject(
-				this.loads[group][i],
-				this.listener.bind(this, group, listener)
-			);
-		}
-	};
+	// import Loader from './loader';
 
 	function Router (options) {
 		Events.call(this);
-
 		this.state = {};
 		this.cache = {};
 		this.location = {};
-		this.loader = new Loader();
-
+		this.loader = options.loader;
+		// this.loader = new Loader();
 		this.setup(options || {});
 	}
 
@@ -1244,14 +1147,21 @@
 	};
 
 	Router.prototype.render = function (route, callback) {
+		var self = this;
+
 		if (route.title) {
 			document.title = route.title;
 		}
 
-		if (route.load && !(route.component in this.cache)) {
-			this.loader.inject(route.load, this.rendered.bind(this, route, callback));
+		if (route.file && !(route.component in this.cache)) {
+			self.loader.run(route.file.constructor === Object ? route.file : {
+				// interpret: true,
+				file: route.file
+			}, function () {
+				self.rendered(route, callback);
+			});
 		} else {
-			this.rendered(route, callback);
+			self.rendered(route, callback);
 		}
 	};
 
@@ -1440,65 +1350,199 @@
 
 	};
 
-	function Module (options) {	
+	function Loader (options) {
+		this.modules = {};
+		this.files = {};
+		this.LOADED = 3;
+		this.LOADING = 2;
 		this.setup(options || {});
 	}
 
-	Module.prototype.setup = function (options) {
-		this.modules = {};
-
-		if (options.modules) {
-			for (var i = 0, l = options.modules.length; i < l; i++) {
-				var module = options.modules[i];
-				this.export.call(
-					this,
-					module.name,
-					module.dependencies || module.method,
-					module.dependencies ? module.method : null
-				);
-			}
-		}
+	Loader.prototype.setup = function (options) {
+		this.esm = options.esm || false;
 	};
 
-	Module.prototype.load = function (paths) {
-		for (var i = 0, l = paths.length; i < l; i++) {
-			var path = paths[i];
-			var script = document.createElement('script');
-			script.src = path;
-			script.async = false;
-			script.type = 'text/javascript';
-			document.head.appendChild(script);
-		}
-	};
+	Loader.prototype.getFile = function (data, callback) {
+		var self = this;
 
-	Module.prototype.import = function (name) {
-		if (name in this.modules) {
-			return  typeof this.modules[name] === 'function' ? this.modules[name]() : this.modules[name];
-		} else {
-			throw new Error('module ' + name + ' is not defined');
-		}
-	};
-
-	Module.prototype.export = function (name, dependencies, method) {
-		if (name in this.modules) {
-			throw new Error('module ' + name + ' is defined');
-		} else {
-
-			if (typeof dependencies === 'function') {
-				method = dependencies;
-				dependencies = [];
-			}
-
-			if (typeof method === 'function') {
-				for (var i = 0, l = dependencies.length; i < l; i++) {
-					var dependency = dependencies[i];
-					method = method.bind(null, this.import(dependency));
+		if (data.file in self.modules && data.status) {
+			if (data.status === self.LOADED) {
+				if (callback) return callback();
+			} else if (data.status === self.LOADING) {
+				if (!data.tag) {
+					// return data.xhr.addEventListener('load', function () {
+					// 	if (callback) callback(load);
+					// });
+					return data.xhr.addEventListener('readystatechange', function () {
+						if (data.xhr.readyState === 4) {
+							if (data.xhr.status >= 200 && data.xhr.status < 400) {
+								if (callback) callback(data);
+							} else {
+								throw data.xhr.responseText;
+							}
+						}
+					});
+				} else {
+					return data.element.addEventListener('load', function () {
+						if (callback) callback(data);
+					});
 				}
 			}
+			// return;
+		}
 
-			return this.modules[name] = method;
+		if (!data.tag) {
+			data.xhr = new XMLHttpRequest();
+			// data.xhr.addEventListener('load', function () {
+			// 	data.status = self.LOADED;
+			// 	data.text = data.xhr.responseText;
+			// 	if (callback) callback(load);
+			// });
+			data.xhr.addEventListener('readystatechange', function () {
+				if (data.xhr.readyState === 4) {
+					if (data.xhr.status >= 200 && data.xhr.status < 400) {
+						data.status = self.LOADED;
+						data.text = data.xhr.responseText;
+						if (callback) callback(data);
+					} else {
+						throw data.xhr.responseText;
+					}
+				}
+			});
+			data.xhr.open('GET', data.file);
+			data.xhr.send();
+		}
+		// else {
+		// 	if (/\.css$/.test(load.file)) {
+		// 		load.element = document.createElement('link');
+		// 		load.element.rel = 'stylesheet';
+		// 		load.element.href = load.file;
+		// 	} else if (/\.html$/.test(load.file)) {
+		// 		load.element = document.createElement('link');
+		// 		load.element.rel = 'import';
+		// 		load.element.href = load.file;
+		// 	} else if (/\.js$/.test(load.file)) {
+		// 		load.element = document.createElement('script');
+		// 		load.element.src = load.file;
+		// 	} else {
+		// 		throw 'Unrecognized extension';
+		// 	}
+		//
+		// 	load.attributes = load.attributes || {};
+		// 	for (var attribute in load.attributes) {
+		// 		load.element.setAttribute(attribute, load.attributes[attribute]);
+		// 	}
+		//
+		// 	load.element.addEventListener('load', function () {
+		// 		load.status = self.LOADED;
+		// 		if (callback) callback(load);
+		// 	});
+		//
+		// 	load.element.async = false;
+		// 	document.head.appendChild(load.element);
+		// }
+
+		data.status = self.LOADING;
+	};
+
+	Loader.prototype.interpret = function (data) {
+		return (function(d, l, w) { 'use strict';
+			return new Function('Loader', 'window', d)(l, w);
+		}(data, this, window));
+	};
+
+	Loader.prototype.patterns = {
+		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
+		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
+		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
+		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
+	};
+
+	Loader.prototype.getImports = function (data) {
+		var imp, imports = [];
+		var imps = data.match(this.patterns.imps) || [];
+		for (var i = 0, l = imps.length; i < l; i++) {
+			imp = imps[i].match(this.patterns.imp);
+			imports[i] = {
+				raw: imp[0],
+				name: imp[1],
+				file: imp[2]
+			};
+		}
+		return imports;
+	};
+
+	Loader.prototype.getExports = function (data) {
+		return data.match(this.patterns.exps) || [];
+	};
+
+	Loader.prototype.handleImports = function (ast) {
+		for (var i = 0, l = ast.imports.length; i < l; i++) {
+			ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].file + '\']');
 		}
 	};
+
+	Loader.prototype.handleExports = function (ast) {
+		ast.cooked = ast.cooked.replace('export default', 'return');
+	};
+
+	// Loader.prototype.getName = function (data) {
+	// 	data = data.match(this.patterns.exp);
+	// 	return data ? data[1] : '';
+	// };
+
+	Loader.prototype.toAst = function (data) {
+		var ast = {};
+		ast.raw = data;
+		ast.imports = this.getImports(ast.raw);
+		ast.exports = this.getExports(ast.raw);
+		ast.cooked = ast.raw;
+		this.handleImports(ast);
+		this.handleExports(ast);
+		return ast;
+	};
+
+	Loader.prototype.run = function (data, callback) {
+		var self = this;
+
+		if (data.constructor === String) data = { file: data };
+		
+		self.files[data.file] = data;
+
+		self.getFile(data, function (d) {
+			var ast = self.toAst(d.text);
+
+			if (self.esm) {
+				if (ast.imports.length) {
+					var meta = {
+						count: 0,
+						imports: ast.imports,
+						total: ast.imports.length,
+						listener: function () {
+							if (++meta.count === meta.total) {
+								self.interpret(ast.cooked);
+								if (callback) callback();
+							}
+						}
+					};
+
+					for (var i = 0, l = meta.imports.length; i < l; i++) {
+						self.run(meta.imports[i].file, meta.listener);
+					}
+				} else {
+					self.modules[d.file] = self.interpret(ast.cooked);
+					if (callback) callback();
+				}
+			} else {
+				self.modules[d.file] = self.interpret(d.text);
+				if (callback) callback();
+			}
+		});
+	};
+
+	/*
+		https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
+	*/
 
 	function Http (options) {
 		this.setup(options || {});
@@ -1650,37 +1694,51 @@
 		file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	*/
 
+	// import Module from './module';
 	function Jenie () {
-		var sStyle = 'j-view, j-view > :first-child { display: block; }';
-		var eStyle = document.createElement('style');
-		var nStyle = document.createTextNode(sStyle);
+		this.eScript = (document._currentScript || document.currentScript);
+		this.http = new Http();
+		this.loader = new Loader();
 
-		eStyle.appendChild(nStyle);
-		document.head.appendChild(eStyle);
+		// this.module = new Module({
+		// 	loader: this.loader
+		// });
+
+		this.router = new Router({
+			loader: this.loader
+		});
+
+		this.eStyle = document.createElement('style');
+		this.eStyle.setAttribute('title', 'Jenie');
+		this.eStyle.setAttribute('type', 'text/css');
+		this.eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
+		this.eScript.insertAdjacentElement('beforebegin', this.eStyle);
 
 		document.registerElement('j-view', {
 			prototype: Object.create(HTMLElement.prototype)
 		});
 
-		this.http = new Http();
-		this.loader = new Loader();
-		this.module = new Module();
-		this.router = new Router();
-
+		// j-index="index.js"
+		// this.sIndex = this.eScript.getAttribute('j-index');
+		// if (this.sIndex) {
+		// 	this.eIndex = document.createElement('script');
+		// 	this.eIndex.setAttribute('src', this.sIndex);
+		// 	this.eIndex.setAttribute('async', 'false');
+		// 	this.eScript.insertAdjacentElement('afterend', this.eIndex);
+		// }
 	}
 
 	Jenie.prototype.setup = function (options) {
-		options = (typeof options === 'function' ? options.call(this) : options) || {};
+		var self = this;
 
-		if (options.http) this.http.setup(options.http);
-		if (options.loader) this.loader.setup(options.loader);
-		if (options.module) this.module.setup(options.module);
-		if (options.router) this.router.setup(options.router);
+		options = (typeof options === 'function' ? options.call(self) : options) || {};
 
-		this.loader.start('async');
-		this.loader.start('defer', function () {
-			this.router.start();
-		}.bind(this));
+		if (options.http) self.http.setup(options.http);
+		if (options.loader) self.loader.setup(options.loader);
+		// if (options.module) self.module.setup(options.module);
+		if (options.router) self.router.setup(options.router);
+
+		self.router.start();
 	};
 
 	Jenie.prototype.component = function (options) {

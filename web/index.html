@@ -1,27 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<base href="/">
-
 	<script>
-		var href = '/jenie/';
-		var origin = 'https://alexanderelias.github.io';
-		if (window.location.origin === origin) {
-			document.head.querySelector('base').href = href;
-		}
+		var href = window.location.origin === 'https://alexanderelias.github.io' ? '/jenie/' : '/';
+		document.head.insertAdjacentHTML('afterbegin', '<base href="' + href + '">');
 	</script>
 
 	<meta charset="utf-8">
-	<meta http-equiv="x-ua-compatible" content="ie=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+	<meta name="theme-color" content="darkorange">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
 
 	<title>Jenie</title>
 
+	<script src="assets/prism.js" defer></script>
 	<script src="assets/webcomponents-lite.min.js" defer></script>
 	<script src="assets/jenie.js" defer></script>
 	<script src="index.js" defer></script>
-	<link rel="stylesheet" href="index.css" async>
 
+	<link rel="stylesheet" href="index.css" async>
+	<link rel="stylesheet" href="assets/prism.css" async>
 </head>
 <body>
 

@@ -1,6 +1,6 @@
+import Say from '/say.js';
 
 var home = Jenie.escape(`
-	// v-home.html
 	<template>
 		<h1 j-text="title"></h1>
 	</template>
@@ -19,7 +19,6 @@ var home = Jenie.escape(`
 `);
 
 var index = Jenie.escape(`
-	// index.html
 	<script src="jenie.min.js" defer></script>
 	<j-view></j-view>
 	<script>
@@ -102,6 +101,7 @@ Jenie.component({
 	name: 'v-root',
 	template: template,
 	attached: function () {
-		Prism.highlightAll();
+		// Prism.highlightAll();
+		Say('hello world');
 	}
 });
