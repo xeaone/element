@@ -1,5 +1,4 @@
 import Events from './events';
-// import Loader from './loader';
 
 export default function Router (options) {
 	Events.call(this);
@@ -7,7 +6,6 @@ export default function Router (options) {
 	this.cache = {};
 	this.location = {};
 	this.loader = options.loader;
-	// this.loader = new Loader();
 	this.setup(options || {});
 }
 
@@ -131,7 +129,6 @@ Router.prototype.render = function (route, callback) {
 
 	if (route.file && !(route.component in this.cache)) {
 		self.loader.run(route.file.constructor === Object ? route.file : {
-			// interpret: true,
 			file: route.file
 		}, function () {
 			self.rendered(route, callback);

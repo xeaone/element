@@ -3,6 +3,9 @@
 **Beta API Can Change**
 The Web Components Framework/Library
 
+**1.5 Breaking Changes**
+- Jenie.module replaced with loader and es6 module support
+
 **1.4 Breaking Changes**
 - Jenie.router.route.componentUrl changed to Jenie.router.route.load
 - Jenie.router.contain removed and changed to Jenie.router.container<Element>
@@ -29,15 +32,12 @@ The Web Components Framework/Library
 
 ## Example
 
-```html
-<!-- j-home.html -->
-<template>
-	<h1 j-text="title"></h1>
-</template>
-<script>
+```JavaScript
 	Jenie.component({
-		name: 'j-home',
-		template: 'template',
+		name: 'v-home',
+		template: `
+			<h1 j-text="title"></h1>
+		`,
 		model: {
 			title: 'Old Title'
 		},
@@ -45,16 +45,13 @@ The Web Components Framework/Library
 			this.model.title = 'New Title';
 		}
 	});
-</script>
 ```
 
 ```html
-<!-- index.html -->
 <html>
 <head>
 	<base href="/">
 	<script src="jenie.min.js" defer></script>
-	<link rel="import" href="j-home.html">
 </head>
 <body>
 	<j-view></j-view>
@@ -68,20 +65,15 @@ The Web Components Framework/Library
 					return true; // false will cancel the http.fetch handlers
 				}
 			},
-			module: {
-				modules: [
-					{
-						name: 'num',
-						method: function () {
-							return function () { return 1; };
-						}
-					}
+			loader: {
+				esm: true
 			},
 			router: {
 				routes: [
 					{
 						path: '/',
-						component: 'j-home'
+						component: 'v-home',
+						file: 'views/v-home.js'
 					}
 				]
 			}
@@ -107,6 +99,7 @@ Returns a new Jenie component and defines a new web component.
 
 - `options: Object`
 	- `name: String` **Required** the tag name
+	- `file: String` path to js component script.
 	- `template: Element, String, Query` **Required** (If using string do not include template)
 	- `model: Object<Any>` See Jenie.controller().model
 	- `modifiers: Object<Function>` See Jenie.controller().modifiers
@@ -169,7 +162,11 @@ Returns an instance of a new controller.
 - `on: EventEmitter`
 	- `navigated: Event`
 
-### Jenie.module
+### Jenie.loader
+ES6 import export support. Imports currently must be absolute. Also `export default` is the only export format supported for now.
+- `options: Object`
+	- `esm: Boolean` enable es6 module support for scripts.
+<!-- ### Jenie.module
 - `options: Object` The setup options for Jenie.setup.
 	- `modules: Array`
 		- `module: Object`
@@ -185,7 +182,7 @@ Returns an instance of a new controller.
 		- `name: String` The module name.
 	- `method: Function` The module method.
 - `import: Function` Gets the module.
-	- `name: String` The module name.
+	- `name: String` The module name. -->
 
 ### Jenie.http
 - `options: Object` The setup options for Jenie.setup.

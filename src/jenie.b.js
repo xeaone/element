@@ -2,7 +2,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.4.20
+	version: 1.5.0
 	license: mpl-2.0
 	author: alexander elias
 
@@ -14,7 +14,6 @@
 import Controller from './controller';
 import Component from './component';
 import Router from './router';
-// import Module from './module';
 import Loader from './loader';
 import Http from './http';
 
@@ -22,10 +21,6 @@ function Jenie () {
 	this.eScript = (document._currentScript || document.currentScript);
 	this.http = new Http();
 	this.loader = new Loader();
-
-	// this.module = new Module({
-	// 	loader: this.loader
-	// });
 
 	this.router = new Router({
 		loader: this.loader
@@ -58,7 +53,6 @@ Jenie.prototype.setup = function (options) {
 
 	if (options.http) self.http.setup(options.http);
 	if (options.loader) self.loader.setup(options.loader);
-	// if (options.module) self.module.setup(options.module);
 	if (options.router) self.router.setup(options.router);
 
 	self.router.start();

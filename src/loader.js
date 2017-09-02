@@ -16,13 +16,10 @@ Loader.prototype.getFile = function (data, callback) {
 
 	if (data.file in self.modules && data.status) {
 		if (data.status === self.LOADED) {
-			if (callback) return callback();
+			if (callback) callback();
 		} else if (data.status === self.LOADING) {
 			if (!data.tag) {
-				// return data.xhr.addEventListener('load', function () {
-				// 	if (callback) callback(load);
-				// });
-				return data.xhr.addEventListener('readystatechange', function () {
+				data.xhr.addEventListener('readystatechange', function () {
 					if (data.xhr.readyState === 4) {
 						if (data.xhr.status >= 200 && data.xhr.status < 400) {
 							if (callback) callback(data);
@@ -32,21 +29,17 @@ Loader.prototype.getFile = function (data, callback) {
 					}
 				});
 			} else {
-				return data.element.addEventListener('load', function () {
+				data.element.addEventListener('load', function () {
 					if (callback) callback(data);
 				});
 			}
 		}
-		// return;
+
+		return;
 	}
 
 	if (!data.tag) {
 		data.xhr = new XMLHttpRequest();
-		// data.xhr.addEventListener('load', function () {
-		// 	data.status = self.LOADED;
-		// 	data.text = data.xhr.responseText;
-		// 	if (callback) callback(load);
-		// });
 		data.xhr.addEventListener('readystatechange', function () {
 			if (data.xhr.readyState === 4) {
 				if (data.xhr.status >= 200 && data.xhr.status < 400) {
@@ -61,35 +54,6 @@ Loader.prototype.getFile = function (data, callback) {
 		data.xhr.open('GET', data.file);
 		data.xhr.send();
 	}
-	// else {
-	// 	if (/\.css$/.test(load.file)) {
-	// 		load.element = document.createElement('link');
-	// 		load.element.rel = 'stylesheet';
-	// 		load.element.href = load.file;
-	// 	} else if (/\.html$/.test(load.file)) {
-	// 		load.element = document.createElement('link');
-	// 		load.element.rel = 'import';
-	// 		load.element.href = load.file;
-	// 	} else if (/\.js$/.test(load.file)) {
-	// 		load.element = document.createElement('script');
-	// 		load.element.src = load.file;
-	// 	} else {
-	// 		throw 'Unrecognized extension';
-	// 	}
-	//
-	// 	load.attributes = load.attributes || {};
-	// 	for (var attribute in load.attributes) {
-	// 		load.element.setAttribute(attribute, load.attributes[attribute]);
-	// 	}
-	//
-	// 	load.element.addEventListener('load', function () {
-	// 		load.status = self.LOADED;
-	// 		if (callback) callback(load);
-	// 	});
-	//
-	// 	load.element.async = false;
-	// 	document.head.appendChild(load.element);
-	// }
 
 	data.status = self.LOADING;
 };
@@ -135,11 +99,6 @@ Loader.prototype.handleExports = function (ast) {
 	ast.cooked = ast.cooked.replace('export default', 'return');
 };
 
-// Loader.prototype.getName = function (data) {
-// 	data = data.match(this.patterns.exp);
-// 	return data ? data[1] : '';
-// };
-
 Loader.prototype.toAst = function (data) {
 	var ast = {};
 	ast.raw = data;
@@ -155,7 +114,7 @@ Loader.prototype.run = function (data, callback) {
 	var self = this;
 
 	if (data.constructor === String) data = { file: data };
-	
+
 	self.files[data.file] = data;
 
 	self.getFile(data, function (d) {
