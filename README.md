@@ -146,7 +146,7 @@ Returns an instance of a new controller.
 		- `String`
 		- `Function` Argument provided is the request path. Expects a boolean return.
 
-- `start: Function` Must be called after <j-view></j-view> is created
+- `run: Function` Must be called after <j-view></j-view> is created
 - `redirect: Function`
 - `add: Function`
 	- `path: String`

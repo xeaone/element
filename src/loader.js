@@ -1,13 +1,15 @@
 
 export default function Loader (options) {
-	this.modules = {};
 	this.files = {};
-	this.LOADED = 3;
-	this.LOADING = 2;
-	this.setup(options || {});
+	this.modules = {};
+	this.setup(options);
 }
 
+Loader.prototype.LOADED = 3;
+Loader.prototype.LOADING = 2;
+
 Loader.prototype.setup = function (options) {
+	options = options || {};
 	this.esm = options.esm || false;
 };
 

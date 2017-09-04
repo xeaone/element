@@ -21,10 +21,7 @@ function Jenie () {
 	this.eScript = (document._currentScript || document.currentScript);
 	this.http = new Http();
 	this.loader = new Loader();
-
-	this.router = new Router({
-		loader: this.loader
-	});
+	this.router = new Router({ loader: this.loader });
 
 	this.eStyle = document.createElement('style');
 	this.eStyle.setAttribute('title', 'Jenie');
@@ -55,7 +52,7 @@ Jenie.prototype.setup = function (options) {
 	if (options.loader) self.loader.setup(options.loader);
 	if (options.router) self.router.setup(options.router);
 
-	self.router.start();
+	self.router.run();
 };
 
 Jenie.prototype.component = function (options) {

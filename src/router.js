@@ -5,15 +5,16 @@ export default function Router (options) {
 	this.state = {};
 	this.cache = {};
 	this.location = {};
-	this.loader = options.loader;
-	this.setup(options || {});
+	this.setup(options);
 }
 
 Router.prototype = Object.create(Events.prototype);
 Router.prototype.constructor = Router;
 
 Router.prototype.setup = function (options) {
+	options = options || {};
 
+	this.loader = options.loader;
 	this.external = options.external;
 	this.container = options.container;
 	this.routes = options.routes || [];
@@ -73,15 +74,15 @@ Router.prototype.click = function (e) {
 
 	// if external is true then default action
 	if (self.external && (
-		self.external.constructor.name === 'Function' && self.external(target.href) ||
 		self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+		self.external.constructor.name === 'Function' && self.external(target.href) ||
 		self.external.constructor.name === 'String' && self.external === target.href
 	)) return;
 
 	// check non acceptable attributes and href
 	if (target.hasAttribute('download') ||
 		target.hasAttribute('external') ||
-		target.hasAttribute('target') ||
+		// target.hasAttribute('target') ||
 		target.href.indexOf('mailto:') !== -1 ||
 		target.href.indexOf('file:') !== -1 ||
 		target.href.indexOf('tel:') !== -1 ||
@@ -92,7 +93,7 @@ Router.prototype.click = function (e) {
 	self.navigate(target.href);
 };
 
-Router.prototype.start = function () {
+Router.prototype.run = function () {
 	if (this.started) return;
 	this.view = document.querySelector(this.view);
 	(this.container || window).addEventListener('click', this.click.bind(this));
