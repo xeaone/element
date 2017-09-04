@@ -1028,15 +1028,16 @@
 		this.state = {};
 		this.cache = {};
 		this.location = {};
-		this.loader = options.loader;
-		this.setup(options || {});
+		this.setup(options);
 	}
 
 	Router.prototype = Object.create(Events.prototype);
 	Router.prototype.constructor = Router;
 
 	Router.prototype.setup = function (options) {
+		options = options || {};
 
+		this.loader = options.loader;
 		this.external = options.external;
 		this.container = options.container;
 		this.routes = options.routes || [];
@@ -1096,15 +1097,15 @@
 
 		// if external is true then default action
 		if (self.external && (
-			self.external.constructor.name === 'Function' && self.external(target.href) ||
 			self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+			self.external.constructor.name === 'Function' && self.external(target.href) ||
 			self.external.constructor.name === 'String' && self.external === target.href
 		)) return;
 
 		// check non acceptable attributes and href
 		if (target.hasAttribute('download') ||
 			target.hasAttribute('external') ||
-			target.hasAttribute('target') ||
+			// target.hasAttribute('target') ||
 			target.href.indexOf('mailto:') !== -1 ||
 			target.href.indexOf('file:') !== -1 ||
 			target.href.indexOf('tel:') !== -1 ||
@@ -1115,7 +1116,7 @@
 		self.navigate(target.href);
 	};
 
-	Router.prototype.start = function () {
+	Router.prototype.run = function () {
 		if (this.started) return;
 		this.view = document.querySelector(this.view);
 		(this.container || window).addEventListener('click', this.click.bind(this));
@@ -1347,15 +1348,27 @@
 	};
 
 	function Loader (options) {
-		this.modules = {};
 		this.files = {};
-		this.LOADED = 3;
-		this.LOADING = 2;
-		this.setup(options || {});
+		this.modules = {};
+		this.setup(options);
 	}
 
+	Loader.prototype.LOADED = 3;
+	Loader.prototype.LOADING = 2;
+
+	Loader.prototype.patterns = {
+		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
+		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
+		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
+		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
+	};
+
 	Loader.prototype.setup = function (options) {
+		options = options || {};
 		this.esm = options.esm || false;
+		for (var i = 0, l = options.loads.length; i < l; i++) {
+			this.run(options.loads[i]);
+		}
 	};
 
 	Loader.prototype.getFile = function (data, callback) {
@@ -1409,13 +1422,6 @@
 		return (function(d, l, w) { 'use strict';
 			return new Function('Loader', 'window', d)(l, w);
 		}(data, this, window));
-	};
-
-	Loader.prototype.patterns = {
-		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
-		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
-		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
-		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
 	};
 
 	Loader.prototype.getImports = function (data) {
@@ -1500,10 +1506,11 @@
 	*/
 
 	function Http (options) {
-		this.setup(options || {});
+		this.setup(options);
 	}
 
 	Http.prototype.setup = function (options) {
+		options = options || {};
 		this.request = options.request;
 		this.response = options.response;
 	};
@@ -1531,20 +1538,16 @@
 	Http.prototype.fetch = function (options) {
 		var self = this, xhr, request, response;
 
-		options = options ? options : {};
+		options = options || {};
 		options.action = options.action ? options.action : window.location.href;
 		options.method = options.method ? options.method.toUpperCase() : 'GET';
 		options.headers = options.headers ? options.headers : {};
 
 		if (options.data) {
-
 			if (options.method === 'GET') {
-
 				options.action = options.action + '?' + self.serialize(options.data);
 				options.data = null;
-
 			} else {
-
 				options.requestType = options.requestType ? options.requestType.toLowerCase() : '';
 				options.responseType = options.responseType ? options.responseType.toLowerCase() : '';
 
@@ -1565,43 +1568,22 @@
 					case 'text': options.accept = self.mime.text; break;
 				}
 
-				if (options.contentType === self.mime.json) {
-					options.data = JSON.stringify(options.data);
-				}
-
-				if (options.contentType === self.mime.urlencoded) {
-					options.data = self.serialize(options.data);
-				}
-
+				if (options.contentType === self.mime.json) options.data = JSON.stringify(options.data);
+				if (options.contentType === self.mime.urlencoded) options.data = self.serialize(options.data);
 			}
-
 		}
 
 		xhr = new XMLHttpRequest();
 
-		if (typeof self.request === 'function') {
-			request = self.request(options, xhr);
-		}
+		if (typeof self.request === 'function') request = self.request(options, xhr);
 
 		if (request === undefined || request === true) {
-
 			xhr.open(options.method, options.action, true, options.username, options.password);
 
-			if (options.mimeType) {
-				xhr.overrideMimeType(options.mimeType);
-			}
-
-			if (options.withCredentials) {
-				xhr.withCredentials = options.withCredentials;
-			}
-
-			if (options.accept) {
-				options.headers['Accept'] = options.accept;
-			}
-
-			if (options.contentType) {
-				options.headers['Content-Type'] = options.contentType;
-			}
+			if (options.mimeType) xhr.overrideMimeType(options.mimeType);
+			if (options.accept) options.headers['Accept'] = options.accept;
+			if (options.withCredentials) xhr.withCredentials = options.withCredentials;
+			if (options.contentType) options.headers['Content-Type'] = options.contentType;
 
 			if (options.headers) {
 				for (var name in options.headers) {
@@ -1610,29 +1592,19 @@
 			}
 
 			xhr.onreadystatechange = function () {
-
 				if (xhr.readyState === 4) {
-
-					if (typeof self.response === 'function') {
-						response = self.response(options, xhr);
-					}
-
+					if (typeof self.response === 'function') response = self.response(options, xhr);
 					if (response === undefined || response === true) {
-
 						if (xhr.status >= 200 && xhr.status < 400) {
 							return options.success(xhr);
 						} else {
 							return options.error(xhr);
 						}
-
 					}
-
 				}
-
 			};
 
 			xhr.send(options.data);
-
 		}
 
 	};
@@ -1640,7 +1612,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.5.0
+		version: 1.5.01
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1653,10 +1625,7 @@
 		this.eScript = (document._currentScript || document.currentScript);
 		this.http = new Http();
 		this.loader = new Loader();
-
-		this.router = new Router({
-			loader: this.loader
-		});
+		this.router = new Router({ loader: this.loader });
 
 		this.eStyle = document.createElement('style');
 		this.eStyle.setAttribute('title', 'Jenie');
@@ -1687,7 +1656,7 @@
 		if (options.loader) self.loader.setup(options.loader);
 		if (options.router) self.router.setup(options.router);
 
-		self.router.start();
+		self.router.run();
 	};
 
 	Jenie.prototype.component = function (options) {

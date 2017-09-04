@@ -8,9 +8,19 @@ export default function Loader (options) {
 Loader.prototype.LOADED = 3;
 Loader.prototype.LOADING = 2;
 
+Loader.prototype.patterns = {
+	imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
+	imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
+	exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
+	exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
+};
+
 Loader.prototype.setup = function (options) {
 	options = options || {};
 	this.esm = options.esm || false;
+	for (var i = 0, l = options.loads.length; i < l; i++) {
+		this.run(options.loads[i]);
+	}
 };
 
 Loader.prototype.getFile = function (data, callback) {
@@ -64,13 +74,6 @@ Loader.prototype.interpret = function (data) {
 	return (function(d, l, w) { 'use strict';
 		return new Function('Loader', 'window', d)(l, w);
 	}(data, this, window));
-};
-
-Loader.prototype.patterns = {
-	imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
-	imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
-	exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
-	exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
 };
 
 Loader.prototype.getImports = function (data) {

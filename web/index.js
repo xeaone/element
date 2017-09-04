@@ -1,19 +1,15 @@
 
 Jenie.setup({
-	// module: {
-	// 	modules: [
-	// 		{
-	// 			file: 'mod.js'
-	// 		}
-	// 	]
-	// },
 	loader: {
-		esm: true
+		esm: true,
+		loads: [
+
+		]
 	},
 	router: {
 		base: true,
-		// trailing: true,
 		// hash: true,
+		// trailing: true,
 		routes: [
 			{
 				title: 'Root',
