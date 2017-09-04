@@ -121,13 +121,12 @@ Loader.prototype.run = function (data, callback) {
 	var self = this;
 
 	if (data.constructor === String) data = { file: data };
-
 	self.files[data.file] = data;
 
 	self.getFile(data, function (d) {
 		var ast = self.toAst(d.text);
 
-		if (self.esm) {
+		if (self.esm || data.esm) {
 			if (ast.imports.length) {
 				var meta = {
 					count: 0,
@@ -135,7 +134,8 @@ Loader.prototype.run = function (data, callback) {
 					total: ast.imports.length,
 					listener: function () {
 						if (++meta.count === meta.total) {
-							self.interpret(ast.cooked);
+							meta.interpreted = self.interpret(ast.cooked);
+							if (data.execute) meta.interpreted();
 							if (callback) callback();
 						}
 					}

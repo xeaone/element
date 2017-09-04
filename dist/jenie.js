@@ -1028,6 +1028,7 @@
 		this.state = {};
 		this.cache = {};
 		this.location = {};
+		if (options) this.loader = options.loader;
 		this.setup(options);
 	}
 
@@ -1037,7 +1038,6 @@
 	Router.prototype.setup = function (options) {
 		options = options || {};
 
-		this.loader = options.loader;
 		this.external = options.external;
 		this.container = options.container;
 		this.routes = options.routes || [];
@@ -1366,8 +1366,10 @@
 	Loader.prototype.setup = function (options) {
 		options = options || {};
 		this.esm = options.esm || false;
-		for (var i = 0, l = options.loads.length; i < l; i++) {
-			this.run(options.loads[i]);
+		if (options.loads && options.loads.length) {
+			for (var i = 0, l = options.loads.length; i < l; i++) {
+				this.run(options.loads[i]);
+			}
 		}
 	};
 
@@ -1467,13 +1469,12 @@
 		var self = this;
 
 		if (data.constructor === String) data = { file: data };
-
 		self.files[data.file] = data;
 
 		self.getFile(data, function (d) {
 			var ast = self.toAst(d.text);
 
-			if (self.esm) {
+			if (self.esm || data.esm) {
 				if (ast.imports.length) {
 					var meta = {
 						count: 0,
@@ -1481,7 +1482,8 @@
 						total: ast.imports.length,
 						listener: function () {
 							if (++meta.count === meta.total) {
-								self.interpret(ast.cooked);
+								meta.interpreted = self.interpret(ast.cooked);
+								if (data.execute) meta.interpreted();
 								if (callback) callback();
 							}
 						}
@@ -1612,7 +1614,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.5.01
+		version: 1.6.0
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1622,16 +1624,18 @@
 	*/
 
 	function Jenie () {
-		this.eScript = (document._currentScript || document.currentScript);
-		this.http = new Http();
-		this.loader = new Loader();
-		this.router = new Router({ loader: this.loader });
+		var self = this;
 
-		this.eStyle = document.createElement('style');
-		this.eStyle.setAttribute('title', 'Jenie');
-		this.eStyle.setAttribute('type', 'text/css');
-		this.eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
-		this.eScript.insertAdjacentElement('beforebegin', this.eStyle);
+		self.eScript = (document._currentScript || document.currentScript);
+		self.http = new Http();
+		self.loader = new Loader();
+		self.router = new Router({ loader: self.loader });
+
+		self.eStyle = document.createElement('style');
+		self.eStyle.setAttribute('title', 'Jenie');
+		self.eStyle.setAttribute('type', 'text/css');
+		self.eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
+		self.eScript.insertAdjacentElement('beforebegin', self.eStyle);
 
 		document.registerElement('j-view', {
 			prototype: Object.create(HTMLElement.prototype)

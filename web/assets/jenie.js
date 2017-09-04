@@ -1469,13 +1469,12 @@
 		var self = this;
 
 		if (data.constructor === String) data = { file: data };
-
 		self.files[data.file] = data;
 
 		self.getFile(data, function (d) {
 			var ast = self.toAst(d.text);
 
-			if (self.esm) {
+			if (self.esm || data.esm) {
 				if (ast.imports.length) {
 					var meta = {
 						count: 0,
@@ -1483,7 +1482,8 @@
 						total: ast.imports.length,
 						listener: function () {
 							if (++meta.count === meta.total) {
-								self.interpret(ast.cooked);
+								meta.interpreted = self.interpret(ast.cooked);
+								if (data.execute) meta.interpreted();
 								if (callback) callback();
 							}
 						}
@@ -1614,7 +1614,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.5.02
+		version: 1.6.0
 		license: mpl-2.0
 		author: alexander elias
 
