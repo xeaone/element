@@ -18,8 +18,10 @@ Loader.prototype.patterns = {
 Loader.prototype.setup = function (options) {
 	options = options || {};
 	this.esm = options.esm || false;
-	for (var i = 0, l = options.loads.length; i < l; i++) {
-		this.run(options.loads[i]);
+	if (options.loads && options.loads.length) {
+		for (var i = 0, l = options.loads.length; i < l; i++) {
+			this.run(options.loads[i]);
+		}
 	}
 };
 

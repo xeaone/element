@@ -2,7 +2,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.5.01
+	version: 1.5.02
 	license: mpl-2.0
 	author: alexander elias
 
@@ -18,16 +18,18 @@ import Loader from './loader';
 import Http from './http';
 
 function Jenie () {
-	this.eScript = (document._currentScript || document.currentScript);
-	this.http = new Http();
-	this.loader = new Loader();
-	this.router = new Router({ loader: this.loader });
+	var self = this;
 
-	this.eStyle = document.createElement('style');
-	this.eStyle.setAttribute('title', 'Jenie');
-	this.eStyle.setAttribute('type', 'text/css');
-	this.eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
-	this.eScript.insertAdjacentElement('beforebegin', this.eStyle);
+	self.eScript = (document._currentScript || document.currentScript);
+	self.http = new Http();
+	self.loader = new Loader();
+	self.router = new Router({ loader: self.loader });
+
+	self.eStyle = document.createElement('style');
+	self.eStyle.setAttribute('title', 'Jenie');
+	self.eStyle.setAttribute('type', 'text/css');
+	self.eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
+	self.eScript.insertAdjacentElement('beforebegin', self.eStyle);
 
 	document.registerElement('j-view', {
 		prototype: Object.create(HTMLElement.prototype)

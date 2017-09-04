@@ -1023,22 +1023,20 @@
 		}
 	};
 
-	// import Loader from './loader';
-
 	function Router (options) {
 		Events.call(this);
 		this.state = {};
 		this.cache = {};
 		this.location = {};
-		this.loader = options.loader;
-		// this.loader = new Loader();
-		this.setup(options || {});
+		if (options) this.loader = options.loader;
+		this.setup(options);
 	}
 
 	Router.prototype = Object.create(Events.prototype);
 	Router.prototype.constructor = Router;
 
 	Router.prototype.setup = function (options) {
+		options = options || {};
 
 		this.external = options.external;
 		this.container = options.container;
@@ -1099,15 +1097,15 @@
 
 		// if external is true then default action
 		if (self.external && (
-			self.external.constructor.name === 'Function' && self.external(target.href) ||
 			self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+			self.external.constructor.name === 'Function' && self.external(target.href) ||
 			self.external.constructor.name === 'String' && self.external === target.href
 		)) return;
 
 		// check non acceptable attributes and href
 		if (target.hasAttribute('download') ||
 			target.hasAttribute('external') ||
-			target.hasAttribute('target') ||
+			// target.hasAttribute('target') ||
 			target.href.indexOf('mailto:') !== -1 ||
 			target.href.indexOf('file:') !== -1 ||
 			target.href.indexOf('tel:') !== -1 ||
@@ -1118,7 +1116,7 @@
 		self.navigate(target.href);
 	};
 
-	Router.prototype.start = function () {
+	Router.prototype.run = function () {
 		if (this.started) return;
 		this.view = document.querySelector(this.view);
 		(this.container || window).addEventListener('click', this.click.bind(this));
@@ -1155,7 +1153,6 @@
 
 		if (route.file && !(route.component in this.cache)) {
 			self.loader.run(route.file.constructor === Object ? route.file : {
-				// interpret: true,
 				file: route.file
 			}, function () {
 				self.rendered(route, callback);
@@ -1351,15 +1348,29 @@
 	};
 
 	function Loader (options) {
-		this.modules = {};
 		this.files = {};
-		this.LOADED = 3;
-		this.LOADING = 2;
-		this.setup(options || {});
+		this.modules = {};
+		this.setup(options);
 	}
 
+	Loader.prototype.LOADED = 3;
+	Loader.prototype.LOADING = 2;
+
+	Loader.prototype.patterns = {
+		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
+		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
+		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
+		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
+	};
+
 	Loader.prototype.setup = function (options) {
+		options = options || {};
 		this.esm = options.esm || false;
+		if (options.loads && options.loads.length) {
+			for (var i = 0, l = options.loads.length; i < l; i++) {
+				this.run(options.loads[i]);
+			}
+		}
 	};
 
 	Loader.prototype.getFile = function (data, callback) {
@@ -1367,13 +1378,10 @@
 
 		if (data.file in self.modules && data.status) {
 			if (data.status === self.LOADED) {
-				if (callback) return callback();
+				if (callback) callback();
 			} else if (data.status === self.LOADING) {
 				if (!data.tag) {
-					// return data.xhr.addEventListener('load', function () {
-					// 	if (callback) callback(load);
-					// });
-					return data.xhr.addEventListener('readystatechange', function () {
+					data.xhr.addEventListener('readystatechange', function () {
 						if (data.xhr.readyState === 4) {
 							if (data.xhr.status >= 200 && data.xhr.status < 400) {
 								if (callback) callback(data);
@@ -1383,21 +1391,17 @@
 						}
 					});
 				} else {
-					return data.element.addEventListener('load', function () {
+					data.element.addEventListener('load', function () {
 						if (callback) callback(data);
 					});
 				}
 			}
-			// return;
+
+			return;
 		}
 
 		if (!data.tag) {
 			data.xhr = new XMLHttpRequest();
-			// data.xhr.addEventListener('load', function () {
-			// 	data.status = self.LOADED;
-			// 	data.text = data.xhr.responseText;
-			// 	if (callback) callback(load);
-			// });
 			data.xhr.addEventListener('readystatechange', function () {
 				if (data.xhr.readyState === 4) {
 					if (data.xhr.status >= 200 && data.xhr.status < 400) {
@@ -1412,35 +1416,6 @@
 			data.xhr.open('GET', data.file);
 			data.xhr.send();
 		}
-		// else {
-		// 	if (/\.css$/.test(load.file)) {
-		// 		load.element = document.createElement('link');
-		// 		load.element.rel = 'stylesheet';
-		// 		load.element.href = load.file;
-		// 	} else if (/\.html$/.test(load.file)) {
-		// 		load.element = document.createElement('link');
-		// 		load.element.rel = 'import';
-		// 		load.element.href = load.file;
-		// 	} else if (/\.js$/.test(load.file)) {
-		// 		load.element = document.createElement('script');
-		// 		load.element.src = load.file;
-		// 	} else {
-		// 		throw 'Unrecognized extension';
-		// 	}
-		//
-		// 	load.attributes = load.attributes || {};
-		// 	for (var attribute in load.attributes) {
-		// 		load.element.setAttribute(attribute, load.attributes[attribute]);
-		// 	}
-		//
-		// 	load.element.addEventListener('load', function () {
-		// 		load.status = self.LOADED;
-		// 		if (callback) callback(load);
-		// 	});
-		//
-		// 	load.element.async = false;
-		// 	document.head.appendChild(load.element);
-		// }
 
 		data.status = self.LOADING;
 	};
@@ -1449,13 +1424,6 @@
 		return (function(d, l, w) { 'use strict';
 			return new Function('Loader', 'window', d)(l, w);
 		}(data, this, window));
-	};
-
-	Loader.prototype.patterns = {
-		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
-		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
-		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
-		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
 	};
 
 	Loader.prototype.getImports = function (data) {
@@ -1486,11 +1454,6 @@
 		ast.cooked = ast.cooked.replace('export default', 'return');
 	};
 
-	// Loader.prototype.getName = function (data) {
-	// 	data = data.match(this.patterns.exp);
-	// 	return data ? data[1] : '';
-	// };
-
 	Loader.prototype.toAst = function (data) {
 		var ast = {};
 		ast.raw = data;
@@ -1506,7 +1469,7 @@
 		var self = this;
 
 		if (data.constructor === String) data = { file: data };
-		
+
 		self.files[data.file] = data;
 
 		self.getFile(data, function (d) {
@@ -1545,10 +1508,11 @@
 	*/
 
 	function Http (options) {
-		this.setup(options || {});
+		this.setup(options);
 	}
 
 	Http.prototype.setup = function (options) {
+		options = options || {};
 		this.request = options.request;
 		this.response = options.response;
 	};
@@ -1576,20 +1540,16 @@
 	Http.prototype.fetch = function (options) {
 		var self = this, xhr, request, response;
 
-		options = options ? options : {};
+		options = options || {};
 		options.action = options.action ? options.action : window.location.href;
 		options.method = options.method ? options.method.toUpperCase() : 'GET';
 		options.headers = options.headers ? options.headers : {};
 
 		if (options.data) {
-
 			if (options.method === 'GET') {
-
 				options.action = options.action + '?' + self.serialize(options.data);
 				options.data = null;
-
 			} else {
-
 				options.requestType = options.requestType ? options.requestType.toLowerCase() : '';
 				options.responseType = options.responseType ? options.responseType.toLowerCase() : '';
 
@@ -1610,43 +1570,22 @@
 					case 'text': options.accept = self.mime.text; break;
 				}
 
-				if (options.contentType === self.mime.json) {
-					options.data = JSON.stringify(options.data);
-				}
-
-				if (options.contentType === self.mime.urlencoded) {
-					options.data = self.serialize(options.data);
-				}
-
+				if (options.contentType === self.mime.json) options.data = JSON.stringify(options.data);
+				if (options.contentType === self.mime.urlencoded) options.data = self.serialize(options.data);
 			}
-
 		}
 
 		xhr = new XMLHttpRequest();
 
-		if (typeof self.request === 'function') {
-			request = self.request(options, xhr);
-		}
+		if (typeof self.request === 'function') request = self.request(options, xhr);
 
 		if (request === undefined || request === true) {
-
 			xhr.open(options.method, options.action, true, options.username, options.password);
 
-			if (options.mimeType) {
-				xhr.overrideMimeType(options.mimeType);
-			}
-
-			if (options.withCredentials) {
-				xhr.withCredentials = options.withCredentials;
-			}
-
-			if (options.accept) {
-				options.headers['Accept'] = options.accept;
-			}
-
-			if (options.contentType) {
-				options.headers['Content-Type'] = options.contentType;
-			}
+			if (options.mimeType) xhr.overrideMimeType(options.mimeType);
+			if (options.accept) options.headers['Accept'] = options.accept;
+			if (options.withCredentials) xhr.withCredentials = options.withCredentials;
+			if (options.contentType) options.headers['Content-Type'] = options.contentType;
 
 			if (options.headers) {
 				for (var name in options.headers) {
@@ -1655,29 +1594,19 @@
 			}
 
 			xhr.onreadystatechange = function () {
-
 				if (xhr.readyState === 4) {
-
-					if (typeof self.response === 'function') {
-						response = self.response(options, xhr);
-					}
-
+					if (typeof self.response === 'function') response = self.response(options, xhr);
 					if (response === undefined || response === true) {
-
 						if (xhr.status >= 200 && xhr.status < 400) {
 							return options.success(xhr);
 						} else {
 							return options.error(xhr);
 						}
-
 					}
-
 				}
-
 			};
 
 			xhr.send(options.data);
-
 		}
 
 	};
@@ -1685,7 +1614,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.20
+		version: 1.5.02
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1694,25 +1623,19 @@
 		file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	*/
 
-	// import Module from './module';
 	function Jenie () {
-		this.eScript = (document._currentScript || document.currentScript);
-		this.http = new Http();
-		this.loader = new Loader();
+		var self = this;
 
-		// this.module = new Module({
-		// 	loader: this.loader
-		// });
+		self.eScript = (document._currentScript || document.currentScript);
+		self.http = new Http();
+		self.loader = new Loader();
+		self.router = new Router({ loader: self.loader });
 
-		this.router = new Router({
-			loader: this.loader
-		});
-
-		this.eStyle = document.createElement('style');
-		this.eStyle.setAttribute('title', 'Jenie');
-		this.eStyle.setAttribute('type', 'text/css');
-		this.eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
-		this.eScript.insertAdjacentElement('beforebegin', this.eStyle);
+		self.eStyle = document.createElement('style');
+		self.eStyle.setAttribute('title', 'Jenie');
+		self.eStyle.setAttribute('type', 'text/css');
+		self.eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
+		self.eScript.insertAdjacentElement('beforebegin', self.eStyle);
 
 		document.registerElement('j-view', {
 			prototype: Object.create(HTMLElement.prototype)
@@ -1735,10 +1658,9 @@
 
 		if (options.http) self.http.setup(options.http);
 		if (options.loader) self.loader.setup(options.loader);
-		// if (options.module) self.module.setup(options.module);
 		if (options.router) self.router.setup(options.router);
 
-		self.router.start();
+		self.router.run();
 	};
 
 	Jenie.prototype.component = function (options) {

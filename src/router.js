@@ -5,6 +5,7 @@ export default function Router (options) {
 	this.state = {};
 	this.cache = {};
 	this.location = {};
+	if (options) this.loader = options.loader;
 	this.setup(options);
 }
 
@@ -14,7 +15,6 @@ Router.prototype.constructor = Router;
 Router.prototype.setup = function (options) {
 	options = options || {};
 
-	this.loader = options.loader;
 	this.external = options.external;
 	this.container = options.container;
 	this.routes = options.routes || [];
