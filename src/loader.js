@@ -93,7 +93,7 @@ Loader.prototype.getFile = function (data, callback) {
 				}
 			}
 		});
-		data.xhr.open('GET', self.join(self.base, data.file));
+		data.xhr.open('GET', self.joinPath(self.base, data.file));
 		data.xhr.send();
 	}
 
