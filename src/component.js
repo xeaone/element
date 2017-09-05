@@ -83,7 +83,8 @@ Component.prototype.slotify = function () {
 
 Component.prototype.toHTML = function (html) {
 	var template = document.createElement('template');
-	template.insertAdjacentHTML('afterbegin', html);
+	// template.insertAdjacentHTML('afterbegin', html);
+	template.innerHTML = html;
 	return template;
 };
 
