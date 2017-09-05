@@ -1,7 +1,7 @@
 {
 	"name": "jenie",
-	"version": "1.6.0",
-	"description": "Light weight powerful web components framework",
+	"version": "1.6.01",
+	"description": "A small but mighty web components framework/library.",
 	"main": "dist/jenie.min.js",
 	"scripts": {
 		"build": "muleify pack web docs",
@@ -24,6 +24,7 @@
 	"homepage": "https://github.com/AlexanderElias/jenie#readme",
 	"keywords": [
 		"web",
+		"component",
 		"components",
 		"web-components",
 		"js",
@@ -35,6 +36,7 @@
 		"binding",
 		"routing",
 		"router",
+		"http",
 		"front-end"
 	],
 	"directories": {

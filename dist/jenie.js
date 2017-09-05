@@ -949,7 +949,6 @@
 
 	Component.prototype.slotify = function () {
 		var eSlots = this.element.querySelectorAll('[slot]');
-
 		for (var i = 0, l = eSlots.length; i < l; i++) {
 			var eSlot = eSlots[i];
 			var sName = eSlot.getAttribute('slot');
@@ -960,12 +959,11 @@
 
 	Component.prototype.toHTML = function (html) {
 		var template = document.createElement('template');
-		template.innerHTML = html;
+		template.insertAdjacentHTML('afterbegin', html);
 		return template;
 	};
 
 	Component.prototype.toTemplate = function (template) {
-
 		if (template.constructor.name === 'String') {
 			if (/<|>/.test(template)) {
 				template = this.toHTML(template);
@@ -973,7 +971,6 @@
 				template = this.currentScript.ownerDocument.querySelector(template);
 			}
 		}
-
 		return template;
 	};
 
@@ -1614,7 +1611,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.6.0
+		version: 1.6.01
 		license: mpl-2.0
 		author: alexander elias
 

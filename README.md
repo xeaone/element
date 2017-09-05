@@ -1,7 +1,7 @@
-# Jenie
-
 **Beta API Can Change**
-The Web Components Framework/Library
+
+# Jenie
+A small but mighty web components framework/library.
 
 **1.5 Breaking Changes**
 - Jenie.module replaced with loader and es6 module support
@@ -12,8 +12,6 @@ The Web Components Framework/Library
 - Jenie.router.external<String> no longer converts to RegExp
 - removed Jenie.component.template as comment.
 - j-on binder events have been moved from Jenie.controller.model to  Jenie.controller.events.
-
-**Use NPM for the latest stable version**
 
 ## Support
 - IE10~
@@ -58,9 +56,12 @@ Jenie.setup({
 		}
 	},
 	loader: {
-		esm: true,
+		esm: true, // Enables ES6 import export module support
 		loads: [
-
+			{
+				file: '/components/c-menu.js',
+				execute: true // Since this component is not a module/route or imported we must execute.
+			}
 		]
 	},
 	router: {
@@ -122,14 +123,12 @@ The recommend entry point. This allows you to setup Jenie and automatically star
 		- `route: Object`
 		- `title: String` The title for the page.
 		- `component: String` The name of a component.
-		- `file: String, Object` A path or LoadObject to a component JS file (Uses loader).
+		- `file: Object, String` Path or Jenie.loader.load Object to a web component JS file.
 			- `path: String` Any path.
 				- `parameters: String` Named '/account/{user}', or catchalls '{\*}',
 
 - `run: Function` Must be called after <j-view></j-view> is created
 - `redirect: Function` Uses window.location.href which is treated like a 301 redirect for SEO.
-<!-- - `findRoutes: Function`
-- `route.path: RegExp` -->
 - `add: Function`
 	- `path: String`
 - `remove: Function`
@@ -144,10 +143,14 @@ The recommend entry point. This allows you to setup Jenie and automatically star
 	- `navigated: Event`
 
 ### Jenie.loader
-ES6 import export support. Imports must be absolute from the domain (for now). Also `export default` is the only export format supported (for now). Please do not use Loader.interpret to handle user input.
+ES6 import and export module support. Imports must be absolute from the domain. Also `export default` is the only export format supported. Please do not use Loader.interpret to handle user input.
 - `options: Object`
 	- `esm: Boolean` enable es6 module support for scripts.
-	- `loads: Array<Object, String>`
+	- `loads: Array<Object, String>` Adds load objects or strings such as non route components.
+		- `load: Object, String`
+			- `file: String` Path to a web component JS file.
+			- `execute: Boolean` Enable this to load and define/register custom components.
+			- `esm: Boolean` Similar to Jenie.loader.options this enables es6 module support but on an individual bases.
 
 ### Jenie.http
 - `options: Object`
@@ -157,41 +160,39 @@ ES6 import export support. Imports must be absolute from the domain (for now). A
 	- `response: Function` Intercepts the request. If the return value is false the fetch success and error will not be triggered.
 		- `options: Object`
 		- `xhr: Object`
+	- `mime: Object`
+	- `serialize: Function`
+	- `fetch: Function` A fetch request.
+		- `options: Object`
+			- `action: String` Resource action url. **Required**
+			- `success: Function` **Required** The fetch response.
+			- `error: Function` **Required** The fetch response.
+			- `method: String` Valid methods get, post, put, delete
+			- `data: Object` If method is `GET` than data is concatenated to the `action/url` as parameters.
 
-- `mime: Object`
-- `serialize: Function`
-- `fetch: Function` A fetch request.
-	- `options: Object`
-		- `action: String` Resource action url. **Required**
-		- `success: Function` **Required** The fetch response.
-		- `error: Function` **Required** The fetch response.
+			- `requestType: String` Converts the request data before sending.
+				- `script` 'text/javascript, application/javascript, application/x-javascript'
+				- `json` 'application/json' stringify `options.data`
+				- `xml` 'application/xml, text/xml'
+				- `html` 'text/html'
+				- `text` 'text/plain'
+				- DEFAULT 'application/x-www-form-urlencoded' serialized `options.data`
 
-		- `method: String` Valid methods get, post, put, delete
-		- `data: Object` If method is `GET` than data is concatenated to the `action/url` as parameters.
+			- `responseType: String` Converts the response data after sending.
+				- `script` 'text/javascript, application/javascript, application/x-javascript'
+				- `json` 'application/json'
+				- `xml` 'application/xml, text/xml'
+				- `html` 'text/html'
+				- `text` 'text/plain'
 
-		- `requestType: String` Converts the request data before sending.
-			- `script` 'text/javascript, application/javascript, application/x-javascript'
-			- `json` 'application/json' stringify `options.data`
-			- `xml` 'application/xml, text/xml'
-			- `html` 'text/html'
-			- `text` 'text/plain'
-			- DEFAULT 'application/x-www-form-urlencoded' serialized `options.data`
+			- `contentType: String` Short hand to set the Content-Type Headers. (For request)
+			- `accept: String` Short hand to set the Accept Headers. (For response)
 
-		- `responseType: String` Converts the response data after sending.
-			- `script` 'text/javascript, application/javascript, application/x-javascript'
-			- `json` 'application/json'
-			- `xml` 'application/xml, text/xml'
-			- `html` 'text/html'
-			- `text` 'text/plain'
-
-		- `contentType: String` Short hand to set the Content-Type Headers. (For request)
-		- `accept: String` Short hand to set the Accept Headers. (For response)
-
-		- `mimeType: String` Overwrites return type.
-		- `username: String`
-		- `password: String`
-		- `withCredentials: Boolean`
-		- `headers: Object` A low level headers object it will map directly to the XHR header. The Will overwrite any above options.
+			- `mimeType: String` Overwrites return type.
+			- `username: String`
+			- `password: String`
+			- `withCredentials: Boolean`
+			- `headers: Object` A low level headers object it will map directly to the XHR header. The Will overwrite any above options.
 
 ### Jenie.controller(options, callback)
 Returns an instance of a new controller.
