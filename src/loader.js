@@ -47,6 +47,12 @@ Loader.prototype.createBase = function (base) {
 	return base;
 };
 
+Loader.prototype.joinPath = function () {
+	return Array.prototype.join
+		.call(arguments, '/')
+		.replace(/\/{2,}/g, '/');
+};
+
 Loader.prototype.getFile = function (data, callback) {
 	var self = this;
 
@@ -87,7 +93,7 @@ Loader.prototype.getFile = function (data, callback) {
 				}
 			}
 		});
-		data.xhr.open('GET', data.file);
+		data.xhr.open('GET', this.join(this.base, data.file));
 		data.xhr.send();
 	}
 

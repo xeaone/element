@@ -1399,6 +1399,12 @@
 		return base;
 	};
 
+	Loader.prototype.joinPath = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/\/{2,}/g, '/');
+	};
+
 	Loader.prototype.getFile = function (data, callback) {
 		var self = this;
 
@@ -1439,7 +1445,7 @@
 					}
 				}
 			});
-			data.xhr.open('GET', data.file);
+			data.xhr.open('GET', this.join(this.base, data.file));
 			data.xhr.send();
 		}
 
@@ -1640,7 +1646,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.6.5
+		version: 1.6.6
 		license: mpl-2.0
 		author: alexander elias
 
