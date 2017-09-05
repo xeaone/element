@@ -1445,7 +1445,7 @@
 					}
 				}
 			});
-			data.xhr.open('GET', self.join(self.base, data.file));
+			data.xhr.open('GET', self.joinPath(self.base, data.file));
 			data.xhr.send();
 		}
 
@@ -1646,7 +1646,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.6.7
+		version: 1.6.8
 		license: mpl-2.0
 		author: alexander elias
 
