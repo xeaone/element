@@ -4,7 +4,7 @@
 	"description": "A small but mighty web components framework/library.",
 	"main": "dist/jenie.min.js",
 	"scripts": {
-		"build": "muleify pack web docs",
+		"build": "muleify pack -p src src/jenie.b.js web/assets/jenie.js && muleify pack web docs",
 		"serve": "muleify serve -s -w -e web dev",
 		"watch": "muleify pack -p src -w src/jenie.b.js web/assets/jenie.js",
 		"bd": "muleify pack src/jenie.b.js dist/jenie.js",
