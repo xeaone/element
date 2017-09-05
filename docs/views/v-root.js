@@ -1,14 +1,107 @@
+import Say from '/say.js';
 
-var home = Jenie.escape('\n\t// v-home.html\n\t<template>\n\t\t<h1 j-text="title"></h1>\n\t</template>\n\t<script>\n\t\tJenie.component(\n\t\t\tname: "v-home"\n\t\t\ttemplate: "template"\n\t\t\tmodel: {\n\t\t\t\ttitle: "Old Title"\n\t\t\t}\n\t\t\tcreated: function () {\n\t\t\t\tthis.model.title = "New Title"\n\t\t\t}\n\t\t}\n\t</script>\n');
+var home = Jenie.escape(`
+	Jenie.component({
+		name: 'v-home',
+		template: \`
+			<h1 j-text="title"></h1>
+		\`,
+		model: {
+			title: 'Old Title'
+		},
+		created: function () {
+			this.model.title = 'New Title';
+		}
+	});
+`);
 
-var index = Jenie.escape('\n\t// index.html\n\t<script src="jenie.min.js" defer></script>\n\t<j-view></j-view>\n\t<script>\n\t\tJenie.setup({\n\t\t\thttp: {\n\t\t\t\trequest: function (options, xhr) {\n\t\t\t\t\t// false will cancel the http.fetch\n\t\t\t\t\treturn true;\n\t\t\t\t},\n\t\t\t\tresponse: function (options, xhr) {\n\t\t\t\t\t// false will cancel the http.fetch handlers\n\t\t\t\t\treturn true;\n\t\t\t\t}\n\t\t\t},\n\t\t\tmodule: {\n\t\t\t\tmodules: [\n\t\t\t\t\t{\n\t\t\t\t\t\tname: "num",\n\t\t\t\t\t\tmethod: function () {\n\t\t\t\t\t\t\treturn function () { return 1; };\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t},\n\t\t\trouter: {\n\t\t\t\troutes: [\n\t\t\t\t\t{\n\t\t\t\t\t\tpath: "/",\n\t\t\t\t\t\tcomponent: "v-home",\n\t\t\t\t\t\tcomponentUrl: "v-home.html"\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t});\n\t</script>\n');
+var indexjs = Jenie.escape(`
+	Jenie.setup({
+		http: {
+			request: function (opt, xhr) {
+				return true; // false will cancel the http.fetch
+			},
+			response: function (opt, xhr) {
+				return true; // false will cancel the http.fetch handlers
+			}
+		},
+		loader: {
+			esm: true, // Enables ES6 import export module support
+			loads: [
+				{
+					file: '/components/c-menu.js',
+					execute: true // Since this component is not a module/route or imported we must execute.
+				}
+			]
+		},
+		router: {
+			routes: [
+				{
+					path: '/',
+					title: 'Home',
+					component: 'v-home',
+					file: 'views/v-home.js'
+				}
+			]
+		}
+	});
+`);
 
-var template = '\n\t<h2>Overview</h2>\n\n\t<strong>Synopsis</strong>\n\t<p>\n\t\tJenie is a light weight web components framework/library.\n\t</p>\n\n\t<strong>Breaking Changes</strong>\n\t<ul>\n\t\t<li>1.4: removed Jenie.component.template as comment.</li>\n\t\t<li>1.4: j-on binder events have been moved from Jenie.controller.model to Jenie.controller.events.</li>\n\t</ul>\n\n\t<strong>Support</strong>\n\t<ul>\n\t\t<li>IE10~</li>\n\t\t<li>IE11</li>\n\t\t<li>Chrome</li>\n\t\t<li>Firefox</li>\n\t\t<li>Safari 7</li>\n\t\t<li>Mobile Safari</li>\n\t\t<li>Chrome Android</li>\n\t</ul>\n\n\t<strong>Install</strong>\n\t<ul>\n\t\t<li><strong>npm install jenie --save</strong></li>\n\t\t<li>UMD <i>"dist/jenie.min.js"</i></li>\n\t\t<li>Web Component Pollyfill included UMD <i>"dist/jenie.polly.min.js"</i></li>\n\t\t<li>Web Component Pollyfill <i>"dist/webcomponents-lite.min.js"</i></li>\n\t</ul>\n\n\t<h2>Example</h2>\n\t<pre>\n\t\t<code class="language-html">' + home + '</code>\n\t</pre>\n\t<pre>\n\t\t<code class="language-html">' + index + '</code>\n\t</pre>\n';
+var indexhtml = Jenie.escape(`
+	<html>
+	<head>
+		<base href="/">
+		<script src="jenie.min.js" defer></script>
+		<script src="index.js" defer></script>
+	</head>
+	<body>
+		<j-view></j-view>
+	</body>
+	</html>
+`);
 
 Jenie.component({
 	name: 'v-root',
-	template: template,
-	attached: function attached() {
+	template: `
+		<h2>Overview</h2>
+
+		<strong>Synopsis</strong>
+		<p>
+			A small but mighty web components framework/library.
+		</p>
+
+		<strong>Support</strong>
+		<ul>
+			<li>IE10~</li>
+			<li>IE11</li>
+			<li>Chrome</li>
+			<li>Firefox</li>
+			<li>Safari 7</li>
+			<li>Mobile Safari</li>
+			<li>Chrome Android</li>
+		</ul>
+
+		<strong>Install</strong>
+		<ul>
+			<li><strong>npm install jenie --save</strong></li>
+			<li>UMD <i>"dist/jenie.min.js"</i></li>
+			<li>UMD with Web Component Pollyfill <i>"dist/jenie.polly.min.js"</i></li>
+			<li>Web Component Pollyfill <i>"dist/webcomponents-lite.min.js"</i></li>
+		</ul>
+
+		<h2>Example</h2>
+		<pre>
+			<code class="language-js">${home}</code>
+		</pre>
+		<pre>
+			<code class="language-js">${indexjs}</code>
+		</pre>
+		<pre>
+			<code class="language-html">${indexhtml}</code>
+		</pre>
+	`,
+	attached: function () {
 		Prism.highlightAll();
+		Say('hello world');
 	}
 });

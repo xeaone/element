@@ -494,14 +494,18 @@
 			}
 
 			if (self.element.children.length > data.length) {
-				self.element.removeChild(self.element.children[self.element.children.length-1]);
+				while (self.element.children.length > data.length) {
+					self.element.removeChild(self.element.children[self.element.children.length-1]);
+				}
 			} else if (self.element.children.length < data.length) {
-				self.element.insertAdjacentHTML(
-					'beforeend',
-					self.clone.replace(
-						self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
-					)
-				);
+				while (self.element.children.length < data.length) {
+					self.element.insertAdjacentHTML(
+						'beforeend',
+						self.clone.replace(
+							self.pattern, '$1' + self.attribute.path + '.' + self.element.children.length + '$6'
+						)
+					);
+				}
 			}
 		},
 		value: function (data) {
@@ -633,7 +637,7 @@
 	View.prototype.PREFIX = /(data-)?j-/;
 	View.prototype.MODIFIERS = /^(.*?)\|\s?/;
 	View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
-	View.prototype.ELEMENT_SKIPS = /^\w+(-\w+)+|iframe|object|script|style|svg/i;
+	View.prototype.ELEMENT_SKIPS = /\w+(-\w+)+|iframe|object|script|style|svg/i;
 
 	View.prototype.attribute = function (name, value) {
 		var self = this;
@@ -670,8 +674,7 @@
 
 	View.prototype.eachElement = function (elements, callback) {
 		var self = this;
-		// NOTE might throw an error if node list length changes
-		for (var i = 0, l = elements.length; i < l; i++) {
+		for (var i = 0; i < elements.length; i++) {
 			if (self.nodeSkipsTest(elements[i])) {
 				i += elements[i].getElementsByTagName('*').length;
 				callback(elements[i]);
@@ -683,7 +686,7 @@
 
 	View.prototype.eachAttribute = function (element, callback) {
 		var self = this, attributes = element.attributes, attribute;
-		for (var i = 0, l = attributes.length; i < l; i++) {
+		for (var i = 0; i < attributes.length; i++) {
 			attribute = attributes[i];
 			if (self.ATTRIBUTE_ACCEPTS.test(attribute.name)) {
 				callback(self.attribute(attribute.name, attribute.value));
@@ -782,13 +785,8 @@
 		}, true);
 
 		self.addElements(self.controller._view.getElementsByTagName('*'));
-
 		self.observer = new MutationObserver(self.mutationListener.bind(self));
-
-		self.observer.observe(self.controller._view, {
-			childList: true,
-			subtree: true
-		});
+		self.observer.observe(self.controller._view, { childList: true, subtree: true });
 	};
 
 	function Controller (options, callback) {
@@ -1025,118 +1023,20 @@
 		}
 	};
 
-	function Loader (options) {
-		this.setup(options || {});
-	}
-
-	Loader.prototype.setup = function (options) {
-		this.loads = {};
-		this.counts = {};
-
-		if (options.loads && options.loads.length) {
-			this.insert(options.loads);
-		}
-	};
-
-	Loader.prototype.insert = function (loads) {
-		for (var i = 0, l = loads.length, load; i < l; i++) {
-			load = loads[i];
-
-			if (!load.group) {
-				throw new Error('Missing load group');
-			}
-
-			if (!load.path) {
-				throw new Error('Missing load path');
-			}
-
-			if (!load.execution) {
-				load.execution = 'defer';
-			}
-
-			if (!(load.group in this.loads)) {
-				this.counts[load.group] = 0;
-				this.loads[load.group] = [];
-			}
-
-			this.loads[load.group].push(load);
-		}
-	};
-
-	Loader.prototype.inject = function (load, callback) {
-		if (load.done) {
-			if (callback) callback();
-			return;
-		}
-
-		var element;
-
-		load = typeof load === 'string' ? { path: load } : load;
-		load.attributes = load.attributes || {};
-
-		for (var attribute in load.attributes) {
-			element.setAttribute(attribute, load.attributes[attribute]);
-		}
-
-		if (/\.css$/.test(load.path)) {
-			element = document.createElement('link');
-			element.setAttribute('rel', 'stylesheet');
-			element.setAttribute('href', load.path);
-		} else if (/\.html$/.test(load.path)) {
-			element = document.createElement('link');
-			element.setAttribute('rel', 'import');
-			element.setAttribute('href', load.path);
-			if (!('async' in load.attributes || 'defer' in load.attributes)) {
-				element.setAttribute('defer', '');
-			}
-		} else if (/\.js$/.test(load.path)) {
-			element = document.createElement('script');
-			element.setAttribute('src', load.path);
-			if (!('async' in load.attributes || 'defer' in load.attributes)) {
-				element.setAttribute('defer', '');
-			}
-		} else {
-			throw new Error('Unrecognized extension');
-		}
-
-		element.onload = callback;
-		document.head.appendChild(element);
-		load.done = true;
-	};
-
-	Loader.prototype.listener = function (group, listener) {
-		if (++this.counts[group] === this.loads[group].length) {
-			if (listener) listener();
-		}
-	};
-
-	Loader.prototype.start = function (group, listener) {
-		if (!group) throw new Error('Missing inject group');
-		if (!this.loads[group]) return console.warn('Missing group');
-
-		for (var i = 0, l = this.loads[group].length; i < l; i++) {
-			this.inject(
-				this.loads[group][i],
-				this.listener.bind(this, group, listener)
-			);
-		}
-	};
-
 	function Router (options) {
 		Events.call(this);
-
 		this.state = {};
 		this.cache = {};
 		this.location = {};
-		this.loader = new Loader();
-
-		this.setup(options || {});
+		if (options) this.loader = options.loader;
+		this.setup(options);
 	}
 
 	Router.prototype = Object.create(Events.prototype);
 	Router.prototype.constructor = Router;
 
 	Router.prototype.setup = function (options) {
+		options = options || {};
 
 		this.external = options.external;
 		this.container = options.container;
@@ -1197,15 +1097,15 @@
 
 		// if external is true then default action
 		if (self.external && (
-			self.external.constructor.name === 'Function' && self.external(target.href) ||
 			self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+			self.external.constructor.name === 'Function' && self.external(target.href) ||
 			self.external.constructor.name === 'String' && self.external === target.href
 		)) return;
 
 		// check non acceptable attributes and href
 		if (target.hasAttribute('download') ||
 			target.hasAttribute('external') ||
-			target.hasAttribute('target') ||
+			// target.hasAttribute('target') ||
 			target.href.indexOf('mailto:') !== -1 ||
 			target.href.indexOf('file:') !== -1 ||
 			target.href.indexOf('tel:') !== -1 ||
@@ -1216,7 +1116,7 @@
 		self.navigate(target.href);
 	};
 
-	Router.prototype.start = function () {
+	Router.prototype.run = function () {
 		if (this.started) return;
 		this.view = document.querySelector(this.view);
 		(this.container || window).addEventListener('click', this.click.bind(this));
@@ -1245,14 +1145,20 @@
 	};
 
 	Router.prototype.render = function (route, callback) {
+		var self = this;
+
 		if (route.title) {
 			document.title = route.title;
 		}
 
-		if (route.load && !(route.component in this.cache)) {
-			this.loader.inject(route.load, this.rendered.bind(this, route, callback));
+		if (route.file && !(route.component in this.cache)) {
+			self.loader.run(route.file.constructor === Object ? route.file : {
+				file: route.file
+			}, function () {
+				self.rendered(route, callback);
+			});
 		} else {
-			this.rendered(route, callback);
+			self.rendered(route, callback);
 		}
 	};
 
@@ -1441,71 +1347,172 @@
 
 	};
 
-	function Module (options) {	
-		this.setup(options || {});
+	function Loader (options) {
+		this.files = {};
+		this.modules = {};
+		this.setup(options);
 	}
 
-	Module.prototype.setup = function (options) {
-		this.modules = {};
+	Loader.prototype.LOADED = 3;
+	Loader.prototype.LOADING = 2;
 
-		if (options.modules) {
-			for (var i = 0, l = options.modules.length; i < l; i++) {
-				var module = options.modules[i];
-				this.export.call(
-					this,
-					module.name,
-					module.dependencies || module.method,
-					module.dependencies ? module.method : null
-				);
+	Loader.prototype.patterns = {
+		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
+		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
+		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
+		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
+	};
+
+	Loader.prototype.setup = function (options) {
+		options = options || {};
+		this.esm = options.esm || false;
+		if (options.loads && options.loads.length) {
+			for (var i = 0, l = options.loads.length; i < l; i++) {
+				this.run(options.loads[i]);
 			}
 		}
 	};
 
-	Module.prototype.load = function (paths) {
-		for (var i = 0, l = paths.length; i < l; i++) {
-			var path = paths[i];
-			var script = document.createElement('script');
-			script.src = path;
-			script.async = false;
-			script.type = 'text/javascript';
-			document.head.appendChild(script);
-		}
-	};
+	Loader.prototype.getFile = function (data, callback) {
+		var self = this;
 
-	Module.prototype.import = function (name) {
-		if (name in this.modules) {
-			return  typeof this.modules[name] === 'function' ? this.modules[name]() : this.modules[name];
-		} else {
-			throw new Error('module ' + name + ' is not defined');
-		}
-	};
-
-	Module.prototype.export = function (name, dependencies, method) {
-		if (name in this.modules) {
-			throw new Error('module ' + name + ' is defined');
-		} else {
-
-			if (typeof dependencies === 'function') {
-				method = dependencies;
-				dependencies = [];
-			}
-
-			if (typeof method === 'function') {
-				for (var i = 0, l = dependencies.length; i < l; i++) {
-					var dependency = dependencies[i];
-					method = method.bind(null, this.import(dependency));
+		if (data.file in self.modules && data.status) {
+			if (data.status === self.LOADED) {
+				if (callback) callback();
+			} else if (data.status === self.LOADING) {
+				if (!data.tag) {
+					data.xhr.addEventListener('readystatechange', function () {
+						if (data.xhr.readyState === 4) {
+							if (data.xhr.status >= 200 && data.xhr.status < 400) {
+								if (callback) callback(data);
+							} else {
+								throw data.xhr.responseText;
+							}
+						}
+					});
+				} else {
+					data.element.addEventListener('load', function () {
+						if (callback) callback(data);
+					});
 				}
 			}
 
-			return this.modules[name] = method;
+			return;
+		}
+
+		if (!data.tag) {
+			data.xhr = new XMLHttpRequest();
+			data.xhr.addEventListener('readystatechange', function () {
+				if (data.xhr.readyState === 4) {
+					if (data.xhr.status >= 200 && data.xhr.status < 400) {
+						data.status = self.LOADED;
+						data.text = data.xhr.responseText;
+						if (callback) callback(data);
+					} else {
+						throw data.xhr.responseText;
+					}
+				}
+			});
+			data.xhr.open('GET', data.file);
+			data.xhr.send();
+		}
+
+		data.status = self.LOADING;
+	};
+
+	Loader.prototype.interpret = function (data) {
+		return (function(d, l, w) { 'use strict';
+			return new Function('Loader', 'window', d)(l, w);
+		}(data, this, window));
+	};
+
+	Loader.prototype.getImports = function (data) {
+		var imp, imports = [];
+		var imps = data.match(this.patterns.imps) || [];
+		for (var i = 0, l = imps.length; i < l; i++) {
+			imp = imps[i].match(this.patterns.imp);
+			imports[i] = {
+				raw: imp[0],
+				name: imp[1],
+				file: imp[2]
+			};
+		}
+		return imports;
+	};
+
+	Loader.prototype.getExports = function (data) {
+		return data.match(this.patterns.exps) || [];
+	};
+
+	Loader.prototype.handleImports = function (ast) {
+		for (var i = 0, l = ast.imports.length; i < l; i++) {
+			ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].file + '\']');
 		}
 	};
 
+	Loader.prototype.handleExports = function (ast) {
+		ast.cooked = ast.cooked.replace('export default', 'return');
+	};
+
+	Loader.prototype.toAst = function (data) {
+		var ast = {};
+		ast.raw = data;
+		ast.imports = this.getImports(ast.raw);
+		ast.exports = this.getExports(ast.raw);
+		ast.cooked = ast.raw;
+		this.handleImports(ast);
+		this.handleExports(ast);
+		return ast;
+	};
+
+	Loader.prototype.run = function (data, callback) {
+		var self = this;
+
+		if (data.constructor === String) data = { file: data };
+		self.files[data.file] = data;
+
+		self.getFile(data, function (d) {
+			var ast = self.toAst(d.text);
+
+			if (self.esm || data.esm) {
+				if (ast.imports.length) {
+					var meta = {
+						count: 0,
+						imports: ast.imports,
+						total: ast.imports.length,
+						listener: function () {
+							if (++meta.count === meta.total) {
+								meta.interpreted = self.interpret(ast.cooked);
+								if (data.execute) meta.interpreted();
+								if (callback) callback();
+							}
+						}
+					};
+
+					for (var i = 0, l = meta.imports.length; i < l; i++) {
+						self.run(meta.imports[i].file, meta.listener);
+					}
+				} else {
+					self.modules[d.file] = self.interpret(ast.cooked);
+					if (callback) callback();
+				}
+			} else {
+				self.modules[d.file] = self.interpret(d.text);
+				if (callback) callback();
+			}
+		});
+	};
+
+	/*
+		https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
+	*/
+
 	function Http (options) {
-		this.setup(options || {});
+		this.setup(options);
 	}
 
 	Http.prototype.setup = function (options) {
+		options = options || {};
 		this.request = options.request;
 		this.response = options.response;
 	};
@@ -1533,20 +1540,16 @@
 	Http.prototype.fetch = function (options) {
 		var self = this, xhr, request, response;
 
-		options = options ? options : {};
+		options = options || {};
 		options.action = options.action ? options.action : window.location.href;
 		options.method = options.method ? options.method.toUpperCase() : 'GET';
 		options.headers = options.headers ? options.headers : {};
 
 		if (options.data) {
-
 			if (options.method === 'GET') {
-
 				options.action = options.action + '?' + self.serialize(options.data);
 				options.data = null;
-
 			} else {
-
 				options.requestType = options.requestType ? options.requestType.toLowerCase() : '';
 				options.responseType = options.responseType ? options.responseType.toLowerCase() : '';
 
@@ -1567,43 +1570,22 @@
 					case 'text': options.accept = self.mime.text; break;
 				}
 
-				if (options.contentType === self.mime.json) {
-					options.data = JSON.stringify(options.data);
-				}
-
-				if (options.contentType === self.mime.urlencoded) {
-					options.data = self.serialize(options.data);
-				}
-
+				if (options.contentType === self.mime.json) options.data = JSON.stringify(options.data);
+				if (options.contentType === self.mime.urlencoded) options.data = self.serialize(options.data);
 			}
-
 		}
 
 		xhr = new XMLHttpRequest();
 
-		if (typeof self.request === 'function') {
-			request = self.request(options, xhr);
-		}
+		if (typeof self.request === 'function') request = self.request(options, xhr);
 
 		if (request === undefined || request === true) {
-
 			xhr.open(options.method, options.action, true, options.username, options.password);
 
-			if (options.mimeType) {
-				xhr.overrideMimeType(options.mimeType);
-			}
-
-			if (options.withCredentials) {
-				xhr.withCredentials = options.withCredentials;
-			}
-
-			if (options.accept) {
-				options.headers['Accept'] = options.accept;
-			}
-
-			if (options.contentType) {
-				options.headers['Content-Type'] = options.contentType;
-			}
+			if (options.mimeType) xhr.overrideMimeType(options.mimeType);
+			if (options.accept) options.headers['Accept'] = options.accept;
+			if (options.withCredentials) xhr.withCredentials = options.withCredentials;
+			if (options.contentType) options.headers['Content-Type'] = options.contentType;
 
 			if (options.headers) {
 				for (var name in options.headers) {
@@ -1612,29 +1594,19 @@
 			}
 
 			xhr.onreadystatechange = function () {
-
 				if (xhr.readyState === 4) {
-
-					if (typeof self.response === 'function') {
-						response = self.response(options, xhr);
-					}
-
+					if (typeof self.response === 'function') response = self.response(options, xhr);
 					if (response === undefined || response === true) {
-
 						if (xhr.status >= 200 && xhr.status < 400) {
 							return options.success(xhr);
 						} else {
 							return options.error(xhr);
 						}
-
 					}
-
 				}
-
 			};
 
 			xhr.send(options.data);
-
 		}
 
 	};
@@ -1642,7 +1614,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.4.16
+		version: 1.6.0
 		license: mpl-2.0
 		author: alexander elias
 
@@ -1652,36 +1624,43 @@
 	*/
 
 	function Jenie () {
-		var sStyle = 'j-view, j-view > :first-child { display: block; }';
-		var eStyle = document.createElement('style');
-		var nStyle = document.createTextNode(sStyle);
+		var self = this;
 
-		eStyle.appendChild(nStyle);
-		document.head.appendChild(eStyle);
+		self.eScript = (document._currentScript || document.currentScript);
+		self.http = new Http();
+		self.loader = new Loader();
+		self.router = new Router({ loader: self.loader });
+
+		self.eStyle = document.createElement('style');
+		self.eStyle.setAttribute('title', 'Jenie');
+		self.eStyle.setAttribute('type', 'text/css');
+		self.eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
+		self.eScript.insertAdjacentElement('beforebegin', self.eStyle);
 
 		document.registerElement('j-view', {
 			prototype: Object.create(HTMLElement.prototype)
 		});
 
-		this.http = new Http();
-		this.loader = new Loader();
-		this.module = new Module();
-		this.router = new Router();
-
+		// j-index="index.js"
+		// this.sIndex = this.eScript.getAttribute('j-index');
+		// if (this.sIndex) {
+		// 	this.eIndex = document.createElement('script');
+		// 	this.eIndex.setAttribute('src', this.sIndex);
+		// 	this.eIndex.setAttribute('async', 'false');
+		// 	this.eScript.insertAdjacentElement('afterend', this.eIndex);
+		// }
 	}
 
 	Jenie.prototype.setup = function (options) {
-		options = (typeof options === 'function' ? options.call(this) : options) || {};
+		var self = this;
 
-		if (options.http) this.http.setup(options.http);
-		if (options.loader) this.loader.setup(options.loader);
-		if (options.module) this.module.setup(options.module);
-		if (options.router) this.router.setup(options.router);
+		options = (typeof options === 'function' ? options.call(self) : options) || {};
 
-		this.loader.start('async');
-		this.loader.start('defer', function () {
-			this.router.start();
-		}.bind(this));
+		if (options.http) self.http.setup(options.http);
+		if (options.loader) self.loader.setup(options.loader);
+		if (options.router) self.router.setup(options.router);
+
+		self.router.run();
 	};
 
 	Jenie.prototype.component = function (options) {
