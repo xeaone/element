@@ -21,24 +21,30 @@ Router.prototype.setup = function (options) {
 	this.view = options.view || 'j-view';
 
 	this.started = false;
-	this.base = options.base || '';
+	this.base = this.createBase(options.base);
 	this.hash = options.hash === undefined ? false : options.hash;
 	this.trailing = options.trailing === undefined ? false : options.trailing;
+};
 
-	if (this.base) {
-		var base = document.head.querySelector('base');
+Router.prototype.createBase = function (base) {
+	base = base || '';
 
-		if (!base) {
-			base = document.createElement('base');
-			document.head.insertBefore(base, document.head.firstChild);
+	if (base) {
+		var element = document.head.querySelector('base');
+
+		if (!element) {
+			element = document.createElement('base');
+			document.head.insertBefore(element, document.head.firstChild);
 		}
 
-		if (typeof this.base === 'string') {
-			base.href = this.base;
+		if (typeof base === 'string') {
+			element.href = base;
 		}
 
-		this.base = base.href;
+		base = element.href;
 	}
+
+	return base;
 };
 
 Router.prototype.joinPath = function () {

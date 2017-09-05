@@ -949,7 +949,6 @@
 
 	Component.prototype.slotify = function () {
 		var eSlots = this.element.querySelectorAll('[slot]');
-
 		for (var i = 0, l = eSlots.length; i < l; i++) {
 			var eSlot = eSlots[i];
 			var sName = eSlot.getAttribute('slot');
@@ -960,12 +959,12 @@
 
 	Component.prototype.toHTML = function (html) {
 		var template = document.createElement('template');
+		// template.insertAdjacentHTML('afterbegin', html);
 		template.innerHTML = html;
 		return template;
 	};
 
 	Component.prototype.toTemplate = function (template) {
-
 		if (template.constructor.name === 'String') {
 			if (/<|>/.test(template)) {
 				template = this.toHTML(template);
@@ -973,7 +972,6 @@
 				template = this.currentScript.ownerDocument.querySelector(template);
 			}
 		}
-
 		return template;
 	};
 
@@ -1044,24 +1042,30 @@
 		this.view = options.view || 'j-view';
 
 		this.started = false;
-		this.base = options.base || '';
+		this.base = this.createBase(options.base);
 		this.hash = options.hash === undefined ? false : options.hash;
 		this.trailing = options.trailing === undefined ? false : options.trailing;
+	};
 
-		if (this.base) {
-			var base = document.head.querySelector('base');
+	Router.prototype.createBase = function (base) {
+		base = base || '';
 
-			if (!base) {
-				base = document.createElement('base');
-				document.head.insertBefore(base, document.head.firstChild);
+		if (base) {
+			var element = document.head.querySelector('base');
+
+			if (!element) {
+				element = document.createElement('base');
+				document.head.insertBefore(element, document.head.firstChild);
 			}
 
-			if (typeof this.base === 'string') {
-				base.href = this.base;
+			if (typeof base === 'string') {
+				element.href = base;
 			}
 
-			this.base = base.href;
+			base = element.href;
 		}
+
+		return base;
 	};
 
 	Router.prototype.joinPath = function () {
@@ -1366,11 +1370,33 @@
 	Loader.prototype.setup = function (options) {
 		options = options || {};
 		this.esm = options.esm || false;
+		this.base = this.createBase(options.base);
 		if (options.loads && options.loads.length) {
 			for (var i = 0, l = options.loads.length; i < l; i++) {
 				this.run(options.loads[i]);
 			}
 		}
+	};
+
+	Loader.prototype.createBase = function (base) {
+		base = base || '';
+
+		if (base) {
+			var element = document.head.querySelector('base');
+
+			if (!element) {
+				element = document.createElement('base');
+				document.head.insertBefore(element, document.head.firstChild);
+			}
+
+			if (typeof base === 'string') {
+				element.href = base;
+			}
+
+			base = element.href;
+		}
+
+		return base;
 	};
 
 	Loader.prototype.getFile = function (data, callback) {
@@ -1614,7 +1640,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.6.0
+		version: 1.6.5
 		license: mpl-2.0
 		author: alexander elias
 

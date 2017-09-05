@@ -18,11 +18,33 @@ Loader.prototype.patterns = {
 Loader.prototype.setup = function (options) {
 	options = options || {};
 	this.esm = options.esm || false;
+	this.base = this.createBase(options.base);
 	if (options.loads && options.loads.length) {
 		for (var i = 0, l = options.loads.length; i < l; i++) {
 			this.run(options.loads[i]);
 		}
 	}
+};
+
+Loader.prototype.createBase = function (base) {
+	base = base || '';
+
+	if (base) {
+		var element = document.head.querySelector('base');
+
+		if (!element) {
+			element = document.createElement('base');
+			document.head.insertBefore(element, document.head.firstChild);
+		}
+
+		if (typeof base === 'string') {
+			element.href = base;
+		}
+
+		base = element.href;
+	}
+
+	return base;
 };
 
 Loader.prototype.getFile = function (data, callback) {

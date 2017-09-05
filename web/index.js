@@ -2,6 +2,7 @@
 Jenie.setup({
 	loader: {
 		esm: true,
+		base: true,
 		loads: [
 
 		]
