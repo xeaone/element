@@ -28,8 +28,8 @@ Utility.prototype.getByPath = function (collection, path) {
 
 Utility.prototype.toCamelCase = function (data) {
 	if (data.constructor.name === 'Array') data = data.join('-');
-	return data.replace(/-[a-z]/ig, function (match) {
-		return match[1].toUpperCase();
+	return data.replace(/-(\w)/g, function (all, match) {
+		return match.toUpperCase();
 	});
 };
 
