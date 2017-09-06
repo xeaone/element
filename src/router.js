@@ -1,12 +1,12 @@
 import Events from './events';
 
-export default function Router (options) {
+export default function Router (parent) {
 	Events.call(this);
 	this.state = {};
 	this.cache = {};
 	this.location = {};
-	if (options) this.loader = options.loader;
-	this.setup(options);
+	this.parent = parent;
+	this.setup();
 }
 
 Router.prototype = Object.create(Events.prototype);
@@ -135,7 +135,7 @@ Router.prototype.render = function (route, callback) {
 	}
 
 	if (route.file && !(route.component in this.cache)) {
-		self.loader.run(route.file.constructor === Object ? route.file : {
+		self.this.parent.loader.run(route.file.constructor === Object ? route.file : {
 			file: route.file
 		}, function () {
 			self.rendered(route, callback);
