@@ -100,7 +100,7 @@ var model = {
 	cars: [],
 	numRadio: 0,
 	isChecked: true,
-	text: 'Hello from html test',
+	text: 'Hello from model',
 	items: [
 		{ it: { val: 0 } },
 		{ it: { val: 1 } },
@@ -115,11 +115,11 @@ Jenie.component({
 	template: template,
 	model: model,
 	modifiers: {
-		lower: function () {
-			return this.toLowerCase();
+		lower: function (text) {
+			return text.toLowerCase();
 		},
-		upper: function () {
-			return this.toUpperCase();
+		upper: function (text) {
+			return text.toUpperCase();
 		}
 	},
 	events: {

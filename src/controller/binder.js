@@ -12,7 +12,7 @@ export default function Binder (options) {
 		self.data = Utility.getByPath(self.controller.events, self.attribute.path).bind(self.controller.model.data);
 	} else {
 		self.modifiers = [];
-		
+
 		for (var i = 0, l = self.attribute.modifiers.length; i < l; i++) {
 			self.modifiers[self.modifiers.length] = self.controller.modifiers[self.attribute.modifiers[i]];
 		}
@@ -38,7 +38,10 @@ Binder.prototype.setData = function (data) {
 
 	if (data !== null) {
 		for (var i = 0, l = this.modifiers.length; i < l; i++) {
-			data = this.modifiers[i].call(data);
+			data = this.modifiers[i].call(this.controller.model.data, data);
+			if (data === undefined) {
+				throw new Error('modifier value is undefined');
+			}
 		}
 	}
 
@@ -52,7 +55,10 @@ Binder.prototype.getData = function () {
 
 	if (data !== null) {
 		for (var i = 0, l = this.modifiers.length; i < l; i++) {
-			data = this.modifiers[i].call(data);
+			data = this.modifiers[i].call(this.controller.model.data, data);
+			if (data === undefined) {
+				throw new Error('modifier value is undefined');
+			}
 		}
 	}
 
@@ -147,18 +153,11 @@ Binder.prototype.renderMethods = {
 		self.isSetup = true;
 	},
 	html: function (data) {
-		var self = this;
-		// FIXME not rendering j-*
-		self.element.innerHTML = data;
+		this.element.insertAdjacentHTML('afterbegin', data);
 	},
 	css: function (data) {
-		var css = data;
-
-		if (this.attribute.cmds.length > 1) {
-			css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
-		}
-
-		this.element.style.cssText += css;
+		if (this.attribute.cmds.length > 1) data = this.attribute.cmds.slice(1).join('-') + ': ' +  data + ';';
+		this.element.style.cssText += data;
 	},
 	class: function (data) {
 		var className = this.attribute.cmds.slice(1).join('-');
@@ -192,8 +191,7 @@ Binder.prototype.renderMethods = {
 		this.element.href = data;
 	},
 	default: function (data) {
-		var path = Utility.toCamelCase(this.attribute.cmds);
-		Utility.setByPath(this.element, path, data);
+		Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
 	}
 };
 
@@ -202,12 +200,10 @@ Binder.prototype.unrenderMethods = {
 		this.element.removeEventListener(this.attribute.cmds[1], data, false);
 	},
 	each: function () {
-		while (this.element.lastChild) {
-			this.element.removeChild(this.element.lastChild);
-		}
+		while (this.element.lastChild) this.element.removeChild(this.element.lastChild);
 	},
 	html: function () {
-		this.element.innerText = '';
+		while (this.element.lastChild) this.element.removeChild(this.element.lastChild);
 	},
 	text: function () {
 		this.element.innerText = '';

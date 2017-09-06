@@ -399,32 +399,36 @@
 	var Utility$1 = new Utility();
 
 	function Binder (options) {
-		this.element = options.element;
-		this.attribute = options.attribute;
-		this.controller = options.controller;
-		this.renderType = this.attribute.cmds[0] || 'default';
+		var self = this;
 
-		if (this.renderType === 'on') {
-			this.data = Utility$1.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model.data);
+		self.element = options.element;
+		self.attribute = options.attribute;
+		self.controller = options.controller;
+		self.renderType = self.attribute.cmds[0] || 'default';
+
+		if (self.renderType === 'on') {
+			self.data = Utility$1.getByPath(self.controller.events, self.attribute.path).bind(self.controller.model.data);
 		} else {
-			this.modifiers = this.attribute.modifiers.map(function (modifier) {
-				return this.controller.modifiers[modifier];
-			}, this);
+			self.modifiers = [];
 
-			this.paths = this.attribute.path.split('.');
-			this.key = this.paths.slice(-1)[0];
-			this.path = this.paths.slice(0, -1).join('.');
-			this.data = this.path ? Utility$1.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
+			for (var i = 0, l = self.attribute.modifiers.length; i < l; i++) {
+				self.modifiers[self.modifiers.length] = self.controller.modifiers[self.attribute.modifiers[i]];
+			}
+
+			self.paths = self.attribute.path.split('.');
+			self.key = self.paths.slice(-1)[0];
+			self.path = self.paths.slice(0, -1).join('.');
+			self.data = self.path ? Utility$1.getByPath(self.controller.model.data, self.path) : self.controller.model.data;
 
 			// dyncamically set observed property on model
-			if (this.attribute.cmds[0] === 'value' && this.data && this.data[this.key] === undefined) {
-				this.data.$set(this.key, null);
-				this.updateModel();
+			if (self.attribute.cmds[0] === 'value' && self.data && self.data[self.key] === undefined) {
+				self.data.$set(self.key, null);
+				self.updateModel();
 			}
 
 		}
 
-		this.render();
+		self.render();
 	}
 
 	Binder.prototype.setData = function (data) {
@@ -432,7 +436,10 @@
 
 		if (data !== null) {
 			for (var i = 0, l = this.modifiers.length; i < l; i++) {
-				data = this.modifiers[i].call(data);
+				data = this.modifiers[i].call(this.controller.model.data, data);
+				if (data === undefined) {
+					throw new Error('modifier value is undefined');
+				}
 			}
 		}
 
@@ -446,7 +453,10 @@
 
 		if (data !== null) {
 			for (var i = 0, l = this.modifiers.length; i < l; i++) {
-				data = this.modifiers[i].call(data);
+				data = this.modifiers[i].call(this.controller.model.data, data);
+				if (data === undefined) {
+					throw new Error('modifier value is undefined');
+				}
 			}
 		}
 
@@ -541,18 +551,11 @@
 			self.isSetup = true;
 		},
 		html: function (data) {
-			var self = this;
-			// FIXME not rendering j-*
-			self.element.innerHTML = data;
+			this.element.insertAdjacentHTML('afterbegin', data);
 		},
 		css: function (data) {
-			var css = data;
-
-			if (this.attribute.cmds.length > 1) {
-				css = this.attribute.cmds.slice(1).join('-') + ': ' +  css + ';';
-			}
-
-			this.element.style.cssText += css;
+			if (this.attribute.cmds.length > 1) data = this.attribute.cmds.slice(1).join('-') + ': ' +  data + ';';
+			this.element.style.cssText += data;
 		},
 		class: function (data) {
 			var className = this.attribute.cmds.slice(1).join('-');
@@ -586,8 +589,7 @@
 			this.element.href = data;
 		},
 		default: function (data) {
-			var path = Utility$1.toCamelCase(this.attribute.cmds);
-			Utility$1.setByPath(this.element, path, data);
+			Utility$1.setByPath(this.element, Utility$1.toCamelCase(this.attribute.cmds), data);
 		}
 	};
 
@@ -596,12 +598,10 @@
 			this.element.removeEventListener(this.attribute.cmds[1], data, false);
 		},
 		each: function () {
-			while (this.element.lastChild) {
-				this.element.removeChild(this.element.lastChild);
-			}
+			while (this.element.lastChild) this.element.removeChild(this.element.lastChild);
 		},
 		html: function () {
-			this.element.innerText = '';
+			while (this.element.lastChild) this.element.removeChild(this.element.lastChild);
 		},
 		text: function () {
 			this.element.innerText = '';
