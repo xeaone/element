@@ -1,32 +1,36 @@
 import Utility from '../utility';
 
 export default function Binder (options) {
-	this.element = options.element;
-	this.attribute = options.attribute;
-	this.controller = options.controller;
-	this.renderType = this.attribute.cmds[0] || 'default';
+	var self = this;
 
-	if (this.renderType === 'on') {
-		this.data = Utility.getByPath(this.controller.events, this.attribute.path).bind(this.controller.model.data);
+	self.element = options.element;
+	self.attribute = options.attribute;
+	self.controller = options.controller;
+	self.renderType = self.attribute.cmds[0] || 'default';
+
+	if (self.renderType === 'on') {
+		self.data = Utility.getByPath(self.controller.events, self.attribute.path).bind(self.controller.model.data);
 	} else {
-		this.modifiers = this.attribute.modifiers.map(function (modifier) {
-			return this.controller.modifiers[modifier];
-		}, this);
+		self.modifiers = [];
+		
+		for (var i = 0, l = self.attribute.modifiers.length; i < l; i++) {
+			self.modifiers[self.modifiers.length] = self.controller.modifiers[self.attribute.modifiers[i]];
+		}
 
-		this.paths = this.attribute.path.split('.');
-		this.key = this.paths.slice(-1)[0];
-		this.path = this.paths.slice(0, -1).join('.');
-		this.data = this.path ? Utility.getByPath(this.controller.model.data, this.path) : this.controller.model.data;
+		self.paths = self.attribute.path.split('.');
+		self.key = self.paths.slice(-1)[0];
+		self.path = self.paths.slice(0, -1).join('.');
+		self.data = self.path ? Utility.getByPath(self.controller.model.data, self.path) : self.controller.model.data;
 
 		// dyncamically set observed property on model
-		if (this.attribute.cmds[0] === 'value' && this.data && this.data[this.key] === undefined) {
-			this.data.$set(this.key, null);
-			this.updateModel();
+		if (self.attribute.cmds[0] === 'value' && self.data && self.data[self.key] === undefined) {
+			self.data.$set(self.key, null);
+			self.updateModel();
 		}
 
 	}
 
-	this.render();
+	self.render();
 }
 
 Binder.prototype.setData = function (data) {
