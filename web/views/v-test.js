@@ -49,7 +49,7 @@ var template = `
 		<option value="audi">Audi</option>
 		<option value="saab">Saab</option>
 		<option value="volvo">Volvo</option>
-		<option j-value="mcar">Mercedes</option>
+		<option value="mercedes">Mercedes</option>
 	</select>
 
 	<br>
@@ -95,7 +95,7 @@ var template = `
 `;
 
 var model = {
-	mcar: 'Mercedes',
+	mcar: 'mcar',
 	car: '',
 	cars: [],
 	numRadio: 0,

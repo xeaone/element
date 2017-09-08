@@ -1,12 +1,13 @@
+import Utility from './utility';
 import Events from './events';
 
-export default function Router (parent) {
+export default function Router (options) {
 	Events.call(this);
 	this.state = {};
 	this.cache = {};
 	this.location = {};
-	this.parent = parent;
-	this.setup();
+	this.isRan = false;
+	this.setup(options);
 }
 
 Router.prototype = Object.create(Events.prototype);
@@ -14,14 +15,11 @@ Router.prototype.constructor = Router;
 
 Router.prototype.setup = function (options) {
 	options = options || {};
-
 	this.external = options.external;
-	this.container = options.container;
 	this.routes = options.routes || [];
 	this.view = options.view || 'j-view';
-
-	this.started = false;
 	this.base = this.createBase(options.base);
+	this.container = options.container || document.body;
 	this.hash = options.hash === undefined ? false : options.hash;
 	this.trailing = options.trailing === undefined ? false : options.trailing;
 };
@@ -47,13 +45,6 @@ Router.prototype.createBase = function (base) {
 	return base;
 };
 
-Router.prototype.joinPath = function () {
-	return Array.prototype.join
-		.call(arguments, '/')
-		.replace(/\/{2,}/g, '/')
-		.replace(/^(http(s)?:\/)/, '$1/');
-};
-
 Router.prototype.testPath = function (routePath, userPath) {
 	return new RegExp(
 		'^' + routePath
@@ -63,86 +54,8 @@ Router.prototype.testPath = function (routePath, userPath) {
 	).test(userPath);
 };
 
-Router.prototype.popstate = function (e) {
-	this.navigate(e.state || window.location.href, true);
-};
-
-Router.prototype.click = function (e) {
-	var self = this;
-
-	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
-
-	// ensure target is anchor tag use shadow dom if available
-	var target = e.path ? e.path[0] : e.target;
-	while (target && 'A' !== target.nodeName) target = target.parentNode;
-
-	if (!target || 'A' !== target.nodeName) return;
-
-	// if external is true then default action
-	if (self.external && (
-		self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
-		self.external.constructor.name === 'Function' && self.external(target.href) ||
-		self.external.constructor.name === 'String' && self.external === target.href
-	)) return;
-
-	// check non acceptable attributes and href
-	if (target.hasAttribute('download') ||
-		target.hasAttribute('external') ||
-		// target.hasAttribute('target') ||
-		target.href.indexOf('mailto:') !== -1 ||
-		target.href.indexOf('file:') !== -1 ||
-		target.href.indexOf('tel:') !== -1 ||
-		target.href.indexOf('ftp:') !== -1
-	) return;
-
-	e.preventDefault();
-	self.navigate(target.href);
-};
-
-Router.prototype.run = function () {
-	if (this.started) return;
-	this.view = document.querySelector(this.view);
-	(this.container || window).addEventListener('click', this.click.bind(this));
-	window.addEventListener('popstate', this.popstate.bind(this));
-	this.navigate(window.location.href, true);
-};
-
 Router.prototype.scroll = function (x, y) {
 	window.scroll(x, y);
-};
-
-Router.prototype.rendered = function (route, callback) {
-	while (this.view.lastChild) {
-		this.view.removeChild(this.view.lastChild);
-	}
-
-	if (!(route.component in this.cache)) {
-		this.cache[route.component] = document.createElement(route.component);
-	}
-
-	this.view.appendChild(this.cache[route.component]);
-
-	if (callback) {
-		callback.call(this);
-	}
-};
-
-Router.prototype.render = function (route, callback) {
-	var self = this;
-
-	if (route.title) {
-		document.title = route.title;
-	}
-
-	if (route.file && !(route.component in this.cache)) {
-		self.this.parent.loader.run(route.file.constructor === Object ? route.file : {
-			file: route.file
-		}, function () {
-			self.rendered(route, callback);
-		});
-	} else {
-		self.rendered(route, callback);
-	}
 };
 
 Router.prototype.back = function () {
@@ -293,15 +206,32 @@ Router.prototype.getLocation = function (path) {
 	}
 
 	if (this.hash) {
-		location.href = this.joinPath(location.base, '/#/', location.pathname);
+		location.href = Utility.joinSlash(location.base, '/#/', location.pathname);
 	} else {
-		location.href = this.joinPath(location.base, '/', location.pathname);
+		location.href =  Utility.joinSlash(location.base, '/', location.pathname);
 	}
 
 	location.href += location.search;
 	location.href += location.hash;
 
 	return location;
+};
+
+Router.prototype.render = function (route) {
+	Utility.removeChildren(this.view);
+
+	if (!(route.component in this.cache)) {
+		this.cache[route.component] = document.createElement(route.component);
+	}
+
+	this.view.appendChild(this.cache[route.component]);
+
+	this.scroll(0, 0);
+	this.emit('navigated');
+};
+
+Router.prototype.handler = function (callback) {
+	this._handler = callback;
 };
 
 Router.prototype.navigate = function (data, replace) {
@@ -319,13 +249,66 @@ Router.prototype.navigate = function (data, replace) {
 
 	window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.title, this.state.location.href);
 
-	if (this.state.route.redirect) {
+	// if (this.state.route.redirect) {
+	// 	this.redirect(this.state.route.redirect);
+	// } else {
+	// 	this.render(this.state.route, function () {
+	// 		if (!replace) this.scroll(0, 0);
+	// 		this.emit('navigated');
+	// 	});
+	// }
+
+	if (this.state.route.handler) {
+		this.state.route.handler(this.state.route);
+	} else if (this.state.route.redirect) {
 		this.redirect(this.state.route.redirect);
 	} else {
-		this.render(this.state.route, function () {
-			if (!replace) this.scroll(0, 0);
-			this.emit('navigated');
-		});
+		this._handler(this.state.route);
 	}
 
+};
+
+Router.prototype.popstate = function (e) {
+	this.navigate(e.state || window.location.href, true);
+};
+
+Router.prototype.click = function (e) {
+	var self = this;
+
+	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+
+	// ensure target is anchor tag use shadow dom if available
+	var target = e.path ? e.path[0] : e.target;
+	while (target && 'A' !== target.nodeName) target = target.parentNode;
+	if (!target || 'A' !== target.nodeName) return;
+	e.preventDefault();
+
+	// if external is true then default action
+	if (self.external && (
+		self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+		self.external.constructor.name === 'Function' && self.external(target.href) ||
+		self.external.constructor.name === 'String' && self.external === target.href
+	)) return;
+
+	// check non acceptable attributes and href
+	if (target.hasAttribute('download') ||
+		target.hasAttribute('external') ||
+		// target.hasAttribute('target') ||
+		target.href.indexOf('mailto:') !== -1 ||
+		target.href.indexOf('file:') !== -1 ||
+		target.href.indexOf('tel:') !== -1 ||
+		target.href.indexOf('ftp:') !== -1
+	) return;
+
+	if (this.state.location.href === target.href) return;
+	self.navigate(target.href);
+};
+
+Router.prototype.run = function () {
+	if (this.isRan) return;
+	else this.isRan = true;
+	this.view = this.container.querySelector(this.view);
+	this.container.addEventListener('click', this.click.bind(this));
+	window.addEventListener('popstate', this.popstate.bind(this));
+	this.navigate(window.location.href, true);
 };

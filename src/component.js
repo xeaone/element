@@ -1,89 +1,65 @@
-import Controller from './controller';
-import Uuid from './uuid';
+import Uid from './uid';
 
 export default function Component (options) {
 	var self = this;
-
 	options = options || {};
 
-	if (!options.name) throw new Error('Component missing options.name');
-	if (!options.template) throw new Error('Component missing options.template');
+	if (!options.name) throw new Error('Component missing name');
+	if (!options.template) throw new Error('Component missing template');
 
 	self.name = options.name;
-	self.model = options.model;
 	self.style = options.style;
-	self.events = options.events;
-	self.modifiers = options.modifiers;
+
+
+	self.global = options.global;
+	self.view = options.view; // if (options.view)
+	self.model = options.model; // if (options.model)
+	self.events = options.events; // if (options.events)
+	self.modifiers = options.modifiers; // if (options.modifiers)
+
 	self.currentScript = (document._currentScript || document.currentScript);
 	self.template = self.toTemplate(options.template);
 
 	self.proto = Object.create(HTMLElement.prototype);
-
 	self.proto.attachedCallback = options.attached;
 	self.proto.detachedCallback = options.detached;
 	self.proto.attributeChangedCallback = options.attributed;
 
 	self.proto.createdCallback = function () {
-		self.element = this;
-		self.element.uuid = Uuid();
+		var element = this;
 
-		// handle slots
+		element.uid = Uid();
+
+		// add to view
+		self.global.view.data[element.uid] = {};
+		element.view = self.global.view.data[element.uid];
+
+		if (self.model) element.model = self.global.model.data.$set(element.uid, self.model)[element.uid];
+		if (self.events) element.events = self.global.events.data[element.uid] = self.events;
+		if (self.modifiers) element.modifiers = self.global.modifiers.data[element.uid] = self.modifiers;
+
 		// might want to handle default slot
 		// might want to overwrite content
-		self.slotify();
-
-		self.element.appendChild(
-			document.importNode(self.template.content, true)
-		);
-
-		if (self.model || self.events || self.modifiers) {
-			self.element.controller = new Controller({
-				model: self.model,
-				view: self.element,
-				events: self.events,
-				name: self.element.uuid,
-				modifiers: self.modifiers
-			}, function () {
-				var controller = this;
-				self.element.view = controller.view.data;
-
-				Object.defineProperty(self.element, 'model', {
-					enumerable: true,
-					configurable: true,
-					set: function (data) {
-						controller.model.overwrite(data);
-						// TODO need to render view
-					},
-					get: function () {
-						return controller.model.data;
-					}
-				});
-
-				if (options.created) options.created.call(self.element);
-			});
-		} else if (options.created) {
-			options.created.call(self.element);
-		}
-
+		self.replaceSlots(element, self.template);
+		element.appendChild(document.importNode(self.template.content, true));
+		if (options.created) options.created.call(element);
 	};
 
 	self.define();
-
 }
 
-Component.prototype.slotify = function () {
-	var eSlots = this.element.querySelectorAll('[slot]');
+Component.prototype.replaceSlots = function (element, template) {
+	var eSlots = element.querySelectorAll('[slot]');
 	for (var i = 0, l = eSlots.length; i < l; i++) {
 		var eSlot = eSlots[i];
 		var sName = eSlot.getAttribute('slot');
-		var tSlot = this.template.content.querySelector('slot[name='+ sName + ']');
+		var tSlot = template.content.querySelector('slot[name='+ sName + ']');
 		tSlot.parentNode.replaceChild(eSlot, tSlot);
 	}
 };
 
 Component.prototype.toHTML = function (html) {
 	var template = document.createElement('template');
-	// template.insertAdjacentHTML('afterbegin', html);
 	template.innerHTML = html;
 	return template;
 };

@@ -101,7 +101,7 @@ Jenie.component({
 		</pre>
 	`,
 	attached: function () {
-		Prism.highlightAll();
+		// Prism.highlightAll();
 		Say('hello world');
 	}
 });

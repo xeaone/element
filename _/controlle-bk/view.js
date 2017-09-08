@@ -119,6 +119,18 @@ View.prototype.addElements = function (elements) {
 	});
 };
 
+View.prototype.getUid = function (element) {
+	if (!element.uid) {
+		if (element.parentNode) {
+			return this.getUid(element.parentNode);
+		} else {
+			throw new Error('could not find a uid');
+		}
+	} else {
+		return element.uid;
+	}
+};
+
 View.prototype.mutationListener = function (mutations) {
 	var self = this, i, l, c, s, node, nodes;
 	for (i = 0, l = mutations.length; i < l; i++) {

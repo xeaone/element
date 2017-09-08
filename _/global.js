@@ -1,26 +1,20 @@
+import Router from './router';
+import Loader from './loader';
+import Model from './model';
+import View from './view';
+import Http from './http';
 
-module.exports = {
+var Global = {
+	view: {},
+	model: {},
+	events: {},
+	modifiers: {},
 
-	sPrefix: '(data-)?j-',
-	sValue: '(data-)?j-value',
-	sFor: '(data-)?j-for-(.*?)=',
-
-	sAccepts: '(data-)?j-',
-	sRejects: '^\w+(-\w+)+|^iframe|^object|^script',
-
-	rPath: /\s?\|(.*?)$/,
-	rPrefix: /(data-)?j-/,
-	rValue: /(data-)?j-value/,
-	rModifier: /^(.*?)\|\s?/,
-	rFor: /(data-)?j-for-(.*?)=/,
-
-	rAccepts: /(data-)?j-/,
-	rRejects: /^\w+(-\w+)+|^iframe|^object|^script/,
-
-	rAttributeAccepts: /(data-)?j-/,
-
-	rElementAccepts: /(data-)?j-/,
-	rElementRejectsChildren: /(data-)?j-each/,
-	rElementRejects: /^\w+(-\w+)+|^iframe|^object|^script/
-
+	Http: new Http(Global),
+	View: new View(Global),
+	Model: new Model(Global),
+	Loader: new Loader(Global),
+	Router: new Router(Global)
 };
+
+export default Global;
