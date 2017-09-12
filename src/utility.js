@@ -30,8 +30,8 @@ var Utility = {
 		});
 	},
 	removeChildren: function (element) {
-		while (element.lastChild) {
-			element.removeChild(element.lastChild);
+		while (element.lastElementChild) {
+			element.removeChild(element.lastElementChild);
 		}
 	},
 	toText: function (data) {
@@ -49,16 +49,24 @@ var Utility = {
 			.call(arguments, '.')
 			.replace(/\.{2,}/g, '.');
 	},
-	getContainer: function (element) {
+	getContainer: function getContainer (element) {
+		console.log(element);
 		if (!element.uid) {
 			if (element === document.body) {
 				throw new Error('could not find a uid');
 			} else {
-				return this.getContainer(element.parentNode);
+				return this.getContainer(element.parentElement);
 			}
 		} else {
 			return element;
 		}
+	},
+	each: function (items, method, context) {
+		return items.reduce(function (promise, item) {
+			return promise.then(function () {
+				return method.call(context, item);
+			});
+		}, Promise.resolve());
 	}
 };
 

@@ -1,5 +1,6 @@
 
 export default function Loader (options) {
+	this.loads = [];
 	this.files = {};
 	this.modules = {};
 	this.setup(options);
@@ -18,12 +19,9 @@ Loader.prototype.patterns = {
 Loader.prototype.setup = function (options) {
 	options = options || {};
 	this.esm = options.esm || false;
+	this.loads = options.loads || [];
 	this.base = this.createBase(options.base);
-	if (options.loads && options.loads.length) {
-		for (var i = 0, l = options.loads.length; i < l; i++) {
-			this.run(options.loads[i]);
-		}
-	}
+	return this;
 };
 
 Loader.prototype.createBase = function (base) {
@@ -54,6 +52,7 @@ Loader.prototype.joinPath = function () {
 };
 
 Loader.prototype.getFile = function (data, callback) {
+	if (!data.file) throw new Error('Loader requires a file');
 	var self = this;
 
 	if (data.file in self.modules && data.status) {
@@ -76,29 +75,27 @@ Loader.prototype.getFile = function (data, callback) {
 				});
 			}
 		}
-
-		return;
-	}
-
-	if (!data.tag) {
-		data.xhr = new XMLHttpRequest();
-		data.xhr.addEventListener('readystatechange', function () {
-			if (data.xhr.readyState === 4) {
-				if (data.xhr.status >= 200 && data.xhr.status < 400) {
-					data.status = self.LOADED;
-					data.text = data.xhr.responseText;
-					if (callback) callback(data);
-				} else {
-					throw data.xhr.responseText;
+	} else {
+		if (!data.tag) {
+			data.xhr = new XMLHttpRequest();
+			data.xhr.addEventListener('readystatechange', function () {
+				if (data.xhr.readyState === 4) {
+					if (data.xhr.status >= 200 && data.xhr.status < 400) {
+						data.status = self.LOADED;
+						data.text = data.xhr.responseText;
+						if (callback) callback(data);
+					} else {
+						throw data.xhr.responseText;
+					}
 				}
-			}
-		});
-		data.url = self.joinPath(self.base.replace(window.location.origin, ''), data.file);
-		data.xhr.open('GET', data.url);
-		data.xhr.send();
-	}
+			});
+			data.url = self.joinPath(self.base.replace(window.location.origin, ''), data.file);
+			data.xhr.open('GET', data.url);
+			data.xhr.send();
+		}
 
-	data.status = self.LOADING;
+		data.status = self.LOADING;
+	}
 };
 
 Loader.prototype.interpret = function (data) {
@@ -146,7 +143,7 @@ Loader.prototype.toAst = function (data) {
 	return ast;
 };
 
-Loader.prototype.run = function (data, callback) {
+Loader.prototype.load = function (data, callback) {
 	var self = this;
 
 	if (data.constructor === String) data = { file: data };
@@ -171,7 +168,7 @@ Loader.prototype.run = function (data, callback) {
 				};
 
 				for (var i = 0, l = meta.imports.length; i < l; i++) {
-					self.run(meta.imports[i].file, meta.listener);
+					self.load(meta.imports[i].file, meta.listener);
 				}
 			} else {
 				self.modules[d.file] = self.interpret(ast.cooked);
@@ -182,6 +179,12 @@ Loader.prototype.run = function (data, callback) {
 			if (callback) callback();
 		}
 	});
+};
+
+Loader.prototype.run = function () {
+	for (var i = 0, l = this.loads.length; i < l; i++) {
+		this.load(this.loads[i]);
+	}
 };
 
 /*

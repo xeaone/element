@@ -10,6 +10,7 @@ Model.prototype.setup = function (options) {
 	options = options || {};
 	this.data = options.data || {};
 	this.container = options.container || document.body;
+	return this;
 };
 
 Model.prototype.handler = function (callback) {

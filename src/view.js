@@ -11,21 +11,23 @@ View.prototype.setup = function (options) {
 	options = options || {};
 	this.data = options.data || {};
 	this.container = options.container || document.body;
+	return this;
 };
 
-View.prototype.PATH = /\s?\|(.*?)$/;
+View.prototype.PATH = /\s?\|.*/;
+// View.prototype.PATH = /\s?\|(.*?)$/;
 View.prototype.PREFIX = /(data-)?j-/;
 View.prototype.MODIFIERS = /^(.*?)\|\s?/;
-View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
+View.prototype.IS_ACCEPT_PATH = /(data-)?j-value/;
+// View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
 // View.prototype.ELEMENT_SKIPS = /\w+(-\w+)+|iframe|object|script|style|svg/i;
 
 View.prototype.isOnce = function (node) {
-	if (!node) return false;
-	return node.hasAttribute('j-value') || node.hasAttribute('data-j-value');
+	return node.hasAttribute('j-value')
+		|| node.hasAttribute('data-j-value');
 };
 
 View.prototype.isSkip = function (node) {
-	if (!node) return false;
 	return node.nodeName === 'J-VIEW'
 		|| node.hasAttribute('j-view')
 		|| node.hasAttribute('data-j-view');
@@ -33,18 +35,14 @@ View.prototype.isSkip = function (node) {
 
 
 View.prototype.isSkipChildren = function (node) {
-	if (!node) return false;
-	var name = node.nodeName;
-	// node.uid !== undefined ||
-	return name === 'IFRAME'
-		|| name === 'OBJECT'
-		|| name === 'SCRIPT'
-		|| name === 'STYLE'
-		|| name === 'SVG';
+	return node.nodeName === 'IFRAME'
+		|| node.nodeName === 'OBJECT'
+		|| node.nodeName === 'SCRIPT'
+		|| node.nodeName === 'STYLE'
+		|| node.nodeName === 'SVG';
 };
 
 View.prototype.isAccept = function (node) {
-	if (!node) return false;
 	var attributes = node.attributes;
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
@@ -56,7 +54,6 @@ View.prototype.isAccept = function (node) {
 };
 
 View.prototype.isAcceptAttribute = function (attribute) {
-	if (typeof attribute !== 'object') return false;
 	return attribute.name.indexOf('j-') === 0 || attribute.name.indexOf('data-j-') === 0;
 };
 
@@ -84,46 +81,35 @@ View.prototype.eachAttribute = function (attributes, callback) {
 	}
 };
 
-View.prototype.eachElement = function (elements, callback) {
-	for (var i = 0; i < elements.length; i++) {
-		var element = elements[i];
-		if (this.isSkip(element)) {
-			continue;
-		} else if (this.isSkipChildren(element)) {
-			i += element.getElementsByTagName('*').length;
-			callback(element);
-		} else if (this.isAccept(element)) {
-			callback(element);
+View.prototype.eachElement = function (element, callback) {
+	// for (var i = 0; i < elements.length; i++) {
+	// 	var element = elements[i];
+	// 	if (this.isSkip(element)) i++;
+	// 	if (this.isSkipChildren(element)) i += element.getElementsByTagName('*').length;
+	// 	if (this.isAccept(element)) callback(element);
+	// }
+	if (this.isAccept(element) && !this.isSkip(element)) callback(element);
+	if (!this.isSkipChildren(element)) {
+		for (element = element.firstElementChild; element; element = element.nextElementSibling) {
+			this.eachElement(element, callback);
 		}
 	}
 };
 
-// View.prototype.find = function (uid, pattern, callback) {
-// 	pattern = typeof pattern === 'string' ? new RegExp('^' + pattern): pattern;
-// 	var paths = this.data[uid];
-// 	for (var path in paths) {
-// 		if (pattern.test(path)) {
-// 			var binders = paths[path];
-// 			for (var i = 0, l = binders.length; i < l; i++) {
-// 				if (callback(binders[i])) return binders[i];
-// 			}
-// 		}
-// 	}
-// };
-
-View.prototype.forEach = function (uid, pattern, callback) {
-	pattern = typeof pattern === 'string' ? new RegExp('^' + pattern): pattern;
+View.prototype.eachBinder = function (uid, path, callback) {
 	var paths = this.data[uid];
-	for (var path in paths) {
-		if (pattern.test(path)) {
-			callback(paths[path], path, paths);
+	for (var key in paths) {
+		if (key.indexOf(path) === 0) {
+			var binders = paths[key];
+			for (var i = 0, l = binders.length; i < l; i++) {
+				callback(binders[i], i, binders, paths, key);
+			}
 		}
 	}
 };
 
-View.prototype.has = function (element, uid, path) {
-	if (!(uid in this.data)) return false;
-	if (!(path in this.data[uid])) return false;
+View.prototype.has = function (uid, path, element) {
+	if (!(uid in this.data) || !(path in this.data[uid])) return false;
 	var binders = this.data[uid][path];
 	for (var i = 0, l = binders.length; i < l; i++) {
 		if (binders[i].element === element) return true;
@@ -131,7 +117,7 @@ View.prototype.has = function (element, uid, path) {
 	return false;
 };
 
-View.prototype.add = function (element, uid, path, container, attribute) {
+View.prototype.push = function (uid, path, element, container, attribute) {
 	if (!(uid in this.data)) this.data[uid] = {};
 	if (!(path in this.data[uid])) this.data[uid][path] = [];
 	this.data[uid][path].push(new Binder({
@@ -141,137 +127,71 @@ View.prototype.add = function (element, uid, path, container, attribute) {
 	}));
 };
 
-View.prototype.addElement = function (element) {
-	var container = Utility.getContainer(element);
-	var uid = container.uid;
-	this.eachAttribute(element.attributes, function (attribute) {
-		if (this.isOnce(element)) {
-			OnceBinder.bind(element, attribute, container);
-		} else {
-			// TODO maybe change vpath to path but breaks each
-			var path = attribute.vpath;
-			if (!this.has(element, uid, path)) {
-				this.add(element, uid, path, container, attribute);
+View.prototype.add = function (data) {
+	var self = this;
+	self.eachElement(data, function (element) {
+		var container = Utility.getContainer(element);
+		var uid = container.uid;
+		self.eachAttribute(element.attributes, function (attribute) {
+			if (self.isOnce(element)) {
+				OnceBinder.bind(element, attribute, container);
+			} else {
+				// TODO maybe change vpath to path but breaks each
+				var path = attribute.vpath;
+				if (!self.has(uid, path, element)) {
+					self.push(uid, path, element, container, attribute);
+				}
 			}
+		});
+	});
+};
+
+View.prototype.eachPath = function (element, callback) {
+	var attributes = element.attributes;
+	for (var i = 0, l = attributes.length; i < l; i++) {
+		var attribute = attributes[i];
+		if (this.IS_ACCEPT_PATH.test(attribute.name)) {
+			callback(attribute.name.replace(this.PATH, ''));
 		}
-	}.bind(this));
+	}
 };
 
-View.prototype.addElements = function (elements) {
-	this.eachElement(elements, function (element) {
-		this.addElement(element);
-	}.bind(this));
+View.prototype.remove = function (data) {
+	var self = this;
+	var uid = Utility.getContainer(data).uid;
+
+	self.eachElement(data, function (element) {
+		self.eachPath(element, function (path) {
+			self.eachBinder(uid, path, function (binder, index, binders, paths, key) {
+				console.log(binder.element === element);
+				if (binder.element === element) {
+					binder.unrender();
+					binders.splice(index, 1);
+					if (binders.length === 0) {
+						delete paths[key];
+					}
+				}
+			});
+		});
+	});
 };
 
-// View.prototype.removeElement = function (element) {
-// 	var self = this;
-// 	var container = Utility.getContainer(element);
-// 	var uid = container.uid;
-// 	self.eachAttribute(element, function (attribute) {
-// 		if (self.isOnceBinder(element)) {
-// 			OnceBinder.bind(element, attribute, container);
-// 		} else {
-// 			var path = attribute.path;
-// 			if (!self.has(uid, path, element)) {
-// 				self.add(uid, path, new Binder({
-// 					element: element,
-// 					container: container,
-// 					attribute: attribute
-// 				}));
-// 			}
-// 		}
-// 	});
-// };
-//
-// View.prototype.removeElements = function (elements) {
-// 	var self = this;
-// 	self.eachElement(elements, function (element) {
-// 		self.removeElement(element);
-// 	});
-// };
+View.prototype.handler = function (callback) {
+	this._handler = callback;
+};
 
 View.prototype.run = function () {
-	if (this.isRan) return;
-	else this.isRan = true;
+	var self = this;
+	if (self.isRan) return;
+	else self.isRan = true;
 
-	this.addElements(this.container.getElementsByTagName('*'));
+	self.add(self.container);
 
-	this.observer = new MutationObserver(function (mutations) {
-		// TODO prob need to filter attached cached components
-		var addedNode, addedNodes, removedNode, removedNodes;
-		var i, l, c, s;
-		for (i = 0, l = mutations.length; i < l; i++) {
-			addedNodes = mutations[i].addedNodes;
-			removedNodes = mutations[i].removedNodes;
-			for (c = 0, s = addedNodes.length; c < s; c++) {
-				addedNode = addedNodes[c];
-				if (addedNode.nodeType === 1) {
-					this.addElements(addedNode.getElementsByTagName('*'));
-					this.addElement(addedNode);
-				}
-			}
-			for (c = 0, s = removedNodes.length; c < s; c++) {
-				removedNode = removedNodes[c];
-				if (removedNode.nodeType === 1) {
-					// TODO need to handle remove
-					// this.removeElements(removedNode.getElementsByTagName('*'));
-					// this.removeElement(removedNode);
-				}
-			}
+	self.observer = new MutationObserver(function (mutations) {
+		for (var i = 0, l = mutations.length; i < l; i++) {
+			self._handler(mutations[i].addedNodes, mutations[i].removedNodes);
 		}
-	}.bind(this));
-	this.observer.observe(this.container, { childList: true, subtree: true });
+	});
+
+	self.observer.observe(this.container, { childList: true, subtree: true });
 };
-
-// function toModel (element, data, path) {
-// 	var i, l;
-// 	if (element.type === 'checkbox') {
-// 		element.value = element.checked;
-// 		data = element.checked;
-// 	} else if (element.nodeName === 'SELECT' && element.multiple) {
-// 		var values = [];
-// 		var options = element.options;
-// 		for (i = 0, l = options.length; i < l; i++) {
-// 			var option = options[i];
-// 			if (option.selected) {
-// 				values.push(option.value);
-// 			}
-// 		}
-// 		data = values;
-// 	} else if (element.type === 'radio') {
-// 		var elements = element.parentNode.querySelectorAll('input[type="radio"][j-value="' + path + '"]');
-// 		for (i = 0, l = elements.length; i < l; i++) {
-// 			var radio = elements[i];
-// 			if (radio === element) {
-// 				data = i;
-// 			} else {
-// 				radio.checked = false;
-// 			}
-// 		}
-// 	} else {
-// 		data = element.value;
-// 	}
-// }
-//
-// View.prototype.inputListener = function (element) {
-// 	var value = element.getAttribute('j-value');
-// 	if (value) {
-// 		var attribute = this.attribute('j-value', value);
-// 		var uid = this.getContainer(element).uid;
-// 		// var binder = this.find(uid, attribute.path, function (binder) {
-// 		// 	return binder.element === element;
-// 		// });
-// 		// binder.updateModel();
-// 	}
-// };
-
-// RUN
-// self.container.addEventListener('change', function (e) {
-// 	if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
-// 		self.inputListener.call(self, e.target);
-// 	}
-// }, true);
-//
-// self.container.addEventListener('input', function (e) {
-// 	self.inputListener.call(self, e.target);
-// }, true);

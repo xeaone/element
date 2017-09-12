@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<base href="/perf/">
+
 	<meta charset="utf-8">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<base href="/perf/">
-
 	<title>Performance</title>
 
-	<script src="/assets/webcomponents-lite.min.js"></script>
-	<script src="/assets/jenie.js"></script>
+	<script src="/assets/jenie.js" defer></script>
+	<script src="j-loop.js" defer></script>
 
-	<link rel="import" href="j-loop.html">
 </head>
 <body>
 
 <style>
+	body, j-loop, [j-each-item] {
+		min-height: 12710px;
+	}
 	.group {
 		margin: 4px;
 		padding: 4px;

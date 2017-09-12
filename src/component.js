@@ -24,11 +24,13 @@ export default function Component (options) {
 	self.proto.attachedCallback = options.attached;
 	self.proto.detachedCallback = options.detached;
 	self.proto.attributeChangedCallback = options.attributed;
+	// self.proto.j = {};
 
 	self.proto.createdCallback = function () {
 		var element = this;
 
 		element.uid = Uid();
+		element.isBinded = false;
 
 		// add to view
 		self.global.view.data[element.uid] = {};

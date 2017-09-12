@@ -7,6 +7,7 @@ Http.prototype.setup = function (options) {
 	options = options || {};
 	this.request = options.request;
 	this.response = options.response;
+	return this;
 };
 
 Http.prototype.mime = {

@@ -4,7 +4,9 @@ Jenie.setup({
 		esm: true,
 		base: true,
 		loads: [
-
+			{
+				file: 'say.js'
+			}
 		]
 	},
 	router: {
@@ -39,11 +41,3 @@ Jenie.setup({
 		]
 	}
 });
-
-// Jenie.module.export('say', ['sum'], function (sum) {
-// 	return function (string) {
-// 		console.log(string);
-// 		console.log(sum);
-//
-// 	};
-// });

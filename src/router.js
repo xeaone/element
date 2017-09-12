@@ -22,6 +22,7 @@ Router.prototype.setup = function (options) {
 	this.container = options.container || document.body;
 	this.hash = options.hash === undefined ? false : options.hash;
 	this.trailing = options.trailing === undefined ? false : options.trailing;
+	return this;
 };
 
 Router.prototype.createBase = function (base) {
@@ -308,6 +309,7 @@ Router.prototype.run = function () {
 	if (this.isRan) return;
 	else this.isRan = true;
 	this.view = this.container.querySelector(this.view);
+	if (!this.view) throw new Error('Router requires j-view element');
 	this.container.addEventListener('click', this.click.bind(this));
 	window.addEventListener('popstate', this.popstate.bind(this));
 	this.navigate(window.location.href, true);

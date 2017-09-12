@@ -54,9 +54,10 @@ Binder.prototype.modify = function (data) {
 
 Binder.prototype.setup = {
 	each: function () {
-		this.variable = this.attribute.cmds.slice(1).join('.');
-		this.clone = this.element.removeChild(this.element.children[0]).outerHTML;
-		this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+		this.variable = this.attribute.cmds[1];
+		this.clone = this.element.removeChild(this.element.firstElementChild).outerHTML;
+		this.pattern = new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g');
+		// this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 	}
 };
 
@@ -68,14 +69,14 @@ Binder.prototype.renderMethods = {
 	each: function (data) {
 		if (this.element.children.length > data.length) {
 			while (this.element.children.length > data.length) {
-				this.element.removeChild(this.element.children[this.element.children.length-1]);
+				this.element.removeChild(this.element.lastElementChild);
 			}
 		} else if (this.element.children.length < data.length) {
 			while (this.element.children.length < data.length) {
-				this.element.insertAdjacentHTML(
-					'beforeend',
+				this.element.insertAdjacentHTML('beforeend',
 					this.clone.replace(
-						this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
+						this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$2'
+						// this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
 					)
 				);
 			}

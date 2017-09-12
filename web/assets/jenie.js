@@ -34,11 +34,13 @@
 		self.proto.attachedCallback = options.attached;
 		self.proto.detachedCallback = options.detached;
 		self.proto.attributeChangedCallback = options.attributed;
+		// self.proto.j = {};
 
 		self.proto.createdCallback = function () {
 			var element = this;
 
 			element.uid = Uid();
+			element.isBinded = false;
 
 			// add to view
 			self.global.view.data[element.uid] = {};
@@ -122,8 +124,8 @@
 			});
 		},
 		removeChildren: function (element) {
-			while (element.lastChild) {
-				element.removeChild(element.lastChild);
+			while (element.lastElementChild) {
+				element.removeChild(element.lastElementChild);
 			}
 		},
 		toText: function (data) {
@@ -141,16 +143,24 @@
 				.call(arguments, '.')
 				.replace(/\.{2,}/g, '.');
 		},
-		getContainer: function (element) {
+		getContainer: function getContainer (element) {
+			console.log(element);
 			if (!element.uid) {
 				if (element === document.body) {
 					throw new Error('could not find a uid');
 				} else {
-					return this.getContainer(element.parentNode);
+					return this.getContainer(element.parentElement);
 				}
 			} else {
 				return element;
 			}
+		},
+		each: function (items, method, context) {
+			return items.reduce(function (promise, item) {
+				return promise.then(function () {
+					return method.call(context, item);
+				});
+			}, Promise.resolve());
 		}
 	};
 
@@ -215,6 +225,7 @@
 		this.container = options.container || document.body;
 		this.hash = options.hash === undefined ? false : options.hash;
 		this.trailing = options.trailing === undefined ? false : options.trailing;
+		return this;
 	};
 
 	Router.prototype.createBase = function (base) {
@@ -501,12 +512,14 @@
 		if (this.isRan) return;
 		else this.isRan = true;
 		this.view = this.container.querySelector(this.view);
+		if (!this.view) throw new Error('Router requires j-view element');
 		this.container.addEventListener('click', this.click.bind(this));
 		window.addEventListener('popstate', this.popstate.bind(this));
 		this.navigate(window.location.href, true);
 	};
 
 	function Loader (options) {
+		this.loads = [];
 		this.files = {};
 		this.modules = {};
 		this.setup(options);
@@ -525,12 +538,9 @@
 	Loader.prototype.setup = function (options) {
 		options = options || {};
 		this.esm = options.esm || false;
+		this.loads = options.loads || [];
 		this.base = this.createBase(options.base);
-		if (options.loads && options.loads.length) {
-			for (var i = 0, l = options.loads.length; i < l; i++) {
-				this.run(options.loads[i]);
-			}
-		}
+		return this;
 	};
 
 	Loader.prototype.createBase = function (base) {
@@ -561,6 +571,7 @@
 	};
 
 	Loader.prototype.getFile = function (data, callback) {
+		if (!data.file) throw new Error('Loader requires a file');
 		var self = this;
 
 		if (data.file in self.modules && data.status) {
@@ -583,29 +594,27 @@
 					});
 				}
 			}
-
-			return;
-		}
-
-		if (!data.tag) {
-			data.xhr = new XMLHttpRequest();
-			data.xhr.addEventListener('readystatechange', function () {
-				if (data.xhr.readyState === 4) {
-					if (data.xhr.status >= 200 && data.xhr.status < 400) {
-						data.status = self.LOADED;
-						data.text = data.xhr.responseText;
-						if (callback) callback(data);
-					} else {
-						throw data.xhr.responseText;
+		} else {
+			if (!data.tag) {
+				data.xhr = new XMLHttpRequest();
+				data.xhr.addEventListener('readystatechange', function () {
+					if (data.xhr.readyState === 4) {
+						if (data.xhr.status >= 200 && data.xhr.status < 400) {
+							data.status = self.LOADED;
+							data.text = data.xhr.responseText;
+							if (callback) callback(data);
+						} else {
+							throw data.xhr.responseText;
+						}
 					}
-				}
-			});
-			data.url = self.joinPath(self.base.replace(window.location.origin, ''), data.file);
-			data.xhr.open('GET', data.url);
-			data.xhr.send();
-		}
+				});
+				data.url = self.joinPath(self.base.replace(window.location.origin, ''), data.file);
+				data.xhr.open('GET', data.url);
+				data.xhr.send();
+			}
 
-		data.status = self.LOADING;
+			data.status = self.LOADING;
+		}
 	};
 
 	Loader.prototype.interpret = function (data) {
@@ -653,7 +662,7 @@
 		return ast;
 	};
 
-	Loader.prototype.run = function (data, callback) {
+	Loader.prototype.load = function (data, callback) {
 		var self = this;
 
 		if (data.constructor === String) data = { file: data };
@@ -678,7 +687,7 @@
 					};
 
 					for (var i = 0, l = meta.imports.length; i < l; i++) {
-						self.run(meta.imports[i].file, meta.listener);
+						self.load(meta.imports[i].file, meta.listener);
 					}
 				} else {
 					self.modules[d.file] = self.interpret(ast.cooked);
@@ -689,6 +698,12 @@
 				if (callback) callback();
 			}
 		});
+	};
+
+	Loader.prototype.run = function () {
+		for (var i = 0, l = this.loads.length; i < l; i++) {
+			this.load(this.loads[i]);
+		}
 	};
 
 	/*
@@ -1200,6 +1215,7 @@
 		options = options || {};
 		this.data = options.data || {};
 		this.container = options.container || document.body;
+		return this;
 	};
 
 	Model.prototype.handler = function (callback) {
@@ -1367,9 +1383,10 @@
 
 	Binder.prototype.setup = {
 		each: function () {
-			this.variable = this.attribute.cmds.slice(1).join('.');
-			this.clone = this.element.removeChild(this.element.children[0]).outerHTML;
-			this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+			this.variable = this.attribute.cmds[1];
+			this.clone = this.element.removeChild(this.element.firstElementChild).outerHTML;
+			this.pattern = new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g');
+			// this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
 		}
 	};
 
@@ -1381,14 +1398,14 @@
 		each: function (data) {
 			if (this.element.children.length > data.length) {
 				while (this.element.children.length > data.length) {
-					this.element.removeChild(this.element.children[this.element.children.length-1]);
+					this.element.removeChild(this.element.lastElementChild);
 				}
 			} else if (this.element.children.length < data.length) {
 				while (this.element.children.length < data.length) {
-					this.element.insertAdjacentHTML(
-						'beforeend',
+					this.element.insertAdjacentHTML('beforeend',
 						this.clone.replace(
-							this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
+							this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$2'
+							// this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
 						)
 					);
 				}
@@ -1477,21 +1494,23 @@
 		options = options || {};
 		this.data = options.data || {};
 		this.container = options.container || document.body;
+		return this;
 	};
 
-	View.prototype.PATH = /\s?\|(.*?)$/;
+	View.prototype.PATH = /\s?\|.*/;
+	// View.prototype.PATH = /\s?\|(.*?)$/;
 	View.prototype.PREFIX = /(data-)?j-/;
 	View.prototype.MODIFIERS = /^(.*?)\|\s?/;
-	View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
+	View.prototype.IS_ACCEPT_PATH = /(data-)?j-value/;
+	// View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
 	// View.prototype.ELEMENT_SKIPS = /\w+(-\w+)+|iframe|object|script|style|svg/i;
 
 	View.prototype.isOnce = function (node) {
-		if (!node) return false;
-		return node.hasAttribute('j-value') || node.hasAttribute('data-j-value');
+		return node.hasAttribute('j-value')
+			|| node.hasAttribute('data-j-value');
 	};
 
 	View.prototype.isSkip = function (node) {
-		if (!node) return false;
 		return node.nodeName === 'J-VIEW'
 			|| node.hasAttribute('j-view')
 			|| node.hasAttribute('data-j-view');
@@ -1499,18 +1518,14 @@
 
 
 	View.prototype.isSkipChildren = function (node) {
-		if (!node) return false;
-		var name = node.nodeName;
-		// node.uid !== undefined ||
-		return name === 'IFRAME'
-			|| name === 'OBJECT'
-			|| name === 'SCRIPT'
-			|| name === 'STYLE'
-			|| name === 'SVG';
+		return node.nodeName === 'IFRAME'
+			|| node.nodeName === 'OBJECT'
+			|| node.nodeName === 'SCRIPT'
+			|| node.nodeName === 'STYLE'
+			|| node.nodeName === 'SVG';
 	};
 
 	View.prototype.isAccept = function (node) {
-		if (!node) return false;
 		var attributes = node.attributes;
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
@@ -1522,7 +1537,6 @@
 	};
 
 	View.prototype.isAcceptAttribute = function (attribute) {
-		if (typeof attribute !== 'object') return false;
 		return attribute.name.indexOf('j-') === 0 || attribute.name.indexOf('data-j-') === 0;
 	};
 
@@ -1550,46 +1564,35 @@
 		}
 	};
 
-	View.prototype.eachElement = function (elements, callback) {
-		for (var i = 0; i < elements.length; i++) {
-			var element = elements[i];
-			if (this.isSkip(element)) {
-				continue;
-			} else if (this.isSkipChildren(element)) {
-				i += element.getElementsByTagName('*').length;
-				callback(element);
-			} else if (this.isAccept(element)) {
-				callback(element);
+	View.prototype.eachElement = function (element, callback) {
+		// for (var i = 0; i < elements.length; i++) {
+		// 	var element = elements[i];
+		// 	if (this.isSkip(element)) i++;
+		// 	if (this.isSkipChildren(element)) i += element.getElementsByTagName('*').length;
+		// 	if (this.isAccept(element)) callback(element);
+		// }
+		if (this.isAccept(element) && !this.isSkip(element)) callback(element);
+		if (!this.isSkipChildren(element)) {
+			for (element = element.firstElementChild; element; element = element.nextElementSibling) {
+				this.eachElement(element, callback);
 			}
 		}
 	};
 
-	// View.prototype.find = function (uid, pattern, callback) {
-	// 	pattern = typeof pattern === 'string' ? new RegExp('^' + pattern): pattern;
-	// 	var paths = this.data[uid];
-	// 	for (var path in paths) {
-	// 		if (pattern.test(path)) {
-	// 			var binders = paths[path];
-	// 			for (var i = 0, l = binders.length; i < l; i++) {
-	// 				if (callback(binders[i])) return binders[i];
-	// 			}
-	// 		}
-	// 	}
-	// };
-
-	View.prototype.forEach = function (uid, pattern, callback) {
-		pattern = typeof pattern === 'string' ? new RegExp('^' + pattern): pattern;
+	View.prototype.eachBinder = function (uid, path, callback) {
 		var paths = this.data[uid];
-		for (var path in paths) {
-			if (pattern.test(path)) {
-				callback(paths[path], path, paths);
+		for (var key in paths) {
+			if (key.indexOf(path) === 0) {
+				var binders = paths[key];
+				for (var i = 0, l = binders.length; i < l; i++) {
+					callback(binders[i], i, binders, paths, key);
+				}
 			}
 		}
 	};
 
-	View.prototype.has = function (element, uid, path) {
-		if (!(uid in this.data)) return false;
-		if (!(path in this.data[uid])) return false;
+	View.prototype.has = function (uid, path, element) {
+		if (!(uid in this.data) || !(path in this.data[uid])) return false;
 		var binders = this.data[uid][path];
 		for (var i = 0, l = binders.length; i < l; i++) {
 			if (binders[i].element === element) return true;
@@ -1597,7 +1600,7 @@
 		return false;
 	};
 
-	View.prototype.add = function (element, uid, path, container, attribute) {
+	View.prototype.push = function (uid, path, element, container, attribute) {
 		if (!(uid in this.data)) this.data[uid] = {};
 		if (!(path in this.data[uid])) this.data[uid][path] = [];
 		this.data[uid][path].push(new Binder({
@@ -1607,140 +1610,74 @@
 		}));
 	};
 
-	View.prototype.addElement = function (element) {
-		var container = Utility.getContainer(element);
-		var uid = container.uid;
-		this.eachAttribute(element.attributes, function (attribute) {
-			if (this.isOnce(element)) {
-				OnceBinder.bind(element, attribute, container);
-			} else {
-				// TODO maybe change vpath to path but breaks each
-				var path = attribute.vpath;
-				if (!this.has(element, uid, path)) {
-					this.add(element, uid, path, container, attribute);
+	View.prototype.add = function (data) {
+		var self = this;
+		self.eachElement(data, function (element) {
+			var container = Utility.getContainer(element);
+			var uid = container.uid;
+			self.eachAttribute(element.attributes, function (attribute) {
+				if (self.isOnce(element)) {
+					OnceBinder.bind(element, attribute, container);
+				} else {
+					// TODO maybe change vpath to path but breaks each
+					var path = attribute.vpath;
+					if (!self.has(uid, path, element)) {
+						self.push(uid, path, element, container, attribute);
+					}
 				}
+			});
+		});
+	};
+
+	View.prototype.eachPath = function (element, callback) {
+		var attributes = element.attributes;
+		for (var i = 0, l = attributes.length; i < l; i++) {
+			var attribute = attributes[i];
+			if (this.IS_ACCEPT_PATH.test(attribute.name)) {
+				callback(attribute.name.replace(this.PATH, ''));
 			}
-		}.bind(this));
+		}
 	};
 
-	View.prototype.addElements = function (elements) {
-		this.eachElement(elements, function (element) {
-			this.addElement(element);
-		}.bind(this));
+	View.prototype.remove = function (data) {
+		var self = this;
+		var uid = Utility.getContainer(data).uid;
+
+		self.eachElement(data, function (element) {
+			self.eachPath(element, function (path) {
+				self.eachBinder(uid, path, function (binder, index, binders, paths, key) {
+					console.log(binder.element === element);
+					if (binder.element === element) {
+						binder.unrender();
+						binders.splice(index, 1);
+						if (binders.length === 0) {
+							delete paths[key];
+						}
+					}
+				});
+			});
+		});
 	};
 
-	// View.prototype.removeElement = function (element) {
-	// 	var self = this;
-	// 	var container = Utility.getContainer(element);
-	// 	var uid = container.uid;
-	// 	self.eachAttribute(element, function (attribute) {
-	// 		if (self.isOnceBinder(element)) {
-	// 			OnceBinder.bind(element, attribute, container);
-	// 		} else {
-	// 			var path = attribute.path;
-	// 			if (!self.has(uid, path, element)) {
-	// 				self.add(uid, path, new Binder({
-	// 					element: element,
-	// 					container: container,
-	// 					attribute: attribute
-	// 				}));
-	// 			}
-	// 		}
-	// 	});
-	// };
-	//
-	// View.prototype.removeElements = function (elements) {
-	// 	var self = this;
-	// 	self.eachElement(elements, function (element) {
-	// 		self.removeElement(element);
-	// 	});
-	// };
+	View.prototype.handler = function (callback) {
+		this._handler = callback;
+	};
 
 	View.prototype.run = function () {
-		if (this.isRan) return;
-		else this.isRan = true;
+		var self = this;
+		if (self.isRan) return;
+		else self.isRan = true;
 
-		this.addElements(this.container.getElementsByTagName('*'));
+		self.add(self.container);
 
-		this.observer = new MutationObserver(function (mutations) {
-			// TODO prob need to filter attached cached components
-			var addedNode, addedNodes, removedNode, removedNodes;
-			var i, l, c, s;
-			for (i = 0, l = mutations.length; i < l; i++) {
-				addedNodes = mutations[i].addedNodes;
-				removedNodes = mutations[i].removedNodes;
-				for (c = 0, s = addedNodes.length; c < s; c++) {
-					addedNode = addedNodes[c];
-					if (addedNode.nodeType === 1) {
-						this.addElements(addedNode.getElementsByTagName('*'));
-						this.addElement(addedNode);
-					}
-				}
-				for (c = 0, s = removedNodes.length; c < s; c++) {
-					removedNode = removedNodes[c];
-					if (removedNode.nodeType === 1) {
-						// TODO need to handle remove
-						// this.removeElements(removedNode.getElementsByTagName('*'));
-						// this.removeElement(removedNode);
-					}
-				}
+		self.observer = new MutationObserver(function (mutations) {
+			for (var i = 0, l = mutations.length; i < l; i++) {
+				self._handler(mutations[i].addedNodes, mutations[i].removedNodes);
 			}
-		}.bind(this));
-		this.observer.observe(this.container, { childList: true, subtree: true });
+		});
+
+		self.observer.observe(this.container, { childList: true, subtree: true });
 	};
-
-	// function toModel (element, data, path) {
-	// 	var i, l;
-	// 	if (element.type === 'checkbox') {
-	// 		element.value = element.checked;
-	// 		data = element.checked;
-	// 	} else if (element.nodeName === 'SELECT' && element.multiple) {
-	// 		var values = [];
-	// 		var options = element.options;
-	// 		for (i = 0, l = options.length; i < l; i++) {
-	// 			var option = options[i];
-	// 			if (option.selected) {
-	// 				values.push(option.value);
-	// 			}
-	// 		}
-	// 		data = values;
-	// 	} else if (element.type === 'radio') {
-	// 		var elements = element.parentNode.querySelectorAll('input[type="radio"][j-value="' + path + '"]');
-	// 		for (i = 0, l = elements.length; i < l; i++) {
-	// 			var radio = elements[i];
-	// 			if (radio === element) {
-	// 				data = i;
-	// 			} else {
-	// 				radio.checked = false;
-	// 			}
-	// 		}
-	// 	} else {
-	// 		data = element.value;
-	// 	}
-	// }
-	//
-	// View.prototype.inputListener = function (element) {
-	// 	var value = element.getAttribute('j-value');
-	// 	if (value) {
-	// 		var attribute = this.attribute('j-value', value);
-	// 		var uid = this.getContainer(element).uid;
-	// 		// var binder = this.find(uid, attribute.path, function (binder) {
-	// 		// 	return binder.element === element;
-	// 		// });
-	// 		// binder.updateModel();
-	// 	}
-	// };
-
-	// RUN
-	// self.container.addEventListener('change', function (e) {
-	// 	if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
-	// 		self.inputListener.call(self, e.target);
-	// 	}
-	// }, true);
-	//
-	// self.container.addEventListener('input', function (e) {
-	// 	self.inputListener.call(self, e.target);
-	// }, true);
 
 	function Http (options) {
 		this.setup(options);
@@ -1750,6 +1687,7 @@
 		options = options || {};
 		this.request = options.request;
 		this.response = options.response;
+		return this;
 	};
 
 	Http.prototype.mime = {
@@ -1859,12 +1797,12 @@
 
 	var eScript = (document._currentScript || document.currentScript);
 	var eStyle = document.createElement('style');
+	var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
 
 	eStyle.setAttribute('title', 'Jenie');
 	eStyle.setAttribute('type', 'text/css');
-	eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
-	eScript.insertAdjacentElement('beforebegin', eStyle);
-
+	eStyle.appendChild(sStyle);
+	document.head.insertBefore(eStyle, eScript);
 	document.registerElement('j-view', { prototype: Object.create(HTMLElement.prototype) });
 
 	// j-index="index.js"
@@ -1878,53 +1816,39 @@
 
 	var Jenie = {
 		container: document.body,
-
 		events: { data: {} },
 		modifiers: { data: {} },
-
 		http: new Http(),
 		view: new View(),
 		model: new Model(),
 		loader: new Loader(),
 		router: new Router(),
-
 		setup: function (options) {
-			var self = this;
-
-			options = (typeof options === 'function' ? options.call(self) : options) || {};
-
-			if (options.http) self.http.setup(options.http);
-			if (options.view) self.view.setup(options.view);
-			if (options.model) self.model.setup(options.model);
-			if (options.loader) self.loader.setup(options.loader);
-			if (options.router) self.router.setup(options.router);
-
-			self.model.run();
-			self.view.run();
-			self.router.run();
+			options = (typeof options === 'function' ? options.call(this) : options) || {};
+			if (options.http) this.http.setup(options.http);
+			if (options.view) this.view.setup(options.view);
+			if (options.model) this.model.setup(options.model);
+			if (options.loader) this.loader.setup(options.loader);
+			if (options.router) this.router.setup(options.router);
+			this.loader.run();
+			this.router.run();
 		},
-
 		component: function (options) {
 			options.global = Jenie;
 			return new Component(options);
 		},
-
 		script: function () {
 			return (document._currentScript || document.currentScript);
 		},
-
 		document: function () {
 			return (document._currentScript || document.currentScript).ownerDocument;
 		},
-
 		element: function (name) {
 			return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
 		},
-
 		query: function (query) {
 			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 		},
-
 		escape: function (text) {
 			return text
 				.replace(/&/g, '&amp;')
@@ -1933,7 +1857,6 @@
 				.replace(/"/g, '&quot;')
 				.replace(/'/g, '&#039;');
 		},
-
 		comments: function (query) {
 			var comments = [], node;
 
@@ -1952,26 +1875,41 @@
 
 			return comments;
 		}
-
 	};
+
+	Jenie.view.handler(function (addedNodes, removedNodes) {
+		var addedNode, removedNode, i, l;
+
+		for (i = 0, l = addedNodes.length; i < l; i++) {
+			addedNode = addedNodes[i];
+			if (addedNode.nodeType === 1 && !addedNode.isBinded) {
+				addedNode.isBinded = true;
+				Jenie.view.add(addedNode);
+			}
+		}
+
+		for (i = 0, l = removedNodes.length; i < l; i++) {
+			removedNode = removedNodes[i];
+			if (removedNode.nodeType === 1) {
+				Jenie.view.remove(removedNode);
+			}
+		}
+	});
 
 	Jenie.model.handler(function (data, path) {
 		var paths = path.split('.');
 		var uid = paths[0];
 		var pattern = paths.slice(1).join('.');
 		var type = data === undefined ? 'unrender' : 'render';
-
-		Jenie.view.forEach(uid, pattern, function (binders) {
-			for (var i = 0, l = binders.length; i < l; i++) {
-				binders[i][type]();
-			}
+		Jenie.view.eachBinder(uid, pattern, function (binder) {
+			binder[type]();
 		});
 	});
 
 	Jenie.router.handler(function (route) {
 		if (route.title) document.title = route.title;
 		if (route.file && !(route.component in this.cache)) {
-			Jenie.loader.run(route.file.constructor === Object ? route.file : {
+			Jenie.loader.load(route.file.constructor === Object ? route.file : {
 				file: route.file
 			}, function () {
 				Jenie.router.render(route);
@@ -1980,6 +1918,9 @@
 			Jenie.router.render(route);
 		}
 	});
+
+	Jenie.view.run();
+	Jenie.model.run();
 
 	return Jenie;
 

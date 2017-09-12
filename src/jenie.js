@@ -19,12 +19,12 @@ import Http from './http';
 
 var eScript = (document._currentScript || document.currentScript);
 var eStyle = document.createElement('style');
+var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
 
 eStyle.setAttribute('title', 'Jenie');
 eStyle.setAttribute('type', 'text/css');
-eStyle.appendChild(document.createTextNode('j-view, j-view > :first-child { display: block; }'));
-eScript.insertAdjacentElement('beforebegin', eStyle);
-
+eStyle.appendChild(sStyle);
+document.head.insertBefore(eStyle, eScript);
 document.registerElement('j-view', { prototype: Object.create(HTMLElement.prototype) });
 
 // j-index="index.js"
@@ -38,53 +38,39 @@ document.registerElement('j-view', { prototype: Object.create(HTMLElement.protot
 
 var Jenie = {
 	container: document.body,
-
 	events: { data: {} },
 	modifiers: { data: {} },
-
 	http: new Http(),
 	view: new View(),
 	model: new Model(),
 	loader: new Loader(),
 	router: new Router(),
-
 	setup: function (options) {
-		var self = this;
-
-		options = (typeof options === 'function' ? options.call(self) : options) || {};
-
-		if (options.http) self.http.setup(options.http);
-		if (options.view) self.view.setup(options.view);
-		if (options.model) self.model.setup(options.model);
-		if (options.loader) self.loader.setup(options.loader);
-		if (options.router) self.router.setup(options.router);
-
-		self.model.run();
-		self.view.run();
-		self.router.run();
+		options = (typeof options === 'function' ? options.call(this) : options) || {};
+		if (options.http) this.http.setup(options.http);
+		if (options.view) this.view.setup(options.view);
+		if (options.model) this.model.setup(options.model);
+		if (options.loader) this.loader.setup(options.loader);
+		if (options.router) this.router.setup(options.router);
+		this.loader.run();
+		this.router.run();
 	},
-
 	component: function (options) {
 		options.global = Jenie;
 		return new Component(options);
 	},
-
 	script: function () {
 		return (document._currentScript || document.currentScript);
 	},
-
 	document: function () {
 		return (document._currentScript || document.currentScript).ownerDocument;
 	},
-
 	element: function (name) {
 		return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
 	},
-
 	query: function (query) {
 		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 	},
-
 	escape: function (text) {
 		return text
 			.replace(/&/g, '&amp;')
@@ -93,7 +79,6 @@ var Jenie = {
 			.replace(/"/g, '&quot;')
 			.replace(/'/g, '&#039;');
 	},
-
 	comments: function (query) {
 		var comments = [], node;
 
@@ -112,26 +97,41 @@ var Jenie = {
 
 		return comments;
 	}
-
 };
+
+Jenie.view.handler(function (addedNodes, removedNodes) {
+	var addedNode, removedNode, i, l;
+
+	for (i = 0, l = addedNodes.length; i < l; i++) {
+		addedNode = addedNodes[i];
+		if (addedNode.nodeType === 1 && !addedNode.isBinded) {
+			addedNode.isBinded = true;
+			Jenie.view.add(addedNode);
+		}
+	}
+
+	// for (i = 0, l = removedNodes.length; i < l; i++) {
+	// 	removedNode = removedNodes[i];
+	// 	if (removedNode.nodeType === 1) {
+	// 		Jenie.view.remove(removedNode);
+	// 	}
+	// }
+});
 
 Jenie.model.handler(function (data, path) {
 	var paths = path.split('.');
 	var uid = paths[0];
 	var pattern = paths.slice(1).join('.');
 	var type = data === undefined ? 'unrender' : 'render';
-
-	Jenie.view.forEach(uid, pattern, function (binders) {
-		for (var i = 0, l = binders.length; i < l; i++) {
-			binders[i][type]();
-		}
+	Jenie.view.eachBinder(uid, pattern, function (binder) {
+		binder[type]();
 	});
 });
 
 Jenie.router.handler(function (route) {
 	if (route.title) document.title = route.title;
 	if (route.file && !(route.component in this.cache)) {
-		Jenie.loader.run(route.file.constructor === Object ? route.file : {
+		Jenie.loader.load(route.file.constructor === Object ? route.file : {
 			file: route.file
 		}, function () {
 			Jenie.router.render(route);
@@ -140,5 +140,8 @@ Jenie.router.handler(function (route) {
 		Jenie.router.render(route);
 	}
 });
+
+Jenie.view.run();
+Jenie.model.run();
 
 export default Jenie;

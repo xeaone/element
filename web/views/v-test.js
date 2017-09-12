@@ -1,3 +1,4 @@
+import Say from '/say.js';
 
 var template = `
 	<style>
@@ -58,7 +59,8 @@ var template = `
 	<input type="text" j-value="items.0.it.val">
 	<div j-each-item="items">
 		<span>
-			<span j-on-click="foo" j-text="item.it.val"></span><span>,</span>
+			<span j-on-click="foo" j-text="item.it.val"></span>
+			<span>,</span>
 		</span>
 	</div>
 
@@ -126,37 +128,34 @@ Jenie.component({
 		foo: function () {
 			console.log('foo');
 		},
-		say: function (e) {
-			console.log(e);
-			window.alert('hello from button');
-		}
+		say: Say
 	},
 	created: function () {
 		var self = this;
 
 		window.SELF = self;
-
-		setTimeout(function () {
-			var increaseInterval = setInterval(function () {
-
-				if (self.model.items.length === 100) {
-					clearInterval(increaseInterval);
-
-					var decreaseInterval = setInterval(function () {
-
-						if (self.model.items.length === 5) {
-							clearInterval(decreaseInterval);
-						}
-
-						self.model.items.pop();
-					}, 10);
-
-				}
-
-				self.model.items.push({ it: { val: self.model.items.length } });
-
-			}, 10);
-		}, 1000);
+		//
+		// setTimeout(function () {
+		// 	var increaseInterval = setInterval(function () {
+		//
+		// 		if (self.model.items.length === 100) {
+		// 			clearInterval(increaseInterval);
+		//
+		// 			var decreaseInterval = setInterval(function () {
+		//
+		// 				if (self.model.items.length === 5) {
+		// 					clearInterval(decreaseInterval);
+		// 				}
+		//
+		// 				self.model.items.pop();
+		// 			}, 10);
+		//
+		// 		}
+		//
+		// 		self.model.items.push({ it: { val: self.model.items.length } });
+		//
+		// 	}, 10);
+		// }, 1000);
 
 	}
 });
