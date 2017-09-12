@@ -1,107 +1,14 @@
-import Say from '/say.js';
 
-var home = Jenie.escape(`
-	Jenie.component({
-		name: 'v-home',
-		template: \`
-			<h1 j-text="title"></h1>
-		\`,
-		model: {
-			title: 'Old Title'
-		},
-		created: function () {
-			this.model.title = 'New Title';
-		}
-	});
-`);
+var home = Jenie.escape('\n\tJenie.component({\n\t\tname: \'v-home\',\n\t\ttemplate: `\n\t\t\t<h1 j-text="title"></h1>\n\t\t`,\n\t\tmodel: {\n\t\t\ttitle: \'Old Title\'\n\t\t},\n\t\tcreated: function () {\n\t\t\tthis.model.title = \'New Title\';\n\t\t}\n\t});\n');
 
-var indexjs = Jenie.escape(`
-	Jenie.setup({
-		http: {
-			request: function (opt, xhr) {
-				return true; // false will cancel the http.fetch
-			},
-			response: function (opt, xhr) {
-				return true; // false will cancel the http.fetch handlers
-			}
-		},
-		loader: {
-			esm: true, // Enables ES6 import export module support
-			loads: [
-				{
-					file: '/components/c-menu.js',
-					execute: true // Since this component is not a module/route or imported we must execute.
-				}
-			]
-		},
-		router: {
-			routes: [
-				{
-					path: '/',
-					title: 'Home',
-					component: 'v-home',
-					file: 'views/v-home.js'
-				}
-			]
-		}
-	});
-`);
+var indexjs = Jenie.escape('\n\tJenie.setup({\n\t\thttp: {\n\t\t\trequest: function (opt, xhr) {\n\t\t\t\treturn true; // false will cancel the http.fetch\n\t\t\t},\n\t\t\tresponse: function (opt, xhr) {\n\t\t\t\treturn true; // false will cancel the http.fetch handlers\n\t\t\t}\n\t\t},\n\t\tloader: {\n\t\t\tesm: true, // Enables ES6 import export module support\n\t\t\tloads: [\n\t\t\t\t{\n\t\t\t\t\turl: \'/components/c-menu.js\',\n\t\t\t\t\texecute: true // Since this component is not a module/route or imported we must execute.\n\t\t\t\t}\n\t\t\t]\n\t\t},\n\t\trouter: {\n\t\t\troutes: [\n\t\t\t\t{\n\t\t\t\t\tpath: \'/\',\n\t\t\t\t\ttitle: \'Home\',\n\t\t\t\t\tcomponent: \'v-home\',\n\t\t\t\t\turl: \'views/v-home.js\'\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t});\n');
 
-var indexhtml = Jenie.escape(`
-	<html>
-	<head>
-		<base href="/">
-		<script src="jenie.min.js" defer></script>
-		<script src="index.js" defer></script>
-	</head>
-	<body>
-		<j-view></j-view>
-	</body>
-	</html>
-`);
+var indexhtml = Jenie.escape('\n\t<html>\n\t<head>\n\t\t<base href="/">\n\t\t<script src="jenie.min.js" defer></script>\n\t\t<script src="index.js" defer></script>\n\t</head>\n\t<body>\n\t\t<j-view></j-view>\n\t</body>\n\t</html>\n');
 
 Jenie.component({
 	name: 'v-root',
-	template: `
-		<h2>Overview</h2>
-
-		<strong>Synopsis</strong>
-		<p>
-			A small but mighty web components framework/library.
-		</p>
-
-		<strong>Support</strong>
-		<ul>
-			<li>IE10~</li>
-			<li>IE11</li>
-			<li>Chrome</li>
-			<li>Firefox</li>
-			<li>Safari 7</li>
-			<li>Mobile Safari</li>
-			<li>Chrome Android</li>
-		</ul>
-
-		<strong>Install</strong>
-		<ul>
-			<li><strong>npm install jenie --save</strong></li>
-			<li>UMD <i>"dist/jenie.min.js"</i></li>
-			<li>UMD with Web Component Pollyfill <i>"dist/jenie.polly.min.js"</i></li>
-			<li>Web Component Pollyfill <i>"dist/webcomponents-lite.min.js"</i></li>
-		</ul>
-
-		<h2>Example</h2>
-		<pre>
-			<code class="language-js">${home}</code>
-		</pre>
-		<pre>
-			<code class="language-js">${indexjs}</code>
-		</pre>
-		<pre>
-			<code class="language-html">${indexhtml}</code>
-		</pre>
-	`,
-	attached: function () {
-		Prism.highlightAll();
-		Say('hello world');
+	template: '\n\t\t<h2>Overview</h2>\n\n\t\t<strong>Synopsis</strong>\n\t\t<p>\n\t\t\tA small but mighty web components framework/library.\n\t\t</p>\n\n\t\t<strong>Support</strong>\n\t\t<ul>\n\t\t\t<li>IE10~</li>\n\t\t\t<li>IE11</li>\n\t\t\t<li>Chrome</li>\n\t\t\t<li>Firefox</li>\n\t\t\t<li>Safari 7</li>\n\t\t\t<li>Mobile Safari</li>\n\t\t\t<li>Chrome Android</li>\n\t\t</ul>\n\n\t\t<strong>Install</strong>\n\t\t<ul>\n\t\t\t<li><strong>npm install jenie --save</strong></li>\n\t\t\t<li>UMD <i>"dist/jenie.min.js"</i></li>\n\t\t\t<li>UMD with Web Component Pollyfill <i>"dist/jenie.polly.min.js"</i></li>\n\t\t\t<li>Web Component Pollyfill <i>"dist/webcomponents-lite.min.js"</i></li>\n\t\t</ul>\n\n\t\t<h2>Example</h2>\n\t\t<pre>\n\t\t\t<code class="language-js">' + home + '</code>\n\t\t</pre>\n\t\t<pre>\n\t\t\t<code class="language-js">' + indexjs + '</code>\n\t\t</pre>\n\t\t<pre>\n\t\t\t<code class="language-html">' + indexhtml + '</code>\n\t\t</pre>\n\t',
+	attached: function attached() {
+		// Prism.highlightAll();
 	}
 });
