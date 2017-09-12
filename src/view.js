@@ -1,5 +1,4 @@
 import OnceBinder from './once-binder';
-import Utility from './utility';
 import Binder from './binder';
 
 export default function View (options) {
@@ -15,12 +14,12 @@ View.prototype.setup = function (options) {
 };
 
 View.prototype.PATH = /\s?\|.*/;
-// View.prototype.PATH = /\s?\|(.*?)$/;
+View.prototype.PARENT_KEY = /^.*\./;
+View.prototype.PARENT_PATH = /\.\w+$|^\w+$/;
 View.prototype.PREFIX = /(data-)?j-/;
-View.prototype.MODIFIERS = /^(.*?)\|\s?/;
-View.prototype.IS_ACCEPT_PATH = /(data-)?j-value/;
-// View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
-// View.prototype.ELEMENT_SKIPS = /\w+(-\w+)+|iframe|object|script|style|svg/i;
+View.prototype.MODIFIERS = /^.*?\|\s?/;
+View.prototype.IS_ACCEPT_PATH = /(data-)?j-.*/;
+View.prototype.IS_REJECT_PATH = /(data-)?j-value.*/;
 
 View.prototype.isOnce = function (node) {
 	return node.hasAttribute('j-value')
@@ -59,16 +58,20 @@ View.prototype.isAcceptAttribute = function (attribute) {
 
 View.prototype.createAttribute = function (name, value) {
 	var attribute = {};
+
 	attribute.name = name;
 	attribute.value = value;
 	attribute.path = attribute.value.replace(this.PATH, '');
+
 	attribute.opts = attribute.path.split('.');
-	// attribute.command = attribute.name.replace(this.PREFIX, '');
-	// attribute.cmds = attribute.command.split('-');
 	attribute.cmds = attribute.name.replace(this.PREFIX, '').split('-');
-	attribute.key = attribute.opts.slice(-1);
-	attribute.vpath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
+
+	attribute.parentKey = attribute.path.replace(this.PARENT_KEY, '');
+	attribute.parentPath = attribute.path.replace(this.PARENT_PATH, '');
+	attribute.viewPath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
+
 	attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
+
 	return attribute;
 };
 
@@ -81,17 +84,25 @@ View.prototype.eachAttribute = function (attributes, callback) {
 	}
 };
 
-View.prototype.eachElement = function (element, callback) {
-	// for (var i = 0; i < elements.length; i++) {
-	// 	var element = elements[i];
-	// 	if (this.isSkip(element)) i++;
-	// 	if (this.isSkipChildren(element)) i += element.getElementsByTagName('*').length;
-	// 	if (this.isAccept(element)) callback(element);
-	// }
-	if (this.isAccept(element) && !this.isSkip(element)) callback(element);
+View.prototype.eachAttributeAcceptPath = function (attributes, callback) {
+	for (var i = 0, l = attributes.length; i < l; i++) {
+		var attribute = attributes[i];
+		if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
+			callback(attribute.value.replace(this.PATH, ''));
+		}
+	}
+};
+
+View.prototype.eachElement = function (element, container, callback) {
+	container = element.uid ? element : container;
+
+	if (this.isAccept(element) && !this.isSkip(element)) {
+		callback(element, container);
+	}
+
 	if (!this.isSkipChildren(element)) {
 		for (element = element.firstElementChild; element; element = element.nextElementSibling) {
-			this.eachElement(element, callback);
+			this.eachElement(element, container, callback);
 		}
 	}
 };
@@ -101,7 +112,7 @@ View.prototype.eachBinder = function (uid, path, callback) {
 	for (var key in paths) {
 		if (key.indexOf(path) === 0) {
 			var binders = paths[key];
-			for (var i = 0, l = binders.length; i < l; i++) {
+			for (var i = 0; i < binders.length; i++) {
 				callback(binders[i], i, binders, paths, key);
 			}
 		}
@@ -127,49 +138,31 @@ View.prototype.push = function (uid, path, element, container, attribute) {
 	}));
 };
 
-View.prototype.add = function (data) {
+View.prototype.add = function () {
 	var self = this;
-	self.eachElement(data, function (element) {
-		var container = Utility.getContainer(element);
-		var uid = container.uid;
+	self.eachElement(arguments[0], arguments[1], function (element, container) {
 		self.eachAttribute(element.attributes, function (attribute) {
 			if (self.isOnce(element)) {
 				OnceBinder.bind(element, attribute, container);
 			} else {
-				// TODO maybe change vpath to path but breaks each
-				var path = attribute.vpath;
-				if (!self.has(uid, path, element)) {
-					self.push(uid, path, element, container, attribute);
+				var path = attribute.viewPath;
+				if (!self.has(container.uid, path, element)) {
+					self.push(container.uid, path, element, container, attribute);
 				}
 			}
 		});
 	});
 };
 
-View.prototype.eachPath = function (element, callback) {
-	var attributes = element.attributes;
-	for (var i = 0, l = attributes.length; i < l; i++) {
-		var attribute = attributes[i];
-		if (this.IS_ACCEPT_PATH.test(attribute.name)) {
-			callback(attribute.name.replace(this.PATH, ''));
-		}
-	}
-};
-
-View.prototype.remove = function (data) {
+View.prototype.remove = function () {
 	var self = this;
-	var uid = Utility.getContainer(data).uid;
-
-	self.eachElement(data, function (element) {
-		self.eachPath(element, function (path) {
-			self.eachBinder(uid, path, function (binder, index, binders, paths, key) {
-				console.log(binder.element === element);
+	self.eachElement(arguments[0], arguments[1], function (element, container) {
+		self.eachAttributeAcceptPath(element.attributes, function (path) {
+			self.eachBinder(container.uid, path, function (binder, index, binders, paths, key) {
 				if (binder.element === element) {
 					binder.unrender();
 					binders.splice(index, 1);
-					if (binders.length === 0) {
-						delete paths[key];
-					}
+					if (binders.length === 0) delete paths[key];
 				}
 			});
 		});
@@ -189,7 +182,7 @@ View.prototype.run = function () {
 
 	self.observer = new MutationObserver(function (mutations) {
 		for (var i = 0, l = mutations.length; i < l; i++) {
-			self._handler(mutations[i].addedNodes, mutations[i].removedNodes);
+			self._handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
 		}
 	});
 

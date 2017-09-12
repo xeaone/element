@@ -34,13 +34,13 @@ Http.prototype.fetch = function (options) {
 	var self = this, xhr, request, response;
 
 	options = options || {};
-	options.action = options.action ? options.action : window.location.href;
+	options.url = options.url ? options.url : window.location.href;
 	options.method = options.method ? options.method.toUpperCase() : 'GET';
 	options.headers = options.headers ? options.headers : {};
 
 	if (options.data) {
 		if (options.method === 'GET') {
-			options.action = options.action + '?' + self.serialize(options.data);
+			options.url = options.url + '?' + self.serialize(options.data);
 			options.data = null;
 		} else {
 			options.requestType = options.requestType ? options.requestType.toLowerCase() : '';
@@ -73,7 +73,7 @@ Http.prototype.fetch = function (options) {
 	if (typeof self.request === 'function') request = self.request(options, xhr);
 
 	if (request === undefined || request === true) {
-		xhr.open(options.method, options.action, true, options.username, options.password);
+		xhr.open(options.method, options.url, true, options.username, options.password);
 
 		if (options.mimeType) xhr.overrideMimeType(options.mimeType);
 		if (options.accept) options.headers['Accept'] = options.accept;

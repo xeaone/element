@@ -94,6 +94,24 @@
 	};
 
 	var Utility = {
+		CAMEL: /-(\w)/g,
+		// KEBAB: /[A-Z\u00C0-\u00D6\u00D8-\u00DE]/g,
+		// toKebabCase: function (data) {
+		// 	return data.replace(this.KEBAB, function (match) {
+		// 		return '-' + match.toLowerCase();
+		// 	});
+		// },
+		toCamelCase: function (data) {
+			// if (data.constructor.name === 'Array') data = data.join('-');
+			return data.replace(this.CAMEL, function (match, next) {
+				return next.toUpperCase();
+			});
+		},
+		toText: function (data) {
+			if (data === null || data === undefined) return '';
+			if (typeof data === 'object') return JSON.stringify(data);
+			else return String(data);
+		},
 		setByPath: function (collection, path, value) {
 			var keys = path.split('.');
 			var last = keys.length - 1;
@@ -117,21 +135,10 @@
 
 			return collection[keys[last]];
 		},
-		toCamelCase: function (data) {
-			if (data.constructor.name === 'Array') data = data.join('-');
-			return data.replace(/-(\w)/g, function (all, match) {
-				return match.toUpperCase();
-			});
-		},
 		removeChildren: function (element) {
 			while (element.lastElementChild) {
 				element.removeChild(element.lastElementChild);
 			}
-		},
-		toText: function (data) {
-			if (data === null || data === undefined) return '';
-			if (typeof data === 'object') return JSON.stringify(data);
-			else return String(data);
 		},
 		joinSlash: function () {
 			return Array.prototype.join
@@ -144,24 +151,22 @@
 				.replace(/\.{2,}/g, '.');
 		},
 		getContainer: function getContainer (element) {
-			console.log(element);
 			if (!element.uid) {
-				if (element === document.body) {
-					throw new Error('could not find a uid');
-				} else {
+				if (element !== document.body) {
 					return this.getContainer(element.parentElement);
 				}
+				// else { throw new Error('could not find a uid') }
 			} else {
 				return element;
 			}
 		},
-		each: function (items, method, context) {
-			return items.reduce(function (promise, item) {
-				return promise.then(function () {
-					return method.call(context, item);
-				});
-			}, Promise.resolve());
-		}
+		// each: function (items, method, context) {
+		// 	return items.reduce(function (promise, item) {
+		// 		return promise.then(function () {
+		// 			return method.call(context, item);
+		// 		});
+		// 	}, Promise.resolve());
+		// }
 	};
 
 	function Events () {
@@ -571,10 +576,10 @@
 	};
 
 	Loader.prototype.getFile = function (data, callback) {
-		if (!data.file) throw new Error('Loader requires a file');
+		if (!data.url) throw new Error('Loader requires a url');
 		var self = this;
 
-		if (data.file in self.modules && data.status) {
+		if (data.url in self.modules && data.status) {
 			if (data.status === self.LOADED) {
 				if (callback) callback();
 			} else if (data.status === self.LOADING) {
@@ -608,7 +613,7 @@
 						}
 					}
 				});
-				data.url = self.joinPath(self.base.replace(window.location.origin, ''), data.file);
+				data.url = self.joinPath(self.base.replace(window.location.origin, ''), data.url);
 				data.xhr.open('GET', data.url);
 				data.xhr.send();
 			}
@@ -631,7 +636,7 @@
 			imports[i] = {
 				raw: imp[0],
 				name: imp[1],
-				file: imp[2]
+				url: imp[2]
 			};
 		}
 		return imports;
@@ -643,7 +648,7 @@
 
 	Loader.prototype.handleImports = function (ast) {
 		for (var i = 0, l = ast.imports.length; i < l; i++) {
-			ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].file + '\']');
+			ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].url + '\']');
 		}
 	};
 
@@ -665,8 +670,8 @@
 	Loader.prototype.load = function (data, callback) {
 		var self = this;
 
-		if (data.constructor === String) data = { file: data };
-		self.files[data.file] = data;
+		if (data.constructor === String) data = { url: data };
+		self.files[data.url] = data;
 
 		self.getFile(data, function (d) {
 			var ast = self.toAst(d.text);
@@ -687,14 +692,14 @@
 					};
 
 					for (var i = 0, l = meta.imports.length; i < l; i++) {
-						self.load(meta.imports[i].file, meta.listener);
+						self.load(meta.imports[i].url, meta.listener);
 					}
 				} else {
-					self.modules[d.file] = self.interpret(ast.cooked);
+					self.modules[d.url] = self.interpret(ast.cooked);
 					if (callback) callback();
 				}
 			} else {
-				self.modules[d.file] = self.interpret(d.text);
+				self.modules[d.url] = self.interpret(d.text);
 				if (callback) callback();
 			}
 		});
@@ -1344,22 +1349,14 @@
 		if (this.renderType === 'on') {
 			this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 		} else {
-			this.paths = this.attribute.path.split('.');
-			this.key = this.paths.slice(-1)[0];
-			this.path = this.paths.slice(0, -1).join('.');
-			this._data = this.path ? Utility.getByPath(this.model, this.path) : this.model;
+			this._data = this.attribute.parentPath ? Utility.getByPath(this.model, this.attribute.parentPath) : this.model;
 
 			Object.defineProperty(this, 'data', {
 				enumerable: true,
 				configurable: false,
-				// set: function (data) {
-				// 	if (this._data === undefined) return;
-				// 	data = this.modify(data);
-				// 	return this._data[this.key] = data;
-				// },
 				get: function () {
 					if (this._data === undefined) return;
-					var data = this._data[this.key];
+					var data = this._data[this.attribute.parentKey];
 					data = this.modify(data);
 					return data;
 				}
@@ -1383,10 +1380,12 @@
 
 	Binder.prototype.setup = {
 		each: function () {
+			this.pattern = /\$INDEX/g;
 			this.variable = this.attribute.cmds[1];
-			this.clone = this.element.removeChild(this.element.firstElementChild).outerHTML;
-			this.pattern = new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g');
-			// this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+			this.clone = this.element.removeChild(this.element.firstElementChild).outerHTML.replace(
+				new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'),
+				'$1' + this.attribute.path + '.$INDEX$2'
+			);
 		}
 	};
 
@@ -1401,21 +1400,22 @@
 					this.element.removeChild(this.element.lastElementChild);
 				}
 			} else if (this.element.children.length < data.length) {
-				while (this.element.children.length < data.length) {
-					this.element.insertAdjacentHTML('beforeend',
-						this.clone.replace(
-							this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$2'
-							// this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
-						)
-					);
+				var html = '';
+				var index = this.element.children.length;
+				var count = data.length - this.element.children.length;
+				while (count--) {
+					html += this.clone.replace(this.pattern, index++);
 				}
+				this.element.insertAdjacentHTML('beforeend', html);
 			}
 		},
 		html: function (data) {
 			this.element.innerHTML = data;
 		},
 		css: function (data) {
-			if (this.attribute.cmds.length > 1) data = this.attribute.cmds.slice(1).join('-') + ': ' +  data + ';';
+			if (this.attribute.cmds.length > 1) {
+				data = this.attribute.cmds.slice(1).join('-') + ': ' +  data + ';';
+			}
 			this.element.style.cssText += data;
 		},
 		class: function (data) {
@@ -1449,14 +1449,13 @@
 		href: function (data) {
 			this.element.href = data;
 		},
-		default: function (data) {
-			Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
+		default: function () { //data
+			// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
 		}
 	};
 
 	Binder.prototype.unrenderMethods = {
 		on: function () {
-			console.log('removeEventListener');
 			this.element.removeEventListener(this.attribute.cmds[1], this.data, false);
 		},
 		each: function () {
@@ -1464,6 +1463,13 @@
 		},
 		html: function () {
 			Utility.removeChildren(this.element);
+		},
+		css: function () {
+			this.element.style.cssText = '';
+		},
+		class: function () {
+			var className = this.attribute.cmds.slice(1).join('-');
+			this.element.classList.remove(className);
 		},
 		text: function () {
 			this.element.innerText = '';
@@ -1498,12 +1504,12 @@
 	};
 
 	View.prototype.PATH = /\s?\|.*/;
-	// View.prototype.PATH = /\s?\|(.*?)$/;
+	View.prototype.PARENT_KEY = /^.*\./;
+	View.prototype.PARENT_PATH = /\.\w+$|^\w+$/;
 	View.prototype.PREFIX = /(data-)?j-/;
-	View.prototype.MODIFIERS = /^(.*?)\|\s?/;
-	View.prototype.IS_ACCEPT_PATH = /(data-)?j-value/;
-	// View.prototype.ATTRIBUTE_ACCEPTS = /(data-)?j-/i;
-	// View.prototype.ELEMENT_SKIPS = /\w+(-\w+)+|iframe|object|script|style|svg/i;
+	View.prototype.MODIFIERS = /^.*?\|\s?/;
+	View.prototype.IS_ACCEPT_PATH = /(data-)?j-.*/;
+	View.prototype.IS_REJECT_PATH = /(data-)?j-value.*/;
 
 	View.prototype.isOnce = function (node) {
 		return node.hasAttribute('j-value')
@@ -1542,16 +1548,20 @@
 
 	View.prototype.createAttribute = function (name, value) {
 		var attribute = {};
+
 		attribute.name = name;
 		attribute.value = value;
 		attribute.path = attribute.value.replace(this.PATH, '');
+
 		attribute.opts = attribute.path.split('.');
-		// attribute.command = attribute.name.replace(this.PREFIX, '');
-		// attribute.cmds = attribute.command.split('-');
 		attribute.cmds = attribute.name.replace(this.PREFIX, '').split('-');
-		attribute.key = attribute.opts.slice(-1);
-		attribute.vpath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
+
+		attribute.parentKey = attribute.path.replace(this.PARENT_KEY, '');
+		attribute.parentPath = attribute.path.replace(this.PARENT_PATH, '');
+		attribute.viewPath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
+
 		attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
+
 		return attribute;
 	};
 
@@ -1564,17 +1574,25 @@
 		}
 	};
 
-	View.prototype.eachElement = function (element, callback) {
-		// for (var i = 0; i < elements.length; i++) {
-		// 	var element = elements[i];
-		// 	if (this.isSkip(element)) i++;
-		// 	if (this.isSkipChildren(element)) i += element.getElementsByTagName('*').length;
-		// 	if (this.isAccept(element)) callback(element);
-		// }
-		if (this.isAccept(element) && !this.isSkip(element)) callback(element);
+	View.prototype.eachAttributeAcceptPath = function (attributes, callback) {
+		for (var i = 0, l = attributes.length; i < l; i++) {
+			var attribute = attributes[i];
+			if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
+				callback(attribute.value.replace(this.PATH, ''));
+			}
+		}
+	};
+
+	View.prototype.eachElement = function (element, container, callback) {
+		container = element.uid ? element : container;
+
+		if (this.isAccept(element) && !this.isSkip(element)) {
+			callback(element, container);
+		}
+
 		if (!this.isSkipChildren(element)) {
 			for (element = element.firstElementChild; element; element = element.nextElementSibling) {
-				this.eachElement(element, callback);
+				this.eachElement(element, container, callback);
 			}
 		}
 	};
@@ -1584,7 +1602,7 @@
 		for (var key in paths) {
 			if (key.indexOf(path) === 0) {
 				var binders = paths[key];
-				for (var i = 0, l = binders.length; i < l; i++) {
+				for (var i = 0; i < binders.length; i++) {
 					callback(binders[i], i, binders, paths, key);
 				}
 			}
@@ -1610,49 +1628,31 @@
 		}));
 	};
 
-	View.prototype.add = function (data) {
+	View.prototype.add = function () {
 		var self = this;
-		self.eachElement(data, function (element) {
-			var container = Utility.getContainer(element);
-			var uid = container.uid;
+		self.eachElement(arguments[0], arguments[1], function (element, container) {
 			self.eachAttribute(element.attributes, function (attribute) {
 				if (self.isOnce(element)) {
 					OnceBinder.bind(element, attribute, container);
 				} else {
-					// TODO maybe change vpath to path but breaks each
-					var path = attribute.vpath;
-					if (!self.has(uid, path, element)) {
-						self.push(uid, path, element, container, attribute);
+					var path = attribute.viewPath;
+					if (!self.has(container.uid, path, element)) {
+						self.push(container.uid, path, element, container, attribute);
 					}
 				}
 			});
 		});
 	};
 
-	View.prototype.eachPath = function (element, callback) {
-		var attributes = element.attributes;
-		for (var i = 0, l = attributes.length; i < l; i++) {
-			var attribute = attributes[i];
-			if (this.IS_ACCEPT_PATH.test(attribute.name)) {
-				callback(attribute.name.replace(this.PATH, ''));
-			}
-		}
-	};
-
-	View.prototype.remove = function (data) {
+	View.prototype.remove = function () {
 		var self = this;
-		var uid = Utility.getContainer(data).uid;
-
-		self.eachElement(data, function (element) {
-			self.eachPath(element, function (path) {
-				self.eachBinder(uid, path, function (binder, index, binders, paths, key) {
-					console.log(binder.element === element);
+		self.eachElement(arguments[0], arguments[1], function (element, container) {
+			self.eachAttributeAcceptPath(element.attributes, function (path) {
+				self.eachBinder(container.uid, path, function (binder, index, binders, paths, key) {
 					if (binder.element === element) {
 						binder.unrender();
 						binders.splice(index, 1);
-						if (binders.length === 0) {
-							delete paths[key];
-						}
+						if (binders.length === 0) delete paths[key];
 					}
 				});
 			});
@@ -1672,7 +1672,7 @@
 
 		self.observer = new MutationObserver(function (mutations) {
 			for (var i = 0, l = mutations.length; i < l; i++) {
-				self._handler(mutations[i].addedNodes, mutations[i].removedNodes);
+				self._handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
 			}
 		});
 
@@ -1714,13 +1714,13 @@
 		var self = this, xhr, request, response;
 
 		options = options || {};
-		options.action = options.action ? options.action : window.location.href;
+		options.url = options.url ? options.url : window.location.href;
 		options.method = options.method ? options.method.toUpperCase() : 'GET';
 		options.headers = options.headers ? options.headers : {};
 
 		if (options.data) {
 			if (options.method === 'GET') {
-				options.action = options.action + '?' + self.serialize(options.data);
+				options.url = options.url + '?' + self.serialize(options.data);
 				options.data = null;
 			} else {
 				options.requestType = options.requestType ? options.requestType.toLowerCase() : '';
@@ -1753,7 +1753,7 @@
 		if (typeof self.request === 'function') request = self.request(options, xhr);
 
 		if (request === undefined || request === true) {
-			xhr.open(options.method, options.action, true, options.username, options.password);
+			xhr.open(options.method, options.url, true, options.username, options.password);
 
 			if (options.mimeType) xhr.overrideMimeType(options.mimeType);
 			if (options.accept) options.headers['Accept'] = options.accept;
@@ -1877,21 +1877,22 @@
 		}
 	};
 
-	Jenie.view.handler(function (addedNodes, removedNodes) {
+	Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
 		var addedNode, removedNode, i, l;
+		var container = Utility.getContainer(parentNode);
 
 		for (i = 0, l = addedNodes.length; i < l; i++) {
 			addedNode = addedNodes[i];
 			if (addedNode.nodeType === 1 && !addedNode.isBinded) {
 				addedNode.isBinded = true;
-				Jenie.view.add(addedNode);
+				Jenie.view.add(addedNode, container);
 			}
 		}
 
 		for (i = 0, l = removedNodes.length; i < l; i++) {
 			removedNode = removedNodes[i];
 			if (removedNode.nodeType === 1) {
-				Jenie.view.remove(removedNode);
+				Jenie.view.remove(removedNode, container);
 			}
 		}
 	});
@@ -1908,9 +1909,9 @@
 
 	Jenie.router.handler(function (route) {
 		if (route.title) document.title = route.title;
-		if (route.file && !(route.component in this.cache)) {
-			Jenie.loader.load(route.file.constructor === Object ? route.file : {
-				file: route.file
+		if (route.url && !(route.component in this.cache)) {
+			Jenie.loader.load(route.url.constructor === Object ? route.url : {
+				url: route.url
 			}, function () {
 				Jenie.router.render(route);
 			});

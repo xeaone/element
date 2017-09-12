@@ -52,10 +52,10 @@ Loader.prototype.joinPath = function () {
 };
 
 Loader.prototype.getFile = function (data, callback) {
-	if (!data.file) throw new Error('Loader requires a file');
+	if (!data.url) throw new Error('Loader requires a url');
 	var self = this;
 
-	if (data.file in self.modules && data.status) {
+	if (data.url in self.modules && data.status) {
 		if (data.status === self.LOADED) {
 			if (callback) callback();
 		} else if (data.status === self.LOADING) {
@@ -89,7 +89,7 @@ Loader.prototype.getFile = function (data, callback) {
 					}
 				}
 			});
-			data.url = self.joinPath(self.base.replace(window.location.origin, ''), data.file);
+			data.url = self.joinPath(self.base.replace(window.location.origin, ''), data.url);
 			data.xhr.open('GET', data.url);
 			data.xhr.send();
 		}
@@ -112,7 +112,7 @@ Loader.prototype.getImports = function (data) {
 		imports[i] = {
 			raw: imp[0],
 			name: imp[1],
-			file: imp[2]
+			url: imp[2]
 		};
 	}
 	return imports;
@@ -124,7 +124,7 @@ Loader.prototype.getExports = function (data) {
 
 Loader.prototype.handleImports = function (ast) {
 	for (var i = 0, l = ast.imports.length; i < l; i++) {
-		ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].file + '\']');
+		ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].url + '\']');
 	}
 };
 
@@ -146,8 +146,8 @@ Loader.prototype.toAst = function (data) {
 Loader.prototype.load = function (data, callback) {
 	var self = this;
 
-	if (data.constructor === String) data = { file: data };
-	self.files[data.file] = data;
+	if (data.constructor === String) data = { url: data };
+	self.files[data.url] = data;
 
 	self.getFile(data, function (d) {
 		var ast = self.toAst(d.text);
@@ -168,14 +168,14 @@ Loader.prototype.load = function (data, callback) {
 				};
 
 				for (var i = 0, l = meta.imports.length; i < l; i++) {
-					self.load(meta.imports[i].file, meta.listener);
+					self.load(meta.imports[i].url, meta.listener);
 				}
 			} else {
-				self.modules[d.file] = self.interpret(ast.cooked);
+				self.modules[d.url] = self.interpret(ast.cooked);
 				if (callback) callback();
 			}
 		} else {
-			self.modules[d.file] = self.interpret(d.text);
+			self.modules[d.url] = self.interpret(d.text);
 			if (callback) callback();
 		}
 	});

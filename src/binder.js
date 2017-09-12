@@ -15,22 +15,14 @@ export default function Binder (options) {
 	if (this.renderType === 'on') {
 		this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 	} else {
-		this.paths = this.attribute.path.split('.');
-		this.key = this.paths.slice(-1)[0];
-		this.path = this.paths.slice(0, -1).join('.');
-		this._data = this.path ? Utility.getByPath(this.model, this.path) : this.model;
+		this._data = this.attribute.parentPath ? Utility.getByPath(this.model, this.attribute.parentPath) : this.model;
 
 		Object.defineProperty(this, 'data', {
 			enumerable: true,
 			configurable: false,
-			// set: function (data) {
-			// 	if (this._data === undefined) return;
-			// 	data = this.modify(data);
-			// 	return this._data[this.key] = data;
-			// },
 			get: function () {
 				if (this._data === undefined) return;
-				var data = this._data[this.key];
+				var data = this._data[this.attribute.parentKey];
 				data = this.modify(data);
 				return data;
 			}
@@ -54,10 +46,12 @@ Binder.prototype.modify = function (data) {
 
 Binder.prototype.setup = {
 	each: function () {
+		this.pattern = /\$INDEX/g;
 		this.variable = this.attribute.cmds[1];
-		this.clone = this.element.removeChild(this.element.firstElementChild).outerHTML;
-		this.pattern = new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g');
-		// this.pattern = new RegExp('(((data-)?j(-(\\w)+)+="))' + this.variable + '(((\\.(\\w)+)+)?((\\s+)?\\|((\\s+)?(\\w)+)+)?(\\s+)?")', 'g');
+		this.clone = this.element.removeChild(this.element.firstElementChild).outerHTML.replace(
+			new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'),
+			'$1' + this.attribute.path + '.$INDEX$2'
+		);
 	}
 };
 
@@ -72,21 +66,22 @@ Binder.prototype.renderMethods = {
 				this.element.removeChild(this.element.lastElementChild);
 			}
 		} else if (this.element.children.length < data.length) {
-			while (this.element.children.length < data.length) {
-				this.element.insertAdjacentHTML('beforeend',
-					this.clone.replace(
-						this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$2'
-						// this.pattern, '$1' + this.attribute.path + '.' + this.element.children.length + '$6'
-					)
-				);
+			var html = '';
+			var index = this.element.children.length;
+			var count = data.length - this.element.children.length;
+			while (count--) {
+				html += this.clone.replace(this.pattern, index++);
 			}
+			this.element.insertAdjacentHTML('beforeend', html);
 		}
 	},
 	html: function (data) {
 		this.element.innerHTML = data;
 	},
 	css: function (data) {
-		if (this.attribute.cmds.length > 1) data = this.attribute.cmds.slice(1).join('-') + ': ' +  data + ';';
+		if (this.attribute.cmds.length > 1) {
+			data = this.attribute.cmds.slice(1).join('-') + ': ' +  data + ';';
+		}
 		this.element.style.cssText += data;
 	},
 	class: function (data) {
@@ -120,14 +115,13 @@ Binder.prototype.renderMethods = {
 	href: function (data) {
 		this.element.href = data;
 	},
-	default: function (data) {
-		Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
+	default: function () { //data
+		// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
 	}
 };
 
 Binder.prototype.unrenderMethods = {
 	on: function () {
-		console.log('removeEventListener');
 		this.element.removeEventListener(this.attribute.cmds[1], this.data, false);
 	},
 	each: function () {
@@ -135,6 +129,13 @@ Binder.prototype.unrenderMethods = {
 	},
 	html: function () {
 		Utility.removeChildren(this.element);
+	},
+	css: function () {
+		this.element.style.cssText = '';
+	},
+	class: function () {
+		var className = this.attribute.cmds.slice(1).join('-');
+		this.element.classList.remove(className);
 	},
 	text: function () {
 		this.element.innerText = '';

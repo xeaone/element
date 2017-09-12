@@ -1,4 +1,3 @@
-import Say from '/say.js';
 
 var home = Jenie.escape(`
 	Jenie.component({
@@ -29,7 +28,7 @@ var indexjs = Jenie.escape(`
 			esm: true, // Enables ES6 import export module support
 			loads: [
 				{
-					file: '/components/c-menu.js',
+					url: '/components/c-menu.js',
 					execute: true // Since this component is not a module/route or imported we must execute.
 				}
 			]
@@ -40,7 +39,7 @@ var indexjs = Jenie.escape(`
 					path: '/',
 					title: 'Home',
 					component: 'v-home',
-					file: 'views/v-home.js'
+					url: 'views/v-home.js'
 				}
 			]
 		}
@@ -102,6 +101,5 @@ Jenie.component({
 	`,
 	attached: function () {
 		// Prism.highlightAll();
-		Say('hello world');
 	}
 });

@@ -59,7 +59,7 @@ Jenie.setup({
 		esm: true, // Enables ES6 import export module support
 		loads: [
 			{
-				file: '/components/c-menu.js',
+				url: '/components/c-menu.js',
 				execute: true // Since this component is not a module/route or imported we must execute.
 			}
 		]
@@ -70,7 +70,7 @@ Jenie.setup({
 				path: '/',
 				title: 'Home',
 				component: 'v-home',
-				file: 'views/v-home.js'
+				url: 'views/v-home.js'
 			}
 		]
 	}
@@ -96,7 +96,6 @@ Jenie.setup({
 Returns a new Jenie web component and defines/registers a custom web component.
 - `options: Object`
 	- `name: String` **Required** the tag name
-	- `file: String` path to JS component script.
 	- `template: Element, String, Query` **Required**
 	- `model: Object<Any>` See Jenie.controller.model
 	- `events: Object<Function>` See Jenie.controller.events
@@ -123,7 +122,7 @@ The recommend entry point. This allows you to setup Jenie and automatically star
 		- `route: Object`
 		- `title: String` The title for the page.
 		- `component: String` The name of a component.
-		- `file: Object, String` Path or Jenie.loader.load Object to a web component JS file.
+		- `url: Object, String` Path or Jenie.loader.load Object to a web component JS url.
 			- `path: String` Any path.
 				- `parameters: String` Named '/account/{user}', or catchalls '{\*}',
 
@@ -148,7 +147,7 @@ ES6 import and export module support. Imports must be absolute from the domain. 
 	- `esm: Boolean` enable es6 module support for scripts.
 	- `loads: Array<Object, String>` Adds load objects or strings such as non route components.
 		- `load: Object, String`
-			- `file: String` Path to a web component JS file.
+			- `url: String` Path to a web component JS url.
 			- `execute: Boolean` Enable this to load and define/register custom components.
 			- `esm: Boolean` Similar to Jenie.loader.options this enables es6 module support but on an individual bases.
 

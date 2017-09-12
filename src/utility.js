@@ -1,5 +1,23 @@
 
 var Utility = {
+	CAMEL: /-(\w)/g,
+	// KEBAB: /[A-Z\u00C0-\u00D6\u00D8-\u00DE]/g,
+	// toKebabCase: function (data) {
+	// 	return data.replace(this.KEBAB, function (match) {
+	// 		return '-' + match.toLowerCase();
+	// 	});
+	// },
+	toCamelCase: function (data) {
+		// if (data.constructor.name === 'Array') data = data.join('-');
+		return data.replace(this.CAMEL, function (match, next) {
+			return next.toUpperCase();
+		});
+	},
+	toText: function (data) {
+		if (data === null || data === undefined) return '';
+		if (typeof data === 'object') return JSON.stringify(data);
+		else return String(data);
+	},
 	setByPath: function (collection, path, value) {
 		var keys = path.split('.');
 		var last = keys.length - 1;
@@ -23,21 +41,10 @@ var Utility = {
 
 		return collection[keys[last]];
 	},
-	toCamelCase: function (data) {
-		if (data.constructor.name === 'Array') data = data.join('-');
-		return data.replace(/-(\w)/g, function (all, match) {
-			return match.toUpperCase();
-		});
-	},
 	removeChildren: function (element) {
 		while (element.lastElementChild) {
 			element.removeChild(element.lastElementChild);
 		}
-	},
-	toText: function (data) {
-		if (data === null || data === undefined) return '';
-		if (typeof data === 'object') return JSON.stringify(data);
-		else return String(data);
 	},
 	joinSlash: function () {
 		return Array.prototype.join
@@ -50,24 +57,22 @@ var Utility = {
 			.replace(/\.{2,}/g, '.');
 	},
 	getContainer: function getContainer (element) {
-		console.log(element);
 		if (!element.uid) {
-			if (element === document.body) {
-				throw new Error('could not find a uid');
-			} else {
+			if (element !== document.body) {
 				return this.getContainer(element.parentElement);
 			}
+			// else { throw new Error('could not find a uid') }
 		} else {
 			return element;
 		}
 	},
-	each: function (items, method, context) {
-		return items.reduce(function (promise, item) {
-			return promise.then(function () {
-				return method.call(context, item);
-			});
-		}, Promise.resolve());
-	}
+	// each: function (items, method, context) {
+	// 	return items.reduce(function (promise, item) {
+	// 		return promise.then(function () {
+	// 			return method.call(context, item);
+	// 		});
+	// 	}, Promise.resolve());
+	// }
 };
 
 export default Utility;

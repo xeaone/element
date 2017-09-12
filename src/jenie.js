@@ -11,6 +11,7 @@
 */
 
 import Component from './component';
+import Utility from './utility';
 import Router from './router';
 import Loader from './loader';
 import Model from './model';
@@ -99,23 +100,24 @@ var Jenie = {
 	}
 };
 
-Jenie.view.handler(function (addedNodes, removedNodes) {
+Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
 	var addedNode, removedNode, i, l;
+	var container = Utility.getContainer(parentNode);
 
 	for (i = 0, l = addedNodes.length; i < l; i++) {
 		addedNode = addedNodes[i];
 		if (addedNode.nodeType === 1 && !addedNode.isBinded) {
 			addedNode.isBinded = true;
-			Jenie.view.add(addedNode);
+			Jenie.view.add(addedNode, container);
 		}
 	}
 
-	// for (i = 0, l = removedNodes.length; i < l; i++) {
-	// 	removedNode = removedNodes[i];
-	// 	if (removedNode.nodeType === 1) {
-	// 		Jenie.view.remove(removedNode);
-	// 	}
-	// }
+	for (i = 0, l = removedNodes.length; i < l; i++) {
+		removedNode = removedNodes[i];
+		if (removedNode.nodeType === 1) {
+			Jenie.view.remove(removedNode, container);
+		}
+	}
 });
 
 Jenie.model.handler(function (data, path) {
@@ -130,9 +132,9 @@ Jenie.model.handler(function (data, path) {
 
 Jenie.router.handler(function (route) {
 	if (route.title) document.title = route.title;
-	if (route.file && !(route.component in this.cache)) {
-		Jenie.loader.load(route.file.constructor === Object ? route.file : {
-			file: route.file
+	if (route.url && !(route.component in this.cache)) {
+		Jenie.loader.load(route.url.constructor === Object ? route.url : {
+			url: route.url
 		}, function () {
 			Jenie.router.render(route);
 		});
