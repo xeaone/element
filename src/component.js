@@ -2,29 +2,33 @@ import Uid from './uid';
 
 export default function Component (options) {
 	var self = this;
+
 	options = options || {};
 
-	if (!options.name) throw new Error('Component missing name');
-	if (!options.template) throw new Error('Component missing template');
+	if (!options.name) {
+		throw new Error('Component requires name');
+	}
+
+	if (!options.html || !options.query || !options.element) {
+		throw new Error('Component requires html, query, or element');
+	}
 
 	self.name = options.name;
+	self.view = options.view;
+	self.model = options.model;
 	self.style = options.style;
-
-
+	self.events = options.events;
 	self.global = options.global;
-	self.view = options.view; // if (options.view)
-	self.model = options.model; // if (options.model)
-	self.events = options.events; // if (options.events)
-	self.modifiers = options.modifiers; // if (options.modifiers)
-
+	self.shadow = options.shadow;
+	self.modifiers = options.modifiers;
 	self.currentScript = (document._currentScript || document.currentScript);
-	self.template = self.toTemplate(options.template);
+
+	self.template = self.createTemplate(options);
 
 	self.proto = Object.create(HTMLElement.prototype);
 	self.proto.attachedCallback = options.attached;
 	self.proto.detachedCallback = options.detached;
 	self.proto.attributeChangedCallback = options.attributed;
-	// self.proto.j = {};
 
 	self.proto.createdCallback = function () {
 		var element = this;
@@ -43,37 +47,51 @@ export default function Component (options) {
 		// might want to handle default slot
 		// might want to overwrite content
 		self.replaceSlots(element, self.template);
-		element.appendChild(document.importNode(self.template.content, true));
+
+		if (self.shadow) {
+			element.createShadowRoot().appendChild(document.importNode(self.template.content, true));
+		} else {
+			element.appendChild(document.importNode(self.template.content, true));
+		}
+
 		if (options.created) options.created.call(element);
 	};
 
 	self.define();
 }
 
-Component.prototype.replaceSlots = function (element, template) {
+Component.prototype.replaceSlots = function (element, html) {
 	var eSlots = element.querySelectorAll('[slot]');
 	for (var i = 0, l = eSlots.length; i < l; i++) {
 		var eSlot = eSlots[i];
 		var sName = eSlot.getAttribute('slot');
-		var tSlot = template.content.querySelector('slot[name='+ sName + ']');
+		var tSlot = html.content.querySelector('slot[name='+ sName + ']');
 		tSlot.parentNode.replaceChild(eSlot, tSlot);
 	}
 };
 
-Component.prototype.toHTML = function (html) {
-	var template = document.createElement('template');
-	template.innerHTML = html;
-	return template;
-};
-
-Component.prototype.toTemplate = function (template) {
-	if (template.constructor.name === 'String') {
-		if (/<|>/.test(template)) {
-			template = this.toHTML(template);
+Component.prototype.createTemplate = function (options) {
+	var template;
+	if (options.html) {
+		template = document.createElement('template');
+		template.innerHTML = options.html;
+	} else if (options.query) {
+		template = self.currentScript.ownerDocument.querySelector(options.query);
+		if (template.nodeType !== 'TEMPLATE') {
+			template = document.createElement('template');
+			template.content.appendChild(options.element);
+		}
+	} else if (options.element) {
+		if (options.element.nodeType === 'TEMPLATE') {
+			template = options.element;
 		} else {
-			template = this.currentScript.ownerDocument.querySelector(template);
+			template = document.createElement('template');
+			template.content.appendChild(options.element);
 		}
 	}
+	// else if (options.url) {
+	//
+	// }
 	return template;
 };
 
