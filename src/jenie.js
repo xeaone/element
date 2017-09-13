@@ -2,7 +2,7 @@
 /*
 	@banner
 	name: jenie
-	version: 1.6.9
+	version: 1.6.10
 	license: mpl-2.0
 	author: alexander elias
 	This Source Code Form is subject to the terms of the Mozilla Public
@@ -71,33 +71,34 @@ var Jenie = {
 	},
 	query: function (query) {
 		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
-	},
-	escape: function (text) {
-		return text
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#039;');
-	},
-	comments: function (query) {
-		var comments = [], node;
-
-		var pattern = new RegExp('^' + query);
-		var iterator = document.createNodeIterator((document._currentScript || document.currentScript).ownerDocument, NodeFilter.SHOW_COMMENT, NodeFilter.FILTER_ACCEPT);
-
-		while (node = iterator.nextNode()) {
-			if (query) {
-				if (pattern.test(node.nodeValue)) {
-					return node.nodeValue.replace(query, '');
-				}
-			} else {
-				comments.push(node.nodeValue);
-			}
-		}
-
-		return comments;
 	}
+	// ,
+	// escape: function (text) {
+	// 	return text
+	// 		.replace(/&/g, '&amp;')
+	// 		.replace(/</g, '&lt;')
+	// 		.replace(/>/g, '&gt;')
+	// 		.replace(/"/g, '&quot;')
+	// 		.replace(/'/g, '&#039;');
+	// },
+	// comments: function (query) {
+	// 	var comments = [], node;
+	//
+	// 	var pattern = new RegExp('^' + query);
+	// 	var iterator = document.createNodeIterator((document._currentScript || document.currentScript).ownerDocument, NodeFilter.SHOW_COMMENT, NodeFilter.FILTER_ACCEPT);
+	//
+	// 	while (node = iterator.nextNode()) {
+	// 		if (query) {
+	// 			if (pattern.test(node.nodeValue)) {
+	// 				return node.nodeValue.replace(query, '');
+	// 			}
+	// 		} else {
+	// 			comments.push(node.nodeValue);
+	// 		}
+	// 	}
+	//
+	// 	return comments;
+	// }
 };
 
 Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
