@@ -4,7 +4,7 @@ Jenie.component({
 	model: {
 		text: 'Hello from js test'
 	},
-	template: `
+	html: `
 		<p j-text="text"></p>
 		<div>
 			<slot name="one"></slot>

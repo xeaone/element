@@ -1,15 +1,16 @@
 {
 	"name": "jenie",
-	"version": "1.6.9",
+	"version": "1.6.10",
 	"description": "A small but mighty web components framework/library.",
 	"main": "dist/jenie.min.js",
 	"scripts": {
-		"build": "muleify pack -pb src src/jenie.js web/assets/jenie.js && muleify pack web docs",
+		"build-docs": "rm -r docs/* && muleify pack -e web docs",
 		"serve": "muleify serve -swe web dev",
 		"watch": "muleify pack -p src -wb src/jenie.js web/assets/jenie.js",
-		"bd": "muleify pack src/jenie.b.js dist/jenie.js",
-		"bm": "muleify pack -m src/jenie.b.js dist/jenie.min.js",
-		"bp": "cat dist/es6-promise-auto.min.js dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
+		"bd": "muleify pack src/jenie.js dist/jenie.js",
+		"bm": "muleify pack -m src/jenie.js dist/jenie.min.js",
+		"bp-promises": "cat dist/es6-promise-auto.min.js dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
+		"bp": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
 		"ba": "npm run bd && npm run bm && npm run bp"
 	},
 	"repository": {

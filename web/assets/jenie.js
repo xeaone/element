@@ -12,29 +12,33 @@
 
 	function Component (options) {
 		var self = this;
+
 		options = options || {};
 
-		if (!options.name) throw new Error('Component missing name');
-		if (!options.template) throw new Error('Component missing template');
+		if (!options.name) {
+			throw new Error('Component requires name');
+		}
+
+		if (!options.html && !options.query && !options.element) {
+			throw new Error('Component requires html, query, or element');
+		}
 
 		self.name = options.name;
+		self.view = options.view;
+		self.model = options.model;
 		self.style = options.style;
-
-
+		self.events = options.events;
 		self.global = options.global;
-		self.view = options.view; // if (options.view)
-		self.model = options.model; // if (options.model)
-		self.events = options.events; // if (options.events)
-		self.modifiers = options.modifiers; // if (options.modifiers)
-
+		self.shadow = options.shadow;
+		self.modifiers = options.modifiers;
 		self.currentScript = (document._currentScript || document.currentScript);
-		self.template = self.toTemplate(options.template);
+
+		self.template = self.createTemplate(options);
 
 		self.proto = Object.create(HTMLElement.prototype);
 		self.proto.attachedCallback = options.attached;
 		self.proto.detachedCallback = options.detached;
 		self.proto.attributeChangedCallback = options.attributed;
-		// self.proto.j = {};
 
 		self.proto.createdCallback = function () {
 			var element = this;
@@ -53,37 +57,51 @@
 			// might want to handle default slot
 			// might want to overwrite content
 			self.replaceSlots(element, self.template);
-			element.appendChild(document.importNode(self.template.content, true));
+
+			if (self.shadow) {
+				element.createShadowRoot().appendChild(document.importNode(self.template.content, true));
+			} else {
+				element.appendChild(document.importNode(self.template.content, true));
+			}
+
 			if (options.created) options.created.call(element);
 		};
 
 		self.define();
 	}
 
-	Component.prototype.replaceSlots = function (element, template) {
+	Component.prototype.replaceSlots = function (element, html) {
 		var eSlots = element.querySelectorAll('[slot]');
 		for (var i = 0, l = eSlots.length; i < l; i++) {
 			var eSlot = eSlots[i];
 			var sName = eSlot.getAttribute('slot');
-			var tSlot = template.content.querySelector('slot[name='+ sName + ']');
+			var tSlot = html.content.querySelector('slot[name='+ sName + ']');
 			tSlot.parentNode.replaceChild(eSlot, tSlot);
 		}
 	};
 
-	Component.prototype.toHTML = function (html) {
-		var template = document.createElement('template');
-		template.innerHTML = html;
-		return template;
-	};
-
-	Component.prototype.toTemplate = function (template) {
-		if (template.constructor.name === 'String') {
-			if (/<|>/.test(template)) {
-				template = this.toHTML(template);
+	Component.prototype.createTemplate = function (options) {
+		var template;
+		if (options.html) {
+			template = document.createElement('template');
+			template.innerHTML = options.html;
+		} else if (options.query) {
+			template = self.currentScript.ownerDocument.querySelector(options.query);
+			if (template.nodeType !== 'TEMPLATE') {
+				template = document.createElement('template');
+				template.content.appendChild(options.element);
+			}
+		} else if (options.element) {
+			if (options.element.nodeType === 'TEMPLATE') {
+				template = options.element;
 			} else {
-				template = this.currentScript.ownerDocument.querySelector(template);
+				template = document.createElement('template');
+				template.content.appendChild(options.element);
 			}
 		}
+		// else if (options.url) {
+		//
+		// }
 		return template;
 	};
 
@@ -429,11 +447,14 @@
 	Router.prototype.render = function (route) {
 		Utility.removeChildren(this.view);
 
-		if (!(route.component in this.cache)) {
-			this.cache[route.component] = document.createElement(route.component);
+		var component = this.cache[route.component];
+		if (!component) {
+			component = this.cache[route.component] = document.createElement(route.component);
+			component.inRouterCache = false;
+			component.isRouterComponent = true;
 		}
 
-		this.view.appendChild(this.cache[route.component]);
+		this.view.appendChild(component);
 
 		this.scroll(0, 0);
 		this.emit('navigated');
@@ -649,6 +670,7 @@
 	Loader.prototype.handleImports = function (ast) {
 		for (var i = 0, l = ast.imports.length; i < l; i++) {
 			ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].url + '\']');
+			ast.imports[i].url = ast.imports[i].url.indexOf('.js') === -1 ? ast.imports[i].url + '.js' : ast.imports[i].url;
 		}
 	};
 
@@ -1382,7 +1404,10 @@
 		each: function () {
 			this.pattern = /\$INDEX/g;
 			this.variable = this.attribute.cmds[1];
-			this.clone = this.element.removeChild(this.element.firstElementChild).outerHTML.replace(
+			var child = this.element.firstElementChild;
+			if (this.element.children.length === 0) throw new Error('Binder j-each requires a child element');
+			this.clone = this.element.removeChild(this.element.firstElementChild);
+			this.clone = this.clone.outerHTML.replace(
 				new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'),
 				'$1' + this.attribute.path + '.$INDEX$2'
 			);
@@ -1671,7 +1696,8 @@
 		self.add(self.container);
 
 		self.observer = new MutationObserver(function (mutations) {
-			for (var i = 0, l = mutations.length; i < l; i++) {
+			var i = mutations.length;
+			while (i--) {
 				self._handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
 			}
 		});
@@ -1787,7 +1813,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.6.9
+		version: 1.6.10
 		license: mpl-2.0
 		author: alexander elias
 		This Source Code Form is subject to the terms of the Mozilla Public
@@ -1848,53 +1874,32 @@
 		},
 		query: function (query) {
 			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
-		},
-		escape: function (text) {
-			return text
-				.replace(/&/g, '&amp;')
-				.replace(/</g, '&lt;')
-				.replace(/>/g, '&gt;')
-				.replace(/"/g, '&quot;')
-				.replace(/'/g, '&#039;');
-		},
-		comments: function (query) {
-			var comments = [], node;
-
-			var pattern = new RegExp('^' + query);
-			var iterator = document.createNodeIterator((document._currentScript || document.currentScript).ownerDocument, NodeFilter.SHOW_COMMENT, NodeFilter.FILTER_ACCEPT);
-
-			while (node = iterator.nextNode()) {
-				if (query) {
-					if (pattern.test(node.nodeValue)) {
-						return node.nodeValue.replace(query, '');
-					}
-				} else {
-					comments.push(node.nodeValue);
-				}
-			}
-
-			return comments;
 		}
 	};
 
 	Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
-		var addedNode, removedNode, i, l;
-		var container = Utility.getContainer(parentNode);
+		var addedNode, removedNode, containerNode, i;
 
-		for (i = 0, l = addedNodes.length; i < l; i++) {
+		i = addedNodes.length;
+		while (i--) {
 			addedNode = addedNodes[i];
-			if (addedNode.nodeType === 1 && !addedNode.isBinded) {
-				addedNode.isBinded = true;
-				Jenie.view.add(addedNode, container);
+			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
+				if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
+				containerNode = Utility.getContainer(parentNode);
+				Jenie.view.add(addedNode, containerNode);
 			}
 		}
 
-		for (i = 0, l = removedNodes.length; i < l; i++) {
+		i = removedNodes.length;
+		while (i--) {
 			removedNode = removedNodes[i];
-			if (removedNode.nodeType === 1) {
-				Jenie.view.remove(removedNode, container);
+			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
+				if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
+				containerNode = Utility.getContainer(parentNode);
+				Jenie.view.remove(removedNode, containerNode);
 			}
 		}
+
 	});
 
 	Jenie.model.handler(function (data, path) {

@@ -4,7 +4,7 @@ Jenie.component({
 	model: {
 		text: 'Hello from js test'
 	},
-	template: '\n\t\t<p j-text="text"></p>\n\t\t<div>\n\t\t\t<slot name="one"></slot>\n\t\t\t<slot name="two"></slot>\n\t\t</div>\n\t',
+	html: '\n\t\t<p j-text="text"></p>\n\t\t<div>\n\t\t\t<slot name="one"></slot>\n\t\t\t<slot name="two"></slot>\n\t\t</div>\n\t',
 	created: function created() {
 		console.log('created ' + this.name);
 		this.model.text = 'new js render';

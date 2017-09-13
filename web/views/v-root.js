@@ -1,8 +1,9 @@
+import Escape from '/modules/escape.js';
 
-var home = Jenie.escape(`
+var home = Escape(`
 	Jenie.component({
 		name: 'v-home',
-		template: \`
+		html: \`
 			<h1 j-text="title"></h1>
 		\`,
 		model: {
@@ -14,7 +15,7 @@ var home = Jenie.escape(`
 	});
 `);
 
-var indexjs = Jenie.escape(`
+var indexjs = Escape(`
 	Jenie.setup({
 		http: {
 			request: function (opt, xhr) {
@@ -29,7 +30,7 @@ var indexjs = Jenie.escape(`
 			loads: [
 				{
 					url: '/components/c-menu.js',
-					execute: true // Since this component is not a module/route or imported we must execute.
+					execute: true // Since this component is not a route component or imported we must execute.
 				}
 			]
 		},
@@ -46,7 +47,7 @@ var indexjs = Jenie.escape(`
 	});
 `);
 
-var indexhtml = Jenie.escape(`
+var indexhtml = Escape(`
 	<html>
 	<head>
 		<base href="/">
@@ -61,7 +62,10 @@ var indexhtml = Jenie.escape(`
 
 Jenie.component({
 	name: 'v-root',
-	template: `
+	attached: function () {
+		// Prism.highlightAll();
+	},
+	html: `
 		<h2>Overview</h2>
 
 		<strong>Synopsis</strong>
@@ -98,8 +102,5 @@ Jenie.component({
 		<pre>
 			<code class="language-html">${indexhtml}</code>
 		</pre>
-	`,
-	attached: function () {
-		// Prism.highlightAll();
-	}
+	`
 });

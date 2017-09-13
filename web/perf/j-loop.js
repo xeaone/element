@@ -1,7 +1,7 @@
 
 Jenie.component({
 	name: 'j-loop',
-	template: `
+	html: `
 		<style>
 			html, body, j-loop {
 				width: 100%;
