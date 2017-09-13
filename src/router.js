@@ -221,11 +221,14 @@ Router.prototype.getLocation = function (path) {
 Router.prototype.render = function (route) {
 	Utility.removeChildren(this.view);
 
-	if (!(route.component in this.cache)) {
-		this.cache[route.component] = document.createElement(route.component);
+	var component = this.cache[route.component];
+	if (!component) {
+		component = this.cache[route.component] = document.createElement(route.component);
+		component.inRouterCache = false;
+		component.isRouterComponent = true;
 	}
 
-	this.view.appendChild(this.cache[route.component]);
+	this.view.appendChild(component);
 
 	this.scroll(0, 0);
 	this.emit('navigated');

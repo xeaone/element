@@ -181,7 +181,8 @@ View.prototype.run = function () {
 	self.add(self.container);
 
 	self.observer = new MutationObserver(function (mutations) {
-		for (var i = 0, l = mutations.length; i < l; i++) {
+		var i = mutations.length;
+		while (i--) {
 			self._handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
 		}
 	});

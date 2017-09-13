@@ -72,53 +72,31 @@ var Jenie = {
 	query: function (query) {
 		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 	}
-	// ,
-	// escape: function (text) {
-	// 	return text
-	// 		.replace(/&/g, '&amp;')
-	// 		.replace(/</g, '&lt;')
-	// 		.replace(/>/g, '&gt;')
-	// 		.replace(/"/g, '&quot;')
-	// 		.replace(/'/g, '&#039;');
-	// },
-	// comments: function (query) {
-	// 	var comments = [], node;
-	//
-	// 	var pattern = new RegExp('^' + query);
-	// 	var iterator = document.createNodeIterator((document._currentScript || document.currentScript).ownerDocument, NodeFilter.SHOW_COMMENT, NodeFilter.FILTER_ACCEPT);
-	//
-	// 	while (node = iterator.nextNode()) {
-	// 		if (query) {
-	// 			if (pattern.test(node.nodeValue)) {
-	// 				return node.nodeValue.replace(query, '');
-	// 			}
-	// 		} else {
-	// 			comments.push(node.nodeValue);
-	// 		}
-	// 	}
-	//
-	// 	return comments;
-	// }
 };
 
 Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
-	var addedNode, removedNode, i, l;
-	var container = Utility.getContainer(parentNode);
+	var addedNode, removedNode, containerNode, i;
 
-	for (i = 0, l = addedNodes.length; i < l; i++) {
+	i = addedNodes.length;
+	while (i--) {
 		addedNode = addedNodes[i];
-		if (addedNode.nodeType === 1 && !addedNode.isBinded) {
-			addedNode.isBinded = true;
-			Jenie.view.add(addedNode, container);
+		if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
+			if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
+			containerNode = Utility.getContainer(parentNode);
+			Jenie.view.add(addedNode, containerNode);
 		}
 	}
 
-	for (i = 0, l = removedNodes.length; i < l; i++) {
+	i = removedNodes.length;
+	while (i--) {
 		removedNode = removedNodes[i];
-		if (removedNode.nodeType === 1) {
-			Jenie.view.remove(removedNode, container);
+		if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
+			if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
+			containerNode = Utility.getContainer(parentNode);
+			Jenie.view.remove(removedNode, containerNode);
 		}
 	}
+
 });
 
 Jenie.model.handler(function (data, path) {
