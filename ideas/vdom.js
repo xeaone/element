@@ -100,20 +100,20 @@ function updateElement (parent, newNode, oldNode, index) {
 // 		}
 // 	]
 // };
-//
-// var b = {
-// 	type: 'ul',
-// 	children: [
-// 		{
-// 			type: 'li',
-// 			children: ['bar']
-// 		},
-// 		{
-// 			type: 'li',
-// 			children: ['bar']
-// 		}
-// 	]
-// };
+
+var b = {
+	type: 'ul',
+	children: [
+		{
+			type: 'li',
+			children: ['bar']
+		},
+		{
+			type: 'li',
+			children: ['bar']
+		}
+	]
+};
 
 var a = n('ul', [
 	n('li', ['bar']),

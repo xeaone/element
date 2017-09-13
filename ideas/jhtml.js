@@ -7,29 +7,27 @@ function toKebabCase (string) {
 	});
 }
 
-function parse (data) {
+function toHtml (data) {
 	if (typeof data === 'string') {
 		return document.createTextNode(data);
 	} else {
-		var node = document.createElement(data['name']);
+		var node = document.createElement(data.name);
 
-		if ('attributes' in data) {
-			var attributes = data['attributes'];
-			for (var key in attributes) {
-				node.setAttribute(toKebabCase(key), attributes[key]);
+		var attributes = data.attributes;
+		if (attributes) {
+			for (var name in attributes) {
+				node.setAttribute(toKebabCase(name), attributes[name]);
 			}
 		}
 
-		if ('children' in data) {
-			var children = data['children'];
-			if (children.constructor === String) {
-				node.innerText = children;
-			} else if (children.constructor === Object) {
-				node.appendChild(parse(children[i]));
-			} else if (children.constructor === Array) {
+		var children = data.children;
+		if (children) {
+			if (children.constructor === Array) {
 				for (var i = 0, l = children.length; i < l; i++) {
-					node.appendChild(parse(children[i]));
+					node.appendChild(toHtml(children[i]));
 				}
+			} else {
+				node.appendChild(toHtml(children));
 			}
 		}
 
@@ -37,7 +35,7 @@ function parse (data) {
 	}
 }
 
-var jhtml = {
+var h = {
 	name: 'fieldset',
 	attributes: {
 		jValue: 'value'
@@ -62,4 +60,4 @@ var jhtml = {
 	]
 };
 
-console.log(parse(jhtml));
+console.log(toHtml(h));
