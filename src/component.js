@@ -9,7 +9,7 @@ export default function Component (options) {
 		throw new Error('Component requires name');
 	}
 
-	if (!options.html || !options.query || !options.element) {
+	if (!options.html && !options.query && !options.element) {
 		throw new Error('Component requires html, query, or element');
 	}
 
