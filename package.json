@@ -7,9 +7,8 @@
 		"build-docs": "rm -r docs/* && muleify pack -e web docs",
 		"serve": "muleify serve -swe web dev",
 		"watch": "muleify pack -p src -wb src/jenie.js web/assets/jenie.js",
-		"bd": "muleify pack src/jenie.js dist/jenie.js",
-		"bm": "muleify pack -m src/jenie.js dist/jenie.min.js",
-		"bp-promises": "cat dist/es6-promise-auto.min.js dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
+		"bd": "muleify pack -b src/jenie.js dist/jenie.js",
+		"bm": "muleify pack -bm src/jenie.js dist/jenie.min.js",
 		"bp": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
 		"ba": "npm run bd && npm run bm && npm run bp"
 	},

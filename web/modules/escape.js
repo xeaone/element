@@ -9,4 +9,4 @@ export default function Escape (data) {
 		.replace(/\//g, '&#x2F;')
 		.replace(/`/g, '&#x60;')
 		.replace(/=/g, '&#x3D;');
-	}
+}

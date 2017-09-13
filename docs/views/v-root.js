@@ -1,4 +1,4 @@
-import Escape from '/modules/escape.js';
+import Escape from 'modules/escape.js';
 
 var home = Escape('\n\tJenie.component({\n\t\tname: \'v-home\',\n\t\thtml: `\n\t\t\t<h1 j-text="title"></h1>\n\t\t`,\n\t\tmodel: {\n\t\t\ttitle: \'Old Title\'\n\t\t},\n\t\tcreated: function () {\n\t\t\tthis.model.title = \'New Title\';\n\t\t}\n\t});\n');
 

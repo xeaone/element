@@ -1,4 +1,4 @@
-import Escape from '/modules/escape.js';
+import Escape from 'modules/escape.js';
 
 var home = Escape(`
 	Jenie.component({

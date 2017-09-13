@@ -569,10 +569,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		return base;
 	};
 
-	Loader.prototype.joinPath = function () {
-		return Array.prototype.join.call(arguments, '/').replace(/\/{2,}/g, '/');
-	};
-
 	Loader.prototype.getFile = function (data, callback) {
 		if (!data.url) throw new Error('Loader requires a url');
 		var self = this;
@@ -587,7 +583,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 							if (data.xhr.status >= 200 && data.xhr.status < 400) {
 								if (callback) callback(data);
 							} else {
-								throw data.xhr.responseText;
+								throw new Error(data.xhr.responseText);
 							}
 						}
 					});
@@ -607,11 +603,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 							data.text = data.xhr.responseText;
 							if (callback) callback(data);
 						} else {
-							throw data.xhr.responseText;
+							throw new Error(data.xhr.responseText);
 						}
 					}
 				});
-				data.url = self.joinPath(self.base.replace(window.location.origin, ''), data.url);
 				data.xhr.open('GET', data.url);
 				data.xhr.send();
 			}
@@ -647,10 +642,20 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		return data.match(this.patterns.exps) || [];
 	};
 
+	Loader.prototype.normalizeUrl = function (url) {
+		if (url.indexOf('.js') === -1) {
+			url = url + '.js';
+		}
+		if (url.indexOf('/') !== 0) {
+			url = Utility.joinSlash(this.base.replace(window.location.origin, ''), url);
+		}
+		return url;
+	};
+
 	Loader.prototype.handleImports = function (ast) {
 		for (var i = 0, l = ast.imports.length; i < l; i++) {
+			ast.imports[i].url = this.normalizeUrl(ast.imports[i].url);
 			ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].url + '\']');
-			ast.imports[i].url = ast.imports[i].url.indexOf('.js') === -1 ? ast.imports[i].url + '.js' : ast.imports[i].url;
 		}
 	};
 
@@ -673,6 +678,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		var self = this;
 
 		if (data.constructor === String) data = { url: data };
+		data.url = self.normalizeUrl(data.url);
 		self.files[data.url] = data;
 
 		self.getFile(data, function (d) {
