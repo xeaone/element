@@ -73,7 +73,7 @@ Binder.prototype.renderMethods = {
 			var index = this.element.children.length;
 			var count = data.length - this.element.children.length;
 			while (count--) {
-				html += this.clone.replace(this.pattern, index++);
+				html += this.clone.replace(this.pattern, index++); // .replace('$index', index);
 			}
 			this.element.insertAdjacentHTML('beforeend', html);
 		}

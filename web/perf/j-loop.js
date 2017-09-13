@@ -7,7 +7,7 @@ Jenie.component({
 				width: 100%;
 				display: block;
 			}
-			[j-text] {
+			.box {
 				margin: 5px;
 				padding: 5px;
 				/*background: grey;*/
@@ -16,9 +16,13 @@ Jenie.component({
 		</style>
 
 		<div j-each-item="items">
-			<button j-on-click="click">
+			<div class="box">
 				<div j-text="item.number"></div>
-			</button>
+				<input type="text" j-value="item.number">
+			</div>
+			<!--<button j-on-click="click">
+				<div j-text="item.number"></div>
+			</button>-->
 		</div>
 	`,
 	model: {
@@ -26,12 +30,12 @@ Jenie.component({
 			{ number: 0 },
 		]
 	},
-	events: {
-		click: function (e) {
-			console.log(e);
-			console.log('click');
-		}
-	},
+	// events: {
+	// 	click: function (e) {
+	// 		console.log(e);
+	// 		console.log('click');
+	// 	}
+	// },
 	created: function () {
 		var self = this;
 

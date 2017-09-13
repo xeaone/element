@@ -1,46 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<script>
-		var href = window.location.origin === 'https://alexanderelias.github.io' ? '/jenie/perf/' : '/';
-		document.head.insertAdjacentHTML('afterbegin', '<base href="' + href + '">');
-	</script>
-
 	<meta charset="utf-8">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 	<title>Performance</title>
 
-	<script src="../assets/jenie.js" defer></script>
-	<script src="j-loop.js" defer></script>
+	<!-- <script src="../assets/jenie.js" defer></script> -->
+	<!-- <script src="j-loop.js" defer></script> -->
 
 </head>
 <body>
 
-<style>
-	body, j-loop, [j-each-item] {
-		min-height: 12710px;
-	}
-	.group {
-		margin: 4px;
-		padding: 4px;
-		border: solid 1px dimgray;
-	}
-	.group input {
-		padding: 4px;
-		display: block;
-		margin: 4px auto;
-	}
-	.group div {
-		margin: 4px;
-		padding: 4px;
-		display: inline-block;
-		background: lightgray;
-	}
-</style>
+	<script>
+		var script = document.createElement('script');
+		var jScript = script.cloneNode();
+		var lScript = script.cloneNode();
 
-<j-loop></j-loop>
+		jScript.async = false;
+		lScript.async = false;
+
+		if (window.location.origin === 'https://alexanderelias.github.io') {
+			var href ='/jenie/perf/';
+			document.head.insertAdjacentHTML('afterbegin', '<base href="' + href + '">');
+			jScript.src = '../assets/jenie.js';
+			lScript.src = 'j-loop.js';
+		} else {
+			jScript.src = '/assets/jenie.js';
+			lScript.src = '/perf/j-loop.js';
+		}
+		document.head.appendChild(jScript);
+		document.head.appendChild(lScript);
+	</script>
+
+	<style>
+		body, j-loop, [j-each-item] {
+			min-height: 12710px;
+		}
+		.group {
+			margin: 4px;
+			padding: 4px;
+			border: solid 1px dimgray;
+		}
+		.group input {
+			padding: 4px;
+			display: block;
+			margin: 4px auto;
+		}
+		.group div {
+			margin: 4px;
+			padding: 4px;
+			display: inline-block;
+			background: lightgray;
+		}
+	</style>
+
+	<h1>2600 Inputs two way binded</h1>
+	<h1>2600 Text one way binded</h1>
+
+	<j-loop></j-loop>
 
 </body>
 </html>
