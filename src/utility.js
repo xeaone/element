@@ -1,18 +1,11 @@
 
 var Utility = {
-	CAMEL: /-(\w)/g,
-	// KEBAB: /[A-Z\u00C0-\u00D6\u00D8-\u00DE]/g,
-	// toKebabCase: function (data) {
-	// 	return data.replace(this.KEBAB, function (match) {
-	// 		return '-' + match.toLowerCase();
+	// CAMEL: /-(\w)/g,
+	// toCamelCase: function (data) {
+	// 	return data.replace(this.CAMEL, function (match, next) {
+	// 		return next.toUpperCase();
 	// 	});
 	// },
-	toCamelCase: function (data) {
-		// if (data.constructor.name === 'Array') data = data.join('-');
-		return data.replace(this.CAMEL, function (match, next) {
-			return next.toUpperCase();
-		});
-	},
 	toText: function (data) {
 		if (data === null || data === undefined) return '';
 		if (typeof data === 'object') return JSON.stringify(data);
@@ -57,13 +50,14 @@ var Utility = {
 			.replace(/\.{2,}/g, '.');
 	},
 	getContainer: function getContainer (element) {
-		if (!element.uid) {
-			if (element !== document.body) {
-				return this.getContainer(element.parentElement);
-			}
-			// else { throw new Error('could not find a uid') }
-		} else {
+		if (element.uid) {
 			return element;
+		} else {
+			if (element !== document.body && element.parentElement) {
+				return this.getContainer(element.parentElement);
+			} else {
+				throw new Error('Utility could not find a uid');
+			}
 		}
 	},
 	// each: function (items, method, context) {

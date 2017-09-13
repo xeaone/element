@@ -19,6 +19,7 @@ import View from './view';
 import Http from './http';
 
 var eScript = (document._currentScript || document.currentScript);
+var eIndex = eScript.getAttribute('j-index');
 var eStyle = document.createElement('style');
 var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
 
@@ -27,15 +28,6 @@ eStyle.setAttribute('type', 'text/css');
 eStyle.appendChild(sStyle);
 document.head.insertBefore(eStyle, eScript);
 document.registerElement('j-view', { prototype: Object.create(HTMLElement.prototype) });
-
-// j-index="index.js"
-// this.sIndex = this.eScript.getAttribute('j-index');
-// if (this.sIndex) {
-// 	this.eIndex = document.createElement('script');
-// 	this.eIndex.setAttribute('src', this.sIndex);
-// 	this.eIndex.setAttribute('async', 'false');
-// 	this.eScript.insertAdjacentElement('afterend', this.eIndex);
-// }
 
 var Jenie = {
 	container: document.body,
@@ -82,7 +74,7 @@ Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
 		addedNode = addedNodes[i];
 		if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 			if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
-			containerNode = Utility.getContainer(parentNode);
+			containerNode = addedNode.uid || Utility.getContainer(parentNode);
 			Jenie.view.add(addedNode, containerNode);
 		}
 	}
@@ -92,7 +84,7 @@ Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
 		removedNode = removedNodes[i];
 		if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 			if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
-			containerNode = Utility.getContainer(parentNode);
+			containerNode = removedNode.uid || Utility.getContainer(parentNode);
 			Jenie.view.remove(removedNode, containerNode);
 		}
 	}
@@ -124,5 +116,9 @@ Jenie.router.handler(function (route) {
 
 Jenie.view.run();
 Jenie.model.run();
+
+if (eIndex) {
+	Jenie.loader.load({ url: eIndex });
+}
 
 export default Jenie;

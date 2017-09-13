@@ -32,7 +32,6 @@ View.prototype.isSkip = function (node) {
 		|| node.hasAttribute('data-j-view');
 };
 
-
 View.prototype.isSkipChildren = function (node) {
 	return node.nodeName === 'IFRAME'
 		|| node.nodeName === 'OBJECT'

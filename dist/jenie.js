@@ -112,19 +112,12 @@
 	};
 
 	var Utility = {
-		CAMEL: /-(\w)/g,
-		// KEBAB: /[A-Z\u00C0-\u00D6\u00D8-\u00DE]/g,
-		// toKebabCase: function (data) {
-		// 	return data.replace(this.KEBAB, function (match) {
-		// 		return '-' + match.toLowerCase();
+		// CAMEL: /-(\w)/g,
+		// toCamelCase: function (data) {
+		// 	return data.replace(this.CAMEL, function (match, next) {
+		// 		return next.toUpperCase();
 		// 	});
 		// },
-		toCamelCase: function (data) {
-			// if (data.constructor.name === 'Array') data = data.join('-');
-			return data.replace(this.CAMEL, function (match, next) {
-				return next.toUpperCase();
-			});
-		},
 		toText: function (data) {
 			if (data === null || data === undefined) return '';
 			if (typeof data === 'object') return JSON.stringify(data);
@@ -169,13 +162,14 @@
 				.replace(/\.{2,}/g, '.');
 		},
 		getContainer: function getContainer (element) {
-			if (!element.uid) {
-				if (element !== document.body) {
-					return this.getContainer(element.parentElement);
-				}
-				// else { throw new Error('could not find a uid') }
-			} else {
+			if (element.uid) {
 				return element;
+			} else {
+				if (element !== document.body && element.parentElement) {
+					return this.getContainer(element.parentElement);
+				} else {
+					throw new Error('Utility could not find a uid');
+				}
 			}
 		},
 		// each: function (items, method, context) {
@@ -1551,7 +1545,6 @@
 			|| node.hasAttribute('data-j-view');
 	};
 
-
 	View.prototype.isSkipChildren = function (node) {
 		return node.nodeName === 'IFRAME'
 			|| node.nodeName === 'OBJECT'
@@ -1826,6 +1819,7 @@
 	*/
 
 	var eScript = (document._currentScript || document.currentScript);
+	var eIndex = eScript.getAttribute('j-index');
 	var eStyle = document.createElement('style');
 	var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
 
@@ -1834,15 +1828,6 @@
 	eStyle.appendChild(sStyle);
 	document.head.insertBefore(eStyle, eScript);
 	document.registerElement('j-view', { prototype: Object.create(HTMLElement.prototype) });
-
-	// j-index="index.js"
-	// this.sIndex = this.eScript.getAttribute('j-index');
-	// if (this.sIndex) {
-	// 	this.eIndex = document.createElement('script');
-	// 	this.eIndex.setAttribute('src', this.sIndex);
-	// 	this.eIndex.setAttribute('async', 'false');
-	// 	this.eScript.insertAdjacentElement('afterend', this.eIndex);
-	// }
 
 	var Jenie = {
 		container: document.body,
@@ -1889,7 +1874,7 @@
 			addedNode = addedNodes[i];
 			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 				if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
-				containerNode = Utility.getContainer(parentNode);
+				containerNode = addedNode.uid || Utility.getContainer(parentNode);
 				Jenie.view.add(addedNode, containerNode);
 			}
 		}
@@ -1899,7 +1884,7 @@
 			removedNode = removedNodes[i];
 			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 				if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
-				containerNode = Utility.getContainer(parentNode);
+				containerNode = removedNode.uid || Utility.getContainer(parentNode);
 				Jenie.view.remove(removedNode, containerNode);
 			}
 		}
@@ -1931,6 +1916,10 @@
 
 	Jenie.view.run();
 	Jenie.model.run();
+
+	if (eIndex) {
+		Jenie.loader.load({ url: eIndex });
+	}
 
 	return Jenie;
 
