@@ -125,6 +125,7 @@ Loader.prototype.getExports = function (data) {
 Loader.prototype.handleImports = function (ast) {
 	for (var i = 0, l = ast.imports.length; i < l; i++) {
 		ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].url + '\']');
+		ast.imports[i].url = ast.imports[i].url.indexOf('.js') === -1 ? ast.imports[i].url + '.js' : ast.imports[i].url;
 	}
 };
 
