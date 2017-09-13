@@ -48,7 +48,10 @@ Binder.prototype.setup = {
 	each: function () {
 		this.pattern = /\$INDEX/g;
 		this.variable = this.attribute.cmds[1];
-		this.clone = this.element.removeChild(this.element.firstElementChild).outerHTML.replace(
+		var child = this.element.firstElementChild;
+		if (this.element.children.length === 0) throw new Error('Binder j-each requires a child element');
+		this.clone = this.element.removeChild(this.element.firstElementChild)
+		this.clone = this.clone.outerHTML.replace(
 			new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'),
 			'$1' + this.attribute.path + '.$INDEX$2'
 		);
