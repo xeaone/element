@@ -538,6 +538,42 @@
 		this.navigate(window.location.href, true);
 	};
 
+	var Transformer = {
+		template: function (data) {
+			var count = 0;
+
+			for (var i = 0; i < data.length; i++) {
+				var char = data[i];
+				if (char === '`') {
+					var next = data.indexOf('`', i+1);
+					if (next !== -1) {
+						data = data.slice(0, i) +
+							data.slice(i, next)
+								.replace(/\'/g, '\\\'')
+								.replace(/\t/g, '\\t')
+								.replace(/\n/g, '\\n') +
+							data.slice(next);
+					}
+				}
+			}
+
+		    return data
+				.replace(/\${(\w+)}/g, '\\\' + $1 + \\\'')
+				// .replace(/\`/g, function (match, index, string) {
+				// 	if (last !== 0 && (i++ % 2) === 0) {
+				// 		string = string.slice(last, index) // .replace(/\t|\n/g, '\\$1');
+				// 		.replace(/\t/g, '\\t')
+				// 		.replace(/\n/g, '\\n');
+				// 	}
+				// 	last = index;
+				// 	return match;
+				// })
+		        .replace(/\`/g, function (match, index, string) {
+		            return (count++ % 3) === 0 ? '\'' : match;
+		        });
+		}
+	};
+
 	function Loader (options) {
 		this.loads = [];
 		this.files = {};
@@ -558,6 +594,7 @@
 	Loader.prototype.setup = function (options) {
 		options = options || {};
 		this.esm = options.esm || false;
+		this.est = options.est || false;
 		this.loads = options.loads || [];
 		this.base = this.createBase(options.base);
 		return this;
@@ -694,6 +731,8 @@
 		self.files[data.url] = data;
 
 		self.getFile(data, function (d) {
+			if (self.est) d.text = Transformer.template(d.text);
+			console.log(d.text);
 			var ast = self.toAst(d.text);
 
 			if (self.esm || data.esm) {

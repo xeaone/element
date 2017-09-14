@@ -1,3 +1,4 @@
+import Transformer from './transformer.js';
 import Utility from './utility.js';
 
 export default function Loader (options) {
@@ -20,6 +21,7 @@ Loader.prototype.patterns = {
 Loader.prototype.setup = function (options) {
 	options = options || {};
 	this.esm = options.esm || false;
+	this.est = options.est || false;
 	this.loads = options.loads || [];
 	this.base = this.createBase(options.base);
 	return this;
@@ -156,6 +158,8 @@ Loader.prototype.load = function (data, callback) {
 	self.files[data.url] = data;
 
 	self.getFile(data, function (d) {
+		if (self.est) d.text = Transformer.template(d.text);
+		console.log(d.text);
 		var ast = self.toAst(d.text);
 
 		if (self.esm || data.esm) {
