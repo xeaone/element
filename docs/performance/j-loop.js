@@ -1,9 +1,34 @@
 
 Jenie.component({
 	name: 'j-loop',
-	html: '\n\t\t<style>\n\t\t\thtml, body, j-loop {\n\t\t\t\twidth: 100%;\n\t\t\t\tdisplay: block;\n\t\t\t}\n\t\t\t.box {\n\t\t\t\tmargin: 5px;\n\t\t\t\tpadding: 5px;\n\t\t\t\t/*background: grey;*/\n\t\t\t\tdisplay: inline-block;\n\t\t\t}\n\t\t</style>\n\n\t\t<div j-each-item="items">\n\t\t\t<div class="box">\n\t\t\t\t<div j-text="item.number"></div>\n\t\t\t\t<input type="text" j-value="item.number">\n\t\t\t</div>\n\t\t\t<!--<button j-on-click="click">\n\t\t\t\t<div j-text="item.number"></div>\n\t\t\t</button>-->\n\t\t</div>\n\t',
+	html: `
+		<style>
+			html, body, j-loop {
+				width: 100%;
+				display: block;
+			}
+			.box {
+				margin: 5px;
+				padding: 5px;
+				/*background: grey;*/
+				display: inline-block;
+			}
+		</style>
+
+		<div j-each-item="items">
+			<div class="box">
+				<div j-text="item.number"></div>
+				<input type="text" j-value="item.number">
+			</div>
+			<!--<button j-on-click="click">
+				<div j-text="item.number"></div>
+			</button>-->
+		</div>
+	`,
 	model: {
-		items: [{ number: 0 }]
+		items: [
+			{ number: 0 },
+		]
 	},
 	// events: {
 	// 	click: function (e) {
@@ -11,7 +36,7 @@ Jenie.component({
 	// 		console.log('click');
 	// 	}
 	// },
-	created: function created() {
+	created: function () {
 		var self = this;
 
 		window.self = self;
@@ -27,8 +52,7 @@ Jenie.component({
 
 			var increaseInterval = setInterval(function () {
 
-				if (self.model.items.length === 2600) {
-					// 2600
+				if (self.model.items.length === 2600) { // 2600
 					clearInterval(increaseInterval);
 
 					var decreaseInterval = setInterval(function () {
@@ -38,11 +62,15 @@ Jenie.component({
 						}
 
 						self.model.items.pop();
+
 					}, 0);
 				}
 
 				self.model.items.push({ number: self.model.items.length });
+
 			}, 0);
+
 		}, 1000);
+
 	}
 });

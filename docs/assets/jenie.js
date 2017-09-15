@@ -1,17 +1,16 @@
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
 (function (global, factory) {
-	(typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object' && typeof module !== 'undefined' ? module.exports = factory() : typeof define === 'function' && define.amd ? define('Jenie', factory) : global.Jenie = factory();
-})(this, function () {
-	'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+	typeof define === 'function' && define.amd ? define('Jenie', factory) :
+	(global.Jenie = factory());
+}(this, (function () { 'use strict';
 
 	var counter = 0;
 
-	function Uid() {
-		return Date.now().toString(36) + (counter++).toString(36);
+	function Uid () {
+		return (Date.now().toString(36) + (counter++).toString(36));
 	}
 
-	function Component(options) {
+	function Component (options) {
 		var self = this;
 
 		options = options || {};
@@ -32,7 +31,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		self.global = options.global;
 		self.shadow = options.shadow;
 		self.modifiers = options.modifiers;
-		self.currentScript = document._currentScript || document.currentScript;
+		self.currentScript = (document._currentScript || document.currentScript);
 
 		self.template = self.createTemplate(options);
 
@@ -76,7 +75,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		for (var i = 0, l = eSlots.length; i < l; i++) {
 			var eSlot = eSlots[i];
 			var sName = eSlot.getAttribute('slot');
-			var tSlot = html.content.querySelector('slot[name=' + sName + ']');
+			var tSlot = html.content.querySelector('slot[name='+ sName + ']');
 			tSlot.parentNode.replaceChild(eSlot, tSlot);
 		}
 	};
@@ -119,11 +118,12 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		// 		return next.toUpperCase();
 		// 	});
 		// },
-		toText: function toText(data) {
+		toText: function (data) {
 			if (data === null || data === undefined) return '';
-			if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') return JSON.stringify(data);else return String(data);
+			if (typeof data === 'object') return JSON.stringify(data);
+			else return String(data);
 		},
-		setByPath: function setByPath(collection, path, value) {
+		setByPath: function (collection, path, value) {
 			var keys = path.split('.');
 			var last = keys.length - 1;
 
@@ -135,28 +135,33 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 			return collection[keys[last]] = value;
 		},
-		getByPath: function getByPath(collection, path) {
+		getByPath: function (collection, path) {
 			var keys = path.split('.');
 			var last = keys.length - 1;
 
 			for (var i = 0; i < last; i++) {
-				if (!collection[keys[i]]) return undefined;else collection = collection[keys[i]];
+				if (!collection[keys[i]]) return undefined;
+				else collection = collection[keys[i]];
 			}
 
 			return collection[keys[last]];
 		},
-		removeChildren: function removeChildren(element) {
+		removeChildren: function (element) {
 			while (element.lastElementChild) {
 				element.removeChild(element.lastElementChild);
 			}
 		},
-		joinSlash: function joinSlash() {
-			return Array.prototype.join.call(arguments, '/').replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+		joinSlash: function () {
+			return Array.prototype.join
+				.call(arguments, '/')
+				.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
 		},
-		joinDot: function joinDot() {
-			return Array.prototype.join.call(arguments, '.').replace(/\.{2,}/g, '.');
+		joinDot: function () {
+			return Array.prototype.join
+				.call(arguments, '.')
+				.replace(/\.{2,}/g, '.');
 		},
-		getContainer: function getContainer(element) {
+		getContainer: function getContainer (element) {
 			if (element.uid) {
 				return element;
 			} else {
@@ -166,7 +171,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 					throw new Error('Utility could not find a uid');
 				}
 			}
-		}
+		},
 		// each: function (items, method, context) {
 		// 	return items.reduce(function (promise, item) {
 		// 		return promise.then(function () {
@@ -176,12 +181,12 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		// }
 	};
 
-	function Events() {
+	function Events () {
 		this.events = {};
 	}
 
 	Events.prototype.on = function (name, listener) {
-		if (_typeof(this.events[name]) !== 'object') {
+		if (typeof this.events[name] !== 'object') {
 			this.events[name] = [];
 		}
 
@@ -189,7 +194,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	Events.prototype.off = function (name, listener) {
-		if (_typeof(this.events[name]) === 'object') {
+		if (typeof this.events[name] === 'object') {
 			var index = this.events[name].indexOf(listener);
 
 			if (index > -1) {
@@ -199,14 +204,14 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	Events.prototype.once = function (name, listener) {
-		this.on(name, function f() {
+		this.on(name, function f () {
 			this.off(name, f);
 			listener.apply(this, arguments);
 		});
 	};
 
 	Events.prototype.emit = function (name) {
-		if (_typeof(this.events[name]) === 'object') {
+		if (typeof this.events[name] === 'object') {
 			var listeners = this.events[name].slice();
 			var args = [].slice.call(arguments, 1);
 
@@ -216,7 +221,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		}
 	};
 
-	function Router(options) {
+	function Router (options) {
 		Events.call(this);
 		this.state = {};
 		this.cache = {};
@@ -262,7 +267,12 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	Router.prototype.testPath = function (routePath, userPath) {
-		return new RegExp('^' + routePath.replace(/{\*}/g, '(?:.*)').replace(/{(\w+)}/g, '([^\/]+)') + '(\/)?$').test(userPath);
+		return new RegExp(
+			'^' + routePath
+			.replace(/{\*}/g, '(?:.*)')
+			.replace(/{(\w+)}/g, '([^\/]+)')
+			+ '(\/)?$'
+		).test(userPath);
 	};
 
 	Router.prototype.scroll = function (x, y) {
@@ -339,6 +349,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 		return query.slice(-1); // remove trailing &
 	};
+
 
 	Router.prototype.toQueryObject = function (path) {
 		if (!path) return;
@@ -418,7 +429,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		if (this.hash) {
 			location.href = Utility.joinSlash(location.base, '/#/', location.pathname);
 		} else {
-			location.href = Utility.joinSlash(location.base, '/', location.pathname);
+			location.href =  Utility.joinSlash(location.base, '/', location.pathname);
 		}
 
 		location.href += location.search;
@@ -478,6 +489,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		} else {
 			this._handler(this.state.route);
 		}
+
 	};
 
 	Router.prototype.popstate = function (e) {
@@ -491,17 +503,26 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 		// ensure target is anchor tag use shadow dom if available
 		var target = e.path ? e.path[0] : e.target;
-		while (target && 'A' !== target.nodeName) {
-			target = target.parentNode;
-		}if (!target || 'A' !== target.nodeName) return;
+		while (target && 'A' !== target.nodeName) target = target.parentNode;
+		if (!target || 'A' !== target.nodeName) return;
 
 		// if external is true then default action
-		if (self.external && (self.external.constructor.name === 'RegExp' && self.external.test(target.href) || self.external.constructor.name === 'Function' && self.external(target.href) || self.external.constructor.name === 'String' && self.external === target.href)) return;
+		if (self.external && (
+			self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+			self.external.constructor.name === 'Function' && self.external(target.href) ||
+			self.external.constructor.name === 'String' && self.external === target.href
+		)) return;
 
 		// check non acceptable attributes and href
-		if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('j-external') ||
-		// target.hasAttribute('target') ||
-		target.href.indexOf('mailto:') !== -1 || target.href.indexOf('file:') !== -1 || target.href.indexOf('tel:') !== -1 || target.href.indexOf('ftp:') !== -1) return;
+		if (target.hasAttribute('download') ||
+			target.hasAttribute('external') ||
+			target.hasAttribute('j-external') ||
+			// target.hasAttribute('target') ||
+			target.href.indexOf('mailto:') !== -1 ||
+			target.href.indexOf('file:') !== -1 ||
+			target.href.indexOf('tel:') !== -1 ||
+			target.href.indexOf('ftp:') !== -1
+		) return;
 
 		e.preventDefault();
 		if (this.state.location.href === target.href) return;
@@ -509,7 +530,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	Router.prototype.run = function () {
-		if (this.isRan) return;else this.isRan = true;
+		if (this.isRan) return;
+		else this.isRan = true;
 		this.view = this.container.querySelector(this.view);
 		if (!this.view) throw new Error('Router requires j-view element');
 		this.container.addEventListener('click', this.click.bind(this));
@@ -518,25 +540,25 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	var Transformer = {
-		_innerHandler: function _innerHandler(char) {
+		_innerHandler: function (char) {
 			if (char === '\'') return '\\\'';
 			if (char === '\"') return '\\"';
 			if (char === '\t') return '\\t';
 			if (char === '\n') return '\\n';
 		},
-		_updateString: function _updateString(value, index, string) {
-			return string.slice(0, index) + value + string.slice(index + 1);
+		_updateString: function (value, index, string) {
+			return string.slice(0, index) + value + string.slice(index+1);
 		},
-		_updateIndex: function _updateIndex(value, index) {
-			return index + value.length - 1;
+		_updateIndex: function (value, index) {
+			return index + value.length-1;
 		},
 
 		/*
-  *	NOTE: double backtick in strings or regex could possibly cause issues
-  */
-		template: function template(data) {
+		*	NOTE: double backtick in strings or regex could possibly cause issues
+		*/
+		template: function (data) {
 			var first = data.indexOf('`');
-			var second = data.indexOf('`', first + 1);
+			var second = data.indexOf('`', first+1);
 			if (first === -1 || second === -1) return data;
 
 			var value;
@@ -547,7 +569,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 			for (var index = 0; index < string.length; index++) {
 				var char = string[index];
-				if (char === '`' && string[index - 1] !== '\\' && string[index - 1] !== '/') {
+				if (char === '`' && string[index-1] !== '\\' && string[index-1] !== '/') {
 					if (isInner) {
 						ends++;
 						value = '\'';
@@ -579,7 +601,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		}
 	};
 
-	function Loader(options) {
+	function Loader (options) {
 		this.loads = [];
 		this.files = {};
 		this.modules = {};
@@ -593,7 +615,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
 		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
 		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
-		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/
+		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
 	};
 
 	Loader.prototype.setup = function (options) {
@@ -673,16 +695,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	Loader.prototype.interpret = function (data) {
-		return function (d, l, w) {
-			'use strict';
-
+		return (function(d, l, w) { 'use strict';
 			return new Function('Loader', 'window', d)(l, w);
-		}(data, this, window);
+		}(data, this, window));
 	};
 
 	Loader.prototype.getImports = function (data) {
-		var imp,
-		    imports = [];
+		var imp, imports = [];
 		var imps = data.match(this.patterns.imps) || [];
 		for (var i = 0, l = imps.length; i < l; i++) {
 			imp = imps[i].match(this.patterns.imp);
@@ -748,7 +767,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 						count: 0,
 						imports: ast.imports,
 						total: ast.imports.length,
-						listener: function listener() {
+						listener: function () {
 							if (++meta.count === meta.total) {
 								meta.interpreted = self.interpret(ast.cooked);
 								if (data.execute) meta.interpreted();
@@ -778,22 +797,22 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	/*
- 	https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
- */
+		https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
+	*/
 
-	function Observer(data, callback, path) {
+	function Observer (data, callback, path) {
 		defineProperties(data, callback, path, true);
 		return data;
 	}
 
-	function defineProperties(data, callback, path, redefine) {
+	function defineProperties (data, callback, path, redefine) {
 		path = path ? path + '.' : '';
-		for (var key in data) {
-			defineProperty(data, key, data[key], callback, path, redefine);
-		}if (data.constructor === Object) overrideObjectMethods(data, callback, path);else if (data.constructor === Array) overrideArrayMethods(data, callback, path);
+		for (var key in data) defineProperty(data, key, data[key], callback, path, redefine);
+		if (data.constructor === Object) overrideObjectMethods(data, callback, path);
+		else if (data.constructor === Array) overrideArrayMethods(data, callback, path);
 	}
 
-	function defineProperty(data, key, value, callback, path, redefine) {
+	function defineProperty (data, key, value, callback, path, redefine) {
 		var property = Object.getOwnPropertyDescriptor(data, key);
 
 		if (property && property.configurable === false) return;
@@ -802,7 +821,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		var setter = property && property.set;
 
 		// recursive observe child properties
-		if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') defineProperties(value, callback, path + key, redefine);
+		if (value && typeof value === 'object') defineProperties(value, callback, path + key, redefine);
 
 		// set the property value if getter setter previously defined and redefine is not true
 		if (getter && setter && redefine === false) return setter.call(data, value);
@@ -810,40 +829,41 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		Object.defineProperty(data, key, {
 			enumerable: true,
 			configurable: true,
-			get: function get() {
+			get: function () {
 				return getter ? getter.call(data) : value;
 			},
-			set: function set(newValue) {
+			set: function (newValue) {
 				var oldValue = getter ? getter.call(data) : value;
 
 				// set the value with the same value not updated
 				if (newValue === oldValue) return;
 
-				if (setter) setter.call(data, newValue);else value = newValue;
+				if (setter) setter.call(data, newValue);
+				else value = newValue;
 
 				//	adds attributes to new valued property getter setter
-				if (newValue && (typeof newValue === 'undefined' ? 'undefined' : _typeof(newValue)) === 'object') defineProperties(newValue, callback, path + key, redefine);
+				if (newValue && typeof newValue === 'object') defineProperties(newValue, callback, path + key, redefine);
 
 				if (callback) callback(newValue, path + key, key, data);
 			}
 		});
 	}
 
-	function overrideObjectMethods(data, callback, path) {
+	function overrideObjectMethods (data, callback, path) {
 		Object.defineProperties(data, {
 			$set: {
 				configurable: true,
-				value: function value(key, _value) {
-					if (typeof key !== 'string' || _value === undefined) return;
+				value: function (key, value) {
+					if (typeof key !== 'string' || value === undefined) return;
 					var isNew = !(key in data);
-					defineProperty(data, key, _value, callback, path);
+					defineProperty(data, key, value, callback, path);
 					if (isNew && callback) callback(data[key], path + key, key, data);
 					return data;
 				}
 			},
 			$remove: {
 				configurable: true,
-				value: function value(key) {
+				value: function (key) {
 					if (typeof key !== 'string') return;
 					delete data[key];
 					if (callback) callback(undefined, path + key, key, data);
@@ -852,11 +872,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		});
 	}
 
-	function overrideArrayMethods(data, callback, path) {
+	function overrideArrayMethods (data, callback, path) {
 		Object.defineProperties(data, {
 			push: {
 				configurable: true,
-				value: function value() {
+				value: function () {
 					if (!arguments.length) return data.length;
 
 					for (var i = 0, l = arguments.length; i < l; i++) {
@@ -864,8 +884,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 						if (callback) {
 							callback(data.length, path + 'length', 'length', data);
-							callback(data[data.length - 1], path + (data.length - 1), data.length - 1, data);
+							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 						}
+
 					}
 
 					return data.length;
@@ -873,12 +894,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 			},
 			unshift: {
 				configurable: true,
-				value: function value() {
+				value: function () {
 					if (!arguments.length) return data.length;
 
-					var i,
-					    l,
-					    result = [];
+					var i, l, result = [];
 
 					for (i = 0, l = arguments.length; i < l; i++) {
 						result.push(arguments[i]);
@@ -893,11 +912,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 					}
 
 					for (i = 0, l = result.length; i < l; i++) {
-						// for (i, l = result.length; i < l; i++) {
+					// for (i, l = result.length; i < l; i++) {
 						defineProperty(data, data.length, result[i], callback, path);
 						if (callback) {
 							callback(data.length, path + 'length', 'length', data);
-							callback(data[data.length - 1], path + (data.length - 1), data.length - 1, data);
+							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 						}
 					}
 
@@ -906,10 +925,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 			},
 			pop: {
 				configurable: true,
-				value: function value() {
+				value: function () {
 					if (!data.length) return;
 
-					var value = data[data.length - 1];
+					var value = data[data.length-1];
 
 					data.length--;
 
@@ -923,13 +942,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 			},
 			shift: {
 				configurable: true,
-				value: function value() {
+				value: function () {
 					if (!data.length) return;
 
 					var value = data[0];
 
-					for (var i = 0, l = data.length - 1; i < l; i++) {
-						data[i] = data[i + 1];
+					for (var i = 0, l = data.length-1; i < l; i++) {
+						data[i] = data[i+1];
 					}
 
 					data.length--;
@@ -944,8 +963,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 			},
 			splice: {
 				configurable: true,
-				value: function value(startIndex, deleteCount) {
-					if (!data.length || typeof startIndex !== 'number' && typeof deleteCount !== 'number') return [];
+				value: function (startIndex, deleteCount) {
+					if (!data.length || (typeof startIndex !== 'number' && typeof deleteCount !== 'number')) return [];
 					if (typeof startIndex !== 'number') startIndex = 0;
 					if (typeof deleteCount !== 'number') deleteCount = data.length;
 
@@ -968,7 +987,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 					// handle negative deleteCount
 					if (deleteCount < 0) {
 						deleteCount = 0;
-					} else if (deleteCount > data.length - startIndex) {
+					} else if (deleteCount > (data.length - startIndex)) {
 						deleteCount = data.length - startIndex;
 					}
 
@@ -1010,7 +1029,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 							defineProperty(data, data.length, result[index++], callback, path);
 							if (callback) {
 								callback(data.length, path + 'length', 'length', data);
-								callback(data[data.length - 1], path + (data.length - 1), data.length - 1, data);
+								callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 							}
 						}
 					} else if (i < 0) {
@@ -1278,7 +1297,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	//
 	// }
 
-	function Model(options) {
+	function Model (options) {
 		this.isRan = false;
 		this.setup(options);
 	}
@@ -1295,7 +1314,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	Model.prototype.overwrite = function (data) {
-		Observer(this.data = data, this._handler);
+		Observer(
+			this.data = data,
+			this._handler
+		);
 	};
 
 	Model.prototype.inputListener = function (element) {
@@ -1335,9 +1357,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	Model.prototype.run = function () {
-		if (this.isRan) return;else this.isRan = true;
+		if (this.isRan) return;
+		else this.isRan = true;
 
-		Observer(this.data, this._handler);
+		Observer(
+			this.data,
+			this._handler
+		);
 
 		this.container.addEventListener('change', function (e) {
 			if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
@@ -1351,7 +1377,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	var OnceBinder = {
-		bind: function bind(element, attribute, container) {
+		bind: function (element, attribute, container) {
 			var model = container.model;
 			var type = attribute.cmds[0];
 			var key = attribute.parentKey;
@@ -1366,9 +1392,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 					data[key].push.apply(null, value);
 				}
 			}
+
 		},
 		type: {
-			value: function value(element, attribute, data) {
+			value: function (element, attribute, data) {
 				var i, l;
 				if (element.type === 'checkbox') {
 					data = !data ? false : data;
@@ -1401,7 +1428,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		}
 	};
 
-	function Binder(options) {
+	function Binder (options) {
 		this.element = options.element;
 		this.container = options.container;
 		this.attribute = options.attribute;
@@ -1421,7 +1448,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 			Object.defineProperty(this, 'data', {
 				enumerable: true,
 				configurable: false,
-				get: function get() {
+				get: function () {
 					if (this._data === undefined) return;
 					var data = this._data[this.attribute.parentKey];
 					data = this.modify(data);
@@ -1446,22 +1473,25 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	Binder.prototype.setup = {
-		each: function each() {
+		each: function () {
 			this.pattern = /\$INDEX/g;
 			this.variable = this.attribute.cmds[1];
 			var child = this.element.firstElementChild;
 			if (this.element.children.length === 0) throw new Error('Binder j-each requires a child element');
 			this.clone = this.element.removeChild(this.element.firstElementChild);
-			this.clone = this.clone.outerHTML.replace(new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'), '$1' + this.attribute.path + '.$INDEX$2');
+			this.clone = this.clone.outerHTML.replace(
+				new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'),
+				'$1' + this.attribute.path + '.$INDEX$2'
+			);
 		}
 	};
 
 	Binder.prototype.renderMethods = {
-		on: function on(data) {
+		on: function (data) {
 			this.element.removeEventListener(this.attribute.cmds[1], data);
 			this.element.addEventListener(this.attribute.cmds[1], data);
 		},
-		each: function each(data) {
+		each: function (data) {
 			if (this.element.children.length > data.length) {
 				while (this.element.children.length > data.length) {
 					this.element.removeChild(this.element.lastElementChild);
@@ -1476,72 +1506,74 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 				this.element.insertAdjacentHTML('beforeend', html);
 			}
 		},
-		html: function html(data) {
+		html: function (data) {
 			this.element.innerHTML = data;
 		},
-		css: function css(data) {
+		css: function (data) {
 			if (this.attribute.cmds.length > 1) {
-				data = this.attribute.cmds.slice(1).join('-') + ': ' + data + ';';
+				data = this.attribute.cmds.slice(1).join('-') + ': ' +  data + ';';
 			}
 			this.element.style.cssText += data;
 		},
-		class: function _class(data) {
+		class: function (data) {
 			var className = this.attribute.cmds.slice(1).join('-');
 			this.element.classList.toggle(className, data);
 		},
-		text: function text(data) {
+		text: function (data) {
 			this.element.innerText = Utility.toText(data);
 		},
-		enable: function enable(data) {
+		enable: function (data) {
 			this.element.disabled = !data;
 		},
-		disable: function disable(data) {
+		disable: function (data) {
 			this.element.disabled = data;
 		},
-		show: function show(data) {
+		show: function (data) {
 			this.element.hidden = !data;
 		},
-		hide: function hide(data) {
+		hide: function (data) {
 			this.element.hidden = data;
 		},
-		write: function write(data) {
+		write: function (data) {
 			this.element.readOnly = !data;
 		},
-		read: function read(data) {
+		read: function (data) {
 			this.element.readOnly = data;
 		},
-		selected: function selected(data) {
+		selected: function (data) {
 			this.element.selectedIndex = data;
 		},
-		href: function href(data) {
+		href: function (data) {
 			this.element.href = data;
 		},
-		default: function _default() {//data
+		default: function () { //data
 			// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
 		}
 	};
 
 	Binder.prototype.unrenderMethods = {
-		on: function on() {
+		on: function () {
 			this.element.removeEventListener(this.attribute.cmds[1], this.data, false);
 		},
-		each: function each() {
+		each: function () {
 			Utility.removeChildren(this.element);
 		},
-		html: function html() {
+		html: function () {
 			Utility.removeChildren(this.element);
 		},
-		css: function css() {
+		css: function () {
 			this.element.style.cssText = '';
 		},
-		class: function _class() {
+		class: function () {
 			var className = this.attribute.cmds.slice(1).join('-');
 			this.element.classList.remove(className);
 		},
-		text: function text() {
+		text: function () {
 			this.element.innerText = '';
 		},
-		default: function _default() {}
+		default: function () {
+
+		}
 	};
 
 	Binder.prototype.unrender = function () {
@@ -1556,7 +1588,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		return this;
 	};
 
-	function View(options) {
+	function View (options) {
 		this.isRan = false;
 		this.setup(options);
 	}
@@ -1577,15 +1609,22 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	View.prototype.IS_REJECT_PATH = /(data-)?j-value.*/;
 
 	View.prototype.isOnce = function (node) {
-		return node.hasAttribute('j-value') || node.hasAttribute('data-j-value');
+		return node.hasAttribute('j-value')
+			|| node.hasAttribute('data-j-value');
 	};
 
 	View.prototype.isSkip = function (node) {
-		return node.nodeName === 'J-VIEW' || node.hasAttribute('j-view') || node.hasAttribute('data-j-view');
+		return node.nodeName === 'J-VIEW'
+			|| node.hasAttribute('j-view')
+			|| node.hasAttribute('data-j-view');
 	};
 
 	View.prototype.isSkipChildren = function (node) {
-		return node.nodeName === 'IFRAME' || node.nodeName === 'OBJECT' || node.nodeName === 'SCRIPT' || node.nodeName === 'STYLE' || node.nodeName === 'SVG';
+		return node.nodeName === 'IFRAME'
+			|| node.nodeName === 'OBJECT'
+			|| node.nodeName === 'SCRIPT'
+			|| node.nodeName === 'STYLE'
+			|| node.nodeName === 'SVG';
 	};
 
 	View.prototype.isAccept = function (node) {
@@ -1692,8 +1731,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 				if (self.isOnce(element)) {
 					OnceBinder.bind(element, attribute, container);
 				} else {
-					if (container && container.uid) {
-						// i dont like this check
+					if (container && container.uid) { // i dont like this check
 						var path = attribute.viewPath;
 						if (!self.has(container.uid, path, element)) {
 							self.push(container.uid, path, element, container, attribute);
@@ -1707,8 +1745,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	View.prototype.remove = function (removedNode, containerNode) {
 		var self = this;
 		self.eachElement(removedNode, containerNode, function (element, container) {
-			if (container && container.uid) {
-				// i dont like this check
+			if (container && container.uid) { // i dont like this check
 				self.eachAttributeAcceptPath(element.attributes, function (path) {
 					self.eachBinder(container.uid, path, function (binder, index, binders, paths, key) {
 						if (binder.element === element) {
@@ -1728,7 +1765,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 	View.prototype.run = function () {
 		var self = this;
-		if (self.isRan) return;else self.isRan = true;
+		if (self.isRan) return;
+		else self.isRan = true;
 
 		self.add(self.container);
 
@@ -1742,7 +1780,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		self.observer.observe(this.container, { childList: true, subtree: true });
 	};
 
-	function Http(options) {
+	function Http (options) {
 		this.setup(options);
 	}
 
@@ -1774,10 +1812,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	};
 
 	Http.prototype.fetch = function (options) {
-		var self = this,
-		    xhr,
-		    request,
-		    response;
+		var self = this, xhr, request, response;
 
 		options = options || {};
 		options.url = options.url ? options.url : window.location.href;
@@ -1793,31 +1828,20 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 				options.responseType = options.responseType ? options.responseType.toLowerCase() : '';
 
 				switch (options.requestType) {
-					case 'script':
-						options.contentType = self.mime.script;break;
-					case 'json':
-						options.contentType = self.self.mime.json;break;
-					case 'xml':
-						options.contentType = self.mime.xm;break;
-					case 'html':
-						options.contentType = self.mime.html;break;
-					case 'text':
-						options.contentType = self.mime.text;break;
-					default:
-						options.contentType = self.mime.urlencoded;
+					case 'script': options.contentType = self.mime.script; break;
+					case 'json': options.contentType = self.self.mime.json; break;
+					case 'xml': options.contentType = self.mime.xm; break;
+					case 'html': options.contentType = self.mime.html; break;
+					case 'text': options.contentType = self.mime.text; break;
+					default: options.contentType = self.mime.urlencoded;
 				}
 
 				switch (options.responseType) {
-					case 'script':
-						options.accept = self.mime.script;break;
-					case 'json':
-						options.accept = self.mime.json;break;
-					case 'xml':
-						options.accept = self.mime.xml;break;
-					case 'html':
-						options.accept = self.mime.html;break;
-					case 'text':
-						options.accept = self.mime.text;break;
+					case 'script': options.accept = self.mime.script; break;
+					case 'json': options.accept = self.mime.json; break;
+					case 'xml': options.accept = self.mime.xml; break;
+					case 'html': options.accept = self.mime.html; break;
+					case 'text': options.accept = self.mime.text; break;
 				}
 
 				if (options.contentType === self.mime.json) options.data = JSON.stringify(options.data);
@@ -1858,20 +1882,21 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 			xhr.send(options.data);
 		}
+
 	};
 
 	/*
- 	@banner
- 	name: jenie
- 	version: 1.7.0
- 	license: mpl-2.0
- 	author: alexander elias
- 	This Source Code Form is subject to the terms of the Mozilla Public
- 	License, v. 2.0. If a copy of the MPL was not distributed with this
- 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+		@banner
+		name: jenie
+		version: 1.7.0
+		license: mpl-2.0
+		author: alexander elias
+		This Source Code Form is subject to the terms of the Mozilla Public
+		License, v. 2.0. If a copy of the MPL was not distributed with this
+		file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	*/
 
-	var eScript = document._currentScript || document.currentScript;
+	var eScript = (document._currentScript || document.currentScript);
 	var eIndex = eScript.getAttribute('j-index');
 	var eStyle = document.createElement('style');
 	var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
@@ -1891,7 +1916,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		model: new Model(),
 		loader: new Loader(),
 		router: new Router(),
-		setup: function setup(options) {
+		setup: function (options) {
 			options = (typeof options === 'function' ? options.call(this) : options) || {};
 			if (options.http) this.http.setup(options.http);
 			if (options.view) this.view.setup(options.view);
@@ -1901,31 +1926,21 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 			this.loader.run();
 			this.router.run();
 		},
-		component: function component(options) {
+		component: function (options) {
 			options.global = Jenie;
 			return new Component(options);
 		},
-		script: function script() {
-			return document._currentScript || document.currentScript;
+		script: function () {
+			return (document._currentScript || document.currentScript);
 		},
-		document: function (_document) {
-			function document() {
-				return _document.apply(this, arguments);
-			}
-
-			document.toString = function () {
-				return _document.toString();
-			};
-
-			return document;
-		}(function () {
+		document: function () {
 			return (document._currentScript || document.currentScript).ownerDocument;
-		}),
-		element: function element(name) {
+		},
+		element: function (name) {
 			return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
 		},
-		query: function query(_query) {
-			return (document._currentScript || document.currentScript).ownerDocument.querySelector(_query);
+		query: function (query) {
+			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 		}
 	};
 
@@ -1951,6 +1966,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 				Jenie.view.remove(removedNode, containerNode);
 			}
 		}
+
 	});
 
 	Jenie.model.handler(function (data, path) {
@@ -1984,4 +2000,5 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 	}
 
 	return Jenie;
-});
+
+})));

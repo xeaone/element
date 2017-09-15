@@ -1,15 +1,123 @@
 import Escape from 'modules/escape.js';
 
-var home = Escape('\n\tJenie.component({\n\t\tname: \'v-home\',\n\t\thtml: `\n\t\t\t<h1 j-text="title"></h1>\n\t\t`,\n\t\tmodel: {\n\t\t\ttitle: \'Old Title\'\n\t\t},\n\t\tcreated: function () {\n\t\t\tthis.model.title = \'New Title\';\n\t\t}\n\t});\n');
+var home = Escape(`
+	Jenie.component({
+		name: 'v-home',
+		html: \`
+			<h1 j-text="title"></h1>
+		\`,
+		model: {
+			title: 'Old Title'
+		},
+		created: function () {
+			this.model.title = 'New Title';
+		}
+	});
+`);
 
-var indexjs = Escape('\n\tJenie.setup({\n\t\thttp: {\n\t\t\trequest: function (opt, xhr) {\n\t\t\t\treturn true; // false will cancel the http.fetch\n\t\t\t},\n\t\t\tresponse: function (opt, xhr) {\n\t\t\t\treturn true; // false will cancel the http.fetch handlers\n\t\t\t}\n\t\t},\n\t\tloader: {\n\t\t\tesm: true, // Enables ES6 module re-writes support\n\t\t\test: true, // Enables ES6 template string re-writes support\n\t\t\tloads: [\n\t\t\t\t{\n\t\t\t\t\turl: \'/components/c-menu.js\',\n\t\t\t\t\texecute: true // Since this component is not a route component or imported we must execute.\n\t\t\t\t}\n\t\t\t]\n\t\t},\n\t\trouter: {\n\t\t\troutes: [\n\t\t\t\t{\n\t\t\t\t\tpath: \'/\',\n\t\t\t\t\ttitle: \'Home\',\n\t\t\t\t\tcomponent: \'v-home\',\n\t\t\t\t\turl: \'views/v-home.js\'\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t});\n');
+var indexjs = Escape(`
+	Jenie.setup({
+		http: {
+			request: function (opt, xhr) {
+				return true; // false will cancel the http.fetch
+			},
+			response: function (opt, xhr) {
+				return true; // false will cancel the http.fetch handlers
+			}
+		},
+		loader: {
+			esm: true, // Enables ES6 module re-writes support
+			est: true, // Enables ES6 template string re-writes support
+			loads: [
+				{
+					url: '/components/c-menu.js',
+					execute: true // Since this component is not a route component or imported we must execute.
+				}
+			]
+		},
+		router: {
+			routes: [
+				{
+					path: '/',
+					title: 'Home',
+					component: 'v-home',
+					url: 'views/v-home.js'
+				}
+			]
+		}
+	});
+`);
 
-var indexhtml = Escape('\n\t<html>\n\t<head>\n\t\t<base href="/">\n\t\t<script src="jenie.min.js" defer></script>\n\t\t<script src="index.js" defer></script>\n\t</head>\n\t<body>\n\t\t<j-view></j-view>\n\t</body>\n\t</html>\n');
+var indexhtml = Escape(`
+	<html>
+	<head>
+		<base href="/">
+		<script src="jenie.min.js" defer></script>
+		<script src="index.js" defer></script>
+	</head>
+	<body>
+		<j-view></j-view>
+	</body>
+	</html>
+`);
 
 Jenie.component({
 	name: 'v-root',
-	attached: function attached() {
+	attached: function () {
 		// Prism.highlightAll();
 	},
-	html: '\n\t\t<h2>Overview</h2>\n\n\t\t<strong>Synopsis</strong>\n\t\t<p>\n\t\t\tA small but mighty web components framework/library.\n\t\t</p>\n\n\t\t<strong>Features</strong>\n\t\t<ul>\n\t\t\t<li>Really Small 8.09KB gzipped and 27.08KB uncompressed</li>\n\t\t\t<li>In browser ES6/ESM module and template strings support</li>\n\t\t</ul>\n\n\t\t<strong>Support</strong>\n\t\t<ul>\n\t\t\t<li>IE10~</li>\n\t\t\t<li>IE11</li>\n\t\t\t<li>Chrome</li>\n\t\t\t<li>Firefox</li>\n\t\t\t<li>Safari 7</li>\n\t\t\t<li>Mobile Safari</li>\n\t\t\t<li>Chrome Android</li>\n\t\t</ul>\n\n\t\t<strong>Note</strong>\n\t\t<p>\n\t\tLoader uses <i>XHR </i> and <i>new Function</i> to load on-demand and execute modules. If your worried about security please read the linked articles. In summary the articles support not using new Function/eval to process client input. So as long as your only importing local modules (Loader enforces this) then the safety concern is eliminated.\n\t\t\t<div>Resources</div>\n\t\t\t<ul>\n\t\t\t\t<li><a href="http://2ality.com/2014/01/eval.html" target="_blank" re="noopener">http://2ality.com/2014/01/eval.html</a></li>\n\t\t\t\t<li><a href="https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/" target="_blank" re="noopener">https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/</a></li>\n\t\t\t</ul>\n\t\t</p>\n\n\t\t<strong>Install</strong>\n\t\t<ul>\n\t\t\t<li><i>npm install jenie --save</i></li>\n\t\t\t<li>UMD <i>"dist/jenie.min.js"</i></li>\n\t\t\t<li>UMD with Web Component Pollyfill <i>"dist/jenie.polly.min.js"</i></li>\n\t\t\t<li>Web Component Pollyfill <i>"dist/webcomponents-lite.min.js"</i></li>\n\t\t</ul>\n\n\t\t<h2>Example</h2>\n\t\t<pre>\n\t\t\t<code class="language-js">' + home + '</code>\n\t\t</pre>\n\t\t<pre>\n\t\t\t<code class="language-js">' + indexjs + '</code>\n\t\t</pre>\n\t\t<pre>\n\t\t\t<code class="language-html">' + indexhtml + '</code>\n\t\t</pre>\n\t'
+	html: `
+		<h2>Overview</h2>
+
+		<strong>Synopsis</strong>
+		<p>
+			A small but mighty web components framework/library.
+		</p>
+
+		<strong>Features</strong>
+		<ul>
+			<li>Really Small 8.09KB gzipped and 27.08KB uncompressed</li>
+			<li>In browser ES6/ESM module and template strings support</li>
+		</ul>
+
+		<strong>Support</strong>
+		<ul>
+			<li>IE10~</li>
+			<li>IE11</li>
+			<li>Chrome</li>
+			<li>Firefox</li>
+			<li>Safari 7</li>
+			<li>Mobile Safari</li>
+			<li>Chrome Android</li>
+		</ul>
+
+		<strong>Note</strong>
+		<p>
+		Loader uses <i>XHR </i> and <i>new Function</i> to load on-demand and execute modules. If your worried about security please read the linked articles. In summary the articles support not using new Function/eval to process client input. So as long as your only importing local modules (Loader enforces this) then the safety concern is eliminated.
+			<div>Resources</div>
+			<ul>
+				<li><a href="http://2ality.com/2014/01/eval.html" target="_blank" re="noopener">http://2ality.com/2014/01/eval.html</a></li>
+				<li><a href="https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/" target="_blank" re="noopener">https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/</a></li>
+			</ul>
+		</p>
+
+		<strong>Install</strong>
+		<ul>
+			<li><i>npm install jenie --save</i></li>
+			<li>UMD <i>"dist/jenie.min.js"</i></li>
+			<li>UMD with Web Component Pollyfill <i>"dist/jenie.polly.min.js"</i></li>
+			<li>Web Component Pollyfill <i>"dist/webcomponents-lite.min.js"</i></li>
+		</ul>
+
+		<h2>Example</h2>
+		<pre>
+			<code class="language-js">${home}</code>
+		</pre>
+		<pre>
+			<code class="language-js">${indexjs}</code>
+		</pre>
+		<pre>
+			<code class="language-html">${indexhtml}</code>
+		</pre>
+	`
 });

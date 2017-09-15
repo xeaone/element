@@ -1,5 +1,8 @@
 
 Jenie.component({
 	name: 'v-404',
-	html: '\n\t\t<h1>404</h1>\n\t\t<h2>This page does not exists</h2>\n\t'
+	html: `
+		<h1>404</h1>
+		<h2>This page does not exists</h2>
+	`
 });
