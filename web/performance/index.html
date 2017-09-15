@@ -1,15 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 	<meta charset="utf-8">
-	<meta http-equiv="x-ua-compatible" content="ie=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
 	<title>Performance</title>
-
-	<!-- <script src="../assets/jenie.js" defer></script> -->
-	<!-- <script src="j-loop.js" defer></script> -->
-
 </head>
 <body>
 
@@ -22,13 +16,13 @@
 		lScript.async = false;
 
 		if (window.location.origin === 'https://alexanderelias.github.io') {
-			var href ='/jenie/perf/';
+			var href ='/jenie/performance/';
 			document.head.insertAdjacentHTML('afterbegin', '<base href="' + href + '">');
 			jScript.src = '../assets/jenie.js';
 			lScript.src = 'j-loop.js';
 		} else {
 			jScript.src = '/assets/jenie.js';
-			lScript.src = '/perf/j-loop.js';
+			lScript.src = '/performance/j-loop.js';
 		}
 		document.head.appendChild(jScript);
 		document.head.appendChild(lScript);

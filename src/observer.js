@@ -76,7 +76,7 @@ function overrideArrayMethods (data, callback, path) {
 		push: {
 			configurable: true,
 			value: function () {
-				if (!arguments.length || !data.length) return data.length;
+				if (!arguments.length) return data.length;
 
 				for (var i = 0, l = arguments.length; i < l; i++) {
 					defineProperty(data, data.length, arguments[i], callback, path);
@@ -94,7 +94,7 @@ function overrideArrayMethods (data, callback, path) {
 		unshift: {
 			configurable: true,
 			value: function () {
-				if (!arguments.length || !data.length) return data.length;
+				if (!arguments.length) return data.length;
 
 				var i, l, result = [];
 
@@ -110,7 +110,8 @@ function overrideArrayMethods (data, callback, path) {
 					data[i] = result[i];
 				}
 
-				for (i, l = result.length; i < l; i++) {
+				for (i = 0, l = result.length; i < l; i++) {
+				// for (i, l = result.length; i < l; i++) {
 					defineProperty(data, data.length, result[i], callback, path);
 					if (callback) {
 						callback(data.length, path + 'length', 'length', data);

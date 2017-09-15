@@ -1,36 +1,62 @@
 
 export default {
-	template: function (data) {
-		var count = 0;
+	_innerHandler: function (char) {
+		if (char === '\'') return '\\\'';
+		if (char === '\"') return '\\"';
+		if (char === '\t') return '\\t';
+		if (char === '\n') return '\\n';
+	},
+	_updateString: function (value, index, string) {
+		return string.slice(0, index) + value + string.slice(index+1);
+	},
+	_updateIndex: function (value, index) {
+		return index + value.length-1;
+	},
 
-		for (var i = 0; i < data.length; i++) {
-			var char = data[i]
-			if (char === '`') {
-				var next = data.indexOf('`', i+1);
-				if (next !== -1) {
-					data = data.slice(0, i) +
-						data.slice(i, next)
-							.replace(/\'/g, '\\\'')
-							.replace(/\t/g, '\\t')
-							.replace(/\n/g, '\\n') +
-						data.slice(next)
+	/*
+	*	NOTE: double backtick in strings or regex could possibly cause issues
+	*/
+	template: function (data) {
+		var first = data.indexOf('`');
+		var second = data.indexOf('`', first+1);
+		if (first === -1 || second === -1) return data;
+
+		var value;
+		var ends = 0;
+		var starts = 0;
+		var string = data;
+		var isInner = false;
+
+		for (var index = 0; index < string.length; index++) {
+			var char = string[index];
+			if (char === '`' && string[index-1] !== '\\' && string[index-1] !== '/') {
+				if (isInner) {
+					ends++;
+					value = '\'';
+					isInner = false;
+					string = this._updateString(value, index, string);
+					index = this._updateIndex(value, index);
+				} else {
+					starts++;
+					value = '\'';
+					isInner = true;
+					string = this._updateString(value, index, string);
+					index = this._updateIndex(value, index);
+				}
+			} else if (isInner) {
+				if (value = this._innerHandler(char, index, string)) {
+					string = this._updateString(value, index, string);
+					index = this._updateIndex(value, index);
 				}
 			}
 		}
 
-	    return data
-			.replace(/\${(\w+)}/g, '\\\' + $1 + \\\'')
-			// .replace(/\`/g, function (match, index, string) {
-			// 	if (last !== 0 && (i++ % 2) === 0) {
-			// 		string = string.slice(last, index) // .replace(/\t|\n/g, '\\$1');
-			// 		.replace(/\t/g, '\\t')
-			// 		.replace(/\n/g, '\\n');
-			// 	}
-			// 	last = index;
-			// 	return match;
-			// })
-	        .replace(/\`/g, function (match, index, string) {
-	            return (count++ % 3) === 0 ? '\'' : match;
-	        });
+		string = string.replace(/\${(.*?)}/g, '\'+$1+\'');
+
+		if (starts === ends) {
+			return string;
+		} else {
+			throw new Error('Transformer miss matched backticks');
+		}
 	}
 }

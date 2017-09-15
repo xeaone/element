@@ -2,6 +2,7 @@
 Jenie.setup({
 	loader: {
 		esm: true,
+		est: true,
 		base: true,
 		loads: [{
 			url: 'say.js'

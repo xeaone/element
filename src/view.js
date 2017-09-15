@@ -137,34 +137,38 @@ View.prototype.push = function (uid, path, element, container, attribute) {
 	}));
 };
 
-View.prototype.add = function () {
+View.prototype.add = function (addedNode, containerNode) {
 	var self = this;
-	self.eachElement(arguments[0], arguments[1], function (element, container) {
+	self.eachElement(addedNode, containerNode, function (element, container) {
 		self.eachAttribute(element.attributes, function (attribute) {
 			if (self.isOnce(element)) {
 				OnceBinder.bind(element, attribute, container);
 			} else {
-				var path = attribute.viewPath;
-				if (!self.has(container.uid, path, element)) {
-					self.push(container.uid, path, element, container, attribute);
+				if (container && container.uid) { // i dont like this check
+					var path = attribute.viewPath;
+					if (!self.has(container.uid, path, element)) {
+						self.push(container.uid, path, element, container, attribute);
+					}
 				}
 			}
 		});
 	});
 };
 
-View.prototype.remove = function () {
+View.prototype.remove = function (removedNode, containerNode) {
 	var self = this;
-	self.eachElement(arguments[0], arguments[1], function (element, container) {
-		self.eachAttributeAcceptPath(element.attributes, function (path) {
-			self.eachBinder(container.uid, path, function (binder, index, binders, paths, key) {
-				if (binder.element === element) {
-					binder.unrender();
-					binders.splice(index, 1);
-					if (binders.length === 0) delete paths[key];
-				}
+	self.eachElement(removedNode, containerNode, function (element, container) {
+		if (container && container.uid) { // i dont like this check
+			self.eachAttributeAcceptPath(element.attributes, function (path) {
+				self.eachBinder(container.uid, path, function (binder, index, binders, paths, key) {
+					if (binder.element === element) {
+						binder.unrender();
+						binders.splice(index, 1);
+						if (binders.length === 0) delete paths[key];
+					}
+				});
 			});
-		});
+		}
 	});
 };
 

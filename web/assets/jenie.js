@@ -505,7 +505,6 @@
 		var target = e.path ? e.path[0] : e.target;
 		while (target && 'A' !== target.nodeName) target = target.parentNode;
 		if (!target || 'A' !== target.nodeName) return;
-		e.preventDefault();
 
 		// if external is true then default action
 		if (self.external && (
@@ -517,6 +516,7 @@
 		// check non acceptable attributes and href
 		if (target.hasAttribute('download') ||
 			target.hasAttribute('external') ||
+			target.hasAttribute('j-external') ||
 			// target.hasAttribute('target') ||
 			target.href.indexOf('mailto:') !== -1 ||
 			target.href.indexOf('file:') !== -1 ||
@@ -524,6 +524,7 @@
 			target.href.indexOf('ftp:') !== -1
 		) return;
 
+		e.preventDefault();
 		if (this.state.location.href === target.href) return;
 		self.navigate(target.href);
 	};
@@ -539,38 +540,64 @@
 	};
 
 	var Transformer = {
-		template: function (data) {
-			var count = 0;
+		_innerHandler: function (char) {
+			if (char === '\'') return '\\\'';
+			if (char === '\"') return '\\"';
+			if (char === '\t') return '\\t';
+			if (char === '\n') return '\\n';
+		},
+		_updateString: function (value, index, string) {
+			return string.slice(0, index) + value + string.slice(index+1);
+		},
+		_updateIndex: function (value, index) {
+			return index + value.length-1;
+		},
 
-			for (var i = 0; i < data.length; i++) {
-				var char = data[i];
-				if (char === '`') {
-					var next = data.indexOf('`', i+1);
-					if (next !== -1) {
-						data = data.slice(0, i) +
-							data.slice(i, next)
-								.replace(/\'/g, '\\\'')
-								.replace(/\t/g, '\\t')
-								.replace(/\n/g, '\\n') +
-							data.slice(next);
+		/*
+		*	NOTE: double backtick in strings or regex could possibly cause issues
+		*/
+		template: function (data) {
+			var first = data.indexOf('`');
+			var second = data.indexOf('`', first+1);
+			if (first === -1 || second === -1) return data;
+
+			var value;
+			var ends = 0;
+			var starts = 0;
+			var string = data;
+			var isInner = false;
+
+			for (var index = 0; index < string.length; index++) {
+				var char = string[index];
+				if (char === '`' && string[index-1] !== '\\' && string[index-1] !== '/') {
+					if (isInner) {
+						ends++;
+						value = '\'';
+						isInner = false;
+						string = this._updateString(value, index, string);
+						index = this._updateIndex(value, index);
+					} else {
+						starts++;
+						value = '\'';
+						isInner = true;
+						string = this._updateString(value, index, string);
+						index = this._updateIndex(value, index);
+					}
+				} else if (isInner) {
+					if (value = this._innerHandler(char, index, string)) {
+						string = this._updateString(value, index, string);
+						index = this._updateIndex(value, index);
 					}
 				}
 			}
 
-		    return data
-				.replace(/\${(\w+)}/g, '\\\' + $1 + \\\'')
-				// .replace(/\`/g, function (match, index, string) {
-				// 	if (last !== 0 && (i++ % 2) === 0) {
-				// 		string = string.slice(last, index) // .replace(/\t|\n/g, '\\$1');
-				// 		.replace(/\t/g, '\\t')
-				// 		.replace(/\n/g, '\\n');
-				// 	}
-				// 	last = index;
-				// 	return match;
-				// })
-		        .replace(/\`/g, function (match, index, string) {
-		            return (count++ % 3) === 0 ? '\'' : match;
-		        });
+			string = string.replace(/\${(.*?)}/g, '\'+$1+\'');
+
+			if (starts === ends) {
+				return string;
+			} else {
+				throw new Error('Transformer miss matched backticks');
+			}
 		}
 	};
 
@@ -732,7 +759,6 @@
 
 		self.getFile(data, function (d) {
 			if (self.est) d.text = Transformer.template(d.text);
-			console.log(d.text);
 			var ast = self.toAst(d.text);
 
 			if (self.esm || data.esm) {
@@ -851,7 +877,7 @@
 			push: {
 				configurable: true,
 				value: function () {
-					if (!arguments.length || !data.length) return data.length;
+					if (!arguments.length) return data.length;
 
 					for (var i = 0, l = arguments.length; i < l; i++) {
 						defineProperty(data, data.length, arguments[i], callback, path);
@@ -869,7 +895,7 @@
 			unshift: {
 				configurable: true,
 				value: function () {
-					if (!arguments.length || !data.length) return data.length;
+					if (!arguments.length) return data.length;
 
 					var i, l, result = [];
 
@@ -885,7 +911,8 @@
 						data[i] = result[i];
 					}
 
-					for (i, l = result.length; i < l; i++) {
+					for (i = 0, l = result.length; i < l; i++) {
+					// for (i, l = result.length; i < l; i++) {
 						defineProperty(data, data.length, result[i], callback, path);
 						if (callback) {
 							callback(data.length, path + 'length', 'length', data);
@@ -1353,33 +1380,42 @@
 		bind: function (element, attribute, container) {
 			var model = container.model;
 			var type = attribute.cmds[0];
-			var key = attribute.path.split('.').pop();
-			var data = Utility.getByPath(model, attribute.path);
-			var updateModel = data === undefined;
-			data = this.type[type](element, attribute, model, data);
-			if (updateModel) data = model.$set(key, data);
+			var key = attribute.parentKey;
+			var data = attribute.parentPath ? Utility.getByPath(model, attribute.parentPath) : model;
+			var value = this.type[type](element, attribute, data[key]);
+
+			if (data[key] === undefined) {
+				data.$set(key, value);
+			} else {
+				// FIXME selects not setting defaults
+				if (value.constructor === Array) {
+					data[key].push.apply(null, value);
+				}
+			}
+
 		},
 		type: {
-			value: function (element, attribute, model, data) {
+			value: function (element, attribute, data) {
 				var i, l;
-				
 				if (element.type === 'checkbox') {
-					if (element.checked !== data) {
-						data = !data ? false : data;
-						element.value = element.checked = data;
-					}
-				} else if (element.nodeName === 'SELECT' && element.multiple) {
-					if (element.options.length !== data.length) {
-						var options = element.options;
-						for (i = 0, l = options.length; i < l; i++) {
-							var option = options[i];
-							if (option.value === data[i]) {
-								option.selected;
+					data = !data ? false : data;
+					element.value = element.checked = data;
+				} else if (element.nodeName === 'SELECT') {
+					data = element.multiple ? [] : data;
+					var options = element.options;
+					for (i = 0, l = options.length; i < l; i++) {
+						var option = options[i];
+						if (option.selected) {
+							if (element.multiple) {
+								data.push(option.value);
+							} else {
+								data = option.value;
+								break;
 							}
 						}
 					}
 				} else if (element.type === 'radio') {
-					var elements = element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + attribute.value + '"]');
+					var elements = element.parentNode.querySelectorAll('input[type="radio"][j-value="' + attribute.value + '"]');
 					for (i = 0, l = elements.length; i < l; i++) {
 						var radio = elements[i];
 						radio.checked = i === data;
@@ -1387,7 +1423,6 @@
 				} else {
 					element.value = data;
 				}
-
 				return data;
 			}
 		}
@@ -1689,34 +1724,38 @@
 		}));
 	};
 
-	View.prototype.add = function () {
+	View.prototype.add = function (addedNode, containerNode) {
 		var self = this;
-		self.eachElement(arguments[0], arguments[1], function (element, container) {
+		self.eachElement(addedNode, containerNode, function (element, container) {
 			self.eachAttribute(element.attributes, function (attribute) {
 				if (self.isOnce(element)) {
 					OnceBinder.bind(element, attribute, container);
 				} else {
-					var path = attribute.viewPath;
-					if (!self.has(container.uid, path, element)) {
-						self.push(container.uid, path, element, container, attribute);
+					if (container && container.uid) { // i dont like this check
+						var path = attribute.viewPath;
+						if (!self.has(container.uid, path, element)) {
+							self.push(container.uid, path, element, container, attribute);
+						}
 					}
 				}
 			});
 		});
 	};
 
-	View.prototype.remove = function () {
+	View.prototype.remove = function (removedNode, containerNode) {
 		var self = this;
-		self.eachElement(arguments[0], arguments[1], function (element, container) {
-			self.eachAttributeAcceptPath(element.attributes, function (path) {
-				self.eachBinder(container.uid, path, function (binder, index, binders, paths, key) {
-					if (binder.element === element) {
-						binder.unrender();
-						binders.splice(index, 1);
-						if (binders.length === 0) delete paths[key];
-					}
+		self.eachElement(removedNode, containerNode, function (element, container) {
+			if (container && container.uid) { // i dont like this check
+				self.eachAttributeAcceptPath(element.attributes, function (path) {
+					self.eachBinder(container.uid, path, function (binder, index, binders, paths, key) {
+						if (binder.element === element) {
+							binder.unrender();
+							binders.splice(index, 1);
+							if (binders.length === 0) delete paths[key];
+						}
+					});
 				});
-			});
+			}
 		});
 	};
 
@@ -1849,7 +1888,7 @@
 	/*
 		@banner
 		name: jenie
-		version: 1.6.10
+		version: 1.7.0
 		license: mpl-2.0
 		author: alexander elias
 		This Source Code Form is subject to the terms of the Mozilla Public

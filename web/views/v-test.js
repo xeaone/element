@@ -37,27 +37,27 @@ Jenie.component({
 
 		window.SELF = self;
 
-		setTimeout(function () {
-			var increaseInterval = setInterval(function () {
-
-				if (self.model.items.length === 100) {
-					clearInterval(increaseInterval);
-
-					var decreaseInterval = setInterval(function () {
-
-						if (self.model.items.length === 5) {
-							clearInterval(decreaseInterval);
-						}
-
-						self.model.items.pop();
-					}, 10);
-
-				}
-
-				self.model.items.push({ it: { val: self.model.items.length } });
-
-			}, 10);
-		}, 1000);
+		// setTimeout(function () {
+		// 	var increaseInterval = setInterval(function () {
+		//
+		// 		if (self.model.items.length === 100) {
+		// 			clearInterval(increaseInterval);
+		//
+		// 			var decreaseInterval = setInterval(function () {
+		//
+		// 				if (self.model.items.length === 5) {
+		// 					clearInterval(decreaseInterval);
+		// 				}
+		//
+		// 				self.model.items.pop();
+		// 			}, 10);
+		//
+		// 		}
+		//
+		// 		self.model.items.push({ it: { val: self.model.items.length } });
+		//
+		// 	}, 10);
+		// }, 1000);
 
 	},
 	html: `
@@ -98,7 +98,7 @@ Jenie.component({
 		<select j-value="car">
 			<option value="audi">Audi</option>
 			<option value="saab">Saab</option>
-			<option value="volvo">Volvo</option>
+			<option value="volvo" selected>Volvo</option>
 			<option value="mercedes">Mercedes</option>
 		</select>
 
@@ -108,9 +108,9 @@ Jenie.component({
 		<div j-text="cars"></div>
 		<select j-value="cars" multiple>
 			<option value="audi">Audi</option>
-			<option value="saab">Saab</option>
+			<option value="saab" selected>Saab</option>
 			<option value="volvo">Volvo</option>
-			<option value="mercedes">Mercedes</option>
+			<option value="mercedes" selected>Mercedes</option>
 		</select>
 
 		<br>
@@ -126,7 +126,7 @@ Jenie.component({
 
 
 		<button j-on-click="say">Say Alert</button>
-		<input type="text" j-value="none.nope">
+		<input type="text" j-value="nope">
 		<input type="button" value="button">
 		<input type="reset" value="reset">
 

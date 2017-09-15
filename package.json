@@ -1,7 +1,7 @@
 {
 	"name": "jenie",
-	"version": "1.6.10",
-	"description": "A small but mighty web components framework/library.",
+	"version": "1.7.0",
+	"description": "A mighty tinny web components framework/library",
 	"main": "dist/jenie.min.js",
 	"scripts": {
 		"build-docs": "rm -r docs/* && muleify pack -e web docs",

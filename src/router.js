@@ -285,7 +285,6 @@ Router.prototype.click = function (e) {
 	var target = e.path ? e.path[0] : e.target;
 	while (target && 'A' !== target.nodeName) target = target.parentNode;
 	if (!target || 'A' !== target.nodeName) return;
-	e.preventDefault();
 
 	// if external is true then default action
 	if (self.external && (
@@ -297,6 +296,7 @@ Router.prototype.click = function (e) {
 	// check non acceptable attributes and href
 	if (target.hasAttribute('download') ||
 		target.hasAttribute('external') ||
+		target.hasAttribute('j-external') ||
 		// target.hasAttribute('target') ||
 		target.href.indexOf('mailto:') !== -1 ||
 		target.href.indexOf('file:') !== -1 ||
@@ -304,6 +304,7 @@ Router.prototype.click = function (e) {
 		target.href.indexOf('ftp:') !== -1
 	) return;
 
+	e.preventDefault();
 	if (this.state.location.href === target.href) return;
 	self.navigate(target.href);
 };

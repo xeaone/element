@@ -4,33 +4,42 @@ export default {
 	bind: function (element, attribute, container) {
 		var model = container.model;
 		var type = attribute.cmds[0];
-		var key = attribute.path.split('.').pop();
-		var data = Utility.getByPath(model, attribute.path);
-		var updateModel = data === undefined;
-		data = this.type[type](element, attribute, model, data);
-		if (updateModel) data = model.$set(key, data);
+		var key = attribute.parentKey;
+		var data = attribute.parentPath ? Utility.getByPath(model, attribute.parentPath) : model;
+		var value = this.type[type](element, attribute, data[key]);
+
+		if (data[key] === undefined) {
+			data.$set(key, value);
+		} else {
+			// FIXME selects not setting defaults
+			if (value.constructor === Array) {
+				data[key].push.apply(null, value);
+			}
+		}
+
 	},
 	type: {
-		value: function (element, attribute, model, data) {
+		value: function (element, attribute, data) {
 			var i, l;
-			
 			if (element.type === 'checkbox') {
-				if (element.checked !== data) {
-					data = !data ? false : data;
-					element.value = element.checked = data;
-				}
-			} else if (element.nodeName === 'SELECT' && element.multiple) {
-				if (element.options.length !== data.length) {
-					var options = element.options;
-					for (i = 0, l = options.length; i < l; i++) {
-						var option = options[i];
-						if (option.value === data[i]) {
-							option.selected;
+				data = !data ? false : data;
+				element.value = element.checked = data;
+			} else if (element.nodeName === 'SELECT') {
+				data = element.multiple ? [] : data;
+				var options = element.options;
+				for (i = 0, l = options.length; i < l; i++) {
+					var option = options[i];
+					if (option.selected) {
+						if (element.multiple) {
+							data.push(option.value);
+						} else {
+							data = option.value;
+							break;
 						}
 					}
 				}
 			} else if (element.type === 'radio') {
-				var elements = element.parentNode.querySelectorAll('input[type="radio"][type="radio"][j-value="' + attribute.value + '"]');
+				var elements = element.parentNode.querySelectorAll('input[type="radio"][j-value="' + attribute.value + '"]');
 				for (i = 0, l = elements.length; i < l; i++) {
 					var radio = elements[i];
 					radio.checked = i === data;
@@ -38,7 +47,6 @@ export default {
 			} else {
 				element.value = data;
 			}
-
 			return data;
 		}
 	}

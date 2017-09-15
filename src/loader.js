@@ -159,7 +159,6 @@ Loader.prototype.load = function (data, callback) {
 
 	self.getFile(data, function (d) {
 		if (self.est) d.text = Transformer.template(d.text);
-		console.log(d.text);
 		var ast = self.toAst(d.text);
 
 		if (self.esm || data.esm) {
