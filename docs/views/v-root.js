@@ -64,7 +64,7 @@ var indexhtml = Escape(`
 Jenie.component({
 	name: 'v-root',
 	attached: function () {
-		// Prism.highlightAll();
+		Prism.highlightAll();
 	},
 	html: `
 		<h2>Overview</h2>
