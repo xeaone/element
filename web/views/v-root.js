@@ -56,6 +56,11 @@ var indexhtml = Escape(`
 		<script src="index.js" defer></script>
 	</head>
 	<body>
+		<c-menu>
+			<ul>
+				<li><a href="/home">Home</a></li>
+			</ul>
+		</c-menu>
 		<j-view></j-view>
 	</body>
 	</html>

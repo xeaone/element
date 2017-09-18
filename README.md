@@ -35,7 +35,7 @@ Loader uses `XHR` and `new Function` to load on-demand and execute modules. If y
 
 ## Example
 
-```JavaScript
+```js
 	Jenie.component({
 		name: 'v-home',
 		html: `
@@ -50,7 +50,7 @@ Loader uses `XHR` and `new Function` to load on-demand and execute modules. If y
 	});
 ```
 
-```JavaScript
+```js
 Jenie.setup({
 	http: {
 		request: function (opt, xhr) {
@@ -91,6 +91,11 @@ Jenie.setup({
 	<script src="index.js" defer></script>
 </head>
 <body>
+	<c-menu>
+		<ul>
+			<li><a href="/home">Home</a></li>
+		</ul>
+	</c-menu>
 	<j-view></j-view>
 </body>
 </html>
@@ -224,6 +229,8 @@ The result of a querySelector in the **current** document `document.currentScrip
 ## Authors
 **Alexander Elias** - [AlexanderElias](https://github.com/AlexanderElias)
 
+
 ## License
-This project is licensed under the MPL-2.0 License - [LICENSE.md](LICENSE.md)
 [Why You Should Cheose MPL-2.0](http://veldstra.org/2016/12/09/you-should-choose-mpl2-for-your-opensource-project.html)
+
+This project is licensed under the MPL-2.0 License
