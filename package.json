@@ -1,6 +1,6 @@
 {
 	"name": "jenie",
-	"version": "1.7.0",
+	"version": "1.7.1",
 	"description": "A mighty tinny web components framework/library",
 	"main": "dist/jenie.min.js",
 	"scripts": {

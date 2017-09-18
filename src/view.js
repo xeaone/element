@@ -178,17 +178,19 @@ View.prototype.handler = function (callback) {
 
 View.prototype.run = function () {
 	var self = this;
+	
 	if (self.isRan) return;
 	else self.isRan = true;
 
 	self.add(self.container);
 
-	self.observer = new MutationObserver(function (mutations) {
+	self.observer = new window.MutationObserver(function (mutations) {
 		var i = mutations.length;
 		while (i--) {
 			self._handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
 		}
+	}).observe(this.container, {
+		childList: true,
+		subtree: true
 	});
-
-	self.observer.observe(this.container, { childList: true, subtree: true });
 };

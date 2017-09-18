@@ -61,21 +61,24 @@ Model.prototype.inputListener = function (element) {
 };
 
 Model.prototype.run = function () {
-	if (this.isRan) return;
-	else this.isRan = true;
+	var self = this;
+
+	if (self.isRan) return;
+	else self.isRan = true;
 
 	Observer(
-		this.data,
-		this._handler
+		self.data,
+		self._handler
 	);
 
-	this.container.addEventListener('change', function (e) {
-		if ((e.target.type === 'checkbox' || e.target.type === 'radio') && e.target.nodeName !== 'SELECT') {
-			this.inputListener.call(this, e.target);
+	self.container.addEventListener('input', function (e) {
+		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.nodeName !== 'SELECT') {
+			self.inputListener.call(self, e.target);
 		}
-	}.bind(this), true);
+	}, true);
 
-	this.container.addEventListener('input', function (e) {
-		this.inputListener.call(this, e.target);
-	}.bind(this), true);
+	self.container.addEventListener('change', function (e) {
+		self.inputListener.call(self, e.target);
+	}, true);
+
 };
