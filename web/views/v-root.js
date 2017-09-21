@@ -66,7 +66,7 @@ var indexhtml = Escape(`
 	</html>
 `);
 
-Jenie.component({
+Jenie.component.define({
 	name: 'v-root',
 	attached: function () {
 		Prism.highlightAll();

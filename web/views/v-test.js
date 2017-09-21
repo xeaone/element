@@ -15,7 +15,7 @@ var model = {
 	html: '<h3 j-text="text"></h3>'
 };
 
-Jenie.component({
+Jenie.component.define({
 	name: 'v-test',
 	model: model,
 	modifiers: {
@@ -37,27 +37,27 @@ Jenie.component({
 
 		window.SELF = self;
 
-		// setTimeout(function () {
-		// 	var increaseInterval = setInterval(function () {
-		//
-		// 		if (self.model.items.length === 100) {
-		// 			clearInterval(increaseInterval);
-		//
-		// 			var decreaseInterval = setInterval(function () {
-		//
-		// 				if (self.model.items.length === 5) {
-		// 					clearInterval(decreaseInterval);
-		// 				}
-		//
-		// 				self.model.items.pop();
-		// 			}, 10);
-		//
-		// 		}
-		//
-		// 		self.model.items.push({ it: { val: self.model.items.length } });
-		//
-		// 	}, 10);
-		// }, 1000);
+		setTimeout(function () {
+			var increaseInterval = setInterval(function () {
+
+				if (self.model.items.length === 100) {
+					clearInterval(increaseInterval);
+
+					var decreaseInterval = setInterval(function () {
+
+						if (self.model.items.length === 5) {
+							clearInterval(decreaseInterval);
+						}
+
+						self.model.items.pop();
+					}, 10);
+
+				}
+
+				self.model.items.push({ it: { val: self.model.items.length } });
+
+			}, 10);
+		}, 1000);
 
 	},
 	html: `

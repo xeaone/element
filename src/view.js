@@ -1,4 +1,5 @@
 import OnceBinder from './once-binder';
+import INDEX from './index';
 import Binder from './binder';
 
 export default function View (options) {
@@ -9,6 +10,7 @@ export default function View (options) {
 View.prototype.setup = function (options) {
 	options = options || {};
 	this.data = options.data || {};
+	this.handler = options.handler;
 	this.container = options.container || document.body;
 	return this;
 };
@@ -172,25 +174,17 @@ View.prototype.remove = function (removedNode, containerNode) {
 	});
 };
 
-View.prototype.handler = function (callback) {
-	this._handler = callback;
+View.prototype.observer = function (mutations) {
+		var i = mutations.length;
+		while (i--) {
+			this.handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
+		}
 };
 
 View.prototype.run = function () {
-	var self = this;
-	
-	if (self.isRan) return;
-	else self.isRan = true;
+	if (this.isRan) return;
+	else this.isRan = true;
 
-	self.add(self.container);
-
-	self.observer = new window.MutationObserver(function (mutations) {
-		var i = mutations.length;
-		while (i--) {
-			self._handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
-		}
-	}).observe(this.container, {
-		childList: true,
-		subtree: true
-	});
+	this.add(this.container);
+	INDEX._.observers.push(this.observer.bind(this));
 };

@@ -12,10 +12,7 @@ export default {
 	_updateIndex: function (value, index) {
 		return index + value.length-1;
 	},
-
-	/*
-	*	NOTE: double backtick in strings or regex could possibly cause issues
-	*/
+	// NOTE: double backtick in strings or regex could possibly causes issues
 	template: function (data) {
 		var first = data.indexOf('`');
 		var second = data.indexOf('`', first+1);

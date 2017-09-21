@@ -16,7 +16,6 @@ export default {
 				data[key].push.apply(null, value);
 			}
 		}
-
 	},
 	type: {
 		value: function (element, attribute, data) {

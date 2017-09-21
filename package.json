@@ -6,9 +6,9 @@
 	"scripts": {
 		"build-docs": "rm -r docs/* && muleify pack web docs",
 		"serve": "muleify serve -sw web dev",
-		"watch": "muleify pack -p src -wb src/jenie.js web/assets/jenie.js",
-		"bd": "muleify pack -b src/jenie.js dist/jenie.js",
-		"bm": "muleify pack -bm src/jenie.js dist/jenie.min.js",
+		"watch": "muleify pack -p src -wb src/index.js web/assets/jenie.js",
+		"bd": "muleify pack -b src/index.js dist/jenie.js",
+		"bm": "muleify pack -bm src/index.js dist/jenie.min.js",
 		"bp": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
 		"ba": "npm run bd && npm run bm && npm run bp"
 	},
@@ -37,7 +37,9 @@
 		"routing",
 		"router",
 		"http",
-		"front-end"
+		"front-end",
+		"x-tag",
+		"polymer"
 	],
 	"directories": {
 		"doc": "docs"

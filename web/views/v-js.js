@@ -1,5 +1,5 @@
 
-Jenie.component({
+Jenie.component.define({
 	name: 'v-js',
 	model: {
 		text: 'Hello from js test'

@@ -1,3 +1,4 @@
+import INDEX from './index';
 import Utility from './utility';
 
 export default function Binder (options) {
@@ -10,9 +11,8 @@ export default function Binder (options) {
 	this.events = this.container.events;
 	this.modifiers = this.container.modifiers;
 	this.type = this.attribute.cmds[0] || 'default';
-	this.renderType = this.attribute.cmds[0] || 'default';
 
-	if (this.renderType === 'on') {
+	if (this.type === 'on') {
 		this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 	} else {
 		this._data = this.attribute.parentPath ? Utility.getByPath(this.model, this.attribute.parentPath) : this.model;
@@ -28,9 +28,7 @@ export default function Binder (options) {
 			}
 		});
 
-		if (this.type in this.setup) {
-			this.setup[this.type].call(this);
-		}
+		this.setup();
 	}
 
 	this.render();
@@ -44,12 +42,11 @@ Binder.prototype.modify = function (data) {
 	return data;
 };
 
-Binder.prototype.setup = {
+Binder.prototype.setupMethods = {
 	each: function () {
+		this.count = 0;
 		this.pattern = /\$INDEX/g;
 		this.variable = this.attribute.cmds[1];
-		var child = this.element.firstElementChild;
-		if (this.element.children.length === 0) throw new Error('Binder j-each requires a child element');
 		this.clone = this.element.removeChild(this.element.firstElementChild)
 		this.clone = this.clone.outerHTML.replace(
 			new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'),
@@ -64,18 +61,14 @@ Binder.prototype.renderMethods = {
 		this.element.addEventListener(this.attribute.cmds[1], data);
 	},
 	each: function (data) {
-		if (this.element.children.length > data.length) {
-			while (this.element.children.length > data.length) {
-				this.element.removeChild(this.element.lastElementChild);
-			}
-		} else if (this.element.children.length < data.length) {
-			var html = '';
-			var index = this.element.children.length;
-			var count = data.length - this.element.children.length;
-			while (count--) {
-				html += this.clone.replace(this.pattern, index++); // .replace('$index', index);
-			}
-			this.element.insertAdjacentHTML('beforeend', html);
+		if (this.count > data.length) {
+			this.element.removeChild(this.element.lastElementChild);
+			this.count--;
+			this.render();
+		} else if (this.count < data.length) {
+			this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.count));
+			this.count++;
+			this.render();
 		}
 	},
 	html: function (data) {
@@ -148,14 +141,23 @@ Binder.prototype.unrenderMethods = {
 	}
 };
 
+Binder.prototype.setup = function () {
+	if (this.type in this.setupMethods) {
+		this.setupMethods[this.type].call(this, this.data)
+		// INDEX.batcher.write(this.setupMethods[this.type].bind(this, this.data));
+	}
+};
+
 Binder.prototype.unrender = function () {
-	this.unrenderMethods[this.renderType].call(this, this.data);
+	if (this.type in this.unrenderMethods) {
+		INDEX.batcher.write(this.unrenderMethods[this.type].bind(this, this.data));
+	}
 	return this;
 };
 
 Binder.prototype.render = function () {
-	// var data = this.renderType === 'on' ? this.data : this.getData();
-	// if (this.data === undefined) return;
-	this.renderMethods[this.renderType].call(this, this.data);
+	if (this.type in this.renderMethods) {
+		INDEX.batcher.write(this.renderMethods[this.type].bind(this, this.data));
+	}
 	return this;
 };

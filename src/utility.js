@@ -1,3 +1,4 @@
+import INDEX from './index';
 
 var Utility = {
 	// CAMEL: /-(\w)/g,
@@ -35,9 +36,12 @@ var Utility = {
 		return collection[keys[last]];
 	},
 	removeChildren: function (element) {
-		while (element.lastElementChild) {
-			element.removeChild(element.lastElementChild);
-		}
+		var self = this, child;
+		INDEX.batcher.write(function () {
+			while (child = element.lastElementChild) {
+				element.removeChild(child);
+			}
+		});
 	},
 	joinSlash: function () {
 		return Array.prototype.join

@@ -1,5 +1,5 @@
 
-Jenie.component({
+Jenie.component.define({
 	name: 'j-loop',
 	html: `
 		<style>
@@ -41,6 +41,12 @@ Jenie.component({
 
 		window.self = self;
 
+		setTimeout(function () {
+			for (var i = 0; i < 2600; i++) {
+				self.model.items.push({ number: self.model.items.length });
+			}
+		}, 1000);
+
 		// setTimeout(function () {
 		// 	self.model.items.push({ number: self.model.items.length });
 		// 	setTimeout(function () {
@@ -48,29 +54,29 @@ Jenie.component({
 		// 	}, 1000);
 		// }, 1000);
 
-		setTimeout(function () {
-
-			var increaseInterval = setInterval(function () {
-
-				if (self.model.items.length === 2600) { // 2600
-					clearInterval(increaseInterval);
-
-					var decreaseInterval = setInterval(function () {
-
-						if (self.model.items.length === 5) {
-							clearInterval(decreaseInterval);
-						}
-
-						self.model.items.pop();
-
-					}, 0);
-				}
-
-				self.model.items.push({ number: self.model.items.length });
-
-			}, 0);
-
-		}, 1000);
+		// setTimeout(function () {
+		//
+		// 	var increaseInterval = setInterval(function () {
+		//
+		// 		if (self.model.items.length === 2600) { // 2600
+		// 			clearInterval(increaseInterval);
+		//
+		// 			// var decreaseInterval = setInterval(function () {
+		// 			//
+		// 			// 	if (self.model.items.length === 5) {
+		// 			// 		clearInterval(decreaseInterval);
+		// 			// 	}
+		// 			//
+		// 			// 	self.model.items.pop();
+		// 			//
+		// 			// }, 0);
+		// 		}
+		//
+		// 		self.model.items.push({ number: self.model.items.length });
+		//
+		// 	}, 0);
+		//
+		// }, 1000);
 
 	}
 });

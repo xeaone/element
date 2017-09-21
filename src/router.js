@@ -1,5 +1,6 @@
 import Utility from './utility';
 import Events from './events';
+import INDEX from './index';
 
 export default function Router (options) {
 	Events.call(this);
@@ -15,6 +16,7 @@ Router.prototype.constructor = Router;
 
 Router.prototype.setup = function (options) {
 	options = options || {};
+	this.handler = options.handler;
 	this.external = options.external;
 	this.routes = options.routes || [];
 	this.view = options.view || 'j-view';
@@ -219,23 +221,21 @@ Router.prototype.getLocation = function (path) {
 };
 
 Router.prototype.render = function (route) {
-	Utility.removeChildren(this.view);
+	var self = this, child, component;
 
-	var component = this.cache[route.component];
+	component = self.cache[route.component];
 	if (!component) {
-		component = this.cache[route.component] = document.createElement(route.component);
+		component = self.cache[route.component] = document.createElement(route.component);
 		component.inRouterCache = false;
 		component.isRouterComponent = true;
 	}
 
-	this.view.appendChild(component);
-
-	this.scroll(0, 0);
-	this.emit('navigated');
-};
-
-Router.prototype.handler = function (callback) {
-	this._handler = callback;
+	INDEX.batcher.write(function () {
+		while (child = self.view.firstChild) self.view.removeChild(child);
+		self.view.appendChild(component);
+		self.scroll(0, 0);
+		self.emit('navigated');
+	});
 };
 
 Router.prototype.navigate = function (data, replace) {
@@ -253,21 +253,14 @@ Router.prototype.navigate = function (data, replace) {
 
 	window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.title, this.state.location.href);
 
-	// if (this.state.route.redirect) {
-	// 	this.redirect(this.state.route.redirect);
-	// } else {
-	// 	this.render(this.state.route, function () {
-	// 		if (!replace) this.scroll(0, 0);
-	// 		this.emit('navigated');
-	// 	});
-	// }
-
 	if (this.state.route.handler) {
 		this.state.route.handler(this.state.route);
 	} else if (this.state.route.redirect) {
 		this.redirect(this.state.route.redirect);
 	} else {
-		this._handler(this.state.route);
+		if (this.handler) {
+			this.handler(this.state.route);
+		}
 	}
 
 };
@@ -277,6 +270,7 @@ Router.prototype.popstate = function (e) {
 };
 
 Router.prototype.click = function (e) {
+	// TODO might need to filter for container
 	var self = this;
 
 	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -312,9 +306,12 @@ Router.prototype.click = function (e) {
 Router.prototype.run = function () {
 	if (this.isRan) return;
 	else this.isRan = true;
+
 	this.view = this.container.querySelector(this.view);
 	if (!this.view) throw new Error('Router requires j-view element');
-	this.container.addEventListener('click', this.click.bind(this));
-	window.addEventListener('popstate', this.popstate.bind(this));
+	// this.container.addEventListener('click', this.click.bind(this));
+	INDEX._.clicks.push(this.click.bind(this));
+	INDEX._.popstates.push(this.popstate.bind(this));
+
 	this.navigate(window.location.href, true);
 };

@@ -1,5 +1,6 @@
 import Observer from './observer';
 import Utility from './utility';
+import INDEX from './index';
 
 export default function Model (options) {
 	this.isRan = false;
@@ -9,18 +10,15 @@ export default function Model (options) {
 Model.prototype.setup = function (options) {
 	options = options || {};
 	this.data = options.data || {};
+	this.handler = options.handler;
 	this.container = options.container || document.body;
 	return this;
-};
-
-Model.prototype.handler = function (callback) {
-	this._handler = callback;
 };
 
 Model.prototype.overwrite = function (data) {
 	Observer(
 		this.data = data,
-		this._handler
+		this.handler
 	);
 };
 
@@ -60,6 +58,16 @@ Model.prototype.inputListener = function (element) {
 	}
 };
 
+Model.prototype.input = function (e) {
+	if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.nodeName !== 'SELECT') {
+		this.inputListener.call(this, e.target);
+	}
+};
+
+Model.prototype.change = function (e) {
+	this.inputListener.call(this, e.target);
+};
+
 Model.prototype.run = function () {
 	var self = this;
 
@@ -68,17 +76,9 @@ Model.prototype.run = function () {
 
 	Observer(
 		self.data,
-		self._handler
+		self.handler
 	);
 
-	self.container.addEventListener('input', function (e) {
-		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.nodeName !== 'SELECT') {
-			self.inputListener.call(self, e.target);
-		}
-	}, true);
-
-	self.container.addEventListener('change', function (e) {
-		self.inputListener.call(self, e.target);
-	}, true);
-
+	INDEX._.inputs.push(this.input.bind(this));
+	INDEX._.changes.push(this.change.bind(this));
 };
