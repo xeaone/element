@@ -36,7 +36,7 @@ Loader uses `XHR` and `new Function` to load on-demand and execute modules. If y
 ## Example
 
 ```js
-	Jenie.component({
+	Jenie.component.define({
 		name: 'v-home',
 		html: `
 			<h1 j-text="title"></h1>
@@ -112,20 +112,20 @@ The recommend entry point. This allows you to setup Jenie and automatically star
 	- `router: Object` Jenie.router options.
 
 
-### Jenie.component(options)
-Returns a new Jenie web component and defines/registers a custom web component.
-- `options: Object`
-	- `name: String` **Required** the tag name
-	- `html: String` An HTML string
-	- `query: String` An querySelector
-	- `template: Element` A Element
-	- `model: Object<Any>` See Jenie.controller.model
-	- `events: Object<Function>` See Jenie.controller.events
-	- `modifiers: Object<Function>` See Jenie.controller.modifiers
-	- `created: Function` Triggered once on creation
-	- `attached: Function` Triggered on each DOM attachment
-	- `detached: Function` Triggered on each DOM detachment
-	- `attributed: Function` Triggered attribute change
+### Jenie.component
+- `define: Function` Defines a custom web component
+	- `options: Object`
+		- `name: String` **Required** the tag name
+		- `html: String` An HTML string
+		- `query: String` An querySelector
+		- `template: Element` A Element
+		- `model: Object<Any>` See Jenie.controller.model
+		- `events: Object<Function>` See Jenie.controller.events
+		- `modifiers: Object<Function>` See Jenie.controller.modifiers
+		- `created: Function` Triggered once on creation
+		- `attached: Function` Triggered on each DOM attachment
+		- `detached: Function` Triggered on each DOM detachment
+		- `attributed: Function` Triggered attribute change
 
 
 ### Jenie.router

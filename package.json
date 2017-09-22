@@ -1,6 +1,6 @@
 {
 	"name": "jenie",
-	"version": "1.7.2",
+	"version": "1.8.0",
 	"description": "A mighty tinny web components framework/library",
 	"main": "dist/jenie.min.js",
 	"scripts": {
@@ -9,6 +9,7 @@
 		"watch": "muleify pack -p src -wb src/index.js web/assets/jenie.js",
 		"bd": "muleify pack -b src/index.js dist/jenie.js",
 		"bm": "muleify pack -bm src/index.js dist/jenie.min.js",
+		"cm": "!cat header.txt dist/jenie.min.js > dist/jenie.min.js",
 		"bp": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
 		"ba": "npm run bd && npm run bm && npm run bp"
 	},

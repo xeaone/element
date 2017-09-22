@@ -1,7 +1,7 @@
 import Escape from 'modules/escape.js';
 
 var home = Escape(`
-	Jenie.component({
+	Jenie.component.define({
 		name: 'v-home',
 		html: \`
 			<h1 j-text="title"></h1>
