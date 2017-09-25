@@ -1,7 +1,7 @@
 import Escape from 'modules/escape.js';
 
 var home = Escape(`
-	Ure.component.define({
+	Oxe.component.define({
 		name: 'v-home',
 		html: \`
 			<h1 u-text="title"></h1>
@@ -16,7 +16,7 @@ var home = Escape(`
 `);
 
 var indexjs = Escape(`
-	Ure.setup({
+	Oxe.setup({
 		http: {
 			request: function (opt, xhr) {
 				return true; // false will cancel the http.fetch
@@ -52,7 +52,7 @@ var indexhtml = Escape(`
 	<html>
 	<head>
 		<base href="/">
-		<script src="ure.min.js" defer></script>
+		<script src="oxe.min.js" defer></script>
 		<script src="index.js" defer></script>
 	</head>
 	<body>
@@ -66,7 +66,7 @@ var indexhtml = Escape(`
 	</html>
 `);
 
-Ure.component.define({
+Oxe.component.define({
 	name: 'v-root',
 	attached: function () {
 		Prism.highlightAll();
@@ -79,7 +79,7 @@ Ure.component.define({
 			A small but mighty web components framework/library.
 		</p>
 
-		<strong>Features</strong>
+		<strong>Featoxes</strong>
 		<ul>
 			<li>Really Small 8.09KB gzipped and 27.08KB uncompressed</li>
 			<li>In browser ES6/ESM module and template strings support</li>
@@ -108,9 +108,9 @@ Ure.component.define({
 
 		<strong>Install</strong>
 		<ul>
-			<li><i>npm install ure --save</i></li>
-			<li>UMD <i>"dist/ure.min.js"</i></li>
-			<li>UMD with Web Component Pollyfill <i>"dist/ure.polly.min.js"</i></li>
+			<li><i>npm install oxe --save</i></li>
+			<li>UMD <i>"dist/oxe.min.js"</i></li>
+			<li>UMD with Web Component Pollyfill <i>"dist/oxe.polly.min.js"</i></li>
 			<li>Web Component Pollyfill <i>"dist/webcomponents-lite.min.js"</i></li>
 		</ul>
 

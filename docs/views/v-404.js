@@ -1,5 +1,5 @@
 
-Ure.component.define({
+Oxe.component.define({
 	name: 'v-404',
 	html: `
 		<h1>404</h1>

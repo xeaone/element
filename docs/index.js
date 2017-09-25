@@ -1,5 +1,5 @@
 
-Ure.setup({
+Oxe.setup({
 	loader: {
 		esm: true,
 		est: true,

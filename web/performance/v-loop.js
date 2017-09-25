@@ -1,5 +1,5 @@
 
-Ure.component.define({
+Oxe.component.define({
 	name: 'v-loop',
 	html: `
 		<style>

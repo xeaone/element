@@ -1,28 +1,28 @@
 {
-	"name": "ure",
+	"name": "oxe",
 	"version": "1.9.1",
 	"description": "A mighty tinny web components framework/library",
-	"main": "dist/ure.min.js",
+	"main": "dist/oxe.min.js",
 	"scripts": {
 		"build-docs": "rm -r docs/* && muleify pack web docs",
 		"serve": "muleify serve -sw web dev",
-		"watch": "muleify pack -p src -wb src/index.js web/assets/ure.js",
-		"bd": "muleify pack -b src/index.js dist/ure.js",
-		"bm": "muleify pack -bm src/index.js dist/ure.min.js",
-		"cm": "!cat header.txt dist/ure.min.js > dist/ure.min.js",
-		"bp": "cat dist/webcomponents-lite.min.js dist/ure.min.js > dist/ure.polly.min.js",
+		"watch": "muleify pack -p src -wb src/index.js web/assets/oxe.js",
+		"bd": "muleify pack -b src/index.js dist/oxe.js",
+		"bm": "muleify pack -bm src/index.js dist/oxe.min.js",
+		"cm": "!cat header.txt dist/oxe.min.js > dist/oxe.min.js",
+		"bp": "cat dist/webcomponents-lite.min.js dist/oxe.min.js > dist/oxe.polly.min.js",
 		"ba": "npm run bd && npm run bm && npm run bp"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/AlexanderElias/ure.git"
+		"url": "git+https://github.com/AlexanderElias/oxe.git"
 	},
 	"author": "Alexander Elias",
 	"license": "MPL-2.0",
 	"bugs": {
-		"url": "https://github.com/AlexanderElias/ure/issues"
+		"url": "https://github.com/AlexanderElias/oxe/issues"
 	},
-	"homepage": "https://github.com/AlexanderElias/ure#readme",
+	"homepage": "https://github.com/AlexanderElias/oxe#readme",
 	"keywords": [
 		"web",
 		"component",
@@ -42,7 +42,7 @@
 		"x-tag",
 		"polymer",
 		"jenie",
-		"ure"
+		"oxe"
 	],
 	"directories": {
 		"doc": "docs"

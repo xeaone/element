@@ -15,7 +15,7 @@ var model = {
 	html: '<h3 u-text="text"></h3>'
 };
 
-Ure.component.define({
+Oxe.component.define({
 	name: 'v-test',
 	model: model,
 	modifiers: {

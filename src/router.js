@@ -275,7 +275,7 @@ Router.prototype.click = function (e) {
 
 	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
 
-	// ensure target is anchor tag use shadow dom if available
+	// ensoxe target is anchor tag use shadow dom if available
 	var target = e.path ? e.path[0] : e.target;
 	while (target && 'A' !== target.nodeName) target = target.parentNode;
 	if (!target || 'A' !== target.nodeName) return;

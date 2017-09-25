@@ -1,7 +1,7 @@
 {
-	"name": "ure",
+	"name": "oxe",
 	"description": "Web Components Framework & Library",
-	"main": "dist/ure.min.js",
+	"main": "dist/oxe.min.js",
 	"authors": [
 		"Alexander Elias"
 	],
@@ -21,7 +21,7 @@
 	"router",
 	"front-end"
 	],
-	"homepage": "https://github.com/AlexanderElias/ure",
+	"homepage": "https://github.com/AlexanderElias/oxe",
 	"ignore": [
 		"**/.*",
 		"node_modules",
