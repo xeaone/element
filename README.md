@@ -227,7 +227,7 @@ The result of a querySelector in the **current** document `document.currentScrip
 
 
 ## Authors
-**Alexander Elias** - [AlexanderElias](https://github.com/AlexanderElias)
+[AlexanderElias](https://github.com/AlexanderElias)
 
 
 ## License
