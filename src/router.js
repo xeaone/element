@@ -19,7 +19,7 @@ Router.prototype.setup = function (options) {
 	this.handler = options.handler;
 	this.external = options.external;
 	this.routes = options.routes || [];
-	this.view = options.view || 'u-view';
+	this.view = options.view || 'o-view';
 	this.base = this.createBase(options.base);
 	this.container = options.container || document.body;
 	this.hash = options.hash === undefined ? false : options.hash;
@@ -290,7 +290,7 @@ Router.prototype.click = function (e) {
 	// check non acceptable attributes and href
 	if (target.hasAttribute('download') ||
 		target.hasAttribute('external') ||
-		target.hasAttribute('u-external') ||
+		target.hasAttribute('o-external') ||
 		// target.hasAttribute('target') ||
 		target.href.indexOf('mailto:') !== -1 ||
 		target.href.indexOf('file:') !== -1 ||
@@ -308,7 +308,7 @@ Router.prototype.run = function () {
 	else this.isRan = true;
 
 	this.view = this.container.querySelector(this.view);
-	if (!this.view) throw new Error('Router requires u-view element');
+	if (!this.view) throw new Error('Router requires o-view element');
 	// this.container.addEventListener('click', this.click.bind(this));
 	INDEX._.clicks.push(this.click.bind(this));
 	INDEX._.popstates.push(this.popstate.bind(this));

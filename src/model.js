@@ -23,7 +23,7 @@ Model.prototype.overwrite = function (data) {
 };
 
 Model.prototype.inputListener = function (element) {
-	var value = element.getAttribute('u-value');
+	var value = element.getAttribute('o-value');
 	if (value) {
 		var i, l;
 		var path = value.replace(/(^(\w+\.?)+).*/, '$1');
@@ -43,7 +43,7 @@ Model.prototype.inputListener = function (element) {
 			}
 			Utility.setByPath(this.data[uid], path, values);
 		} else if (element.type === 'radio') {
-			var elements = element.parentNode.querySelectorAll('input[type="radio"][u-value="' + path + '"]');
+			var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + path + '"]');
 			for (i = 0, l = elements.length; i < l; i++) {
 				var radio = elements[i];
 				if (radio === element) {

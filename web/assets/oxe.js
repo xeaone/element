@@ -310,7 +310,7 @@
 		this.handler = options.handler;
 		this.external = options.external;
 		this.routes = options.routes || [];
-		this.view = options.view || 'u-view';
+		this.view = options.view || 'o-view';
 		this.base = this.createBase(options.base);
 		this.container = options.container || document.body;
 		this.hash = options.hash === undefined ? false : options.hash;
@@ -581,7 +581,7 @@
 		// check non acceptable attributes and href
 		if (target.hasAttribute('download') ||
 			target.hasAttribute('external') ||
-			target.hasAttribute('u-external') ||
+			target.hasAttribute('o-external') ||
 			// target.hasAttribute('target') ||
 			target.href.indexOf('mailto:') !== -1 ||
 			target.href.indexOf('file:') !== -1 ||
@@ -599,7 +599,7 @@
 		else this.isRan = true;
 
 		this.view = this.container.querySelector(this.view);
-		if (!this.view) throw new Error('Router requires u-view element');
+		if (!this.view) throw new Error('Router requires o-view element');
 		// this.container.addEventListener('click', this.click.bind(this));
 		Oxe._.clicks.push(this.click.bind(this));
 		Oxe._.popstates.push(this.popstate.bind(this));
@@ -1134,7 +1134,7 @@
 	};
 
 	Model.prototype.inputListener = function (element) {
-		var value = element.getAttribute('u-value');
+		var value = element.getAttribute('o-value');
 		if (value) {
 			var i, l;
 			var path = value.replace(/(^(\w+\.?)+).*/, '$1');
@@ -1154,7 +1154,7 @@
 				}
 				Utility.setByPath(this.data[uid], path, values);
 			} else if (element.type === 'radio') {
-				var elements = element.parentNode.querySelectorAll('input[type="radio"][u-value="' + path + '"]');
+				var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + path + '"]');
 				for (i = 0, l = elements.length; i < l; i++) {
 					var radio = elements[i];
 					if (radio === element) {
@@ -1232,7 +1232,7 @@
 						}
 					}
 				} else if (element.type === 'radio') {
-					var elements = element.parentNode.querySelectorAll('input[type="radio"][u-value="' + attribute.value + '"]');
+					var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + attribute.value + '"]');
 					for (i = 0, l = elements.length; i < l; i++) {
 						var radio = elements[i];
 						radio.checked = i === data;
@@ -1293,7 +1293,7 @@
 			this.variable = this.attribute.cmds[1];
 			this.clone = this.element.removeChild(this.element.firstElementChild);
 			this.clone = this.clone.outerHTML.replace(
-				new RegExp('((?:data-)?u-.*?=")' + this.variable + '(.*?")', 'g'),
+				new RegExp('((?:data-)?o-.*?=")' + this.variable + '(.*?")', 'g'),
 				'$1' + this.attribute.path + '.$INDEX$2'
 			);
 		}
@@ -1422,20 +1422,20 @@
 	View.prototype.PATH = /\s?\|.*/;
 	View.prototype.PARENT_KEY = /^.*\./;
 	View.prototype.PARENT_PATH = /\.\w+$|^\w+$/;
-	View.prototype.PREFIX = /(data-)?u-/;
+	View.prototype.PREFIX = /(data-)?o-/;
 	View.prototype.MODIFIERS = /^.*?\|\s?/;
-	View.prototype.IS_ACCEPT_PATH = /(data-)?u-.*/;
-	View.prototype.IS_REJECT_PATH = /(data-)?u-value.*/;
+	View.prototype.IS_ACCEPT_PATH = /(data-)?o-.*/;
+	View.prototype.IS_REJECT_PATH = /(data-)?o-value.*/;
 
 	View.prototype.isOnce = function (node) {
-		return node.hasAttribute('u-value')
-			|| node.hasAttribute('data-u-value');
+		return node.hasAttribute('o-value')
+			|| node.hasAttribute('data-o-value');
 	};
 
 	View.prototype.isSkip = function (node) {
 		return node.nodeName === 'J-VIEW'
-			|| node.hasAttribute('u-view')
-			|| node.hasAttribute('data-u-view');
+			|| node.hasAttribute('o-view')
+			|| node.hasAttribute('data-o-view');
 	};
 
 	View.prototype.isSkipChildren = function (node) {
@@ -1450,7 +1450,7 @@
 		var attributes = node.attributes;
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
-			if (attribute.name.indexOf('u-') === 0 || attribute.name.indexOf('data-u-') === 0) {
+			if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 				return true;
 			}
 		}
@@ -1458,7 +1458,7 @@
 	};
 
 	View.prototype.isAcceptAttribute = function (attribute) {
-		return attribute.name.indexOf('u-') === 0 || attribute.name.indexOf('data-u-') === 0;
+		return attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0;
 	};
 
 	View.prototype.createAttribute = function (name, value) {
@@ -1859,13 +1859,13 @@
 
 	window.requestAnimationFrame(function () {
 		var eStyle = document.createElement('style');
-		var sStyle = document.createTextNode('u-view, u-view > :first-child { display: block; }');
+		var sStyle = document.createTextNode('o-view, o-view > :first-child { display: block; }');
 		eStyle.setAttribute('title', 'Oxe');
 		eStyle.setAttribute('type', 'text/css');
 		eStyle.appendChild(sStyle);
 		document.head.insertBefore(eStyle, Oxe.currentScript);
-		document.registerElement('u-view', { prototype: Object.create(HTMLElement.prototype) });
-		var eIndex = Oxe.currentScript.getAttribute('u-index');
+		document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
+		var eIndex = Oxe.currentScript.getAttribute('o-index');
 		if (eIndex) Oxe.loader.load({ url: eIndex });
 	});
 

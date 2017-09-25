@@ -12,7 +12,7 @@ var model = {
 		{ it: { val: 1 } },
 		{ it: { val: 2 } }
 	],
-	html: '<h3 u-text="text"></h3>'
+	html: '<h3 o-text="text"></h3>'
 };
 
 Oxe.component.define({
@@ -62,40 +62,40 @@ Oxe.component.define({
 	},
 	html: `
 		<style>
-			[u-each-item] {
+			[o-each-item] {
 				min-height: 150px;
 			}
 		</style>
 
-		<p u-text="text | upper"></p>
-		<p u-text="text | lower"></p>
-		<input type="text" u-value="text | lower" placeholder="text">
-		<input type="text" u-value="text | upper" placeholder="text">
+		<p o-text="text | upper"></p>
+		<p o-text="text | lower"></p>
+		<input type="text" o-value="text | lower" placeholder="text">
+		<input type="text" o-value="text | upper" placeholder="text">
 
 		<br>
 		<br>
 
-		<div u-text="isChecked"></div>
-		<input type="checkbox" u-value="isChecked">
+		<div o-text="isChecked"></div>
+		<input type="checkbox" o-value="isChecked">
 
 		<br>
 		<br>
 
-		<div u-text="initiallyNotOnModel">initiallyNotOnModel</div>
-		<input type="checkbox" u-value="initiallyNotOnModel">
+		<div o-text="initiallyNotOnModel">initiallyNotOnModel</div>
+		<input type="checkbox" o-value="initiallyNotOnModel">
 
 		<br>
 		<br>
 
-		<div u-text="numRadio"></div>
-		<input type="radio" u-value="numRadio">
-		<input type="radio" u-value="numRadio">
+		<div o-text="numRadio"></div>
+		<input type="radio" o-value="numRadio">
+		<input type="radio" o-value="numRadio">
 
 		<br>
 		<br>
 
-		<div u-text="car"></div>
-		<select u-value="car">
+		<div o-text="car"></div>
+		<select o-value="car">
 			<option value="audi">Audi</option>
 			<option value="saab">Saab</option>
 			<option value="volvo" selected>Volvo</option>
@@ -105,8 +105,8 @@ Oxe.component.define({
 		<br>
 		<br>
 
-		<div u-text="cars"></div>
-		<select u-value="cars" multiple>
+		<div o-text="cars"></div>
+		<select o-value="cars" multiple>
 			<option value="audi">Audi</option>
 			<option value="saab" selected>Saab</option>
 			<option value="volvo">Volvo</option>
@@ -116,17 +116,17 @@ Oxe.component.define({
 		<br>
 		<br>
 
-		<input type="text" u-value="items.0.it.val">
-		<div u-each-item="items">
+		<input type="text" o-value="items.0.it.val">
+		<div o-each-item="items">
 			<span>
-				<span u-on-click="foo" u-text="item.it.val"></span>
+				<span o-on-click="foo" o-text="item.it.val"></span>
 				<span>,</span>
 			</span>
 		</div>
 
 
-		<button u-on-click="say">Say Alert</button>
-		<input type="text" u-value="nope">
+		<button o-on-click="say">Say Alert</button>
+		<input type="text" o-value="nope">
 		<input type="button" value="button">
 		<input type="reset" value="reset">
 
@@ -153,6 +153,6 @@ Oxe.component.define({
 			</li>
 		</ul>
 
-		<div u-html="html"></div>
+		<div o-html="html"></div>
 	`
 });

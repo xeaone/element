@@ -4,7 +4,7 @@ var home = Escape(`
 	Oxe.component.define({
 		name: 'v-home',
 		html: \`
-			<h1 u-text="title"></h1>
+			<h1 o-text="title"></h1>
 		\`,
 		model: {
 			title: 'Old Title'
@@ -61,7 +61,7 @@ var indexhtml = Escape(`
 				<li><a href="/home">Home</a></li>
 			</ul>
 		</c-menu>
-		<u-view></u-view>
+		<o-view></o-view>
 	</body>
 	</html>
 `);

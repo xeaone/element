@@ -168,13 +168,13 @@ Oxe.model.run();
 
 window.requestAnimationFrame(function () {
 	var eStyle = document.createElement('style');
-	var sStyle = document.createTextNode('u-view, u-view > :first-child { display: block; }');
+	var sStyle = document.createTextNode('o-view, o-view > :first-child { display: block; }');
 	eStyle.setAttribute('title', 'Oxe');
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(sStyle);
 	document.head.insertBefore(eStyle, Oxe.currentScript);
-	document.registerElement('u-view', { prototype: Object.create(HTMLElement.prototype) });
-	var eIndex = Oxe.currentScript.getAttribute('u-index');
+	document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
+	var eIndex = Oxe.currentScript.getAttribute('o-index');
 	if (eIndex) Oxe.loader.load({ url: eIndex });
 });
 

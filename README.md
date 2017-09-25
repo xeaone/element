@@ -39,7 +39,7 @@ Loader uses `XHR` and `new Function` to load on-demand and execute modules. If y
 	Oxe.component.define({
 		name: 'v-home',
 		html: `
-			<h1 u-text="title"></h1>
+			<h1 o-text="title"></h1>
 		`,
 		model: {
 			title: 'Old Title'
@@ -96,7 +96,7 @@ Oxe.setup({
 			<li><a href="/home">Home</a></li>
 		</ul>
 	</c-menu>
-	<u-view></u-view>
+	<o-view></o-view>
 </body>
 </html>
 ```
@@ -142,7 +142,7 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 			- `component: String` The name of a component
 			- `url: Object, String` URL path to JS web-component or a Oxe.loader.load Object
 
-- `run: Function` Must be called after <u-view></u-view> is created
+- `run: Function` Must be called after <o-view></o-view> is created
 - `redirect: Function` Uses window.location.href which is treated like a 301 redirect for SEO
 - `add: Function`
 	- `path: String`
@@ -231,6 +231,6 @@ The result of a querySelector in the **current** document `document.currentScrip
 
 
 ## License
-[Why You Should Choose MPL-2.0](http://veldstra.org/2016/12/09/you-should-choose-mpl2-for-your-opensource-project.html)
+[Why You Should Choose MPL-2.0](http://veldstra.org/2016/12/09/yoo-should-choose-mpl2-for-your-opensource-project.html)
 
 This project is licensed under the MPL-2.0 License

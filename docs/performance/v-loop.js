@@ -3,7 +3,7 @@ Oxe.component.define({
 	name: 'v-loop',
 	html: `
 		<style>
-			html, body, u-loop {
+			html, body, o-loop {
 				width: 100%;
 				display: block;
 			}
@@ -15,13 +15,13 @@ Oxe.component.define({
 			}
 		</style>
 
-		<div u-each-item="items">
+		<div o-each-item="items">
 			<div class="box">
-				<div u-text="item.number"></div>
-				<input type="text" u-value="item.number">
+				<div o-text="item.number"></div>
+				<input type="text" o-value="item.number">
 			</div>
-			<!--<button u-on-click="click">
-				<div u-text="item.number"></div>
+			<!--<button o-on-click="click">
+				<div o-text="item.number"></div>
 			</button>-->
 		</div>
 	`,

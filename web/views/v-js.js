@@ -5,7 +5,7 @@ Oxe.component.define({
 		text: 'Hello from js test'
 	},
 	html: `
-		<p u-text="text"></p>
+		<p o-text="text"></p>
 		<div>
 			<slot name="one"></slot>
 			<slot name="two"></slot>

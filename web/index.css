@@ -89,11 +89,11 @@ pre {
 	views
 */
 
-u-view {
+o-view {
 	padding: 1rem;
 	display: block;
 }
-u-view > :first-child {
+o-view > :first-child {
 	margin: auto;
 	max-width: 900px;
 }
