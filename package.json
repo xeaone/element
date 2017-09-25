@@ -40,13 +40,10 @@
 		"http",
 		"front-end",
 		"x-tag",
-		"polymer"
+		"polymer",
+		"ure"
 	],
 	"directories": {
 		"doc": "docs"
-	},
-	"dependencies": {},
-	"devDependencies": {
-		"node-es-module-loader": "^0.3.8"
 	}
 }
