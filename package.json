@@ -1,6 +1,6 @@
 {
 	"name": "ure",
-	"version": "1.9.0",
+	"version": "1.9.1",
 	"description": "A mighty tinny web components framework/library",
 	"main": "dist/ure.min.js",
 	"scripts": {
@@ -41,6 +41,7 @@
 		"front-end",
 		"x-tag",
 		"polymer",
+		"jenie",
 		"ure"
 	],
 	"directories": {

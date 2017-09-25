@@ -1,7 +1,5 @@
 **Beta API Can Change**
 
-**Name Change From Jenie To Ure**
-
 # Ure
 A mighty tinny web components framework/library.
 

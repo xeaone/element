@@ -1,3 +1,13 @@
+/*
+	Name: Ure
+	Version: 1.9.1
+	License: MPL-2.0
+	Author: Alexander Elias
+	Email: alex.steven.elias@gmail.com
+	This Source Code Form is subject to the terms of the Mozilla Public
+	License, v. 2.0. If a copy of the MPL was not distributed with this
+	file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Ure', factory) :
@@ -228,6 +238,7 @@
 			var end;
 			var task = tasks.shift();
 
+			// do while within the current frame and task
 			do {
 				task();
 				task = tasks.shift();
@@ -1697,24 +1708,12 @@
 
 	};
 
-	window.requestAnimationFrame(function () {
-		var eScript = (document._currentScript || document.currentScript);
-		// var eINDEX = eScript.getAttribute('u-INDEX');
-		var eStyle = document.createElement('style');
-		var sStyle = document.createTextNode('u-view, u-view > :first-child { display: block; }');
-		// if (eINDEX) INDEX.loader.load({ url: eINDEX });
-		eStyle.setAttribute('title', 'Ure');
-		eStyle.setAttribute('type', 'text/css');
-		eStyle.appendChild(sStyle);
-		document.head.insertBefore(eStyle, eScript);
-		document.registerElement('u-view', { prototype: Object.create(HTMLElement.prototype) });
-	});
-
 	// TODO add auth handler
 
 	var Ure = {};
 
 	Ure.container = document.body;
+	Ure.currentScript = (document._currentScript || document.currentScript);
 
 	Ure._ = {};
 	Ure.location = {};
@@ -1867,6 +1866,18 @@
 
 	Ure.view.run();
 	Ure.model.run();
+
+	window.requestAnimationFrame(function () {
+		var eStyle = document.createElement('style');
+		var sStyle = document.createTextNode('u-view, u-view > :first-child { display: block; }');
+		eStyle.setAttribute('title', 'Ure');
+		eStyle.setAttribute('type', 'text/css');
+		eStyle.appendChild(sStyle);
+		document.head.insertBefore(eStyle, Ure.currentScript);
+		document.registerElement('u-view', { prototype: Object.create(HTMLElement.prototype) });
+		var eIndex = Ure.currentScript.getAttribute('u-index');
+		if (eIndex) Ure.loader.load({ url: eIndex });
+	});
 
 	return Ure;
 
