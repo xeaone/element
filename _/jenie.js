@@ -1,7 +1,7 @@
 
 /*
 	@banner
-	name: jenie
+	name: ure
 	version: 1.7.1
 	license: mpl-2.0
 	author: alexander elias
@@ -10,6 +10,6 @@
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-import Jenie from './globals';
+import Ure from './globals';
 
-export default Jenie;
+export default Ure;

@@ -18,20 +18,20 @@ View.prototype.setup = function (options) {
 View.prototype.PATH = /\s?\|.*/;
 View.prototype.PARENT_KEY = /^.*\./;
 View.prototype.PARENT_PATH = /\.\w+$|^\w+$/;
-View.prototype.PREFIX = /(data-)?j-/;
+View.prototype.PREFIX = /(data-)?u-/;
 View.prototype.MODIFIERS = /^.*?\|\s?/;
-View.prototype.IS_ACCEPT_PATH = /(data-)?j-.*/;
-View.prototype.IS_REJECT_PATH = /(data-)?j-value.*/;
+View.prototype.IS_ACCEPT_PATH = /(data-)?u-.*/;
+View.prototype.IS_REJECT_PATH = /(data-)?u-value.*/;
 
 View.prototype.isOnce = function (node) {
-	return node.hasAttribute('j-value')
-		|| node.hasAttribute('data-j-value');
+	return node.hasAttribute('u-value')
+		|| node.hasAttribute('data-u-value');
 };
 
 View.prototype.isSkip = function (node) {
 	return node.nodeName === 'J-VIEW'
-		|| node.hasAttribute('j-view')
-		|| node.hasAttribute('data-j-view');
+		|| node.hasAttribute('u-view')
+		|| node.hasAttribute('data-u-view');
 };
 
 View.prototype.isSkipChildren = function (node) {
@@ -46,7 +46,7 @@ View.prototype.isAccept = function (node) {
 	var attributes = node.attributes;
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
-		if (attribute.name.indexOf('j-') === 0 || attribute.name.indexOf('data-j-') === 0) {
+		if (attribute.name.indexOf('u-') === 0 || attribute.name.indexOf('data-u-') === 0) {
 			return true;
 		}
 	}
@@ -54,7 +54,7 @@ View.prototype.isAccept = function (node) {
 };
 
 View.prototype.isAcceptAttribute = function (attribute) {
-	return attribute.name.indexOf('j-') === 0 || attribute.name.indexOf('data-j-') === 0;
+	return attribute.name.indexOf('u-') === 0 || attribute.name.indexOf('data-u-') === 0;
 };
 
 View.prototype.createAttribute = function (name, value) {

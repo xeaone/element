@@ -1,10 +1,10 @@
 import Escape from 'modules/escape.js';
 
 var home = Escape(`
-	Jenie.component({
+	Ure.component.define({
 		name: 'v-home',
 		html: \`
-			<h1 j-text="title"></h1>
+			<h1 u-text="title"></h1>
 		\`,
 		model: {
 			title: 'Old Title'
@@ -16,7 +16,7 @@ var home = Escape(`
 `);
 
 var indexjs = Escape(`
-	Jenie.setup({
+	Ure.setup({
 		http: {
 			request: function (opt, xhr) {
 				return true; // false will cancel the http.fetch
@@ -52,16 +52,21 @@ var indexhtml = Escape(`
 	<html>
 	<head>
 		<base href="/">
-		<script src="jenie.min.js" defer></script>
+		<script src="ure.min.js" defer></script>
 		<script src="index.js" defer></script>
 	</head>
 	<body>
-		<j-view></j-view>
+		<c-menu>
+			<ul>
+				<li><a href="/home">Home</a></li>
+			</ul>
+		</c-menu>
+		<u-view></u-view>
 	</body>
 	</html>
 `);
 
-Jenie.component({
+Ure.component.define({
 	name: 'v-root',
 	attached: function () {
 		Prism.highlightAll();
@@ -103,9 +108,9 @@ Jenie.component({
 
 		<strong>Install</strong>
 		<ul>
-			<li><i>npm install jenie --save</i></li>
-			<li>UMD <i>"dist/jenie.min.js"</i></li>
-			<li>UMD with Web Component Pollyfill <i>"dist/jenie.polly.min.js"</i></li>
+			<li><i>npm install ure --save</i></li>
+			<li>UMD <i>"dist/ure.min.js"</i></li>
+			<li>UMD with Web Component Pollyfill <i>"dist/ure.polly.min.js"</i></li>
 			<li>Web Component Pollyfill <i>"dist/webcomponents-lite.min.js"</i></li>
 		</ul>
 

@@ -1,28 +1,28 @@
 {
-	"name": "jenie",
-	"version": "1.8.0",
+	"name": "ure",
+	"version": "1.9.0",
 	"description": "A mighty tinny web components framework/library",
-	"main": "dist/jenie.min.js",
+	"main": "dist/ure.min.js",
 	"scripts": {
 		"build-docs": "rm -r docs/* && muleify pack web docs",
 		"serve": "muleify serve -sw web dev",
-		"watch": "muleify pack -p src -wb src/index.js web/assets/jenie.js",
-		"bd": "muleify pack -b src/index.js dist/jenie.js",
-		"bm": "muleify pack -bm src/index.js dist/jenie.min.js",
-		"cm": "!cat header.txt dist/jenie.min.js > dist/jenie.min.js",
-		"bp": "cat dist/webcomponents-lite.min.js dist/jenie.min.js > dist/jenie.polly.min.js",
+		"watch": "muleify pack -p src -wb src/index.js web/assets/ure.js",
+		"bd": "muleify pack -b src/index.js dist/ure.js",
+		"bm": "muleify pack -bm src/index.js dist/ure.min.js",
+		"cm": "!cat header.txt dist/ure.min.js > dist/ure.min.js",
+		"bp": "cat dist/webcomponents-lite.min.js dist/ure.min.js > dist/ure.polly.min.js",
 		"ba": "npm run bd && npm run bm && npm run bp"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/AlexanderElias/jenie.git"
+		"url": "git+https://github.com/AlexanderElias/ure.git"
 	},
 	"author": "Alexander Elias",
 	"license": "MPL-2.0",
 	"bugs": {
-		"url": "https://github.com/AlexanderElias/jenie/issues"
+		"url": "https://github.com/AlexanderElias/ure/issues"
 	},
-	"homepage": "https://github.com/AlexanderElias/jenie#readme",
+	"homepage": "https://github.com/AlexanderElias/ure#readme",
 	"keywords": [
 		"web",
 		"component",

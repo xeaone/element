@@ -9,15 +9,15 @@ import Http from './http';
 
 window.requestAnimationFrame(function () {
 	var eScript = (document._currentScript || document.currentScript);
-	// var eIndex = eScript.getAttribute('j-index');
+	// var eIndex = eScript.getAttribute('u-index');
 	var eStyle = document.createElement('style');
-	var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
+	var sStyle = document.createTextNode('u-view, u-view > :first-child { display: block; }');
 	// if (eIndex) Globals.loader.load({ url: eIndex });
-	eStyle.setAttribute('title', 'Jenie');
+	eStyle.setAttribute('title', 'Ure');
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(sStyle);
 	document.head.insertBefore(eStyle, eScript);
-	document.registerElement('j-view', { prototype: Object.create(HTMLElement.prototype) });
+	document.registerElement('u-view', { prototype: Object.create(HTMLElement.prototype) });
 });
 
 // TODO add auth handler

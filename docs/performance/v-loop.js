@@ -1,9 +1,9 @@
 
-Jenie.component.define({
-	name: 'j-loop',
+Ure.component.define({
+	name: 'v-loop',
 	html: `
 		<style>
-			html, body, j-loop {
+			html, body, u-loop {
 				width: 100%;
 				display: block;
 			}
@@ -15,13 +15,13 @@ Jenie.component.define({
 			}
 		</style>
 
-		<div j-each-item="items">
+		<div u-each-item="items">
 			<div class="box">
-				<div j-text="item.number"></div>
-				<input type="text" j-value="item.number">
+				<div u-text="item.number"></div>
+				<input type="text" u-value="item.number">
 			</div>
-			<!--<button j-on-click="click">
-				<div j-text="item.number"></div>
+			<!--<button u-on-click="click">
+				<div u-text="item.number"></div>
 			</button>-->
 		</div>
 	`,

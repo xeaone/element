@@ -17,20 +17,20 @@
 		lScript.async = false;
 
 		if (window.location.origin === 'https://alexanderelias.github.io') {
-			var href ='/jenie/performance/';
+			var href ='/ure/performance/';
 			document.head.insertAdjacentHTML('afterbegin', '<base href="' + href + '">');
-			jScript.src = '../assets/jenie.js';
-			lScript.src = 'j-loop.js';
+			jScript.src = '../assets/ure.js';
+			lScript.src = 'v-loop.js';
 		} else {
-			jScript.src = '/assets/jenie.js';
-			lScript.src = '/performance/j-loop.js';
+			jScript.src = '/assets/ure.js';
+			lScript.src = '/performance/v-loop.js';
 		}
 		document.head.appendChild(jScript);
 		document.head.appendChild(lScript);
 	</script>
 
 	<style>
-		body, j-loop, [j-each-item] {
+		body, u-loop, [u-each-item] {
 			min-height: 12710px;
 		}
 		.group {
@@ -49,12 +49,15 @@
 			display: inline-block;
 			background: lightgray;
 		}
+		h3 {
+			text-align: center;
+		}
 	</style>
 
-	<h1>2600 Inputs two way binded</h1>
-	<h1>2600 Text one way binded</h1>
+	<h3>2600 Inputs two way binded</h3>
+	<h3>2600 Text one way binded</h3>
 
-	<j-loop></j-loop>
+	<v-loop></v-loop>
 
 </body>
 </html>

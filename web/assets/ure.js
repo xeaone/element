@@ -1,7 +1,7 @@
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-	typeof define === 'function' && define.amd ? define('Jenie', factory) :
-	(global.Jenie = factory());
+	typeof define === 'function' && define.amd ? define('Ure', factory) :
+	(global.Ure = factory());
 }(this, (function () { 'use strict';
 
 	var COUNT = 0;
@@ -143,7 +143,7 @@
 		},
 		removeChildren: function (element) {
 			var self = this, child;
-			Jenie.batcher.write(function () {
+			Ure.batcher.write(function () {
 				while (child = element.lastElementChild) {
 					element.removeChild(child);
 				}
@@ -228,6 +228,7 @@
 			var end;
 			var task = tasks.shift();
 
+			// do while within the current frame and task
 			do {
 				task();
 				task = tasks.shift();
@@ -309,7 +310,7 @@
 		this.handler = options.handler;
 		this.external = options.external;
 		this.routes = options.routes || [];
-		this.view = options.view || 'j-view';
+		this.view = options.view || 'u-view';
 		this.base = this.createBase(options.base);
 		this.container = options.container || document.body;
 		this.hash = options.hash === undefined ? false : options.hash;
@@ -520,7 +521,7 @@
 			component.isRouterComponent = true;
 		}
 
-		Jenie.batcher.write(function () {
+		Ure.batcher.write(function () {
 			while (child = self.view.firstChild) self.view.removeChild(child);
 			self.view.appendChild(component);
 			self.scroll(0, 0);
@@ -580,7 +581,7 @@
 		// check non acceptable attributes and href
 		if (target.hasAttribute('download') ||
 			target.hasAttribute('external') ||
-			target.hasAttribute('j-external') ||
+			target.hasAttribute('u-external') ||
 			// target.hasAttribute('target') ||
 			target.href.indexOf('mailto:') !== -1 ||
 			target.href.indexOf('file:') !== -1 ||
@@ -598,10 +599,10 @@
 		else this.isRan = true;
 
 		this.view = this.container.querySelector(this.view);
-		if (!this.view) throw new Error('Router requires j-view element');
+		if (!this.view) throw new Error('Router requires u-view element');
 		// this.container.addEventListener('click', this.click.bind(this));
-		Jenie._.clicks.push(this.click.bind(this));
-		Jenie._.popstates.push(this.popstate.bind(this));
+		Ure._.clicks.push(this.click.bind(this));
+		Ure._.popstates.push(this.popstate.bind(this));
 
 		this.navigate(window.location.href, true);
 	};
@@ -1133,7 +1134,7 @@
 	};
 
 	Model.prototype.inputListener = function (element) {
-		var value = element.getAttribute('j-value');
+		var value = element.getAttribute('u-value');
 		if (value) {
 			var i, l;
 			var path = value.replace(/(^(\w+\.?)+).*/, '$1');
@@ -1153,7 +1154,7 @@
 				}
 				Utility.setByPath(this.data[uid], path, values);
 			} else if (element.type === 'radio') {
-				var elements = element.parentNode.querySelectorAll('input[type="radio"][j-value="' + path + '"]');
+				var elements = element.parentNode.querySelectorAll('input[type="radio"][u-value="' + path + '"]');
 				for (i = 0, l = elements.length; i < l; i++) {
 					var radio = elements[i];
 					if (radio === element) {
@@ -1189,8 +1190,8 @@
 			self.handler
 		);
 
-		Jenie._.inputs.push(this.input.bind(this));
-		Jenie._.changes.push(this.change.bind(this));
+		Ure._.inputs.push(this.input.bind(this));
+		Ure._.changes.push(this.change.bind(this));
 	};
 
 	var OnceBinder = {
@@ -1231,7 +1232,7 @@
 						}
 					}
 				} else if (element.type === 'radio') {
-					var elements = element.parentNode.querySelectorAll('input[type="radio"][j-value="' + attribute.value + '"]');
+					var elements = element.parentNode.querySelectorAll('input[type="radio"][u-value="' + attribute.value + '"]');
 					for (i = 0, l = elements.length; i < l; i++) {
 						var radio = elements[i];
 						radio.checked = i === data;
@@ -1292,7 +1293,7 @@
 			this.variable = this.attribute.cmds[1];
 			this.clone = this.element.removeChild(this.element.firstElementChild);
 			this.clone = this.clone.outerHTML.replace(
-				new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'),
+				new RegExp('((?:data-)?u-.*?=")' + this.variable + '(.*?")', 'g'),
 				'$1' + this.attribute.path + '.$INDEX$2'
 			);
 		}
@@ -1393,14 +1394,14 @@
 
 	Binder.prototype.unrender = function () {
 		if (this.type in this.unrenderMethods) {
-			Jenie.batcher.write(this.unrenderMethods[this.type].bind(this, this.data));
+			Ure.batcher.write(this.unrenderMethods[this.type].bind(this, this.data));
 		}
 		return this;
 	};
 
 	Binder.prototype.render = function () {
 		if (this.type in this.renderMethods) {
-			Jenie.batcher.write(this.renderMethods[this.type].bind(this, this.data));
+			Ure.batcher.write(this.renderMethods[this.type].bind(this, this.data));
 		}
 		return this;
 	};
@@ -1421,20 +1422,20 @@
 	View.prototype.PATH = /\s?\|.*/;
 	View.prototype.PARENT_KEY = /^.*\./;
 	View.prototype.PARENT_PATH = /\.\w+$|^\w+$/;
-	View.prototype.PREFIX = /(data-)?j-/;
+	View.prototype.PREFIX = /(data-)?u-/;
 	View.prototype.MODIFIERS = /^.*?\|\s?/;
-	View.prototype.IS_ACCEPT_PATH = /(data-)?j-.*/;
-	View.prototype.IS_REJECT_PATH = /(data-)?j-value.*/;
+	View.prototype.IS_ACCEPT_PATH = /(data-)?u-.*/;
+	View.prototype.IS_REJECT_PATH = /(data-)?u-value.*/;
 
 	View.prototype.isOnce = function (node) {
-		return node.hasAttribute('j-value')
-			|| node.hasAttribute('data-j-value');
+		return node.hasAttribute('u-value')
+			|| node.hasAttribute('data-u-value');
 	};
 
 	View.prototype.isSkip = function (node) {
 		return node.nodeName === 'J-VIEW'
-			|| node.hasAttribute('j-view')
-			|| node.hasAttribute('data-j-view');
+			|| node.hasAttribute('u-view')
+			|| node.hasAttribute('data-u-view');
 	};
 
 	View.prototype.isSkipChildren = function (node) {
@@ -1449,7 +1450,7 @@
 		var attributes = node.attributes;
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
-			if (attribute.name.indexOf('j-') === 0 || attribute.name.indexOf('data-j-') === 0) {
+			if (attribute.name.indexOf('u-') === 0 || attribute.name.indexOf('data-u-') === 0) {
 				return true;
 			}
 		}
@@ -1457,7 +1458,7 @@
 	};
 
 	View.prototype.isAcceptAttribute = function (attribute) {
-		return attribute.name.indexOf('j-') === 0 || attribute.name.indexOf('data-j-') === 0;
+		return attribute.name.indexOf('u-') === 0 || attribute.name.indexOf('data-u-') === 0;
 	};
 
 	View.prototype.createAttribute = function (name, value) {
@@ -1589,7 +1590,7 @@
 		else this.isRan = true;
 
 		this.add(this.container);
-		Jenie._.observers.push(this.observer.bind(this));
+		Ure._.observers.push(this.observer.bind(this));
 	};
 
 	function Http (options) {
@@ -1697,62 +1698,50 @@
 
 	};
 
-	window.requestAnimationFrame(function () {
-		var eScript = (document._currentScript || document.currentScript);
-		// var eINDEX = eScript.getAttribute('j-INDEX');
-		var eStyle = document.createElement('style');
-		var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
-		// if (eINDEX) INDEX.loader.load({ url: eINDEX });
-		eStyle.setAttribute('title', 'Jenie');
-		eStyle.setAttribute('type', 'text/css');
-		eStyle.appendChild(sStyle);
-		document.head.insertBefore(eStyle, eScript);
-		document.registerElement('j-view', { prototype: Object.create(HTMLElement.prototype) });
-	});
-
 	// TODO add auth handler
 
-	var Jenie = {};
+	var Ure = {};
 
-	Jenie.container = document.body;
+	Ure.container = document.body;
+	Ure.currentScript = (document._currentScript || document.currentScript);
 
-	Jenie._ = {};
-	Jenie.location = {};
-	Jenie.events = { data: {} };
-	Jenie.modifiers = { data: {} };
+	Ure._ = {};
+	Ure.location = {};
+	Ure.events = { data: {} };
+	Ure.modifiers = { data: {} };
 
-	Jenie.http = new Http();
-	Jenie.view = new View();
-	Jenie.model = new Model();
-	Jenie.loader = new Loader();
-	Jenie.router = new Router();
-	Jenie.batcher = new Batcher();
-	Jenie.component = new Component();
+	Ure.http = new Http();
+	Ure.view = new View();
+	Ure.model = new Model();
+	Ure.loader = new Loader();
+	Ure.router = new Router();
+	Ure.batcher = new Batcher();
+	Ure.component = new Component();
 
-	Jenie._ = {};
-	Jenie._.clicks = [];
-	Jenie._.inputs = [];
-	Jenie._.changes = [];
-	Jenie._.popstates = [];
-	Jenie._.observers = [];
+	Ure._ = {};
+	Ure._.clicks = [];
+	Ure._.inputs = [];
+	Ure._.changes = [];
+	Ure._.popstates = [];
+	Ure._.observers = [];
 
-	Jenie.script = function () {
+	Ure.script = function () {
 		return (document._currentScript || document.currentScript);
 	};
 
-	Jenie.document = function () {
+	Ure.document = function () {
 		return (document._currentScript || document.currentScript).ownerDocument;
 	};
 
-	Jenie.element = function (name) {
+	Ure.element = function (name) {
 		return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
 	};
 
-	Jenie.query = function (query) {
+	Ure.query = function (query) {
 		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 	};
 
-	Jenie.setup = function (options) {
+	Ure.setup = function (options) {
 		options = (typeof options === 'function' ? options.call(this) : options) || {};
 
 		options.http = options.http || {};
@@ -1769,20 +1758,20 @@
 		this.router.run();
 	};
 
-	Jenie._.routerHandler = function (route) {
+	Ure._.routerHandler = function (route) {
 		if (route.title) document.title = route.title;
 		if (route.url && !(route.component in this.cache)) {
-			Jenie.loader.load(route.url.constructor === Object ? route.url : {
+			Ure.loader.load(route.url.constructor === Object ? route.url : {
 				url: route.url
 			}, function () {
-				Jenie.router.render(route);
+				Ure.router.render(route);
 			});
 		} else {
-			Jenie.router.render(route);
+			Ure.router.render(route);
 		}
 	};
 
-	Jenie._.viewHandler = function (addedNodes, removedNodes, parentNode) {
+	Ure._.viewHandler = function (addedNodes, removedNodes, parentNode) {
 		var addedNode, removedNode, containerNode, i;
 
 		i = addedNodes.length;
@@ -1791,7 +1780,7 @@
 			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 				if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
 				containerNode = addedNode.uid || Utility.getContainer(parentNode);
-				Jenie.view.add(addedNode, containerNode);
+				Ure.view.add(addedNode, containerNode);
 			}
 		}
 
@@ -1801,73 +1790,85 @@
 			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 				if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
 				containerNode = removedNode.uid || Utility.getContainer(parentNode);
-				Jenie.view.remove(removedNode, containerNode);
+				Ure.view.remove(removedNode, containerNode);
 			}
 		}
 
 	};
 
-	Jenie._.modelHandler = function (data, path) {
+	Ure._.modelHandler = function (data, path) {
 		var paths = path.split('.');
 		var uid = paths[0];
 		var pattern = paths.slice(1).join('.');
 		var type = data === undefined ? 'unrender' : 'render';
-		Jenie.view.eachBinder(uid, pattern, function (binder) {
+		Ure.view.eachBinder(uid, pattern, function (binder) {
 			binder[type]();
 		});
 	};
 
-	Jenie._.input = Jenie.container.addEventListener('input', function (e) {
-		Jenie._.inputs.forEach(function (_input) {
+	Ure._.input = Ure.container.addEventListener('input', function (e) {
+		Ure._.inputs.forEach(function (_input) {
 			_input(e);
 		});
 	}, true);
 
-	Jenie._.change = Jenie.container.addEventListener('change', function (e) {
-		Jenie._.changes.forEach(function (_change) {
+	Ure._.change = Ure.container.addEventListener('change', function (e) {
+		Ure._.changes.forEach(function (_change) {
 			_change(e);
 		});
 	}, true);
 
-	Jenie._.click = Jenie.container.addEventListener('click', function (e) {
-		Jenie._.clicks.forEach(function (_click) {
+	Ure._.click = Ure.container.addEventListener('click', function (e) {
+		Ure._.clicks.forEach(function (_click) {
 			_click(e);
 		});
 	}, true);
 
-	Jenie._.popstate = Jenie.container.addEventListener('popstate', function (e) {
-		Jenie._.popstates.forEach(function (_popstate) {
+	Ure._.popstate = Ure.container.addEventListener('popstate', function (e) {
+		Ure._.popstates.forEach(function (_popstate) {
 			_popstate(e);
 		});
 	}, true);
 
-	Jenie._.observer = new window.MutationObserver(function (mutations) {
-		Jenie._.observers.forEach(function (_observer) {
+	Ure._.observer = new window.MutationObserver(function (mutations) {
+		Ure._.observers.forEach(function (_observer) {
 			_observer(mutations);
 		});
-	}).observe(Jenie.container, {
+	}).observe(Ure.container, {
 		childList: true,
 		subtree: true
 	});
 
-	Jenie.component.setup({
-		view: Jenie.view,
-		model: Jenie.model,
-		events: Jenie.events,
-		modifiers: Jenie.modifiers
+	Ure.component.setup({
+		view: Ure.view,
+		model: Ure.model,
+		events: Ure.events,
+		modifiers: Ure.modifiers
 	});
 
-	Jenie.view.setup({
-		handler: Jenie._.viewHandler
+	Ure.view.setup({
+		handler: Ure._.viewHandler
 	});
 
-	Jenie.model.setup({
-		handler: Jenie._.modelHandler
+	Ure.model.setup({
+		handler: Ure._.modelHandler
 	});
 
-	Jenie.view.run();
-	Jenie.model.run();
+	Ure.view.run();
+	Ure.model.run();
 
-	return Jenie;
+	window.requestAnimationFrame(function () {
+		var eStyle = document.createElement('style');
+		var sStyle = document.createTextNode('u-view, u-view > :first-child { display: block; }');
+		eStyle.setAttribute('title', 'Ure');
+		eStyle.setAttribute('type', 'text/css');
+		eStyle.appendChild(sStyle);
+		document.head.insertBefore(eStyle, Ure.currentScript);
+		document.registerElement('u-view', { prototype: Object.create(HTMLElement.prototype) });
+		var eIndex = Ure.currentScript.getAttribute('u-index');
+		if (eIndex) Ure.loader.load({ url: eIndex });
+	});
+
+	return Ure;
 
 })));

@@ -48,6 +48,7 @@ Batcher.prototype.run = function (tasks, callback, start) {
 		var end;
 		var task = tasks.shift();
 
+		// do while within the current frame and task
 		do {
 			task();
 			task = tasks.shift();

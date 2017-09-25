@@ -1,3 +1,4 @@
+
 function o1 () {
 	function o () {
 		this._a = null;

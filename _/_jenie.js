@@ -1,7 +1,7 @@
 
 /*
 	@banner
-	name: jenie
+	name: ure
 	version: 1.7.1
 	license: mpl-2.0
 	author: alexander elias
@@ -19,17 +19,17 @@ import View from './view';
 import Http from './http';
 
 var eScript = (document._currentScript || document.currentScript);
-var eIndex = eScript.getAttribute('j-index');
+var eIndex = eScript.getAttribute('u-index');
 var eStyle = document.createElement('style');
-var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
+var sStyle = document.createTextNode('u-view, u-view > :first-child { display: block; }');
 
-eStyle.setAttribute('title', 'Jenie');
+eStyle.setAttribute('title', 'Ure');
 eStyle.setAttribute('type', 'text/css');
 eStyle.appendChild(sStyle);
 document.head.insertBefore(eStyle, eScript);
-document.registerElement('j-view', { prototype: Object.create(HTMLElement.prototype) });
+document.registerElement('u-view', { prototype: Object.create(HTMLElement.prototype) });
 
-var Jenie = {
+var Ure = {
 	container: document.body,
 	events: { data: {} },
 	modifiers: { data: {} },
@@ -49,7 +49,7 @@ var Jenie = {
 		this.router.run();
 	},
 	component: function (options) {
-		options.global = Jenie;
+		options.global = Ure;
 		return new Component(options);
 	},
 	script: function () {
@@ -66,7 +66,7 @@ var Jenie = {
 	}
 };
 
-Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
+Ure.view.handler(function (addedNodes, removedNodes, parentNode) {
 	var addedNode, removedNode, containerNode, i;
 
 	i = addedNodes.length;
@@ -75,7 +75,7 @@ Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
 		if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 			if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
 			containerNode = addedNode.uid || Utility.getContainer(parentNode);
-			Jenie.view.add(addedNode, containerNode);
+			Ure.view.add(addedNode, containerNode);
 		}
 	}
 
@@ -85,40 +85,40 @@ Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
 		if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 			if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
 			containerNode = removedNode.uid || Utility.getContainer(parentNode);
-			Jenie.view.remove(removedNode, containerNode);
+			Ure.view.remove(removedNode, containerNode);
 		}
 	}
 
 });
 
-Jenie.model.handler(function (data, path) {
+Ure.model.handler(function (data, path) {
 	var paths = path.split('.');
 	var uid = paths[0];
 	var pattern = paths.slice(1).join('.');
 	var type = data === undefined ? 'unrender' : 'render';
-	Jenie.view.eachBinder(uid, pattern, function (binder) {
+	Ure.view.eachBinder(uid, pattern, function (binder) {
 		binder[type]();
 	});
 });
 
-Jenie.router.handler(function (route) {
+Ure.router.handler(function (route) {
 	if (route.title) document.title = route.title;
 	if (route.url && !(route.component in this.cache)) {
-		Jenie.loader.load(route.url.constructor === Object ? route.url : {
+		Ure.loader.load(route.url.constructor === Object ? route.url : {
 			url: route.url
 		}, function () {
-			Jenie.router.render(route);
+			Ure.router.render(route);
 		});
 	} else {
-		Jenie.router.render(route);
+		Ure.router.render(route);
 	}
 });
 
-Jenie.view.run();
-Jenie.model.run();
+Ure.view.run();
+Ure.model.run();
 
 if (eIndex) {
-	Jenie.loader.load({ url: eIndex });
+	Ure.loader.load({ url: eIndex });
 }
 
-export default Jenie;
+export default Ure;

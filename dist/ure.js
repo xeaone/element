@@ -1,76 +1,29 @@
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-	typeof define === 'function' && define.amd ? define('Jenie', factory) :
-	(global.Jenie = factory());
+	typeof define === 'function' && define.amd ? define('Ure', factory) :
+	(global.Ure = factory());
 }(this, (function () { 'use strict';
 
-	var counter = 0;
+	var COUNT = 0;
 
 	function Uid () {
-		return (Date.now().toString(36) + (counter++).toString(36));
+		return (Date.now().toString(36) + (COUNT++).toString(36));
 	}
 
 	function Component (options) {
-		var self = this;
-
-		options = options || {};
-
-		if (!options.name) {
-			throw new Error('Component requires name');
-		}
-
-		if (!options.html && !options.query && !options.element) {
-			throw new Error('Component requires html, query, or element');
-		}
-
-		self.name = options.name;
-		self.view = options.view;
-		self.model = options.model;
-		self.style = options.style;
-		self.events = options.events;
-		self.global = options.global;
-		self.shadow = options.shadow;
-		self.modifiers = options.modifiers;
-		self.currentScript = (document._currentScript || document.currentScript);
-
-		self.template = self.createTemplate(options);
-
-		self.proto = Object.create(HTMLElement.prototype);
-		self.proto.attachedCallback = options.attached;
-		self.proto.detachedCallback = options.detached;
-		self.proto.attributeChangedCallback = options.attributed;
-
-		self.proto.createdCallback = function () {
-			var element = this;
-
-			element.uid = Uid();
-			element.isBinded = false;
-
-			// add to view
-			self.global.view.data[element.uid] = {};
-			element.view = self.global.view.data[element.uid];
-
-			if (self.model) element.model = self.global.model.data.$set(element.uid, self.model)[element.uid];
-			if (self.events) element.events = self.global.events.data[element.uid] = self.events;
-			if (self.modifiers) element.modifiers = self.global.modifiers.data[element.uid] = self.modifiers;
-
-			// might want to handle default slot
-			// might want to overwrite content
-			self.replaceSlots(element, self.template);
-
-			if (self.shadow) {
-				element.createShadowRoot().appendChild(document.importNode(self.template.content, true));
-			} else {
-				element.appendChild(document.importNode(self.template.content, true));
-			}
-
-			if (options.created) options.created.call(element);
-		};
-
-		self.define();
+		this.currentScript = (document._currentScript || document.currentScript);
+		this.setup(options);
 	}
 
-	Component.prototype.replaceSlots = function (element, html) {
+	Component.prototype.setup = function (options) {
+		options = options || {};
+		this.view = options.view;
+		this.model = options.model;
+		this.events = options.events;
+		this.modifiers = options.modifiers;
+	};
+
+	Component.prototype._slots = function (element, html) {
 		var eSlots = element.querySelectorAll('[slot]');
 		for (var i = 0, l = eSlots.length; i < l; i++) {
 			var eSlot = eSlots[i];
@@ -80,35 +33,77 @@
 		}
 	};
 
-	Component.prototype.createTemplate = function (options) {
+	Component.prototype._template = function (data) {
 		var template;
-		if (options.html) {
+		if (data.html) {
 			template = document.createElement('template');
-			template.innerHTML = options.html;
-		} else if (options.query) {
-			template = self.currentScript.ownerDocument.querySelector(options.query);
+			template.innerHTML = data.html;
+		} else if (data.query) {
+			template = self.currentScript.ownerDocument.querySelector(data.query);
 			if (template.nodeType !== 'TEMPLATE') {
 				template = document.createElement('template');
-				template.content.appendChild(options.element);
+				template.content.appendChild(data.element);
 			}
-		} else if (options.element) {
-			if (options.element.nodeType === 'TEMPLATE') {
-				template = options.element;
+		} else if (data.element) {
+			if (data.element.nodeType === 'TEMPLATE') {
+				template = data.element;
 			} else {
 				template = document.createElement('template');
-				template.content.appendChild(options.element);
+				template.content.appendChild(data.element);
 			}
 		}
-		// else if (options.url) {
+		// else if (data.url) {
 		//
 		// }
 		return template;
 	};
 
-	Component.prototype.define = function () {
-		document.registerElement(this.name, {
-			prototype: this.proto
+	Component.prototype._define = function (name, proto) {
+		document.registerElement(name, {
+			prototype: proto
 		});
+	};
+
+	Component.prototype.define = function (data) {
+		var self = this;
+
+		if (!data.name) throw new Error('Component requires name');
+		if (!data.html && !data.query && !data.element) throw new Error('Component requires html, query, or element');
+
+		data.proto = Object.create(HTMLElement.prototype);
+		data.proto.attachedCallback = data.attached;
+		data.proto.detachedCallback = data.detached;
+		data.proto.attributeChangedCallback = data.attributed;
+		data.template = self._template(data);
+
+		data.proto.createdCallback = function () {
+			var element = this;
+
+			element.uid = Uid();
+			element.isBinded = false;
+			element.view = self.view.data[element.uid] = {};
+
+			if (data.model) element.model = self.model.data.$set(element.uid, data.model)[element.uid];
+			if (data.events) element.events = self.events.data[element.uid] = data.events;
+			if (data.modifiers) element.modifiers = self.modifiers.data[element.uid] = data.modifiers;
+
+			// might want to handle default slot
+			// might want to overwrite content
+			self._slots(element, data.template);
+
+			if (data.shadow) {
+				element.createShadowRoot().appendChild(document.importNode(data.template.content, true));
+			} else {
+				element.appendChild(document.importNode(data.template.content, true));
+			}
+
+			if (data.created) {
+				data.created.call(element);
+			}
+
+		};
+
+		self._define(data.name, data.proto);
 	};
 
 	var Utility = {
@@ -147,9 +142,12 @@
 			return collection[keys[last]];
 		},
 		removeChildren: function (element) {
-			while (element.lastElementChild) {
-				element.removeChild(element.lastElementChild);
-			}
+			var self = this, child;
+			Ure.batcher.write(function () {
+				while (child = element.lastElementChild) {
+					element.removeChild(child);
+				}
+			});
 		},
 		joinSlash: function () {
 			return Array.prototype.join
@@ -179,6 +177,79 @@
 		// 		});
 		// 	}, Promise.resolve());
 		// }
+	};
+
+	function Batcher () {
+		this.reads = [];
+		this.writes = [];
+		this.rafCount = 0;
+		this.fps = 1000/60;
+		this.pending = false;
+	}
+
+	// Adds a task to the read batch
+	Batcher.prototype.read = function (method, context) {
+		var task = context ? method.bind(context) : method;
+		this.reads.push(task);
+		this.tick();
+	};
+
+
+	// Adds a task to the write batch
+	Batcher.prototype.write = function (method, context) {
+		var task = context ? method.bind(context) : method;
+		this.writes.push(task);
+		this.tick();
+	};
+
+	// Schedules a new read/write batch if one isn't pending.
+	Batcher.prototype.tick = function () {
+		if (!this.pending) {
+			this.pending = true;
+			this.flush();
+		}
+	};
+
+	Batcher.prototype.flush = function () {
+		var self = this;
+		window.requestAnimationFrame(function (readsStartTime) {
+			self.run(self.reads, function () {
+				window.requestAnimationFrame(function (writesStartTime) {
+					self.run(self.writes, function () {
+						self.pending = false;
+					}, writesStartTime);
+				});
+			}, readsStartTime);
+		});
+	};
+
+	Batcher.prototype.run = function (tasks, callback, start) {
+		if (tasks.length) {
+			var end;
+			var task = tasks.shift();
+
+			do {
+				task();
+				task = tasks.shift();
+				end = window.performance.now();
+			} while (task && end - start < this.fps);
+
+			window.requestAnimationFrame(this.run.bind(this, tasks, callback));
+		} else {
+			if (callback) {
+				callback();
+			}
+		}
+	};
+
+	// Clears a pending 'read' or 'write' task
+	Batcher.prototype.clear = function (task) {
+		return this.remove(this.reads, task) || this.remove(this.writes, task);
+	};
+
+	Batcher.prototype.remove = function (tasks, task) {
+		var index = tasks.indexOf(task);
+		return !!~index && !!tasks.splice(index, 1);
 	};
 
 	function Events () {
@@ -235,9 +306,10 @@
 
 	Router.prototype.setup = function (options) {
 		options = options || {};
+		this.handler = options.handler;
 		this.external = options.external;
 		this.routes = options.routes || [];
-		this.view = options.view || 'j-view';
+		this.view = options.view || 'u-view';
 		this.base = this.createBase(options.base);
 		this.container = options.container || document.body;
 		this.hash = options.hash === undefined ? false : options.hash;
@@ -439,23 +511,21 @@
 	};
 
 	Router.prototype.render = function (route) {
-		Utility.removeChildren(this.view);
+		var self = this, child, component;
 
-		var component = this.cache[route.component];
+		component = self.cache[route.component];
 		if (!component) {
-			component = this.cache[route.component] = document.createElement(route.component);
+			component = self.cache[route.component] = document.createElement(route.component);
 			component.inRouterCache = false;
 			component.isRouterComponent = true;
 		}
 
-		this.view.appendChild(component);
-
-		this.scroll(0, 0);
-		this.emit('navigated');
-	};
-
-	Router.prototype.handler = function (callback) {
-		this._handler = callback;
+		Ure.batcher.write(function () {
+			while (child = self.view.firstChild) self.view.removeChild(child);
+			self.view.appendChild(component);
+			self.scroll(0, 0);
+			self.emit('navigated');
+		});
 	};
 
 	Router.prototype.navigate = function (data, replace) {
@@ -473,21 +543,14 @@
 
 		window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.title, this.state.location.href);
 
-		// if (this.state.route.redirect) {
-		// 	this.redirect(this.state.route.redirect);
-		// } else {
-		// 	this.render(this.state.route, function () {
-		// 		if (!replace) this.scroll(0, 0);
-		// 		this.emit('navigated');
-		// 	});
-		// }
-
 		if (this.state.route.handler) {
 			this.state.route.handler(this.state.route);
 		} else if (this.state.route.redirect) {
 			this.redirect(this.state.route.redirect);
 		} else {
-			this._handler(this.state.route);
+			if (this.handler) {
+				this.handler(this.state.route);
+			}
 		}
 
 	};
@@ -497,6 +560,7 @@
 	};
 
 	Router.prototype.click = function (e) {
+		// TODO might need to filter for container
 		var self = this;
 
 		if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -516,7 +580,7 @@
 		// check non acceptable attributes and href
 		if (target.hasAttribute('download') ||
 			target.hasAttribute('external') ||
-			target.hasAttribute('j-external') ||
+			target.hasAttribute('u-external') ||
 			// target.hasAttribute('target') ||
 			target.href.indexOf('mailto:') !== -1 ||
 			target.href.indexOf('file:') !== -1 ||
@@ -532,10 +596,13 @@
 	Router.prototype.run = function () {
 		if (this.isRan) return;
 		else this.isRan = true;
+
 		this.view = this.container.querySelector(this.view);
-		if (!this.view) throw new Error('Router requires j-view element');
-		this.container.addEventListener('click', this.click.bind(this));
-		window.addEventListener('popstate', this.popstate.bind(this));
+		if (!this.view) throw new Error('Router requires u-view element');
+		// this.container.addEventListener('click', this.click.bind(this));
+		Ure._.clicks.push(this.click.bind(this));
+		Ure._.popstates.push(this.popstate.bind(this));
+
 		this.navigate(window.location.href, true);
 	};
 
@@ -552,10 +619,7 @@
 		_updateIndex: function (value, index) {
 			return index + value.length-1;
 		},
-
-		/*
-		*	NOTE: double backtick in strings or regex could possibly cause issues
-		*/
+		// NOTE: double backtick in strings or regex could possibly causes issues
 		template: function (data) {
 			var first = data.indexOf('`');
 			var second = data.indexOf('`', first+1);
@@ -1056,23 +1120,20 @@
 	Model.prototype.setup = function (options) {
 		options = options || {};
 		this.data = options.data || {};
+		this.handler = options.handler;
 		this.container = options.container || document.body;
 		return this;
-	};
-
-	Model.prototype.handler = function (callback) {
-		this._handler = callback;
 	};
 
 	Model.prototype.overwrite = function (data) {
 		Observer(
 			this.data = data,
-			this._handler
+			this.handler
 		);
 	};
 
 	Model.prototype.inputListener = function (element) {
-		var value = element.getAttribute('j-value');
+		var value = element.getAttribute('u-value');
 		if (value) {
 			var i, l;
 			var path = value.replace(/(^(\w+\.?)+).*/, '$1');
@@ -1092,7 +1153,7 @@
 				}
 				Utility.setByPath(this.data[uid], path, values);
 			} else if (element.type === 'radio') {
-				var elements = element.parentNode.querySelectorAll('input[type="radio"][j-value="' + path + '"]');
+				var elements = element.parentNode.querySelectorAll('input[type="radio"][u-value="' + path + '"]');
 				for (i = 0, l = elements.length; i < l; i++) {
 					var radio = elements[i];
 					if (radio === element) {
@@ -1107,6 +1168,16 @@
 		}
 	};
 
+	Model.prototype.input = function (e) {
+		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.nodeName !== 'SELECT') {
+			this.inputListener.call(this, e.target);
+		}
+	};
+
+	Model.prototype.change = function (e) {
+		this.inputListener.call(this, e.target);
+	};
+
 	Model.prototype.run = function () {
 		var self = this;
 
@@ -1115,19 +1186,11 @@
 
 		Observer(
 			self.data,
-			self._handler
+			self.handler
 		);
 
-		self.container.addEventListener('input', function (e) {
-			if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.nodeName !== 'SELECT') {
-				self.inputListener.call(self, e.target);
-			}
-		}, true);
-
-		self.container.addEventListener('change', function (e) {
-			self.inputListener.call(self, e.target);
-		}, true);
-
+		Ure._.inputs.push(this.input.bind(this));
+		Ure._.changes.push(this.change.bind(this));
 	};
 
 	var OnceBinder = {
@@ -1146,7 +1209,6 @@
 					data[key].push.apply(null, value);
 				}
 			}
-
 		},
 		type: {
 			value: function (element, attribute, data) {
@@ -1169,7 +1231,7 @@
 						}
 					}
 				} else if (element.type === 'radio') {
-					var elements = element.parentNode.querySelectorAll('input[type="radio"][j-value="' + attribute.value + '"]');
+					var elements = element.parentNode.querySelectorAll('input[type="radio"][u-value="' + attribute.value + '"]');
 					for (i = 0, l = elements.length; i < l; i++) {
 						var radio = elements[i];
 						radio.checked = i === data;
@@ -1192,9 +1254,8 @@
 		this.events = this.container.events;
 		this.modifiers = this.container.modifiers;
 		this.type = this.attribute.cmds[0] || 'default';
-		this.renderType = this.attribute.cmds[0] || 'default';
 
-		if (this.renderType === 'on') {
+		if (this.type === 'on') {
 			this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 		} else {
 			this._data = this.attribute.parentPath ? Utility.getByPath(this.model, this.attribute.parentPath) : this.model;
@@ -1210,9 +1271,7 @@
 				}
 			});
 
-			if (this.type in this.setup) {
-				this.setup[this.type].call(this);
-			}
+			this.setup();
 		}
 
 		this.render();
@@ -1226,15 +1285,14 @@
 		return data;
 	};
 
-	Binder.prototype.setup = {
+	Binder.prototype.setupMethods = {
 		each: function () {
+			this.count = 0;
 			this.pattern = /\$INDEX/g;
 			this.variable = this.attribute.cmds[1];
-			var child = this.element.firstElementChild;
-			if (this.element.children.length === 0) throw new Error('Binder j-each requires a child element');
 			this.clone = this.element.removeChild(this.element.firstElementChild);
 			this.clone = this.clone.outerHTML.replace(
-				new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'),
+				new RegExp('((?:data-)?u-.*?=")' + this.variable + '(.*?")', 'g'),
 				'$1' + this.attribute.path + '.$INDEX$2'
 			);
 		}
@@ -1246,18 +1304,14 @@
 			this.element.addEventListener(this.attribute.cmds[1], data);
 		},
 		each: function (data) {
-			if (this.element.children.length > data.length) {
-				while (this.element.children.length > data.length) {
-					this.element.removeChild(this.element.lastElementChild);
-				}
-			} else if (this.element.children.length < data.length) {
-				var html = '';
-				var index = this.element.children.length;
-				var count = data.length - this.element.children.length;
-				while (count--) {
-					html += this.clone.replace(this.pattern, index++); // .replace('$index', index);
-				}
-				this.element.insertAdjacentHTML('beforeend', html);
+			if (this.count > data.length) {
+				this.element.removeChild(this.element.lastElementChild);
+				this.count--;
+				this.render();
+			} else if (this.count < data.length) {
+				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.count));
+				this.count++;
+				this.render();
 			}
 		},
 		html: function (data) {
@@ -1330,15 +1384,24 @@
 		}
 	};
 
+	Binder.prototype.setup = function () {
+		if (this.type in this.setupMethods) {
+			this.setupMethods[this.type].call(this, this.data);
+			// INDEX.batcher.write(this.setupMethods[this.type].bind(this, this.data));
+		}
+	};
+
 	Binder.prototype.unrender = function () {
-		this.unrenderMethods[this.renderType].call(this, this.data);
+		if (this.type in this.unrenderMethods) {
+			Ure.batcher.write(this.unrenderMethods[this.type].bind(this, this.data));
+		}
 		return this;
 	};
 
 	Binder.prototype.render = function () {
-		// var data = this.renderType === 'on' ? this.data : this.getData();
-		// if (this.data === undefined) return;
-		this.renderMethods[this.renderType].call(this, this.data);
+		if (this.type in this.renderMethods) {
+			Ure.batcher.write(this.renderMethods[this.type].bind(this, this.data));
+		}
 		return this;
 	};
 
@@ -1350,6 +1413,7 @@
 	View.prototype.setup = function (options) {
 		options = options || {};
 		this.data = options.data || {};
+		this.handler = options.handler;
 		this.container = options.container || document.body;
 		return this;
 	};
@@ -1357,20 +1421,20 @@
 	View.prototype.PATH = /\s?\|.*/;
 	View.prototype.PARENT_KEY = /^.*\./;
 	View.prototype.PARENT_PATH = /\.\w+$|^\w+$/;
-	View.prototype.PREFIX = /(data-)?j-/;
+	View.prototype.PREFIX = /(data-)?u-/;
 	View.prototype.MODIFIERS = /^.*?\|\s?/;
-	View.prototype.IS_ACCEPT_PATH = /(data-)?j-.*/;
-	View.prototype.IS_REJECT_PATH = /(data-)?j-value.*/;
+	View.prototype.IS_ACCEPT_PATH = /(data-)?u-.*/;
+	View.prototype.IS_REJECT_PATH = /(data-)?u-value.*/;
 
 	View.prototype.isOnce = function (node) {
-		return node.hasAttribute('j-value')
-			|| node.hasAttribute('data-j-value');
+		return node.hasAttribute('u-value')
+			|| node.hasAttribute('data-u-value');
 	};
 
 	View.prototype.isSkip = function (node) {
 		return node.nodeName === 'J-VIEW'
-			|| node.hasAttribute('j-view')
-			|| node.hasAttribute('data-j-view');
+			|| node.hasAttribute('u-view')
+			|| node.hasAttribute('data-u-view');
 	};
 
 	View.prototype.isSkipChildren = function (node) {
@@ -1385,7 +1449,7 @@
 		var attributes = node.attributes;
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
-			if (attribute.name.indexOf('j-') === 0 || attribute.name.indexOf('data-j-') === 0) {
+			if (attribute.name.indexOf('u-') === 0 || attribute.name.indexOf('data-u-') === 0) {
 				return true;
 			}
 		}
@@ -1393,7 +1457,7 @@
 	};
 
 	View.prototype.isAcceptAttribute = function (attribute) {
-		return attribute.name.indexOf('j-') === 0 || attribute.name.indexOf('data-j-') === 0;
+		return attribute.name.indexOf('u-') === 0 || attribute.name.indexOf('data-u-') === 0;
 	};
 
 	View.prototype.createAttribute = function (name, value) {
@@ -1513,27 +1577,19 @@
 		});
 	};
 
-	View.prototype.handler = function (callback) {
-		this._handler = callback;
+	View.prototype.observer = function (mutations) {
+			var i = mutations.length;
+			while (i--) {
+				this.handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
+			}
 	};
 
 	View.prototype.run = function () {
-		var self = this;
-		
-		if (self.isRan) return;
-		else self.isRan = true;
+		if (this.isRan) return;
+		else this.isRan = true;
 
-		self.add(self.container);
-
-		self.observer = new window.MutationObserver(function (mutations) {
-			var i = mutations.length;
-			while (i--) {
-				self._handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
-			}
-		}).observe(this.container, {
-			childList: true,
-			subtree: true
-		});
+		this.add(this.container);
+		Ure._.observers.push(this.observer.bind(this));
 	};
 
 	function Http (options) {
@@ -1641,66 +1697,92 @@
 
 	};
 
-	/*
-		@banner
-		name: jenie
-		version: 1.7.1
-		license: mpl-2.0
-		author: alexander elias
-		This Source Code Form is subject to the terms of the Mozilla Public
-		License, v. 2.0. If a copy of the MPL was not distributed with this
-		file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	*/
+	window.requestAnimationFrame(function () {
+		var eScript = (document._currentScript || document.currentScript);
+		// var eINDEX = eScript.getAttribute('u-INDEX');
+		var eStyle = document.createElement('style');
+		var sStyle = document.createTextNode('u-view, u-view > :first-child { display: block; }');
+		// if (eINDEX) INDEX.loader.load({ url: eINDEX });
+		eStyle.setAttribute('title', 'Ure');
+		eStyle.setAttribute('type', 'text/css');
+		eStyle.appendChild(sStyle);
+		document.head.insertBefore(eStyle, eScript);
+		document.registerElement('u-view', { prototype: Object.create(HTMLElement.prototype) });
+	});
 
-	var eScript = (document._currentScript || document.currentScript);
-	var eIndex = eScript.getAttribute('j-index');
-	var eStyle = document.createElement('style');
-	var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
+	// TODO add auth handler
 
-	eStyle.setAttribute('title', 'Jenie');
-	eStyle.setAttribute('type', 'text/css');
-	eStyle.appendChild(sStyle);
-	document.head.insertBefore(eStyle, eScript);
-	document.registerElement('j-view', { prototype: Object.create(HTMLElement.prototype) });
+	var Ure = {};
 
-	var Jenie = {
-		container: document.body,
-		events: { data: {} },
-		modifiers: { data: {} },
-		http: new Http(),
-		view: new View(),
-		model: new Model(),
-		loader: new Loader(),
-		router: new Router(),
-		setup: function (options) {
-			options = (typeof options === 'function' ? options.call(this) : options) || {};
-			if (options.http) this.http.setup(options.http);
-			if (options.view) this.view.setup(options.view);
-			if (options.model) this.model.setup(options.model);
-			if (options.loader) this.loader.setup(options.loader);
-			if (options.router) this.router.setup(options.router);
-			this.loader.run();
-			this.router.run();
-		},
-		component: function (options) {
-			options.global = Jenie;
-			return new Component(options);
-		},
-		script: function () {
-			return (document._currentScript || document.currentScript);
-		},
-		document: function () {
-			return (document._currentScript || document.currentScript).ownerDocument;
-		},
-		element: function (name) {
-			return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
-		},
-		query: function (query) {
-			return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
+	Ure.container = document.body;
+
+	Ure._ = {};
+	Ure.location = {};
+	Ure.events = { data: {} };
+	Ure.modifiers = { data: {} };
+
+	Ure.http = new Http();
+	Ure.view = new View();
+	Ure.model = new Model();
+	Ure.loader = new Loader();
+	Ure.router = new Router();
+	Ure.batcher = new Batcher();
+	Ure.component = new Component();
+
+	Ure._ = {};
+	Ure._.clicks = [];
+	Ure._.inputs = [];
+	Ure._.changes = [];
+	Ure._.popstates = [];
+	Ure._.observers = [];
+
+	Ure.script = function () {
+		return (document._currentScript || document.currentScript);
+	};
+
+	Ure.document = function () {
+		return (document._currentScript || document.currentScript).ownerDocument;
+	};
+
+	Ure.element = function (name) {
+		return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
+	};
+
+	Ure.query = function (query) {
+		return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
+	};
+
+	Ure.setup = function (options) {
+		options = (typeof options === 'function' ? options.call(this) : options) || {};
+
+		options.http = options.http || {};
+		options.loader = options.loader || {};
+		options.router = options.router || {};
+
+		options.router.handler = this._.routerHandler;
+
+		this.http.setup(options.http);
+		this.loader.setup(options.loader);
+		this.router.setup(options.router);
+
+		this.loader.run();
+		this.router.run();
+	};
+
+	Ure._.routerHandler = function (route) {
+		if (route.title) document.title = route.title;
+		if (route.url && !(route.component in this.cache)) {
+			Ure.loader.load(route.url.constructor === Object ? route.url : {
+				url: route.url
+			}, function () {
+				Ure.router.render(route);
+			});
+		} else {
+			Ure.router.render(route);
 		}
 	};
 
-	Jenie.view.handler(function (addedNodes, removedNodes, parentNode) {
+	Ure._.viewHandler = function (addedNodes, removedNodes, parentNode) {
 		var addedNode, removedNode, containerNode, i;
 
 		i = addedNodes.length;
@@ -1709,7 +1791,7 @@
 			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 				if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
 				containerNode = addedNode.uid || Utility.getContainer(parentNode);
-				Jenie.view.add(addedNode, containerNode);
+				Ure.view.add(addedNode, containerNode);
 			}
 		}
 
@@ -1719,42 +1801,73 @@
 			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 				if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
 				containerNode = removedNode.uid || Utility.getContainer(parentNode);
-				Jenie.view.remove(removedNode, containerNode);
+				Ure.view.remove(removedNode, containerNode);
 			}
 		}
 
-	});
+	};
 
-	Jenie.model.handler(function (data, path) {
+	Ure._.modelHandler = function (data, path) {
 		var paths = path.split('.');
 		var uid = paths[0];
 		var pattern = paths.slice(1).join('.');
 		var type = data === undefined ? 'unrender' : 'render';
-		Jenie.view.eachBinder(uid, pattern, function (binder) {
+		Ure.view.eachBinder(uid, pattern, function (binder) {
 			binder[type]();
 		});
+	};
+
+	Ure._.input = Ure.container.addEventListener('input', function (e) {
+		Ure._.inputs.forEach(function (_input) {
+			_input(e);
+		});
+	}, true);
+
+	Ure._.change = Ure.container.addEventListener('change', function (e) {
+		Ure._.changes.forEach(function (_change) {
+			_change(e);
+		});
+	}, true);
+
+	Ure._.click = Ure.container.addEventListener('click', function (e) {
+		Ure._.clicks.forEach(function (_click) {
+			_click(e);
+		});
+	}, true);
+
+	Ure._.popstate = Ure.container.addEventListener('popstate', function (e) {
+		Ure._.popstates.forEach(function (_popstate) {
+			_popstate(e);
+		});
+	}, true);
+
+	Ure._.observer = new window.MutationObserver(function (mutations) {
+		Ure._.observers.forEach(function (_observer) {
+			_observer(mutations);
+		});
+	}).observe(Ure.container, {
+		childList: true,
+		subtree: true
 	});
 
-	Jenie.router.handler(function (route) {
-		if (route.title) document.title = route.title;
-		if (route.url && !(route.component in this.cache)) {
-			Jenie.loader.load(route.url.constructor === Object ? route.url : {
-				url: route.url
-			}, function () {
-				Jenie.router.render(route);
-			});
-		} else {
-			Jenie.router.render(route);
-		}
+	Ure.component.setup({
+		view: Ure.view,
+		model: Ure.model,
+		events: Ure.events,
+		modifiers: Ure.modifiers
 	});
 
-	Jenie.view.run();
-	Jenie.model.run();
+	Ure.view.setup({
+		handler: Ure._.viewHandler
+	});
 
-	if (eIndex) {
-		Jenie.loader.load({ url: eIndex });
-	}
+	Ure.model.setup({
+		handler: Ure._.modelHandler
+	});
 
-	return Jenie;
+	Ure.view.run();
+	Ure.model.run();
+
+	return Ure;
 
 })));

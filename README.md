@@ -1,6 +1,8 @@
 **Beta API Can Change**
 
-# Jenie
+**Name Change From Jenie To Ure**
+
+# Ure
 A mighty tinny web components framework/library.
 
 
@@ -27,19 +29,19 @@ Loader uses `XHR` and `new Function` to load on-demand and execute modules. If y
 
 
 ## Install
-- `npm install jenie --save`
-- UMD `dist/jenie.min.js`
-- UMD with Web Component Pollyfill `dist/jenie.polly.min.js`
+- `npm install ure --save`
+- UMD `dist/ure.min.js`
+- UMD with Web Component Pollyfill `dist/ure.polly.min.js`
 - Web Component Pollyfill `dist/webcomponents-lite.min.js`
 
 
 ## Example
 
 ```js
-	Jenie.component.define({
+	Ure.component.define({
 		name: 'v-home',
 		html: `
-			<h1 j-text="title"></h1>
+			<h1 u-text="title"></h1>
 		`,
 		model: {
 			title: 'Old Title'
@@ -51,7 +53,7 @@ Loader uses `XHR` and `new Function` to load on-demand and execute modules. If y
 ```
 
 ```js
-Jenie.setup({
+Ure.setup({
 	http: {
 		request: function (opt, xhr) {
 			return true; // false will cancel the http.fetch
@@ -87,7 +89,7 @@ Jenie.setup({
 <html>
 <head>
 	<base href="/">
-	<script src="jenie.min.js" defer></script>
+	<script src="ure.min.js" defer></script>
 	<script src="index.js" defer></script>
 </head>
 <body>
@@ -96,7 +98,7 @@ Jenie.setup({
 			<li><a href="/home">Home</a></li>
 		</ul>
 	</c-menu>
-	<j-view></j-view>
+	<u-view></u-view>
 </body>
 </html>
 ```
@@ -104,45 +106,45 @@ Jenie.setup({
 ## API
 
 
-### Jenie.setup(options)
-The recommend entry point. This allows you to setup Jenie and automatically starts the router
+### Ure.setup(options)
+The recommend entry point. This allows you to setup Ure and automatically starts the router
 - `options: Object`
-	- `http: Object` Jenie.http options.
-	- `loader: Object` Jenie.loader options.
-	- `router: Object` Jenie.router options.
+	- `http: Object` Ure.http options.
+	- `loader: Object` Ure.loader options.
+	- `router: Object` Ure.router options.
 
 
-### Jenie.component
+### Ure.component
 - `define: Function` Defines a custom web component
 	- `options: Object`
 		- `name: String` **Required** the tag name
 		- `html: String` An HTML string
 		- `query: String` An querySelector
 		- `template: Element` A Element
-		- `model: Object<Any>` See Jenie.controller.model
-		- `events: Object<Function>` See Jenie.controller.events
-		- `modifiers: Object<Function>` See Jenie.controller.modifiers
+		- `model: Object<Any>` See Ure.controller.model
+		- `events: Object<Function>` See Ure.controller.events
+		- `modifiers: Object<Function>` See Ure.controller.modifiers
 		- `created: Function` Triggered once on creation
 		- `attached: Function` Triggered on each DOM attachment
 		- `detached: Function` Triggered on each DOM detachment
 		- `attributed: Function` Triggered attribute change
 
 
-### Jenie.router
+### Ure.router
 - `options: Object`
 	- `hash: Boolean` Hash URL mode. Default is false.
 	- `trailing: Boolean` Trailing slash. Default is false.
 	- `external: String, RegExp, Function` Filters URL requests. If true or match Router will not handle request.
-	- `container: Element` Sets the event listeners for HREFs to the container. Default is window. Jenie use event delegation
+	- `container: Element` Sets the event listeners for HREFs to the container. Default is window. Ure use event delegation
 	- `routes: Array`
 		- `route: Object`
 			- `path: String` Any path.
 				- `parameters: String` Named '/account/{user}', or catchalls '{\*}'
 			- `title: String` The title for the page
 			- `component: String` The name of a component
-			- `url: Object, String` URL path to JS web-component or a Jenie.loader.load Object
+			- `url: Object, String` URL path to JS web-component or a Ure.loader.load Object
 
-- `run: Function` Must be called after <j-view></j-view> is created
+- `run: Function` Must be called after <u-view></u-view> is created
 - `redirect: Function` Uses window.location.href which is treated like a 301 redirect for SEO
 - `add: Function`
 	- `path: String`
@@ -157,7 +159,7 @@ The recommend entry point. This allows you to setup Jenie and automatically star
 - `on: EventEmitter`
 	- `navigated: Event`
 
-### Jenie.loader
+### Ure.loader
 ES6 import and export module support. Imports must be absolute from the domain. Also `export default` is the only export format supported. Please do not use Loader.interpret to handle user input.
 - `options: Object`
 	- `esm: Boolean` Enables ES6 module re-writes
@@ -169,7 +171,7 @@ ES6 import and export module support. Imports must be absolute from the domain. 
 			- `esm: Boolean` Enables ES6 module re-writes on an individual bases
 			- `est: Boolean` Enables ES6 template string re-writes on an individual bases
 
-### Jenie.http
+### Ure.http
 - `options: Object`
 	- `request: Function` Intercepts the request. If the return value is false the fetch will not be triggered
 		- `options: Object`
@@ -211,18 +213,18 @@ ES6 import and export module support. Imports must be absolute from the domain. 
 			- `withCredentials: Boolean`
 			- `headers: Object` A low level headers object it will map directly to the XHR header. The Will overwrite any above options.
 
-### Jenie.global
+### Ure.global
 A global object for you.
 
-### Jenie.query(String: querySelector)
+### Ure.query(String: querySelector)
 The result of a querySelector in the **current** document `document.currentScript.ownerDocument.querySelector()`
 
 - Returns: `document.currentScript.ownerDocument.querySelector()`
 
-### Jenie.script()
+### Ure.script()
 - Returns: `document.currentScript`
 
-### Jenie.document()
+### Ure.document()
 - Returns: `document.currentScript.ownerDocument`
 
 

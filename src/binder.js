@@ -49,7 +49,7 @@ Binder.prototype.setupMethods = {
 		this.variable = this.attribute.cmds[1];
 		this.clone = this.element.removeChild(this.element.firstElementChild)
 		this.clone = this.clone.outerHTML.replace(
-			new RegExp('((?:data-)?j-.*?=")' + this.variable + '(.*?")', 'g'),
+			new RegExp('((?:data-)?u-.*?=")' + this.variable + '(.*?")', 'g'),
 			'$1' + this.attribute.path + '.$INDEX$2'
 		);
 	}

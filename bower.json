@@ -1,7 +1,7 @@
 {
-	"name": "jenie",
+	"name": "ure",
 	"description": "Web Components Framework & Library",
-	"main": "dist/jenie.min.js",
+	"main": "dist/ure.min.js",
 	"authors": [
 		"Alexander Elias"
 	],
@@ -21,7 +21,7 @@
 	"router",
 	"front-end"
 	],
-	"homepage": "https://github.com/AlexanderElias/jenie",
+	"homepage": "https://github.com/AlexanderElias/ure",
 	"ignore": [
 		"**/.*",
 		"node_modules",

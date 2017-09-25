@@ -12,10 +12,10 @@ var model = {
 		{ it: { val: 1 } },
 		{ it: { val: 2 } }
 	],
-	html: '<h3 j-text="text"></h3>'
+	html: '<h3 u-text="text"></h3>'
 };
 
-Jenie.component({
+Ure.component.define({
 	name: 'v-test',
 	model: model,
 	modifiers: {
@@ -37,65 +37,65 @@ Jenie.component({
 
 		window.SELF = self;
 
-		// setTimeout(function () {
-		// 	var increaseInterval = setInterval(function () {
-		//
-		// 		if (self.model.items.length === 100) {
-		// 			clearInterval(increaseInterval);
-		//
-		// 			var decreaseInterval = setInterval(function () {
-		//
-		// 				if (self.model.items.length === 5) {
-		// 					clearInterval(decreaseInterval);
-		// 				}
-		//
-		// 				self.model.items.pop();
-		// 			}, 10);
-		//
-		// 		}
-		//
-		// 		self.model.items.push({ it: { val: self.model.items.length } });
-		//
-		// 	}, 10);
-		// }, 1000);
+		setTimeout(function () {
+			var increaseInterval = setInterval(function () {
+
+				if (self.model.items.length === 100) {
+					clearInterval(increaseInterval);
+
+					var decreaseInterval = setInterval(function () {
+
+						if (self.model.items.length === 5) {
+							clearInterval(decreaseInterval);
+						}
+
+						self.model.items.pop();
+					}, 10);
+
+				}
+
+				self.model.items.push({ it: { val: self.model.items.length } });
+
+			}, 10);
+		}, 1000);
 
 	},
 	html: `
 		<style>
-			[j-each-item] {
+			[u-each-item] {
 				min-height: 150px;
 			}
 		</style>
 
-		<p j-text="text | upper"></p>
-		<p j-text="text | lower"></p>
-		<input type="text" j-value="text | lower" placeholder="text">
-		<input type="text" j-value="text | upper" placeholder="text">
+		<p u-text="text | upper"></p>
+		<p u-text="text | lower"></p>
+		<input type="text" u-value="text | lower" placeholder="text">
+		<input type="text" u-value="text | upper" placeholder="text">
 
 		<br>
 		<br>
 
-		<div j-text="isChecked"></div>
-		<input type="checkbox" j-value="isChecked">
+		<div u-text="isChecked"></div>
+		<input type="checkbox" u-value="isChecked">
 
 		<br>
 		<br>
 
-		<div j-text="initiallyNotOnModel">initiallyNotOnModel</div>
-		<input type="checkbox" j-value="initiallyNotOnModel">
+		<div u-text="initiallyNotOnModel">initiallyNotOnModel</div>
+		<input type="checkbox" u-value="initiallyNotOnModel">
 
 		<br>
 		<br>
 
-		<div j-text="numRadio"></div>
-		<input type="radio" j-value="numRadio">
-		<input type="radio" j-value="numRadio">
+		<div u-text="numRadio"></div>
+		<input type="radio" u-value="numRadio">
+		<input type="radio" u-value="numRadio">
 
 		<br>
 		<br>
 
-		<div j-text="car"></div>
-		<select j-value="car">
+		<div u-text="car"></div>
+		<select u-value="car">
 			<option value="audi">Audi</option>
 			<option value="saab">Saab</option>
 			<option value="volvo" selected>Volvo</option>
@@ -105,8 +105,8 @@ Jenie.component({
 		<br>
 		<br>
 
-		<div j-text="cars"></div>
-		<select j-value="cars" multiple>
+		<div u-text="cars"></div>
+		<select u-value="cars" multiple>
 			<option value="audi">Audi</option>
 			<option value="saab" selected>Saab</option>
 			<option value="volvo">Volvo</option>
@@ -116,17 +116,17 @@ Jenie.component({
 		<br>
 		<br>
 
-		<input type="text" j-value="items.0.it.val">
-		<div j-each-item="items">
+		<input type="text" u-value="items.0.it.val">
+		<div u-each-item="items">
 			<span>
-				<span j-on-click="foo" j-text="item.it.val"></span>
+				<span u-on-click="foo" u-text="item.it.val"></span>
 				<span>,</span>
 			</span>
 		</div>
 
 
-		<button j-on-click="say">Say Alert</button>
-		<input type="text" j-value="nope">
+		<button u-on-click="say">Say Alert</button>
+		<input type="text" u-value="nope">
 		<input type="button" value="button">
 		<input type="reset" value="reset">
 
@@ -153,6 +153,6 @@ Jenie.component({
 			</li>
 		</ul>
 
-		<div j-html="html"></div>
+		<div u-html="html"></div>
 	`
 });

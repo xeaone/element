@@ -38,7 +38,7 @@ export default {
 					}
 				}
 			} else if (element.type === 'radio') {
-				var elements = element.parentNode.querySelectorAll('input[type="radio"][j-value="' + attribute.value + '"]');
+				var elements = element.parentNode.querySelectorAll('input[type="radio"][u-value="' + attribute.value + '"]');
 				for (i = 0, l = elements.length; i < l; i++) {
 					var radio = elements[i];
 					radio.checked = i === data;

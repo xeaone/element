@@ -1,5 +1,5 @@
 
-Jenie.setup({
+Ure.setup({
 	loader: {
 		esm: true,
 		est: true,

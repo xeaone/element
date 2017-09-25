@@ -7,62 +7,50 @@ import Model from './model';
 import View from './view';
 import Http from './http';
 
-window.requestAnimationFrame(function () {
-	var eScript = (document._currentScript || document.currentScript);
-	// var eINDEX = eScript.getAttribute('j-INDEX');
-	var eStyle = document.createElement('style');
-	var sStyle = document.createTextNode('j-view, j-view > :first-child { display: block; }');
-	// if (eINDEX) INDEX.loader.load({ url: eINDEX });
-	eStyle.setAttribute('title', 'Jenie');
-	eStyle.setAttribute('type', 'text/css');
-	eStyle.appendChild(sStyle);
-	document.head.insertBefore(eStyle, eScript);
-	document.registerElement('j-view', { prototype: Object.create(HTMLElement.prototype) });
-});
-
 // TODO add auth handler
 
-var Jenie = {};
+var Ure = {};
 
-Jenie.container = document.body;
+Ure.container = document.body;
+Ure.currentScript = (document._currentScript || document.currentScript);
 
-Jenie._ = {};
-Jenie.location = {};
-Jenie.events = { data: {} };
-Jenie.modifiers = { data: {} };
+Ure._ = {};
+Ure.location = {};
+Ure.events = { data: {} };
+Ure.modifiers = { data: {} };
 
-Jenie.http = new Http();
-Jenie.view = new View();
-Jenie.model = new Model();
-Jenie.loader = new Loader();
-Jenie.router = new Router();
-Jenie.batcher = new Batcher();
-Jenie.component = new Component();
+Ure.http = new Http();
+Ure.view = new View();
+Ure.model = new Model();
+Ure.loader = new Loader();
+Ure.router = new Router();
+Ure.batcher = new Batcher();
+Ure.component = new Component();
 
-Jenie._ = {};
-Jenie._.clicks = [];
-Jenie._.inputs = [];
-Jenie._.changes = [];
-Jenie._.popstates = [];
-Jenie._.observers = [];
+Ure._ = {};
+Ure._.clicks = [];
+Ure._.inputs = [];
+Ure._.changes = [];
+Ure._.popstates = [];
+Ure._.observers = [];
 
-Jenie.script = function () {
+Ure.script = function () {
 	return (document._currentScript || document.currentScript);
 };
 
-Jenie.document = function () {
+Ure.document = function () {
 	return (document._currentScript || document.currentScript).ownerDocument;
 };
 
-Jenie.element = function (name) {
+Ure.element = function (name) {
 	return (document._currentScript || document.currentScript).ownerDocument.createElement(name);
 };
 
-Jenie.query = function (query) {
+Ure.query = function (query) {
 	return (document._currentScript || document.currentScript).ownerDocument.querySelector(query);
 };
 
-Jenie.setup = function (options) {
+Ure.setup = function (options) {
 	options = (typeof options === 'function' ? options.call(this) : options) || {};
 
 	options.http = options.http || {};
@@ -79,20 +67,20 @@ Jenie.setup = function (options) {
 	this.router.run();
 };
 
-Jenie._.routerHandler = function (route) {
+Ure._.routerHandler = function (route) {
 	if (route.title) document.title = route.title;
 	if (route.url && !(route.component in this.cache)) {
-		Jenie.loader.load(route.url.constructor === Object ? route.url : {
+		Ure.loader.load(route.url.constructor === Object ? route.url : {
 			url: route.url
 		}, function () {
-			Jenie.router.render(route);
+			Ure.router.render(route);
 		});
 	} else {
-		Jenie.router.render(route);
+		Ure.router.render(route);
 	}
 };
 
-Jenie._.viewHandler = function (addedNodes, removedNodes, parentNode) {
+Ure._.viewHandler = function (addedNodes, removedNodes, parentNode) {
 	var addedNode, removedNode, containerNode, i;
 
 	i = addedNodes.length;
@@ -101,7 +89,7 @@ Jenie._.viewHandler = function (addedNodes, removedNodes, parentNode) {
 		if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 			if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
 			containerNode = addedNode.uid || Utility.getContainer(parentNode);
-			Jenie.view.add(addedNode, containerNode);
+			Ure.view.add(addedNode, containerNode);
 		}
 	}
 
@@ -111,71 +99,83 @@ Jenie._.viewHandler = function (addedNodes, removedNodes, parentNode) {
 		if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 			if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
 			containerNode = removedNode.uid || Utility.getContainer(parentNode);
-			Jenie.view.remove(removedNode, containerNode);
+			Ure.view.remove(removedNode, containerNode);
 		}
 	}
 
 };
 
-Jenie._.modelHandler = function (data, path) {
+Ure._.modelHandler = function (data, path) {
 	var paths = path.split('.');
 	var uid = paths[0];
 	var pattern = paths.slice(1).join('.');
 	var type = data === undefined ? 'unrender' : 'render';
-	Jenie.view.eachBinder(uid, pattern, function (binder) {
+	Ure.view.eachBinder(uid, pattern, function (binder) {
 		binder[type]();
 	});
 };
 
-Jenie._.input = Jenie.container.addEventListener('input', function (e) {
-	Jenie._.inputs.forEach(function (_input) {
+Ure._.input = Ure.container.addEventListener('input', function (e) {
+	Ure._.inputs.forEach(function (_input) {
 		_input(e);
 	});
 }, true);
 
-Jenie._.change = Jenie.container.addEventListener('change', function (e) {
-	Jenie._.changes.forEach(function (_change) {
+Ure._.change = Ure.container.addEventListener('change', function (e) {
+	Ure._.changes.forEach(function (_change) {
 		_change(e);
 	});
 }, true);
 
-Jenie._.click = Jenie.container.addEventListener('click', function (e) {
-	Jenie._.clicks.forEach(function (_click) {
+Ure._.click = Ure.container.addEventListener('click', function (e) {
+	Ure._.clicks.forEach(function (_click) {
 		_click(e);
 	});
 }, true);
 
-Jenie._.popstate = Jenie.container.addEventListener('popstate', function (e) {
-	Jenie._.popstates.forEach(function (_popstate) {
+Ure._.popstate = Ure.container.addEventListener('popstate', function (e) {
+	Ure._.popstates.forEach(function (_popstate) {
 		_popstate(e);
 	});
 }, true);
 
-Jenie._.observer = new window.MutationObserver(function (mutations) {
-	Jenie._.observers.forEach(function (_observer) {
+Ure._.observer = new window.MutationObserver(function (mutations) {
+	Ure._.observers.forEach(function (_observer) {
 		_observer(mutations);
 	});
-}).observe(Jenie.container, {
+}).observe(Ure.container, {
 	childList: true,
 	subtree: true
 });
 
-Jenie.component.setup({
-	view: Jenie.view,
-	model: Jenie.model,
-	events: Jenie.events,
-	modifiers: Jenie.modifiers
+Ure.component.setup({
+	view: Ure.view,
+	model: Ure.model,
+	events: Ure.events,
+	modifiers: Ure.modifiers
 });
 
-Jenie.view.setup({
-	handler: Jenie._.viewHandler
+Ure.view.setup({
+	handler: Ure._.viewHandler
 });
 
-Jenie.model.setup({
-	handler: Jenie._.modelHandler
+Ure.model.setup({
+	handler: Ure._.modelHandler
 });
 
-Jenie.view.run();
-Jenie.model.run();
+Ure.view.run();
+Ure.model.run();
 
-export default Jenie;
+window.requestAnimationFrame(function () {
+	var eStyle = document.createElement('style');
+	var sStyle = document.createTextNode('u-view, u-view > :first-child { display: block; }');
+	eStyle.setAttribute('title', 'Ure');
+	eStyle.setAttribute('type', 'text/css');
+	eStyle.appendChild(sStyle);
+	document.head.insertBefore(eStyle, Ure.currentScript);
+	document.registerElement('u-view', { prototype: Object.create(HTMLElement.prototype) });
+	var eIndex = Ure.currentScript.getAttribute('u-index');
+	if (eIndex) Ure.loader.load({ url: eIndex });
+});
+
+export default Ure;

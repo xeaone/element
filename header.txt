@@ -1,6 +1,6 @@
 /*
 	@banner
-	Name: Jenie
+	Name: Ure
 	Version: 1.8.0
 	License: MPL-2.0
 	Author: Alexander Elias

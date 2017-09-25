@@ -1,11 +1,11 @@
 
-Jenie.component.define({
+Ure.component.define({
 	name: 'v-js',
 	model: {
 		text: 'Hello from js test'
 	},
 	html: `
-		<p j-text="text"></p>
+		<p u-text="text"></p>
 		<div>
 			<slot name="one"></slot>
 			<slot name="two"></slot>

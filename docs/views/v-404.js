@@ -1,5 +1,5 @@
 
-Jenie.component({
+Ure.component.define({
 	name: 'v-404',
 	html: `
 		<h1>404</h1>
