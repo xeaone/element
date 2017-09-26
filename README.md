@@ -4,7 +4,7 @@
 A mighty tinny web components framework/library.
 
 
-## Featoxes
+## Features
 - Really Small 8.09KB gzipped and 27.08KB uncompressed
 - In browser ES6/ESM module and template strings support
 
@@ -65,8 +65,7 @@ Oxe.setup({
 		est: true, // Enables ES6 template string re-writes support
 		loads: [
 			{
-				url: '/components/c-menu.js',
-				execute: true // Since this component is not a module/route or imported we must execute.
+				url: '/components/e-menu.js'
 			}
 		]
 	},
@@ -91,11 +90,11 @@ Oxe.setup({
 	<script src="index.js" defer></script>
 </head>
 <body>
-	<c-menu>
+	<e-menu>
 		<ul>
 			<li><a href="/home">Home</a></li>
 		</ul>
-	</c-menu>
+	</e-menu>
 	<o-view></o-view>
 </body>
 </html>
@@ -165,7 +164,6 @@ ES6 import and export module support. Imports must be absolute from the domain. 
 	- `loads: Array<Object, String>` Adds load objects or strings such as non route components
 		- `load: Object, String`
 			- `url: String` Path to a web component JS url
-			- `execute: Boolean` Enable this to load and define/register custom components
 			- `esm: Boolean` Enables ES6 module re-writes on an individual bases
 			- `est: Boolean` Enables ES6 template string re-writes on an individual bases
 

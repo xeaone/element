@@ -125,7 +125,7 @@ Loader.prototype.normalizeUrl = function (url) {
 Loader.prototype.handleImports = function (ast) {
 	for (var i = 0, l = ast.imports.length; i < l; i++) {
 		ast.imports[i].url = this.normalizeUrl(ast.imports[i].url);
-		ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = Loader.modules[\'' + ast.imports[i].url + '\']');
+		ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = $L.modules[\'' + ast.imports[i].url + '\']');
 	}
 };
 
@@ -147,7 +147,7 @@ Loader.prototype.toAst = function (data) {
 Loader.prototype.interpret = function (data) {
 	data = '\'use strict\';\n\n' + data;
 	return (function(d, l, w) { 'use strict';
-		return new Function('Loader', 'window', d)(l, w);
+		return new Function('$L', 'window', d)(l, w);
 	}(data, this, window));
 };
 
@@ -176,7 +176,6 @@ Loader.prototype.load = function (data, callback) {
 					listener: function () {
 						if (++meta.count === meta.total) {
 							self.modules[d.url] = self.interpret(ast.cooked);
-							if (data.execute) self.modules[d.url]();
 							if (callback) callback();
 						}
 					}

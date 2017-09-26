@@ -67,6 +67,8 @@ Oxe.component.define({
 			}
 		</style>
 
+		<e-menu></e-menu>
+
 		<p o-text="text | upper"></p>
 		<p o-text="text | lower"></p>
 		<input type="text" o-value="text | lower" placeholder="text">

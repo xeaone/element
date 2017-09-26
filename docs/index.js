@@ -6,7 +6,7 @@ Oxe.setup({
 		base: true,
 		loads: [
 			{
-				url: 'say.js'
+				url: 'elements/e-menu.js'
 			}
 		]
 	},
