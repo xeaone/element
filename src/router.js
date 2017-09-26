@@ -262,11 +262,11 @@ Router.prototype.navigate = function (data, replace) {
 		};
 	} else {
 		// this.state = data;
-		this.title = data;
-		this.route = data;
-		this.query = data;
-		this.location = data;
-		this.parameters = data;
+		this.title = data.title;
+		this.route = data.route;
+		this.query = data.query;
+		this.location = data.location;
+		this.parameters = data.parameters;
 	}
 
 	window.history[replace ? 'replaceState' : 'pushState'](data, this.title, this.location.href);
