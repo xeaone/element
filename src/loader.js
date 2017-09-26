@@ -170,7 +170,8 @@ Loader.prototype.load = function (data, callback) {
 					listener: function () {
 						if (++meta.count === meta.total) {
 							meta.interpreted = self.interpret(ast.cooked);
-							if (data.execute) meta.interpreted();
+							self.modules[d.url] = meta.interpreted;
+							if (data.execute) meta.interpreted(); // TODO this might not be needed now that we have the above code
 							if (callback) callback();
 						}
 					}

@@ -53,24 +53,24 @@ Oxe.query = function (query) {
 };
 
 Oxe.setup = function (options) {
-	options = (typeof options === 'function' ? options.call(this) : options) || {};
+	options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
 
 	// options.auth = options.auth || {};
 	options.http = options.http || {};
 	options.loader = options.loader || {};
 	options.router = options.router || {};
 
-	// options.auth.http = this.http;
-	// options.auth.router = this.router;
-	options.router.handler = this._.routerHandler;
+	// options.auth.http = Oxe.http;
+	// options.auth.router = Oxe.router;
+	options.router.handler = Oxe._.routerHandler;
 
-	// this.auth.setup(options.auth);
-	this.http.setup(options.http);
-	this.loader.setup(options.loader);
-	this.router.setup(options.router);
+	// Oxe.auth.setup(options.auth);
+	Oxe.http.setup(options.http);
+	Oxe.loader.setup(options.loader);
+	Oxe.router.setup(options.router);
 
-	this.loader.run();
-	this.router.run();
+	Oxe.loader.run();
+	Oxe.router.run();
 };
 
 Oxe._.routerHandler = function (route) {

@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 1.9.5
+	Version: 1.9.6
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -305,9 +305,13 @@
 
 	function Router (options) {
 		Events.call(this);
-		this.state = {};
+		this.title = '';
 		this.cache = {};
+		this.route = {};
+		this.query = {};
 		this.location = {};
+		this.parameters = {};
+		this.component = null;
 		this.isRan = false;
 		this.setup(options);
 	}
@@ -525,6 +529,7 @@
 		var self = this, child, component;
 
 		component = self.cache[route.component];
+
 		if (!component) {
 			component = self.cache[route.component] = document.createElement(route.component);
 			component.inRouterCache = false;
@@ -542,25 +547,38 @@
 	Router.prototype.navigate = function (data, replace) {
 
 		if (typeof data === 'string') {
-			this.state.location = this.getLocation(data);
-			this.state.route = this.find(this.state.location.pathname) || {};
-			this.state.query = this.toQueryObject(this.state.location.search) || {};
-			this.state.parameters = this.toParameterObject(this.state.route.path || '', this.state.location.pathname) || {};
-			this.state.title = this.state.route.title || '';
-			this.location = this.state.location;
+			this.location = this.getLocation(data);
+			this.route = this.find(this.location.pathname) || {};
+			this.query = this.toQueryObject(this.location.search) || {};
+			this.parameters = this.toParameterObject(this.route.path || '', this.location.pathname) || {};
+			this.component = this.route.component;
+			this.title = this.route.title || '';
+			data = {
+				title: this.title,
+				route: this.route,
+				query: this.query,
+				location: this.location,
+				parameters: this.parameters,
+				component: this.route.component
+			};
 		} else {
-			this.state = data;
+			// this.state = data;
+			this.title = data;
+			this.route = data;
+			this.query = data;
+			this.location = data;
+			this.parameters = data;
 		}
 
-		window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.title, this.state.location.href);
+		window.history[replace ? 'replaceState' : 'pushState'](data, this.title, this.location.href);
 
-		if (this.state.route.handler) {
-			this.state.route.handler(this.state.route);
-		} else if (this.state.route.redirect) {
-			this.redirect(this.state.route.redirect);
+		if (this.route.handler) {
+			this.route.handler(this.route);
+		} else if (this.route.redirect) {
+			this.redirect(this.route.redirect);
 		} else {
 			if (this.handler) {
-				this.handler(this.state.route);
+				this.handler(this.route);
 			}
 		}
 
@@ -600,7 +618,7 @@
 		) return;
 
 		e.preventDefault();
-		if (this.state.location.href === target.href) return;
+		if (this.location.href === target.href) return;
 		self.navigate(target.href);
 	};
 
@@ -845,7 +863,8 @@
 						listener: function () {
 							if (++meta.count === meta.total) {
 								meta.interpreted = self.interpret(ast.cooked);
-								if (data.execute) meta.interpreted();
+								self.modules[d.url] = meta.interpreted;
+								if (data.execute) meta.interpreted(); // TODO this might not be needed now that we have the above code
 								if (callback) callback();
 							}
 						}
@@ -1759,24 +1778,24 @@
 	};
 
 	Oxe.setup = function (options) {
-		options = (typeof options === 'function' ? options.call(this) : options) || {};
+		options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
 
 		// options.auth = options.auth || {};
 		options.http = options.http || {};
 		options.loader = options.loader || {};
 		options.router = options.router || {};
 
-		// options.auth.http = this.http;
-		// options.auth.router = this.router;
-		options.router.handler = this._.routerHandler;
+		// options.auth.http = Oxe.http;
+		// options.auth.router = Oxe.router;
+		options.router.handler = Oxe._.routerHandler;
 
-		// this.auth.setup(options.auth);
-		this.http.setup(options.http);
-		this.loader.setup(options.loader);
-		this.router.setup(options.router);
+		// Oxe.auth.setup(options.auth);
+		Oxe.http.setup(options.http);
+		Oxe.loader.setup(options.loader);
+		Oxe.router.setup(options.router);
 
-		this.loader.run();
-		this.router.run();
+		Oxe.loader.run();
+		Oxe.router.run();
 	};
 
 	Oxe._.routerHandler = function (route) {

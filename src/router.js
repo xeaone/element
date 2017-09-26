@@ -4,9 +4,13 @@ import INDEX from './index';
 
 export default function Router (options) {
 	Events.call(this);
-	this.state = {};
+	this.title = '';
 	this.cache = {};
+	this.route = {};
+	this.query = {};
 	this.location = {};
+	this.parameters = {};
+	this.component = null;
 	this.isRan = false;
 	this.setup(options);
 }
@@ -224,6 +228,7 @@ Router.prototype.render = function (route) {
 	var self = this, child, component;
 
 	component = self.cache[route.component];
+
 	if (!component) {
 		component = self.cache[route.component] = document.createElement(route.component);
 		component.inRouterCache = false;
@@ -241,25 +246,38 @@ Router.prototype.render = function (route) {
 Router.prototype.navigate = function (data, replace) {
 
 	if (typeof data === 'string') {
-		this.state.location = this.getLocation(data);
-		this.state.route = this.find(this.state.location.pathname) || {};
-		this.state.query = this.toQueryObject(this.state.location.search) || {};
-		this.state.parameters = this.toParameterObject(this.state.route.path || '', this.state.location.pathname) || {};
-		this.state.title = this.state.route.title || '';
-		this.location = this.state.location;
+		this.location = this.getLocation(data);
+		this.route = this.find(this.location.pathname) || {};
+		this.query = this.toQueryObject(this.location.search) || {};
+		this.parameters = this.toParameterObject(this.route.path || '', this.location.pathname) || {};
+		this.component = this.route.component;
+		this.title = this.route.title || '';
+		data = {
+			title: this.title,
+			route: this.route,
+			query: this.query,
+			location: this.location,
+			parameters: this.parameters,
+			component: this.route.component
+		};
 	} else {
-		this.state = data;
+		// this.state = data;
+		this.title = data;
+		this.route = data;
+		this.query = data;
+		this.location = data;
+		this.parameters = data;
 	}
 
-	window.history[replace ? 'replaceState' : 'pushState'](this.state, this.state.title, this.state.location.href);
+	window.history[replace ? 'replaceState' : 'pushState'](data, this.title, this.location.href);
 
-	if (this.state.route.handler) {
-		this.state.route.handler(this.state.route);
-	} else if (this.state.route.redirect) {
-		this.redirect(this.state.route.redirect);
+	if (this.route.handler) {
+		this.route.handler(this.route);
+	} else if (this.route.redirect) {
+		this.redirect(this.route.redirect);
 	} else {
 		if (this.handler) {
-			this.handler(this.state.route);
+			this.handler(this.route);
 		}
 	}
 
@@ -299,7 +317,7 @@ Router.prototype.click = function (e) {
 	) return;
 
 	e.preventDefault();
-	if (this.state.location.href === target.href) return;
+	if (this.location.href === target.href) return;
 	self.navigate(target.href);
 };
 
