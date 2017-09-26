@@ -1378,6 +1378,9 @@
 		href: function (data) {
 			this.element.href = data;
 		},
+		src: function (data) {
+			this.element.src = data;
+		},
 		default: function () { //data
 			// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
 		}
@@ -1402,6 +1405,12 @@
 		},
 		text: function () {
 			this.element.innerText = '';
+		},
+		href: function () {
+			this.element.href = '';
+		},
+		src: function () {
+			this.element.src = '';
 		},
 		default: function () {
 
