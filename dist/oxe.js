@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 1.9.3
+	Version: 1.9.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -339,7 +339,7 @@
 				document.head.insertBefore(element, document.head.firstChild);
 			}
 
-			if (typeof base === 'string') {
+			if (base && typeof base === 'string') {
 				element.href = base;
 			}
 
@@ -1299,12 +1299,12 @@
 	Binder.prototype.setupMethods = {
 		each: function () {
 			this.count = 0;
-			this.pattern = /\$INDEX/g;
+			this.pattern = /\$index/g;
 			this.variable = this.attribute.cmds[1];
 			this.clone = this.element.removeChild(this.element.firstElementChild);
 			this.clone = this.clone.outerHTML.replace(
 				new RegExp('((?:data-)?o-.*?=")' + this.variable + '(.*?")', 'g'),
-				'$1' + this.attribute.path + '.$INDEX$2'
+				'$1' + this.attribute.path + '.$index$2'
 			);
 		}
 	};
@@ -1315,13 +1315,17 @@
 			this.element.addEventListener(this.attribute.cmds[1], data);
 		},
 		each: function (data) {
-			if (this.count > data.length) {
+			if (this.element.children.length > data.length) {
+			// if (this.count > data.length) {
 				this.element.removeChild(this.element.lastElementChild);
-				this.count--;
+				// this.element.removeChild(this.element.lastElementChild);
+				// this.count--;
 				this.render();
-			} else if (this.count < data.length) {
-				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.count));
-				this.count++;
+			} else if (this.element.children.length < data.length) {
+			// } else if (this.count < data.length) {
+				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
+				// this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.count));
+				// this.count++;
 				this.render();
 			}
 		},
@@ -1708,6 +1712,8 @@
 
 	};
 
+	// import Auth from './auth';
+
 	// TODO add auth handler
 
 	var Oxe = {};
@@ -1720,6 +1726,7 @@
 	Oxe.events = { data: {} };
 	Oxe.modifiers = { data: {} };
 
+	// Oxe.auth = new Auth();
 	Oxe.http = new Http();
 	Oxe.view = new View();
 	Oxe.model = new Model();
@@ -1754,12 +1761,16 @@
 	Oxe.setup = function (options) {
 		options = (typeof options === 'function' ? options.call(this) : options) || {};
 
+		// options.auth = options.auth || {};
 		options.http = options.http || {};
 		options.loader = options.loader || {};
 		options.router = options.router || {};
 
+		// options.auth.http = this.http;
+		// options.auth.router = this.router;
 		options.router.handler = this._.routerHandler;
 
+		// this.auth.setup(options.auth);
 		this.http.setup(options.http);
 		this.loader.setup(options.loader);
 		this.router.setup(options.router);
@@ -1770,7 +1781,7 @@
 
 	Oxe._.routerHandler = function (route) {
 		if (route.title) document.title = route.title;
-		if (route.url && !(route.component in this.cache)) {
+		if (route.url && !(route.component in Oxe.router.cache)) {
 			Oxe.loader.load(route.url.constructor === Object ? route.url : {
 				url: route.url
 			}, function () {
@@ -1873,7 +1884,7 @@
 		eStyle.setAttribute('title', 'Oxe');
 		eStyle.setAttribute('type', 'text/css');
 		eStyle.appendChild(sStyle);
-		document.head.insertBefore(eStyle, Oxe.currentScript);
+		document.head.appendChild(eStyle);
 		document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
 		var eIndex = Oxe.currentScript.getAttribute('o-index');
 		if (eIndex) Oxe.loader.load({ url: eIndex });
