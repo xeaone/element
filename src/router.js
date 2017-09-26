@@ -38,7 +38,7 @@ Router.prototype.createBase = function (base) {
 			document.head.insertBefore(element, document.head.firstChild);
 		}
 
-		if (typeof base === 'string') {
+		if (base && typeof base === 'string') {
 			element.href = base;
 		}
 

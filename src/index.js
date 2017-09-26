@@ -6,6 +6,7 @@ import Loader from './loader';
 import Model from './model';
 import View from './view';
 import Http from './http';
+// import Auth from './auth';
 
 // TODO add auth handler
 
@@ -19,6 +20,7 @@ Oxe.location = {};
 Oxe.events = { data: {} };
 Oxe.modifiers = { data: {} };
 
+// Oxe.auth = new Auth();
 Oxe.http = new Http();
 Oxe.view = new View();
 Oxe.model = new Model();
@@ -53,12 +55,16 @@ Oxe.query = function (query) {
 Oxe.setup = function (options) {
 	options = (typeof options === 'function' ? options.call(this) : options) || {};
 
+	// options.auth = options.auth || {};
 	options.http = options.http || {};
 	options.loader = options.loader || {};
 	options.router = options.router || {};
 
+	// options.auth.http = this.http;
+	// options.auth.router = this.router;
 	options.router.handler = this._.routerHandler;
 
+	// this.auth.setup(options.auth);
 	this.http.setup(options.http);
 	this.loader.setup(options.loader);
 	this.router.setup(options.router);
@@ -69,7 +75,7 @@ Oxe.setup = function (options) {
 
 Oxe._.routerHandler = function (route) {
 	if (route.title) document.title = route.title;
-	if (route.url && !(route.component in this.cache)) {
+	if (route.url && !(route.component in Oxe.router.cache)) {
 		Oxe.loader.load(route.url.constructor === Object ? route.url : {
 			url: route.url
 		}, function () {
@@ -172,7 +178,7 @@ window.requestAnimationFrame(function () {
 	eStyle.setAttribute('title', 'Oxe');
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(sStyle);
-	document.head.insertBefore(eStyle, Oxe.currentScript);
+	document.head.appendChild(eStyle);
 	document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
 	var eIndex = Oxe.currentScript.getAttribute('o-index');
 	if (eIndex) Oxe.loader.load({ url: eIndex });

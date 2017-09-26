@@ -45,12 +45,12 @@ Binder.prototype.modify = function (data) {
 Binder.prototype.setupMethods = {
 	each: function () {
 		this.count = 0;
-		this.pattern = /\$INDEX/g;
+		this.pattern = /\$index/g;
 		this.variable = this.attribute.cmds[1];
 		this.clone = this.element.removeChild(this.element.firstElementChild)
 		this.clone = this.clone.outerHTML.replace(
 			new RegExp('((?:data-)?o-.*?=")' + this.variable + '(.*?")', 'g'),
-			'$1' + this.attribute.path + '.$INDEX$2'
+			'$1' + this.attribute.path + '.$index$2'
 		);
 	}
 };
@@ -61,13 +61,17 @@ Binder.prototype.renderMethods = {
 		this.element.addEventListener(this.attribute.cmds[1], data);
 	},
 	each: function (data) {
-		if (this.count > data.length) {
+		if (this.element.children.length > data.length) {
+		// if (this.count > data.length) {
 			this.element.removeChild(this.element.lastElementChild);
-			this.count--;
+			// this.element.removeChild(this.element.lastElementChild);
+			// this.count--;
 			this.render();
-		} else if (this.count < data.length) {
-			this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.count));
-			this.count++;
+		} else if (this.element.children.length < data.length) {
+		// } else if (this.count < data.length) {
+			this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
+			// this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.count));
+			// this.count++;
 			this.render();
 		}
 	},
