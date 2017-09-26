@@ -553,11 +553,11 @@
 			};
 		} else {
 			// this.state = data;
-			this.title = data;
-			this.route = data;
-			this.query = data;
-			this.location = data;
-			this.parameters = data;
+			this.title = data.title;
+			this.route = data.route;
+			this.query = data.query;
+			this.location = data.location;
+			this.parameters = data.parameters;
 		}
 
 		window.history[replace ? 'replaceState' : 'pushState'](data, this.title, this.location.href);
@@ -777,12 +777,6 @@
 		}
 	};
 
-	Loader.prototype.interpret = function (data) {
-		return (function(d, l, w) { 'use strict';
-			return new Function('Loader', 'window', d)(l, w);
-		}(data, this, window));
-	};
-
 	Loader.prototype.getImports = function (data) {
 		var imp, imports = [];
 		var imps = data.match(this.patterns.imps) || [];
@@ -833,6 +827,13 @@
 		return ast;
 	};
 
+	Loader.prototype.interpret = function (data) {
+		data = '\'use strict\';\n\n' + data;
+		return (function(d, l, w) { 'use strict';
+			return new Function('Loader', 'window', d)(l, w);
+		}(data, this, window));
+	};
+
 	Loader.prototype.load = function (data, callback) {
 		var self = this;
 
@@ -840,11 +841,16 @@
 		data.url = self.normalizeUrl(data.url);
 		self.files[data.url] = data;
 
+		if (data.url in self.modules) {
+			return callback ? callback() : undefined;
+		}
+
 		self.getFile(data, function (d) {
-			if (self.est) d.text = Transformer.template(d.text);
-			var ast = self.toAst(d.text);
+			d.text = self.est ? Transformer.template(d.text) : d.text;
 
 			if (self.esm || data.esm) {
+				var ast = self.toAst(d.text);
+
 				if (ast.imports.length) {
 					var meta = {
 						count: 0,
@@ -852,9 +858,8 @@
 						total: ast.imports.length,
 						listener: function () {
 							if (++meta.count === meta.total) {
-								meta.interpreted = self.interpret(ast.cooked);
-								self.modules[d.url] = meta.interpreted;
-								if (data.execute) meta.interpreted(); // TODO this might not be needed now that we have the above code
+								self.modules[d.url] = self.interpret(ast.cooked);
+								if (data.execute) self.modules[d.url]();
 								if (callback) callback();
 							}
 						}
