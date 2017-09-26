@@ -1824,7 +1824,7 @@
 		});
 	}, true);
 
-	Oxe._.popstate = Oxe.container.addEventListener('popstate', function (e) {
+	Oxe._.popstate = window.addEventListener('popstate', function (e) {
 		Oxe._.popstates.forEach(function (_popstate) {
 			_popstate(e);
 		});

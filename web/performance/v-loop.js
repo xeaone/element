@@ -15,6 +15,13 @@ Oxe.component.define({
 			}
 		</style>
 
+		<!--
+			<div>
+				<span>Count Down: </span>
+				<span o-text="counter"></span>
+			</div>
+		-->
+
 		<div o-each-item="items">
 			<div class="box">
 				<div o-text="item.number"></div>
@@ -26,6 +33,7 @@ Oxe.component.define({
 		</div>
 	`,
 	model: {
+		// counter: 3,
 		items: [
 			{ number: 0 },
 		]
@@ -38,45 +46,25 @@ Oxe.component.define({
 	// },
 	created: function () {
 		var self = this;
+		var i = 0;
 
 		window.self = self;
 
+		// var counterInterval = setInterval(function () {
+		// 	if (!self.model.counter) clearInterval(counterInterval);
+		// 	else self.model.counter--;
+		// }, 1000);
+
 		setTimeout(function () {
-			for (var i = 0; i < 2600; i++) {
+			for (i; i < 2600; i++) {
 				self.model.items.push({ number: self.model.items.length });
 			}
+			setTimeout(function () {
+				for (i; i > 10; i--) {
+					self.model.items.pop();
+				}
+			}, 100);
 		}, 1000);
-
-		// setTimeout(function () {
-		// 	self.model.items.push({ number: self.model.items.length });
-		// 	setTimeout(function () {
-		// 		self.model.items.pop();
-		// 	}, 1000);
-		// }, 1000);
-
-		// setTimeout(function () {
-		//
-		// 	var increaseInterval = setInterval(function () {
-		//
-		// 		if (self.model.items.length === 2600) { // 2600
-		// 			clearInterval(increaseInterval);
-		//
-		// 			// var decreaseInterval = setInterval(function () {
-		// 			//
-		// 			// 	if (self.model.items.length === 5) {
-		// 			// 		clearInterval(decreaseInterval);
-		// 			// 	}
-		// 			//
-		// 			// 	self.model.items.pop();
-		// 			//
-		// 			// }, 0);
-		// 		}
-		//
-		// 		self.model.items.push({ number: self.model.items.length });
-		//
-		// 	}, 0);
-		//
-		// }, 1000);
 
 	}
 });

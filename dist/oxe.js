@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 1.9.2
+	Version: 1.9.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1834,7 +1834,7 @@
 		});
 	}, true);
 
-	Oxe._.popstate = Oxe.container.addEventListener('popstate', function (e) {
+	Oxe._.popstate = window.addEventListener('popstate', function (e) {
 		Oxe._.popstates.forEach(function (_popstate) {
 			_popstate(e);
 		});
