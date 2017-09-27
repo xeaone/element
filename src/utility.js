@@ -7,6 +7,26 @@ var Utility = {
 	// 		return next.toUpperCase();
 	// 	});
 	// },
+	createBase: function (base) {
+		base = base || '';
+
+		if (base) {
+			var element = document.head.querySelector('base');
+
+			if (!element) {
+				element = document.createElement('base');
+				document.head.insertBefore(element, document.head.firstChild);
+			}
+
+			if (base && typeof base === 'string') {
+				element.href = base;
+			}
+
+			base = element.href;
+		}
+
+		return base;
+	},
 	toText: function (data) {
 		if (data === null || data === undefined) return '';
 		if (typeof data === 'object') return JSON.stringify(data);

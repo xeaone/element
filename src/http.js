@@ -5,8 +5,8 @@ export default function Http (options) {
 
 Http.prototype.setup = function (options) {
 	options = options || {};
-	this.request = options.request;
-	this.response = options.response;
+	this.request = options.request === undefined ? this.request : options.request;
+	this.response = options.response === undefined ? this.response : options.response;
 	return this;
 };
 

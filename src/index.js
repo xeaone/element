@@ -8,17 +8,18 @@ import View from './view';
 import Http from './http';
 // import Auth from './auth';
 
-// TODO add auth handler
-
 var Oxe = {};
 
-Oxe.container = document.body;
+Oxe.win = window;
+Oxe.doc = document;
+Oxe.body = document.body;
+Oxe.head = document.head;
 Oxe.currentScript = (document._currentScript || document.currentScript);
 
-Oxe._ = {};
 Oxe.location = {};
 Oxe.events = { data: {} };
 Oxe.modifiers = { data: {} };
+Oxe.oView = Oxe.body.querySelector('o-view');
 
 // Oxe.auth = new Auth();
 Oxe.http = new Http();
@@ -53,37 +54,35 @@ Oxe.query = function (query) {
 };
 
 Oxe.setup = function (options) {
+	if (this.isSetup) return;
+	else this.isSetup = true;
+
 	options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
 
 	// options.auth = options.auth || {};
-	options.http = options.http || {};
-	options.loader = options.loader || {};
-	options.router = options.router || {};
-
 	// options.auth.http = Oxe.http;
 	// options.auth.router = Oxe.router;
-	options.router.handler = Oxe._.routerHandler;
-
 	// Oxe.auth.setup(options.auth);
-	Oxe.http.setup(options.http);
-	Oxe.loader.setup(options.loader);
-	Oxe.router.setup(options.router);
 
-	Oxe.loader.run();
-	Oxe.router.run();
-};
-
-Oxe._.routerHandler = function (route) {
-	if (route.title) document.title = route.title;
-	if (route.url && !(route.component in Oxe.router.cache)) {
-		Oxe.loader.load(route.url.constructor === Object ? route.url : {
-			url: route.url
-		}, function () {
-			Oxe.router.render(route);
-		});
-	} else {
-		Oxe.router.render(route);
+	if (options.http) {
+		Oxe.http.setup(options.http);
 	}
+
+	if (options.loader) {
+		Oxe.loader.setup(options.loader);
+		Oxe.loader.run();
+	}
+
+	if (options.router) {
+		Oxe._.clicks.push(Oxe.router.click.bind(Oxe.router));
+		Oxe._.popstates.push(Oxe.router.popstate.bind(Oxe.router));
+		options.router.loader = Oxe.loader;
+		options.router.batcher = Oxe.batcher;
+		Oxe.router.setup(options.router);
+		Oxe.router.run();
+	}
+
+	return this;
 };
 
 Oxe._.viewHandler = function (addedNodes, removedNodes, parentNode) {
@@ -121,35 +120,35 @@ Oxe._.modelHandler = function (data, path) {
 	});
 };
 
-Oxe._.input = Oxe.container.addEventListener('input', function (e) {
-	Oxe._.inputs.forEach(function (_input) {
-		_input(e);
+Oxe._.input = Oxe.win.addEventListener('input', function (e) {
+	Oxe._.inputs.forEach(function (input) {
+		input(e);
 	});
 }, true);
 
-Oxe._.change = Oxe.container.addEventListener('change', function (e) {
-	Oxe._.changes.forEach(function (_change) {
-		_change(e);
+Oxe._.change = Oxe.win.addEventListener('change', function (e) {
+	Oxe._.changes.forEach(function (change) {
+		change(e);
 	});
 }, true);
 
-Oxe._.click = Oxe.container.addEventListener('click', function (e) {
-	Oxe._.clicks.forEach(function (_click) {
-		_click(e);
+Oxe._.click = Oxe.win.addEventListener('click', function (e) {
+	Oxe._.clicks.forEach(function (click) {
+		click(e);
 	});
 }, true);
 
-Oxe._.popstate = window.addEventListener('popstate', function (e) {
-	Oxe._.popstates.forEach(function (_popstate) {
-		_popstate(e);
+Oxe._.popstate = Oxe.win.addEventListener('popstate', function (e) {
+	Oxe._.popstates.forEach(function (popstate) {
+		popstate(e);
 	});
 }, true);
 
 Oxe._.observer = new window.MutationObserver(function (mutations) {
-	Oxe._.observers.forEach(function (_observer) {
-		_observer(mutations);
+	Oxe._.observers.forEach(function (observer) {
+		observer(mutations);
 	});
-}).observe(Oxe.container, {
+}).observe(Oxe.body, {
 	childList: true,
 	subtree: true
 });
@@ -173,13 +172,13 @@ Oxe.view.run();
 Oxe.model.run();
 
 window.requestAnimationFrame(function () {
-	var eStyle = document.createElement('style');
-	var sStyle = document.createTextNode('o-view, o-view > :first-child { display: block; }');
+	var eStyle = Oxe.doc.createElement('style');
+	var sStyle = Oxe.doc.createTextNode('o-view, o-view > :first-child { display: block; }');
 	eStyle.setAttribute('title', 'Oxe');
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(sStyle);
-	document.head.appendChild(eStyle);
-	document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
+	Oxe.head.appendChild(eStyle);
+	Oxe.doc.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
 	var eIndex = Oxe.currentScript.getAttribute('o-index');
 	if (eIndex) Oxe.loader.load({ url: eIndex });
 });

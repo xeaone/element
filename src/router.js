@@ -4,6 +4,7 @@ import INDEX from './index';
 
 export default function Router (options) {
 	Events.call(this);
+
 	this.title = '';
 	this.cache = {};
 	this.route = {};
@@ -12,6 +13,13 @@ export default function Router (options) {
 	this.parameters = {};
 	this.component = null;
 	this.isRan = false;
+
+	this.routes = [];
+	this.hash = false;
+	this.trailing = false;
+	this.view = 'o-view';
+
+	this.base = Utility.createBase();
 	this.setup(options);
 }
 
@@ -20,36 +28,69 @@ Router.prototype.constructor = Router;
 
 Router.prototype.setup = function (options) {
 	options = options || {};
-	this.handler = options.handler;
-	this.external = options.external;
-	this.routes = options.routes || [];
-	this.view = options.view || 'o-view';
-	this.base = this.createBase(options.base);
-	this.container = options.container || document.body;
-	this.hash = options.hash === undefined ? false : options.hash;
-	this.trailing = options.trailing === undefined ? false : options.trailing;
+	this.view = options.view === undefined ? this.view: options.view;
+	this.hash = options.hash === undefined ? this.hash : options.hash;
+	this.routes = options.routes === undefined ? this.routes: options.routes;
+	this.loader = options.loader === undefined ? this.loader : options.loader;
+	this.batcher = options.batcher === undefined ? this.batcher: options.batcher;
+	// this.handler = options.handler === undefined ? this.handler: options.handler;
+	this.external = options.external === undefined ? this.external: options.external;
+	this.container = options.container === undefined ? this.container: options.container;
+	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
+	this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
 	return this;
 };
 
-Router.prototype.createBase = function (base) {
-	base = base || '';
+Router.prototype.popstate = function (e) {
+	this.navigate(e.state || window.location.href, true);
+};
 
-	if (base) {
-		var element = document.head.querySelector('base');
+Router.prototype.click = function (e) {
+	var self = this;
 
-		if (!element) {
-			element = document.createElement('base');
-			document.head.insertBefore(element, document.head.firstChild);
+	// if shadow dom use
+	var target = e.path ? e.path[0] : e.target;
+	var parent = target.parentNode;
+
+	if (self.container) {
+		while (parent) {
+			if (parent === self.container) {
+				break;
+			} else if (parent === document.body) {
+				return e.preventDefault();
+			} else {
+				parent = parent.parentNode;
+			}
 		}
-
-		if (base && typeof base === 'string') {
-			element.href = base;
-		}
-
-		base = element.href;
 	}
 
-	return base;
+	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+
+	// ensure target is anchor tag
+	while (target && 'A' !== target.nodeName) target = target.parentNode;
+	if (!target || 'A' !== target.nodeName) return;
+
+	// if external is true then default action
+	if (self.external && (
+		self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+		self.external.constructor.name === 'Function' && self.external(target.href) ||
+		self.external.constructor.name === 'String' && self.external === target.href
+	)) return;
+
+	// check non acceptable attributes and href
+	if (target.hasAttribute('download') ||
+		target.hasAttribute('external') ||
+		target.hasAttribute('o-external') ||
+		// target.hasAttribute('target') ||
+		target.href.indexOf('mailto:') !== -1 ||
+		target.href.indexOf('file:') !== -1 ||
+		target.href.indexOf('tel:') !== -1 ||
+		target.href.indexOf('ftp:') !== -1
+	) return;
+
+	e.preventDefault();
+	if (this.location.href === target.href) return;
+	self.navigate(target.href);
 };
 
 Router.prototype.testPath = function (routePath, userPath) {
@@ -59,52 +100,6 @@ Router.prototype.testPath = function (routePath, userPath) {
 		.replace(/{(\w+)}/g, '([^\/]+)')
 		+ '(\/)?$'
 	).test(userPath);
-};
-
-Router.prototype.scroll = function (x, y) {
-	window.scroll(x, y);
-};
-
-Router.prototype.back = function () {
-	window.history.back();
-};
-
-Router.prototype.redirect = function (path) {
-	window.location.href = path;
-};
-
-Router.prototype.add = function (route) {
-	if (route.constructor.name === 'Object') {
-		this.routes.push(route);
-	} else if (route.constructor.name === 'Array') {
-		this.routes = this.routes.concat(route);
-	}
-};
-
-Router.prototype.remove = function (path) {
-	for (var i = 0, l = this.routes.length; i < l; i++) {
-		if (path === this.routes[i].path) {
-			this.routes.splice(i, 1);
-		}
-	}
-};
-
-Router.prototype.get = function (path) {
-	for (var i = 0, l = this.routes.length; i < l; i++) {
-		var route = this.routes[i];
-		if (path === route.path) {
-			return route;
-		}
-	}
-};
-
-Router.prototype.find = function (path) {
-	for (var i = 0, l = this.routes.length; i < l; i++) {
-		var route = this.routes[i];
-		if (this.testPath(route.path, path)) {
-			return route;
-		}
-	}
 };
 
 Router.prototype.toParameterObject = function (routePath, userPath) {
@@ -224,8 +219,60 @@ Router.prototype.getLocation = function (path) {
 	return location;
 };
 
-Router.prototype.render = function (route) {
-	var self = this, child, component;
+Router.prototype.scroll = function (x, y) {
+	window.scroll(x, y);
+	return this;
+};
+
+Router.prototype.back = function () {
+	window.history.back();
+	return this;
+};
+
+Router.prototype.redirect = function (path) {
+	window.location.href = path;
+};
+
+Router.prototype.add = function (route) {
+	if (route.constructor.name === 'Object') {
+		this.routes.push(route);
+	} else if (route.constructor.name === 'Array') {
+		this.routes = this.routes.concat(route);
+	}
+	return this;
+};
+
+Router.prototype.remove = function (path) {
+	for (var i = 0, l = this.routes.length; i < l; i++) {
+		if (path === this.routes[i].path) {
+			this.routes.splice(i, 1);
+		}
+	}
+	return this;
+};
+
+Router.prototype.get = function (path) {
+	for (var i = 0, l = this.routes.length; i < l; i++) {
+		var route = this.routes[i];
+		if (path === route.path) {
+			return route;
+		}
+	}
+	return this;
+};
+
+Router.prototype.find = function (path) {
+	for (var i = 0, l = this.routes.length; i < l; i++) {
+		var route = this.routes[i];
+		if (this.testPath(route.path, path)) {
+			return route;
+		}
+	}
+	return this;
+};
+
+Router.prototype.addToBatcher = function (route) {
+	var self = this, component;
 
 	component = self.cache[route.component];
 
@@ -235,101 +282,75 @@ Router.prototype.render = function (route) {
 		component.isRouterComponent = true;
 	}
 
-	INDEX.batcher.write(function () {
+	self.batcher.write(function () {
+		var child;
 		while (child = self.view.firstChild) self.view.removeChild(child);
 		self.view.appendChild(component);
 		self.scroll(0, 0);
 		self.emit('navigated');
 	});
+
+	return this;
+};
+
+Router.prototype.render = function (route) {
+	var self = this;
+
+	if (route.title) document.title = route.title;
+	if (route.url && !(route.component in self.cache)) {
+		self.loader.load(route.url, function () {
+			self.addToBatcher(route);
+		});
+	} else {
+		self.addToBatcher(route);
+	}
 };
 
 Router.prototype.navigate = function (data, replace) {
-
-	if (typeof data === 'string') {
-		this.location = this.getLocation(data);
-		this.route = this.find(this.location.pathname) || {};
-		this.query = this.toQueryObject(this.location.search) || {};
-		this.parameters = this.toParameterObject(this.route.path || '', this.location.pathname) || {};
-		this.component = this.route.component;
-		this.title = this.route.title || '';
-		data = {
-			title: this.title,
-			route: this.route,
-			query: this.query,
-			location: this.location,
-			parameters: this.parameters,
-			component: this.route.component
-		};
-	} else {
-		// this.state = data;
-		this.title = data.title;
-		this.route = data.route;
-		this.query = data.query;
-		this.location = data.location;
-		this.parameters = data.parameters;
-	}
-
-	window.history[replace ? 'replaceState' : 'pushState'](data, this.title, this.location.href);
-
-	if (this.route.handler) {
-		this.route.handler(this.route);
-	} else if (this.route.redirect) {
-		this.redirect(this.route.redirect);
-	} else {
-		if (this.handler) {
-			this.handler(this.route);
-		}
-	}
-
-};
-
-Router.prototype.popstate = function (e) {
-	this.navigate(e.state || window.location.href, true);
-};
-
-Router.prototype.click = function (e) {
-	// TODO might need to filter for container
 	var self = this;
 
-	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+	if (typeof data === 'string') {
+		var path = data; data = {};
+		data.location = self.getLocation(path);
+		data.route = self.find(data.location.pathname) || {};
+		data.query = self.toQueryObject(data.location.search) || {};
+		data.parameters = self.toParameterObject(data.route.path || '', data.location.pathname) || {};
+		data.component = data.route.component;
+		data.title = data.route.title || '';
+	}
 
-	// ensoxe target is anchor tag use shadow dom if available
-	var target = e.path ? e.path[0] : e.target;
-	while (target && 'A' !== target.nodeName) target = target.parentNode;
-	if (!target || 'A' !== target.nodeName) return;
+	self.title = data.title;
+	self.route = data.route;
+	self.query = data.query;
+	self.location = data.location;
+	self.parameters = data.parameters;
 
-	// if external is true then default action
-	if (self.external && (
-		self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
-		self.external.constructor.name === 'Function' && self.external(target.href) ||
-		self.external.constructor.name === 'String' && self.external === target.href
-	)) return;
+	window.history[replace ? 'replaceState' : 'pushState'](data, self.title, self.location.href);
 
-	// check non acceptable attributes and href
-	if (target.hasAttribute('download') ||
-		target.hasAttribute('external') ||
-		target.hasAttribute('o-external') ||
-		// target.hasAttribute('target') ||
-		target.href.indexOf('mailto:') !== -1 ||
-		target.href.indexOf('file:') !== -1 ||
-		target.href.indexOf('tel:') !== -1 ||
-		target.href.indexOf('ftp:') !== -1
-	) return;
+	if (self.route.handler) {
+		self.route.handler(self.route);
+	} else if (self.route.redirect) {
+		self.redirect(self.route.redirect);
+	} else {
+		self.render(self.route);
+	}
 
-	e.preventDefault();
-	if (this.location.href === target.href) return;
-	self.navigate(target.href);
+	return self;
 };
 
 Router.prototype.run = function () {
-	if (this.isRan) return;
-	else this.isRan = true;
+	var self = this;
 
-	this.view = this.container.querySelector(this.view);
-	if (!this.view) throw new Error('Router requires o-view element');
-	// this.container.addEventListener('click', this.click.bind(this));
-	INDEX._.clicks.push(this.click.bind(this));
-	INDEX._.popstates.push(this.popstate.bind(this));
+	if (self.isRan) return;
+	else self.isRan = true;
 
-	this.navigate(window.location.href, true);
+	self.view = document.body.querySelector(self.view);
+
+	if (!self.view) {
+		throw new Error('Router requires o-view element');
+	}
+
+	self.navigate(window.location.href, true);
+
+	return self;
 };

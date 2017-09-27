@@ -5,6 +5,9 @@ export default function Loader (options) {
 	this.loads = [];
 	this.files = {};
 	this.modules = {};
+	this.esm = false;
+	this.est = false;
+	this.base = Utility.createBase();
 	this.setup(options);
 }
 
@@ -20,32 +23,11 @@ Loader.prototype.patterns = {
 
 Loader.prototype.setup = function (options) {
 	options = options || {};
-	this.esm = options.esm || false;
-	this.est = options.est || false;
-	this.loads = options.loads || [];
-	this.base = this.createBase(options.base);
+	this.loads = options.loads || this.loads;
+	this.esm = options.esm === undefined ? this.esm : options.esm;
+	this.est = options.est === undefined ? this.est : options.est;
+	this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
 	return this;
-};
-
-Loader.prototype.createBase = function (base) {
-	base = base || '';
-
-	if (base) {
-		var element = document.head.querySelector('base');
-
-		if (!element) {
-			element = document.createElement('base');
-			document.head.insertBefore(element, document.head.firstChild);
-		}
-
-		if (typeof base === 'string') {
-			element.href = base;
-		}
-
-		base = element.href;
-	}
-
-	return base;
 };
 
 Loader.prototype.getFile = function (data, callback) {
