@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 1.9.11
+	Version: 1.9.12
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -44,7 +44,7 @@
 	};
 
 	Component.prototype._template = function (data) {
-		var element;
+		var template;
 		if (data.html) {
 			template = document.createElement('template');
 			template.innerHTML = data.html;

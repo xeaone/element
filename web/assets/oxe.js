@@ -34,7 +34,7 @@
 	};
 
 	Component.prototype._template = function (data) {
-		var element;
+		var template;
 		if (data.html) {
 			template = document.createElement('template');
 			template.innerHTML = data.html;
