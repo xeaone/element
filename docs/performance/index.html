@@ -5,29 +5,32 @@
 	<meta name="theme-color" content="darkorange">
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
 	<title>Performance</title>
+
+	<script src="../assets/webcomponents-lite.min.js" defer></script>
+	<script src="../assets/oxe.js" defer></script>
+	<script src="../performance/v-loop.js" defer></script>
 </head>
 <body>
 
-	<script>
+	<!-- <script>
 		var script = document.createElement('script');
-		var jScript = script.cloneNode();
-		var lScript = script.cloneNode();
-
-		jScript.async = false;
-		lScript.async = false;
+		var polly = script.cloneNode();
+		var oxe = script.cloneNode();
+		polly.async = false;
+		oxe.async = false;
 
 		if (window.location.origin === 'https://alexanderelias.github.io') {
 			var href ='/oxe/performance/';
 			document.head.insertAdjacentHTML('afterbegin', '<base href="' + href + '">');
-			jScript.src = '../assets/oxe.js';
-			lScript.src = 'v-loop.js';
+			polly.src = '../assets/webcomponents-lite.min.js';
+			oxe.src = '../assets/oxe.js';
 		} else {
-			jScript.src = '/assets/oxe.js';
-			lScript.src = '/performance/v-loop.js';
+			polly.src = 'assets/webcomponents-lite.min.js';
+			oxe.src = '/assets/oxe.js';
 		}
 		document.head.appendChild(jScript);
 		document.head.appendChild(lScript);
-	</script>
+	</script> -->
 
 	<style>
 		body, o-loop, [o-each-item] {

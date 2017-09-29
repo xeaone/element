@@ -24,7 +24,7 @@ Component.prototype._slots = function (element, html) {
 };
 
 Component.prototype._template = function (data) {
-	var template;
+	var element;
 	if (data.html) {
 		template = document.createElement('template');
 		template.innerHTML = data.html;
@@ -54,44 +54,49 @@ Component.prototype._define = function (name, proto) {
 	});
 };
 
-Component.prototype.define = function (data) {
+Component.prototype.define = function (options) {
 	var self = this;
 
-	if (!data.name) throw new Error('Component requires name');
-	if (!data.html && !data.query && !data.element) throw new Error('Component requires html, query, or element');
+	if (!options.name) {
+		throw new Error('Component requires name');
+	}
 
-	data.proto = Object.create(HTMLElement.prototype);
-	data.proto.attachedCallback = data.attached;
-	data.proto.detachedCallback = data.detached;
-	data.proto.attributeChangedCallback = data.attributed;
-	data.template = self._template(data);
+	if (!options.html && !options.query && !options.element) {
+		throw new Error('Component requires html, query, or element');
+	}
 
-	data.proto.createdCallback = function () {
+	options.template = self._template(options);
+	options.proto = Object.create(HTMLElement.prototype);
+	options.proto.attachedCallback = options.attached;
+	options.proto.detachedCallback = options.detached;
+	options.proto.attributeChangedCallback = options.attributed;
+
+	options.proto.createdCallback = function () {
 		var element = this;
 
 		element.uid = Uid();
 		element.isBinded = false;
 		element.view = self.view.data[element.uid] = {};
 
-		if (data.model) element.model = self.model.data.$set(element.uid, data.model)[element.uid];
-		if (data.events) element.events = self.events.data[element.uid] = data.events;
-		if (data.modifiers) element.modifiers = self.modifiers.data[element.uid] = data.modifiers;
+		if (options.model) element.model = self.model.data.$set(element.uid, options.model)[element.uid];
+		if (options.events) element.events = self.events.data[element.uid] = options.events;
+		if (options.modifiers) element.modifiers = self.modifiers.data[element.uid] = options.modifiers;
 
 		// might want to handle default slot
 		// might want to overwrite content
-		self._slots(element, data.template);
+		self._slots(element, options.template);
 
-		if (data.shadow) {
-			element.createShadowRoot().appendChild(document.importNode(data.template.content, true));
+		if (options.shadow) {
+			element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
 		} else {
-			element.appendChild(document.importNode(data.template.content, true));
+			element.appendChild(document.importNode(options.template.content, true));
 		}
 
-		if (data.created) {
-			data.created.call(element);
+		if (options.created) {
+			options.created.call(element);
 		}
 
 	};
 
-	self._define(data.name, data.proto);
+	self._define(options.name, options.proto);
 };

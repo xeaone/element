@@ -128,11 +128,13 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 
 
 ### Oxe.router
+Automatically use the default action for non origin matching hrefs.
 - `options: Object`
 	- `hash: Boolean` Hash URL mode. Default is false.
 	- `trailing: Boolean` Trailing slash. Default is false.
+	- `base: Boolean, String` Sets the base if its a string otherwise if true uses the predefined base.
 	- `external: String, RegExp, Function` Filters URL requests. If true or match Router will not handle request.
-	- `container: Element` Sets the event listeners for HREFs to the container. Default is window. Oxe use event delegation
+	- `container: Element` Contains all href clicks to the container. Default is window. This is good for embedding especially in combination with the `base` option.
 	- `routes: Array`
 		- `route: Object`
 			- `path: String` Any path.

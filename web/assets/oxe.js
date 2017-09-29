@@ -34,7 +34,7 @@
 	};
 
 	Component.prototype._template = function (data) {
-		var template;
+		var element;
 		if (data.html) {
 			template = document.createElement('template');
 			template.innerHTML = data.html;
@@ -64,46 +64,51 @@
 		});
 	};
 
-	Component.prototype.define = function (data) {
+	Component.prototype.define = function (options) {
 		var self = this;
 
-		if (!data.name) throw new Error('Component requires name');
-		if (!data.html && !data.query && !data.element) throw new Error('Component requires html, query, or element');
+		if (!options.name) {
+			throw new Error('Component requires name');
+		}
 
-		data.proto = Object.create(HTMLElement.prototype);
-		data.proto.attachedCallback = data.attached;
-		data.proto.detachedCallback = data.detached;
-		data.proto.attributeChangedCallback = data.attributed;
-		data.template = self._template(data);
+		if (!options.html && !options.query && !options.element) {
+			throw new Error('Component requires html, query, or element');
+		}
 
-		data.proto.createdCallback = function () {
+		options.template = self._template(options);
+		options.proto = Object.create(HTMLElement.prototype);
+		options.proto.attachedCallback = options.attached;
+		options.proto.detachedCallback = options.detached;
+		options.proto.attributeChangedCallback = options.attributed;
+
+		options.proto.createdCallback = function () {
 			var element = this;
 
 			element.uid = Uid();
 			element.isBinded = false;
 			element.view = self.view.data[element.uid] = {};
 
-			if (data.model) element.model = self.model.data.$set(element.uid, data.model)[element.uid];
-			if (data.events) element.events = self.events.data[element.uid] = data.events;
-			if (data.modifiers) element.modifiers = self.modifiers.data[element.uid] = data.modifiers;
+			if (options.model) element.model = self.model.data.$set(element.uid, options.model)[element.uid];
+			if (options.events) element.events = self.events.data[element.uid] = options.events;
+			if (options.modifiers) element.modifiers = self.modifiers.data[element.uid] = options.modifiers;
 
 			// might want to handle default slot
 			// might want to overwrite content
-			self._slots(element, data.template);
+			self._slots(element, options.template);
 
-			if (data.shadow) {
-				element.createShadowRoot().appendChild(document.importNode(data.template.content, true));
+			if (options.shadow) {
+				element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
 			} else {
-				element.appendChild(document.importNode(data.template.content, true));
+				element.appendChild(document.importNode(options.template.content, true));
 			}
 
-			if (data.created) {
-				data.created.call(element);
+			if (options.created) {
+				options.created.call(element);
 			}
 
 		};
 
-		self._define(data.name, data.proto);
+		self._define(options.name, options.proto);
 	};
 
 	var Utility = {
@@ -321,16 +326,15 @@
 		this.route = {};
 		this.query = {};
 		this.location = {};
+		this.isRan = false;
 		this.parameters = {};
 		this.component = null;
-		this.isRan = false;
 
 		this.routes = [];
 		this.hash = false;
 		this.trailing = false;
 		this.view = 'o-view';
 
-		this.base = Utility.createBase();
 		this.setup(options);
 	}
 
@@ -344,7 +348,6 @@
 		this.routes = options.routes === undefined ? this.routes: options.routes;
 		this.loader = options.loader === undefined ? this.loader : options.loader;
 		this.batcher = options.batcher === undefined ? this.batcher: options.batcher;
-		// this.handler = options.handler === undefined ? this.handler: options.handler;
 		this.external = options.external === undefined ? this.external: options.external;
 		this.container = options.container === undefined ? this.container: options.container;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
@@ -365,14 +368,10 @@
 
 		if (self.container) {
 			while (parent) {
-				if (parent === self.container) {
-					break;
-				} else if (parent === document.body) {
-					return e.preventDefault();
-				} else {
-					parent = parent.parentNode;
-				}
+				if (parent === self.container) break;
+				else parent = parent.parentNode;
 			}
+			if (parent !== self.container) return;
 		}
 
 		if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -381,27 +380,29 @@
 		while (target && 'A' !== target.nodeName) target = target.parentNode;
 		if (!target || 'A' !== target.nodeName) return;
 
-		// if external is true then default action
-		if (self.external && (
-			self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
-			self.external.constructor.name === 'Function' && self.external(target.href) ||
-			self.external.constructor.name === 'String' && self.external === target.href
-		)) return;
-
-		// check non acceptable attributes and href
+		// check non acceptables
 		if (target.hasAttribute('download') ||
 			target.hasAttribute('external') ||
 			target.hasAttribute('o-external') ||
-			// target.hasAttribute('target') ||
-			target.href.indexOf('mailto:') !== -1 ||
-			target.href.indexOf('file:') !== -1 ||
-			target.href.indexOf('tel:') !== -1 ||
-			target.href.indexOf('ftp:') !== -1
+			target.href.indexOf('tel:') === 0 ||
+			target.href.indexOf('ftp:') === 0 ||
+			target.href.indexOf('file:') === 0 ||
+			target.href.indexOf('mailto:') === 0 ||
+			target.href.indexOf(window.location.origin) !== 0
+		) return;
+
+		// if external is true then default action
+		if (self.external &&
+			(self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+			self.external.constructor.name === 'Function' && self.external(target.href) ||
+			self.external.constructor.name === 'String' && self.external === target.href)
 		) return;
 
 		e.preventDefault();
-		if (this.location.href === target.href) return;
-		self.navigate(target.href);
+
+		if (this.location.href !== target.href) {
+			self.navigate(target.href);
+		}
 	};
 
 	Router.prototype.testPath = function (routePath, userPath) {

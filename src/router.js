@@ -10,16 +10,15 @@ export default function Router (options) {
 	this.route = {};
 	this.query = {};
 	this.location = {};
+	this.isRan = false;
 	this.parameters = {};
 	this.component = null;
-	this.isRan = false;
 
 	this.routes = [];
 	this.hash = false;
 	this.trailing = false;
 	this.view = 'o-view';
 
-	this.base = Utility.createBase();
 	this.setup(options);
 }
 
@@ -33,7 +32,6 @@ Router.prototype.setup = function (options) {
 	this.routes = options.routes === undefined ? this.routes: options.routes;
 	this.loader = options.loader === undefined ? this.loader : options.loader;
 	this.batcher = options.batcher === undefined ? this.batcher: options.batcher;
-	// this.handler = options.handler === undefined ? this.handler: options.handler;
 	this.external = options.external === undefined ? this.external: options.external;
 	this.container = options.container === undefined ? this.container: options.container;
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
@@ -54,14 +52,10 @@ Router.prototype.click = function (e) {
 
 	if (self.container) {
 		while (parent) {
-			if (parent === self.container) {
-				break;
-			} else if (parent === document.body) {
-				return e.preventDefault();
-			} else {
-				parent = parent.parentNode;
-			}
+			if (parent === self.container) break;
+			else parent = parent.parentNode;
 		}
+		if (parent !== self.container) return;
 	}
 
 	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -70,27 +64,29 @@ Router.prototype.click = function (e) {
 	while (target && 'A' !== target.nodeName) target = target.parentNode;
 	if (!target || 'A' !== target.nodeName) return;
 
-	// if external is true then default action
-	if (self.external && (
-		self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
-		self.external.constructor.name === 'Function' && self.external(target.href) ||
-		self.external.constructor.name === 'String' && self.external === target.href
-	)) return;
-
-	// check non acceptable attributes and href
+	// check non acceptables
 	if (target.hasAttribute('download') ||
 		target.hasAttribute('external') ||
 		target.hasAttribute('o-external') ||
-		// target.hasAttribute('target') ||
-		target.href.indexOf('mailto:') !== -1 ||
-		target.href.indexOf('file:') !== -1 ||
-		target.href.indexOf('tel:') !== -1 ||
-		target.href.indexOf('ftp:') !== -1
+		target.href.indexOf('tel:') === 0 ||
+		target.href.indexOf('ftp:') === 0 ||
+		target.href.indexOf('file:') === 0 ||
+		target.href.indexOf('mailto:') === 0 ||
+		target.href.indexOf(window.location.origin) !== 0
+	) return;
+
+	// if external is true then default action
+	if (self.external &&
+		(self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
+		self.external.constructor.name === 'Function' && self.external(target.href) ||
+		self.external.constructor.name === 'String' && self.external === target.href)
 	) return;
 
 	e.preventDefault();
-	if (this.location.href === target.href) return;
-	self.navigate(target.href);
+
+	if (this.location.href !== target.href) {
+		self.navigate(target.href);
+	}
 };
 
 Router.prototype.testPath = function (routePath, userPath) {
