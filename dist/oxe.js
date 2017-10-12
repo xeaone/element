@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 1.9.12
+	Version: 1.9.13
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1346,12 +1346,12 @@
 	Binder.prototype.setupMethods = {
 		each: function () {
 			this.count = 0;
-			this.pattern = /\$index/g;
 			this.variable = this.attribute.cmds[1];
+			this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
 			this.clone = this.element.removeChild(this.element.firstElementChild);
 			this.clone = this.clone.outerHTML.replace(
-				new RegExp('((?:data-)?o-.*?=")' + this.variable + '(.*?")', 'g'),
-				'$1' + this.attribute.path + '.$index$2'
+				new RegExp('((?:data-)?o-.*?=")' + this.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
+				'$1' + this.attribute.path + '.$' + this.variable + '$2'
 			);
 		}
 	};

@@ -1,6 +1,7 @@
 import Say from 'say.js';
 
 var model = {
+	show_hide: true,
 	mcar: 'mcar',
 	car: '',
 	cars: [],
@@ -29,6 +30,10 @@ Oxe.component.define({
 	events: {
 		foo: function () {
 			console.log('foo');
+		},
+		toggle_show_hide: function () {
+			this.show_hide = !this.show_hide;
+			console.log(this.show_hide );
 		},
 		say: Say
 	},
@@ -67,13 +72,19 @@ Oxe.component.define({
 			}
 		</style>
 
+		<div o-show="show_hide">Now you see me!</div>
+		<button o-on-click="toggle_show_hide">Show/Hide</button>
+		<br>
+		<br>
+
 		<e-menu></e-menu>
+		<br>
+		<br>
 
 		<p o-text="text | upper"></p>
 		<p o-text="text | lower"></p>
 		<input type="text" o-value="text | lower" placeholder="text">
 		<input type="text" o-value="text | upper" placeholder="text">
-
 		<br>
 		<br>
 
@@ -121,7 +132,7 @@ Oxe.component.define({
 		<input type="text" o-value="items.0.it.val">
 		<div o-each-item="items">
 			<span>
-				<span>$index</span>
+				<span>$item</span>
 				<span o-on-click="foo" o-text="item.it.val"></span>
 				<span>,</span>
 			</span>

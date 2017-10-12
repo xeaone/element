@@ -1,13 +1,14 @@
 {
 	"name": "oxe",
-	"version": "1.9.12",
+	"version": "1.9.13",
 	"description": "A mighty tinny web components framework/library",
 	"main": "dist/oxe.min.js",
 	"scripts": {
 		"serve": "muleify serve -sw web dev",
 		"watch": "muleify pack -p src -wb src/index.js web/assets/oxe.js",
 		"build-docs": "rm -r docs/* && muleify pack web docs",
-		"build-scripts": "node build.js"
+		"build-scripts": "node build.js",
+		"build-all": "npm run build-scripts && npm run build-docs"
 	},
 	"repository": {
 		"type": "git",
