@@ -22,8 +22,9 @@ function defineProperty (data, key, value, callback, path, redefine) {
 	// recursive observe child properties
 	if (value && typeof value === 'object') defineProperties(value, callback, path + key, redefine);
 
-	// set the property value if getter setter previously defined and redefine is not true
-	if (getter && setter && redefine === false) return setter.call(data, value);
+	// set the property value if getter setter previously defined and redefine is false
+	if (getter && setter && !redefine) return setter.call(data, value);
+	// if (getter && setter && redefine === false) return setter.call(data, value);
 
 	Object.defineProperty(data, key, {
 		enumerable: true,
@@ -32,6 +33,7 @@ function defineProperty (data, key, value, callback, path, redefine) {
 			return getter ? getter.call(data) : value;
 		},
 		set: function (newValue) {
+
 			var oldValue = getter ? getter.call(data) : value;
 
 			// set the value with the same value not updated

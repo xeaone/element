@@ -15,14 +15,12 @@ export default function Binder (options) {
 	if (this.type === 'on') {
 		this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 	} else {
-		this._data = this.attribute.parentPath ? Utility.getByPath(this.model, this.attribute.parentPath) : this.model;
-
 		Object.defineProperty(this, 'data', {
 			enumerable: true,
 			configurable: false,
 			get: function () {
-				if (this._data === undefined) return;
-				var data = this._data[this.attribute.parentKey];
+				var data = Utility.getByPath(this.model, this.attribute.path);
+				if (data === undefined) return;
 				data = this.modify(data);
 				return data;
 			}
