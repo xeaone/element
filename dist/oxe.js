@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 1.9.13
+	Version: 1.9.14
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -945,8 +945,9 @@
 		// recursive observe child properties
 		if (value && typeof value === 'object') defineProperties(value, callback, path + key, redefine);
 
-		// set the property value if getter setter previously defined and redefine is not true
-		if (getter && setter && redefine === false) return setter.call(data, value);
+		// set the property value if getter setter previously defined and redefine is false
+		if (getter && setter && !redefine) return setter.call(data, value);
+		// if (getter && setter && redefine === false) return setter.call(data, value);
 
 		Object.defineProperty(data, key, {
 			enumerable: true,
@@ -955,6 +956,7 @@
 				return getter ? getter.call(data) : value;
 			},
 			set: function (newValue) {
+
 				var oldValue = getter ? getter.call(data) : value;
 
 				// set the value with the same value not updated
@@ -1316,14 +1318,12 @@
 		if (this.type === 'on') {
 			this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 		} else {
-			this._data = this.attribute.parentPath ? Utility.getByPath(this.model, this.attribute.parentPath) : this.model;
-
 			Object.defineProperty(this, 'data', {
 				enumerable: true,
 				configurable: false,
 				get: function () {
-					if (this._data === undefined) return;
-					var data = this._data[this.attribute.parentKey];
+					var data = Utility.getByPath(this.model, this.attribute.path);
+					if (data === undefined) return;
 					data = this.modify(data);
 					return data;
 				}
