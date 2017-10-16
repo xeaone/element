@@ -13,6 +13,7 @@ var model = {
 		{ it: { val: 1 } },
 		{ it: { val: 2 } }
 	],
+	arrayChange: [1, 2],
 	html: '<h3 o-text="text"></h3>'
 };
 
@@ -28,6 +29,9 @@ Oxe.component.define({
 		}
 	},
 	events: {
+		overwriteArray: function () {
+			this.arrayChange = [3, 4, 5, 6];
+		},
 		foo: function () {
 			console.log('foo');
 		},
@@ -168,5 +172,10 @@ Oxe.component.define({
 		</ul>
 
 		<div o-html="html"></div>
+
+		<div o-on-click="overwriteArray" o-each-ac="arrayChange">
+			<div o-text="ac"></div>
+		</div>
+
 	`
 });
