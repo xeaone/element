@@ -69,6 +69,21 @@ Oxe.component.define({
 		}, 1000);
 
 	},
+	attached: function () {
+		var self = this;
+
+		Oxe.http.fetch({
+			method: 'get',
+			url: '/data.json',
+			responseType: 'json',
+			success: function (result) {
+				console.log(result);
+			},
+			error: function (result) {
+				console.log(result);
+			}
+		});
+	},
 	html: `
 		<style>
 			[o-each-item] {

@@ -1,12 +1,12 @@
 
-export default function Http (options) {
-	this.setup(options);
+export default function Http (opt) {
+	this.setup(opt);
 }
 
-Http.prototype.setup = function (options) {
-	options = options || {};
-	this.request = options.request === undefined ? this.request : options.request;
-	this.response = options.response === undefined ? this.response : options.response;
+Http.prototype.setup = function (opt) {
+	opt = opt || {};
+	this.request = opt.request === undefined ? this.request : opt.request;
+	this.response = opt.response === undefined ? this.response : opt.response;
 	return this;
 };
 
@@ -30,76 +30,93 @@ Http.prototype.serialize = function (data) {
 	return string;
 };
 
-Http.prototype.fetch = function (options) {
-	var self = this, xhr, request, response;
+Http.prototype.fetch = function (opt) {
+	var self = this;
+	var xhr = new XMLHttpRequest();
 
-	options = options || {};
-	options.url = options.url ? options.url : window.location.href;
-	options.method = options.method ? options.method.toUpperCase() : 'GET';
-	options.headers = options.headers ? options.headers : {};
+	opt = opt || {};
+	opt.headers = {};
+	opt.url = opt.url ? opt.url : window.location.href;
+	opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
 
-	if (options.data) {
-		if (options.method === 'GET') {
-			options.url = options.url + '?' + self.serialize(options.data);
-			options.data = null;
-		} else {
-			options.requestType = options.requestType ? options.requestType.toLowerCase() : '';
-			options.responseType = options.responseType ? options.responseType.toLowerCase() : '';
-
-			switch (options.requestType) {
-				case 'script': options.contentType = self.mime.script; break;
-				case 'json': options.contentType = self.self.mime.json; break;
-				case 'xml': options.contentType = self.mime.xm; break;
-				case 'html': options.contentType = self.mime.html; break;
-				case 'text': options.contentType = self.mime.text; break;
-				default: options.contentType = self.mime.urlencoded;
-			}
-
-			switch (options.responseType) {
-				case 'script': options.accept = self.mime.script; break;
-				case 'json': options.accept = self.mime.json; break;
-				case 'xml': options.accept = self.mime.xml; break;
-				case 'html': options.accept = self.mime.html; break;
-				case 'text': options.accept = self.mime.text; break;
-			}
-
-			if (options.contentType === self.mime.json) options.data = JSON.stringify(options.data);
-			if (options.contentType === self.mime.urlencoded) options.data = self.serialize(options.data);
+	if (opt.contentType) {
+		switch (opt.contentType) {
+			case 'xml': opt.contentType = self.mime.xm; break;
+			case 'html': opt.contentType = self.mime.html; break;
+			case 'text': opt.contentType = self.mime.text; break;
+			case 'json': opt.contentType = self.mime.json; break;
+			case 'script': opt.contentType = self.mime.script; break;
 		}
 	}
 
-	xhr = new XMLHttpRequest();
-
-	if (typeof self.request === 'function') request = self.request(options, xhr);
-
-	if (request === undefined || request === true) {
-		xhr.open(options.method, options.url, true, options.username, options.password);
-
-		if (options.mimeType) xhr.overrideMimeType(options.mimeType);
-		if (options.accept) options.headers['Accept'] = options.accept;
-		if (options.withCredentials) xhr.withCredentials = options.withCredentials;
-		if (options.contentType) options.headers['Content-Type'] = options.contentType;
-
-		if (options.headers) {
-			for (var name in options.headers) {
-				xhr.setRequestHeader(name, options.headers[name]);
-			}
+	if (opt.acceptType) {
+		switch (opt.acceptType) {
+			case 'xml': opt.acceptType = self.mime.xml; break;
+			case 'html': opt.acceptType = self.mime.html; break;
+			case 'text': opt.acceptType = self.mime.text; break;
+			case 'json': opt.acceptType = self.mime.json; break;
+			case 'script': opt.acceptType = self.mime.script; break;
 		}
+	}
+
+	if (opt.data) {
+		if (opt.method === 'GET') {
+			opt.data = self.serialize(opt.data);
+			opt.url = opt.url + '?' + opt.data;
+		}
+		else if (!opt.contentType) opt.contentType = self.mime.urlencoded;
+		else if (opt.contentType === self.mime.json) opt.data = JSON.stringify(opt.data);
+		else if (opt.contentType === self.mime.urlencoded) opt.data = self.serialize(opt.data);
+	}
+
+	if (opt.mimeType) xhr.overrideMimeType(opt.mimeType);
+	if (opt.responseType) xhr.responseType = opt.responseType;
+	if (opt.withCredentials) xhr.withCredentials = opt.withCredentials;
+
+	if (opt.acceptType) opt.headers['Accept'] = opt.acceptType;
+	if (opt.contentType) opt.headers['Content-Type'] = opt.contentType;
+
+	if (opt.headers) {
+		for (var name in opt.headers) {
+			xhr.setRequestHeader(name, opt.headers[name]);
+		}
+	}
+
+	var requestResult = self.request ? self.request({ data: opt.data, opt: opt, xhr: xhr }) : undefined;
+	if (requestResult === undefined || requestResult === true) {
 
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
-				if (typeof self.response === 'function') response = self.response(options, xhr);
-				if (response === undefined || response === true) {
-					if (xhr.status >= 200 && xhr.status < 400) {
-						return options.success(xhr);
+				var result = {
+					opt: opt,
+					xhr: xhr,
+					statusCode: xhr.status,
+					statusText: xhr.statusText,
+					data: xhr.response || xhr.responseText
+				};
+
+				// NOTE support for IE10-11 http://caniuse.com/#search=xhr2
+				if (opt.responseType === 'json' && typeof result.data !== 'object') {
+					result.data = JSON.parse(xhr.responseText);
+				}
+
+				var responseResult = self.response ? self.response(result) : undefined;
+				if (responseResult === undefined || responseResult === true) {
+					if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+						if (opt.success) {
+							return opt.success(result);
+						}
 					} else {
-						return options.error(xhr);
+						if (opt.error) {
+							return opt.error(result);
+						}
 					}
 				}
 			}
 		};
 
-		xhr.send(options.data);
+		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
+		xhr.send(opt.method === 'GET' ? null : opt.data);
 	}
 
 };

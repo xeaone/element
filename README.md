@@ -121,26 +121,26 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 		- `model: Object<Any>` See Oxe.controller.model
 		- `events: Object<Function>` See Oxe.controller.events
 		- `modifiers: Object<Function>` See Oxe.controller.modifiers
-		- `created: Function` Triggered once on creation
+		- `created: Function` Triggered once on DOM creation
 		- `attached: Function` Triggered on each DOM attachment
 		- `detached: Function` Triggered on each DOM detachment
 		- `attributed: Function` Triggered attribute change
 
 
 ### Oxe.router
-Automatically use the default action for non origin matching hrefs.
+Automatically use the default action for non origin matching hrefs
 - `options: Object`
-	- `hash: Boolean` Hash URL mode. Default is false.
-	- `trailing: Boolean` Trailing slash. Default is false.
-	- `base: Boolean, String` Sets the base if its a string otherwise if true uses the predefined base.
-	- `external: String, RegExp, Function` Filters URL requests. If true or match Router will not handle request.
-	- `container: Element` Contains all href clicks to the container. Default is window. This is good for embedding especially in combination with the `base` option.
+	- `hash: Boolean` Hash URL mode. Default is false
+	- `trailing: Boolean` Trailing slash. Default is false
+	- `base: Boolean, String` Sets the base if its a string otherwise if true uses the predefined base
+	- `external: String, RegExp, Function` Filters URL requests. If true or match Oxe.router will not handle request
+	- `container: Element` Contains all href clicks to the container. Default is window. Good for embedding especially
 	- `routes: Array`
 		- `route: Object`
 			- `path: String` Any path.
 				- `parameters: String` Named '/account/{user}', or catchalls '{\*}'
 			- `title: String` The title for the page
-			- `component: String` The name of a component
+			- `component: String` The name of a component to insert into o-view
 			- `url: Object, String` URL path to JS web-component or a Oxe.loader.load Object
 
 - `run: Function` Must be called after <o-view></o-view> is created
@@ -151,9 +151,9 @@ Automatically use the default action for non origin matching hrefs.
 	- `path: String`
 - `get: Function`
 	- `path: String` Exact path matching, route path variables are not taken into account
-- `find: Function` Approximate path matching, route path variables are taken into account
-	- `path: String`
-- `navigate: Function` Changes to a new page
+- `find: Function`
+	- `path: String` Approximate path matching, route path variables are taken into account
+- `navigate: Function` Navgiates to path
 	- `path: String` Path to navigate
 - `on: EventEmitter`
 	- `navigated: Event`
@@ -166,50 +166,62 @@ ES6 import and export module support. Imports must be absolute from the domain. 
 	- `loads: Array<Object, String>` Adds load objects or strings such as non route components
 		- `load: Object, String`
 			- `url: String` Path to a web component JS url
-			- `esm: Boolean` Enables ES6 module re-writes on an individual bases
-			- `est: Boolean` Enables ES6 template string re-writes on an individual bases
+			- `esm: Boolean` Enables ES6 module re-writes on individually
+			- `est: Boolean` Enables ES6 template string re-writes individually
 
 ### Oxe.http
 - `options: Object`
 	- `request: Function` Intercepts the request. If the return value is false the fetch will not be triggered
-		- `options: Object`
-		- `xhr: Object`
+		- `xhr: Object` The xhr going to be used for the request.
+		- `opt: Object` The options going to be used for the request.
+		- `data: Object|String` The data to be sent as either payload or parameters.
 	- `response: Function` Intercepts the request. If the return value is false the fetch success and error will not be triggered
-		- `options: Object`
-		- `xhr: Object`
+		- `statusCode: Number` The xhr.status.
+		- `statusText: String` The xhr.statusText.
+		- `xhr: Object` The xhr used for the request.
+		- `opt: Object` The options used for the request.
+		- `data: Object|String` The response transformed by resonseType.
 	- `mime: Object`
 	- `serialize: Function`
 	- `fetch: Function` A fetch request.
 		- `options: Object`
-			- `url: String` Resource action url **Required**
-			- `success: Function` **Required** The fetch response
-			- `error: Function` **Required** The fetch response
-			- `method: String` Valid methods get, post, put, delete
-			- `data: Object` If method is `GET` than data is concatenated to the `action/url` as parameters
-
-			- `requestType: String` Converts the request data before sending.
-				- `script` 'text/javascript, application/javascript, application/x-javascript'
-				- `json` 'application/json' stringify `options.data`
-				- `xml` 'application/xml, text/xml'
-				- `html` 'text/html'
-				- `text` 'text/plain'
-				- DEFAULT 'application/x-www-form-urlencoded' serialized `options.data`
-
-			- `responseType: String` Converts the response data after sending.
-				- `script` 'text/javascript, application/javascript, application/x-javascript'
-				- `json` 'application/json'
-				- `xml` 'application/xml, text/xml'
-				- `html` 'text/html'
-				- `text` 'text/plain'
-
-			- `contentType: String` Short hand to set the Content-Type Headers. (For request)
-			- `accept: String` Short hand to set the Accept Headers. (For response)
-
-			- `mimeType: String` Overwrites return type.
 			- `username: String`
 			- `password: String`
 			- `withCredentials: Boolean`
-			- `headers: Object` A low level headers object it will map directly to the XHR header. The Will overwrite any above options.
+			- `method: String` (default: GET)
+			- `url: String` (default: window.location.href)
+			- `error: Function` The Error Handler
+				- `result: Object`
+					- `statusCode: Number` The xhr.status.
+					- `statusText: String` The xhr.statusText.
+					- `xhr: Object` The xhr used for the request.
+					- `opt: Object` The options used for the request.
+					- `data: Object|String` The response transformed by resonseType.
+			- `success: Function` The Success handler
+				- `result: Object`
+					- `statusCode: Number` The xhr.status.
+					- `statusText: String` The xhr.statusText.
+					- `xhr: Object` The xhr used for the request.
+					- `opt: Object` The options used for the request.
+					- `data: Object|String` The response transformed by resonseType.
+			- `data: Object` If method is GET than data is concatenated to the url as parameters.
+			- `contentType: String` (default: application/x-www-form-urlencoded) The header Content-Type of the data being posted to the server.
+				- `html` 'text/html'
+				- `text` 'text/plain'
+				- `json` 'application/json'
+				- `xml` 'application/xml, text/xml'
+				- `urlencoded`: 'application/x-www-form-urlencoded'
+				- `script` 'text/javascript, application/javascript, application/x-javascript'
+			- `acceptType: String` The header Accept type to expect from the server.
+				- `html` 'text/html'
+				- `text` 'text/plain'
+				- `json` 'application/json'
+				- `xml` 'application/xml, text/xml'
+				- `urlencoded`: 'application/x-www-form-urlencoded'
+				- `script` 'text/javascript, application/javascript, application/x-javascript'
+			- `mimeType: String` Override the MIME type of the response.
+			- `responseType: String` (default: DOMString/text) arraybuffer, blob, document, json, text,  [XMLHttpRequest.responseType](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseType). Added json support for non supported browsers. Blob support for older browsers is still needed.
+			- `headers: Object` A Map of String to be directly applied to the the XHR header.
 
 ### Oxe.global
 A global object for you.
