@@ -3,7 +3,6 @@
 # Oxe
 A mighty tinny web components framework/library.
 
-
 ## Features
 - Really Small 8.09KB gzipped and 27.08KB uncompressed
 - In browser ES6/ESM module and template strings support
@@ -16,7 +15,6 @@ A mighty tinny web components framework/library.
 - Safari 7
 - Mobile Safari
 - Chrome Android
-
 
 ## Note
 Loader uses `XHR` and `new Function` to load on-demand and execute modules. If your worried about security please read the linked articles. In summary the articles support not using new Function/eval to process client input. So as long as your only importing local modules (Loader enforces this) then the safety concern is eliminated.
@@ -32,9 +30,7 @@ Loader uses `XHR` and `new Function` to load on-demand and execute modules. If y
 - UMD with Web Component Pollyfill `dist/oxe.polly.min.js`
 - Web Component Pollyfill `dist/webcomponents-lite.min.js`
 
-
 ## Example
-
 ```js
 	Oxe.component.define({
 		name: 'v-home',
@@ -49,7 +45,6 @@ Loader uses `XHR` and `new Function` to load on-demand and execute modules. If y
 		}
 	});
 ```
-
 ```js
 Oxe.setup({
 	http: {
@@ -81,7 +76,6 @@ Oxe.setup({
 	}
 });
 ```
-
 ```html
 <html>
 <head>
@@ -102,14 +96,12 @@ Oxe.setup({
 
 ## API
 
-
 ### Oxe.setup(options)
 The recommend entry point. This allows you to setup Oxe and automatically starts the router
 - `options: Object`
 	- `http: Object` Oxe.http options.
 	- `loader: Object` Oxe.loader options.
 	- `router: Object` Oxe.router options.
-
 
 ### Oxe.component
 - `define: Function` Defines a custom web component
@@ -125,7 +117,6 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 		- `attached: Function` Triggered on each DOM attachment
 		- `detached: Function` Triggered on each DOM detachment
 		- `attributed: Function` Triggered attribute change
-
 
 ### Oxe.router
 Automatically use the default action for non origin matching hrefs
@@ -189,6 +180,7 @@ ES6 import and export module support. Imports must be absolute from the domain. 
 			- `password: String`
 			- `withCredentials: Boolean`
 			- `method: String` (default: GET)
+			- `cache: Boolean` (default: false)
 			- `url: String` (default: window.location.href)
 			- `error: Function` The Error Handler
 				- `result: Object`
@@ -237,12 +229,9 @@ The result of a querySelector in the **current** document `document.currentScrip
 ### Oxe.document()
 - Returns: `document.currentScript.ownerDocument`
 
-
 ## Authors
-[AlexanderElias](https://github.com/AlexanderElias)
-
+- [AlexanderElias](https://github.com/AlexanderElias)
 
 ## License
 [Why You Should Choose MPL-2.0](http://veldstra.org/2016/12/09/yoo-should-choose-mpl2-for-your-opensource-project.html)
-
 This project is licensed under the MPL-2.0 License
