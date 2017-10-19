@@ -1,6 +1,8 @@
 import INDEX from './index';
 import Utility from './utility';
 
+// TODO sanitize input/output
+
 export default function Binder (options) {
 	this.element = options.element;
 	this.container = options.container;

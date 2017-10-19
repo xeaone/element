@@ -1,6 +1,5 @@
 import Utility from './utility';
 import Events from './events';
-import INDEX from './index';
 
 export default function Router (options) {
 	Events.call(this);
@@ -273,7 +272,15 @@ Router.prototype.addToBatcher = function (route) {
 	component = self.cache[route.component];
 
 	if (!component) {
+
 		component = self.cache[route.component] = document.createElement(route.component);
+
+		// NOTE might want to use this to sanitize
+		// var script;
+		// while (script = component.querySelector('script')) {
+		// 	script.parentNode.replaceChild(script);
+		// }
+
 		component.inRouterCache = false;
 		component.isRouterComponent = true;
 	}

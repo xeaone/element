@@ -31,8 +31,10 @@ Loader.prototype.setup = function (options) {
 };
 
 Loader.prototype.getFile = function (data, callback) {
-	if (!data.url) throw new Error('Loader requires a url');
 	var self = this;
+
+	// TODO enforce same domain url
+	if (!data.url) throw new Error('Loader requires a url');
 
 	if (data.url in self.modules && data.status) {
 		if (data.status === self.LOADED) {
