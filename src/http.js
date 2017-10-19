@@ -1,3 +1,4 @@
+import INDEX from './index';
 
 export default function Http (opt) {
 	this.setup(opt);
@@ -5,8 +6,10 @@ export default function Http (opt) {
 
 Http.prototype.setup = function (opt) {
 	opt = opt || {};
+	// TODO add default response type option
 	this.request = opt.request === undefined ? this.request : opt.request;
 	this.response = opt.response === undefined ? this.response : opt.response;
+	this.auth = opt.auth || false;
 	return this;
 };
 
@@ -32,6 +35,7 @@ Http.prototype.serialize = function (data) {
 
 Http.prototype.fetch = function (opt) {
 	var self = this;
+	var result = {};
 	var xhr = new XMLHttpRequest();
 
 	opt = opt || {};
@@ -76,47 +80,61 @@ Http.prototype.fetch = function (opt) {
 	if (opt.acceptType) opt.headers['Accept'] = opt.acceptType;
 	if (opt.contentType) opt.headers['Content-Type'] = opt.contentType;
 
+	if (opt.cache) opt.headers.cache = true;
+	else opt.cache = false;
+
+
 	if (opt.headers) {
 		for (var name in opt.headers) {
 			xhr.setRequestHeader(name, opt.headers[name]);
 		}
 	}
 
-	var requestResult = self.request ? self.request({ data: opt.data, opt: opt, xhr: xhr }) : undefined;
-	if (requestResult === undefined || requestResult === true) {
+	result.xhr = xhr;
+	result.opt = opt;
+	result.data = opt.data;
 
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState === 4) {
-				var result = {
-					opt: opt,
-					xhr: xhr,
-					statusCode: xhr.status,
-					statusText: xhr.statusText,
-					data: xhr.response || xhr.responseText
-				};
+	if (self.auth) INDEX.auth.modify(xhr);
+	if (self.request && self.request(result) === false) return;
 
-				// NOTE support for IE10-11 http://caniuse.com/#search=xhr2
-				if (opt.responseType === 'json' && typeof result.data !== 'object') {
-					result.data = JSON.parse(xhr.responseText);
-				}
+	xhr.onreadystatechange = function () {
+		if (xhr.readyState === 4) {
 
-				var responseResult = self.response ? self.response(result) : undefined;
-				if (responseResult === undefined || responseResult === true) {
-					if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-						if (opt.success) {
-							return opt.success(result);
-						}
+			result.opt = opt;
+			result.xhr = xhr;
+			result.statusCode = xhr.status;
+			result.statusText = xhr.statusText;
+			result.data = xhr.response || xhr.responseText;
+
+			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
+			if (opt.responseType === 'json' && typeof result.data !== 'object') result.data = JSON.parse(xhr.responseText);
+
+			if (xhr.status === 401 || xhr.status === 403) {
+				if (self.auth) {
+					if (INDEX.auth.failure) {
+						return INDEX.auth.failure(result);
 					} else {
-						if (opt.error) {
-							return opt.error(result);
-						}
+						throw new Error('auth enabled but missing unauthorized handler');
 					}
 				}
 			}
-		};
 
-		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
-		xhr.send(opt.method === 'GET' ? null : opt.data);
-	}
+			if (self.response && self.response(result) === false) return;
+
+			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+				if (opt.success) {
+					opt.success(result);
+				}
+			} else {
+				if (opt.error) {
+					opt.error(result);
+				}
+			}
+
+		}
+	};
+
+	xhr.open(opt.method, opt.url, true, opt.username, opt.password);
+	xhr.send(opt.method === 'GET' ? null : opt.data);
 
 };

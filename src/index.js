@@ -6,7 +6,7 @@ import Loader from './loader';
 import Model from './model';
 import View from './view';
 import Http from './http';
-// import Auth from './auth';
+import Auth from './auth';
 
 var Oxe = {};
 
@@ -16,12 +16,13 @@ Oxe.body = document.body;
 Oxe.head = document.head;
 Oxe.currentScript = (document._currentScript || document.currentScript);
 
+Oxe.global = {};
 Oxe.location = {};
 Oxe.events = { data: {} };
 Oxe.modifiers = { data: {} };
-Oxe.oView = Oxe.body.querySelector('o-view');
+Oxe.oView = document.body.querySelector('o-view');
 
-// Oxe.auth = new Auth();
+Oxe.auth = new Auth();
 Oxe.http = new Http();
 Oxe.view = new View();
 Oxe.model = new Model();
@@ -59,10 +60,9 @@ Oxe.setup = function (options) {
 
 	options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
 
-	// options.auth = options.auth || {};
-	// options.auth.http = Oxe.http;
-	// options.auth.router = Oxe.router;
-	// Oxe.auth.setup(options.auth);
+	if (options.auth) {
+		Oxe.auth.setup(options.auth);
+	}
 
 	if (options.http) {
 		Oxe.http.setup(options.http);

@@ -1,42 +1,51 @@
-import INDEX from './index';
+// 401 Unauthorized
+// 403 Forbidden
+// scheme: Basic, Bearer, Digest, HOBA, Mutual, AWS4-HMAC-SHA256
+
+// NOTE add cookie type
+// NOTE add preflight to router
 
 export default function Auth (options) {
-	this.index = INDEX;
 	this.setup(options);
 }
 
 Auth.prototype.setup = function (options) {
+	var creds;
+
 	options = options || {};
 
+	this._ = {};
+	this._.failure = options.failure;
+
+	this.scheme = options.scheme || 'Basic';
+	this.type = options.type ? 'sessionStorage' : options.type + 'Storage';
+
+	Object.defineProperty(this, 'creds', {
+		enumerable: true,
+		// configurable: true,
+		get: function () {
+			return creds = creds ? creds : window[this.type].getItem('creds');
+		},
+		set: function (data) {
+			return creds = window[this.type].setItem('creds', data);
+		}
+	});
 };
 
-// {
-// 	headers: {
-// 	  Authorization: 'Bearer ' + localStorage.getItem('token')
-// 	},
-// 	method: 'GET',
-// 	cache: false
-// }
-
-Auth.prototype.verify = function (options) {
-	// window.localStorage.setItem('token', token);
-	// window.localStorage.setItem('profile', JSON.stringify(profile));
+Auth.prototype.setCreds = function (creds) {
+	return window[this.type].setItem('creds', creds);
 };
 
-// request: function (options) {
-// 	options.headers['Authorization'] = Jenie.globals.token;
-// },
-// response: function (_, xhr) {
-// 	if (!Jenie.globals.token && Jenie.router.state.location.pathname !== '/sign-in') {
-// 		Jenie.router.navigate('/sign-in');
-// 		return false;
-// 	} else if (xhr.status === 401) {
-// 		Jenie.router.navigate('/sign-in');
-// 		return false;
-// 	} else if (xhr.status > 400) {
-// 		// make a way to send a payload with the response
-// 		// Jenie.state.payload = JSON.parse(res.responseText);
-// 		Jenie.router.navigate('/error');
-// 		return false;
-// 	}
-// }
+Auth.prototype.getCreds = function () {
+	return window[this.type].getItem('creds');
+};
+
+Auth.prototype.modify = function (xhr) {
+	xhr.setRequestHeader('Authorization', this.scheme + ' ' + this.creds);
+};
+
+Auth.prototype.failure = function (data) {
+	this._.failure(data);
+};
+
+// Resources: https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication
