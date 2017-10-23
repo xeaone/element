@@ -152,6 +152,9 @@ Binder.prototype.unrenderMethods = {
 	src: function () {
 		this.element.src = '';
 	},
+	alt: function () {
+		this.element.alt = '';
+	},
 	default: function () {
 
 	}
