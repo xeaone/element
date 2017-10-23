@@ -139,7 +139,7 @@
 			return base;
 		},
 		toText: function (data) {
-			if (data === null || data === undefined) return '';
+			if (data === undefined) return ''; // data === null ||
 			if (typeof data === 'object') return JSON.stringify(data);
 			else return String(data);
 		},
@@ -191,7 +191,8 @@
 				if (element !== document.body && element.parentElement) {
 					return this.getContainer(element.parentElement);
 				} else {
-					throw new Error('Utility could not find a uid');
+					console.warn('Utility could not find a uid');
+					// throw new Error('Utility could not find a uid');
 				}
 			}
 		},
@@ -205,10 +206,11 @@
 	};
 
 	function Batcher () {
+		this.tasks = [];
 		this.reads = [];
 		this.writes = [];
 		this.rafCount = 0;
-		this.fps = 1000/60;
+		this.maxTaskTimeMS = 30;
 		this.pending = false;
 	}
 
@@ -229,42 +231,44 @@
 
 	// Schedules a new read/write batch if one isn't pending.
 	Batcher.prototype.tick = function () {
-		if (!this.pending) {
-			this.pending = true;
-			this.flush();
+		var self = this;
+		if (!self.pending) {
+			self.flush();
 		}
 	};
 
-	Batcher.prototype.flush = function () {
+	Batcher.prototype.flush = function (callback) {
 		var self = this;
-		window.requestAnimationFrame(function (readsStartTime) {
-			self.run(self.reads, function () {
-				window.requestAnimationFrame(function (writesStartTime) {
-					self.run(self.writes, function () {
-						self.pending = false;
-					}, writesStartTime);
-				});
-			}, readsStartTime);
+		self.pending = true;
+		self.run(self.reads, function () {
+			self.run(self.writes, function () {
+				if (self.reads.length || self.writes.length) {
+					self.flush();
+				} else {
+					self.pending = false;
+				}
+			});
 		});
 	};
 
-	Batcher.prototype.run = function (tasks, callback, start) {
+	Batcher.prototype.run = function (tasks, callback) {
+		var self = this;
 		if (tasks.length) {
-			var end;
-			var task = tasks.shift();
+			window.requestAnimationFrame(function (time) {
+				var task;
 
-			// do while within the current frame and task
-			do {
-				task();
-				task = tasks.shift();
-				end = window.performance.now();
-			} while (task && end - start < this.fps);
+				while (performance.now() - time < self.maxTaskTimeMS) {
+					if (task = tasks.shift()) {
+						task();
+					} else {
+						break;
+					}
+				}
 
-			window.requestAnimationFrame(this.run.bind(this, tasks, callback));
-		} else {
-			if (callback) {
-				callback();
-			}
+				self.run(tasks, callback);
+			});
+		} else if (callback) {
+			callback();
 		}
 	};
 
@@ -589,7 +593,15 @@
 		component = self.cache[route.component];
 
 		if (!component) {
+
 			component = self.cache[route.component] = document.createElement(route.component);
+
+			// NOTE might want to use this to sanitize
+			// var script;
+			// while (script = component.querySelector('script')) {
+			// 	script.parentNode.replaceChild(script);
+			// }
+
 			component.inRouterCache = false;
 			component.isRouterComponent = true;
 		}
@@ -756,8 +768,10 @@
 	};
 
 	Loader.prototype.getFile = function (data, callback) {
-		if (!data.url) throw new Error('Loader requires a url');
 		var self = this;
+
+		// TODO enforce same domain url
+		if (!data.url) throw new Error('Loader requires a url');
 
 		if (data.url in self.modules && data.status) {
 			if (data.status === self.LOADED) {
@@ -1245,6 +1259,8 @@
 
 	var OnceBinder = {
 		bind: function (element, attribute, container) {
+			if (!this.type[attribute.cmds[0]]) return;
+
 			var model = container.model;
 			var type = attribute.cmds[0];
 			var key = attribute.parentKey;
@@ -1293,6 +1309,8 @@
 			}
 		}
 	};
+
+	// TODO sanitize input/output
 
 	function Binder (options) {
 		this.element = options.element;
@@ -1408,6 +1426,9 @@
 		},
 		src: function (data) {
 			this.element.src = data;
+		},
+		alt: function (data) {
+			this.element.alt = data;
 		},
 		default: function () { //data
 			// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
@@ -1659,8 +1680,10 @@
 
 	Http.prototype.setup = function (opt) {
 		opt = opt || {};
+		// TODO add default response type option
 		this.request = opt.request === undefined ? this.request : opt.request;
 		this.response = opt.response === undefined ? this.response : opt.response;
+		this.auth = opt.auth || false;
 		return this;
 	};
 
@@ -1686,6 +1709,7 @@
 
 	Http.prototype.fetch = function (opt) {
 		var self = this;
+		var result = {};
 		var xhr = new XMLHttpRequest();
 
 		opt = opt || {};
@@ -1730,52 +1754,116 @@
 		if (opt.acceptType) opt.headers['Accept'] = opt.acceptType;
 		if (opt.contentType) opt.headers['Content-Type'] = opt.contentType;
 
+		if (opt.cache) opt.headers.cache = true;
+		else opt.cache = false;
+
+
 		if (opt.headers) {
 			for (var name in opt.headers) {
 				xhr.setRequestHeader(name, opt.headers[name]);
 			}
 		}
 
-		var requestResult = self.request ? self.request({ data: opt.data, opt: opt, xhr: xhr }) : undefined;
-		if (requestResult === undefined || requestResult === true) {
+		result.xhr = xhr;
+		result.opt = opt;
+		result.data = opt.data;
 
-			xhr.onreadystatechange = function () {
-				if (xhr.readyState === 4) {
-					var result = {
-						opt: opt,
-						xhr: xhr,
-						statusCode: xhr.status,
-						statusText: xhr.statusText,
-						data: xhr.response || xhr.responseText
-					};
+		if (self.auth) Oxe.auth.modify(xhr);
+		if (self.request && self.request(result) === false) return;
 
-					// NOTE support for IE10-11 http://caniuse.com/#search=xhr2
-					if (opt.responseType === 'json' && typeof result.data !== 'object') {
-						result.data = JSON.parse(xhr.responseText);
-					}
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState === 4) {
 
-					var responseResult = self.response ? self.response(result) : undefined;
-					if (responseResult === undefined || responseResult === true) {
-						if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-							if (opt.success) {
-								return opt.success(result);
-							}
+				result.opt = opt;
+				result.xhr = xhr;
+				result.statusCode = xhr.status;
+				result.statusText = xhr.statusText;
+				result.data = xhr.response || xhr.responseText;
+
+				// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
+				if (opt.responseType === 'json' && typeof result.data !== 'object') result.data = JSON.parse(xhr.responseText);
+
+				if (xhr.status === 401 || xhr.status === 403) {
+					if (self.auth) {
+						if (Oxe.auth.failure) {
+							return Oxe.auth.failure(result);
 						} else {
-							if (opt.error) {
-								return opt.error(result);
-							}
+							throw new Error('auth enabled but missing unauthorized handler');
 						}
 					}
 				}
-			};
 
-			xhr.open(opt.method, opt.url, true, opt.username, opt.password);
-			xhr.send(opt.method === 'GET' ? null : opt.data);
-		}
+				if (self.response && self.response(result) === false) return;
+
+				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+					if (opt.success) {
+						opt.success(result);
+					}
+				} else {
+					if (opt.error) {
+						opt.error(result);
+					}
+				}
+
+			}
+		};
+
+		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
+		xhr.send(opt.method === 'GET' ? null : opt.data);
 
 	};
 
-	// import Auth from './auth';
+	// 401 Unauthorized
+	// 403 Forbidden
+	// scheme: Basic, Bearer, Digest, HOBA, Mutual, AWS4-HMAC-SHA256
+
+	// NOTE add cookie type
+	// NOTE add preflight to router
+
+	function Auth (options) {
+		this.setup(options);
+	}
+
+	Auth.prototype.setup = function (options) {
+		var creds;
+
+		options = options || {};
+
+		this._ = {};
+		this._.failure = options.failure;
+
+		this.scheme = options.scheme || 'Basic';
+		this.type = options.type ? 'sessionStorage' : options.type + 'Storage';
+
+		Object.defineProperty(this, 'creds', {
+			enumerable: true,
+			// configurable: true,
+			get: function () {
+				return creds = creds ? creds : window[this.type].getItem('creds');
+			},
+			set: function (data) {
+				return creds = window[this.type].setItem('creds', data);
+			}
+		});
+	};
+
+	Auth.prototype.setCreds = function (creds) {
+		return window[this.type].setItem('creds', creds);
+	};
+
+	Auth.prototype.getCreds = function () {
+		return window[this.type].getItem('creds');
+	};
+
+	Auth.prototype.modify = function (xhr) {
+		xhr.setRequestHeader('Authorization', this.scheme + ' ' + this.creds);
+	};
+
+	Auth.prototype.failure = function (data) {
+		this._.failure(data);
+	};
+
+	// Resources: https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication
 
 	var Oxe = {};
 
@@ -1785,12 +1873,13 @@
 	Oxe.head = document.head;
 	Oxe.currentScript = (document._currentScript || document.currentScript);
 
+	Oxe.global = {};
 	Oxe.location = {};
 	Oxe.events = { data: {} };
 	Oxe.modifiers = { data: {} };
-	Oxe.oView = Oxe.body.querySelector('o-view');
+	Oxe.oView = document.body.querySelector('o-view');
 
-	// Oxe.auth = new Auth();
+	Oxe.auth = new Auth();
 	Oxe.http = new Http();
 	Oxe.view = new View();
 	Oxe.model = new Model();
@@ -1828,10 +1917,9 @@
 
 		options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
 
-		// options.auth = options.auth || {};
-		// options.auth.http = Oxe.http;
-		// options.auth.router = Oxe.router;
-		// Oxe.auth.setup(options.auth);
+		if (options.auth) {
+			Oxe.auth.setup(options.auth);
+		}
 
 		if (options.http) {
 			Oxe.http.setup(options.http);
