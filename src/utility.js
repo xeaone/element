@@ -28,7 +28,7 @@ var Utility = {
 		return base;
 	},
 	toText: function (data) {
-		if (data === null || data === undefined) return '';
+		if (data === undefined) return ''; // data === null ||
 		if (typeof data === 'object') return JSON.stringify(data);
 		else return String(data);
 	},
@@ -80,7 +80,8 @@ var Utility = {
 			if (element !== document.body && element.parentElement) {
 				return this.getContainer(element.parentElement);
 			} else {
-				throw new Error('Utility could not find a uid');
+				console.warn('Utility could not find a uid');
+				// throw new Error('Utility could not find a uid');
 			}
 		}
 	},

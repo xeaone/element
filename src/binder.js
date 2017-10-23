@@ -118,6 +118,9 @@ Binder.prototype.renderMethods = {
 	src: function (data) {
 		this.element.src = data;
 	},
+	alt: function (data) {
+		this.element.alt = data;
+	},
 	default: function () { //data
 		// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
 	}

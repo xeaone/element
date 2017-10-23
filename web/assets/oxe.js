@@ -139,7 +139,7 @@
 			return base;
 		},
 		toText: function (data) {
-			if (data === null || data === undefined) return '';
+			if (data === undefined) return ''; // data === null ||
 			if (typeof data === 'object') return JSON.stringify(data);
 			else return String(data);
 		},
@@ -191,7 +191,8 @@
 				if (element !== document.body && element.parentElement) {
 					return this.getContainer(element.parentElement);
 				} else {
-					throw new Error('Utility could not find a uid');
+					console.warn('Utility could not find a uid');
+					// throw new Error('Utility could not find a uid');
 				}
 			}
 		},
@@ -205,10 +206,11 @@
 	};
 
 	function Batcher () {
+		this.tasks = [];
 		this.reads = [];
 		this.writes = [];
 		this.rafCount = 0;
-		this.fps = 1000/60;
+		this.maxTaskTimeMS = 30;
 		this.pending = false;
 	}
 
@@ -229,42 +231,44 @@
 
 	// Schedules a new read/write batch if one isn't pending.
 	Batcher.prototype.tick = function () {
-		if (!this.pending) {
-			this.pending = true;
-			this.flush();
+		var self = this;
+		if (!self.pending) {
+			self.flush();
 		}
 	};
 
-	Batcher.prototype.flush = function () {
+	Batcher.prototype.flush = function (callback) {
 		var self = this;
-		window.requestAnimationFrame(function (readsStartTime) {
-			self.run(self.reads, function () {
-				window.requestAnimationFrame(function (writesStartTime) {
-					self.run(self.writes, function () {
-						self.pending = false;
-					}, writesStartTime);
-				});
-			}, readsStartTime);
+		self.pending = true;
+		self.run(self.reads, function () {
+			self.run(self.writes, function () {
+				if (self.reads.length || self.writes.length) {
+					self.flush();
+				} else {
+					self.pending = false;
+				}
+			});
 		});
 	};
 
-	Batcher.prototype.run = function (tasks, callback, start) {
+	Batcher.prototype.run = function (tasks, callback) {
+		var self = this;
 		if (tasks.length) {
-			var end;
-			var task = tasks.shift();
+			window.requestAnimationFrame(function (time) {
+				var task;
 
-			// do while within the current frame and task
-			do {
-				task();
-				task = tasks.shift();
-				end = window.performance.now();
-			} while (task && end - start < this.fps);
+				while (performance.now() - time < self.maxTaskTimeMS) {
+					if (task = tasks.shift()) {
+						task();
+					} else {
+						break;
+					}
+				}
 
-			window.requestAnimationFrame(this.run.bind(this, tasks, callback));
-		} else {
-			if (callback) {
-				callback();
-			}
+				self.run(tasks, callback);
+			});
+		} else if (callback) {
+			callback();
 		}
 	};
 
@@ -1255,6 +1259,8 @@
 
 	var OnceBinder = {
 		bind: function (element, attribute, container) {
+			if (!this.type[attribute.cmds[0]]) return;
+
 			var model = container.model;
 			var type = attribute.cmds[0];
 			var key = attribute.parentKey;
@@ -1420,6 +1426,9 @@
 		},
 		src: function (data) {
 			this.element.src = data;
+		},
+		alt: function (data) {
+			this.element.alt = data;
 		},
 		default: function () { //data
 			// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);

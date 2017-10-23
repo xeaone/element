@@ -55,16 +55,16 @@ Oxe.component.define({
 		// 	else self.model.counter--;
 		// }, 1000);
 
-		setTimeout(function () {
+		// setTimeout(function () {
 			for (i; i < 2600; i++) {
 				self.model.items.push({ number: self.model.items.length });
 			}
-			setTimeout(function () {
-				for (i; i > 10; i--) {
-					self.model.items.pop();
-				}
-			}, 100);
-		}, 1000);
+			// setTimeout(function () {
+			// 	for (i; i > 10; i--) {
+			// 		self.model.items.pop();
+			// 	}
+			// }, 1000);
+		// }, 1000);
 
 	}
 });

@@ -2,6 +2,8 @@ import Utility from './utility';
 
 export default {
 	bind: function (element, attribute, container) {
+		if (!this.type[attribute.cmds[0]]) return;
+
 		var model = container.model;
 		var type = attribute.cmds[0];
 		var key = attribute.parentKey;
