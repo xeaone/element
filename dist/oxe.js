@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 1.10.2
+	Version: 1.10.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1471,6 +1471,9 @@
 		src: function () {
 			this.element.src = '';
 		},
+		alt: function () {
+			this.element.alt = '';
+		},
 		default: function () {
 
 		}
@@ -1637,7 +1640,7 @@
 		var self = this;
 		self.eachElement(addedNode, containerNode, function (element, container) {
 			self.eachAttribute(element.attributes, function (attribute) {
-				if (self.isOnce(attribute)) {
+				if (self.isOnce(attribute.name)) {
 					OnceBinder.bind(element, attribute, container);
 				} else {
 					if (container && container.uid) { // i dont like this check
