@@ -1508,9 +1508,8 @@
 	View.prototype.IS_ACCEPT_PATH = /(data-)?o-.*/;
 	View.prototype.IS_REJECT_PATH = /(data-)?o-value.*/;
 
-	View.prototype.isOnce = function (node) {
-		return node.hasAttribute('o-value')
-			|| node.hasAttribute('data-o-value');
+	View.prototype.isOnce = function (attribute) {
+		return attribute === 'data-o-value' || attribute === 'o-value';
 	};
 
 	View.prototype.isSkip = function (node) {
@@ -1628,7 +1627,7 @@
 		var self = this;
 		self.eachElement(addedNode, containerNode, function (element, container) {
 			self.eachAttribute(element.attributes, function (attribute) {
-				if (self.isOnce(element)) {
+				if (self.isOnce(attribute)) {
 					OnceBinder.bind(element, attribute, container);
 				} else {
 					if (container && container.uid) { // i dont like this check
