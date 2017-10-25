@@ -197,22 +197,29 @@ ES6 import and export module support. Imports must be absolute from the domain. 
 					- `opt: Object` The options used for the request.
 					- `data: Object|String` The response transformed by resonseType.
 			- `data: Object` If method is GET than data is concatenated to the url as parameters.
-			- `contentType: String` (default: application/x-www-form-urlencoded) The header Content-Type of the data being posted to the server.
-				- `html` 'text/html'
-				- `text` 'text/plain'
-				- `json` 'application/json'
-				- `xml` 'application/xml, text/xml'
-				- `urlencoded`: 'application/x-www-form-urlencoded'
-				- `script` 'text/javascript, application/javascript, application/x-javascript'
-			- `acceptType: String` The header Accept type to expect from the server.
-				- `html` 'text/html'
-				- `text` 'text/plain'
-				- `json` 'application/json'
-				- `xml` 'application/xml, text/xml'
-				- `urlencoded`: 'application/x-www-form-urlencoded'
-				- `script` 'text/javascript, application/javascript, application/x-javascript'
+			- `type: String` A shortcut for setting the contentType, acceptType, and responseType. Example setting the value to 'json' will set the `contentType=application/json, text/json, text/plain`, `acceptType=application/json, text/json, text/plain`, and `responseType=json`.
+			- `contentType: String` The header Content-Type of the data being posted to the server. (default: text)
+				- `*` Any string
+				- `xml` 'text/xml; charset=utf-8'
+				- `text` 'text/text; charset=utf-8'
+				- `html` 'text/html; charset=utf-8'
+				- `json` 'application/json; charset=utf-8'
+				- `js` 'application/javascript; charset=utf-8'
+			- `acceptType: String` The header Accept type to expect from the server. (default: text)
+				- `*` Any string
+				- `xml` 'text/xml; charset=utf-8'
+				- `text` 'text/text; charset=utf-8'
+				- `html` 'text/html; charset=utf-8'
+				- `json` 'application/json; charset=utf-8'
+				- `js` 'application/javascript; charset=utf-8'
+			- `responseType: String` [XMLHttpRequest.responseType](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseType). Added json support for non supported browsers. Blob support for older browsers is still needed. (default: text)
+				- `*` Any string
+				- `arraybuffer`
+				- `document`
+				- `blob`
+				- `json`
+				- `text`
 			- `mimeType: String` Override the MIME type of the response.
-			- `responseType: String` (default: DOMString/text) arraybuffer, blob, document, json, text,  [XMLHttpRequest.responseType](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseType). Added json support for non supported browsers. Blob support for older browsers is still needed.
 			- `headers: Object` A Map of String to be directly applied to the the XHR header.
 
 ### Oxe.global

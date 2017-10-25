@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 1.10.5
+	Version: 1.10.6
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1696,16 +1696,16 @@
 		this.request = opt.request === undefined ? this.request : opt.request;
 		this.response = opt.response === undefined ? this.response : opt.response;
 		this.auth = opt.auth || false;
+		this.type = opt.type || 'text';
 		return this;
 	};
 
 	Http.prototype.mime = {
-		html: 'text/html',
-		text: 'text/plain',
-		xml: 'application/xml, text/xml',
-		json: 'application/json, text/javascript',
-		urlencoded: 'application/x-www-form-urlencoded',
-		script: 'text/javascript, application/javascript, application/x-javascript'
+		xml: 'text/xml; charset=utf-8',
+		html: 'text/html; charset=utf-8',
+		text: 'text/plain; charset=utf-8',
+		json: 'application/json; charset=utf-8',
+		js: 'application/javascript; charset=utf-8'
 	};
 
 	Http.prototype.serialize = function (data) {
@@ -1726,48 +1726,52 @@
 
 		opt = opt || {};
 		opt.headers = {};
+		opt.type = opt.type || this.type;
 		opt.url = opt.url ? opt.url : window.location.href;
 		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
 
 		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
 
+		if (opt.type) {
+			opt.acceptType = opt.acceptType || opt.type;
+			opt.contentType = opt.contentType || opt.type;
+			opt.responseType = opt.responseType || opt.type;
+		}
+
 		if (opt.contentType) {
 			switch (opt.contentType) {
-				case 'xml': opt.contentType = self.mime.xm; break;
-				case 'html': opt.contentType = self.mime.html; break;
-				case 'text': opt.contentType = self.mime.text; break;
-				case 'json': opt.contentType = self.mime.json; break;
-				case 'script': opt.contentType = self.mime.script; break;
-				default: opt.contentType = self.mime.urlencoded;
+				case 'js': opt.headers['Content-Type'] = self.mime.js; break;
+				case 'xml': opt.headers['Content-Type'] = self.mime.xm; break;
+				case 'html': opt.headers['Content-Type'] = self.mime.html; break;
+				case 'json': opt.headers['Content-Type'] = self.mime.json; break;
+				default: opt.headers['Content-Type'] = self.mime.text;
 			}
 		}
 
 		if (opt.acceptType) {
 			switch (opt.acceptType) {
-				case 'xml': opt.acceptType = self.mime.xml; break;
-				case 'html': opt.acceptType = self.mime.html; break;
-				case 'text': opt.acceptType = self.mime.text; break;
-				case 'json': opt.acceptType = self.mime.json; break;
-				case 'script': opt.acceptType = self.mime.script; break;
+				case 'js': opt.headers['Accept'] = self.mime.js; break;
+				case 'xml': opt.headers['Accept'] = self.mime.xml; break;
+				case 'html': opt.headers['Accept'] = self.mime.html; break;
+				case 'json': opt.headers['Accept'] = self.mime.json; break;
+				default: opt.headers['Accept'] = self.mime.text;
 			}
 		}
-		
-		if (opt.data) {
-			if (opt.method === 'GET') {
-				opt.data = self.serialize(opt.data);
-				opt.url = opt.url + '?' + opt.data;
-			} else {
-				if (opt.contentType === self.mime.json) opt.data = JSON.stringify(opt.data);
-				else if (opt.contentType === self.mime.urlencoded) opt.data = self.serialize(opt.data);
+
+		if (opt.responseType) {
+			switch (opt.responseType) {
+				case 'json': xhr.responseType = 'json'; break;
+				case 'blob': xhr.responseType = 'blob'; break;
+				case 'xml': xhr.responseType = 'document'; break;
+				case 'html': xhr.responseType = 'document'; break;
+				case 'document': xhr.responseType = 'document'; break;
+				case 'arraybuffer': xhr.responseType = 'arraybuffer'; break;
+				default: xhr.responseType = 'text';
 			}
 		}
 
 		if (opt.mimeType) xhr.overrideMimeType(opt.mimeType);
-		if (opt.responseType) xhr.responseType = opt.responseType;
 		if (opt.withCredentials) xhr.withCredentials = opt.withCredentials;
-
-		if (opt.acceptType) opt.headers['Accept'] = opt.acceptType;
-		if (opt.contentType) opt.headers['Content-Type'] = opt.contentType;
 
 		if (opt.cache) opt.headers.cache = true;
 		else opt.cache = false;
@@ -1776,6 +1780,10 @@
 			for (var name in opt.headers) {
 				xhr.setRequestHeader(name, opt.headers[name]);
 			}
+		}
+
+		if (opt.data && opt.method === 'GET') {
+			opt.url = opt.url + '?' + self.serialize(opt.data);
 		}
 
 		result.xhr = xhr;
@@ -1792,10 +1800,19 @@
 				result.xhr = xhr;
 				result.statusCode = xhr.status;
 				result.statusText = xhr.statusText;
-				result.data = xhr.response || xhr.responseText;
+
+				if (xhr['response'] !== undefined) {
+					result.data = xhr.response;
+				} else if (xhr['responseText'] !== undefined) {
+					result.data = xhr.responseText;
+				} else {
+					result.data = undefined;
+				}
 
 				// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
-				if (opt.responseType === 'json' && typeof result.data !== 'object') result.data = JSON.parse(xhr.responseText);
+				if (opt.responseType === 'json' && typeof result.data === 'string') {
+					result.data = JSON.parse(result.data || {});
+				}
 
 				if (xhr.status === 401 || xhr.status === 403) {
 					if (self.auth) {
@@ -1822,7 +1839,7 @@
 			}
 		};
 
-		xhr.send(opt.method === 'GET' ? null : opt.data);
+		xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
 
 	};
 
