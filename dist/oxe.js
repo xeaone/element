@@ -1729,6 +1729,8 @@
 		opt.url = opt.url ? opt.url : window.location.href;
 		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
 
+		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
+
 		if (opt.contentType) {
 			switch (opt.contentType) {
 				case 'xml': opt.contentType = self.mime.xm; break;
@@ -1768,7 +1770,6 @@
 
 		if (opt.cache) opt.headers.cache = true;
 		else opt.cache = false;
-
 
 		if (opt.headers) {
 			for (var name in opt.headers) {
@@ -1820,7 +1821,6 @@
 			}
 		};
 
-		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
 		xhr.send(opt.method === 'GET' ? null : opt.data);
 
 	};
