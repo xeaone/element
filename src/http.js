@@ -52,6 +52,7 @@ Http.prototype.fetch = function (opt) {
 			case 'text': opt.contentType = self.mime.text; break;
 			case 'json': opt.contentType = self.mime.json; break;
 			case 'script': opt.contentType = self.mime.script; break;
+			default: opt.contentType = self.mime.urlencoded;
 		}
 	}
 
@@ -64,15 +65,15 @@ Http.prototype.fetch = function (opt) {
 			case 'script': opt.acceptType = self.mime.script; break;
 		}
 	}
-
+	
 	if (opt.data) {
 		if (opt.method === 'GET') {
 			opt.data = self.serialize(opt.data);
 			opt.url = opt.url + '?' + opt.data;
+		} else {
+			if (opt.contentType === self.mime.json) opt.data = JSON.stringify(opt.data);
+			else if (opt.contentType === self.mime.urlencoded) opt.data = self.serialize(opt.data);
 		}
-		else if (!opt.contentType) opt.contentType = self.mime.urlencoded;
-		else if (opt.contentType === self.mime.json) opt.data = JSON.stringify(opt.data);
-		else if (opt.contentType === self.mime.urlencoded) opt.data = self.serialize(opt.data);
 	}
 
 	if (opt.mimeType) xhr.overrideMimeType(opt.mimeType);
