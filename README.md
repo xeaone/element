@@ -25,7 +25,7 @@ Loader uses `XHR` and `new Function` to load on-demand and execute modules. If y
 
 
 ## Install
-- `npm install oxe --save`
+- `npm i oxe --save`
 - UMD `dist/oxe.min.js`
 - UMD with Web Component Pollyfill `dist/oxe.polly.min.js`
 - Web Component Pollyfill `dist/webcomponents-lite.min.js`

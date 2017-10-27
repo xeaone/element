@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 1.10.6
+	Version: 1.10.7
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1439,6 +1439,9 @@
 		},
 		alt: function (data) {
 			this.element.alt = data;
+		},
+		required: function (data) {
+			this.element.required = data;
 		},
 		default: function () { //data
 			// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
