@@ -61,6 +61,7 @@ Binder.prototype.renderMethods = {
 		this.element.addEventListener(this.attribute.cmds[1], data);
 	},
 	each: function (data) {
+		data = data || [];
 		if (this.element.children.length > data.length) {
 		// if (this.count > data.length) {
 			this.element.removeChild(this.element.lastElementChild);
