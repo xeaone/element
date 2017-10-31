@@ -34,48 +34,90 @@ Loader.prototype.getFile = function (data, callback) {
 	var self = this;
 
 	// TODO enforce same domain url
-	if (!data.url) throw new Error('Loader requires a url');
+	if (!data.url) {
+		throw new Error('Oxe.Loader - requires a url');
+	}
 
 	if (data.url in self.modules && data.status) {
 		if (data.status === self.LOADED) {
+			// console.log(data.url + ' ' + performance.now());
 			if (callback) callback();
 		} else if (data.status === self.LOADING) {
-			if (!data.tag) {
-				data.xhr.addEventListener('readystatechange', function () {
-					if (data.xhr.readyState === 4) {
-						if (data.xhr.status >= 200 && data.xhr.status < 400) {
-							if (callback) callback(data);
-						} else {
-							throw new Error(data.xhr.responseText);
-						}
-					}
-				});
-			} else {
-				data.element.addEventListener('load', function () {
-					if (callback) callback(data);
-				});
-			}
-		}
-	} else {
-		if (!data.tag) {
-			data.xhr = new XMLHttpRequest();
 			data.xhr.addEventListener('readystatechange', function () {
 				if (data.xhr.readyState === 4) {
 					if (data.xhr.status >= 200 && data.xhr.status < 400) {
-						data.status = self.LOADED;
-						data.text = data.xhr.responseText;
 						if (callback) callback(data);
 					} else {
 						throw new Error(data.xhr.responseText);
 					}
 				}
 			});
-			data.xhr.open('GET', data.url);
-			data.xhr.send();
 		}
-
+	} else {
+		data.xhr = new XMLHttpRequest();
+		data.xhr.addEventListener('readystatechange', function () {
+			if (data.xhr.readyState === 4) {
+				if (data.xhr.status >= 200 && data.xhr.status < 400) {
+					data.status = self.LOADED;
+					data.text = data.xhr.responseText;
+					if (callback) callback(data);
+				} else {
+					throw new Error(data.xhr.responseText);
+				}
+			}
+		});
+		data.xhr.open('GET', data.url);
+		data.xhr.send();
 		data.status = self.LOADING;
 	}
+};
+
+Loader.prototype.jsFile = function (data, callback) {
+	var self = this;
+
+	data.text = self.est ? Transformer.template(data.text) : data.text;
+
+	if (self.esm || data.esm) {
+		var ast = self.toAst(data.text);
+
+		if (ast.imports.length) {
+			var meta = {
+				count: 0,
+				imports: ast.imports,
+				total: ast.imports.length,
+				listener: function () {
+					if (++meta.count === meta.total) {
+						self.modules[data.url] = self.interpret(ast.cooked);
+						if (callback) callback();
+					}
+				}
+			};
+
+			for (var i = 0, l = meta.imports.length; i < l; i++) {
+				self.load(meta.imports[i].url, meta.listener);
+			}
+		} else {
+			self.modules[data.url] = self.interpret(ast.cooked);
+			if (callback) callback();
+		}
+	} else {
+		self.modules[data.url] = self.interpret(data.text);
+		if (callback) callback();
+	}
+};
+
+Loader.prototype.cssFile = function (data, callback) {
+	data.element = document.createElement('link');
+
+	data.element.setAttribute('href', data.url);
+	data.element.setAttribute('rel','stylesheet');
+	data.element.setAttribute('type', 'text/css');
+
+	data.element.addEventListener('load', function () {
+		if (callback) callback(data);
+	});
+
+	document.head.appendChild(data.element);
 };
 
 Loader.prototype.getImports = function (data) {
@@ -96,13 +138,20 @@ Loader.prototype.getExports = function (data) {
 	return data.match(this.patterns.exps) || [];
 };
 
+Loader.prototype.ext = function (data) {
+	var position = data.lastIndexOf('.');
+	return position ? data.slice(position+1) : '';
+};
+
 Loader.prototype.normalizeUrl = function (url) {
-	if (url.indexOf('.js') === -1) {
+	if (!this.ext(url)) {
 		url = url + '.js';
 	}
+
 	if (url.indexOf('/') !== 0) {
 		url = Utility.joinSlash(this.base.replace(window.location.origin, ''), url);
 	}
+
 	return url;
 };
 
@@ -138,7 +187,10 @@ Loader.prototype.interpret = function (data) {
 Loader.prototype.load = function (data, callback) {
 	var self = this;
 
-	if (data.constructor === String) data = { url: data };
+	if (data.constructor === String) {
+		data = { url: data };
+	}
+
 	data.url = self.normalizeUrl(data.url);
 	self.files[data.url] = data;
 
@@ -146,37 +198,18 @@ Loader.prototype.load = function (data, callback) {
 		return callback ? callback() : undefined;
 	}
 
-	self.getFile(data, function (d) {
-		d.text = self.est ? Transformer.template(d.text) : d.text;
+	data.ext = self.ext(data.url);
 
-		if (self.esm || data.esm) {
-			var ast = self.toAst(d.text);
+	if (data.ext === 'js' || data.ext === '') {
+		self.getFile(data, function (d) {
+			self.jsFile(d, callback);
+		});
+	} else if (data.ext === 'css') {
+		self.cssFile(data, callback);
+	} else {
+		throw new Error('Oxe.Loader - unreconized file type');
+	}
 
-			if (ast.imports.length) {
-				var meta = {
-					count: 0,
-					imports: ast.imports,
-					total: ast.imports.length,
-					listener: function () {
-						if (++meta.count === meta.total) {
-							self.modules[d.url] = self.interpret(ast.cooked);
-							if (callback) callback();
-						}
-					}
-				};
-
-				for (var i = 0, l = meta.imports.length; i < l; i++) {
-					self.load(meta.imports[i].url, meta.listener);
-				}
-			} else {
-				self.modules[d.url] = self.interpret(ast.cooked);
-				if (callback) callback();
-			}
-		} else {
-			self.modules[d.url] = self.interpret(d.text);
-			if (callback) callback();
-		}
-	});
 };
 
 Loader.prototype.run = function () {

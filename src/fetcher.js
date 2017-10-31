@@ -1,20 +1,19 @@
 import INDEX from './index';
 
-export default function Http (opt) {
+export default function Fetcher (opt) {
 	this.setup(opt);
 }
 
-Http.prototype.setup = function (opt) {
+Fetcher.prototype.setup = function (opt) {
 	opt = opt || {};
-	// TODO add default response type option
-	this.request = opt.request === undefined ? this.request : opt.request;
-	this.response = opt.response === undefined ? this.response : opt.response;
 	this.auth = opt.auth || false;
 	this.type = opt.type || 'text';
+	this.request = opt.request || opt.request;
+	this.response = opt.response || opt.response;
 	return this;
 };
 
-Http.prototype.mime = {
+Fetcher.prototype.mime = {
 	xml: 'text/xml; charset=utf-8',
 	html: 'text/html; charset=utf-8',
 	text: 'text/plain; charset=utf-8',
@@ -22,7 +21,7 @@ Http.prototype.mime = {
 	js: 'application/javascript; charset=utf-8'
 };
 
-Http.prototype.serialize = function (data) {
+Fetcher.prototype.serialize = function (data) {
 	var string = '';
 
 	for (var name in data) {
@@ -33,7 +32,7 @@ Http.prototype.serialize = function (data) {
 	return string;
 };
 
-Http.prototype.fetch = function (opt) {
+Fetcher.prototype.fetch = function (opt) {
 	var self = this;
 	var result = {};
 	var xhr = new XMLHttpRequest();
@@ -104,7 +103,7 @@ Http.prototype.fetch = function (opt) {
 	result.opt = opt;
 	result.data = opt.data;
 
-	if (self.auth) INDEX.auth.modify(xhr);
+	if (self.auth || result.opt.auth && INDEX.keeper.request(result) === false) return;
 	if (self.request && self.request(result) === false) return;
 
 	xhr.onreadystatechange = function () {
@@ -129,12 +128,13 @@ Http.prototype.fetch = function (opt) {
 			}
 
 			if (xhr.status === 401 || xhr.status === 403) {
-				if (self.auth) {
-					if (INDEX.auth.failure) {
-						return INDEX.auth.failure(result);
-					} else {
-						throw new Error('auth enabled but missing unauthorized handler');
+				if (self.auth || result.opt.auth) {
+					if (INDEX.keeper.response) {
+						return INDEX.keeper.response(result);
 					}
+					// else {
+					// 	throw new Error('auth enabled but missing unauthorized handler');
+					// }
 				}
 			}
 

@@ -17,12 +17,16 @@ var home = Escape(`
 
 var indexjs = Escape(`
 	Oxe.setup({
-		http: {
+		keeper: {
+			unauthorized: '/sign-in', // string or function
+		},
+		fetcher: {
+			auth: true, // enables keeper for all fetches
 			request: function (opt, xhr) {
-				return true; // false will cancel the http.fetch
+				return true; // false will cancel the fetcher.fetch
 			},
 			response: function (opt, xhr) {
-				return true; // false will cancel the http.fetch handlers
+				return true; // false will cancel the fetcher.fetch handlers
 			}
 		},
 		loader: {
@@ -30,12 +34,12 @@ var indexjs = Escape(`
 			est: true, // Enables ES6 template string re-writes support
 			loads: [
 				{
-					url: '/components/c-menu.js',
-					execute: true // Since this component is not a route component or imported we must execute.
+					url: '/components/e-menu.js'
 				}
 			]
 		},
 		router: {
+			auth: true, // enables keeper for all routes
 			routes: [
 				{
 					path: '/',
@@ -56,18 +60,18 @@ var indexhtml = Escape(`
 		<script src="index.js" defer></script>
 	</head>
 	<body>
-		<c-menu>
+		<e-menu>
 			<ul>
 				<li><a href="/home">Home</a></li>
 			</ul>
-		</c-menu>
+		</e-menu>
 		<o-view></o-view>
 	</body>
 	</html>
 `);
 
 Oxe.component.define({
-	name: 'v-root',
+	name: 'v-home',
 	attached: function () {
 		Prism.highlightAll();
 	},

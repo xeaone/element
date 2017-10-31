@@ -72,7 +72,7 @@ Oxe.component.define({
 	attached: function () {
 		var self = this;
 
-		Oxe.http.fetch({
+		Oxe.fetcher.fetch({
 			method: 'get',
 			url: '/data.json',
 			responseType: 'json',

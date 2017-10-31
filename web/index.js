@@ -5,9 +5,9 @@ Oxe.setup({
 		est: true,
 		base: true,
 		loads: [
-			{
-				url: 'elements/e-menu.js'
-			}
+			'index.css',
+			'assets/prism.css',
+			'elements/e-menu.js'
 		]
 	},
 	router: {
@@ -16,10 +16,10 @@ Oxe.setup({
 		// trailing: true,
 		routes: [
 			{
-				title: 'Root',
+				title: 'Home',
 				path: '/',
-				component: 'v-root',
-				url: 'views/v-root.js'
+				component: 'v-home',
+				url: 'views/v-home.js'
 			},
 			{
 				title: 'Test',

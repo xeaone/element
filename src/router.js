@@ -1,5 +1,6 @@
 import Utility from './utility';
 import Events from './events';
+import INDEX from './index';
 
 export default function Router (options) {
 	Events.call(this);
@@ -9,6 +10,7 @@ export default function Router (options) {
 	this.route = {};
 	this.query = {};
 	this.location = {};
+	this.auth = false;
 	this.isRan = false;
 	this.parameters = {};
 	this.component = null;
@@ -26,16 +28,14 @@ Router.prototype.constructor = Router;
 
 Router.prototype.setup = function (options) {
 	options = options || {};
-	this.view = options.view === undefined ? this.view: options.view;
+	this.auth = options.auth === undefined ? this.auth : options.auth;
+	this.view = options.view === undefined ? this.view : options.view;
 	this.hash = options.hash === undefined ? this.hash : options.hash;
 	this.routes = options.routes === undefined ? this.routes: options.routes;
-	this.loader = options.loader === undefined ? this.loader : options.loader;
-	this.batcher = options.batcher === undefined ? this.batcher: options.batcher;
 	this.external = options.external === undefined ? this.external: options.external;
 	this.container = options.container === undefined ? this.container: options.container;
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 	this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
-	return this;
 };
 
 Router.prototype.popstate = function (e) {
@@ -43,18 +43,17 @@ Router.prototype.popstate = function (e) {
 };
 
 Router.prototype.click = function (e) {
-	var self = this;
 
 	// if shadow dom use
 	var target = e.path ? e.path[0] : e.target;
 	var parent = target.parentNode;
 
-	if (self.container) {
+	if (this.container) {
 		while (parent) {
-			if (parent === self.container) break;
+			if (parent === this.container) break;
 			else parent = parent.parentNode;
 		}
-		if (parent !== self.container) return;
+		if (parent !== this.container) return;
 	}
 
 	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -75,16 +74,16 @@ Router.prototype.click = function (e) {
 	) return;
 
 	// if external is true then default action
-	if (self.external &&
-		(self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
-		self.external.constructor.name === 'Function' && self.external(target.href) ||
-		self.external.constructor.name === 'String' && self.external === target.href)
+	if (this.external &&
+		(this.external.constructor.name === 'RegExp' && this.external.test(target.href) ||
+		this.external.constructor.name === 'Function' && this.external(target.href) ||
+		this.external.constructor.name === 'String' && this.external === target.href)
 	) return;
 
 	e.preventDefault();
 
 	if (this.location.href !== target.href) {
-		self.navigate(target.href);
+		this.navigate(target.href);
 	}
 };
 
@@ -216,12 +215,10 @@ Router.prototype.getLocation = function (path) {
 
 Router.prototype.scroll = function (x, y) {
 	window.scroll(x, y);
-	return this;
 };
 
 Router.prototype.back = function () {
 	window.history.back();
-	return this;
 };
 
 Router.prototype.redirect = function (path) {
@@ -234,7 +231,6 @@ Router.prototype.add = function (route) {
 	} else if (route.constructor.name === 'Array') {
 		this.routes = this.routes.concat(route);
 	}
-	return this;
 };
 
 Router.prototype.remove = function (path) {
@@ -243,7 +239,6 @@ Router.prototype.remove = function (path) {
 			this.routes.splice(i, 1);
 		}
 	}
-	return this;
 };
 
 Router.prototype.get = function (path) {
@@ -253,7 +248,6 @@ Router.prototype.get = function (path) {
 			return route;
 		}
 	}
-	return this;
 };
 
 Router.prototype.find = function (path) {
@@ -263,7 +257,6 @@ Router.prototype.find = function (path) {
 			return route;
 		}
 	}
-	return this;
 };
 
 Router.prototype.addToBatcher = function (route) {
@@ -285,7 +278,7 @@ Router.prototype.addToBatcher = function (route) {
 		component.isRouterComponent = true;
 	}
 
-	self.batcher.write(function () {
+	INDEX.batcher.write(function () {
 		var child;
 		while (child = self.view.firstChild) self.view.removeChild(child);
 		self.view.appendChild(component);
@@ -293,7 +286,6 @@ Router.prototype.addToBatcher = function (route) {
 		self.emit('navigated');
 	});
 
-	return this;
 };
 
 Router.prototype.render = function (route) {
@@ -301,7 +293,7 @@ Router.prototype.render = function (route) {
 
 	if (route.title) document.title = route.title;
 	if (route.url && !(route.component in self.cache)) {
-		self.loader.load(route.url, function () {
+		INDEX.loader.load(route.url, function () {
 			self.addToBatcher(route);
 		});
 	} else {
@@ -310,50 +302,47 @@ Router.prototype.render = function (route) {
 };
 
 Router.prototype.navigate = function (data, replace) {
-	var self = this;
 
 	if (typeof data === 'string') {
 		var path = data; data = {};
-		data.location = self.getLocation(path);
-		data.route = self.find(data.location.pathname) || {};
-		data.query = self.toQueryObject(data.location.search) || {};
-		data.parameters = self.toParameterObject(data.route.path || '', data.location.pathname) || {};
+		data.location = this.getLocation(path);
+		data.route = this.find(data.location.pathname) || {};
+		data.query = this.toQueryObject(data.location.search) || {};
+		data.parameters = this.toParameterObject(data.route.path || '', data.location.pathname) || {};
 		data.component = data.route.component;
 		data.title = data.route.title || '';
 	}
 
-	self.title = data.title;
-	self.route = data.route;
-	self.query = data.query;
-	self.location = data.location;
-	self.parameters = data.parameters;
+	this.title = data.title;
+	this.route = data.route;
+	this.query = data.query;
+	this.location = data.location;
+	this.parameters = data.parameters;
 
-	window.history[replace ? 'replaceState' : 'pushState'](data, self.title, self.location.href);
+	window.history[replace ? 'replaceState' : 'pushState'](data, this.title, this.location.href);
 
-	if (self.route.handler) {
-		self.route.handler(self.route);
-	} else if (self.route.redirect) {
-		self.redirect(self.route.redirect);
+	if (this.auth || this.route.auth) {
+		if (INDEX.keeper.route(this.route) === false) {
+			return;
+		}
+	} else if (this.route.handler) {
+		this.route.handler(this.route);
+	} else if (this.route.redirect) {
+		this.redirect(this.route.redirect);
 	} else {
-		self.render(self.route);
+		this.render(this.route);
 	}
-
-	return self;
 };
 
 Router.prototype.run = function () {
-	var self = this;
+	if (this.isRan) return;
+	else this.isRan = true;
 
-	if (self.isRan) return;
-	else self.isRan = true;
+	this.view = document.body.querySelector(this.view);
 
-	self.view = document.body.querySelector(self.view);
-
-	if (!self.view) {
+	if (!this.view) {
 		throw new Error('Router requires o-view element');
 	}
 
-	self.navigate(window.location.href, true);
-
-	return self;
+	this.navigate(window.location.href, true);
 };

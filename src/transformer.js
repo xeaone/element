@@ -16,6 +16,7 @@ export default {
 	template: function (data) {
 		var first = data.indexOf('`');
 		var second = data.indexOf('`', first+1);
+		
 		if (first === -1 || second === -1) return data;
 
 		var value;

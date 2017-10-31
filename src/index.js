@@ -1,12 +1,12 @@
 import Component from './component';
 import Utility from './utility';
 import Batcher from './batcher';
+import Fetcher from './fetcher';
 import Router from './router';
 import Loader from './loader';
+import Keeper from './keeper';
 import Model from './model';
 import View from './view';
-import Http from './http';
-import Auth from './auth';
 
 var Oxe = {};
 
@@ -22,13 +22,13 @@ Oxe.events = { data: {} };
 Oxe.modifiers = { data: {} };
 Oxe.oView = document.body.querySelector('o-view');
 
-Oxe.auth = new Auth();
-Oxe.http = new Http();
 Oxe.view = new View();
 Oxe.model = new Model();
+Oxe.keeper = new Keeper();
 Oxe.loader = new Loader();
 Oxe.router = new Router();
 Oxe.batcher = new Batcher();
+Oxe.fetcher = new Fetcher();
 Oxe.component = new Component();
 
 Oxe._ = {};
@@ -60,12 +60,12 @@ Oxe.setup = function (options) {
 
 	options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
 
-	if (options.auth) {
-		Oxe.auth.setup(options.auth);
+	if (options.keeper) {
+		Oxe.keeper.setup(options.keeper);
 	}
 
-	if (options.http) {
-		Oxe.http.setup(options.http);
+	if (options.fetcher) {
+		Oxe.fetcher.setup(options.fetcher);
 	}
 
 	if (options.loader) {
@@ -76,8 +76,8 @@ Oxe.setup = function (options) {
 	if (options.router) {
 		Oxe._.clicks.push(Oxe.router.click.bind(Oxe.router));
 		Oxe._.popstates.push(Oxe.router.popstate.bind(Oxe.router));
-		options.router.loader = Oxe.loader;
-		options.router.batcher = Oxe.batcher;
+		// options.router.loader = Oxe.loader;
+		// options.router.batcher = Oxe.batcher;
 		Oxe.router.setup(options.router);
 		Oxe.router.run();
 	}

@@ -282,6 +282,163 @@
 		return !!~index && !!tasks.splice(index, 1);
 	};
 
+	function Fetcher (opt) {
+		this.setup(opt);
+	}
+
+	Fetcher.prototype.setup = function (opt) {
+		opt = opt || {};
+		this.auth = opt.auth || false;
+		this.type = opt.type || 'text';
+		this.request = opt.request || opt.request;
+		this.response = opt.response || opt.response;
+		return this;
+	};
+
+	Fetcher.prototype.mime = {
+		xml: 'text/xml; charset=utf-8',
+		html: 'text/html; charset=utf-8',
+		text: 'text/plain; charset=utf-8',
+		json: 'application/json; charset=utf-8',
+		js: 'application/javascript; charset=utf-8'
+	};
+
+	Fetcher.prototype.serialize = function (data) {
+		var string = '';
+
+		for (var name in data) {
+			string = string.length > 0 ? string + '&' : string;
+			string = string + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+		}
+
+		return string;
+	};
+
+	Fetcher.prototype.fetch = function (opt) {
+		var self = this;
+		var result = {};
+		var xhr = new XMLHttpRequest();
+
+		opt = opt || {};
+		opt.headers = {};
+		opt.type = opt.type || this.type;
+		opt.url = opt.url ? opt.url : window.location.href;
+		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
+
+		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
+
+		if (opt.type) {
+			opt.acceptType = opt.acceptType || opt.type;
+			opt.contentType = opt.contentType || opt.type;
+			opt.responseType = opt.responseType || opt.type;
+		}
+
+		if (opt.contentType) {
+			switch (opt.contentType) {
+				case 'js': opt.headers['Content-Type'] = self.mime.js; break;
+				case 'xml': opt.headers['Content-Type'] = self.mime.xm; break;
+				case 'html': opt.headers['Content-Type'] = self.mime.html; break;
+				case 'json': opt.headers['Content-Type'] = self.mime.json; break;
+				default: opt.headers['Content-Type'] = self.mime.text;
+			}
+		}
+
+		if (opt.acceptType) {
+			switch (opt.acceptType) {
+				case 'js': opt.headers['Accept'] = self.mime.js; break;
+				case 'xml': opt.headers['Accept'] = self.mime.xml; break;
+				case 'html': opt.headers['Accept'] = self.mime.html; break;
+				case 'json': opt.headers['Accept'] = self.mime.json; break;
+				default: opt.headers['Accept'] = self.mime.text;
+			}
+		}
+
+		if (opt.responseType) {
+			switch (opt.responseType) {
+				case 'json': xhr.responseType = 'json'; break;
+				case 'blob': xhr.responseType = 'blob'; break;
+				case 'xml': xhr.responseType = 'document'; break;
+				case 'html': xhr.responseType = 'document'; break;
+				case 'document': xhr.responseType = 'document'; break;
+				case 'arraybuffer': xhr.responseType = 'arraybuffer'; break;
+				default: xhr.responseType = 'text';
+			}
+		}
+
+		if (opt.mimeType) xhr.overrideMimeType(opt.mimeType);
+		if (opt.withCredentials) xhr.withCredentials = opt.withCredentials;
+
+		if (opt.cache) opt.headers.cache = true;
+		else opt.cache = false;
+
+		if (opt.headers) {
+			for (var name in opt.headers) {
+				xhr.setRequestHeader(name, opt.headers[name]);
+			}
+		}
+
+		if (opt.data && opt.method === 'GET') {
+			opt.url = opt.url + '?' + self.serialize(opt.data);
+		}
+
+		result.xhr = xhr;
+		result.opt = opt;
+		result.data = opt.data;
+
+		if (self.auth || result.opt.auth && Oxe.keeper.request(result) === false) return;
+		if (self.request && self.request(result) === false) return;
+
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState === 4) {
+
+				result.opt = opt;
+				result.xhr = xhr;
+				result.statusCode = xhr.status;
+				result.statusText = xhr.statusText;
+
+				if (xhr['response'] !== undefined) {
+					result.data = xhr.response;
+				} else if (xhr['responseText'] !== undefined) {
+					result.data = xhr.responseText;
+				} else {
+					result.data = undefined;
+				}
+
+				// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
+				if (opt.responseType === 'json' && typeof result.data === 'string') {
+					result.data = JSON.parse(result.data || {});
+				}
+
+				if (xhr.status === 401 || xhr.status === 403) {
+					if (self.auth || result.opt.auth) {
+						if (Oxe.keeper.response) {
+							return Oxe.keeper.response(result);
+						}
+						// else {
+						// 	throw new Error('auth enabled but missing unauthorized handler');
+						// }
+					}
+				}
+
+				if (self.response && self.response(result) === false) return;
+
+				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+					if (opt.success) {
+						opt.success(result);
+					}
+				} else {
+					if (opt.error) {
+						opt.error(result);
+					}
+				}
+
+			}
+		};
+
+		xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
+
+	};
+
 	function Events () {
 		this.events = {};
 	}
@@ -330,6 +487,7 @@
 		this.route = {};
 		this.query = {};
 		this.location = {};
+		this.auth = false;
 		this.isRan = false;
 		this.parameters = {};
 		this.component = null;
@@ -347,16 +505,14 @@
 
 	Router.prototype.setup = function (options) {
 		options = options || {};
-		this.view = options.view === undefined ? this.view: options.view;
+		this.auth = options.auth === undefined ? this.auth : options.auth;
+		this.view = options.view === undefined ? this.view : options.view;
 		this.hash = options.hash === undefined ? this.hash : options.hash;
 		this.routes = options.routes === undefined ? this.routes: options.routes;
-		this.loader = options.loader === undefined ? this.loader : options.loader;
-		this.batcher = options.batcher === undefined ? this.batcher: options.batcher;
 		this.external = options.external === undefined ? this.external: options.external;
 		this.container = options.container === undefined ? this.container: options.container;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 		this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
-		return this;
 	};
 
 	Router.prototype.popstate = function (e) {
@@ -364,18 +520,17 @@
 	};
 
 	Router.prototype.click = function (e) {
-		var self = this;
 
 		// if shadow dom use
 		var target = e.path ? e.path[0] : e.target;
 		var parent = target.parentNode;
 
-		if (self.container) {
+		if (this.container) {
 			while (parent) {
-				if (parent === self.container) break;
+				if (parent === this.container) break;
 				else parent = parent.parentNode;
 			}
-			if (parent !== self.container) return;
+			if (parent !== this.container) return;
 		}
 
 		if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -396,16 +551,16 @@
 		) return;
 
 		// if external is true then default action
-		if (self.external &&
-			(self.external.constructor.name === 'RegExp' && self.external.test(target.href) ||
-			self.external.constructor.name === 'Function' && self.external(target.href) ||
-			self.external.constructor.name === 'String' && self.external === target.href)
+		if (this.external &&
+			(this.external.constructor.name === 'RegExp' && this.external.test(target.href) ||
+			this.external.constructor.name === 'Function' && this.external(target.href) ||
+			this.external.constructor.name === 'String' && this.external === target.href)
 		) return;
 
 		e.preventDefault();
 
 		if (this.location.href !== target.href) {
-			self.navigate(target.href);
+			this.navigate(target.href);
 		}
 	};
 
@@ -537,12 +692,10 @@
 
 	Router.prototype.scroll = function (x, y) {
 		window.scroll(x, y);
-		return this;
 	};
 
 	Router.prototype.back = function () {
 		window.history.back();
-		return this;
 	};
 
 	Router.prototype.redirect = function (path) {
@@ -555,7 +708,6 @@
 		} else if (route.constructor.name === 'Array') {
 			this.routes = this.routes.concat(route);
 		}
-		return this;
 	};
 
 	Router.prototype.remove = function (path) {
@@ -564,7 +716,6 @@
 				this.routes.splice(i, 1);
 			}
 		}
-		return this;
 	};
 
 	Router.prototype.get = function (path) {
@@ -574,7 +725,6 @@
 				return route;
 			}
 		}
-		return this;
 	};
 
 	Router.prototype.find = function (path) {
@@ -584,7 +734,6 @@
 				return route;
 			}
 		}
-		return this;
 	};
 
 	Router.prototype.addToBatcher = function (route) {
@@ -606,7 +755,7 @@
 			component.isRouterComponent = true;
 		}
 
-		self.batcher.write(function () {
+		Oxe.batcher.write(function () {
 			var child;
 			while (child = self.view.firstChild) self.view.removeChild(child);
 			self.view.appendChild(component);
@@ -614,7 +763,6 @@
 			self.emit('navigated');
 		});
 
-		return this;
 	};
 
 	Router.prototype.render = function (route) {
@@ -622,7 +770,7 @@
 
 		if (route.title) document.title = route.title;
 		if (route.url && !(route.component in self.cache)) {
-			self.loader.load(route.url, function () {
+			Oxe.loader.load(route.url, function () {
 				self.addToBatcher(route);
 			});
 		} else {
@@ -631,52 +779,49 @@
 	};
 
 	Router.prototype.navigate = function (data, replace) {
-		var self = this;
 
 		if (typeof data === 'string') {
 			var path = data; data = {};
-			data.location = self.getLocation(path);
-			data.route = self.find(data.location.pathname) || {};
-			data.query = self.toQueryObject(data.location.search) || {};
-			data.parameters = self.toParameterObject(data.route.path || '', data.location.pathname) || {};
+			data.location = this.getLocation(path);
+			data.route = this.find(data.location.pathname) || {};
+			data.query = this.toQueryObject(data.location.search) || {};
+			data.parameters = this.toParameterObject(data.route.path || '', data.location.pathname) || {};
 			data.component = data.route.component;
 			data.title = data.route.title || '';
 		}
 
-		self.title = data.title;
-		self.route = data.route;
-		self.query = data.query;
-		self.location = data.location;
-		self.parameters = data.parameters;
+		this.title = data.title;
+		this.route = data.route;
+		this.query = data.query;
+		this.location = data.location;
+		this.parameters = data.parameters;
 
-		window.history[replace ? 'replaceState' : 'pushState'](data, self.title, self.location.href);
+		window.history[replace ? 'replaceState' : 'pushState'](data, this.title, this.location.href);
 
-		if (self.route.handler) {
-			self.route.handler(self.route);
-		} else if (self.route.redirect) {
-			self.redirect(self.route.redirect);
+		if (this.auth || this.route.auth) {
+			if (Oxe.keeper.route(this.route) === false) {
+				return;
+			}
+		} else if (this.route.handler) {
+			this.route.handler(this.route);
+		} else if (this.route.redirect) {
+			this.redirect(this.route.redirect);
 		} else {
-			self.render(self.route);
+			this.render(this.route);
 		}
-
-		return self;
 	};
 
 	Router.prototype.run = function () {
-		var self = this;
+		if (this.isRan) return;
+		else this.isRan = true;
 
-		if (self.isRan) return;
-		else self.isRan = true;
+		this.view = document.body.querySelector(this.view);
 
-		self.view = document.body.querySelector(self.view);
-
-		if (!self.view) {
+		if (!this.view) {
 			throw new Error('Router requires o-view element');
 		}
 
-		self.navigate(window.location.href, true);
-
-		return self;
+		this.navigate(window.location.href, true);
 	};
 
 	var Transformer = {
@@ -696,6 +841,7 @@
 		template: function (data) {
 			var first = data.indexOf('`');
 			var second = data.indexOf('`', first+1);
+			
 			if (first === -1 || second === -1) return data;
 
 			var value;
@@ -771,48 +917,90 @@
 		var self = this;
 
 		// TODO enforce same domain url
-		if (!data.url) throw new Error('Loader requires a url');
+		if (!data.url) {
+			throw new Error('Oxe.Loader - requires a url');
+		}
 
 		if (data.url in self.modules && data.status) {
 			if (data.status === self.LOADED) {
+				// console.log(data.url + ' ' + performance.now());
 				if (callback) callback();
 			} else if (data.status === self.LOADING) {
-				if (!data.tag) {
-					data.xhr.addEventListener('readystatechange', function () {
-						if (data.xhr.readyState === 4) {
-							if (data.xhr.status >= 200 && data.xhr.status < 400) {
-								if (callback) callback(data);
-							} else {
-								throw new Error(data.xhr.responseText);
-							}
-						}
-					});
-				} else {
-					data.element.addEventListener('load', function () {
-						if (callback) callback(data);
-					});
-				}
-			}
-		} else {
-			if (!data.tag) {
-				data.xhr = new XMLHttpRequest();
 				data.xhr.addEventListener('readystatechange', function () {
 					if (data.xhr.readyState === 4) {
 						if (data.xhr.status >= 200 && data.xhr.status < 400) {
-							data.status = self.LOADED;
-							data.text = data.xhr.responseText;
 							if (callback) callback(data);
 						} else {
 							throw new Error(data.xhr.responseText);
 						}
 					}
 				});
-				data.xhr.open('GET', data.url);
-				data.xhr.send();
 			}
-
+		} else {
+			data.xhr = new XMLHttpRequest();
+			data.xhr.addEventListener('readystatechange', function () {
+				if (data.xhr.readyState === 4) {
+					if (data.xhr.status >= 200 && data.xhr.status < 400) {
+						data.status = self.LOADED;
+						data.text = data.xhr.responseText;
+						if (callback) callback(data);
+					} else {
+						throw new Error(data.xhr.responseText);
+					}
+				}
+			});
+			data.xhr.open('GET', data.url);
+			data.xhr.send();
 			data.status = self.LOADING;
 		}
+	};
+
+	Loader.prototype.jsFile = function (data, callback) {
+		var self = this;
+
+		data.text = self.est ? Transformer.template(data.text) : data.text;
+
+		if (self.esm || data.esm) {
+			var ast = self.toAst(data.text);
+
+			if (ast.imports.length) {
+				var meta = {
+					count: 0,
+					imports: ast.imports,
+					total: ast.imports.length,
+					listener: function () {
+						if (++meta.count === meta.total) {
+							self.modules[data.url] = self.interpret(ast.cooked);
+							if (callback) callback();
+						}
+					}
+				};
+
+				for (var i = 0, l = meta.imports.length; i < l; i++) {
+					self.load(meta.imports[i].url, meta.listener);
+				}
+			} else {
+				self.modules[data.url] = self.interpret(ast.cooked);
+				if (callback) callback();
+			}
+		} else {
+			self.modules[data.url] = self.interpret(data.text);
+			if (callback) callback();
+		}
+	};
+
+	Loader.prototype.cssFile = function (data, callback) {
+		data.element = document.createElement('link');
+
+		data.element.setAttribute('href', data.url);
+		data.element.setAttribute('rel','stylesheet');
+		data.element.setAttribute('type', 'text/css');
+
+		data.element.addEventListener('load', function () {
+			if (callback) callback(data);
+		});
+
+		document.head.appendChild(data.element);
 	};
 
 	Loader.prototype.getImports = function (data) {
@@ -833,13 +1021,20 @@
 		return data.match(this.patterns.exps) || [];
 	};
 
+	Loader.prototype.ext = function (data) {
+		var position = data.lastIndexOf('.');
+		return position ? data.slice(position+1) : '';
+	};
+
 	Loader.prototype.normalizeUrl = function (url) {
-		if (url.indexOf('.js') === -1) {
+		if (!this.ext(url)) {
 			url = url + '.js';
 		}
+
 		if (url.indexOf('/') !== 0) {
 			url = Utility.joinSlash(this.base.replace(window.location.origin, ''), url);
 		}
+
 		return url;
 	};
 
@@ -875,7 +1070,10 @@
 	Loader.prototype.load = function (data, callback) {
 		var self = this;
 
-		if (data.constructor === String) data = { url: data };
+		if (data.constructor === String) {
+			data = { url: data };
+		}
+
 		data.url = self.normalizeUrl(data.url);
 		self.files[data.url] = data;
 
@@ -883,37 +1081,18 @@
 			return callback ? callback() : undefined;
 		}
 
-		self.getFile(data, function (d) {
-			d.text = self.est ? Transformer.template(d.text) : d.text;
+		data.ext = self.ext(data.url);
 
-			if (self.esm || data.esm) {
-				var ast = self.toAst(d.text);
+		if (data.ext === 'js' || data.ext === '') {
+			self.getFile(data, function (d) {
+				self.jsFile(d, callback);
+			});
+		} else if (data.ext === 'css') {
+			self.cssFile(data, callback);
+		} else {
+			throw new Error('Oxe.Loader - unreconized file type');
+		}
 
-				if (ast.imports.length) {
-					var meta = {
-						count: 0,
-						imports: ast.imports,
-						total: ast.imports.length,
-						listener: function () {
-							if (++meta.count === meta.total) {
-								self.modules[d.url] = self.interpret(ast.cooked);
-								if (callback) callback();
-							}
-						}
-					};
-
-					for (var i = 0, l = meta.imports.length; i < l; i++) {
-						self.load(meta.imports[i].url, meta.listener);
-					}
-				} else {
-					self.modules[d.url] = self.interpret(ast.cooked);
-					if (callback) callback();
-				}
-			} else {
-				self.modules[d.url] = self.interpret(d.text);
-				if (callback) callback();
-			}
-		});
 	};
 
 	Loader.prototype.run = function () {
@@ -925,6 +1104,124 @@
 	/*
 		https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
 	*/
+
+	function Keeper (options) {
+		this._ = {};
+		this._.token;
+
+		this.scheme = 'basic';
+		this.type = 'session';
+
+		Object.defineProperty(this, 'token', {
+			enumerable: true,
+			get: function () {
+				return this._.token = this._.token || window[this.type].getItem('token');
+			}
+		});
+
+		this.setup(options);
+	}
+
+	Keeper.prototype.setup = function (options) {
+		options = options || {};
+		this.scheme = options.scheme || this.scheme;
+		this.type = options.type || this.type;
+		this._.forbidden = options.forbidden || this._.forbidden;
+		this._.unauthorized = options.unauthorized || this._.unauthorized;
+		this._.authenticate = options.authenticate || this._.authenticate;
+		this._.unauthenticate = options.unauthenticate || this._.unauthenticate;
+
+		this.type = this.type + 'Storage';
+		this.scheme = this.scheme.slice(0, 1).toUpperCase() + this.scheme.slice(1);
+	};
+
+	Keeper.prototype.authenticate = function (token) {
+		this._.token = window[this.type].setItem('token', token);
+		if (typeof this._.authenticate === 'string') {
+			Oxe.router.navigate(this._.authenticate);
+		} else if (typeof this._.authenticate === 'function') {
+			this._.authenticate();
+		}
+	};
+
+	Keeper.prototype.unauthenticate = function (token) {
+		this._.token = null;
+		window[this.type].removeItem('token');
+		if (typeof this._.unauthenticate === 'string') {
+			Oxe.router.navigate(this._.unauthenticate);
+		} else if (typeof this._.unauthenticate === 'function') {
+			this._.unauthenticate();
+		}
+	};
+
+	Keeper.prototype.forbidden = function (result) {
+		if (typeof this._.forbidden === 'string') {
+			Oxe.router.navigate(this._.forbidden);
+		} else if (typeof this._.forbidden === 'function') {
+			this._.forbidden(result);
+		}
+		return false;
+	};
+
+	Keeper.prototype.unauthorized = function (result) {
+		if (typeof this._.unauthorized === 'string') {
+			Oxe.router.navigate(this._.unauthorized);
+		} else if (typeof this._.unauthorized === 'function') {
+			this._.unauthorized(result);
+		}
+		return false;
+	};
+
+	Keeper.prototype.route = function (result) {
+		if (result.auth === false) {
+			return true;
+		} else if (!this.token) {
+			return this.unauthorized(result);
+		} else {
+			return true;
+		}
+	};
+
+	Keeper.prototype.request = function (result) {
+		if (result.opt.auth === false) {
+			return true;
+		} else if (!this.token) {
+			return this.unauthorized(result);
+		} else {
+			result.xhr.setRequestHeader('Authorization', this.scheme + ' ' + this.token);
+			return true;
+		}
+	};
+
+	Keeper.prototype.response = function (result) {
+		if (result.statusCode === 401) {
+			return this.unauthorized(result);
+		} else if (result.statusCode === 403) {
+			return this.forbidden(result);
+		}
+	};
+
+	/*
+		Resources:
+			https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication
+			https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
+	*/
+
+	// Keeper.prototype.encode = function (data) {
+	// 	// encodeURIComponent to get percent-encoded UTF-8
+	// 	// convert the percent encodings into raw bytes which
+	// 	return window.btoa(window.encodeURIComponent(data).replace(/%([0-9A-F]{2})/g,
+	// 		function toSolidBytes (match, char) {
+	// 			return String.fromCharCode('0x' + char);
+	// 	}));
+	// };
+	//
+	// Keeper.prototype.decode = function (data) {
+	// 	// from bytestream to percent-encoding to original string
+	//     return window.decodeURIComponent(window.atob(data).split('').map(function(char) {
+	//         return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2);
+	//     }).join(''));
+	// };
 
 	function Observer (data, callback, path) {
 		defineProperties(data, callback, path, true);
@@ -1370,6 +1667,7 @@
 			this.element.addEventListener(this.attribute.cmds[1], data);
 		},
 		each: function (data) {
+			data = data || [];
 			if (this.element.children.length > data.length) {
 			// if (this.count > data.length) {
 				this.element.removeChild(this.element.lastElementChild);
@@ -1429,6 +1727,9 @@
 		},
 		alt: function (data) {
 			this.element.alt = data;
+		},
+		required: function (data) {
+			this.element.required = data;
 		},
 		default: function () { //data
 			// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
@@ -1676,215 +1977,6 @@
 		Oxe._.observers.push(this.observer.bind(this));
 	};
 
-	function Http (opt) {
-		this.setup(opt);
-	}
-
-	Http.prototype.setup = function (opt) {
-		opt = opt || {};
-		// TODO add default response type option
-		this.request = opt.request === undefined ? this.request : opt.request;
-		this.response = opt.response === undefined ? this.response : opt.response;
-		this.auth = opt.auth || false;
-		this.type = opt.type || 'text';
-		return this;
-	};
-
-	Http.prototype.mime = {
-		xml: 'text/xml; charset=utf-8',
-		html: 'text/html; charset=utf-8',
-		text: 'text/plain; charset=utf-8',
-		json: 'application/json; charset=utf-8',
-		js: 'application/javascript; charset=utf-8'
-	};
-
-	Http.prototype.serialize = function (data) {
-		var string = '';
-
-		for (var name in data) {
-			string = string.length > 0 ? string + '&' : string;
-			string = string + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
-		}
-
-		return string;
-	};
-
-	Http.prototype.fetch = function (opt) {
-		var self = this;
-		var result = {};
-		var xhr = new XMLHttpRequest();
-
-		opt = opt || {};
-		opt.headers = {};
-		opt.type = opt.type || this.type;
-		opt.url = opt.url ? opt.url : window.location.href;
-		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
-
-		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
-
-		if (opt.type) {
-			opt.acceptType = opt.acceptType || opt.type;
-			opt.contentType = opt.contentType || opt.type;
-			opt.responseType = opt.responseType || opt.type;
-		}
-
-		if (opt.contentType) {
-			switch (opt.contentType) {
-				case 'js': opt.headers['Content-Type'] = self.mime.js; break;
-				case 'xml': opt.headers['Content-Type'] = self.mime.xm; break;
-				case 'html': opt.headers['Content-Type'] = self.mime.html; break;
-				case 'json': opt.headers['Content-Type'] = self.mime.json; break;
-				default: opt.headers['Content-Type'] = self.mime.text;
-			}
-		}
-
-		if (opt.acceptType) {
-			switch (opt.acceptType) {
-				case 'js': opt.headers['Accept'] = self.mime.js; break;
-				case 'xml': opt.headers['Accept'] = self.mime.xml; break;
-				case 'html': opt.headers['Accept'] = self.mime.html; break;
-				case 'json': opt.headers['Accept'] = self.mime.json; break;
-				default: opt.headers['Accept'] = self.mime.text;
-			}
-		}
-
-		if (opt.responseType) {
-			switch (opt.responseType) {
-				case 'json': xhr.responseType = 'json'; break;
-				case 'blob': xhr.responseType = 'blob'; break;
-				case 'xml': xhr.responseType = 'document'; break;
-				case 'html': xhr.responseType = 'document'; break;
-				case 'document': xhr.responseType = 'document'; break;
-				case 'arraybuffer': xhr.responseType = 'arraybuffer'; break;
-				default: xhr.responseType = 'text';
-			}
-		}
-
-		if (opt.mimeType) xhr.overrideMimeType(opt.mimeType);
-		if (opt.withCredentials) xhr.withCredentials = opt.withCredentials;
-
-		if (opt.cache) opt.headers.cache = true;
-		else opt.cache = false;
-
-		if (opt.headers) {
-			for (var name in opt.headers) {
-				xhr.setRequestHeader(name, opt.headers[name]);
-			}
-		}
-
-		if (opt.data && opt.method === 'GET') {
-			opt.url = opt.url + '?' + self.serialize(opt.data);
-		}
-
-		result.xhr = xhr;
-		result.opt = opt;
-		result.data = opt.data;
-
-		if (self.auth) Oxe.auth.modify(xhr);
-		if (self.request && self.request(result) === false) return;
-
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState === 4) {
-
-				result.opt = opt;
-				result.xhr = xhr;
-				result.statusCode = xhr.status;
-				result.statusText = xhr.statusText;
-
-				if (xhr['response'] !== undefined) {
-					result.data = xhr.response;
-				} else if (xhr['responseText'] !== undefined) {
-					result.data = xhr.responseText;
-				} else {
-					result.data = undefined;
-				}
-
-				// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
-				if (opt.responseType === 'json' && typeof result.data === 'string') {
-					result.data = JSON.parse(result.data || {});
-				}
-
-				if (xhr.status === 401 || xhr.status === 403) {
-					if (self.auth) {
-						if (Oxe.auth.failure) {
-							return Oxe.auth.failure(result);
-						} else {
-							throw new Error('auth enabled but missing unauthorized handler');
-						}
-					}
-				}
-
-				if (self.response && self.response(result) === false) return;
-
-				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-					if (opt.success) {
-						opt.success(result);
-					}
-				} else {
-					if (opt.error) {
-						opt.error(result);
-					}
-				}
-
-			}
-		};
-
-		xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
-
-	};
-
-	// 401 Unauthorized
-	// 403 Forbidden
-	// scheme: Basic, Bearer, Digest, HOBA, Mutual, AWS4-HMAC-SHA256
-
-	// NOTE add cookie type
-	// NOTE add preflight to router
-
-	function Auth (options) {
-		this.setup(options);
-	}
-
-	Auth.prototype.setup = function (options) {
-		var creds;
-
-		options = options || {};
-
-		this._ = {};
-		this._.failure = options.failure;
-
-		this.scheme = options.scheme || 'Basic';
-		this.type = options.type ? 'sessionStorage' : options.type + 'Storage';
-
-		Object.defineProperty(this, 'creds', {
-			enumerable: true,
-			// configurable: true,
-			get: function () {
-				return creds = creds ? creds : window[this.type].getItem('creds');
-			},
-			set: function (data) {
-				return creds = window[this.type].setItem('creds', data);
-			}
-		});
-	};
-
-	Auth.prototype.setCreds = function (creds) {
-		return window[this.type].setItem('creds', creds);
-	};
-
-	Auth.prototype.getCreds = function () {
-		return window[this.type].getItem('creds');
-	};
-
-	Auth.prototype.modify = function (xhr) {
-		xhr.setRequestHeader('Authorization', this.scheme + ' ' + this.creds);
-	};
-
-	Auth.prototype.failure = function (data) {
-		this._.failure(data);
-	};
-
-	// Resources: https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication
-
 	var Oxe = {};
 
 	Oxe.win = window;
@@ -1899,13 +1991,13 @@
 	Oxe.modifiers = { data: {} };
 	Oxe.oView = document.body.querySelector('o-view');
 
-	Oxe.auth = new Auth();
-	Oxe.http = new Http();
 	Oxe.view = new View();
 	Oxe.model = new Model();
+	Oxe.keeper = new Keeper();
 	Oxe.loader = new Loader();
 	Oxe.router = new Router();
 	Oxe.batcher = new Batcher();
+	Oxe.fetcher = new Fetcher();
 	Oxe.component = new Component();
 
 	Oxe._ = {};
@@ -1937,12 +2029,12 @@
 
 		options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
 
-		if (options.auth) {
-			Oxe.auth.setup(options.auth);
+		if (options.keeper) {
+			Oxe.keeper.setup(options.keeper);
 		}
 
-		if (options.http) {
-			Oxe.http.setup(options.http);
+		if (options.fetcher) {
+			Oxe.fetcher.setup(options.fetcher);
 		}
 
 		if (options.loader) {
@@ -1953,8 +2045,8 @@
 		if (options.router) {
 			Oxe._.clicks.push(Oxe.router.click.bind(Oxe.router));
 			Oxe._.popstates.push(Oxe.router.popstate.bind(Oxe.router));
-			options.router.loader = Oxe.loader;
-			options.router.batcher = Oxe.batcher;
+			// options.router.loader = Oxe.loader;
+			// options.router.batcher = Oxe.batcher;
 			Oxe.router.setup(options.router);
 			Oxe.router.run();
 		}
