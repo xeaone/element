@@ -1075,8 +1075,8 @@
 		this._ = {};
 		this._.token;
 
-		this.scheme = 'basic';
-		this.type = 'session';
+		this.scheme = 'Basic';
+		this.type = 'sessionStorage';
 
 		Object.defineProperty(this, 'token', {
 			enumerable: true,
@@ -1090,15 +1090,16 @@
 
 	Keeper.prototype.setup = function (options) {
 		options = options || {};
-		this.scheme = options.scheme || this.scheme;
-		this.type = options.type || this.type;
+		this.type = options.type + 'Storage' || this.type;
 		this._.forbidden = options.forbidden || this._.forbidden;
 		this._.unauthorized = options.unauthorized || this._.unauthorized;
 		this._.authenticate = options.authenticate || this._.authenticate;
 		this._.unauthenticate = options.unauthenticate || this._.unauthenticate;
 
-		this.type = this.type + 'Storage';
-		this.scheme = this.scheme.slice(0, 1).toUpperCase() + this.scheme.slice(1);
+		if (options.scheme) {
+			this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1);
+		}
+
 	};
 
 	Keeper.prototype.authenticate = function (token) {
