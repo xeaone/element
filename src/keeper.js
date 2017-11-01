@@ -34,8 +34,17 @@ Keeper.prototype.setup = function (options) {
 
 };
 
-Keeper.prototype.authenticate = function (token) {
+Keeper.prototype.setToken = function (token) {
 	this._.token = window[this.type].setItem('token', token);
+};
+
+Keeper.prototype.removeToken = function () {
+	this._.token = null;
+	window[this.type].removeItem('token');
+};
+
+Keeper.prototype.authenticate = function (token) {
+	this.setToken(token);
 	if (typeof this._.authenticated === 'string') {
 		INDEX.router.navigate(this._.authenticated);
 	} else if (typeof this._.authenticated === 'function') {
@@ -43,9 +52,8 @@ Keeper.prototype.authenticate = function (token) {
 	}
 };
 
-Keeper.prototype.unauthenticate = function (token) {
-	this._.token = null;
-	window[this.type].removeItem('token');
+Keeper.prototype.unauthenticate = function () {
+	this.removeToken();
 	if (typeof this._.unauthenticated === 'string') {
 		INDEX.router.navigate(this._.unauthenticated);
 	} else if (typeof this._.unauthenticated === 'function') {
@@ -54,6 +62,8 @@ Keeper.prototype.unauthenticate = function (token) {
 };
 
 Keeper.prototype.forbidden = function (result) {
+	this.removeToken();
+	
 	if (typeof this._.forbidden === 'string') {
 		INDEX.router.navigate(this._.forbidden);
 	} else if (typeof this._.forbidden === 'function') {
@@ -64,6 +74,8 @@ Keeper.prototype.forbidden = function (result) {
 };
 
 Keeper.prototype.unauthorized = function (result) {
+	this.removeToken();
+
 	if (typeof this._.unauthorized === 'string') {
 		INDEX.router.navigate(this._.unauthorized);
 	} else if (typeof this._.unauthorized === 'function') {
