@@ -59,6 +59,7 @@ Keeper.prototype.forbidden = function (result) {
 	} else if (typeof this._.forbidden === 'function') {
 		this._.forbidden(result);
 	}
+	
 	return false;
 };
 
@@ -68,6 +69,7 @@ Keeper.prototype.unauthorized = function (result) {
 	} else if (typeof this._.unauthorized === 'function') {
 		this._.unauthorized(result);
 	}
+
 	return false;
 };
 
@@ -97,6 +99,8 @@ Keeper.prototype.response = function (result) {
 		return this.unauthorized(result);
 	} else if (result.statusCode === 403) {
 		return this.forbidden(result);
+	} else {
+		return true;
 	}
 };
 

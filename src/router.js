@@ -293,24 +293,26 @@ Router.prototype.render = function (route) {
 };
 
 Router.prototype.navigate = function (data, replace) {
+	var location;
 
 	if (typeof data === 'string') {
-		this.location = this.toLocation(data);
-		this.location.route = this.find(this.location.pathname) || {};
-		this.location.title = this.location.route.title || '';
-		this.location.query = this.toQuery(this.location.search);
-		this.location.parameters = this.toParameter(this.location.route.path, this.location.pathname);
+		location = this.toLocation(data);
+		location.route = this.find(location.pathname) || {};
+		location.title = location.route.title || '';
+		location.query = this.toQuery(location.search);
+		location.parameters = this.toParameter(location.route.path, location.pathname);
 	} else {
-		this.location = data;
+		location = data;
 	}
 
-	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
-
-	if (this.auth || this.location.route.auth !== false) {
-		if (INDEX.keeper.route(this.location.route) === false) {
+	if (this.auth || location.route.auth !== false) {
+		if (INDEX.keeper.route(location.route) === false) {
 			return;
 		}
 	}
+
+	this.location = location;
+	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
 	if (this.location.route.handler) {
 		this.location.route.handler(this.location);

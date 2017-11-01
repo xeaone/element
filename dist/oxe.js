@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.0.5
+	Version: 2.0.6
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -785,24 +785,26 @@
 	};
 
 	Router.prototype.navigate = function (data, replace) {
+		var location;
 
 		if (typeof data === 'string') {
-			this.location = this.toLocation(data);
-			this.location.route = this.find(this.location.pathname) || {};
-			this.location.title = this.location.route.title || '';
-			this.location.query = this.toQuery(this.location.search);
-			this.location.parameters = this.toParameter(this.location.route.path, this.location.pathname);
+			location = this.toLocation(data);
+			location.route = this.find(location.pathname) || {};
+			location.title = location.route.title || '';
+			location.query = this.toQuery(location.search);
+			location.parameters = this.toParameter(location.route.path, location.pathname);
 		} else {
-			this.location = data;
+			location = data;
 		}
 
-		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
-
-		if (this.auth || this.location.route.auth !== false) {
-			if (Oxe.keeper.route(this.location.route) === false) {
+		if (this.auth || location.route.auth !== false) {
+			if (Oxe.keeper.route(location.route) === false) {
 				return;
 			}
 		}
+
+		this.location = location;
+		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
 		if (this.location.route.handler) {
 			this.location.route.handler(this.location);
@@ -1137,6 +1139,7 @@
 		} else if (typeof this._.forbidden === 'function') {
 			this._.forbidden(result);
 		}
+		
 		return false;
 	};
 
@@ -1146,6 +1149,7 @@
 		} else if (typeof this._.unauthorized === 'function') {
 			this._.unauthorized(result);
 		}
+
 		return false;
 	};
 
@@ -1175,6 +1179,8 @@
 			return this.unauthorized(result);
 		} else if (result.statusCode === 403) {
 			return this.forbidden(result);
+		} else {
+			return true;
 		}
 	};
 
