@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.0.3
+	Version: 2.0.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -794,7 +794,7 @@
 		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
 		if (this.auth || this.location.route.auth) {
-			if (Oxe.keeper.route(this.location.route) === true) {
+			if (Oxe.keeper.route(this.location.route) === false) {
 				return;
 			}
 		}
