@@ -5,7 +5,7 @@ Oxe.setup({
 		est: true,
 		base: true,
 		loads: [
-			'index.css',
+			// 'index.css',
 			'assets/prism.css',
 			'elements/e-menu.js'
 		]

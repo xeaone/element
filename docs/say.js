@@ -1,4 +1,5 @@
 
-export default function Say (e) {
-	window.alert('hello world from say');
+export default function Say (message) {
+	if (message) console.log(message);
+	else window.alert('hello world from say');
 }

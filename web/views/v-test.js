@@ -68,6 +68,7 @@ Oxe.component.define({
 			}, 10);
 		}, 1000);
 
+		Say('v-test created');
 	},
 	attached: function () {
 		var self = this;

@@ -139,7 +139,7 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 		- `attributed: Function` Triggered attribute change
 
 ### Oxe.loader
-ES6 import and export module support. Imports must be absolute from the domain. Also `export default` is the only export format supported. Please do not use Loader.interpret to handle user input.
+ES6 import and export module support. Currently `export default` is the only export format supported. Can handle css file loading.
 - `options: Object`
 	- `esm: Boolean` Enables ES6 module re-writes
 	- `est: Boolean` Enables ES6 template string re-writes
@@ -183,15 +183,33 @@ Automatically use the default action for non origin matching hrefs
 	- `container: Element` Contains all href clicks to the container. Default is window. Good for embedding especially
 	- `routes: Array`
 		- `route: Object`
+			- `auth: Boolean` (default: false) Enables Oxe.Keeper
 			- `path: String` Any path.
 				- `parameters: String` Named '/account/{user}', or catchalls '{\*}'
 			- `title: String` The title for the page
+			- `handler: Function` Overrieds the default render method
 			- `component: String` The name of a component to insert into o-view
 			- `url: Object, String` URL path to JS web-component or a Oxe.loader.load Object
 - `setup: Function`
 	- `options: Object` Accepts the above options
+- `location: Object` Similar to imitates window.location but for the Router
+	- `base: String`
+	- `hash: String`
+	- `href: String`
+	- `host: String`
+	- `route: Object` The current route
+	- `title: String`
+	- `query: Object` Key value pairs of search/query
+	- `origin: String`
+	- `search: String`
+	- `hostname: String`
+	- `protocol: String`
+	- `pathname: String`
+	- `parameters: Object` Key value pairs of the route params (dynamic route paths)
 - `run: Function` Must be called after <o-view></o-view> is created
+- `render: Function` Will render a route object it is usefull if your using route has a handler
 - `redirect: Function` Uses window.location.href which is treated like a 301 redirect for SEO
+	- `path: String`
 - `add: Function`
 	- `path: String`
 - `remove: Function`

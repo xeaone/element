@@ -5,18 +5,12 @@ import INDEX from './index';
 export default function Router (options) {
 	Events.call(this);
 
-	this.title = '';
 	this.cache = {};
-	this.route = {};
-	this.query = {};
-	this.location = {};
-	this.auth = false;
-	this.isRan = false;
-	this.parameters = {};
-	this.component = null;
-
 	this.routes = [];
 	this.hash = false;
+	this.auth = false;
+	this.isRan = false;
+	this.location = {};
 	this.trailing = false;
 	this.view = 'o-view';
 
@@ -87,6 +81,52 @@ Router.prototype.click = function (e) {
 	}
 };
 
+Router.prototype.scroll = function (x, y) {
+	window.scroll(x, y);
+};
+
+Router.prototype.back = function () {
+	window.history.back();
+};
+
+Router.prototype.redirect = function (path) {
+	window.location.href = path;
+};
+
+Router.prototype.add = function (route) {
+	if (route.constructor.name === 'Object') {
+		this.routes.push(route);
+	} else if (route.constructor.name === 'Array') {
+		this.routes = this.routes.concat(route);
+	}
+};
+
+Router.prototype.remove = function (path) {
+	for (var i = 0, l = this.routes.length; i < l; i++) {
+		if (path === this.routes[i].path) {
+			this.routes.splice(i, 1);
+		}
+	}
+};
+
+Router.prototype.get = function (path) {
+	for (var i = 0, l = this.routes.length; i < l; i++) {
+		var route = this.routes[i];
+		if (path === route.path) {
+			return route;
+		}
+	}
+};
+
+Router.prototype.find = function (path) {
+	for (var i = 0, l = this.routes.length; i < l; i++) {
+		var route = this.routes[i];
+		if (this.testPath(route.path, path)) {
+			return route;
+		}
+	}
+};
+
 Router.prototype.testPath = function (routePath, userPath) {
 	return new RegExp(
 		'^' + routePath
@@ -96,8 +136,8 @@ Router.prototype.testPath = function (routePath, userPath) {
 	).test(userPath);
 };
 
-Router.prototype.toParameterObject = function (routePath, userPath) {
-	var parameters = {};
+Router.prototype.toParameter = function (routePath, userPath) {
+	var result = {};
 	var brackets = /{|}/g;
 	var pattern = /{(\w+)}/;
 	var userPaths = userPath.split('/');
@@ -106,46 +146,51 @@ Router.prototype.toParameterObject = function (routePath, userPath) {
 	for (var i = 0, l = routePaths.length; i < l; i++) {
 		if (pattern.test(routePaths[i])) {
 			var name = routePaths[i].replace(brackets, '');
-			parameters[name] = userPaths[i];
+			result[name] = userPaths[i];
 		}
-	}
-
-	return parameters;
-};
-
-Router.prototype.toQueryString = function (data) {
-	if (!data) return;
-
-	var query = '?';
-
-	for (var key in data) {
-		query += key + '=' + data[key] + '&';
-	}
-
-	return query.slice(-1); // remove trailing &
-};
-
-
-Router.prototype.toQueryObject = function (path) {
-	if (!path) return;
-
-	var result = {};
-	var queries = path.slice(1).split('&');
-
-	for (var i = 0, l = queries.length; i < l; i++) {
-		var query = queries[i].split('=');
-		result[query[0]] = query[1];
 	}
 
 	return result;
 };
 
-Router.prototype.getLocation = function (path) {
+Router.prototype.toQuery = function (path) {
+	var result = {};
+	if (path.indexOf('?') === 0) path = path.slice(1);
+	var queries = path.split('&');
+
+	for (var i = 0, l = queries.length; i < l; i++) {
+		var query = queries[i].split('=');
+		if (query[0] && query[1]) {
+			result[query[0]] = query[1];
+		}
+	}
+
+	return result;
+};
+
+// Router.prototype.toQueryString = function (data) {
+// 	if (!data) return;
+//
+// 	var query = '?';
+//
+// 	for (var key in data) {
+// 		query += key + '=' + data[key] + '&';
+// 	}
+//
+// 	return query.slice(-1); // remove trailing &
+// };
+
+Router.prototype.toLocation = function (path) {
 	var location = {};
 
 	location.pathname = decodeURI(path);
 	location.origin = window.location.origin;
 	location.base = this.base ? this.base : location.origin;
+
+	location.port = window.location.port;
+	location.host = window.location.host;
+	location.hostname = window.location.hostname;
+	location.protocol = window.location.protocol;
 
 	if (location.base.slice(-3) === '/#/') {
 		location.base = location.base.slice(0, -3);
@@ -213,67 +258,13 @@ Router.prototype.getLocation = function (path) {
 	return location;
 };
 
-Router.prototype.scroll = function (x, y) {
-	window.scroll(x, y);
-};
-
-Router.prototype.back = function () {
-	window.history.back();
-};
-
-Router.prototype.redirect = function (path) {
-	window.location.href = path;
-};
-
-Router.prototype.add = function (route) {
-	if (route.constructor.name === 'Object') {
-		this.routes.push(route);
-	} else if (route.constructor.name === 'Array') {
-		this.routes = this.routes.concat(route);
-	}
-};
-
-Router.prototype.remove = function (path) {
-	for (var i = 0, l = this.routes.length; i < l; i++) {
-		if (path === this.routes[i].path) {
-			this.routes.splice(i, 1);
-		}
-	}
-};
-
-Router.prototype.get = function (path) {
-	for (var i = 0, l = this.routes.length; i < l; i++) {
-		var route = this.routes[i];
-		if (path === route.path) {
-			return route;
-		}
-	}
-};
-
-Router.prototype.find = function (path) {
-	for (var i = 0, l = this.routes.length; i < l; i++) {
-		var route = this.routes[i];
-		if (this.testPath(route.path, path)) {
-			return route;
-		}
-	}
-};
-
-Router.prototype.addToBatcher = function (route) {
+Router.prototype.batch = function (route) {
 	var self = this, component;
 
 	component = self.cache[route.component];
 
 	if (!component) {
-
 		component = self.cache[route.component] = document.createElement(route.component);
-
-		// NOTE might want to use this to sanitize
-		// var script;
-		// while (script = component.querySelector('script')) {
-		// 	script.parentNode.replaceChild(script);
-		// }
-
 		component.inRouterCache = false;
 		component.isRouterComponent = true;
 	}
@@ -289,48 +280,42 @@ Router.prototype.addToBatcher = function (route) {
 };
 
 Router.prototype.render = function (route) {
-	var self = this;
 
-	if (route.title) document.title = route.title;
-	if (route.url && !(route.component in self.cache)) {
-		INDEX.loader.load(route.url, function () {
-			self.addToBatcher(route);
-		});
+	if (route.title) {
+		document.title = route.title;
+	}
+
+	if (route.url && !(route.component in this.cache)) {
+		INDEX.loader.load(route.url, this.batch.bind(this, route));
 	} else {
-		self.addToBatcher(route);
+		this.batch(route);
 	}
 };
 
 Router.prototype.navigate = function (data, replace) {
 
 	if (typeof data === 'string') {
-		var path = data; data = {};
-		data.location = this.getLocation(path);
-		data.route = this.find(data.location.pathname) || {};
-		data.query = this.toQueryObject(data.location.search) || {};
-		data.parameters = this.toParameterObject(data.route.path || '', data.location.pathname) || {};
-		data.component = data.route.component;
-		data.title = data.route.title || '';
+		this.location = this.toLocation(data);
+		this.location.route = this.find(this.location.pathname) || {};
+		this.location.title = this.location.route.title || '';
+		this.location.query = this.toQuery(this.location.search);
+		this.location.parameters = this.toParameter(this.location.route.path, this.location.pathname);
+	} else {
+		this.location = data;
 	}
 
-	this.title = data.title;
-	this.route = data.route;
-	this.query = data.query;
-	this.location = data.location;
-	this.parameters = data.parameters;
+	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
-	window.history[replace ? 'replaceState' : 'pushState'](data, this.title, this.location.href);
-
-	if (this.auth || this.route.auth) {
-		if (INDEX.keeper.route(this.route) === false) {
+	if (this.auth || this.location.route.auth) {
+		if (INDEX.keeper.route(this.location.route) === false) {
 			return;
 		}
-	} else if (this.route.handler) {
-		this.route.handler(this.route);
-	} else if (this.route.redirect) {
-		this.redirect(this.route.redirect);
+	} else if (this.location.route.handler) {
+		this.location.route.handler(this.location);
+	} else if (this.location.route.redirect) {
+		this.redirect(this.location.route.redirect);
 	} else {
-		this.render(this.route);
+		this.render(this.location.route);
 	}
 };
 

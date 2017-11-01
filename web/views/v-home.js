@@ -1,4 +1,5 @@
 import Escape from 'modules/escape.js';
+import Say from 'say.js';
 
 var home = Escape(`
 	Oxe.component.define({
@@ -74,6 +75,9 @@ Oxe.component.define({
 	name: 'v-home',
 	attached: function () {
 		Prism.highlightAll();
+	},
+	created: function () {
+		Say('v-home created');
 	},
 	html: `
 		<h2>Overview</h2>

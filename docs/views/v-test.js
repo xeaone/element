@@ -68,11 +68,12 @@ Oxe.component.define({
 			}, 10);
 		}, 1000);
 
+		Say('v-test created');
 	},
 	attached: function () {
 		var self = this;
 
-		Oxe.http.fetch({
+		Oxe.fetcher.fetch({
 			method: 'get',
 			url: '/data.json',
 			responseType: 'json',
