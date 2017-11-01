@@ -4,7 +4,7 @@ export default function Keeper (options) {
 	this._ = {};
 	this._.token;
 
-	this.scheme = 'Basic';
+	this.scheme = 'Bearer';
 	this.type = 'sessionStorage';
 
 	Object.defineProperty(this, 'token', {

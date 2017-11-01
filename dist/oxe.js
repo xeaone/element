@@ -395,7 +395,11 @@
 		result.opt = opt;
 		result.data = opt.data;
 
-		if (self.auth || result.opt.auth !== false) {
+		if (
+			self.auth &&
+			result.opt.auth === true ||
+			result.opt.auth === undefined
+		) {
 			if (Oxe.keeper.request(result) === false) {
 				return;
 			}
@@ -797,7 +801,11 @@
 			location = data;
 		}
 
-		if (this.auth || location.route.auth !== false) {
+		if (
+			this.auth &&
+			location.route.auth === true ||
+			location.route.auth === undefined
+		) {
 			if (Oxe.keeper.route(location.route) === false) {
 				return;
 			}
@@ -1084,7 +1092,7 @@
 		this._ = {};
 		this._.token;
 
-		this.scheme = 'Basic';
+		this.scheme = 'Bearer';
 		this.type = 'sessionStorage';
 
 		Object.defineProperty(this, 'token', {

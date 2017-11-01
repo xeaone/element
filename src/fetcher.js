@@ -103,7 +103,11 @@ Fetcher.prototype.fetch = function (opt) {
 	result.opt = opt;
 	result.data = opt.data;
 
-	if (self.auth || result.opt.auth !== false) {
+	if (
+		self.auth &&
+		result.opt.auth === true ||
+		result.opt.auth === undefined
+	) {
 		if (INDEX.keeper.request(result) === false) {
 			return;
 		}

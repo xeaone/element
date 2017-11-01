@@ -158,9 +158,7 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 	- `type: String` Token storage type
 		- `local`
 		- `session`
-	- `scheme: String` Any valid authentication scheme
-		- `bearer`
-		- `basic` Will encode the string
+	- `scheme: String` (default: bearer) Any valid authentication scheme
 	- `forbidden: String, Function` If string Router.navigate other wise call the function
 	- `unauthorized: String, Function` If string Router.navigate other wise call the function
 	- `authenticated: String, Function` If string Router.navigate other wise call the function

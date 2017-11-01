@@ -305,7 +305,11 @@ Router.prototype.navigate = function (data, replace) {
 		location = data;
 	}
 
-	if (this.auth || location.route.auth !== false) {
+	if (
+		this.auth &&
+		location.route.auth === true ||
+		location.route.auth === undefined
+	) {
 		if (INDEX.keeper.route(location.route) === false) {
 			return;
 		}
