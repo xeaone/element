@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.0.9
+	Version: 2.0.10
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1579,6 +1579,7 @@
 		type: {
 			value: function (element, attribute, data) {
 				var i, l;
+
 				if (element.type === 'checkbox') {
 					data = !data ? false : data;
 					element.value = element.checked = data;
@@ -1603,8 +1604,9 @@
 						radio.checked = i === data;
 					}
 				} else {
-					element.value = data;
+					element.value = data === undefined ? '' : data;
 				}
+
 				return data;
 			}
 		}
