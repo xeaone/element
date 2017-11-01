@@ -22,6 +22,7 @@ export default {
 	type: {
 		value: function (element, attribute, data) {
 			var i, l;
+
 			if (element.type === 'checkbox') {
 				data = !data ? false : data;
 				element.value = element.checked = data;
@@ -46,8 +47,9 @@ export default {
 					radio.checked = i === data;
 				}
 			} else {
-				element.value = data;
+				element.value = data === undefined ? '' : data;
 			}
+
 			return data;
 		}
 	}
