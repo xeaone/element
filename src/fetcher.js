@@ -103,7 +103,12 @@ Fetcher.prototype.fetch = function (opt) {
 	result.opt = opt;
 	result.data = opt.data;
 
-	if (self.auth || result.opt.auth && INDEX.keeper.request(result) === false) return;
+	if (self.auth || result.opt.auth !== false) {
+		if (INDEX.keeper.request(result) === false) {
+			return;
+		}
+	}
+
 	if (self.request && self.request(result) === false) return;
 
 	xhr.onreadystatechange = function () {

@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.0.4
+	Version: 2.0.5
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -395,7 +395,12 @@
 		result.opt = opt;
 		result.data = opt.data;
 
-		if (self.auth || result.opt.auth && Oxe.keeper.request(result) === false) return;
+		if (self.auth || result.opt.auth !== false) {
+			if (Oxe.keeper.request(result) === false) {
+				return;
+			}
+		}
+
 		if (self.request && self.request(result) === false) return;
 
 		xhr.onreadystatechange = function () {
@@ -793,7 +798,7 @@
 
 		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
-		if (this.auth || this.location.route.auth) {
+		if (this.auth || this.location.route.auth !== false) {
 			if (Oxe.keeper.route(this.location.route) === false) {
 				return;
 			}

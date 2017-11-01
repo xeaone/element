@@ -306,7 +306,7 @@ Router.prototype.navigate = function (data, replace) {
 
 	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
-	if (this.auth || this.location.route.auth) {
+	if (this.auth || this.location.route.auth !== false) {
 		if (INDEX.keeper.route(this.location.route) === false) {
 			return;
 		}
