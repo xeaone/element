@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.0.6
+	Version: 2.0.7
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1101,8 +1101,8 @@
 		options = options || {};
 		this._.forbidden = options.forbidden || this._.forbidden;
 		this._.unauthorized = options.unauthorized || this._.unauthorized;
-		this._.authenticate = options.authenticate || this._.authenticate;
-		this._.unauthenticate = options.unauthenticate || this._.unauthenticate;
+		this._.authenticated = options.authenticated || this._.authenticated;
+		this._.unauthenticated = options.unauthenticated || this._.unauthenticated;
 
 		if (options.type) {
 			this.type = options.type + 'Storage';
@@ -1116,20 +1116,20 @@
 
 	Keeper.prototype.authenticate = function (token) {
 		this._.token = window[this.type].setItem('token', token);
-		if (typeof this._.authenticate === 'string') {
-			Oxe.router.navigate(this._.authenticate);
-		} else if (typeof this._.authenticate === 'function') {
-			this._.authenticate();
+		if (typeof this._.authenticated === 'string') {
+			Oxe.router.navigate(this._.authenticated);
+		} else if (typeof this._.authenticated === 'function') {
+			this._.authenticated();
 		}
 	};
 
 	Keeper.prototype.unauthenticate = function (token) {
 		this._.token = null;
 		window[this.type].removeItem('token');
-		if (typeof this._.unauthenticate === 'string') {
-			Oxe.router.navigate(this._.unauthenticate);
-		} else if (typeof this._.unauthenticate === 'function') {
-			this._.unauthenticate();
+		if (typeof this._.unauthenticated === 'string') {
+			Oxe.router.navigate(this._.unauthenticated);
+		} else if (typeof this._.unauthenticated === 'function') {
+			this._.unauthenticated();
 		}
 	};
 
@@ -1139,7 +1139,7 @@
 		} else if (typeof this._.forbidden === 'function') {
 			this._.forbidden(result);
 		}
-		
+
 		return false;
 	};
 

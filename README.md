@@ -163,8 +163,8 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 		- `basic` Will encode the string
 	- `forbidden: String, Function` If string Router.navigate other wise call the function
 	- `unauthorized: String, Function` If string Router.navigate other wise call the function
-	- `authenticate: String, Function` If string Router.navigate other wise call the function
-	- `unauthenticate: String, Function` If string Router.navigate other wise call the function
+	- `authenticated: String, Function` If string Router.navigate other wise call the function
+	- `unauthenticated: String, Function` If string Router.navigate other wise call the function
 - `setup: Function`
 	- `options: Object` Accepts the above options
 - `token: String` Readable only token
