@@ -1,10 +1,8 @@
-import INDEX from './index';
+import Keeper from './keeper';
 
-export default function Fetcher (opt) {
-	this.setup(opt);
-}
+var Fetcher = {};
 
-Fetcher.prototype.setup = function (opt) {
+Fetcher.setup = function (opt) {
 	opt = opt || {};
 	this.auth = opt.auth || false;
 	this.type = opt.type || 'text';
@@ -13,7 +11,7 @@ Fetcher.prototype.setup = function (opt) {
 	return this;
 };
 
-Fetcher.prototype.mime = {
+Fetcher.mime = {
 	xml: 'text/xml; charset=utf-8',
 	html: 'text/html; charset=utf-8',
 	text: 'text/plain; charset=utf-8',
@@ -21,7 +19,7 @@ Fetcher.prototype.mime = {
 	js: 'application/javascript; charset=utf-8'
 };
 
-Fetcher.prototype.serialize = function (data) {
+Fetcher.serialize = function (data) {
 	var string = '';
 
 	for (var name in data) {
@@ -32,7 +30,7 @@ Fetcher.prototype.serialize = function (data) {
 	return string;
 };
 
-Fetcher.prototype.fetch = function (opt) {
+Fetcher.fetch = function (opt) {
 	var self = this;
 	var result = {};
 	var xhr = new XMLHttpRequest();
@@ -105,10 +103,10 @@ Fetcher.prototype.fetch = function (opt) {
 
 	if (
 		self.auth &&
-		result.opt.auth === true ||
-		result.opt.auth === undefined
+		(result.opt.auth === true ||
+		result.opt.auth === undefined)
 	) {
-		if (INDEX.keeper.request(result) === false) {
+		if (Keeper.request(result) === false) {
 			return;
 		}
 	}
@@ -138,12 +136,9 @@ Fetcher.prototype.fetch = function (opt) {
 
 			if (xhr.status === 401 || xhr.status === 403) {
 				if (self.auth || result.opt.auth) {
-					if (INDEX.keeper.response) {
-						return INDEX.keeper.response(result);
+					if (Keeper.response) {
+						return Keeper.response(result);
 					}
-					// else {
-					// 	throw new Error('auth enabled but missing unauthorized handler');
-					// }
 				}
 			}
 
@@ -165,3 +160,5 @@ Fetcher.prototype.fetch = function (opt) {
 	xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
 
 };
+
+export default Fetcher;

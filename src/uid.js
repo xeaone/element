@@ -1,6 +1,10 @@
 
-var COUNT = 0;
+var Uid = {};
 
-export default function Uid () {
-	return (Date.now().toString(36) + (COUNT++).toString(36));
-}
+Uid.count = 0;
+
+Uid.generate = function () {
+	return (Date.now().toString(36) + (this.count++).toString(36));
+};
+
+export default Uid;

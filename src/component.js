@@ -1,19 +1,13 @@
+import Global from './global';
+import Model from './model';
+import View from './view';
 import Uid from './uid';
 
-export default function Component (options) {
-	this.currentScript = (document._currentScript || document.currentScript);
-	this.setup(options);
-}
+var Component = {};
 
-Component.prototype.setup = function (options) {
-	options = options || {};
-	this.view = options.view;
-	this.model = options.model;
-	this.events = options.events;
-	this.modifiers = options.modifiers;
-};
+Component.currentScript = (document._currentScript || document.currentScript);
 
-Component.prototype._slots = function (element, html) {
+Component._slots = function (element, html) {
 	var eSlots = element.querySelectorAll('[slot]');
 	for (var i = 0, l = eSlots.length; i < l; i++) {
 		var eSlot = eSlots[i];
@@ -23,13 +17,17 @@ Component.prototype._slots = function (element, html) {
 	}
 };
 
-Component.prototype._template = function (data) {
+Component._template = function (data) {
 	var template;
 	if (data.html) {
 		template = document.createElement('template');
 		template.innerHTML = data.html;
 	} else if (data.query) {
-		template = self.currentScript.ownerDocument.querySelector(data.query);
+		try {
+			template = Global.ownerDocument.querySelector(data.query);
+		} catch (e) {
+			template = document.querySelector(data.query);
+		}
 		if (template.nodeType !== 'TEMPLATE') {
 			template = document.createElement('template');
 			template.content.appendChild(data.element);
@@ -48,13 +46,13 @@ Component.prototype._template = function (data) {
 	return template;
 };
 
-Component.prototype._define = function (name, proto) {
+Component._define = function (name, proto) {
 	document.registerElement(name, {
 		prototype: proto
 	});
 };
 
-Component.prototype.define = function (options) {
+Component.define = function (options) {
 	var self = this;
 
 	if (!options.name) {
@@ -74,13 +72,13 @@ Component.prototype.define = function (options) {
 	options.proto.createdCallback = function () {
 		var element = this;
 
-		element.uid = Uid();
 		element.isBinded = false;
-		element.view = self.view.data[element.uid] = {};
+		element.uid = Uid.generate();
+		element.view = View.data[element.uid] = {};
 
-		if (options.model) element.model = self.model.data.$set(element.uid, options.model)[element.uid];
-		if (options.events) element.events = self.events.data[element.uid] = options.events;
-		if (options.modifiers) element.modifiers = self.modifiers.data[element.uid] = options.modifiers;
+		if (options.model) element.model = Model.data.$set(element.uid, options.model)[element.uid];
+		if (options.events) element.events = Global.events.data[element.uid] = options.events;
+		if (options.modifiers) element.modifiers = Global.modifiers.data[element.uid] = options.modifiers;
 
 		// might want to handle default slot
 		// might want to overwrite content
@@ -100,3 +98,5 @@ Component.prototype.define = function (options) {
 
 	self._define(options.name, options.proto);
 };
+
+export default Component;

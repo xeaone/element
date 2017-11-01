@@ -1,39 +1,33 @@
 import OnceBinder from './once-binder';
-import INDEX from './index';
+import Utility from './utility';
 import Binder from './binder';
+import Global from './global';
 
-export default function View (options) {
-	this.isRan = false;
-	this.setup(options);
-}
+var View = {};
 
-View.prototype.setup = function (options) {
-	options = options || {};
-	this.data = options.data || {};
-	this.handler = options.handler;
-	this.container = options.container || document.body;
-	return this;
-};
+View.data = {};
+View.isRan = false;
+View.container = document.body;
 
-View.prototype.PATH = /\s?\|.*/;
-View.prototype.PARENT_KEY = /^.*\./;
-View.prototype.PARENT_PATH = /\.\w+$|^\w+$/;
-View.prototype.PREFIX = /(data-)?o-/;
-View.prototype.MODIFIERS = /^.*?\|\s?/;
-View.prototype.IS_ACCEPT_PATH = /(data-)?o-.*/;
-View.prototype.IS_REJECT_PATH = /(data-)?o-value.*/;
+View.PATH = /\s?\|.*/;
+View.PARENT_KEY = /^.*\./;
+View.PARENT_PATH = /\.\w+$|^\w+$/;
+View.PREFIX = /(data-)?o-/;
+View.MODIFIERS = /^.*?\|\s?/;
+View.IS_ACCEPT_PATH = /(data-)?o-.*/;
+View.IS_REJECT_PATH = /(data-)?o-value.*/;
 
-View.prototype.isOnce = function (attribute) {
+View.isOnce = function (attribute) {
 	return attribute === 'data-o-value' || attribute === 'o-value';
 };
 
-View.prototype.isSkip = function (node) {
+View.isSkip = function (node) {
 	return node.nodeName === 'J-VIEW'
 		|| node.hasAttribute('o-view')
 		|| node.hasAttribute('data-o-view');
 };
 
-View.prototype.isSkipChildren = function (node) {
+View.isSkipChildren = function (node) {
 	return node.nodeName === 'IFRAME'
 		|| node.nodeName === 'OBJECT'
 		|| node.nodeName === 'SCRIPT'
@@ -41,7 +35,7 @@ View.prototype.isSkipChildren = function (node) {
 		|| node.nodeName === 'SVG';
 };
 
-View.prototype.isAccept = function (node) {
+View.isAccept = function (node) {
 	var attributes = node.attributes;
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
@@ -52,11 +46,11 @@ View.prototype.isAccept = function (node) {
 	return false;
 };
 
-View.prototype.isAcceptAttribute = function (attribute) {
+View.isAcceptAttribute = function (attribute) {
 	return attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0;
 };
 
-View.prototype.createAttribute = function (name, value) {
+View.createAttribute = function (name, value) {
 	var attribute = {};
 
 	attribute.name = name;
@@ -75,7 +69,7 @@ View.prototype.createAttribute = function (name, value) {
 	return attribute;
 };
 
-View.prototype.eachAttribute = function (attributes, callback) {
+View.eachAttribute = function (attributes, callback) {
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
 		if (this.isAcceptAttribute(attribute)) {
@@ -84,7 +78,7 @@ View.prototype.eachAttribute = function (attributes, callback) {
 	}
 };
 
-View.prototype.eachAttributeAcceptPath = function (attributes, callback) {
+View.eachAttributeAcceptPath = function (attributes, callback) {
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
 		if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
@@ -93,7 +87,7 @@ View.prototype.eachAttributeAcceptPath = function (attributes, callback) {
 	}
 };
 
-View.prototype.eachElement = function (element, container, callback) {
+View.eachElement = function (element, container, callback) {
 	container = element.uid ? element : container;
 
 	if (this.isAccept(element) && !this.isSkip(element)) {
@@ -107,7 +101,7 @@ View.prototype.eachElement = function (element, container, callback) {
 	}
 };
 
-View.prototype.eachBinder = function (uid, path, callback) {
+View.eachBinder = function (uid, path, callback) {
 	var paths = this.data[uid];
 	for (var key in paths) {
 		if (key.indexOf(path) === 0) {
@@ -119,7 +113,7 @@ View.prototype.eachBinder = function (uid, path, callback) {
 	}
 };
 
-View.prototype.has = function (uid, path, element) {
+View.has = function (uid, path, element) {
 	if (!(uid in this.data) || !(path in this.data[uid])) return false;
 	var binders = this.data[uid][path];
 	for (var i = 0, l = binders.length; i < l; i++) {
@@ -128,7 +122,7 @@ View.prototype.has = function (uid, path, element) {
 	return false;
 };
 
-View.prototype.push = function (uid, path, element, container, attribute) {
+View.push = function (uid, path, element, container, attribute) {
 	if (!(uid in this.data)) this.data[uid] = {};
 	if (!(path in this.data[uid])) this.data[uid][path] = [];
 	this.data[uid][path].push(new Binder({
@@ -138,7 +132,7 @@ View.prototype.push = function (uid, path, element, container, attribute) {
 	}));
 };
 
-View.prototype.add = function (addedNode, containerNode) {
+View.add = function (addedNode, containerNode) {
 	var self = this;
 	self.eachElement(addedNode, containerNode, function (element, container) {
 		self.eachAttribute(element.attributes, function (attribute) {
@@ -156,7 +150,7 @@ View.prototype.add = function (addedNode, containerNode) {
 	});
 };
 
-View.prototype.remove = function (removedNode, containerNode) {
+View.remove = function (removedNode, containerNode) {
 	var self = this;
 	self.eachElement(removedNode, containerNode, function (element, container) {
 		if (container && container.uid) { // i dont like this check
@@ -173,17 +167,46 @@ View.prototype.remove = function (removedNode, containerNode) {
 	});
 };
 
-View.prototype.observer = function (mutations) {
+View.observer = function (mutations) {
 		var i = mutations.length;
 		while (i--) {
-			this.handler(mutations[i].addedNodes, mutations[i].removedNodes, mutations[i].target);
+
+			var l;
+			var target = mutations[i].target;
+			var addedNodes = mutations[i].addedNodes;
+			var removedNodes = mutations[i].removedNodes;
+
+			l = addedNodes.length;
+
+			while (l--) {
+				var addedNode = addedNodes[l];
+				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
+					if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
+					var containerNode = addedNode.uid || Utility.getContainer(target);
+					this.add(addedNode, containerNode);
+				}
+			}
+
+			l = removedNodes.length;
+
+			while (l--) {
+				var removedNode = removedNodes[l];
+				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
+					if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
+					var containerNode = removedNode.uid || Utility.getContainer(target);
+					this.remove(removedNode, containerNode);
+				}
+			}
+
 		}
 };
 
-View.prototype.run = function () {
+View.run = function () {
 	if (this.isRan) return;
 	else this.isRan = true;
 
 	this.add(this.container);
-	INDEX._.observers.push(this.observer.bind(this));
+	Global.observers.push(this.observer.bind(this));
 };
+
+export default View;

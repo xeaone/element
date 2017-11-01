@@ -1,33 +1,31 @@
 import Transformer from './transformer.js';
 import Utility from './utility.js';
 
-export default function Loader (options) {
-	this.loads = [];
-	this.files = {};
-	this.modules = {};
-	this.esm = false;
-	this.est = false;
-	this.base = Utility.createBase();
-	this.setup(options);
-}
+var Loader = {};
 
-Loader.prototype.patterns = {
+Loader.loads = [];
+Loader.files = {};
+Loader.modules = {};
+Loader.esm = false;
+Loader.est = false;
+Loader.base = Utility.createBase();
+
+Loader.patterns = {
 	imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
 	imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
 	exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
 	exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
 };
 
-Loader.prototype.setup = function (options) {
+Loader.setup = function (options) {
 	options = options || {};
 	this.loads = options.loads || this.loads;
 	this.esm = options.esm === undefined ? this.esm : options.esm;
 	this.est = options.est === undefined ? this.est : options.est;
 	this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
-	return this;
 };
 
-Loader.prototype.xhr = function (data, callback) {
+Loader.xhr = function (data, callback) {
 	if (data.xhr) return;
 	if (!data.url) throw new Error('Oxe.Loader - requires a url');
 
@@ -47,7 +45,7 @@ Loader.prototype.xhr = function (data, callback) {
 	data.xhr.send();
 };
 
-Loader.prototype.js = function (data, callback) {
+Loader.js = function (data, callback) {
 	var self = this;
 
 	if (self.est || data.est) {
@@ -80,7 +78,7 @@ Loader.prototype.js = function (data, callback) {
 	}
 };
 
-Loader.prototype.css = function (data, callback) {
+Loader.css = function (data, callback) {
 	data.element = document.createElement('link');
 	data.element.setAttribute('href', data.url);
 	data.element.setAttribute('rel','stylesheet');
@@ -91,7 +89,7 @@ Loader.prototype.css = function (data, callback) {
 	document.head.appendChild(data.element);
 };
 
-Loader.prototype.getImports = function (data) {
+Loader.getImports = function (data) {
 	var imp, imports = [];
 	var imps = data.match(this.patterns.imps) || [];
 	for (var i = 0, l = imps.length; i < l; i++) {
@@ -105,16 +103,16 @@ Loader.prototype.getImports = function (data) {
 	return imports;
 };
 
-Loader.prototype.getExports = function (data) {
+Loader.getExports = function (data) {
 	return data.match(this.patterns.exps) || [];
 };
 
-Loader.prototype.ext = function (data) {
+Loader.ext = function (data) {
 	var position = data.lastIndexOf('.');
 	return position ? data.slice(position+1) : '';
 };
 
-Loader.prototype.normalizeUrl = function (url) {
+Loader.normalizeUrl = function (url) {
 	if (!this.ext(url)) {
 		url = url + '.js';
 	}
@@ -126,18 +124,18 @@ Loader.prototype.normalizeUrl = function (url) {
 	return url;
 };
 
-Loader.prototype.handleImports = function (ast) {
+Loader.handleImports = function (ast) {
 	for (var i = 0, l = ast.imports.length; i < l; i++) {
 		ast.imports[i].url = this.normalizeUrl(ast.imports[i].url);
 		ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = $L.modules[\'' + ast.imports[i].url + '\']');
 	}
 };
 
-Loader.prototype.handleExports = function (ast) {
+Loader.handleExports = function (ast) {
 	ast.cooked = ast.cooked.replace('export default', 'return');
 };
 
-Loader.prototype.toAst = function (data) {
+Loader.toAst = function (data) {
 	var ast = {};
 	ast.raw = data;
 	ast.imports = this.getImports(ast.raw);
@@ -148,14 +146,14 @@ Loader.prototype.toAst = function (data) {
 	return ast;
 };
 
-Loader.prototype.interpret = function (data) {
+Loader.interpret = function (data) {
 	data = '\'use strict\';\n\n' + data;
 	return (function(d, l, w) { 'use strict';
 		return new Function('$L', 'window', d)(l, w);
 	}(data, this, window));
 };
 
-Loader.prototype.load = function (data, callback) {
+Loader.load = function (data, callback) {
 	var self = this;
 
 	if (data.constructor === String) {
@@ -183,11 +181,13 @@ Loader.prototype.load = function (data, callback) {
 
 };
 
-Loader.prototype.run = function () {
+Loader.run = function () {
 	for (var i = 0, l = this.loads.length; i < l; i++) {
 		this.load(this.loads[i]);
 	}
 };
+
+export default Loader;
 
 /*
 	https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/

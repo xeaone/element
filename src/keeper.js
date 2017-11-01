@@ -1,24 +1,22 @@
-import INDEX from './index';
+import Router from './router';
 
-export default function Keeper (options) {
-	this._ = {};
-	this._.token;
+var Keeper = {};
 
-	this.scheme = 'Bearer';
-	this.type = 'sessionStorage';
+Keeper._ = {};
+Keeper._.token;
+Keeper.scheme = 'Bearer';
+Keeper.type = 'sessionStorage';
 
-	Object.defineProperty(this, 'token', {
-		enumerable: true,
-		get: function () {
-			return this._.token = this._.token || window[this.type].getItem('token');
-		}
-	});
+Object.defineProperty(Keeper, 'token', {
+	enumerable: true,
+	get: function () {
+		return this._.token = this._.token || window[this.type].getItem('token');
+	}
+});
 
-	this.setup(options);
-}
-
-Keeper.prototype.setup = function (options) {
+Keeper.setup = function (options) {
 	options = options || {};
+
 	this._.forbidden = options.forbidden || this._.forbidden;
 	this._.unauthorized = options.unauthorized || this._.unauthorized;
 	this._.authenticated = options.authenticated || this._.authenticated;
@@ -34,38 +32,38 @@ Keeper.prototype.setup = function (options) {
 
 };
 
-Keeper.prototype.setToken = function (token) {
+Keeper.setToken = function (token) {
 	this._.token = window[this.type].setItem('token', token);
 };
 
-Keeper.prototype.removeToken = function () {
+Keeper.removeToken = function () {
 	this._.token = null;
 	window[this.type].removeItem('token');
 };
 
-Keeper.prototype.authenticate = function (token) {
+Keeper.authenticate = function (token) {
 	this.setToken(token);
 	if (typeof this._.authenticated === 'string') {
-		INDEX.router.navigate(this._.authenticated);
+		Router.navigate(this._.authenticated);
 	} else if (typeof this._.authenticated === 'function') {
 		this._.authenticated();
 	}
 };
 
-Keeper.prototype.unauthenticate = function () {
+Keeper.unauthenticate = function () {
 	this.removeToken();
 	if (typeof this._.unauthenticated === 'string') {
-		INDEX.router.navigate(this._.unauthenticated);
+		Router.navigate(this._.unauthenticated);
 	} else if (typeof this._.unauthenticated === 'function') {
 		this._.unauthenticated();
 	}
 };
 
-Keeper.prototype.forbidden = function (result) {
+Keeper.forbidden = function (result) {
 	this.removeToken();
-	
+
 	if (typeof this._.forbidden === 'string') {
-		INDEX.router.navigate(this._.forbidden);
+		Router.navigate(this._.forbidden);
 	} else if (typeof this._.forbidden === 'function') {
 		this._.forbidden(result);
 	}
@@ -73,11 +71,11 @@ Keeper.prototype.forbidden = function (result) {
 	return false;
 };
 
-Keeper.prototype.unauthorized = function (result) {
+Keeper.unauthorized = function (result) {
 	this.removeToken();
 
 	if (typeof this._.unauthorized === 'string') {
-		INDEX.router.navigate(this._.unauthorized);
+		Router.navigate(this._.unauthorized);
 	} else if (typeof this._.unauthorized === 'function') {
 		this._.unauthorized(result);
 	}
@@ -85,7 +83,7 @@ Keeper.prototype.unauthorized = function (result) {
 	return false;
 };
 
-Keeper.prototype.route = function (result) {
+Keeper.route = function (result) {
 	if (result.auth === false) {
 		return true;
 	} else if (!this.token) {
@@ -95,7 +93,7 @@ Keeper.prototype.route = function (result) {
 	}
 };
 
-Keeper.prototype.request = function (result) {
+Keeper.request = function (result) {
 	if (result.opt.auth === false) {
 		return true;
 	} else if (!this.token) {
@@ -106,7 +104,7 @@ Keeper.prototype.request = function (result) {
 	}
 };
 
-Keeper.prototype.response = function (result) {
+Keeper.response = function (result) {
 	if (result.statusCode === 401) {
 		return this.unauthorized(result);
 	} else if (result.statusCode === 403) {
@@ -116,13 +114,15 @@ Keeper.prototype.response = function (result) {
 	}
 };
 
+export default Keeper;
+
 /*
 	Resources:
 		https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication
 		https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
 */
 
-// Keeper.prototype.encode = function (data) {
+// Keeper.encode = function (data) {
 // 	// encodeURIComponent to get percent-encoded UTF-8
 // 	// convert the percent encodings into raw bytes which
 // 	return window.btoa(window.encodeURIComponent(data).replace(/%([0-9A-F]{2})/g,
@@ -131,7 +131,7 @@ Keeper.prototype.response = function (result) {
 // 	}));
 // };
 //
-// Keeper.prototype.decode = function (data) {
+// Keeper.decode = function (data) {
 // 	// from bytestream to percent-encoding to original string
 //     return window.decodeURIComponent(window.atob(data).split('').map(function(char) {
 //         return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2);

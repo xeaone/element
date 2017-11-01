@@ -1,26 +1,24 @@
 import Utility from './utility';
+import Batcher from './batcher';
+import Loader from './loader';
+import Keeper from './keeper';
 import Events from './events';
-import INDEX from './index';
 
-export default function Router (options) {
-	Events.call(this);
+var Router = {};
 
-	this.cache = {};
-	this.routes = [];
-	this.hash = false;
-	this.auth = false;
-	this.isRan = false;
-	this.location = {};
-	this.trailing = false;
-	this.view = 'o-view';
+Router = Object.assign(Router, Events.prototype);
+Events.call(Router);
 
-	this.setup(options);
-}
+Router.cache = {};
+Router.routes = [];
+Router.hash = false;
+Router.auth = false;
+Router.isRan = false;
+Router.location = {};
+Router.view = 'o-view';
+Router.trailing = false;
 
-Router.prototype = Object.create(Events.prototype);
-Router.prototype.constructor = Router;
-
-Router.prototype.setup = function (options) {
+Router.setup = function (options) {
 	options = options || {};
 	this.auth = options.auth === undefined ? this.auth : options.auth;
 	this.view = options.view === undefined ? this.view : options.view;
@@ -32,11 +30,11 @@ Router.prototype.setup = function (options) {
 	this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
 };
 
-Router.prototype.popstate = function (e) {
+Router.popstate = function (e) {
 	this.navigate(e.state || window.location.href, true);
 };
 
-Router.prototype.click = function (e) {
+Router.click = function (e) {
 
 	// if shadow dom use
 	var target = e.path ? e.path[0] : e.target;
@@ -81,19 +79,19 @@ Router.prototype.click = function (e) {
 	}
 };
 
-Router.prototype.scroll = function (x, y) {
+Router.scroll = function (x, y) {
 	window.scroll(x, y);
 };
 
-Router.prototype.back = function () {
+Router.back = function () {
 	window.history.back();
 };
 
-Router.prototype.redirect = function (path) {
+Router.redirect = function (path) {
 	window.location.href = path;
 };
 
-Router.prototype.add = function (route) {
+Router.add = function (route) {
 	if (route.constructor.name === 'Object') {
 		this.routes.push(route);
 	} else if (route.constructor.name === 'Array') {
@@ -101,7 +99,7 @@ Router.prototype.add = function (route) {
 	}
 };
 
-Router.prototype.remove = function (path) {
+Router.remove = function (path) {
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 		if (path === this.routes[i].path) {
 			this.routes.splice(i, 1);
@@ -109,7 +107,7 @@ Router.prototype.remove = function (path) {
 	}
 };
 
-Router.prototype.get = function (path) {
+Router.get = function (path) {
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 		var route = this.routes[i];
 		if (path === route.path) {
@@ -118,7 +116,7 @@ Router.prototype.get = function (path) {
 	}
 };
 
-Router.prototype.find = function (path) {
+Router.find = function (path) {
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 		var route = this.routes[i];
 		if (this.testPath(route.path, path)) {
@@ -127,7 +125,7 @@ Router.prototype.find = function (path) {
 	}
 };
 
-Router.prototype.testPath = function (routePath, userPath) {
+Router.testPath = function (routePath, userPath) {
 	return new RegExp(
 		'^' + routePath
 		.replace(/{\*}/g, '(?:.*)')
@@ -136,7 +134,7 @@ Router.prototype.testPath = function (routePath, userPath) {
 	).test(userPath);
 };
 
-Router.prototype.toParameter = function (routePath, userPath) {
+Router.toParameter = function (routePath, userPath) {
 	var result = {};
 	var brackets = /{|}/g;
 	var pattern = /{(\w+)}/;
@@ -153,7 +151,7 @@ Router.prototype.toParameter = function (routePath, userPath) {
 	return result;
 };
 
-Router.prototype.toQuery = function (path) {
+Router.toQuery = function (path) {
 	var result = {};
 	if (path.indexOf('?') === 0) path = path.slice(1);
 	var queries = path.split('&');
@@ -168,7 +166,7 @@ Router.prototype.toQuery = function (path) {
 	return result;
 };
 
-// Router.prototype.toQueryString = function (data) {
+// Router.toQueryString = function (data) {
 // 	if (!data) return;
 //
 // 	var query = '?';
@@ -180,7 +178,7 @@ Router.prototype.toQuery = function (path) {
 // 	return query.slice(-1); // remove trailing &
 // };
 
-Router.prototype.toLocation = function (path) {
+Router.toLocation = function (path) {
 	var location = {};
 
 	location.pathname = decodeURI(path);
@@ -258,7 +256,7 @@ Router.prototype.toLocation = function (path) {
 	return location;
 };
 
-Router.prototype.batch = function (route) {
+Router.batch = function (route) {
 	var self = this, component;
 
 	component = self.cache[route.component];
@@ -269,7 +267,7 @@ Router.prototype.batch = function (route) {
 		component.isRouterComponent = true;
 	}
 
-	INDEX.batcher.write(function () {
+	Batcher.write(function () {
 		var child;
 		while (child = self.view.firstChild) self.view.removeChild(child);
 		self.view.appendChild(component);
@@ -279,20 +277,20 @@ Router.prototype.batch = function (route) {
 
 };
 
-Router.prototype.render = function (route) {
+Router.render = function (route) {
 
 	if (route.title) {
 		document.title = route.title;
 	}
 
 	if (route.url && !(route.component in this.cache)) {
-		INDEX.loader.load(route.url, this.batch.bind(this, route));
+		Loader.load(route.url, this.batch.bind(this, route));
 	} else {
 		this.batch(route);
 	}
 };
 
-Router.prototype.navigate = function (data, replace) {
+Router.navigate = function (data, replace) {
 	var location;
 
 	if (typeof data === 'string') {
@@ -307,10 +305,10 @@ Router.prototype.navigate = function (data, replace) {
 
 	if (
 		this.auth &&
-		location.route.auth === true ||
-		location.route.auth === undefined
+		(location.route.auth === true ||
+		location.route.auth === undefined)
 	) {
-		if (INDEX.keeper.route(location.route) === false) {
+		if (Keeper.route(location.route) === false) {
 			return;
 		}
 	}
@@ -327,7 +325,7 @@ Router.prototype.navigate = function (data, replace) {
 	}
 };
 
-Router.prototype.run = function () {
+Router.run = function () {
 	if (this.isRan) return;
 	else this.isRan = true;
 
@@ -339,3 +337,5 @@ Router.prototype.run = function () {
 
 	this.navigate(window.location.href, true);
 };
+
+export default Router;

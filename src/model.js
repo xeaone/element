@@ -1,28 +1,15 @@
 import Observer from './observer';
 import Utility from './utility';
-import INDEX from './index';
+import Global from './global';
+import View from './view';
 
-export default function Model (options) {
-	this.isRan = false;
-	this.setup(options);
-}
+var Model = {};
 
-Model.prototype.setup = function (options) {
-	options = options || {};
-	this.data = options.data || {};
-	this.handler = options.handler;
-	this.container = options.container || document.body;
-	return this;
-};
+Model.data = {};
+Model.isRan = false;
+Model.container = document.body;
 
-Model.prototype.overwrite = function (data) {
-	Observer(
-		this.data = data,
-		this.handler
-	);
-};
-
-Model.prototype.inputListener = function (element) {
+Model.inputListener = function (element) {
 	var value = element.getAttribute('o-value');
 	if (value) {
 		var i, l;
@@ -58,27 +45,44 @@ Model.prototype.inputListener = function (element) {
 	}
 };
 
-Model.prototype.input = function (e) {
+Model.input = function (e) {
 	if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.nodeName !== 'SELECT') {
 		this.inputListener.call(this, e.target);
 	}
 };
 
-Model.prototype.change = function (e) {
+Model.change = function (e) {
 	this.inputListener.call(this, e.target);
 };
 
-Model.prototype.run = function () {
-	var self = this;
+Model.overwrite = function (data) {
+	Observer(
+		this.data = data,
+		this.observer.bind(this)
+	);
+};
 
-	if (self.isRan) return;
-	else self.isRan = true;
+Model.observer = function (data, path) {
+	var paths = path.split('.');
+	var uid = paths[0];
+	var pattern = paths.slice(1).join('.');
+	var type = data === undefined ? 'unrender' : 'render';
+	View.eachBinder(uid, pattern, function (binder) {
+		binder[type]();
+	});
+};
+
+Model.run = function () {
+	if (this.isRan) return;
+	else this.isRan = true;
 
 	Observer(
-		self.data,
-		self.handler
+		this.data,
+		this.observer.bind(this)
 	);
 
-	INDEX._.inputs.push(this.input.bind(this));
-	INDEX._.changes.push(this.change.bind(this));
+	Global.inputs.push(this.input.bind(this));
+	Global.changes.push(this.change.bind(this));
 };
+
+export default Model;

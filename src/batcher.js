@@ -1,15 +1,15 @@
 
-export default function Batcher () {
-	this.tasks = [];
-	this.reads = [];
-	this.writes = [];
-	this.rafCount = 0;
-	this.maxTaskTimeMS = 30;
-	this.pending = false;
-}
+var Batcher = {};
+
+Batcher.tasks = [];
+Batcher.reads = [];
+Batcher.writes = [];
+Batcher.rafCount = 0;
+Batcher.maxTaskTimeMS = 30;
+Batcher.pending = false;
 
 // Adds a task to the read batch
-Batcher.prototype.read = function (method, context) {
+Batcher.read = function (method, context) {
 	var task = context ? method.bind(context) : method;
 	this.reads.push(task);
 	this.tick();
@@ -17,21 +17,21 @@ Batcher.prototype.read = function (method, context) {
 
 
 // Adds a task to the write batch
-Batcher.prototype.write = function (method, context) {
+Batcher.write = function (method, context) {
 	var task = context ? method.bind(context) : method;
 	this.writes.push(task);
 	this.tick();
 };
 
 // Schedules a new read/write batch if one isn't pending.
-Batcher.prototype.tick = function () {
+Batcher.tick = function () {
 	var self = this;
 	if (!self.pending) {
 		self.flush();
 	}
 };
 
-Batcher.prototype.flush = function (callback) {
+Batcher.flush = function (callback) {
 	var self = this;
 	self.pending = true;
 	self.run(self.reads, function () {
@@ -45,7 +45,17 @@ Batcher.prototype.flush = function (callback) {
 	});
 };
 
-Batcher.prototype.run = function (tasks, callback) {
+// Clears a pending 'read' or 'write' task
+Batcher.clear = function (task) {
+	return this.remove(this.reads, task) || this.remove(this.writes, task);
+};
+
+Batcher.remove = function (tasks, task) {
+	var index = tasks.indexOf(task);
+	return !!~index && !!tasks.splice(index, 1);
+};
+
+Batcher.run = function (tasks, callback) {
 	var self = this;
 	if (tasks.length) {
 		window.requestAnimationFrame(function (time) {
@@ -66,12 +76,4 @@ Batcher.prototype.run = function (tasks, callback) {
 	}
 };
 
-// Clears a pending 'read' or 'write' task
-Batcher.prototype.clear = function (task) {
-	return this.remove(this.reads, task) || this.remove(this.writes, task);
-};
-
-Batcher.prototype.remove = function (tasks, task) {
-	var index = tasks.indexOf(task);
-	return !!~index && !!tasks.splice(index, 1);
-};
+export default Batcher;

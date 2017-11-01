@@ -128,8 +128,8 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 	- `options: Object`
 		- `name: String` **Required** the tag name
 		- `html: String` An HTML string
-		- `query: String` An querySelector
 		- `template: Element` A Element
+		- `query: String` Attempts currentScript.ownerDocument otherwise will use the document
 		- `model: Object<Any>` See Oxe.controller.model
 		- `events: Object<Function>` See Oxe.controller.events
 		- `modifiers: Object<Function>` See Oxe.controller.modifiers
@@ -289,16 +289,23 @@ Automatically use the default action for non origin matching hrefs
 ### Oxe.global
 A global object for you.
 
-### Oxe.query(String: querySelector)
-The result of a querySelector in the **current** document `document.currentScript.ownerDocument.querySelector()`
+### Oxe.ownerDocument
+- Alias: `document.currentScript.ownerDocument`
 
-- Returns: `document.currentScript.ownerDocument.querySelector()`
+### Oxe.currentScript
+- Alias: `document.currentScript`
 
-### Oxe.script()
-- Returns: `document.currentScript`
+### Oxe.document
+- Alias: `document`
 
-### Oxe.document()
-- Returns: `document.currentScript.ownerDocument`
+### Oxe.window
+- Alias: `window`
+
+### Oxe.head
+- Alias: `document.head`
+
+### Oxe.body
+- Alias: `document.body`
 
 ## Authors
 - [AlexanderElias](https://github.com/AlexanderElias)

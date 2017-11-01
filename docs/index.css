@@ -6,6 +6,10 @@
 	font-family: sans-serif;
 }
 
+body {
+	opacity: 1;
+}
+
 html, body {
 	flex: 1;
 	width: 100vw;
