@@ -307,10 +307,12 @@ Router.prototype.navigate = function (data, replace) {
 	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
 	if (this.auth || this.location.route.auth) {
-		if (INDEX.keeper.route(this.location.route) === false) {
+		if (INDEX.keeper.route(this.location.route) === true) {
 			return;
 		}
-	} else if (this.location.route.handler) {
+	}
+
+	if (this.location.route.handler) {
 		this.location.route.handler(this.location);
 	} else if (this.location.route.redirect) {
 		this.redirect(this.location.route.redirect);
