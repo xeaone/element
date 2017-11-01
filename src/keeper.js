@@ -19,11 +19,14 @@ export default function Keeper (options) {
 
 Keeper.prototype.setup = function (options) {
 	options = options || {};
-	this.type = options.type + 'Storage' || this.type;
 	this._.forbidden = options.forbidden || this._.forbidden;
 	this._.unauthorized = options.unauthorized || this._.unauthorized;
 	this._.authenticate = options.authenticate || this._.authenticate;
 	this._.unauthenticate = options.unauthenticate || this._.unauthenticate;
+
+	if (options.type) {
+		this.type = options.type + 'Storage';
+	}
 
 	if (options.scheme) {
 		this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1);
