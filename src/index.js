@@ -46,7 +46,8 @@ window.requestAnimationFrame(function () {
 	eStyle.appendChild(sStyle);
 	Oxe.head.appendChild(eStyle);
 	Oxe.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
-	var eIndex = Oxe.currentScript.getAttribute('o-index');
+	var eScript = Oxe.document.querySelector('[o-index]')
+	var eIndex = eScript ? eScript.getAttribute('o-index') : null;
 	if (eIndex) Oxe.loader.load({ url: eIndex });
 });
 

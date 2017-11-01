@@ -54,7 +54,9 @@ Loader.js = function (data, callback) {
 
 	if (self.esm || data.esm) {
 		data.ast = self.toAst(data.text);
+
 		if (data.ast.imports.length) {
+
 			var meta = {
 				count: 0,
 				imports: data.ast.imports,
@@ -66,16 +68,17 @@ Loader.js = function (data, callback) {
 					}
 				}
 			};
+
 			for (var i = 0, l = meta.imports.length; i < l; i++) {
 				self.load(meta.imports[i].url, meta.callback);
 			}
+
+			return;
 		}
 	}
 
-	if (!data.ast.imports.length) {
-		self.modules[data.url] = self.interpret(data.ast ? data.ast.cooked : data.text);
-		if (callback) callback();
-	}
+	self.modules[data.url] = self.interpret(data.ast ? data.ast.cooked : data.text);
+	if (callback) callback();
 };
 
 Loader.css = function (data, callback) {

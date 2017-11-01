@@ -1197,7 +1197,9 @@
 
 		if (self.esm || data.esm) {
 			data.ast = self.toAst(data.text);
+
 			if (data.ast.imports.length) {
+
 				var meta = {
 					count: 0,
 					imports: data.ast.imports,
@@ -1209,16 +1211,17 @@
 						}
 					}
 				};
+
 				for (var i = 0, l = meta.imports.length; i < l; i++) {
 					self.load(meta.imports[i].url, meta.callback);
 				}
+
+				return;
 			}
 		}
 
-		if (!data.ast.imports.length) {
-			self.modules[data.url] = self.interpret(data.ast ? data.ast.cooked : data.text);
-			if (callback) callback();
-		}
+		self.modules[data.url] = self.interpret(data.ast ? data.ast.cooked : data.text);
+		if (callback) callback();
 	};
 
 	Loader.css = function (data, callback) {
@@ -2191,7 +2194,8 @@
 		eStyle.appendChild(sStyle);
 		Oxe$1.head.appendChild(eStyle);
 		Oxe$1.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
-		var eIndex = Oxe$1.currentScript.getAttribute('o-index');
+		var eScript = Oxe$1.document.querySelector('[o-index]');
+		var eIndex = eScript ? eScript.getAttribute('o-index') : null;
 		if (eIndex) Oxe$1.loader.load({ url: eIndex });
 	});
 
