@@ -53,7 +53,7 @@ var indexjs = Escape(`
 	});
 `);
 
-var indexhtml = Escape(`
+var indexhtml = Escape(/*html*/`
 	<html>
 	<head>
 		<base href="/">
@@ -77,6 +77,7 @@ Oxe.component.define({
 		Prism.highlightAll();
 	},
 	created: function () {
+		console.log(Oxe.location);
 		Say('v-home created');
 	},
 	html: `

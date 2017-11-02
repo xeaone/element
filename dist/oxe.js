@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.1.1
+	Version: 2.2.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -450,7 +450,10 @@
 	var OnceBinder = {};
 
 	OnceBinder.bind = function (element, attribute, container) {
-		if (!this.type[attribute.cmds[0]]) return;
+		if (
+			!container.model ||
+			!this.type[attribute.cmds[0]]
+		) return;
 
 		var model = container.model;
 		var type = attribute.cmds[0];
@@ -459,13 +462,20 @@
 		var value = this.type[type](element, attribute, data[key]);
 
 		if (data[key] === undefined) {
+
 			data.$set(key, value);
+			
 		} else {
+
 			// FIXME selects not setting defaults
 			if (value.constructor === Array) {
+
 				data[key].push.apply(null, value);
+
 			}
+
 		}
+
 	};
 
 	OnceBinder.type = {
@@ -473,34 +483,56 @@
 			var i, l;
 
 			if (element.type === 'checkbox') {
+
 				data = !data ? false : data;
 				element.value = element.checked = data;
+
 			} else if (element.nodeName === 'SELECT') {
+
 				data = element.multiple ? [] : data;
 				var options = element.options;
+
 				for (i = 0, l = options.length; i < l; i++) {
+
 					var option = options[i];
+
 					if (option.selected) {
+
 						if (element.multiple) {
+
 							data.push(option.value);
+
 						} else {
+
 							data = option.value;
 							break;
+
 						}
 					}
+
 				}
+
 			} else if (element.type === 'radio') {
+
 				var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + attribute.value + '"]');
+
 				for (i = 0, l = elements.length; i < l; i++) {
+
 					var radio = elements[i];
 					radio.checked = i === data;
+
 				}
+
 			} else {
+
 				element.value = data === undefined ? '' : data;
+
 			}
 
 			return data;
+
 		}
+
 	};
 
 	// TODO sanitize input/output
@@ -1123,7 +1155,11 @@
 
 		for (var index = 0; index < string.length; index++) {
 			var char = string[index];
-			if (char === '`' && string[index-1] !== '\\' && string[index-1] !== '/') {
+			if (
+				char === '`' &&
+				string[index-1] !== '\\'
+				// && string[index-1] + string[index-2] !== '//'
+			) {
 				if (isInner) {
 					ends++;
 					value = '\'';
@@ -1426,10 +1462,12 @@
 		var parent = target.parentNode;
 
 		if (this.container) {
+
 			while (parent) {
 				if (parent === this.container) break;
 				else parent = parent.parentNode;
 			}
+
 			if (parent !== this.container) return;
 		}
 
@@ -1462,6 +1500,7 @@
 		if (this.location.href !== target.href) {
 			this.navigate(target.href);
 		}
+
 	};
 
 	Router.scroll = function (x, y) {
@@ -1504,13 +1543,13 @@
 	Router.find = function (path) {
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 			var route = this.routes[i];
-			if (this.testPath(route.path, path)) {
+			if (this.isPath(route.path, path)) {
 				return route;
 			}
 		}
 	};
 
-	Router.testPath = function (routePath, userPath) {
+	Router.isPath = function (routePath, userPath) {
 		return new RegExp(
 			'^' + routePath
 			.replace(/{\*}/g, '(?:.*)')
@@ -1550,18 +1589,6 @@
 
 		return result;
 	};
-
-	// Router.toQueryString = function (data) {
-	// 	if (!data) return;
-	//
-	// 	var query = '?';
-	//
-	// 	for (var key in data) {
-	// 		query += key + '=' + data[key] + '&';
-	// 	}
-	//
-	// 	return query.slice(-1); // remove trailing &
-	// };
 
 	Router.toLocation = function (path) {
 		var location = {};
@@ -1714,10 +1741,10 @@
 		if (this.isRan) return;
 		else this.isRan = true;
 
-		this.view = document.body.querySelector(this.view);
+		this.view = typeof this.view === 'string' ? document.body.querySelector(this.view) : this.view;
 
 		if (!this.view) {
-			throw new Error('Router requires o-view element');
+			throw new Error('Oxe.router - requires a view element');
 		}
 
 		this.navigate(window.location.href, true);
@@ -2048,6 +2075,12 @@
 				return document.head;
 			}
 		},
+		location: {
+			enumerable: true,
+			get: function () {
+				return this.router.location;
+			}
+		},
 		currentScript: {
 			enumerable: true,
 			get: function () {
@@ -2060,13 +2093,9 @@
 				return (document._currentScript || document.currentScript).ownerDocument;
 			}
 		},
-		view: {
+		global: {
 			enumerable: true,
-			value: View // { data: {} }
-		},
-		model: {
-			enumerable: true,
-			value: Model // { data: {} }
+			value: {}
 		},
 		events: {
 			enumerable: true,
@@ -2096,6 +2125,14 @@
 			enumerable: true,
 			value: []
 		},
+		view: {
+			enumerable: true,
+			value: View
+		},
+		model: {
+			enumerable: true,
+			value: Model
+		},
 		keeper:{
 			enumerable: true,
 			value: Keeper
@@ -2119,14 +2156,6 @@
 		component:{
 			enumerable: true,
 			value: Component
-		},
-		global: {
-			enumerable: true,
-			value: {}
-		},
-		location: {
-			enumerable: true,
-			value: {}
 		},
 		setup: {
 			enumerable: true,
@@ -2161,7 +2190,7 @@
 
 	if (window.Oxe) throw new Error('Oxe pre-defined duplicate Oxe scripts');
 
-	var Oxe$1 = Object.defineProperties({}, Object.getOwnPropertyDescriptors(Global));
+	var Oxe$1 = Global; // Object.defineProperties({}, Object.getOwnPropertyDescriptors(Global));
 
 	Oxe$1.window.addEventListener('input', function (e) {
 		Oxe$1.inputs.forEach(function (input) {
