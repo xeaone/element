@@ -3,8 +3,11 @@ import Utility from './utility';
 var OnceBinder = {};
 
 OnceBinder.bind = function (element, attribute, container) {
-	if (!this.type[attribute.cmds[0]]) return;
-
+	if (
+		!container.model ||
+		!this.type[attribute.cmds[0]]
+	) return;
+	
 	var model = container.model;
 	var type = attribute.cmds[0];
 	var key = attribute.parentKey;
