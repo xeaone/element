@@ -31,7 +31,11 @@ Transformer.template = function (data) {
 
 	for (var index = 0; index < string.length; index++) {
 		var char = string[index];
-		if (char === '`' && string[index-1] !== '\\' && string[index-1] !== '/') {
+		if (
+			char === '`' &&
+			string[index-1] !== '\\'
+			// && string[index-1] + string[index-2] !== '//'
+		) {
 			if (isInner) {
 				ends++;
 				value = '\'';
