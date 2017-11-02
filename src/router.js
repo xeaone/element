@@ -41,10 +41,12 @@ Router.click = function (e) {
 	var parent = target.parentNode;
 
 	if (this.container) {
+
 		while (parent) {
 			if (parent === this.container) break;
 			else parent = parent.parentNode;
 		}
+
 		if (parent !== this.container) return;
 	}
 
@@ -77,6 +79,7 @@ Router.click = function (e) {
 	if (this.location.href !== target.href) {
 		this.navigate(target.href);
 	}
+
 };
 
 Router.scroll = function (x, y) {
@@ -119,13 +122,13 @@ Router.get = function (path) {
 Router.find = function (path) {
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 		var route = this.routes[i];
-		if (this.testPath(route.path, path)) {
+		if (this.isPath(route.path, path)) {
 			return route;
 		}
 	}
 };
 
-Router.testPath = function (routePath, userPath) {
+Router.isPath = function (routePath, userPath) {
 	return new RegExp(
 		'^' + routePath
 		.replace(/{\*}/g, '(?:.*)')
@@ -165,18 +168,6 @@ Router.toQuery = function (path) {
 
 	return result;
 };
-
-// Router.toQueryString = function (data) {
-// 	if (!data) return;
-//
-// 	var query = '?';
-//
-// 	for (var key in data) {
-// 		query += key + '=' + data[key] + '&';
-// 	}
-//
-// 	return query.slice(-1); // remove trailing &
-// };
 
 Router.toLocation = function (path) {
 	var location = {};
@@ -329,10 +320,10 @@ Router.run = function () {
 	if (this.isRan) return;
 	else this.isRan = true;
 
-	this.view = document.body.querySelector(this.view);
+	this.view = typeof this.view === 'string' ? document.body.querySelector(this.view) : this.view;
 
 	if (!this.view) {
-		throw new Error('Router requires o-view element');
+		throw new Error('Oxe.router - requires a view element');
 	}
 
 	this.navigate(window.location.href, true);

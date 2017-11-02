@@ -3,7 +3,7 @@ import Global from './global';
 
 if (window.Oxe) throw new Error('Oxe pre-defined duplicate Oxe scripts');
 
-var Oxe = Object.defineProperties({}, Object.getOwnPropertyDescriptors(Global));
+var Oxe = Global; // Object.defineProperties({}, Object.getOwnPropertyDescriptors(Global));
 
 Oxe.window.addEventListener('input', function (e) {
 	Oxe.inputs.forEach(function (input) {

@@ -3,14 +3,14 @@
 # Oxe
 A mighty tinny web components framework/library.
 
-## Features
+### Features
 - Routing
-- Module loading system
+- Module loading
 - Authorization handling
 - Really Small 8.09KB gzipped and 27.08KB uncompressed
-- In browser ES6/ESM module and template strings support (currently only supporting export default)
+- In browser ES6/ESM Module and Template String support (supporting export default)
 
-## Support
+### Support
 - IE10~
 - IE11
 - Chrome
@@ -19,15 +19,17 @@ A mighty tinny web components framework/library.
 - Mobile Safari
 - Chrome Android
 
-## Note
-Loader uses `XHR` and `new Function` to load modules on-demand. If your worried about security please read the linked articles. In summary it is okay to use new Function/eval but only if your not to trying to process client input. So as long as your only importing your packages/modules then any safety concern is eliminated.
+### Overview
+Live examples [https://alexanderelias.github.io/oxe/](https://alexanderelias.github.io/oxe/).
+
+Loader uses XHR and new Function to load modules on-demand. If your worried about security please read the linked articles. In summary it is okay to use new Function/eval but only if your not to trying to process client input. So as long as your only importing your packages/modules then any safety concern is eliminated.
 
 **Resources:**
 - http://2ality.com/2014/01/eval.html
 - https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
 
 
-## Install
+### Install
 - `npm i oxe --save`
 - UMD `dist/oxe.min.js`
 - UMD with Web Component Pollyfill `dist/oxe.polly.min.js`
@@ -35,18 +37,18 @@ Loader uses `XHR` and `new Function` to load modules on-demand. If your worried 
 
 ## Example
 ```js
-	Oxe.component.define({
-		name: 'v-home',
-		html: `
-			<h1 o-text="title"></h1>
-		`,
-		model: {
-			title: 'Old Title'
-		},
-		created: function () {
-			this.model.title = 'New Title';
-		}
-	});
+Oxe.component.define({
+	name: 'v-home',
+	html: `
+		<h1 o-text="title"></h1>
+	`,
+	model: {
+		title: 'Old Title'
+	},
+	created: function () {
+		this.model.title = 'New Title';
+	}
+});
 ```
 ```js
 Oxe.setup({
@@ -55,26 +57,19 @@ Oxe.setup({
 	},
 	fetcher: {
 		auth: true, // enables keeper for all fetches
-		request: function (opt, xhr) {
-			return true; // false will cancel the fetcher.fetch
-		},
-		response: function (opt, xhr) {
-			return true; // false will cancel the fetcher.fetch handlers
-		}
 	},
 	loader: {
 		esm: true, // Enables ES6 module re-writes support for all loads
 		est: true, // Enables ES6 template string re-writes support for all loads
 		loads: [
-			{
-				url: '/components/e-menu.js'
-			}
+			'/components/e-menu.js'
 		]
 	},
 	router: {
 		auth: true, // enables keeper for all routes
 		routes: [
 			{
+				auth: false, // individually disable/eneable auth
 				path: '/',
 				title: 'Home',
 				component: 'v-home',
@@ -103,17 +98,20 @@ Oxe.setup({
 ```
 
 ## API
-
 - setup
 - component
 - loader
 - keeper
 - router
 - fetcher
-- global
-- query
-- script
+- location
+- ownerDocument
+- currentScript
 - document
+- window
+- head
+- body
+- global
 
 ### Oxe.setup(options)
 The recommend entry point. This allows you to setup Oxe and automatically starts the router
@@ -286,26 +284,29 @@ Automatically use the default action for non origin matching hrefs
 - `setup: Function`
 	- `options: Object` Accepts the above options
 
-### Oxe.global
-A global object for you.
+### Oxe.location
+Alias for `Oxe.router.location`
 
 ### Oxe.ownerDocument
-- Alias: `document.currentScript.ownerDocument`
+Alias for `document.currentScript.ownerDocument`
 
 ### Oxe.currentScript
-- Alias: `document.currentScript`
+Alias for `document.currentScript`
 
 ### Oxe.document
-- Alias: `document`
+Alias for `document`
 
 ### Oxe.window
-- Alias: `window`
+Alias for `window`
 
 ### Oxe.head
-- Alias: `document.head`
+Alias for `document.head`
 
 ### Oxe.body
-- Alias: `document.body`
+Alias for `document.body`
+
+### Oxe.global
+A global object for you
 
 ## Authors
 - [AlexanderElias](https://github.com/AlexanderElias)

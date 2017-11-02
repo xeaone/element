@@ -32,6 +32,12 @@ var Global = Object.defineProperties({}, {
 			return document.head;
 		}
 	},
+	location: {
+		enumerable: true,
+		get: function () {
+			return this.router.location;
+		}
+	},
 	currentScript: {
 		enumerable: true,
 		get: function () {
@@ -44,13 +50,9 @@ var Global = Object.defineProperties({}, {
 			return (document._currentScript || document.currentScript).ownerDocument;
 		}
 	},
-	view: {
+	global: {
 		enumerable: true,
-		value: View // { data: {} }
-	},
-	model: {
-		enumerable: true,
-		value: Model // { data: {} }
+		value: {}
 	},
 	events: {
 		enumerable: true,
@@ -80,6 +82,14 @@ var Global = Object.defineProperties({}, {
 		enumerable: true,
 		value: []
 	},
+	view: {
+		enumerable: true,
+		value: View
+	},
+	model: {
+		enumerable: true,
+		value: Model
+	},
 	keeper:{
 		enumerable: true,
 		value: Keeper
@@ -103,14 +113,6 @@ var Global = Object.defineProperties({}, {
 	component:{
 		enumerable: true,
 		value: Component
-	},
-	global: {
-		enumerable: true,
-		value: {}
-	},
-	location: {
-		enumerable: true,
-		value: {}
 	},
 	setup: {
 		enumerable: true,
