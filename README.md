@@ -166,12 +166,12 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 - `token: String` Readable only token
 - `user: String` Readable only user
 - `setToken: String` Sets the token
-- `setUser: String` Sets the user
+- `setUser: Object` Sets the user
 - `removeToken: String` Removes the token
 - `removeUser: String` Removes the user
 - `authenticate: Function` Adds a token
 	- `token: String` The token to add
-	- `user: String` The user data to add
+	- `user: Object` The user data to add
 - `unauthenticate: Function` Removes the token and user data
 
 ### Oxe.router

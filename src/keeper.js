@@ -17,7 +17,7 @@ Object.defineProperty(Keeper, 'token', {
 Object.defineProperty(Keeper, 'user', {
 	enumerable: true,
 	get: function () {
-		return this._.user = this._.user || window[this.type].getItem('user');
+		return this._.user = this._.user || JSON.parse(window[this.type].getItem('user'));
 	}
 });
 
@@ -44,6 +44,7 @@ Keeper.setToken = function (token) {
 };
 
 Keeper.setUser = function (user) {
+	user = JSON.stringify(user);
 	this._.user = window[this.type].setItem('user', user);
 };
 

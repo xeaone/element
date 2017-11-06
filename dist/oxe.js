@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.3.1
+	Version: 2.3.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1768,7 +1768,7 @@
 	Object.defineProperty(Keeper, 'user', {
 		enumerable: true,
 		get: function () {
-			return this._.user = this._.user || window[this.type].getItem('user');
+			return this._.user = this._.user || JSON.parse(window[this.type].getItem('user'));
 		}
 	});
 
@@ -1795,6 +1795,7 @@
 	};
 
 	Keeper.setUser = function (user) {
+		user = JSON.stringify(user);
 		this._.user = window[this.type].setItem('user', user);
 	};
 
