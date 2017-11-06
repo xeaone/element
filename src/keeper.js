@@ -14,6 +14,13 @@ Object.defineProperty(Keeper, 'token', {
 	}
 });
 
+Object.defineProperty(Keeper, 'user', {
+	enumerable: true,
+	get: function () {
+		return this._.user = this._.user || window[this.type].getItem('user');
+	}
+});
+
 Keeper.setup = function (options) {
 	options = options || {};
 
@@ -36,13 +43,23 @@ Keeper.setToken = function (token) {
 	this._.token = window[this.type].setItem('token', token);
 };
 
+Keeper.setUser = function (token) {
+	this._.user = window[this.type].setItem('user', user);
+};
+
 Keeper.removeToken = function () {
 	this._.token = null;
 	window[this.type].removeItem('token');
 };
 
-Keeper.authenticate = function (token) {
+Keeper.removeUser = function () {
+	this._.user = null;
+	window[this.type].removeItem('user');
+};
+
+Keeper.authenticate = function (token, user) {
 	this.setToken(token);
+	this.setUser(user);
 	if (typeof this._.authenticated === 'string') {
 		Router.navigate(this._.authenticated);
 	} else if (typeof this._.authenticated === 'function') {
@@ -52,6 +69,7 @@ Keeper.authenticate = function (token) {
 
 Keeper.unauthenticate = function () {
 	this.removeToken();
+	this.removeUser();
 	if (typeof this._.unauthenticated === 'string') {
 		Router.navigate(this._.unauthenticated);
 	} else if (typeof this._.unauthenticated === 'function') {
@@ -60,26 +78,20 @@ Keeper.unauthenticate = function () {
 };
 
 Keeper.forbidden = function (result) {
-	this.removeToken();
-
 	if (typeof this._.forbidden === 'string') {
 		Router.navigate(this._.forbidden);
 	} else if (typeof this._.forbidden === 'function') {
 		this._.forbidden(result);
 	}
-
 	return false;
 };
 
 Keeper.unauthorized = function (result) {
-	this.removeToken();
-
 	if (typeof this._.unauthorized === 'string') {
 		Router.navigate(this._.unauthorized);
 	} else if (typeof this._.unauthorized === 'function') {
 		this._.unauthorized(result);
 	}
-
 	return false;
 };
 

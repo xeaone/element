@@ -164,9 +164,15 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 - `setup: Function`
 	- `options: Object` Accepts the above options
 - `token: String` Readable only token
+- `user: String` Readable only user
+- `setToken: String` Sets the token
+- `setUser: String` Sets the user
+- `removeToken: String` Removes the token
+- `removeUser: String` Removes the user
 - `authenticate: Function` Adds a token
 	- `token: String` The token to add
-- `unauthenticate: Function` Remove a token
+	- `user: String` The user data to add
+- `unauthenticate: Function` Removes the token and user data
 
 ### Oxe.router
 Automatically use the default action for non origin matching hrefs
@@ -309,7 +315,7 @@ Alias for `document.body`
 A global object for you
 
 ## Authors
-- [AlexanderElias](https://github.com/AlexanderElias)
+[AlexanderElias](https://github.com/AlexanderElias)
 
 ## License
 [Why You Should Choose MPL-2.0](http://veldstra.org/2016/12/09/yoo-should-choose-mpl2-for-your-opensource-project.html)
