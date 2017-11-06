@@ -43,7 +43,7 @@ Keeper.setToken = function (token) {
 	this._.token = window[this.type].setItem('token', token);
 };
 
-Keeper.setUser = function (token) {
+Keeper.setUser = function (user) {
 	this._.user = window[this.type].setItem('user', user);
 };
 
