@@ -30,6 +30,8 @@ Fetcher.serialize = function (data) {
 	return string;
 };
 
+// Fetcher.onreadystatechange = function () { };
+
 Fetcher.fetch = function (opt) {
 	var self = this;
 	var result = {};
@@ -37,6 +39,7 @@ Fetcher.fetch = function (opt) {
 
 	opt = opt || {};
 	opt.headers = {};
+	opt.error = false;
 	opt.type = opt.type || this.type;
 	opt.url = opt.url ? opt.url : window.location.href;
 	opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
@@ -81,11 +84,19 @@ Fetcher.fetch = function (opt) {
 		}
 	}
 
-	if (opt.mimeType) xhr.overrideMimeType(opt.mimeType);
-	if (opt.withCredentials) xhr.withCredentials = opt.withCredentials;
+	if (opt.mimeType) {
+		xhr.overrideMimeType(opt.mimeType);
+	}
 
-	if (opt.cache) opt.headers.cache = true;
-	else opt.cache = false;
+	if (opt.withCredentials) {
+		xhr.withCredentials = opt.withCredentials;
+	}
+
+	if (opt.cache) {
+		opt.headers.cache = true;
+	} else {
+		opt.cache = false;
+	}
 
 	if (opt.headers) {
 		for (var name in opt.headers) {
@@ -101,17 +112,18 @@ Fetcher.fetch = function (opt) {
 	result.opt = opt;
 	result.data = opt.data;
 
-	if (
-		self.auth &&
-		(result.opt.auth === true ||
-		result.opt.auth === undefined)
-	) {
+	if (self.auth && (
+		result.opt.auth === true ||
+		result.opt.auth === undefined
+	)) {
 		if (Keeper.request(result) === false) {
 			return;
 		}
 	}
 
-	if (self.request && self.request(result) === false) return;
+	if (self.request && self.request(result) === false) {
+		return;
+	}
 
 	xhr.onreadystatechange = function () {
 		if (xhr.readyState === 4) {
@@ -142,15 +154,22 @@ Fetcher.fetch = function (opt) {
 				}
 			}
 
-			if (self.response && self.response(result) === false) return;
+			if (self.response && self.response(result) === false) {
+				return;
+			}
 
 			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
 				if (opt.success) {
 					opt.success(result);
+				} else if (opt.handler) {
+					opt.handler(result);
 				}
 			} else {
+				opt.isError = true;
 				if (opt.error) {
 					opt.error(result);
+				} else if (opt.handler) {
+					opt.handler(result);
 				}
 			}
 
@@ -159,6 +178,46 @@ Fetcher.fetch = function (opt) {
 
 	xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
 
+};
+
+Fetcher.post = function (opt) {
+	opt.method = 'post';
+	return Fetcher.fetch(opt);
+};
+
+Fetcher.get = function (opt) {
+	opt.method = 'get';
+	return Fetcher.fetch(opt);
+};
+
+Fetcher.put = function (opt) {
+	opt.method = 'put';
+	return Fetcher.fetch(opt);
+};
+
+Fetcher.head = function (opt) {
+	opt.method = 'head';
+	return Fetcher.fetch(opt);
+};
+
+Fetcher.patch = function (opt) {
+	opt.method = 'patch';
+	return Fetcher.fetch(opt);
+};
+
+Fetcher.delete = function (opt) {
+	opt.method = 'delete';
+	return Fetcher.fetch(opt);
+};
+
+Fetcher.options = function (opt) {
+	opt.method = 'options';
+	return Fetcher.fetch(opt);
+};
+
+Fetcher.connect = function (opt) {
+	opt.method = 'connect';
+	return Fetcher.fetch(opt);
 };
 
 export default Fetcher;

@@ -238,57 +238,83 @@ Automatically use the default action for non origin matching hrefs
 		- `xhr: Object` The xhr used for the request
 		- `opt: Object` The options used for the request
 		- `data: Object|String` The response transformed by resonseType
-	- `mime: Object`
-	- `serialize: Function`
-	- `fetch: Function` A fetch request.
-		- `options: Object`
-			- `username: String`
-			- `password: String`
-			- `withCredentials: Boolean`
-			- `method: String` (default: GET)
-			- `cache: Boolean` (default: false)
-			- `url: String` (default: window.location.href)
-			- `error: Function` The Error Handler
-				- `result: Object`
-					- `statusCode: Number` The xhr.status
-					- `statusText: String` The xhr.statusText
-					- `xhr: Object` The xhr used for the request
-					- `opt: Object` The options used for the request
-					- `data: Object|String` The response transformed by resonseType
-			- `success: Function` The Success handler
-				- `result: Object`
-					- `statusCode: Number` The xhr.status
-					- `statusText: String` The xhr.statusText
-					- `xhr: Object` The xhr used for the request
-					- `opt: Object` The options used for the request
-					- `data: Object|String` The response transformed by resonseType
-			- `data: Object` If method is GET than data is concatenated to the url as parameters
-			- `type: String` A shortcut for setting the contentType, acceptType, and responseType
-			- `contentType: String` (default: text) The header Content-Type of the data being posted to the server
-				- `*` Any string
-				- `xml` 'text/xml; charset=utf-8'
-				- `text` 'text/text; charset=utf-8'
-				- `html` 'text/html; charset=utf-8'
-				- `json` 'application/json; charset=utf-8'
-				- `js` 'application/javascript; charset=utf-8'
-			- `acceptType: String` (default: text) The header Accept type to expect from the server
-				- `*` Any string
-				- `xml` 'text/xml; charset=utf-8'
-				- `text` 'text/text; charset=utf-8'
-				- `html` 'text/html; charset=utf-8'
-				- `json` 'application/json; charset=utf-8'
-				- `js` 'application/javascript; charset=utf-8'
-			- `responseType: String` (default: text) Blob support for older browsers is still needed
-				- `*` Any string
-				- `arraybuffer`
-				- `document`
-				- `blob`
-				- `json`
-				- `text`
-			- `mimeType: String` Override the MIME type of the response
-			- `headers: Object` A Map of String to be directly applied to the the XHR header
 - `setup: Function`
-	- `options: Object` Accepts the above options
+	- `options: Object` Accepts Fetcher options
+- `fetch: Function` A fetch request.
+	- `options: Object`
+		- `username: String`
+		- `password: String`
+		- `withCredentials: Boolean`
+		- `method: String` (default: GET)
+		- `cache: Boolean` (default: false)
+		- `url: String` (default: window.location.href)
+		- `success: Function` The Success handler
+			- `result: Object`
+				- `error: Boolean` false
+				- `statusCode: Number` The xhr.status
+				- `statusText: String` The xhr.statusText
+				- `xhr: Object` The xhr used for the request
+				- `opt: Object` The options used for the request
+				- `data: Object|String` The response transformed by resonseType
+		- `error: Function` The Error Handler
+			- `result: Object`
+				- `error: Boolean` true
+				- `statusCode: Number` The xhr.status
+				- `statusText: String` The xhr.statusText
+				- `xhr: Object` The xhr used for the request
+				- `opt: Object` The options used for the request
+				- `data: Object|String` The response transformed by resonseType
+		- `handler: Function` Only called if no success and error handler
+			- `result: Object` The result
+				- `statusCode: Number` The xhr.status
+				- `statusText: String` The xhr.statusText
+				- `xhr: Object` The xhr used for the request
+				- `opt: Object` The options used for the request
+				- `data: Object|String` The response transformed by resonseType
+				- `error: Boolean` If status >= 200 && status < 300 || status == 304 will be false otherwise true
+		- `data: Object` If method is GET than data is concatenated to the url as parameters
+		- `type: String` A shortcut for setting the contentType, acceptType, and responseType
+		- `contentType: String` (default: text) The header Content-Type of the data being posted to the server
+			- `*` Any string
+			- `xml` 'text/xml; charset=utf-8'
+			- `text` 'text/text; charset=utf-8'
+			- `html` 'text/html; charset=utf-8'
+			- `json` 'application/json; charset=utf-8'
+			- `js` 'application/javascript; charset=utf-8'
+		- `acceptType: String` (default: text) The header Accept type to expect from the server
+			- `*` Any string
+			- `xml` 'text/xml; charset=utf-8'
+			- `text` 'text/text; charset=utf-8'
+			- `html` 'text/html; charset=utf-8'
+			- `json` 'application/json; charset=utf-8'
+			- `js` 'application/javascript; charset=utf-8'
+		- `responseType: String` (default: text) Blob support for older browsers is still needed
+			- `*` Any string
+			- `arraybuffer`
+			- `document`
+			- `blob`
+			- `json`
+			- `text`
+		- `mimeType: String` Override the MIME type of the response
+		- `headers: Object` A Map of String to be directly applied to the the XHR header
+- `get: Function`
+	- `options: Object` Uses fetch options
+- `put`
+	- `options: Object` Uses fetch options
+- `post: Function`
+	- `options: Object` Uses fetch options
+- `head: Function`
+	- `options: Object` Uses fetch options
+- `delete: Function`
+	- `options: Object` Uses fetch options
+- `patch: Function`
+	- `options: Object` Uses fetch options
+- `options: Function`
+	- `options: Object` Uses fetch options
+- `connect: Function`
+	- `options: Object` Uses fetch options
+- `mime: Object`
+- `serialize: Function`
 
 ### Oxe.location
 Alias for `Oxe.router.location`
