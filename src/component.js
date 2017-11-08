@@ -1,11 +1,17 @@
 import Global from './global';
 import Model from './model';
 import View from './view';
-import Uid from './uid';
 
 var Component = {};
 
+Component.data = {};
+
 Component.currentScript = (document._currentScript || document.currentScript);
+
+// Component.has = function (element) {
+// 	var elements = this.data[element.id];
+// 	return elements && elements.indexOf(element) !== -1;
+// };
 
 Component._slots = function (element, html) {
 	var eSlots = element.querySelectorAll('[slot]');
@@ -72,13 +78,20 @@ Component.define = function (options) {
 	options.proto.createdCallback = function () {
 		var element = this;
 
-		element.isBinded = false;
-		element.uid = Uid.generate();
-		element.view = View.data[element.uid] = {};
+		if (!(options.name in self.data)) {
+			self.data[options.name] = [];
+		}
 
-		if (options.model) element.model = Model.data.$set(element.uid, options.model)[element.uid];
-		if (options.events) element.events = Global.events.data[element.uid] = options.events;
-		if (options.modifiers) element.modifiers = Global.modifiers.data[element.uid] = options.modifiers;
+		self.data[options.name].push(element);
+
+		element.id = options.name + '-' + self.data[options.name].length;
+
+		element.isBinded = false;
+		element.view = View.data[element.id] = {};
+
+		if (options.model) element.model = Model.data.$set(element.id, options.model)[element.id];
+		if (options.events) element.events = Global.events.data[element.id] = options.events;
+		if (options.modifiers) element.modifiers = Global.modifiers.data[element.id] = options.modifiers;
 
 		// might want to handle default slot
 		// might want to overwrite content

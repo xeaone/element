@@ -5,11 +5,13 @@ import Global from './global';
 // TODO sanitize input/output
 
 export default 	function Binder (options) {
+	this._ = {};
 
 	this.element = options.element;
 	this.container = options.container;
 	this.attribute = options.attribute;
 
+	this.view = this.container.view;
 	this.model = this.container.model;
 	this.events = this.container.events;
 	this.modifiers = this.container.modifiers;

@@ -4,189 +4,6 @@
 	(global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-	var Batcher = {};
-
-	Batcher.tasks = [];
-	Batcher.reads = [];
-	Batcher.writes = [];
-	Batcher.rafCount = 0;
-	Batcher.maxTaskTimeMS = 30;
-	Batcher.pending = false;
-
-	// Adds a task to the read batch
-	Batcher.read = function (method, context) {
-		var task = context ? method.bind(context) : method;
-		this.reads.push(task);
-		this.tick();
-	};
-
-
-	// Adds a task to the write batch
-	Batcher.write = function (method, context) {
-		var task = context ? method.bind(context) : method;
-		this.writes.push(task);
-		this.tick();
-	};
-
-	// Schedules a new read/write batch if one isn't pending.
-	Batcher.tick = function () {
-		var self = this;
-		if (!self.pending) {
-			self.flush();
-		}
-	};
-
-	Batcher.flush = function (callback) {
-		var self = this;
-		self.pending = true;
-		self.run(self.reads, function () {
-			self.run(self.writes, function () {
-				if (self.reads.length || self.writes.length) {
-					self.flush();
-				} else {
-					self.pending = false;
-				}
-			});
-		});
-	};
-
-	// Clears a pending 'read' or 'write' task
-	Batcher.clear = function (task) {
-		return this.remove(this.reads, task) || this.remove(this.writes, task);
-	};
-
-	Batcher.remove = function (tasks, task) {
-		var index = tasks.indexOf(task);
-		return !!~index && !!tasks.splice(index, 1);
-	};
-
-	Batcher.run = function (tasks, callback) {
-		var self = this;
-		if (tasks.length) {
-			window.requestAnimationFrame(function (time) {
-				var task;
-
-				while (performance.now() - time < self.maxTaskTimeMS) {
-					if (task = tasks.shift()) {
-						task();
-					} else {
-						break;
-					}
-				}
-
-				self.run(tasks, callback);
-			});
-		} else if (callback) {
-			callback();
-		}
-	};
-
-	var Utility = {};
-
-	Utility.createBase = function (base) {
-		base = base || '';
-
-		if (base) {
-			var element = document.head.querySelector('base');
-
-			if (!element) {
-				element = document.createElement('base');
-				document.head.insertBefore(element, document.head.firstChild);
-			}
-
-			if (base && typeof base === 'string') {
-				element.href = base;
-			}
-
-			base = element.href;
-		}
-
-		return base;
-	};
-
-	Utility.toText = function (data) {
-		if (data === undefined) return ''; // data === null ||
-		if (typeof data === 'object') return JSON.stringify(data);
-		else return String(data);
-	};
-
-	Utility.setByPath = function (collection, path, value) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (collection[key] === undefined) collection[key] = {};
-			collection = collection[key];
-		}
-
-		return collection[keys[last]] = value;
-	};
-
-	Utility.getByPath = function (collection, path) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			if (!collection[keys[i]]) return undefined;
-			else collection = collection[keys[i]];
-		}
-
-		return collection[keys[last]];
-	};
-
-	Utility.removeChildren = function (element) {
-		var self = this, child;
-		Batcher.write(function () {
-			while (child = element.lastElementChild) {
-				element.removeChild(child);
-			}
-		});
-	};
-
-	Utility.joinSlash = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
-	};
-
-	Utility.joinDot = function () {
-		return Array.prototype.join
-			.call(arguments, '.')
-			.replace(/\.{2,}/g, '.');
-	};
-
-	Utility.getContainer = function getContainer (element) {
-		if (element.uid) {
-			return element;
-		} else {
-			if (element !== document.body && element.parentElement) {
-				return this.getContainer(element.parentElement);
-			} else {
-				console.warn('Utility could not find a uid');
-				// throw new Error('Utility could not find a uid');
-			}
-		}
-	};
-
-
-
-	// Utility.CAMEL = /-(\w)/g,
-	// Utility.toCamelCase = function (data) {
-	// 	return data.replace(this.CAMEL, function (match, next) {
-	// 		return next.toUpperCase();
-	// 	});
-	// }
-
-	// Utility.each = function (items, method, context) {
-	// 	return items.reduce(function (promise, item) {
-	// 		return promise.then(function () {
-	// 			return method.call(context, item);
-	// 		});
-	// 	}, Promise.resolve())
-
-	// };
-
 	function Observer (data, callback, path) {
 		defineProperties(data, callback, path, true);
 		return data;
@@ -437,289 +254,508 @@
 		});
 	}
 
+	var Utility = {};
+
+	Utility.createBase = function (base) {
+		base = base || '';
+
+		if (base) {
+			var element = document.head.querySelector('base');
+
+			if (!element) {
+				element = document.createElement('base');
+				document.head.insertBefore(element, document.head.firstChild);
+			}
+
+			if (base && typeof base === 'string') {
+				element.href = base;
+			}
+
+			base = element.href;
+		}
+
+		return base;
+	};
+
+	Utility.formData = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		var data = {};
+
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
+			var path = element.getAttribute('o-value');
+			var name = path.split('.').slice(-1);
+			data[name] = Utility.getByPath(model, path);
+		}
+
+		return data;
+	};
+
+	Utility.toText = function (data) {
+		if (data === undefined) return ''; // data === null ||
+		if (typeof data === 'object') return JSON.stringify(data);
+		else return String(data);
+	};
+
+	Utility.setByPath = function (collection, path, value) {
+		var keys = path.split('.');
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (collection[key] === undefined) collection[key] = {};
+			collection = collection[key];
+		}
+
+		return collection[keys[last]] = value;
+	};
+
+	Utility.getByPath = function (collection, path) {
+		var keys = path.split('.');
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			if (!collection[keys[i]]) return undefined;
+			else collection = collection[keys[i]];
+		}
+
+		return collection[keys[last]];
+	};
+
+	Utility.removeChildren = function (element) {
+		var self = this, child;
+		Global.batcher.write(function () {
+			while (child = element.lastElementChild) {
+				element.removeChild(child);
+			}
+		});
+	};
+
+	Utility.joinSlash = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	};
+
+	Utility.joinDot = function () {
+		return Array.prototype.join
+			.call(arguments, '.')
+			.replace(/\.{2,}/g, '.');
+	};
+
+	Utility.getContainer = function getContainer (element, target) {
+		if (element === document.body || element.nodeName === 'O-VIEW') {
+			return;
+		} else if (element.id && element.id.indexOf(element.nodeName.toLowerCase()) === 0) { // TODO imporove check for the full so ending number
+			return element;
+		} else if (element.parentElement) {
+			return this.getContainer(element.parentElement, target);
+		} else if (target) {
+			return this.getContainer(target);
+		} else {
+			console.warn('Utility could not find a id');
+		}
+	};
+
+
+
+	// Utility.CAMEL = /-(\w)/g,
+	// Utility.toCamelCase = function (data) {
+	// 	return data.replace(this.CAMEL, function (match, next) {
+	// 		return next.toUpperCase();
+	// 	});
+	// }
+
+	// Utility.each = function (items, method, context) {
+	// 	return items.reduce(function (promise, item) {
+	// 		return promise.then(function () {
+	// 			return method.call(context, item);
+	// 		});
+	// 	}, Promise.resolve())
+
+	// };
+
 	var OnceBinder = {};
 
 	OnceBinder.bind = function (element, attribute, container) {
+
 		if (
 			!container.model ||
 			!this.type[attribute.cmds[0]]
 		) return;
 
-		var model = container.model;
+		var data = {};
 		var type = attribute.cmds[0];
 		var key = attribute.parentKey;
-		var data = attribute.parentPath ? Utility.getByPath(model, attribute.parentPath) : model;
-		var value = this.type[type](element, attribute, data[key]);
 
-		if (data[key] === undefined) {
+		data.element = element;
+		data.attribute = attribute;
+		data.container = container;
 
-			data.$set(key, value);
-			
-		} else {
+		data.model = attribute.parentPath ? Utility.getByPath(container.model, attribute.parentPath) : container.model;
+		data.value = data.model[key];
 
-			// FIXME selects not setting defaults
-			if (value.constructor === Array) {
+		var value = this.type[type].call(this, data);
 
-				data[key].push.apply(null, value);
-
-			}
-
+		if (value) {
+			data.model.$set(key, value);
+			// if (model[key] === undefined) {
+			// } else if (value.constructor === Array) {
+			// 	// FIXME selects not setting defaults
+			// 	model[key].push.apply(null, value);
+			// }
 		}
 
 	};
 
-	OnceBinder.type = {
-		value: function (element, attribute, data) {
-			var i, l;
+	OnceBinder.kind = {
+		checkbox: function (data) {
+			data.value = !data.value ? false : data.value;
+			data.element.value = data.element.checked = data.value;
+			return data.value;
+		},
+		select: function (data) {
+			var options = data.element.options;
 
-			if (element.type === 'checkbox') {
+			data.value = data.element.multiple ? [] : data.value;
 
-				data = !data ? false : data;
-				element.value = element.checked = data;
-
-			} else if (element.nodeName === 'SELECT') {
-
-				data = element.multiple ? [] : data;
-				var options = element.options;
-
-				for (i = 0, l = options.length; i < l; i++) {
-
-					var option = options[i];
-
-					if (option.selected) {
-
-						if (element.multiple) {
-
-							data.push(option.value);
-
-						} else {
-
-							data = option.value;
-							break;
-
-						}
+			for (var i = 0, l = options.length; i < l; i++) {
+				var option = options[i];
+				if (option.selected) {
+					if (data.element.multiple) {
+						data.value.push(option.value);
+					} else {
+						data.value = option.value;
+						break;
 					}
-
 				}
-
-			} else if (element.type === 'radio') {
-
-				var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + attribute.value + '"]');
-
-				for (i = 0, l = elements.length; i < l; i++) {
-
-					var radio = elements[i];
-					radio.checked = i === data;
-
-				}
-
-			} else {
-
-				element.value = data === undefined ? '' : data;
-
 			}
 
-			return data;
+			return data.value;
+		},
+		radio: function (data) {
+			var query = 'input[type="radio"][o-value="' + data.attribute.value + '"]';
+			var elements = data.element.parentNode.querySelectorAll(query);
 
+			for (var i = 0, l = elements.length; i < l; i++) {
+				var radio = elements[i];
+				radio.checked = i === data.value;
+			}
+
+			return data.value;
+		},
+		default: function (data) {
+			data.value = data.value === undefined ? '' : data.value;
+			data.element.value = data.value;
+			return data.value;
+		},
+	};
+
+	OnceBinder.type = {
+		value: function (data) {
+			var kind;
+
+			if (data.element.type === 'checkbox') {
+				kind = 'checkbox';
+			} else if (data.element.nodeName === 'SELECT') {
+				kind = 'select';
+			} else if (data.element.type === 'radio') {
+				kind = 'radio';
+			} else {
+				kind = 'default';
+			}
+
+			return this.kind[kind].call(this, data);
 		}
 
+	};
+
+	var Batcher = {};
+
+	Batcher.tasks = [];
+	Batcher.reads = [];
+	Batcher.writes = [];
+	Batcher.rafCount = 0;
+	Batcher.maxTaskTimeMS = 30;
+	Batcher.pending = false;
+
+	// Adds a task to the read batch
+	Batcher.read = function (method, context) {
+		var task = context ? method.bind(context) : method;
+		this.reads.push(task);
+		this.tick();
+	};
+
+
+	// Adds a task to the write batch
+	Batcher.write = function (method, context) {
+		var task = context ? method.bind(context) : method;
+		this.writes.push(task);
+		this.tick();
+	};
+
+	// Schedules a new read/write batch if one isn't pending.
+	Batcher.tick = function () {
+		var self = this;
+		if (!self.pending) {
+			self.flush();
+		}
+	};
+
+	Batcher.flush = function (callback) {
+		var self = this;
+		self.pending = true;
+		self.run(self.reads, function () {
+			self.run(self.writes, function () {
+				if (self.reads.length || self.writes.length) {
+					self.flush();
+				} else {
+					self.pending = false;
+				}
+			});
+		});
+	};
+
+	// Clears a pending 'read' or 'write' task
+	Batcher.clear = function (task) {
+		return this.remove(this.reads, task) || this.remove(this.writes, task);
+	};
+
+	Batcher.remove = function (tasks, task) {
+		var index = tasks.indexOf(task);
+		return !!~index && !!tasks.splice(index, 1);
+	};
+
+	Batcher.run = function (tasks, callback) {
+		var self = this;
+		if (tasks.length) {
+			window.requestAnimationFrame(function (time) {
+				var task;
+
+				while (performance.now() - time < self.maxTaskTimeMS) {
+					if (task = tasks.shift()) {
+						task();
+					} else {
+						break;
+					}
+				}
+
+				self.run(tasks, callback);
+			});
+		} else if (callback) {
+			callback();
+		}
 	};
 
 	// TODO sanitize input/output
 
 	function Binder (options) {
-			this.element = options.element;
-			this.container = options.container;
-			this.attribute = options.attribute;
 
-			this.view = this.container.view;
-			this.model = this.container.model;
-			this.events = this.container.events;
-			this.modifiers = this.container.modifiers;
-			this.type = this.attribute.cmds[0] || 'default';
+		this.element = options.element;
+		this.container = options.container;
+		this.attribute = options.attribute;
 
-			if (this.type === 'on') {
-				this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
-			} else {
-				Object.defineProperty(this, 'data', {
-					enumerable: true,
-					configurable: false,
-					get: function () {
-						var data = Utility.getByPath(this.model, this.attribute.path);
+		this.model = this.container.model;
+		this.events = this.container.events;
+		this.modifiers = this.container.modifiers;
+		this.type = this.attribute.cmds[0] || 'default';
 
-						if (data === undefined) {
-							console.warn('Binder - undefined path \"' + this.attribute.path + '\"');
-						}
+		if (this.type === 'on') { // || this.type === 'submit'
+			this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
+		} else {
+			Object.defineProperty(this, 'data', {
+				enumerable: true,
+				configurable: false,
+				get: function () {
+					var data = Utility.getByPath(this.model, this.attribute.path);
 
-						return this.modify(data);
+					if (data === undefined) {
+						console.warn('Binder - undefined path \"' + this.attribute.path + '\"');
 					}
-				});
 
-				this.setup();
-			}
+					return this.modify(data);
+				}
+			});
 
-			this.render();
 		}
 
-		Binder.prototype.modify = function (data) {
-			if (!data) return data;
+		this.setup();
+		this.render();
+	}
 
-			for (var i = 0, l = this.attribute.modifiers.length; i < l; i++) {
+	Binder.prototype.modify = function (data) {
+		if (!data) return data;
 
-				data = this.modifiers[this.attribute.modifiers[i]].call(this.model, data);
+		for (var i = 0, l = this.attribute.modifiers.length; i < l; i++) {
 
-				if (data === undefined) {
-					console.warn('Binder - undefined modifier \"' + this.attribute.modifiers[i] + '\"');
-				}
+			data = this.modifiers[this.attribute.modifiers[i]].call(this.model, data);
 
+			if (data === undefined) {
+				console.warn('Binder - undefined modifier \"' + this.attribute.modifiers[i] + '\"');
 			}
 
-			return data;
-		};
+		}
 
-		Binder.prototype.setupMethods = {
-			each: function () {
-				this.count = 0;
-				this.variable = this.attribute.cmds[1];
-				this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
-				this.clone = this.element.removeChild(this.element.firstElementChild);
-				this.clone = this.clone.outerHTML.replace(
-					new RegExp('((?:data-)?o-.*?=")' + this.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
-					'$1' + this.attribute.path + '.$' + this.variable + '$2'
-				);
+		return data;
+	};
+
+	Binder.prototype.setupMethods = {
+		// submit: function () {
+		// 	this._.submit = function (e) {
+		// 		e.preventDefault();
+		// 		var data = Utility.formData(this.element, this.model);
+		// 		var action = this.element.getAttribute('o-action') || this.element.getAttribute('data-o-action');
+		// 		var method = this.element.getAttribute('o-method') || this.element.getAttribute('data-o-method');
+		// 		if (action) {
+		// 			Global.fetcher.fetch({
+		// 				data: data,
+		// 				url: action,
+		// 				method: method,
+		// 				handler: this.data
+		// 			});
+		// 		} else {
+		// 			this.data(data);
+		// 		}
+		// 	}.bind(this);
+		// },
+		each: function () {
+			this.variable = this.attribute.cmds[1];
+			this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
+			this.clone = this.element.removeChild(this.element.firstElementChild);
+			this.clone = this.clone.outerHTML.replace(
+				new RegExp('((?:data-)?o-.*?=")' + this.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
+				'$1' + this.attribute.path + '.$' + this.variable + '$2'
+			);
+		}
+	};
+
+	Binder.prototype.renderMethods = {
+		on: function () {
+			this.element.removeEventListener(this.attribute.cmds[1], this.data);
+			this.element.addEventListener(this.attribute.cmds[1], this.data);
+		},
+		// submit: function () {
+		// 	this.element.removeEventListener('submit', this._.submit);
+		// 	this.element.addEventListener('submit', this._.submit);
+		// },
+		each: function () {
+			if (typeof this.data !== 'object') {
+				return;
+			} else if (this.element.children.length > this.data.length) {
+				this.element.removeChild(this.element.lastElementChild);
+				this.render();
+			} else if (this.element.children.length < this.data.length) {
+				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
+				this.render();
 			}
-		};
-
-		Binder.prototype.renderMethods = {
-			on: function () {
-				this.element.removeEventListener(this.attribute.cmds[1], this.data);
-				this.element.addEventListener(this.attribute.cmds[1], this.data);
-			},
-			each: function () {
-				if (typeof this.data !== 'object') {
-					return;
-				} else if (this.element.children.length > this.data.length) {
-				// if (this.count > this.data.length) {
-					this.element.removeChild(this.element.lastElementChild);
-					// this.element.removeChild(this.element.lastElementChild);
-					// this.count--;
-					this.render();
-				} else if (this.element.children.length < this.data.length) {
-				// } else if (this.count < this.data.length) {
-					this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
-					// this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.count));
-					// this.count++;
-					this.render();
-				}
-			},
-			html: function () {
-				this.element.innerHTML = this.data;
-			},
-			css: function (data) {
-				if (this.attribute.cmds.length > 1) {
-					this.data = this.attribute.cmds.slice(1).join('-') + ': ' +  this.data + ';';
-				}
-				this.element.style.cssText += this.data;
-			},
-			class: function () {
-				var className = this.attribute.cmds.slice(1).join('-');
-				this.element.classList.toggle(className, this.data);
-			},
-			text: function () {
-				this.element.innerText = Utility.toText(this.data);
-			},
-			enable: function () {
-				this.element.disabled = !this.data;
-			},
-			disable: function () {
-				this.element.disabled = this.data;
-			},
-			show: function () {
-				this.element.hidden = !this.data;
-			},
-			hide: function () {
-				this.element.hidden = this.data;
-			},
-			write: function () {
-				this.element.readOnly = !this.data;
-			},
-			read: function () {
-				this.element.readOnly = this.data;
-			},
-			selected: function () {
-				this.element.selectedIndex = this.data;
-			},
-			href: function () {
-				this.element.href = this.data;
-			},
-			src: function () {
-				this.element.src = this.data;
-			},
-			alt: function () {
-				this.element.alt = this.data;
-			},
-			required: function () {
-				this.element.required = this.data;
-			},
-			default: function () {
-				// Utility.setByPath(this.element, Utility.toCamelCase(this.attribute.cmds), data);
+		},
+		html: function () {
+			this.element.innerHTML = this.data;
+		},
+		css: function (data) {
+			if (this.attribute.cmds.length > 1) {
+				this.data = this.attribute.cmds.slice(1).join('-') + ': ' +  this.data + ';';
 			}
-		};
+			this.element.style.cssText += this.data;
+		},
+		class: function () {
+			var className = this.attribute.cmds.slice(1).join('-');
+			this.element.classList.toggle(className, this.data);
+		},
+		text: function () {
+			this.element.innerText = Utility.toText(this.data);
+		},
+		enable: function () {
+			this.element.disabled = !this.data;
+		},
+		disable: function () {
+			this.element.disabled = this.data;
+		},
+		show: function () {
+			this.element.hidden = !this.data;
+		},
+		hide: function () {
+			this.element.hidden = this.data;
+		},
+		write: function () {
+			this.element.readOnly = !this.data;
+		},
+		read: function () {
+			this.element.readOnly = this.data;
+		},
+		selected: function () {
+			this.element.selectedIndex = this.data;
+		},
+		href: function () {
+			this.element.href = this.data;
+		},
+		src: function () {
+			this.element.src = this.data;
+		},
+		alt: function () {
+			this.element.alt = this.data;
+		},
+		required: function () {
+			this.element.required = this.data;
+		},
+		default: function () {}
+	};
 
-		Binder.prototype.unrenderMethods = {
-			on: function () {
-				this.element.removeEventListener(this.attribute.cmds[1], this.data, false);
-			},
-			each: function () {
-				Utility.removeChildren(this.element);
-			},
-			html: function () {
-				Utility.removeChildren(this.element);
-			},
-			css: function () {
-				this.element.style.cssText = '';
-			},
-			class: function () {
-				var className = this.attribute.cmds.slice(1).join('-');
-				this.element.classList.remove(className);
-			},
-			text: function () {
-				this.element.innerText = '';
-			},
-			href: function () {
-				this.element.href = '';
-			},
-			src: function () {
-				this.element.src = '';
-			},
-			alt: function () {
-				this.element.alt = '';
-			},
-			default: function () {
+	Binder.prototype.unrenderMethods = {
+		on: function () {
+			this.element.removeEventListener(this.attribute.cmds[1], this.data, false);
+		},
+		// submit: function () {
+		// 	this.element.removeEventListener('submit', this._.submit, false);
+		// },
+		each: function () {
+			Utility.removeChildren(this.element);
+		},
+		html: function () {
+			Utility.removeChildren(this.element);
+		},
+		css: function () {
+			this.element.style.cssText = '';
+		},
+		class: function () {
+			var className = this.attribute.cmds.slice(1).join('-');
+			this.element.classList.remove(className);
+		},
+		text: function () {
+			this.element.innerText = '';
+		},
+		href: function () {
+			this.element.href = '';
+		},
+		src: function () {
+			this.element.src = '';
+		},
+		alt: function () {
+			this.element.alt = '';
+		},
+		default: function () {}
+	};
 
-			}
-		};
+	Binder.prototype.setup = function () {
+		if (this.type in this.setupMethods) {
+			this.setupMethods[this.type].call(this);
+		}
+		return this;
+	};
 
-		Binder.prototype.setup = function () {
-			if (this.type in this.setupMethods) {
-				this.setupMethods[this.type].call(this, this.data);
-				// Batcher.write(this.setupMethods[this.type].bind(this, this.data));
-			}
-		};
+	Binder.prototype.unrender = function () {
+		if (this.type in this.unrenderMethods) {
+			Batcher.write(this.unrenderMethods[this.type].bind(this));
+		}
+		return this;
+	};
 
-		Binder.prototype.unrender = function () {
-			if (this.type in this.unrenderMethods) {
-				Batcher.write(this.unrenderMethods[this.type].bind(this));
-			}
-			return this;
-		};
-
-		Binder.prototype.render = function () {
-			if (this.type in this.renderMethods) {
-				Batcher.write(this.renderMethods[this.type].bind(this));
-			}
-			return this;
-		};
+	Binder.prototype.render = function () {
+		if (this.type in this.renderMethods) {
+			Batcher.write(this.renderMethods[this.type].bind(this));
+		}
+		return this;
+	};
 
 	var View = {};
 
@@ -736,7 +772,8 @@
 	View.IS_REJECT_PATH = /(data-)?o-value.*/;
 
 	View.isOnce = function (attribute) {
-		return attribute === 'data-o-value' || attribute === 'o-value';
+		return attribute === 'o-value'
+			|| attribute === 'data-o-value';
 	};
 
 	View.isSkip = function (node) {
@@ -765,7 +802,8 @@
 	};
 
 	View.isAcceptAttribute = function (attribute) {
-		return attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0;
+		return attribute.name.indexOf('o-') === 0
+			|| attribute.name.indexOf('data-o-') === 0;
 	};
 
 	View.createAttribute = function (name, value) {
@@ -787,93 +825,118 @@
 		return attribute;
 	};
 
-	View.eachAttribute = function (attributes, callback) {
-		for (var i = 0, l = attributes.length; i < l; i++) {
+	View.eachAttribute = function (element, callback) {
+		var attributes = element.attributes;
+		for (var i = 0; i < attributes.length; i++) {
 			var attribute = attributes[i];
 			if (this.isAcceptAttribute(attribute)) {
-				callback(this.createAttribute(attribute.name, attribute.value));
+				callback.call(this, this.createAttribute(attribute.name, attribute.value));
 			}
 		}
 	};
 
-	View.eachAttributeAcceptPath = function (attributes, callback) {
+	// View.eachElement = function (element, callback) {
+	// 	var elements = element.children;
+	// 	for (var i = 0; i < elements.length; i++) {
+	// 		var element = elements[i];
+	//
+	// 		if (this.isAccept(element) && !this.isSkip(element)) {
+	// 			callback.call(this, element);
+	// 		}
+	//
+	// 		if (!this.isSkipChildren(element)) {
+	// 			this.eachElement(element, callback);
+	// 		}
+	// 	}
+	// };
+	//
+	// View.eachBinder = function (container, path, callback) {
+	// 	this.eachElement(container, function (element) {
+	// 		this.eachAttribute(element, function (attribute) {
+	// 			if (attribute.path.indexOf(path) === 0) {
+	// 				callback(element, attribute);
+	// 			}
+	// 		});
+	// 	});
+	// };
+
+	View.eachAttributeAcceptPath = function (element, callback) {
+		var attributes = element.attributes;
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
 			if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
-				callback(attribute.value.replace(this.PATH, ''));
+				callback.call(this, attribute.value.replace(this.PATH, ''));
 			}
 		}
 	};
 
-	View.eachElement = function (element, container, callback) {
-		container = element.uid ? element : container;
+	View.eachElement = function (element, target, callback) {
+		var container = Utility.getContainer(element, target);
 
 		if (this.isAccept(element) && !this.isSkip(element)) {
-			callback(element, container);
+			callback.call(this, element, container);
 		}
 
 		if (!this.isSkipChildren(element)) {
-			for (element = element.firstElementChild; element; element = element.nextElementSibling) {
-				this.eachElement(element, container, callback);
+			for (var i = 0, l = element.children.length; i < l; i++) {
+				this.eachElement(element.children[i], target, callback);
 			}
 		}
 	};
 
-	View.eachBinder = function (uid, path, callback) {
-		var paths = this.data[uid];
+	View.eachBinder = function (id, path, callback) {
+		var paths = this.data[id];
 		for (var key in paths) {
 			if (key.indexOf(path) === 0) {
 				var binders = paths[key];
 				for (var i = 0; i < binders.length; i++) {
-					callback(binders[i], i, binders, paths, key);
+					callback.call(this, binders[i], i, binders, paths, key);
 				}
 			}
 		}
 	};
 
-	View.has = function (uid, path, element) {
-		if (!(uid in this.data) || !(path in this.data[uid])) return false;
-		var binders = this.data[uid][path];
+	View.has = function (id, path, element) {
+		if (!(id in this.data) || !(path in this.data[id])) return false;
+		var binders = this.data[id][path];
 		for (var i = 0, l = binders.length; i < l; i++) {
 			if (binders[i].element === element) return true;
 		}
 		return false;
 	};
 
-	View.push = function (uid, path, element, container, attribute) {
-		if (!(uid in this.data)) this.data[uid] = {};
-		if (!(path in this.data[uid])) this.data[uid][path] = [];
-		this.data[uid][path].push(new Binder({
+	View.push = function (id, path, element, container, attribute) {
+		if (!(id in this.data)) this.data[id] = {};
+		if (!(path in this.data[id])) this.data[id][path] = [];
+		this.data[id][path].push(new Binder({
 			element: element,
 			container: container,
 			attribute: attribute
 		}));
 	};
 
-	View.add = function (addedNode, containerNode) {
-		var self = this;
-		self.eachElement(addedNode, containerNode, function (element, container) {
-			self.eachAttribute(element.attributes, function (attribute) {
-				if (self.isOnce(attribute.name)) {
-					OnceBinder.bind(element, attribute, container);
-				} else {
-					if (container && container.uid) { // i dont like this check
+	View.add = function (addedNode, target) {
+		this.eachElement(addedNode, target, function (element, container) {
+			if (container && container.id) {
+				this.eachAttribute(element, function (attribute) {
+					if (this.isOnce(attribute.name)) {
+						OnceBinder.bind(element, attribute, container);
+					} else {
 						var path = attribute.viewPath;
-						if (!self.has(container.uid, path, element)) {
-							self.push(container.uid, path, element, container, attribute);
+						if (!this.has(container.id, path, element)) {
+							this.push(container.id, path, element, container, attribute);
 						}
 					}
-				}
-			});
+				});
+			}
 		});
 	};
 
-	View.remove = function (removedNode, containerNode) {
-		var self = this;
-		self.eachElement(removedNode, containerNode, function (element, container) {
-			if (container && container.uid) { // i dont like this check
-				self.eachAttributeAcceptPath(element.attributes, function (path) {
-					self.eachBinder(container.uid, path, function (binder, index, binders, paths, key) {
+	View.remove = function (removedNode, target) {
+		this.eachElement(removedNode, target, function (element, container) {
+			if (container && container.id) {
+				this.eachAttributeAcceptPath(element, function (path) {
+					this.eachBinder(container.id, path, function (binder, index, binders, paths, key) {
 						if (binder.element === element) {
 							binder.unrender();
 							binders.splice(index, 1);
@@ -885,38 +948,36 @@
 		});
 	};
 
-	View.observer = function (mutations) {
-			var i = mutations.length;
-			while (i--) {
+	View.mutation = function (mutations) {
+		var i = mutations.length;
+		while (i--) {
 
-				var l;
-				var target = mutations[i].target;
-				var addedNodes = mutations[i].addedNodes;
-				var removedNodes = mutations[i].removedNodes;
+			var l;
+			var target = mutations[i].target;
+			var addedNodes = mutations[i].addedNodes;
+			var removedNodes = mutations[i].removedNodes;
 
-				l = addedNodes.length;
+			l = addedNodes.length;
 
-				while (l--) {
-					var addedNode = addedNodes[l];
-					if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
-						if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
-						var containerNode = addedNode.uid || Utility.getContainer(target);
-						this.add(addedNode, containerNode);
-					}
+			while (l--) {
+				var addedNode = addedNodes[l];
+				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
+					if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
+					this.add(addedNode, target);
 				}
-
-				l = removedNodes.length;
-
-				while (l--) {
-					var removedNode = removedNodes[l];
-					if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
-						if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
-						var containerNode = removedNode.uid || Utility.getContainer(target);
-						this.remove(removedNode, containerNode);
-					}
-				}
-
 			}
+
+			l = removedNodes.length;
+
+			while (l--) {
+				var removedNode = removedNodes[l];
+				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
+					if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
+					this.remove(removedNode, target);
+				}
+			}
+
+		}
 	};
 
 	View.run = function () {
@@ -924,7 +985,7 @@
 		else this.isRan = true;
 
 		this.add(this.container);
-		Global.observers.push(this.observer.bind(this));
+		Global.mutations.push(this.mutation.bind(this));
 	};
 
 	var Model = {};
@@ -933,16 +994,27 @@
 	Model.isRan = false;
 	Model.container = document.body;
 
-	Model.inputListener = function (element) {
+	Model.overwrite = function (data) {
+		Observer(
+			this.data = data,
+			this.observer.bind(this)
+		);
+	};
+
+	Model.listener = function (element) {
 		var value = element.getAttribute('o-value');
 		if (value) {
 			var i, l;
 			var path = value.replace(/(^(\w+\.?)+).*/, '$1');
-			var uid = Utility.getContainer(element).uid;
+			var container = Utility.getContainer(element);
+
+			if (!container) return;
+			
+			var id = container.id;
 
 			if (element.type === 'checkbox') {
 				element.value = element.checked;
-				Utility.setByPath(this.data[uid], path, element.checked);
+				Utility.setByPath(this.data[id], path, element.checked);
 			} else if (element.nodeName === 'SELECT' && element.multiple) {
 				var values = [];
 				var options = element.options;
@@ -952,46 +1024,56 @@
 						values.push(option.value);
 					}
 				}
-				Utility.setByPath(this.data[uid], path, values);
+				Utility.setByPath(this.data[id], path, values);
 			} else if (element.type === 'radio') {
 				var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + path + '"]');
 				for (i = 0, l = elements.length; i < l; i++) {
 					var radio = elements[i];
 					if (radio === element) {
-						Utility.setByPath(this.data[uid], path, i);
+						Utility.setByPath(this.data[id], path, i);
 					} else {
 						radio.checked = false;
 					}
 				}
 			} else {
-				Utility.setByPath(this.data[uid], path, element.value);
+				Utility.setByPath(this.data[id], path, element.value);
 			}
 		}
 	};
 
 	Model.input = function (e) {
 		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.nodeName !== 'SELECT') {
-			this.inputListener.call(this, e.target);
+			this.listener.call(this, e.target);
 		}
 	};
 
 	Model.change = function (e) {
-		this.inputListener.call(this, e.target);
+		this.listener.call(this, e.target);
 	};
 
-	Model.overwrite = function (data) {
-		Observer(
-			this.data = data,
-			this.observer.bind(this)
-		);
-	};
+	Model.view = {};
 
 	Model.observer = function (data, path) {
 		var paths = path.split('.');
-		var uid = paths[0];
-		var pattern = paths.slice(1).join('.');
+		var id = paths[0];
 		var type = data === undefined ? 'unrender' : 'render';
-		View.eachBinder(uid, pattern, function (binder) {
+
+		path = paths.slice(1).join('.');
+
+		// if (path) {
+		// 	var element = document.getElementById(id);
+		// 	// var element = document.body.querySelector('#' + id);
+		// 	View.eachBinder(element, path, function (e, a) {
+		// 		var options = {
+		// 			element: e,
+		// 			attribute: a,
+		// 			container: element
+		// 		};
+		// 		var binder = new Binder(options);
+		// 	});
+		// }
+
+		View.eachBinder(id, path, function (binder) {
 			binder[type]();
 		});
 	};
@@ -1009,17 +1091,16 @@
 		Global.changes.push(this.change.bind(this));
 	};
 
-	var Uid = {};
-
-	Uid.count = 0;
-
-	Uid.generate = function () {
-		return (Date.now().toString(36) + (this.count++).toString(36));
-	};
-
 	var Component = {};
 
+	Component.data = {};
+
 	Component.currentScript = (document._currentScript || document.currentScript);
+
+	// Component.has = function (element) {
+	// 	var elements = this.data[element.id];
+	// 	return elements && elements.indexOf(element) !== -1;
+	// };
 
 	Component._slots = function (element, html) {
 		var eSlots = element.querySelectorAll('[slot]');
@@ -1086,13 +1167,20 @@
 		options.proto.createdCallback = function () {
 			var element = this;
 
-			element.isBinded = false;
-			element.uid = Uid.generate();
-			element.view = View.data[element.uid] = {};
+			if (!(options.name in self.data)) {
+				self.data[options.name] = [];
+			}
 
-			if (options.model) element.model = Model.data.$set(element.uid, options.model)[element.uid];
-			if (options.events) element.events = Global.events.data[element.uid] = options.events;
-			if (options.modifiers) element.modifiers = Global.modifiers.data[element.uid] = options.modifiers;
+			self.data[options.name].push(element);
+
+			element.id = options.name + '-' + self.data[options.name].length;
+
+			element.isBinded = false;
+			element.view = View.data[element.id] = {};
+
+			if (options.model) element.model = Model.data.$set(element.id, options.model)[element.id];
+			if (options.events) element.events = Global.events.data[element.id] = options.events;
+			if (options.modifiers) element.modifiers = Global.modifiers.data[element.id] = options.modifiers;
 
 			// might want to handle default slot
 			// might want to overwrite content
@@ -1755,6 +1843,13 @@
 		}
 	});
 
+	Object.defineProperty(Keeper, 'user', {
+		enumerable: true,
+		get: function () {
+			return this._.user = this._.user || JSON.parse(window[this.type].getItem('user'));
+		}
+	});
+
 	Keeper.setup = function (options) {
 		options = options || {};
 
@@ -1777,13 +1872,24 @@
 		this._.token = window[this.type].setItem('token', token);
 	};
 
+	Keeper.setUser = function (user) {
+		user = JSON.stringify(user);
+		this._.user = window[this.type].setItem('user', user);
+	};
+
 	Keeper.removeToken = function () {
 		this._.token = null;
 		window[this.type].removeItem('token');
 	};
 
-	Keeper.authenticate = function (token) {
+	Keeper.removeUser = function () {
+		this._.user = null;
+		window[this.type].removeItem('user');
+	};
+
+	Keeper.authenticate = function (token, user) {
 		this.setToken(token);
+		this.setUser(user);
 		if (typeof this._.authenticated === 'string') {
 			Router$1.navigate(this._.authenticated);
 		} else if (typeof this._.authenticated === 'function') {
@@ -1793,6 +1899,7 @@
 
 	Keeper.unauthenticate = function () {
 		this.removeToken();
+		this.removeUser();
 		if (typeof this._.unauthenticated === 'string') {
 			Router$1.navigate(this._.unauthenticated);
 		} else if (typeof this._.unauthenticated === 'function') {
@@ -1801,26 +1908,20 @@
 	};
 
 	Keeper.forbidden = function (result) {
-		this.removeToken();
-
 		if (typeof this._.forbidden === 'string') {
 			Router$1.navigate(this._.forbidden);
 		} else if (typeof this._.forbidden === 'function') {
 			this._.forbidden(result);
 		}
-
 		return false;
 	};
 
 	Keeper.unauthorized = function (result) {
-		this.removeToken();
-
 		if (typeof this._.unauthorized === 'string') {
 			Router$1.navigate(this._.unauthorized);
 		} else if (typeof this._.unauthorized === 'function') {
 			this._.unauthorized(result);
 		}
-
 		return false;
 	};
 
@@ -1909,6 +2010,8 @@
 		return string;
 	};
 
+	// Fetcher.onreadystatechange = function () { };
+
 	Fetcher.fetch = function (opt) {
 		var self = this;
 		var result = {};
@@ -1916,6 +2019,7 @@
 
 		opt = opt || {};
 		opt.headers = {};
+		opt.error = false;
 		opt.type = opt.type || this.type;
 		opt.url = opt.url ? opt.url : window.location.href;
 		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
@@ -1960,11 +2064,19 @@
 			}
 		}
 
-		if (opt.mimeType) xhr.overrideMimeType(opt.mimeType);
-		if (opt.withCredentials) xhr.withCredentials = opt.withCredentials;
+		if (opt.mimeType) {
+			xhr.overrideMimeType(opt.mimeType);
+		}
 
-		if (opt.cache) opt.headers.cache = true;
-		else opt.cache = false;
+		if (opt.withCredentials) {
+			xhr.withCredentials = opt.withCredentials;
+		}
+
+		if (opt.cache) {
+			opt.headers.cache = true;
+		} else {
+			opt.cache = false;
+		}
 
 		if (opt.headers) {
 			for (var name in opt.headers) {
@@ -1980,17 +2092,18 @@
 		result.opt = opt;
 		result.data = opt.data;
 
-		if (
-			self.auth &&
-			(result.opt.auth === true ||
-			result.opt.auth === undefined)
-		) {
+		if (self.auth && (
+			result.opt.auth === true ||
+			result.opt.auth === undefined
+		)) {
 			if (Keeper.request(result) === false) {
 				return;
 			}
 		}
 
-		if (self.request && self.request(result) === false) return;
+		if (self.request && self.request(result) === false) {
+			return;
+		}
 
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
@@ -2021,15 +2134,22 @@
 					}
 				}
 
-				if (self.response && self.response(result) === false) return;
+				if (self.response && self.response(result) === false) {
+					return;
+				}
 
 				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
 					if (opt.success) {
 						opt.success(result);
+					} else if (opt.handler) {
+						opt.handler(result);
 					}
 				} else {
+					opt.isError = true;
 					if (opt.error) {
 						opt.error(result);
+					} else if (opt.handler) {
+						opt.handler(result);
 					}
 				}
 
@@ -2038,6 +2158,46 @@
 
 		xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
 
+	};
+
+	Fetcher.post = function (opt) {
+		opt.method = 'post';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.get = function (opt) {
+		opt.method = 'get';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.put = function (opt) {
+		opt.method = 'put';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.head = function (opt) {
+		opt.method = 'head';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.patch = function (opt) {
+		opt.method = 'patch';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.delete = function (opt) {
+		opt.method = 'delete';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.options = function (opt) {
+		opt.method = 'options';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.connect = function (opt) {
+		opt.method = 'connect';
+		return Fetcher.fetch(opt);
 	};
 
 	var Global = Object.defineProperties({}, {
@@ -2111,7 +2271,7 @@
 			enumerable: true,
 			value: []
 		},
-		observers: {
+		mutations: {
 			enumerable: true,
 			value: []
 		},
@@ -2182,6 +2342,7 @@
 
 	var Oxe$1 = Global; // Object.defineProperties({}, Object.getOwnPropertyDescriptors(Global));
 
+
 	Oxe$1.window.addEventListener('input', function (e) {
 		Oxe$1.inputs.forEach(function (input) {
 			input(e);
@@ -2206,9 +2367,36 @@
 		});
 	}, true);
 
+	Oxe$1.window.addEventListener('submit', function (e) {
+		var element = e.target;
+		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+		var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+		var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+
+		if (submit) {
+
+			var container = Utility.getContainer(element);
+			var data = Utility.formData(element, container.model);
+			var handler = Utility.getByPath(container.events, submit);
+
+			if (action) {
+				Global.fetcher.fetch({
+					data: data,
+					url: action,
+					method: method,
+					handler: handler
+				});
+			} else {
+				handler(data);
+			}
+
+			e.preventDefault();
+		}
+	}, true);
+
 	new window.MutationObserver(function (mutations) {
-		Oxe$1.observers.forEach(function (observer) {
-			observer(mutations);
+		Oxe$1.mutations.forEach(function (mutation) {
+			mutation(mutations);
 		});
 	}).observe(Oxe$1.body, {
 		childList: true,

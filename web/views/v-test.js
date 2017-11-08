@@ -1,6 +1,7 @@
 import Say from 'say.js';
 
 var model = {
+	blank: '',
 	show_hide: true,
 	mcar: 'mcar',
 	car: '',
@@ -29,6 +30,7 @@ Oxe.component.define({
 		}
 	},
 	events: {
+		say: Say,
 		overwriteArray: function () {
 			this.arrayChange = [3, 4, 5, 6];
 		},
@@ -39,51 +41,51 @@ Oxe.component.define({
 			this.show_hide = !this.show_hide;
 			console.log(this.show_hide );
 		},
-		say: Say
+		submitGet: function () {
+			console.log(arguments);
+		},
+		submit: function () {
+			console.log(arguments);
+		}
 	},
+	// attached: function () {
+	// 	var self = this;
+	// 	Oxe.fetcher.get({
+	// 		url: '/data.json',
+	// 		responseType: 'json',
+	// 		handler: function (result) {
+	// 			console.log(result);
+	// 		}
+	// 	});
+	// },
 	created: function () {
 		var self = this;
 
 		window.SELF = self;
 
-		setTimeout(function () {
-			var increaseInterval = setInterval(function () {
-
-				if (self.model.items.length === 100) {
-					clearInterval(increaseInterval);
-
-					var decreaseInterval = setInterval(function () {
-
-						if (self.model.items.length === 5) {
-							clearInterval(decreaseInterval);
-						}
-
-						self.model.items.pop();
-					}, 10);
-
-				}
-
-				self.model.items.push({ it: { val: self.model.items.length } });
-
-			}, 10);
-		}, 1000);
+		// setTimeout(function () {
+		// 	var increaseInterval = setInterval(function () {
+		//
+		// 		if (self.model.items.length === 100) {
+		// 			clearInterval(increaseInterval);
+		//
+		// 			var decreaseInterval = setInterval(function () {
+		//
+		// 				if (self.model.items.length === 5) {
+		// 					clearInterval(decreaseInterval);
+		// 				}
+		//
+		// 				self.model.items.pop();
+		// 			}, 10);
+		//
+		// 		}
+		//
+		// 		self.model.items.push({ it: { val: self.model.items.length } });
+		//
+		// 	}, 10);
+		// }, 1000);
 
 		Say('v-test created');
-	},
-	attached: function () {
-		var self = this;
-
-		Oxe.fetcher.fetch({
-			method: 'get',
-			url: '/data.json',
-			responseType: 'json',
-			success: function (result) {
-				console.log(result);
-			},
-			error: function (result) {
-				console.log(result);
-			}
-		});
 	},
 	html: `
 		<style>
@@ -91,6 +93,22 @@ Oxe.component.define({
 				min-height: 150px;
 			}
 		</style>
+		<br>
+		<br>
+
+		<form o-submit="submit">
+			<input type="text" o-value="text" placeholder="text" required><br>
+			<input type="text" o-value="blank" placeholder="text" required><br>
+			<input type="submit" name="Submit">
+		</form>
+		<br>
+		<br>
+
+		<form o-method="get" o-action="/data.json">
+			<input type="submit" name="Submit">
+		</form>
+		<br>
+		<br>
 
 		<div o-show="show_hide">Now you see me!</div>
 		<button o-on-click="toggle_show_hide">Show/Hide</button>

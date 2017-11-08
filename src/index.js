@@ -1,9 +1,10 @@
-import Utility from './utility';
 import Global from './global';
+import Utility from './utility';
 
 if (window.Oxe) throw new Error('Oxe pre-defined duplicate Oxe scripts');
 
 var Oxe = Global; // Object.defineProperties({}, Object.getOwnPropertyDescriptors(Global));
+
 
 Oxe.window.addEventListener('input', function (e) {
 	Oxe.inputs.forEach(function (input) {
@@ -29,9 +30,36 @@ Oxe.window.addEventListener('popstate', function (e) {
 	});
 }, true);
 
+Oxe.window.addEventListener('submit', function (e) {
+	var element = e.target;
+	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+	var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+	var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+
+	if (submit) {
+
+		var container = Utility.getContainer(element);
+		var data = Utility.formData(element, container.model);
+		var handler = Utility.getByPath(container.events, submit);
+
+		if (action) {
+			Global.fetcher.fetch({
+				data: data,
+				url: action,
+				method: method,
+				handler: handler
+			});
+		} else {
+			handler(data);
+		}
+
+		e.preventDefault();
+	}
+}, true);
+
 new window.MutationObserver(function (mutations) {
-	Oxe.observers.forEach(function (observer) {
-		observer(mutations);
+	Oxe.mutations.forEach(function (mutation) {
+		mutation(mutations);
 	});
 }).observe(Oxe.body, {
 	childList: true,

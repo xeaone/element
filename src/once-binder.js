@@ -1,89 +1,97 @@
 import Utility from './utility';
+import Global from './global';
 
 var OnceBinder = {};
 
 OnceBinder.bind = function (element, attribute, container) {
+
 	if (
 		!container.model ||
 		!this.type[attribute.cmds[0]]
 	) return;
 
-	var model = container.model;
+	var data = {};
 	var type = attribute.cmds[0];
 	var key = attribute.parentKey;
-	var data = attribute.parentPath ? Utility.getByPath(model, attribute.parentPath) : model;
-	var value = this.type[type](element, attribute, data[key]);
 
-	if (data[key] === undefined) {
+	data.element = element;
+	data.attribute = attribute;
+	data.container = container;
 
-		data.$set(key, value);
-		
-	} else {
+	data.model = attribute.parentPath ? Utility.getByPath(container.model, attribute.parentPath) : container.model;
+	data.value = data.model[key];
 
-		// FIXME selects not setting defaults
-		if (value.constructor === Array) {
+	var value = this.type[type].call(this, data);
 
-			data[key].push.apply(null, value);
-
-		}
-
+	if (value) {
+		data.model.$set(key, value);
+		// if (model[key] === undefined) {
+		// } else if (value.constructor === Array) {
+		// 	// FIXME selects not setting defaults
+		// 	model[key].push.apply(null, value);
+		// }
 	}
 
 };
 
-OnceBinder.type = {
-	value: function (element, attribute, data) {
-		var i, l;
+OnceBinder.kind = {
+	checkbox: function (data) {
+		data.value = !data.value ? false : data.value;
+		data.element.value = data.element.checked = data.value;
+		return data.value;
+	},
+	select: function (data) {
+		var options = data.element.options;
 
-		if (element.type === 'checkbox') {
+		data.value = data.element.multiple ? [] : data.value;
 
-			data = !data ? false : data;
-			element.value = element.checked = data;
-
-		} else if (element.nodeName === 'SELECT') {
-
-			data = element.multiple ? [] : data;
-			var options = element.options;
-
-			for (i = 0, l = options.length; i < l; i++) {
-
-				var option = options[i];
-
-				if (option.selected) {
-
-					if (element.multiple) {
-
-						data.push(option.value);
-
-					} else {
-
-						data = option.value;
-						break;
-
-					}
+		for (var i = 0, l = options.length; i < l; i++) {
+			var option = options[i];
+			if (option.selected) {
+				if (data.element.multiple) {
+					data.value.push(option.value);
+				} else {
+					data.value = option.value;
+					break;
 				}
-
 			}
-
-		} else if (element.type === 'radio') {
-
-			var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + attribute.value + '"]');
-
-			for (i = 0, l = elements.length; i < l; i++) {
-
-				var radio = elements[i];
-				radio.checked = i === data;
-
-			}
-
-		} else {
-
-			element.value = data === undefined ? '' : data;
-
 		}
 
-		return data;
+		return data.value;
+	},
+	radio: function (data) {
+		var query = 'input[type="radio"][o-value="' + data.attribute.value + '"]';
+		var elements = data.element.parentNode.querySelectorAll(query);
 
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var radio = elements[i];
+			radio.checked = i === data.value;
+		}
+
+		return data.value;
+	},
+	default: function (data) {
+		data.value = data.value === undefined ? '' : data.value;
+		data.element.value = data.value;
+		return data.value;
+	},
+};
+
+OnceBinder.type = {
+	value: function (data) {
+		var kind;
+
+		if (data.element.type === 'checkbox') {
+			kind = 'checkbox';
+		} else if (data.element.nodeName === 'SELECT') {
+			kind = 'select';
+		} else if (data.element.type === 'radio') {
+			kind = 'radio';
+		} else {
+			kind = 'default';
+		}
+
+		return this.kind[kind].call(this, data);
 	}
 
 };

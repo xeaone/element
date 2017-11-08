@@ -18,7 +18,8 @@ View.IS_ACCEPT_PATH = /(data-)?o-.*/;
 View.IS_REJECT_PATH = /(data-)?o-value.*/;
 
 View.isOnce = function (attribute) {
-	return attribute === 'data-o-value' || attribute === 'o-value';
+	return attribute === 'o-value'
+		|| attribute === 'data-o-value';
 };
 
 View.isSkip = function (node) {
@@ -47,7 +48,8 @@ View.isAccept = function (node) {
 };
 
 View.isAcceptAttribute = function (attribute) {
-	return attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0;
+	return attribute.name.indexOf('o-') === 0
+		|| attribute.name.indexOf('data-o-') === 0;
 };
 
 View.createAttribute = function (name, value) {
@@ -69,93 +71,118 @@ View.createAttribute = function (name, value) {
 	return attribute;
 };
 
-View.eachAttribute = function (attributes, callback) {
-	for (var i = 0, l = attributes.length; i < l; i++) {
+View.eachAttribute = function (element, callback) {
+	var attributes = element.attributes;
+	for (var i = 0; i < attributes.length; i++) {
 		var attribute = attributes[i];
 		if (this.isAcceptAttribute(attribute)) {
-			callback(this.createAttribute(attribute.name, attribute.value));
+			callback.call(this, this.createAttribute(attribute.name, attribute.value));
 		}
 	}
 };
 
-View.eachAttributeAcceptPath = function (attributes, callback) {
+// View.eachElement = function (element, callback) {
+// 	var elements = element.children;
+// 	for (var i = 0; i < elements.length; i++) {
+// 		var element = elements[i];
+//
+// 		if (this.isAccept(element) && !this.isSkip(element)) {
+// 			callback.call(this, element);
+// 		}
+//
+// 		if (!this.isSkipChildren(element)) {
+// 			this.eachElement(element, callback);
+// 		}
+// 	}
+// };
+//
+// View.eachBinder = function (container, path, callback) {
+// 	this.eachElement(container, function (element) {
+// 		this.eachAttribute(element, function (attribute) {
+// 			if (attribute.path.indexOf(path) === 0) {
+// 				callback(element, attribute);
+// 			}
+// 		});
+// 	});
+// };
+
+View.eachAttributeAcceptPath = function (element, callback) {
+	var attributes = element.attributes;
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
 		if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
-			callback(attribute.value.replace(this.PATH, ''));
+			callback.call(this, attribute.value.replace(this.PATH, ''));
 		}
 	}
 };
 
-View.eachElement = function (element, container, callback) {
-	container = element.uid ? element : container;
+View.eachElement = function (element, target, callback) {
+	var container = Utility.getContainer(element, target);
 
 	if (this.isAccept(element) && !this.isSkip(element)) {
-		callback(element, container);
+		callback.call(this, element, container);
 	}
 
 	if (!this.isSkipChildren(element)) {
-		for (element = element.firstElementChild; element; element = element.nextElementSibling) {
-			this.eachElement(element, container, callback);
+		for (var i = 0, l = element.children.length; i < l; i++) {
+			this.eachElement(element.children[i], target, callback);
 		}
 	}
 };
 
-View.eachBinder = function (uid, path, callback) {
-	var paths = this.data[uid];
+View.eachBinder = function (id, path, callback) {
+	var paths = this.data[id];
 	for (var key in paths) {
 		if (key.indexOf(path) === 0) {
 			var binders = paths[key];
 			for (var i = 0; i < binders.length; i++) {
-				callback(binders[i], i, binders, paths, key);
+				callback.call(this, binders[i], i, binders, paths, key);
 			}
 		}
 	}
 };
 
-View.has = function (uid, path, element) {
-	if (!(uid in this.data) || !(path in this.data[uid])) return false;
-	var binders = this.data[uid][path];
+View.has = function (id, path, element) {
+	if (!(id in this.data) || !(path in this.data[id])) return false;
+	var binders = this.data[id][path];
 	for (var i = 0, l = binders.length; i < l; i++) {
 		if (binders[i].element === element) return true;
 	}
 	return false;
 };
 
-View.push = function (uid, path, element, container, attribute) {
-	if (!(uid in this.data)) this.data[uid] = {};
-	if (!(path in this.data[uid])) this.data[uid][path] = [];
-	this.data[uid][path].push(new Binder({
+View.push = function (id, path, element, container, attribute) {
+	if (!(id in this.data)) this.data[id] = {};
+	if (!(path in this.data[id])) this.data[id][path] = [];
+	this.data[id][path].push(new Binder({
 		element: element,
 		container: container,
 		attribute: attribute
 	}));
 };
 
-View.add = function (addedNode, containerNode) {
-	var self = this;
-	self.eachElement(addedNode, containerNode, function (element, container) {
-		self.eachAttribute(element.attributes, function (attribute) {
-			if (self.isOnce(attribute.name)) {
-				OnceBinder.bind(element, attribute, container);
-			} else {
-				if (container && container.uid) { // i dont like this check
+View.add = function (addedNode, target) {
+	this.eachElement(addedNode, target, function (element, container) {
+		if (container && container.id) {
+			this.eachAttribute(element, function (attribute) {
+				if (this.isOnce(attribute.name)) {
+					OnceBinder.bind(element, attribute, container);
+				} else {
 					var path = attribute.viewPath;
-					if (!self.has(container.uid, path, element)) {
-						self.push(container.uid, path, element, container, attribute);
+					if (!this.has(container.id, path, element)) {
+						this.push(container.id, path, element, container, attribute);
 					}
 				}
-			}
-		});
+			});
+		}
 	});
 };
 
-View.remove = function (removedNode, containerNode) {
-	var self = this;
-	self.eachElement(removedNode, containerNode, function (element, container) {
-		if (container && container.uid) { // i dont like this check
-			self.eachAttributeAcceptPath(element.attributes, function (path) {
-				self.eachBinder(container.uid, path, function (binder, index, binders, paths, key) {
+View.remove = function (removedNode, target) {
+	this.eachElement(removedNode, target, function (element, container) {
+		if (container && container.id) {
+			this.eachAttributeAcceptPath(element, function (path) {
+				this.eachBinder(container.id, path, function (binder, index, binders, paths, key) {
 					if (binder.element === element) {
 						binder.unrender();
 						binders.splice(index, 1);
@@ -167,38 +194,36 @@ View.remove = function (removedNode, containerNode) {
 	});
 };
 
-View.observer = function (mutations) {
-		var i = mutations.length;
-		while (i--) {
+View.mutation = function (mutations) {
+	var i = mutations.length;
+	while (i--) {
 
-			var l;
-			var target = mutations[i].target;
-			var addedNodes = mutations[i].addedNodes;
-			var removedNodes = mutations[i].removedNodes;
+		var l;
+		var target = mutations[i].target;
+		var addedNodes = mutations[i].addedNodes;
+		var removedNodes = mutations[i].removedNodes;
 
-			l = addedNodes.length;
+		l = addedNodes.length;
 
-			while (l--) {
-				var addedNode = addedNodes[l];
-				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
-					if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
-					var containerNode = addedNode.uid || Utility.getContainer(target);
-					this.add(addedNode, containerNode);
-				}
+		while (l--) {
+			var addedNode = addedNodes[l];
+			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
+				if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
+				this.add(addedNode, target);
 			}
-
-			l = removedNodes.length;
-
-			while (l--) {
-				var removedNode = removedNodes[l];
-				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
-					if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
-					var containerNode = removedNode.uid || Utility.getContainer(target);
-					this.remove(removedNode, containerNode);
-				}
-			}
-
 		}
+
+		l = removedNodes.length;
+
+		while (l--) {
+			var removedNode = removedNodes[l];
+			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
+				if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
+				this.remove(removedNode, target);
+			}
+		}
+
+	}
 };
 
 View.run = function () {
@@ -206,7 +231,7 @@ View.run = function () {
 	else this.isRan = true;
 
 	this.add(this.container);
-	Global.observers.push(this.observer.bind(this));
+	Global.mutations.push(this.mutation.bind(this));
 };
 
 export default View;

@@ -1,4 +1,4 @@
-import Batcher from './batcher';
+import Global from './global';
 
 var Utility = {};
 
@@ -21,6 +21,20 @@ Utility.createBase = function (base) {
 	}
 
 	return base;
+};
+
+Utility.formData = function (form, model) {
+	var elements = form.querySelectorAll('[o-value]');
+	var data = {};
+
+	for (var i = 0, l = elements.length; i < l; i++) {
+		var element = elements[i];
+		var path = element.getAttribute('o-value');
+		var name = path.split('.').slice(-1);
+		data[name] = Utility.getByPath(model, path);
+	}
+
+	return data;
 };
 
 Utility.toText = function (data) {
@@ -56,7 +70,7 @@ Utility.getByPath = function (collection, path) {
 
 Utility.removeChildren = function (element) {
 	var self = this, child;
-	Batcher.write(function () {
+	Global.batcher.write(function () {
 		while (child = element.lastElementChild) {
 			element.removeChild(child);
 		}
@@ -75,16 +89,17 @@ Utility.joinDot = function () {
 		.replace(/\.{2,}/g, '.');
 };
 
-Utility.getContainer = function getContainer (element) {
-	if (element.uid) {
+Utility.getContainer = function getContainer (element, target) {
+	if (element === document.body || element.nodeName === 'O-VIEW') {
+		return;
+	} else if (element.id && element.id.indexOf(element.nodeName.toLowerCase()) === 0) { // TODO imporove check for the full so ending number
 		return element;
+	} else if (element.parentElement) {
+		return this.getContainer(element.parentElement, target);
+	} else if (target) {
+		return this.getContainer(target);
 	} else {
-		if (element !== document.body && element.parentElement) {
-			return this.getContainer(element.parentElement);
-		} else {
-			console.warn('Utility could not find a uid');
-			// throw new Error('Utility could not find a uid');
-		}
+		console.warn('Utility could not find a id');
 	}
 };
 
