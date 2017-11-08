@@ -1755,6 +1755,13 @@
 		}
 	});
 
+	Object.defineProperty(Keeper, 'user', {
+		enumerable: true,
+		get: function () {
+			return this._.user = this._.user || JSON.parse(window[this.type].getItem('user'));
+		}
+	});
+
 	Keeper.setup = function (options) {
 		options = options || {};
 
@@ -1777,13 +1784,24 @@
 		this._.token = window[this.type].setItem('token', token);
 	};
 
+	Keeper.setUser = function (user) {
+		user = JSON.stringify(user);
+		this._.user = window[this.type].setItem('user', user);
+	};
+
 	Keeper.removeToken = function () {
 		this._.token = null;
 		window[this.type].removeItem('token');
 	};
 
-	Keeper.authenticate = function (token) {
+	Keeper.removeUser = function () {
+		this._.user = null;
+		window[this.type].removeItem('user');
+	};
+
+	Keeper.authenticate = function (token, user) {
 		this.setToken(token);
+		this.setUser(user);
 		if (typeof this._.authenticated === 'string') {
 			Router$1.navigate(this._.authenticated);
 		} else if (typeof this._.authenticated === 'function') {
@@ -1793,6 +1811,7 @@
 
 	Keeper.unauthenticate = function () {
 		this.removeToken();
+		this.removeUser();
 		if (typeof this._.unauthenticated === 'string') {
 			Router$1.navigate(this._.unauthenticated);
 		} else if (typeof this._.unauthenticated === 'function') {
@@ -1801,26 +1820,20 @@
 	};
 
 	Keeper.forbidden = function (result) {
-		this.removeToken();
-
 		if (typeof this._.forbidden === 'string') {
 			Router$1.navigate(this._.forbidden);
 		} else if (typeof this._.forbidden === 'function') {
 			this._.forbidden(result);
 		}
-
 		return false;
 	};
 
 	Keeper.unauthorized = function (result) {
-		this.removeToken();
-
 		if (typeof this._.unauthorized === 'string') {
 			Router$1.navigate(this._.unauthorized);
 		} else if (typeof this._.unauthorized === 'function') {
 			this._.unauthorized(result);
 		}
-
 		return false;
 	};
 
@@ -1909,6 +1922,8 @@
 		return string;
 	};
 
+	// Fetcher.onreadystatechange = function () { };
+
 	Fetcher.fetch = function (opt) {
 		var self = this;
 		var result = {};
@@ -1916,6 +1931,7 @@
 
 		opt = opt || {};
 		opt.headers = {};
+		opt.error = false;
 		opt.type = opt.type || this.type;
 		opt.url = opt.url ? opt.url : window.location.href;
 		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
@@ -1960,11 +1976,19 @@
 			}
 		}
 
-		if (opt.mimeType) xhr.overrideMimeType(opt.mimeType);
-		if (opt.withCredentials) xhr.withCredentials = opt.withCredentials;
+		if (opt.mimeType) {
+			xhr.overrideMimeType(opt.mimeType);
+		}
 
-		if (opt.cache) opt.headers.cache = true;
-		else opt.cache = false;
+		if (opt.withCredentials) {
+			xhr.withCredentials = opt.withCredentials;
+		}
+
+		if (opt.cache) {
+			opt.headers.cache = true;
+		} else {
+			opt.cache = false;
+		}
 
 		if (opt.headers) {
 			for (var name in opt.headers) {
@@ -1980,17 +2004,18 @@
 		result.opt = opt;
 		result.data = opt.data;
 
-		if (
-			self.auth &&
-			(result.opt.auth === true ||
-			result.opt.auth === undefined)
-		) {
+		if (self.auth && (
+			result.opt.auth === true ||
+			result.opt.auth === undefined
+		)) {
 			if (Keeper.request(result) === false) {
 				return;
 			}
 		}
 
-		if (self.request && self.request(result) === false) return;
+		if (self.request && self.request(result) === false) {
+			return;
+		}
 
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
@@ -2021,15 +2046,22 @@
 					}
 				}
 
-				if (self.response && self.response(result) === false) return;
+				if (self.response && self.response(result) === false) {
+					return;
+				}
 
 				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
 					if (opt.success) {
 						opt.success(result);
+					} else if (opt.handler) {
+						opt.handler(result);
 					}
 				} else {
+					opt.isError = true;
 					if (opt.error) {
 						opt.error(result);
+					} else if (opt.handler) {
+						opt.handler(result);
 					}
 				}
 
@@ -2038,6 +2070,46 @@
 
 		xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
 
+	};
+
+	Fetcher.post = function (opt) {
+		opt.method = 'post';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.get = function (opt) {
+		opt.method = 'get';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.put = function (opt) {
+		opt.method = 'put';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.head = function (opt) {
+		opt.method = 'head';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.patch = function (opt) {
+		opt.method = 'patch';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.delete = function (opt) {
+		opt.method = 'delete';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.options = function (opt) {
+		opt.method = 'options';
+		return Fetcher.fetch(opt);
+	};
+
+	Fetcher.connect = function (opt) {
+		opt.method = 'connect';
+		return Fetcher.fetch(opt);
 	};
 
 	var Global = Object.defineProperties({}, {
