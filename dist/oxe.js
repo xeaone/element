@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.0
+	Version: 2.5.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1845,10 +1845,12 @@
 	};
 
 	Keeper.setToken = function (token) {
+		if (!token) return;
 		this._.token = window[this.type].setItem('token', token);
 	};
 
 	Keeper.setUser = function (user) {
+		if (!user) return;
 		user = JSON.stringify(user);
 		this._.user = window[this.type].setItem('user', user);
 	};

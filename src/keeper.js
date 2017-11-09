@@ -40,10 +40,12 @@ Keeper.setup = function (options) {
 };
 
 Keeper.setToken = function (token) {
+	if (!token) return;
 	this._.token = window[this.type].setItem('token', token);
 };
 
 Keeper.setUser = function (user) {
+	if (!user) return;
 	user = JSON.stringify(user);
 	this._.user = window[this.type].setItem('user', user);
 };
