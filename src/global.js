@@ -78,7 +78,7 @@ var Global = Object.defineProperties({}, {
 		enumerable: true,
 		value: []
 	},
-	observers: {
+	mutations: {
 		enumerable: true,
 		value: []
 	},
