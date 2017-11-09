@@ -24,6 +24,7 @@ View.isOnce = function (attribute) {
 
 View.isSkip = function (node) {
 	return node.nodeName === 'J-VIEW'
+		|| node.hasAttribute('o-uid')
 		|| node.hasAttribute('o-view')
 		|| node.hasAttribute('data-o-view');
 };
@@ -38,12 +39,14 @@ View.isSkipChildren = function (node) {
 
 View.isAccept = function (node) {
 	var attributes = node.attributes;
+
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
 		if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 			return true;
 		}
 	}
+
 	return false;
 };
 
@@ -81,34 +84,9 @@ View.eachAttribute = function (element, callback) {
 	}
 };
 
-// View.eachElement = function (element, callback) {
-// 	var elements = element.children;
-// 	for (var i = 0; i < elements.length; i++) {
-// 		var element = elements[i];
-//
-// 		if (this.isAccept(element) && !this.isSkip(element)) {
-// 			callback.call(this, element);
-// 		}
-//
-// 		if (!this.isSkipChildren(element)) {
-// 			this.eachElement(element, callback);
-// 		}
-// 	}
-// };
-//
-// View.eachBinder = function (container, path, callback) {
-// 	this.eachElement(container, function (element) {
-// 		this.eachAttribute(element, function (attribute) {
-// 			if (attribute.path.indexOf(path) === 0) {
-// 				callback(element, attribute);
-// 			}
-// 		});
-// 	});
-// };
-
 View.eachAttributeAcceptPath = function (element, callback) {
 	var attributes = element.attributes;
-	for (var i = 0, l = attributes.length; i < l; i++) {
+	for (var i = 0; i < attributes.length; i++) {
 		var attribute = attributes[i];
 		if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
 			callback.call(this, attribute.value.replace(this.PATH, ''));
@@ -124,14 +102,15 @@ View.eachElement = function (element, target, callback) {
 	}
 
 	if (!this.isSkipChildren(element)) {
-		for (var i = 0, l = element.children.length; i < l; i++) {
+		for (var i = 0; i < element.children.length; i++) {
 			this.eachElement(element.children[i], target, callback);
 		}
 	}
 };
 
-View.eachBinder = function (id, path, callback) {
-	var paths = this.data[id];
+View.eachBinder = function (uid, path, callback) {
+	var paths = this.data[uid];
+
 	for (var key in paths) {
 		if (key.indexOf(path) === 0) {
 			var binders = paths[key];
@@ -142,19 +121,34 @@ View.eachBinder = function (id, path, callback) {
 	}
 };
 
-View.has = function (id, path, element) {
-	if (!(id in this.data) || !(path in this.data[id])) return false;
-	var binders = this.data[id][path];
-	for (var i = 0, l = binders.length; i < l; i++) {
-		if (binders[i].element === element) return true;
+View.has = function (uid, path, element) {
+
+	if (!(uid in this.data) || !(path in this.data[uid])) {
+		return false;
 	}
+
+	var binders = this.data[uid][path];
+
+	for (var i = 0; i < binders.length; i++) {
+		if (binders[i].element === element) {
+			return true;
+		}
+	}
+
 	return false;
 };
 
-View.push = function (id, path, element, container, attribute) {
-	if (!(id in this.data)) this.data[id] = {};
-	if (!(path in this.data[id])) this.data[id][path] = [];
-	this.data[id][path].push(new Binder({
+View.push = function (uid, path, element, container, attribute) {
+
+	if (!(uid in this.data)) {
+		this.data[uid] = {};
+	}
+
+	if (!(path in this.data[uid])) {
+		this.data[uid][path] = [];
+	}
+
+	this.data[uid][path].push(new Binder({
 		element: element,
 		container: container,
 		attribute: attribute
@@ -163,14 +157,15 @@ View.push = function (id, path, element, container, attribute) {
 
 View.add = function (addedNode, target) {
 	this.eachElement(addedNode, target, function (element, container) {
-		if (container && container.id) {
+		if (container) {
+			var uid = container.getAttribute('o-uid');
 			this.eachAttribute(element, function (attribute) {
 				if (this.isOnce(attribute.name)) {
 					OnceBinder.bind(element, attribute, container);
 				} else {
 					var path = attribute.viewPath;
-					if (!this.has(container.id, path, element)) {
-						this.push(container.id, path, element, container, attribute);
+					if (!this.has(uid, path, element)) {
+						this.push(uid, path, element, container, attribute);
 					}
 				}
 			});
@@ -180,13 +175,16 @@ View.add = function (addedNode, target) {
 
 View.remove = function (removedNode, target) {
 	this.eachElement(removedNode, target, function (element, container) {
-		if (container && container.id) {
+		if (container) {
+			var uid = container.getAttribute('o-uid');
 			this.eachAttributeAcceptPath(element, function (path) {
-				this.eachBinder(container.id, path, function (binder, index, binders, paths, key) {
+				this.eachBinder(uid, path, function (binder, index, binders, paths, key) {
 					if (binder.element === element) {
 						binder.unrender();
 						binders.splice(index, 1);
-						if (binders.length === 0) delete paths[key];
+						if (binders.length === 0) {
+							delete paths[key];
+						}
 					}
 				});
 			});

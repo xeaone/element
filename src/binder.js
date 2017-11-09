@@ -15,7 +15,7 @@ export default 	function Binder (options) {
 	this.modifiers = this.container.modifiers;
 	this.type = this.attribute.cmds[0] || 'default';
 
-	if (this.type === 'on') { // || this.type === 'submit'
+	if (this.type === 'on') {
 		this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 	} else {
 		Object.defineProperty(this, 'data', {
@@ -55,24 +55,6 @@ Binder.prototype.modify = function (data) {
 };
 
 Binder.prototype.setupMethods = {
-	// submit: function () {
-	// 	this._.submit = function (e) {
-	// 		e.preventDefault();
-	// 		var data = Utility.formData(this.element, this.model);
-	// 		var action = this.element.getAttribute('o-action') || this.element.getAttribute('data-o-action');
-	// 		var method = this.element.getAttribute('o-method') || this.element.getAttribute('data-o-method');
-	// 		if (action) {
-	// 			Global.fetcher.fetch({
-	// 				data: data,
-	// 				url: action,
-	// 				method: method,
-	// 				handler: this.data
-	// 			});
-	// 		} else {
-	// 			this.data(data);
-	// 		}
-	// 	}.bind(this);
-	// },
 	each: function () {
 		this.variable = this.attribute.cmds[1];
 		this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
@@ -89,10 +71,6 @@ Binder.prototype.renderMethods = {
 		this.element.removeEventListener(this.attribute.cmds[1], this.data);
 		this.element.addEventListener(this.attribute.cmds[1], this.data);
 	},
-	// submit: function () {
-	// 	this.element.removeEventListener('submit', this._.submit);
-	// 	this.element.addEventListener('submit', this._.submit);
-	// },
 	each: function () {
 		if (typeof this.data !== 'object') {
 			return;
@@ -160,9 +138,6 @@ Binder.prototype.unrenderMethods = {
 	on: function () {
 		this.element.removeEventListener(this.attribute.cmds[1], this.data, false);
 	},
-	// submit: function () {
-	// 	this.element.removeEventListener('submit', this._.submit, false);
-	// },
 	each: function () {
 		Utility.removeChildren(this.element);
 	},

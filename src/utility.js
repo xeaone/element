@@ -90,17 +90,24 @@ Utility.joinDot = function () {
 };
 
 Utility.getContainer = function getContainer (element, target) {
+
 	if (element === document.body || element.nodeName === 'O-VIEW') {
 		return;
-	} else if (element.id && element.id.indexOf(element.nodeName.toLowerCase()) === 0) { // TODO imporove check for the full so ending number
-		return element;
-	} else if (element.parentElement) {
-		return this.getContainer(element.parentElement, target);
-	} else if (target) {
-		return this.getContainer(target);
-	} else {
-		console.warn('Utility could not find a id');
 	}
+
+	if (element.hasAttribute('o-uid')) {
+		return element;
+	}
+
+	if (element.parentElement) {
+		return this.getContainer(element.parentElement, target);
+	}
+
+	if (target) {
+		return this.getContainer(target);
+	}
+
+	console.warn('Utility could not find a uid');
 };
 
 export default Utility;

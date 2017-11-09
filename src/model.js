@@ -25,12 +25,12 @@ Model.listener = function (element) {
 		var container = Utility.getContainer(element);
 
 		if (!container) return;
-		
-		var id = container.id;
+
+		var uid = container.getAttribute('o-uid');
 
 		if (element.type === 'checkbox') {
 			element.value = element.checked;
-			Utility.setByPath(this.data[id], path, element.checked);
+			Utility.setByPath(this.data[uid], path, element.checked);
 		} else if (element.nodeName === 'SELECT' && element.multiple) {
 			var values = [];
 			var options = element.options;
@@ -40,19 +40,19 @@ Model.listener = function (element) {
 					values.push(option.value);
 				}
 			}
-			Utility.setByPath(this.data[id], path, values);
+			Utility.setByPath(this.data[uid], path, values);
 		} else if (element.type === 'radio') {
 			var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + path + '"]');
 			for (i = 0, l = elements.length; i < l; i++) {
 				var radio = elements[i];
 				if (radio === element) {
-					Utility.setByPath(this.data[id], path, i);
+					Utility.setByPath(this.data[uid], path, i);
 				} else {
 					radio.checked = false;
 				}
 			}
 		} else {
-			Utility.setByPath(this.data[id], path, element.value);
+			Utility.setByPath(this.data[uid], path, element.value);
 		}
 	}
 };
@@ -71,27 +71,17 @@ Model.view = {};
 
 Model.observer = function (data, path) {
 	var paths = path.split('.');
-	var id = paths[0];
+	var uid = paths[0];
 	var type = data === undefined ? 'unrender' : 'render';
 
 	path = paths.slice(1).join('.');
 
-	// if (path) {
-	// 	var element = document.getElementById(id);
-	// 	// var element = document.body.querySelector('#' + id);
-	// 	View.eachBinder(element, path, function (e, a) {
-	// 		var options = {
-	// 			element: e,
-	// 			attribute: a,
-	// 			container: element
-	// 		};
-	// 		var binder = new Binder(options);
-	// 	});
-	// }
+	if (path) {
+		View.eachBinder(uid, path, function (binder) {
+			binder[type]();
+		});
+	}
 
-	View.eachBinder(id, path, function (binder) {
-		binder[type]();
-	});
 };
 
 Model.run = function () {

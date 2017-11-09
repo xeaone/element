@@ -8,11 +8,6 @@ Component.data = {};
 
 Component.currentScript = (document._currentScript || document.currentScript);
 
-// Component.has = function (element) {
-// 	var elements = this.data[element.id];
-// 	return elements && elements.indexOf(element) !== -1;
-// };
-
 Component._slots = function (element, html) {
 	var eSlots = element.querySelectorAll('[slot]');
 	for (var i = 0, l = eSlots.length; i < l; i++) {
@@ -84,14 +79,15 @@ Component.define = function (options) {
 
 		self.data[options.name].push(element);
 
-		element.id = options.name + '-' + self.data[options.name].length;
+		var uid = options.name + '-' + self.data[options.name].length;
 
+		element.setAttribute('o-uid', uid);
 		element.isBinded = false;
-		element.view = View.data[element.id] = {};
+		element.view = View.data[uid] = {};
 
-		if (options.model) element.model = Model.data.$set(element.id, options.model)[element.id];
-		if (options.events) element.events = Global.events.data[element.id] = options.events;
-		if (options.modifiers) element.modifiers = Global.modifiers.data[element.id] = options.modifiers;
+		if (options.model) element.model = Model.data.$set(uid, options.model)[uid];
+		if (options.events) element.events = Global.events.data[uid] = options.events;
+		if (options.modifiers) element.modifiers = Global.modifiers.data[uid] = options.modifiers;
 
 		// might want to handle default slot
 		// might want to overwrite content

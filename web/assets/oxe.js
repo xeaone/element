@@ -344,17 +344,24 @@
 	};
 
 	Utility.getContainer = function getContainer (element, target) {
+
 		if (element === document.body || element.nodeName === 'O-VIEW') {
 			return;
-		} else if (element.id && element.id.indexOf(element.nodeName.toLowerCase()) === 0) { // TODO imporove check for the full so ending number
-			return element;
-		} else if (element.parentElement) {
-			return this.getContainer(element.parentElement, target);
-		} else if (target) {
-			return this.getContainer(target);
-		} else {
-			console.warn('Utility could not find a id');
 		}
+
+		if (element.hasAttribute('o-uid')) {
+			return element;
+		}
+
+		if (element.parentElement) {
+			return this.getContainer(element.parentElement, target);
+		}
+
+		if (target) {
+			return this.getContainer(target);
+		}
+
+		console.warn('Utility could not find a uid');
 	};
 
 
@@ -560,7 +567,7 @@
 		this.modifiers = this.container.modifiers;
 		this.type = this.attribute.cmds[0] || 'default';
 
-		if (this.type === 'on') { // || this.type === 'submit'
+		if (this.type === 'on') {
 			this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 		} else {
 			Object.defineProperty(this, 'data', {
@@ -600,24 +607,6 @@
 	};
 
 	Binder.prototype.setupMethods = {
-		// submit: function () {
-		// 	this._.submit = function (e) {
-		// 		e.preventDefault();
-		// 		var data = Utility.formData(this.element, this.model);
-		// 		var action = this.element.getAttribute('o-action') || this.element.getAttribute('data-o-action');
-		// 		var method = this.element.getAttribute('o-method') || this.element.getAttribute('data-o-method');
-		// 		if (action) {
-		// 			Global.fetcher.fetch({
-		// 				data: data,
-		// 				url: action,
-		// 				method: method,
-		// 				handler: this.data
-		// 			});
-		// 		} else {
-		// 			this.data(data);
-		// 		}
-		// 	}.bind(this);
-		// },
 		each: function () {
 			this.variable = this.attribute.cmds[1];
 			this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
@@ -634,10 +623,6 @@
 			this.element.removeEventListener(this.attribute.cmds[1], this.data);
 			this.element.addEventListener(this.attribute.cmds[1], this.data);
 		},
-		// submit: function () {
-		// 	this.element.removeEventListener('submit', this._.submit);
-		// 	this.element.addEventListener('submit', this._.submit);
-		// },
 		each: function () {
 			if (typeof this.data !== 'object') {
 				return;
@@ -705,9 +690,6 @@
 		on: function () {
 			this.element.removeEventListener(this.attribute.cmds[1], this.data, false);
 		},
-		// submit: function () {
-		// 	this.element.removeEventListener('submit', this._.submit, false);
-		// },
 		each: function () {
 			Utility.removeChildren(this.element);
 		},
@@ -778,6 +760,7 @@
 
 	View.isSkip = function (node) {
 		return node.nodeName === 'J-VIEW'
+			|| node.hasAttribute('o-uid')
 			|| node.hasAttribute('o-view')
 			|| node.hasAttribute('data-o-view');
 	};
@@ -792,12 +775,14 @@
 
 	View.isAccept = function (node) {
 		var attributes = node.attributes;
+
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
 			if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 				return true;
 			}
 		}
+
 		return false;
 	};
 
@@ -835,34 +820,9 @@
 		}
 	};
 
-	// View.eachElement = function (element, callback) {
-	// 	var elements = element.children;
-	// 	for (var i = 0; i < elements.length; i++) {
-	// 		var element = elements[i];
-	//
-	// 		if (this.isAccept(element) && !this.isSkip(element)) {
-	// 			callback.call(this, element);
-	// 		}
-	//
-	// 		if (!this.isSkipChildren(element)) {
-	// 			this.eachElement(element, callback);
-	// 		}
-	// 	}
-	// };
-	//
-	// View.eachBinder = function (container, path, callback) {
-	// 	this.eachElement(container, function (element) {
-	// 		this.eachAttribute(element, function (attribute) {
-	// 			if (attribute.path.indexOf(path) === 0) {
-	// 				callback(element, attribute);
-	// 			}
-	// 		});
-	// 	});
-	// };
-
 	View.eachAttributeAcceptPath = function (element, callback) {
 		var attributes = element.attributes;
-		for (var i = 0, l = attributes.length; i < l; i++) {
+		for (var i = 0; i < attributes.length; i++) {
 			var attribute = attributes[i];
 			if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
 				callback.call(this, attribute.value.replace(this.PATH, ''));
@@ -878,14 +838,15 @@
 		}
 
 		if (!this.isSkipChildren(element)) {
-			for (var i = 0, l = element.children.length; i < l; i++) {
+			for (var i = 0; i < element.children.length; i++) {
 				this.eachElement(element.children[i], target, callback);
 			}
 		}
 	};
 
-	View.eachBinder = function (id, path, callback) {
-		var paths = this.data[id];
+	View.eachBinder = function (uid, path, callback) {
+		var paths = this.data[uid];
+
 		for (var key in paths) {
 			if (key.indexOf(path) === 0) {
 				var binders = paths[key];
@@ -896,19 +857,34 @@
 		}
 	};
 
-	View.has = function (id, path, element) {
-		if (!(id in this.data) || !(path in this.data[id])) return false;
-		var binders = this.data[id][path];
-		for (var i = 0, l = binders.length; i < l; i++) {
-			if (binders[i].element === element) return true;
+	View.has = function (uid, path, element) {
+
+		if (!(uid in this.data) || !(path in this.data[uid])) {
+			return false;
 		}
+
+		var binders = this.data[uid][path];
+
+		for (var i = 0; i < binders.length; i++) {
+			if (binders[i].element === element) {
+				return true;
+			}
+		}
+
 		return false;
 	};
 
-	View.push = function (id, path, element, container, attribute) {
-		if (!(id in this.data)) this.data[id] = {};
-		if (!(path in this.data[id])) this.data[id][path] = [];
-		this.data[id][path].push(new Binder({
+	View.push = function (uid, path, element, container, attribute) {
+
+		if (!(uid in this.data)) {
+			this.data[uid] = {};
+		}
+
+		if (!(path in this.data[uid])) {
+			this.data[uid][path] = [];
+		}
+
+		this.data[uid][path].push(new Binder({
 			element: element,
 			container: container,
 			attribute: attribute
@@ -917,14 +893,15 @@
 
 	View.add = function (addedNode, target) {
 		this.eachElement(addedNode, target, function (element, container) {
-			if (container && container.id) {
+			if (container) {
+				var uid = container.getAttribute('o-uid');
 				this.eachAttribute(element, function (attribute) {
 					if (this.isOnce(attribute.name)) {
 						OnceBinder.bind(element, attribute, container);
 					} else {
 						var path = attribute.viewPath;
-						if (!this.has(container.id, path, element)) {
-							this.push(container.id, path, element, container, attribute);
+						if (!this.has(uid, path, element)) {
+							this.push(uid, path, element, container, attribute);
 						}
 					}
 				});
@@ -934,13 +911,16 @@
 
 	View.remove = function (removedNode, target) {
 		this.eachElement(removedNode, target, function (element, container) {
-			if (container && container.id) {
+			if (container) {
+				var uid = container.getAttribute('o-uid');
 				this.eachAttributeAcceptPath(element, function (path) {
-					this.eachBinder(container.id, path, function (binder, index, binders, paths, key) {
+					this.eachBinder(uid, path, function (binder, index, binders, paths, key) {
 						if (binder.element === element) {
 							binder.unrender();
 							binders.splice(index, 1);
-							if (binders.length === 0) delete paths[key];
+							if (binders.length === 0) {
+								delete paths[key];
+							}
 						}
 					});
 				});
@@ -1009,12 +989,12 @@
 			var container = Utility.getContainer(element);
 
 			if (!container) return;
-			
-			var id = container.id;
+
+			var uid = container.getAttribute('o-uid');
 
 			if (element.type === 'checkbox') {
 				element.value = element.checked;
-				Utility.setByPath(this.data[id], path, element.checked);
+				Utility.setByPath(this.data[uid], path, element.checked);
 			} else if (element.nodeName === 'SELECT' && element.multiple) {
 				var values = [];
 				var options = element.options;
@@ -1024,19 +1004,19 @@
 						values.push(option.value);
 					}
 				}
-				Utility.setByPath(this.data[id], path, values);
+				Utility.setByPath(this.data[uid], path, values);
 			} else if (element.type === 'radio') {
 				var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + path + '"]');
 				for (i = 0, l = elements.length; i < l; i++) {
 					var radio = elements[i];
 					if (radio === element) {
-						Utility.setByPath(this.data[id], path, i);
+						Utility.setByPath(this.data[uid], path, i);
 					} else {
 						radio.checked = false;
 					}
 				}
 			} else {
-				Utility.setByPath(this.data[id], path, element.value);
+				Utility.setByPath(this.data[uid], path, element.value);
 			}
 		}
 	};
@@ -1055,27 +1035,17 @@
 
 	Model.observer = function (data, path) {
 		var paths = path.split('.');
-		var id = paths[0];
+		var uid = paths[0];
 		var type = data === undefined ? 'unrender' : 'render';
 
 		path = paths.slice(1).join('.');
 
-		// if (path) {
-		// 	var element = document.getElementById(id);
-		// 	// var element = document.body.querySelector('#' + id);
-		// 	View.eachBinder(element, path, function (e, a) {
-		// 		var options = {
-		// 			element: e,
-		// 			attribute: a,
-		// 			container: element
-		// 		};
-		// 		var binder = new Binder(options);
-		// 	});
-		// }
+		if (path) {
+			View.eachBinder(uid, path, function (binder) {
+				binder[type]();
+			});
+		}
 
-		View.eachBinder(id, path, function (binder) {
-			binder[type]();
-		});
 	};
 
 	Model.run = function () {
@@ -1096,11 +1066,6 @@
 	Component.data = {};
 
 	Component.currentScript = (document._currentScript || document.currentScript);
-
-	// Component.has = function (element) {
-	// 	var elements = this.data[element.id];
-	// 	return elements && elements.indexOf(element) !== -1;
-	// };
 
 	Component._slots = function (element, html) {
 		var eSlots = element.querySelectorAll('[slot]');
@@ -1173,14 +1138,15 @@
 
 			self.data[options.name].push(element);
 
-			element.id = options.name + '-' + self.data[options.name].length;
+			var uid = options.name + '-' + self.data[options.name].length;
 
+			element.setAttribute('o-uid', uid);
 			element.isBinded = false;
-			element.view = View.data[element.id] = {};
+			element.view = View.data[uid] = {};
 
-			if (options.model) element.model = Model.data.$set(element.id, options.model)[element.id];
-			if (options.events) element.events = Global.events.data[element.id] = options.events;
-			if (options.modifiers) element.modifiers = Global.modifiers.data[element.id] = options.modifiers;
+			if (options.model) element.model = Model.data.$set(uid, options.model)[uid];
+			if (options.events) element.events = Global.events.data[uid] = options.events;
+			if (options.modifiers) element.modifiers = Global.modifiers.data[uid] = options.modifiers;
 
 			// might want to handle default slot
 			// might want to overwrite content
