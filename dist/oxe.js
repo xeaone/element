@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.1
+	Version: 2.5.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1077,13 +1077,15 @@
 
 	Component.currentScript = (document._currentScript || document.currentScript);
 
-	Component._slots = function (element, html) {
-		var eSlots = element.querySelectorAll('[slot]');
-		for (var i = 0, l = eSlots.length; i < l; i++) {
-			var eSlot = eSlots[i];
-			var sName = eSlot.getAttribute('slot');
-			var tSlot = html.content.querySelector('slot[name='+ sName + ']');
-			tSlot.parentNode.replaceChild(eSlot, tSlot);
+	Component._slots = function (element, template) {
+		var tSlots = template.content.querySelectorAll('slot');
+		for (var i = 0, l = tSlots.length; i < l; i++) {
+			var tSlot = tSlots[i];
+			var tName = tSlot.getAttribute('name');
+			var eSlot = element.querySelector('[slot="'+ tName + '"]');
+			if (eSlot) {
+				tSlot.parentElement.replaceChild(eSlot, tSlot);
+			}
 		}
 	};
 

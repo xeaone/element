@@ -105,7 +105,10 @@ Oxe.component.define({
 		<br>
 		<br>
 
-		<e-menu></e-menu>
+		<e-menu>
+			<li slot="one">Item One</li>
+			<li slot="two">Item Two</li>
+		</e-menu>
 		<br>
 		<br>
 

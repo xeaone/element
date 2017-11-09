@@ -1067,13 +1067,15 @@
 
 	Component.currentScript = (document._currentScript || document.currentScript);
 
-	Component._slots = function (element, html) {
-		var eSlots = element.querySelectorAll('[slot]');
-		for (var i = 0, l = eSlots.length; i < l; i++) {
-			var eSlot = eSlots[i];
-			var sName = eSlot.getAttribute('slot');
-			var tSlot = html.content.querySelector('slot[name='+ sName + ']');
-			tSlot.parentNode.replaceChild(eSlot, tSlot);
+	Component._slots = function (element, template) {
+		var tSlots = template.content.querySelectorAll('slot');
+		for (var i = 0, l = tSlots.length; i < l; i++) {
+			var tSlot = tSlots[i];
+			var tName = tSlot.getAttribute('name');
+			var eSlot = element.querySelector('[slot="'+ tName + '"]');
+			if (eSlot) {
+				tSlot.parentElement.replaceChild(eSlot, tSlot);
+			}
 		}
 	};
 
@@ -1835,10 +1837,12 @@
 	};
 
 	Keeper.setToken = function (token) {
+		if (!token) return;
 		this._.token = window[this.type].setItem('token', token);
 	};
 
 	Keeper.setUser = function (user) {
+		if (!user) return;
 		user = JSON.stringify(user);
 		this._.user = window[this.type].setItem('user', user);
 	};

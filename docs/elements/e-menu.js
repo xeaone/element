@@ -6,8 +6,8 @@ Oxe.component.define({
 	},
 	html: `
 		<ul>
-			<li>Item One</li>
-			<li>Item Two</li>
+			<slot name="one"></slot>
+			<slot name="two"></slot>
 		</ul>
 	`
 });
