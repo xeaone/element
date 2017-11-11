@@ -1,4 +1,4 @@
-import Router from './router';
+import Global from './global';
 
 var Keeper = {};
 
@@ -64,7 +64,7 @@ Keeper.authenticate = function (token, user) {
 	this.setToken(token);
 	this.setUser(user);
 	if (typeof this._.authenticated === 'string') {
-		Router.navigate(this._.authenticated);
+		Global.router.navigate(this._.authenticated);
 	} else if (typeof this._.authenticated === 'function') {
 		this._.authenticated();
 	}
@@ -74,7 +74,7 @@ Keeper.unauthenticate = function () {
 	this.removeToken();
 	this.removeUser();
 	if (typeof this._.unauthenticated === 'string') {
-		Router.navigate(this._.unauthenticated);
+		Global.router.navigate(this._.unauthenticated);
 	} else if (typeof this._.unauthenticated === 'function') {
 		this._.unauthenticated();
 	}
@@ -82,7 +82,7 @@ Keeper.unauthenticate = function () {
 
 Keeper.forbidden = function (result) {
 	if (typeof this._.forbidden === 'string') {
-		Router.navigate(this._.forbidden);
+		Global.router.navigate(this._.forbidden);
 	} else if (typeof this._.forbidden === 'function') {
 		this._.forbidden(result);
 	}
@@ -91,7 +91,7 @@ Keeper.forbidden = function (result) {
 
 Keeper.unauthorized = function (result) {
 	if (typeof this._.unauthorized === 'string') {
-		Router.navigate(this._.unauthorized);
+		Global.router.navigate(this._.unauthorized);
 	} else if (typeof this._.unauthorized === 'function') {
 		this._.unauthorized(result);
 	}

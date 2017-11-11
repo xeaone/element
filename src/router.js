@@ -1,8 +1,6 @@
-import Utility from './utility';
-import Batcher from './batcher';
-import Loader from './loader';
-import Keeper from './keeper';
-import Events from './events';
+import Utility from './lib/utility';
+import Events from './lib/events';
+import Global from './global';
 
 var Router = {};
 
@@ -258,7 +256,7 @@ Router.batch = function (route) {
 		component.isRouterComponent = true;
 	}
 
-	Batcher.write(function () {
+	Global.batcher.write(function () {
 		var child;
 		while (child = self.view.firstChild) self.view.removeChild(child);
 		self.view.appendChild(component);
@@ -275,7 +273,7 @@ Router.render = function (route) {
 	}
 
 	if (route.url && !(route.component in this.cache)) {
-		Loader.load(route.url, this.batch.bind(this, route));
+		Global.loader.load(route.url, this.batch.bind(this, route));
 	} else {
 		this.batch(route);
 	}
@@ -299,7 +297,7 @@ Router.navigate = function (data, replace) {
 		(location.route.auth === true ||
 		location.route.auth === undefined)
 	) {
-		if (Keeper.route(location.route) === false) {
+		if (Global.keeper.route(location.route) === false) {
 			return;
 		}
 	}

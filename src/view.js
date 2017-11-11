@@ -1,6 +1,6 @@
-import OnceBinder from './once-binder';
-import Utility from './utility';
-import Binder from './binder';
+import OnceBinder from './lib/once-binder';
+import Utility from './lib/utility';
+import Binder from './lib/binder';
 import Global from './global';
 
 var View = {};

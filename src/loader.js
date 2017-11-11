@@ -1,5 +1,5 @@
-import Transformer from './transformer.js';
-import Utility from './utility.js';
+import Transformer from './lib/transformer.js';
+import Utility from './lib/utility.js';
 
 var Loader = {};
 

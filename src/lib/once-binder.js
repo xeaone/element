@@ -1,5 +1,5 @@
 import Utility from './utility';
-import Global from './global';
+import Global from '../global';
 
 var OnceBinder = {};
 

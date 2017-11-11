@@ -1,6 +1,4 @@
 import Global from './global';
-import Model from './model';
-import View from './view';
 
 var Component = {};
 
@@ -85,9 +83,9 @@ Component.define = function (options) {
 
 		element.setAttribute('o-uid', uid);
 		element.isBinded = false;
-		element.view = View.data[uid] = {};
+		element.view = Global.view.data[uid] = {};
 
-		if (options.model) element.model = Model.data.$set(uid, options.model)[uid];
+		if (options.model) element.model = Global.model.data.$set(uid, options.model)[uid];
 		if (options.events) element.events = Global.events.data[uid] = options.events;
 		if (options.modifiers) element.modifiers = Global.modifiers.data[uid] = options.modifiers;
 

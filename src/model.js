@@ -1,8 +1,6 @@
-import Observer from './observer';
-import Utility from './utility';
+import Observer from './lib/observer';
+import Utility from './lib/utility';
 import Global from './global';
-import View from './view';
-import Binder from './binder';
 
 var Model = {};
 
@@ -77,7 +75,7 @@ Model.observer = function (data, path) {
 	path = paths.slice(1).join('.');
 
 	if (path) {
-		View.eachBinder(uid, path, function (binder) {
+		Global.view.eachBinder(uid, path, function (binder) {
 			binder[type]();
 		});
 	}

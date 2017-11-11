@@ -1,6 +1,5 @@
 import Utility from './utility';
-import Batcher from './batcher';
-import Global from './global';
+import Global from '../global';
 
 // TODO sanitize input/output
 
@@ -175,14 +174,14 @@ Binder.prototype.setup = function () {
 
 Binder.prototype.unrender = function () {
 	if (this.type in this.unrenderMethods) {
-		Batcher.write(this.unrenderMethods[this.type].bind(this));
+		Global.batcher.write(this.unrenderMethods[this.type].bind(this));
 	}
 	return this;
 };
 
 Binder.prototype.render = function () {
 	if (this.type in this.renderMethods) {
-		Batcher.write(this.renderMethods[this.type].bind(this));
+		Global.batcher.write(this.renderMethods[this.type].bind(this));
 	}
 	return this;
 };

@@ -1,4 +1,4 @@
-import Keeper from './keeper';
+import Global from './global';
 
 var Fetcher = {};
 
@@ -116,7 +116,7 @@ Fetcher.fetch = function (opt) {
 		result.opt.auth === true ||
 		result.opt.auth === undefined
 	)) {
-		if (Keeper.request(result) === false) {
+		if (Global.keeper.request(result) === false) {
 			return;
 		}
 	}
@@ -148,8 +148,8 @@ Fetcher.fetch = function (opt) {
 
 			if (xhr.status === 401 || xhr.status === 403) {
 				if (self.auth || result.opt.auth) {
-					if (Keeper.response) {
-						return Keeper.response(result);
+					if (Global.keeper.response) {
+						return Global.keeper.response(result);
 					}
 				}
 			}

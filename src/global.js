@@ -54,14 +54,6 @@ var Global = Object.defineProperties({}, {
 		enumerable: true,
 		value: {}
 	},
-	events: {
-		enumerable: true,
-		value: { data: {} }
-	},
-	modifiers: {
-		enumerable: true,
-		value: { data: {} }
-	},
 	clicks: {
 		enumerable: true,
 		value: []
@@ -81,6 +73,14 @@ var Global = Object.defineProperties({}, {
 	mutations: {
 		enumerable: true,
 		value: []
+	},
+	events: {
+		enumerable: true,
+		value: { data: {} }
+	},
+	modifiers: {
+		enumerable: true,
+		value: { data: {} }
 	},
 	view: {
 		enumerable: true,
@@ -117,8 +117,12 @@ var Global = Object.defineProperties({}, {
 	setup: {
 		enumerable: true,
 		value: function (options) {
-			if (this.isSetup) return;
-			else this.isSetup = true;
+
+			if (this.isSetup) {
+				return;
+			} else {
+				this.isSetup = true;
+			}
 
 			options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
 
@@ -141,6 +145,7 @@ var Global = Object.defineProperties({}, {
 				this.router.setup(options.router);
 				this.router.run();
 			}
+			
 		}
 	}
 });
