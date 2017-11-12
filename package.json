@@ -44,5 +44,7 @@
 	"directories": {
 		"doc": "docs"
 	},
-	"devDependencies": {}
+	"devDependencies": {
+		"muleify": "^3.0.3"
+	}
 }

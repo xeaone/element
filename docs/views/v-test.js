@@ -39,13 +39,16 @@ Oxe.component.define({
 		},
 		toggle_show_hide: function () {
 			this.show_hide = !this.show_hide;
-			console.log(this.show_hide );
 		},
 		submitGet: function () {
 			console.log(arguments);
 		},
 		submit: function () {
 			console.log(arguments);
+		},
+		validate: function () {
+			console.log(arguments);
+			return true;
 		}
 	},
 	created: function () {
@@ -86,7 +89,7 @@ Oxe.component.define({
 		<br>
 		<br>
 
-		<form o-submit="submit">
+		<form o-submit="submit" o-validate="validate">
 			<input type="text" o-value="text" placeholder="text" required><br>
 			<input type="text" o-value="blank" placeholder="text" required><br>
 			<input type="submit" name="Submit">
