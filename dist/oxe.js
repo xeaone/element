@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.5
+	Version: 2.5.7
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -860,7 +860,6 @@
 	Loader.modules = {};
 	Loader.esm = false;
 	Loader.est = false;
-	Loader.base = Utility.createBase();
 
 	Loader.patterns = {
 		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
@@ -874,7 +873,7 @@
 		this.loads = options.loads || this.loads;
 		this.esm = options.esm === undefined ? this.esm : options.esm;
 		this.est = options.est === undefined ? this.est : options.est;
-		this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
+		this.base = options.base === undefined ? Utility.createBase() : options.base;
 	};
 
 	Loader.xhr = function (data, callback) {
