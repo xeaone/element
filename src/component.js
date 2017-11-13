@@ -64,6 +64,7 @@ Component.define = function (options) {
 		throw new Error('Component requires html, query, or element');
 	}
 
+	options.model = options.model || {};
 	options.template = self._template(options);
 	options.proto = Object.create(HTMLElement.prototype);
 	options.proto.attachedCallback = options.attached;
@@ -85,9 +86,13 @@ Component.define = function (options) {
 		element.isBinded = false;
 		element.view = Global.view.data[uid] = {};
 
-		if (options.model) element.model = Global.model.data.$set(uid, options.model)[uid];
-		if (options.events) element.events = Global.events.data[uid] = options.events;
-		if (options.modifiers) element.modifiers = Global.modifiers.data[uid] = options.modifiers;
+		element.model = Global.model.data.$set(uid, options.model)[uid];
+		element.events = Global.events.data[uid] = options.events;
+		element.modifiers = Global.modifiers.data[uid] = options.modifiers;
+
+		// if (options.model)
+		// if (options.events)
+		// if (options.modifiers)
 
 		// might want to handle default slot
 		// might want to overwrite content

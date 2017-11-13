@@ -7,6 +7,8 @@ import Keeper from './keeper';
 import Model from './model';
 import View from './view';
 
+var base = document.head.querySelector('base');
+
 var Global = Object.defineProperties({}, {
 	window: {
 		enumerable: true,
@@ -48,6 +50,12 @@ var Global = Object.defineProperties({}, {
 		enumerable: true,
 		get: function () {
 			return (document._currentScript || document.currentScript).ownerDocument;
+		}
+	},
+	base: {
+		enumerable: true,
+		get: function () {
+			return (base ? base.href : '') || window.location.href
 		}
 	},
 	global: {
@@ -145,7 +153,7 @@ var Global = Object.defineProperties({}, {
 				this.router.setup(options.router);
 				this.router.run();
 			}
-			
+
 		}
 	}
 });

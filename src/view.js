@@ -17,16 +17,14 @@ View.MODIFIERS = /^.*?\|\s?/;
 View.IS_ACCEPT_PATH = /(data-)?o-.*/;
 View.IS_REJECT_PATH = /(data-)?o-value.*/;
 
+View.isAny = function (attribute) {
+	return attribute.name.indexOf('o-') === 0
+	|| attribute.name.indexOf('data-o-') === 0;
+};
+
 View.isOnce = function (attribute) {
 	return attribute === 'o-value'
 		|| attribute === 'data-o-value';
-};
-
-View.isSkip = function (node) {
-	return node.nodeName === 'J-VIEW'
-		|| node.hasAttribute('o-uid')
-		|| node.hasAttribute('o-view')
-		|| node.hasAttribute('data-o-view');
 };
 
 View.isSkipChildren = function (node) {
@@ -37,7 +35,14 @@ View.isSkipChildren = function (node) {
 		|| node.nodeName === 'SVG';
 };
 
-View.isAccept = function (node) {
+View.isSkipElement = function (node) {
+	return node.nodeName === 'J-VIEW'
+		|| node.hasAttribute('o-uid')
+		|| node.hasAttribute('o-view')
+		|| node.hasAttribute('data-o-view');
+};
+
+View.isAcceptElement = function (node) {
 	var attributes = node.attributes;
 
 	for (var i = 0, l = attributes.length; i < l; i++) {
@@ -51,7 +56,11 @@ View.isAccept = function (node) {
 };
 
 View.isAcceptAttribute = function (attribute) {
-	return attribute.name.indexOf('o-') === 0
+	return attribute.name !== 'o-method'
+		&& attribute.name !== 'o-action'
+		&& attribute.name !== 'data-o-action'
+		&& attribute.name !== 'data-o-method'
+		&& attribute.name.indexOf('o-') === 0
 		|| attribute.name.indexOf('data-o-') === 0;
 };
 
@@ -67,7 +76,7 @@ View.createAttribute = function (name, value) {
 
 	attribute.parentKey = attribute.path.replace(this.PARENT_KEY, '');
 	attribute.parentPath = attribute.path.replace(this.PARENT_PATH, '');
-	attribute.viewPath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
+	// attribute.viewPath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
 
 	attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
 
@@ -84,11 +93,12 @@ View.eachAttribute = function (element, callback) {
 	}
 };
 
-View.eachAttributeAcceptPath = function (element, callback) {
+View.eachPath = function (element, callback) {
 	var attributes = element.attributes;
 	for (var i = 0; i < attributes.length; i++) {
 		var attribute = attributes[i];
-		if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
+		if (this.isAny(attribute)) {
+		// if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
 			callback.call(this, attribute.value.replace(this.PATH, ''));
 		}
 	}
@@ -97,7 +107,7 @@ View.eachAttributeAcceptPath = function (element, callback) {
 View.eachElement = function (element, target, callback) {
 	var container = Utility.getContainer(element, target);
 
-	if (this.isAccept(element) && !this.isSkip(element)) {
+	if (this.isAcceptElement(element) && !this.isSkipElement(element)) {
 		callback.call(this, element, container);
 	}
 
@@ -149,6 +159,7 @@ View.push = function (uid, path, element, container, attribute) {
 	}
 
 	this.data[uid][path].push(new Binder({
+		uid: uid,
 		element: element,
 		container: container,
 		attribute: attribute
@@ -163,10 +174,9 @@ View.add = function (addedNode, target) {
 				if (this.isOnce(attribute.name)) {
 					OnceBinder.bind(element, attribute, container);
 				} else {
-					var path = attribute.viewPath;
-					if (!this.has(uid, path, element)) {
-						this.push(uid, path, element, container, attribute);
-					}
+					this.push(uid, attribute.path, element, container, attribute);
+					// if (!this.has(uid, attribute.path, element)) {
+					// }
 				}
 			});
 		}
@@ -177,7 +187,7 @@ View.remove = function (removedNode, target) {
 	this.eachElement(removedNode, target, function (element, container) {
 		if (container) {
 			var uid = container.getAttribute('o-uid');
-			this.eachAttributeAcceptPath(element, function (path) {
+			this.eachPath(element, function (path) {
 				this.eachBinder(uid, path, function (binder, index, binders, paths, key) {
 					if (binder.element === element) {
 						binder.unrender();

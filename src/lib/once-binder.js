@@ -24,7 +24,8 @@ OnceBinder.bind = function (element, attribute, container) {
 	var value = this.type[type].call(this, data);
 
 	if (value) {
-		data.model.$set(key, value);
+		data.model[key] = value;
+		// data.model.$set(key, value);
 		// if (model[key] === undefined) {
 		// } else if (value.constructor === Array) {
 		// 	// FIXME selects not setting defaults

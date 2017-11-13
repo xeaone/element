@@ -1,4 +1,5 @@
 import Observer from './lib/observer';
+import Traverse from './lib/traverse';
 import Utility from './lib/utility';
 import Global from './global';
 
@@ -14,6 +15,43 @@ Model.overwrite = function (data) {
 		this.observer.bind(this)
 	);
 };
+
+Model.get = function (keys) {
+	var result = Traverse({
+		keys: keys,
+		data: this.data
+	});
+
+	if (result === undefined) {
+		return result;
+	} else {
+		return result.data[result.key];
+	}
+};
+
+Model.set = function (keys, value) {
+	var result = Traverse({
+		keys: keys,
+		data: this.data
+	});
+
+	return result.data[result.key] = value;
+	// return result.data.$set(result.key, value);
+};
+
+// Model.ensure = function (keys, value) {
+// 	var result = Traverse({
+// 		keys: keys,
+// 		create: true,
+// 		data: this.data
+// 	});
+//
+// 	if (value) {
+// 		return result.data.$set(result.key, value);
+// 	} else {
+// 		return result.data[result.key];
+// 	}
+// };
 
 Model.listener = function (element) {
 	var value = element.getAttribute('o-value');
@@ -65,12 +103,14 @@ Model.change = function (e) {
 	this.listener.call(this, e.target);
 };
 
-Model.view = {};
-
 Model.observer = function (data, path) {
 	var paths = path.split('.');
 	var uid = paths[0];
 	var type = data === undefined ? 'unrender' : 'render';
+
+	// if (paths[paths.length-1] === 'length') {
+	// 	paths.splice(-1);
+	// }
 
 	path = paths.slice(1).join('.');
 

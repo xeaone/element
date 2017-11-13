@@ -1,5 +1,6 @@
 import Transformer from './lib/transformer.js';
 import Utility from './lib/utility.js';
+import Global from './global.js';
 
 var Loader = {};
 
@@ -8,6 +9,7 @@ Loader.files = {};
 Loader.modules = {};
 Loader.esm = false;
 Loader.est = false;
+Loader.base = false;
 
 Loader.patterns = {
 	imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
@@ -21,7 +23,7 @@ Loader.setup = function (options) {
 	this.loads = options.loads || this.loads;
 	this.esm = options.esm === undefined ? this.esm : options.esm;
 	this.est = options.est === undefined ? this.est : options.est;
-	this.base = options.base === undefined ? Utility.createBase() : options.base;
+	this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
 };
 
 Loader.xhr = function (data, callback) {
@@ -119,8 +121,8 @@ Loader.normalizeUrl = function (url) {
 		url = url + '.js';
 	}
 
-	if (url.indexOf('/') !== 0) {
-		url = Utility.joinSlash(this.base.replace(window.location.origin, ''), url);
+	if (this.base && url.indexOf('/') !== 0) {
+		url = Utility.joinSlash(Global.base.replace(window.location.origin, ''), url);
 	}
 
 	return url;

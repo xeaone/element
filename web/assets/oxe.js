@@ -4,6 +4,128 @@
 	(global.Oxe = factory());
 }(this, (function () { 'use strict';
 
+	var Utility = {};
+
+	Utility.createBase = function (base) {
+		var element = document.head.querySelector('base');
+
+		if (!element) {
+			element = document.createElement('base');
+			document.head.insertBefore(element, document.head.firstChild);
+		}
+
+		if (typeof base === 'string') {
+			element.href = base;
+		}
+
+		base = element.href;
+
+		return base;
+	};
+
+	Utility.formData = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		var data = {};
+
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
+			var path = element.getAttribute('o-value');
+			var name = path.split('.').slice(-1);
+			data[name] = Utility.getByPath(model, path);
+		}
+
+		return data;
+	};
+
+	Utility.toText = function (data) {
+		if (data === undefined) return ''; // data === null ||
+		if (typeof data === 'object') return JSON.stringify(data);
+		else return String(data);
+	};
+
+	Utility.setByPath = function (collection, path, value) {
+		var keys = path.split('.');
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (collection[key] === undefined) collection[key] = {};
+			collection = collection[key];
+		}
+
+		return collection[keys[last]] = value;
+	};
+
+	Utility.getByPath = function (collection, path) {
+		var keys = path.split('.');
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			if (!collection[keys[i]]) return undefined;
+			else collection = collection[keys[i]];
+		}
+
+		return collection[keys[last]];
+	};
+
+	Utility.removeChildren = function (element) {
+		var child;
+		while (child = element.lastElementChild) {
+			element.removeChild(child);
+		}
+	};
+
+	Utility.joinSlash = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	};
+
+	Utility.joinDot = function () {
+		return Array.prototype.join
+			.call(arguments, '.')
+			.replace(/\.{2,}/g, '.');
+	};
+
+	Utility.getContainer = function getContainer (element, target) {
+
+		if (element === document.body || element.nodeName === 'O-VIEW') {
+			return;
+		}
+
+		if (element.hasAttribute('o-uid')) {
+			return element;
+		}
+
+		if (element.parentElement) {
+			return this.getContainer(element.parentElement, target);
+		}
+
+		if (target) {
+			return this.getContainer(target);
+		}
+
+		console.warn('Utility could not find a uid');
+	};
+
+
+
+	// Utility.CAMEL = /-(\w)/g,
+	// Utility.toCamelCase = function (data) {
+	// 	return data.replace(this.CAMEL, function (match, next) {
+	// 		return next.toUpperCase();
+	// 	});
+	// }
+
+	// Utility.each = function (items, method, context) {
+	// 	return items.reduce(function (promise, item) {
+	// 		return promise.then(function () {
+	// 			return method.call(context, item);
+	// 		});
+	// 	}, Promise.resolve())
+
+	// };
+
 	var Component = {};
 
 	Component.data = {};
@@ -68,6 +190,7 @@
 			throw new Error('Component requires html, query, or element');
 		}
 
+		options.model = options.model || {};
 		options.template = self._template(options);
 		options.proto = Object.create(HTMLElement.prototype);
 		options.proto.attachedCallback = options.attached;
@@ -89,9 +212,13 @@
 			element.isBinded = false;
 			element.view = Global$1.view.data[uid] = {};
 
-			if (options.model) element.model = Global$1.model.data.$set(uid, options.model)[uid];
-			if (options.events) element.events = Global$1.events.data[uid] = options.events;
-			if (options.modifiers) element.modifiers = Global$1.modifiers.data[uid] = options.modifiers;
+			element.model = Global$1.model.data.$set(uid, options.model)[uid];
+			element.events = Global$1.events.data[uid] = options.events;
+			element.modifiers = Global$1.modifiers.data[uid] = options.modifiers;
+
+			// if (options.model)
+			// if (options.events)
+			// if (options.modifiers)
 
 			// might want to handle default slot
 			// might want to overwrite content
@@ -456,6 +583,7 @@
 
 	Router.cache = {};
 	Router.routes = [];
+	Router.base = false;
 	Router.hash = false;
 	Router.auth = false;
 	Router.isRan = false;
@@ -465,12 +593,12 @@
 
 	Router.setup = function (options) {
 		options = options || {};
+		this.base = options.base === undefined ? this.base: options.base;
 		this.auth = options.auth === undefined ? this.auth : options.auth;
 		this.view = options.view === undefined ? this.view : options.view;
 		this.hash = options.hash === undefined ? this.hash : options.hash;
 		this.routes = options.routes === undefined ? this.routes: options.routes;
 		this.external = options.external === undefined ? this.external: options.external;
-		this.container = options.container === undefined ? this.container: options.container;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 		this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
 	};
@@ -618,7 +746,7 @@
 		var location = {};
 
 		location.pathname = decodeURI(path);
-		location.origin = window.location.origin;
+		location.origin = Global$1.location.origin;
 		location.base = this.base ? this.base : location.origin;
 
 		location.port = window.location.port;
@@ -850,7 +978,7 @@
 	Loader.modules = {};
 	Loader.esm = false;
 	Loader.est = false;
-	Loader.base = Utility.createBase();
+	Loader.base = false;
 
 	Loader.patterns = {
 		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
@@ -962,8 +1090,8 @@
 			url = url + '.js';
 		}
 
-		if (url.indexOf('/') !== 0) {
-			url = Utility.joinSlash(this.base.replace(window.location.origin, ''), url);
+		if (this.base && url.indexOf('/') !== 0) {
+			url = Utility.joinSlash(Global$1.base.replace(window.location.origin, ''), url);
 		}
 
 		return url;
@@ -1275,7 +1403,8 @@
 						defineProperty(data, data.length, arguments[i], callback, path);
 
 						if (callback) {
-							callback(data.length, path + 'length', 'length', data);
+							callback(data.length, path.slice(0, -1), 'length', data);
+							// callback(data.length, path + 'length', 'length', data);
 							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 						}
 
@@ -1307,7 +1436,8 @@
 					// for (i, l = result.length; i < l; i++) {
 						defineProperty(data, data.length, result[i], callback, path);
 						if (callback) {
-							callback(data.length, path + 'length', 'length', data);
+							callback(data.length, path.slice(0, -1), 'length', data);
+							// callback(data.length, path + 'length', 'length', data);
 							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 						}
 					}
@@ -1325,7 +1455,8 @@
 					data.length--;
 
 					if (callback) {
-						callback(data.length, path + 'length', 'length', data);
+						callback(data.length, path.slice(0, -1), 'length', data);
+						// callback(data.length, path + 'length', 'length', data);
 						callback(undefined, path + data.length, data.length, data);
 					}
 
@@ -1346,7 +1477,8 @@
 					data.length--;
 
 					if (callback) {
-						callback(data.length, path + 'length', 'length', data);
+						callback(data.length, path.slice(0, -1), 'length', data);
+						// callback(data.length, path + 'length', 'length', data);
 						callback(undefined, path + data.length, data.length, data);
 					}
 
@@ -1420,7 +1552,8 @@
 						while (i--) {
 							defineProperty(data, data.length, result[index++], callback, path);
 							if (callback) {
-								callback(data.length, path + 'length', 'length', data);
+								callback(data.length, path.slice(0, -1), 'length', data);
+								// callback(data.length, path + 'length', 'length', data);
 								callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 							}
 						}
@@ -1428,7 +1561,8 @@
 						while (i++) {
 							data.length--;
 							if (callback) {
-								callback(data.length, path + 'length', 'length', data);
+								callback(data.length, path.slice(0, -1), 'length', data);
+								// callback(data.length, path + 'length', 'length', data);
 								callback(undefined, path + data.length, data.length, data);
 							}
 						}
@@ -1439,6 +1573,59 @@
 			}
 		});
 	}
+
+	var Traverse = function (opt) {
+
+		var data = opt.data;
+		var keys = opt.keys;
+		var last = opt.keys.length === 0 ? 0 : opt.keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = opt.keys[i];
+
+			if (!(key in data)) {
+
+				// if (key === '*') {
+				// 	return star({
+				// 		index: i,
+				// 		ks: keys,
+				// 		data: data,
+				// 		keys: opt.keys,
+				// 		value: opt.value
+				// 	});
+				// }
+
+				// if (key === '.') {
+				// 	return {
+				// 		key: key,
+				// 		keys: keys,
+				// 		data: data
+				// 	}
+				// }
+
+				if (opt.create === true) {
+					if (isNaN(opt.keys[i+1])) {
+						data[key] = {};
+					} else {
+						data[key] = [];
+					}
+				} else if (opt.create === false) {
+					break;
+				} else {
+					return undefined;
+					// throw new Error('Traverse - property ' + key + ' is undefined');
+				}
+			}
+
+			data = data[key];
+		}
+
+		return {
+			data: data,
+			keys: keys,
+			key: opt.keys[last]
+		};
+	};
 
 	var Model = {};
 
@@ -1452,6 +1639,43 @@
 			this.observer.bind(this)
 		);
 	};
+
+	Model.get = function (keys) {
+		var result = Traverse({
+			keys: keys,
+			data: this.data
+		});
+
+		if (result === undefined) {
+			return result;
+		} else {
+			return result.data[result.key];
+		}
+	};
+
+	Model.set = function (keys, value) {
+		var result = Traverse({
+			keys: keys,
+			data: this.data
+		});
+
+		return result.data[result.key] = value;
+		// return result.data.$set(result.key, value);
+	};
+
+	// Model.ensure = function (keys, value) {
+	// 	var result = Traverse({
+	// 		keys: keys,
+	// 		create: true,
+	// 		data: this.data
+	// 	});
+	//
+	// 	if (value) {
+	// 		return result.data.$set(result.key, value);
+	// 	} else {
+	// 		return result.data[result.key];
+	// 	}
+	// };
 
 	Model.listener = function (element) {
 		var value = element.getAttribute('o-value');
@@ -1503,12 +1727,14 @@
 		this.listener.call(this, e.target);
 	};
 
-	Model.view = {};
-
 	Model.observer = function (data, path) {
 		var paths = path.split('.');
 		var uid = paths[0];
 		var type = data === undefined ? 'unrender' : 'render';
+
+		// if (paths[paths.length-1] === 'length') {
+		// 	paths.splice(-1);
+		// }
 
 		path = paths.slice(1).join('.');
 
@@ -1556,7 +1782,8 @@
 		var value = this.type[type].call(this, data);
 
 		if (value) {
-			data.model.$set(key, value);
+			data.model[key] = value;
+			// data.model.$set(key, value);
 			// if (model[key] === undefined) {
 			// } else if (value.constructor === Array) {
 			// 	// FIXME selects not setting defaults
@@ -1632,6 +1859,7 @@
 
 	function Binder (options) {
 
+		this.uid = options.uid;
 		this.element = options.element;
 		this.container = options.container;
 		this.attribute = options.attribute;
@@ -1640,21 +1868,27 @@
 		this.events = this.container.events;
 		this.modifiers = this.container.modifiers;
 		this.type = this.attribute.cmds[0] || 'default';
+		this.keys = this.attribute.opts;
+
+		this.keys.unshift(this.uid);
 
 		if (this.type === 'on') {
 			this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 		} else {
 			Object.defineProperty(this, 'data', {
 				enumerable: true,
-				configurable: false,
+				configurable: true,
 				get: function () {
-					var data = Utility.getByPath(this.model, this.attribute.path);
+					var data = Global$1.model.get(this.keys);
 
 					if (data === undefined) {
 						console.warn('Binder - undefined path \"' + this.attribute.path + '\"');
 					}
 
 					return this.modify(data);
+				},
+				set: function (data) {
+					Global$1.model.set(this.keys, data);
 				}
 			});
 
@@ -1680,7 +1914,31 @@
 		return data;
 	};
 
+	Binder.prototype.setupHandler = {
+		of: function () {
+
+			if (this.data === null || this.data === undefined) {
+				this.data = [];
+			}
+
+			this.variable = this.attribute.cmds[1];
+			this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
+			this.clone = this.element.removeChild(this.element.firstElementChild);
+			this.clone = this.clone.outerHTML.replace(
+				new RegExp('((?:data-)?o-.*?=")' + this.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
+				'$1' + this.attribute.path + '.$' + this.variable + '$2'
+			);
+		},
+		in: function () {
+			if (this.data === null) this.data = {};
+		}
+	};
+
 	Binder.prototype.setupMethods = {
+		for: function () {
+			var type = this.attribute.cmds[2] || 'of';
+			this.setupHandler[type].call(this);
+		},
 		each: function () {
 			this.variable = this.attribute.cmds[1];
 			this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
@@ -1692,13 +1950,32 @@
 		}
 	};
 
+	Binder.prototype.renderHandler = {
+		of: function () {
+			if (this.element.children.length > this.data.length) {
+				this.element.removeChild(this.element.lastElementChild);
+				this.render();
+			} else if (this.element.children.length < this.data.length) {
+				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
+				this.render();
+			}
+		},
+		in: function () {
+
+		}
+	};
+
 	Binder.prototype.renderMethods = {
 		on: function () {
 			this.element.removeEventListener(this.attribute.cmds[1], this.data);
 			this.element.addEventListener(this.attribute.cmds[1], this.data);
 		},
+		for: function () {
+			var type = this.attribute.cmds[2] || 'of';
+			this.renderHandler[type].call(this);
+		},
 		each: function () {
-			if (typeof this.data !== 'object') {
+			if (this.data && typeof this.data !== 'object') {
 				return;
 			} else if (this.element.children.length > this.data.length) {
 				this.element.removeChild(this.element.lastElementChild);
@@ -1827,16 +2104,14 @@
 	View.IS_ACCEPT_PATH = /(data-)?o-.*/;
 	View.IS_REJECT_PATH = /(data-)?o-value.*/;
 
+	View.isAny = function (attribute) {
+		return attribute.name.indexOf('o-') === 0
+		|| attribute.name.indexOf('data-o-') === 0;
+	};
+
 	View.isOnce = function (attribute) {
 		return attribute === 'o-value'
 			|| attribute === 'data-o-value';
-	};
-
-	View.isSkip = function (node) {
-		return node.nodeName === 'J-VIEW'
-			|| node.hasAttribute('o-uid')
-			|| node.hasAttribute('o-view')
-			|| node.hasAttribute('data-o-view');
 	};
 
 	View.isSkipChildren = function (node) {
@@ -1847,7 +2122,14 @@
 			|| node.nodeName === 'SVG';
 	};
 
-	View.isAccept = function (node) {
+	View.isSkipElement = function (node) {
+		return node.nodeName === 'J-VIEW'
+			|| node.hasAttribute('o-uid')
+			|| node.hasAttribute('o-view')
+			|| node.hasAttribute('data-o-view');
+	};
+
+	View.isAcceptElement = function (node) {
 		var attributes = node.attributes;
 
 		for (var i = 0, l = attributes.length; i < l; i++) {
@@ -1861,7 +2143,11 @@
 	};
 
 	View.isAcceptAttribute = function (attribute) {
-		return attribute.name.indexOf('o-') === 0
+		return attribute.name !== 'o-method'
+			&& attribute.name !== 'o-action'
+			&& attribute.name !== 'data-o-action'
+			&& attribute.name !== 'data-o-method'
+			&& attribute.name.indexOf('o-') === 0
 			|| attribute.name.indexOf('data-o-') === 0;
 	};
 
@@ -1877,7 +2163,7 @@
 
 		attribute.parentKey = attribute.path.replace(this.PARENT_KEY, '');
 		attribute.parentPath = attribute.path.replace(this.PARENT_PATH, '');
-		attribute.viewPath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
+		// attribute.viewPath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
 
 		attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
 
@@ -1894,11 +2180,12 @@
 		}
 	};
 
-	View.eachAttributeAcceptPath = function (element, callback) {
+	View.eachPath = function (element, callback) {
 		var attributes = element.attributes;
 		for (var i = 0; i < attributes.length; i++) {
 			var attribute = attributes[i];
-			if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
+			if (this.isAny(attribute)) {
+			// if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
 				callback.call(this, attribute.value.replace(this.PATH, ''));
 			}
 		}
@@ -1907,7 +2194,7 @@
 	View.eachElement = function (element, target, callback) {
 		var container = Utility.getContainer(element, target);
 
-		if (this.isAccept(element) && !this.isSkip(element)) {
+		if (this.isAcceptElement(element) && !this.isSkipElement(element)) {
 			callback.call(this, element, container);
 		}
 
@@ -1959,6 +2246,7 @@
 		}
 
 		this.data[uid][path].push(new Binder({
+			uid: uid,
 			element: element,
 			container: container,
 			attribute: attribute
@@ -1973,10 +2261,9 @@
 					if (this.isOnce(attribute.name)) {
 						OnceBinder.bind(element, attribute, container);
 					} else {
-						var path = attribute.viewPath;
-						if (!this.has(uid, path, element)) {
-							this.push(uid, path, element, container, attribute);
-						}
+						this.push(uid, attribute.path, element, container, attribute);
+						// if (!this.has(uid, attribute.path, element)) {
+						// }
 					}
 				});
 			}
@@ -1987,7 +2274,7 @@
 		this.eachElement(removedNode, target, function (element, container) {
 			if (container) {
 				var uid = container.getAttribute('o-uid');
-				this.eachAttributeAcceptPath(element, function (path) {
+				this.eachPath(element, function (path) {
 					this.eachBinder(uid, path, function (binder, index, binders, paths, key) {
 						if (binder.element === element) {
 							binder.unrender();
@@ -2042,6 +2329,8 @@
 		Global$1.mutations.push(this.mutation.bind(this));
 	};
 
+	var base = document.head.querySelector('base');
+
 	var Global$1 = Object.defineProperties({}, {
 		window: {
 			enumerable: true,
@@ -2083,6 +2372,12 @@
 			enumerable: true,
 			get: function () {
 				return (document._currentScript || document.currentScript).ownerDocument;
+			}
+		},
+		base: {
+			enumerable: true,
+			get: function () {
+				return (base ? base.href : '') || window.location.href
 			}
 		},
 		global: {
@@ -2180,138 +2475,10 @@
 					this.router.setup(options.router);
 					this.router.run();
 				}
-				
+
 			}
 		}
 	});
-
-	var Utility = {};
-
-	Utility.createBase = function (base) {
-		base = base || '';
-
-		if (base) {
-			var element = document.head.querySelector('base');
-
-			if (!element) {
-				element = document.createElement('base');
-				document.head.insertBefore(element, document.head.firstChild);
-			}
-
-			if (base && typeof base === 'string') {
-				element.href = base;
-			}
-
-			base = element.href;
-		}
-
-		return base;
-	};
-
-	Utility.formData = function (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		var data = {};
-
-		for (var i = 0, l = elements.length; i < l; i++) {
-			var element = elements[i];
-			var path = element.getAttribute('o-value');
-			var name = path.split('.').slice(-1);
-			data[name] = Utility.getByPath(model, path);
-		}
-
-		return data;
-	};
-
-	Utility.toText = function (data) {
-		if (data === undefined) return ''; // data === null ||
-		if (typeof data === 'object') return JSON.stringify(data);
-		else return String(data);
-	};
-
-	Utility.setByPath = function (collection, path, value) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (collection[key] === undefined) collection[key] = {};
-			collection = collection[key];
-		}
-
-		return collection[keys[last]] = value;
-	};
-
-	Utility.getByPath = function (collection, path) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			if (!collection[keys[i]]) return undefined;
-			else collection = collection[keys[i]];
-		}
-
-		return collection[keys[last]];
-	};
-
-	Utility.removeChildren = function (element) {
-		var self = this, child;
-		Global$1.batcher.write(function () {
-			while (child = element.lastElementChild) {
-				element.removeChild(child);
-			}
-		});
-	};
-
-	Utility.joinSlash = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
-	};
-
-	Utility.joinDot = function () {
-		return Array.prototype.join
-			.call(arguments, '.')
-			.replace(/\.{2,}/g, '.');
-	};
-
-	Utility.getContainer = function getContainer (element, target) {
-
-		if (element === document.body || element.nodeName === 'O-VIEW') {
-			return;
-		}
-
-		if (element.hasAttribute('o-uid')) {
-			return element;
-		}
-
-		if (element.parentElement) {
-			return this.getContainer(element.parentElement, target);
-		}
-
-		if (target) {
-			return this.getContainer(target);
-		}
-
-		console.warn('Utility could not find a uid');
-	};
-
-
-
-	// Utility.CAMEL = /-(\w)/g,
-	// Utility.toCamelCase = function (data) {
-	// 	return data.replace(this.CAMEL, function (match, next) {
-	// 		return next.toUpperCase();
-	// 	});
-	// }
-
-	// Utility.each = function (items, method, context) {
-	// 	return items.reduce(function (promise, item) {
-	// 		return promise.then(function () {
-	// 			return method.call(context, item);
-	// 		});
-	// 	}, Promise.resolve())
-
-	// };
 
 	if (window.Oxe) {
 		throw new Error('Oxe pre-defined duplicate Oxe scripts');

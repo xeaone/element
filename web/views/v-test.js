@@ -164,7 +164,8 @@ Oxe.component.define({
 		<br>
 
 		<input type="text" o-value="items.0.it.val">
-		<div o-each-item="items">
+		<!--<div o-each-item="items">-->
+		<div o-for-item-of="items">
 			<span>
 				<span>$item</span>
 				<span o-on-click="foo" o-text="item.it.val"></span>

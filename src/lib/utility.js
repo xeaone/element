@@ -1,24 +1,18 @@
-import Global from '../global';
-
 var Utility = {};
 
 Utility.createBase = function (base) {
-	base = base || '';
+	var element = document.head.querySelector('base');
 
-	if (base) {
-		var element = document.head.querySelector('base');
-
-		if (!element) {
-			element = document.createElement('base');
-			document.head.insertBefore(element, document.head.firstChild);
-		}
-
-		if (base && typeof base === 'string') {
-			element.href = base;
-		}
-
-		base = element.href;
+	if (!element) {
+		element = document.createElement('base');
+		document.head.insertBefore(element, document.head.firstChild);
 	}
+
+	if (typeof base === 'string') {
+		element.href = base;
+	}
+
+	base = element.href;
 
 	return base;
 };
@@ -69,12 +63,10 @@ Utility.getByPath = function (collection, path) {
 };
 
 Utility.removeChildren = function (element) {
-	var self = this, child;
-	Global.batcher.write(function () {
-		while (child = element.lastElementChild) {
-			element.removeChild(child);
-		}
-	});
+	var child;
+	while (child = element.lastElementChild) {
+		element.removeChild(child);
+	}
 };
 
 Utility.joinSlash = function () {

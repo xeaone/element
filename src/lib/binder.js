@@ -5,6 +5,7 @@ import Global from '../global';
 
 export default 	function Binder (options) {
 
+	this.uid = options.uid;
 	this.element = options.element;
 	this.container = options.container;
 	this.attribute = options.attribute;
@@ -13,21 +14,27 @@ export default 	function Binder (options) {
 	this.events = this.container.events;
 	this.modifiers = this.container.modifiers;
 	this.type = this.attribute.cmds[0] || 'default';
+	this.keys = this.attribute.opts;
+
+	this.keys.unshift(this.uid);
 
 	if (this.type === 'on') {
 		this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
 	} else {
 		Object.defineProperty(this, 'data', {
 			enumerable: true,
-			configurable: false,
+			configurable: true,
 			get: function () {
-				var data = Utility.getByPath(this.model, this.attribute.path);
+				var data = Global.model.get(this.keys);
 
 				if (data === undefined) {
 					console.warn('Binder - undefined path \"' + this.attribute.path + '\"');
 				}
 
 				return this.modify(data);
+			},
+			set: function (data) {
+				Global.model.set(this.keys, data);
 			}
 		});
 
@@ -53,7 +60,31 @@ Binder.prototype.modify = function (data) {
 	return data;
 };
 
+Binder.prototype.setupHandler = {
+	of: function () {
+
+		if (this.data === null || this.data === undefined) {
+			this.data = [];
+		}
+
+		this.variable = this.attribute.cmds[1];
+		this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
+		this.clone = this.element.removeChild(this.element.firstElementChild);
+		this.clone = this.clone.outerHTML.replace(
+			new RegExp('((?:data-)?o-.*?=")' + this.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
+			'$1' + this.attribute.path + '.$' + this.variable + '$2'
+		);
+	},
+	in: function () {
+		if (this.data === null) this.data = {};
+	}
+};
+
 Binder.prototype.setupMethods = {
+	for: function () {
+		var type = this.attribute.cmds[2] || 'of';
+		this.setupHandler[type].call(this);
+	},
 	each: function () {
 		this.variable = this.attribute.cmds[1];
 		this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
@@ -65,13 +96,32 @@ Binder.prototype.setupMethods = {
 	}
 };
 
+Binder.prototype.renderHandler = {
+	of: function () {
+		if (this.element.children.length > this.data.length) {
+			this.element.removeChild(this.element.lastElementChild);
+			this.render();
+		} else if (this.element.children.length < this.data.length) {
+			this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
+			this.render();
+		}
+	},
+	in: function () {
+
+	}
+};
+
 Binder.prototype.renderMethods = {
 	on: function () {
 		this.element.removeEventListener(this.attribute.cmds[1], this.data);
 		this.element.addEventListener(this.attribute.cmds[1], this.data);
 	},
+	for: function () {
+		var type = this.attribute.cmds[2] || 'of';
+		this.renderHandler[type].call(this);
+	},
 	each: function () {
-		if (typeof this.data !== 'object') {
+		if (this.data && typeof this.data !== 'object') {
 			return;
 		} else if (this.element.children.length > this.data.length) {
 			this.element.removeChild(this.element.lastElementChild);

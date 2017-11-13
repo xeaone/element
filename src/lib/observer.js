@@ -84,7 +84,8 @@ function overrideArrayMethods (data, callback, path) {
 					defineProperty(data, data.length, arguments[i], callback, path);
 
 					if (callback) {
-						callback(data.length, path + 'length', 'length', data);
+						callback(data.length, path.slice(0, -1), 'length', data);
+						// callback(data.length, path + 'length', 'length', data);
 						callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 					}
 
@@ -116,7 +117,8 @@ function overrideArrayMethods (data, callback, path) {
 				// for (i, l = result.length; i < l; i++) {
 					defineProperty(data, data.length, result[i], callback, path);
 					if (callback) {
-						callback(data.length, path + 'length', 'length', data);
+						callback(data.length, path.slice(0, -1), 'length', data);
+						// callback(data.length, path + 'length', 'length', data);
 						callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 					}
 				}
@@ -134,7 +136,8 @@ function overrideArrayMethods (data, callback, path) {
 				data.length--;
 
 				if (callback) {
-					callback(data.length, path + 'length', 'length', data);
+					callback(data.length, path.slice(0, -1), 'length', data);
+					// callback(data.length, path + 'length', 'length', data);
 					callback(undefined, path + data.length, data.length, data);
 				}
 
@@ -155,7 +158,8 @@ function overrideArrayMethods (data, callback, path) {
 				data.length--;
 
 				if (callback) {
-					callback(data.length, path + 'length', 'length', data);
+					callback(data.length, path.slice(0, -1), 'length', data);
+					// callback(data.length, path + 'length', 'length', data);
 					callback(undefined, path + data.length, data.length, data);
 				}
 
@@ -229,7 +233,8 @@ function overrideArrayMethods (data, callback, path) {
 					while (i--) {
 						defineProperty(data, data.length, result[index++], callback, path);
 						if (callback) {
-							callback(data.length, path + 'length', 'length', data);
+							callback(data.length, path.slice(0, -1), 'length', data);
+							// callback(data.length, path + 'length', 'length', data);
 							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 						}
 					}
@@ -237,7 +242,8 @@ function overrideArrayMethods (data, callback, path) {
 					while (i++) {
 						data.length--;
 						if (callback) {
-							callback(data.length, path + 'length', 'length', data);
+							callback(data.length, path.slice(0, -1), 'length', data);
+							// callback(data.length, path + 'length', 'length', data);
 							callback(undefined, path + data.length, data.length, data);
 						}
 					}

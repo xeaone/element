@@ -9,6 +9,7 @@ Events.call(Router);
 
 Router.cache = {};
 Router.routes = [];
+Router.base = false;
 Router.hash = false;
 Router.auth = false;
 Router.isRan = false;
@@ -18,12 +19,12 @@ Router.trailing = false;
 
 Router.setup = function (options) {
 	options = options || {};
+	this.base = options.base === undefined ? this.base: options.base;
 	this.auth = options.auth === undefined ? this.auth : options.auth;
 	this.view = options.view === undefined ? this.view : options.view;
 	this.hash = options.hash === undefined ? this.hash : options.hash;
 	this.routes = options.routes === undefined ? this.routes: options.routes;
 	this.external = options.external === undefined ? this.external: options.external;
-	this.container = options.container === undefined ? this.container: options.container;
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 	this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
 };
@@ -171,7 +172,7 @@ Router.toLocation = function (path) {
 	var location = {};
 
 	location.pathname = decodeURI(path);
-	location.origin = window.location.origin;
+	location.origin = Global.location.origin;
 	location.base = this.base ? this.base : location.origin;
 
 	location.port = window.location.port;
