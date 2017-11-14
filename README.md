@@ -281,14 +281,14 @@ Automatically use the default action for non origin matching hrefs
 			- `html` 'text/html; charset=utf-8'
 			- `json` 'application/json; charset=utf-8'
 			- `js` 'application/javascript; charset=utf-8'
-		- `acceptType: String` (default: text) The header Accept type to expect from the server
+		- `acceptType: String` The header Accept type to expect from the server (default: text)
 			- `*` Any string
 			- `xml` 'text/xml; charset=utf-8'
 			- `text` 'text/text; charset=utf-8'
 			- `html` 'text/html; charset=utf-8'
 			- `json` 'application/json; charset=utf-8'
 			- `js` 'application/javascript; charset=utf-8'
-		- `responseType: String` (default: text) Blob support for older browsers is still needed
+		- `responseType: String` Blob support for older browsers is still needed (default: text)
 			- `*` Any string
 			- `arraybuffer`
 			- `document`

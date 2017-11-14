@@ -55,8 +55,8 @@ Global.window.addEventListener('submit', function (e) {
 					auth: false,
 					data: data,
 					url: action,
+					type: 'json',
 					method: method,
-					contentType: 'json',
 					handler: submitHandler.bind(container.model)
 				});
 			} else {

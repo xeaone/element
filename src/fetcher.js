@@ -48,7 +48,11 @@ Fetcher.onreadystatechange = function (opt, result, xhr) {
 
 		// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
 		if (opt.responseType === 'json' && typeof result.data === 'string') {
-			result.data = JSON.parse(result.data || {});
+			try {
+				result.data = JSON.parse(result.data);
+			} catch (error) {
+				console.warn(error);
+			}
 		}
 
 		if (xhr.status === 401 || xhr.status === 403) {
