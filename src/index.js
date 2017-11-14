@@ -52,6 +52,7 @@ Global.window.addEventListener('submit', function (e) {
 		if (isValid) {
 			if (action) {
 				Global.fetcher.fetch({
+					auth: false,
 					data: data,
 					url: action,
 					method: method,

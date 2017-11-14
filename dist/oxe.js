@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.9
+	Version: 2.5.10
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2396,12 +2396,6 @@
 		throw new Error('Oxe pre-defined duplicate Oxe scripts');
 	}
 
-	if (typeof String.prototype.endsWith !== 'function') {
-	    String.prototype.endsWith = function(suffix) {
-	        return this.indexOf(suffix, this.length - suffix.length) !== -1;
-	    };
-	}
-
 	Global$1.window.addEventListener('input', function (e) {
 		Global$1.inputs.forEach(function (input) {
 			input(e);
@@ -2434,7 +2428,7 @@
 		var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
 		var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
 
-		if (submit) {
+		if (submit || action) {
 			var isValid = true;
 			var validateHandler;
 			var container = Utility.getContainer(element);
@@ -2449,6 +2443,7 @@
 			if (isValid) {
 				if (action) {
 					Global$1.fetcher.fetch({
+						auth: false,
 						data: data,
 						url: action,
 						method: method,
