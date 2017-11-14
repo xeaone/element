@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.10
+	Version: 2.5.11
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -394,6 +394,7 @@
 			}
 
 			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+				opt.isError = false;
 				if (opt.success) {
 					opt.success(result);
 				} else if (opt.handler) {
@@ -2447,6 +2448,7 @@
 						data: data,
 						url: action,
 						method: method,
+						contentType: 'json',
 						handler: submitHandler.bind(container.model)
 					});
 				} else {
