@@ -9,6 +9,7 @@ var model = {
 	numRadio: 0,
 	isChecked: true,
 	text: 'Hello from model',
+	loopy: { doopy: 'soopy' },
 	items: [
 		{ it: { val: 0 } },
 		{ it: { val: 1 } },
@@ -98,8 +99,8 @@ Oxe.component.define({
 		<strong o-show="isshow">isshow</strong>
 		<strong o-hide="ishide">ishide</strong>
 
-		<form o-submit="submit" o-validate="validate">
-			<input type="text" o-value="text" placeholder="text" required><br>
+		<form o-submit="submit" o-method="post" o-action="/foo" o-validate="validate">
+			<input type="text" o-value="loopy.doopy" placeholder="text" required><br>
 			<input type="text" o-value="blank" placeholder="text" required><br>
 			<input type="submit" name="Submit">
 		</form>
