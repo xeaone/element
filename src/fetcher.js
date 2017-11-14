@@ -64,6 +64,7 @@ Fetcher.onreadystatechange = function (opt, result, xhr) {
 		}
 
 		if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+			opt.isError = false;
 			if (opt.success) {
 				opt.success(result);
 			} else if (opt.handler) {

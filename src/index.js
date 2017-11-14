@@ -56,6 +56,7 @@ Global.window.addEventListener('submit', function (e) {
 					data: data,
 					url: action,
 					method: method,
+					contentType: 'json',
 					handler: submitHandler.bind(container.model)
 				});
 			} else {
