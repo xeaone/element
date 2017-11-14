@@ -12,29 +12,10 @@
 </head>
 <body>
 
-	<!-- <script>
-		var script = document.createElement('script');
-		var polly = script.cloneNode();
-		var oxe = script.cloneNode();
-		polly.async = false;
-		oxe.async = false;
-
-		if (window.location.origin === 'https://alexanderelias.github.io') {
-			var href ='/oxe/performance/';
-			document.head.insertAdjacentHTML('afterbegin', '<base href="' + href + '">');
-			polly.src = '../assets/webcomponents-lite.min.js';
-			oxe.src = '../assets/oxe.js';
-		} else {
-			polly.src = 'assets/webcomponents-lite.min.js';
-			oxe.src = '/assets/oxe.js';
-		}
-		document.head.appendChild(jScript);
-		document.head.appendChild(lScript);
-	</script> -->
-
 	<style>
-		body, o-loop, [o-each-item] {
-			min-height: 12710px;
+		html, body, o-loop {
+			width: 100%;
+			display: block;
 		}
 		.group {
 			margin: 4px;
@@ -54,6 +35,11 @@
 		}
 		h3 {
 			text-align: center;
+		}
+		.box {
+			margin: 5px;
+			padding: 5px;
+			display: inline-block;
 		}
 	</style>
 

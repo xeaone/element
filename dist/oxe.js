@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.7
+	Version: 2.5.8
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -14,13 +14,148 @@
 	(global.Oxe = factory());
 }(this, (function () { 'use strict';
 
+	var Utility = {};
+
+	Utility.createBase = function (base) {
+		var element = document.head.querySelector('base');
+
+		if (!element) {
+			element = document.createElement('base');
+			document.head.insertBefore(element, document.head.firstChild);
+		}
+
+		if (typeof base === 'string') {
+			element.href = base;
+		}
+
+		base = element.href;
+
+		return base;
+	};
+
+	Utility.formData = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		var data = {};
+
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
+			var path = element.getAttribute('o-value');
+			var name = path.split('.').slice(-1);
+			data[name] = Utility.getByPath(model, path);
+		}
+
+		return data;
+	};
+
+	Utility.toText = function (data) {
+		if (data === undefined) return ''; // data === null ||
+		if (typeof data === 'object') return JSON.stringify(data);
+		else return data.toString();
+	};
+
+	Utility.ensureByPath = function (data, path) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!(key in data)) {
+				if (isNaN(keys[i+1])) {
+					data[key] = {};
+				} else {
+					data[key] = [];
+				}
+			}
+			data = data[key];
+		}
+
+		return {
+			data: data,
+			key: keys[last]
+		}
+	};
+
+	Utility.setByPath = function (data, path, value) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!(key in data)) {
+				if (isNaN(keys[i+1])) {
+					data[key] = {};
+				} else {
+					data[key] = [];
+				}
+			}
+			data = data[key];
+		}
+
+		return data[keys[last]] = value;
+	};
+
+	Utility.getByPath = function (data, path) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!data[key]) {
+				return undefined;
+			} else {
+				data = data[key];
+			}
+		}
+
+		return data[keys[last]];
+	};
+
+	Utility.removeChildren = function (element) {
+		var child;
+		while (child = element.lastElementChild) {
+			element.removeChild(child);
+		}
+	};
+
+	Utility.joinSlash = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	};
+
+	Utility.joinDot = function () {
+		return Array.prototype.join
+			.call(arguments, '.')
+			.replace(/\.{2,}/g, '.');
+	};
+
+	Utility.getContainer = function getContainer (element, target) {
+
+		if (element === document.body || element.nodeName === 'O-VIEW') {
+			return;
+		}
+
+		if (element.hasAttribute('o-uid')) {
+			return element;
+		}
+
+		if (element.parentElement) {
+			return this.getContainer(element.parentElement, target);
+		}
+
+		if (target) {
+			return this.getContainer(target);
+		}
+
+		console.warn('Utility could not find a uid');
+	};
+
 	var Component = {};
 
 	Component.data = {};
-
 	Component.currentScript = (document._currentScript || document.currentScript);
 
-	Component._slots = function (element, template) {
+	Component.handleSlots = function (element, template) {
 		var tSlots = template.content.querySelectorAll('slot');
 		for (var i = 0, l = tSlots.length; i < l; i++) {
 			var tSlot = tSlots[i];
@@ -32,7 +167,7 @@
 		}
 	};
 
-	Component._template = function (data) {
+	Component.handleTemplate = function (data) {
 		var template;
 		if (data.html) {
 			template = document.createElement('template');
@@ -61,25 +196,23 @@
 		return template;
 	};
 
-	Component._define = function (name, proto) {
-		document.registerElement(name, {
-			prototype: proto
-		});
-	};
-
 	Component.define = function (options) {
 		var self = this;
 
 		if (!options.name) {
-			throw new Error('Component requires name');
+			throw new Error('Oxe.component.define requires name');
 		}
 
 		if (!options.html && !options.query && !options.element) {
-			throw new Error('Component requires html, query, or element');
+			throw new Error('Oxe.component.define requires html, query, or element');
 		}
 
-		options.template = self._template(options);
+		options.view = options.view || {};
+		options.model = options.model || {};
+		options.template = self.handleTemplate(options);
+
 		options.proto = Object.create(HTMLElement.prototype);
+
 		options.proto.attachedCallback = options.attached;
 		options.proto.detachedCallback = options.detached;
 		options.proto.attributeChangedCallback = options.attributed;
@@ -96,16 +229,14 @@
 			var uid = options.name + '-' + self.data[options.name].length;
 
 			element.setAttribute('o-uid', uid);
-			element.isBinded = false;
-			element.view = Global$1.view.data[uid] = {};
-
-			if (options.model) element.model = Global$1.model.data.$set(uid, options.model)[uid];
-			if (options.events) element.events = Global$1.events.data[uid] = options.events;
-			if (options.modifiers) element.modifiers = Global$1.modifiers.data[uid] = options.modifiers;
+			element.view = Global$1.view.data[uid] = options.view;
+			element.events = Global$1.events.data[uid] = options.events;
+			element.model = Global$1.model.data.$set(uid, options.model)[uid];
+			element.modifiers = Global$1.modifiers.data[uid] = options.modifiers;
 
 			// might want to handle default slot
 			// might want to overwrite content
-			self._slots(element, options.template);
+			self.handleSlots(element, options.template);
 
 			if (options.shadow) {
 				element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
@@ -119,7 +250,9 @@
 
 		};
 
-		self._define(options.name, options.proto);
+		document.registerElement(options.name, {
+			prototype: options.proto
+		});
 	};
 
 	var Batcher = {};
@@ -127,30 +260,38 @@
 	Batcher.tasks = [];
 	Batcher.reads = [];
 	Batcher.writes = [];
-	Batcher.rafCount = 0;
-	Batcher.maxTaskTimeMS = 30;
 	Batcher.pending = false;
+	Batcher.maxTaskTimeMS = 30;
 
-	// Adds a task to the read batch
+	// adds a task to the read batch
 	Batcher.read = function (method, context) {
 		var task = context ? method.bind(context) : method;
 		this.reads.push(task);
 		this.tick();
 	};
 
-
-	// Adds a task to the write batch
+	// adds a task to the write batch
 	Batcher.write = function (method, context) {
 		var task = context ? method.bind(context) : method;
 		this.writes.push(task);
 		this.tick();
 	};
 
-	// Schedules a new read/write batch if one isn't pending.
+	// removes a pending task
+	Batcher.remove = function (tasks, task) {
+		var index = tasks.indexOf(task);
+		return !!~index && !!tasks.splice(index, 1);
+	};
+
+	// clears a pending read or write task
+	Batcher.clear = function (task) {
+		return this.remove(this.reads, task) || this.remove(this.writes, task);
+	};
+
+	// schedules a new read/write batch if one is not pending
 	Batcher.tick = function () {
-		var self = this;
-		if (!self.pending) {
-			self.flush();
+		if (!this.pending) {
+			this.flush();
 		}
 	};
 
@@ -166,16 +307,6 @@
 				}
 			});
 		});
-	};
-
-	// Clears a pending 'read' or 'write' task
-	Batcher.clear = function (task) {
-		return this.remove(this.reads, task) || this.remove(this.writes, task);
-	};
-
-	Batcher.remove = function (tasks, task) {
-		var index = tasks.indexOf(task);
-		return !!~index && !!tasks.splice(index, 1);
 	};
 
 	Batcher.run = function (tasks, callback) {
@@ -201,6 +332,14 @@
 
 	var Fetcher = {};
 
+	Fetcher.mime = {
+		xml: 'text/xml; charset=utf-8',
+		html: 'text/html; charset=utf-8',
+		text: 'text/plain; charset=utf-8',
+		json: 'application/json; charset=utf-8',
+		js: 'application/javascript; charset=utf-8'
+	};
+
 	Fetcher.setup = function (opt) {
 		opt = opt || {};
 		this.auth = opt.auth || false;
@@ -208,14 +347,6 @@
 		this.request = opt.request || opt.request;
 		this.response = opt.response || opt.response;
 		return this;
-	};
-
-	Fetcher.mime = {
-		xml: 'text/xml; charset=utf-8',
-		html: 'text/html; charset=utf-8',
-		text: 'text/plain; charset=utf-8',
-		json: 'application/json; charset=utf-8',
-		js: 'application/javascript; charset=utf-8'
 	};
 
 	Fetcher.serialize = function (data) {
@@ -229,17 +360,64 @@
 		return string;
 	};
 
-	// Fetcher.onreadystatechange = function () { };
+	Fetcher.onreadystatechange = function (opt, result, xhr) {
+		if (xhr.readyState === 4) {
+
+			result.opt = opt;
+			result.xhr = xhr;
+			result.statusCode = xhr.status;
+			result.statusText = xhr.statusText;
+
+			if (xhr['response'] !== undefined) {
+				result.data = xhr.response;
+			} else if (xhr['responseText'] !== undefined) {
+				result.data = xhr.responseText;
+			} else {
+				result.data = undefined;
+			}
+
+			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
+			if (opt.responseType === 'json' && typeof result.data === 'string') {
+				result.data = JSON.parse(result.data || {});
+			}
+
+			if (xhr.status === 401 || xhr.status === 403) {
+				if (this.auth || result.opt.auth) {
+					if (Global$1.keeper.response) {
+						return Global$1.keeper.response(result);
+					}
+				}
+			}
+
+			if (this.response && this.response(result) === false) {
+				return;
+			}
+
+			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+				if (opt.success) {
+					opt.success(result);
+				} else if (opt.handler) {
+					opt.handler(result);
+				}
+			} else {
+				opt.isError = true;
+				if (opt.error) {
+					opt.error(result);
+				} else if (opt.handler) {
+					opt.handler(result);
+				}
+			}
+
+		}
+	};
 
 	Fetcher.fetch = function (opt) {
-		var self = this;
 		var result = {};
 		var xhr = new XMLHttpRequest();
 
 		opt = opt || {};
 		opt.headers = {};
 		opt.error = false;
-		opt.type = opt.type || this.type;
 		opt.url = opt.url ? opt.url : window.location.href;
 		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
 
@@ -253,21 +431,21 @@
 
 		if (opt.contentType) {
 			switch (opt.contentType) {
-				case 'js': opt.headers['Content-Type'] = self.mime.js; break;
-				case 'xml': opt.headers['Content-Type'] = self.mime.xm; break;
-				case 'html': opt.headers['Content-Type'] = self.mime.html; break;
-				case 'json': opt.headers['Content-Type'] = self.mime.json; break;
-				default: opt.headers['Content-Type'] = self.mime.text;
+				case 'js': opt.headers['Content-Type'] = this.mime.js; break;
+				case 'xml': opt.headers['Content-Type'] = this.mime.xm; break;
+				case 'html': opt.headers['Content-Type'] = this.mime.html; break;
+				case 'json': opt.headers['Content-Type'] = this.mime.json; break;
+				default: opt.headers['Content-Type'] = this.mime.text;
 			}
 		}
 
 		if (opt.acceptType) {
 			switch (opt.acceptType) {
-				case 'js': opt.headers['Accept'] = self.mime.js; break;
-				case 'xml': opt.headers['Accept'] = self.mime.xml; break;
-				case 'html': opt.headers['Accept'] = self.mime.html; break;
-				case 'json': opt.headers['Accept'] = self.mime.json; break;
-				default: opt.headers['Accept'] = self.mime.text;
+				case 'js': opt.headers['Accept'] = this.mime.js; break;
+				case 'xml': opt.headers['Accept'] = this.mime.xml; break;
+				case 'html': opt.headers['Accept'] = this.mime.html; break;
+				case 'json': opt.headers['Accept'] = this.mime.json; break;
+				default: opt.headers['Accept'] = this.mime.text;
 			}
 		}
 
@@ -304,14 +482,14 @@
 		}
 
 		if (opt.data && opt.method === 'GET') {
-			opt.url = opt.url + '?' + self.serialize(opt.data);
+			opt.url = opt.url + '?' + this.serialize(opt.data);
 		}
 
 		result.xhr = xhr;
 		result.opt = opt;
 		result.data = opt.data;
 
-		if (self.auth && (
+		if (this.auth && (
 			result.opt.auth === true ||
 			result.opt.auth === undefined
 		)) {
@@ -320,60 +498,11 @@
 			}
 		}
 
-		if (self.request && self.request(result) === false) {
+		if (this.request && this.request(result) === false) {
 			return;
 		}
 
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState === 4) {
-
-				result.opt = opt;
-				result.xhr = xhr;
-				result.statusCode = xhr.status;
-				result.statusText = xhr.statusText;
-
-				if (xhr['response'] !== undefined) {
-					result.data = xhr.response;
-				} else if (xhr['responseText'] !== undefined) {
-					result.data = xhr.responseText;
-				} else {
-					result.data = undefined;
-				}
-
-				// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
-				if (opt.responseType === 'json' && typeof result.data === 'string') {
-					result.data = JSON.parse(result.data || {});
-				}
-
-				if (xhr.status === 401 || xhr.status === 403) {
-					if (self.auth || result.opt.auth) {
-						if (Global$1.keeper.response) {
-							return Global$1.keeper.response(result);
-						}
-					}
-				}
-
-				if (self.response && self.response(result) === false) {
-					return;
-				}
-
-				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-					if (opt.success) {
-						opt.success(result);
-					} else if (opt.handler) {
-						opt.handler(result);
-					}
-				} else {
-					opt.isError = true;
-					if (opt.error) {
-						opt.error(result);
-					} else if (opt.handler) {
-						opt.handler(result);
-					}
-				}
-
-			}
-		};
+		xhr.onreadystatechange = this.onreadystatechange.bind(this, opt, result, xhr);
 
 		xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
 
@@ -466,6 +595,7 @@
 
 	Router.cache = {};
 	Router.routes = [];
+	Router.base = false;
 	Router.hash = false;
 	Router.auth = false;
 	Router.isRan = false;
@@ -475,12 +605,12 @@
 
 	Router.setup = function (options) {
 		options = options || {};
+		this.base = options.base === undefined ? this.base: options.base;
 		this.auth = options.auth === undefined ? this.auth : options.auth;
 		this.view = options.view === undefined ? this.view : options.view;
 		this.hash = options.hash === undefined ? this.hash : options.hash;
 		this.routes = options.routes === undefined ? this.routes: options.routes;
 		this.external = options.external === undefined ? this.external: options.external;
-		this.container = options.container === undefined ? this.container: options.container;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 		this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
 	};
@@ -628,7 +758,7 @@
 		var location = {};
 
 		location.pathname = decodeURI(path);
-		location.origin = window.location.origin;
+		location.origin = Global$1.location.origin;
 		location.base = this.base ? this.base : location.origin;
 
 		location.port = window.location.port;
@@ -856,10 +986,10 @@
 	var Loader = {};
 
 	Loader.loads = [];
-	Loader.files = {};
 	Loader.modules = {};
 	Loader.esm = false;
 	Loader.est = false;
+	Loader.base = false;
 
 	Loader.patterns = {
 		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
@@ -873,7 +1003,7 @@
 		this.loads = options.loads || this.loads;
 		this.esm = options.esm === undefined ? this.esm : options.esm;
 		this.est = options.est === undefined ? this.est : options.est;
-		this.base = options.base === undefined ? Utility.createBase() : options.base;
+		this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
 	};
 
 	Loader.xhr = function (data, callback) {
@@ -971,8 +1101,8 @@
 			url = url + '.js';
 		}
 
-		if (url.indexOf('/') !== 0) {
-			url = Utility.joinSlash(this.base.replace(window.location.origin, ''), url);
+		if (this.base && url.indexOf('/') !== 0) {
+			url = Utility.joinSlash(Global$1.base.replace(window.location.origin, ''), url);
 		}
 
 		return url;
@@ -1015,7 +1145,6 @@
 		}
 
 		data.url = self.normalizeUrl(data.url);
-		self.files[data.url] = data;
 
 		if (data.url in self.modules) {
 			return callback ? callback() : undefined;
@@ -1199,34 +1328,65 @@
 	//     }).join(''));
 	// };
 
-	function Observer (data, callback, path) {
-		defineProperties(data, callback, path, true);
+	var Observer = {};
+
+	Observer.create = function (data, callback, path) {
+		Observer.defineProperties(data, callback, path, true);
 		return data;
-	}
+	};
 
-	function defineProperties (data, callback, path, redefine) {
+	Observer.defineProperties = function (data, callback, path, redefine) {
 		path = path ? path + '.' : '';
-		for (var key in data) defineProperty(data, key, data[key], callback, path, redefine);
-		if (data.constructor === Object) overrideObjectMethods(data, callback, path);
-		else if (data.constructor === Array) overrideArrayMethods(data, callback, path);
-	}
 
-	function defineProperty (data, key, value, callback, path, redefine) {
+		var propertyDescriptors = {};
+
+		for (var key in data) {
+			var propertyDescriptor = Observer.createPropertyDescriptor(data, key, data[key], callback, path, redefine);
+			if (propertyDescriptor) {
+				propertyDescriptors[key] = propertyDescriptor;
+			}
+		}
+
+		Object.defineProperties(data, propertyDescriptors);
+
+		if (data.constructor === Object) {
+			Observer.overrideObjectMethods(data, callback, path);
+		} else if (data.constructor === Array) {
+			Observer.overrideArrayMethods(data, callback, path);
+		}
+	};
+
+	Observer.defineProperty = function (data, key, value, callback, path, redefine) {
+		var propertyDescriptor = Observer.createPropertyDescriptor(data, key, value, callback, path, redefine);
+		if (propertyDescriptor) {
+			Object.defineProperty(data, key, propertyDescriptor);
+		}
+	};
+
+	Observer.createPropertyDescriptor = function (data, key, value, callback, path, redefine) {
+		path = path || '';
+
 		var property = Object.getOwnPropertyDescriptor(data, key);
 
-		if (property && property.configurable === false) return;
+		if (property && property.configurable === false) {
+			return;
+		}
 
 		var getter = property && property.get;
 		var setter = property && property.set;
 
 		// recursive observe child properties
-		if (value && typeof value === 'object') defineProperties(value, callback, path + key, redefine);
+		if (value && typeof value === 'object') {
+			Observer.defineProperties(value, callback, path + key, redefine);
+		}
 
 		// set the property value if getter setter previously defined and redefine is false
-		if (getter && setter && !redefine) return setter.call(data, value);
-		// if (getter && setter && redefine === false) return setter.call(data, value);
+		if (getter && setter && !redefine) {
+			setter.call(data, value);
+			return;
+		}
 
-		Object.defineProperty(data, key, {
+		return {
 			enumerable: true,
 			configurable: true,
 			get: function () {
@@ -1237,43 +1397,68 @@
 				var oldValue = getter ? getter.call(data) : value;
 
 				// set the value with the same value not updated
-				if (newValue === oldValue) return;
+				if (newValue === oldValue) {
+					return;
+				}
 
-				if (setter) setter.call(data, newValue);
-				else value = newValue;
+				if (setter) {
+					setter.call(data, newValue);
+				} else {
+					value = newValue;
+				}
 
 				//	adds attributes to new valued property getter setter
-				if (newValue && typeof newValue === 'object') defineProperties(newValue, callback, path + key, redefine);
+				if (newValue && typeof newValue === 'object') {
+					Observer.defineProperties(newValue, callback, path + key, redefine);
+				}
 
-				if (callback) callback(newValue, path + key, key, data);
+				if (callback) {
+					callback(newValue, path + key, key, data);
+				}
+
 			}
-		});
-	}
+		};
+	};
 
-	function overrideObjectMethods (data, callback, path) {
+	Observer.overrideObjectMethods = function (data, callback, path) {
 		Object.defineProperties(data, {
 			$set: {
 				configurable: true,
 				value: function (key, value) {
-					if (typeof key !== 'string' || value === undefined) return;
-					var isNew = !(key in data);
-					defineProperty(data, key, value, callback, path);
-					if (isNew && callback) callback(data[key], path + key, key, data);
+
+					if (typeof key !== 'string' || value === undefined) {
+						return;
+					}
+
+					Observer.defineProperty(data, key, value, callback, path);
+
+					if (!(key in data) && callback) {
+						callback(data[key], path + key, key, data);
+					}
+
 					return data;
 				}
 			},
 			$remove: {
 				configurable: true,
 				value: function (key) {
-					if (typeof key !== 'string') return;
+
+					if (typeof key !== 'string') {
+						return;
+					}
+
 					delete data[key];
-					if (callback) callback(undefined, path + key, key, data);
+
+					if (callback) {
+						callback(undefined, path + key, key, data);
+					}
+
 				}
 			}
 		});
-	}
+	};
 
-	function overrideArrayMethods (data, callback, path) {
+	Observer.overrideArrayMethods = function (data, callback, path) {
 		Object.defineProperties(data, {
 			push: {
 				configurable: true,
@@ -1281,10 +1466,10 @@
 					if (!arguments.length) return data.length;
 
 					for (var i = 0, l = arguments.length; i < l; i++) {
-						defineProperty(data, data.length, arguments[i], callback, path);
+						Observer.defineProperty(data, data.length, arguments[i], callback, path);
 
 						if (callback) {
-							callback(data.length, path + 'length', 'length', data);
+							callback(data.length, path.slice(0, -1), 'length', data);
 							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 						}
 
@@ -1313,10 +1498,9 @@
 					}
 
 					for (i = 0, l = result.length; i < l; i++) {
-					// for (i, l = result.length; i < l; i++) {
-						defineProperty(data, data.length, result[i], callback, path);
+						Observer.defineProperty(data, data.length, result[i], callback, path);
 						if (callback) {
-							callback(data.length, path + 'length', 'length', data);
+							callback(data.length, path.slice(0, -1), 'length', data);
 							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 						}
 					}
@@ -1334,7 +1518,7 @@
 					data.length--;
 
 					if (callback) {
-						callback(data.length, path + 'length', 'length', data);
+						callback(data.length, path.slice(0, -1), 'length', data);
 						callback(undefined, path + data.length, data.length, data);
 					}
 
@@ -1355,7 +1539,7 @@
 					data.length--;
 
 					if (callback) {
-						callback(data.length, path + 'length', 'length', data);
+						callback(data.length, path.slice(0, -1), 'length', data);
 						callback(undefined, path + data.length, data.length, data);
 					}
 
@@ -1373,7 +1557,7 @@
 					var result = [];
 					var index, i, l;
 
-					// follow spec more or less
+					// this would follow spec more or less
 					// startIndex = parseInt(startIndex, 10);
 					// deleteCount = parseInt(deleteCount, 10);
 
@@ -1427,9 +1611,9 @@
 					// add and observe or remove items
 					if (i > 0) {
 						while (i--) {
-							defineProperty(data, data.length, result[index++], callback, path);
+							Observer.defineProperty(data, data.length, result[index++], callback, path);
 							if (callback) {
-								callback(data.length, path + 'length', 'length', data);
+								callback(data.length, path.slice(0, -1), 'length', data);
 								callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 							}
 						}
@@ -1437,7 +1621,7 @@
 						while (i++) {
 							data.length--;
 							if (callback) {
-								callback(data.length, path + 'length', 'length', data);
+								callback(data.length, path.slice(0, -1), 'length', data);
 								callback(undefined, path + data.length, data.length, data);
 							}
 						}
@@ -1447,19 +1631,42 @@
 				}
 			}
 		});
-	}
+	};
 
 	var Model = {};
 
 	Model.data = {};
-	Model.isRan = false;
+	Model.isSetup = false;
 	Model.container = document.body;
 
 	Model.overwrite = function (data) {
-		Observer(
+		Observer.create(
 			this.data = data,
 			this.observer.bind(this)
 		);
+	};
+
+	Model.get = function (keys) {
+		return Utility.getByPath(this.data, keys);
+	};
+
+	Model.set = function (keys, value) {
+		return Utility.setByPath(this.data, keys, value);
+	};
+
+	Model.ensureSet = function (keys, value) {
+		var result = Utility.ensureByPath(this.data, keys);
+		return result.data.$set(result.key, value);
+	};
+
+	Model.ensureGet = function (keys) {
+		var result = Utility.ensureByPath(this.data, keys);
+
+		if (result.data[result.key] === undefined) {
+			return result.data.$set(result.key, null);
+		} else {
+			return result.data[result.key];
+		}
 	};
 
 	Model.listener = function (element) {
@@ -1512,14 +1719,13 @@
 		this.listener.call(this, e.target);
 	};
 
-	Model.view = {};
-
 	Model.observer = function (data, path) {
 		var paths = path.split('.');
 		var uid = paths[0];
 		var type = data === undefined ? 'unrender' : 'render';
 
 		path = paths.slice(1).join('.');
+		// console.log(path);
 
 		if (path) {
 			Global$1.view.eachBinder(uid, path, function (binder) {
@@ -1529,11 +1735,14 @@
 
 	};
 
-	Model.run = function () {
-		if (this.isRan) return;
-		else this.isRan = true;
+	Model.setup = function () {
+		if (this.isSetup) {
+			return;
+		} else {
+			this.isSetup = true;
+		}
 
-		Observer(
+		Observer.create(
 			this.data,
 			this.observer.bind(this)
 		);
@@ -1542,155 +1751,97 @@
 		Global$1.changes.push(this.change.bind(this));
 	};
 
-	var OnceBinder = {};
-
-	OnceBinder.bind = function (element, attribute, container) {
-
-		if (
-			!container.model ||
-			!this.type[attribute.cmds[0]]
-		) return;
-
-		var data = {};
-		var type = attribute.cmds[0];
-		var key = attribute.parentKey;
-
-		data.element = element;
-		data.attribute = attribute;
-		data.container = container;
-
-		data.model = attribute.parentPath ? Utility.getByPath(container.model, attribute.parentPath) : container.model;
-		data.value = data.model[key];
-
-		var value = this.type[type].call(this, data);
-
-		if (value) {
-			data.model.$set(key, value);
-			// if (model[key] === undefined) {
-			// } else if (value.constructor === Array) {
-			// 	// FIXME selects not setting defaults
-			// 	model[key].push.apply(null, value);
-			// }
-		}
-
-	};
-
-	OnceBinder.kind = {
-		checkbox: function (data) {
-			data.value = !data.value ? false : data.value;
-			data.element.value = data.element.checked = data.value;
-			return data.value;
-		},
-		select: function (data) {
-			var options = data.element.options;
-
-			data.value = data.element.multiple ? [] : data.value;
-
-			for (var i = 0, l = options.length; i < l; i++) {
-				var option = options[i];
-				if (option.selected) {
-					if (data.element.multiple) {
-						data.value.push(option.value);
-					} else {
-						data.value = option.value;
-						break;
-					}
-				}
-			}
-
-			return data.value;
-		},
-		radio: function (data) {
-			var query = 'input[type="radio"][o-value="' + data.attribute.value + '"]';
-			var elements = data.element.parentNode.querySelectorAll(query);
-
-			for (var i = 0, l = elements.length; i < l; i++) {
-				var radio = elements[i];
-				radio.checked = i === data.value;
-			}
-
-			return data.value;
-		},
-		default: function (data) {
-			data.value = data.value === undefined ? '' : data.value;
-			data.element.value = data.value;
-			return data.value;
-		},
-	};
-
-	OnceBinder.type = {
-		value: function (data) {
-			var kind;
-
-			if (data.element.type === 'checkbox') {
-				kind = 'checkbox';
-			} else if (data.element.nodeName === 'SELECT') {
-				kind = 'select';
-			} else if (data.element.type === 'radio') {
-				kind = 'radio';
-			} else {
-				kind = 'default';
-			}
-
-			return this.kind[kind].call(this, data);
-		}
-
-	};
-
-	// TODO sanitize input/output
-
 	function Binder (options) {
+		this.cache;
 
+		this.uid = options.uid;
 		this.element = options.element;
 		this.container = options.container;
 		this.attribute = options.attribute;
 
-		this.model = this.container.model;
+		this.keys = this.attribute.opts;
 		this.events = this.container.events;
 		this.modifiers = this.container.modifiers;
 		this.type = this.attribute.cmds[0] || 'default';
 
-		if (this.type === 'on') {
-			this.data = Utility.getByPath(this.events, this.attribute.path).bind(this.model);
-		} else {
-			Object.defineProperty(this, 'data', {
-				enumerable: true,
-				configurable: false,
-				get: function () {
-					var data = Utility.getByPath(this.model, this.attribute.path);
+		this.keys.unshift(this.uid);
 
-					if (data === undefined) {
-						console.warn('Binder - undefined path \"' + this.attribute.path + '\"');
-					}
-
-					return this.modify(data);
-				}
-			});
-
-		}
-
+		this.ensureData();
 		this.setup();
 		this.render();
 	}
 
-	Binder.prototype.modify = function (data) {
-		if (!data) return data;
+	Binder.prototype.ensureData = function (data) {
+		if (data === undefined) {
+			return Global$1.model.ensureGet(this.keys);
+		} else {
+			return Global$1.model.ensureSet(this.keys, data);
+		}
+	};
+
+	Binder.prototype.setData = function (data) {
+		return Global$1.model.set(this.keys, data);
+	};
+
+	Binder.prototype.getData = function () {
+		var data = Global$1.model.get(this.keys);
+
+		// if (data === undefined) {
+		// 	console.warn('Binder.getData - undefined: ' + this.attribute.path);
+		// }
+
+		return data === undefined ? data : this.modifyData(data);
+	};
+
+	Binder.prototype.modifyData = function (data) {
+		var model = Global$1.model.get([this.uid]);
 
 		for (var i = 0, l = this.attribute.modifiers.length; i < l; i++) {
-
-			data = this.modifiers[this.attribute.modifiers[i]].call(this.model, data);
-
-			if (data === undefined) {
-				console.warn('Binder - undefined modifier \"' + this.attribute.modifiers[i] + '\"');
-			}
-
+			data = this.modifiers[this.attribute.modifiers[i]].call(model, data);
 		}
 
 		return data;
 	};
 
 	Binder.prototype.setupMethods = {
-		each: function () {
+		value: function (data) {
+			var i , l;
+			if (this.element.type === 'checkbox') {
+				data = !data ? false : data;
+				this.element.checked = data;
+				this.element.value = data;
+			} else if (this.element.nodeName === 'SELECT') {
+				var options = this.element.options;
+				data = this.element.multiple ? [] : data;
+				for (i = 0, l = options.length; i < l; i++) {
+					var option = options[i];
+					if (option.selected) {
+						if (this.element.multiple) {
+							data.push(option.value);
+						} else {
+							data = option.value;
+							break;
+						}
+					}
+				}
+			} else if (this.element.type === 'radio') {
+				var query = 'input[type="radio"][o-value="' + this.attribute.value + '"]';
+				var elements = this.element.parentNode.querySelectorAll(query);
+				for (i = 0, l = elements.length; i < l; i++) {
+					var radio = elements[i];
+					radio.checked = i === data;
+				}
+			} else {
+				data = data === undefined ? '' : data;
+				this.element.value = data;
+			}
+			return data;
+		},
+		on: function () {
+			var model = Global$1.model.get([this.uid]);
+			this.cache = Utility.getByPath(this.events, this.attribute.path).bind(model);
+		},
+		each: function (data) {
 			this.variable = this.attribute.cmds[1];
 			this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
 			this.clone = this.element.removeChild(this.element.firstElementChild);
@@ -1698,80 +1849,106 @@
 				new RegExp('((?:data-)?o-.*?=")' + this.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
 				'$1' + this.attribute.path + '.$' + this.variable + '$2'
 			);
-		}
+
+			return data || [];
+		},
+		text: function (data) {
+			return data === null ? '' : data;
+		},
+		enable: function (data) {
+			return data === false ? false : true;
+		},
+		disable: function (data) {
+			return data === false ? false : true;
+		},
+		show: function (data) {
+			return data === false ? false : true;
+		},
+		hide: function (data) {
+			return data === false ? false : true;
+		},
+		write: function (data) {
+			return data === false ? false : true;
+		},
+		read: function (data) {
+			return data === false ? false : true;
+		},
+		required: function (data) {
+			return data === false ? false : true;
+		},
 	};
 
 	Binder.prototype.renderMethods = {
-		on: function () {
-			this.element.removeEventListener(this.attribute.cmds[1], this.data);
-			this.element.addEventListener(this.attribute.cmds[1], this.data);
+		on: function (data) {
+			this.element.removeEventListener(this.attribute.cmds[1], data);
+			this.element.addEventListener(this.attribute.cmds[1], data);
 		},
-		each: function () {
-			if (typeof this.data !== 'object') {
-				return;
-			} else if (this.element.children.length > this.data.length) {
-				this.element.removeChild(this.element.lastElementChild);
-				this.render();
-			} else if (this.element.children.length < this.data.length) {
-				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
-				this.render();
+		each: function (data) {
+			if (this.element.children.length > data.length) {
+				while (this.element.children.length > data.length) {
+					this.element.removeChild(this.element.lastElementChild);
+				}
+			} else if (this.element.children.length < data.length) {
+				while (this.element.children.length < data.length) {
+					this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
+				}
 			}
 		},
-		html: function () {
-			this.element.innerHTML = this.data;
+		html: function (data) {
+			this.element.innerHTML = data;
 		},
 		css: function (data) {
 			if (this.attribute.cmds.length > 1) {
-				this.data = this.attribute.cmds.slice(1).join('-') + ': ' +  this.data + ';';
+				data = this.attribute.cmds.slice(1).join('-') + ': ' +  data + ';';
 			}
-			this.element.style.cssText += this.data;
+			this.element.style.cssText += data;
 		},
-		class: function () {
+		class: function (data) {
 			var className = this.attribute.cmds.slice(1).join('-');
-			this.element.classList.toggle(className, this.data);
+			this.element.classList.toggle(className, data);
 		},
-		text: function () {
-			this.element.innerText = Utility.toText(this.data);
+		text: function (data) {
+			this.element.innerText = Utility.toText(data);
 		},
-		enable: function () {
-			this.element.disabled = !this.data;
+		enable: function (data) {
+			this.element.disabled = !data;
 		},
-		disable: function () {
-			this.element.disabled = this.data;
+		disable: function (data) {
+			this.element.disabled = data;
 		},
-		show: function () {
-			this.element.hidden = !this.data;
+		show: function (data) {
+			this.element.hidden = !data;
 		},
-		hide: function () {
-			this.element.hidden = this.data;
+		hide: function (data) {
+			this.element.hidden = data;
 		},
-		write: function () {
-			this.element.readOnly = !this.data;
+		write: function (data) {
+			this.element.readOnly = !data;
 		},
-		read: function () {
-			this.element.readOnly = this.data;
+		read: function (data) {
+			this.element.readOnly = data;
 		},
-		selected: function () {
-			this.element.selectedIndex = this.data;
+		required: function (data) {
+			this.element.required = data;
 		},
-		href: function () {
-			this.element.href = this.data;
+		selected: function (data) {
+			this.element.selectedIndex = data;
 		},
-		src: function () {
-			this.element.src = this.data;
+		href: function (data) {
+			this.element.href = data;
 		},
-		alt: function () {
-			this.element.alt = this.data;
+		src: function (data) {
+			this.element.src = data;
 		},
-		required: function () {
-			this.element.required = this.data;
+		alt: function (data) {
+			this.element.alt = data;
 		},
 		default: function () {}
 	};
 
 	Binder.prototype.unrenderMethods = {
 		on: function () {
-			this.element.removeEventListener(this.attribute.cmds[1], this.data, false);
+			this.element.removeEventListener(this.attribute.cmds[1], this.cache, false);
 		},
 		each: function () {
 			Utility.removeChildren(this.element);
@@ -1789,6 +1966,9 @@
 		text: function () {
 			this.element.innerText = '';
 		},
+		required: function () {
+			this.element.required = false;
+		},
 		href: function () {
 			this.element.href = '';
 		},
@@ -1803,7 +1983,9 @@
 
 	Binder.prototype.setup = function () {
 		if (this.type in this.setupMethods) {
-			this.setupMethods[this.type].call(this);
+			var data = this.getData();
+			data = this.setupMethods[this.type].call(this, data);
+			this.setData(data);
 		}
 		return this;
 	};
@@ -1817,7 +1999,8 @@
 
 	Binder.prototype.render = function () {
 		if (this.type in this.renderMethods) {
-			Global$1.batcher.write(this.renderMethods[this.type].bind(this));
+			var data = this.cache || this.getData();
+			Global$1.batcher.write(this.renderMethods[this.type].bind(this, data));
 		}
 		return this;
 	};
@@ -1825,7 +2008,7 @@
 	var View = {};
 
 	View.data = {};
-	View.isRan = false;
+	View.isSetup = false;
 	View.container = document.body;
 
 	View.PATH = /\s?\|.*/;
@@ -1836,16 +2019,14 @@
 	View.IS_ACCEPT_PATH = /(data-)?o-.*/;
 	View.IS_REJECT_PATH = /(data-)?o-value.*/;
 
+	View.isAny = function (attribute) {
+		return attribute.name.indexOf('o-') === 0
+		|| attribute.name.indexOf('data-o-') === 0;
+	};
+
 	View.isOnce = function (attribute) {
 		return attribute === 'o-value'
 			|| attribute === 'data-o-value';
-	};
-
-	View.isSkip = function (node) {
-		return node.nodeName === 'J-VIEW'
-			|| node.hasAttribute('o-uid')
-			|| node.hasAttribute('o-view')
-			|| node.hasAttribute('data-o-view');
 	};
 
 	View.isSkipChildren = function (node) {
@@ -1856,7 +2037,14 @@
 			|| node.nodeName === 'SVG';
 	};
 
-	View.isAccept = function (node) {
+	View.isSkipElement = function (node) {
+		return node.nodeName === 'J-VIEW'
+			|| node.hasAttribute('o-uid')
+			|| node.hasAttribute('o-view')
+			|| node.hasAttribute('data-o-view');
+	};
+
+	View.isAcceptElement = function (node) {
 		var attributes = node.attributes;
 
 		for (var i = 0, l = attributes.length; i < l; i++) {
@@ -1870,7 +2058,11 @@
 	};
 
 	View.isAcceptAttribute = function (attribute) {
-		return attribute.name.indexOf('o-') === 0
+		return attribute.name !== 'o-method'
+			&& attribute.name !== 'o-action'
+			&& attribute.name !== 'data-o-action'
+			&& attribute.name !== 'data-o-method'
+			&& attribute.name.indexOf('o-') === 0
 			|| attribute.name.indexOf('data-o-') === 0;
 	};
 
@@ -1886,7 +2078,6 @@
 
 		attribute.parentKey = attribute.path.replace(this.PARENT_KEY, '');
 		attribute.parentPath = attribute.path.replace(this.PARENT_PATH, '');
-		attribute.viewPath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
 
 		attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
 
@@ -1895,7 +2086,7 @@
 
 	View.eachAttribute = function (element, callback) {
 		var attributes = element.attributes;
-		for (var i = 0; i < attributes.length; i++) {
+		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
 			if (this.isAcceptAttribute(attribute)) {
 				callback.call(this, this.createAttribute(attribute.name, attribute.value));
@@ -1903,11 +2094,11 @@
 		}
 	};
 
-	View.eachAttributeAcceptPath = function (element, callback) {
+	View.eachPath = function (element, callback) {
 		var attributes = element.attributes;
-		for (var i = 0; i < attributes.length; i++) {
+		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
-			if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
+			if (this.isAny(attribute)) {
 				callback.call(this, attribute.value.replace(this.PATH, ''));
 			}
 		}
@@ -1916,7 +2107,7 @@
 	View.eachElement = function (element, target, callback) {
 		var container = Utility.getContainer(element, target);
 
-		if (this.isAccept(element) && !this.isSkip(element)) {
+		if (this.isAcceptElement(element) && !this.isSkipElement(element)) {
 			callback.call(this, element, container);
 		}
 
@@ -1948,7 +2139,7 @@
 
 		var binders = this.data[uid][path];
 
-		for (var i = 0; i < binders.length; i++) {
+		for (var i = 0, l = binders.length; i < l; i++) {
 			if (binders[i].element === element) {
 				return true;
 			}
@@ -1957,7 +2148,7 @@
 		return false;
 	};
 
-	View.push = function (uid, path, element, container, attribute) {
+	View.push = function (uid, path, binder) {
 
 		if (!(uid in this.data)) {
 			this.data[uid] = {};
@@ -1967,11 +2158,7 @@
 			this.data[uid][path] = [];
 		}
 
-		this.data[uid][path].push(new Binder({
-			element: element,
-			container: container,
-			attribute: attribute
-		}));
+		this.data[uid][path].push(binder);
 	};
 
 	View.add = function (addedNode, target) {
@@ -1979,13 +2166,15 @@
 			if (container) {
 				var uid = container.getAttribute('o-uid');
 				this.eachAttribute(element, function (attribute) {
-					if (this.isOnce(attribute.name)) {
-						OnceBinder.bind(element, attribute, container);
-					} else {
-						var path = attribute.viewPath;
-						if (!this.has(uid, path, element)) {
-							this.push(uid, path, element, container, attribute);
-						}
+					var binder = new Binder({
+						uid: uid,
+						element: element,
+						container: container,
+						attribute: attribute
+					});
+
+					if (!this.isOnce(attribute.name)) {
+						this.push(uid, attribute.path, binder);
 					}
 				});
 			}
@@ -1996,7 +2185,7 @@
 		this.eachElement(removedNode, target, function (element, container) {
 			if (container) {
 				var uid = container.getAttribute('o-uid');
-				this.eachAttributeAcceptPath(element, function (path) {
+				this.eachPath(element, function (path) {
 					this.eachBinder(uid, path, function (binder, index, binders, paths, key) {
 						if (binder.element === element) {
 							binder.unrender();
@@ -2043,13 +2232,16 @@
 		}
 	};
 
-	View.run = function () {
-		if (this.isRan) return;
-		else this.isRan = true;
+	View.setup = function () {
+		if (this.isSetup) {
+			return;
+		} else this.isSetup = true;
 
 		this.add(this.container);
 		Global$1.mutations.push(this.mutation.bind(this));
 	};
+
+	var base = document.head.querySelector('base');
 
 	var Global$1 = Object.defineProperties({}, {
 		window: {
@@ -2092,6 +2284,12 @@
 			enumerable: true,
 			get: function () {
 				return (document._currentScript || document.currentScript).ownerDocument;
+			}
+		},
+		base: {
+			enumerable: true,
+			get: function () {
+				return (base ? base.href : null) || window.location.href
 			}
 		},
 		global: {
@@ -2189,141 +2387,19 @@
 					this.router.setup(options.router);
 					this.router.run();
 				}
-				
+
 			}
 		}
 	});
 
-	var Utility = {};
-
-	Utility.createBase = function (base) {
-		base = base || '';
-
-		if (base) {
-			var element = document.head.querySelector('base');
-
-			if (!element) {
-				element = document.createElement('base');
-				document.head.insertBefore(element, document.head.firstChild);
-			}
-
-			if (base && typeof base === 'string') {
-				element.href = base;
-			}
-
-			base = element.href;
-		}
-
-		return base;
-	};
-
-	Utility.formData = function (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		var data = {};
-
-		for (var i = 0, l = elements.length; i < l; i++) {
-			var element = elements[i];
-			var path = element.getAttribute('o-value');
-			var name = path.split('.').slice(-1);
-			data[name] = Utility.getByPath(model, path);
-		}
-
-		return data;
-	};
-
-	Utility.toText = function (data) {
-		if (data === undefined) return ''; // data === null ||
-		if (typeof data === 'object') return JSON.stringify(data);
-		else return String(data);
-	};
-
-	Utility.setByPath = function (collection, path, value) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (collection[key] === undefined) collection[key] = {};
-			collection = collection[key];
-		}
-
-		return collection[keys[last]] = value;
-	};
-
-	Utility.getByPath = function (collection, path) {
-		var keys = path.split('.');
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			if (!collection[keys[i]]) return undefined;
-			else collection = collection[keys[i]];
-		}
-
-		return collection[keys[last]];
-	};
-
-	Utility.removeChildren = function (element) {
-		var self = this, child;
-		Global$1.batcher.write(function () {
-			while (child = element.lastElementChild) {
-				element.removeChild(child);
-			}
-		});
-	};
-
-	Utility.joinSlash = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
-	};
-
-	Utility.joinDot = function () {
-		return Array.prototype.join
-			.call(arguments, '.')
-			.replace(/\.{2,}/g, '.');
-	};
-
-	Utility.getContainer = function getContainer (element, target) {
-
-		if (element === document.body || element.nodeName === 'O-VIEW') {
-			return;
-		}
-
-		if (element.hasAttribute('o-uid')) {
-			return element;
-		}
-
-		if (element.parentElement) {
-			return this.getContainer(element.parentElement, target);
-		}
-
-		if (target) {
-			return this.getContainer(target);
-		}
-
-		console.warn('Utility could not find a uid');
-	};
-
-
-
-	// Utility.CAMEL = /-(\w)/g,
-	// Utility.toCamelCase = function (data) {
-	// 	return data.replace(this.CAMEL, function (match, next) {
-	// 		return next.toUpperCase();
-	// 	});
-	// }
-
-	// Utility.each = function (items, method, context) {
-	// 	return items.reduce(function (promise, item) {
-	// 		return promise.then(function () {
-	// 			return method.call(context, item);
-	// 		});
-	// 	}, Promise.resolve())
-
-	// };
-
 	if (window.Oxe) {
 		throw new Error('Oxe pre-defined duplicate Oxe scripts');
+	}
+
+	if (typeof String.prototype.endsWith !== 'function') {
+	    String.prototype.endsWith = function(suffix) {
+	        return this.indexOf(suffix, this.length - suffix.length) !== -1;
+	    };
 	}
 
 	Global$1.window.addEventListener('input', function (e) {
@@ -2409,8 +2485,8 @@
 		if (eIndex) Global$1.loader.load({ url: eIndex });
 	});
 
-	Global$1.view.run();
-	Global$1.model.run();
+	Global$1.view.setup();
+	Global$1.model.setup();
 
 	return Global$1;
 
