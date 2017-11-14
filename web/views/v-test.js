@@ -49,6 +49,14 @@ Oxe.component.define({
 		validate: function () {
 			console.log(arguments);
 			return true;
+		},
+		fetch: function () {
+			Oxe.fetcher.get({
+				url: '/data.json',
+				handler: function (result) {
+					console.log(result);
+				}
+			});
 		}
 	},
 	created: function () {
@@ -73,7 +81,7 @@ Oxe.component.define({
 				self.model.items.push({ it: { val: self.model.items.length } });
 
 			}, 10);
-		}, 1000);
+		}, 3000);
 
 		Say('v-test created');
 	},
@@ -168,7 +176,7 @@ Oxe.component.define({
 			</span>
 		</div>
 
-		<button o-on-click="say">Say Alert</button>
+		<button o-on-click="say">Console Log</button>
 		<input type="text" o-value="nope">
 		<input type="button" value="button">
 		<input type="reset" value="reset">
@@ -198,11 +206,11 @@ Oxe.component.define({
 
 		<div o-html="html"></div>
 
+		<button o-on-click="fetch">Fetch</button>
 
+		<div o-on-click="overwriteArray" o-each-ac="arrayChange">
+			<div o-text="ac"></div>
+		</div>
 
 	`
 });
-
-// <div o-on-click="overwriteArray" o-each-ac="arrayChange">
-// 	<div o-text="ac"></div>
-// </div>

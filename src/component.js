@@ -3,10 +3,9 @@ import Global from './global';
 var Component = {};
 
 Component.data = {};
-
 Component.currentScript = (document._currentScript || document.currentScript);
 
-Component._slots = function (element, template) {
+Component.handleSlots = function (element, template) {
 	var tSlots = template.content.querySelectorAll('slot');
 	for (var i = 0, l = tSlots.length; i < l; i++) {
 		var tSlot = tSlots[i];
@@ -18,7 +17,7 @@ Component._slots = function (element, template) {
 	}
 };
 
-Component._template = function (data) {
+Component.handleTemplate = function (data) {
 	var template;
 	if (data.html) {
 		template = document.createElement('template');
@@ -47,26 +46,23 @@ Component._template = function (data) {
 	return template;
 };
 
-Component._define = function (name, proto) {
-	document.registerElement(name, {
-		prototype: proto
-	});
-};
-
 Component.define = function (options) {
 	var self = this;
 
 	if (!options.name) {
-		throw new Error('Component requires name');
+		throw new Error('Oxe.component.define requires name');
 	}
 
 	if (!options.html && !options.query && !options.element) {
-		throw new Error('Component requires html, query, or element');
+		throw new Error('Oxe.component.define requires html, query, or element');
 	}
 
+	options.view = options.view || {};
 	options.model = options.model || {};
-	options.template = self._template(options);
+	options.template = self.handleTemplate(options);
+
 	options.proto = Object.create(HTMLElement.prototype);
+
 	options.proto.attachedCallback = options.attached;
 	options.proto.detachedCallback = options.detached;
 	options.proto.attributeChangedCallback = options.attributed;
@@ -83,20 +79,14 @@ Component.define = function (options) {
 		var uid = options.name + '-' + self.data[options.name].length;
 
 		element.setAttribute('o-uid', uid);
-		element.isBinded = false;
-		element.view = Global.view.data[uid] = {};
-
-		element.model = Global.model.data.$set(uid, options.model)[uid];
+		element.view = Global.view.data[uid] = options.view;
 		element.events = Global.events.data[uid] = options.events;
+		element.model = Global.model.data.$set(uid, options.model)[uid];
 		element.modifiers = Global.modifiers.data[uid] = options.modifiers;
-
-		// if (options.model)
-		// if (options.events)
-		// if (options.modifiers)
 
 		// might want to handle default slot
 		// might want to overwrite content
-		self._slots(element, options.template);
+		self.handleSlots(element, options.template);
 
 		if (options.shadow) {
 			element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
@@ -110,7 +100,9 @@ Component.define = function (options) {
 
 	};
 
-	self._define(options.name, options.proto);
+	document.registerElement(options.name, {
+		prototype: options.proto
+	});
 };
 
 export default Component;

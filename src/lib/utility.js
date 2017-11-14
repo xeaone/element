@@ -35,32 +35,64 @@ Utility.formData = function (form, model) {
 Utility.toText = function (data) {
 	if (data === undefined) return ''; // data === null ||
 	if (typeof data === 'object') return JSON.stringify(data);
-	else return String(data);
+	else return data.toString();
 };
 
-Utility.setByPath = function (collection, path, value) {
-	var keys = path.split('.');
+Utility.ensureByPath = function (data, path) {
+	var keys = typeof path === 'string' ? path.split('.') : path;
 	var last = keys.length - 1;
 
 	for (var i = 0; i < last; i++) {
 		var key = keys[i];
-		if (collection[key] === undefined) collection[key] = {};
-		collection = collection[key];
+		if (!(key in data)) {
+			if (isNaN(keys[i+1])) {
+				data[key] = {};
+			} else {
+				data[key] = [];
+			}
+		}
+		data = data[key];
 	}
 
-	return collection[keys[last]] = value;
+	return {
+		data: data,
+		key: keys[last]
+	}
 };
 
-Utility.getByPath = function (collection, path) {
-	var keys = path.split('.');
+Utility.setByPath = function (data, path, value) {
+	var keys = typeof path === 'string' ? path.split('.') : path;
 	var last = keys.length - 1;
 
 	for (var i = 0; i < last; i++) {
-		if (!collection[keys[i]]) return undefined;
-		else collection = collection[keys[i]];
+		var key = keys[i];
+		if (!(key in data)) {
+			if (isNaN(keys[i+1])) {
+				data[key] = {};
+			} else {
+				data[key] = [];
+			}
+		}
+		data = data[key];
 	}
 
-	return collection[keys[last]];
+	return data[keys[last]] = value;
+};
+
+Utility.getByPath = function (data, path) {
+	var keys = typeof path === 'string' ? path.split('.') : path;
+	var last = keys.length - 1;
+
+	for (var i = 0; i < last; i++) {
+		var key = keys[i];
+		if (!data[key]) {
+			return undefined;
+		} else {
+			data = data[key];
+		}
+	}
+
+	return data[keys[last]];
 };
 
 Utility.removeChildren = function (element) {

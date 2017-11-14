@@ -227,7 +227,7 @@ Automatically use the default action for non origin matching hrefs
 
 ### Oxe.fetcher
 - `options: Object`
-	- `auth: Boolean` (default: false) Enables Oxe.Keeper
+	- `auth: Boolean` Enables Oxe.Keeper (default: false)
 	- `request: Function` Intercepts the request if the return value is false the fetch will not continue
 		- `xhr: Object` The xhr going to be used for the request
 		- `opt: Object` The options going to be used for the request
@@ -336,6 +336,9 @@ Alias for `document.head`
 
 ### Oxe.body
 Alias for `document.body`
+
+### Oxe.base
+Alias for `base.href || window.location.href`
 
 ### Oxe.global
 A global object for you

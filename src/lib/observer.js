@@ -9,9 +9,16 @@ Observer.create = function (data, callback, path) {
 Observer.defineProperties = function (data, callback, path, redefine) {
 	path = path ? path + '.' : '';
 
+	var propertyDescriptors = {};
+
 	for (var key in data) {
-		Observer.defineProperty(data, key, data[key], callback, path, redefine);
+		var propertyDescriptor = Observer.createPropertyDescriptor(data, key, data[key], callback, path, redefine);
+		if (propertyDescriptor) {
+			propertyDescriptors[key] = propertyDescriptor;
+		}
 	}
+
+	Object.defineProperties(data, propertyDescriptors);
 
 	if (data.constructor === Object) {
 		Observer.overrideObjectMethods(data, callback, path);
@@ -21,6 +28,13 @@ Observer.defineProperties = function (data, callback, path, redefine) {
 };
 
 Observer.defineProperty = function (data, key, value, callback, path, redefine) {
+	var propertyDescriptor = Observer.createPropertyDescriptor(data, key, value, callback, path, redefine);
+	if (propertyDescriptor) {
+		Object.defineProperty(data, key, propertyDescriptor);
+	}
+};
+
+Observer.createPropertyDescriptor = function (data, key, value, callback, path, redefine) {
 	path = path || '';
 
 	var property = Object.getOwnPropertyDescriptor(data, key);
@@ -32,7 +46,6 @@ Observer.defineProperty = function (data, key, value, callback, path, redefine) 
 	var getter = property && property.get;
 	var setter = property && property.set;
 
-
 	// recursive observe child properties
 	if (value && typeof value === 'object') {
 		Observer.defineProperties(value, callback, path + key, redefine);
@@ -40,10 +53,11 @@ Observer.defineProperty = function (data, key, value, callback, path, redefine) 
 
 	// set the property value if getter setter previously defined and redefine is false
 	if (getter && setter && !redefine) {
-		return setter.call(data, value);
+		setter.call(data, value);
+		return;
 	}
 
-	Object.defineProperty(data, key, {
+	return {
 		enumerable: true,
 		configurable: true,
 		get: function () {
@@ -74,7 +88,7 @@ Observer.defineProperty = function (data, key, value, callback, path, redefine) 
 			}
 
 		}
-	});
+	};
 };
 
 Observer.overrideObjectMethods = function (data, callback, path) {
@@ -171,10 +185,6 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 				if (!data.length) return;
 
 				var value = data[data.length-1];
-
-				// if (callback) {
-				// 	Observer.notify();
-				// }
 
 				data.length--;
 

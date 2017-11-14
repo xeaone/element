@@ -83,7 +83,7 @@ View.createAttribute = function (name, value) {
 
 View.eachAttribute = function (element, callback) {
 	var attributes = element.attributes;
-	for (var i = 0; i < attributes.length; i++) {
+	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
 		if (this.isAcceptAttribute(attribute)) {
 			callback.call(this, this.createAttribute(attribute.name, attribute.value));
@@ -93,7 +93,7 @@ View.eachAttribute = function (element, callback) {
 
 View.eachPath = function (element, callback) {
 	var attributes = element.attributes;
-	for (var i = 0; i < attributes.length; i++) {
+	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
 		if (this.isAny(attribute)) {
 			callback.call(this, attribute.value.replace(this.PATH, ''));
@@ -136,7 +136,7 @@ View.has = function (uid, path, element) {
 
 	var binders = this.data[uid][path];
 
-	for (var i = 0; i < binders.length; i++) {
+	for (var i = 0, l = binders.length; i < l; i++) {
 		if (binders[i].element === element) {
 			return true;
 		}

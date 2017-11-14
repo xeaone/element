@@ -40,32 +40,64 @@
 	Utility.toText = function (data) {
 		if (data === undefined) return ''; // data === null ||
 		if (typeof data === 'object') return JSON.stringify(data);
-		else return String(data);
+		else return data.toString();
 	};
 
-	Utility.setByPath = function (collection, path, value) {
-		var keys = path.split('.');
+	Utility.ensureByPath = function (data, path) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
 		var last = keys.length - 1;
 
 		for (var i = 0; i < last; i++) {
 			var key = keys[i];
-			if (collection[key] === undefined) collection[key] = {};
-			collection = collection[key];
+			if (!(key in data)) {
+				if (isNaN(keys[i+1])) {
+					data[key] = {};
+				} else {
+					data[key] = [];
+				}
+			}
+			data = data[key];
 		}
 
-		return collection[keys[last]] = value;
+		return {
+			data: data,
+			key: keys[last]
+		}
 	};
 
-	Utility.getByPath = function (collection, path) {
-		var keys = path.split('.');
+	Utility.setByPath = function (data, path, value) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
 		var last = keys.length - 1;
 
 		for (var i = 0; i < last; i++) {
-			if (!collection[keys[i]]) return undefined;
-			else collection = collection[keys[i]];
+			var key = keys[i];
+			if (!(key in data)) {
+				if (isNaN(keys[i+1])) {
+					data[key] = {};
+				} else {
+					data[key] = [];
+				}
+			}
+			data = data[key];
 		}
 
-		return collection[keys[last]];
+		return data[keys[last]] = value;
+	};
+
+	Utility.getByPath = function (data, path) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!data[key]) {
+				return undefined;
+			} else {
+				data = data[key];
+			}
+		}
+
+		return data[keys[last]];
 	};
 
 	Utility.removeChildren = function (element) {
@@ -111,10 +143,9 @@
 	var Component = {};
 
 	Component.data = {};
-
 	Component.currentScript = (document._currentScript || document.currentScript);
 
-	Component._slots = function (element, template) {
+	Component.handleSlots = function (element, template) {
 		var tSlots = template.content.querySelectorAll('slot');
 		for (var i = 0, l = tSlots.length; i < l; i++) {
 			var tSlot = tSlots[i];
@@ -126,7 +157,7 @@
 		}
 	};
 
-	Component._template = function (data) {
+	Component.handleTemplate = function (data) {
 		var template;
 		if (data.html) {
 			template = document.createElement('template');
@@ -155,26 +186,23 @@
 		return template;
 	};
 
-	Component._define = function (name, proto) {
-		document.registerElement(name, {
-			prototype: proto
-		});
-	};
-
 	Component.define = function (options) {
 		var self = this;
 
 		if (!options.name) {
-			throw new Error('Component requires name');
+			throw new Error('Oxe.component.define requires name');
 		}
 
 		if (!options.html && !options.query && !options.element) {
-			throw new Error('Component requires html, query, or element');
+			throw new Error('Oxe.component.define requires html, query, or element');
 		}
 
+		options.view = options.view || {};
 		options.model = options.model || {};
-		options.template = self._template(options);
+		options.template = self.handleTemplate(options);
+
 		options.proto = Object.create(HTMLElement.prototype);
+
 		options.proto.attachedCallback = options.attached;
 		options.proto.detachedCallback = options.detached;
 		options.proto.attributeChangedCallback = options.attributed;
@@ -191,20 +219,14 @@
 			var uid = options.name + '-' + self.data[options.name].length;
 
 			element.setAttribute('o-uid', uid);
-			element.isBinded = false;
-			element.view = Global$1.view.data[uid] = {};
-
-			element.model = Global$1.model.data.$set(uid, options.model)[uid];
+			element.view = Global$1.view.data[uid] = options.view;
 			element.events = Global$1.events.data[uid] = options.events;
+			element.model = Global$1.model.data.$set(uid, options.model)[uid];
 			element.modifiers = Global$1.modifiers.data[uid] = options.modifiers;
-
-			// if (options.model)
-			// if (options.events)
-			// if (options.modifiers)
 
 			// might want to handle default slot
 			// might want to overwrite content
-			self._slots(element, options.template);
+			self.handleSlots(element, options.template);
 
 			if (options.shadow) {
 				element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
@@ -218,7 +240,9 @@
 
 		};
 
-		self._define(options.name, options.proto);
+		document.registerElement(options.name, {
+			prototype: options.proto
+		});
 	};
 
 	var Batcher = {};
@@ -226,30 +250,38 @@
 	Batcher.tasks = [];
 	Batcher.reads = [];
 	Batcher.writes = [];
-	Batcher.rafCount = 0;
-	Batcher.maxTaskTimeMS = 30;
 	Batcher.pending = false;
+	Batcher.maxTaskTimeMS = 30;
 
-	// Adds a task to the read batch
+	// adds a task to the read batch
 	Batcher.read = function (method, context) {
 		var task = context ? method.bind(context) : method;
 		this.reads.push(task);
 		this.tick();
 	};
 
-
-	// Adds a task to the write batch
+	// adds a task to the write batch
 	Batcher.write = function (method, context) {
 		var task = context ? method.bind(context) : method;
 		this.writes.push(task);
 		this.tick();
 	};
 
-	// Schedules a new read/write batch if one isn't pending.
+	// removes a pending task
+	Batcher.remove = function (tasks, task) {
+		var index = tasks.indexOf(task);
+		return !!~index && !!tasks.splice(index, 1);
+	};
+
+	// clears a pending read or write task
+	Batcher.clear = function (task) {
+		return this.remove(this.reads, task) || this.remove(this.writes, task);
+	};
+
+	// schedules a new read/write batch if one is not pending
 	Batcher.tick = function () {
-		var self = this;
-		if (!self.pending) {
-			self.flush();
+		if (!this.pending) {
+			this.flush();
 		}
 	};
 
@@ -265,16 +297,6 @@
 				}
 			});
 		});
-	};
-
-	// Clears a pending 'read' or 'write' task
-	Batcher.clear = function (task) {
-		return this.remove(this.reads, task) || this.remove(this.writes, task);
-	};
-
-	Batcher.remove = function (tasks, task) {
-		var index = tasks.indexOf(task);
-		return !!~index && !!tasks.splice(index, 1);
 	};
 
 	Batcher.run = function (tasks, callback) {
@@ -300,6 +322,14 @@
 
 	var Fetcher = {};
 
+	Fetcher.mime = {
+		xml: 'text/xml; charset=utf-8',
+		html: 'text/html; charset=utf-8',
+		text: 'text/plain; charset=utf-8',
+		json: 'application/json; charset=utf-8',
+		js: 'application/javascript; charset=utf-8'
+	};
+
 	Fetcher.setup = function (opt) {
 		opt = opt || {};
 		this.auth = opt.auth || false;
@@ -307,14 +337,6 @@
 		this.request = opt.request || opt.request;
 		this.response = opt.response || opt.response;
 		return this;
-	};
-
-	Fetcher.mime = {
-		xml: 'text/xml; charset=utf-8',
-		html: 'text/html; charset=utf-8',
-		text: 'text/plain; charset=utf-8',
-		json: 'application/json; charset=utf-8',
-		js: 'application/javascript; charset=utf-8'
 	};
 
 	Fetcher.serialize = function (data) {
@@ -328,17 +350,64 @@
 		return string;
 	};
 
-	// Fetcher.onreadystatechange = function () { };
+	Fetcher.onreadystatechange = function (opt, result, xhr) {
+		if (xhr.readyState === 4) {
+
+			result.opt = opt;
+			result.xhr = xhr;
+			result.statusCode = xhr.status;
+			result.statusText = xhr.statusText;
+
+			if (xhr['response'] !== undefined) {
+				result.data = xhr.response;
+			} else if (xhr['responseText'] !== undefined) {
+				result.data = xhr.responseText;
+			} else {
+				result.data = undefined;
+			}
+
+			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
+			if (opt.responseType === 'json' && typeof result.data === 'string') {
+				result.data = JSON.parse(result.data || {});
+			}
+
+			if (xhr.status === 401 || xhr.status === 403) {
+				if (this.auth || result.opt.auth) {
+					if (Global$1.keeper.response) {
+						return Global$1.keeper.response(result);
+					}
+				}
+			}
+
+			if (this.response && this.response(result) === false) {
+				return;
+			}
+
+			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+				if (opt.success) {
+					opt.success(result);
+				} else if (opt.handler) {
+					opt.handler(result);
+				}
+			} else {
+				opt.isError = true;
+				if (opt.error) {
+					opt.error(result);
+				} else if (opt.handler) {
+					opt.handler(result);
+				}
+			}
+
+		}
+	};
 
 	Fetcher.fetch = function (opt) {
-		var self = this;
 		var result = {};
 		var xhr = new XMLHttpRequest();
 
 		opt = opt || {};
 		opt.headers = {};
 		opt.error = false;
-		opt.type = opt.type || this.type;
 		opt.url = opt.url ? opt.url : window.location.href;
 		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
 
@@ -352,21 +421,21 @@
 
 		if (opt.contentType) {
 			switch (opt.contentType) {
-				case 'js': opt.headers['Content-Type'] = self.mime.js; break;
-				case 'xml': opt.headers['Content-Type'] = self.mime.xm; break;
-				case 'html': opt.headers['Content-Type'] = self.mime.html; break;
-				case 'json': opt.headers['Content-Type'] = self.mime.json; break;
-				default: opt.headers['Content-Type'] = self.mime.text;
+				case 'js': opt.headers['Content-Type'] = this.mime.js; break;
+				case 'xml': opt.headers['Content-Type'] = this.mime.xm; break;
+				case 'html': opt.headers['Content-Type'] = this.mime.html; break;
+				case 'json': opt.headers['Content-Type'] = this.mime.json; break;
+				default: opt.headers['Content-Type'] = this.mime.text;
 			}
 		}
 
 		if (opt.acceptType) {
 			switch (opt.acceptType) {
-				case 'js': opt.headers['Accept'] = self.mime.js; break;
-				case 'xml': opt.headers['Accept'] = self.mime.xml; break;
-				case 'html': opt.headers['Accept'] = self.mime.html; break;
-				case 'json': opt.headers['Accept'] = self.mime.json; break;
-				default: opt.headers['Accept'] = self.mime.text;
+				case 'js': opt.headers['Accept'] = this.mime.js; break;
+				case 'xml': opt.headers['Accept'] = this.mime.xml; break;
+				case 'html': opt.headers['Accept'] = this.mime.html; break;
+				case 'json': opt.headers['Accept'] = this.mime.json; break;
+				default: opt.headers['Accept'] = this.mime.text;
 			}
 		}
 
@@ -403,14 +472,14 @@
 		}
 
 		if (opt.data && opt.method === 'GET') {
-			opt.url = opt.url + '?' + self.serialize(opt.data);
+			opt.url = opt.url + '?' + this.serialize(opt.data);
 		}
 
 		result.xhr = xhr;
 		result.opt = opt;
 		result.data = opt.data;
 
-		if (self.auth && (
+		if (this.auth && (
 			result.opt.auth === true ||
 			result.opt.auth === undefined
 		)) {
@@ -419,60 +488,11 @@
 			}
 		}
 
-		if (self.request && self.request(result) === false) {
+		if (this.request && this.request(result) === false) {
 			return;
 		}
 
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState === 4) {
-
-				result.opt = opt;
-				result.xhr = xhr;
-				result.statusCode = xhr.status;
-				result.statusText = xhr.statusText;
-
-				if (xhr['response'] !== undefined) {
-					result.data = xhr.response;
-				} else if (xhr['responseText'] !== undefined) {
-					result.data = xhr.responseText;
-				} else {
-					result.data = undefined;
-				}
-
-				// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
-				if (opt.responseType === 'json' && typeof result.data === 'string') {
-					result.data = JSON.parse(result.data || {});
-				}
-
-				if (xhr.status === 401 || xhr.status === 403) {
-					if (self.auth || result.opt.auth) {
-						if (Global$1.keeper.response) {
-							return Global$1.keeper.response(result);
-						}
-					}
-				}
-
-				if (self.response && self.response(result) === false) {
-					return;
-				}
-
-				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-					if (opt.success) {
-						opt.success(result);
-					} else if (opt.handler) {
-						opt.handler(result);
-					}
-				} else {
-					opt.isError = true;
-					if (opt.error) {
-						opt.error(result);
-					} else if (opt.handler) {
-						opt.handler(result);
-					}
-				}
-
-			}
-		};
+		xhr.onreadystatechange = this.onreadystatechange.bind(this, opt, result, xhr);
 
 		xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
 
@@ -956,7 +976,6 @@
 	var Loader = {};
 
 	Loader.loads = [];
-	Loader.files = {};
 	Loader.modules = {};
 	Loader.esm = false;
 	Loader.est = false;
@@ -1116,7 +1135,6 @@
 		}
 
 		data.url = self.normalizeUrl(data.url);
-		self.files[data.url] = data;
 
 		if (data.url in self.modules) {
 			return callback ? callback() : undefined;
@@ -1310,9 +1328,16 @@
 	Observer.defineProperties = function (data, callback, path, redefine) {
 		path = path ? path + '.' : '';
 
+		var propertyDescriptors = {};
+
 		for (var key in data) {
-			Observer.defineProperty(data, key, data[key], callback, path, redefine);
+			var propertyDescriptor = Observer.createPropertyDescriptor(data, key, data[key], callback, path, redefine);
+			if (propertyDescriptor) {
+				propertyDescriptors[key] = propertyDescriptor;
+			}
 		}
+
+		Object.defineProperties(data, propertyDescriptors);
 
 		if (data.constructor === Object) {
 			Observer.overrideObjectMethods(data, callback, path);
@@ -1322,6 +1347,13 @@
 	};
 
 	Observer.defineProperty = function (data, key, value, callback, path, redefine) {
+		var propertyDescriptor = Observer.createPropertyDescriptor(data, key, value, callback, path, redefine);
+		if (propertyDescriptor) {
+			Object.defineProperty(data, key, propertyDescriptor);
+		}
+	};
+
+	Observer.createPropertyDescriptor = function (data, key, value, callback, path, redefine) {
 		path = path || '';
 
 		var property = Object.getOwnPropertyDescriptor(data, key);
@@ -1333,7 +1365,6 @@
 		var getter = property && property.get;
 		var setter = property && property.set;
 
-
 		// recursive observe child properties
 		if (value && typeof value === 'object') {
 			Observer.defineProperties(value, callback, path + key, redefine);
@@ -1341,10 +1372,11 @@
 
 		// set the property value if getter setter previously defined and redefine is false
 		if (getter && setter && !redefine) {
-			return setter.call(data, value);
+			setter.call(data, value);
+			return;
 		}
 
-		Object.defineProperty(data, key, {
+		return {
 			enumerable: true,
 			configurable: true,
 			get: function () {
@@ -1375,7 +1407,7 @@
 				}
 
 			}
-		});
+		};
 	};
 
 	Observer.overrideObjectMethods = function (data, callback, path) {
@@ -1472,10 +1504,6 @@
 					if (!data.length) return;
 
 					var value = data[data.length-1];
-
-					// if (callback) {
-					// 	Observer.notify();
-					// }
 
 					data.length--;
 
@@ -1595,39 +1623,6 @@
 		});
 	};
 
-	var Traverse = function (opt) {
-
-		var safe = opt.safe;
-		var data = opt.data;
-		var keys = opt.keys;
-		var create = opt.create;
-		var last = opt.keys.length === 0 ? 0 : opt.keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-
-			if (!(key in data)) {
-				if (create === true) {
-					if (isNaN(keys[i+1])) {
-						data[key] = {};
-					} else {
-						data[key] = [];
-					}
-				} else {
-				// } else if (create === false) {
-					return undefined;
-				}
-			}
-
-			data = data[key];
-		}
-
-		return {
-			data: data,
-			key: keys[last]
-		};
-	};
-
 	var Model = {};
 
 	Model.data = {};
@@ -1642,45 +1637,20 @@
 	};
 
 	Model.get = function (keys) {
-		var result = Traverse({
-			keys: keys,
-			// create: false,
-			data: this.data
-		});
-
-		if (result) {
-			return result.data[result.key];
-		} else {
-			return undefined;
-		}
+		return Utility.getByPath(this.data, keys);
 	};
 
 	Model.set = function (keys, value) {
-		var result = Traverse({
-			keys: keys,
-			// create: true,
-			data: this.data
-		});
-
-		return result.data[result.key] = value;
+		return Utility.setByPath(this.data, keys, value);
 	};
 
 	Model.ensureSet = function (keys, value) {
-		var result = Traverse({
-			keys: keys,
-			create: true,
-			data: this.data
-		});
-
+		var result = Utility.ensureByPath(this.data, keys);
 		return result.data.$set(result.key, value);
 	};
 
 	Model.ensureGet = function (keys) {
-		var result = Traverse({
-			keys: keys,
-			create: true,
-			data: this.data
-		});
+		var result = Utility.ensureByPath(this.data, keys);
 
 		if (result.data[result.key] === undefined) {
 			return result.data.$set(result.key, null);
@@ -1745,7 +1715,7 @@
 		var type = data === undefined ? 'unrender' : 'render';
 
 		path = paths.slice(1).join('.');
-		console.log(path);
+		// console.log(path);
 
 		if (path) {
 			Global$1.view.eachBinder(uid, path, function (binder) {
@@ -2006,7 +1976,6 @@
 			var data = this.getData();
 			data = this.setupMethods[this.type].call(this, data);
 			this.setData(data);
-			// this.ensureData(data);
 		}
 		return this;
 	};
@@ -2107,7 +2076,7 @@
 
 	View.eachAttribute = function (element, callback) {
 		var attributes = element.attributes;
-		for (var i = 0; i < attributes.length; i++) {
+		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
 			if (this.isAcceptAttribute(attribute)) {
 				callback.call(this, this.createAttribute(attribute.name, attribute.value));
@@ -2117,7 +2086,7 @@
 
 	View.eachPath = function (element, callback) {
 		var attributes = element.attributes;
-		for (var i = 0; i < attributes.length; i++) {
+		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
 			if (this.isAny(attribute)) {
 				callback.call(this, attribute.value.replace(this.PATH, ''));
@@ -2160,7 +2129,7 @@
 
 		var binders = this.data[uid][path];
 
-		for (var i = 0; i < binders.length; i++) {
+		for (var i = 0, l = binders.length; i < l; i++) {
 			if (binders[i].element === element) {
 				return true;
 			}
@@ -2310,7 +2279,7 @@
 		base: {
 			enumerable: true,
 			get: function () {
-				return (base ? base.href : '') || window.location.href
+				return (base ? base.href : null) || window.location.href
 			}
 		},
 		global: {

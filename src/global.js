@@ -55,7 +55,7 @@ var Global = Object.defineProperties({}, {
 	base: {
 		enumerable: true,
 		get: function () {
-			return (base ? base.href : '') || window.location.href
+			return (base ? base.href : null) || window.location.href
 		}
 	},
 	global: {

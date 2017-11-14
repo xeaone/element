@@ -2,6 +2,14 @@ import Global from './global';
 
 var Fetcher = {};
 
+Fetcher.mime = {
+	xml: 'text/xml; charset=utf-8',
+	html: 'text/html; charset=utf-8',
+	text: 'text/plain; charset=utf-8',
+	json: 'application/json; charset=utf-8',
+	js: 'application/javascript; charset=utf-8'
+};
+
 Fetcher.setup = function (opt) {
 	opt = opt || {};
 	this.auth = opt.auth || false;
@@ -9,14 +17,6 @@ Fetcher.setup = function (opt) {
 	this.request = opt.request || opt.request;
 	this.response = opt.response || opt.response;
 	return this;
-};
-
-Fetcher.mime = {
-	xml: 'text/xml; charset=utf-8',
-	html: 'text/html; charset=utf-8',
-	text: 'text/plain; charset=utf-8',
-	json: 'application/json; charset=utf-8',
-	js: 'application/javascript; charset=utf-8'
 };
 
 Fetcher.serialize = function (data) {
@@ -30,17 +30,64 @@ Fetcher.serialize = function (data) {
 	return string;
 };
 
-// Fetcher.onreadystatechange = function () { };
+Fetcher.onreadystatechange = function (opt, result, xhr) {
+	if (xhr.readyState === 4) {
+
+		result.opt = opt;
+		result.xhr = xhr;
+		result.statusCode = xhr.status;
+		result.statusText = xhr.statusText;
+
+		if (xhr['response'] !== undefined) {
+			result.data = xhr.response;
+		} else if (xhr['responseText'] !== undefined) {
+			result.data = xhr.responseText;
+		} else {
+			result.data = undefined;
+		}
+
+		// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
+		if (opt.responseType === 'json' && typeof result.data === 'string') {
+			result.data = JSON.parse(result.data || {});
+		}
+
+		if (xhr.status === 401 || xhr.status === 403) {
+			if (this.auth || result.opt.auth) {
+				if (Global.keeper.response) {
+					return Global.keeper.response(result);
+				}
+			}
+		}
+
+		if (this.response && this.response(result) === false) {
+			return;
+		}
+
+		if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+			if (opt.success) {
+				opt.success(result);
+			} else if (opt.handler) {
+				opt.handler(result);
+			}
+		} else {
+			opt.isError = true;
+			if (opt.error) {
+				opt.error(result);
+			} else if (opt.handler) {
+				opt.handler(result);
+			}
+		}
+
+	}
+};
 
 Fetcher.fetch = function (opt) {
-	var self = this;
 	var result = {};
 	var xhr = new XMLHttpRequest();
 
 	opt = opt || {};
 	opt.headers = {};
 	opt.error = false;
-	opt.type = opt.type || this.type;
 	opt.url = opt.url ? opt.url : window.location.href;
 	opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
 
@@ -54,21 +101,21 @@ Fetcher.fetch = function (opt) {
 
 	if (opt.contentType) {
 		switch (opt.contentType) {
-			case 'js': opt.headers['Content-Type'] = self.mime.js; break;
-			case 'xml': opt.headers['Content-Type'] = self.mime.xm; break;
-			case 'html': opt.headers['Content-Type'] = self.mime.html; break;
-			case 'json': opt.headers['Content-Type'] = self.mime.json; break;
-			default: opt.headers['Content-Type'] = self.mime.text;
+			case 'js': opt.headers['Content-Type'] = this.mime.js; break;
+			case 'xml': opt.headers['Content-Type'] = this.mime.xm; break;
+			case 'html': opt.headers['Content-Type'] = this.mime.html; break;
+			case 'json': opt.headers['Content-Type'] = this.mime.json; break;
+			default: opt.headers['Content-Type'] = this.mime.text;
 		}
 	}
 
 	if (opt.acceptType) {
 		switch (opt.acceptType) {
-			case 'js': opt.headers['Accept'] = self.mime.js; break;
-			case 'xml': opt.headers['Accept'] = self.mime.xml; break;
-			case 'html': opt.headers['Accept'] = self.mime.html; break;
-			case 'json': opt.headers['Accept'] = self.mime.json; break;
-			default: opt.headers['Accept'] = self.mime.text;
+			case 'js': opt.headers['Accept'] = this.mime.js; break;
+			case 'xml': opt.headers['Accept'] = this.mime.xml; break;
+			case 'html': opt.headers['Accept'] = this.mime.html; break;
+			case 'json': opt.headers['Accept'] = this.mime.json; break;
+			default: opt.headers['Accept'] = this.mime.text;
 		}
 	}
 
@@ -105,14 +152,14 @@ Fetcher.fetch = function (opt) {
 	}
 
 	if (opt.data && opt.method === 'GET') {
-		opt.url = opt.url + '?' + self.serialize(opt.data);
+		opt.url = opt.url + '?' + this.serialize(opt.data);
 	}
 
 	result.xhr = xhr;
 	result.opt = opt;
 	result.data = opt.data;
 
-	if (self.auth && (
+	if (this.auth && (
 		result.opt.auth === true ||
 		result.opt.auth === undefined
 	)) {
@@ -121,60 +168,11 @@ Fetcher.fetch = function (opt) {
 		}
 	}
 
-	if (self.request && self.request(result) === false) {
+	if (this.request && this.request(result) === false) {
 		return;
 	}
 
-	xhr.onreadystatechange = function () {
-		if (xhr.readyState === 4) {
-
-			result.opt = opt;
-			result.xhr = xhr;
-			result.statusCode = xhr.status;
-			result.statusText = xhr.statusText;
-
-			if (xhr['response'] !== undefined) {
-				result.data = xhr.response;
-			} else if (xhr['responseText'] !== undefined) {
-				result.data = xhr.responseText;
-			} else {
-				result.data = undefined;
-			}
-
-			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
-			if (opt.responseType === 'json' && typeof result.data === 'string') {
-				result.data = JSON.parse(result.data || {});
-			}
-
-			if (xhr.status === 401 || xhr.status === 403) {
-				if (self.auth || result.opt.auth) {
-					if (Global.keeper.response) {
-						return Global.keeper.response(result);
-					}
-				}
-			}
-
-			if (self.response && self.response(result) === false) {
-				return;
-			}
-
-			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-				if (opt.success) {
-					opt.success(result);
-				} else if (opt.handler) {
-					opt.handler(result);
-				}
-			} else {
-				opt.isError = true;
-				if (opt.error) {
-					opt.error(result);
-				} else if (opt.handler) {
-					opt.handler(result);
-				}
-			}
-
-		}
-	};
+	xhr.onreadystatechange = this.onreadystatechange.bind(this, opt, result, xhr);
 
 	xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
 

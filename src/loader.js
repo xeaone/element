@@ -5,7 +5,6 @@ import Global from './global.js';
 var Loader = {};
 
 Loader.loads = [];
-Loader.files = {};
 Loader.modules = {};
 Loader.esm = false;
 Loader.est = false;
@@ -165,7 +164,6 @@ Loader.load = function (data, callback) {
 	}
 
 	data.url = self.normalizeUrl(data.url);
-	self.files[data.url] = data;
 
 	if (data.url in self.modules) {
 		return callback ? callback() : undefined;

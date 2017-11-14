@@ -236,7 +236,6 @@ Binder.prototype.setup = function () {
 		var data = this.getData();
 		data = this.setupMethods[this.type].call(this, data);
 		this.setData(data);
-		// this.ensureData(data);
 	}
 	return this;
 };

@@ -1,5 +1,4 @@
 import Observer from './lib/observer';
-import Traverse from './lib/traverse';
 import Utility from './lib/utility';
 import Global from './global';
 
@@ -17,45 +16,20 @@ Model.overwrite = function (data) {
 };
 
 Model.get = function (keys) {
-	var result = Traverse({
-		keys: keys,
-		// create: false,
-		data: this.data
-	});
-
-	if (result) {
-		return result.data[result.key];
-	} else {
-		return undefined;
-	}
+	return Utility.getByPath(this.data, keys);
 };
 
 Model.set = function (keys, value) {
-	var result = Traverse({
-		keys: keys,
-		// create: true,
-		data: this.data
-	});
-
-	return result.data[result.key] = value;
+	return Utility.setByPath(this.data, keys, value);
 };
 
 Model.ensureSet = function (keys, value) {
-	var result = Traverse({
-		keys: keys,
-		create: true,
-		data: this.data
-	});
-
+	var result = Utility.ensureByPath(this.data, keys);
 	return result.data.$set(result.key, value);
 };
 
 Model.ensureGet = function (keys) {
-	var result = Traverse({
-		keys: keys,
-		create: true,
-		data: this.data
-	});
+	var result = Utility.ensureByPath(this.data, keys);
 
 	if (result.data[result.key] === undefined) {
 		return result.data.$set(result.key, null);
@@ -120,7 +94,7 @@ Model.observer = function (data, path) {
 	var type = data === undefined ? 'unrender' : 'render';
 
 	path = paths.slice(1).join('.');
-	console.log(path);
+	// console.log(path);
 
 	if (path) {
 		Global.view.eachBinder(uid, path, function (binder) {

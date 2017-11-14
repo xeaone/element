@@ -9,9 +9,12 @@ Oxe.component.define({
 	created: function () {
 		var self = this;
 		window.self = self;
-		for (var i = 0; i < 2600; i++) {
-			self.model.items.push({ number: self.model.items.length });
-		}
+
+		setTimeout(function () {
+			for (var i = 0; i < 2600; i++) {
+				self.model.items.push({ number: self.model.items.length });
+			}
+		}, 1000);
 	},
 	html: `
 		<div o-each-item="items">

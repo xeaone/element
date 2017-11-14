@@ -1,6 +1,6 @@
 {
 	"name": "oxe",
-	"version": "2.5.7",
+	"version": "2.5.8",
 	"description": "A mighty tinny web components framework/library",
 	"main": "dist/oxe.min.js",
 	"scripts": {
@@ -45,6 +45,6 @@
 		"doc": "docs"
 	},
 	"devDependencies": {
-		"muleify": "^3.0.3"
+		"muleify": "^3.0.5"
 	}
 }
