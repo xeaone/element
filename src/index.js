@@ -5,6 +5,12 @@ if (window.Oxe) {
 	throw new Error('Oxe pre-defined duplicate Oxe scripts');
 }
 
+if (typeof String.prototype.endsWith !== 'function') {
+    String.prototype.endsWith = function(suffix) {
+        return this.indexOf(suffix, this.length - suffix.length) !== -1;
+    };
+}
+
 Global.window.addEventListener('input', function (e) {
 	Global.inputs.forEach(function (input) {
 		input(e);
@@ -88,9 +94,7 @@ window.requestAnimationFrame(function () {
 	if (eIndex) Global.loader.load({ url: eIndex });
 });
 
-Global.view.run();
-Global.model.run();
-
-// var Oxe = Global;
+Global.view.setup();
+Global.model.setup();
 
 export default Global;

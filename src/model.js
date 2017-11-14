@@ -6,11 +6,11 @@ import Global from './global';
 var Model = {};
 
 Model.data = {};
-Model.isRan = false;
+Model.isSetup = false;
 Model.container = document.body;
 
 Model.overwrite = function (data) {
-	Observer(
+	Observer.create(
 		this.data = data,
 		this.observer.bind(this)
 	);
@@ -19,39 +19,50 @@ Model.overwrite = function (data) {
 Model.get = function (keys) {
 	var result = Traverse({
 		keys: keys,
+		// create: false,
 		data: this.data
 	});
 
-	if (result === undefined) {
-		return result;
-	} else {
+	if (result) {
 		return result.data[result.key];
+	} else {
+		return undefined;
 	}
 };
 
 Model.set = function (keys, value) {
 	var result = Traverse({
 		keys: keys,
+		// create: true,
 		data: this.data
 	});
 
 	return result.data[result.key] = value;
-	// return result.data.$set(result.key, value);
 };
 
-// Model.ensure = function (keys, value) {
-// 	var result = Traverse({
-// 		keys: keys,
-// 		create: true,
-// 		data: this.data
-// 	});
-//
-// 	if (value) {
-// 		return result.data.$set(result.key, value);
-// 	} else {
-// 		return result.data[result.key];
-// 	}
-// };
+Model.ensureSet = function (keys, value) {
+	var result = Traverse({
+		keys: keys,
+		create: true,
+		data: this.data
+	});
+
+	return result.data.$set(result.key, value);
+};
+
+Model.ensureGet = function (keys) {
+	var result = Traverse({
+		keys: keys,
+		create: true,
+		data: this.data
+	});
+
+	if (result.data[result.key] === undefined) {
+		return result.data.$set(result.key, null);
+	} else {
+		return result.data[result.key];
+	}
+};
 
 Model.listener = function (element) {
 	var value = element.getAttribute('o-value');
@@ -108,11 +119,8 @@ Model.observer = function (data, path) {
 	var uid = paths[0];
 	var type = data === undefined ? 'unrender' : 'render';
 
-	// if (paths[paths.length-1] === 'length') {
-	// 	paths.splice(-1);
-	// }
-
 	path = paths.slice(1).join('.');
+	console.log(path);
 
 	if (path) {
 		Global.view.eachBinder(uid, path, function (binder) {
@@ -122,11 +130,14 @@ Model.observer = function (data, path) {
 
 };
 
-Model.run = function () {
-	if (this.isRan) return;
-	else this.isRan = true;
+Model.setup = function () {
+	if (this.isSetup) {
+		return;
+	} else {
+		this.isSetup = true;
+	}
 
-	Observer(
+	Observer.create(
 		this.data,
 		this.observer.bind(this)
 	);

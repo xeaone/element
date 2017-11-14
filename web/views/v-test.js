@@ -54,23 +54,20 @@ Oxe.component.define({
 	created: function () {
 		var self = this;
 
-		window.SELF = self;
+		window.self = self;
 
 		setTimeout(function () {
 			var increaseInterval = setInterval(function () {
 
 				if (self.model.items.length === 100) {
 					clearInterval(increaseInterval);
-
 					var decreaseInterval = setInterval(function () {
-
 						if (self.model.items.length === 5) {
 							clearInterval(decreaseInterval);
+							self.model.items = [];
 						}
-
-						self.model.items.pop();
+							self.model.items.pop();
 					}, 10);
-
 				}
 
 				self.model.items.push({ it: { val: self.model.items.length } });
@@ -88,6 +85,10 @@ Oxe.component.define({
 		</style>
 		<br>
 		<br>
+
+		<strong o-text="nah">nah</strong>
+		<strong o-show="isshow">isshow</strong>
+		<strong o-hide="ishide">ishide</strong>
 
 		<form o-submit="submit" o-validate="validate">
 			<input type="text" o-value="text" placeholder="text" required><br>
@@ -124,20 +125,17 @@ Oxe.component.define({
 
 		<div o-text="isChecked"></div>
 		<input type="checkbox" o-value="isChecked">
-
 		<br>
 		<br>
 
 		<div o-text="initiallyNotOnModel">initiallyNotOnModel</div>
 		<input type="checkbox" o-value="initiallyNotOnModel">
-
 		<br>
 		<br>
 
 		<div o-text="numRadio"></div>
 		<input type="radio" o-value="numRadio">
 		<input type="radio" o-value="numRadio">
-
 		<br>
 		<br>
 
@@ -148,7 +146,6 @@ Oxe.component.define({
 			<option value="volvo" selected>Volvo</option>
 			<option value="mercedes">Mercedes</option>
 		</select>
-
 		<br>
 		<br>
 
@@ -159,13 +156,11 @@ Oxe.component.define({
 			<option value="volvo">Volvo</option>
 			<option value="mercedes" selected>Mercedes</option>
 		</select>
-
 		<br>
 		<br>
 
 		<input type="text" o-value="items.0.it.val">
-		<!--<div o-each-item="items">-->
-		<div o-for-item-of="items">
+		<div o-each-item="items">
 			<span>
 				<span>$item</span>
 				<span o-on-click="foo" o-text="item.it.val"></span>
@@ -173,12 +168,11 @@ Oxe.component.define({
 			</span>
 		</div>
 
-
 		<button o-on-click="say">Say Alert</button>
 		<input type="text" o-value="nope">
 		<input type="button" value="button">
 		<input type="reset" value="reset">
-
+		<br>
 		<br>
 
 		<ul>
@@ -204,9 +198,11 @@ Oxe.component.define({
 
 		<div o-html="html"></div>
 
-		<div o-on-click="overwriteArray" o-each-ac="arrayChange">
-			<div o-text="ac"></div>
-		</div>
+
 
 	`
 });
+
+// <div o-on-click="overwriteArray" o-each-ac="arrayChange">
+// 	<div o-text="ac"></div>
+// </div>

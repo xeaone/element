@@ -75,7 +75,7 @@ OnceBinder.kind = {
 		data.value = data.value === undefined ? '' : data.value;
 		data.element.value = data.value;
 		return data.value;
-	},
+	}
 };
 
 OnceBinder.type = {

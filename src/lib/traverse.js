@@ -1,44 +1,25 @@
 
 export default function (opt) {
 
+	var safe = opt.safe;
 	var data = opt.data;
 	var keys = opt.keys;
+	var create = opt.create;
 	var last = opt.keys.length === 0 ? 0 : opt.keys.length - 1;
 
 	for (var i = 0; i < last; i++) {
-		var key = opt.keys[i];
+		var key = keys[i];
 
 		if (!(key in data)) {
-
-			// if (key === '*') {
-			// 	return star({
-			// 		index: i,
-			// 		ks: keys,
-			// 		data: data,
-			// 		keys: opt.keys,
-			// 		value: opt.value
-			// 	});
-			// }
-
-			// if (key === '.') {
-			// 	return {
-			// 		key: key,
-			// 		keys: keys,
-			// 		data: data
-			// 	}
-			// }
-
-			if (opt.create === true) {
-				if (isNaN(opt.keys[i+1])) {
+			if (create === true) {
+				if (isNaN(keys[i+1])) {
 					data[key] = {};
 				} else {
 					data[key] = [];
 				}
-			} else if (opt.create === false) {
-				break;
 			} else {
+			// } else if (create === false) {
 				return undefined;
-				// throw new Error('Traverse - property ' + key + ' is undefined');
 			}
 		}
 
@@ -47,7 +28,6 @@ export default function (opt) {
 
 	return {
 		data: data,
-		keys: keys,
-		key: opt.keys[last]
+		key: keys[last]
 	};
 };

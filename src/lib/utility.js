@@ -1,3 +1,4 @@
+
 var Utility = {};
 
 Utility.createBase = function (base) {
@@ -103,19 +104,3 @@ Utility.getContainer = function getContainer (element, target) {
 };
 
 export default Utility;
-
-// Utility.CAMEL = /-(\w)/g,
-// Utility.toCamelCase = function (data) {
-// 	return data.replace(this.CAMEL, function (match, next) {
-// 		return next.toUpperCase();
-// 	});
-// }
-
-// Utility.each = function (items, method, context) {
-// 	return items.reduce(function (promise, item) {
-// 		return promise.then(function () {
-// 			return method.call(context, item);
-// 		});
-// 	}, Promise.resolve())
-
-// };

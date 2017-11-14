@@ -1,4 +1,3 @@
-import OnceBinder from './lib/once-binder';
 import Utility from './lib/utility';
 import Binder from './lib/binder';
 import Global from './global';
@@ -6,7 +5,7 @@ import Global from './global';
 var View = {};
 
 View.data = {};
-View.isRan = false;
+View.isSetup = false;
 View.container = document.body;
 
 View.PATH = /\s?\|.*/;
@@ -76,7 +75,6 @@ View.createAttribute = function (name, value) {
 
 	attribute.parentKey = attribute.path.replace(this.PARENT_KEY, '');
 	attribute.parentPath = attribute.path.replace(this.PARENT_PATH, '');
-	// attribute.viewPath = attribute.cmds[0] === 'each' ? attribute.path + '.length' : attribute.path;
 
 	attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
 
@@ -98,7 +96,6 @@ View.eachPath = function (element, callback) {
 	for (var i = 0; i < attributes.length; i++) {
 		var attribute = attributes[i];
 		if (this.isAny(attribute)) {
-		// if (!this.IS_REJECT_PATH.test(attribute.name) && this.IS_ACCEPT_PATH.test(attribute.name)) {
 			callback.call(this, attribute.value.replace(this.PATH, ''));
 		}
 	}
@@ -148,7 +145,7 @@ View.has = function (uid, path, element) {
 	return false;
 };
 
-View.push = function (uid, path, element, container, attribute) {
+View.push = function (uid, path, binder) {
 
 	if (!(uid in this.data)) {
 		this.data[uid] = {};
@@ -158,12 +155,7 @@ View.push = function (uid, path, element, container, attribute) {
 		this.data[uid][path] = [];
 	}
 
-	this.data[uid][path].push(new Binder({
-		uid: uid,
-		element: element,
-		container: container,
-		attribute: attribute
-	}));
+	this.data[uid][path].push(binder);
 };
 
 View.add = function (addedNode, target) {
@@ -171,12 +163,15 @@ View.add = function (addedNode, target) {
 		if (container) {
 			var uid = container.getAttribute('o-uid');
 			this.eachAttribute(element, function (attribute) {
-				if (this.isOnce(attribute.name)) {
-					OnceBinder.bind(element, attribute, container);
-				} else {
-					this.push(uid, attribute.path, element, container, attribute);
-					// if (!this.has(uid, attribute.path, element)) {
-					// }
+				var binder = new Binder({
+					uid: uid,
+					element: element,
+					container: container,
+					attribute: attribute
+				});
+
+				if (!this.isOnce(attribute.name)) {
+					this.push(uid, attribute.path, binder);
 				}
 			});
 		}
@@ -234,9 +229,10 @@ View.mutation = function (mutations) {
 	}
 };
 
-View.run = function () {
-	if (this.isRan) return;
-	else this.isRan = true;
+View.setup = function () {
+	if (this.isSetup) {
+		return;
+	} else this.isSetup = true;
 
 	this.add(this.container);
 	Global.mutations.push(this.mutation.bind(this));
