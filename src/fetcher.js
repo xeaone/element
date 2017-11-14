@@ -30,7 +30,7 @@ Fetcher.serialize = function (data) {
 	return string;
 };
 
-Fetcher.onreadystatechange = function (opt, result, xhr) {
+Fetcher.change = function (opt, result, xhr) {
 	if (xhr.readyState === 4) {
 
 		result.opt = opt;
@@ -68,17 +68,17 @@ Fetcher.onreadystatechange = function (opt, result, xhr) {
 		}
 
 		if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-			opt.isError = false;
 			if (opt.success) {
 				opt.success(result);
 			} else if (opt.handler) {
+				opt.error = false;
 				opt.handler(result);
 			}
 		} else {
-			opt.isError = true;
 			if (opt.error) {
 				opt.error(result);
 			} else if (opt.handler) {
+				opt.error = true;
 				opt.handler(result);
 			}
 		}
@@ -87,12 +87,12 @@ Fetcher.onreadystatechange = function (opt, result, xhr) {
 };
 
 Fetcher.fetch = function (opt) {
+	var data;
 	var result = {};
 	var xhr = new XMLHttpRequest();
 
 	opt = opt || {};
 	opt.headers = {};
-	opt.error = false;
 	opt.url = opt.url ? opt.url : window.location.href;
 	opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
 
@@ -107,7 +107,7 @@ Fetcher.fetch = function (opt) {
 	if (opt.contentType) {
 		switch (opt.contentType) {
 			case 'js': opt.headers['Content-Type'] = this.mime.js; break;
-			case 'xml': opt.headers['Content-Type'] = this.mime.xm; break;
+			case 'xml': opt.headers['Content-Type'] = this.mime.xml; break;
 			case 'html': opt.headers['Content-Type'] = this.mime.html; break;
 			case 'json': opt.headers['Content-Type'] = this.mime.json; break;
 			default: opt.headers['Content-Type'] = this.mime.text;
@@ -147,7 +147,7 @@ Fetcher.fetch = function (opt) {
 	if (opt.cache) {
 		opt.headers.cache = true;
 	} else {
-		opt.cache = false;
+		opt.headers.cache = false;
 	}
 
 	if (opt.headers) {
@@ -156,18 +156,23 @@ Fetcher.fetch = function (opt) {
 		}
 	}
 
-	if (opt.data && opt.method === 'GET') {
-		opt.url = opt.url + '?' + this.serialize(opt.data);
+	if (opt.data) {
+		if (opt.method === 'GET') {
+			opt.url = opt.url + '?' + this.serialize(opt.data);
+		} else if (opt.contentType === 'json') {
+			data = JSON.stringify(opt.data);
+		}
 	}
 
 	result.xhr = xhr;
 	result.opt = opt;
 	result.data = opt.data;
 
-	if (this.auth && (
-		result.opt.auth === true ||
-		result.opt.auth === undefined
-	)) {
+	if (
+		this.auth
+		&& result.opt.auth === true
+		|| result.opt.auth === undefined
+	) {
 		if (Global.keeper.request(result) === false) {
 			return;
 		}
@@ -177,10 +182,8 @@ Fetcher.fetch = function (opt) {
 		return;
 	}
 
-	xhr.onreadystatechange = this.onreadystatechange.bind(this, opt, result, xhr);
-
-	xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
-
+	xhr.onreadystatechange = this.change.bind(this, opt, result, xhr);
+	xhr.send(data);
 };
 
 Fetcher.post = function (opt) {

@@ -250,7 +250,6 @@ Automatically use the default action for non origin matching hrefs
 		- `url: String` (default: window.location.href)
 		- `success: Function` The Success handler
 			- `result: Object`
-				- `error: Boolean` false
 				- `statusCode: Number` The xhr.status
 				- `statusText: String` The xhr.statusText
 				- `xhr: Object` The xhr used for the request
@@ -258,13 +257,12 @@ Automatically use the default action for non origin matching hrefs
 				- `data: Object|String` The response transformed by resonseType
 		- `error: Function` The Error Handler
 			- `result: Object`
-				- `error: Boolean` true
 				- `statusCode: Number` The xhr.status
 				- `statusText: String` The xhr.statusText
 				- `xhr: Object` The xhr used for the request
 				- `opt: Object` The options used for the request
 				- `data: Object|String` The response transformed by resonseType
-		- `handler: Function` Only called if no success and error handler
+		- `handler: Function` Called if no success or error handler
 			- `result: Object` The result
 				- `statusCode: Number` The xhr.status
 				- `statusText: String` The xhr.statusText

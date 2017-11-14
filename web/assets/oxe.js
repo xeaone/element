@@ -350,7 +350,7 @@
 		return string;
 	};
 
-	Fetcher.onreadystatechange = function (opt, result, xhr) {
+	Fetcher.change = function (opt, result, xhr) {
 		if (xhr.readyState === 4) {
 
 			result.opt = opt;
@@ -368,7 +368,11 @@
 
 			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
 			if (opt.responseType === 'json' && typeof result.data === 'string') {
-				result.data = JSON.parse(result.data || {});
+				try {
+					result.data = JSON.parse(result.data);
+				} catch (error) {
+					console.warn(error);
+				}
 			}
 
 			if (xhr.status === 401 || xhr.status === 403) {
@@ -387,13 +391,14 @@
 				if (opt.success) {
 					opt.success(result);
 				} else if (opt.handler) {
+					opt.error = false;
 					opt.handler(result);
 				}
 			} else {
-				opt.isError = true;
 				if (opt.error) {
 					opt.error(result);
 				} else if (opt.handler) {
+					opt.error = true;
 					opt.handler(result);
 				}
 			}
@@ -402,12 +407,12 @@
 	};
 
 	Fetcher.fetch = function (opt) {
+		var data;
 		var result = {};
 		var xhr = new XMLHttpRequest();
 
 		opt = opt || {};
 		opt.headers = {};
-		opt.error = false;
 		opt.url = opt.url ? opt.url : window.location.href;
 		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
 
@@ -422,7 +427,7 @@
 		if (opt.contentType) {
 			switch (opt.contentType) {
 				case 'js': opt.headers['Content-Type'] = this.mime.js; break;
-				case 'xml': opt.headers['Content-Type'] = this.mime.xm; break;
+				case 'xml': opt.headers['Content-Type'] = this.mime.xml; break;
 				case 'html': opt.headers['Content-Type'] = this.mime.html; break;
 				case 'json': opt.headers['Content-Type'] = this.mime.json; break;
 				default: opt.headers['Content-Type'] = this.mime.text;
@@ -462,7 +467,7 @@
 		if (opt.cache) {
 			opt.headers.cache = true;
 		} else {
-			opt.cache = false;
+			opt.headers.cache = false;
 		}
 
 		if (opt.headers) {
@@ -471,18 +476,23 @@
 			}
 		}
 
-		if (opt.data && opt.method === 'GET') {
-			opt.url = opt.url + '?' + this.serialize(opt.data);
+		if (opt.data) {
+			if (opt.method === 'GET') {
+				opt.url = opt.url + '?' + this.serialize(opt.data);
+			} else if (opt.contentType === 'json') {
+				data = JSON.stringify(opt.data);
+			}
 		}
 
 		result.xhr = xhr;
 		result.opt = opt;
 		result.data = opt.data;
 
-		if (this.auth && (
-			result.opt.auth === true ||
-			result.opt.auth === undefined
-		)) {
+		if (
+			this.auth
+			&& result.opt.auth === true
+			|| result.opt.auth === undefined
+		) {
 			if (Global$1.keeper.request(result) === false) {
 				return;
 			}
@@ -492,10 +502,8 @@
 			return;
 		}
 
-		xhr.onreadystatechange = this.onreadystatechange.bind(this, opt, result, xhr);
-
-		xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
-
+		xhr.onreadystatechange = this.change.bind(this, opt, result, xhr);
+		xhr.send(data);
 	};
 
 	Fetcher.post = function (opt) {
@@ -2433,8 +2441,10 @@
 			if (isValid) {
 				if (action) {
 					Global$1.fetcher.fetch({
+						auth: false,
 						data: data,
 						url: action,
+						type: 'json',
 						method: method,
 						handler: submitHandler.bind(container.model)
 					});
