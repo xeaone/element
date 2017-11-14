@@ -748,7 +748,7 @@
 		var location = {};
 
 		location.pathname = decodeURI(path);
-		location.origin = Global$1.location.origin;
+		location.origin = window.location.origin;
 		location.base = this.base ? this.base : location.origin;
 
 		location.port = window.location.port;

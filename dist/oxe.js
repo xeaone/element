@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.8
+	Version: 2.5.9
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -758,7 +758,7 @@
 		var location = {};
 
 		location.pathname = decodeURI(path);
-		location.origin = Global$1.location.origin;
+		location.origin = window.location.origin;
 		location.base = this.base ? this.base : location.origin;
 
 		location.port = window.location.port;
