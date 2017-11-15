@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.15
+	Version: 2.5.16
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -348,6 +348,7 @@
 		opt = opt || {};
 		this.auth = opt.auth || false;
 		this.type = opt.type || 'text';
+		this.method = opt.method || 'get';
 		this.request = opt.request || opt.request;
 		this.response = opt.response || opt.response;
 		return this;
@@ -429,9 +430,11 @@
 
 		opt.headers = {};
 		opt.url = opt.url ? opt.url : window.location.href;
-		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
-		opt.type = opt.type === undefined || opt.type === null ? this.type :opt.type;
+		opt.type = opt.type === undefined || opt.type === null ? this.type : opt.type;
 		opt.auth = opt.auth === undefined || opt.auth === null ? this.auth : opt.auth;
+		opt.method = opt.method === undefined || opt.method === null ? this.method : opt.method;
+
+		opt.method = opt.method.toUpperCase();
 
 		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
 
@@ -2430,34 +2433,35 @@
 
 	Global$1.window.addEventListener('submit', function (e) {
 		var element = e.target;
-
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-		var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-		var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-		var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
 
-		if (submit || action) {
+		if (submit) {
 			var isValid = true;
-			var validateHandler;
 			var container = Utility.getContainer(element);
 			var data = Utility.formData(element, container.model);
 			var submitHandler = Utility.getByPath(container.events, submit);
 
+			var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
 			if (validate) {
-				validateHandler = Utility.getByPath(container.events, validate);
+				var validateHandler = Utility.getByPath(container.events, validate);
 				isValid = validateHandler.call(container.model, data, e);
 			}
 
 			if (isValid) {
+				var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
 				if (action) {
+					var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
+					var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+					auth = auth === null || auth === undefined ? auth : (auth == 'true');
 					Global$1.fetcher.fetch({
 						data: data,
+						auth: auth,
 						url: action,
 						method: method,
 						handler: submitHandler.bind(container.model)
 					});
 				} else {
-					submitHandler.call(container.model, e, data);
+					submitHandler.call(container.model, data, e);
 				}
 			}
 
