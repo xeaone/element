@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.14
+	Version: 2.5.15
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2451,10 +2451,8 @@
 			if (isValid) {
 				if (action) {
 					Global$1.fetcher.fetch({
-						auth: false,
 						data: data,
 						url: action,
-						type: 'json',
 						method: method,
 						handler: submitHandler.bind(container.model)
 					});
