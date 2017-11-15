@@ -33,24 +33,28 @@ Utility.formData = function (form, model) {
 };
 
 Utility.toText = function (data) {
-	if (data === undefined) return ''; // data === null ||
-	if (typeof data === 'object') return JSON.stringify(data);
-	else return data.toString();
+	if (typeof data === 'object') {
+		 return JSON.stringify(data);
+	} else {
+		return String(data);
+	}
 };
 
-Utility.ensureByPath = function (data, path) {
+Utility.traverse = function (data, path, callback) {
 	var keys = typeof path === 'string' ? path.split('.') : path;
 	var last = keys.length - 1;
 
 	for (var i = 0; i < last; i++) {
 		var key = keys[i];
+
 		if (!(key in data)) {
-			if (isNaN(keys[i+1])) {
-				data[key] = {};
+			if (typeof callback === 'function') {
+				callback(data, key, i, keys);
 			} else {
-				data[key] = [];
+				return undefined;
 			}
 		}
+
 		data = data[key];
 	}
 
@@ -85,7 +89,7 @@ Utility.getByPath = function (data, path) {
 
 	for (var i = 0; i < last; i++) {
 		var key = keys[i];
-		if (!data[key]) {
+		if (!(key in data)) {
 			return undefined;
 		} else {
 			data = data[key];

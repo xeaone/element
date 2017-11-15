@@ -21,12 +21,8 @@ export default 	function Binder (options) {
 	this.render();
 }
 
-Binder.prototype.ensureData = function (data) {
-	if (data === undefined) {
-		return Global.model.ensureGet(this.keys);
-	} else {
-		return Global.model.ensureSet(this.keys, data);
-	}
+Binder.prototype.ensureData = function () {
+	return Global.model.ensure(this.keys);
 };
 
 Binder.prototype.setData = function (data) {
@@ -35,12 +31,7 @@ Binder.prototype.setData = function (data) {
 
 Binder.prototype.getData = function () {
 	var data = Global.model.get(this.keys);
-
-	// if (data === undefined) {
-	// 	console.warn('Binder.getData - undefined: ' + this.attribute.path);
-	// }
-
-	return data === undefined ? data : this.modifyData(data);
+	return this.modifyData(data);
 };
 
 Binder.prototype.modifyData = function (data) {
