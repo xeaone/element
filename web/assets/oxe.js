@@ -4,146 +4,6 @@
 	(global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-	var Utility = {};
-
-	Utility.createBase = function (base) {
-		var element = document.head.querySelector('base');
-
-		if (!element) {
-			element = document.createElement('base');
-			document.head.insertBefore(element, document.head.firstChild);
-		}
-
-		if (typeof base === 'string') {
-			element.href = base;
-		}
-
-		base = element.href;
-
-		return base;
-	};
-
-	Utility.formData = function (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		var data = {};
-
-		for (var i = 0, l = elements.length; i < l; i++) {
-			var element = elements[i];
-			var path = element.getAttribute('o-value');
-			var name = path.split('.').slice(-1);
-			data[name] = Utility.getByPath(model, path);
-		}
-
-		return data;
-	};
-
-	Utility.toText = function (data) {
-		if (typeof data === 'object') {
-			 return JSON.stringify(data);
-		} else {
-			return String(data);
-		}
-	};
-
-	Utility.traverse = function (data, path, callback) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-
-			if (!(key in data)) {
-				if (typeof callback === 'function') {
-					callback(data, key, i, keys);
-				} else {
-					return undefined;
-				}
-			}
-
-			data = data[key];
-		}
-
-		return {
-			data: data,
-			key: keys[last]
-		}
-	};
-
-	Utility.setByPath = function (data, path, value) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (!(key in data)) {
-				if (isNaN(keys[i+1])) {
-					data[key] = {};
-				} else {
-					data[key] = [];
-				}
-			}
-			data = data[key];
-		}
-
-		return data[keys[last]] = value;
-	};
-
-	Utility.getByPath = function (data, path) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (!(key in data)) {
-				return undefined;
-			} else {
-				data = data[key];
-			}
-		}
-
-		return data[keys[last]];
-	};
-
-	Utility.removeChildren = function (element) {
-		var child;
-		while (child = element.lastElementChild) {
-			element.removeChild(child);
-		}
-	};
-
-	Utility.joinSlash = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
-	};
-
-	Utility.joinDot = function () {
-		return Array.prototype.join
-			.call(arguments, '.')
-			.replace(/\.{2,}/g, '.');
-	};
-
-	Utility.getContainer = function getContainer (element, target) {
-
-		if (element === document.body || element.nodeName === 'O-VIEW') {
-			return;
-		}
-
-		if (element.hasAttribute('o-uid')) {
-			return element;
-		}
-
-		if (element.parentElement) {
-			return this.getContainer(element.parentElement, target);
-		}
-
-		if (target) {
-			return this.getContainer(target);
-		}
-
-		console.warn('Utility could not find a uid');
-	};
-
 	var Component = {};
 
 	Component.data = {};
@@ -338,6 +198,7 @@
 		opt = opt || {};
 		this.auth = opt.auth || false;
 		this.type = opt.type || 'text';
+		this.method = opt.method || 'get';
 		this.request = opt.request || opt.request;
 		this.response = opt.response || opt.response;
 		return this;
@@ -419,9 +280,11 @@
 
 		opt.headers = {};
 		opt.url = opt.url ? opt.url : window.location.href;
-		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
-		opt.type = opt.type === undefined || opt.type === null ? this.type :opt.type;
+		opt.type = opt.type === undefined || opt.type === null ? this.type : opt.type;
 		opt.auth = opt.auth === undefined || opt.auth === null ? this.auth : opt.auth;
+		opt.method = opt.method === undefined || opt.method === null ? this.method : opt.method;
+
+		opt.method = opt.method.toUpperCase();
 
 		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
 
@@ -2009,7 +1872,6 @@
 	View.isSetup = false;
 	View.container = document.body;
 
-	View.PATH = /\s?\|.*/;
 	View.PARENT_KEY = /^.*\./;
 	View.PARENT_PATH = /\.\w+$|^\w+$/;
 	View.PREFIX = /(data-)?o-/;
@@ -2069,7 +1931,7 @@
 
 		attribute.name = name;
 		attribute.value = value;
-		attribute.path = attribute.value.replace(this.PATH, '');
+		attribute.path = Utility.binderPath(attribute.value);
 
 		attribute.opts = attribute.path.split('.');
 		attribute.cmds = attribute.name.replace(this.PREFIX, '').split('-');
@@ -2097,7 +1959,7 @@
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
 			if (this.isAny(attribute)) {
-				callback.call(this, attribute.value.replace(this.PATH, ''));
+				callback.call(this, Utility.binderPath(attribute.value));
 			}
 		}
 	};
@@ -2390,6 +2252,207 @@
 		}
 	});
 
+	var UnbindValue = function (element) {
+		var i , l, data;
+
+		var value = element.getAttribute('o-value');
+		if (!value) return;
+
+		var path = Utility.binderPath(value);
+
+		var container = Utility.getContainer(element);
+		if (!container) return;
+
+		var uid = container.getAttribute('o-uid');
+
+		if (element.type === 'checkbox') {
+			data = false;
+			element.checked = data;
+			element.value = data;
+		} else if (element.nodeName === 'SELECT') {
+			data = [];
+			var options = element.options;
+			for (i = 0, l = options.length; i < l; i++) {
+				var option = options[i];
+				option.selected = false;
+			}
+		} else if (element.type === 'radio') {
+			var query = 'input[type="radio"][o-value="' + path + '"]';
+			var elements = element.parentNode.querySelectorAll(query);
+			for (i = 0, l = elements.length; i < l; i++) {
+				var radio = elements[i];
+				if (i === 0) {
+					radio.checked = true;
+				} else {
+					radio.checked = false;
+				}
+			}
+		} else {
+			data = '';
+			element.value = data;
+		}
+
+		var keys = uid + '.' + path.split('.');
+		Global$1.model.set(keys, data);
+	};
+
+	var Utility = {};
+
+	Utility.PATH = /\s*\|.*/;
+
+	Utility.binderPath = function (path) {
+		return path.replace(Utility.path, '');
+	};
+
+	Utility.createBase = function (base) {
+		var element = document.head.querySelector('base');
+
+		if (!element) {
+			element = document.createElement('base');
+			document.head.insertBefore(element, document.head.firstChild);
+		}
+
+		if (typeof base === 'string') {
+			element.href = base;
+		}
+
+		base = element.href;
+
+		return base;
+	};
+
+	Utility.formData = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		var data = {};
+
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
+			var path = element.getAttribute('o-value');
+			if (path) {
+				path = path.replace(/\s*\|.*/, '');
+				var name = path.split('.').slice(-1);
+				data[name] = Utility.getByPath(model, path);
+			}
+		}
+
+		return data;
+	};
+
+	Utility.formReset = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
+			UnbindValue(element);
+		}
+	};
+
+	Utility.toText = function (data) {
+		if (typeof data === 'object') {
+			 return JSON.stringify(data);
+		} else {
+			return String(data);
+		}
+	};
+
+	Utility.traverse = function (data, path, callback) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+
+			if (!(key in data)) {
+				if (typeof callback === 'function') {
+					callback(data, key, i, keys);
+				} else {
+					return undefined;
+				}
+			}
+
+			data = data[key];
+		}
+
+		return {
+			data: data,
+			key: keys[last]
+		}
+	};
+
+	Utility.setByPath = function (data, path, value) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!(key in data)) {
+				if (isNaN(keys[i+1])) {
+					data[key] = {};
+				} else {
+					data[key] = [];
+				}
+			}
+			data = data[key];
+		}
+
+		return data[keys[last]] = value;
+	};
+
+	Utility.getByPath = function (data, path) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!(key in data)) {
+				return undefined;
+			} else {
+				data = data[key];
+			}
+		}
+
+		return data[keys[last]];
+	};
+
+	Utility.removeChildren = function (element) {
+		var child;
+		while (child = element.lastElementChild) {
+			element.removeChild(child);
+		}
+	};
+
+	Utility.joinSlash = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	};
+
+	Utility.joinDot = function () {
+		return Array.prototype.join
+			.call(arguments, '.')
+			.replace(/\.{2,}/g, '.');
+	};
+
+	Utility.getContainer = function getContainer (element, target) {
+
+		if (element === document.body || element.nodeName === 'O-VIEW') {
+			return;
+		}
+
+		if (element.hasAttribute('o-uid')) {
+			return element;
+		}
+
+		if (element.parentElement) {
+			return this.getContainer(element.parentElement, target);
+		}
+
+		if (target) {
+			return this.getContainer(target);
+		}
+
+		console.warn('Utility could not find a uid');
+	};
+
 	if (window.Oxe) {
 		throw new Error('Oxe pre-defined duplicate Oxe scripts');
 	}
@@ -2418,37 +2481,38 @@
 		});
 	}, true);
 
+	Global$1.window.addEventListener('reset', function (e) {
+		var element = e.target;
+		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+		if (submit) {
+			var container = Utility.getContainer(element);
+			var uid = container.getAttribute('o-uid');
+			var model = Global$1.model.data[uid];
+			Utility.formReset(element, model);
+		}
+	});
+
 	Global$1.window.addEventListener('submit', function (e) {
 		var element = e.target;
-
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-		var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-		var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-		var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
-
-		if (submit || action) {
-			var isValid = true;
-			var validateHandler;
+		if (submit) {
 			var container = Utility.getContainer(element);
-			var data = Utility.formData(element, container.model);
-			var submitHandler = Utility.getByPath(container.events, submit);
+			var uid = container.getAttribute('o-uid');
+			var model = Global$1.model.data[uid];
+			var data = Utility.formData(element, model);
+			var method = Utility.getByPath(container.events, submit);
+			var options = method.call(model, data, e);
 
-			if (validate) {
-				validateHandler = Utility.getByPath(container.events, validate);
-				isValid = validateHandler.call(container.model, data, e);
+			if (options && typeof options === 'object') {
+				var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+				var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+				options.url = options.url || action;
+				options.method = options.method || method;
+				Global$1.fetcher.fetch(options);
 			}
 
-			if (isValid) {
-				if (action) {
-					Global$1.fetcher.fetch({
-						data: data,
-						url: action,
-						method: method,
-						handler: submitHandler.bind(container.model)
-					});
-				} else {
-					submitHandler.call(container.model, e, data);
-				}
+			if (element.hasAttribute('o-reset')) {
+				element.reset();
 			}
 
 			e.preventDefault();

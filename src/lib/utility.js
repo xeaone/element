@@ -1,5 +1,12 @@
+import UnbindValue from './unbind/value.js';
 
 var Utility = {};
+
+Utility.PATH = /\s*\|.*/;
+
+Utility.binderPath = function (path) {
+	return path.replace(Utility.path, '');
+};
 
 Utility.createBase = function (base) {
 	var element = document.head.querySelector('base');
@@ -25,11 +32,22 @@ Utility.formData = function (form, model) {
 	for (var i = 0, l = elements.length; i < l; i++) {
 		var element = elements[i];
 		var path = element.getAttribute('o-value');
-		var name = path.split('.').slice(-1);
-		data[name] = Utility.getByPath(model, path);
+		if (path) {
+			path = path.replace(/\s*\|.*/, '');
+			var name = path.split('.').slice(-1);
+			data[name] = Utility.getByPath(model, path);
+		}
 	}
 
 	return data;
+};
+
+Utility.formReset = function (form, model) {
+	var elements = form.querySelectorAll('[o-value]');
+	for (var i = 0, l = elements.length; i < l; i++) {
+		var element = elements[i];
+		UnbindValue(element);
+	}
 };
 
 Utility.toText = function (data) {

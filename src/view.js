@@ -1,6 +1,6 @@
-import Utility from './lib/utility';
-import Binder from './lib/binder';
-import Global from './global';
+import Utility from './lib/utility.js';
+import Binder from './lib/binder.js';
+import Global from './global.js';
 
 var View = {};
 
@@ -8,7 +8,6 @@ View.data = {};
 View.isSetup = false;
 View.container = document.body;
 
-View.PATH = /\s?\|.*/;
 View.PARENT_KEY = /^.*\./;
 View.PARENT_PATH = /\.\w+$|^\w+$/;
 View.PREFIX = /(data-)?o-/;
@@ -68,7 +67,7 @@ View.createAttribute = function (name, value) {
 
 	attribute.name = name;
 	attribute.value = value;
-	attribute.path = attribute.value.replace(this.PATH, '');
+	attribute.path = Utility.binderPath(attribute.value);
 
 	attribute.opts = attribute.path.split('.');
 	attribute.cmds = attribute.name.replace(this.PREFIX, '').split('-');
@@ -96,7 +95,7 @@ View.eachPath = function (element, callback) {
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
 		if (this.isAny(attribute)) {
-			callback.call(this, attribute.value.replace(this.PATH, ''));
+			callback.call(this, Utility.binderPath(attribute.value));
 		}
 	}
 };

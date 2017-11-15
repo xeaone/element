@@ -1,5 +1,5 @@
-import Utility from './lib/utility';
-import Global from './global';
+import Utility from './lib/utility.js';
+import Global from './global.js';
 
 if (window.Oxe) {
 	throw new Error('Oxe pre-defined duplicate Oxe scripts');
@@ -29,42 +29,38 @@ Global.window.addEventListener('popstate', function (e) {
 	});
 }, true);
 
+Global.window.addEventListener('reset', function (e) {
+	var element = e.target;
+	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+	if (submit) {
+		var container = Utility.getContainer(element);
+		var uid = container.getAttribute('o-uid');
+		var model = Global.model.data[uid];
+		Utility.formReset(element, model);
+	}
+});
+
 Global.window.addEventListener('submit', function (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
 	if (submit) {
-		var isValid = true;
 		var container = Utility.getContainer(element);
-		var data = Utility.formData(element, container.model);
-		var submitHandler = Utility.getByPath(container.events, submit);
+		var uid = container.getAttribute('o-uid');
+		var model = Global.model.data[uid];
+		var data = Utility.formData(element, model);
+		var method = Utility.getByPath(container.events, submit);
+		var options = method.call(model, data, e);
 
-		var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
-		if (validate) {
-			var validateHandler = Utility.getByPath(container.events, validate);
-			if (typeof validateHandler === 'function') {
-				isValid = validateHandler.call(container.model, data, e);
-			} else {
-				isValid = validateHandler;
-			}
+		if (options && typeof options === 'object') {
+			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+			var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+			options.url = options.url || action;
+			options.method = options.method || method;
+			Global.fetcher.fetch(options);
 		}
 
-		if (isValid) {
-			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-			if (action) {
-				var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-				var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-				auth = auth === null || auth === undefined ? auth : (auth == 'true');
-				Global.fetcher.fetch({
-					data: data,
-					auth: auth,
-					url: action,
-					method: method,
-					handler: submitHandler.bind(container.model)
-				});
-			} else {
-				submitHandler.call(container.model, data, e);
-			}
+		if (element.hasAttribute('o-reset')) {
+			element.reset();
 		}
 
 		e.preventDefault();
