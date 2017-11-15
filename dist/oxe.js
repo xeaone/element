@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.16
+	Version: 2.5.17
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2444,7 +2444,11 @@
 			var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
 			if (validate) {
 				var validateHandler = Utility.getByPath(container.events, validate);
-				isValid = validateHandler.call(container.model, data, e);
+				if (typeof validateHandler === 'function') {
+					isValid = validateHandler.call(container.model, data, e);
+				} else {
+					isValid = validateHandler;
+				}
 			}
 
 			if (isValid) {

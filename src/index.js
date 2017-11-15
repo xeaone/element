@@ -42,7 +42,11 @@ Global.window.addEventListener('submit', function (e) {
 		var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
 		if (validate) {
 			var validateHandler = Utility.getByPath(container.events, validate);
-			isValid = validateHandler.call(container.model, data, e);
+			if (typeof validateHandler === 'function') {
+				isValid = validateHandler.call(container.model, data, e);
+			} else {
+				isValid = validateHandler;
+			}
 		}
 
 		if (isValid) {
