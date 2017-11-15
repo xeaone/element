@@ -31,34 +31,35 @@ Global.window.addEventListener('popstate', function (e) {
 
 Global.window.addEventListener('submit', function (e) {
 	var element = e.target;
-
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-	var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-	var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-	var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
 
-	if (submit || action) {
+	if (submit) {
 		var isValid = true;
-		var validateHandler;
 		var container = Utility.getContainer(element);
 		var data = Utility.formData(element, container.model);
 		var submitHandler = Utility.getByPath(container.events, submit);
 
+		var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
 		if (validate) {
-			validateHandler = Utility.getByPath(container.events, validate);
+			var validateHandler = Utility.getByPath(container.events, validate);
 			isValid = validateHandler.call(container.model, data, e);
 		}
 
 		if (isValid) {
+			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
 			if (action) {
+				var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
+				var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+				auth = auth === null || auth === undefined ? auth : (auth == 'true');
 				Global.fetcher.fetch({
 					data: data,
+					auth: auth,
 					url: action,
 					method: method,
 					handler: submitHandler.bind(container.model)
 				});
 			} else {
-				submitHandler.call(container.model, e, data);
+				submitHandler.call(container.model, data, e);
 			}
 		}
 

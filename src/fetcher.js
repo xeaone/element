@@ -14,6 +14,7 @@ Fetcher.setup = function (opt) {
 	opt = opt || {};
 	this.auth = opt.auth || false;
 	this.type = opt.type || 'text';
+	this.method = opt.method || 'get';
 	this.request = opt.request || opt.request;
 	this.response = opt.response || opt.response;
 	return this;
@@ -95,9 +96,11 @@ Fetcher.fetch = function (opt) {
 
 	opt.headers = {};
 	opt.url = opt.url ? opt.url : window.location.href;
-	opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
-	opt.type = opt.type === undefined || opt.type === null ? this.type :opt.type;
+	opt.type = opt.type === undefined || opt.type === null ? this.type : opt.type;
 	opt.auth = opt.auth === undefined || opt.auth === null ? this.auth : opt.auth;
+	opt.method = opt.method === undefined || opt.method === null ? this.method : opt.method;
+
+	opt.method = opt.method.toUpperCase();
 
 	xhr.open(opt.method, opt.url, true, opt.username, opt.password);
 
