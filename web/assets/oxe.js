@@ -2441,10 +2441,8 @@
 			if (isValid) {
 				if (action) {
 					Global$1.fetcher.fetch({
-						auth: false,
 						data: data,
 						url: action,
-						type: 'json',
 						method: method,
 						handler: submitHandler.bind(container.model)
 					});
