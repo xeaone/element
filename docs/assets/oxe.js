@@ -38,24 +38,28 @@
 	};
 
 	Utility.toText = function (data) {
-		if (data === undefined) return ''; // data === null ||
-		if (typeof data === 'object') return JSON.stringify(data);
-		else return data.toString();
+		if (typeof data === 'object') {
+			 return JSON.stringify(data);
+		} else {
+			return String(data);
+		}
 	};
 
-	Utility.ensureByPath = function (data, path) {
+	Utility.traverse = function (data, path, callback) {
 		var keys = typeof path === 'string' ? path.split('.') : path;
 		var last = keys.length - 1;
 
 		for (var i = 0; i < last; i++) {
 			var key = keys[i];
+
 			if (!(key in data)) {
-				if (isNaN(keys[i+1])) {
-					data[key] = {};
+				if (typeof callback === 'function') {
+					callback(data, key, i, keys);
 				} else {
-					data[key] = [];
+					return undefined;
 				}
 			}
+
 			data = data[key];
 		}
 
@@ -90,7 +94,7 @@
 
 		for (var i = 0; i < last; i++) {
 			var key = keys[i];
-			if (!data[key]) {
+			if (!(key in data)) {
 				return undefined;
 			} else {
 				data = data[key];
@@ -350,7 +354,7 @@
 		return string;
 	};
 
-	Fetcher.onreadystatechange = function (opt, result, xhr) {
+	Fetcher.change = function (opt, result, xhr) {
 		if (xhr.readyState === 4) {
 
 			result.opt = opt;
@@ -368,7 +372,11 @@
 
 			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
 			if (opt.responseType === 'json' && typeof result.data === 'string') {
-				result.data = JSON.parse(result.data || {});
+				try {
+					result.data = JSON.parse(result.data);
+				} catch (error) {
+					console.warn(error);
+				}
 			}
 
 			if (xhr.status === 401 || xhr.status === 403) {
@@ -387,13 +395,14 @@
 				if (opt.success) {
 					opt.success(result);
 				} else if (opt.handler) {
+					opt.error = false;
 					opt.handler(result);
 				}
 			} else {
-				opt.isError = true;
 				if (opt.error) {
 					opt.error(result);
 				} else if (opt.handler) {
+					opt.error = true;
 					opt.handler(result);
 				}
 			}
@@ -402,12 +411,12 @@
 	};
 
 	Fetcher.fetch = function (opt) {
+		var data;
 		var result = {};
 		var xhr = new XMLHttpRequest();
 
 		opt = opt || {};
 		opt.headers = {};
-		opt.error = false;
 		opt.url = opt.url ? opt.url : window.location.href;
 		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
 
@@ -422,7 +431,7 @@
 		if (opt.contentType) {
 			switch (opt.contentType) {
 				case 'js': opt.headers['Content-Type'] = this.mime.js; break;
-				case 'xml': opt.headers['Content-Type'] = this.mime.xm; break;
+				case 'xml': opt.headers['Content-Type'] = this.mime.xml; break;
 				case 'html': opt.headers['Content-Type'] = this.mime.html; break;
 				case 'json': opt.headers['Content-Type'] = this.mime.json; break;
 				default: opt.headers['Content-Type'] = this.mime.text;
@@ -462,7 +471,7 @@
 		if (opt.cache) {
 			opt.headers.cache = true;
 		} else {
-			opt.cache = false;
+			opt.headers.cache = false;
 		}
 
 		if (opt.headers) {
@@ -471,18 +480,23 @@
 			}
 		}
 
-		if (opt.data && opt.method === 'GET') {
-			opt.url = opt.url + '?' + this.serialize(opt.data);
+		if (opt.data) {
+			if (opt.method === 'GET') {
+				opt.url = opt.url + '?' + this.serialize(opt.data);
+			} else if (opt.contentType === 'json') {
+				data = JSON.stringify(opt.data);
+			}
 		}
 
 		result.xhr = xhr;
 		result.opt = opt;
 		result.data = opt.data;
 
-		if (this.auth && (
-			result.opt.auth === true ||
-			result.opt.auth === undefined
-		)) {
+		if (
+			this.auth
+			&& result.opt.auth === true
+			|| result.opt.auth === undefined
+		) {
 			if (Global$1.keeper.request(result) === false) {
 				return;
 			}
@@ -492,10 +506,8 @@
 			return;
 		}
 
-		xhr.onreadystatechange = this.onreadystatechange.bind(this, opt, result, xhr);
-
-		xhr.send(opt.method !== 'GET' && opt.contentType === 'json' ? JSON.stringify(opt.data || {}) : null);
-
+		xhr.onreadystatechange = this.change.bind(this, opt, result, xhr);
+		xhr.send(data);
 	};
 
 	Fetcher.post = function (opt) {
@@ -1339,9 +1351,10 @@
 
 		Object.defineProperties(data, propertyDescriptors);
 
-		if (data.constructor === Object) {
+		// if (data.constructor === Object) {
 			Observer.overrideObjectMethods(data, callback, path);
-		} else if (data.constructor === Array) {
+		// } else
+		if (data.constructor === Array) {
 			Observer.overrideArrayMethods(data, callback, path);
 		}
 	};
@@ -1636,24 +1649,31 @@
 		);
 	};
 
+	Model.traverse = function (path) {
+		return Utility.traverse(this.data, path, function (data, key, index, keys) {
+			if (isNaN(keys[index+1])) {
+				data.$set(key, {});
+			} else {
+				data.$set(key, []);
+			}
+		});
+	};
+
 	Model.get = function (keys) {
-		return Utility.getByPath(this.data, keys);
+		var result = Utility.traverse(this.data, keys);
+		return result ? result.data[result.key] : undefined;
 	};
 
 	Model.set = function (keys, value) {
-		return Utility.setByPath(this.data, keys, value);
-	};
-
-	Model.ensureSet = function (keys, value) {
-		var result = Utility.ensureByPath(this.data, keys);
+		value = value === undefined ? null : value;
+		var result = this.traverse(keys);
 		return result.data.$set(result.key, value);
 	};
 
-	Model.ensureGet = function (keys) {
-		var result = Utility.ensureByPath(this.data, keys);
-
+	Model.ensure = function (keys, value) {
+		var result = this.traverse(keys);
 		if (result.data[result.key] === undefined) {
-			return result.data.$set(result.key, null);
+			return result.data.$set(result.key, value || null);
 		} else {
 			return result.data[result.key];
 		}
@@ -1663,16 +1683,13 @@
 		var value = element.getAttribute('o-value');
 		if (value) {
 			var i, l;
-			var path = value.replace(/(^(\w+\.?)+).*/, '$1');
 			var container = Utility.getContainer(element);
-
-			if (!container) return;
-
 			var uid = container.getAttribute('o-uid');
+			var path = value.replace(/(^(\w+\.?)+).*/, '$1');
+			var result = this.traverse(uid + '.' + path);
 
 			if (element.type === 'checkbox') {
-				element.value = element.checked;
-				Utility.setByPath(this.data[uid], path, element.checked);
+				result.data[result.key] = element.value = element.checked;
 			} else if (element.nodeName === 'SELECT' && element.multiple) {
 				var values = [];
 				var options = element.options;
@@ -1682,19 +1699,20 @@
 						values.push(option.value);
 					}
 				}
-				Utility.setByPath(this.data[uid], path, values);
+				result.data[result.key] = values;
 			} else if (element.type === 'radio') {
 				var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + path + '"]');
 				for (i = 0, l = elements.length; i < l; i++) {
 					var radio = elements[i];
 					if (radio === element) {
-						Utility.setByPath(this.data[uid], path, i);
+						radio.checked = true;
+						result.data[result.key] = i;
 					} else {
 						radio.checked = false;
 					}
 				}
 			} else {
-				Utility.setByPath(this.data[uid], path, element.value);
+				result.data[result.key] = element.value;
 			}
 		}
 	};
@@ -1761,12 +1779,8 @@
 		this.render();
 	}
 
-	Binder.prototype.ensureData = function (data) {
-		if (data === undefined) {
-			return Global$1.model.ensureGet(this.keys);
-		} else {
-			return Global$1.model.ensureSet(this.keys, data);
-		}
+	Binder.prototype.ensureData = function () {
+		return Global$1.model.ensure(this.keys);
 	};
 
 	Binder.prototype.setData = function (data) {
@@ -1775,12 +1789,7 @@
 
 	Binder.prototype.getData = function () {
 		var data = Global$1.model.get(this.keys);
-
-		// if (data === undefined) {
-		// 	console.warn('Binder.getData - undefined: ' + this.attribute.path);
-		// }
-
-		return data === undefined ? data : this.modifyData(data);
+		return this.modifyData(data);
 	};
 
 	Binder.prototype.modifyData = function (data) {
@@ -2433,8 +2442,10 @@
 			if (isValid) {
 				if (action) {
 					Global$1.fetcher.fetch({
+						auth: false,
 						data: data,
 						url: action,
+						type: 'json',
 						method: method,
 						handler: submitHandler.bind(container.model)
 					});
