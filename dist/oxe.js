@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.13
+	Version: 2.5.14
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -390,7 +390,7 @@
 			}
 
 			if (xhr.status === 401 || xhr.status === 403) {
-				if (this.auth || result.opt.auth) {
+				if (result.opt.auth) {
 					if (Global$1.keeper.response) {
 						return Global$1.keeper.response(result);
 					}
@@ -426,9 +426,12 @@
 		var xhr = new XMLHttpRequest();
 
 		opt = opt || {};
+
 		opt.headers = {};
 		opt.url = opt.url ? opt.url : window.location.href;
 		opt.method = opt.method ? opt.method.toUpperCase() : 'GET';
+		opt.type = opt.type === undefined || opt.type === null ? this.type :opt.type;
+		opt.auth = opt.auth === undefined || opt.auth === null ? this.auth : opt.auth;
 
 		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
 
@@ -502,11 +505,7 @@
 		result.opt = opt;
 		result.data = opt.data;
 
-		if (
-			this.auth
-			&& result.opt.auth === true
-			|| result.opt.auth === undefined
-		) {
+		if (result.opt.auth) {
 			if (Global$1.keeper.request(result) === false) {
 				return;
 			}
