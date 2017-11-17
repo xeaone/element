@@ -1,3 +1,5 @@
+// import UnrenderValue from './unrender/value';
+// import RenderValue from './render/value';
 import Utility from './utility';
 import Global from '../global';
 
@@ -45,43 +47,11 @@ Binder.prototype.modifyData = function (data) {
 };
 
 Binder.prototype.setupMethods = {
-	value: function (data) {
-		var i , l;
-		if (this.element.type === 'checkbox') {
-			data = !data ? false : data;
-			this.element.checked = data;
-			this.element.value = data;
-		} else if (this.element.nodeName === 'SELECT') {
-			var options = this.element.options;
-			data = this.element.multiple ? [] : data;
-			for (i = 0, l = options.length; i < l; i++) {
-				var option = options[i];
-				if (option.selected) {
-					if (this.element.multiple) {
-						data.push(option.value);
-					} else {
-						data = option.value;
-						break;
-					}
-				}
-			}
-		} else if (this.element.type === 'radio') {
-			var query = 'input[type="radio"][o-value="' + this.attribute.value + '"]';
-			var elements = this.element.parentNode.querySelectorAll(query);
-			for (i = 0, l = elements.length; i < l; i++) {
-				var radio = elements[i];
-				radio.checked = i === data;
-			}
-		} else {
-			data = data === undefined ? '' : data;
-			this.element.value = data;
-		}
-		return data;
-	},
-	on: function () {
-		var model = Global.model.get([this.uid]);
-		this.cache = Utility.getByPath(this.events, this.attribute.path).bind(model);
-	},
+	// value: RenderValue,
+	// on: function () {
+	// 	var model = Global.model.get([this.uid]);
+	// 	this.cache = Utility.getByPath(this.events, this.attribute.path).bind(model);
+	// },
 	each: function (data) {
 		this.variable = this.attribute.cmds[1];
 		this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
@@ -120,19 +90,17 @@ Binder.prototype.setupMethods = {
 };
 
 Binder.prototype.renderMethods = {
-	on: function (data) {
-		this.element.removeEventListener(this.attribute.cmds[1], data);
-		this.element.addEventListener(this.attribute.cmds[1], data);
-	},
+	// on: function (data) {
+	// 	this.element.removeEventListener(this.attribute.cmds[1], data);
+	// 	this.element.addEventListener(this.attribute.cmds[1], data);
+	// },
 	each: function (data) {
 		if (this.element.children.length > data.length) {
-			while (this.element.children.length > data.length) {
-				this.element.removeChild(this.element.lastElementChild);
-			}
+			this.element.removeChild(this.element.lastElementChild);
+			this.render();
 		} else if (this.element.children.length < data.length) {
-			while (this.element.children.length < data.length) {
-				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
-			}
+			this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
+			this.render();
 		}
 	},
 	html: function (data) {
@@ -188,9 +156,9 @@ Binder.prototype.renderMethods = {
 };
 
 Binder.prototype.unrenderMethods = {
-	on: function () {
-		this.element.removeEventListener(this.attribute.cmds[1], this.cache, false);
-	},
+	// on: function () {
+	// 	this.element.removeEventListener(this.attribute.cmds[1], this.cache, false);
+	// },
 	each: function () {
 		Utility.removeChildren(this.element);
 	},

@@ -1,11 +1,40 @@
-import UnbindValue from './unbind/value.js';
+import UnrenderValue from './unrender/value.js';
 
 var Utility = {};
 
 Utility.PATH = /\s*\|.*/;
+Utility.PREFIX = /(data-)?o-/;
+Utility.SPLIT_MODIFIERS = /\s|\s?,\s?/;
 
-Utility.binderPath = function (path) {
-	return path.replace(Utility.path, '');
+Utility.binderNormalize = function (data) {
+	return !data ? '' : data
+		.replace(/\s+$/, '')
+		.replace(/^\s+/, '')
+		.replace(/\.{2,}/g, '.')
+		.replace(/\|{2,}/g, '|')
+		.replace(/\,{2,}/g, ',')
+		.replace(/\s{2,}/g, ' ')
+		.replace(/\s?\|\s?/, '|');
+};
+
+Utility.binderNames = function (data) {
+	return data.replace(this.PREFIX, '').split('-');
+};
+
+Utility.binderValues = function (data) {
+	data = Utility.binderNormalize(data);
+	var index = data.indexOf('|');
+	return data.slice(0, index).split('.');
+};
+
+Utility.binderModifiers = function (data) {
+	data = Utility.binderNormalize(data);
+	var index = data.indexOf('|');
+	return index === -1 ? [] : data.slice(index + 1).split(Utility.SPLIT_MODIFIERS);
+};
+
+Utility.binderPath = function (data) {
+	return Utility.binderNormalize(data).replace(Utility.PATH, '');
 };
 
 Utility.createBase = function (base) {
@@ -46,7 +75,7 @@ Utility.formReset = function (form, model) {
 	var elements = form.querySelectorAll('[o-value]');
 	for (var i = 0, l = elements.length; i < l; i++) {
 		var element = elements[i];
-		UnbindValue(element);
+		UnrenderValue(element);
 	}
 };
 
@@ -136,24 +165,10 @@ Utility.joinDot = function () {
 		.replace(/\.{2,}/g, '.');
 };
 
-Utility.getContainer = function getContainer (element, target) {
-
-	if (element === document.body || element.nodeName === 'O-VIEW') {
-		return;
-	}
-
-	if (element.hasAttribute('o-uid')) {
-		return element;
-	}
-
-	if (element.parentElement) {
-		return this.getContainer(element.parentElement, target);
-	}
-
-	if (target) {
-		return this.getContainer(target);
-	}
-
+Utility.getContainer = function getContainer (element) {
+	if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) return element;
+	if (element.parentElement) return this.getContainer(element.parentElement);
+	console.log(element);
 	console.warn('Utility could not find a uid');
 };
 

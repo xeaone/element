@@ -186,9 +186,6 @@ Oxe.component.define({
 		</div>
 
 		<button o-on-click="say">Console Log</button>
-		<input type="text" o-value="nope">
-		<input type="button" value="button">
-		<input type="reset" value="reset">
 		<br>
 		<br>
 
