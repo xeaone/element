@@ -1,8 +1,8 @@
 import Utility from '../utility.js';
 import Global from '../../global.js';
 
-export default function (opt) {
-	var i , l, data;
+export default function (opt, data) {
+	var i , l;
 
 	if (opt.element.type === 'checkbox') {
 		data = false;
@@ -31,5 +31,5 @@ export default function (opt) {
 		opt.element.value = data;
 	}
 
-	this.setData(opt.keys, data);
+	return data;
 }

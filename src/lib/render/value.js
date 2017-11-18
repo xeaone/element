@@ -1,9 +1,7 @@
 import Global from '../../global.js';
 
-export default function (opt) {
-	var i , l, data;
-	
-	data = this.getData(opt.keys);
+export default function (opt, data) {
+	var i , l;
 
 	if (opt.element.type === 'checkbox') {
 		data = !data ? false : data;
@@ -11,7 +9,7 @@ export default function (opt) {
 		opt.element.value = data;
 	} else if (opt.element.nodeName === 'SELECT') {
 		var options = opt.element.options;
-		data = opt.element.multiple ? [] : data;
+		data = !data && opt.element.multiple ? [] : data;
 		for (i = 0, l = options.length; i < l; i++) {
 			var option = options[i];
 			if (option.selected) {
@@ -35,5 +33,5 @@ export default function (opt) {
 		opt.element.value = data;
 	}
 
-	this.setData(opt.keys, data);
+	return data;
 }

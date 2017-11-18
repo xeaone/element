@@ -22,16 +22,22 @@ OnceBinder.renderMethod = {
 	value: RenderValue
 };
 
-OnceBinder.ensureData = function (keys) {
-	return Global.model.ensure(keys);
+OnceBinder.ensureData = function (opt) {
+	return Global.model.ensure(opt.keys);
 };
 
-OnceBinder.setData = function (keys, data) {
-	return Global.model.set(keys, data);
+OnceBinder.setData = function (opt, data) {
+	if (data !== undefined) {
+		return Global.model.set(opt.keys, data);
+	}
 };
 
-OnceBinder.getData = function (keys) {
-	return Global.model.get(keys);
+OnceBinder.getData = function (opt) {
+	if (opt.type === 'on') {
+		return Utility.getByPath(Global.events.data, opt.uid + '.' + opt.path);
+	} else {
+		return Global.model.get(opt.keys);
+	}
 };
 
 OnceBinder.add = function (opt) {
@@ -124,18 +130,20 @@ OnceBinder.update = function (opt) {
 // };
 
 OnceBinder.option = function (opt) {
+	opt = opt || {};
+
+	if (!opt.type) throw new Error('OnceBinder.render - requires a type');
+	if (!opt.element) throw new Error('OnceBinder.render - requires a element');
+
 	var tmp = this.get(opt);
 	if (tmp) return tmp;
 
 	opt.exists = false;
 
-	// if (!opt.element) throw new Error('OnceBinder.render - requires a element');
-
 	opt.container = opt.container || Utility.getContainer(opt.element);
 	opt.uid = opt.uid || opt.container.getAttribute('o-uid');
 
 	opt.attribute = opt.attribute || {};
-	opt.attribute.name = opt.name || opt.attribute.name || 'o-' + opt.type; // FIXME
 	opt.attribute.value = opt.value || opt.attribute.value || opt.element.getAttribute(opt.attribute.name);
 
 	opt.path = opt.path || opt.attribute.path || Utility.binderPath(opt.attribute.value);
@@ -144,15 +152,10 @@ OnceBinder.option = function (opt) {
 	opt.modifiers = opt.modifiers || opt.attribute.modifiers || Utility.binderModifiers(opt.attribute.value);
 
 	opt.keys = [opt.uid].concat(opt.values);
-	opt.type = opt.type || opt.attribute.type || opt.names[0]; // FIXME
-	opt.model = opt.model || Global.model.get([opt.uid]);
-	// opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
+	opt.model = opt.model || Global.model.data[opt.uid];
+	opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
 
-	if (opt.type === 'on') {
-		opt.data = Utility.getByPath(Global.events.data, opt.uid + '.' + opt.path);
-	} else {
-		opt.data = Global.model.get(opt.keys);
-	}
+	this.ensureData(opt);
 
 	return opt;
 };
@@ -160,22 +163,42 @@ OnceBinder.option = function (opt) {
 OnceBinder.unrender = function (opt) {
 	opt.type = opt.type || opt.attribute.type;
 	if (opt.method = this.unrenderMethod[opt.type]) {
-		opt = this.option(opt);
-		Global.batcher.write(opt.method.bind(this, opt));
-		if (opt.exists === true) {
-			this.remove(opt);
-		}
+		Global.batcher.write(function (opt, data) {
+
+			opt = this.option(opt);
+			data = this.getData(opt);
+			data = opt.method.call(this, opt, data);
+
+			if (data !== undefined) {
+				this.setData(opt, data);
+			}
+
+			if (opt.exists === true) {
+				this.remove(opt);
+			}
+
+		}.bind(this, opt));
 	}
 };
 
 OnceBinder.render = function (opt) {
 	opt.type = opt.type || opt.attribute.type;
 	if (opt.method = this.renderMethod[opt.type]) {
-		opt = this.option(opt);
-		Global.batcher.write(opt.method.bind(this, opt));
-		if (opt.exists === false) {
-			this.add(opt);
-		}
+		Global.batcher.write(function (opt, data) {
+
+			opt = this.option(opt);
+			data = this.getData(opt);
+			data = opt.method.call(this, opt, data);
+
+			if (data !== undefined) {
+				this.setData(opt, data);
+			}
+
+			if (opt.exists === false) {
+				this.add(opt);
+			}
+
+		}.bind(this, opt));
 	}
 };
 

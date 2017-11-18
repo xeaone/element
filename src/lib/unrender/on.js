@@ -1,4 +1,4 @@
 
-export default function UnrenderOn (opt) {
-	opt.element.removeEventListener(opt.names[1], opt.data, false);
+export default function UnrenderOn (opt, data) {
+	opt.element.removeEventListener(opt.names[1], data, false);
 }

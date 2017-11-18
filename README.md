@@ -246,7 +246,7 @@ Automatically use the default action for non origin matching hrefs
 		- `password: String`
 		- `withCredentials: Boolean`
 		- `method: String` (default: GET)
-		- `cache: Boolean` (default: false)
+		<!-- - `cache: Boolean` (default: false) -->
 		- `url: String` (default: window.location.href)
 		- `success: Function` The Success handler
 			- `result: Object`

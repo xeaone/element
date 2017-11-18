@@ -24,7 +24,7 @@ Utility.binderNames = function (data) {
 Utility.binderValues = function (data) {
 	data = Utility.binderNormalize(data);
 	var index = data.indexOf('|');
-	return data.slice(0, index).split('.');
+	return index === -1 ? data.split('.') : data.slice(0, index).split('.');
 };
 
 Utility.binderModifiers = function (data) {
@@ -74,8 +74,10 @@ Utility.formData = function (form, model) {
 Utility.formReset = function (form, model) {
 	var elements = form.querySelectorAll('[o-value]');
 	for (var i = 0, l = elements.length; i < l; i++) {
-		var element = elements[i];
-		UnrenderValue(element);
+		UnrenderValue({
+			type: 'o-value',
+			element: elements[i]
+		});
 	}
 };
 

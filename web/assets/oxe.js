@@ -111,11 +111,11 @@
 
 	var Batcher = {};
 
-	Batcher.tasks = [];
 	Batcher.reads = [];
 	Batcher.writes = [];
 	Batcher.pending = false;
-	Batcher.maxTaskTimeMS = 30;
+	// Batcher.tasks = [];
+	// Batcher.maxTaskTimeMS = 1000/60;
 
 	// adds a task to the read batch
 	Batcher.read = function (method, context) {
@@ -145,15 +145,15 @@
 	// schedules a new read/write batch if one is not pending
 	Batcher.tick = function () {
 		if (!this.pending) {
+			self.pending = true;
 			this.flush();
 		}
 	};
 
 	Batcher.flush = function (callback) {
 		var self = this;
-		self.pending = true;
-		self.run(self.reads, function () {
-			self.run(self.writes, function () {
+		self.run(self.reads.splice(0, self.reads.length), function () {
+			self.run(self.writes.splice(0, self.writes.length), function () {
 				if (self.reads.length || self.writes.length) {
 					self.flush();
 				} else {
@@ -163,24 +163,29 @@
 		});
 	};
 
-	Batcher.run = function (tasks, callback) {
+	Batcher.run = function (tasks, callback, index) {
 		var self = this;
 		if (tasks.length) {
 			window.requestAnimationFrame(function (time) {
-				var task;
+				var count = 0;
+				var length = tasks.length;
 
-				while (performance.now() - time < self.maxTaskTimeMS) {
-					if (task = tasks.shift()) {
-						task();
-					} else {
-						break;
-					}
+				index = index || 0;
+
+				for (index; index < length; index++) {
+
+					tasks[index]();
+
+					// if ((performance.now() - time) > self.maxTaskTimeMS) {
+					// 	return self.run(tasks, callback, index);
+					// }
+
 				}
 
-				self.run(tasks, callback);
+				return callback();
 			});
-		} else if (callback) {
-			callback();
+		} else {
+			return callback();
 		}
 	};
 
@@ -332,12 +337,6 @@
 
 		if (opt.withCredentials) {
 			xhr.withCredentials = opt.withCredentials;
-		}
-
-		if (opt.cache) {
-			opt.headers.cache = true;
-		} else {
-			opt.headers.cache = false;
 		}
 
 		if (opt.headers) {
@@ -1621,14 +1620,12 @@
 		Global$1.changes.push(this.change.bind(this));
 	};
 
-	function UnrenderOn (opt) {
-		opt.element.removeEventListener(opt.names[1], opt.data, false);
+	function UnrenderOn (opt, data) {
+		opt.element.removeEventListener(opt.names[1], data, false);
 	}
 
-	var RenderValue = function (opt) {
-		var i , l, data;
-		
-		data = this.getData(opt.keys);
+	var RenderValue = function (opt, data) {
+		var i , l;
 
 		if (opt.element.type === 'checkbox') {
 			data = !data ? false : data;
@@ -1636,7 +1633,7 @@
 			opt.element.value = data;
 		} else if (opt.element.nodeName === 'SELECT') {
 			var options = opt.element.options;
-			data = opt.element.multiple ? [] : data;
+			data = !data && opt.element.multiple ? [] : data;
 			for (i = 0, l = options.length; i < l; i++) {
 				var option = options[i];
 				if (option.selected) {
@@ -1660,18 +1657,19 @@
 			opt.element.value = data;
 		}
 
-		this.setData(opt.keys, data);
+		return data;
 	};
 
-	function RenderOn (opt) {
+	function RenderOn (opt, data) {
 		if (opt.exists) {
-			opt.element.removeEventListener(opt.names[1], opt.data);
-			opt.data = opt.data.bind(opt.model);
-			opt.element.addEventListener(opt.names[1], opt.data);
+			opt.element.removeEventListener(opt.names[1], data);
+			data = data.bind(opt.model);
+			opt.element.addEventListener(opt.names[1], data);
 		} else {
-			opt.data = opt.data.bind(opt.model);
-			opt.element.addEventListener(opt.names[1], opt.data);
+			data = data.bind(opt.model);
+			opt.element.addEventListener(opt.names[1], data);
 		}
+		return data;
 	}
 
 	var OnceBinder = {};
@@ -1688,16 +1686,22 @@
 		value: RenderValue
 	};
 
-	OnceBinder.ensureData = function (keys) {
-		return Global$1.model.ensure(keys);
+	OnceBinder.ensureData = function (opt) {
+		return Global$1.model.ensure(opt.keys);
 	};
 
-	OnceBinder.setData = function (keys, data) {
-		return Global$1.model.set(keys, data);
+	OnceBinder.setData = function (opt, data) {
+		if (data !== undefined) {
+			return Global$1.model.set(opt.keys, data);
+		}
 	};
 
-	OnceBinder.getData = function (keys) {
-		return Global$1.model.get(keys);
+	OnceBinder.getData = function (opt) {
+		if (opt.type === 'on') {
+			return Utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path);
+		} else {
+			return Global$1.model.get(opt.keys);
+		}
 	};
 
 	OnceBinder.add = function (opt) {
@@ -1790,18 +1794,20 @@
 	// };
 
 	OnceBinder.option = function (opt) {
+		opt = opt || {};
+
+		if (!opt.type) throw new Error('OnceBinder.render - requires a type');
+		if (!opt.element) throw new Error('OnceBinder.render - requires a element');
+
 		var tmp = this.get(opt);
 		if (tmp) return tmp;
 
 		opt.exists = false;
 
-		// if (!opt.element) throw new Error('OnceBinder.render - requires a element');
-
 		opt.container = opt.container || Utility.getContainer(opt.element);
 		opt.uid = opt.uid || opt.container.getAttribute('o-uid');
 
 		opt.attribute = opt.attribute || {};
-		opt.attribute.name = opt.name || opt.attribute.name || 'o-' + opt.type; // FIXME
 		opt.attribute.value = opt.value || opt.attribute.value || opt.element.getAttribute(opt.attribute.name);
 
 		opt.path = opt.path || opt.attribute.path || Utility.binderPath(opt.attribute.value);
@@ -1810,15 +1816,10 @@
 		opt.modifiers = opt.modifiers || opt.attribute.modifiers || Utility.binderModifiers(opt.attribute.value);
 
 		opt.keys = [opt.uid].concat(opt.values);
-		opt.type = opt.type || opt.attribute.type || opt.names[0]; // FIXME
-		opt.model = opt.model || Global$1.model.get([opt.uid]);
-		// opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
+		opt.model = opt.model || Global$1.model.data[opt.uid];
+		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
 
-		if (opt.type === 'on') {
-			opt.data = Utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path);
-		} else {
-			opt.data = Global$1.model.get(opt.keys);
-		}
+		this.ensureData(opt);
 
 		return opt;
 	};
@@ -1826,22 +1827,42 @@
 	OnceBinder.unrender = function (opt) {
 		opt.type = opt.type || opt.attribute.type;
 		if (opt.method = this.unrenderMethod[opt.type]) {
-			opt = this.option(opt);
-			Global$1.batcher.write(opt.method.bind(this, opt));
-			if (opt.exists === true) {
-				this.remove(opt);
-			}
+			Global$1.batcher.write(function (opt, data) {
+
+				opt = this.option(opt);
+				data = this.getData(opt);
+				data = opt.method.call(this, opt, data);
+
+				if (data !== undefined) {
+					this.setData(opt, data);
+				}
+
+				if (opt.exists === true) {
+					this.remove(opt);
+				}
+
+			}.bind(this, opt));
 		}
 	};
 
 	OnceBinder.render = function (opt) {
 		opt.type = opt.type || opt.attribute.type;
 		if (opt.method = this.renderMethod[opt.type]) {
-			opt = this.option(opt);
-			Global$1.batcher.write(opt.method.bind(this, opt));
-			if (opt.exists === false) {
-				this.add(opt);
-			}
+			Global$1.batcher.write(function (opt, data) {
+
+				opt = this.option(opt);
+				data = this.getData(opt);
+				data = opt.method.call(this, opt, data);
+
+				if (data !== undefined) {
+					this.setData(opt, data);
+				}
+
+				if (opt.exists === false) {
+					this.add(opt);
+				}
+
+			}.bind(this, opt));
 		}
 	};
 
@@ -2427,8 +2448,8 @@
 		}
 	});
 
-	var UnrenderValue = function (opt) {
-		var i , l, data;
+	var UnrenderValue = function (opt, data) {
+		var i , l;
 
 		if (opt.element.type === 'checkbox') {
 			data = false;
@@ -2457,7 +2478,7 @@
 			opt.element.value = data;
 		}
 
-		this.setData(opt.keys, data);
+		return data;
 	};
 
 	var Utility = {};
@@ -2484,7 +2505,7 @@
 	Utility.binderValues = function (data) {
 		data = Utility.binderNormalize(data);
 		var index = data.indexOf('|');
-		return data.slice(0, index).split('.');
+		return index === -1 ? data.split('.') : data.slice(0, index).split('.');
 	};
 
 	Utility.binderModifiers = function (data) {
@@ -2534,8 +2555,10 @@
 	Utility.formReset = function (form, model) {
 		var elements = form.querySelectorAll('[o-value]');
 		for (var i = 0, l = elements.length; i < l; i++) {
-			var element = elements[i];
-			UnrenderValue(element);
+			UnrenderValue({
+				type: 'o-value',
+				element: elements[i]
+			});
 		}
 	};
 

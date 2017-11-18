@@ -150,12 +150,6 @@ Fetcher.fetch = function (opt) {
 		xhr.withCredentials = opt.withCredentials;
 	}
 
-	if (opt.cache) {
-		opt.headers.cache = true;
-	} else {
-		opt.headers.cache = false;
-	}
-
 	if (opt.headers) {
 		for (var name in opt.headers) {
 			xhr.setRequestHeader(name, opt.headers[name]);
