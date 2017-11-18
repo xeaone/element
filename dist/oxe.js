@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.5.17
+	Version: 2.6.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -13,146 +13,6 @@
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
 	(global.Oxe = factory());
 }(this, (function () { 'use strict';
-
-	var Utility = {};
-
-	Utility.createBase = function (base) {
-		var element = document.head.querySelector('base');
-
-		if (!element) {
-			element = document.createElement('base');
-			document.head.insertBefore(element, document.head.firstChild);
-		}
-
-		if (typeof base === 'string') {
-			element.href = base;
-		}
-
-		base = element.href;
-
-		return base;
-	};
-
-	Utility.formData = function (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		var data = {};
-
-		for (var i = 0, l = elements.length; i < l; i++) {
-			var element = elements[i];
-			var path = element.getAttribute('o-value');
-			var name = path.split('.').slice(-1);
-			data[name] = Utility.getByPath(model, path);
-		}
-
-		return data;
-	};
-
-	Utility.toText = function (data) {
-		if (typeof data === 'object') {
-			 return JSON.stringify(data);
-		} else {
-			return String(data);
-		}
-	};
-
-	Utility.traverse = function (data, path, callback) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-
-			if (!(key in data)) {
-				if (typeof callback === 'function') {
-					callback(data, key, i, keys);
-				} else {
-					return undefined;
-				}
-			}
-
-			data = data[key];
-		}
-
-		return {
-			data: data,
-			key: keys[last]
-		}
-	};
-
-	Utility.setByPath = function (data, path, value) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (!(key in data)) {
-				if (isNaN(keys[i+1])) {
-					data[key] = {};
-				} else {
-					data[key] = [];
-				}
-			}
-			data = data[key];
-		}
-
-		return data[keys[last]] = value;
-	};
-
-	Utility.getByPath = function (data, path) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (!(key in data)) {
-				return undefined;
-			} else {
-				data = data[key];
-			}
-		}
-
-		return data[keys[last]];
-	};
-
-	Utility.removeChildren = function (element) {
-		var child;
-		while (child = element.lastElementChild) {
-			element.removeChild(child);
-		}
-	};
-
-	Utility.joinSlash = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
-	};
-
-	Utility.joinDot = function () {
-		return Array.prototype.join
-			.call(arguments, '.')
-			.replace(/\.{2,}/g, '.');
-	};
-
-	Utility.getContainer = function getContainer (element, target) {
-
-		if (element === document.body || element.nodeName === 'O-VIEW') {
-			return;
-		}
-
-		if (element.hasAttribute('o-uid')) {
-			return element;
-		}
-
-		if (element.parentElement) {
-			return this.getContainer(element.parentElement, target);
-		}
-
-		if (target) {
-			return this.getContainer(target);
-		}
-
-		console.warn('Utility could not find a uid');
-	};
 
 	var Component = {};
 
@@ -261,11 +121,11 @@
 
 	var Batcher = {};
 
-	Batcher.tasks = [];
 	Batcher.reads = [];
 	Batcher.writes = [];
 	Batcher.pending = false;
-	Batcher.maxTaskTimeMS = 30;
+	// Batcher.tasks = [];
+	// Batcher.maxTaskTimeMS = 1000/60;
 
 	// adds a task to the read batch
 	Batcher.read = function (method, context) {
@@ -295,15 +155,15 @@
 	// schedules a new read/write batch if one is not pending
 	Batcher.tick = function () {
 		if (!this.pending) {
+			self.pending = true;
 			this.flush();
 		}
 	};
 
 	Batcher.flush = function (callback) {
 		var self = this;
-		self.pending = true;
-		self.run(self.reads, function () {
-			self.run(self.writes, function () {
+		self.run(self.reads.splice(0, self.reads.length), function () {
+			self.run(self.writes.splice(0, self.writes.length), function () {
 				if (self.reads.length || self.writes.length) {
 					self.flush();
 				} else {
@@ -313,24 +173,29 @@
 		});
 	};
 
-	Batcher.run = function (tasks, callback) {
+	Batcher.run = function (tasks, callback, index) {
 		var self = this;
 		if (tasks.length) {
 			window.requestAnimationFrame(function (time) {
-				var task;
+				var count = 0;
+				var length = tasks.length;
 
-				while (performance.now() - time < self.maxTaskTimeMS) {
-					if (task = tasks.shift()) {
-						task();
-					} else {
-						break;
-					}
+				index = index || 0;
+
+				for (index; index < length; index++) {
+
+					tasks[index]();
+
+					// if ((performance.now() - time) > self.maxTaskTimeMS) {
+					// 	return self.run(tasks, callback, index);
+					// }
+
 				}
 
-				self.run(tasks, callback);
+				return callback();
 			});
-		} else if (callback) {
-			callback();
+		} else {
+			return callback();
 		}
 	};
 
@@ -482,12 +347,6 @@
 
 		if (opt.withCredentials) {
 			xhr.withCredentials = opt.withCredentials;
-		}
-
-		if (opt.cache) {
-			opt.headers.cache = true;
-		} else {
-			opt.headers.cache = false;
 		}
 
 		if (opt.headers) {
@@ -1771,6 +1630,254 @@
 		Global$1.changes.push(this.change.bind(this));
 	};
 
+	function UnrenderOn (opt, data) {
+		opt.element.removeEventListener(opt.names[1], data, false);
+	}
+
+	var RenderValue = function (opt, data) {
+		var i , l;
+
+		if (opt.element.type === 'checkbox') {
+			data = !data ? false : data;
+			opt.element.checked = data;
+			opt.element.value = data;
+		} else if (opt.element.nodeName === 'SELECT') {
+			var options = opt.element.options;
+			data = !data && opt.element.multiple ? [] : data;
+			for (i = 0, l = options.length; i < l; i++) {
+				var option = options[i];
+				if (option.selected) {
+					if (opt.element.multiple) {
+						data.push(option.value);
+					} else {
+						data = option.value;
+						break;
+					}
+				}
+			}
+		} else if (opt.element.type === 'radio') {
+			var query = 'input[type="radio"][o-value="' + opt.attribute.value + '"]';
+			var elements = opt.element.parentNode.querySelectorAll(query);
+			for (i = 0, l = elements.length; i < l; i++) {
+				var radio = elements[i];
+				radio.checked = i === data;
+			}
+		} else {
+			data = data === undefined ? '' : data;
+			opt.element.value = data;
+		}
+
+		return data;
+	};
+
+	function RenderOn (opt, data) {
+		if (opt.exists) {
+			opt.element.removeEventListener(opt.names[1], data);
+			data = data.bind(opt.model);
+			opt.element.addEventListener(opt.names[1], data);
+		} else {
+			data = data.bind(opt.model);
+			opt.element.addEventListener(opt.names[1], data);
+		}
+		return data;
+	}
+
+	var OnceBinder = {};
+
+	OnceBinder.data = {};
+
+	OnceBinder.unrenderMethod = {
+		on: UnrenderOn,
+		value: UnrenderValue
+	};
+
+	OnceBinder.renderMethod = {
+		on: RenderOn,
+		value: RenderValue
+	};
+
+	OnceBinder.ensureData = function (opt) {
+		return Global$1.model.ensure(opt.keys);
+	};
+
+	OnceBinder.setData = function (opt, data) {
+		if (data !== undefined) {
+			return Global$1.model.set(opt.keys, data);
+		}
+	};
+
+	OnceBinder.getData = function (opt) {
+		if (opt.type === 'on') {
+			return Utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path);
+		} else {
+			return Global$1.model.get(opt.keys);
+		}
+	};
+
+	OnceBinder.add = function (opt) {
+		opt.exists = true;
+
+		if (!(opt.uid in this.data)) {
+			this.data[opt.uid] = {};
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			this.data[opt.uid][opt.path] = [];
+		}
+
+		this.data[opt.uid][opt.path].push(opt);
+	};
+
+	OnceBinder.remove = function (opt) {
+		var data;
+
+		if (!(opt.uid in this.data)) {
+			return;
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			return;
+		}
+
+		data = this.data[opt.uid][opt.path];
+
+		for (var i = 0, l = data.length; i < l; i++) {
+			var item = data[i];
+			if (item.element === opt.element) {
+				return data.splice(i, 1);
+			}
+		}
+	};
+
+	OnceBinder.get = function (opt) {
+		var data;
+
+		if (!(opt.uid in this.data)) {
+			return;
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			return;
+		}
+
+		data = this.data[opt.uid][opt.path];
+
+		for (var i = 0, l = data.length; i < l; i++) {
+			var item = data[i];
+			if (item.element === opt.element) {
+				return item;
+			}
+		}
+	};
+
+	OnceBinder.update = function (opt) {
+		var data;
+
+		if (!(opt.uid in this.data)) {
+			return;
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			return;
+		}
+
+		data = this.data[opt.uid][opt.path];
+
+		for (var i = 0, l = data.length; i < l; i++) {
+			var item = data[i];
+			if (item.element === opt.element) {
+				for (var key in opt) {
+					item[key] = opt[key];
+				}
+				return item;
+			}
+		}
+	};
+
+	// OnceBinder.modifyData = function (opt, data) {
+	// 	if (opt.modifiers && opt.attribute.modifiers.length) {
+	// 		for (var i = 0, l = opt.attribute.modifiers.length; i < l; i++) {
+	// 			data = opt.modifiers[opt.attribute.modifiers[i]].call(opt.model, data);
+	// 		}
+	// 	}
+	// 	return data;
+	// };
+
+	OnceBinder.option = function (opt) {
+		opt = opt || {};
+
+		if (!opt.type) throw new Error('OnceBinder.render - requires a type');
+		if (!opt.element) throw new Error('OnceBinder.render - requires a element');
+
+		var tmp = this.get(opt);
+		if (tmp) return tmp;
+
+		opt.exists = false;
+
+		opt.container = opt.container || Utility.getContainer(opt.element);
+		opt.uid = opt.uid || opt.container.getAttribute('o-uid');
+
+		opt.attribute = opt.attribute || {};
+		opt.attribute.value = opt.value || opt.attribute.value || opt.element.getAttribute(opt.attribute.name);
+
+		opt.path = opt.path || opt.attribute.path || Utility.binderPath(opt.attribute.value);
+		opt.names = opt.names || opt.attribute.names || Utility.binderNames(opt.attribute.name);
+		opt.values = opt.values || opt.attribute.values || Utility.binderValues(opt.attribute.value);
+		opt.modifiers = opt.modifiers || opt.attribute.modifiers || Utility.binderModifiers(opt.attribute.value);
+
+		opt.keys = [opt.uid].concat(opt.values);
+		opt.model = opt.model || Global$1.model.data[opt.uid];
+		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
+
+		this.ensureData(opt);
+
+		return opt;
+	};
+
+	OnceBinder.unrender = function (opt) {
+		opt.type = opt.type || opt.attribute.type;
+		if (opt.method = this.unrenderMethod[opt.type]) {
+			Global$1.batcher.write(function (opt, data) {
+
+				opt = this.option(opt);
+				data = this.getData(opt);
+				data = opt.method.call(this, opt, data);
+
+				if (data !== undefined) {
+					this.setData(opt, data);
+				}
+
+				if (opt.exists === true) {
+					this.remove(opt);
+				}
+
+			}.bind(this, opt));
+		}
+	};
+
+	OnceBinder.render = function (opt) {
+		opt.type = opt.type || opt.attribute.type;
+		if (opt.method = this.renderMethod[opt.type]) {
+			Global$1.batcher.write(function (opt, data) {
+
+				opt = this.option(opt);
+				data = this.getData(opt);
+				data = opt.method.call(this, opt, data);
+
+				if (data !== undefined) {
+					this.setData(opt, data);
+				}
+
+				if (opt.exists === false) {
+					this.add(opt);
+				}
+
+			}.bind(this, opt));
+		}
+	};
+
+	// import UnrenderValue from './unrender/value';
+	// import RenderValue from './render/value';
 	function Binder (options) {
 		this.cache;
 
@@ -1815,43 +1922,11 @@
 	};
 
 	Binder.prototype.setupMethods = {
-		value: function (data) {
-			var i , l;
-			if (this.element.type === 'checkbox') {
-				data = !data ? false : data;
-				this.element.checked = data;
-				this.element.value = data;
-			} else if (this.element.nodeName === 'SELECT') {
-				var options = this.element.options;
-				data = this.element.multiple ? [] : data;
-				for (i = 0, l = options.length; i < l; i++) {
-					var option = options[i];
-					if (option.selected) {
-						if (this.element.multiple) {
-							data.push(option.value);
-						} else {
-							data = option.value;
-							break;
-						}
-					}
-				}
-			} else if (this.element.type === 'radio') {
-				var query = 'input[type="radio"][o-value="' + this.attribute.value + '"]';
-				var elements = this.element.parentNode.querySelectorAll(query);
-				for (i = 0, l = elements.length; i < l; i++) {
-					var radio = elements[i];
-					radio.checked = i === data;
-				}
-			} else {
-				data = data === undefined ? '' : data;
-				this.element.value = data;
-			}
-			return data;
-		},
-		on: function () {
-			var model = Global$1.model.get([this.uid]);
-			this.cache = Utility.getByPath(this.events, this.attribute.path).bind(model);
-		},
+		// value: RenderValue,
+		// on: function () {
+		// 	var model = Global.model.get([this.uid]);
+		// 	this.cache = Utility.getByPath(this.events, this.attribute.path).bind(model);
+		// },
 		each: function (data) {
 			this.variable = this.attribute.cmds[1];
 			this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
@@ -1890,19 +1965,17 @@
 	};
 
 	Binder.prototype.renderMethods = {
-		on: function (data) {
-			this.element.removeEventListener(this.attribute.cmds[1], data);
-			this.element.addEventListener(this.attribute.cmds[1], data);
-		},
+		// on: function (data) {
+		// 	this.element.removeEventListener(this.attribute.cmds[1], data);
+		// 	this.element.addEventListener(this.attribute.cmds[1], data);
+		// },
 		each: function (data) {
 			if (this.element.children.length > data.length) {
-				while (this.element.children.length > data.length) {
-					this.element.removeChild(this.element.lastElementChild);
-				}
+				this.element.removeChild(this.element.lastElementChild);
+				this.render();
 			} else if (this.element.children.length < data.length) {
-				while (this.element.children.length < data.length) {
-					this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
-				}
+				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
+				this.render();
 			}
 		},
 		html: function (data) {
@@ -1958,9 +2031,9 @@
 	};
 
 	Binder.prototype.unrenderMethods = {
-		on: function () {
-			this.element.removeEventListener(this.attribute.cmds[1], this.cache, false);
-		},
+		// on: function () {
+		// 	this.element.removeEventListener(this.attribute.cmds[1], this.cache, false);
+		// },
 		each: function () {
 			Utility.removeChildren(this.element);
 		},
@@ -2022,141 +2095,71 @@
 	View.isSetup = false;
 	View.container = document.body;
 
-	View.PATH = /\s?\|.*/;
-	View.PARENT_KEY = /^.*\./;
-	View.PARENT_PATH = /\.\w+$|^\w+$/;
 	View.PREFIX = /(data-)?o-/;
-	View.MODIFIERS = /^.*?\|\s?/;
 	View.IS_ACCEPT_PATH = /(data-)?o-.*/;
 	View.IS_REJECT_PATH = /(data-)?o-value.*/;
-
-	View.isAny = function (attribute) {
-		return attribute.name.indexOf('o-') === 0
-		|| attribute.name.indexOf('data-o-') === 0;
-	};
-
-	View.isOnce = function (attribute) {
-		return attribute === 'o-value'
-			|| attribute === 'data-o-value';
-	};
-
-	View.isSkipChildren = function (node) {
-		return node.nodeName === 'IFRAME'
-			|| node.nodeName === 'OBJECT'
-			|| node.nodeName === 'SCRIPT'
-			|| node.nodeName === 'STYLE'
-			|| node.nodeName === 'SVG';
-	};
-
-	View.isSkipElement = function (node) {
-		return node.nodeName === 'J-VIEW'
-			|| node.hasAttribute('o-uid')
-			|| node.hasAttribute('o-view')
-			|| node.hasAttribute('data-o-view');
-	};
-
-	View.isAcceptElement = function (node) {
-		var attributes = node.attributes;
-
-		for (var i = 0, l = attributes.length; i < l; i++) {
-			var attribute = attributes[i];
-			if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-				return true;
-			}
-		}
-
-		return false;
-	};
-
-	View.isAcceptAttribute = function (attribute) {
-		return attribute.name !== 'o-method'
-			&& attribute.name !== 'o-action'
-			&& attribute.name !== 'data-o-action'
-			&& attribute.name !== 'data-o-method'
-			&& attribute.name.indexOf('o-') === 0
-			|| attribute.name.indexOf('data-o-') === 0;
-	};
 
 	View.createAttribute = function (name, value) {
 		var attribute = {};
 
 		attribute.name = name;
 		attribute.value = value;
-		attribute.path = attribute.value.replace(this.PATH, '');
 
-		attribute.opts = attribute.path.split('.');
+		attribute.path = Utility.binderPath(attribute.value);
+		attribute.modifiers = Utility.binderModifiers(attribute.value);
+
+		attribute.keys = attribute.path.split('.');
+		attribute.opts = attribute.keys;
 		attribute.cmds = attribute.name.replace(this.PREFIX, '').split('-');
 
-		attribute.parentKey = attribute.path.replace(this.PARENT_KEY, '');
-		attribute.parentPath = attribute.path.replace(this.PARENT_PATH, '');
-
-		attribute.modifiers = attribute.value.indexOf('|') === -1 ? [] : attribute.value.replace(this.MODIFIERS, '').split(' ');
+		attribute.type = attribute.cmds[0];
 
 		return attribute;
+	};
+
+	View.hasAcceptAttribute = function (element) {
+		var attributes = element.attributes;
+		for (var i = 0, l = attributes.length; i < l; i++) {
+			var attribute = attributes[i];
+			if (
+				attribute.name.indexOf('o-') === 0
+				|| attribute.name.indexOf('data-o-') === 0
+			) {
+				return true;
+			}
+		}
+		return false;
 	};
 
 	View.eachAttribute = function (element, callback) {
 		var attributes = element.attributes;
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
-			if (this.isAcceptAttribute(attribute)) {
+			if (
+				attribute.value
+				&& attribute.name !== 'o-method'
+				&& attribute.name !== 'o-action'
+				&& attribute.name !== 'data-o-action'
+				&& attribute.name !== 'data-o-method'
+				&& attribute.name.indexOf('o-') === 0
+				|| attribute.name.indexOf('data-o-') === 0
+			) {
 				callback.call(this, this.createAttribute(attribute.name, attribute.value));
-			}
-		}
-	};
-
-	View.eachPath = function (element, callback) {
-		var attributes = element.attributes;
-		for (var i = 0, l = attributes.length; i < l; i++) {
-			var attribute = attributes[i];
-			if (this.isAny(attribute)) {
-				callback.call(this, attribute.value.replace(this.PATH, ''));
-			}
-		}
-	};
-
-	View.eachElement = function (element, target, callback) {
-		var container = Utility.getContainer(element, target);
-
-		if (this.isAcceptElement(element) && !this.isSkipElement(element)) {
-			callback.call(this, element, container);
-		}
-
-		if (!this.isSkipChildren(element)) {
-			for (var i = 0; i < element.children.length; i++) {
-				this.eachElement(element.children[i], target, callback);
 			}
 		}
 	};
 
 	View.eachBinder = function (uid, path, callback) {
 		var paths = this.data[uid];
-
 		for (var key in paths) {
 			if (key.indexOf(path) === 0) {
 				var binders = paths[key];
-				for (var i = 0; i < binders.length; i++) {
-					callback.call(this, binders[i], i, binders, paths, key);
+				for (var i = 0, l = binders.length; i < l; i++) {
+					var binder = binders[i];
+					callback.call(this, binder, i, binders, paths, key);
 				}
 			}
 		}
-	};
-
-	View.has = function (uid, path, element) {
-
-		if (!(uid in this.data) || !(path in this.data[uid])) {
-			return false;
-		}
-
-		var binders = this.data[uid][path];
-
-		for (var i = 0, l = binders.length; i < l; i++) {
-			if (binders[i].element === element) {
-				return true;
-			}
-		}
-
-		return false;
 	};
 
 	View.push = function (uid, path, binder) {
@@ -2172,32 +2175,84 @@
 		this.data[uid][path].push(binder);
 	};
 
-	View.add = function (addedNode, target) {
-		this.eachElement(addedNode, target, function (element, container) {
-			if (container) {
-				var uid = container.getAttribute('o-uid');
-				this.eachAttribute(element, function (attribute) {
-					var binder = new Binder({
+	View.eachElement = function (element, callback, container) {
+
+		if (
+			element.nodeName !== 'O-VIEW'
+			&& !element.hasAttribute('o-view')
+			&& !element.hasAttribute('o-external')
+			&& !element.hasAttribute('data-o-view')
+			&& !element.hasAttribute('data-o-external')
+			&& this.hasAcceptAttribute(element)
+		) {
+
+			if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) {
+				container = element;
+			} else if (!document.body.contains(element)) {
+				container = Utility.getContainer(container);
+			} else if (!container) {
+				container = Utility.getContainer(element);
+			}
+
+			var uid = container.getAttribute('o-uid') || container.getAttribute('data-o-uid');
+
+			callback.call(this, element, container, uid);
+		}
+
+		if (
+			element.nodeName !== 'SVG'
+			& element.nodeName !== 'STYLE'
+			& element.nodeName !== 'SCRIPT'
+			& element.nodeName !== 'OBJECT'
+			& element.nodeName !== 'IFRAME'
+		) {
+			for (var i = 0, l = element.children.length; i < l; i++) {
+				this.eachElement(element.children[i], callback, container);
+			}
+		}
+
+	};
+
+	View.add = function (addedElement) {
+		this.eachElement(addedElement, function (element, container, uid) {
+			this.eachAttribute(element, function (attribute) {
+				if (
+					attribute.cmds[0] === 'on'
+					|| attribute.cmds[0] === 'value'
+				) {
+					OnceBinder.render({
 						uid: uid,
 						element: element,
 						container: container,
 						attribute: attribute
 					});
-
-					if (!this.isOnce(attribute.name)) {
-						this.push(uid, attribute.path, binder);
-					}
-				});
-			}
+				} else {
+					this.push(uid, attribute.path, new Binder({
+						uid: uid,
+						element: element,
+						container: container,
+						attribute: attribute
+					}));
+				}
+			});
 		});
 	};
 
-	View.remove = function (removedNode, target) {
-		this.eachElement(removedNode, target, function (element, container) {
-			if (container) {
-				var uid = container.getAttribute('o-uid');
-				this.eachPath(element, function (path) {
-					this.eachBinder(uid, path, function (binder, index, binders, paths, key) {
+	View.remove = function (removedElement, target) {
+		this.eachElement(removedElement, function (element, container, uid) {
+			this.eachAttribute(element, function (attribute) {
+				if (
+					attribute.cmds[0] === 'on'
+					|| attribute.cmds[0] === 'value'
+				) {
+					OnceBinder.unrender({
+						uid: uid,
+						element: element,
+						container: container,
+						attribute: attribute
+					});
+				} else {
+					this.eachBinder(uid, attribute.path, function (binder, index, binders, paths, key) {
 						if (binder.element === element) {
 							binder.unrender();
 							binders.splice(index, 1);
@@ -2206,9 +2261,9 @@
 							}
 						}
 					});
-				});
-			}
-		});
+				}
+			});
+		}, target);
 	};
 
 	View.mutation = function (mutations) {
@@ -2226,7 +2281,7 @@
 				var addedNode = addedNodes[l];
 				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 					if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
-					this.add(addedNode, target);
+					this.add(addedNode);
 				}
 			}
 
@@ -2403,6 +2458,213 @@
 		}
 	});
 
+	var UnrenderValue = function (opt, data) {
+		var i , l;
+
+		if (opt.element.type === 'checkbox') {
+			data = false;
+			opt.element.checked = data;
+			opt.element.value = data;
+		} else if (opt.element.nodeName === 'SELECT') {
+			data = [];
+			var options = opt.element.options;
+			for (i = 0, l = options.length; i < l; i++) {
+				var option = options[i];
+				option.selected = false;
+			}
+		} else if (opt.element.type === 'radio') {
+			var query = 'input[type="radio"][o-value="' + path + '"]';
+			var elements = opt.element.parentNode.querySelectorAll(query);
+			for (i = 0, l = elements.length; i < l; i++) {
+				var radio = elements[i];
+				if (i === 0) {
+					radio.checked = true;
+				} else {
+					radio.checked = false;
+				}
+			}
+		} else {
+			data = '';
+			opt.element.value = data;
+		}
+
+		return data;
+	};
+
+	var Utility = {};
+
+	Utility.PATH = /\s*\|.*/;
+	Utility.PREFIX = /(data-)?o-/;
+	Utility.SPLIT_MODIFIERS = /\s|\s?,\s?/;
+
+	Utility.binderNormalize = function (data) {
+		return !data ? '' : data
+			.replace(/\s+$/, '')
+			.replace(/^\s+/, '')
+			.replace(/\.{2,}/g, '.')
+			.replace(/\|{2,}/g, '|')
+			.replace(/\,{2,}/g, ',')
+			.replace(/\s{2,}/g, ' ')
+			.replace(/\s?\|\s?/, '|');
+	};
+
+	Utility.binderNames = function (data) {
+		return data.replace(this.PREFIX, '').split('-');
+	};
+
+	Utility.binderValues = function (data) {
+		data = Utility.binderNormalize(data);
+		var index = data.indexOf('|');
+		return index === -1 ? data.split('.') : data.slice(0, index).split('.');
+	};
+
+	Utility.binderModifiers = function (data) {
+		data = Utility.binderNormalize(data);
+		var index = data.indexOf('|');
+		return index === -1 ? [] : data.slice(index + 1).split(Utility.SPLIT_MODIFIERS);
+	};
+
+	Utility.binderPath = function (data) {
+		return Utility.binderNormalize(data).replace(Utility.PATH, '');
+	};
+
+	Utility.createBase = function (base) {
+		var element = document.head.querySelector('base');
+
+		if (!element) {
+			element = document.createElement('base');
+			document.head.insertBefore(element, document.head.firstChild);
+		}
+
+		if (typeof base === 'string') {
+			element.href = base;
+		}
+
+		base = element.href;
+
+		return base;
+	};
+
+	Utility.formData = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		var data = {};
+
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
+			var path = element.getAttribute('o-value');
+			if (path) {
+				path = path.replace(/\s*\|.*/, '');
+				var name = path.split('.').slice(-1);
+				data[name] = Utility.getByPath(model, path);
+			}
+		}
+
+		return data;
+	};
+
+	Utility.formReset = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		for (var i = 0, l = elements.length; i < l; i++) {
+			UnrenderValue({
+				type: 'o-value',
+				element: elements[i]
+			});
+		}
+	};
+
+	Utility.toText = function (data) {
+		if (typeof data === 'object') {
+			 return JSON.stringify(data);
+		} else {
+			return String(data);
+		}
+	};
+
+	Utility.traverse = function (data, path, callback) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+
+			if (!(key in data)) {
+				if (typeof callback === 'function') {
+					callback(data, key, i, keys);
+				} else {
+					return undefined;
+				}
+			}
+
+			data = data[key];
+		}
+
+		return {
+			data: data,
+			key: keys[last]
+		}
+	};
+
+	Utility.setByPath = function (data, path, value) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!(key in data)) {
+				if (isNaN(keys[i+1])) {
+					data[key] = {};
+				} else {
+					data[key] = [];
+				}
+			}
+			data = data[key];
+		}
+
+		return data[keys[last]] = value;
+	};
+
+	Utility.getByPath = function (data, path) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!(key in data)) {
+				return undefined;
+			} else {
+				data = data[key];
+			}
+		}
+
+		return data[keys[last]];
+	};
+
+	Utility.removeChildren = function (element) {
+		var child;
+		while (child = element.lastElementChild) {
+			element.removeChild(child);
+		}
+	};
+
+	Utility.joinSlash = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	};
+
+	Utility.joinDot = function () {
+		return Array.prototype.join
+			.call(arguments, '.')
+			.replace(/\.{2,}/g, '.');
+	};
+
+	Utility.getContainer = function getContainer (element) {
+		if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) return element;
+		if (element.parentElement) return this.getContainer(element.parentElement);
+		console.log(element);
+		console.warn('Utility could not find a uid');
+	};
+
 	if (window.Oxe) {
 		throw new Error('Oxe pre-defined duplicate Oxe scripts');
 	}
@@ -2431,42 +2693,38 @@
 		});
 	}, true);
 
+	Global$1.window.addEventListener('reset', function (e) {
+		var element = e.target;
+		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+		if (submit) {
+			var container = Utility.getContainer(element);
+			var uid = container.getAttribute('o-uid');
+			var model = Global$1.model.data[uid];
+			Utility.formReset(element, model);
+		}
+	});
+
 	Global$1.window.addEventListener('submit', function (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
 		if (submit) {
-			var isValid = true;
 			var container = Utility.getContainer(element);
-			var data = Utility.formData(element, container.model);
-			var submitHandler = Utility.getByPath(container.events, submit);
+			var uid = container.getAttribute('o-uid');
+			var model = Global$1.model.data[uid];
+			var data = Utility.formData(element, model);
+			var method = Utility.getByPath(container.events, submit);
+			var options = method.call(model, data, e);
 
-			var validate = element.getAttribute('o-validate') || element.getAttribute('data-o-validate');
-			if (validate) {
-				var validateHandler = Utility.getByPath(container.events, validate);
-				if (typeof validateHandler === 'function') {
-					isValid = validateHandler.call(container.model, data, e);
-				} else {
-					isValid = validateHandler;
-				}
+			if (options && typeof options === 'object') {
+				var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+				var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+				options.url = options.url || action;
+				options.method = options.method || method;
+				Global$1.fetcher.fetch(options);
 			}
 
-			if (isValid) {
-				var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-				if (action) {
-					var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-					var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-					auth = auth === null || auth === undefined ? auth : (auth == 'true');
-					Global$1.fetcher.fetch({
-						data: data,
-						auth: auth,
-						url: action,
-						method: method,
-						handler: submitHandler.bind(container.model)
-					});
-				} else {
-					submitHandler.call(container.model, data, e);
-				}
+			if (element.hasAttribute('o-reset')) {
+				element.reset();
 			}
 
 			e.preventDefault();

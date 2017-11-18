@@ -24,9 +24,11 @@ Oxe.component.define({
 	model: model,
 	modifiers: {
 		lower: function (text) {
+			text = text || '';
 			return text.toLowerCase();
 		},
 		upper: function (text) {
+			text = text || '';
 			return text.toUpperCase();
 		}
 	},
@@ -44,20 +46,25 @@ Oxe.component.define({
 		submitGet: function () {
 			console.log(arguments);
 		},
-		submit: function () {
-			console.log(arguments);
-		},
-		validate: function () {
-			console.log(arguments);
-			return true;
-		},
-		fetch: function () {
-			Oxe.fetcher.get({
-				url: '/data.json',
-				handler: function (result) {
-					console.log(result);
+		s0: function (data, e) {
+			return {
+				method: 'post',
+				action: '/foo',
+				handler: function () {
+					console.log(arguments);
 				}
-			});
+			}
+		},
+		s1: function () {
+			console.log(arguments);
+			return {
+				method: 'get',
+				action: '/data.json',
+				handler: function () {
+					console.log(arguments);
+					// e.target.reset();
+				}
+			}
 		}
 	},
 	created: function () {
@@ -99,7 +106,8 @@ Oxe.component.define({
 		<strong o-show="isshow">isshow</strong>
 		<strong o-hide="ishide">ishide</strong>
 
-		<form o-submit="submit" o-method="post" o-action="/foo" o-validate="validate">
+		<form o-submit="s0" o-reset>
+			<div o-text="loopy.doopy"></div>
 			<input type="text" o-value="loopy.doopy" placeholder="text" required><br>
 			<input type="text" o-value="blank" placeholder="text" required><br>
 			<input type="submit" name="Submit">
@@ -107,7 +115,7 @@ Oxe.component.define({
 		<br>
 		<br>
 
-		<form o-method="get" o-action="/data.json">
+		<form o-submit="s1">
 			<input type="submit" name="Submit">
 		</form>
 		<br>
@@ -178,9 +186,6 @@ Oxe.component.define({
 		</div>
 
 		<button o-on-click="say">Console Log</button>
-		<input type="text" o-value="nope">
-		<input type="button" value="button">
-		<input type="reset" value="reset">
 		<br>
 		<br>
 
@@ -206,8 +211,6 @@ Oxe.component.define({
 		</ul>
 
 		<div o-html="html"></div>
-
-		<button o-on-click="fetch">Fetch</button>
 
 		<div o-on-click="overwriteArray" o-each-ac="arrayChange">
 			<div o-text="ac"></div>
