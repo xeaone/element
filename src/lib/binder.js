@@ -47,11 +47,6 @@ Binder.prototype.modifyData = function (data) {
 };
 
 Binder.prototype.setupMethods = {
-	// value: RenderValue,
-	// on: function () {
-	// 	var model = Global.model.get([this.uid]);
-	// 	this.cache = Utility.getByPath(this.events, this.attribute.path).bind(model);
-	// },
 	each: function (data) {
 		this.variable = this.attribute.cmds[1];
 		this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');

@@ -13,6 +13,7 @@ View.PREFIX = /(data-)?o-/;
 View.IS_ACCEPT_PATH = /(data-)?o-.*/;
 View.IS_REJECT_PATH = /(data-)?o-value.*/;
 
+// delete this
 View.createAttribute = function (name, value) {
 	var attribute = {};
 
@@ -33,50 +34,66 @@ View.createAttribute = function (name, value) {
 
 View.hasAcceptAttribute = function (element) {
 	var attributes = element.attributes;
+
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
+
 		if (
 			attribute.name.indexOf('o-') === 0
 			|| attribute.name.indexOf('data-o-') === 0
 		) {
 			return true;
 		}
+
 	}
+
 	return false;
 };
 
 View.eachAttribute = function (element, callback) {
 	var attributes = element.attributes;
+
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
+
 		if (
 			attribute.value
-			&& attribute.name !== 'o-method'
-			&& attribute.name !== 'o-action'
-			&& attribute.name !== 'data-o-action'
-			&& attribute.name !== 'data-o-method'
 			&& attribute.name.indexOf('o-') === 0
 			|| attribute.name.indexOf('data-o-') === 0
+			&& attribute.name !== 'o-method'
+			&& attribute.name !== 'o-action'
+			&& attribute.name !== 'o-external'
+			&& attribute.name !== 'data-o-action'
+			&& attribute.name !== 'data-o-method'
+			&& attribute.name !== 'data-o-external'
 		) {
-			callback.call(this, this.createAttribute(attribute.name, attribute.value));
+			callback.call(this, attribute);
 		}
+
 	}
+
 };
 
 View.eachBinder = function (uid, path, callback) {
 	var paths = this.data[uid];
+
 	for (var key in paths) {
+
 		if (key.indexOf(path) === 0) {
 			var binders = paths[key];
+
 			for (var i = 0, l = binders.length; i < l; i++) {
 				var binder = binders[i];
 				callback.call(this, binder, i, binders, paths, key);
 			}
+
 		}
+
 	}
+
 };
 
-View.push = function (uid, path, binder) {
+View.addBinder = function (uid, path, binder) {
 
 	if (!(uid in this.data)) {
 		this.data[uid] = {};
@@ -120,104 +137,128 @@ View.eachElement = function (element, callback, container) {
 		& element.nodeName !== 'OBJECT'
 		& element.nodeName !== 'IFRAME'
 	) {
+
 		for (var i = 0, l = element.children.length; i < l; i++) {
 			this.eachElement(element.children[i], callback, container);
 		}
+
 	}
 
 };
 
-View.add = function (addedElement) {
+View.addElement = function (addedElement) {
 	this.eachElement(addedElement, function (element, container, uid) {
 		this.eachAttribute(element, function (attribute) {
-			if (
-				attribute.cmds[0] === 'on'
-				|| attribute.cmds[0] === 'value'
-			) {
+			// if (
+			// 	attribute.name.indexOf('o-on') === 0
+			// 	|| attribute.name.indexOf('o-each') === 0
+			// 	|| attribute.name.indexOf('o-value') === 0
+			// ) {
 				OnceBinder.render({
 					uid: uid,
 					element: element,
 					container: container,
-					attribute: attribute
+					name: attribute.name,
+					value: attribute.value
 				});
-			} else {
-				this.push(uid, attribute.path, new Binder({
-					uid: uid,
-					element: element,
-					container: container,
-					attribute: attribute
-				}));
-			}
+			// } else {
+				// var att = this.createAttribute(attribute.name, attribute.value);
+				// this.addBinder(uid, att.path, new Binder({
+				// 	uid: uid,
+				// 	element: element,
+				// 	container: container,
+				// 	attribute: att
+				// }));
+			// }
 		});
 	});
 };
 
-View.remove = function (removedElement, target) {
+View.removeElement = function (removedElement, target) {
 	this.eachElement(removedElement, function (element, container, uid) {
 		this.eachAttribute(element, function (attribute) {
-			if (
-				attribute.cmds[0] === 'on'
-				|| attribute.cmds[0] === 'value'
-			) {
+			// if (
+			// 	attribute.name.indexOf('o-on') === 0
+			// 	|| attribute.name.indexOf('o-each') === 0
+			// 	|| attribute.name.indexOf('o-value') === 0
+			// ) {
 				OnceBinder.unrender({
 					uid: uid,
 					element: element,
 					container: container,
-					attribute: attribute
+					name: attribute.name,
+					value: attribute.value
 				});
-			} else {
-				this.eachBinder(uid, attribute.path, function (binder, index, binders, paths, key) {
-					if (binder.element === element) {
-						binder.unrender();
-						binders.splice(index, 1);
-						if (binders.length === 0) {
-							delete paths[key];
-						}
-					}
-				});
-			}
+			// } else {
+				// var att = this.createAttribute(attribute.name, attribute.value);
+				// this.eachBinder(uid, att.path, function (binder, index, binders, paths, key) {
+				// 	if (binder.element === element) {
+				// 		binder.unrender();
+				// 		binders.splice(index, 1);
+				// 		if (binders.length === 0) {
+				// 			delete paths[key];
+				// 		}
+				// 	}
+				// });
+			// }
 		});
 	}, target);
 };
 
 View.mutation = function (mutations) {
-	var i = mutations.length;
-	while (i--) {
+	var c, i = mutations.length;
 
-		var l;
+	while (i--) {
 		var target = mutations[i].target;
 		var addedNodes = mutations[i].addedNodes;
 		var removedNodes = mutations[i].removedNodes;
 
-		l = addedNodes.length;
+		c = addedNodes.length;
 
-		while (l--) {
-			var addedNode = addedNodes[l];
+		while (c--) {
+			var addedNode = addedNodes[c];
+
 			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
-				if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
-				this.add(addedNode);
+
+				if (addedNode.isRouterComponent) {
+					addedNode.inRouterCache = true;
+				}
+
+				this.addElement(addedNode);
 			}
+
 		}
 
-		l = removedNodes.length;
+		c = removedNodes.length;
 
-		while (l--) {
-			var removedNode = removedNodes[l];
+		while (c--) {
+			var removedNode = removedNodes[c];
+
 			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
-				if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
-				this.remove(removedNode, target);
+
+				if (removedNode.isRouterComponent) {
+					removedNode.inRouterCache = true;
+				}
+
+				this.removeElement(removedNode, target);
 			}
+
 		}
 
 	}
+
 };
 
 View.setup = function () {
+
 	if (this.isSetup) {
 		return;
-	} else this.isSetup = true;
+	}
 
-	this.add(this.container);
+	this.isSetup = true;
+
+	this.addElement(this.container);
+
 	Global.mutations.push(this.mutation.bind(this));
 };
 

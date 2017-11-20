@@ -1,12 +1,15 @@
+import Global from '../../global';
+import Utility from '../utility';
 
 import UnrenderValue from '../unrender/value';
+import UnrenderText from '../unrender/text';
+import UnrenderEach from '../unrender/each';
 import UnrenderOn from '../unrender/on';
 
 import RenderValue from '../render/value';
+import RenderEach from '../render/each';
+import RenderText from '../render/text';
 import RenderOn from '../render/on';
-
-import Global from '../../global';
-import Utility from '../utility';
 
 var OnceBinder = {};
 
@@ -14,11 +17,15 @@ OnceBinder.data = {};
 
 OnceBinder.unrenderMethod = {
 	on: UnrenderOn,
+	each: UnrenderEach,
+	text: UnrenderText,
 	value: UnrenderValue
 };
 
 OnceBinder.renderMethod = {
 	on: RenderOn,
+	each: RenderEach,
+	text: RenderText,
 	value: RenderValue
 };
 
@@ -27,9 +34,7 @@ OnceBinder.ensureData = function (opt) {
 };
 
 OnceBinder.setData = function (opt, data) {
-	if (data !== undefined) {
-		return Global.model.set(opt.keys, data);
-	}
+	return Global.model.set(opt.keys, data);
 };
 
 OnceBinder.getData = function (opt) {
@@ -40,8 +45,20 @@ OnceBinder.getData = function (opt) {
 	}
 };
 
+// OnceBinder.modifyData = function (opt, data) {
+// 	if (opt.modifiers && opt.attribute.modifiers.length) {
+// 		for (var i = 0, l = opt.attribute.modifiers.length; i < l; i++) {
+// 			data = opt.modifiers[opt.attribute.modifiers[i]].call(opt.model, data);
+// 		}
+// 	}
+// 	return data;
+// };
+
 OnceBinder.add = function (opt) {
-	opt.exists = true;
+
+	if (opt.type === 'value') {
+		return;
+	}
 
 	if (!(opt.uid in this.data)) {
 		this.data[opt.uid] = {};
@@ -120,38 +137,31 @@ OnceBinder.update = function (opt) {
 	}
 };
 
-// OnceBinder.modifyData = function (opt, data) {
-// 	if (opt.modifiers && opt.attribute.modifiers.length) {
-// 		for (var i = 0, l = opt.attribute.modifiers.length; i < l; i++) {
-// 			data = opt.modifiers[opt.attribute.modifiers[i]].call(opt.model, data);
-// 		}
-// 	}
-// 	return data;
-// };
-
 OnceBinder.option = function (opt) {
 	opt = opt || {};
 
-	if (!opt.type) throw new Error('OnceBinder.render - requires a type');
+	if (!opt.name) throw new Error('OnceBinder.render - requires a name');
 	if (!opt.element) throw new Error('OnceBinder.render - requires a element');
-
-	var tmp = this.get(opt);
-	if (tmp) return tmp;
-
-	opt.exists = false;
 
 	opt.container = opt.container || Utility.getContainer(opt.element);
 	opt.uid = opt.uid || opt.container.getAttribute('o-uid');
+	opt.value = opt.value || opt.element.getAttribute(opt.name);
+	opt.path = opt.path || Utility.binderPath(opt.value);
 
-	opt.attribute = opt.attribute || {};
-	opt.attribute.value = opt.value || opt.attribute.value || opt.element.getAttribute(opt.attribute.name);
+	var tmp = this.get(opt);
 
-	opt.path = opt.path || opt.attribute.path || Utility.binderPath(opt.attribute.value);
-	opt.names = opt.names || opt.attribute.names || Utility.binderNames(opt.attribute.name);
-	opt.values = opt.values || opt.attribute.values || Utility.binderValues(opt.attribute.value);
-	opt.modifiers = opt.modifiers || opt.attribute.modifiers || Utility.binderModifiers(opt.attribute.value);
+	if (tmp) {
+		console.log('is');
+		return tmp;
+	}
 
-	opt.keys = [opt.uid].concat(opt.values);
+	opt.exists = false;
+	opt.type = opt.type || Utility.binderType(opt.name);
+	opt.names = opt.names || Utility.binderNames(opt.name);
+	opt.values = opt.values || Utility.binderValues(opt.value);
+	opt.modifiers = opt.modifiers || Utility.binderModifiers(opt.value);
+
+	opt.keys = opt.keys || [opt.uid].concat(opt.values);
 	opt.model = opt.model || Global.model.data[opt.uid];
 	opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
 
@@ -161,13 +171,13 @@ OnceBinder.option = function (opt) {
 };
 
 OnceBinder.unrender = function (opt) {
-	opt.type = opt.type || opt.attribute.type;
-	if (opt.method = this.unrenderMethod[opt.type]) {
+	opt = this.option(opt);
+
+	if (this.unrenderMethod[opt.type]) {
 		Global.batcher.write(function (opt, data) {
 
-			opt = this.option(opt);
 			data = this.getData(opt);
-			data = opt.method.call(this, opt, data);
+			data = this.unrenderMethod[opt.type].call(this, opt, data);
 
 			if (data !== undefined) {
 				this.setData(opt, data);
@@ -182,19 +192,21 @@ OnceBinder.unrender = function (opt) {
 };
 
 OnceBinder.render = function (opt) {
-	opt.type = opt.type || opt.attribute.type;
-	if (opt.method = this.renderMethod[opt.type]) {
+	opt = this.option(opt);
+
+	if (this.renderMethod[opt.type]) {
 		Global.batcher.write(function (opt, data) {
 
 			opt = this.option(opt);
 			data = this.getData(opt);
-			data = opt.method.call(this, opt, data);
+			data = this.renderMethod[opt.type].call(this, opt, data);
 
 			if (data !== undefined) {
 				this.setData(opt, data);
 			}
 
 			if (opt.exists === false) {
+				opt.exists === true;
 				this.add(opt);
 			}
 

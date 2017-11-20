@@ -16,7 +16,7 @@ export default function (opt, data) {
 			option.selected = false;
 		}
 	} else if (opt.element.type === 'radio') {
-		var query = 'input[type="radio"][o-value="' + path + '"]';
+		var query = 'input[type="radio"][o-value="' + opt.path + '"]';
 		var elements = opt.element.parentNode.querySelectorAll(query);
 		for (i = 0, l = elements.length; i < l; i++) {
 			var radio = elements[i];

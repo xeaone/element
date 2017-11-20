@@ -1,21 +1,10 @@
-import Utility from './lib/utility.js';
-import Global from './global.js';
+import OnceBinder from './lib/once-binder';
+import Utility from './lib/utility';
+import Global from './global';
 
 if (window.Oxe) {
 	throw new Error('Oxe pre-defined duplicate Oxe scripts');
 }
-
-Global.window.addEventListener('input', function (e) {
-	Global.inputs.forEach(function (input) {
-		input(e);
-	});
-}, true);
-
-Global.window.addEventListener('change', function (e) {
-	Global.changes.forEach(function (change) {
-		change(e);
-	});
-}, true);
 
 Global.window.addEventListener('click', function (e) {
 	Global.clicks.forEach(function (click) {
@@ -26,6 +15,28 @@ Global.window.addEventListener('click', function (e) {
 Global.window.addEventListener('popstate', function (e) {
 	Global.popstates.forEach(function (popstate) {
 		popstate(e);
+	});
+}, true);
+
+Global.window.addEventListener('input', function (e) {
+	if (
+		e.target.type !== 'checkbox'
+		&& e.target.type !== 'radio'
+		&& e.target.nodeName !== 'SELECT'
+	) {
+		OnceBinder.render({
+			caller: 'view',
+			name: 'o-value',
+			element: e.target,
+		});
+	}
+}, true);
+
+Global.window.addEventListener('change', function (e) {
+	OnceBinder.render({
+		caller: 'view',
+		name: 'o-value',
+		element: e.target,
 	});
 }, true);
 

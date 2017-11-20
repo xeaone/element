@@ -411,6 +411,222 @@
 		return Fetcher.fetch(opt);
 	};
 
+	var UnrenderValue = function (opt, data) {
+		var i , l;
+
+		if (opt.element.type === 'checkbox') {
+			data = false;
+			opt.element.checked = data;
+			opt.element.value = data;
+		} else if (opt.element.nodeName === 'SELECT') {
+			data = [];
+			var options = opt.element.options;
+			for (i = 0, l = options.length; i < l; i++) {
+				var option = options[i];
+				option.selected = false;
+			}
+		} else if (opt.element.type === 'radio') {
+			var query = 'input[type="radio"][o-value="' + opt.path + '"]';
+			var elements = opt.element.parentNode.querySelectorAll(query);
+			for (i = 0, l = elements.length; i < l; i++) {
+				var radio = elements[i];
+				if (i === 0) {
+					radio.checked = true;
+				} else {
+					radio.checked = false;
+				}
+			}
+		} else {
+			data = '';
+			opt.element.value = data;
+		}
+
+		return data;
+	};
+
+	var Utility = {};
+
+	Utility.PATH = /\s*\|.*/;
+	Utility.PREFIX = /(data-)?o-/;
+	Utility.TYPE = /(data-)?o-|-.*$/g;
+	Utility.SPLIT_MODIFIERS = /\s|\s?,\s?/;
+
+	Utility.binderNormalize = function (data) {
+		return !data ? '' : data
+			.replace(/\s+$/, '')
+			.replace(/^\s+/, '')
+			.replace(/\.{2,}/g, '.')
+			.replace(/\|{2,}/g, '|')
+			.replace(/\,{2,}/g, ',')
+			.replace(/\s{2,}/g, ' ')
+			.replace(/\s?\|\s?/, '|');
+	};
+
+	Utility.binderName = function (data) {
+		return data.replace(this.PREFIX, '');
+	};
+
+	Utility.binderType = function (data) {
+		return data.replace(this.TYPE, '');
+	};
+
+	Utility.binderNames = function (data) {
+		return data.replace(this.PREFIX, '').split('-');
+	};
+
+	Utility.binderValues = function (data) {
+		data = Utility.binderNormalize(data);
+		var index = data.indexOf('|');
+		return index === -1 ? data.split('.') : data.slice(0, index).split('.');
+	};
+
+	Utility.binderModifiers = function (data) {
+		data = Utility.binderNormalize(data);
+		var index = data.indexOf('|');
+		return index === -1 ? [] : data.slice(index + 1).split(Utility.SPLIT_MODIFIERS);
+	};
+
+	Utility.binderPath = function (data) {
+		return Utility.binderNormalize(data).replace(Utility.PATH, '');
+	};
+
+	Utility.createBase = function (base) {
+		var element = document.head.querySelector('base');
+
+		if (!element) {
+			element = document.createElement('base');
+			document.head.insertBefore(element, document.head.firstChild);
+		}
+
+		if (typeof base === 'string') {
+			element.href = base;
+		}
+
+		base = element.href;
+
+		return base;
+	};
+
+	Utility.formData = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		var data = {};
+
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
+			var path = element.getAttribute('o-value');
+			if (path) {
+				path = path.replace(/\s*\|.*/, '');
+				var name = path.split('.').slice(-1);
+				data[name] = Utility.getByPath(model, path);
+			}
+		}
+
+		return data;
+	};
+
+	Utility.formReset = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		for (var i = 0, l = elements.length; i < l; i++) {
+			UnrenderValue({
+				type: 'o-value',
+				element: elements[i]
+			});
+		}
+	};
+
+	Utility.toText = function (data) {
+		if (typeof data === 'object') {
+			 return JSON.stringify(data);
+		} else {
+			return String(data);
+		}
+	};
+
+	Utility.traverse = function (data, path, callback) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+
+			if (!(key in data)) {
+				if (typeof callback === 'function') {
+					callback(data, key, i, keys);
+				} else {
+					return undefined;
+				}
+			}
+
+			data = data[key];
+		}
+
+		return {
+			data: data,
+			key: keys[last]
+		}
+	};
+
+	Utility.setByPath = function (data, path, value) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!(key in data)) {
+				if (isNaN(keys[i+1])) {
+					data[key] = {};
+				} else {
+					data[key] = [];
+				}
+			}
+			data = data[key];
+		}
+
+		return data[keys[last]] = value;
+	};
+
+	Utility.getByPath = function (data, path) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+			if (!(key in data)) {
+				return undefined;
+			} else {
+				data = data[key];
+			}
+		}
+
+		return data[keys[last]];
+	};
+
+	Utility.removeChildren = function (element) {
+		var child;
+		while (child = element.lastElementChild) {
+			element.removeChild(child);
+		}
+	};
+
+	Utility.joinSlash = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	};
+
+	Utility.joinDot = function () {
+		return Array.prototype.join
+			.call(arguments, '.')
+			.replace(/\.{2,}/g, '.');
+	};
+
+	Utility.getContainer = function getContainer (element) {
+		if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) return element;
+		if (element.parentElement) return this.getContainer(element.parentElement);
+		console.log(element);
+		console.warn('Utility could not find a uid');
+	};
+
 	function Events () {
 		this.events = {};
 	}
@@ -1540,544 +1756,40 @@
 		}
 	};
 
-	Model.listener = function (element) {
-		var value = element.getAttribute('o-value');
-		if (value) {
-			var i, l;
-			var container = Utility.getContainer(element);
-			var uid = container.getAttribute('o-uid');
-			var path = value.replace(/(^(\w+\.?)+).*/, '$1');
-			var result = this.traverse(uid + '.' + path);
-
-			if (element.type === 'checkbox') {
-				result.data[result.key] = element.value = element.checked;
-			} else if (element.nodeName === 'SELECT' && element.multiple) {
-				var values = [];
-				var options = element.options;
-				for (i = 0, l = options.length; i < l; i++) {
-					var option = options[i];
-					if (option.selected) {
-						values.push(option.value);
-					}
-				}
-				result.data[result.key] = values;
-			} else if (element.type === 'radio') {
-				var elements = element.parentNode.querySelectorAll('input[type="radio"][o-value="' + path + '"]');
-				for (i = 0, l = elements.length; i < l; i++) {
-					var radio = elements[i];
-					if (radio === element) {
-						radio.checked = true;
-						result.data[result.key] = i;
-					} else {
-						radio.checked = false;
-					}
-				}
-			} else {
-				result.data[result.key] = element.value;
-			}
-		}
-	};
-
-	Model.input = function (e) {
-		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.nodeName !== 'SELECT') {
-			this.listener.call(this, e.target);
-		}
-	};
-
-	Model.change = function (e) {
-		this.listener.call(this, e.target);
-	};
-
 	Model.observer = function (data, path) {
 		var paths = path.split('.');
 		var uid = paths[0];
 		var type = data === undefined ? 'unrender' : 'render';
 
 		path = paths.slice(1).join('.');
-		// console.log(path);
 
 		if (path) {
+
 			Global$1.view.eachBinder(uid, path, function (binder) {
 				binder[type]();
 			});
+
 		}
 
 	};
 
 	Model.setup = function () {
+
 		if (this.isSetup) {
 			return;
-		} else {
-			this.isSetup = true;
 		}
+
+		this.isSetup = true;
 
 		Observer.create(
 			this.data,
 			this.observer.bind(this)
 		);
 
-		Global$1.inputs.push(this.input.bind(this));
-		Global$1.changes.push(this.change.bind(this));
-	};
-
-	function UnrenderOn (opt, data) {
-		opt.element.removeEventListener(opt.names[1], data, false);
-	}
-
-	var RenderValue = function (opt, data) {
-		var i , l;
-
-		if (opt.element.type === 'checkbox') {
-			data = !data ? false : data;
-			opt.element.checked = data;
-			opt.element.value = data;
-		} else if (opt.element.nodeName === 'SELECT') {
-			var options = opt.element.options;
-			data = !data && opt.element.multiple ? [] : data;
-			for (i = 0, l = options.length; i < l; i++) {
-				var option = options[i];
-				if (option.selected) {
-					if (opt.element.multiple) {
-						data.push(option.value);
-					} else {
-						data = option.value;
-						break;
-					}
-				}
-			}
-		} else if (opt.element.type === 'radio') {
-			var query = 'input[type="radio"][o-value="' + opt.attribute.value + '"]';
-			var elements = opt.element.parentNode.querySelectorAll(query);
-			for (i = 0, l = elements.length; i < l; i++) {
-				var radio = elements[i];
-				radio.checked = i === data;
-			}
-		} else {
-			data = data === undefined ? '' : data;
-			opt.element.value = data;
-		}
-
-		return data;
-	};
-
-	function RenderOn (opt, data) {
-		if (opt.exists) {
-			opt.element.removeEventListener(opt.names[1], data);
-			data = data.bind(opt.model);
-			opt.element.addEventListener(opt.names[1], data);
-		} else {
-			data = data.bind(opt.model);
-			opt.element.addEventListener(opt.names[1], data);
-		}
-		return data;
-	}
-
-	var OnceBinder = {};
-
-	OnceBinder.data = {};
-
-	OnceBinder.unrenderMethod = {
-		on: UnrenderOn,
-		value: UnrenderValue
-	};
-
-	OnceBinder.renderMethod = {
-		on: RenderOn,
-		value: RenderValue
-	};
-
-	OnceBinder.ensureData = function (opt) {
-		return Global$1.model.ensure(opt.keys);
-	};
-
-	OnceBinder.setData = function (opt, data) {
-		if (data !== undefined) {
-			return Global$1.model.set(opt.keys, data);
-		}
-	};
-
-	OnceBinder.getData = function (opt) {
-		if (opt.type === 'on') {
-			return Utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path);
-		} else {
-			return Global$1.model.get(opt.keys);
-		}
-	};
-
-	OnceBinder.add = function (opt) {
-		opt.exists = true;
-
-		if (!(opt.uid in this.data)) {
-			this.data[opt.uid] = {};
-		}
-
-		if (!(opt.path in this.data[opt.uid])) {
-			this.data[opt.uid][opt.path] = [];
-		}
-
-		this.data[opt.uid][opt.path].push(opt);
-	};
-
-	OnceBinder.remove = function (opt) {
-		var data;
-
-		if (!(opt.uid in this.data)) {
-			return;
-		}
-
-		if (!(opt.path in this.data[opt.uid])) {
-			return;
-		}
-
-		data = this.data[opt.uid][opt.path];
-
-		for (var i = 0, l = data.length; i < l; i++) {
-			var item = data[i];
-			if (item.element === opt.element) {
-				return data.splice(i, 1);
-			}
-		}
-	};
-
-	OnceBinder.get = function (opt) {
-		var data;
-
-		if (!(opt.uid in this.data)) {
-			return;
-		}
-
-		if (!(opt.path in this.data[opt.uid])) {
-			return;
-		}
-
-		data = this.data[opt.uid][opt.path];
-
-		for (var i = 0, l = data.length; i < l; i++) {
-			var item = data[i];
-			if (item.element === opt.element) {
-				return item;
-			}
-		}
-	};
-
-	OnceBinder.update = function (opt) {
-		var data;
-
-		if (!(opt.uid in this.data)) {
-			return;
-		}
-
-		if (!(opt.path in this.data[opt.uid])) {
-			return;
-		}
-
-		data = this.data[opt.uid][opt.path];
-
-		for (var i = 0, l = data.length; i < l; i++) {
-			var item = data[i];
-			if (item.element === opt.element) {
-				for (var key in opt) {
-					item[key] = opt[key];
-				}
-				return item;
-			}
-		}
-	};
-
-	// OnceBinder.modifyData = function (opt, data) {
-	// 	if (opt.modifiers && opt.attribute.modifiers.length) {
-	// 		for (var i = 0, l = opt.attribute.modifiers.length; i < l; i++) {
-	// 			data = opt.modifiers[opt.attribute.modifiers[i]].call(opt.model, data);
-	// 		}
-	// 	}
-	// 	return data;
-	// };
-
-	OnceBinder.option = function (opt) {
-		opt = opt || {};
-
-		if (!opt.type) throw new Error('OnceBinder.render - requires a type');
-		if (!opt.element) throw new Error('OnceBinder.render - requires a element');
-
-		var tmp = this.get(opt);
-		if (tmp) return tmp;
-
-		opt.exists = false;
-
-		opt.container = opt.container || Utility.getContainer(opt.element);
-		opt.uid = opt.uid || opt.container.getAttribute('o-uid');
-
-		opt.attribute = opt.attribute || {};
-		opt.attribute.value = opt.value || opt.attribute.value || opt.element.getAttribute(opt.attribute.name);
-
-		opt.path = opt.path || opt.attribute.path || Utility.binderPath(opt.attribute.value);
-		opt.names = opt.names || opt.attribute.names || Utility.binderNames(opt.attribute.name);
-		opt.values = opt.values || opt.attribute.values || Utility.binderValues(opt.attribute.value);
-		opt.modifiers = opt.modifiers || opt.attribute.modifiers || Utility.binderModifiers(opt.attribute.value);
-
-		opt.keys = [opt.uid].concat(opt.values);
-		opt.model = opt.model || Global$1.model.data[opt.uid];
-		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
-
-		this.ensureData(opt);
-
-		return opt;
-	};
-
-	OnceBinder.unrender = function (opt) {
-		opt.type = opt.type || opt.attribute.type;
-		if (opt.method = this.unrenderMethod[opt.type]) {
-			Global$1.batcher.write(function (opt, data) {
-
-				opt = this.option(opt);
-				data = this.getData(opt);
-				data = opt.method.call(this, opt, data);
-
-				if (data !== undefined) {
-					this.setData(opt, data);
-				}
-
-				if (opt.exists === true) {
-					this.remove(opt);
-				}
-
-			}.bind(this, opt));
-		}
-	};
-
-	OnceBinder.render = function (opt) {
-		opt.type = opt.type || opt.attribute.type;
-		if (opt.method = this.renderMethod[opt.type]) {
-			Global$1.batcher.write(function (opt, data) {
-
-				opt = this.option(opt);
-				data = this.getData(opt);
-				data = opt.method.call(this, opt, data);
-
-				if (data !== undefined) {
-					this.setData(opt, data);
-				}
-
-				if (opt.exists === false) {
-					this.add(opt);
-				}
-
-			}.bind(this, opt));
-		}
 	};
 
 	// import UnrenderValue from './unrender/value';
 	// import RenderValue from './render/value';
-	function Binder (options) {
-		this.cache;
-
-		this.uid = options.uid;
-		this.element = options.element;
-		this.container = options.container;
-		this.attribute = options.attribute;
-
-		this.keys = this.attribute.opts;
-		this.events = this.container.events;
-		this.modifiers = this.container.modifiers;
-		this.type = this.attribute.cmds[0] || 'default';
-
-		this.keys.unshift(this.uid);
-
-		this.ensureData();
-		this.setup();
-		this.render();
-	}
-
-	Binder.prototype.ensureData = function () {
-		return Global$1.model.ensure(this.keys);
-	};
-
-	Binder.prototype.setData = function (data) {
-		return Global$1.model.set(this.keys, data);
-	};
-
-	Binder.prototype.getData = function () {
-		var data = Global$1.model.get(this.keys);
-		return this.modifyData(data);
-	};
-
-	Binder.prototype.modifyData = function (data) {
-		var model = Global$1.model.get([this.uid]);
-
-		for (var i = 0, l = this.attribute.modifiers.length; i < l; i++) {
-			data = this.modifiers[this.attribute.modifiers[i]].call(model, data);
-		}
-
-		return data;
-	};
-
-	Binder.prototype.setupMethods = {
-		// value: RenderValue,
-		// on: function () {
-		// 	var model = Global.model.get([this.uid]);
-		// 	this.cache = Utility.getByPath(this.events, this.attribute.path).bind(model);
-		// },
-		each: function (data) {
-			this.variable = this.attribute.cmds[1];
-			this.pattern = new RegExp('\\$(' + this.variable + '|index)', 'ig');
-			this.clone = this.element.removeChild(this.element.firstElementChild);
-			this.clone = this.clone.outerHTML.replace(
-				new RegExp('((?:data-)?o-.*?=")' + this.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
-				'$1' + this.attribute.path + '.$' + this.variable + '$2'
-			);
-
-			return data || [];
-		},
-		text: function (data) {
-			return data === null ? '' : data;
-		},
-		enable: function (data) {
-			return data === false ? false : true;
-		},
-		disable: function (data) {
-			return data === false ? false : true;
-		},
-		show: function (data) {
-			return data === false ? false : true;
-		},
-		hide: function (data) {
-			return data === false ? false : true;
-		},
-		write: function (data) {
-			return data === false ? false : true;
-		},
-		read: function (data) {
-			return data === false ? false : true;
-		},
-		required: function (data) {
-			return data === false ? false : true;
-		},
-	};
-
-	Binder.prototype.renderMethods = {
-		// on: function (data) {
-		// 	this.element.removeEventListener(this.attribute.cmds[1], data);
-		// 	this.element.addEventListener(this.attribute.cmds[1], data);
-		// },
-		each: function (data) {
-			if (this.element.children.length > data.length) {
-				this.element.removeChild(this.element.lastElementChild);
-				this.render();
-			} else if (this.element.children.length < data.length) {
-				this.element.insertAdjacentHTML('beforeend', this.clone.replace(this.pattern, this.element.children.length));
-				this.render();
-			}
-		},
-		html: function (data) {
-			this.element.innerHTML = data;
-		},
-		css: function (data) {
-			if (this.attribute.cmds.length > 1) {
-				data = this.attribute.cmds.slice(1).join('-') + ': ' +  data + ';';
-			}
-			this.element.style.cssText += data;
-		},
-		class: function (data) {
-			var className = this.attribute.cmds.slice(1).join('-');
-			this.element.classList.toggle(className, data);
-		},
-		text: function (data) {
-			this.element.innerText = Utility.toText(data);
-		},
-		enable: function (data) {
-			this.element.disabled = !data;
-		},
-		disable: function (data) {
-			this.element.disabled = data;
-		},
-		show: function (data) {
-			this.element.hidden = !data;
-		},
-		hide: function (data) {
-			this.element.hidden = data;
-		},
-		write: function (data) {
-			this.element.readOnly = !data;
-		},
-		read: function (data) {
-			this.element.readOnly = data;
-		},
-		required: function (data) {
-			this.element.required = data;
-		},
-		selected: function (data) {
-			this.element.selectedIndex = data;
-		},
-		href: function (data) {
-			this.element.href = data;
-		},
-		src: function (data) {
-			this.element.src = data;
-		},
-		alt: function (data) {
-			this.element.alt = data;
-		},
-		default: function () {}
-	};
-
-	Binder.prototype.unrenderMethods = {
-		// on: function () {
-		// 	this.element.removeEventListener(this.attribute.cmds[1], this.cache, false);
-		// },
-		each: function () {
-			Utility.removeChildren(this.element);
-		},
-		html: function () {
-			Utility.removeChildren(this.element);
-		},
-		css: function () {
-			this.element.style.cssText = '';
-		},
-		class: function () {
-			var className = this.attribute.cmds.slice(1).join('-');
-			this.element.classList.remove(className);
-		},
-		text: function () {
-			this.element.innerText = '';
-		},
-		required: function () {
-			this.element.required = false;
-		},
-		href: function () {
-			this.element.href = '';
-		},
-		src: function () {
-			this.element.src = '';
-		},
-		alt: function () {
-			this.element.alt = '';
-		},
-		default: function () {}
-	};
-
-	Binder.prototype.setup = function () {
-		if (this.type in this.setupMethods) {
-			var data = this.getData();
-			data = this.setupMethods[this.type].call(this, data);
-			this.setData(data);
-		}
-		return this;
-	};
-
-	Binder.prototype.unrender = function () {
-		if (this.type in this.unrenderMethods) {
-			Global$1.batcher.write(this.unrenderMethods[this.type].bind(this));
-		}
-		return this;
-	};
-
-	Binder.prototype.render = function () {
-		if (this.type in this.renderMethods) {
-			var data = this.cache || this.getData();
-			Global$1.batcher.write(this.renderMethods[this.type].bind(this, data));
-		}
-		return this;
-	};
 
 	var View = {};
 
@@ -2089,6 +1801,7 @@
 	View.IS_ACCEPT_PATH = /(data-)?o-.*/;
 	View.IS_REJECT_PATH = /(data-)?o-value.*/;
 
+	// delete this
 	View.createAttribute = function (name, value) {
 		var attribute = {};
 
@@ -2109,50 +1822,66 @@
 
 	View.hasAcceptAttribute = function (element) {
 		var attributes = element.attributes;
+
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
+
 			if (
 				attribute.name.indexOf('o-') === 0
 				|| attribute.name.indexOf('data-o-') === 0
 			) {
 				return true;
 			}
+
 		}
+
 		return false;
 	};
 
 	View.eachAttribute = function (element, callback) {
 		var attributes = element.attributes;
+
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
+
 			if (
 				attribute.value
-				&& attribute.name !== 'o-method'
-				&& attribute.name !== 'o-action'
-				&& attribute.name !== 'data-o-action'
-				&& attribute.name !== 'data-o-method'
 				&& attribute.name.indexOf('o-') === 0
 				|| attribute.name.indexOf('data-o-') === 0
+				&& attribute.name !== 'o-method'
+				&& attribute.name !== 'o-action'
+				&& attribute.name !== 'o-external'
+				&& attribute.name !== 'data-o-action'
+				&& attribute.name !== 'data-o-method'
+				&& attribute.name !== 'data-o-external'
 			) {
-				callback.call(this, this.createAttribute(attribute.name, attribute.value));
+				callback.call(this, attribute);
 			}
+
 		}
+
 	};
 
 	View.eachBinder = function (uid, path, callback) {
 		var paths = this.data[uid];
+
 		for (var key in paths) {
+
 			if (key.indexOf(path) === 0) {
 				var binders = paths[key];
+
 				for (var i = 0, l = binders.length; i < l; i++) {
 					var binder = binders[i];
 					callback.call(this, binder, i, binders, paths, key);
 				}
+
 			}
+
 		}
+
 	};
 
-	View.push = function (uid, path, binder) {
+	View.addBinder = function (uid, path, binder) {
 
 		if (!(uid in this.data)) {
 			this.data[uid] = {};
@@ -2196,104 +1925,128 @@
 			& element.nodeName !== 'OBJECT'
 			& element.nodeName !== 'IFRAME'
 		) {
+
 			for (var i = 0, l = element.children.length; i < l; i++) {
 				this.eachElement(element.children[i], callback, container);
 			}
+
 		}
 
 	};
 
-	View.add = function (addedElement) {
+	View.addElement = function (addedElement) {
 		this.eachElement(addedElement, function (element, container, uid) {
 			this.eachAttribute(element, function (attribute) {
-				if (
-					attribute.cmds[0] === 'on'
-					|| attribute.cmds[0] === 'value'
-				) {
+				// if (
+				// 	attribute.name.indexOf('o-on') === 0
+				// 	|| attribute.name.indexOf('o-each') === 0
+				// 	|| attribute.name.indexOf('o-value') === 0
+				// ) {
 					OnceBinder.render({
 						uid: uid,
 						element: element,
 						container: container,
-						attribute: attribute
+						name: attribute.name,
+						value: attribute.value
 					});
-				} else {
-					this.push(uid, attribute.path, new Binder({
-						uid: uid,
-						element: element,
-						container: container,
-						attribute: attribute
-					}));
-				}
+				// } else {
+					// var att = this.createAttribute(attribute.name, attribute.value);
+					// this.addBinder(uid, att.path, new Binder({
+					// 	uid: uid,
+					// 	element: element,
+					// 	container: container,
+					// 	attribute: att
+					// }));
+				// }
 			});
 		});
 	};
 
-	View.remove = function (removedElement, target) {
+	View.removeElement = function (removedElement, target) {
 		this.eachElement(removedElement, function (element, container, uid) {
 			this.eachAttribute(element, function (attribute) {
-				if (
-					attribute.cmds[0] === 'on'
-					|| attribute.cmds[0] === 'value'
-				) {
+				// if (
+				// 	attribute.name.indexOf('o-on') === 0
+				// 	|| attribute.name.indexOf('o-each') === 0
+				// 	|| attribute.name.indexOf('o-value') === 0
+				// ) {
 					OnceBinder.unrender({
 						uid: uid,
 						element: element,
 						container: container,
-						attribute: attribute
+						name: attribute.name,
+						value: attribute.value
 					});
-				} else {
-					this.eachBinder(uid, attribute.path, function (binder, index, binders, paths, key) {
-						if (binder.element === element) {
-							binder.unrender();
-							binders.splice(index, 1);
-							if (binders.length === 0) {
-								delete paths[key];
-							}
-						}
-					});
-				}
+				// } else {
+					// var att = this.createAttribute(attribute.name, attribute.value);
+					// this.eachBinder(uid, att.path, function (binder, index, binders, paths, key) {
+					// 	if (binder.element === element) {
+					// 		binder.unrender();
+					// 		binders.splice(index, 1);
+					// 		if (binders.length === 0) {
+					// 			delete paths[key];
+					// 		}
+					// 	}
+					// });
+				// }
 			});
 		}, target);
 	};
 
 	View.mutation = function (mutations) {
-		var i = mutations.length;
-		while (i--) {
+		var c, i = mutations.length;
 
-			var l;
+		while (i--) {
 			var target = mutations[i].target;
 			var addedNodes = mutations[i].addedNodes;
 			var removedNodes = mutations[i].removedNodes;
 
-			l = addedNodes.length;
+			c = addedNodes.length;
 
-			while (l--) {
-				var addedNode = addedNodes[l];
+			while (c--) {
+				var addedNode = addedNodes[c];
+
 				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
-					if (addedNode.isRouterComponent) addedNode.inRouterCache = true;
-					this.add(addedNode);
+
+					if (addedNode.isRouterComponent) {
+						addedNode.inRouterCache = true;
+					}
+
+					this.addElement(addedNode);
 				}
+
 			}
 
-			l = removedNodes.length;
+			c = removedNodes.length;
 
-			while (l--) {
-				var removedNode = removedNodes[l];
+			while (c--) {
+				var removedNode = removedNodes[c];
+
 				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
-					if (removedNode.isRouterComponent) removedNode.inRouterCache = true;
-					this.remove(removedNode, target);
+
+					if (removedNode.isRouterComponent) {
+						removedNode.inRouterCache = true;
+					}
+
+					this.removeElement(removedNode, target);
 				}
+
 			}
 
 		}
+
 	};
 
 	View.setup = function () {
+
 		if (this.isSetup) {
 			return;
-		} else this.isSetup = true;
+		}
 
-		this.add(this.container);
+		this.isSetup = true;
+
+		this.addElement(this.container);
+
 		Global$1.mutations.push(this.mutation.bind(this));
 	};
 
@@ -2448,228 +2201,354 @@
 		}
 	});
 
-	var UnrenderValue = function (opt, data) {
-		var i , l;
-
-		if (opt.element.type === 'checkbox') {
-			data = false;
-			opt.element.checked = data;
-			opt.element.value = data;
-		} else if (opt.element.nodeName === 'SELECT') {
-			data = [];
-			var options = opt.element.options;
-			for (i = 0, l = options.length; i < l; i++) {
-				var option = options[i];
-				option.selected = false;
-			}
-		} else if (opt.element.type === 'radio') {
-			var query = 'input[type="radio"][o-value="' + path + '"]';
-			var elements = opt.element.parentNode.querySelectorAll(query);
-			for (i = 0, l = elements.length; i < l; i++) {
-				var radio = elements[i];
-				if (i === 0) {
-					radio.checked = true;
-				} else {
-					radio.checked = false;
-				}
-			}
-		} else {
-			data = '';
-			opt.element.value = data;
-		}
-
-		return data;
+	var UnrenderText = function (opt, data) {
+		opt.element.innerText = '';
 	};
 
-	var Utility = {};
-
-	Utility.PATH = /\s*\|.*/;
-	Utility.PREFIX = /(data-)?o-/;
-	Utility.SPLIT_MODIFIERS = /\s|\s?,\s?/;
-
-	Utility.binderNormalize = function (data) {
-		return !data ? '' : data
-			.replace(/\s+$/, '')
-			.replace(/^\s+/, '')
-			.replace(/\.{2,}/g, '.')
-			.replace(/\|{2,}/g, '|')
-			.replace(/\,{2,}/g, ',')
-			.replace(/\s{2,}/g, ' ')
-			.replace(/\s?\|\s?/, '|');
-	};
-
-	Utility.binderNames = function (data) {
-		return data.replace(this.PREFIX, '').split('-');
-	};
-
-	Utility.binderValues = function (data) {
-		data = Utility.binderNormalize(data);
-		var index = data.indexOf('|');
-		return index === -1 ? data.split('.') : data.slice(0, index).split('.');
-	};
-
-	Utility.binderModifiers = function (data) {
-		data = Utility.binderNormalize(data);
-		var index = data.indexOf('|');
-		return index === -1 ? [] : data.slice(index + 1).split(Utility.SPLIT_MODIFIERS);
-	};
-
-	Utility.binderPath = function (data) {
-		return Utility.binderNormalize(data).replace(Utility.PATH, '');
-	};
-
-	Utility.createBase = function (base) {
-		var element = document.head.querySelector('base');
-
-		if (!element) {
-			element = document.createElement('base');
-			document.head.insertBefore(element, document.head.firstChild);
-		}
-
-		if (typeof base === 'string') {
-			element.href = base;
-		}
-
-		base = element.href;
-
-		return base;
-	};
-
-	Utility.formData = function (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		var data = {};
-
-		for (var i = 0, l = elements.length; i < l; i++) {
-			var element = elements[i];
-			var path = element.getAttribute('o-value');
-			if (path) {
-				path = path.replace(/\s*\|.*/, '');
-				var name = path.split('.').slice(-1);
-				data[name] = Utility.getByPath(model, path);
-			}
-		}
-
-		return data;
-	};
-
-	Utility.formReset = function (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		for (var i = 0, l = elements.length; i < l; i++) {
-			UnrenderValue({
-				type: 'o-value',
-				element: elements[i]
-			});
-		}
-	};
-
-	Utility.toText = function (data) {
-		if (typeof data === 'object') {
-			 return JSON.stringify(data);
-		} else {
-			return String(data);
-		}
-	};
-
-	Utility.traverse = function (data, path, callback) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-
-			if (!(key in data)) {
-				if (typeof callback === 'function') {
-					callback(data, key, i, keys);
-				} else {
-					return undefined;
-				}
-			}
-
-			data = data[key];
-		}
-
-		return {
-			data: data,
-			key: keys[last]
-		}
-	};
-
-	Utility.setByPath = function (data, path, value) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (!(key in data)) {
-				if (isNaN(keys[i+1])) {
-					data[key] = {};
-				} else {
-					data[key] = [];
-				}
-			}
-			data = data[key];
-		}
-
-		return data[keys[last]] = value;
-	};
-
-	Utility.getByPath = function (data, path) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (!(key in data)) {
-				return undefined;
-			} else {
-				data = data[key];
-			}
-		}
-
-		return data[keys[last]];
-	};
-
-	Utility.removeChildren = function (element) {
+	var UnrenderEach = function (opt, data) {
 		var child;
+
 		while (child = element.lastElementChild) {
 			element.removeChild(child);
 		}
+		
 	};
 
-	Utility.joinSlash = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	function UnrenderOn (opt, data) {
+		opt.element.removeEventListener(opt.names[1], data, false);
+	}
+
+	var RenderValue = function (opt, data) {
+		var i , l;
+
+		if (opt.element.type === 'checkbox') {
+
+			data = !data ? false : data;
+
+			if (opt.caller === 'view') {
+				data = opt.element.checked;
+				opt.element.value = data;
+			} else {
+				opt.element.checked = data;
+				opt.element.value = data;
+			}
+
+		} else if (opt.element.nodeName === 'SELECT') {
+			var options = opt.element.options;
+
+			data = !data && opt.element.multiple ? [] : data;
+
+			if (opt.caller === 'view' && opt.element.multiple) {
+				data = [];
+			}
+
+			for (i = 0, l = options.length; i < l; i++) {
+				var option = options[i];
+
+				if (option.selected) {
+
+					if (opt.element.multiple) {
+						data.push(option.value);
+					} else {
+						data = option.value;
+						break;
+					}
+
+				}
+
+			}
+
+		} else if (opt.element.type === 'radio') {
+			var query = 'input[type="radio"][o-value="' + opt.value + '"]';
+			var elements = opt.container.querySelectorAll(query);
+
+			data = !data ? 0 : data;
+
+			for (i = 0, l = elements.length; i < l; i++) {
+				var element = elements[i];
+
+				if (opt.caller === 'view') {
+
+					if (opt.element === element) {
+						data = i;
+						element.checked = true;
+					} else {
+						element.checked = false;
+					}
+
+				} else {
+					element.checked = i == data;
+				}
+
+			}
+
+		} else {
+
+			// TODO find a way to update other inputs
+			if (data === undefined) {
+				opt.element.value = data = '';
+			} else if (opt.element.value === '') {
+				opt.element.value = data;
+			} else {
+				data = opt.element.value;
+			}
+
+		}
+
+		// FIXME this should not return data every time
+		return data;
 	};
 
-	Utility.joinDot = function () {
-		return Array.prototype.join
-			.call(arguments, '.')
-			.replace(/\.{2,}/g, '.');
+	function RenderEach (opt, data) {
+
+		console.log(data);
+
+		if (!opt.exists) {
+			opt.variable = opt.names[1];
+			opt.pattern = new RegExp('\\$(' + opt.variable + '|index)', 'ig');
+			opt.clone = opt.element.removeChild(opt.element.firstElementChild);
+			opt.clone = opt.clone.outerHTML.replace(
+				new RegExp('((?:data-)?o-.*?=")' + opt.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
+				'$1' + opt.path + '.$' + opt.variable + '$2'
+			);
+		}
+
+		if (opt.element.children.length > data.length) {
+			opt.element.removeChild(opt.element.lastElementChild);
+			// RenderEach.call(this, opt, data);
+		} else if (opt.element.children.length < data.length) {
+			opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, opt.element.children.length));
+			// RenderEach.call(this, opt, data);
+		}
+
+		if (!opt.exists) {
+			return data || [];
+		}
+
+	}
+
+	var RenderText = function (opt, data) {
+		opt.element.innerText = Utility.toText(data);
 	};
 
-	Utility.getContainer = function getContainer (element) {
-		if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) return element;
-		if (element.parentElement) return this.getContainer(element.parentElement);
-		console.log(element);
-		console.warn('Utility could not find a uid');
+	function RenderOn (opt, data) {
+		if (opt.exists) {
+			opt.element.removeEventListener(opt.names[1], data);
+			data = data.bind(opt.model);
+			opt.element.addEventListener(opt.names[1], data);
+		} else {
+			data = data.bind(opt.model);
+			opt.element.addEventListener(opt.names[1], data);
+		}
+		return data;
+	}
+
+	var OnceBinder = {};
+
+	OnceBinder.data = {};
+
+	OnceBinder.unrenderMethod = {
+		on: UnrenderOn,
+		each: UnrenderEach,
+		text: UnrenderText,
+		value: UnrenderValue
+	};
+
+	OnceBinder.renderMethod = {
+		on: RenderOn,
+		each: RenderEach,
+		text: RenderText,
+		value: RenderValue
+	};
+
+	OnceBinder.ensureData = function (opt) {
+		return Global$1.model.ensure(opt.keys);
+	};
+
+	OnceBinder.setData = function (opt, data) {
+		return Global$1.model.set(opt.keys, data);
+	};
+
+	OnceBinder.getData = function (opt) {
+		if (opt.type === 'on') {
+			return Utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path);
+		} else {
+			return Global$1.model.get(opt.keys);
+		}
+	};
+
+	// OnceBinder.modifyData = function (opt, data) {
+	// 	if (opt.modifiers && opt.attribute.modifiers.length) {
+	// 		for (var i = 0, l = opt.attribute.modifiers.length; i < l; i++) {
+	// 			data = opt.modifiers[opt.attribute.modifiers[i]].call(opt.model, data);
+	// 		}
+	// 	}
+	// 	return data;
+	// };
+
+	OnceBinder.add = function (opt) {
+
+		if (opt.type === 'value') {
+			return;
+		}
+
+		if (!(opt.uid in this.data)) {
+			this.data[opt.uid] = {};
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			this.data[opt.uid][opt.path] = [];
+		}
+
+		this.data[opt.uid][opt.path].push(opt);
+	};
+
+	OnceBinder.remove = function (opt) {
+		var data;
+
+		if (!(opt.uid in this.data)) {
+			return;
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			return;
+		}
+
+		data = this.data[opt.uid][opt.path];
+
+		for (var i = 0, l = data.length; i < l; i++) {
+			var item = data[i];
+			if (item.element === opt.element) {
+				return data.splice(i, 1);
+			}
+		}
+	};
+
+	OnceBinder.get = function (opt) {
+		var data;
+
+		if (!(opt.uid in this.data)) {
+			return;
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			return;
+		}
+
+		data = this.data[opt.uid][opt.path];
+
+		for (var i = 0, l = data.length; i < l; i++) {
+			var item = data[i];
+			if (item.element === opt.element) {
+				return item;
+			}
+		}
+	};
+
+	OnceBinder.update = function (opt) {
+		var data;
+
+		if (!(opt.uid in this.data)) {
+			return;
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			return;
+		}
+
+		data = this.data[opt.uid][opt.path];
+
+		for (var i = 0, l = data.length; i < l; i++) {
+			var item = data[i];
+			if (item.element === opt.element) {
+				for (var key in opt) {
+					item[key] = opt[key];
+				}
+				return item;
+			}
+		}
+	};
+
+	OnceBinder.option = function (opt) {
+		opt = opt || {};
+
+		if (!opt.name) throw new Error('OnceBinder.render - requires a name');
+		if (!opt.element) throw new Error('OnceBinder.render - requires a element');
+
+		opt.container = opt.container || Utility.getContainer(opt.element);
+		opt.uid = opt.uid || opt.container.getAttribute('o-uid');
+		opt.value = opt.value || opt.element.getAttribute(opt.name);
+		opt.path = opt.path || Utility.binderPath(opt.value);
+
+		var tmp = this.get(opt);
+
+		if (tmp) {
+			console.log('is');
+			return tmp;
+		}
+
+		opt.exists = false;
+		opt.type = opt.type || Utility.binderType(opt.name);
+		opt.names = opt.names || Utility.binderNames(opt.name);
+		opt.values = opt.values || Utility.binderValues(opt.value);
+		opt.modifiers = opt.modifiers || Utility.binderModifiers(opt.value);
+
+		opt.keys = opt.keys || [opt.uid].concat(opt.values);
+		opt.model = opt.model || Global$1.model.data[opt.uid];
+		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
+
+		this.ensureData(opt);
+
+		return opt;
+	};
+
+	OnceBinder.unrender = function (opt) {
+		opt = this.option(opt);
+
+		if (this.unrenderMethod[opt.type]) {
+			Global$1.batcher.write(function (opt, data) {
+
+				data = this.getData(opt);
+				data = this.unrenderMethod[opt.type].call(this, opt, data);
+
+				if (data !== undefined) {
+					this.setData(opt, data);
+				}
+
+				if (opt.exists === true) {
+					this.remove(opt);
+				}
+
+			}.bind(this, opt));
+		}
+	};
+
+	OnceBinder.render = function (opt) {
+		opt = this.option(opt);
+
+		if (this.renderMethod[opt.type]) {
+			Global$1.batcher.write(function (opt, data) {
+
+				opt = this.option(opt);
+				data = this.getData(opt);
+				data = this.renderMethod[opt.type].call(this, opt, data);
+
+				if (data !== undefined) {
+					this.setData(opt, data);
+				}
+
+				if (opt.exists === false) {
+					opt.exists === true;
+					this.add(opt);
+				}
+
+			}.bind(this, opt));
+		}
 	};
 
 	if (window.Oxe) {
 		throw new Error('Oxe pre-defined duplicate Oxe scripts');
 	}
-
-	Global$1.window.addEventListener('input', function (e) {
-		Global$1.inputs.forEach(function (input) {
-			input(e);
-		});
-	}, true);
-
-	Global$1.window.addEventListener('change', function (e) {
-		Global$1.changes.forEach(function (change) {
-			change(e);
-		});
-	}, true);
 
 	Global$1.window.addEventListener('click', function (e) {
 		Global$1.clicks.forEach(function (click) {
@@ -2680,6 +2559,28 @@
 	Global$1.window.addEventListener('popstate', function (e) {
 		Global$1.popstates.forEach(function (popstate) {
 			popstate(e);
+		});
+	}, true);
+
+	Global$1.window.addEventListener('input', function (e) {
+		if (
+			e.target.type !== 'checkbox'
+			&& e.target.type !== 'radio'
+			&& e.target.nodeName !== 'SELECT'
+		) {
+			OnceBinder.render({
+				caller: 'view',
+				name: 'o-value',
+				element: e.target,
+			});
+		}
+	}, true);
+
+	Global$1.window.addEventListener('change', function (e) {
+		OnceBinder.render({
+			caller: 'view',
+			name: 'o-value',
+			element: e.target,
 		});
 	}, true);
 

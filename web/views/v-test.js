@@ -72,24 +72,24 @@ Oxe.component.define({
 
 		window.self = self;
 
-		setTimeout(function () {
-			var increaseInterval = setInterval(function () {
-
-				if (self.model.items.length === 100) {
-					clearInterval(increaseInterval);
-					var decreaseInterval = setInterval(function () {
-						if (self.model.items.length === 5) {
-							clearInterval(decreaseInterval);
-							self.model.items = [];
-						}
-							self.model.items.pop();
-					}, 10);
-				}
-
-				self.model.items.push({ it: { val: self.model.items.length } });
-
-			}, 10);
-		}, 3000);
+		// setTimeout(function () {
+		// 	var increaseInterval = setInterval(function () {
+        //
+		// 		if (self.model.items.length === 100) {
+		// 			clearInterval(increaseInterval);
+		// 			var decreaseInterval = setInterval(function () {
+		// 				if (self.model.items.length === 5) {
+		// 					clearInterval(decreaseInterval);
+		// 					self.model.items = [];
+		// 				}
+		// 					self.model.items.pop();
+		// 			}, 10);
+		// 		}
+        //
+		// 		self.model.items.push({ it: { val: self.model.items.length } });
+        //
+		// 	}, 10);
+		// }, 3000);
 
 		Say('v-test created');
 	},
@@ -151,8 +151,8 @@ Oxe.component.define({
 		<br>
 
 		<div o-text="numRadio"></div>
-		<input type="radio" o-value="numRadio">
-		<input type="radio" o-value="numRadio">
+		<input type="radio" name="nr" o-value="numRadio">
+		<input type="radio" name="nr" o-value="numRadio">
 		<br>
 		<br>
 

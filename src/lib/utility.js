@@ -4,6 +4,7 @@ var Utility = {};
 
 Utility.PATH = /\s*\|.*/;
 Utility.PREFIX = /(data-)?o-/;
+Utility.TYPE = /(data-)?o-|-.*$/g;
 Utility.SPLIT_MODIFIERS = /\s|\s?,\s?/;
 
 Utility.binderNormalize = function (data) {
@@ -15,6 +16,14 @@ Utility.binderNormalize = function (data) {
 		.replace(/\,{2,}/g, ',')
 		.replace(/\s{2,}/g, ' ')
 		.replace(/\s?\|\s?/, '|');
+};
+
+Utility.binderName = function (data) {
+	return data.replace(this.PREFIX, '');
+};
+
+Utility.binderType = function (data) {
+	return data.replace(this.TYPE, '');
 };
 
 Utility.binderNames = function (data) {
