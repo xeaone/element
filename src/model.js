@@ -14,13 +14,19 @@ Model.overwrite = function (data) {
 	);
 };
 
-Model.traverse = function (path) {
+Model.traverse = function (path, create) {
 	return Global.utility.traverse(this.data, path, function (data, key, index, keys) {
-		if (isNaN(keys[index+1])) {
-			data.$set(key, {});
-		} else {
-			data.$set(key, []);
+
+		if (create) {
+
+			if (isNaN(keys[index + 1])) {
+				data.$set(key, {});
+			} else {
+				data.$set(key, []);
+			}
+
 		}
+
 	});
 };
 
@@ -30,13 +36,13 @@ Model.get = function (keys) {
 };
 
 Model.set = function (keys, value) {
-	value = value === undefined ? null : value;
-	var result = this.traverse(keys);
+	var result = this.traverse(keys, true);
+	// value = value === undefined ? null : value;
 	return result.data.$set(result.key, value);
 };
 
 Model.ensure = function (keys, value) {
-	var result = this.traverse(keys);
+	var result = this.traverse(keys, true);
 
 	if (result.data[result.key] === undefined) {
 		return result.data.$set(result.key, value || null);

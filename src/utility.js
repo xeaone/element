@@ -166,7 +166,7 @@ Utility.getContainer = function getContainer (element) {
 		return this.getContainer(element.parentElement);
 	}
 
-	console.warn('Oxe.utility - could not find element uid');
+	console.warn('Oxe.utility - could not find container uid');
 	console.warn(element);
 };
 

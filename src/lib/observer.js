@@ -27,6 +27,7 @@ Observer.defineProperties = function (data, callback, path, redefine) {
 	if (data.constructor === Array) {
 		Observer.overrideArrayMethods(data, callback, path);
 	}
+
 };
 
 Observer.defineProperty = function (data, key, value, callback, path, redefine) {
@@ -240,7 +241,7 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 			value: function (startIndex, deleteCount) {
 
 				if (!data.length || (typeof startIndex !== 'number' && typeof deleteCount !== 'number')) {
-					 return [];
+					return [];
 				}
 
 				if (typeof startIndex !== 'number') {
@@ -330,7 +331,7 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 						}
 
 					}
-					
+
 				}
 
 				return removed;

@@ -132,7 +132,7 @@ var Global = Object.defineProperties({}, {
 				this.isSetup = true;
 			}
 
-			options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
+			options = options || {};
 
 			if (options.keeper) {
 				this.keeper.setup(options.keeper);
@@ -148,8 +148,6 @@ var Global = Object.defineProperties({}, {
 			}
 
 			if (options.router) {
-				this.clicks.push(this.router.click.bind(this.router));
-				this.popstates.push(this.router.popstate.bind(this.router));
 				this.router.setup(options.router);
 				this.router.run();
 			}

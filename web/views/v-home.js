@@ -88,7 +88,7 @@ Oxe.component.define({
 			A small but mighty web components framework/library.
 		</p>
 
-		<strong>Featoxes</strong>
+		<strong>Features</strong>
 		<ul>
 			<li>Really Small 8.09KB gzipped and 27.08KB uncompressed</li>
 			<li>In browser ES6/ESM module and template strings support</li>

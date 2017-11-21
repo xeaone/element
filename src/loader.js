@@ -5,6 +5,7 @@ var Loader = {};
 
 Loader.loads = [];
 Loader.modules = {};
+
 Loader.esm = false;
 Loader.est = false;
 Loader.base = false;
@@ -25,29 +26,37 @@ Loader.setup = function (options) {
 	this.base = options.base === undefined ? this.base : Global.utility.createBase(options.base);
 };
 
-Loader.xhr = function (data, callback) {
-	if (data.xhr) return;
-	if (!data.url) throw new Error('Oxe.Loader - requires a url');
+Loader.change = function (data, callback) {
 
-	data.xhr = new XMLHttpRequest();
-	data.xhr.addEventListener('readystatechange', function () {
+	if (data.xhr.readyState === 4) {
 
-		if (data.xhr.readyState === 4) {
+		if (data.xhr.status >= 200 && data.xhr.status < 400) {
+			data.text = data.xhr.responseText;
 
-			if (data.xhr.status >= 200 && data.xhr.status < 400) {
-				data.text = data.xhr.responseText;
-
-				if (callback) {
-					callback(data);
-				}
-
-			} else {
-				throw new Error(data.xhr.responseText);
+			if (callback) {
+				callback(data);
 			}
 
+		} else {
+			throw new Error(data.xhr.responseText);
 		}
 
-	});
+	}
+
+};
+
+Loader.xhr = function (data, callback) {
+
+	if (data.xhr) {
+		return;
+	}
+
+	if (!data.url) {
+		throw new Error('Oxe.Loader - requires a url');
+	}
+
+	data.xhr = new XMLHttpRequest();
+	data.xhr.addEventListener('readystatechange', this.change.bind(this, data, callback));
 
 	data.xhr.open('GET', data.url);
 	data.xhr.send();
@@ -106,7 +115,10 @@ Loader.css = function (data, callback) {
 	data.element.setAttribute('type', 'text/css');
 
 	data.element.addEventListener('load', function () {
-		if (callback) callback(data);
+
+		if (callback) {
+			callback(data);
+		}
 
 	});
 
@@ -141,6 +153,7 @@ Loader.ext = function (data) {
 };
 
 Loader.normalizeUrl = function (url) {
+
 	if (!this.ext(url)) {
 		url = url + '.js';
 	}
@@ -153,10 +166,13 @@ Loader.normalizeUrl = function (url) {
 };
 
 Loader.handleImports = function (ast) {
+
 	for (var i = 0, l = ast.imports.length; i < l; i++) {
 		ast.imports[i].url = this.normalizeUrl(ast.imports[i].url);
-		ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = $L.modules[\'' + ast.imports[i].url + '\']');
+		var pattern = 'var ' + ast.imports[i].name + ' = $L.modules[\'' + ast.imports[i].url + '\']';
+		ast.cooked = ast.cooked.replace(ast.imports[i].raw, pattern);
 	}
+
 };
 
 Loader.handleExports = function (ast) {

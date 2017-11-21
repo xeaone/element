@@ -4,7 +4,6 @@ var Batcher = {};
 Batcher.reads = [];
 Batcher.writes = [];
 Batcher.pending = false;
-// Batcher.tasks = [];
 // Batcher.maxTaskTimeMS = 1000/60;
 
 // adds a task to the read batch
@@ -34,17 +33,16 @@ Batcher.clear = function (task) {
 
 // schedules a new read/write batch if one is not pending
 Batcher.tick = function () {
-	if (!this.pending) {
-		self.pending = true;
-		this.flush();
-	}
+	if (this.pending) return;
+	self.pending = true;
+	this.flush();
 };
 
-Batcher.flush = function (callback) {
+Batcher.flush = function () {
 	var self = this;
 
-	self.run(self.reads.splice(0, self.reads.length), function () {
-		self.run(self.writes.splice(0, self.writes.length), function () {
+	self.run(self.reads.shift(), function () {
+		self.run(self.writes.shift(), function () {
 
 			if (self.reads.length || self.writes.length) {
 				self.flush();
@@ -57,26 +55,16 @@ Batcher.flush = function (callback) {
 
 };
 
-Batcher.run = function (tasks, callback, index) {
+Batcher.run = function (task, callback) {
 
-	if (tasks.length) {
-
-		window.requestAnimationFrame(function (time) {
-			var count = 0;
-			var length = tasks.length;
-
-			index = index || 0;
-
-			for (index; index < length; index++) {
-				tasks[index]();
-			}
-
-			return callback();
-		});
-
-	} else {
+	if (!task) {
 		return callback();
 	}
+
+	window.requestAnimationFrame(function () {
+		task();
+		callback();
+	});
 
 };
 

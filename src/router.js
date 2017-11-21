@@ -28,65 +28,11 @@ Router.setup = function (options) {
 	this.base = options.base === undefined ? this.base : Global.utility.createBase(options.base);
 };
 
-Router.popstate = function (e) {
-	this.navigate(e.state || window.location.href, true);
-};
+// Router.popstate = function (e) {
+// };
 
-Router.click = function (e) {
-
-	// if shadow dom use
-	var target = e.path ? e.path[0] : e.target;
-	var parent = target.parentNode;
-
-	if (this.container) {
-
-		while (parent) {
-
-			if (parent === this.container) {
-				break;
-			} else {
-				parent = parent.parentNode;
-			}
-
-		}
-
-		if (parent !== this.container) {
-			return;
-		}
-
-	}
-
-	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
-
-	// ensure target is anchor tag
-	while (target && 'A' !== target.nodeName) target = target.parentNode;
-	if (!target || 'A' !== target.nodeName) return;
-
-	// check non acceptables
-	if (target.hasAttribute('download') ||
-		target.hasAttribute('external') ||
-		target.hasAttribute('o-external') ||
-		target.href.indexOf('tel:') === 0 ||
-		target.href.indexOf('ftp:') === 0 ||
-		target.href.indexOf('file:') === 0 ||
-		target.href.indexOf('mailto:') === 0 ||
-		target.href.indexOf(window.location.origin) !== 0
-	) return;
-
-	// if external is true then default action
-	if (this.external &&
-		(this.external.constructor.name === 'RegExp' && this.external.test(target.href) ||
-		this.external.constructor.name === 'Function' && this.external(target.href) ||
-		this.external.constructor.name === 'String' && this.external === target.href)
-	) return;
-
-	e.preventDefault();
-
-	if (this.location.href !== target.href) {
-		this.navigate(target.href);
-	}
-
-};
+// Router.click = function (e) {
+// };
 
 Router.scroll = function (x, y) {
 	window.scroll(x, y);
@@ -101,37 +47,51 @@ Router.redirect = function (path) {
 };
 
 Router.add = function (route) {
+
 	if (route.constructor.name === 'Object') {
 		this.routes.push(route);
 	} else if (route.constructor.name === 'Array') {
 		this.routes = this.routes.concat(route);
 	}
+
 };
 
 Router.remove = function (path) {
+
 	for (var i = 0, l = this.routes.length; i < l; i++) {
+
 		if (path === this.routes[i].path) {
 			this.routes.splice(i, 1);
 		}
+
 	}
+
 };
 
 Router.get = function (path) {
+
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 		var route = this.routes[i];
+
 		if (path === route.path) {
 			return route;
 		}
+
 	}
+
 };
 
 Router.find = function (path) {
+
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 		var route = this.routes[i];
+
 		if (this.isPath(route.path, path)) {
 			return route;
 		}
+
 	}
+
 };
 
 Router.isPath = function (routePath, userPath) {
@@ -151,10 +111,12 @@ Router.toParameter = function (routePath, userPath) {
 	var routePaths = routePath.split('/');
 
 	for (var i = 0, l = routePaths.length; i < l; i++) {
+
 		if (pattern.test(routePaths[i])) {
 			var name = routePaths[i].replace(brackets, '');
 			result[name] = userPaths[i];
 		}
+
 	}
 
 	return result;
@@ -167,9 +129,11 @@ Router.toQuery = function (path) {
 
 	for (var i = 0, l = queries.length; i < l; i++) {
 		var query = queries[i].split('=');
+
 		if (query[0] && query[1]) {
 			result[query[0]] = query[1];
 		}
+
 	}
 
 	return result;
@@ -285,6 +249,7 @@ Router.render = function (route) {
 	} else {
 		this.batch(route);
 	}
+
 };
 
 Router.navigate = function (data, replace) {
@@ -305,9 +270,11 @@ Router.navigate = function (data, replace) {
 		(location.route.auth === true ||
 		location.route.auth === undefined)
 	) {
+
 		if (Global.keeper.route(location.route) === false) {
 			return;
 		}
+
 	}
 
 	this.location = location;
@@ -330,7 +297,9 @@ Router.run = function () {
 
 	this.isRan = true;
 
-	this.view = typeof this.view === 'string' ? document.body.querySelector(this.view) : this.view;
+	if (typeof this.view === 'string') {
+		this.view = document.body.querySelector(this.view);
+	}
 
 	if (!this.view) {
 		throw new Error('Oxe.router - requires a view element');

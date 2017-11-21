@@ -20,11 +20,13 @@ Binder.setData = function (opt, data) {
 };
 
 Binder.getData = function (opt) {
+
 	if (opt.type === 'on') {
 		return Global.utility.getByPath(Global.events.data, opt.uid + '.' + opt.path);
 	} else {
 		return Global.model.get(opt.keys);
 	}
+
 };
 
 Binder.modifyData = function (opt, data) {

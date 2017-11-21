@@ -4,6 +4,7 @@ export default function Events () {
 }
 
 Events.prototype.on = function (name, listener) {
+
 	if (typeof this.events[name] !== 'object') {
 		this.events[name] = [];
 	}
@@ -12,13 +13,16 @@ Events.prototype.on = function (name, listener) {
 };
 
 Events.prototype.off = function (name, listener) {
+
 	if (typeof this.events[name] === 'object') {
 		var index = this.events[name].indexOf(listener);
 
 		if (index > -1) {
 			this.events[name].splice(index, 1);
 		}
+
 	}
+
 };
 
 Events.prototype.once = function (name, listener) {
@@ -29,12 +33,15 @@ Events.prototype.once = function (name, listener) {
 };
 
 Events.prototype.emit = function (name) {
+
 	if (typeof this.events[name] === 'object') {
 		var listeners = this.events[name].slice();
-		var args = [].slice.call(arguments, 1);
+		var args = Array.prototype.slice.call(arguments, 1);
 
 		for (var i = 0, l = listeners.length; i < l; i++) {
 			listeners[i].apply(this, args);
 		}
+
 	}
+
 };

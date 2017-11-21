@@ -10,42 +10,50 @@
 
 	Component.handleSlots = function (element, template) {
 		var tSlots = template.content.querySelectorAll('slot');
+
 		for (var i = 0, l = tSlots.length; i < l; i++) {
 			var tSlot = tSlots[i];
 			var tName = tSlot.getAttribute('name');
 			var eSlot = element.querySelector('[slot="'+ tName + '"]');
+
 			if (eSlot) {
 				tSlot.parentElement.replaceChild(eSlot, tSlot);
 			}
+
 		}
+		
 	};
 
 	Component.handleTemplate = function (data) {
 		var template;
+
 		if (data.html) {
 			template = document.createElement('template');
 			template.innerHTML = data.html;
 		} else if (data.query) {
+
 			try {
 				template = Global$1.ownerDocument.querySelector(data.query);
 			} catch (e) {
-				template = document.querySelector(data.query);
+				template = Global$1.document.querySelector(data.query);
 			}
+
 			if (template.nodeType !== 'TEMPLATE') {
 				template = document.createElement('template');
 				template.content.appendChild(data.element);
 			}
+
 		} else if (data.element) {
+
 			if (data.element.nodeType === 'TEMPLATE') {
 				template = data.element;
 			} else {
 				template = document.createElement('template');
 				template.content.appendChild(data.element);
 			}
+
 		}
-		// else if (data.url) {
-		//
-		// }
+
 		return template;
 	};
 
@@ -60,7 +68,7 @@
 			throw new Error('Oxe.component.define requires html, query, or element');
 		}
 
-		options.view = options.view || {};
+		// options.view = options.view || {};
 		options.model = options.model || {};
 		options.template = self.handleTemplate(options);
 
@@ -82,9 +90,10 @@
 			var uid = options.name + '-' + self.data[options.name].length;
 
 			element.setAttribute('o-uid', uid);
-			element.view = Global$1.view.data[uid] = options.view;
+
+			// element.view = Global.view.data[uid] = options.view;
+			element.model = Global$1.model.set(uid, options.model)[uid];
 			element.events = Global$1.events.data[uid] = options.events;
-			element.model = Global$1.model.data.$set(uid, options.model)[uid];
 			element.modifiers = Global$1.modifiers.data[uid] = options.modifiers;
 
 			// might want to handle default slot
@@ -279,7 +288,7 @@
 			return this.getContainer(element.parentElement);
 		}
 
-		console.warn('Oxe.utility - could not find element uid');
+		console.warn('Oxe.utility - could not find container uid');
 		console.warn(element);
 	};
 
@@ -288,7 +297,6 @@
 	Batcher.reads = [];
 	Batcher.writes = [];
 	Batcher.pending = false;
-	// Batcher.tasks = [];
 	// Batcher.maxTaskTimeMS = 1000/60;
 
 	// adds a task to the read batch
@@ -318,17 +326,16 @@
 
 	// schedules a new read/write batch if one is not pending
 	Batcher.tick = function () {
-		if (!this.pending) {
-			self.pending = true;
-			this.flush();
-		}
+		if (this.pending) return;
+		self.pending = true;
+		this.flush();
 	};
 
-	Batcher.flush = function (callback) {
+	Batcher.flush = function () {
 		var self = this;
 
-		self.run(self.reads.splice(0, self.reads.length), function () {
-			self.run(self.writes.splice(0, self.writes.length), function () {
+		self.run(self.reads.shift(), function () {
+			self.run(self.writes.shift(), function () {
 
 				if (self.reads.length || self.writes.length) {
 					self.flush();
@@ -341,26 +348,16 @@
 
 	};
 
-	Batcher.run = function (tasks, callback, index) {
+	Batcher.run = function (task, callback) {
 
-		if (tasks.length) {
-
-			window.requestAnimationFrame(function (time) {
-				var count = 0;
-				var length = tasks.length;
-
-				index = index || 0;
-
-				for (index; index < length; index++) {
-					tasks[index]();
-				}
-
-				return callback();
-			});
-
-		} else {
+		if (!task) {
 			return callback();
 		}
+
+		window.requestAnimationFrame(function () {
+			task();
+			callback();
+		});
 
 	};
 
@@ -595,6 +592,7 @@
 	}
 
 	Events$2.prototype.on = function (name, listener) {
+
 		if (typeof this.events[name] !== 'object') {
 			this.events[name] = [];
 		}
@@ -603,13 +601,16 @@
 	};
 
 	Events$2.prototype.off = function (name, listener) {
+
 		if (typeof this.events[name] === 'object') {
 			var index = this.events[name].indexOf(listener);
 
 			if (index > -1) {
 				this.events[name].splice(index, 1);
 			}
+
 		}
+
 	};
 
 	Events$2.prototype.once = function (name, listener) {
@@ -620,14 +621,17 @@
 	};
 
 	Events$2.prototype.emit = function (name) {
+
 		if (typeof this.events[name] === 'object') {
 			var listeners = this.events[name].slice();
-			var args = [].slice.call(arguments, 1);
+			var args = Array.prototype.slice.call(arguments, 1);
 
 			for (var i = 0, l = listeners.length; i < l; i++) {
 				listeners[i].apply(this, args);
 			}
+
 		}
+
 	};
 
 	var Router = {};
@@ -657,65 +661,11 @@
 		this.base = options.base === undefined ? this.base : Global$1.utility.createBase(options.base);
 	};
 
-	Router.popstate = function (e) {
-		this.navigate(e.state || window.location.href, true);
-	};
+	// Router.popstate = function (e) {
+	// };
 
-	Router.click = function (e) {
-
-		// if shadow dom use
-		var target = e.path ? e.path[0] : e.target;
-		var parent = target.parentNode;
-
-		if (this.container) {
-
-			while (parent) {
-
-				if (parent === this.container) {
-					break;
-				} else {
-					parent = parent.parentNode;
-				}
-
-			}
-
-			if (parent !== this.container) {
-				return;
-			}
-
-		}
-
-		if (e.metaKey || e.ctrlKey || e.shiftKey) return;
-
-		// ensure target is anchor tag
-		while (target && 'A' !== target.nodeName) target = target.parentNode;
-		if (!target || 'A' !== target.nodeName) return;
-
-		// check non acceptables
-		if (target.hasAttribute('download') ||
-			target.hasAttribute('external') ||
-			target.hasAttribute('o-external') ||
-			target.href.indexOf('tel:') === 0 ||
-			target.href.indexOf('ftp:') === 0 ||
-			target.href.indexOf('file:') === 0 ||
-			target.href.indexOf('mailto:') === 0 ||
-			target.href.indexOf(window.location.origin) !== 0
-		) return;
-
-		// if external is true then default action
-		if (this.external &&
-			(this.external.constructor.name === 'RegExp' && this.external.test(target.href) ||
-			this.external.constructor.name === 'Function' && this.external(target.href) ||
-			this.external.constructor.name === 'String' && this.external === target.href)
-		) return;
-
-		e.preventDefault();
-
-		if (this.location.href !== target.href) {
-			this.navigate(target.href);
-		}
-
-	};
+	// Router.click = function (e) {
+	// };
 
 	Router.scroll = function (x, y) {
 		window.scroll(x, y);
@@ -730,37 +680,51 @@
 	};
 
 	Router.add = function (route) {
+
 		if (route.constructor.name === 'Object') {
 			this.routes.push(route);
 		} else if (route.constructor.name === 'Array') {
 			this.routes = this.routes.concat(route);
 		}
+
 	};
 
 	Router.remove = function (path) {
+
 		for (var i = 0, l = this.routes.length; i < l; i++) {
+
 			if (path === this.routes[i].path) {
 				this.routes.splice(i, 1);
 			}
+
 		}
+
 	};
 
 	Router.get = function (path) {
+
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 			var route = this.routes[i];
+
 			if (path === route.path) {
 				return route;
 			}
+
 		}
+
 	};
 
 	Router.find = function (path) {
+
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 			var route = this.routes[i];
+
 			if (this.isPath(route.path, path)) {
 				return route;
 			}
+
 		}
+
 	};
 
 	Router.isPath = function (routePath, userPath) {
@@ -780,10 +744,12 @@
 		var routePaths = routePath.split('/');
 
 		for (var i = 0, l = routePaths.length; i < l; i++) {
+
 			if (pattern.test(routePaths[i])) {
 				var name = routePaths[i].replace(brackets, '');
 				result[name] = userPaths[i];
 			}
+
 		}
 
 		return result;
@@ -796,9 +762,11 @@
 
 		for (var i = 0, l = queries.length; i < l; i++) {
 			var query = queries[i].split('=');
+
 			if (query[0] && query[1]) {
 				result[query[0]] = query[1];
 			}
+
 		}
 
 		return result;
@@ -914,6 +882,7 @@
 		} else {
 			this.batch(route);
 		}
+
 	};
 
 	Router.navigate = function (data, replace) {
@@ -934,9 +903,11 @@
 			(location.route.auth === true ||
 			location.route.auth === undefined)
 		) {
+
 			if (Global$1.keeper.route(location.route) === false) {
 				return;
 			}
+
 		}
 
 		this.location = location;
@@ -959,7 +930,9 @@
 
 		this.isRan = true;
 
-		this.view = typeof this.view === 'string' ? document.body.querySelector(this.view) : this.view;
+		if (typeof this.view === 'string') {
+			this.view = document.body.querySelector(this.view);
+		}
 
 		if (!this.view) {
 			throw new Error('Oxe.router - requires a view element');
@@ -1044,6 +1017,7 @@
 
 	Loader.loads = [];
 	Loader.modules = {};
+
 	Loader.esm = false;
 	Loader.est = false;
 	Loader.base = false;
@@ -1064,29 +1038,37 @@
 		this.base = options.base === undefined ? this.base : Global$1.utility.createBase(options.base);
 	};
 
-	Loader.xhr = function (data, callback) {
-		if (data.xhr) return;
-		if (!data.url) throw new Error('Oxe.Loader - requires a url');
+	Loader.change = function (data, callback) {
 
-		data.xhr = new XMLHttpRequest();
-		data.xhr.addEventListener('readystatechange', function () {
+		if (data.xhr.readyState === 4) {
 
-			if (data.xhr.readyState === 4) {
+			if (data.xhr.status >= 200 && data.xhr.status < 400) {
+				data.text = data.xhr.responseText;
 
-				if (data.xhr.status >= 200 && data.xhr.status < 400) {
-					data.text = data.xhr.responseText;
-
-					if (callback) {
-						callback(data);
-					}
-
-				} else {
-					throw new Error(data.xhr.responseText);
+				if (callback) {
+					callback(data);
 				}
 
+			} else {
+				throw new Error(data.xhr.responseText);
 			}
 
-		});
+		}
+
+	};
+
+	Loader.xhr = function (data, callback) {
+
+		if (data.xhr) {
+			return;
+		}
+
+		if (!data.url) {
+			throw new Error('Oxe.Loader - requires a url');
+		}
+
+		data.xhr = new XMLHttpRequest();
+		data.xhr.addEventListener('readystatechange', this.change.bind(this, data, callback));
 
 		data.xhr.open('GET', data.url);
 		data.xhr.send();
@@ -1145,7 +1127,10 @@
 		data.element.setAttribute('type', 'text/css');
 
 		data.element.addEventListener('load', function () {
-			if (callback) callback(data);
+
+			if (callback) {
+				callback(data);
+			}
 
 		});
 
@@ -1180,6 +1165,7 @@
 	};
 
 	Loader.normalizeUrl = function (url) {
+
 		if (!this.ext(url)) {
 			url = url + '.js';
 		}
@@ -1192,10 +1178,13 @@
 	};
 
 	Loader.handleImports = function (ast) {
+
 		for (var i = 0, l = ast.imports.length; i < l; i++) {
 			ast.imports[i].url = this.normalizeUrl(ast.imports[i].url);
-			ast.cooked = ast.cooked.replace(ast.imports[i].raw, 'var ' + ast.imports[i].name + ' = $L.modules[\'' + ast.imports[i].url + '\']');
+			var pattern = 'var ' + ast.imports[i].name + ' = $L.modules[\'' + ast.imports[i].url + '\']';
+			ast.cooked = ast.cooked.replace(ast.imports[i].raw, pattern);
 		}
+
 	};
 
 	Loader.handleExports = function (ast) {
@@ -1395,7 +1384,9 @@
 	Render.alt = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.alt === data) return;
+		if (opt.element.alt === data) {
+			return;
+		}
 
 		opt.element.alt = this.modifyData(opt, data);
 	};
@@ -1403,7 +1394,9 @@
 	Render.disable = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.disabled === data) return;
+		if (opt.element.disabled === data) {
+			return;
+		}
 
 		if (data === undefined || data === null) {
 			data = true;
@@ -1416,7 +1409,9 @@
 	Render.enable = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.disabled === !data) return;
+		if (opt.element.disabled === !data) {
+			return;
+		}
 
 		if (data === undefined || data === null) {
 			data = true;
@@ -1429,7 +1424,9 @@
 	Render.hide = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.hidden === data) return;
+		if (opt.element.hidden === data) {
+			return;
+		}
 
 		if (data === undefined || data === null) {
 			data = true;
@@ -1442,7 +1439,9 @@
 	Render.html = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.innerHTML === data) return;
+		if (opt.element.innerHTML === data) {
+			return;
+		}
 
 		opt.element.innerHTML = this.modifyData(opt, data);
 	};
@@ -1450,7 +1449,9 @@
 	Render.href = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.href === data) return;
+		if (opt.element.href === data) {
+			return;
+		}
 
 		opt.element.href = this.modifyData(opt, data);
 	};
@@ -1459,7 +1460,9 @@
 	Render.read = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.readOnly === data) return;
+		if (opt.element.readOnly === data) {
+			return;
+		}
 
 		if (data === undefined || data === null) {
 			data = true;
@@ -1472,7 +1475,9 @@
 	Render.required = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.required === data) return;
+		if (opt.element.required === data) {
+			return;
+		}
 
 		if (data === undefined || data === null) {
 			data = true;
@@ -1485,7 +1490,9 @@
 	Render.selected = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.selectedIndex === data) return;
+		if (opt.element.selectedIndex === data) {
+			return;
+		}
 
 		if (data === undefined || data === null) {
 			data = 0;
@@ -1498,7 +1505,9 @@
 	Render.show = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.hidden === !data) return;
+		if (opt.element.hidden === !data) {
+			return;
+		}
 
 		if (data === undefined || data === null) {
 			data = true;
@@ -1511,7 +1520,9 @@
 	Render.src = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.src === data) return;
+		if (opt.element.src === data) {
+			return;
+		}
 
 		opt.element.src = this.modifyData(opt, data);
 	};
@@ -1531,7 +1542,9 @@
 	Render.write = function (opt) {
 		var data = this.getData(opt);
 
-		if (opt.element.readOnly === !data) return;
+		if (opt.element.readOnly === !data) {
+			return;
+		}
 
 		if (data === undefined || data === null) {
 			data = true;
@@ -1695,11 +1708,13 @@
 	};
 
 	Binder.getData = function (opt) {
+
 		if (opt.type === 'on') {
 			return Global$1.utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path);
 		} else {
 			return Global$1.model.get(opt.keys);
 		}
+
 	};
 
 	Binder.modifyData = function (opt, data) {
@@ -2036,6 +2051,7 @@
 		if (data.constructor === Array) {
 			Observer.overrideArrayMethods(data, callback, path);
 		}
+
 	};
 
 	Observer.defineProperty = function (data, key, value, callback, path, redefine) {
@@ -2249,7 +2265,7 @@
 				value: function (startIndex, deleteCount) {
 
 					if (!data.length || (typeof startIndex !== 'number' && typeof deleteCount !== 'number')) {
-						 return [];
+						return [];
 					}
 
 					if (typeof startIndex !== 'number') {
@@ -2339,7 +2355,7 @@
 							}
 
 						}
-						
+
 					}
 
 					return removed;
@@ -2361,13 +2377,19 @@
 		);
 	};
 
-	Model.traverse = function (path) {
+	Model.traverse = function (path, create) {
 		return Global$1.utility.traverse(this.data, path, function (data, key, index, keys) {
-			if (isNaN(keys[index+1])) {
-				data.$set(key, {});
-			} else {
-				data.$set(key, []);
+
+			if (create) {
+
+				if (isNaN(keys[index + 1])) {
+					data.$set(key, {});
+				} else {
+					data.$set(key, []);
+				}
+
 			}
+
 		});
 	};
 
@@ -2377,13 +2399,13 @@
 	};
 
 	Model.set = function (keys, value) {
-		value = value === undefined ? null : value;
-		var result = this.traverse(keys);
+		var result = this.traverse(keys, true);
+		// value = value === undefined ? null : value;
 		return result.data.$set(result.key, value);
 	};
 
 	Model.ensure = function (keys, value) {
-		var result = this.traverse(keys);
+		var result = this.traverse(keys, true);
 
 		if (result.data[result.key] === undefined) {
 			return result.data.$set(result.key, value || null);
@@ -2671,7 +2693,7 @@
 					this.isSetup = true;
 				}
 
-				options = (typeof options === 'function' ? options.call(Oxe) : options) || {};
+				options = options || {};
 
 				if (options.keeper) {
 					this.keeper.setup(options.keeper);
@@ -2687,8 +2709,6 @@
 				}
 
 				if (options.router) {
-					this.clicks.push(this.router.click.bind(this.router));
-					this.popstates.push(this.router.popstate.bind(this.router));
 					this.router.setup(options.router);
 					this.router.run();
 				}
@@ -2698,15 +2718,70 @@
 	});
 
 	Global$1.window.addEventListener('click', function (e) {
-		Global$1.clicks.forEach(function (click) {
-			click(e);
-		});
+
+			// if shadow dom use
+			var target = e.path ? e.path[0] : e.target;
+			var parent = target.parentNode;
+
+			if (Global$1.router.container) {
+
+				while (parent) {
+
+					if (parent === Global$1.router.container) {
+						break;
+					} else {
+						parent = parent.parentNode;
+					}
+
+				}
+
+				if (parent !== Global$1.router.container) {
+					return;
+				}
+
+			}
+
+			if (e.metaKey || e.ctrlKey || e.shiftKey) {
+				return;
+			}
+
+			// ensure target is anchor tag
+			while (target && 'A' !== target.nodeName) {
+				target = target.parentNode;
+			}
+
+			if (!target || 'A' !== target.nodeName) {
+				return;
+			}
+
+			// check non acceptables
+			if (target.hasAttribute('download') ||
+				target.hasAttribute('external') ||
+				target.hasAttribute('o-external') ||
+				target.href.indexOf('tel:') === 0 ||
+				target.href.indexOf('ftp:') === 0 ||
+				target.href.indexOf('file:') === 0 ||
+				target.href.indexOf('mailto:') === 0 ||
+				target.href.indexOf(window.location.origin) !== 0
+			) return;
+
+			// if external is true then default action
+			if (Global$1.router.external &&
+				(Global$1.router.external.constructor.name === 'RegExp' && Global$1.router.external.test(target.href) ||
+				Global$1.router.external.constructor.name === 'Function' && Global$1.router.external(target.href) ||
+				Global$1.router.external.constructor.name === 'String' && Global$1.router.external === target.href)
+			) return;
+
+			e.preventDefault();
+
+			if (Global$1.router.location.href !== target.href) {
+				Global$1.router.navigate(target.href);
+			}
+
 	}, true);
 
 	Global$1.window.addEventListener('popstate', function (e) {
-		Global$1.popstates.forEach(function (popstate) {
-			popstate(e);
-		});
+		Global$1.router.navigate(e.state || window.location.href, true);
 	}, true);
 
 	Global$1.window.addEventListener('input', function (e) {
@@ -2737,8 +2812,9 @@
 
 		if (submit) {
 			var elements = element.querySelectorAll('[o-value]');
+			var i = elements.length;
 
-			for (var i = 0, l = elements.length; i < l; i++) {
+			while (i--) {
 				Global$1.binder.unrender({
 					name: 'o-value',
 					element: elements[i]

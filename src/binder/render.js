@@ -27,7 +27,9 @@ Render.css = function (opt) {
 Render.alt = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.alt === data) return;
+	if (opt.element.alt === data) {
+		return;
+	}
 
 	opt.element.alt = this.modifyData(opt, data);
 };
@@ -35,7 +37,9 @@ Render.alt = function (opt) {
 Render.disable = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.disabled === data) return;
+	if (opt.element.disabled === data) {
+		return;
+	}
 
 	if (data === undefined || data === null) {
 		data = true;
@@ -48,7 +52,9 @@ Render.disable = function (opt) {
 Render.enable = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.disabled === !data) return;
+	if (opt.element.disabled === !data) {
+		return;
+	}
 
 	if (data === undefined || data === null) {
 		data = true;
@@ -61,7 +67,9 @@ Render.enable = function (opt) {
 Render.hide = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.hidden === data) return;
+	if (opt.element.hidden === data) {
+		return;
+	}
 
 	if (data === undefined || data === null) {
 		data = true;
@@ -74,7 +82,9 @@ Render.hide = function (opt) {
 Render.html = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.innerHTML === data) return;
+	if (opt.element.innerHTML === data) {
+		return;
+	}
 
 	opt.element.innerHTML = this.modifyData(opt, data);
 };
@@ -82,7 +92,9 @@ Render.html = function (opt) {
 Render.href = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.href === data) return;
+	if (opt.element.href === data) {
+		return;
+	}
 
 	opt.element.href = this.modifyData(opt, data);
 };
@@ -91,7 +103,9 @@ Render.href = function (opt) {
 Render.read = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.readOnly === data) return;
+	if (opt.element.readOnly === data) {
+		return;
+	}
 
 	if (data === undefined || data === null) {
 		data = true;
@@ -104,7 +118,9 @@ Render.read = function (opt) {
 Render.required = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.required === data) return;
+	if (opt.element.required === data) {
+		return;
+	}
 
 	if (data === undefined || data === null) {
 		data = true;
@@ -117,7 +133,9 @@ Render.required = function (opt) {
 Render.selected = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.selectedIndex === data) return;
+	if (opt.element.selectedIndex === data) {
+		return;
+	}
 
 	if (data === undefined || data === null) {
 		data = 0;
@@ -130,7 +148,9 @@ Render.selected = function (opt) {
 Render.show = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.hidden === !data) return;
+	if (opt.element.hidden === !data) {
+		return;
+	}
 
 	if (data === undefined || data === null) {
 		data = true;
@@ -143,7 +163,9 @@ Render.show = function (opt) {
 Render.src = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.src === data) return;
+	if (opt.element.src === data) {
+		return;
+	}
 
 	opt.element.src = this.modifyData(opt, data);
 };
@@ -163,7 +185,9 @@ Render.text = function (opt) {
 Render.write = function (opt) {
 	var data = this.getData(opt);
 
-	if (opt.element.readOnly === !data) return;
+	if (opt.element.readOnly === !data) {
+		return;
+	}
 
 	if (data === undefined || data === null) {
 		data = true;

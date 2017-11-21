@@ -1,15 +1,70 @@
 import Global from './global';
 
 Global.window.addEventListener('click', function (e) {
-	Global.clicks.forEach(function (click) {
-		click(e);
-	});
+
+		// if shadow dom use
+		var target = e.path ? e.path[0] : e.target;
+		var parent = target.parentNode;
+
+		if (Global.router.container) {
+
+			while (parent) {
+
+				if (parent === Global.router.container) {
+					break;
+				} else {
+					parent = parent.parentNode;
+				}
+
+			}
+
+			if (parent !== Global.router.container) {
+				return;
+			}
+
+		}
+
+		if (e.metaKey || e.ctrlKey || e.shiftKey) {
+			return;
+		}
+
+		// ensure target is anchor tag
+		while (target && 'A' !== target.nodeName) {
+			target = target.parentNode;
+		}
+
+		if (!target || 'A' !== target.nodeName) {
+			return;
+		}
+
+		// check non acceptables
+		if (target.hasAttribute('download') ||
+			target.hasAttribute('external') ||
+			target.hasAttribute('o-external') ||
+			target.href.indexOf('tel:') === 0 ||
+			target.href.indexOf('ftp:') === 0 ||
+			target.href.indexOf('file:') === 0 ||
+			target.href.indexOf('mailto:') === 0 ||
+			target.href.indexOf(window.location.origin) !== 0
+		) return;
+
+		// if external is true then default action
+		if (Global.router.external &&
+			(Global.router.external.constructor.name === 'RegExp' && Global.router.external.test(target.href) ||
+			Global.router.external.constructor.name === 'Function' && Global.router.external(target.href) ||
+			Global.router.external.constructor.name === 'String' && Global.router.external === target.href)
+		) return;
+
+		e.preventDefault();
+
+		if (Global.router.location.href !== target.href) {
+			Global.router.navigate(target.href);
+		}
+
 }, true);
 
 Global.window.addEventListener('popstate', function (e) {
-	Global.popstates.forEach(function (popstate) {
-		popstate(e);
-	});
+	Global.router.navigate(e.state || window.location.href, true);
 }, true);
 
 Global.window.addEventListener('input', function (e) {
@@ -40,8 +95,9 @@ Global.window.addEventListener('reset', function (e) {
 
 	if (submit) {
 		var elements = element.querySelectorAll('[o-value]');
+		var i = elements.length;
 
-		for (var i = 0, l = elements.length; i < l; i++) {
+		while (i--) {
 			Global.binder.unrender({
 				name: 'o-value',
 				element: elements[i]

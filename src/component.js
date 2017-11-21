@@ -6,42 +6,50 @@ Component.data = {};
 
 Component.handleSlots = function (element, template) {
 	var tSlots = template.content.querySelectorAll('slot');
+
 	for (var i = 0, l = tSlots.length; i < l; i++) {
 		var tSlot = tSlots[i];
 		var tName = tSlot.getAttribute('name');
 		var eSlot = element.querySelector('[slot="'+ tName + '"]');
+
 		if (eSlot) {
 			tSlot.parentElement.replaceChild(eSlot, tSlot);
 		}
+
 	}
+	
 };
 
 Component.handleTemplate = function (data) {
 	var template;
+
 	if (data.html) {
 		template = document.createElement('template');
 		template.innerHTML = data.html;
 	} else if (data.query) {
+
 		try {
 			template = Global.ownerDocument.querySelector(data.query);
 		} catch (e) {
-			template = document.querySelector(data.query);
+			template = Global.document.querySelector(data.query);
 		}
+
 		if (template.nodeType !== 'TEMPLATE') {
 			template = document.createElement('template');
 			template.content.appendChild(data.element);
 		}
+
 	} else if (data.element) {
+
 		if (data.element.nodeType === 'TEMPLATE') {
 			template = data.element;
 		} else {
 			template = document.createElement('template');
 			template.content.appendChild(data.element);
 		}
+
 	}
-	// else if (data.url) {
-	//
-	// }
+
 	return template;
 };
 
@@ -56,7 +64,7 @@ Component.define = function (options) {
 		throw new Error('Oxe.component.define requires html, query, or element');
 	}
 
-	options.view = options.view || {};
+	// options.view = options.view || {};
 	options.model = options.model || {};
 	options.template = self.handleTemplate(options);
 
@@ -78,9 +86,10 @@ Component.define = function (options) {
 		var uid = options.name + '-' + self.data[options.name].length;
 
 		element.setAttribute('o-uid', uid);
-		element.view = Global.view.data[uid] = options.view;
+
+		// element.view = Global.view.data[uid] = options.view;
+		element.model = Global.model.set(uid, options.model)[uid];
 		element.events = Global.events.data[uid] = options.events;
-		element.model = Global.model.data.$set(uid, options.model)[uid];
 		element.modifiers = Global.modifiers.data[uid] = options.modifiers;
 
 		// might want to handle default slot
