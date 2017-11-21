@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.6.1
+	Version: 2.6.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1538,11 +1538,11 @@
 	};
 
 	Render.text = function (opt) {
-		var data = this.getData(opt);
+		var data = this.getData(opt) || '';
 
 		if (typeof data === 'object') {
 			data = JSON.stringify(data);
-		} else {
+		} else if (typeof data !== 'string') {
 			data = String(data);
 		}
 
