@@ -128,7 +128,14 @@ Global.window.addEventListener('submit', function (e) {
 			Global.fetcher.fetch(options);
 		}
 
-		if (element.hasAttribute('o-reset')) {
+		if (
+			(
+				options
+				&& typeof options === 'object'
+				&& options.reset
+			)
+			|| element.hasAttribute('o-reset')
+		) {
 			element.reset();
 		}
 
