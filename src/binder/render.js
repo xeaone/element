@@ -171,15 +171,18 @@ Render.src = function (opt) {
 };
 
 Render.text = function (opt) {
-	var data = this.getData(opt) || '';
+	var data = this.getData(opt);
 
-	if (typeof data === 'object') {
+	if (data && typeof data === 'object') {
 		data = JSON.stringify(data);
-	} else if (typeof data !== 'string') {
+	} else if (data && typeof data !== 'string') {
 		data = String(data);
 	}
 
-	opt.element.innerText = this.modifyData(opt, data);
+	data = this.modifyData(opt, data);
+	data = data === undefined || data === null ? '' : data;
+
+	opt.element.innerText = data;
 };
 
 Render.write = function (opt) {

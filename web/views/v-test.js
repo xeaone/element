@@ -48,11 +48,18 @@ Oxe.component.define({
 			console.log(arguments);
 		},
 		s0: function (data, e) {
-			return {
-				method: 'post',
-				action: '/foo',
-				handler: function () {
-					console.log(arguments);
+			var model = this;
+			if (data.username === '') {
+				model.message = 'username required';
+			} else {
+				return {
+					data: data,
+					reset: true,
+					url: '/foo',
+					method: 'get',
+					handler: function () {
+						console.log(arguments);
+					}
 				}
 			}
 		},
@@ -74,7 +81,7 @@ Oxe.component.define({
 		window.self = self;
 
 		setTimeout(function () {
-			
+
 			var increaseInterval = setInterval(function () {
 
 				if (self.model.items.length === 100) {
@@ -95,7 +102,7 @@ Oxe.component.define({
 				self.model.items.push({ it: { val: self.model.items.length } });
 
 			}, 10);
-			
+
 		}, 3000);
 
 		Say('v-test created');
