@@ -7,7 +7,7 @@ A mighty tinny web components framework/library.
 - Routing
 - Module loading
 - Authorization handling
-- Really Small 8.09KB gzipped and 27.08KB uncompressed
+<!-- - Really Small 8.09KB gzipped and 27.08KB uncompressed -->
 - In browser ES6/ESM Module and Template String support (supporting export default)
 
 ### Support

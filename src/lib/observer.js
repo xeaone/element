@@ -13,16 +13,17 @@ Observer.defineProperties = function (data, callback, path, redefine) {
 
 	for (var key in data) {
 		var propertyDescriptor = Observer.createPropertyDescriptor(data, key, data[key], callback, path, redefine);
+
 		if (propertyDescriptor) {
 			propertyDescriptors[key] = propertyDescriptor;
 		}
+
 	}
 
 	Object.defineProperties(data, propertyDescriptors);
 
-	// if (data.constructor === Object) {
-		Observer.overrideObjectMethods(data, callback, path);
-	// } else
+	Observer.overrideObjectMethods(data, callback, path);
+
 	if (data.constructor === Array) {
 		Observer.overrideArrayMethods(data, callback, path);
 	}
@@ -30,9 +31,11 @@ Observer.defineProperties = function (data, callback, path, redefine) {
 
 Observer.defineProperty = function (data, key, value, callback, path, redefine) {
 	var propertyDescriptor = Observer.createPropertyDescriptor(data, key, value, callback, path, redefine);
+
 	if (propertyDescriptor) {
 		Object.defineProperty(data, key, propertyDescriptor);
 	}
+
 };
 
 Observer.createPropertyDescriptor = function (data, key, value, callback, path, redefine) {
@@ -135,7 +138,10 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 		push: {
 			configurable: true,
 			value: function () {
-				if (!arguments.length) return data.length;
+
+				if (!arguments.length) {
+					return data.length;
+				}
 
 				for (var i = 0, l = arguments.length; i < l; i++) {
 					Observer.defineProperty(data, data.length, arguments[i], callback, path);
@@ -153,7 +159,10 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 		unshift: {
 			configurable: true,
 			value: function () {
-				if (!arguments.length) return data.length;
+
+				if (!arguments.length) {
+					return data.length;
+				}
 
 				var i, l, result = [];
 
@@ -171,10 +180,12 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 
 				for (i = 0, l = result.length; i < l; i++) {
 					Observer.defineProperty(data, data.length, result[i], callback, path);
+
 					if (callback) {
 						callback(data.length, path.slice(0, -1), 'length', data);
 						callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 					}
+
 				}
 
 				return data.length;
@@ -183,7 +194,10 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 		pop: {
 			configurable: true,
 			value: function () {
-				if (!data.length) return;
+
+				if (!data.length) {
+					return;
+				}
 
 				var value = data[data.length-1];
 
@@ -200,7 +214,10 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 		shift: {
 			configurable: true,
 			value: function () {
-				if (!data.length) return;
+
+				if (!data.length) {
+					return;
+				}
 
 				var value = data[0];
 
@@ -221,9 +238,18 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 		splice: {
 			configurable: true,
 			value: function (startIndex, deleteCount) {
-				if (!data.length || (typeof startIndex !== 'number' && typeof deleteCount !== 'number')) return [];
-				if (typeof startIndex !== 'number') startIndex = 0;
-				if (typeof deleteCount !== 'number') deleteCount = data.length;
+
+				if (!data.length || (typeof startIndex !== 'number' && typeof deleteCount !== 'number')) {
+					 return [];
+				}
+
+				if (typeof startIndex !== 'number') {
+					startIndex = 0;
+				}
+
+				if (typeof deleteCount !== 'number') {
+					deleteCount = data.length;
+				}
 
 				var removed = [];
 				var result = [];
@@ -282,21 +308,29 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 
 				// add and observe or remove items
 				if (i > 0) {
+
 					while (i--) {
 						Observer.defineProperty(data, data.length, result[index++], callback, path);
+
 						if (callback) {
 							callback(data.length, path.slice(0, -1), 'length', data);
 							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 						}
+
 					}
+
 				} else if (i < 0) {
+
 					while (i++) {
 						data.length--;
+
 						if (callback) {
 							callback(data.length, path.slice(0, -1), 'length', data);
 							callback(undefined, path + data.length, data.length, data);
 						}
+
 					}
+					
 				}
 
 				return removed;

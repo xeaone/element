@@ -7,7 +7,6 @@
 	var Component = {};
 
 	Component.data = {};
-	Component.currentScript = (document._currentScript || document.currentScript);
 
 	Component.handleSlots = function (element, template) {
 		var tSlots = template.content.querySelectorAll('slot');
@@ -109,6 +108,181 @@
 		});
 	};
 
+	var Modifiers = {};
+
+	Modifiers.data = {};
+
+	var Utility = {};
+
+	Utility.PATH = /\s*\|.*/;
+	Utility.PREFIX = /(data-)?o-/;
+	Utility.TYPE = /(data-)?o-|-.*$/g;
+	Utility.SPLIT_MODIFIERS = /\s|\s?,\s?/;
+
+	Utility.binderNormalize = function (data) {
+		return !data ? '' : data
+			.replace(/\s+$/, '')
+			.replace(/^\s+/, '')
+			.replace(/\.{2,}/g, '.')
+			.replace(/\|{2,}/g, '|')
+			.replace(/\,{2,}/g, ',')
+			.replace(/\s{2,}/g, ' ')
+			.replace(/\s?\|\s?/, '|');
+	};
+
+	Utility.binderName = function (data) {
+		return data.replace(this.PREFIX, '');
+	};
+
+	Utility.binderType = function (data) {
+		return data.replace(this.TYPE, '');
+	};
+
+	Utility.binderNames = function (data) {
+		return data.replace(this.PREFIX, '').split('-');
+	};
+
+	Utility.binderValues = function (data) {
+		data = Utility.binderNormalize(data);
+		var index = data.indexOf('|');
+		return index === -1 ? data.split('.') : data.slice(0, index).split('.');
+	};
+
+	Utility.binderModifiers = function (data) {
+		data = Utility.binderNormalize(data);
+		var index = data.indexOf('|');
+		return index === -1 ? [] : data.slice(index + 1).split(Utility.SPLIT_MODIFIERS);
+	};
+
+	Utility.binderPath = function (data) {
+		return Utility.binderNormalize(data).replace(Utility.PATH, '');
+	};
+
+	Utility.createBase = function (base) {
+		var element = document.head.querySelector('base');
+
+		if (!element) {
+			element = document.createElement('base');
+			document.head.insertBefore(element, document.head.firstChild);
+		}
+
+		if (typeof base === 'string') {
+			element.href = base;
+		}
+
+		base = element.href;
+
+		return base;
+	};
+
+	Utility.formData = function (form, model) {
+		var elements = form.querySelectorAll('[o-value]');
+		var data = {};
+
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
+			var path = element.getAttribute('o-value');
+			if (path) {
+				path = path.replace(/\s*\|.*/, '');
+				var name = path.split('.').slice(-1);
+				data[name] = Utility.getByPath(model, path);
+			}
+		}
+
+		return data;
+	};
+
+	Utility.traverse = function (data, path, callback) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+
+			if (!(key in data)) {
+				if (typeof callback === 'function') {
+					callback(data, key, i, keys);
+				} else {
+					return undefined;
+				}
+			}
+
+			data = data[key];
+		}
+
+		return {
+			data: data,
+			key: keys[last]
+		}
+	};
+
+	Utility.setByPath = function (data, path, value) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+
+			if (!(key in data)) {
+
+				if (isNaN(keys[i+1])) {
+					data[key] = {};
+				} else {
+					data[key] = [];
+				}
+
+			}
+
+			data = data[key];
+		}
+
+		return data[keys[last]] = value;
+	};
+
+	Utility.getByPath = function (data, path) {
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
+
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
+
+			if (!(key in data)) {
+				return undefined;
+			} else {
+				data = data[key];
+			}
+
+		}
+
+		return data[keys[last]];
+	};
+
+	Utility.joinSlash = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	};
+
+	Utility.joinDot = function () {
+		return Array.prototype.join
+			.call(arguments, '.')
+			.replace(/\.{2,}/g, '.');
+	};
+
+	Utility.getContainer = function getContainer (element) {
+
+		if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) {
+			return element;
+		}
+
+		if (element.parentElement) {
+			return this.getContainer(element.parentElement);
+		}
+
+		console.warn('Oxe.utility - could not find element uid');
+		console.warn(element);
+	};
+
 	var Batcher = {};
 
 	Batcher.reads = [];
@@ -152,20 +326,25 @@
 
 	Batcher.flush = function (callback) {
 		var self = this;
+
 		self.run(self.reads.splice(0, self.reads.length), function () {
 			self.run(self.writes.splice(0, self.writes.length), function () {
+
 				if (self.reads.length || self.writes.length) {
 					self.flush();
 				} else {
 					self.pending = false;
 				}
+
 			});
 		});
+
 	};
 
 	Batcher.run = function (tasks, callback, index) {
-		var self = this;
+
 		if (tasks.length) {
+
 			window.requestAnimationFrame(function (time) {
 				var count = 0;
 				var length = tasks.length;
@@ -173,20 +352,16 @@
 				index = index || 0;
 
 				for (index; index < length; index++) {
-
 					tasks[index]();
-
-					// if ((performance.now() - time) > self.maxTaskTimeMS) {
-					// 	return self.run(tasks, callback, index);
-					// }
-
 				}
 
 				return callback();
 			});
+
 		} else {
 			return callback();
 		}
+
 	};
 
 	var Fetcher = {};
@@ -411,227 +586,15 @@
 		return Fetcher.fetch(opt);
 	};
 
-	var UnrenderValue = function (opt, data) {
-		var i , l;
+	var Events = {};
 
-		if (opt.element.type === 'checkbox') {
-			data = false;
-			opt.element.checked = data;
-			opt.element.value = data;
-		} else if (opt.element.nodeName === 'SELECT') {
-			data = [];
-			var options = opt.element.options;
-			for (i = 0, l = options.length; i < l; i++) {
-				var option = options[i];
-				option.selected = false;
-			}
-		} else if (opt.element.type === 'radio') {
-			var query = 'input[type="radio"][o-value="' + opt.path + '"]';
-			var elements = opt.element.parentNode.querySelectorAll(query);
-			for (i = 0, l = elements.length; i < l; i++) {
-				var radio = elements[i];
-				if (i === 0) {
-					radio.checked = true;
-				} else {
-					radio.checked = false;
-				}
-			}
-		} else {
-			data = '';
-			opt.element.value = data;
-		}
+	Events.data = {};
 
-		return data;
-	};
-
-	var Utility = {};
-
-	Utility.PATH = /\s*\|.*/;
-	Utility.PREFIX = /(data-)?o-/;
-	Utility.TYPE = /(data-)?o-|-.*$/g;
-	Utility.SPLIT_MODIFIERS = /\s|\s?,\s?/;
-
-	Utility.binderNormalize = function (data) {
-		return !data ? '' : data
-			.replace(/\s+$/, '')
-			.replace(/^\s+/, '')
-			.replace(/\.{2,}/g, '.')
-			.replace(/\|{2,}/g, '|')
-			.replace(/\,{2,}/g, ',')
-			.replace(/\s{2,}/g, ' ')
-			.replace(/\s?\|\s?/, '|');
-	};
-
-	Utility.binderName = function (data) {
-		return data.replace(this.PREFIX, '');
-	};
-
-	Utility.binderType = function (data) {
-		return data.replace(this.TYPE, '');
-	};
-
-	Utility.binderNames = function (data) {
-		return data.replace(this.PREFIX, '').split('-');
-	};
-
-	Utility.binderValues = function (data) {
-		data = Utility.binderNormalize(data);
-		var index = data.indexOf('|');
-		return index === -1 ? data.split('.') : data.slice(0, index).split('.');
-	};
-
-	Utility.binderModifiers = function (data) {
-		data = Utility.binderNormalize(data);
-		var index = data.indexOf('|');
-		return index === -1 ? [] : data.slice(index + 1).split(Utility.SPLIT_MODIFIERS);
-	};
-
-	Utility.binderPath = function (data) {
-		return Utility.binderNormalize(data).replace(Utility.PATH, '');
-	};
-
-	Utility.createBase = function (base) {
-		var element = document.head.querySelector('base');
-
-		if (!element) {
-			element = document.createElement('base');
-			document.head.insertBefore(element, document.head.firstChild);
-		}
-
-		if (typeof base === 'string') {
-			element.href = base;
-		}
-
-		base = element.href;
-
-		return base;
-	};
-
-	Utility.formData = function (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		var data = {};
-
-		for (var i = 0, l = elements.length; i < l; i++) {
-			var element = elements[i];
-			var path = element.getAttribute('o-value');
-			if (path) {
-				path = path.replace(/\s*\|.*/, '');
-				var name = path.split('.').slice(-1);
-				data[name] = Utility.getByPath(model, path);
-			}
-		}
-
-		return data;
-	};
-
-	Utility.formReset = function (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		for (var i = 0, l = elements.length; i < l; i++) {
-			UnrenderValue({
-				type: 'o-value',
-				element: elements[i]
-			});
-		}
-	};
-
-	Utility.toText = function (data) {
-		if (typeof data === 'object') {
-			 return JSON.stringify(data);
-		} else {
-			return String(data);
-		}
-	};
-
-	Utility.traverse = function (data, path, callback) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-
-			if (!(key in data)) {
-				if (typeof callback === 'function') {
-					callback(data, key, i, keys);
-				} else {
-					return undefined;
-				}
-			}
-
-			data = data[key];
-		}
-
-		return {
-			data: data,
-			key: keys[last]
-		}
-	};
-
-	Utility.setByPath = function (data, path, value) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (!(key in data)) {
-				if (isNaN(keys[i+1])) {
-					data[key] = {};
-				} else {
-					data[key] = [];
-				}
-			}
-			data = data[key];
-		}
-
-		return data[keys[last]] = value;
-	};
-
-	Utility.getByPath = function (data, path) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
-
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
-			if (!(key in data)) {
-				return undefined;
-			} else {
-				data = data[key];
-			}
-		}
-
-		return data[keys[last]];
-	};
-
-	Utility.removeChildren = function (element) {
-		var child;
-		while (child = element.lastElementChild) {
-			element.removeChild(child);
-		}
-	};
-
-	Utility.joinSlash = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
-	};
-
-	Utility.joinDot = function () {
-		return Array.prototype.join
-			.call(arguments, '.')
-			.replace(/\.{2,}/g, '.');
-	};
-
-	Utility.getContainer = function getContainer (element) {
-		if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) return element;
-		if (element.parentElement) return this.getContainer(element.parentElement);
-		console.log(element);
-		console.warn('Utility could not find a uid');
-	};
-
-	function Events () {
+	function Events$2 () {
 		this.events = {};
 	}
 
-	Events.prototype.on = function (name, listener) {
+	Events$2.prototype.on = function (name, listener) {
 		if (typeof this.events[name] !== 'object') {
 			this.events[name] = [];
 		}
@@ -639,7 +602,7 @@
 		this.events[name].push(listener);
 	};
 
-	Events.prototype.off = function (name, listener) {
+	Events$2.prototype.off = function (name, listener) {
 		if (typeof this.events[name] === 'object') {
 			var index = this.events[name].indexOf(listener);
 
@@ -649,14 +612,14 @@
 		}
 	};
 
-	Events.prototype.once = function (name, listener) {
+	Events$2.prototype.once = function (name, listener) {
 		this.on(name, function f () {
 			this.off(name, f);
 			listener.apply(this, arguments);
 		});
 	};
 
-	Events.prototype.emit = function (name) {
+	Events$2.prototype.emit = function (name) {
 		if (typeof this.events[name] === 'object') {
 			var listeners = this.events[name].slice();
 			var args = [].slice.call(arguments, 1);
@@ -669,8 +632,8 @@
 
 	var Router = {};
 
-	Router = Object.assign(Router, Events.prototype);
-	Events.call(Router);
+	Router = Object.assign(Router, Events$2.prototype);
+	Events$2.call(Router);
 
 	Router.cache = {};
 	Router.routes = [];
@@ -691,7 +654,7 @@
 		this.routes = options.routes === undefined ? this.routes: options.routes;
 		this.external = options.external === undefined ? this.external: options.external;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
-		this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
+		this.base = options.base === undefined ? this.base : Global$1.utility.createBase(options.base);
 	};
 
 	Router.popstate = function (e) {
@@ -707,11 +670,19 @@
 		if (this.container) {
 
 			while (parent) {
-				if (parent === this.container) break;
-				else parent = parent.parentNode;
+
+				if (parent === this.container) {
+					break;
+				} else {
+					parent = parent.parentNode;
+				}
+
 			}
 
-			if (parent !== this.container) return;
+			if (parent !== this.container) {
+				return;
+			}
+
 		}
 
 		if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -900,9 +871,9 @@
 		}
 
 		if (this.hash) {
-			location.href = Utility.joinSlash(location.base, '/#/', location.pathname);
+			location.href = Global$1.utility.joinSlash(location.base, '/#/', location.pathname);
 		} else {
-			location.href =  Utility.joinSlash(location.base, '/', location.pathname);
+			location.href =  Global$1.utility.joinSlash(location.base, '/', location.pathname);
 		}
 
 		location.href += location.search;
@@ -981,8 +952,12 @@
 	};
 
 	Router.run = function () {
-		if (this.isRan) return;
-		else this.isRan = true;
+
+		if (this.isRan) {
+			return;
+		}
+
+		this.isRan = true;
 
 		this.view = typeof this.view === 'string' ? document.body.querySelector(this.view) : this.view;
 
@@ -1027,11 +1002,9 @@
 
 		for (var index = 0; index < string.length; index++) {
 			var char = string[index];
-			if (
-				char === '`' &&
-				string[index-1] !== '\\'
-				// && string[index-1] + string[index-2] !== '//'
-			) {
+
+			if (char === '`' && string[index-1] !== '\\') {
+
 				if (isInner) {
 					ends++;
 					value = '\'';
@@ -1045,12 +1018,16 @@
 					string = this._updateString(value, index, string);
 					index = this._updateIndex(value, index);
 				}
+
 			} else if (isInner) {
+
 				if (value = this._innerHandler(char, index, string)) {
 					string = this._updateString(value, index, string);
 					index = this._updateIndex(value, index);
 				}
+
 			}
+
 		}
 
 		string = string.replace(/\${(.*?)}/g, '\'+$1+\'');
@@ -1060,6 +1037,7 @@
 		} else {
 			throw new Error('Transformer miss matched backticks');
 		}
+		
 	};
 
 	var Loader = {};
@@ -1069,12 +1047,13 @@
 	Loader.esm = false;
 	Loader.est = false;
 	Loader.base = false;
+	Loader.isRan = false;
 
 	Loader.patterns = {
 		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
 		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
-		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
 		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
+		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g
 	};
 
 	Loader.setup = function (options) {
@@ -1082,7 +1061,7 @@
 		this.loads = options.loads || this.loads;
 		this.esm = options.esm === undefined ? this.esm : options.esm;
 		this.est = options.est === undefined ? this.est : options.est;
-		this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
+		this.base = options.base === undefined ? this.base : Global$1.utility.createBase(options.base);
 	};
 
 	Loader.xhr = function (data, callback) {
@@ -1091,14 +1070,22 @@
 
 		data.xhr = new XMLHttpRequest();
 		data.xhr.addEventListener('readystatechange', function () {
+
 			if (data.xhr.readyState === 4) {
+
 				if (data.xhr.status >= 200 && data.xhr.status < 400) {
 					data.text = data.xhr.responseText;
-					if (callback) callback(data);
+
+					if (callback) {
+						callback(data);
+					}
+
 				} else {
 					throw new Error(data.xhr.responseText);
 				}
+
 			}
+
 		});
 
 		data.xhr.open('GET', data.url);
@@ -1122,10 +1109,16 @@
 					imports: data.ast.imports,
 					total: data.ast.imports.length,
 					callback: function () {
+
 						if (++meta.count === meta.total) {
 							self.modules[data.url] = self.interpret(data.ast.cooked);
-							if (callback) callback();
+
+							if (callback) {
+								callback();
+							}
+
 						}
+
 					}
 				};
 
@@ -1138,7 +1131,11 @@
 		}
 
 		self.modules[data.url] = self.interpret(data.ast ? data.ast.cooked : data.text);
-		if (callback) callback();
+
+		if (callback) {
+			callback();
+		}
+
 	};
 
 	Loader.css = function (data, callback) {
@@ -1146,23 +1143,30 @@
 		data.element.setAttribute('href', data.url);
 		data.element.setAttribute('rel','stylesheet');
 		data.element.setAttribute('type', 'text/css');
+
 		data.element.addEventListener('load', function () {
 			if (callback) callback(data);
+
 		});
+
 		document.head.appendChild(data.element);
 	};
 
 	Loader.getImports = function (data) {
 		var imp, imports = [];
 		var imps = data.match(this.patterns.imps) || [];
+
 		for (var i = 0, l = imps.length; i < l; i++) {
 			imp = imps[i].match(this.patterns.imp);
+
 			imports[i] = {
 				raw: imp[0],
 				name: imp[1],
 				url: imp[2]
 			};
+
 		}
+
 		return imports;
 	};
 
@@ -1181,7 +1185,7 @@
 		}
 
 		if (this.base && url.indexOf('/') !== 0) {
-			url = Utility.joinSlash(Global$1.base.replace(window.location.origin, ''), url);
+			url = Global$1.utility.joinSlash(Global$1.base.replace(window.location.origin, ''), url);
 		}
 
 		return url;
@@ -1211,9 +1215,11 @@
 
 	Loader.interpret = function (data) {
 		data = '\'use strict\';\n\n' + data;
+
 		return (function(d, l, w) { 'use strict';
 			return new Function('$L', 'window', d)(l, w);
 		}(data, this, window));
+
 	};
 
 	Loader.load = function (data, callback) {
@@ -1244,9 +1250,17 @@
 	};
 
 	Loader.run = function () {
+
+		if (this.isRan) {
+			return;
+		}
+
+		this.isRan = true;
+
 		for (var i = 0, l = this.loads.length; i < l; i++) {
 			this.load(this.loads[i]);
 		}
+
 	};
 
 
@@ -1254,6 +1268,617 @@
 	/*
 		https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
 	*/
+
+	var Unrender = {};
+
+	Unrender.alt = function (opt) {
+		opt.element.alt = '';
+	};
+
+	Unrender.each = function (opt) {
+		var element;
+
+		while (element = element.lastElementChild) {
+			element.removeChild(element);
+		}
+
+	};
+
+	Unrender.href = function (opt) {
+		opt.element.href = '';
+	};
+
+	Unrender.class = function (opt) {
+
+		var className = opt.names.slice(1).join('-');
+		opt.element.classList.remove(className);
+
+	};
+
+	Unrender.html = function (opt) {
+		var element;
+
+		while (element = opt.element.lastElementChild) {
+			opt.element.removeChild(element);
+		}
+
+	};
+
+	Unrender.on = function UnrenderOn (opt) {
+		opt.element.removeEventListener(opt.names[1], opt.cache, false);
+	};
+
+	Unrender.css = function (opt) {
+
+		opt.element.style.cssText = '';
+
+	};
+
+	Unrender.required = function (opt) {
+
+		opt.element.required = false;
+
+	};
+
+	Unrender.src = function (opt) {
+		opt.element.src = '';
+	};
+
+	Unrender.text = function (opt, data) {
+		opt.element.innerText = '';
+	};
+
+	Unrender.value = function (opt) {
+		var i , l, query, element, elements;
+
+		if (opt.element.type === 'checkbox') {
+
+			opt.element.checked = false;
+			opt.element.value = false;
+
+		} else if (opt.element.nodeName === 'SELECT') {
+
+			elements = opt.element.options;
+
+			for (i = 0, l = elements.length; i < l; i++) {
+				element = elements[i];
+				element.selected = false;
+			}
+
+		} else if (opt.element.type === 'radio') {
+
+			query = 'input[type="radio"][o-value="' + opt.path + '"]';
+			elements = opt.element.parentNode.querySelectorAll(query);
+
+			for (i = 0, l = elements.length; i < l; i++) {
+				element = elements[i];
+
+				if (i === 0) {
+					element.checked = true;
+				} else {
+					element.checked = false;
+				}
+
+			}
+
+		} else {
+			opt.element.value = '';
+		}
+
+	};
+
+	var Render = {};
+
+	Render.class = function (opt) {
+		var data = this.getData(opt);
+
+		var name = opt.names.slice(1).join('-');
+		opt.element.classList.toggle(name, this.modifyData(opt, data));
+
+	};
+
+	Render.css = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.style.cssText === data) {
+			return;
+		}
+
+		if (opt.names.length > 1) {
+			data = opt.names.slice(1).join('-') + ': ' +  data + ';';
+		}
+
+		opt.element.style.cssText += this.modifyData(opt, data);
+
+	};
+
+	Render.alt = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.alt === data) return;
+
+		opt.element.alt = this.modifyData(opt, data);
+	};
+
+	Render.disable = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.disabled === data) return;
+
+		if (data === undefined || data === null) {
+			data = true;
+			this.setData(opt, data);
+		}
+
+		opt.element.disabled = this.modifyData(opt, data);
+	};
+
+	Render.enable = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.disabled === !data) return;
+
+		if (data === undefined || data === null) {
+			data = true;
+			this.setData(opt, data);
+		}
+
+		opt.element.disabled = !this.modifyData(opt, data);
+	};
+
+	Render.hide = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.hidden === data) return;
+
+		if (data === undefined || data === null) {
+			data = true;
+			this.setData(opt, data);
+		}
+
+		opt.element.hidden = this.modifyData(opt, data);
+	};
+
+	Render.html = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.innerHTML === data) return;
+
+		opt.element.innerHTML = this.modifyData(opt, data);
+	};
+
+	Render.href = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.href === data) return;
+
+		opt.element.href = this.modifyData(opt, data);
+	};
+
+
+	Render.read = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.readOnly === data) return;
+
+		if (data === undefined || data === null) {
+			data = true;
+			this.setData(opt, data);
+		}
+
+		opt.element.readOnly = this.modifyData(opt, data);
+	};
+
+	Render.required = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.required === data) return;
+
+		if (data === undefined || data === null) {
+			data = true;
+			this.setData(opt, data);
+		}
+
+		opt.element.required = this.modifyData(opt, data);
+	};
+
+	Render.selected = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.selectedIndex === data) return;
+
+		if (data === undefined || data === null) {
+			data = 0;
+			this.setData(opt, data);
+		}
+
+		opt.element.selectedIndex = this.modifyData(opt, data);
+	};
+
+	Render.show = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.hidden === !data) return;
+
+		if (data === undefined || data === null) {
+			data = true;
+			this.setData(opt, data);
+		}
+
+		opt.element.hidden = !this.modifyData(opt, data);
+	};
+
+	Render.src = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.src === data) return;
+
+		opt.element.src = this.modifyData(opt, data);
+	};
+
+	Render.text = function (opt) {
+		var data = this.getData(opt);
+
+		if (typeof data === 'object') {
+			data = JSON.stringify(data);
+		} else {
+			data = String(data);
+		}
+
+		opt.element.innerText = this.modifyData(opt, data);
+	};
+
+	Render.write = function (opt) {
+		var data = this.getData(opt);
+
+		if (opt.element.readOnly === !data) return;
+
+		if (data === undefined || data === null) {
+			data = true;
+			this.setData(opt, data);
+		}
+
+		opt.element.readOnly = !this.modifyData(opt, data);
+	};
+
+	Render.each = function RenderEach (opt, modified) {
+		var data;
+
+		if (!modified) {
+			data = this.getData(opt);
+
+			if (!data) {
+				data = [];
+				this.setData(opt, data);
+			}
+
+			modified = this.modifyData(opt, data);
+		}
+
+		if (opt.element.children.length > modified.length) {
+			opt.element.removeChild(opt.element.lastElementChild);
+		} else if (opt.element.children.length < modified.length) {
+			opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, opt.element.children.length));
+		}
+
+		if (opt.element.children.length !== modified.length) {
+			this.batch(RenderEach.bind(this, opt, modified));
+		}
+
+	};
+
+	Render.on = function RenderEach (opt) {
+		opt.element.removeEventListener(opt.names[1], opt.cache);
+		opt.cache = this.getData(opt).bind(opt.model);
+		opt.element.addEventListener(opt.names[1], opt.cache);
+	};
+
+	Render.value = function (opt, caller) {
+		var i , l, data, query, element, elements;
+
+		data = this.getData(opt);
+
+		if (opt.element.type === 'checkbox') {
+
+			if (caller === 'view') {
+				data = opt.element.value = opt.element.checked;
+			} else {
+				data = !data ? false : data;
+				opt.element.value = data;
+				opt.element.checked = data;
+			}
+
+			this.setData(opt, data);
+
+		} else if (opt.element.nodeName === 'SELECT') {
+
+			elements = opt.element.options;
+			data = !data && opt.element.multiple ? [] : data;
+			data = caller === 'view' && opt.element.multiple ? [] : data;
+
+			for (i = 0, l = elements.length; i < l; i++) {
+				element = elements[i];
+
+				if (element.selected) {
+
+					if (opt.element.multiple) {
+						data.push(element.value);
+					} else {
+						data = element.value;
+						break;
+					}
+
+				}
+
+			}
+
+			this.setData(opt, data);
+
+		} else if (opt.element.type === 'radio') {
+
+			query = 'input[type="radio"][o-value="' + opt.value + '"]';
+			elements = opt.container.querySelectorAll(query);
+			data = !data ? 0 : data;
+
+			for (i = 0, l = elements.length; i < l; i++) {
+				element = elements[i];
+
+				if (caller === 'view') {
+
+					if (opt.element === element) {
+						data = i;
+						element.checked = true;
+						this.setData(opt, data);
+					} else {
+						element.checked = false;
+					}
+
+				} else {
+					element.checked = i == data;
+				}
+
+			}
+
+		} else {
+
+			data = data === undefined ? '' : data;
+
+			if (caller === 'view') {
+				data = opt.element.value;
+			} else {
+				opt.element.value = data;
+			}
+
+			this.setData(opt, data);
+
+		}
+
+	};
+
+	var Setup = {};
+
+	Setup.on = function (opt) {
+		var data = this.getData(opt);
+
+		opt.cache = data.bind(opt.model);
+		opt.element.addEventListener(opt.names[1], opt.cache);
+	};
+
+	Setup.each = function (opt) {
+
+		opt.variable = opt.names[1];
+		opt.pattern = new RegExp('\\$(' + opt.variable + '|index)', 'ig');
+
+		opt.clone = opt.element.removeChild(opt.element.firstElementChild);
+
+		opt.clone = opt.clone.outerHTML.replace(
+			new RegExp('((?:data-)?o-.*?=")' + opt.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
+			'$1' + opt.path + '.$' + opt.variable + '$2'
+		);
+
+	};
+
+	var Binder = {};
+
+	Binder.data = {};
+
+	Binder.setupMethod = Setup;
+	Binder.renderMethod = Render;
+	Binder.unrenderMethod = Unrender;
+
+	Binder.ensureData = function (opt) {
+		return Global$1.model.ensure(opt.keys);
+	};
+
+	Binder.setData = function (opt, data) {
+		return Global$1.model.set(opt.keys, data);
+	};
+
+	Binder.getData = function (opt) {
+		if (opt.type === 'on') {
+			return Global$1.utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path);
+		} else {
+			return Global$1.model.get(opt.keys);
+		}
+	};
+
+	Binder.modifyData = function (opt, data) {
+
+		if (!opt.modifiers.length) {
+			return data;
+		}
+
+		for (var i = 0, l = opt.modifiers.length; i < l; i++) {
+			var modifier = opt.modifiers[i];
+			data = Global$1.modifiers.data[opt.uid][modifier].call(opt.model, data);
+		}
+
+		return data;
+	};
+
+	Binder.add = function (opt) {
+
+		if (opt.exists) {
+			return;
+		} else {
+			opt.exists = true;
+		}
+
+		if (opt.type === 'value') {
+			return;
+		}
+
+		if (!(opt.uid in this.data)) {
+			this.data[opt.uid] = {};
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			this.data[opt.uid][opt.path] = [];
+		}
+
+		this.data[opt.uid][opt.path].push(opt);
+	};
+
+	Binder.remove = function (opt) {
+
+		if (!opt.exists) {
+			return;
+		}
+
+		if (!(opt.uid in this.data)) {
+			return;
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			return;
+		}
+
+		var data = this.data[opt.uid][opt.path];
+
+		for (var i = 0, l = data.length; i < l; i++) {
+			var item = data[i];
+
+			if (item.element === opt.element) {
+				return data.splice(i, 1);
+			}
+
+		}
+
+	};
+
+	Binder.get = function (opt) {
+
+		if (!(opt.uid in this.data)) {
+			return;
+		}
+
+		if (!(opt.path in this.data[opt.uid])) {
+			return;
+		}
+
+		var data = this.data[opt.uid][opt.path];
+
+		for (var i = 0, l = data.length; i < l; i++) {
+			var item = data[i];
+
+			if (item.element === opt.element) {
+				return item;
+			}
+
+		}
+
+	};
+
+	Binder.each = function (uid, path, callback) {
+		var paths = this.data[uid];
+
+		for (var key in paths) {
+
+			if (key.indexOf(path) === 0) {
+				var binders = paths[key];
+
+				for (var i = 0, l = binders.length; i < l; i++) {
+					var binder = binders[i];
+
+					callback(binder, i, binders, paths, key);
+				}
+
+			}
+
+		}
+
+	};
+
+	Binder.option = function (opt) {
+		opt = opt || {};
+
+		if (!opt.name) {
+			throw new Error('Binder.render - requires a name');
+		}
+
+		if (!opt.element) {
+			throw new Error('Binder.render - requires a element');
+		}
+
+		opt.container = opt.container || Global$1.utility.getContainer(opt.element);
+		opt.uid = opt.uid || opt.container.getAttribute('o-uid');
+		opt.value = opt.value || opt.element.getAttribute(opt.name);
+		opt.path = opt.path || Global$1.utility.binderPath(opt.value);
+
+		var tmp = this.get(opt);
+
+		if (tmp) {
+			return tmp;
+		}
+
+		opt.exists = false;
+		opt.type = opt.type || Global$1.utility.binderType(opt.name);
+		opt.names = opt.names || Global$1.utility.binderNames(opt.name);
+		opt.values = opt.values || Global$1.utility.binderValues(opt.value);
+		opt.modifiers = opt.modifiers || Global$1.utility.binderModifiers(opt.value);
+
+		opt.keys = opt.keys || [opt.uid].concat(opt.values);
+		opt.model = opt.model || Global$1.model.data[opt.uid];
+		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
+
+		this.ensureData(opt);
+
+		if (opt.type in this.setupMethod) {
+			this.setupMethod[opt.type].call(this, opt);
+		}
+
+		return opt;
+	};
+
+	Binder.batch = function (callback) {
+		Global$1.batcher.write(callback.bind(this));
+	};
+
+	Binder.unrender = function (opt, caller) {
+		opt = this.option(opt);
+
+		if (opt.type in this.unrenderMethod) {
+			this.batch(function () {
+
+				this.unrenderMethod[opt.type].call(this, opt, caller);
+				this.remove(opt);
+
+			});
+		}
+	};
+
+	Binder.render = function (opt, caller) {
+		opt = this.option(opt);
+
+		if (opt.type in this.renderMethod) {
+			this.batch(function () {
+
+				this.renderMethod[opt.type].call(this, opt, caller);
+				this.add(opt);
+
+			});
+		}
+	};
 
 	var Keeper = {};
 
@@ -1383,30 +2008,6 @@
 		}
 	};
 
-
-
-	/*
-		Resources:
-			https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication
-			https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
-	*/
-
-	// Keeper.encode = function (data) {
-	// 	// encodeURIComponent to get percent-encoded UTF-8
-	// 	// convert the percent encodings into raw bytes which
-	// 	return window.btoa(window.encodeURIComponent(data).replace(/%([0-9A-F]{2})/g,
-	// 		function toSolidBytes (match, char) {
-	// 			return String.fromCharCode('0x' + char);
-	// 	}));
-	// };
-	//
-	// Keeper.decode = function (data) {
-	// 	// from bytestream to percent-encoding to original string
-	//     return window.decodeURIComponent(window.atob(data).split('').map(function(char) {
-	//         return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2);
-	//     }).join(''));
-	// };
-
 	var Observer = {};
 
 	Observer.create = function (data, callback, path) {
@@ -1421,16 +2022,17 @@
 
 		for (var key in data) {
 			var propertyDescriptor = Observer.createPropertyDescriptor(data, key, data[key], callback, path, redefine);
+
 			if (propertyDescriptor) {
 				propertyDescriptors[key] = propertyDescriptor;
 			}
+
 		}
 
 		Object.defineProperties(data, propertyDescriptors);
 
-		// if (data.constructor === Object) {
-			Observer.overrideObjectMethods(data, callback, path);
-		// } else
+		Observer.overrideObjectMethods(data, callback, path);
+
 		if (data.constructor === Array) {
 			Observer.overrideArrayMethods(data, callback, path);
 		}
@@ -1438,9 +2040,11 @@
 
 	Observer.defineProperty = function (data, key, value, callback, path, redefine) {
 		var propertyDescriptor = Observer.createPropertyDescriptor(data, key, value, callback, path, redefine);
+
 		if (propertyDescriptor) {
 			Object.defineProperty(data, key, propertyDescriptor);
 		}
+
 	};
 
 	Observer.createPropertyDescriptor = function (data, key, value, callback, path, redefine) {
@@ -1543,7 +2147,10 @@
 			push: {
 				configurable: true,
 				value: function () {
-					if (!arguments.length) return data.length;
+
+					if (!arguments.length) {
+						return data.length;
+					}
 
 					for (var i = 0, l = arguments.length; i < l; i++) {
 						Observer.defineProperty(data, data.length, arguments[i], callback, path);
@@ -1561,7 +2168,10 @@
 			unshift: {
 				configurable: true,
 				value: function () {
-					if (!arguments.length) return data.length;
+
+					if (!arguments.length) {
+						return data.length;
+					}
 
 					var i, l, result = [];
 
@@ -1579,10 +2189,12 @@
 
 					for (i = 0, l = result.length; i < l; i++) {
 						Observer.defineProperty(data, data.length, result[i], callback, path);
+
 						if (callback) {
 							callback(data.length, path.slice(0, -1), 'length', data);
 							callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 						}
+
 					}
 
 					return data.length;
@@ -1591,7 +2203,10 @@
 			pop: {
 				configurable: true,
 				value: function () {
-					if (!data.length) return;
+
+					if (!data.length) {
+						return;
+					}
 
 					var value = data[data.length-1];
 
@@ -1608,7 +2223,10 @@
 			shift: {
 				configurable: true,
 				value: function () {
-					if (!data.length) return;
+
+					if (!data.length) {
+						return;
+					}
 
 					var value = data[0];
 
@@ -1629,9 +2247,18 @@
 			splice: {
 				configurable: true,
 				value: function (startIndex, deleteCount) {
-					if (!data.length || (typeof startIndex !== 'number' && typeof deleteCount !== 'number')) return [];
-					if (typeof startIndex !== 'number') startIndex = 0;
-					if (typeof deleteCount !== 'number') deleteCount = data.length;
+
+					if (!data.length || (typeof startIndex !== 'number' && typeof deleteCount !== 'number')) {
+						 return [];
+					}
+
+					if (typeof startIndex !== 'number') {
+						startIndex = 0;
+					}
+
+					if (typeof deleteCount !== 'number') {
+						deleteCount = data.length;
+					}
 
 					var removed = [];
 					var result = [];
@@ -1690,21 +2317,29 @@
 
 					// add and observe or remove items
 					if (i > 0) {
+
 						while (i--) {
 							Observer.defineProperty(data, data.length, result[index++], callback, path);
+
 							if (callback) {
 								callback(data.length, path.slice(0, -1), 'length', data);
 								callback(data[data.length-1], path + (data.length-1), data.length-1, data);
 							}
+
 						}
+
 					} else if (i < 0) {
+
 						while (i++) {
 							data.length--;
+
 							if (callback) {
 								callback(data.length, path.slice(0, -1), 'length', data);
 								callback(undefined, path + data.length, data.length, data);
 							}
+
 						}
+						
 					}
 
 					return removed;
@@ -1716,7 +2351,7 @@
 	var Model = {};
 
 	Model.data = {};
-	Model.isSetup = false;
+	Model.isRan = false;
 	Model.container = document.body;
 
 	Model.overwrite = function (data) {
@@ -1727,7 +2362,7 @@
 	};
 
 	Model.traverse = function (path) {
-		return Utility.traverse(this.data, path, function (data, key, index, keys) {
+		return Global$1.utility.traverse(this.data, path, function (data, key, index, keys) {
 			if (isNaN(keys[index+1])) {
 				data.$set(key, {});
 			} else {
@@ -1737,7 +2372,7 @@
 	};
 
 	Model.get = function (keys) {
-		var result = Utility.traverse(this.data, keys);
+		var result = Global$1.utility.traverse(this.data, keys);
 		return result ? result.data[result.key] : undefined;
 	};
 
@@ -1749,11 +2384,13 @@
 
 	Model.ensure = function (keys, value) {
 		var result = this.traverse(keys);
+
 		if (result.data[result.key] === undefined) {
 			return result.data.$set(result.key, value || null);
 		} else {
 			return result.data[result.key];
 		}
+
 	};
 
 	Model.observer = function (data, path) {
@@ -1763,23 +2400,21 @@
 
 		path = paths.slice(1).join('.');
 
-		if (path) {
+		if (!path) return;
 
-			Global$1.view.eachBinder(uid, path, function (binder) {
-				binder[type]();
-			});
-
-		}
+		Global$1.binder.each(uid, path, function (binder) {
+			Global$1.binder[type](binder);
+		});
 
 	};
 
-	Model.setup = function () {
+	Model.run = function () {
 
-		if (this.isSetup) {
+		if (this.isRan) {
 			return;
 		}
 
-		this.isSetup = true;
+		this.isRan = true;
 
 		Observer.create(
 			this.data,
@@ -1788,37 +2423,11 @@
 
 	};
 
-	// import UnrenderValue from './unrender/value';
-	// import RenderValue from './render/value';
-
 	var View = {};
 
 	View.data = {};
-	View.isSetup = false;
+	View.isRan = false;
 	View.container = document.body;
-
-	View.PREFIX = /(data-)?o-/;
-	View.IS_ACCEPT_PATH = /(data-)?o-.*/;
-	View.IS_REJECT_PATH = /(data-)?o-value.*/;
-
-	// delete this
-	View.createAttribute = function (name, value) {
-		var attribute = {};
-
-		attribute.name = name;
-		attribute.value = value;
-
-		attribute.path = Utility.binderPath(attribute.value);
-		attribute.modifiers = Utility.binderModifiers(attribute.value);
-
-		attribute.keys = attribute.path.split('.');
-		attribute.opts = attribute.keys;
-		attribute.cmds = attribute.name.replace(this.PREFIX, '').split('-');
-
-		attribute.type = attribute.cmds[0];
-
-		return attribute;
-	};
 
 	View.hasAcceptAttribute = function (element) {
 		var attributes = element.attributes;
@@ -1862,39 +2471,7 @@
 
 	};
 
-	View.eachBinder = function (uid, path, callback) {
-		var paths = this.data[uid];
-
-		for (var key in paths) {
-
-			if (key.indexOf(path) === 0) {
-				var binders = paths[key];
-
-				for (var i = 0, l = binders.length; i < l; i++) {
-					var binder = binders[i];
-					callback.call(this, binder, i, binders, paths, key);
-				}
-
-			}
-
-		}
-
-	};
-
-	View.addBinder = function (uid, path, binder) {
-
-		if (!(uid in this.data)) {
-			this.data[uid] = {};
-		}
-
-		if (!(path in this.data[uid])) {
-			this.data[uid][path] = [];
-		}
-
-		this.data[uid][path].push(binder);
-	};
-
-	View.eachElement = function (element, callback, container) {
+	View.each = function (element, callback, container) {
 
 		if (
 			element.nodeName !== 'O-VIEW'
@@ -1908,9 +2485,9 @@
 			if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) {
 				container = element;
 			} else if (!document.body.contains(element)) {
-				container = Utility.getContainer(container);
+				container = Global$1.utility.getContainer(container);
 			} else if (!container) {
-				container = Utility.getContainer(element);
+				container = Global$1.utility.getContainer(element);
 			}
 
 			var uid = container.getAttribute('o-uid') || container.getAttribute('data-o-uid');
@@ -1927,127 +2504,50 @@
 		) {
 
 			for (var i = 0, l = element.children.length; i < l; i++) {
-				this.eachElement(element.children[i], callback, container);
+				this.each(element.children[i], callback, container);
 			}
 
 		}
 
 	};
 
-	View.addElement = function (addedElement) {
-		this.eachElement(addedElement, function (element, container, uid) {
+	View.add = function (addedElement) {
+		this.each(addedElement, function (element, container, uid) {
 			this.eachAttribute(element, function (attribute) {
-				// if (
-				// 	attribute.name.indexOf('o-on') === 0
-				// 	|| attribute.name.indexOf('o-each') === 0
-				// 	|| attribute.name.indexOf('o-value') === 0
-				// ) {
-					OnceBinder.render({
-						uid: uid,
-						element: element,
-						container: container,
-						name: attribute.name,
-						value: attribute.value
-					});
-				// } else {
-					// var att = this.createAttribute(attribute.name, attribute.value);
-					// this.addBinder(uid, att.path, new Binder({
-					// 	uid: uid,
-					// 	element: element,
-					// 	container: container,
-					// 	attribute: att
-					// }));
-				// }
+				Global$1.binder.render({
+					uid: uid,
+					element: element,
+					container: container,
+					name: attribute.name,
+					value: attribute.value
+				});
 			});
 		});
 	};
 
-	View.removeElement = function (removedElement, target) {
-		this.eachElement(removedElement, function (element, container, uid) {
+	View.remove = function (removedElement, target) {
+		this.each(removedElement, function (element, container, uid) {
 			this.eachAttribute(element, function (attribute) {
-				// if (
-				// 	attribute.name.indexOf('o-on') === 0
-				// 	|| attribute.name.indexOf('o-each') === 0
-				// 	|| attribute.name.indexOf('o-value') === 0
-				// ) {
-					OnceBinder.unrender({
-						uid: uid,
-						element: element,
-						container: container,
-						name: attribute.name,
-						value: attribute.value
-					});
-				// } else {
-					// var att = this.createAttribute(attribute.name, attribute.value);
-					// this.eachBinder(uid, att.path, function (binder, index, binders, paths, key) {
-					// 	if (binder.element === element) {
-					// 		binder.unrender();
-					// 		binders.splice(index, 1);
-					// 		if (binders.length === 0) {
-					// 			delete paths[key];
-					// 		}
-					// 	}
-					// });
-				// }
+				Global$1.binder.unrender({
+					uid: uid,
+					element: element,
+					container: container,
+					name: attribute.name,
+					value: attribute.value
+				});
 			});
 		}, target);
 	};
 
-	View.mutation = function (mutations) {
-		var c, i = mutations.length;
+	View.run = function () {
 
-		while (i--) {
-			var target = mutations[i].target;
-			var addedNodes = mutations[i].addedNodes;
-			var removedNodes = mutations[i].removedNodes;
-
-			c = addedNodes.length;
-
-			while (c--) {
-				var addedNode = addedNodes[c];
-
-				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
-
-					if (addedNode.isRouterComponent) {
-						addedNode.inRouterCache = true;
-					}
-
-					this.addElement(addedNode);
-				}
-
-			}
-
-			c = removedNodes.length;
-
-			while (c--) {
-				var removedNode = removedNodes[c];
-
-				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
-
-					if (removedNode.isRouterComponent) {
-						removedNode.inRouterCache = true;
-					}
-
-					this.removeElement(removedNode, target);
-				}
-
-			}
-
-		}
-
-	};
-
-	View.setup = function () {
-
-		if (this.isSetup) {
+		if (this.isRan) {
 			return;
 		}
 
-		this.isSetup = true;
+		this.isRan = true;
 
-		this.addElement(this.container);
-
-		Global$1.mutations.push(this.mutation.bind(this));
+		this.add(this.container);
 	};
 
 	var base = document.head.querySelector('base');
@@ -2101,19 +2601,7 @@
 				return (base ? base.href : null) || window.location.href
 			}
 		},
-		global: {
-			enumerable: true,
-			value: {}
-		},
 		clicks: {
-			enumerable: true,
-			value: []
-		},
-		inputs: {
-			enumerable: true,
-			value: []
-		},
-		changes: {
 			enumerable: true,
 			value: []
 		},
@@ -2121,17 +2609,21 @@
 			enumerable: true,
 			value: []
 		},
-		mutations: {
+		global: {
 			enumerable: true,
-			value: []
+			value: {}
 		},
 		events: {
 			enumerable: true,
-			value: { data: {} }
+			value: Events
 		},
 		modifiers: {
 			enumerable: true,
-			value: { data: {} }
+			value: Modifiers
+		},
+		utility: {
+			enumerable: true,
+			value: Utility
 		},
 		view: {
 			enumerable: true,
@@ -2140,6 +2632,10 @@
 		model: {
 			enumerable: true,
 			value: Model
+		},
+		binder: {
+			enumerable: true,
+			value: Binder
 		},
 		keeper:{
 			enumerable: true,
@@ -2201,355 +2697,6 @@
 		}
 	});
 
-	var UnrenderText = function (opt, data) {
-		opt.element.innerText = '';
-	};
-
-	var UnrenderEach = function (opt, data) {
-		var child;
-
-		while (child = element.lastElementChild) {
-			element.removeChild(child);
-		}
-		
-	};
-
-	function UnrenderOn (opt, data) {
-		opt.element.removeEventListener(opt.names[1], data, false);
-	}
-
-	var RenderValue = function (opt, data) {
-		var i , l;
-
-		if (opt.element.type === 'checkbox') {
-
-			data = !data ? false : data;
-
-			if (opt.caller === 'view') {
-				data = opt.element.checked;
-				opt.element.value = data;
-			} else {
-				opt.element.checked = data;
-				opt.element.value = data;
-			}
-
-		} else if (opt.element.nodeName === 'SELECT') {
-			var options = opt.element.options;
-
-			data = !data && opt.element.multiple ? [] : data;
-
-			if (opt.caller === 'view' && opt.element.multiple) {
-				data = [];
-			}
-
-			for (i = 0, l = options.length; i < l; i++) {
-				var option = options[i];
-
-				if (option.selected) {
-
-					if (opt.element.multiple) {
-						data.push(option.value);
-					} else {
-						data = option.value;
-						break;
-					}
-
-				}
-
-			}
-
-		} else if (opt.element.type === 'radio') {
-			var query = 'input[type="radio"][o-value="' + opt.value + '"]';
-			var elements = opt.container.querySelectorAll(query);
-
-			data = !data ? 0 : data;
-
-			for (i = 0, l = elements.length; i < l; i++) {
-				var element = elements[i];
-
-				if (opt.caller === 'view') {
-
-					if (opt.element === element) {
-						data = i;
-						element.checked = true;
-					} else {
-						element.checked = false;
-					}
-
-				} else {
-					element.checked = i == data;
-				}
-
-			}
-
-		} else {
-
-			// TODO find a way to update other inputs
-			if (data === undefined) {
-				opt.element.value = data = '';
-			} else if (opt.element.value === '') {
-				opt.element.value = data;
-			} else {
-				data = opt.element.value;
-			}
-
-		}
-
-		// FIXME this should not return data every time
-		return data;
-	};
-
-	function RenderEach (opt, data) {
-
-		console.log(data);
-
-		if (!opt.exists) {
-			opt.variable = opt.names[1];
-			opt.pattern = new RegExp('\\$(' + opt.variable + '|index)', 'ig');
-			opt.clone = opt.element.removeChild(opt.element.firstElementChild);
-			opt.clone = opt.clone.outerHTML.replace(
-				new RegExp('((?:data-)?o-.*?=")' + opt.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
-				'$1' + opt.path + '.$' + opt.variable + '$2'
-			);
-		}
-
-		if (opt.element.children.length > data.length) {
-			opt.element.removeChild(opt.element.lastElementChild);
-			// RenderEach.call(this, opt, data);
-		} else if (opt.element.children.length < data.length) {
-			opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, opt.element.children.length));
-			// RenderEach.call(this, opt, data);
-		}
-
-		if (!opt.exists) {
-			return data || [];
-		}
-
-	}
-
-	var RenderText = function (opt, data) {
-		opt.element.innerText = Utility.toText(data);
-	};
-
-	function RenderOn (opt, data) {
-		if (opt.exists) {
-			opt.element.removeEventListener(opt.names[1], data);
-			data = data.bind(opt.model);
-			opt.element.addEventListener(opt.names[1], data);
-		} else {
-			data = data.bind(opt.model);
-			opt.element.addEventListener(opt.names[1], data);
-		}
-		return data;
-	}
-
-	var OnceBinder = {};
-
-	OnceBinder.data = {};
-
-	OnceBinder.unrenderMethod = {
-		on: UnrenderOn,
-		each: UnrenderEach,
-		text: UnrenderText,
-		value: UnrenderValue
-	};
-
-	OnceBinder.renderMethod = {
-		on: RenderOn,
-		each: RenderEach,
-		text: RenderText,
-		value: RenderValue
-	};
-
-	OnceBinder.ensureData = function (opt) {
-		return Global$1.model.ensure(opt.keys);
-	};
-
-	OnceBinder.setData = function (opt, data) {
-		return Global$1.model.set(opt.keys, data);
-	};
-
-	OnceBinder.getData = function (opt) {
-		if (opt.type === 'on') {
-			return Utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path);
-		} else {
-			return Global$1.model.get(opt.keys);
-		}
-	};
-
-	// OnceBinder.modifyData = function (opt, data) {
-	// 	if (opt.modifiers && opt.attribute.modifiers.length) {
-	// 		for (var i = 0, l = opt.attribute.modifiers.length; i < l; i++) {
-	// 			data = opt.modifiers[opt.attribute.modifiers[i]].call(opt.model, data);
-	// 		}
-	// 	}
-	// 	return data;
-	// };
-
-	OnceBinder.add = function (opt) {
-
-		if (opt.type === 'value') {
-			return;
-		}
-
-		if (!(opt.uid in this.data)) {
-			this.data[opt.uid] = {};
-		}
-
-		if (!(opt.path in this.data[opt.uid])) {
-			this.data[opt.uid][opt.path] = [];
-		}
-
-		this.data[opt.uid][opt.path].push(opt);
-	};
-
-	OnceBinder.remove = function (opt) {
-		var data;
-
-		if (!(opt.uid in this.data)) {
-			return;
-		}
-
-		if (!(opt.path in this.data[opt.uid])) {
-			return;
-		}
-
-		data = this.data[opt.uid][opt.path];
-
-		for (var i = 0, l = data.length; i < l; i++) {
-			var item = data[i];
-			if (item.element === opt.element) {
-				return data.splice(i, 1);
-			}
-		}
-	};
-
-	OnceBinder.get = function (opt) {
-		var data;
-
-		if (!(opt.uid in this.data)) {
-			return;
-		}
-
-		if (!(opt.path in this.data[opt.uid])) {
-			return;
-		}
-
-		data = this.data[opt.uid][opt.path];
-
-		for (var i = 0, l = data.length; i < l; i++) {
-			var item = data[i];
-			if (item.element === opt.element) {
-				return item;
-			}
-		}
-	};
-
-	OnceBinder.update = function (opt) {
-		var data;
-
-		if (!(opt.uid in this.data)) {
-			return;
-		}
-
-		if (!(opt.path in this.data[opt.uid])) {
-			return;
-		}
-
-		data = this.data[opt.uid][opt.path];
-
-		for (var i = 0, l = data.length; i < l; i++) {
-			var item = data[i];
-			if (item.element === opt.element) {
-				for (var key in opt) {
-					item[key] = opt[key];
-				}
-				return item;
-			}
-		}
-	};
-
-	OnceBinder.option = function (opt) {
-		opt = opt || {};
-
-		if (!opt.name) throw new Error('OnceBinder.render - requires a name');
-		if (!opt.element) throw new Error('OnceBinder.render - requires a element');
-
-		opt.container = opt.container || Utility.getContainer(opt.element);
-		opt.uid = opt.uid || opt.container.getAttribute('o-uid');
-		opt.value = opt.value || opt.element.getAttribute(opt.name);
-		opt.path = opt.path || Utility.binderPath(opt.value);
-
-		var tmp = this.get(opt);
-
-		if (tmp) {
-			console.log('is');
-			return tmp;
-		}
-
-		opt.exists = false;
-		opt.type = opt.type || Utility.binderType(opt.name);
-		opt.names = opt.names || Utility.binderNames(opt.name);
-		opt.values = opt.values || Utility.binderValues(opt.value);
-		opt.modifiers = opt.modifiers || Utility.binderModifiers(opt.value);
-
-		opt.keys = opt.keys || [opt.uid].concat(opt.values);
-		opt.model = opt.model || Global$1.model.data[opt.uid];
-		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
-
-		this.ensureData(opt);
-
-		return opt;
-	};
-
-	OnceBinder.unrender = function (opt) {
-		opt = this.option(opt);
-
-		if (this.unrenderMethod[opt.type]) {
-			Global$1.batcher.write(function (opt, data) {
-
-				data = this.getData(opt);
-				data = this.unrenderMethod[opt.type].call(this, opt, data);
-
-				if (data !== undefined) {
-					this.setData(opt, data);
-				}
-
-				if (opt.exists === true) {
-					this.remove(opt);
-				}
-
-			}.bind(this, opt));
-		}
-	};
-
-	OnceBinder.render = function (opt) {
-		opt = this.option(opt);
-
-		if (this.renderMethod[opt.type]) {
-			Global$1.batcher.write(function (opt, data) {
-
-				opt = this.option(opt);
-				data = this.getData(opt);
-				data = this.renderMethod[opt.type].call(this, opt, data);
-
-				if (data !== undefined) {
-					this.setData(opt, data);
-				}
-
-				if (opt.exists === false) {
-					opt.exists === true;
-					this.add(opt);
-				}
-
-			}.bind(this, opt));
-		}
-	};
-
-	if (window.Oxe) {
-		throw new Error('Oxe pre-defined duplicate Oxe scripts');
-	}
-
 	Global$1.window.addEventListener('click', function (e) {
 		Global$1.clicks.forEach(function (click) {
 			click(e);
@@ -2563,47 +2710,55 @@
 	}, true);
 
 	Global$1.window.addEventListener('input', function (e) {
+
 		if (
 			e.target.type !== 'checkbox'
 			&& e.target.type !== 'radio'
 			&& e.target.nodeName !== 'SELECT'
 		) {
-			OnceBinder.render({
-				caller: 'view',
+			Global$1.binder.render({
 				name: 'o-value',
 				element: e.target,
-			});
+			}, 'view');
 		}
+
 	}, true);
 
 	Global$1.window.addEventListener('change', function (e) {
-		OnceBinder.render({
-			caller: 'view',
+		Global$1.binder.render({
 			name: 'o-value',
 			element: e.target,
-		});
+		}, 'view');
 	}, true);
 
 	Global$1.window.addEventListener('reset', function (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
 		if (submit) {
-			var container = Utility.getContainer(element);
-			var uid = container.getAttribute('o-uid');
-			var model = Global$1.model.data[uid];
-			Utility.formReset(element, model);
+			var elements = element.querySelectorAll('[o-value]');
+
+			for (var i = 0, l = elements.length; i < l; i++) {
+				Global$1.binder.unrender({
+					name: 'o-value',
+					element: elements[i]
+				}, 'view');
+			}
+
 		}
-	});
+
+	}, true);
 
 	Global$1.window.addEventListener('submit', function (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
 		if (submit) {
-			var container = Utility.getContainer(element);
+			var container = Global$1.utility.getContainer(element);
 			var uid = container.getAttribute('o-uid');
 			var model = Global$1.model.data[uid];
-			var data = Utility.formData(element, model);
-			var method = Utility.getByPath(container.events, submit);
+			var data = Global$1.utility.formData(element, model);
+			var method = Global$1.utility.getByPath(container.events, submit);
 			var options = method.call(model, data, e);
 
 			if (options && typeof options === 'object') {
@@ -2620,12 +2775,51 @@
 
 			e.preventDefault();
 		}
+
 	}, true);
 
-	new window.MutationObserver(function (mutations) {
-		Global$1.mutations.forEach(function (mutation) {
-			mutation(mutations);
-		});
+	new Global$1.window.MutationObserver(function (mutations) {
+		var c, i = mutations.length;
+
+		while (i--) {
+			var target = mutations[i].target;
+			var addedNodes = mutations[i].addedNodes;
+			var removedNodes = mutations[i].removedNodes;
+
+			c = addedNodes.length;
+
+			while (c--) {
+				var addedNode = addedNodes[c];
+
+				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
+
+					if (addedNode.isRouterComponent) {
+						addedNode.inRouterCache = true;
+					}
+
+					Global$1.view.add(addedNode);
+				}
+
+			}
+
+			c = removedNodes.length;
+
+			while (c--) {
+				var removedNode = removedNodes[c];
+
+				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
+
+					if (removedNode.isRouterComponent) {
+						removedNode.inRouterCache = true;
+					}
+
+					Global$1.view.remove(removedNode, target);
+				}
+
+			}
+
+		}
+
 	}).observe(Global$1.body, {
 		childList: true,
 		subtree: true
@@ -2634,18 +2828,25 @@
 	window.requestAnimationFrame(function () {
 		var eStyle = Global$1.document.createElement('style');
 		var sStyle = Global$1.document.createTextNode('o-view, o-view > :first-child { display: block; }');
+
 		eStyle.setAttribute('title', 'Oxe');
 		eStyle.setAttribute('type', 'text/css');
 		eStyle.appendChild(sStyle);
+
 		Global$1.head.appendChild(eStyle);
 		Global$1.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
+
 		var eScript = Global$1.document.querySelector('[o-index]');
 		var eIndex = eScript ? eScript.getAttribute('o-index') : null;
-		if (eIndex) Global$1.loader.load({ url: eIndex });
+
+		if (eIndex) {
+			Global$1.loader.load({ url: eIndex });
+		}
+
 	});
 
-	Global$1.view.setup();
-	Global$1.model.setup();
+	Global$1.view.run();
+	Global$1.model.run();
 
 	return Global$1;
 

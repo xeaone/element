@@ -1,10 +1,4 @@
-import OnceBinder from './lib/once-binder';
-import Utility from './lib/utility';
 import Global from './global';
-
-if (window.Oxe) {
-	throw new Error('Oxe pre-defined duplicate Oxe scripts');
-}
 
 Global.window.addEventListener('click', function (e) {
 	Global.clicks.forEach(function (click) {
@@ -19,47 +13,55 @@ Global.window.addEventListener('popstate', function (e) {
 }, true);
 
 Global.window.addEventListener('input', function (e) {
+
 	if (
 		e.target.type !== 'checkbox'
 		&& e.target.type !== 'radio'
 		&& e.target.nodeName !== 'SELECT'
 	) {
-		OnceBinder.render({
-			caller: 'view',
+		Global.binder.render({
 			name: 'o-value',
 			element: e.target,
-		});
+		}, 'view');
 	}
+
 }, true);
 
 Global.window.addEventListener('change', function (e) {
-	OnceBinder.render({
-		caller: 'view',
+	Global.binder.render({
 		name: 'o-value',
 		element: e.target,
-	});
+	}, 'view');
 }, true);
 
 Global.window.addEventListener('reset', function (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
 	if (submit) {
-		var container = Utility.getContainer(element);
-		var uid = container.getAttribute('o-uid');
-		var model = Global.model.data[uid];
-		Utility.formReset(element, model);
+		var elements = element.querySelectorAll('[o-value]');
+
+		for (var i = 0, l = elements.length; i < l; i++) {
+			Global.binder.unrender({
+				name: 'o-value',
+				element: elements[i]
+			}, 'view');
+		}
+
 	}
-});
+
+}, true);
 
 Global.window.addEventListener('submit', function (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
 	if (submit) {
-		var container = Utility.getContainer(element);
+		var container = Global.utility.getContainer(element);
 		var uid = container.getAttribute('o-uid');
 		var model = Global.model.data[uid];
-		var data = Utility.formData(element, model);
-		var method = Utility.getByPath(container.events, submit);
+		var data = Global.utility.formData(element, model);
+		var method = Global.utility.getByPath(container.events, submit);
 		var options = method.call(model, data, e);
 
 		if (options && typeof options === 'object') {
@@ -76,12 +78,51 @@ Global.window.addEventListener('submit', function (e) {
 
 		e.preventDefault();
 	}
+
 }, true);
 
-new window.MutationObserver(function (mutations) {
-	Global.mutations.forEach(function (mutation) {
-		mutation(mutations);
-	});
+new Global.window.MutationObserver(function (mutations) {
+	var c, i = mutations.length;
+
+	while (i--) {
+		var target = mutations[i].target;
+		var addedNodes = mutations[i].addedNodes;
+		var removedNodes = mutations[i].removedNodes;
+
+		c = addedNodes.length;
+
+		while (c--) {
+			var addedNode = addedNodes[c];
+
+			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
+
+				if (addedNode.isRouterComponent) {
+					addedNode.inRouterCache = true;
+				}
+
+				Global.view.add(addedNode);
+			}
+
+		}
+
+		c = removedNodes.length;
+
+		while (c--) {
+			var removedNode = removedNodes[c];
+
+			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
+
+				if (removedNode.isRouterComponent) {
+					removedNode.inRouterCache = true;
+				}
+
+				Global.view.remove(removedNode, target);
+			}
+
+		}
+
+	}
+
 }).observe(Global.body, {
 	childList: true,
 	subtree: true
@@ -90,17 +131,24 @@ new window.MutationObserver(function (mutations) {
 window.requestAnimationFrame(function () {
 	var eStyle = Global.document.createElement('style');
 	var sStyle = Global.document.createTextNode('o-view, o-view > :first-child { display: block; }');
+
 	eStyle.setAttribute('title', 'Oxe');
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(sStyle);
+
 	Global.head.appendChild(eStyle);
 	Global.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
+
 	var eScript = Global.document.querySelector('[o-index]')
 	var eIndex = eScript ? eScript.getAttribute('o-index') : null;
-	if (eIndex) Global.loader.load({ url: eIndex });
+
+	if (eIndex) {
+		Global.loader.load({ url: eIndex });
+	}
+
 });
 
-Global.view.setup();
-Global.model.setup();
+Global.view.run();
+Global.model.run();
 
 export default Global;

@@ -1,5 +1,4 @@
 import Transformer from './lib/transformer.js';
-import Utility from './lib/utility.js';
 import Global from './global.js';
 
 var Loader = {};
@@ -9,12 +8,13 @@ Loader.modules = {};
 Loader.esm = false;
 Loader.est = false;
 Loader.base = false;
+Loader.isRan = false;
 
 Loader.patterns = {
 	imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
 	imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
-	exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g,
 	exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
+	exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g
 };
 
 Loader.setup = function (options) {
@@ -22,7 +22,7 @@ Loader.setup = function (options) {
 	this.loads = options.loads || this.loads;
 	this.esm = options.esm === undefined ? this.esm : options.esm;
 	this.est = options.est === undefined ? this.est : options.est;
-	this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
+	this.base = options.base === undefined ? this.base : Global.utility.createBase(options.base);
 };
 
 Loader.xhr = function (data, callback) {
@@ -31,14 +31,22 @@ Loader.xhr = function (data, callback) {
 
 	data.xhr = new XMLHttpRequest();
 	data.xhr.addEventListener('readystatechange', function () {
+
 		if (data.xhr.readyState === 4) {
+
 			if (data.xhr.status >= 200 && data.xhr.status < 400) {
 				data.text = data.xhr.responseText;
-				if (callback) callback(data);
+
+				if (callback) {
+					callback(data);
+				}
+
 			} else {
 				throw new Error(data.xhr.responseText);
 			}
+
 		}
+
 	});
 
 	data.xhr.open('GET', data.url);
@@ -62,10 +70,16 @@ Loader.js = function (data, callback) {
 				imports: data.ast.imports,
 				total: data.ast.imports.length,
 				callback: function () {
+
 					if (++meta.count === meta.total) {
 						self.modules[data.url] = self.interpret(data.ast.cooked);
-						if (callback) callback();
+
+						if (callback) {
+							callback();
+						}
+
 					}
+
 				}
 			};
 
@@ -78,7 +92,11 @@ Loader.js = function (data, callback) {
 	}
 
 	self.modules[data.url] = self.interpret(data.ast ? data.ast.cooked : data.text);
-	if (callback) callback();
+
+	if (callback) {
+		callback();
+	}
+
 };
 
 Loader.css = function (data, callback) {
@@ -86,23 +104,30 @@ Loader.css = function (data, callback) {
 	data.element.setAttribute('href', data.url);
 	data.element.setAttribute('rel','stylesheet');
 	data.element.setAttribute('type', 'text/css');
+
 	data.element.addEventListener('load', function () {
 		if (callback) callback(data);
+
 	});
+
 	document.head.appendChild(data.element);
 };
 
 Loader.getImports = function (data) {
 	var imp, imports = [];
 	var imps = data.match(this.patterns.imps) || [];
+
 	for (var i = 0, l = imps.length; i < l; i++) {
 		imp = imps[i].match(this.patterns.imp);
+
 		imports[i] = {
 			raw: imp[0],
 			name: imp[1],
 			url: imp[2]
 		};
+
 	}
+
 	return imports;
 };
 
@@ -121,7 +146,7 @@ Loader.normalizeUrl = function (url) {
 	}
 
 	if (this.base && url.indexOf('/') !== 0) {
-		url = Utility.joinSlash(Global.base.replace(window.location.origin, ''), url);
+		url = Global.utility.joinSlash(Global.base.replace(window.location.origin, ''), url);
 	}
 
 	return url;
@@ -151,9 +176,11 @@ Loader.toAst = function (data) {
 
 Loader.interpret = function (data) {
 	data = '\'use strict\';\n\n' + data;
+
 	return (function(d, l, w) { 'use strict';
 		return new Function('$L', 'window', d)(l, w);
 	}(data, this, window));
+
 };
 
 Loader.load = function (data, callback) {
@@ -184,9 +211,17 @@ Loader.load = function (data, callback) {
 };
 
 Loader.run = function () {
+
+	if (this.isRan) {
+		return;
+	}
+
+	this.isRan = true;
+
 	for (var i = 0, l = this.loads.length; i < l; i++) {
 		this.load(this.loads[i]);
 	}
+
 };
 
 export default Loader;

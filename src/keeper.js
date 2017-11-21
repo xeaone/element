@@ -130,25 +130,3 @@ Keeper.response = function (result) {
 };
 
 export default Keeper;
-
-/*
-	Resources:
-		https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication
-		https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
-*/
-
-// Keeper.encode = function (data) {
-// 	// encodeURIComponent to get percent-encoded UTF-8
-// 	// convert the percent encodings into raw bytes which
-// 	return window.btoa(window.encodeURIComponent(data).replace(/%([0-9A-F]{2})/g,
-// 		function toSolidBytes (match, char) {
-// 			return String.fromCharCode('0x' + char);
-// 	}));
-// };
-//
-// Keeper.decode = function (data) {
-// 	// from bytestream to percent-encoding to original string
-//     return window.decodeURIComponent(window.atob(data).split('').map(function(char) {
-//         return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2);
-//     }).join(''));
-// };

@@ -3,7 +3,6 @@ import Global from './global';
 var Component = {};
 
 Component.data = {};
-Component.currentScript = (document._currentScript || document.currentScript);
 
 Component.handleSlots = function (element, template) {
 	var tSlots = template.content.querySelectorAll('slot');

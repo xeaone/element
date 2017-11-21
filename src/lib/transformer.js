@@ -31,11 +31,9 @@ Transformer.template = function (data) {
 
 	for (var index = 0; index < string.length; index++) {
 		var char = string[index];
-		if (
-			char === '`' &&
-			string[index-1] !== '\\'
-			// && string[index-1] + string[index-2] !== '//'
-		) {
+
+		if (char === '`' && string[index-1] !== '\\') {
+
 			if (isInner) {
 				ends++;
 				value = '\'';
@@ -49,12 +47,16 @@ Transformer.template = function (data) {
 				string = this._updateString(value, index, string);
 				index = this._updateIndex(value, index);
 			}
+
 		} else if (isInner) {
+
 			if (value = this._innerHandler(char, index, string)) {
 				string = this._updateString(value, index, string);
 				index = this._updateIndex(value, index);
 			}
+
 		}
+
 	}
 
 	string = string.replace(/\${(.*?)}/g, '\'+$1+\'');
@@ -64,6 +66,7 @@ Transformer.template = function (data) {
 	} else {
 		throw new Error('Transformer miss matched backticks');
 	}
+	
 };
 
 export default Transformer;

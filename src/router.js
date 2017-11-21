@@ -1,4 +1,3 @@
-import Utility from './lib/utility';
 import Events from './lib/events';
 import Global from './global';
 
@@ -26,7 +25,7 @@ Router.setup = function (options) {
 	this.routes = options.routes === undefined ? this.routes: options.routes;
 	this.external = options.external === undefined ? this.external: options.external;
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
-	this.base = options.base === undefined ? this.base : Utility.createBase(options.base);
+	this.base = options.base === undefined ? this.base : Global.utility.createBase(options.base);
 };
 
 Router.popstate = function (e) {
@@ -42,11 +41,19 @@ Router.click = function (e) {
 	if (this.container) {
 
 		while (parent) {
-			if (parent === this.container) break;
-			else parent = parent.parentNode;
+
+			if (parent === this.container) {
+				break;
+			} else {
+				parent = parent.parentNode;
+			}
+
 		}
 
-		if (parent !== this.container) return;
+		if (parent !== this.container) {
+			return;
+		}
+
 	}
 
 	if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -235,9 +242,9 @@ Router.toLocation = function (path) {
 	}
 
 	if (this.hash) {
-		location.href = Utility.joinSlash(location.base, '/#/', location.pathname);
+		location.href = Global.utility.joinSlash(location.base, '/#/', location.pathname);
 	} else {
-		location.href =  Utility.joinSlash(location.base, '/', location.pathname);
+		location.href =  Global.utility.joinSlash(location.base, '/', location.pathname);
 	}
 
 	location.href += location.search;
@@ -316,8 +323,12 @@ Router.navigate = function (data, replace) {
 };
 
 Router.run = function () {
-	if (this.isRan) return;
-	else this.isRan = true;
+
+	if (this.isRan) {
+		return;
+	}
+
+	this.isRan = true;
 
 	this.view = typeof this.view === 'string' ? document.body.querySelector(this.view) : this.view;
 

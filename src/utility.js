@@ -1,4 +1,3 @@
-import UnrenderValue from './unrender/value.js';
 
 var Utility = {};
 
@@ -80,24 +79,6 @@ Utility.formData = function (form, model) {
 	return data;
 };
 
-Utility.formReset = function (form, model) {
-	var elements = form.querySelectorAll('[o-value]');
-	for (var i = 0, l = elements.length; i < l; i++) {
-		UnrenderValue({
-			type: 'o-value',
-			element: elements[i]
-		});
-	}
-};
-
-Utility.toText = function (data) {
-	if (typeof data === 'object') {
-		 return JSON.stringify(data);
-	} else {
-		return String(data);
-	}
-};
-
 Utility.traverse = function (data, path, callback) {
 	var keys = typeof path === 'string' ? path.split('.') : path;
 	var last = keys.length - 1;
@@ -128,13 +109,17 @@ Utility.setByPath = function (data, path, value) {
 
 	for (var i = 0; i < last; i++) {
 		var key = keys[i];
+
 		if (!(key in data)) {
+
 			if (isNaN(keys[i+1])) {
 				data[key] = {};
 			} else {
 				data[key] = [];
 			}
+
 		}
+
 		data = data[key];
 	}
 
@@ -147,21 +132,16 @@ Utility.getByPath = function (data, path) {
 
 	for (var i = 0; i < last; i++) {
 		var key = keys[i];
+
 		if (!(key in data)) {
 			return undefined;
 		} else {
 			data = data[key];
 		}
+
 	}
 
 	return data[keys[last]];
-};
-
-Utility.removeChildren = function (element) {
-	var child;
-	while (child = element.lastElementChild) {
-		element.removeChild(child);
-	}
 };
 
 Utility.joinSlash = function () {
@@ -177,10 +157,17 @@ Utility.joinDot = function () {
 };
 
 Utility.getContainer = function getContainer (element) {
-	if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) return element;
-	if (element.parentElement) return this.getContainer(element.parentElement);
-	console.log(element);
-	console.warn('Utility could not find a uid');
+
+	if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) {
+		return element;
+	}
+
+	if (element.parentElement) {
+		return this.getContainer(element.parentElement);
+	}
+
+	console.warn('Oxe.utility - could not find element uid');
+	console.warn(element);
 };
 
 export default Utility;

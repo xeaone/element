@@ -1,8 +1,12 @@
 import Component from './component';
+import Modifiers from './modifiers';
+import Utility from './utility';
 import Batcher from './batcher';
 import Fetcher from './fetcher';
+import Events from './events';
 import Router from './router';
 import Loader from './loader';
+import Binder from './binder';
 import Keeper from './keeper';
 import Model from './model';
 import View from './view';
@@ -58,19 +62,7 @@ var Global = Object.defineProperties({}, {
 			return (base ? base.href : null) || window.location.href
 		}
 	},
-	global: {
-		enumerable: true,
-		value: {}
-	},
 	clicks: {
-		enumerable: true,
-		value: []
-	},
-	inputs: {
-		enumerable: true,
-		value: []
-	},
-	changes: {
 		enumerable: true,
 		value: []
 	},
@@ -78,17 +70,21 @@ var Global = Object.defineProperties({}, {
 		enumerable: true,
 		value: []
 	},
-	mutations: {
+	global: {
 		enumerable: true,
-		value: []
+		value: {}
 	},
 	events: {
 		enumerable: true,
-		value: { data: {} }
+		value: Events
 	},
 	modifiers: {
 		enumerable: true,
-		value: { data: {} }
+		value: Modifiers
+	},
+	utility: {
+		enumerable: true,
+		value: Utility
 	},
 	view: {
 		enumerable: true,
@@ -97,6 +93,10 @@ var Global = Object.defineProperties({}, {
 	model: {
 		enumerable: true,
 		value: Model
+	},
+	binder: {
+		enumerable: true,
+		value: Binder
 	},
 	keeper:{
 		enumerable: true,

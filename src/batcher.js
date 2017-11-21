@@ -42,20 +42,25 @@ Batcher.tick = function () {
 
 Batcher.flush = function (callback) {
 	var self = this;
+
 	self.run(self.reads.splice(0, self.reads.length), function () {
 		self.run(self.writes.splice(0, self.writes.length), function () {
+
 			if (self.reads.length || self.writes.length) {
 				self.flush();
 			} else {
 				self.pending = false;
 			}
+
 		});
 	});
+
 };
 
 Batcher.run = function (tasks, callback, index) {
-	var self = this;
+
 	if (tasks.length) {
+
 		window.requestAnimationFrame(function (time) {
 			var count = 0;
 			var length = tasks.length;
@@ -63,20 +68,16 @@ Batcher.run = function (tasks, callback, index) {
 			index = index || 0;
 
 			for (index; index < length; index++) {
-
 				tasks[index]();
-
-				// if ((performance.now() - time) > self.maxTaskTimeMS) {
-				// 	return self.run(tasks, callback, index);
-				// }
-
 			}
 
 			return callback();
 		});
+
 	} else {
 		return callback();
 	}
+
 };
 
 export default Batcher;

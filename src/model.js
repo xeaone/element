@@ -1,11 +1,10 @@
 import Observer from './lib/observer';
-import Utility from './lib/utility';
 import Global from './global';
 
 var Model = {};
 
 Model.data = {};
-Model.isSetup = false;
+Model.isRan = false;
 Model.container = document.body;
 
 Model.overwrite = function (data) {
@@ -16,7 +15,7 @@ Model.overwrite = function (data) {
 };
 
 Model.traverse = function (path) {
-	return Utility.traverse(this.data, path, function (data, key, index, keys) {
+	return Global.utility.traverse(this.data, path, function (data, key, index, keys) {
 		if (isNaN(keys[index+1])) {
 			data.$set(key, {});
 		} else {
@@ -26,7 +25,7 @@ Model.traverse = function (path) {
 };
 
 Model.get = function (keys) {
-	var result = Utility.traverse(this.data, keys);
+	var result = Global.utility.traverse(this.data, keys);
 	return result ? result.data[result.key] : undefined;
 };
 
@@ -38,11 +37,13 @@ Model.set = function (keys, value) {
 
 Model.ensure = function (keys, value) {
 	var result = this.traverse(keys);
+
 	if (result.data[result.key] === undefined) {
 		return result.data.$set(result.key, value || null);
 	} else {
 		return result.data[result.key];
 	}
+
 };
 
 Model.observer = function (data, path) {
@@ -52,23 +53,21 @@ Model.observer = function (data, path) {
 
 	path = paths.slice(1).join('.');
 
-	if (path) {
+	if (!path) return;
 
-		Global.view.eachBinder(uid, path, function (binder) {
-			binder[type]();
-		});
-
-	}
+	Global.binder.each(uid, path, function (binder) {
+		Global.binder[type](binder);
+	});
 
 };
 
-Model.setup = function () {
+Model.run = function () {
 
-	if (this.isSetup) {
+	if (this.isRan) {
 		return;
 	}
 
-	this.isSetup = true;
+	this.isRan = true;
 
 	Observer.create(
 		this.data,
