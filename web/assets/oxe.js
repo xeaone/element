@@ -1528,11 +1528,11 @@
 	};
 
 	Render.text = function (opt) {
-		var data = this.getData(opt);
+		var data = this.getData(opt) || '';
 
 		if (typeof data === 'object') {
 			data = JSON.stringify(data);
-		} else {
+		} else if (typeof data !== 'string') {
 			data = String(data);
 		}
 
