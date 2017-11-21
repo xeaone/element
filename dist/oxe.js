@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.6.3
+	Version: 2.6.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1538,15 +1538,18 @@
 	};
 
 	Render.text = function (opt) {
-		var data = this.getData(opt) || '';
+		var data = this.getData(opt);
 
-		if (typeof data === 'object') {
+		if (data && typeof data === 'object') {
 			data = JSON.stringify(data);
-		} else if (typeof data !== 'string') {
+		} else if (data && typeof data !== 'string') {
 			data = String(data);
 		}
 
-		opt.element.innerText = this.modifyData(opt, data);
+		data = this.modifyData(opt, data);
+		data = data === undefined || data === null ? '' : data;
+
+		opt.element.innerText = data;
 	};
 
 	Render.write = function (opt) {
@@ -2852,10 +2855,14 @@
 			var options = method.call(model, data, e);
 
 			if (options && typeof options === 'object') {
+				var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
 				var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
 				var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+
+				options.auth = options.url || auth;
 				options.url = options.url || action;
 				options.method = options.method || method;
+
 				Global$1.fetcher.fetch(options);
 			}
 
