@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.6.2
+	Version: 2.6.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2489,11 +2489,15 @@
 				attribute.value
 				&& attribute.name.indexOf('o-') === 0
 				|| attribute.name.indexOf('data-o-') === 0
+				&& attribute.name !== 'o-auth'
+				&& attribute.name !== 'o-reset'
 				&& attribute.name !== 'o-method'
 				&& attribute.name !== 'o-action'
 				&& attribute.name !== 'o-external'
-				&& attribute.name !== 'data-o-action'
+				&& attribute.name !== 'data-o-auth'
+				&& attribute.name !== 'data-o-reset'
 				&& attribute.name !== 'data-o-method'
+				&& attribute.name !== 'data-o-action'
 				&& attribute.name !== 'data-o-external'
 			) {
 				callback.call(this, attribute);
@@ -2855,7 +2859,14 @@
 				Global$1.fetcher.fetch(options);
 			}
 
-			if (element.hasAttribute('o-reset')) {
+			if (
+				(
+					options
+					&& typeof options === 'object'
+					&& options.reset
+				)
+				|| element.hasAttribute('o-reset')
+			) {
 				element.reset();
 			}
 
