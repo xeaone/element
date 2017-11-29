@@ -173,6 +173,8 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 	- `token: String` The token to add
 	- `user: Object` The user data to add
 - `unauthenticate: Function` Removes the token and user data
+- `encode: Function` Wraps window.btoa
+- `decode: Function` Wraps window.atob
 
 ### Oxe.router
 Automatically use the default action for non origin matching hrefs
