@@ -41,7 +41,7 @@ Keeper.setup = function (options) {
 
 Keeper.setToken = function (token) {
 	if (!token) return;
-	if (options.scheme === 'Basic') token = this.encode(token);
+	if (this.scheme === 'Basic') token = this.encode(token);
 	this._.token = window[this.type].setItem('token', token);
 };
 
