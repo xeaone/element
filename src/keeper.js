@@ -144,11 +144,11 @@ Keeper.response = function (result) {
 
 };
 
-Keeper.prototype.encode = function (data) {
+Keeper.encode = function (data) {
 	return window.btoa(data);
 };
 
-Keeper.prototype.decode = function (data) {
+Keeper.decode = function (data) {
     return window.atob(data);
 };
 
