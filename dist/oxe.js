@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.6.6
+	Version: 2.6.8
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1948,7 +1948,7 @@
 
 	Keeper.setToken = function (token) {
 		if (!token) return;
-		if (options.scheme === 'Basic') token = this.encode(token);
+		if (this.scheme === 'Basic') token = this.encode(token);
 		this._.token = window[this.type].setItem('token', token);
 	};
 
