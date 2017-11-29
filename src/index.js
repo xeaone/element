@@ -125,9 +125,9 @@ Global.window.addEventListener('submit', function (e) {
 			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
 			var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
 
-			options.auth = options.url || auth;
 			options.url = options.url || action;
 			options.method = options.method || method;
+			options.auth = options.auth === undefined ? auth : options.auth;
 
 			Global.fetcher.fetch(options);
 		}
