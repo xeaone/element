@@ -113,6 +113,9 @@ Global.window.addEventListener('submit', function (e) {
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
 	if (submit) {
+		
+		e.preventDefault();
+
 		var container = Global.utility.getContainer(element);
 		var uid = container.getAttribute('o-uid');
 		var model = Global.model.data[uid];
@@ -143,7 +146,6 @@ Global.window.addEventListener('submit', function (e) {
 			element.reset();
 		}
 
-		e.preventDefault();
 	}
 
 }, true);

@@ -1,4 +1,4 @@
-import Say from 'say.js';
+import Say from '/say.js';
 
 var model = {
 	blank: '',

@@ -1,5 +1,5 @@
-import Escape from 'modules/escape.js';
-import Say from 'say.js';
+import Escape from '/modules/escape.js';
+import Say from '/say.js';
 
 var home = Escape(`
 	Oxe.component.define({

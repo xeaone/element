@@ -62,7 +62,7 @@ Loader.xhr = function (data, callback) {
 	data.xhr.send();
 };
 
-Loader.js = function (data, callback) {
+Loader.jsxhr = function (callback, data) {
 	var self = this;
 
 	if (self.est || data.est) {
@@ -105,6 +105,30 @@ Loader.js = function (data, callback) {
 	if (callback) {
 		callback();
 	}
+};
+
+Loader.js = function (data, callback) {
+	var self = this;
+
+	if (self.est || data.est || self.esm || data.esm) {
+
+		self.xhr(data, self.jsxhr.bind(self, callback));
+
+	} else {
+
+		data.element = document.createElement('script');
+
+		data.element.setAttribute('src', data.url);
+		data.element.setAttribute('type','module');
+		data.element.setAttribute('async', 'true');
+
+		if (callback) {
+			data.element.addEventListener('load', callback.bind(null, data));
+		}
+
+		document.head.appendChild(data.element);
+
+	}
 
 };
 
@@ -114,13 +138,9 @@ Loader.css = function (data, callback) {
 	data.element.setAttribute('rel','stylesheet');
 	data.element.setAttribute('type', 'text/css');
 
-	data.element.addEventListener('load', function () {
-
-		if (callback) {
-			callback(data);
-		}
-
-	});
+	if (callback) {
+		data.element.addEventListener('load', callback.bind(null, data));
+	}
 
 	document.head.appendChild(data.element);
 };
@@ -194,7 +214,9 @@ Loader.interpret = function (data) {
 	data = '\'use strict\';\n\n' + data;
 
 	return (function(d, l, w) { 'use strict';
+
 		return new Function('$L', 'window', d)(l, w);
+
 	}(data, this, window));
 
 };
@@ -212,12 +234,12 @@ Loader.load = function (data, callback) {
 		return callback ? callback() : undefined;
 	}
 
+	self.modules[data.url] = true;
+
 	data.ext = self.ext(data.url);
 
 	if (data.ext === 'js' || data.ext === '') {
-		self.xhr(data, function (d) {
-			self.js(d, callback);
-		});
+		self.js(data, callback);
 	} else if (data.ext === 'css') {
 		self.css(data, callback);
 	} else {
