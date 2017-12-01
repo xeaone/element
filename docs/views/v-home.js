@@ -1,5 +1,5 @@
-import Escape from 'modules/escape.js';
-import Say from 'say.js';
+import Escape from '/modules/escape.js';
+import Say from '../modules/say.js';
 
 var home = Escape(`
 	Oxe.component.define({
@@ -31,8 +31,7 @@ var indexjs = Escape(`
 			}
 		},
 		loader: {
-			esm: true, // Enables ES6 module re-writes support
-			est: true, // Enables ES6 template string re-writes support
+			type: 'es', // Enables ES6 module and template string re-write support
 			loads: [
 				{
 					url: '/components/e-menu.js'

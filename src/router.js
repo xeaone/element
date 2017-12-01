@@ -28,12 +28,6 @@ Router.setup = function (options) {
 	this.base = options.base === undefined ? this.base : Global.utility.createBase(options.base);
 };
 
-// Router.popstate = function (e) {
-// };
-
-// Router.click = function (e) {
-// };
-
 Router.scroll = function (x, y) {
 	window.scroll(x, y);
 };
@@ -206,9 +200,9 @@ Router.toLocation = function (path) {
 	}
 
 	if (this.hash) {
-		location.href = Global.utility.joinSlash(location.base, '/#/', location.pathname);
+		location.href = Global.utility.join(location.base, '/#/', location.pathname);
 	} else {
-		location.href =  Global.utility.joinSlash(location.base, '/', location.pathname);
+		location.href =  Global.utility.join(location.base, '/', location.pathname);
 	}
 
 	location.href += location.search;

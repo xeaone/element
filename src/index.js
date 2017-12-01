@@ -1,6 +1,6 @@
 import Global from './global';
 
-Global.window.addEventListener('click', function (e) {
+Global.document.addEventListener('click', function (e) {
 
 		// if shadow dom use
 		var target = e.path ? e.path[0] : e.target;
@@ -63,11 +63,11 @@ Global.window.addEventListener('click', function (e) {
 
 }, true);
 
-Global.window.addEventListener('popstate', function (e) {
+Global.document.addEventListener('popstate', function (e) {
 	Global.router.navigate(e.state || window.location.href, true);
 }, true);
 
-Global.window.addEventListener('input', function (e) {
+Global.document.addEventListener('input', function (e) {
 
 	if (
 		e.target.type !== 'checkbox'
@@ -82,14 +82,32 @@ Global.window.addEventListener('input', function (e) {
 
 }, true);
 
-Global.window.addEventListener('change', function (e) {
+Global.document.addEventListener('change', function (e) {
 	Global.binder.render({
 		name: 'o-value',
 		element: e.target,
 	}, 'view');
 }, true);
 
-Global.window.addEventListener('reset', function (e) {
+Global.document.addEventListener('load', function (e) {
+	var element = e.target;
+
+	if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
+		return;
+	}
+
+	var path = Global.utility.resolve(element.src || element.href);
+	var callback = Global.loader.modules[path];
+
+	Global.loader.modules[path] = element;
+
+	if (typeof callback === 'function') {
+		callback();
+	}
+
+}, true);
+
+Global.document.addEventListener('reset', function (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -108,12 +126,12 @@ Global.window.addEventListener('reset', function (e) {
 
 }, true);
 
-Global.window.addEventListener('submit', function (e) {
+Global.document.addEventListener('submit', function (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
 	if (submit) {
-		
+
 		e.preventDefault();
 
 		var container = Global.utility.getContainer(element);

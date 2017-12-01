@@ -1,8 +1,8 @@
 
 Oxe.setup({
 	loader: {
-		esm: true,
-		est: true,
+		type: 'es',
+		// type: 'module',
 		base: true,
 		loads: [
 			// 'index.css',

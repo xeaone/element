@@ -123,8 +123,11 @@
 
 	var Utility = {};
 
+	Utility._ = {};
+
 	Utility.PATH = /\s*\|.*/;
 	Utility.PREFIX = /(data-)?o-/;
+	Utility.ROOT = /^(https?:)?\/?\//;
 	Utility.TYPE = /(data-)?o-|-.*$/g;
 	Utility.SPLIT_MODIFIERS = /\s|\s?,\s?/;
 
@@ -266,12 +269,6 @@
 		return data[keys[last]];
 	};
 
-	Utility.joinSlash = function () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
-	};
-
 	Utility.joinDot = function () {
 		return Array.prototype.join
 			.call(arguments, '.')
@@ -290,6 +287,52 @@
 
 		console.warn('Oxe.utility - could not find container uid');
 		console.warn(element);
+	};
+
+	Utility.base = function () {
+		this._.base = this._.base || window.document.head.querySelector('base');
+		var href = this._.base ? this._.base.href : window.location.origin;
+		return href.slice(-1) === '/' ? href.slice(0, -1) : href;
+	};
+
+	Utility.extension = function (data) {
+		var position = data.lastIndexOf('.');
+		return position > 0 ? data.slice(position + 1) : '';
+	};
+
+	Utility.join = function () {
+		return Array.prototype.join
+			.call(arguments, '/')
+			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	};
+
+	Utility.resolve = function () {
+		var result = [], root = '/';
+		var path = Array.prototype.join.call(arguments, '/');
+
+		if (!this.ROOT.test(path)) {
+			path = this.base() + '/' + path;
+		}
+
+		path = path.replace(window.location.origin, '');
+		path = path.replace(/^\//, '');
+		path = path.replace(/\/$/, '');
+
+		var paths = path.split('/');
+
+		for (var i = 0, l = paths.length; i < l; i++) {
+			if (paths[i] === '.' || paths[i] === '') {
+				continue;
+			} else if (paths[i] === '..') {
+				if (i > 0) {
+					result.slice(i - 1, 1);
+				}
+			} else {
+				result.push(paths[i]);
+			}
+		}
+
+		return root + result.join('/');
 	};
 
 	var Batcher = {};
@@ -661,12 +704,6 @@
 		this.base = options.base === undefined ? this.base : Global$1.utility.createBase(options.base);
 	};
 
-	// Router.popstate = function (e) {
-	// };
-
-	// Router.click = function (e) {
-	// };
-
 	Router.scroll = function (x, y) {
 		window.scroll(x, y);
 	};
@@ -839,9 +876,9 @@
 		}
 
 		if (this.hash) {
-			location.href = Global$1.utility.joinSlash(location.base, '/#/', location.pathname);
+			location.href = Global$1.utility.join(location.base, '/#/', location.pathname);
 		} else {
-			location.href =  Global$1.utility.joinSlash(location.base, '/', location.pathname);
+			location.href =  Global$1.utility.join(location.base, '/', location.pathname);
 		}
 
 		location.href += location.search;
@@ -945,6 +982,12 @@
 
 	var Transformer = {};
 
+	/*
+
+		templates
+
+	*/
+
 	Transformer._innerHandler = function (char) {
 		if (char === '\'') return '\\\'';
 		if (char === '\"') return '\\"';
@@ -960,8 +1003,9 @@
 		return index + value.length-1;
 	};
 
-	// NOTE: double backtick in strings or regex could possibly causes issues
 	Transformer.template = function (data) {
+		// NOTE: double backtick in strings or regex could possibly causes issues
+
 		var first = data.indexOf('`');
 		var second = data.indexOf('`', first+1);
 
@@ -1010,161 +1054,29 @@
 		} else {
 			throw new Error('Transformer miss matched backticks');
 		}
-		
+
 	};
 
-	var Loader = {};
+	/*
 
-	Loader.loads = [];
-	Loader.modules = {};
+		modules
 
-	Loader.esm = false;
-	Loader.est = false;
-	Loader.base = false;
-	Loader.isRan = false;
+	*/
 
-	Loader.patterns = {
+	Transformer.patterns = {
 		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
 		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
-		exp: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/,
-		exps: /export\s+(?:default\s*)?(?:function)?\s+(\w+)/g
+		exps: /export\s+(?:default|var|let|const)?\s+/g
 	};
 
-	Loader.setup = function (options) {
-		options = options || {};
-		this.loads = options.loads || this.loads;
-		this.esm = options.esm === undefined ? this.esm : options.esm;
-		this.est = options.est === undefined ? this.est : options.est;
-		this.base = options.base === undefined ? this.base : Global$1.utility.createBase(options.base);
-	};
-
-	Loader.change = function (data, callback) {
-
-		if (data.xhr.readyState === 4) {
-
-			if (data.xhr.status >= 200 && data.xhr.status < 400) {
-				data.text = data.xhr.responseText;
-
-				if (callback) {
-					callback(data);
-				}
-
-			} else {
-				throw new Error(data.xhr.responseText);
-			}
-
-		}
-
-	};
-
-	Loader.xhr = function (data, callback) {
-
-		if (data.xhr) {
-			return;
-		}
-
-		if (!data.url) {
-			throw new Error('Oxe.Loader - requires a url');
-		}
-
-		data.xhr = new XMLHttpRequest();
-		data.xhr.addEventListener('readystatechange', this.change.bind(this, data, callback));
-
-		data.xhr.open('GET', data.url);
-		data.xhr.send();
-	};
-
-	Loader.jsxhr = function (callback, data) {
-		var self = this;
-
-		if (self.est || data.est) {
-			data.text = Transformer.template(data.text);
-		}
-
-		if (self.esm || data.esm) {
-			data.ast = self.toAst(data.text);
-
-			if (data.ast.imports.length) {
-
-				var meta = {
-					count: 0,
-					imports: data.ast.imports,
-					total: data.ast.imports.length,
-					callback: function () {
-
-						if (++meta.count === meta.total) {
-							self.modules[data.url] = self.interpret(data.ast.cooked);
-
-							if (callback) {
-								callback();
-							}
-
-						}
-
-					}
-				};
-
-				for (var i = 0, l = meta.imports.length; i < l; i++) {
-					self.load(meta.imports[i].url, meta.callback);
-				}
-
-				return;
-			}
-		}
-
-		self.modules[data.url] = self.interpret(data.ast ? data.ast.cooked : data.text);
-
-		if (callback) {
-			callback();
-		}
-	};
-
-	Loader.js = function (data, callback) {
-		var self = this;
-
-		if (self.est || data.est || self.esm || data.esm) {
-
-			self.xhr(data, self.jsxhr.bind(self, callback));
-
-		} else {
-
-			data.element = document.createElement('script');
-
-			data.element.setAttribute('src', data.url);
-			data.element.setAttribute('type','module');
-			data.element.setAttribute('async', 'true');
-
-			if (callback) {
-				data.element.addEventListener('load', callback.bind(null, data));
-			}
-
-			document.head.appendChild(data.element);
-
-		}
-
-	};
-
-	Loader.css = function (data, callback) {
-		data.element = document.createElement('link');
-		data.element.setAttribute('href', data.url);
-		data.element.setAttribute('rel','stylesheet');
-		data.element.setAttribute('type', 'text/css');
-
-		if (callback) {
-			data.element.addEventListener('load', callback.bind(null, data));
-		}
-
-		document.head.appendChild(data.element);
-	};
-
-	Loader.getImports = function (data) {
-		var imp, imports = [];
-		var imps = data.match(this.patterns.imps) || [];
+	Transformer.getImports = function (text) {
+		var result = [];
+		var imps = text.match(this.patterns.imps) || [];
 
 		for (var i = 0, l = imps.length; i < l; i++) {
-			imp = imps[i].match(this.patterns.imp);
+			var imp = imps[i].match(this.patterns.imp);
 
-			imports[i] = {
+			result[i] = {
 				raw: imp[0],
 				name: imp[1],
 				url: imp[2]
@@ -1172,65 +1084,212 @@
 
 		}
 
-		return imports;
+		return result;
 	};
 
-	Loader.getExports = function (data) {
-		return data.match(this.patterns.exps) || [];
-	};
+	Transformer.getExports = function (text) {
+		var result = [];
+		var exps = text.match(this.patterns.exps) || [];
 
-	Loader.ext = function (data) {
-		var position = data.lastIndexOf('.');
-		return position ? data.slice(position+1) : '';
-	};
+		for (var i = 0, l = exps.length; i < l; i++) {
+			var exp = exps[i];
 
-	Loader.normalizeUrl = function (url) {
+			result[i] = {
+				raw: exp,
+				default: exp.indexOf('default') !== -1,
+			};
 
-		if (!this.ext(url)) {
-			url = url + '.js';
 		}
 
-		if (this.base && url.indexOf('/') !== 0) {
-			url = Global$1.utility.joinSlash(Global$1.base.replace(window.location.origin, ''), url);
+		return result;
+	};
+
+	Transformer.replaceImports = function (text, imps) {
+
+		if (!imps.length) {
+			return text;
 		}
 
-		return url;
-	};
+		for (var i = 0, l = imps.length; i < l; i++) {
+			var imp = imps[i];
 
-	Loader.handleImports = function (ast) {
+			imp.url = Global$1.utility.resolve(imp.url);
+			imp.extension = Global$1.utility.extension(imp.url);
 
-		for (var i = 0, l = ast.imports.length; i < l; i++) {
-			ast.imports[i].url = this.normalizeUrl(ast.imports[i].url);
-			var pattern = 'var ' + ast.imports[i].name + ' = $L.modules[\'' + ast.imports[i].url + '\']';
-			ast.cooked = ast.cooked.replace(ast.imports[i].raw, pattern);
+			if (!imp.extension) {
+				imp.url = imp.url + '.js';
+			}
+
+			var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\']';
+
+			text = text.replace(imp.raw, pattern);
 		}
 
+		return text;
 	};
 
-	Loader.handleExports = function (ast) {
-		ast.cooked = ast.cooked.replace('export default', 'return');
+	Transformer.replaceExports = function (text, exps) {
+
+		if (!exps.length) {
+			return text;
+		}
+
+		if (exps.length === 1) {
+			return text.replace(exps[0].raw, 'return ');
+		}
+
+		var i, l, pattern;
+
+		text = 'var $EXPORT = {};\n' + text;
+		text = text + '\nreturn $EXPORT;\n';
+
+		for (i = 0, l = exps.length; i < l; i++) {
+			text = text.replace(exps[i].raw, '$EXPORT.');
+		}
+
+		return text;
 	};
 
-	Loader.toAst = function (data) {
+	Transformer.ast = function (data) {
 		var ast = {};
+
 		ast.raw = data;
+		ast.cooked = data;
+
 		ast.imports = this.getImports(ast.raw);
 		ast.exports = this.getExports(ast.raw);
-		ast.cooked = ast.raw;
-		this.handleImports(ast);
-		this.handleExports(ast);
+
+		ast.cooked = this.replaceImports(ast.cooked, ast.imports);
+		ast.cooked = this.replaceExports(ast.cooked, ast.exports);
+
 		return ast;
 	};
 
-	Loader.interpret = function (data) {
+	var Loader = {};
+
+	Loader.loads = [];
+	Loader.modules = {};
+	Loader.isRan = false;
+	Loader.type = 'module';
+
+	Loader.setup = function (options) {
+		options = options || {};
+		this.type = options.type || this.type;
+		this.loads = options.loads || this.loads;
+	};
+
+	Loader.execute = function (data) {
 		data = '\'use strict\';\n\n' + data;
 
 		return (function(d, l, w) { 'use strict';
-
-			return new Function('$L', 'window', d)(l, w);
-
+			try {
+				return new Function('$LOADER', 'window', d)(l, w);
+			} catch (e) {
+				throw e;
+			}
 		}(data, this, window));
+	};
 
+	Loader.xhr = function (url, callback) {
+		var xhr = new XMLHttpRequest();
+
+		xhr.addEventListener('readystatechange', function () {
+			if (xhr.readyState === 4) {
+				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+					if (callback) callback(xhr.responseText);
+				} else {
+					throw new Error(xhr.responseText);
+				}
+			}
+		});
+
+		xhr.open('GET', url);
+		xhr.send();
+
+	};
+
+	Loader.transform = function (data, callback) {
+		var self = this;
+
+		if (
+			self.type === 'es' || data.type === 'es'
+			|| self.type === 'est' || data.type === 'est'
+		) {
+			data.text = Transformer.template(data.text);
+		}
+
+		if (
+			self.type === 'es' || data.type === 'es'
+			|| self.type === 'esm' || data.type === 'esm'
+		) {
+			data.ast = Transformer.ast(data.text);
+		}
+
+		if (!data.ast || !data.ast.imports.length) {
+			self.modules[data.url] = self.execute(data.ast ? data.ast.cooked : data.text);
+			return callback ? callback() : undefined;
+		}
+
+		var meta = {
+			count: 0,
+			imports: data.ast.imports,
+			total: data.ast.imports.length,
+			callback: function () {
+				if (++meta.count === meta.total) {
+					self.modules[data.url] = self.execute(data.ast.cooked);
+					if (callback) callback();
+				}
+			}
+		};
+
+		for (var i = 0, l = meta.imports.length; i < l; i++) {
+			self.load(meta.imports[i].url, meta.callback);
+		}
+
+	};
+
+	Loader.js = function (data, callback) {
+		var self = this;
+
+		if (
+			self.type === 'es' || data.type === 'es'
+			|| self.type === 'est' || data.type === 'est'
+			|| self.type === 'esm' || data.type === 'esm'
+		) {
+			self.xhr(data.url, function (text) {
+				data.text = text;
+				self.transform(data, callback);
+			});
+		} else {
+			var element = document.createElement('script');
+
+			self.modules[data.url] = callback;
+
+			element.setAttribute('src', data.url);
+			element.setAttribute('async', 'true');
+			element.setAttribute('o-load', '');
+
+			if (self.type === 'module' || data.type === 'module') {
+				element.setAttribute('type','module');
+			}
+
+			document.head.appendChild(element);
+		}
+
+	};
+
+	Loader.css = function (data, callback) {
+		var self = this;
+		var element = document.createElement('link');
+
+		self.modules[data.url] = callback;
+
+		element.setAttribute('href', data.url);
+		element.setAttribute('rel','stylesheet');
+		element.setAttribute('type', 'text/css');
+		element.setAttribute('o-load', '');
+
+		document.head.appendChild(element);
 	};
 
 	Loader.load = function (data, callback) {
@@ -1240,19 +1299,22 @@
 			data = { url: data };
 		}
 
-		data.url = self.normalizeUrl(data.url);
+		data.url = Global$1.utility.resolve(data.url);
+		data.extension = Global$1.utility.extension(data.url);
+
+		if (!data.extension) {
+			data.url = data.url + '.js';
+		}
 
 		if (data.url in self.modules) {
 			return callback ? callback() : undefined;
 		}
 
-		self.modules[data.url] = true;
+		self.modules[data.url] = undefined;
 
-		data.ext = self.ext(data.url);
-
-		if (data.ext === 'js' || data.ext === '') {
+		if (data.extension === 'js') {
 			self.js(data, callback);
-		} else if (data.ext === 'css') {
+		} else if (data.extension === 'css') {
 			self.css(data, callback);
 		} else {
 			throw new Error('Oxe.Loader - unreconized file type');
@@ -1261,6 +1323,7 @@
 	};
 
 	Loader.run = function () {
+		var load;
 
 		if (this.isRan) {
 			return;
@@ -1268,8 +1331,8 @@
 
 		this.isRan = true;
 
-		for (var i = 0, l = this.loads.length; i < l; i++) {
-			this.load(this.loads[i]);
+		while (load = this.loads.shift()) {
+			this.load(load);
 		}
 
 	};
@@ -2647,7 +2710,7 @@
 		this.add(this.container);
 	};
 
-	var base = document.head.querySelector('base');
+	// var base = document.head.querySelector('base');
 
 	var Global$1 = Object.defineProperties({}, {
 		window: {
@@ -2659,19 +2722,19 @@
 		document: {
 			enumerable: true,
 			get: function () {
-				return document;
+				return window.document;
 			}
 		},
 		body: {
 			enumerable: true,
 			get: function () {
-				return document.body;
+				return window.document.body;
 			}
 		},
 		head: {
 			enumerable: true,
 			get: function () {
-				return document.head;
+				return window.document.head;
 			}
 		},
 		location: {
@@ -2683,19 +2746,20 @@
 		currentScript: {
 			enumerable: true,
 			get: function () {
-				return (document._currentScript || document.currentScript);
+				return (window.document._currentScript || window.document.currentScript);
 			}
 		},
 		ownerDocument: {
 			enumerable: true,
 			get: function () {
-				return (document._currentScript || document.currentScript).ownerDocument;
+				return (window.document._currentScript || window.document.currentScript).ownerDocument;
 			}
 		},
 		base: {
 			enumerable: true,
 			get: function () {
-				return (base ? base.href : null) || window.location.href
+				return this.utility.base();
+				// return base ? base.href : window.location.origin;
 			}
 		},
 		clicks: {
@@ -2792,7 +2856,7 @@
 		}
 	});
 
-	Global$1.window.addEventListener('click', function (e) {
+	Global$1.document.addEventListener('click', function (e) {
 
 			// if shadow dom use
 			var target = e.path ? e.path[0] : e.target;
@@ -2855,11 +2919,11 @@
 
 	}, true);
 
-	Global$1.window.addEventListener('popstate', function (e) {
+	Global$1.document.addEventListener('popstate', function (e) {
 		Global$1.router.navigate(e.state || window.location.href, true);
 	}, true);
 
-	Global$1.window.addEventListener('input', function (e) {
+	Global$1.document.addEventListener('input', function (e) {
 
 		if (
 			e.target.type !== 'checkbox'
@@ -2874,14 +2938,32 @@
 
 	}, true);
 
-	Global$1.window.addEventListener('change', function (e) {
+	Global$1.document.addEventListener('change', function (e) {
 		Global$1.binder.render({
 			name: 'o-value',
 			element: e.target,
 		}, 'view');
 	}, true);
 
-	Global$1.window.addEventListener('reset', function (e) {
+	Global$1.document.addEventListener('load', function (e) {
+		var element = e.target;
+
+		if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
+			return;
+		}
+
+		var path = Global$1.utility.resolve(element.src || element.href);
+		var callback = Global$1.loader.modules[path];
+
+		Global$1.loader.modules[path] = element;
+
+		if (typeof callback === 'function') {
+			callback();
+		}
+
+	}, true);
+
+	Global$1.document.addEventListener('reset', function (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -2900,12 +2982,12 @@
 
 	}, true);
 
-	Global$1.window.addEventListener('submit', function (e) {
+	Global$1.document.addEventListener('submit', function (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
 		if (submit) {
-			
+
 			e.preventDefault();
 
 			var container = Global$1.utility.getContainer(element);

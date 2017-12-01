@@ -1,8 +1,11 @@
 
 var Utility = {};
 
+Utility._ = {};
+
 Utility.PATH = /\s*\|.*/;
 Utility.PREFIX = /(data-)?o-/;
+Utility.ROOT = /^(https?:)?\/?\//;
 Utility.TYPE = /(data-)?o-|-.*$/g;
 Utility.SPLIT_MODIFIERS = /\s|\s?,\s?/;
 
@@ -144,12 +147,6 @@ Utility.getByPath = function (data, path) {
 	return data[keys[last]];
 };
 
-Utility.joinSlash = function () {
-	return Array.prototype.join
-		.call(arguments, '/')
-		.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
-};
-
 Utility.joinDot = function () {
 	return Array.prototype.join
 		.call(arguments, '.')
@@ -169,5 +166,51 @@ Utility.getContainer = function getContainer (element) {
 	console.warn('Oxe.utility - could not find container uid');
 	console.warn(element);
 };
+
+Utility.base = function () {
+	this._.base = this._.base || window.document.head.querySelector('base');
+	var href = this._.base ? this._.base.href : window.location.origin;
+	return href.slice(-1) === '/' ? href.slice(0, -1) : href;
+};
+
+Utility.extension = function (data) {
+	var position = data.lastIndexOf('.');
+	return position > 0 ? data.slice(position + 1) : '';
+};
+
+Utility.join = function () {
+	return Array.prototype.join
+		.call(arguments, '/')
+		.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+};
+
+Utility.resolve = function () {
+	var result = [], root = '/';
+	var path = Array.prototype.join.call(arguments, '/');
+
+	if (!this.ROOT.test(path)) {
+		path = this.base() + '/' + path;
+	}
+
+	path = path.replace(window.location.origin, '');
+	path = path.replace(/^\//, '');
+	path = path.replace(/\/$/, '');
+
+	var paths = path.split('/');
+
+	for (var i = 0, l = paths.length; i < l; i++) {
+		if (paths[i] === '.' || paths[i] === '') {
+			continue;
+		} else if (paths[i] === '..') {
+			if (i > 0) {
+				result.slice(i - 1, 1);
+			}
+		} else {
+			result.push(paths[i]);
+		}
+	}
+
+	return root + result.join('/');
+}
 
 export default Utility;

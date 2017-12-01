@@ -4,11 +4,12 @@
 A mighty tinny web components framework/library.
 
 ### Features
+- Small
+- Robust
 - Routing
+- Auth handling
 - Module loading
-- Authorization handling
-<!-- - Really Small 8.09KB gzipped and 27.08KB uncompressed -->
-- In browser ES6/ESM Module and Template String support (supporting export default)
+- In browser ES6/ESM Module and Template String pollyfill support (only export default)
 
 ### Support
 - IE10~
@@ -59,8 +60,7 @@ Oxe.setup({
 		auth: true, // enables keeper for all fetches
 	},
 	loader: {
-		esm: true, // Enables ES6 module re-writes support for all loads
-		est: true, // Enables ES6 template string re-writes support for all loads
+		type: 'es', // Enables ES6 module and template string re-write support
 		loads: [
 			'/components/e-menu.js'
 		]
@@ -137,15 +137,18 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 		- `attributed: Function` Triggered attribute change
 
 ### Oxe.loader
-ES6 import and export module support. Currently `export default` is the only export format supported. Can handle css file loading.
+ES6 import and export module support. Currently `export default` is the only import/export format supported. Can handle css file loading.
 - `options: Object`
-	- `esm: Boolean` Enables ES6 module re-writes
-	- `est: Boolean` Enables ES6 template string re-writes
+	- `type: String` The method in which the loader will load files.
+		- `module` Appends a module script tag **default**
+		- `script` Appends a standard script tag
+		- `es` Enables ES6 module and template string re-writes uses XHR
+		- `esm` Enables ES6 module re-writes uses XHR (Note: default export/import only)
+		- `est` Enables ES6 template string re-writes uses XHR (Note: Any backtick will be re-writen)
 	- `loads: Array<Object, String>` Adds load objects or strings such as non route components
 		- `load: Object, String`
-			- `url: String` Path to a web component JS url
-			- `esm: Boolean` Enables ES6 module re-writes on individually
-			- `est: Boolean` Enables ES6 template string re-writes individually
+			- `url: String` Path to file resources
+			- `type: String` If not defined uses the default type
 - `setup: Function`
 	- `options: Object` Accepts the above options
 - `load: Function`
@@ -228,6 +231,7 @@ Automatically use the default action for non origin matching hrefs
 	- `navigated: Event`
 
 ### Oxe.fetcher
+Uses XHR
 - `options: Object`
 	- `auth: Boolean` Enables Oxe.Keeper (default: false)
 	- `request: Function` Intercepts the request if the return value is false the fetch will not continue
@@ -320,25 +324,25 @@ Automatically use the default action for non origin matching hrefs
 Alias for `Oxe.router.location`
 
 ### Oxe.ownerDocument
-Alias for `document.currentScript.ownerDocument`
+Alias for `window.document.currentScript.ownerDocument`
 
 ### Oxe.currentScript
-Alias for `document.currentScript`
+Alias for `window.document.currentScript`
 
 ### Oxe.document
-Alias for `document`
+Alias for `window.document`
 
 ### Oxe.window
 Alias for `window`
 
 ### Oxe.head
-Alias for `document.head`
+Alias for `window.document.head`
 
 ### Oxe.body
-Alias for `document.body`
+Alias for `window.document.body`
 
 ### Oxe.base
-Alias for `base.href || window.location.href`
+Alias for `document.head.querySelector('base').href || window.location.href`
 
 ### Oxe.global
 A global object for you

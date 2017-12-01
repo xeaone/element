@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 	<script>
 		var href = window.location.origin === 'https://alexanderelias.github.io' ? '/oxe/' : '/';
-		document.head.insertAdjacentHTML('afterbegin', '<base href="' + href + '">');
+		document.head.insertAdjacentHTML('afterbegin', '<base href=\"' + href + '\">');
 	</script>
 
 	<meta charset="utf-8">
@@ -16,7 +17,7 @@
 	<script src="assets/oxe.js" defer></script>
 	<script src="assets/prism.js" defer></script>
 	<script src="index.js" defer></script>
-	<!-- <style>body { opacity: 0; }</style> -->
+
 	<link rel="stylesheet" href="index.css">
 </head>
 <body>
@@ -27,9 +28,9 @@
 	</div>
 
 	<div class="menu">
-		<a href=".">Home</a>
-		<a href="test">Test</a>
-		<a href="performance" o-external>Performance</a>
+		<a href="./">Home</a>
+		<a href="./test">Test</a>
+		<a href="./performance" o-external>Performance</a>
 	</div>
 
 	<o-view></o-view>

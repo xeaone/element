@@ -11,7 +11,7 @@ import Keeper from './keeper';
 import Model from './model';
 import View from './view';
 
-var base = document.head.querySelector('base');
+// var base = document.head.querySelector('base');
 
 var Global = Object.defineProperties({}, {
 	window: {
@@ -23,19 +23,19 @@ var Global = Object.defineProperties({}, {
 	document: {
 		enumerable: true,
 		get: function () {
-			return document;
+			return window.document;
 		}
 	},
 	body: {
 		enumerable: true,
 		get: function () {
-			return document.body;
+			return window.document.body;
 		}
 	},
 	head: {
 		enumerable: true,
 		get: function () {
-			return document.head;
+			return window.document.head;
 		}
 	},
 	location: {
@@ -47,19 +47,20 @@ var Global = Object.defineProperties({}, {
 	currentScript: {
 		enumerable: true,
 		get: function () {
-			return (document._currentScript || document.currentScript);
+			return (window.document._currentScript || window.document.currentScript);
 		}
 	},
 	ownerDocument: {
 		enumerable: true,
 		get: function () {
-			return (document._currentScript || document.currentScript).ownerDocument;
+			return (window.document._currentScript || window.document.currentScript).ownerDocument;
 		}
 	},
 	base: {
 		enumerable: true,
 		get: function () {
-			return (base ? base.href : null) || window.location.href
+			return this.utility.base();
+			// return base ? base.href : window.location.origin;
 		}
 	},
 	clicks: {
