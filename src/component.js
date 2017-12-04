@@ -17,7 +17,7 @@ Component.handleSlots = function (element, template) {
 		}
 
 	}
-	
+
 };
 
 Component.handleTemplate = function (data) {
@@ -66,6 +66,7 @@ Component.define = function (options) {
 
 	// options.view = options.view || {};
 	options.model = options.model || {};
+	options.shadow = options.shadow || false;
 	options.template = self.handleTemplate(options);
 
 	options.proto = Object.create(HTMLElement.prototype);
@@ -92,13 +93,13 @@ Component.define = function (options) {
 		element.events = Global.events.data[uid] = options.events;
 		element.modifiers = Global.modifiers.data[uid] = options.modifiers;
 
-		// might want to handle default slot
-		// might want to overwrite content
-		self.handleSlots(element, options.template);
-
 		if (options.shadow) {
-			element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
+			// element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
+			element.attachShadow({ mode: 'open' }).appendChild(document.importNode(options.template.content, true));
 		} else {
+			// might want to handle default slot
+			// might want to overwrite content
+			self.handleSlots(element, options.template);
 			element.appendChild(document.importNode(options.template.content, true));
 		}
 

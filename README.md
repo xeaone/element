@@ -124,6 +124,7 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 ### Oxe.component
 - `define: Function` Defines a custom web component
 	- `options: Object`
+		- `shadow: Boolean` **Default: false** uses shadow DOM
 		- `name: String` **Required** the tag name
 		- `html: String` An HTML string
 		- `template: Element` A Element

@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.7.0
+	Version: 2.7.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -31,7 +31,7 @@
 			}
 
 		}
-		
+
 	};
 
 	Component.handleTemplate = function (data) {
@@ -80,6 +80,7 @@
 
 		// options.view = options.view || {};
 		options.model = options.model || {};
+		options.shadow = options.shadow || false;
 		options.template = self.handleTemplate(options);
 
 		options.proto = Object.create(HTMLElement.prototype);
@@ -106,13 +107,13 @@
 			element.events = Global$1.events.data[uid] = options.events;
 			element.modifiers = Global$1.modifiers.data[uid] = options.modifiers;
 
-			// might want to handle default slot
-			// might want to overwrite content
-			self.handleSlots(element, options.template);
-
 			if (options.shadow) {
-				element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
+				// element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
+				element.attachShadow({ mode: 'open' }).appendChild(document.importNode(options.template.content, true));
 			} else {
+				// might want to handle default slot
+				// might want to overwrite content
+				self.handleSlots(element, options.template);
 				element.appendChild(document.importNode(options.template.content, true));
 			}
 
