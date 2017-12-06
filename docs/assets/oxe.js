@@ -193,13 +193,16 @@
 		var data = {};
 
 		for (var i = 0, l = elements.length; i < l; i++) {
+
 			var element = elements[i];
 			var path = element.getAttribute('o-value');
+
 			if (path) {
 				path = path.replace(/\s*\|.*/, '');
 				var name = path.split('.').slice(-1);
 				data[name] = Utility.getByPath(model, path);
 			}
+
 		}
 
 		return data;
@@ -1690,6 +1693,7 @@
 				opt.element.checked = data;
 			}
 
+			data = this.modifyData(opt, data);
 			this.setData(opt, data);
 
 		} else if (opt.element.nodeName === 'SELECT') {
@@ -1714,6 +1718,7 @@
 
 			}
 
+			data = this.modifyData(opt, data);
 			this.setData(opt, data);
 
 		} else if (opt.element.type === 'radio') {
@@ -1728,9 +1733,13 @@
 				if (caller === 'view') {
 
 					if (opt.element === element) {
+
 						data = i;
 						element.checked = true;
+
+						data = this.modifyData(opt, data);
 						this.setData(opt, data);
+
 					} else {
 						element.checked = false;
 					}
@@ -1751,6 +1760,7 @@
 				opt.element.value = data;
 			}
 
+			data = this.modifyData(opt, data);
 			this.setData(opt, data);
 
 		}
