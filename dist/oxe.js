@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.7.1
+	Version: 2.7.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2090,6 +2090,9 @@
 	};
 
 	Keeper.unauthorized = function (result) {
+		// NOTE might want to remove token and user
+		// this.removeToken();
+		// this.removeUser();
 
 		if (typeof this._.unauthorized === 'string') {
 			Global$1.router.navigate(this._.unauthorized);
@@ -2930,10 +2933,6 @@
 
 	}, true);
 
-	Global$1.document.addEventListener('popstate', function (e) {
-		Global$1.router.navigate(e.state || window.location.href, true);
-	}, true);
-
 	Global$1.document.addEventListener('input', function (e) {
 
 		if (
@@ -3033,6 +3032,10 @@
 
 		}
 
+	}, true);
+
+	Global$1.window.addEventListener('popstate', function (e) {
+		Global$1.router.navigate(e.state || window.location.href, true);
 	}, true);
 
 	new Global$1.window.MutationObserver(function (mutations) {
