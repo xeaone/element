@@ -247,6 +247,7 @@ Render.value = function (opt, caller) {
 			opt.element.checked = data;
 		}
 
+		data = this.modifyData(opt, data);
 		this.setData(opt, data);
 
 	} else if (opt.element.nodeName === 'SELECT') {
@@ -271,6 +272,7 @@ Render.value = function (opt, caller) {
 
 		}
 
+		data = this.modifyData(opt, data);
 		this.setData(opt, data);
 
 	} else if (opt.element.type === 'radio') {
@@ -285,9 +287,13 @@ Render.value = function (opt, caller) {
 			if (caller === 'view') {
 
 				if (opt.element === element) {
+
 					data = i;
 					element.checked = true;
+
+					data = this.modifyData(opt, data);
 					this.setData(opt, data);
+
 				} else {
 					element.checked = false;
 				}
@@ -308,6 +314,7 @@ Render.value = function (opt, caller) {
 			opt.element.value = data;
 		}
 
+		data = this.modifyData(opt, data);
 		this.setData(opt, data);
 
 	}

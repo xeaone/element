@@ -70,13 +70,16 @@ Utility.formData = function (form, model) {
 	var data = {};
 
 	for (var i = 0, l = elements.length; i < l; i++) {
+
 		var element = elements[i];
 		var path = element.getAttribute('o-value');
+
 		if (path) {
 			path = path.replace(/\s*\|.*/, '');
 			var name = path.split('.').slice(-1);
 			data[name] = Utility.getByPath(model, path);
 		}
+
 	}
 
 	return data;
