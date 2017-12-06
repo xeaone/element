@@ -21,7 +21,7 @@
 			}
 
 		}
-		
+
 	};
 
 	Component.handleTemplate = function (data) {
@@ -70,6 +70,7 @@
 
 		// options.view = options.view || {};
 		options.model = options.model || {};
+		options.shadow = options.shadow || false;
 		options.template = self.handleTemplate(options);
 
 		options.proto = Object.create(HTMLElement.prototype);
@@ -96,13 +97,13 @@
 			element.events = Global$1.events.data[uid] = options.events;
 			element.modifiers = Global$1.modifiers.data[uid] = options.modifiers;
 
-			// might want to handle default slot
-			// might want to overwrite content
-			self.handleSlots(element, options.template);
-
 			if (options.shadow) {
-				element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
+				// element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
+				element.attachShadow({ mode: 'open' }).appendChild(document.importNode(options.template.content, true));
 			} else {
+				// might want to handle default slot
+				// might want to overwrite content
+				self.handleSlots(element, options.template);
 				element.appendChild(document.importNode(options.template.content, true));
 			}
 
@@ -2079,6 +2080,9 @@
 	};
 
 	Keeper.unauthorized = function (result) {
+		// NOTE might want to remove token and user
+		// this.removeToken();
+		// this.removeUser();
 
 		if (typeof this._.unauthorized === 'string') {
 			Global$1.router.navigate(this._.unauthorized);
@@ -2919,10 +2923,6 @@
 
 	}, true);
 
-	Global$1.document.addEventListener('popstate', function (e) {
-		Global$1.router.navigate(e.state || window.location.href, true);
-	}, true);
-
 	Global$1.document.addEventListener('input', function (e) {
 
 		if (
@@ -3022,6 +3022,10 @@
 
 		}
 
+	}, true);
+
+	Global$1.window.addEventListener('popstate', function (e) {
+		Global$1.router.navigate(e.state || window.location.href, true);
 	}, true);
 
 	new Global$1.window.MutationObserver(function (mutations) {

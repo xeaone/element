@@ -63,10 +63,6 @@ Global.document.addEventListener('click', function (e) {
 
 }, true);
 
-Global.document.addEventListener('popstate', function (e) {
-	Global.router.navigate(e.state || window.location.href, true);
-}, true);
-
 Global.document.addEventListener('input', function (e) {
 
 	if (
@@ -166,6 +162,10 @@ Global.document.addEventListener('submit', function (e) {
 
 	}
 
+}, true);
+
+Global.window.addEventListener('popstate', function (e) {
+	Global.router.navigate(e.state || window.location.href, true);
 }, true);
 
 new Global.window.MutationObserver(function (mutations) {

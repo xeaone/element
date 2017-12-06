@@ -97,6 +97,9 @@ Keeper.forbidden = function (result) {
 };
 
 Keeper.unauthorized = function (result) {
+	// NOTE might want to remove token and user
+	// this.removeToken();
+	// this.removeUser();
 
 	if (typeof this._.unauthorized === 'string') {
 		Global.router.navigate(this._.unauthorized);
