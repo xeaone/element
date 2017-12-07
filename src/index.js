@@ -126,14 +126,16 @@ Global.document.addEventListener('submit', function (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-	if (submit) {
+	if (!submit) return;
 
-		e.preventDefault();
+	e.preventDefault();
 
-		var container = Global.utility.getContainer(element);
-		var uid = container.getAttribute('o-uid');
-		var model = Global.model.data[uid];
-		var data = Global.utility.formData(element, model);
+	var container = Global.utility.getContainer(element);
+	var uid = container.getAttribute('o-uid');
+	var model = Global.model.data[uid];
+
+	Global.utility.formData(element, model, function (data) {
+
 		var method = Global.utility.getByPath(container.events, submit);
 		var options = method.call(model, data, e);
 
@@ -160,7 +162,7 @@ Global.document.addEventListener('submit', function (e) {
 			element.reset();
 		}
 
-	}
+	});
 
 }, true);
 

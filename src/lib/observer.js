@@ -20,9 +20,10 @@ Observer.defineProperties = function (data, callback, path, redefine) {
 
 	}
 
-	Object.defineProperties(data, propertyDescriptors);
-
-	Observer.overrideObjectMethods(data, callback, path);
+	if (data.constructor === Object) {
+		Object.defineProperties(data, propertyDescriptors);
+		Observer.overrideObjectMethods(data, callback, path);
+	}
 
 	if (data.constructor === Array) {
 		Observer.overrideArrayMethods(data, callback, path);

@@ -305,13 +305,7 @@ Render.value = function (opt, caller) {
 		}
 
 	} else if (opt.element.type === 'file') {
-
-		if (opt.element.multiple) {
-			data = opt.element.files;
-		} else {
-			data = opt.element.files[0];
-		}
-
+		data = opt.element.files;
 		data = this.modifyData(opt, data);
 		this.setData(opt, data);
 
