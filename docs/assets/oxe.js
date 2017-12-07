@@ -226,24 +226,61 @@
 		return base;
 	};
 
-	Utility.formData = function (form, model) {
+	Utility.formData = function (form, model, callback) {
 		var elements = form.querySelectorAll('[o-value]');
 		var data = {};
+
+		var done = 0;
+		var count = 0;
 
 		for (var i = 0, l = elements.length; i < l; i++) {
 
 			var element = elements[i];
 			var path = element.getAttribute('o-value');
 
-			if (path) {
-				path = path.replace(/\s*\|.*/, '');
-				var name = path.split('.').slice(-1);
-				data[name] = Utility.getByPath(model, path);
+			if (!path) continue;
+
+			path = path.replace(/\s*\|.*/, '');
+			var name = path.split('.').slice(-1);
+
+			data[name] = Utility.getByPath(model, path);
+
+			if (!data[name] && data[name].constructor !== FileList) continue
+
+			var files = data[name];
+			data[name] = [];
+
+			for (var c = 0, t = files.length; c < t; c++) {
+				var file = files[c];
+				var reader = new FileReader();
+
+				count++;
+
+				reader.onload = function(d, n, f, e) {
+					d[n].push({
+						type: f.type,
+						size: f.size,
+						name: f.name,
+						data: e.target.result
+					});
+
+					done++;
+
+					if (i === l && count === done) {
+						callback(d);
+					}
+
+				}.bind(null, data, name, file);
+
+				reader.readAsText(file);
 			}
 
 		}
 
-		return data;
+		if (i === l && count === done) {
+			callback(data);
+		}
+
 	};
 
 	Utility.traverse = function (data, path, callback) {
@@ -1788,6 +1825,11 @@
 
 			}
 
+		} else if (opt.element.type === 'file') {
+			data = opt.element.files;
+			data = this.modifyData(opt, data);
+			this.setData(opt, data);
+
 		} else {
 
 			data = data === undefined ? '' : data;
@@ -3034,14 +3076,16 @@
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-		if (submit) {
+		if (!submit) return;
 
-			e.preventDefault();
+		e.preventDefault();
 
-			var container = Global$1.utility.getContainer(element);
-			var uid = container.getAttribute('o-uid');
-			var model = Global$1.model.data[uid];
-			var data = Global$1.utility.formData(element, model);
+		var container = Global$1.utility.getContainer(element);
+		var uid = container.getAttribute('o-uid');
+		var model = Global$1.model.data[uid];
+
+		Global$1.utility.formData(element, model, function (data) {
+
 			var method = Global$1.utility.getByPath(container.events, submit);
 			var options = method.call(model, data, e);
 
@@ -3068,7 +3112,7 @@
 				element.reset();
 			}
 
-		}
+		});
 
 	}, true);
 
