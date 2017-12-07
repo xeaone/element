@@ -75,10 +75,25 @@ Oxe.component.define({
 			}
 		}
 	},
+	properties: {
+		add: {
+			enumerable: true,
+			value: function () {
+				var total = 0;
+				for (var i = 0; i < arguments.length; i++) {
+					total += arguments[i];
+				}
+				return total;
+			}
+		}
+	},
 	created: function () {
 		var self = this;
 
 		window.self = self;
+
+		var total = self.add(1, 2, 3);
+		console.log(total);
 
 		setTimeout(function () {
 

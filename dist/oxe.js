@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.7.3
+	Version: 2.7.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -71,19 +71,63 @@
 		var self = this;
 
 		if (!options.name) {
-			throw new Error('Oxe.component.define requires name');
+			throw new Error('Oxe.component.define - Requires name');
 		}
 
 		if (!options.html && !options.query && !options.element) {
-			throw new Error('Oxe.component.define requires html, query, or element');
+			throw new Error('Oxe.component.define - Requires html, query, or element');
 		}
+
+		if (options.name in self.data) {
+			throw new Error('Oxe.component.define - Component already defined');
+		}
+
+		self.data[options.name] = [];
 
 		// options.view = options.view || {};
 		options.model = options.model || {};
 		options.shadow = options.shadow || false;
+		options.properties = options.properties || {};
 		options.template = self.handleTemplate(options);
 
-		options.proto = Object.create(HTMLElement.prototype);
+		options.properties.uid = {
+			enumerable: true,
+			get: function () {
+				return this.getAttribute('o-uid');
+			}
+		};
+
+		options.properties.model = {
+			enumerable: true,
+			configurable: true,
+			get: function () {
+				var uid = this.uid;
+				return Global$1.model.get(uid);
+			},
+			set: function (data) {
+				var uid = this.uid;
+				data = data && data.constructor === Object ? data : {};
+				Global$1.model.set(uid, data);
+			}
+		};
+
+		options.properties.events = {
+			enumerable: true,
+			get: function () {
+				var uid = this.uid;
+				return Global$1.events.data[uid];
+			}
+		};
+
+		options.properties.modifiers = {
+			enumerable: true,
+			get: function () {
+				var uid = this.uid;
+				return Global$1.modifiers.data[uid];
+			}
+		};
+
+		options.proto = Object.create(HTMLElement.prototype, options.properties);
 
 		options.proto.attachedCallback = options.attached;
 		options.proto.detachedCallback = options.detached;
@@ -91,21 +135,13 @@
 
 		options.proto.createdCallback = function () {
 			var element = this;
-
-			if (!(options.name in self.data)) {
-				self.data[options.name] = [];
-			}
-
-			self.data[options.name].push(element);
-
 			var uid = options.name + '-' + self.data[options.name].length;
 
 			element.setAttribute('o-uid', uid);
 
-			// element.view = Global.view.data[uid] = options.view;
-			element.model = Global$1.model.set(uid, options.model)[uid];
-			element.events = Global$1.events.data[uid] = options.events;
-			element.modifiers = Global$1.modifiers.data[uid] = options.modifiers;
+			Global$1.model.set(uid, options.model);
+			Global$1.events.data[uid] = options.events;
+			Global$1.modifiers.data[uid] = options.modifiers;
 
 			if (options.shadow) {
 				// element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
@@ -116,6 +152,8 @@
 				self.handleSlots(element, options.template);
 				element.appendChild(document.importNode(options.template.content, true));
 			}
+
+			self.data[options.name].push(element);
 
 			if (options.created) {
 				options.created.call(element);
