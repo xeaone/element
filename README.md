@@ -132,6 +132,7 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 		- `model: Object<Any>` See Oxe.controller.model
 		- `events: Object<Function>` See Oxe.controller.events
 		- `modifiers: Object<Function>` See Oxe.controller.modifiers
+		- `properties: Object` Property descriptors added to the element prototype
 		- `created: Function` Triggered once on DOM creation
 		- `attached: Function` Triggered on each DOM attachment
 		- `detached: Function` Triggered on each DOM detachment
