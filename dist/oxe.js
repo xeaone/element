@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.6
+	Version: 2.8.7
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -923,8 +923,6 @@
 			location.search = '';
 		}
 
-		location.routePath = location.pathname;
-
 		if (this.trailing) {
 			location.pathname = location.pathname + '/';
 		} else {
@@ -932,15 +930,17 @@
 		}
 
 		if (location.pathname.charAt(0) !== '/') {
+			location._pathname = '/' + location.pathname;
 			location.pathname = Global$1.utility.join(location.basename, location.pathname);
-		}
-
-		if (this.hash) {
-			location.href = Global$1.utility.join(location.origin, '/#/', location.pathname);
 		} else {
-			location.href =  Global$1.utility.join(location.origin, location.pathname);
+			location._pathname = location.pathname;
 		}
 
+		location._href =  Global$1.utility.join(location.origin, this.hash ? '/#/' : '/', location.pathname);
+		location._href += location.search;
+		location._href += location.hash;
+
+		location.href =  Global$1.utility.join(location.origin, location.pathname);
 		location.href += location.search;
 		location.href += location.hash;
 
@@ -987,7 +987,7 @@
 
 		if (typeof data === 'string') {
 			location = this.toLocation(data);
-			location.route = this.find(location.routePath) || {};
+			location.route = this.find(location._pathname) || {};
 			location.title = location.route.title || '';
 			location.query = this.toQuery(location.search);
 			location.parameters = this.toParameter(location.route.path, location.pathname);
@@ -1008,7 +1008,7 @@
 		}
 
 		this.location = location;
-		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
+		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this._location.href);
 
 		if (this.location.route.handler) {
 			this.location.route.handler(this.location);

@@ -172,8 +172,6 @@ Router.toLocation = function (path) {
 		location.search = '';
 	}
 
-	location.routePath = location.pathname;
-
 	if (this.trailing) {
 		location.pathname = location.pathname + '/';
 	} else {
@@ -181,15 +179,17 @@ Router.toLocation = function (path) {
 	}
 
 	if (location.pathname.charAt(0) !== '/') {
+		location._pathname = '/' + location.pathname;
 		location.pathname = Global.utility.join(location.basename, location.pathname);
-	}
-
-	if (this.hash) {
-		location.href = Global.utility.join(location.origin, '/#/', location.pathname);
 	} else {
-		location.href =  Global.utility.join(location.origin, location.pathname);
+		location._pathname = location.pathname;
 	}
 
+	location._href =  Global.utility.join(location.origin, this.hash ? '/#/' : '/', location.pathname);
+	location._href += location.search;
+	location._href += location.hash;
+
+	location.href =  Global.utility.join(location.origin, location.pathname);
 	location.href += location.search;
 	location.href += location.hash;
 
@@ -236,7 +236,7 @@ Router.navigate = function (data, replace) {
 
 	if (typeof data === 'string') {
 		location = this.toLocation(data);
-		location.route = this.find(location.routePath) || {};
+		location.route = this.find(location._pathname) || {};
 		location.title = location.route.title || '';
 		location.query = this.toQuery(location.search);
 		location.parameters = this.toParameter(location.route.path, location.pathname);
@@ -257,7 +257,7 @@ Router.navigate = function (data, replace) {
 	}
 
 	this.location = location;
-	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
+	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this._location.href);
 
 	if (this.location.route.handler) {
 		this.location.route.handler(this.location);
