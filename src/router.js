@@ -257,7 +257,7 @@ Router.navigate = function (data, replace) {
 	}
 
 	this.location = location;
-	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this._location.href);
+	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location._href);
 
 	if (this.location.route.handler) {
 		this.location.route.handler(this.location);
