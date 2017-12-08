@@ -157,7 +157,7 @@ Router.toLocation = function (path) {
 	}
 
 	var hashIndex = location.pathname.indexOf('#');
-	if (hashIndex !== -1) {
+	if (hashIndex !== -1 && this.hash && location.pathname.indexOf('#', hashIndex)) {
 		location.hash = location.pathname.slice(hashIndex);
 		location.pathname = location.pathname.slice(0, hashIndex);
 	} else {

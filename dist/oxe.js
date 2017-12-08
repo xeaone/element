@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.11
+	Version: 2.8.12
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -908,7 +908,7 @@
 		}
 
 		var hashIndex = location.pathname.indexOf('#');
-		if (hashIndex !== -1) {
+		if (hashIndex !== -1 && this.hash && location.pathname.indexOf('#', hashIndex)) {
 			location.hash = location.pathname.slice(hashIndex);
 			location.pathname = location.pathname.slice(0, hashIndex);
 		} else {
