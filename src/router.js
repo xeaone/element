@@ -17,11 +17,12 @@ Router.trailing = false;
 
 Router.setup = function (options) {
 	options = options || {};
+	this.container = options.container;
 	this.auth = options.auth === undefined ? this.auth : options.auth;
 	this.view = options.view === undefined ? this.view : options.view;
 	this.hash = options.hash === undefined ? this.hash : options.hash;
 	this.routes = options.routes === undefined ? this.routes: options.routes;
-	this.external = options.external === undefined ? this.external: options.external;
+	this.external = options.external === undefined ? this.external : options.external;
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 };
 
@@ -151,7 +152,7 @@ Router.toLocation = function (path) {
 		location.pathname = location.pathname.slice(location.origin.length);
 	}
 
-	if (this.hash && location.pathname.indexOf(location.basename + '#/') === 0) {
+	if (this.hash) {
 		location.pathname = location.pathname.replace(location.basename + '#/', location.basename);
 	}
 
@@ -178,14 +179,12 @@ Router.toLocation = function (path) {
 	}
 
 	if (location.pathname.charAt(0) !== '/') {
-		location.pathname = '/' + location.pathname;
+		location.pathname = Global.utility.join(location.basename, location.pathname);
 	}
 
 	if (this.hash) {
-		location.pathname = Global.utility.join(location.basename, '/#/', location.pathname);
-		location.href = Global.utility.join(location.origin, location.base, '/#/', location.pathname);
+		location.href = Global.utility.join(location.origin, '/#/', location.pathname);
 	} else {
-		location.pathname = Global.utility.join(location.basename, location.pathname);
 		location.href =  Global.utility.join(location.origin, location.pathname);
 	}
 

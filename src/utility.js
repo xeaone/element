@@ -198,7 +198,8 @@ Utility.extension = function (data) {
 Utility.join = function () {
 	return Array.prototype.join
 		.call(arguments, '/')
-		.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+		.replace(/\/{2,}/g, '/')
+		.replace(/^(https?:\/)/, '$1/');
 };
 
 Utility.base = function () {
@@ -214,7 +215,7 @@ Utility.resolve = function () {
 	var path = Array.prototype.join.call(arguments, '/');
 
 	if (!this.ROOT.test(path)) {
-		path = this.base() + '/' + path;
+		path = this.base() + path;
 	}
 
 	path = path.replace(window.location.origin, '');

@@ -6,7 +6,6 @@ Global.document.addEventListener('click', function (e) {
 		var target = e.path ? e.path[0] : e.target;
 		var parent = target.parentNode;
 
-		// FIXME container is broken
 		if (Global.router.container) {
 
 			while (parent) {

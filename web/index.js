@@ -3,9 +3,7 @@ Oxe.setup({
 	loader: {
 		type: 'es',
 		// type: 'module',
-		// base: true,
 		loads: [
-			// 'index.css',
 			'assets/prism.css',
 			'elements/e-menu.js'
 		]
