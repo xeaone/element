@@ -30,14 +30,17 @@ async function prepend (data, path) {
 		let options;
 
 		options = { bundle: true };
+
+		await Muleify.pack('src/index.js', 'web/assets/oxe.js', options);
+
 		await Muleify.pack('src/index.js', 'dist/oxe.js', options);
 		await prepend(header, 'dist/oxe.js');
 
-		options = { bundle: true, minify: true };
+		options.minify = true ;
+
 		await Muleify.pack('src/index.js', 'dist/oxe.min.js', options);
 		await prepend(header, 'dist/oxe.min.js');
 
-		options = { bundle: true, minify: true };
 		await Muleify.pack('src/index.js', 'dist/oxe.polly.min.js', options);
 		await prepend(header, 'dist/oxe.polly.min.js');
 
