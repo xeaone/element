@@ -172,6 +172,8 @@ Router.toLocation = function (path) {
 		location.search = '';
 	}
 
+	location.routePath = location.pathname;
+
 	if (this.trailing) {
 		location.pathname = location.pathname + '/';
 	} else {
@@ -234,11 +236,7 @@ Router.navigate = function (data, replace) {
 
 	if (typeof data === 'string') {
 		location = this.toLocation(data);
-
-		routePath = location.pathname.replace(location.basename, '');
-		routePath = routePath === '' ? '/' : routePath;
-
-		location.route = this.find(routePath) || {};
+		location.route = this.find(location.routePath) || {};
 		location.title = location.route.title || '';
 		location.query = this.toQuery(location.search);
 		location.parameters = this.toParameter(location.route.path, location.pathname);
