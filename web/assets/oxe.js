@@ -828,6 +828,8 @@
 	};
 
 	Router.isPath = function (routePath, userPath) {
+		userPath = userPath.replace(this.location.origin, '');
+		userPath = userPath.replace(this.location.basename, '');
 		return new RegExp(
 			'^' + routePath
 			.replace(/{\*}/g, '(?:.*)')

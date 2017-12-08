@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.1
+	Version: 2.8.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -838,6 +838,8 @@
 	};
 
 	Router.isPath = function (routePath, userPath) {
+		userPath = userPath.replace(this.location.origin, '');
+		userPath = userPath.replace(this.location.basename, '');
 		return new RegExp(
 			'^' + routePath
 			.replace(/{\*}/g, '(?:.*)')
