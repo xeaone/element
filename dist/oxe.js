@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.4
+	Version: 2.8.5
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -987,7 +987,7 @@
 			location = this.toLocation(data);
 
 			routePath = location.pathname.replace(location.basename, '');
-			routePath = routePath;
+			routePath = routePath === '' ? '/' : routePath;
 
 			location.route = this.find(routePath) || {};
 			location.title = location.route.title || '';

@@ -977,7 +977,7 @@
 			location = this.toLocation(data);
 
 			routePath = location.pathname.replace(location.basename, '');
-			routePath = routePath;
+			routePath = routePath === '' ? '/' : routePath;
 
 			location.route = this.find(routePath) || {};
 			location.title = location.route.title || '';
