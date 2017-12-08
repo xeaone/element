@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.0
+	Version: 2.8.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -369,7 +369,8 @@
 	Utility.join = function () {
 		return Array.prototype.join
 			.call(arguments, '/')
-			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+			.replace(/\/{2,}/g, '/')
+			.replace(/^(https?:\/)/, '$1/');
 	};
 
 	Utility.base = function () {
@@ -385,7 +386,7 @@
 		var path = Array.prototype.join.call(arguments, '/');
 
 		if (!this.ROOT.test(path)) {
-			path = this.base() + '/' + path;
+			path = this.base() + path;
 		}
 
 		path = path.replace(window.location.origin, '');
@@ -767,11 +768,12 @@
 
 	Router.setup = function (options) {
 		options = options || {};
+		this.container = options.container;
 		this.auth = options.auth === undefined ? this.auth : options.auth;
 		this.view = options.view === undefined ? this.view : options.view;
 		this.hash = options.hash === undefined ? this.hash : options.hash;
 		this.routes = options.routes === undefined ? this.routes: options.routes;
-		this.external = options.external === undefined ? this.external: options.external;
+		this.external = options.external === undefined ? this.external : options.external;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 	};
 
@@ -901,7 +903,7 @@
 			location.pathname = location.pathname.slice(location.origin.length);
 		}
 
-		if (this.hash && location.pathname.indexOf(location.basename + '#/') === 0) {
+		if (this.hash) {
 			location.pathname = location.pathname.replace(location.basename + '#/', location.basename);
 		}
 
@@ -928,14 +930,12 @@
 		}
 
 		if (location.pathname.charAt(0) !== '/') {
-			location.pathname = '/' + location.pathname;
+			location.pathname = Global$1.utility.join(location.basename, location.pathname);
 		}
 
 		if (this.hash) {
-			location.pathname = Global$1.utility.join(location.basename, '/#/', location.pathname);
-			location.href = Global$1.utility.join(location.origin, location.base, '/#/', location.pathname);
+			location.href = Global$1.utility.join(location.origin, '/#/', location.pathname);
 		} else {
-			location.pathname = Global$1.utility.join(location.basename, location.pathname);
 			location.href =  Global$1.utility.join(location.origin, location.pathname);
 		}
 
@@ -2251,12 +2251,13 @@
 
 		}
 
-		if (data.constructor === Object) {
-			Object.defineProperties(data, propertyDescriptors);
+		Object.defineProperties(data, propertyDescriptors);
+
+		if (data && data.constructor === Object || data.constructor === Array) {
 			Observer.overrideObjectMethods(data, callback, path);
 		}
 
-		if (data.constructor === Array) {
+		if (data && data.constructor === Array) {
 			Observer.overrideArrayMethods(data, callback, path);
 		}
 
@@ -2927,7 +2928,6 @@
 			var target = e.path ? e.path[0] : e.target;
 			var parent = target.parentNode;
 
-			// FIXME container is broken
 			if (Global$1.router.container) {
 
 				while (parent) {
