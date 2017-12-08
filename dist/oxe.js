@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.8
+	Version: 2.8.9
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -930,10 +930,13 @@
 		}
 
 		if (location.pathname.charAt(0) !== '/') {
-			location._pathname = '/' + location.pathname;
 			location.pathname = Global$1.utility.join(location.basename, location.pathname);
-		} else {
-			location._pathname = location.pathname;
+		}
+
+		location._pathname = location.pathname.replace(location.basename.slice(0, -1), '');
+		
+		if (location._pathname.charAt(0) === '') {
+			location._pathname = '/' + location._pathname;
 		}
 
 		location._href =  Global$1.utility.join(location.origin, this.hash ? '/#/' : '/', location.pathname);
