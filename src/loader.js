@@ -17,12 +17,11 @@ Loader.setup = function (options) {
 Loader.execute = function (data) {
 	data = '\'use strict\';\n\n' + data;
 
-	return (function(d, l, w) { 'use strict';
-		try {
-			return new Function('$LOADER', 'window', d)(l, w);
-		} catch (e) {
-			throw e;
-		}
+	return (function(d, l, w) {
+		'use strict';
+
+		return new Function('$LOADER', 'window', d)(l, w);
+
 	}(data, this, window));
 };
 
