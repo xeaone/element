@@ -924,12 +924,12 @@
 		}
 
 		location._pathname = location.pathname.replace(location.basename.slice(0, -1), '');
-		
+
 		if (location._pathname.charAt(0) === '') {
 			location._pathname = '/' + location._pathname;
 		}
 
-		location._href =  Global$1.utility.join(location.origin, this.hash ? '/#/' : '/', location.pathname);
+		location._href =  Global$1.utility.join(location.origin, location.basename, this.hash ? '/#/' : '/', location._pathname);
 		location._href += location.search;
 		location._href += location.hash;
 
