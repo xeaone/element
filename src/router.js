@@ -87,8 +87,6 @@ Router.find = function (path) {
 };
 
 Router.isPath = function (routePath, userPath) {
-	userPath = userPath.replace(this.location.origin, '');
-	userPath = userPath.replace(this.location.basename, '');
 	return new RegExp(
 		'^' + routePath
 		.replace(/{\*}/g, '(?:.*)')
@@ -236,7 +234,12 @@ Router.navigate = function (data, replace) {
 
 	if (typeof data === 'string') {
 		location = this.toLocation(data);
-		location.route = this.find(location.pathname) || {};
+
+		var routePath = location.pathname
+			.replace(this.location.origin, '')
+			.replace(this.location.basename, '');
+
+		location.route = this.find(routePath) || {};
 		location.title = location.route.title || '';
 		location.query = this.toQuery(location.search);
 		location.parameters = this.toParameter(location.route.path, location.pathname);
