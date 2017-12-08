@@ -971,14 +971,13 @@
 	};
 
 	Router.navigate = function (data, replace) {
-		var location;
+		var location, routePath;
 
 		if (typeof data === 'string') {
 			location = this.toLocation(data);
 
-			var routePath = location.pathname
-				.replace(this.location.origin, '')
-				.replace(this.location.basename, '');
+			routePath = location.pathname.replace(location.basename, '');
+			routePath = routePath;
 
 			location.route = this.find(routePath) || {};
 			location.title = location.route.title || '';
