@@ -93,12 +93,12 @@ Global.document.addEventListener('load', function (e) {
 	}
 
 	var path = Global.utility.resolve(element.src || element.href);
-	var callback = Global.loader.modules[path];
 
-	Global.loader.modules[path] = element;
+	Global.loader.modules[path].code = element;
 
-	if (typeof callback === 'function') {
-		callback();
+	var listener;
+	while (listener = Global.loader.modules[path].listener.shift()) {
+		listener();
 	}
 
 }, true);

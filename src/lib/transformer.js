@@ -140,7 +140,7 @@ Transformer.replaceImports = function (text, imps) {
 			imp.url = imp.url + '.js';
 		}
 
-		var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\']';
+		var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\'].code';
 
 		text = text.replace(imp.raw, pattern);
 	}

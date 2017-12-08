@@ -43,7 +43,7 @@ Loader.xhr = function (url, callback) {
 
 };
 
-Loader.transform = function (data, callback) {
+Loader.transform = function (data) {
 	var self = this;
 
 	if (
@@ -61,29 +61,43 @@ Loader.transform = function (data, callback) {
 	}
 
 	if (!data.ast || !data.ast.imports.length) {
-		self.modules[data.url] = self.execute(data.ast ? data.ast.cooked : data.text);
-		return callback ? callback() : undefined;
+		self.modules[data.url].code = self.execute(data.ast ? data.ast.cooked : data.text);
+
+		var listener;
+		while (listener = self.modules[data.url].listener.shift()) {
+			listener();
+		}
+
+		return;
 	}
 
-	var meta = {
-		count: 0,
-		imports: data.ast.imports,
-		total: data.ast.imports.length,
-		callback: function () {
-			if (++meta.count === meta.total) {
-				self.modules[data.url] = self.execute(data.ast.cooked);
-				if (callback) callback();
+	console.log('yes');
+
+	var count = 0;
+	var total = data.ast.imports.length;
+
+	var callback = function () {
+		count++;
+
+		if (count === total) {
+			self.modules[data.url].code = self.execute(data.ast.cooked);
+
+			var listener;
+			while (listener = self.modules[data.url].listener.shift()) {
+				listener();
 			}
+
 		}
+
 	};
 
-	for (var i = 0, l = meta.imports.length; i < l; i++) {
-		self.load(meta.imports[i].url, meta.callback);
+	for (var i = 0; i < total; i++) {
+		self.load(data.ast.imports[i].url, callback);
 	}
 
 };
 
-Loader.js = function (data, callback) {
+Loader.js = function (data) {
 	var self = this;
 
 	if (
@@ -93,12 +107,10 @@ Loader.js = function (data, callback) {
 	) {
 		self.xhr(data.url, function (text) {
 			data.text = text;
-			self.transform(data, callback)
+			self.transform(data);
 		});
 	} else {
 		var element = document.createElement('script');
-
-		self.modules[data.url] = callback;
 
 		element.setAttribute('src', data.url);
 		element.setAttribute('async', 'true');
@@ -113,11 +125,9 @@ Loader.js = function (data, callback) {
 
 };
 
-Loader.css = function (data, callback) {
+Loader.css = function (data) {
 	var self = this;
 	var element = document.createElement('link');
-
-	self.modules[data.url] = callback;
 
 	element.setAttribute('href', data.url);
 	element.setAttribute('rel','stylesheet');
@@ -142,15 +152,17 @@ Loader.load = function (data, callback) {
 	}
 
 	if (data.url in self.modules) {
-		return callback ? callback() : undefined;
+		if (self.modules[data.url].listener.length) {
+			return self.modules[data.url].listener.push(callback);
+		}
 	}
 
-	self.modules[data.url] = undefined;
+	self.modules[data.url] = { listener: [ callback ] };
 
 	if (data.extension === 'js') {
-		self.js(data, callback);
+		self.js(data);
 	} else if (data.extension === 'css') {
-		self.css(data, callback);
+		self.css(data);
 	} else {
 		throw new Error('Oxe.Loader - unreconized file type');
 	}
