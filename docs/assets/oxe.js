@@ -1288,8 +1288,6 @@
 			return;
 		}
 
-		console.log('yes');
-
 		var count = 0;
 		var total = data.ast.imports.length;
 
