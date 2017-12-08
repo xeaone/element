@@ -11,7 +11,7 @@ Oxe.setup({
 		]
 	},
 	router: {
-		hash: true,
+		// hash: true,
 		// trailing: true,
 		routes: [
 			{
