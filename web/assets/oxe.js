@@ -921,12 +921,12 @@
 			location.pathname = '/' + location.pathname;
 		}
 
-		location.pathname = Global$1.utility.join(location.basename, location.pathname);
-
 		if (this.hash) {
-			location.href = Global$1.utility.join(location.base, '/#/', location.pathname);
+			location.pathname = Global$1.utility.join(location.basename, '/#/', location.pathname);
+			location.href = Global$1.utility.join(location.origin, location.base, '/#/', location.pathname);
 		} else {
-			location.href =  Global$1.utility.join(location.base, '/', location.pathname);
+			location.pathname = Global$1.utility.join(location.basename, location.pathname);
+			location.href =  Global$1.utility.join(location.origin, location.pathname);
 		}
 
 		location.href += location.search;

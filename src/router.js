@@ -181,12 +181,12 @@ Router.toLocation = function (path) {
 		location.pathname = '/' + location.pathname;
 	}
 
-	location.pathname = Global.utility.join(location.basename, location.pathname);
-
 	if (this.hash) {
-		location.href = Global.utility.join(location.base, '/#/', location.pathname);
+		location.pathname = Global.utility.join(location.basename, '/#/', location.pathname);
+		location.href = Global.utility.join(location.origin, location.base, '/#/', location.pathname);
 	} else {
-		location.href =  Global.utility.join(location.base, '/', location.pathname);
+		location.pathname = Global.utility.join(location.basename, location.pathname);
+		location.href =  Global.utility.join(location.origin, location.pathname);
 	}
 
 	location.href += location.search;
