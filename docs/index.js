@@ -3,7 +3,7 @@ Oxe.setup({
 	loader: {
 		type: 'es',
 		// type: 'module',
-		base: true,
+		// base: true,
 		loads: [
 			// 'index.css',
 			'assets/prism.css',
@@ -11,8 +11,7 @@ Oxe.setup({
 		]
 	},
 	router: {
-		base: true,
-		// hash: true,
+		hash: true,
 		// trailing: true,
 		routes: [
 			{

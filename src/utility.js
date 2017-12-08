@@ -1,8 +1,6 @@
 
 var Utility = {};
 
-Utility._ = {};
-
 Utility.PATH = /\s*\|.*/;
 Utility.PREFIX = /(data-)?o-/;
 Utility.ROOT = /^(https?:)?\/?\//;
@@ -48,23 +46,6 @@ Utility.binderPath = function (data) {
 	return Utility.binderNormalize(data).replace(Utility.PATH, '');
 };
 
-Utility.createBase = function (base) {
-	var element = document.head.querySelector('base');
-
-	if (!element) {
-		element = document.createElement('base');
-		document.head.insertBefore(element, document.head.firstChild);
-	}
-
-	if (typeof base === 'string') {
-		element.href = base;
-	}
-
-	base = element.href;
-
-	return base;
-};
-
 Utility.formData = function (form, model, callback) {
 	var elements = form.querySelectorAll('[o-value]');
 	var data = {};
@@ -96,7 +77,7 @@ Utility.formData = function (form, model, callback) {
 			count++;
 
 			reader.onload = function(d, n, f, e) {
-				
+
 				d[n].push({
 					type: f.type,
 					size: f.size,
@@ -209,12 +190,6 @@ Utility.getContainer = function getContainer (element) {
 	console.warn(element);
 };
 
-Utility.base = function () {
-	this._.base = this._.base || window.document.head.querySelector('base');
-	var href = this._.base ? this._.base.href : window.location.origin;
-	return href.slice(-1) === '/' ? href.slice(0, -1) : href;
-};
-
 Utility.extension = function (data) {
 	var position = data.lastIndexOf('.');
 	return position > 0 ? data.slice(position + 1) : '';
@@ -224,6 +199,14 @@ Utility.join = function () {
 	return Array.prototype.join
 		.call(arguments, '/')
 		.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+};
+
+Utility.base = function () {
+	if (window.document.head.querySelector('base')) {
+		return window.document.head.querySelector('base').href;
+	} else {
+		return window.location.origin + '/';
+	}
 };
 
 Utility.resolve = function () {

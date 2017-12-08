@@ -8,7 +8,6 @@ Events.call(Router);
 
 Router.cache = {};
 Router.routes = [];
-Router.base = false;
 Router.hash = false;
 Router.auth = false;
 Router.isRan = false;
@@ -18,14 +17,12 @@ Router.trailing = false;
 
 Router.setup = function (options) {
 	options = options || {};
-	this.base = options.base === undefined ? this.base: options.base;
 	this.auth = options.auth === undefined ? this.auth : options.auth;
 	this.view = options.view === undefined ? this.view : options.view;
 	this.hash = options.hash === undefined ? this.hash : options.hash;
 	this.routes = options.routes === undefined ? this.routes: options.routes;
 	this.external = options.external === undefined ? this.external: options.external;
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
-	this.base = options.base === undefined ? this.base : Global.utility.createBase(options.base);
 };
 
 Router.scroll = function (x, y) {
@@ -138,42 +135,27 @@ Router.toLocation = function (path) {
 
 	location.pathname = decodeURI(path);
 	location.origin = window.location.origin;
-	location.base = this.base ? this.base : location.origin;
 
+	location.base = Global.utility.base();
 	location.port = window.location.port;
 	location.host = window.location.host;
+	location.hash = window.location.hash;
 	location.hostname = window.location.hostname;
 	location.protocol = window.location.protocol;
 
-	if (location.base.slice(-3) === '/#/') {
-		location.base = location.base.slice(0, -3);
-	}
-
-	if (location.base.slice(-2) === '/#') {
-		location.base = location.base.slice(0, -2);
-	}
-
-	if (location.base.slice(-1) === '/') {
-		location.base = location.base.slice(0, -1);
-	}
-
-	if (location.pathname.indexOf(location.base) === 0) {
-		location.pathname = location.pathname.slice(location.base.length);
+	if (location.base.indexOf(location.origin) === 0) {
+		location.basename = location.base.slice(location.origin.length);
 	}
 
 	if (location.pathname.indexOf(location.origin) === 0) {
 		location.pathname = location.pathname.slice(location.origin.length);
 	}
 
-	if (location.pathname.indexOf('/#/') === 0) {
-		location.pathname = location.pathname.slice(2);
+	if (this.hash && location.pathname.indexOf(location.basename + '#/') === 0) {
+		location.pathname = location.pathname.replace(location.basename + '#/', location.basename);
 	}
 
-	if (location.pathname.indexOf('#/') === 0) {
-		location.pathname = location.pathname.slice(1);
-	}
-
-	var hashIndex = this.hash ? location.pathname.indexOf('#', location.pathname.indexOf('#')) : location.pathname.indexOf('#');
+	var hashIndex = location.pathname.indexOf('#');
 	if (hashIndex !== -1) {
 		location.hash = location.pathname.slice(hashIndex);
 		location.pathname = location.pathname.slice(0, hashIndex);
@@ -190,14 +172,16 @@ Router.toLocation = function (path) {
 	}
 
 	if (this.trailing) {
-		location.pathname = this.join(location.pathname, '/');
+		location.pathname = location.pathname + '/';
 	} else {
-		location.pathname = location.pathname.replace(/\/$/, '');
+		location.pathname = location.pathname.replace(/\/{1,}$/, '');
 	}
 
 	if (location.pathname.charAt(0) !== '/') {
 		location.pathname = '/' + location.pathname;
 	}
+
+	location.pathname = Global.utility.join(location.basename, location.pathname);
 
 	if (this.hash) {
 		location.href = Global.utility.join(location.base, '/#/', location.pathname);

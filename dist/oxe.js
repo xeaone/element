@@ -172,8 +172,6 @@
 
 	var Utility = {};
 
-	Utility._ = {};
-
 	Utility.PATH = /\s*\|.*/;
 	Utility.PREFIX = /(data-)?o-/;
 	Utility.ROOT = /^(https?:)?\/?\//;
@@ -219,23 +217,6 @@
 		return Utility.binderNormalize(data).replace(Utility.PATH, '');
 	};
 
-	Utility.createBase = function (base) {
-		var element = document.head.querySelector('base');
-
-		if (!element) {
-			element = document.createElement('base');
-			document.head.insertBefore(element, document.head.firstChild);
-		}
-
-		if (typeof base === 'string') {
-			element.href = base;
-		}
-
-		base = element.href;
-
-		return base;
-	};
-
 	Utility.formData = function (form, model, callback) {
 		var elements = form.querySelectorAll('[o-value]');
 		var data = {};
@@ -267,7 +248,7 @@
 				count++;
 
 				reader.onload = function(d, n, f, e) {
-					
+
 					d[n].push({
 						type: f.type,
 						size: f.size,
@@ -380,12 +361,6 @@
 		console.warn(element);
 	};
 
-	Utility.base = function () {
-		this._.base = this._.base || window.document.head.querySelector('base');
-		var href = this._.base ? this._.base.href : window.location.origin;
-		return href.slice(-1) === '/' ? href.slice(0, -1) : href;
-	};
-
 	Utility.extension = function (data) {
 		var position = data.lastIndexOf('.');
 		return position > 0 ? data.slice(position + 1) : '';
@@ -395,6 +370,14 @@
 		return Array.prototype.join
 			.call(arguments, '/')
 			.replace(/(https?:\/\/)|(\/)+/g, '$1$2');
+	};
+
+	Utility.base = function () {
+		if (window.document.head.querySelector('base')) {
+			return window.document.head.querySelector('base').href;
+		} else {
+			return window.location.origin + '/';
+		}
 	};
 
 	Utility.resolve = function () {
@@ -775,7 +758,6 @@
 
 	Router.cache = {};
 	Router.routes = [];
-	Router.base = false;
 	Router.hash = false;
 	Router.auth = false;
 	Router.isRan = false;
@@ -785,14 +767,12 @@
 
 	Router.setup = function (options) {
 		options = options || {};
-		this.base = options.base === undefined ? this.base: options.base;
 		this.auth = options.auth === undefined ? this.auth : options.auth;
 		this.view = options.view === undefined ? this.view : options.view;
 		this.hash = options.hash === undefined ? this.hash : options.hash;
 		this.routes = options.routes === undefined ? this.routes: options.routes;
 		this.external = options.external === undefined ? this.external: options.external;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
-		this.base = options.base === undefined ? this.base : Global$1.utility.createBase(options.base);
 	};
 
 	Router.scroll = function (x, y) {
@@ -905,42 +885,27 @@
 
 		location.pathname = decodeURI(path);
 		location.origin = window.location.origin;
-		location.base = this.base ? this.base : location.origin;
 
+		location.base = Global$1.utility.base();
 		location.port = window.location.port;
 		location.host = window.location.host;
+		location.hash = window.location.hash;
 		location.hostname = window.location.hostname;
 		location.protocol = window.location.protocol;
 
-		if (location.base.slice(-3) === '/#/') {
-			location.base = location.base.slice(0, -3);
-		}
-
-		if (location.base.slice(-2) === '/#') {
-			location.base = location.base.slice(0, -2);
-		}
-
-		if (location.base.slice(-1) === '/') {
-			location.base = location.base.slice(0, -1);
-		}
-
-		if (location.pathname.indexOf(location.base) === 0) {
-			location.pathname = location.pathname.slice(location.base.length);
+		if (location.base.indexOf(location.origin) === 0) {
+			location.basename = location.base.slice(location.origin.length);
 		}
 
 		if (location.pathname.indexOf(location.origin) === 0) {
 			location.pathname = location.pathname.slice(location.origin.length);
 		}
 
-		if (location.pathname.indexOf('/#/') === 0) {
-			location.pathname = location.pathname.slice(2);
+		if (this.hash && location.pathname.indexOf(location.basename + '#/') === 0) {
+			location.pathname = location.pathname.replace(location.basename + '#/', location.basename);
 		}
 
-		if (location.pathname.indexOf('#/') === 0) {
-			location.pathname = location.pathname.slice(1);
-		}
-
-		var hashIndex = this.hash ? location.pathname.indexOf('#', location.pathname.indexOf('#')) : location.pathname.indexOf('#');
+		var hashIndex = location.pathname.indexOf('#');
 		if (hashIndex !== -1) {
 			location.hash = location.pathname.slice(hashIndex);
 			location.pathname = location.pathname.slice(0, hashIndex);
@@ -957,14 +922,16 @@
 		}
 
 		if (this.trailing) {
-			location.pathname = this.join(location.pathname, '/');
+			location.pathname = location.pathname + '/';
 		} else {
-			location.pathname = location.pathname.replace(/\/$/, '');
+			location.pathname = location.pathname.replace(/\/{1,}$/, '');
 		}
 
 		if (location.pathname.charAt(0) !== '/') {
 			location.pathname = '/' + location.pathname;
 		}
+
+		location.pathname = Global$1.utility.join(location.basename, location.pathname);
 
 		if (this.hash) {
 			location.href = Global$1.utility.join(location.base, '/#/', location.pathname);
@@ -2817,8 +2784,6 @@
 		this.add(this.container);
 	};
 
-	// var base = document.head.querySelector('base');
-
 	var Global$1 = Object.defineProperties({}, {
 		window: {
 			enumerable: true,
@@ -2860,13 +2825,6 @@
 			enumerable: true,
 			get: function () {
 				return (window.document._currentScript || window.document.currentScript).ownerDocument;
-			}
-		},
-		base: {
-			enumerable: true,
-			get: function () {
-				return this.utility.base();
-				// return base ? base.href : window.location.origin;
 			}
 		},
 		clicks: {
@@ -2969,6 +2927,7 @@
 			var target = e.path ? e.path[0] : e.target;
 			var parent = target.parentNode;
 
+			// FIXME container is broken
 			if (Global$1.router.container) {
 
 				while (parent) {

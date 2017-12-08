@@ -11,8 +11,6 @@ import Keeper from './keeper';
 import Model from './model';
 import View from './view';
 
-// var base = document.head.querySelector('base');
-
 var Global = Object.defineProperties({}, {
 	window: {
 		enumerable: true,
@@ -54,13 +52,6 @@ var Global = Object.defineProperties({}, {
 		enumerable: true,
 		get: function () {
 			return (window.document._currentScript || window.document.currentScript).ownerDocument;
-		}
-	},
-	base: {
-		enumerable: true,
-		get: function () {
-			return this.utility.base();
-			// return base ? base.href : window.location.origin;
 		}
 	},
 	clicks: {

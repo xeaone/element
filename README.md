@@ -187,7 +187,6 @@ Automatically use the default action for non origin matching hrefs
 	- `auth: Boolean` (default: false) Enables Oxe.Keeper
 	- `hash: Boolean` (default: false) Hash URL mode
 	- `trailing: Boolean` (default: false) Trailing slash
-	- `base: Boolean, String` Sets the base if its a string otherwise if true uses the predefined base
 	- `external: String, RegExp, Function` Filters URL requests. If true or match Oxe.router will not handle request
 	- `container: Element` Contains all href clicks to the container. Default is window. Good for embedding especially
 	- `routes: Array`
@@ -342,9 +341,6 @@ Alias for `window.document.head`
 
 ### Oxe.body
 Alias for `window.document.body`
-
-### Oxe.base
-Alias for `document.head.querySelector('base').href || window.location.href`
 
 ### Oxe.global
 A global object for you
