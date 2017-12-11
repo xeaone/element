@@ -188,11 +188,11 @@ Router.toLocation = function (path) {
 		location._pathname = '/' + location._pathname;
 	}
 
-	location._href =  Global.utility.join(location.origin, location.basename, this.hash ? '/#/' : '/', location._pathname);
+	location._href = Global.utility.join(location.origin, location.basename, this.hash ? '/#/' : '/', location._pathname);
 	location._href += location.search;
 	location._href += location.hash;
 
-	location.href =  Global.utility.join(location.origin, location.pathname);
+	location.href = Global.utility.join(location.origin, location.pathname);
 	location.href += location.search;
 	location.href += location.hash;
 
