@@ -169,6 +169,10 @@ Router.toLocation = function (path) {
 		location.pathname = location.pathname.slice(location.basename.length);
 	}
 
+	if (location.pathname.indexOf(location.basename.slice(0, -1)) === 0) {
+		location.pathname = location.pathname.slice(location.basename.slice(0, -1).length);
+	}
+
 	if (
 		this.hash
 		&& location.pathname.indexOf('#') === 0
