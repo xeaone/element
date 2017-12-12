@@ -32,6 +32,7 @@ async function prepend (data, path) {
 		options = { bundle: true };
 
 		await Muleify.pack('src/index.js', 'web/assets/oxe.js', options);
+		await prepend(header, 'web/assets/oxe.js');
 
 		await Muleify.pack('src/index.js', 'dist/oxe.js', options);
 		await prepend(header, 'dist/oxe.js');
