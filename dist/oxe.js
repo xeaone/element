@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.19
+	Version: 2.8.20
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -938,7 +938,7 @@
 			location.search = '';
 		}
 
-		location._pathname = location.pathname;
+		location.routePath = location.pathname;
 		location.pathname = Global$1.utility.join(location.basename, location.pathname);
 		location.href = Global$1.utility.join(location.origin, this.hash ? '#' : '/', location.pathname);
 
@@ -954,7 +954,7 @@
 			location.href = location.href + '/';
 		}
 
-		location._pathname = location._pathname || '/';
+		location.routePath = location.routePath || '/';
 		location.pathname = location.pathname || '/';
 		location.href += location.search;
 		location.href += location.hash;
@@ -1002,10 +1002,10 @@
 
 		if (typeof data === 'string') {
 			location = this.toLocation(data);
-			location.route = this.find(location._pathname) || {};
+			location.route = this.find(location.routePath) || {};
 			location.title = location.route.title || '';
 			location.query = this.toQuery(location.search);
-			location.parameters = this.toParameter(location.route.path, location.pathname);
+			location.parameters = this.toParameter(location.route.path, location.routePath);
 		} else {
 			location = data;
 		}

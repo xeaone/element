@@ -187,7 +187,7 @@ Router.toLocation = function (path) {
 		location.search = '';
 	}
 
-	location._pathname = location.pathname;
+	location.routePath = location.pathname;
 	location.pathname = Global.utility.join(location.basename, location.pathname);
 	location.href = Global.utility.join(location.origin, this.hash ? '#' : '/', location.pathname);
 
@@ -203,7 +203,7 @@ Router.toLocation = function (path) {
 		location.href = location.href + '/';
 	}
 
-	location._pathname = location._pathname || '/';
+	location.routePath = location.routePath || '/';
 	location.pathname = location.pathname || '/';
 	location.href += location.search;
 	location.href += location.hash;
@@ -251,10 +251,10 @@ Router.navigate = function (data, replace) {
 
 	if (typeof data === 'string') {
 		location = this.toLocation(data);
-		location.route = this.find(location._pathname) || {};
+		location.route = this.find(location.routePath) || {};
 		location.title = location.route.title || '';
 		location.query = this.toQuery(location.search);
-		location.parameters = this.toParameter(location.route.path, location.pathname);
+		location.parameters = this.toParameter(location.route.path, location.routePath);
 	} else {
 		location = data;
 	}
