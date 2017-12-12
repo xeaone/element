@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.16
+	Version: 2.8.17
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -838,9 +838,14 @@
 	};
 
 	Router.isPath = function (routePath, userPath) {
+		var base = this.location.basename;
 
-		if (userPath.indexOf(this.location.base) === 0) {
-			userPath = userPath.slice(this.location.base.length);
+		if (userPath.indexOf(base) === 0) {
+			userPath = userPath.slice(base.length);
+		}
+
+		if (userPath.indexOf(base.slice(0, -1)) === 0) {
+			userPath = userPath.slice(base.slice(0, -1).length);
 		}
 
 		if (userPath === '') {
