@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.14
+	Version: 2.8.15
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -838,8 +838,10 @@
 	};
 
 	Router.isPath = function (routePath, userPath) {
+		var base = Global$1.utility.base();
 		return new RegExp(
-			'^' + routePath
+			'^(' + base + ')?(#/)?' + routePath
+			// '^' + routePath
 			.replace(/{\*}/g, '(?:.*)')
 			.replace(/{(\w+)}/g, '([^\/]+)')
 			+ '(\/)?$'
@@ -885,30 +887,43 @@
 	Router.toLocation = function (path) {
 		var location = {};
 
-		location.pathname = decodeURI(path);
-		location.origin = window.location.origin;
-
-		location.base = Global$1.utility.base();
 		location.port = window.location.port;
 		location.host = window.location.host;
 		location.hash = window.location.hash;
+		location.origin = window.location.origin;
 		location.hostname = window.location.hostname;
 		location.protocol = window.location.protocol;
+		location.username = window.location.username;
+		location.password = window.location.password;
 
-		if (location.base.indexOf(location.origin) === 0) {
-			location.basename = location.base.slice(location.origin.length);
+		location.pathname = decodeURI(path);
+		location.base = Global$1.utility.base();
+		location.basename = location.base;
+
+		if (location.basename.indexOf(location.origin) === 0) {
+			location.basename = location.basename.slice(location.origin.length);
 		}
 
 		if (location.pathname.indexOf(location.origin) === 0) {
 			location.pathname = location.pathname.slice(location.origin.length);
 		}
 
-		if (this.hash) {
-			location.pathname = location.pathname.replace(location.basename + '#/', location.basename);
+		if (location.pathname.indexOf(location.basename) === 0) {
+			location.pathname = location.pathname.slice(location.basename.length);
+		}
+
+		if (
+			this.hash
+			&& location.pathname.indexOf('#') === 0
+			|| location.pathname.indexOf('/#') === 0
+			|| location.pathname.indexOf('#/') === 0
+			|| location.pathname.indexOf('/#/') === 0
+		) {
+			location.pathname = location.pathname.slice(2);
 		}
 
 		var hashIndex = location.pathname.indexOf('#');
-		if (hashIndex !== -1 && this.hash && location.pathname.indexOf('#', hashIndex)) {
+		if (hashIndex !== -1) {
 			location.hash = location.pathname.slice(hashIndex);
 			location.pathname = location.pathname.slice(0, hashIndex);
 		} else {
@@ -923,27 +938,22 @@
 			location.search = '';
 		}
 
+		location.pathname = Global$1.utility.join(location.basename, location.pathname);
+		location.href = Global$1.utility.join(location.origin, this.hash ? '#' : '/', location.pathname);
+
 		if (this.trailing) {
-			location.pathname = location.pathname + '/';
+			location.href = Global$1.utility.join(location.href, '/');
+			location.pathname = Global$1.utility.join(location.pathname, '/');
 		} else {
+			location.href = location.href.replace(/\/{1,}$/, '');
 			location.pathname = location.pathname.replace(/\/{1,}$/, '');
 		}
 
-		if (location.pathname.charAt(0) !== '/') {
-			location.pathname = Global$1.utility.join(location.basename, location.pathname);
+		if (this.hash && /\/#$/.test(location.href)) {
+			location.href = location.href + '/';
 		}
 
-		location._pathname = location.pathname.replace(location.basename.slice(0, -1), '');
-
-		if (location._pathname.charAt(0) === '') {
-			location._pathname = '/' + location._pathname;
-		}
-
-		location._href =  Global$1.utility.join(location.origin, location.basename, this.hash ? '/#/' : '/', location._pathname);
-		location._href += location.search;
-		location._href += location.hash;
-
-		location.href =  Global$1.utility.join(location.origin, location.pathname);
+		location.pathname = location.pathname || '/';
 		location.href += location.search;
 		location.href += location.hash;
 
@@ -990,7 +1000,7 @@
 
 		if (typeof data === 'string') {
 			location = this.toLocation(data);
-			location.route = this.find(location._pathname) || {};
+			location.route = this.find(location.pathname) || {};
 			location.title = location.route.title || '';
 			location.query = this.toQuery(location.search);
 			location.parameters = this.toParameter(location.route.path, location.pathname);
@@ -1011,7 +1021,7 @@
 		}
 
 		this.location = location;
-		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location._href);
+		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
 		if (this.location.route.handler) {
 			this.location.route.handler(this.location);
