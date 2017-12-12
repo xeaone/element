@@ -1,3 +1,13 @@
+/*
+	Name: Oxe
+	Version: 2.8.21
+	License: MPL-2.0
+	Author: Alexander Elias
+	Email: alex.steven.elias@gmail.com
+	This Source Code Form is subject to the terms of the Mozilla Public
+	License, v. 2.0. If a copy of the MPL was not distributed with this
+	file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -840,6 +850,14 @@
 
 	Router.toParameter = function (routePath, userPath) {
 		var result = {};
+
+		if (
+			!routePath
+			|| !userPath
+			|| routePath === '/'
+			|| userPath === '/'
+		) return result;
+
 		var brackets = /{|}/g;
 		var pattern = /{(\w+)}/;
 		var userPaths = userPath.split('/');
@@ -928,7 +946,7 @@
 			location.search = '';
 		}
 
-		location.routePath = location.pathname;
+		location.routePath = Global$1.utility.join('/', location.pathname);
 		location.pathname = Global$1.utility.join(location.basename, location.pathname);
 		location.href = Global$1.utility.join(location.origin, this.hash ? '#' : '/', location.pathname);
 

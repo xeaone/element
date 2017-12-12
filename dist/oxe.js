@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.20
+	Version: 2.8.21
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -850,6 +850,14 @@
 
 	Router.toParameter = function (routePath, userPath) {
 		var result = {};
+
+		if (
+			!routePath
+			|| !userPath
+			|| routePath === '/'
+			|| userPath === '/'
+		) return result;
+
 		var brackets = /{|}/g;
 		var pattern = /{(\w+)}/;
 		var userPaths = userPath.split('/');
@@ -938,7 +946,7 @@
 			location.search = '';
 		}
 
-		location.routePath = location.pathname;
+		location.routePath = Global$1.utility.join('/', location.pathname);
 		location.pathname = Global$1.utility.join(location.basename, location.pathname);
 		location.href = Global$1.utility.join(location.origin, this.hash ? '#' : '/', location.pathname);
 

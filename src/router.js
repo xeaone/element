@@ -99,6 +99,14 @@ Router.isPath = function (routePath, userPath) {
 
 Router.toParameter = function (routePath, userPath) {
 	var result = {};
+
+	if (
+		!routePath
+		|| !userPath
+		|| routePath === '/'
+		|| userPath === '/'
+	) return result;
+
 	var brackets = /{|}/g;
 	var pattern = /{(\w+)}/;
 	var userPaths = userPath.split('/');
@@ -187,7 +195,7 @@ Router.toLocation = function (path) {
 		location.search = '';
 	}
 
-	location.routePath = location.pathname;
+	location.routePath = Global.utility.join('/', location.pathname);
 	location.pathname = Global.utility.join(location.basename, location.pathname);
 	location.href = Global.utility.join(location.origin, this.hash ? '#' : '/', location.pathname);
 
