@@ -828,19 +828,7 @@
 	};
 
 	Router.isPath = function (routePath, userPath) {
-		var base = this.location.basename;
-
-		if (userPath.indexOf(base) === 0) {
-			userPath = userPath.slice(base.length);
-		}
-
-		if (userPath.indexOf(base.slice(0, -1)) === 0) {
-			userPath = userPath.slice(base.slice(0, -1).length);
-		}
-
-		if (userPath === '') {
-			userPath = '/';
-		}
+		userPath = userPath || '/';
 
 		return new RegExp(
 			'^' + routePath
@@ -998,11 +986,12 @@
 	};
 
 	Router.navigate = function (data, replace) {
-		var location, routePath;
+		var location, path;
 
 		if (typeof data === 'string') {
 			location = this.toLocation(data);
-			location.route = this.find(location.pathname) || {};
+			var path = '/' + location.pathname.slice(location.basename.length);
+			location.route = this.find(path) || {};
 			location.title = location.route.title || '';
 			location.query = this.toQuery(location.search);
 			location.parameters = this.toParameter(location.route.path, location.pathname);
