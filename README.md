@@ -201,7 +201,7 @@ Automatically use the default action for non origin matching hrefs
 - `setup: Function`
 	- `options: Object` Accepts the above options
 - `location: Object` Similar to imitates window.location but for the Router
-	- `base: String`
+	- `base: String` Base href or origin
 	- `hash: String`
 	- `href: String`
 	- `host: String`
@@ -210,9 +210,12 @@ Automatically use the default action for non origin matching hrefs
 	- `query: Object` Key value pairs of search/query
 	- `origin: String`
 	- `search: String`
+	- `basename: String` Base without the origin
 	- `hostname: String`
+	- `pathname: String` A pathname even when using hash urls 
 	- `protocol: String`
-	- `pathname: String`
+	- `username: String`
+	- `password: String`
 	- `parameters: Object` Key value pairs of the route params (dynamic route paths)
 - `run: Function` Must be called after <o-view></o-view> is created
 - `render: Function` Will render a route object it is usefull if your using route has a handler
@@ -223,9 +226,9 @@ Automatically use the default action for non origin matching hrefs
 - `remove: Function`
 	- `path: String`
 - `get: Function`
-	- `path: String` Exact path matching, route path variables are not taken into account
+	- `path: String` Strict path matching, route path variables are not taken into account
 - `find: Function`
-	- `path: String` Approximate path matching, route path variables are taken into account
+	- `path: String` Loose path matching, route path variables, url base, and hash urls, are taken into account
 - `navigate: Function` Navgiates to path
 	- `path: String` Path to navigate
 - `on: EventEmitter`
