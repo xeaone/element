@@ -928,6 +928,7 @@
 			location.search = '';
 		}
 
+		location._pathname = location.pathname;
 		location.pathname = Global$1.utility.join(location.basename, location.pathname);
 		location.href = Global$1.utility.join(location.origin, this.hash ? '#' : '/', location.pathname);
 
@@ -943,6 +944,7 @@
 			location.href = location.href + '/';
 		}
 
+		location._pathname = location._pathname || '/';
 		location.pathname = location.pathname || '/';
 		location.href += location.search;
 		location.href += location.hash;
@@ -986,12 +988,11 @@
 	};
 
 	Router.navigate = function (data, replace) {
-		var location, path;
+		var location;
 
 		if (typeof data === 'string') {
 			location = this.toLocation(data);
-			var path = '/' + location.pathname.slice(location.basename.length);
-			location.route = this.find(path) || {};
+			location.route = this.find(location._pathname) || {};
 			location.title = location.route.title || '';
 			location.query = this.toQuery(location.search);
 			location.parameters = this.toParameter(location.route.path, location.pathname);
