@@ -87,10 +87,17 @@ Router.find = function (path) {
 };
 
 Router.isPath = function (routePath, userPath) {
-	var base = Global.utility.base();
+
+	if (userPath.indexOf(this.location.base) === 0) {
+		userPath = userPath.slice(this.location.base.length);
+	}
+
+	if (userPath === '') {
+		userPath = '/';
+	}
+
 	return new RegExp(
-		'^(' + base + ')?(#/)?' + routePath
-		// '^' + routePath
+		'^' + routePath
 		.replace(/{\*}/g, '(?:.*)')
 		.replace(/{(\w+)}/g, '([^\/]+)')
 		+ '(\/)?$'
