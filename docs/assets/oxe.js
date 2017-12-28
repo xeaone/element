@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.22
+	Version: 2.8.23
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1791,7 +1791,7 @@
 		} else if (opt.element.nodeName === 'SELECT') {
 
 			elements = opt.element.options;
-			data = !data && opt.element.multiple ? [] : data;
+			data = data === undefined || data === null && opt.element.multiple ? [] : data;
 			data = caller === 'view' && opt.element.multiple ? [] : data;
 
 			for (i = 0, l = elements.length; i < l; i++) {
@@ -1808,6 +1808,14 @@
 
 				}
 
+			}
+
+			if (
+				elements.length
+				&& !opt.element.multiple
+				&& data === null || data === undefined
+			) {
+				data = elements[0].value;
 			}
 
 			data = this.modifyData(opt, data);
