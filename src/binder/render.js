@@ -253,7 +253,7 @@ Render.value = function (opt, caller) {
 	} else if (opt.element.nodeName === 'SELECT') {
 
 		elements = opt.element.options;
-		data = !data && opt.element.multiple ? [] : data;
+		data = data === undefined || data === null && opt.element.multiple ? [] : data;
 		data = caller === 'view' && opt.element.multiple ? [] : data;
 
 		for (i = 0, l = elements.length; i < l; i++) {
@@ -270,6 +270,14 @@ Render.value = function (opt, caller) {
 
 			}
 
+		}
+
+		if (
+			elements.length
+			&& !opt.element.multiple
+			&& data === null || data === undefined
+		) {
+			data = elements[0].value;
 		}
 
 		data = this.modifyData(opt, data);
