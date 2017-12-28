@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 2.8.23
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -1800,22 +1790,14 @@
 				if (element.selected) {
 
 					if (opt.element.multiple) {
-						data.push(element.value);
+						data.push(element.value || element.innerText);
 					} else {
-						data = element.value;
+						data = element.value || element.innerText;
 						break;
 					}
 
 				}
 
-			}
-
-			if (
-				elements.length
-				&& !opt.element.multiple
-				&& data === null || data === undefined
-			) {
-				data = elements[0].value;
 			}
 
 			data = this.modifyData(opt, data);
