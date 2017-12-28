@@ -848,7 +848,7 @@
 		).test(userPath);
 	};
 
-	Router.toParameter = function (routePath, userPath) {
+	Router.toParameterObject = function (routePath, userPath) {
 		var result = {};
 
 		if (
@@ -875,8 +875,24 @@
 		return result;
 	};
 
-	Router.toQuery = function (path) {
+	Router.toQueryString = function (data) {
+		var result = '?';
+
+		for (var key in data) {
+			var value = data[key];
+			result += key + '=' + value + '&';
+		}
+
+		if (result.slice(-1) === '&') {
+			result = result.slice(0, -1);
+		}
+
+		return result;
+	};
+
+	Router.toQueryObject = function (path) {
 		var result = {};
+
 		if (path.indexOf('?') === 0) path = path.slice(1);
 		var queries = path.split('&');
 
@@ -892,7 +908,7 @@
 		return result;
 	};
 
-	Router.toLocation = function (path) {
+	Router.toLocationObject = function (path) {
 		var location = {};
 
 		location.port = window.location.port;
@@ -1009,15 +1025,22 @@
 
 	};
 
-	Router.navigate = function (data, replace) {
+	Router.navigate = function (data, options) {
 		var location;
 
+		options = options || {};
+
 		if (typeof data === 'string') {
-			location = this.toLocation(data);
+
+			if (options.query) {
+				data += this.toQueryString(options.query);
+			}
+
+			location = this.toLocationObject(data);
 			location.route = this.find(location.routePath) || {};
 			location.title = location.route.title || '';
-			location.query = this.toQuery(location.search);
-			location.parameters = this.toParameter(location.route.path, location.routePath);
+			location.query = this.toQueryObject(location.search);
+			location.parameters = this.toParameterObject(location.route.path, location.routePath);
 		} else {
 			location = data;
 		}
@@ -1035,7 +1058,7 @@
 		}
 
 		this.location = location;
-		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
+		window.history[options.replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
 		if (this.location.route.handler) {
 			this.location.route.handler(this.location);
@@ -1062,7 +1085,8 @@
 			throw new Error('Oxe.router - requires a view element');
 		}
 
-		this.navigate(window.location.href, true);
+		var options = { replace: true };
+		this.navigate(window.location.href, options);
 	};
 
 	var Router$1 = Router;
@@ -1810,6 +1834,14 @@
 
 			}
 
+			// if (
+			// 	!opt.element.multiple
+			// 	&& opt.element.options.length
+			// 	&& data === null || data === undefined
+			// ) {
+			// 	data = elements[0].value || elements[0].innerText;
+			// }
+
 			data = this.modifyData(opt, data);
 			this.setData(opt, data);
 
@@ -1843,7 +1875,14 @@
 			}
 
 		} else if (opt.element.type === 'file') {
+
 			data = opt.element.files;
+			data = this.modifyData(opt, data);
+			this.setData(opt, data);
+
+		} else if (opt.element.type === 'option') {
+
+			data = opt.element.value || opt.element.innerText;
 			data = this.modifyData(opt, data);
 			this.setData(opt, data);
 
@@ -3028,6 +3067,7 @@
 		if (
 			e.target.type !== 'checkbox'
 			&& e.target.type !== 'radio'
+			&& e.target.type !== 'option'
 			&& e.target.nodeName !== 'SELECT'
 		) {
 			Global$1.binder.render({
@@ -3127,7 +3167,8 @@
 	}, true);
 
 	Global$1.window.addEventListener('popstate', function (e) {
-		Global$1.router.navigate(e.state || window.location.href, true);
+		var options = { replace: true };
+		Global$1.router.navigate(e.state || window.location.href, options);
 	}, true);
 
 	new Global$1.window.MutationObserver(function (mutations) {

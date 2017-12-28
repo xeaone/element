@@ -1,3 +1,13 @@
+/*
+	Name: Oxe
+	Version: 2.8.24
+	License: MPL-2.0
+	Author: Alexander Elias
+	Email: alex.steven.elias@gmail.com
+	This Source Code Form is subject to the terms of the Mozilla Public
+	License, v. 2.0. If a copy of the MPL was not distributed with this
+	file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -838,7 +848,7 @@
 		).test(userPath);
 	};
 
-	Router.toParameter = function (routePath, userPath) {
+	Router.toParameterObject = function (routePath, userPath) {
 		var result = {};
 
 		if (
@@ -865,8 +875,24 @@
 		return result;
 	};
 
-	Router.toQuery = function (path) {
+	Router.toQueryString = function (data) {
+		var result = '?';
+
+		for (var key in data) {
+			var value = data[key];
+			result += key + '=' + value + '&';
+		}
+
+		if (result.slice(-1) === '&') {
+			result = result.slice(0, -1);
+		}
+
+		return result;
+	};
+
+	Router.toQueryObject = function (path) {
 		var result = {};
+
 		if (path.indexOf('?') === 0) path = path.slice(1);
 		var queries = path.split('&');
 
@@ -882,7 +908,7 @@
 		return result;
 	};
 
-	Router.toLocation = function (path) {
+	Router.toLocationObject = function (path) {
 		var location = {};
 
 		location.port = window.location.port;
@@ -999,15 +1025,22 @@
 
 	};
 
-	Router.navigate = function (data, replace) {
+	Router.navigate = function (data, options) {
 		var location;
 
+		options = options || {};
+
 		if (typeof data === 'string') {
-			location = this.toLocation(data);
+
+			if (options.query) {
+				data += this.toQueryString(options.query);
+			}
+
+			location = this.toLocationObject(data);
 			location.route = this.find(location.routePath) || {};
 			location.title = location.route.title || '';
-			location.query = this.toQuery(location.search);
-			location.parameters = this.toParameter(location.route.path, location.routePath);
+			location.query = this.toQueryObject(location.search);
+			location.parameters = this.toParameterObject(location.route.path, location.routePath);
 		} else {
 			location = data;
 		}
@@ -1025,7 +1058,7 @@
 		}
 
 		this.location = location;
-		window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
+		window.history[options.replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
 		if (this.location.route.handler) {
 			this.location.route.handler(this.location);
@@ -1052,7 +1085,8 @@
 			throw new Error('Oxe.router - requires a view element');
 		}
 
-		this.navigate(window.location.href, true);
+		var options = { replace: true };
+		this.navigate(window.location.href, options);
 	};
 
 	var Router$1 = Router;
@@ -3133,7 +3167,8 @@
 	}, true);
 
 	Global$1.window.addEventListener('popstate', function (e) {
-		Global$1.router.navigate(e.state || window.location.href, true);
+		var options = { replace: true };
+		Global$1.router.navigate(e.state || window.location.href, options);
 	}, true);
 
 	new Global$1.window.MutationObserver(function (mutations) {
