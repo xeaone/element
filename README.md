@@ -212,7 +212,7 @@ Automatically use the default action for non origin matching hrefs
 	- `search: String`
 	- `basename: String` Base without the origin
 	- `hostname: String`
-	- `pathname: String` A pathname even when using hash urls 
+	- `pathname: String` A pathname even when using hash urls
 	- `protocol: String`
 	- `username: String`
 	- `password: String`
@@ -231,6 +231,9 @@ Automatically use the default action for non origin matching hrefs
 	- `path: String` Loose path matching, route path variables, url base, and hash urls, are taken into account
 - `navigate: Function` Navgiates to path
 	- `path: String` Path to navigate
+	- `options: Object`
+		- `replace: Boolean` (deafult: false) replace or push state
+		- `query: Object` Converts a key value pair to a query/search string and appends to the path
 - `on: EventEmitter`
 	- `navigated: Event`
 

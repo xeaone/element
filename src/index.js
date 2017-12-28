@@ -68,6 +68,7 @@ Global.document.addEventListener('input', function (e) {
 	if (
 		e.target.type !== 'checkbox'
 		&& e.target.type !== 'radio'
+		&& e.target.type !== 'option'
 		&& e.target.nodeName !== 'SELECT'
 	) {
 		Global.binder.render({
@@ -167,7 +168,8 @@ Global.document.addEventListener('submit', function (e) {
 }, true);
 
 Global.window.addEventListener('popstate', function (e) {
-	Global.router.navigate(e.state || window.location.href, true);
+	var options = { replace: true };
+	Global.router.navigate(e.state || window.location.href, options);
 }, true);
 
 new Global.window.MutationObserver(function (mutations) {

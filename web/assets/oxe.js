@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 2.8.24
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -1810,6 +1800,14 @@
 
 			}
 
+			// if (
+			// 	!opt.element.multiple
+			// 	&& opt.element.options.length
+			// 	&& data === null || data === undefined
+			// ) {
+			// 	data = elements[0].value || elements[0].innerText;
+			// }
+
 			data = this.modifyData(opt, data);
 			this.setData(opt, data);
 
@@ -1843,7 +1841,14 @@
 			}
 
 		} else if (opt.element.type === 'file') {
+
 			data = opt.element.files;
+			data = this.modifyData(opt, data);
+			this.setData(opt, data);
+
+		} else if (opt.element.type === 'option') {
+
+			data = opt.element.value || opt.element.innerText;
 			data = this.modifyData(opt, data);
 			this.setData(opt, data);
 
@@ -3028,6 +3033,7 @@
 		if (
 			e.target.type !== 'checkbox'
 			&& e.target.type !== 'radio'
+			&& e.target.type !== 'option'
 			&& e.target.nodeName !== 'SELECT'
 		) {
 			Global$1.binder.render({

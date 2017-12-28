@@ -97,7 +97,7 @@ Router.isPath = function (routePath, userPath) {
 	).test(userPath);
 };
 
-Router.toParameter = function (routePath, userPath) {
+Router.toParameterObject = function (routePath, userPath) {
 	var result = {};
 
 	if (
@@ -124,8 +124,24 @@ Router.toParameter = function (routePath, userPath) {
 	return result;
 };
 
-Router.toQuery = function (path) {
+Router.toQueryString = function (data) {
+	var result = '?';
+
+	for (var key in data) {
+		var value = data[key];
+		result += key + '=' + value + '&';
+	}
+
+	if (result.slice(-1) === '&') {
+		result = result.slice(0, -1);
+	}
+
+	return result;
+};
+
+Router.toQueryObject = function (path) {
 	var result = {};
+
 	if (path.indexOf('?') === 0) path = path.slice(1);
 	var queries = path.split('&');
 
@@ -141,7 +157,7 @@ Router.toQuery = function (path) {
 	return result;
 };
 
-Router.toLocation = function (path) {
+Router.toLocationObject = function (path) {
 	var location = {};
 
 	location.port = window.location.port;
@@ -258,15 +274,22 @@ Router.render = function (route) {
 
 };
 
-Router.navigate = function (data, replace) {
+Router.navigate = function (data, options) {
 	var location;
 
+	options = options || {};
+
 	if (typeof data === 'string') {
-		location = this.toLocation(data);
+
+		if (options.query) {
+			data += this.toQueryString(options.query);
+		}
+
+		location = this.toLocationObject(data);
 		location.route = this.find(location.routePath) || {};
 		location.title = location.route.title || '';
-		location.query = this.toQuery(location.search);
-		location.parameters = this.toParameter(location.route.path, location.routePath);
+		location.query = this.toQueryObject(location.search);
+		location.parameters = this.toParameterObject(location.route.path, location.routePath);
 	} else {
 		location = data;
 	}
@@ -284,7 +307,7 @@ Router.navigate = function (data, replace) {
 	}
 
 	this.location = location;
-	window.history[replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
+	window.history[options.replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
 
 	if (this.location.route.handler) {
 		this.location.route.handler(this.location);
@@ -311,7 +334,8 @@ Router.run = function () {
 		throw new Error('Oxe.router - requires a view element');
 	}
 
-	this.navigate(window.location.href, true);
+	var options = { replace: true };
+	this.navigate(window.location.href, options);
 };
 
 export default Router;

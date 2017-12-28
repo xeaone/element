@@ -272,6 +272,14 @@ Render.value = function (opt, caller) {
 
 		}
 
+		// if (
+		// 	!opt.element.multiple
+		// 	&& opt.element.options.length
+		// 	&& data === null || data === undefined
+		// ) {
+		// 	data = elements[0].value || elements[0].innerText;
+		// }
+
 		data = this.modifyData(opt, data);
 		this.setData(opt, data);
 
@@ -305,7 +313,14 @@ Render.value = function (opt, caller) {
 		}
 
 	} else if (opt.element.type === 'file') {
+
 		data = opt.element.files;
+		data = this.modifyData(opt, data);
+		this.setData(opt, data);
+
+	} else if (opt.element.type === 'option') {
+
+		data = opt.element.value || opt.element.innerText;
 		data = this.modifyData(opt, data);
 		this.setData(opt, data);
 
