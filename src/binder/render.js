@@ -326,7 +326,7 @@ Render.value = function (opt, caller) {
 
 	} else {
 
-		data = data === undefined ? '' : data;
+		data = data === undefined || data === null ? opt.element.value : data;
 
 		if (caller === 'view') {
 			data = opt.element.value;
