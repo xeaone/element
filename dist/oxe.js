@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.8.24
+	Version: 2.9.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1888,7 +1888,7 @@
 
 		} else {
 
-			data = data === undefined ? '' : data;
+			data = data === undefined || data === null ? opt.element.value : data;
 
 			if (caller === 'view') {
 				data = opt.element.value;
