@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.9.4
+	Version: 2.9.5
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -752,7 +752,7 @@
 
 	};
 
-	var Router = Object.defineProperties({}, Object.getOwnPropertyDescriptors(Events$2.prototype));
+	var Router = Object.create(Events$2.prototype);
 
 	Events$2.call(Router);
 
