@@ -1,3 +1,13 @@
+/*
+	Name: Oxe
+	Version: 2.9.2
+	License: MPL-2.0
+	Author: Alexander Elias
+	Email: alex.steven.elias@gmail.com
+	This Source Code Form is subject to the terms of the Mozilla Public
+	License, v. 2.0. If a copy of the MPL was not distributed with this
+	file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -1462,8 +1472,8 @@
 	Unrender.each = function (opt) {
 		var element;
 
-		while (element = element.lastElementChild) {
-			element.removeChild(element);
+		while (element = opt.element.lastElementChild) {
+			opt.element.removeChild(element);
 		}
 
 	};

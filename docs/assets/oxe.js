@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.9.1
+	Version: 2.9.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1472,8 +1472,8 @@
 	Unrender.each = function (opt) {
 		var element;
 
-		while (element = element.lastElementChild) {
-			element.removeChild(element);
+		while (element = opt.element.lastElementChild) {
+			opt.element.removeChild(element);
 		}
 
 	};
