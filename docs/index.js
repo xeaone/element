@@ -39,3 +39,7 @@ Oxe.setup({
 		]
 	}
 });
+
+Oxe.router.on('navigated', function () {
+	console.log('navigated');
+});
