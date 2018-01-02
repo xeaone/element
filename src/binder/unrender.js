@@ -8,8 +8,8 @@ Unrender.alt = function (opt) {
 Unrender.each = function (opt) {
 	var element;
 
-	while (element = element.lastElementChild) {
-		element.removeChild(element);
+	while (element = opt.element.lastElementChild) {
+		opt.element.removeChild(element);
 	}
 
 };
