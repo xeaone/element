@@ -1,9 +1,8 @@
 import Events from './lib/events';
 import Global from './global';
 
-var Router = {};
+var Router = Object.defineProperties({}, Object.getOwnPropertyDescriptors(Events.prototype));
 
-Router = Object.assign(Router, Events.prototype);
 Events.call(Router);
 
 Router.cache = {};

@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.9.3
+	Version: 2.9.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -752,9 +752,8 @@
 
 	};
 
-	var Router = {};
+	var Router = Object.defineProperties({}, Object.getOwnPropertyDescriptors(Events$2.prototype));
 
-	Router = Object.assign(Router, Events$2.prototype);
 	Events$2.call(Router);
 
 	Router.cache = {};
@@ -1088,8 +1087,6 @@
 		var options = { replace: true };
 		this.navigate(window.location.href, options);
 	};
-
-	var Router$1 = Router;
 
 	var Transformer = {};
 
@@ -2951,7 +2948,7 @@
 		},
 		router:{
 			enumerable: true,
-			value: Router$1
+			value: Router
 		},
 		batcher:{
 			enumerable: true,
