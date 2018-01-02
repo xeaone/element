@@ -82,8 +82,8 @@ Utility.formData = function (form, model, callback) {
 					type: f.type,
 					size: f.size,
 					name: f.name,
-					name: f.lastModified,
-					data: e.target.result
+					data: e.target.result,
+					lastModified: f.lastModified
 				});
 
 				done++;
