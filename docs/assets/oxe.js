@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.9.5
+	Version: 2.9.6
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1289,12 +1289,14 @@
 	Loader.execute = function (data) {
 		data = '\'use strict\';\n\n' + data;
 
-		return (function(d, l, w) {
-			'use strict';
+		return new Function('$LOADER', 'window', data)(this, window);
 
-			return new Function('$LOADER', 'window', d)(l, w);
-
-		}(data, this, window));
+		// return (function(d, l, w) {
+		// 	'use strict';
+	    //
+		// 	return new Function('$LOADER', 'window', d)(l, w);
+	    //
+		// }(data, this, window));
 	};
 
 	Loader.xhr = function (url, callback) {
