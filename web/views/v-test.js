@@ -99,12 +99,12 @@ Oxe.component.define({
 
 			var increaseInterval = setInterval(function () {
 
-				if (self.model.items.length === 100) {
+				if (self.model.items.length >= 100) {
 					clearInterval(increaseInterval);
 
 					var decreaseInterval = setInterval(function () {
 
-						if (self.model.items.length === 5) {
+						if (self.model.items.length <= 5) {
 							clearInterval(decreaseInterval);
 						}
 

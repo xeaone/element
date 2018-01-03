@@ -17,12 +17,14 @@ Loader.setup = function (options) {
 Loader.execute = function (data) {
 	data = '\'use strict\';\n\n' + data;
 
-	return (function(d, l, w) {
-		'use strict';
+	return new Function('$LOADER', 'window', data)(this, window);
 
-		return new Function('$LOADER', 'window', d)(l, w);
-
-	}(data, this, window));
+	// return (function(d, l, w) {
+	// 	'use strict';
+    //
+	// 	return new Function('$LOADER', 'window', d)(l, w);
+    //
+	// }(data, this, window));
 };
 
 Loader.xhr = function (url, callback) {

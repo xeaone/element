@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 2.9.5
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -1289,12 +1279,14 @@
 	Loader.execute = function (data) {
 		data = '\'use strict\';\n\n' + data;
 
-		return (function(d, l, w) {
-			'use strict';
+		return new Function('$LOADER', 'window', data)(this, window);
 
-			return new Function('$LOADER', 'window', d)(l, w);
-
-		}(data, this, window));
+		// return (function(d, l, w) {
+		// 	'use strict';
+	    //
+		// 	return new Function('$LOADER', 'window', d)(l, w);
+	    //
+		// }(data, this, window));
 	};
 
 	Loader.xhr = function (url, callback) {
