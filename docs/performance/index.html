@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
 
-	<base href="/performance/">
+	<base href="/">
+
+	<script>
+		document.querySelector('base').href
+			= location.hostname === 'alexanderelias.github.io'
+			? '/oxe/performance/'
+			: '/performance/';
+	</script>
+
 
 	<title>Performance</title>
 

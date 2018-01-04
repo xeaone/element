@@ -2,9 +2,13 @@
 <html lang="en">
 <head>
 
+	<base href="/">
+
 	<script>
-		var href = window.location.origin === 'https://alexanderelias.github.io' ? '/oxe/' : '/';
-		document.head.insertAdjacentHTML('afterbegin', '<base href=\"' + href + '\">');
+		document.querySelector('base').href
+			= location.hostname === 'alexanderelias.github.io'
+			? '/oxe/'
+			: '/';
 	</script>
 
 	<meta charset="utf-8">
