@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 2.9.8
+	Version: 2.9.9
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1296,6 +1296,7 @@
 
 	Loader.loads = [];
 	Loader.modules = {};
+	Loader.loaded = null;
 	Loader.isRan = false;
 	Loader.type = 'module';
 
@@ -1303,6 +1304,7 @@
 		options = options || {};
 		this.type = options.type || this.type;
 		this.loads = options.loads || this.loads;
+		this.loaded = options.loaded || this.loaded;
 	};
 
 	Loader.execute = function (data) {
@@ -1470,7 +1472,7 @@
 		this.isRan = true;
 
 		while (load = this.loads.shift()) {
-			this.load(load);
+			this.load(load, this.loaded);
 		}
 
 	};

@@ -5,6 +5,7 @@ var Loader = {};
 
 Loader.loads = [];
 Loader.modules = {};
+Loader.loaded = null;
 Loader.isRan = false;
 Loader.type = 'module';
 
@@ -12,6 +13,7 @@ Loader.setup = function (options) {
 	options = options || {};
 	this.type = options.type || this.type;
 	this.loads = options.loads || this.loads;
+	this.loaded = options.loaded || this.loaded;
 };
 
 Loader.execute = function (data) {
@@ -179,7 +181,7 @@ Loader.run = function () {
 	this.isRan = true;
 
 	while (load = this.loads.shift()) {
-		this.load(load);
+		this.load(load, this.loaded);
 	}
 
 };
