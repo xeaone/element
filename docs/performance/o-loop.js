@@ -1,6 +1,6 @@
 
 Oxe.component.define({
-	name: 'v-loop',
+	name: 'o-loop',
 	model: {
 		items: [
 			{ number: 0 },
