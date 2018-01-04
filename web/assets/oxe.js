@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 2.9.9
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -410,92 +400,143 @@
 		return root + result.join('/');
 	};
 
-	var Batcher = {};
+	function Events () {
+		this.events = {};
+	}
 
-	Batcher.reads = [];
-	Batcher.writes = [];
-	Batcher.pending = false;
+	Events.prototype.on = function (name, method) {
 
-	Batcher.batch = function (options) {
-		var task;
-
-		if (options.context) {
-			task = options.method.bind(options.context);
-		} else {
-			task = options.method;
+		if (!(name in this.events)) {
+			this.events[name] = [];
 		}
 
-		if (options.priority) {
-			this[options.type].unshift(task);
-		} else {
-			this[options.type].push(task);
+		this.events[name].push(method);
+	};
+
+	Events.prototype.off = function (name, method) {
+
+		if (name in this.events) {
+
+			var index = this.events[name].indexOf(method);
+
+			if (index !== -1) {
+				this.events[name].splice(index, 1);
+			}
+
 		}
 
-		this.tick();
+	};
+
+	Events.prototype.emit = function (name) {
+
+		if (name in this.events) {
+			
+			var methods = this.events[name];
+			var args = Array.prototype.slice.call(arguments, 1);
+
+			for (var i = 0, l = methods.length; i < l; i++) {
+				methods[i].apply(this, args);
+			}
+
+		}
+
+	};
+
+	var Batcher = function (options) {
+		Events.call(this);
+
+		this.reads = [];
+		this.writes = [];
+		this.fps = 1000/60;
+		this.pending = false;
+
+		this.setup(options);
+	};
+
+	Batcher.prototype = Object.create(Events.prototype);
+	Batcher.prototype.constructor = Batcher;
+
+	Batcher.prototype.setup = function (options) {
+		options = options || {};
+		options.fps = options.fps === undefined || options.fps === null ? this.fps : options.fps;
 	};
 
 	// adds a task to the read batch
-	Batcher.read = function (method, context, priority) {
-		this.batch({
-			type: 'reads',
-			method: method,
-			context: context,
-			priority: priority
-		});
+	Batcher.prototype.read = function (method, context) {
+		var task = context ? method.bind(context) : method;
+		this.reads.push(task);
+		this.tick();
+		return task;
 	};
 
 	// adds a task to the write batch
-	Batcher.write = function (method, context, priority) {
-		this.batch({
-			type: 'writes',
-			method: method,
-			context: context,
-			priority: priority
-		});
+	Batcher.prototype.write = function (method, context) {
+		var task = context ? method.bind(context) : method;
+		this.writes.push(task);
+		this.tick();
+		return task;
 	};
 
-	// removes a pending task
-	Batcher.remove = function (tasks, task) {
+	// schedules a new read/write batch if one is not pending
+	Batcher.prototype.tick = function () {
+		if (!this.pending) {
+			this.pending = true;
+			window.requestAnimationFrame(this.flush.bind(this));
+		}
+	};
+
+	Batcher.prototype.flush = function (time) {
+		var error;
+
+		if (!this.reads.length && !this.writes.length) {
+			return;
+		}
+
+		try {
+			this.run(this.reads, time);
+			this.run(this.writes, time);
+		} catch (e) {
+			error = e;
+		}
+
+		this.pending = false;
+
+		if (this.reads.length || this.writes.length) {
+			this.tick();
+		}
+
+		if (error) {
+			if (this.events.error.length) {
+				this.emit('error', error);
+			} else {
+				throw error;
+			}
+		}
+
+	};
+
+	Batcher.prototype.run = function (tasks, time) {
+		var task;
+
+		while (task = tasks.shift()) {
+
+			task();
+
+			if (this.maxFrameTime && performance.now() - time > this.fps) {
+				break;
+			}
+
+		}
+
+	};
+
+	Batcher.prototype.remove = function (tasks, task) {
 		var index = tasks.indexOf(task);
 		return !!~index && !!tasks.splice(index, 1);
 	};
 
-	// clears a pending read or write task
-	Batcher.clear = function (task) {
+	Batcher.prototype.clear = function (task) {
 		return this.remove(this.reads, task) || this.remove(this.writes, task);
-	};
-
-	// schedules a new read/write batch if one is not pending
-	Batcher.tick = function () {
-		if (this.pending) return;
-		self.pending = true;
-		this.flush();
-	};
-
-	Batcher.flush = function () {
-		var self = this;
-
-		self.run(self.reads, function () {
-			self.run(self.writes, function () {
-				self.pending = false;
-			});
-		});
-
-	};
-
-	Batcher.run = function (tasks, callback) {
-		var self = this;
-
-		if (!tasks.length) {
-			return callback();
-		}
-
-		var task;
-
-		while (task = tasks.shift()) {
-			window.requestAnimationFrame(task);
-		}
-
 	};
 
 	var Fetcher = {};
@@ -720,71 +761,29 @@
 		return Fetcher.fetch(opt);
 	};
 
-	var Events = {};
+	var Events$1 = {};
 
-	Events.data = {};
+	Events$1.data = {};
 
-	function Events$2 () {
-		this.events = {};
-	}
+	var Router = function (options) {
+		Events.call(this);
 
-	Events$2.prototype.on = function (name, listener) {
+		this.cache = {};
+		this.routes = [];
+		this.hash = false;
+		this.auth = false;
+		this.isRan = false;
+		this.location = {};
+		this.view = 'o-view';
+		this.trailing = false;
 
-		if (typeof this.events[name] !== 'object') {
-			this.events[name] = [];
-		}
-
-		this.events[name].push(listener);
+		this.setup(options);
 	};
 
-	Events$2.prototype.off = function (name, listener) {
+	Router.prototype = Object.create(Events.prototype);
+	Router.prototype.constructor = Router;
 
-		if (typeof this.events[name] === 'object') {
-			var index = this.events[name].indexOf(listener);
-
-			if (index > -1) {
-				this.events[name].splice(index, 1);
-			}
-
-		}
-
-	};
-
-	Events$2.prototype.once = function (name, listener) {
-		this.on(name, function f () {
-			this.off(name, f);
-			listener.apply(this, arguments);
-		});
-	};
-
-	Events$2.prototype.emit = function (name) {
-
-		if (typeof this.events[name] === 'object') {
-			var listeners = this.events[name].slice();
-			var args = Array.prototype.slice.call(arguments, 1);
-
-			for (var i = 0, l = listeners.length; i < l; i++) {
-				listeners[i].apply(this, args);
-			}
-
-		}
-
-	};
-
-	var Router = Object.create(Events$2.prototype);
-
-	Events$2.call(Router);
-
-	Router.cache = {};
-	Router.routes = [];
-	Router.hash = false;
-	Router.auth = false;
-	Router.isRan = false;
-	Router.location = {};
-	Router.view = 'o-view';
-	Router.trailing = false;
-
-	Router.setup = function (options) {
+	Router.prototype.setup = function (options) {
 		options = options || {};
 		this.container = options.container;
 		this.auth = options.auth === undefined ? this.auth : options.auth;
@@ -795,19 +794,19 @@
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 	};
 
-	Router.scroll = function (x, y) {
+	Router.prototype.scroll = function (x, y) {
 		window.scroll(x, y);
 	};
 
-	Router.back = function () {
+	Router.prototype.back = function () {
 		window.history.back();
 	};
 
-	Router.redirect = function (path) {
+	Router.prototype.redirect = function (path) {
 		window.location.href = path;
 	};
 
-	Router.add = function (route) {
+	Router.prototype.add = function (route) {
 
 		if (route.constructor.name === 'Object') {
 			this.routes.push(route);
@@ -817,7 +816,7 @@
 
 	};
 
-	Router.remove = function (path) {
+	Router.prototype.remove = function (path) {
 
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 
@@ -829,7 +828,7 @@
 
 	};
 
-	Router.get = function (path) {
+	Router.prototype.get = function (path) {
 
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 			var route = this.routes[i];
@@ -842,7 +841,7 @@
 
 	};
 
-	Router.find = function (path) {
+	Router.prototype.find = function (path) {
 
 		for (var i = 0, l = this.routes.length; i < l; i++) {
 			var route = this.routes[i];
@@ -855,7 +854,7 @@
 
 	};
 
-	Router.isPath = function (routePath, userPath) {
+	Router.prototype.isPath = function (routePath, userPath) {
 		userPath = userPath || '/';
 
 		return new RegExp(
@@ -866,7 +865,7 @@
 		).test(userPath);
 	};
 
-	Router.toParameterObject = function (routePath, userPath) {
+	Router.prototype.toParameterObject = function (routePath, userPath) {
 		var result = {};
 
 		if (
@@ -893,7 +892,7 @@
 		return result;
 	};
 
-	Router.toQueryString = function (data) {
+	Router.prototype.toQueryString = function (data) {
 		var result = '?';
 
 		for (var key in data) {
@@ -908,7 +907,7 @@
 		return result;
 	};
 
-	Router.toQueryObject = function (path) {
+	Router.prototype.toQueryObject = function (path) {
 		var result = {};
 
 		if (path.indexOf('?') === 0) path = path.slice(1);
@@ -926,7 +925,7 @@
 		return result;
 	};
 
-	Router.toLocationObject = function (path) {
+	Router.prototype.toLocationObject = function (path) {
 		var location = {};
 
 		location.port = window.location.port;
@@ -1008,7 +1007,7 @@
 		return location;
 	};
 
-	Router.batch = function (route) {
+	Router.prototype.batch = function (route) {
 		var self = this, component;
 
 		component = self.cache[route.component];
@@ -1029,7 +1028,7 @@
 
 	};
 
-	Router.render = function (route) {
+	Router.prototype.render = function (route) {
 
 		if (route.title) {
 			document.title = route.title;
@@ -1043,7 +1042,7 @@
 
 	};
 
-	Router.navigate = function (data, options) {
+	Router.prototype.navigate = function (data, options) {
 		var location;
 
 		options = options || {};
@@ -1087,7 +1086,7 @@
 		}
 	};
 
-	Router.run = function () {
+	Router.prototype.run = function () {
 
 		if (this.isRan) {
 			return;
@@ -1583,6 +1582,8 @@
 
 	var Render = {};
 
+	Render.maxFrameTime = 1000/60;
+
 	Render.class = function (opt) {
 		var data = Binder.getData(opt);
 
@@ -1764,7 +1765,10 @@
 		data = Binder.modifyData(opt, data);
 		data = data === undefined || data === null ? '' : data;
 
-		opt.element.innerText = data;
+		Global$1.batcher.write(function () {
+			opt.element.innerText = data;
+		});
+
 	};
 
 	Render.write = function (opt) {
@@ -1782,41 +1786,98 @@
 		opt.element.readOnly = !Binder.modifyData(opt, data);
 	};
 
-	Render.each = function (opt, modified, time) {
-		var data;
-		var maxFrameTime = 1000/60;
+	Render.each = function (opt) {
 
-		if (!modified) {
-			data = Binder.getData(opt);
-
-			if (!data) {
-				data = [];
-				Binder.setData(opt, data);
-			}
-
-			modified = Binder.modifyData(opt, data);
+		if (opt.pending) {
+			return;
+		} else {
+			opt.pending = true;
 		}
 
-		time = time || performance.now();
+		var data = Binder.getData(opt);
 
-		while (opt.element.children.length !== modified.length) {
-
-			if (opt.element.children.length > modified.length) {
-				opt.element.removeChild(opt.element.lastElementChild);
-			} else if (opt.element.children.length < modified.length) {
-				opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, opt.element.children.length));
-			}
-
-			if (performance.now() - time > maxFrameTime) {
-				break;
-				return window.requestAnimationFrame(this.each.bind(this, opt, modified));
-			}
-
+		if (!data) {
+			data = [];
+			Binder.setData(opt, data);
 		}
 
-		if (opt.element.children.length !== Binder.getData(opt).length) {
-			window.requestAnimationFrame(this.each.bind(this, opt, modified));
-		}
+		data = Binder.modifyData(opt, data);
+
+		Global$1.batcher.read(function () {
+
+			var dataLength = data.length;
+			var elementLength = opt.element.children.length;
+
+			while (elementLength !== dataLength) {
+
+				if (elementLength > dataLength) {
+
+					elementLength--;
+
+					Global$1.batcher.write(function (e) {
+						opt.element.removeChild(e);
+					}.bind(this, opt.element.children[elementLength]));
+
+				} else if (elementLength < dataLength) {
+
+					Global$1.batcher.write(function (l) {
+						opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, l));
+					}.bind(this, elementLength));
+
+					elementLength++;
+
+				}
+
+			}
+
+			opt.pending = false;
+
+		}, this);
+
+		// window.requestAnimationFrame(function (time) {
+	    //
+		// 	var dataLength = data.length;
+		// 	var elementLength = opt.element.children.length;
+	    //
+		// 	while (elementLength !== dataLength) {
+	    //
+		// 		if (elementLength > dataLength) {
+	    //
+		// 			elementLength--;
+		// 			opt.element.removeChild(opt.element.children[elementLength]);
+	    //
+		// 		} else if (elementLength < dataLength) {
+	    //
+		// 			opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, elementLength));
+		// 			elementLength++;
+	    //
+		// 		}
+	    //
+		// 		if (performance.now() - time > this.maxFrameTime) {
+		// 			opt.pending = false;
+		// 			return this.each(opt);
+		// 		}
+	    //
+		// 	}
+
+			// while (opt.element.children.length !== data.length) {
+	        //
+			// 	if (opt.element.children.length > data.length) {
+			// 		opt.element.removeChild(opt.element.lastElementChild);
+			// 	} else if (opt.element.children.length < data.length) {
+			// 		opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, opt.element.children.length));
+			// 	}
+	        //
+			// 	if (performance.now() - time > this.maxFrameTime) {
+			// 		opt.pending = false;
+			// 		return this.each(opt);
+			// 	}
+	        //
+			// }
+
+		// 	opt.pending = false;
+	    //
+		// }.bind(this));
 
 	};
 
@@ -1920,16 +1981,27 @@
 
 		} else {
 
-			data = data === undefined || data === null ? opt.element.value : data;
+			window.requestAnimationFrame(function () {
 
-			if (caller === 'view') {
-				data = opt.element.value;
-			} else {
-				opt.element.value = data;
-			}
+				// data = data === undefined || data === null ? opt.element.value : data;
 
-			data = Binder.modifyData(opt, data);
-			Binder.setData(opt, data);
+				if (caller === 'view') {
+					// Global.batcher.read(function () {
+						data = data === undefined || data === null ? opt.element.value : data;
+						data = opt.element.value;
+						Binder.setData(opt, data);
+					// });
+				} else {
+					data = Binder.modifyData(opt, data);
+					// Global.batcher.write(function () {
+						opt.element.value = data;
+					// });
+				}
+
+			});
+
+			// data = Binder.modifyData(opt, data);
+			// Binder.setData(opt, data);
 
 		}
 
@@ -1937,24 +2009,41 @@
 
 	var Setup = {};
 
-	Setup.on = function (opt) {
-		var data = Binder.getData(opt);
-
+	Setup.on = function (opt, callback) {
+		var data = Global$1.binder.getData(opt);
 		opt.cache = data.bind(opt.model);
 		opt.element.addEventListener(opt.names[1], opt.cache);
+		callback();
 	};
 
-	Setup.each = function (opt) {
-
-		opt.clone = opt.element.removeChild(opt.element.firstElementChild);
+	Setup.each = function (opt, callback) {
 
 		opt.variable = opt.names[1];
 		opt.pattern = new RegExp('\\$(' + opt.variable + '|index)', 'ig');
 
-		opt.clone = opt.clone.outerHTML.replace(
-			new RegExp('((?:data-)?o-.*?=")' + opt.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
-			'$1' + opt.path + '.$' + opt.variable + '$2'
-		);
+		// opt.clone = opt.element.removeChild(opt.element.firstElementChild);
+	    //
+		// opt.clone = opt.clone.outerHTML.replace(
+		// 	new RegExp('((?:data-)?o-.*?=")' + opt.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
+		// 	'$1' + opt.path + '.$' + opt.variable + '$2'
+		// );
+
+		Global$1.batcher.read(function () {
+			var element = opt.element.children[0];
+
+			Global$1.batcher.write(function () {
+
+				opt.clone = opt.element.removeChild(element);
+
+				opt.clone = opt.clone.outerHTML.replace(
+					new RegExp('((?:data-)?o-.*?=")' + opt.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
+					'$1' + opt.path + '.$' + opt.variable + '$2'
+				);
+
+				callback();
+			});
+
+		});
 
 	};
 
@@ -2091,7 +2180,7 @@
 
 	};
 
-	Binder.option = function (opt) {
+	Binder.create = function (opt) {
 		opt = opt || {};
 
 		if (!opt.name) {
@@ -2107,7 +2196,6 @@
 		opt.value = opt.value || opt.element.getAttribute(opt.name);
 		opt.path = opt.path || Global$1.utility.binderPath(opt.value);
 
-		opt.exists = false;
 		opt.type = opt.type || Global$1.utility.binderType(opt.name);
 		opt.names = opt.names || Global$1.utility.binderNames(opt.name);
 		opt.values = opt.values || Global$1.utility.binderValues(opt.value);
@@ -2117,45 +2205,60 @@
 		opt.model = opt.model || Global$1.model.data[opt.uid];
 		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
 
-		var tmp = this.get(opt);
-
-		if (tmp) {
-			return tmp;
-		}
-
-		this.ensureData(opt);
-
-		if (opt.type in this.setupMethod) {
-			this.setupMethod[opt.type].call(this, opt);
-		}
+		opt.setup = false;
+		opt.exists = false;
+		opt.pending = false;
 
 		return opt;
 	};
 
 	Binder.unrender = function (opt, caller) {
-		opt = this.option(opt);
+		var self = this;
 
-		if (opt.type in this.unrenderMethod) {
-			Global$1.batcher.write(function () {
+		opt = self.get(opt);
 
-				this.unrenderMethod[opt.type](opt, caller);
-				this.remove(opt);
-
-			}, this);
+		if (!opt) {
+			return;
 		}
+
+		if (opt.type in self.unrenderMethod) {
+			self.unrenderMethod[opt.type](opt, caller);
+		}
+
+		self.remove(opt);
+
 	};
 
 	Binder.render = function (opt, caller) {
-		opt = this.option(opt);
+		var self = this;
 
-		if (opt.type in this.renderMethod) {
-			Global$1.batcher.write(function () {
+		opt = self.get(opt) || self.create(opt);
 
-				this.renderMethod[opt.type](opt, caller);
-				this.add(opt);
-
-			}, this);
+		if (!opt.exists) {
+			self.add(opt);
+			opt.exists = true;
 		}
+
+		var done = function () {
+			if (opt.type in self.renderMethod) {
+				self.renderMethod[opt.type](opt, caller);
+			}
+		};
+
+		if (opt.type in self.setupMethod && !opt.setup) {
+			opt.setup = true;
+			self.ensureData(opt);
+			// self.setupMethod[opt.type](opt);
+			self.setupMethod[opt.type](opt, done);
+		}
+		else {
+			done();
+		}
+
+		// if (opt.type in self.renderMethod) {
+		// 	self.renderMethod[opt.type](opt, caller);
+		// }
+
 	};
 
 	var Keeper = {};
@@ -2890,6 +2993,12 @@
 		this.add(this.container);
 	};
 
+	window.requestAnimationFrame = window.requestAnimationFrame
+		|| window.webkitRequestAnimationFrame
+		|| window.mozRequestAnimationFrame
+		|| window.msRequestAnimationFrame
+		|| function(c) { return setTimeout(c, 16); };
+
 	var Global$1 = Object.defineProperties({}, {
 		window: {
 			enumerable: true,
@@ -2947,7 +3056,7 @@
 		},
 		events: {
 			enumerable: true,
-			value: Events
+			value: Events$1
 		},
 		modifiers: {
 			enumerable: true,
@@ -2979,11 +3088,11 @@
 		},
 		router:{
 			enumerable: true,
-			value: Router
+			value: new Router()
 		},
 		batcher:{
 			enumerable: true,
-			value: Batcher
+			value: new Batcher()
 		},
 		fetcher:{
 			enumerable: true,
@@ -3246,7 +3355,7 @@
 		subtree: true
 	});
 
-	window.requestAnimationFrame(function () {
+	// window.requestAnimationFrame(function () {
 		var eStyle = Global$1.document.createElement('style');
 		var sStyle = Global$1.document.createTextNode('o-view, o-view > :first-child { display: block; }');
 
@@ -3264,7 +3373,7 @@
 			Global$1.loader.load({ url: eIndex });
 		}
 
-	});
+	// });
 
 	Global$1.view.run();
 	Global$1.model.run();

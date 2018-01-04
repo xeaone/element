@@ -1,20 +1,25 @@
 import Events from './lib/events';
 import Global from './global';
 
-var Router = Object.create(Events.prototype);
+var Router = function (options) {
+	Events.call(this);
 
-Events.call(Router);
+	this.cache = {};
+	this.routes = [];
+	this.hash = false;
+	this.auth = false;
+	this.isRan = false;
+	this.location = {};
+	this.view = 'o-view';
+	this.trailing = false;
 
-Router.cache = {};
-Router.routes = [];
-Router.hash = false;
-Router.auth = false;
-Router.isRan = false;
-Router.location = {};
-Router.view = 'o-view';
-Router.trailing = false;
+	this.setup(options);
+};
 
-Router.setup = function (options) {
+Router.prototype = Object.create(Events.prototype);
+Router.prototype.constructor = Router;
+
+Router.prototype.setup = function (options) {
 	options = options || {};
 	this.container = options.container;
 	this.auth = options.auth === undefined ? this.auth : options.auth;
@@ -25,19 +30,19 @@ Router.setup = function (options) {
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 };
 
-Router.scroll = function (x, y) {
+Router.prototype.scroll = function (x, y) {
 	window.scroll(x, y);
 };
 
-Router.back = function () {
+Router.prototype.back = function () {
 	window.history.back();
 };
 
-Router.redirect = function (path) {
+Router.prototype.redirect = function (path) {
 	window.location.href = path;
 };
 
-Router.add = function (route) {
+Router.prototype.add = function (route) {
 
 	if (route.constructor.name === 'Object') {
 		this.routes.push(route);
@@ -47,7 +52,7 @@ Router.add = function (route) {
 
 };
 
-Router.remove = function (path) {
+Router.prototype.remove = function (path) {
 
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 
@@ -59,7 +64,7 @@ Router.remove = function (path) {
 
 };
 
-Router.get = function (path) {
+Router.prototype.get = function (path) {
 
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 		var route = this.routes[i];
@@ -72,7 +77,7 @@ Router.get = function (path) {
 
 };
 
-Router.find = function (path) {
+Router.prototype.find = function (path) {
 
 	for (var i = 0, l = this.routes.length; i < l; i++) {
 		var route = this.routes[i];
@@ -85,7 +90,7 @@ Router.find = function (path) {
 
 };
 
-Router.isPath = function (routePath, userPath) {
+Router.prototype.isPath = function (routePath, userPath) {
 	userPath = userPath || '/';
 
 	return new RegExp(
@@ -96,7 +101,7 @@ Router.isPath = function (routePath, userPath) {
 	).test(userPath);
 };
 
-Router.toParameterObject = function (routePath, userPath) {
+Router.prototype.toParameterObject = function (routePath, userPath) {
 	var result = {};
 
 	if (
@@ -123,7 +128,7 @@ Router.toParameterObject = function (routePath, userPath) {
 	return result;
 };
 
-Router.toQueryString = function (data) {
+Router.prototype.toQueryString = function (data) {
 	var result = '?';
 
 	for (var key in data) {
@@ -138,7 +143,7 @@ Router.toQueryString = function (data) {
 	return result;
 };
 
-Router.toQueryObject = function (path) {
+Router.prototype.toQueryObject = function (path) {
 	var result = {};
 
 	if (path.indexOf('?') === 0) path = path.slice(1);
@@ -156,7 +161,7 @@ Router.toQueryObject = function (path) {
 	return result;
 };
 
-Router.toLocationObject = function (path) {
+Router.prototype.toLocationObject = function (path) {
 	var location = {};
 
 	location.port = window.location.port;
@@ -238,7 +243,7 @@ Router.toLocationObject = function (path) {
 	return location;
 };
 
-Router.batch = function (route) {
+Router.prototype.batch = function (route) {
 	var self = this, component;
 
 	component = self.cache[route.component];
@@ -259,7 +264,7 @@ Router.batch = function (route) {
 
 };
 
-Router.render = function (route) {
+Router.prototype.render = function (route) {
 
 	if (route.title) {
 		document.title = route.title;
@@ -273,7 +278,7 @@ Router.render = function (route) {
 
 };
 
-Router.navigate = function (data, options) {
+Router.prototype.navigate = function (data, options) {
 	var location;
 
 	options = options || {};
@@ -317,7 +322,7 @@ Router.navigate = function (data, options) {
 	}
 };
 
-Router.run = function () {
+Router.prototype.run = function () {
 
 	if (this.isRan) {
 		return;

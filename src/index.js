@@ -219,7 +219,7 @@ new Global.window.MutationObserver(function (mutations) {
 	subtree: true
 });
 
-window.requestAnimationFrame(function () {
+// window.requestAnimationFrame(function () {
 	var eStyle = Global.document.createElement('style');
 	var sStyle = Global.document.createTextNode('o-view, o-view > :first-child { display: block; }');
 
@@ -237,7 +237,7 @@ window.requestAnimationFrame(function () {
 		Global.loader.load({ url: eIndex });
 	}
 
-});
+// });
 
 Global.view.run();
 Global.model.run();

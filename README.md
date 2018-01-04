@@ -119,6 +119,7 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 	- `loader: Object` Oxe.loader options
 	- `keeper: Object` Oxe.keeper options
 	- `router: Object` Oxe.router options
+	- `batcher: Object` Oxe.batcher options
 	- `fetcher: Object` Oxe.fetcher options
 
 ### Oxe.component
@@ -236,6 +237,26 @@ Automatically use the default action for non origin matching hrefs
 		- `query: Object` Converts a key value pair to a query/search string and appends to the path
 - `on: EventEmitter`
 	- `navigated: Event`
+
+### Oxe.batcher
+Batches DOM reads and writes.
+- `options: Object`
+	- `fps: Number` (default: 1000/60) if set to 0 the totaly load time decreases but the progress/lazy load is lost.
+- `setup: Function`
+	- `options: Object`
+- `read: Function`
+- `write: Function`
+- `tick: Function`
+- `flush: Function`
+- `run: Function`
+- `remove: Function`
+- `clear: Function`
+- `emit: Function`
+- `on: Function`
+	- `name: String`
+	- `method: Function`
+- `events: Object`
+	- `error: Array`
 
 ### Oxe.fetcher
 Uses XHR

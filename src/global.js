@@ -11,6 +11,12 @@ import Keeper from './keeper';
 import Model from './model';
 import View from './view';
 
+window.requestAnimationFrame = window.requestAnimationFrame
+	|| window.webkitRequestAnimationFrame
+	|| window.mozRequestAnimationFrame
+	|| window.msRequestAnimationFrame
+	|| function(c) { return setTimeout(c, 16); };
+
 var Global = Object.defineProperties({}, {
 	window: {
 		enumerable: true,
@@ -100,11 +106,11 @@ var Global = Object.defineProperties({}, {
 	},
 	router:{
 		enumerable: true,
-		value: Router
+		value: new Router()
 	},
 	batcher:{
 		enumerable: true,
-		value: Batcher
+		value: new Batcher()
 	},
 	fetcher:{
 		enumerable: true,

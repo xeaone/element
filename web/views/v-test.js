@@ -99,22 +99,22 @@ Oxe.component.define({
 
 			var increaseInterval = setInterval(function () {
 
-				if (self.model.items.length >= 100) {
+				if (self.model.items.length === 10) {
 					clearInterval(increaseInterval);
 
 					var decreaseInterval = setInterval(function () {
 
-						if (self.model.items.length <= 5) {
+						if (self.model.items.length === 5) {
 							clearInterval(decreaseInterval);
+						} else {
+							self.model.items.pop();
 						}
-
-						self.model.items.pop();
 
 					}, 10);
 
+				} else {
+					self.model.items.push({ it: { val: self.model.items.length } });
 				}
-
-				self.model.items.push({ it: { val: self.model.items.length } });
 
 			}, 10);
 

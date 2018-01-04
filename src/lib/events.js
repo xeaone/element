@@ -3,21 +3,22 @@ export default function Events () {
 	this.events = {};
 }
 
-Events.prototype.on = function (name, listener) {
+Events.prototype.on = function (name, method) {
 
-	if (typeof this.events[name] !== 'object') {
+	if (!(name in this.events)) {
 		this.events[name] = [];
 	}
 
-	this.events[name].push(listener);
+	this.events[name].push(method);
 };
 
-Events.prototype.off = function (name, listener) {
+Events.prototype.off = function (name, method) {
 
-	if (typeof this.events[name] === 'object') {
-		var index = this.events[name].indexOf(listener);
+	if (name in this.events) {
 
-		if (index > -1) {
+		var index = this.events[name].indexOf(method);
+
+		if (index !== -1) {
 			this.events[name].splice(index, 1);
 		}
 
@@ -25,21 +26,15 @@ Events.prototype.off = function (name, listener) {
 
 };
 
-Events.prototype.once = function (name, listener) {
-	this.on(name, function f () {
-		this.off(name, f);
-		listener.apply(this, arguments);
-	});
-};
-
 Events.prototype.emit = function (name) {
 
-	if (typeof this.events[name] === 'object') {
-		var listeners = this.events[name].slice();
+	if (name in this.events) {
+		
+		var methods = this.events[name];
 		var args = Array.prototype.slice.call(arguments, 1);
 
-		for (var i = 0, l = listeners.length; i < l; i++) {
-			listeners[i].apply(this, args);
+		for (var i = 0, l = methods.length; i < l; i++) {
+			methods[i].apply(this, args);
 		}
 
 	}

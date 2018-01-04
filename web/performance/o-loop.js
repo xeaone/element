@@ -14,7 +14,6 @@ Oxe.component.define({
 			self.model.items.push({ number: self.model.items.length });
 		}
 
-
 	},
 	html: `
 		<div o-each-item="items">

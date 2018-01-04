@@ -136,7 +136,7 @@ Binder.each = function (uid, path, callback) {
 
 };
 
-Binder.option = function (opt) {
+Binder.create = function (opt) {
 	opt = opt || {};
 
 	if (!opt.name) {
@@ -152,7 +152,6 @@ Binder.option = function (opt) {
 	opt.value = opt.value || opt.element.getAttribute(opt.name);
 	opt.path = opt.path || Global.utility.binderPath(opt.value);
 
-	opt.exists = false;
 	opt.type = opt.type || Global.utility.binderType(opt.name);
 	opt.names = opt.names || Global.utility.binderNames(opt.name);
 	opt.values = opt.values || Global.utility.binderValues(opt.value);
@@ -162,45 +161,60 @@ Binder.option = function (opt) {
 	opt.model = opt.model || Global.model.data[opt.uid];
 	opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
 
-	var tmp = this.get(opt);
-
-	if (tmp) {
-		return tmp;
-	}
-
-	this.ensureData(opt);
-
-	if (opt.type in this.setupMethod) {
-		this.setupMethod[opt.type].call(this, opt);
-	}
+	opt.setup = false;
+	opt.exists = false;
+	opt.pending = false;
 
 	return opt;
 };
 
 Binder.unrender = function (opt, caller) {
-	opt = this.option(opt);
+	var self = this;
 
-	if (opt.type in this.unrenderMethod) {
-		Global.batcher.write(function () {
+	opt = self.get(opt);
 
-			this.unrenderMethod[opt.type](opt, caller);
-			this.remove(opt);
-
-		}, this);
+	if (!opt) {
+		return;
 	}
+
+	if (opt.type in self.unrenderMethod) {
+		self.unrenderMethod[opt.type](opt, caller);
+	}
+
+	self.remove(opt);
+
 };
 
 Binder.render = function (opt, caller) {
-	opt = this.option(opt);
+	var self = this;
 
-	if (opt.type in this.renderMethod) {
-		Global.batcher.write(function () {
+	opt = self.get(opt) || self.create(opt);
 
-			this.renderMethod[opt.type](opt, caller);
-			this.add(opt);
-
-		}, this);
+	if (!opt.exists) {
+		self.add(opt);
+		opt.exists = true;
 	}
+
+	var done = function () {
+		if (opt.type in self.renderMethod) {
+			self.renderMethod[opt.type](opt, caller);
+		}
+	};
+
+	if (opt.type in self.setupMethod && !opt.setup) {
+		opt.setup = true;
+		self.ensureData(opt);
+		// self.setupMethod[opt.type](opt);
+		self.setupMethod[opt.type](opt, done);
+	}
+	else {
+		done();
+	}
+
+	// if (opt.type in self.renderMethod) {
+	// 	self.renderMethod[opt.type](opt, caller);
+	// }
+
 };
 
 export default Binder;

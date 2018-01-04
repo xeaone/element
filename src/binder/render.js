@@ -3,6 +3,8 @@ import Binder from './index';
 
 var Render = {};
 
+Render.maxFrameTime = 1000/60;
+
 Render.class = function (opt) {
 	var data = Binder.getData(opt);
 
@@ -184,7 +186,10 @@ Render.text = function (opt) {
 	data = Binder.modifyData(opt, data);
 	data = data === undefined || data === null ? '' : data;
 
-	opt.element.innerText = data;
+	Global.batcher.write(function () {
+		opt.element.innerText = data;
+	});
+
 };
 
 Render.write = function (opt) {
@@ -202,41 +207,98 @@ Render.write = function (opt) {
 	opt.element.readOnly = !Binder.modifyData(opt, data);
 };
 
-Render.each = function (opt, modified, time) {
-	var data;
-	var maxFrameTime = 1000/60;
+Render.each = function (opt) {
 
-	if (!modified) {
-		data = Binder.getData(opt);
-
-		if (!data) {
-			data = [];
-			Binder.setData(opt, data);
-		}
-
-		modified = Binder.modifyData(opt, data);
+	if (opt.pending) {
+		return;
+	} else {
+		opt.pending = true;
 	}
 
-	time = time || performance.now();
+	var data = Binder.getData(opt);
 
-	while (opt.element.children.length !== modified.length) {
-
-		if (opt.element.children.length > modified.length) {
-			opt.element.removeChild(opt.element.lastElementChild);
-		} else if (opt.element.children.length < modified.length) {
-			opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, opt.element.children.length));
-		}
-
-		if (performance.now() - time > maxFrameTime) {
-			break;
-			return window.requestAnimationFrame(this.each.bind(this, opt, modified));
-		}
-
+	if (!data) {
+		data = [];
+		Binder.setData(opt, data);
 	}
 
-	if (opt.element.children.length !== Binder.getData(opt).length) {
-		window.requestAnimationFrame(this.each.bind(this, opt, modified));
-	}
+	data = Binder.modifyData(opt, data);
+
+	Global.batcher.read(function () {
+
+		var dataLength = data.length;
+		var elementLength = opt.element.children.length;
+
+		while (elementLength !== dataLength) {
+
+			if (elementLength > dataLength) {
+
+				elementLength--;
+
+				Global.batcher.write(function (e) {
+					opt.element.removeChild(e);
+				}.bind(this, opt.element.children[elementLength]));
+
+			} else if (elementLength < dataLength) {
+
+				Global.batcher.write(function (l) {
+					opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, l));
+				}.bind(this, elementLength));
+
+				elementLength++;
+
+			}
+
+		}
+
+		opt.pending = false;
+
+	}, this);
+
+	// window.requestAnimationFrame(function (time) {
+    //
+	// 	var dataLength = data.length;
+	// 	var elementLength = opt.element.children.length;
+    //
+	// 	while (elementLength !== dataLength) {
+    //
+	// 		if (elementLength > dataLength) {
+    //
+	// 			elementLength--;
+	// 			opt.element.removeChild(opt.element.children[elementLength]);
+    //
+	// 		} else if (elementLength < dataLength) {
+    //
+	// 			opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, elementLength));
+	// 			elementLength++;
+    //
+	// 		}
+    //
+	// 		if (performance.now() - time > this.maxFrameTime) {
+	// 			opt.pending = false;
+	// 			return this.each(opt);
+	// 		}
+    //
+	// 	}
+
+		// while (opt.element.children.length !== data.length) {
+        //
+		// 	if (opt.element.children.length > data.length) {
+		// 		opt.element.removeChild(opt.element.lastElementChild);
+		// 	} else if (opt.element.children.length < data.length) {
+		// 		opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, opt.element.children.length));
+		// 	}
+        //
+		// 	if (performance.now() - time > this.maxFrameTime) {
+		// 		opt.pending = false;
+		// 		return this.each(opt);
+		// 	}
+        //
+		// }
+
+	// 	opt.pending = false;
+    //
+	// }.bind(this));
 
 };
 
@@ -340,16 +402,27 @@ Render.value = function (opt, caller) {
 
 	} else {
 
-		data = data === undefined || data === null ? opt.element.value : data;
+		window.requestAnimationFrame(function () {
 
-		if (caller === 'view') {
-			data = opt.element.value;
-		} else {
-			opt.element.value = data;
-		}
+			// data = data === undefined || data === null ? opt.element.value : data;
 
-		data = Binder.modifyData(opt, data);
-		Binder.setData(opt, data);
+			if (caller === 'view') {
+				// Global.batcher.read(function () {
+					data = data === undefined || data === null ? opt.element.value : data;
+					data = opt.element.value;
+					Binder.setData(opt, data);
+				// });
+			} else {
+				data = Binder.modifyData(opt, data);
+				// Global.batcher.write(function () {
+					opt.element.value = data;
+				// });
+			}
+
+		});
+
+		// data = Binder.modifyData(opt, data);
+		// Binder.setData(opt, data);
 
 	}
 
