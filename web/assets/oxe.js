@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 2.9.6
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -415,20 +405,43 @@
 	Batcher.reads = [];
 	Batcher.writes = [];
 	Batcher.pending = false;
-	// Batcher.maxTaskTimeMS = 1000/60;
 
-	// adds a task to the read batch
-	Batcher.read = function (method, context) {
-		var task = context ? method.bind(context) : method;
-		this.reads.push(task);
+	Batcher.batch = function (options) {
+		var task;
+
+		if (options.context) {
+			task = options.method.bind(options.context);
+		} else {
+			task = options.method;
+		}
+
+		if (options.priority) {
+			this[options.type].unshift(task);
+		} else {
+			this[options.type].push(task);
+		}
+
 		this.tick();
 	};
 
+	// adds a task to the read batch
+	Batcher.read = function (method, context, priority) {
+		this.batch({
+			type: 'reads',
+			method: method,
+			context: context,
+			priority: priority
+		});
+	};
+
 	// adds a task to the write batch
-	Batcher.write = function (method, context) {
-		var task = context ? method.bind(context) : method;
-		this.writes.push(task);
-		this.tick();
+	Batcher.write = function (method, context, priority) {
+		this.batch({
+			type: 'writes',
+			method: method,
+			context: context,
+			priority: priority
+		});
 	};
 
 	// removes a pending task
@@ -452,30 +465,26 @@
 	Batcher.flush = function () {
 		var self = this;
 
-		self.run(self.reads.shift(), function () {
-			self.run(self.writes.shift(), function () {
-
-				if (self.reads.length || self.writes.length) {
-					self.flush();
-				} else {
-					self.pending = false;
-				}
-
+		self.run(self.reads, function () {
+			self.run(self.writes, function () {
+				self.pending = false;
 			});
 		});
 
 	};
 
-	Batcher.run = function (task, callback) {
+	Batcher.run = function (tasks, callback) {
+		var self = this;
 
-		if (!task) {
+		if (!tasks.length) {
 			return callback();
 		}
 
-		window.requestAnimationFrame(function () {
-			task();
-			callback();
-		});
+		var task;
+
+		while (task = tasks.shift()) {
+			window.requestAnimationFrame(task);
+		}
 
 	};
 
@@ -1563,15 +1572,15 @@
 	var Render = {};
 
 	Render.class = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		var name = opt.names.slice(1).join('-');
-		opt.element.classList.toggle(name, this.modifyData(opt, data));
+		opt.element.classList.toggle(name, Binder.modifyData(opt, data));
 
 	};
 
 	Render.css = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.style.cssText === data) {
 			return;
@@ -1581,22 +1590,22 @@
 			data = opt.names.slice(1).join('-') + ': ' +  data + ';';
 		}
 
-		opt.element.style.cssText += this.modifyData(opt, data);
+		opt.element.style.cssText += Binder.modifyData(opt, data);
 
 	};
 
 	Render.alt = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.alt === data) {
 			return;
 		}
 
-		opt.element.alt = this.modifyData(opt, data);
+		opt.element.alt = Binder.modifyData(opt, data);
 	};
 
 	Render.disable = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.disabled === data) {
 			return;
@@ -1604,14 +1613,14 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			this.setData(opt, data);
+			Binder.setData(opt, data);
 		}
 
-		opt.element.disabled = this.modifyData(opt, data);
+		opt.element.disabled = Binder.modifyData(opt, data);
 	};
 
 	Render.enable = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.disabled === !data) {
 			return;
@@ -1619,14 +1628,14 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			this.setData(opt, data);
+			Binder.setData(opt, data);
 		}
 
-		opt.element.disabled = !this.modifyData(opt, data);
+		opt.element.disabled = !Binder.modifyData(opt, data);
 	};
 
 	Render.hide = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.hidden === data) {
 			return;
@@ -1634,35 +1643,35 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			this.setData(opt, data);
+			Binder.setData(opt, data);
 		}
 
-		opt.element.hidden = this.modifyData(opt, data);
+		opt.element.hidden = Binder.modifyData(opt, data);
 	};
 
 	Render.html = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.innerHTML === data) {
 			return;
 		}
 
-		opt.element.innerHTML = this.modifyData(opt, data);
+		opt.element.innerHTML = Binder.modifyData(opt, data);
 	};
 
 	Render.href = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.href === data) {
 			return;
 		}
 
-		opt.element.href = this.modifyData(opt, data);
+		opt.element.href = Binder.modifyData(opt, data);
 	};
 
 
 	Render.read = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.readOnly === data) {
 			return;
@@ -1670,14 +1679,14 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			this.setData(opt, data);
+			Binder.setData(opt, data);
 		}
 
-		opt.element.readOnly = this.modifyData(opt, data);
+		opt.element.readOnly = Binder.modifyData(opt, data);
 	};
 
 	Render.required = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.required === data) {
 			return;
@@ -1685,14 +1694,14 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			this.setData(opt, data);
+			Binder.setData(opt, data);
 		}
 
-		opt.element.required = this.modifyData(opt, data);
+		opt.element.required = Binder.modifyData(opt, data);
 	};
 
 	Render.selected = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.selectedIndex === data) {
 			return;
@@ -1700,14 +1709,14 @@
 
 		if (data === undefined || data === null) {
 			data = 0;
-			this.setData(opt, data);
+			Binder.setData(opt, data);
 		}
 
-		opt.element.selectedIndex = this.modifyData(opt, data);
+		opt.element.selectedIndex = Binder.modifyData(opt, data);
 	};
 
 	Render.show = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.hidden === !data) {
 			return;
@@ -1715,24 +1724,24 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			this.setData(opt, data);
+			Binder.setData(opt, data);
 		}
 
-		opt.element.hidden = !this.modifyData(opt, data);
+		opt.element.hidden = !Binder.modifyData(opt, data);
 	};
 
 	Render.src = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.src === data) {
 			return;
 		}
 
-		opt.element.src = this.modifyData(opt, data);
+		opt.element.src = Binder.modifyData(opt, data);
 	};
 
 	Render.text = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (data && typeof data === 'object') {
 			data = JSON.stringify(data);
@@ -1740,14 +1749,14 @@
 			data = String(data);
 		}
 
-		data = this.modifyData(opt, data);
+		data = Binder.modifyData(opt, data);
 		data = data === undefined || data === null ? '' : data;
 
 		opt.element.innerText = data;
 	};
 
 	Render.write = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		if (opt.element.readOnly === !data) {
 			return;
@@ -1755,48 +1764,60 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			this.setData(opt, data);
+			Binder.setData(opt, data);
 		}
 
-		opt.element.readOnly = !this.modifyData(opt, data);
+		opt.element.readOnly = !Binder.modifyData(opt, data);
 	};
 
-	Render.each = function RenderEach (opt, modified) {
+	Render.each = function (opt, modified, time) {
 		var data;
+		var maxFrameTime = 1000/60;
 
 		if (!modified) {
-			data = this.getData(opt);
+			data = Binder.getData(opt);
 
 			if (!data) {
 				data = [];
-				this.setData(opt, data);
+				Binder.setData(opt, data);
 			}
 
-			modified = this.modifyData(opt, data);
+			modified = Binder.modifyData(opt, data);
 		}
 
-		if (opt.element.children.length > modified.length) {
-			opt.element.removeChild(opt.element.lastElementChild);
-		} else if (opt.element.children.length < modified.length) {
-			opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, opt.element.children.length));
+		time = time || performance.now();
+
+		while (opt.element.children.length !== modified.length) {
+
+			if (opt.element.children.length > modified.length) {
+				opt.element.removeChild(opt.element.lastElementChild);
+			} else if (opt.element.children.length < modified.length) {
+				opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, opt.element.children.length));
+			}
+
+			if (performance.now() - time > maxFrameTime) {
+				break;
+				return window.requestAnimationFrame(this.each.bind(this, opt, modified));
+			}
+
 		}
 
-		if (opt.element.children.length !== modified.length) {
-			this.batch(RenderEach.bind(this, opt, modified));
+		if (opt.element.children.length !== Binder.getData(opt).length) {
+			window.requestAnimationFrame(this.each.bind(this, opt, modified));
 		}
 
 	};
 
-	Render.on = function RenderEach (opt) {
+	Render.on = function (opt) {
 		opt.element.removeEventListener(opt.names[1], opt.cache);
-		opt.cache = this.getData(opt).bind(opt.model);
+		opt.cache = Binder.getData(opt).bind(opt.model);
 		opt.element.addEventListener(opt.names[1], opt.cache);
 	};
 
 	Render.value = function (opt, caller) {
 		var i , l, data, query, element, elements;
 
-		data = this.getData(opt);
+		data = Binder.getData(opt);
 
 		if (opt.element.type === 'checkbox') {
 
@@ -1808,8 +1829,8 @@
 				opt.element.checked = data;
 			}
 
-			data = this.modifyData(opt, data);
-			this.setData(opt, data);
+			data = Binder.modifyData(opt, data);
+			Binder.setData(opt, data);
 
 		} else if (opt.element.nodeName === 'SELECT') {
 
@@ -1841,8 +1862,8 @@
 			// 	data = elements[0].value || elements[0].innerText;
 			// }
 
-			data = this.modifyData(opt, data);
-			this.setData(opt, data);
+			data = Binder.modifyData(opt, data);
+			Binder.setData(opt, data);
 
 		} else if (opt.element.type === 'radio') {
 
@@ -1860,8 +1881,8 @@
 						data = i;
 						element.checked = true;
 
-						data = this.modifyData(opt, data);
-						this.setData(opt, data);
+						data = Binder.modifyData(opt, data);
+						Binder.setData(opt, data);
 
 					} else {
 						element.checked = false;
@@ -1876,14 +1897,14 @@
 		} else if (opt.element.type === 'file') {
 
 			data = opt.element.files;
-			data = this.modifyData(opt, data);
-			this.setData(opt, data);
+			data = Binder.modifyData(opt, data);
+			Binder.setData(opt, data);
 
 		} else if (opt.element.type === 'option') {
 
 			data = opt.element.value || opt.element.innerText;
-			data = this.modifyData(opt, data);
-			this.setData(opt, data);
+			data = Binder.modifyData(opt, data);
+			Binder.setData(opt, data);
 
 		} else {
 
@@ -1895,8 +1916,8 @@
 				opt.element.value = data;
 			}
 
-			data = this.modifyData(opt, data);
-			this.setData(opt, data);
+			data = Binder.modifyData(opt, data);
+			Binder.setData(opt, data);
 
 		}
 
@@ -1905,7 +1926,7 @@
 	var Setup = {};
 
 	Setup.on = function (opt) {
-		var data = this.getData(opt);
+		var data = Binder.getData(opt);
 
 		opt.cache = data.bind(opt.model);
 		opt.element.addEventListener(opt.names[1], opt.cache);
@@ -1913,10 +1934,10 @@
 
 	Setup.each = function (opt) {
 
+		opt.clone = opt.element.removeChild(opt.element.firstElementChild);
+
 		opt.variable = opt.names[1];
 		opt.pattern = new RegExp('\\$(' + opt.variable + '|index)', 'ig');
-
-		opt.clone = opt.element.removeChild(opt.element.firstElementChild);
 
 		opt.clone = opt.clone.outerHTML.replace(
 			new RegExp('((?:data-)?o-.*?=")' + opt.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
@@ -2074,12 +2095,6 @@
 		opt.value = opt.value || opt.element.getAttribute(opt.name);
 		opt.path = opt.path || Global$1.utility.binderPath(opt.value);
 
-		var tmp = this.get(opt);
-
-		if (tmp) {
-			return tmp;
-		}
-
 		opt.exists = false;
 		opt.type = opt.type || Global$1.utility.binderType(opt.name);
 		opt.names = opt.names || Global$1.utility.binderNames(opt.name);
@@ -2090,6 +2105,12 @@
 		opt.model = opt.model || Global$1.model.data[opt.uid];
 		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
 
+		var tmp = this.get(opt);
+
+		if (tmp) {
+			return tmp;
+		}
+
 		this.ensureData(opt);
 
 		if (opt.type in this.setupMethod) {
@@ -2099,20 +2120,16 @@
 		return opt;
 	};
 
-	Binder.batch = function (callback) {
-		Global$1.batcher.write(callback.bind(this));
-	};
-
 	Binder.unrender = function (opt, caller) {
 		opt = this.option(opt);
 
 		if (opt.type in this.unrenderMethod) {
-			this.batch(function () {
+			Global$1.batcher.write(function () {
 
-				this.unrenderMethod[opt.type].call(this, opt, caller);
+				this.unrenderMethod[opt.type](opt, caller);
 				this.remove(opt);
 
-			});
+			}, this);
 		}
 	};
 
@@ -2120,12 +2137,12 @@
 		opt = this.option(opt);
 
 		if (opt.type in this.renderMethod) {
-			this.batch(function () {
+			Global$1.batcher.write(function () {
 
-				this.renderMethod[opt.type].call(this, opt, caller);
+				this.renderMethod[opt.type](opt, caller);
 				this.add(opt);
 
-			});
+			}, this);
 		}
 	};
 

@@ -152,12 +152,6 @@ Binder.option = function (opt) {
 	opt.value = opt.value || opt.element.getAttribute(opt.name);
 	opt.path = opt.path || Global.utility.binderPath(opt.value);
 
-	var tmp = this.get(opt);
-
-	if (tmp) {
-		return tmp;
-	}
-
 	opt.exists = false;
 	opt.type = opt.type || Global.utility.binderType(opt.name);
 	opt.names = opt.names || Global.utility.binderNames(opt.name);
@@ -168,6 +162,12 @@ Binder.option = function (opt) {
 	opt.model = opt.model || Global.model.data[opt.uid];
 	opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
 
+	var tmp = this.get(opt);
+
+	if (tmp) {
+		return tmp;
+	}
+
 	this.ensureData(opt);
 
 	if (opt.type in this.setupMethod) {
@@ -177,20 +177,16 @@ Binder.option = function (opt) {
 	return opt;
 };
 
-Binder.batch = function (callback) {
-	Global.batcher.write(callback.bind(this));
-}
-
 Binder.unrender = function (opt, caller) {
 	opt = this.option(opt);
 
 	if (opt.type in this.unrenderMethod) {
-		this.batch(function () {
+		Global.batcher.write(function () {
 
-			this.unrenderMethod[opt.type].call(this, opt, caller);
+			this.unrenderMethod[opt.type](opt, caller);
 			this.remove(opt);
 
-		});
+		}, this);
 	}
 };
 
@@ -198,12 +194,12 @@ Binder.render = function (opt, caller) {
 	opt = this.option(opt);
 
 	if (opt.type in this.renderMethod) {
-		this.batch(function () {
+		Global.batcher.write(function () {
 
-			this.renderMethod[opt.type].call(this, opt, caller);
+			this.renderMethod[opt.type](opt, caller);
 			this.add(opt);
 
-		});
+		}, this);
 	}
 };
 
