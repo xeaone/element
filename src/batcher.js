@@ -64,7 +64,7 @@ Batcher.prototype.flush = function (time) {
 	}
 
 	if (error) {
-		if (this.events.error.length) {
+		if (this.events.error && this.events.error.length) {
 			this.emit('error', error);
 		} else {
 			throw error;

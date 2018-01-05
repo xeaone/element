@@ -93,7 +93,6 @@ Oxe.component.define({
 		window.self = self;
 
 		var total = self.add(1, 2, 3);
-		console.log(total);
 
 		setTimeout(function () {
 

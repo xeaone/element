@@ -10,24 +10,6 @@ var Binder = function () {
 	this.unrenderMethod = Unrender;
 };
 
-Binder.prototype.ensureData = function (opt) {
-	return Global.model.ensure(opt.keys);
-};
-
-Binder.prototype.setData = function (opt, data) {
-	return Global.model.set(opt.keys, data);
-};
-
-Binder.prototype.getData = function (opt) {
-
-	if (opt.type === 'on') {
-		return Global.utility.getByPath(Global.events.data, opt.uid + '.' + opt.path);
-	} else {
-		return Global.model.get(opt.keys);
-	}
-
-};
-
 Binder.prototype.modifyData = function (opt, data) {
 
 	if (!opt.modifiers.length) {
@@ -44,11 +26,11 @@ Binder.prototype.modifyData = function (opt, data) {
 
 Binder.prototype.add = function (opt) {
 
-	if (opt.exists) {
-		return;
-	} else {
-		opt.exists = true;
-	}
+	// if (opt.exists) {
+	// 	return;
+	// } else {
+	// 	opt.exists = true;
+	// }
 
 	if (opt.type === 'value') {
 		return;
@@ -95,16 +77,17 @@ Binder.prototype.remove = function (opt) {
 Binder.prototype.get = function (opt) {
 
 	if (!(opt.uid in this.data)) {
-		return;
+		return null;
 	}
 
 	if (!(opt.path in this.data[opt.uid])) {
-		return;
+		return null;
 	}
 
 	var data = this.data[opt.uid][opt.path];
 
 	for (var i = 0, l = data.length; i < l; i++) {
+
 		var item = data[i];
 
 		if (item.element === opt.element) {
@@ -113,6 +96,7 @@ Binder.prototype.get = function (opt) {
 
 	}
 
+	return null;
 };
 
 Binder.prototype.each = function (uid, path, callback) {
@@ -178,6 +162,8 @@ Binder.prototype.unrender = function (opt, caller) {
 
 	if (opt.type in self.unrenderMethod) {
 		self.unrenderMethod[opt.type](opt, caller);
+	} else {
+		// self.unrenderMethod.attribute(opt);
 	}
 
 	self.remove(opt);
@@ -189,30 +175,30 @@ Binder.prototype.render = function (opt, caller) {
 
 	opt = self.get(opt) || self.create(opt);
 
+	opt.data = Global.model.get(opt.keys);
+
 	if (!opt.exists) {
-		self.add(opt);
 		opt.exists = true;
-	}
 
-	var done = function () {
-		if (opt.type in self.renderMethod) {
-			self.renderMethod[opt.type](opt, caller);
+		if (opt.type in self.setupMethod) {
+			self.setupMethod[opt.type](opt);
 		}
-	};
 
-	if (opt.type in self.setupMethod && !opt.setup) {
-		opt.setup = true;
-		self.ensureData(opt);
-		// self.setupMethod[opt.type](opt);
-		self.setupMethod[opt.type](opt, done);
-	}
-	else {
-		done();
+		self.add(opt);
 	}
 
-	// if (opt.type in self.renderMethod) {
-	// 	self.renderMethod[opt.type](opt, caller);
+	// if (opt.type in self.setupMethod) {
+	// 	if (!opt.setup) {
+	// 		opt.setup = true;
+	// 		self.setupMethod[opt.type](opt);
+	// 	}
 	// }
+
+	if (opt.type in self.renderMethod) {
+		self.renderMethod[opt.type](opt, caller);
+	} else {
+		self.renderMethod.attribute(opt);
+	}
 
 };
 

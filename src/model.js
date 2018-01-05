@@ -36,19 +36,7 @@ Model.get = function (keys) {
 
 Model.set = function (keys, value) {
 	var result = this.traverse(keys, true);
-	// value = value === undefined ? null : value;
 	return result.data.$set(result.key, value);
-};
-
-Model.ensure = function (keys, value) {
-	var result = this.traverse(keys, true);
-
-	if (result.data[result.key] === undefined) {
-		return result.data.$set(result.key, value || null);
-	} else {
-		return result.data[result.key];
-	}
-
 };
 
 Model.observer = function (data, path) {
