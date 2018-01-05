@@ -59,7 +59,7 @@ Setup.value = function (opt) {
 				opt.data = Global.model.set(opt.keys, false);
 			});
 		} else {
-			console.log(opt.setup);
+			// console.log(opt.setup);
 		}
 	}
 };

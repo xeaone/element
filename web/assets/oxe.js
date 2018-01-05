@@ -1961,7 +1961,7 @@
 					opt.data = Global$1.model.set(opt.keys, false);
 				});
 			} else {
-				console.log(opt.setup);
+				// console.log(opt.setup);
 			}
 		}
 	};
