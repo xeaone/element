@@ -1,25 +1,24 @@
-import Unrender from './unrender';
-import Global from '../global';
-import Render from './render';
-import Setup from './setup';
+import Unrender from './lib/unrender';
+import Render from './lib/render';
+import Setup from './lib/setup';
+import Global from './global';
 
-var Binder = {};
+var Binder = function () {
+	this.data = {};
+	this.setupMethod = Setup;
+	this.renderMethod = Render;
+	this.unrenderMethod = Unrender;
+};
 
-Binder.data = {};
-
-Binder.setupMethod = Setup;
-Binder.renderMethod = Render;
-Binder.unrenderMethod = Unrender;
-
-Binder.ensureData = function (opt) {
+Binder.prototype.ensureData = function (opt) {
 	return Global.model.ensure(opt.keys);
 };
 
-Binder.setData = function (opt, data) {
+Binder.prototype.setData = function (opt, data) {
 	return Global.model.set(opt.keys, data);
 };
 
-Binder.getData = function (opt) {
+Binder.prototype.getData = function (opt) {
 
 	if (opt.type === 'on') {
 		return Global.utility.getByPath(Global.events.data, opt.uid + '.' + opt.path);
@@ -29,7 +28,7 @@ Binder.getData = function (opt) {
 
 };
 
-Binder.modifyData = function (opt, data) {
+Binder.prototype.modifyData = function (opt, data) {
 
 	if (!opt.modifiers.length) {
 		return data;
@@ -43,7 +42,7 @@ Binder.modifyData = function (opt, data) {
 	return data;
 };
 
-Binder.add = function (opt) {
+Binder.prototype.add = function (opt) {
 
 	if (opt.exists) {
 		return;
@@ -66,7 +65,7 @@ Binder.add = function (opt) {
 	this.data[opt.uid][opt.path].push(opt);
 };
 
-Binder.remove = function (opt) {
+Binder.prototype.remove = function (opt) {
 
 	if (!opt.exists) {
 		return;
@@ -93,7 +92,7 @@ Binder.remove = function (opt) {
 
 };
 
-Binder.get = function (opt) {
+Binder.prototype.get = function (opt) {
 
 	if (!(opt.uid in this.data)) {
 		return;
@@ -116,7 +115,7 @@ Binder.get = function (opt) {
 
 };
 
-Binder.each = function (uid, path, callback) {
+Binder.prototype.each = function (uid, path, callback) {
 	var paths = this.data[uid];
 
 	for (var key in paths) {
@@ -136,15 +135,15 @@ Binder.each = function (uid, path, callback) {
 
 };
 
-Binder.create = function (opt) {
+Binder.prototype.create = function (opt) {
 	opt = opt || {};
 
 	if (!opt.name) {
-		throw new Error('Binder.render - requires a name');
+		throw new Error('Binder.prototype.render - requires a name');
 	}
 
 	if (!opt.element) {
-		throw new Error('Binder.render - requires a element');
+		throw new Error('Binder.prototype.render - requires a element');
 	}
 
 	opt.container = opt.container || Global.utility.getContainer(opt.element);
@@ -168,7 +167,7 @@ Binder.create = function (opt) {
 	return opt;
 };
 
-Binder.unrender = function (opt, caller) {
+Binder.prototype.unrender = function (opt, caller) {
 	var self = this;
 
 	opt = self.get(opt);
@@ -185,7 +184,7 @@ Binder.unrender = function (opt, caller) {
 
 };
 
-Binder.render = function (opt, caller) {
+Binder.prototype.render = function (opt, caller) {
 	var self = this;
 
 	opt = self.get(opt) || self.create(opt);

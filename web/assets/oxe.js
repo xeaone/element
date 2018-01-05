@@ -4,11 +4,11 @@
 	(global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-	var Component = {};
+	var Component = function () {
+		this.data = {};
+	};
 
-	Component.data = {};
-
-	Component.handleSlots = function (element, template) {
+	Component.prototype.handleSlots = function (element, template) {
 		var tSlots = template.content.querySelectorAll('slot');
 
 		for (var i = 0, l = tSlots.length; i < l; i++) {
@@ -24,7 +24,7 @@
 
 	};
 
-	Component.handleTemplate = function (data) {
+	Component.prototype.handleTemplate = function (data) {
 		var template;
 
 		if (data.html) {
@@ -57,7 +57,7 @@
 		return template;
 	};
 
-	Component.define = function (options) {
+	Component.prototype.define = function (options) {
 		var self = this;
 
 		if (!options.name) {
@@ -72,20 +72,17 @@
 			throw new Error('Oxe.component.define - Component already defined');
 		}
 
-		self.data[options.name] = [];
+		if (!(options.name in self.data)) {
+			self.data[options.name] = 0;
+			// self.data[options.name] = [];
+		}
 
 		// options.view = options.view || {};
 		options.model = options.model || {};
 		options.shadow = options.shadow || false;
-		options.properties = options.properties || {};
 		options.template = self.handleTemplate(options);
 
-		options.properties.uid = {
-			enumerable: true,
-			get: function () {
-				return this.getAttribute('o-uid');
-			}
-		};
+		options.properties = options.properties || {};
 
 		options.properties.model = {
 			enumerable: true,
@@ -125,13 +122,18 @@
 
 		options.proto.createdCallback = function () {
 			var element = this;
-			var uid = options.name + '-' + self.data[options.name].length;
 
-			element.setAttribute('o-uid', uid);
+			Object.defineProperty(element, 'uid', {
+				enumerable: true,
+				configurable: true,
+				value: options.name + '-' + self.data[options.name]++
+			});
 
-			Global$1.model.set(uid, options.model);
-			Global$1.events.data[uid] = options.events;
-			Global$1.modifiers.data[uid] = options.modifiers;
+			element.setAttribute('o-uid', element.uid);
+
+			Global$1.model.set(element.uid, options.model);
+			Global$1.events.data[element.uid] = options.events;
+			Global$1.modifiers.data[element.uid] = options.modifiers;
 
 			if (options.shadow) {
 				// element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
@@ -143,8 +145,6 @@
 				element.appendChild(document.importNode(options.template.content, true));
 			}
 
-			self.data[options.name].push(element);
-
 			if (options.created) {
 				options.created.call(element);
 			}
@@ -155,10 +155,6 @@
 			prototype: options.proto
 		});
 	};
-
-	var Modifiers = {};
-
-	Modifiers.data = {};
 
 	var Utility = {};
 
@@ -539,9 +535,11 @@
 		return this.remove(this.reads, task) || this.remove(this.writes, task);
 	};
 
-	var Fetcher = {};
+	var Fetcher = function (options) {
+		this.setup(options);
+	};
 
-	Fetcher.mime = {
+	Fetcher.prototype.mime = {
 		xml: 'text/xml; charset=utf-8',
 		html: 'text/html; charset=utf-8',
 		text: 'text/plain; charset=utf-8',
@@ -549,17 +547,16 @@
 		js: 'application/javascript; charset=utf-8'
 	};
 
-	Fetcher.setup = function (opt) {
-		opt = opt || {};
-		this.auth = opt.auth || false;
-		this.type = opt.type || 'text';
-		this.method = opt.method || 'get';
-		this.request = opt.request || opt.request;
-		this.response = opt.response || opt.response;
-		return this;
+	Fetcher.prototype.setup = function (options) {
+		options = options || {};
+		this.auth = options.auth || false;
+		this.type = options.type || 'text';
+		this.method = options.method || 'get';
+		this.request = options.request || options.request;
+		this.response = options.response || options.response;
 	};
 
-	Fetcher.serialize = function (data) {
+	Fetcher.prototype.serialize = function (data) {
 		var string = '';
 
 		for (var name in data) {
@@ -570,7 +567,7 @@
 		return string;
 	};
 
-	Fetcher.change = function (opt, result, xhr) {
+	Fetcher.prototype.change = function (opt, result, xhr) {
 		if (xhr.readyState === 4) {
 
 			result.opt = opt;
@@ -626,7 +623,7 @@
 		}
 	};
 
-	Fetcher.fetch = function (opt) {
+	Fetcher.prototype.fetch = function (opt) {
 		var data;
 		var result = {};
 		var xhr = new XMLHttpRequest();
@@ -721,49 +718,45 @@
 		xhr.send(data);
 	};
 
-	Fetcher.post = function (opt) {
+	Fetcher.prototype.post = function (opt) {
 		opt.method = 'post';
-		return Fetcher.fetch(opt);
+		return this.fetch(opt);
 	};
 
-	Fetcher.get = function (opt) {
+	Fetcher.prototype.get = function (opt) {
 		opt.method = 'get';
-		return Fetcher.fetch(opt);
+		return this.fetch(opt);
 	};
 
-	Fetcher.put = function (opt) {
+	Fetcher.prototype.put = function (opt) {
 		opt.method = 'put';
-		return Fetcher.fetch(opt);
+		return this.fetch(opt);
 	};
 
-	Fetcher.head = function (opt) {
+	Fetcher.prototype.head = function (opt) {
 		opt.method = 'head';
-		return Fetcher.fetch(opt);
+		return this.fetch(opt);
 	};
 
-	Fetcher.patch = function (opt) {
+	Fetcher.prototype.patch = function (opt) {
 		opt.method = 'patch';
-		return Fetcher.fetch(opt);
+		return this.fetch(opt);
 	};
 
-	Fetcher.delete = function (opt) {
+	Fetcher.prototype.delete = function (opt) {
 		opt.method = 'delete';
-		return Fetcher.fetch(opt);
+		return this.fetch(opt);
 	};
 
-	Fetcher.options = function (opt) {
+	Fetcher.prototype.options = function (opt) {
 		opt.method = 'options';
-		return Fetcher.fetch(opt);
+		return this.fetch(opt);
 	};
 
-	Fetcher.connect = function (opt) {
+	Fetcher.prototype.connect = function (opt) {
 		opt.method = 'connect';
-		return Fetcher.fetch(opt);
+		return this.fetch(opt);
 	};
-
-	var Events$1 = {};
-
-	Events$1.data = {};
 
 	var Router = function (options) {
 		Events.call(this);
@@ -1291,22 +1284,25 @@
 		return ast;
 	};
 
-	var Loader = {};
+	var Loader = function (options) {
 
-	Loader.loads = [];
-	Loader.modules = {};
-	Loader.loaded = null;
-	Loader.isRan = false;
-	Loader.type = 'module';
+		this.loads = [];
+		this.modules = {};
+		this.loaded = null;
+		this.isRan = false;
+		this.type = 'module';
 
-	Loader.setup = function (options) {
+		this.setup(options);
+	};
+
+	Loader.prototype.setup = function (options) {
 		options = options || {};
 		this.type = options.type || this.type;
 		this.loads = options.loads || this.loads;
 		this.loaded = options.loaded || this.loaded;
 	};
 
-	Loader.execute = function (data) {
+	Loader.prototype.execute = function (data) {
 		data = '\'use strict\';\n\n' + data;
 
 		return new Function('$LOADER', 'window', data)(this, window);
@@ -1319,7 +1315,7 @@
 		// }(data, this, window));
 	};
 
-	Loader.xhr = function (url, callback) {
+	Loader.prototype.xhr = function (url, callback) {
 		var xhr = new XMLHttpRequest();
 
 		xhr.addEventListener('readystatechange', function () {
@@ -1337,7 +1333,7 @@
 
 	};
 
-	Loader.transform = function (data) {
+	Loader.prototype.transform = function (data) {
 		var self = this;
 
 		if (
@@ -1389,7 +1385,7 @@
 
 	};
 
-	Loader.js = function (data) {
+	Loader.prototype.js = function (data) {
 		var self = this;
 
 		if (
@@ -1417,7 +1413,7 @@
 
 	};
 
-	Loader.css = function (data) {
+	Loader.prototype.css = function (data) {
 		var self = this;
 		var element = document.createElement('link');
 
@@ -1429,7 +1425,7 @@
 		document.head.appendChild(element);
 	};
 
-	Loader.load = function (data, callback) {
+	Loader.prototype.load = function (data, callback) {
 		var self = this;
 
 		if (data.constructor === String) {
@@ -1461,7 +1457,7 @@
 
 	};
 
-	Loader.run = function () {
+	Loader.prototype.run = function () {
 		var load;
 
 		if (this.isRan) {
@@ -1481,6 +1477,8 @@
 	/*
 		https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
 	*/
+
+	// import Global from '../global';
 
 	var Unrender = {};
 
@@ -1585,15 +1583,15 @@
 	Render.maxFrameTime = 1000/60;
 
 	Render.class = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		var name = opt.names.slice(1).join('-');
-		opt.element.classList.toggle(name, Binder.modifyData(opt, data));
+		opt.element.classList.toggle(name, Global$1.binder.modifyData(opt, data));
 
 	};
 
 	Render.css = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.style.cssText === data) {
 			return;
@@ -1603,22 +1601,22 @@
 			data = opt.names.slice(1).join('-') + ': ' +  data + ';';
 		}
 
-		opt.element.style.cssText += Binder.modifyData(opt, data);
+		opt.element.style.cssText += Global$1.binder.modifyData(opt, data);
 
 	};
 
 	Render.alt = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.alt === data) {
 			return;
 		}
 
-		opt.element.alt = Binder.modifyData(opt, data);
+		opt.element.alt = Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.disable = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.disabled === data) {
 			return;
@@ -1626,14 +1624,14 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			Binder.setData(opt, data);
+			Global$1.binder.setData(opt, data);
 		}
 
-		opt.element.disabled = Binder.modifyData(opt, data);
+		opt.element.disabled = Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.enable = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.disabled === !data) {
 			return;
@@ -1641,14 +1639,14 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			Binder.setData(opt, data);
+			Global$1.binder.setData(opt, data);
 		}
 
-		opt.element.disabled = !Binder.modifyData(opt, data);
+		opt.element.disabled = !Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.hide = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.hidden === data) {
 			return;
@@ -1656,35 +1654,35 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			Binder.setData(opt, data);
+			Global$1.binder.setData(opt, data);
 		}
 
-		opt.element.hidden = Binder.modifyData(opt, data);
+		opt.element.hidden = Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.html = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.innerHTML === data) {
 			return;
 		}
 
-		opt.element.innerHTML = Binder.modifyData(opt, data);
+		opt.element.innerHTML = Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.href = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.href === data) {
 			return;
 		}
 
-		opt.element.href = Binder.modifyData(opt, data);
+		opt.element.href = Global$1.binder.modifyData(opt, data);
 	};
 
 
 	Render.read = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.readOnly === data) {
 			return;
@@ -1692,14 +1690,14 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			Binder.setData(opt, data);
+			Global$1.binder.setData(opt, data);
 		}
 
-		opt.element.readOnly = Binder.modifyData(opt, data);
+		opt.element.readOnly = Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.required = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.required === data) {
 			return;
@@ -1707,14 +1705,14 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			Binder.setData(opt, data);
+			Global$1.binder.setData(opt, data);
 		}
 
-		opt.element.required = Binder.modifyData(opt, data);
+		opt.element.required = Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.selected = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.selectedIndex === data) {
 			return;
@@ -1722,14 +1720,14 @@
 
 		if (data === undefined || data === null) {
 			data = 0;
-			Binder.setData(opt, data);
+			Global$1.binder.setData(opt, data);
 		}
 
-		opt.element.selectedIndex = Binder.modifyData(opt, data);
+		opt.element.selectedIndex = Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.show = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.hidden === !data) {
 			return;
@@ -1737,24 +1735,24 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			Binder.setData(opt, data);
+			Global$1.binder.setData(opt, data);
 		}
 
-		opt.element.hidden = !Binder.modifyData(opt, data);
+		opt.element.hidden = !Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.src = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.src === data) {
 			return;
 		}
 
-		opt.element.src = Binder.modifyData(opt, data);
+		opt.element.src = Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.text = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (data && typeof data === 'object') {
 			data = JSON.stringify(data);
@@ -1762,7 +1760,7 @@
 			data = String(data);
 		}
 
-		data = Binder.modifyData(opt, data);
+		data = Global$1.binder.modifyData(opt, data);
 		data = data === undefined || data === null ? '' : data;
 
 		Global$1.batcher.write(function () {
@@ -1772,7 +1770,7 @@
 	};
 
 	Render.write = function (opt) {
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (opt.element.readOnly === !data) {
 			return;
@@ -1780,10 +1778,10 @@
 
 		if (data === undefined || data === null) {
 			data = true;
-			Binder.setData(opt, data);
+			Global$1.binder.setData(opt, data);
 		}
 
-		opt.element.readOnly = !Binder.modifyData(opt, data);
+		opt.element.readOnly = !Global$1.binder.modifyData(opt, data);
 	};
 
 	Render.each = function (opt) {
@@ -1794,14 +1792,14 @@
 			opt.pending = true;
 		}
 
-		var data = Binder.getData(opt);
+		var data = Global$1.binder.getData(opt);
 
 		if (!data) {
 			data = [];
-			Binder.setData(opt, data);
+			Global$1.binder.setData(opt, data);
 		}
 
-		data = Binder.modifyData(opt, data);
+		data = Global$1.binder.modifyData(opt, data);
 
 		Global$1.batcher.read(function () {
 
@@ -1883,14 +1881,14 @@
 
 	Render.on = function (opt) {
 		opt.element.removeEventListener(opt.names[1], opt.cache);
-		opt.cache = Binder.getData(opt).bind(opt.model);
+		opt.cache = Global$1.binder.getData(opt).bind(opt.model);
 		opt.element.addEventListener(opt.names[1], opt.cache);
 	};
 
 	Render.value = function (opt, caller) {
 		var i , l, data, query, element, elements;
 
-		data = Binder.getData(opt);
+		data = Global$1.binder.getData(opt);
 
 		if (opt.element.type === 'checkbox') {
 
@@ -1902,8 +1900,8 @@
 				opt.element.checked = data;
 			}
 
-			data = Binder.modifyData(opt, data);
-			Binder.setData(opt, data);
+			data = Global$1.binder.modifyData(opt, data);
+			Global$1.binder.setData(opt, data);
 
 		} else if (opt.element.nodeName === 'SELECT') {
 
@@ -1935,8 +1933,8 @@
 			// 	data = elements[0].value || elements[0].innerText;
 			// }
 
-			data = Binder.modifyData(opt, data);
-			Binder.setData(opt, data);
+			data = Global$1.binder.modifyData(opt, data);
+			Global$1.binder.setData(opt, data);
 
 		} else if (opt.element.type === 'radio') {
 
@@ -1954,8 +1952,8 @@
 						data = i;
 						element.checked = true;
 
-						data = Binder.modifyData(opt, data);
-						Binder.setData(opt, data);
+						data = Global$1.binder.modifyData(opt, data);
+						Global$1.binder.setData(opt, data);
 
 					} else {
 						element.checked = false;
@@ -1970,14 +1968,14 @@
 		} else if (opt.element.type === 'file') {
 
 			data = opt.element.files;
-			data = Binder.modifyData(opt, data);
-			Binder.setData(opt, data);
+			data = Global$1.binder.modifyData(opt, data);
+			Global$1.binder.setData(opt, data);
 
 		} else if (opt.element.type === 'option') {
 
 			data = opt.element.value || opt.element.innerText;
-			data = Binder.modifyData(opt, data);
-			Binder.setData(opt, data);
+			data = Global$1.binder.modifyData(opt, data);
+			Global$1.binder.setData(opt, data);
 
 		} else {
 
@@ -1989,10 +1987,10 @@
 					// Global.batcher.read(function () {
 						data = data === undefined || data === null ? opt.element.value : data;
 						data = opt.element.value;
-						Binder.setData(opt, data);
+						Global$1.binder.setData(opt, data);
 					// });
 				} else {
-					data = Binder.modifyData(opt, data);
+					data = Global$1.binder.modifyData(opt, data);
 					// Global.batcher.write(function () {
 						opt.element.value = data;
 					// });
@@ -2000,8 +1998,8 @@
 
 			});
 
-			// data = Binder.modifyData(opt, data);
-			// Binder.setData(opt, data);
+			// data = Global.binder.modifyData(opt, data);
+			// Global.binder.setData(opt, data);
 
 		}
 
@@ -2047,23 +2045,22 @@
 
 	};
 
-	var Binder = {};
+	var Binder = function () {
+		this.data = {};
+		this.setupMethod = Setup;
+		this.renderMethod = Render;
+		this.unrenderMethod = Unrender;
+	};
 
-	Binder.data = {};
-
-	Binder.setupMethod = Setup;
-	Binder.renderMethod = Render;
-	Binder.unrenderMethod = Unrender;
-
-	Binder.ensureData = function (opt) {
+	Binder.prototype.ensureData = function (opt) {
 		return Global$1.model.ensure(opt.keys);
 	};
 
-	Binder.setData = function (opt, data) {
+	Binder.prototype.setData = function (opt, data) {
 		return Global$1.model.set(opt.keys, data);
 	};
 
-	Binder.getData = function (opt) {
+	Binder.prototype.getData = function (opt) {
 
 		if (opt.type === 'on') {
 			return Global$1.utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path);
@@ -2073,7 +2070,7 @@
 
 	};
 
-	Binder.modifyData = function (opt, data) {
+	Binder.prototype.modifyData = function (opt, data) {
 
 		if (!opt.modifiers.length) {
 			return data;
@@ -2087,7 +2084,7 @@
 		return data;
 	};
 
-	Binder.add = function (opt) {
+	Binder.prototype.add = function (opt) {
 
 		if (opt.exists) {
 			return;
@@ -2110,7 +2107,7 @@
 		this.data[opt.uid][opt.path].push(opt);
 	};
 
-	Binder.remove = function (opt) {
+	Binder.prototype.remove = function (opt) {
 
 		if (!opt.exists) {
 			return;
@@ -2137,7 +2134,7 @@
 
 	};
 
-	Binder.get = function (opt) {
+	Binder.prototype.get = function (opt) {
 
 		if (!(opt.uid in this.data)) {
 			return;
@@ -2160,7 +2157,7 @@
 
 	};
 
-	Binder.each = function (uid, path, callback) {
+	Binder.prototype.each = function (uid, path, callback) {
 		var paths = this.data[uid];
 
 		for (var key in paths) {
@@ -2180,15 +2177,15 @@
 
 	};
 
-	Binder.create = function (opt) {
+	Binder.prototype.create = function (opt) {
 		opt = opt || {};
 
 		if (!opt.name) {
-			throw new Error('Binder.render - requires a name');
+			throw new Error('Binder.prototype.render - requires a name');
 		}
 
 		if (!opt.element) {
-			throw new Error('Binder.render - requires a element');
+			throw new Error('Binder.prototype.render - requires a element');
 		}
 
 		opt.container = opt.container || Global$1.utility.getContainer(opt.element);
@@ -2212,7 +2209,7 @@
 		return opt;
 	};
 
-	Binder.unrender = function (opt, caller) {
+	Binder.prototype.unrender = function (opt, caller) {
 		var self = this;
 
 		opt = self.get(opt);
@@ -2229,7 +2226,7 @@
 
 	};
 
-	Binder.render = function (opt, caller) {
+	Binder.prototype.render = function (opt, caller) {
 		var self = this;
 
 		opt = self.get(opt) || self.create(opt);
@@ -2261,27 +2258,33 @@
 
 	};
 
-	var Keeper = {};
+	var Keeper = function (options) {
 
-	Keeper._ = {};
-	Keeper.scheme = 'Bearer';
-	Keeper.type = 'sessionStorage';
+		this._ = {};
+		this._.token;
 
-	Object.defineProperty(Keeper, 'token', {
-		enumerable: true,
-		get: function () {
-			return this._.token = this._.token || window[this.type].getItem('token');
-		}
-	});
+		this.scheme = 'Bearer';
+		this.type = 'sessionStorage';
 
-	Object.defineProperty(Keeper, 'user', {
-		enumerable: true,
-		get: function () {
-			return this._.user = this._.user || JSON.parse(window[this.type].getItem('user'));
-		}
-	});
+		Object.defineProperties(this, {
+			token: {
+				enumerable: true,
+				get: function () {
+					return this._.token = this._.token || window[this.type].getItem('token');
+				}
+			},
+			user: {
+				enumerable: true,
+				get: function () {
+					return this._.user = this._.user || JSON.parse(window[this.type].getItem('user'));
+				}
+			}
+		});
 
-	Keeper.setup = function (options) {
+		this.setup(options);
+	};
+
+	Keeper.prototype.setup = function (options) {
 		options = options || {};
 
 		this._.forbidden = options.forbidden || this._.forbidden;
@@ -2299,29 +2302,29 @@
 
 	};
 
-	Keeper.setToken = function (token) {
+	Keeper.prototype.setToken = function (token) {
 		if (!token) return;
 		if (this.scheme === 'Basic') token = this.encode(token);
 		this._.token = window[this.type].setItem('token', token);
 	};
 
-	Keeper.setUser = function (user) {
+	Keeper.prototype.setUser = function (user) {
 		if (!user) return;
 		user = JSON.stringify(user);
 		this._.user = window[this.type].setItem('user', user);
 	};
 
-	Keeper.removeToken = function () {
+	Keeper.prototype.removeToken = function () {
 		this._.token = null;
 		window[this.type].removeItem('token');
 	};
 
-	Keeper.removeUser = function () {
+	Keeper.prototype.removeUser = function () {
 		this._.user = null;
 		window[this.type].removeItem('user');
 	};
 
-	Keeper.authenticate = function (token, user) {
+	Keeper.prototype.authenticate = function (token, user) {
 		this.setToken(token);
 		this.setUser(user);
 
@@ -2333,7 +2336,7 @@
 
 	};
 
-	Keeper.unauthenticate = function () {
+	Keeper.prototype.unauthenticate = function () {
 		this.removeToken();
 		this.removeUser();
 
@@ -2345,7 +2348,7 @@
 
 	};
 
-	Keeper.forbidden = function (result) {
+	Keeper.prototype.forbidden = function (result) {
 
 		if (typeof this._.forbidden === 'string') {
 			Global$1.router.navigate(this._.forbidden);
@@ -2356,7 +2359,7 @@
 		return false;
 	};
 
-	Keeper.unauthorized = function (result) {
+	Keeper.prototype.unauthorized = function (result) {
 		// NOTE might want to remove token and user
 		// this.removeToken();
 		// this.removeUser();
@@ -2370,7 +2373,7 @@
 		return false;
 	};
 
-	Keeper.route = function (result) {
+	Keeper.prototype.route = function (result) {
 
 		if (result.auth === false) {
 			return true;
@@ -2382,7 +2385,7 @@
 
 	};
 
-	Keeper.request = function (result) {
+	Keeper.prototype.request = function (result) {
 
 		if (result.opt.auth === false) {
 			return true;
@@ -2395,7 +2398,7 @@
 
 	};
 
-	Keeper.response = function (result) {
+	Keeper.prototype.response = function (result) {
 
 		if (result.statusCode === 401) {
 			return this.unauthorized(result);
@@ -2407,11 +2410,11 @@
 
 	};
 
-	Keeper.encode = function (data) {
+	Keeper.prototype.encode = function (data) {
 		return window.btoa(data);
 	};
 
-	Keeper.decode = function (data) {
+	Keeper.prototype.decode = function (data) {
 	    return window.atob(data);
 	};
 
@@ -2785,14 +2788,13 @@
 
 	Model.data = {};
 	Model.isRan = false;
-	Model.container = document.body;
 
-	Model.overwrite = function (data) {
-		Observer.create(
-			this.data = data,
-			this.observer.bind(this)
-		);
-	};
+	// Model.overwrite = function (data) {
+	// 	Observer.create(
+	// 		this.data = data,
+	// 		this.observer.bind(this)
+	// 	);
+	// };
 
 	Model.traverse = function (path, create) {
 		return Global$1.utility.traverse(this.data, path, function (data, key, index, keys) {
@@ -3042,29 +3044,37 @@
 				return (window.document._currentScript || window.document.currentScript).ownerDocument;
 			}
 		},
-		clicks: {
-			enumerable: true,
-			value: []
-		},
-		popstates: {
-			enumerable: true,
-			value: []
-		},
+		// requestAnimationFrame: {
+		// 	enumerable: true,
+		// 	value: window.requestAnimationFrame
+		// 		|| window.webkitRequestAnimationFrame
+		// 		|| window.mozRequestAnimationFrame
+		// 		|| window.msRequestAnimationFrame
+		// 		|| function(c) { return setTimeout(c, 16); }
+		// },
+		// clicks: {
+		// 	enumerable: true,
+		// 	value: []
+		// },
+		// popstates: {
+		// 	enumerable: true,
+		// 	value: []
+		// },
 		global: {
 			enumerable: true,
 			value: {}
 		},
 		events: {
 			enumerable: true,
-			value: Events$1
+			value: {
+				data: {}
+			}
 		},
 		modifiers: {
 			enumerable: true,
-			value: Modifiers
-		},
-		utility: {
-			enumerable: true,
-			value: Utility
+			value: {
+				data: {}
+			}
 		},
 		view: {
 			enumerable: true,
@@ -3074,17 +3084,21 @@
 			enumerable: true,
 			value: Model
 		},
+		utility: {
+			enumerable: true,
+			value: Utility
+		},
 		binder: {
 			enumerable: true,
-			value: Binder
+			value: new Binder()
 		},
 		keeper:{
 			enumerable: true,
-			value: Keeper
+			value: new Keeper()
 		},
 		loader:{
 			enumerable: true,
-			value: Loader
+			value: new Loader()
 		},
 		router:{
 			enumerable: true,
@@ -3096,11 +3110,11 @@
 		},
 		fetcher:{
 			enumerable: true,
-			value: Fetcher
+			value: new Fetcher()
 		},
 		component:{
 			enumerable: true,
-			value: Component
+			value: new Component()
 		},
 		setup: {
 			enumerable: true,

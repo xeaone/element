@@ -5,14 +5,13 @@ var Model = {};
 
 Model.data = {};
 Model.isRan = false;
-Model.container = document.body;
 
-Model.overwrite = function (data) {
-	Observer.create(
-		this.data = data,
-		this.observer.bind(this)
-	);
-};
+// Model.overwrite = function (data) {
+// 	Observer.create(
+// 		this.data = data,
+// 		this.observer.bind(this)
+// 	);
+// };
 
 Model.traverse = function (path, create) {
 	return Global.utility.traverse(this.data, path, function (data, key, index, keys) {

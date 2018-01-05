@@ -1,9 +1,7 @@
 import Component from './component';
-import Modifiers from './modifiers';
 import Utility from './utility';
 import Batcher from './batcher';
 import Fetcher from './fetcher';
-import Events from './events';
 import Router from './router';
 import Loader from './loader';
 import Binder from './binder';
@@ -60,29 +58,37 @@ var Global = Object.defineProperties({}, {
 			return (window.document._currentScript || window.document.currentScript).ownerDocument;
 		}
 	},
-	clicks: {
-		enumerable: true,
-		value: []
-	},
-	popstates: {
-		enumerable: true,
-		value: []
-	},
+	// requestAnimationFrame: {
+	// 	enumerable: true,
+	// 	value: window.requestAnimationFrame
+	// 		|| window.webkitRequestAnimationFrame
+	// 		|| window.mozRequestAnimationFrame
+	// 		|| window.msRequestAnimationFrame
+	// 		|| function(c) { return setTimeout(c, 16); }
+	// },
+	// clicks: {
+	// 	enumerable: true,
+	// 	value: []
+	// },
+	// popstates: {
+	// 	enumerable: true,
+	// 	value: []
+	// },
 	global: {
 		enumerable: true,
 		value: {}
 	},
 	events: {
 		enumerable: true,
-		value: Events
+		value: {
+			data: {}
+		}
 	},
 	modifiers: {
 		enumerable: true,
-		value: Modifiers
-	},
-	utility: {
-		enumerable: true,
-		value: Utility
+		value: {
+			data: {}
+		}
 	},
 	view: {
 		enumerable: true,
@@ -92,17 +98,21 @@ var Global = Object.defineProperties({}, {
 		enumerable: true,
 		value: Model
 	},
+	utility: {
+		enumerable: true,
+		value: Utility
+	},
 	binder: {
 		enumerable: true,
-		value: Binder
+		value: new Binder()
 	},
 	keeper:{
 		enumerable: true,
-		value: Keeper
+		value: new Keeper()
 	},
 	loader:{
 		enumerable: true,
-		value: Loader
+		value: new Loader()
 	},
 	router:{
 		enumerable: true,
@@ -114,11 +124,11 @@ var Global = Object.defineProperties({}, {
 	},
 	fetcher:{
 		enumerable: true,
-		value: Fetcher
+		value: new Fetcher()
 	},
 	component:{
 		enumerable: true,
-		value: Component
+		value: new Component()
 	},
 	setup: {
 		enumerable: true,

@@ -1,20 +1,19 @@
 import Global from '../global';
-import Binder from './index';
 
 var Render = {};
 
 Render.maxFrameTime = 1000/60;
 
 Render.class = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	var name = opt.names.slice(1).join('-');
-	opt.element.classList.toggle(name, Binder.modifyData(opt, data));
+	opt.element.classList.toggle(name, Global.binder.modifyData(opt, data));
 
 };
 
 Render.css = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.style.cssText === data) {
 		return;
@@ -24,22 +23,22 @@ Render.css = function (opt) {
 		data = opt.names.slice(1).join('-') + ': ' +  data + ';';
 	}
 
-	opt.element.style.cssText += Binder.modifyData(opt, data);
+	opt.element.style.cssText += Global.binder.modifyData(opt, data);
 
 };
 
 Render.alt = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.alt === data) {
 		return;
 	}
 
-	opt.element.alt = Binder.modifyData(opt, data);
+	opt.element.alt = Global.binder.modifyData(opt, data);
 };
 
 Render.disable = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.disabled === data) {
 		return;
@@ -47,14 +46,14 @@ Render.disable = function (opt) {
 
 	if (data === undefined || data === null) {
 		data = true;
-		Binder.setData(opt, data);
+		Global.binder.setData(opt, data);
 	}
 
-	opt.element.disabled = Binder.modifyData(opt, data);
+	opt.element.disabled = Global.binder.modifyData(opt, data);
 };
 
 Render.enable = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.disabled === !data) {
 		return;
@@ -62,14 +61,14 @@ Render.enable = function (opt) {
 
 	if (data === undefined || data === null) {
 		data = true;
-		Binder.setData(opt, data);
+		Global.binder.setData(opt, data);
 	}
 
-	opt.element.disabled = !Binder.modifyData(opt, data);
+	opt.element.disabled = !Global.binder.modifyData(opt, data);
 };
 
 Render.hide = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.hidden === data) {
 		return;
@@ -77,35 +76,35 @@ Render.hide = function (opt) {
 
 	if (data === undefined || data === null) {
 		data = true;
-		Binder.setData(opt, data);
+		Global.binder.setData(opt, data);
 	}
 
-	opt.element.hidden = Binder.modifyData(opt, data);
+	opt.element.hidden = Global.binder.modifyData(opt, data);
 };
 
 Render.html = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.innerHTML === data) {
 		return;
 	}
 
-	opt.element.innerHTML = Binder.modifyData(opt, data);
+	opt.element.innerHTML = Global.binder.modifyData(opt, data);
 };
 
 Render.href = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.href === data) {
 		return;
 	}
 
-	opt.element.href = Binder.modifyData(opt, data);
+	opt.element.href = Global.binder.modifyData(opt, data);
 };
 
 
 Render.read = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.readOnly === data) {
 		return;
@@ -113,14 +112,14 @@ Render.read = function (opt) {
 
 	if (data === undefined || data === null) {
 		data = true;
-		Binder.setData(opt, data);
+		Global.binder.setData(opt, data);
 	}
 
-	opt.element.readOnly = Binder.modifyData(opt, data);
+	opt.element.readOnly = Global.binder.modifyData(opt, data);
 };
 
 Render.required = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.required === data) {
 		return;
@@ -128,14 +127,14 @@ Render.required = function (opt) {
 
 	if (data === undefined || data === null) {
 		data = true;
-		Binder.setData(opt, data);
+		Global.binder.setData(opt, data);
 	}
 
-	opt.element.required = Binder.modifyData(opt, data);
+	opt.element.required = Global.binder.modifyData(opt, data);
 };
 
 Render.selected = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.selectedIndex === data) {
 		return;
@@ -143,14 +142,14 @@ Render.selected = function (opt) {
 
 	if (data === undefined || data === null) {
 		data = 0;
-		Binder.setData(opt, data);
+		Global.binder.setData(opt, data);
 	}
 
-	opt.element.selectedIndex = Binder.modifyData(opt, data);
+	opt.element.selectedIndex = Global.binder.modifyData(opt, data);
 };
 
 Render.show = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.hidden === !data) {
 		return;
@@ -158,24 +157,24 @@ Render.show = function (opt) {
 
 	if (data === undefined || data === null) {
 		data = true;
-		Binder.setData(opt, data);
+		Global.binder.setData(opt, data);
 	}
 
-	opt.element.hidden = !Binder.modifyData(opt, data);
+	opt.element.hidden = !Global.binder.modifyData(opt, data);
 };
 
 Render.src = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.src === data) {
 		return;
 	}
 
-	opt.element.src = Binder.modifyData(opt, data);
+	opt.element.src = Global.binder.modifyData(opt, data);
 };
 
 Render.text = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (data && typeof data === 'object') {
 		data = JSON.stringify(data);
@@ -183,7 +182,7 @@ Render.text = function (opt) {
 		data = String(data);
 	}
 
-	data = Binder.modifyData(opt, data);
+	data = Global.binder.modifyData(opt, data);
 	data = data === undefined || data === null ? '' : data;
 
 	Global.batcher.write(function () {
@@ -193,7 +192,7 @@ Render.text = function (opt) {
 };
 
 Render.write = function (opt) {
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (opt.element.readOnly === !data) {
 		return;
@@ -201,10 +200,10 @@ Render.write = function (opt) {
 
 	if (data === undefined || data === null) {
 		data = true;
-		Binder.setData(opt, data);
+		Global.binder.setData(opt, data);
 	}
 
-	opt.element.readOnly = !Binder.modifyData(opt, data);
+	opt.element.readOnly = !Global.binder.modifyData(opt, data);
 };
 
 Render.each = function (opt) {
@@ -215,14 +214,14 @@ Render.each = function (opt) {
 		opt.pending = true;
 	}
 
-	var data = Binder.getData(opt);
+	var data = Global.binder.getData(opt);
 
 	if (!data) {
 		data = [];
-		Binder.setData(opt, data);
+		Global.binder.setData(opt, data);
 	}
 
-	data = Binder.modifyData(opt, data);
+	data = Global.binder.modifyData(opt, data);
 
 	Global.batcher.read(function () {
 
@@ -304,14 +303,14 @@ Render.each = function (opt) {
 
 Render.on = function (opt) {
 	opt.element.removeEventListener(opt.names[1], opt.cache);
-	opt.cache = Binder.getData(opt).bind(opt.model);
+	opt.cache = Global.binder.getData(opt).bind(opt.model);
 	opt.element.addEventListener(opt.names[1], opt.cache);
 };
 
 Render.value = function (opt, caller) {
 	var i , l, data, query, element, elements;
 
-	data = Binder.getData(opt);
+	data = Global.binder.getData(opt);
 
 	if (opt.element.type === 'checkbox') {
 
@@ -323,8 +322,8 @@ Render.value = function (opt, caller) {
 			opt.element.checked = data;
 		}
 
-		data = Binder.modifyData(opt, data);
-		Binder.setData(opt, data);
+		data = Global.binder.modifyData(opt, data);
+		Global.binder.setData(opt, data);
 
 	} else if (opt.element.nodeName === 'SELECT') {
 
@@ -356,8 +355,8 @@ Render.value = function (opt, caller) {
 		// 	data = elements[0].value || elements[0].innerText;
 		// }
 
-		data = Binder.modifyData(opt, data);
-		Binder.setData(opt, data);
+		data = Global.binder.modifyData(opt, data);
+		Global.binder.setData(opt, data);
 
 	} else if (opt.element.type === 'radio') {
 
@@ -375,8 +374,8 @@ Render.value = function (opt, caller) {
 					data = i;
 					element.checked = true;
 
-					data = Binder.modifyData(opt, data);
-					Binder.setData(opt, data);
+					data = Global.binder.modifyData(opt, data);
+					Global.binder.setData(opt, data);
 
 				} else {
 					element.checked = false;
@@ -391,14 +390,14 @@ Render.value = function (opt, caller) {
 	} else if (opt.element.type === 'file') {
 
 		data = opt.element.files;
-		data = Binder.modifyData(opt, data);
-		Binder.setData(opt, data);
+		data = Global.binder.modifyData(opt, data);
+		Global.binder.setData(opt, data);
 
 	} else if (opt.element.type === 'option') {
 
 		data = opt.element.value || opt.element.innerText;
-		data = Binder.modifyData(opt, data);
-		Binder.setData(opt, data);
+		data = Global.binder.modifyData(opt, data);
+		Global.binder.setData(opt, data);
 
 	} else {
 
@@ -410,10 +409,10 @@ Render.value = function (opt, caller) {
 				// Global.batcher.read(function () {
 					data = data === undefined || data === null ? opt.element.value : data;
 					data = opt.element.value;
-					Binder.setData(opt, data);
+					Global.binder.setData(opt, data);
 				// });
 			} else {
-				data = Binder.modifyData(opt, data);
+				data = Global.binder.modifyData(opt, data);
 				// Global.batcher.write(function () {
 					opt.element.value = data;
 				// });
@@ -421,8 +420,8 @@ Render.value = function (opt, caller) {
 
 		});
 
-		// data = Binder.modifyData(opt, data);
-		// Binder.setData(opt, data);
+		// data = Global.binder.modifyData(opt, data);
+		// Global.binder.setData(opt, data);
 
 	}
 

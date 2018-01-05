@@ -1,22 +1,25 @@
 import Transformer from './lib/transformer';
 import Global from './global';
 
-var Loader = {};
+var Loader = function (options) {
 
-Loader.loads = [];
-Loader.modules = {};
-Loader.loaded = null;
-Loader.isRan = false;
-Loader.type = 'module';
+	this.loads = [];
+	this.modules = {};
+	this.loaded = null;
+	this.isRan = false;
+	this.type = 'module';
 
-Loader.setup = function (options) {
+	this.setup(options);
+};
+
+Loader.prototype.setup = function (options) {
 	options = options || {};
 	this.type = options.type || this.type;
 	this.loads = options.loads || this.loads;
 	this.loaded = options.loaded || this.loaded;
 };
 
-Loader.execute = function (data) {
+Loader.prototype.execute = function (data) {
 	data = '\'use strict\';\n\n' + data;
 
 	return new Function('$LOADER', 'window', data)(this, window);
@@ -29,7 +32,7 @@ Loader.execute = function (data) {
 	// }(data, this, window));
 };
 
-Loader.xhr = function (url, callback) {
+Loader.prototype.xhr = function (url, callback) {
 	var xhr = new XMLHttpRequest();
 
 	xhr.addEventListener('readystatechange', function () {
@@ -47,7 +50,7 @@ Loader.xhr = function (url, callback) {
 
 };
 
-Loader.transform = function (data) {
+Loader.prototype.transform = function (data) {
 	var self = this;
 
 	if (
@@ -99,7 +102,7 @@ Loader.transform = function (data) {
 
 };
 
-Loader.js = function (data) {
+Loader.prototype.js = function (data) {
 	var self = this;
 
 	if (
@@ -127,7 +130,7 @@ Loader.js = function (data) {
 
 };
 
-Loader.css = function (data) {
+Loader.prototype.css = function (data) {
 	var self = this;
 	var element = document.createElement('link');
 
@@ -139,7 +142,7 @@ Loader.css = function (data) {
 	document.head.appendChild(element);
 };
 
-Loader.load = function (data, callback) {
+Loader.prototype.load = function (data, callback) {
 	var self = this;
 
 	if (data.constructor === String) {
@@ -171,7 +174,7 @@ Loader.load = function (data, callback) {
 
 };
 
-Loader.run = function () {
+Loader.prototype.run = function () {
 	var load;
 
 	if (this.isRan) {

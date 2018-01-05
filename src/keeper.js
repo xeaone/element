@@ -1,27 +1,32 @@
 import Global from './global';
 
-var Keeper = {};
+var Keeper = function (options) {
 
-Keeper._ = {};
-Keeper._.token;
-Keeper.scheme = 'Bearer';
-Keeper.type = 'sessionStorage';
+	this._ = {};
+	this._.token;
 
-Object.defineProperty(Keeper, 'token', {
-	enumerable: true,
-	get: function () {
-		return this._.token = this._.token || window[this.type].getItem('token');
-	}
-});
+	this.scheme = 'Bearer';
+	this.type = 'sessionStorage';
 
-Object.defineProperty(Keeper, 'user', {
-	enumerable: true,
-	get: function () {
-		return this._.user = this._.user || JSON.parse(window[this.type].getItem('user'));
-	}
-});
+	Object.defineProperties(this, {
+		token: {
+			enumerable: true,
+			get: function () {
+				return this._.token = this._.token || window[this.type].getItem('token');
+			}
+		},
+		user: {
+			enumerable: true,
+			get: function () {
+				return this._.user = this._.user || JSON.parse(window[this.type].getItem('user'));
+			}
+		}
+	});
 
-Keeper.setup = function (options) {
+	this.setup(options);
+};
+
+Keeper.prototype.setup = function (options) {
 	options = options || {};
 
 	this._.forbidden = options.forbidden || this._.forbidden;
@@ -39,29 +44,29 @@ Keeper.setup = function (options) {
 
 };
 
-Keeper.setToken = function (token) {
+Keeper.prototype.setToken = function (token) {
 	if (!token) return;
 	if (this.scheme === 'Basic') token = this.encode(token);
 	this._.token = window[this.type].setItem('token', token);
 };
 
-Keeper.setUser = function (user) {
+Keeper.prototype.setUser = function (user) {
 	if (!user) return;
 	user = JSON.stringify(user);
 	this._.user = window[this.type].setItem('user', user);
 };
 
-Keeper.removeToken = function () {
+Keeper.prototype.removeToken = function () {
 	this._.token = null;
 	window[this.type].removeItem('token');
 };
 
-Keeper.removeUser = function () {
+Keeper.prototype.removeUser = function () {
 	this._.user = null;
 	window[this.type].removeItem('user');
 };
 
-Keeper.authenticate = function (token, user) {
+Keeper.prototype.authenticate = function (token, user) {
 	this.setToken(token);
 	this.setUser(user);
 
@@ -73,7 +78,7 @@ Keeper.authenticate = function (token, user) {
 
 };
 
-Keeper.unauthenticate = function () {
+Keeper.prototype.unauthenticate = function () {
 	this.removeToken();
 	this.removeUser();
 
@@ -85,7 +90,7 @@ Keeper.unauthenticate = function () {
 
 };
 
-Keeper.forbidden = function (result) {
+Keeper.prototype.forbidden = function (result) {
 
 	if (typeof this._.forbidden === 'string') {
 		Global.router.navigate(this._.forbidden);
@@ -96,7 +101,7 @@ Keeper.forbidden = function (result) {
 	return false;
 };
 
-Keeper.unauthorized = function (result) {
+Keeper.prototype.unauthorized = function (result) {
 	// NOTE might want to remove token and user
 	// this.removeToken();
 	// this.removeUser();
@@ -110,7 +115,7 @@ Keeper.unauthorized = function (result) {
 	return false;
 };
 
-Keeper.route = function (result) {
+Keeper.prototype.route = function (result) {
 
 	if (result.auth === false) {
 		return true;
@@ -122,7 +127,7 @@ Keeper.route = function (result) {
 
 };
 
-Keeper.request = function (result) {
+Keeper.prototype.request = function (result) {
 
 	if (result.opt.auth === false) {
 		return true;
@@ -135,7 +140,7 @@ Keeper.request = function (result) {
 
 };
 
-Keeper.response = function (result) {
+Keeper.prototype.response = function (result) {
 
 	if (result.statusCode === 401) {
 		return this.unauthorized(result);
@@ -147,11 +152,11 @@ Keeper.response = function (result) {
 
 };
 
-Keeper.encode = function (data) {
+Keeper.prototype.encode = function (data) {
 	return window.btoa(data);
 };
 
-Keeper.decode = function (data) {
+Keeper.prototype.decode = function (data) {
     return window.atob(data);
 };
 

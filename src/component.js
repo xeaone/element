@@ -1,10 +1,10 @@
 import Global from './global';
 
-var Component = {};
+var Component = function () {
+	this.data = {};
+};
 
-Component.data = {};
-
-Component.handleSlots = function (element, template) {
+Component.prototype.handleSlots = function (element, template) {
 	var tSlots = template.content.querySelectorAll('slot');
 
 	for (var i = 0, l = tSlots.length; i < l; i++) {
@@ -20,7 +20,7 @@ Component.handleSlots = function (element, template) {
 
 };
 
-Component.handleTemplate = function (data) {
+Component.prototype.handleTemplate = function (data) {
 	var template;
 
 	if (data.html) {
@@ -53,7 +53,7 @@ Component.handleTemplate = function (data) {
 	return template;
 };
 
-Component.define = function (options) {
+Component.prototype.define = function (options) {
 	var self = this;
 
 	if (!options.name) {
@@ -68,20 +68,17 @@ Component.define = function (options) {
 		throw new Error('Oxe.component.define - Component already defined');
 	}
 
-	self.data[options.name] = [];
+	if (!(options.name in self.data)) {
+		self.data[options.name] = 0;
+		// self.data[options.name] = [];
+	}
 
 	// options.view = options.view || {};
 	options.model = options.model || {};
 	options.shadow = options.shadow || false;
-	options.properties = options.properties || {};
 	options.template = self.handleTemplate(options);
 
-	options.properties.uid = {
-		enumerable: true,
-		get: function () {
-			return this.getAttribute('o-uid');
-		}
-	};
+	options.properties = options.properties || {};
 
 	options.properties.model = {
 		enumerable: true,
@@ -121,13 +118,18 @@ Component.define = function (options) {
 
 	options.proto.createdCallback = function () {
 		var element = this;
-		var uid = options.name + '-' + self.data[options.name].length;
 
-		element.setAttribute('o-uid', uid);
+		Object.defineProperty(element, 'uid', {
+			enumerable: true,
+			configurable: true,
+			value: options.name + '-' + self.data[options.name]++
+		});
 
-		Global.model.set(uid, options.model);
-		Global.events.data[uid] = options.events;
-		Global.modifiers.data[uid] = options.modifiers;
+		element.setAttribute('o-uid', element.uid);
+
+		Global.model.set(element.uid, options.model);
+		Global.events.data[element.uid] = options.events;
+		Global.modifiers.data[element.uid] = options.modifiers;
 
 		if (options.shadow) {
 			// element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
@@ -138,8 +140,6 @@ Component.define = function (options) {
 			self.handleSlots(element, options.template);
 			element.appendChild(document.importNode(options.template.content, true));
 		}
-
-		self.data[options.name].push(element);
 
 		if (options.created) {
 			options.created.call(element);

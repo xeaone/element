@@ -1,8 +1,10 @@
 import Global from './global';
 
-var Fetcher = {};
+var Fetcher = function (options) {
+	this.setup(options);
+};
 
-Fetcher.mime = {
+Fetcher.prototype.mime = {
 	xml: 'text/xml; charset=utf-8',
 	html: 'text/html; charset=utf-8',
 	text: 'text/plain; charset=utf-8',
@@ -10,17 +12,16 @@ Fetcher.mime = {
 	js: 'application/javascript; charset=utf-8'
 };
 
-Fetcher.setup = function (opt) {
-	opt = opt || {};
-	this.auth = opt.auth || false;
-	this.type = opt.type || 'text';
-	this.method = opt.method || 'get';
-	this.request = opt.request || opt.request;
-	this.response = opt.response || opt.response;
-	return this;
+Fetcher.prototype.setup = function (options) {
+	options = options || {};
+	this.auth = options.auth || false;
+	this.type = options.type || 'text';
+	this.method = options.method || 'get';
+	this.request = options.request || options.request;
+	this.response = options.response || options.response;
 };
 
-Fetcher.serialize = function (data) {
+Fetcher.prototype.serialize = function (data) {
 	var string = '';
 
 	for (var name in data) {
@@ -31,7 +32,7 @@ Fetcher.serialize = function (data) {
 	return string;
 };
 
-Fetcher.change = function (opt, result, xhr) {
+Fetcher.prototype.change = function (opt, result, xhr) {
 	if (xhr.readyState === 4) {
 
 		result.opt = opt;
@@ -87,7 +88,7 @@ Fetcher.change = function (opt, result, xhr) {
 	}
 };
 
-Fetcher.fetch = function (opt) {
+Fetcher.prototype.fetch = function (opt) {
 	var data;
 	var result = {};
 	var xhr = new XMLHttpRequest();
@@ -182,44 +183,44 @@ Fetcher.fetch = function (opt) {
 	xhr.send(data);
 };
 
-Fetcher.post = function (opt) {
+Fetcher.prototype.post = function (opt) {
 	opt.method = 'post';
-	return Fetcher.fetch(opt);
+	return this.fetch(opt);
 };
 
-Fetcher.get = function (opt) {
+Fetcher.prototype.get = function (opt) {
 	opt.method = 'get';
-	return Fetcher.fetch(opt);
+	return this.fetch(opt);
 };
 
-Fetcher.put = function (opt) {
+Fetcher.prototype.put = function (opt) {
 	opt.method = 'put';
-	return Fetcher.fetch(opt);
+	return this.fetch(opt);
 };
 
-Fetcher.head = function (opt) {
+Fetcher.prototype.head = function (opt) {
 	opt.method = 'head';
-	return Fetcher.fetch(opt);
+	return this.fetch(opt);
 };
 
-Fetcher.patch = function (opt) {
+Fetcher.prototype.patch = function (opt) {
 	opt.method = 'patch';
-	return Fetcher.fetch(opt);
+	return this.fetch(opt);
 };
 
-Fetcher.delete = function (opt) {
+Fetcher.prototype.delete = function (opt) {
 	opt.method = 'delete';
-	return Fetcher.fetch(opt);
+	return this.fetch(opt);
 };
 
-Fetcher.options = function (opt) {
+Fetcher.prototype.options = function (opt) {
 	opt.method = 'options';
-	return Fetcher.fetch(opt);
+	return this.fetch(opt);
 };
 
-Fetcher.connect = function (opt) {
+Fetcher.prototype.connect = function (opt) {
 	opt.method = 'connect';
-	return Fetcher.fetch(opt);
+	return this.fetch(opt);
 };
 
 export default Fetcher;
