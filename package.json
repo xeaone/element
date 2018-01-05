@@ -42,9 +42,11 @@
 		"oxe"
 	],
 	"directories": {
-		"doc": "docs"
+		"docs": "docs",
+		"dist": "dist",
+		"src": "src"
 	},
 	"devDependencies": {
-		"muleify": "^3.0.5"
+		"muleify": "^4.0.0"
 	}
 }
