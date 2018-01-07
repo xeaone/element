@@ -72,7 +72,7 @@ Transformer.template = function (data) {
 	if (starts === ends) {
 		return string;
 	} else {
-		throw new Error('Transformer miss matched backticks');
+		throw new Error('Oxe - Transformer missing backtick');
 	}
 
 };
@@ -89,7 +89,7 @@ Transformer.patterns = {
 	exps: /export\s+(?:default|var|let|const)?\s+/g
 };
 
-Transformer.getImports = function (text) {
+Transformer.getImports = function (text, base) {
 	var result = [];
 	var imps = text.match(this.patterns.imps) || [];
 
@@ -99,8 +99,13 @@ Transformer.getImports = function (text) {
 		result[i] = {
 			raw: imp[0],
 			name: imp[1],
-			url: imp[2]
+			url: Global.utility.resolve(imp[2], base),
+			extension: Global.utility.extension(imp[2])
 		};
+
+		if (!result[i].extension) {
+			result[i].url = result[i].url + '.js';
+		}
 
 	}
 
@@ -132,13 +137,6 @@ Transformer.replaceImports = function (text, imps) {
 
 	for (var i = 0, l = imps.length; i < l; i++) {
 		var imp = imps[i];
-
-		imp.url = Global.utility.resolve(imp.url);
-		imp.extension = Global.utility.extension(imp.url);
-
-		if (!imp.extension) {
-			imp.url = imp.url + '.js';
-		}
 
 		var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\'].code';
 
@@ -173,10 +171,12 @@ Transformer.replaceExports = function (text, exps) {
 Transformer.ast = function (data) {
 	var ast = {};
 
-	ast.raw = data;
-	ast.cooked = data;
+	ast.url = data.url;
+	ast.raw = data.text;
+	ast.cooked = data.text;
+	ast.base = ast.url.slice(0, ast.url.lastIndexOf('/') + 1);
 
-	ast.imports = this.getImports(ast.raw);
+	ast.imports = this.getImports(ast.raw, ast.base);
 	ast.exports = this.getExports(ast.raw);
 
 	ast.cooked = this.replaceImports(ast.cooked, ast.imports);

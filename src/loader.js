@@ -26,9 +26,7 @@ Loader.prototype.execute = function (data) {
 
 	// return (function(d, l, w) {
 	// 	'use strict';
-    //
 	// 	return new Function('$LOADER', 'window', d)(l, w);
-    //
 	// }(data, this, window));
 };
 
@@ -64,40 +62,41 @@ Loader.prototype.transform = function (data) {
 		self.type === 'es' || data.type === 'es'
 		|| self.type === 'esm' || data.type === 'esm'
 	) {
-		data.ast = Transformer.ast(data.text);
+		data.ast = Transformer.ast(data);
 	}
 
-	if (!data.ast || !data.ast.imports.length) {
+	var done = function () {
 		self.modules[data.url].code = self.execute(data.ast ? data.ast.cooked : data.text);
 
 		var listener;
 		while (listener = self.modules[data.url].listener.shift()) {
 			listener();
 		}
-
-		return;
 	}
 
-	var count = 0;
-	var total = data.ast.imports.length;
+	if (data.ast && data.ast.imports.length) {
 
-	var callback = function () {
-		count++;
+		var count = 0;
+		var total = data.ast.imports.length;
 
-		if (count === total) {
-			self.modules[data.url].code = self.execute(data.ast.cooked);
+		var callback = function () {
+			count++;
 
-			var listener;
-			while (listener = self.modules[data.url].listener.shift()) {
-				listener();
+			if (count === total) {
+				done();
 			}
 
+		};
+
+		for (var i = 0; i < total; i++) {
+			self.load({
+				// base: data.base,
+				url: data.ast.imports[i].url
+			}, callback);
 		}
 
-	};
-
-	for (var i = 0; i < total; i++) {
-		self.load(data.ast.imports[i].url, callback);
+	} else {
+		done();
 	}
 
 };
@@ -119,11 +118,12 @@ Loader.prototype.js = function (data) {
 
 		element.setAttribute('src', data.url);
 		element.setAttribute('async', 'true');
-		element.setAttribute('o-load', '');
 
 		if (self.type === 'module' || data.type === 'module') {
 			element.setAttribute('type','module');
 		}
+
+		element.setAttribute('o-load', '');
 
 		document.head.appendChild(element);
 	}

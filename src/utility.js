@@ -210,15 +210,18 @@ Utility.base = function () {
 	}
 };
 
-Utility.resolve = function () {
-	var result = [], root = '/';
-	var path = Array.prototype.join.call(arguments, '/');
-
-	if (!this.ROOT.test(path)) {
-		path = this.base() + path;
-	}
+Utility.resolve = function (path, base) {
+	var result = [];
 
 	path = path.replace(window.location.origin, '');
+
+	if (path.indexOf('/') !== 0) {
+		base = base || this.base();
+		path = base + '/' + path;
+		path = path.replace(window.location.origin, '');
+	}
+
+	path = path.replace(/\/{2,}/, '/');
 	path = path.replace(/^\//, '');
 	path = path.replace(/\/$/, '');
 
@@ -229,14 +232,14 @@ Utility.resolve = function () {
 			continue;
 		} else if (paths[i] === '..') {
 			if (i > 0) {
-				result.slice(i - 1, 1);
+				result.splice(i - 1, 1);
 			}
 		} else {
 			result.push(paths[i]);
 		}
 	}
 
-	return root + result.join('/');
+	return '/' + result.join('/');
 }
 
 export default Utility;
