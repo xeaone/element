@@ -98,8 +98,8 @@ Unrender.value = function (opt) {
 
 };
 
-Unrender.attribute = function (opt) {
-
+Unrender.default = function (opt) {
+	console.log(opt);
 };
 
 export default Unrender;

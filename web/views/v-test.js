@@ -1,27 +1,33 @@
-import Say from './modules/say.js';
-
-var model = {
-	blank: '',
-	show_hide: true,
-	mcar: 'mcar',
-	car: '',
-	cars: [],
-	numRadio: 0,
-	isChecked: true,
-	text: 'Hello from model',
-	loopy: { doopy: 'soopy' },
-	items: [
-		{ it: { val: 0 } },
-		{ it: { val: 1 } },
-		{ it: { val: 2 } }
-	],
-	arrayChange: [1, 2],
-	html: '<h3 o-text="text"></h3>'
-};
+import Say from '../modules/say.js';
 
 Oxe.component.define({
 	name: 'v-test',
-	model: model,
+	model: {
+		blank: '',
+		show_hide: true,
+		mcar: 'mcar',
+		// car: 'mercedes',
+		// cars: [
+		// 	'Audi',
+		// ],
+		allcars: [
+			'Audi',
+			'Saab',
+			'Volvo',
+			'Mercedes',
+		],
+		numRadio: 0,
+		isChecked: true,
+		text: 'Hello from model',
+		loopy: { doopy: 'soopy' },
+		items: [
+			{ it: { val: 0 } },
+			{ it: { val: 1 } },
+			{ it: { val: 2 } }
+		],
+		arrayChange: [1, 2],
+		html: '<h3 o-text="text"></h3>'
+	},
 	modifiers: {
 		lower: function (text) {
 			text = text || '';
@@ -92,32 +98,32 @@ Oxe.component.define({
 
 		window.self = self;
 
-		var total = self.add(1, 2, 3);
-
-		setTimeout(function () {
-
-			var increaseInterval = setInterval(function () {
-
-				if (self.model.items.length === 10) {
-					clearInterval(increaseInterval);
-
-					var decreaseInterval = setInterval(function () {
-
-						if (self.model.items.length === 5) {
-							clearInterval(decreaseInterval);
-						} else {
-							self.model.items.pop();
-						}
-
-					}, 10);
-
-				} else {
-					self.model.items.push({ it: { val: self.model.items.length } });
-				}
-
-			}, 10);
-
-		}, 3000);
+		// var total = self.add(1, 2, 3);
+        //
+		// setTimeout(function () {
+        //
+		// 	var increaseInterval = setInterval(function () {
+        //
+		// 		if (self.model.items.length === 10) {
+		// 			clearInterval(increaseInterval);
+        //
+		// 			var decreaseInterval = setInterval(function () {
+        //
+		// 				if (self.model.items.length === 5) {
+		// 					clearInterval(decreaseInterval);
+		// 				} else {
+		// 					self.model.items.pop();
+		// 				}
+        //
+		// 			}, 10);
+        //
+		// 		} else {
+		// 			self.model.items.push({ it: { val: self.model.items.length } });
+		// 		}
+        //
+		// 	}, 10);
+        //
+		// }, 3000);
 
 		Say('v-test created');
 	},
@@ -179,27 +185,24 @@ Oxe.component.define({
 		<br>
 
 		<div o-text="numRadio"></div>
-		<input type="radio" name="nr" o-value="numRadio">
-		<input type="radio" name="nr" o-value="numRadio">
+		<input type="radio" o-value="numRadio">
+		<input type="radio" o-value="numRadio">
 		<br>
 		<br>
 
 		<div o-text="car"></div>
 		<select o-value="car">
-			<option value="audi">Audi</option>
-			<option value="saab">Saab</option>
-			<option value="volvo" selected>Volvo</option>
-			<option value="mercedes">Mercedes</option>
+			<option value="audi">audi</option>
+			<option value="saab">saab</option>
+			<option value="volvo">volvo</option>
+			<option value="mercedes">mercedes</option>
 		</select>
 		<br>
 		<br>
 
 		<div o-text="cars"></div>
-		<select o-value="cars" multiple>
-			<option value="audi">Audi</option>
-			<option value="saab" selected>Saab</option>
-			<option value="volvo">Volvo</option>
-			<option value="mercedes" selected>Mercedes</option>
+		<select o-value="cars" o-each-onecar="allcars" multiple>
+			<option o-value="onecar" o-text="onecar"></option>
 		</select>
 		<br>
 		<br>

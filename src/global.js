@@ -132,7 +132,7 @@ var Global = Object.defineProperties({}, {
 	},
 	setup: {
 		enumerable: true,
-		value: function (options) {
+		value: function setup (options) {
 
 			if (this.isSetup) {
 				return;

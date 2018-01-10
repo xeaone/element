@@ -2,10 +2,9 @@
 Oxe.setup({
 	loader: {
 		type: 'es',
-		// type: 'module',
 		loads: [
-			'assets/prism.css',
-			'elements/e-menu.js'
+			'./assets/prism.css',
+			'./elements/e-menu.js'
 		]
 	},
 	router: {
@@ -16,30 +15,34 @@ Oxe.setup({
 				title: 'Home',
 				path: '/',
 				component: 'v-home',
-				url: 'views/v-home.js'
+				url: './views/v-home.js'
 			},
 			{
 				title: 'Test',
 				path: '/test',
 				component: 'v-test',
-				url: 'views/v-test.js'
+				url: './views/v-test.js'
 			},
 			{
 				title: 'JS',
 				path: '/js',
 				component: 'v-js',
-				url: 'views/v-js.js'
+				url: './views/v-js.js'
 			},
 			{
 				title: '404',
 				path: '/{*}',
 				component: 'v-404',
-				url: 'views/v-404.js'
+				url: './views/v-404.js'
 			}
 		]
 	}
 });
 
 Oxe.router.on('navigated', function () {
-	console.log('navigated');
+	console.log('router: navigated');
+});
+
+Oxe.loader.on('setup', function () {
+	console.log('loader: setup');
 });

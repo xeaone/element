@@ -262,6 +262,39 @@
 
 	};
 
+	Utility.walker = function (node, callback) {
+		callback(node);
+		node = node.firstChild;
+		while (node) {
+		    this.walker(node, callback);
+		    node = node.nextSibling;
+		}
+	};
+
+	Utility.replaceEachVariable = function (element, variable, path, index) {
+		var self = this;
+		var iindex = '$index';
+		var vindex = '$' + variable;
+		this.walker(element, function (node) {
+			if (node.nodeType === 3) {
+				if (node.nodeValue === vindex || node.nodeValue === iindex) {
+					node.nodeValue = index;
+				}
+			} else if (node.nodeType === 1) {
+				for (var i = 0, l = node.attributes.length; i < l; i++) {
+					var attribute = node.attributes[i];
+					var name = attribute.name;
+					var value = attribute.value.split(' ')[0].split('|')[0];
+					if (name.indexOf('o-') === 0 || name.indexOf('data-o-') === 0) {
+						if (value === variable || value.indexOf(variable) === 0) {
+							attribute.value = path + '.' + index + attribute.value.slice(variable.length);
+						}
+					}
+				}
+			}
+		});
+	};
+
 	Utility.traverse = function (data, path, callback) {
 		var keys = typeof path === 'string' ? path.split('.') : path;
 		var last = keys.length - 1;
@@ -367,15 +400,18 @@
 		}
 	};
 
-	Utility.resolve = function () {
-		var result = [], root = '/';
-		var path = Array.prototype.join.call(arguments, '/');
-
-		if (!this.ROOT.test(path)) {
-			path = this.base() + path;
-		}
+	Utility.resolve = function (path, base) {
+		var result = [];
 
 		path = path.replace(window.location.origin, '');
+
+		if (path.indexOf('/') !== 0) {
+			base = base || this.base();
+			path = base + '/' + path;
+			path = path.replace(window.location.origin, '');
+		}
+
+		path = path.replace(/\/{2,}/, '/');
 		path = path.replace(/^\//, '');
 		path = path.replace(/\/$/, '');
 
@@ -386,14 +422,14 @@
 				continue;
 			} else if (paths[i] === '..') {
 				if (i > 0) {
-					result.slice(i - 1, 1);
+					result.splice(i - 1, 1);
 				}
 			} else {
 				result.push(paths[i]);
 			}
 		}
 
-		return root + result.join('/');
+		return '/' + result.join('/');
 	};
 
 	function Events () {
@@ -492,21 +528,17 @@
 			this.run(this.reads, time);
 			this.run(this.writes, time);
 		} catch (e) {
-			error = e;
+			if (this.events.error && this.events.error.length) {
+				this.emit('error', e);
+			} else {
+				throw e;
+			}
 		}
 
 		this.pending = false;
 
 		if (this.reads.length || this.writes.length) {
 			this.tick();
-		}
-
-		if (error) {
-			if (this.events.error && this.events.error.length) {
-				this.emit('error', error);
-			} else {
-				throw error;
-			}
 		}
 
 	};
@@ -518,7 +550,7 @@
 
 			task();
 
-			if (this.maxFrameTime && performance.now() - time > this.fps) {
+			if (this.fps && performance.now() - time > this.fps) {
 				break;
 			}
 
@@ -1000,38 +1032,31 @@
 		return location;
 	};
 
-	Router.prototype.batch = function (route) {
-		var self = this, component;
-
-		component = self.cache[route.component];
-
-		if (!component) {
-			component = self.cache[route.component] = document.createElement(route.component);
-			component.inRouterCache = false;
-			component.isRouterComponent = true;
-		}
-
-		Global$1.batcher.write(function () {
-			var child;
-			while (child = self.view.firstChild) self.view.removeChild(child);
-			self.view.appendChild(component);
-			self.scroll(0, 0);
-			self.emit('navigated');
-		});
-
-	};
-
 	Router.prototype.render = function (route) {
+		var self = this;
 
 		if (route.title) {
 			document.title = route.title;
 		}
 
-		if (route.url && !(route.component in this.cache)) {
-			Global$1.loader.load(route.url, this.batch.bind(this, route));
-		} else {
-			this.batch(route);
-		}
+		Global$1.loader.load(route.url, function (load) {
+			var child;
+
+			while (child = self.view.firstChild) {
+				self.view.removeChild(child);
+			}
+
+			if (!load.code) {
+				load.code = document.createElement(route.component);
+				load.code.inRouterCache = false;
+				load.code.isRouterComponent = true;
+			}
+
+			self.view.appendChild(load.code);
+			self.scroll(0, 0);
+			self.emit('navigated');
+
+		});
 
 	};
 
@@ -1171,7 +1196,7 @@
 		if (starts === ends) {
 			return string;
 		} else {
-			throw new Error('Transformer miss matched backticks');
+			throw new Error('Oxe - Transformer missing backtick');
 		}
 
 	};
@@ -1188,7 +1213,7 @@
 		exps: /export\s+(?:default|var|let|const)?\s+/g
 	};
 
-	Transformer.getImports = function (text) {
+	Transformer.getImports = function (text, base) {
 		var result = [];
 		var imps = text.match(this.patterns.imps) || [];
 
@@ -1198,8 +1223,13 @@
 			result[i] = {
 				raw: imp[0],
 				name: imp[1],
-				url: imp[2]
+				url: Global$1.utility.resolve(imp[2], base),
+				extension: Global$1.utility.extension(imp[2])
 			};
+
+			if (!result[i].extension) {
+				result[i].url = result[i].url + '.js';
+			}
 
 		}
 
@@ -1231,13 +1261,6 @@
 
 		for (var i = 0, l = imps.length; i < l; i++) {
 			var imp = imps[i];
-
-			imp.url = Global$1.utility.resolve(imp.url);
-			imp.extension = Global$1.utility.extension(imp.url);
-
-			if (!imp.extension) {
-				imp.url = imp.url + '.js';
-			}
 
 			var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\'].code';
 
@@ -1272,10 +1295,12 @@
 	Transformer.ast = function (data) {
 		var ast = {};
 
-		ast.raw = data;
-		ast.cooked = data;
+		ast.url = data.url;
+		ast.raw = data.text;
+		ast.cooked = data.text;
+		ast.base = ast.url.slice(0, ast.url.lastIndexOf('/') + 1);
 
-		ast.imports = this.getImports(ast.raw);
+		ast.imports = this.getImports(ast.raw, ast.base);
 		ast.exports = this.getExports(ast.raw);
 
 		ast.cooked = this.replaceImports(ast.cooked, ast.imports);
@@ -1284,49 +1309,56 @@
 		return ast;
 	};
 
+	// TODO need to emit a setup event
+
+	// if (!self.isLoaded) {
+	// 	self.isLoaded = true;
+	// 	self.emit('setup');
+	// }
+
 	var Loader = function (options) {
+		Events.call(this);
 
 		this.loads = [];
 		this.modules = {};
-		this.loaded = null;
 		this.isRan = false;
 		this.type = 'module';
+		this.isLoaded = false;
 
 		this.setup(options);
 	};
+
+	Loader.prototype = Object.create(Events.prototype);
+	Loader.prototype.constructor = Loader;
 
 	Loader.prototype.setup = function (options) {
 		options = options || {};
 		this.type = options.type || this.type;
 		this.loads = options.loads || this.loads;
-		this.loaded = options.loaded || this.loaded;
 	};
 
 	Loader.prototype.execute = function (data) {
 		data = '\'use strict\';\n\n' + data;
 
 		return new Function('$LOADER', 'window', data)(this, window);
-
-		// return (function(d, l, w) {
-		// 	'use strict';
-	    //
-		// 	return new Function('$LOADER', 'window', d)(l, w);
-	    //
-		// }(data, this, window));
 	};
 
 	Loader.prototype.xhr = function (url, callback) {
 		var xhr = new XMLHttpRequest();
 
+		xhr.responseType = 'text';
+
 		xhr.addEventListener('readystatechange', function () {
 			if (xhr.readyState === 4) {
 				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-					if (callback) callback(xhr.responseText);
+					if (callback) {
+						callback(xhr.responseText);
+					}
 				} else {
 					throw new Error(xhr.responseText);
 				}
 			}
-		});
+		}, true);
 
 		xhr.open('GET', url);
 		xhr.send();
@@ -1347,40 +1379,41 @@
 			self.type === 'es' || data.type === 'es'
 			|| self.type === 'esm' || data.type === 'esm'
 		) {
-			data.ast = Transformer.ast(data.text);
+			data.ast = Transformer.ast(data);
 		}
 
-		if (!data.ast || !data.ast.imports.length) {
+		var done = function () {
 			self.modules[data.url].code = self.execute(data.ast ? data.ast.cooked : data.text);
 
 			var listener;
 			while (listener = self.modules[data.url].listener.shift()) {
-				listener();
-			}
-
-			return;
-		}
-
-		var count = 0;
-		var total = data.ast.imports.length;
-
-		var callback = function () {
-			count++;
-
-			if (count === total) {
-				self.modules[data.url].code = self.execute(data.ast.cooked);
-
-				var listener;
-				while (listener = self.modules[data.url].listener.shift()) {
-					listener();
-				}
-
+				listener(self.modules[data.url]);
 			}
 
 		};
 
-		for (var i = 0; i < total; i++) {
-			self.load(data.ast.imports[i].url, callback);
+		if (data.ast && data.ast.imports.length) {
+
+			var count = 0;
+			var total = data.ast.imports.length;
+
+			var callback = function () {
+				count++;
+
+				if (count === total) {
+					done();
+				}
+
+			};
+
+			for (var i = 0; i < total; i++) {
+				self.load({
+					url: data.ast.imports[i].url
+				}, callback);
+			}
+
+		} else {
+			done();
 		}
 
 	};
@@ -1402,11 +1435,12 @@
 
 			element.setAttribute('src', data.url);
 			element.setAttribute('async', 'true');
-			element.setAttribute('o-load', '');
 
 			if (self.type === 'module' || data.type === 'module') {
 				element.setAttribute('type','module');
 			}
+
+			element.setAttribute('o-load', '');
 
 			document.head.appendChild(element);
 		}
@@ -1442,10 +1476,15 @@
 		if (data.url in self.modules) {
 			if (self.modules[data.url].listener.length) {
 				return self.modules[data.url].listener.push(callback);
+			} else {
+				return callback(self.modules[data.url]);
 			}
+		} else {
+			self.modules[data.url] = {
+				url: data.url,
+				listener: [ callback ]
+			};
 		}
-
-		self.modules[data.url] = { listener: [ callback ] };
 
 		if (data.extension === 'js') {
 			self.js(data);
@@ -1458,16 +1497,17 @@
 	};
 
 	Loader.prototype.run = function () {
-		var load;
+		var self = this;
+		var load, loaded;
 
-		if (this.isRan) {
+		if (self.isRan) {
 			return;
 		}
 
-		this.isRan = true;
+		self.isRan = true;
 
-		while (load = this.loads.shift()) {
-			this.load(load, this.loaded);
+		while (load = self.loads.shift()) {
+			self.load(load);
 		}
 
 	};
@@ -1578,422 +1618,358 @@
 
 	};
 
-	Unrender.attribute = function (opt) {
-
+	Unrender.default = function (opt) {
+		console.log(opt);
 	};
-
-	/*
-		css
-		class
-		disable
-		each
-		enable
-		hide
-		html
-		on
-		read
-		required
-		selected
-		show
-		src
-		text
-		write
-		value
-	*/
 
 	var Render = {};
 
-	Render.maxFrameTime = 1000/60;
+	Render.fps = 1000/60;
 
-	Render.class = function (opt) {
-		var name = opt.names.slice(1).join('-');
-		var data = Global$1.binder.modifyData(opt, opt.data);
-		opt.element.classList.toggle(name, data);
-	};
-
-	Render.css = function (opt) {
-
-		if (opt.element.style.cssText === opt.data) {
-			return;
-		}
-
-		if (opt.names.length > 1) {
-			opt.data = opt.names.slice(1).join('-') + ': ' +  opt.data + ';';
-		}
-
-		opt.element.style.cssText += Global$1.binder.modifyData(opt, opt.data);
-
-	};
-
-	Render.disable = function (opt) {
-
-		if (opt.element.disabled === opt.data) {
-			return;
-		}
-
-		opt.element.disabled = Global$1.binder.modifyData(opt, opt.data);
-	};
-
-	Render.enable = function (opt) {
-
-		if (opt.element.disabled === !opt.data) {
-			return;
-		}
-
-		opt.element.disabled = !Global$1.binder.modifyData(opt, opt.data);
-	};
-
-	Render.hide = function (opt) {
-
-		if (opt.element.hidden === opt.data) {
-			return;
-		}
-
-		opt.element.hidden = Global$1.binder.modifyData(opt, opt.data);
-	};
-
-	Render.html = function (opt) {
-
-		if (opt.element.innerHTML === opt.data) {
-			return;
-		}
-
-		opt.element.innerHTML = Global$1.binder.modifyData(opt, opt.data);
-	};
-
-	Render.read = function (opt) {
-
-		if (opt.element.readOnly === opt.data) {
-			return;
-		}
-
-		opt.element.readOnly = Global$1.binder.modifyData(opt, opt.data);
-	};
+	// Render.selected = function (opt) {
+	// 	Global.batcher.read(function () {
+	//
+	// 		if (opt.element.selectedIndex === opt.data) {
+	// 			opt.pending = false;
+	// 			return;
+	// 		}
+	//
+	// 		Global.batcher.write(function () {
+	// 			opt.element.selectedIndex = Global.binder.modifyData(opt, opt.data);
+	// 			opt.pending = false;
+	// 		});
+	// 	});
+	// };
 
 	Render.required = function (opt) {
-
-		if (opt.element.required === opt.data) {
-			return;
-		}
-
-		opt.element.required = Global$1.binder.modifyData(opt, opt.data);
-	};
-
-	Render.selected = function (opt) {
-
-		if (opt.element.selectedIndex === opt.data) {
-			return;
-		}
-
-		opt.element.selectedIndex = Global$1.binder.modifyData(opt, opt.data);
-	};
-
-	Render.show = function (opt) {
-
-		if (opt.element.hidden === !opt.data) {
-			return;
-		}
-
-		opt.element.hidden = !Global$1.binder.modifyData(opt, opt.data);
-	};
-
-	Render.text = function (opt) {
-
-		if (opt.data && typeof opt.data === 'object') {
-			opt.data = JSON.stringify(opt.data);
-		} else if (opt.data && typeof opt.data !== 'string') {
-			opt.data = String(opt.data);
-		}
-
-		opt.data = Global$1.binder.modifyData(opt, opt.data);
-		opt.data = opt.data === undefined || opt.data === null ? '' : opt.data;
-
-		Global$1.batcher.write(function () {
-			opt.element.innerText = opt.data;
-		});
-
-	};
-
-	Render.write = function (opt) {
-
-		if (opt.element.readOnly === !opt.data) {
-			return;
-		}
-
-		opt.element.readOnly = !Global$1.binder.modifyData(opt, opt.data);
-	};
-
-	Render.each = function (opt) {
-
-		if (opt.pending) {
-			return;
-		} else {
-			opt.pending = true;
-		}
-
-		opt.data = Global$1.binder.modifyData(opt, opt.data);
-
 		Global$1.batcher.read(function () {
 
-			var dataLength = opt.data.length;
-			var elementLength = opt.element.children.length;
-
-			while (elementLength !== dataLength) {
-
-				if (elementLength > dataLength) {
-
-					elementLength--;
-
-					Global$1.batcher.write(function (e) {
-						opt.element.removeChild(e);
-					}.bind(this, opt.element.children[elementLength]));
-
-				} else if (elementLength < dataLength) {
-
-					Global$1.batcher.write(function (l) {
-						opt.element.insertAdjacentHTML('beforeend', opt.clone.replace(opt.pattern, l));
-					}.bind(this, elementLength));
-
-					elementLength++;
-
-				}
-
-			}
-
-			opt.pending = false;
-
-		}, this);
-
-	};
-
-	Render.on = function (opt) {
-		opt.element.removeEventListener(opt.names[1], opt.cache);
-		opt.cache = Global$1.utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path).bind(opt.model);
-		opt.element.addEventListener(opt.names[1], opt.cache);
-	};
-
-	Render.value = function (opt, caller) {
-		var i , l, query, element, elements;
-
-		if (opt.element.type === 'checkbox') {
-			if (caller === 'view') {
-				Global$1.batcher.read(function () {
-					opt.data = opt.element.value = opt.element.checked;
-					Global$1.model.set(opt.keys, opt.data);
-				});
-			} else {
-				Global$1.batcher.write(function () {
-					opt.data = Global$1.binder.modifyData(opt, opt.data);
-					opt.element.value = opt.data;
-					opt.element.checked = opt.data;
-				});
-			}
-		} else if (opt.element.nodeName === 'SELECT') {
-
-			elements = opt.element.options;
-			opt.data = opt.data === undefined || opt.data === null && opt.element.multiple ? [] : opt.data;
-			opt.data = caller === 'view' && opt.element.multiple ? [] : opt.data;
-
-			for (i = 0, l = elements.length; i < l; i++) {
-				element = elements[i];
-
-				if (element.selected) {
-
-					if (opt.element.multiple) {
-						opt.data.push(element.value || element.innerText);
-					} else {
-						opt.data = element.value || element.innerText;
-						break;
-					}
-
-				}
-
-			}
-
-			// if (
-			// 	!opt.element.multiple
-			// 	&& opt.element.options.length
-			// 	&& opt.data === null || opt.data === undefined
-			// ) {
-			// 	opt.data = elements[0].value || elements[0].innerText;
-			// }
-
-			opt.data = Global$1.binder.modifyData(opt, opt.data);
-			Global$1.model.set(opt.keys, opt.data);
-
-		} else if (opt.element.type === 'radio') {
-
-			query = 'input[type="radio"][o-value="' + opt.value + '"]';
-			elements = opt.container.querySelectorAll(query);
-			opt.data = !opt.data ? 0 : opt.data;
-
-			for (i = 0, l = elements.length; i < l; i++) {
-				element = elements[i];
-
-				if (caller === 'view') {
-
-					if (opt.element === element) {
-
-						opt.data = i;
-						element.checked = true;
-
-						opt.data = Global$1.binder.modifyData(opt, opt.data);
-						Global$1.model.set(opt.keys, opt.data);
-
-					} else {
-						element.checked = false;
-					}
-
-				} else {
-					element.checked = i == opt.data;
-				}
-
-			}
-
-		} else if (opt.element.type === 'file') {
-
-			opt.data = opt.element.files;
-			opt.data = Global$1.binder.modifyData(opt, opt.data);
-			Global$1.model.set(opt.keys, opt.data);
-
-		} else if (opt.element.type === 'option') {
-
-			opt.data = opt.element.value || opt.element.innerText;
-			opt.data = Global$1.binder.modifyData(opt, opt.data);
-			Global$1.model.set(opt.keys, opt.data);
-
-		} else {
-
-			if (caller === 'view') {
-
-				Global$1.batcher.read(function () {
-					opt.data = opt.element.value;
-					Global$1.model.set(opt.keys, opt.data);
-				});
-
-			} else {
-
-				opt.data = opt.data === undefined || opt.data === null ? '' : opt.data;
-				opt.data = Global$1.binder.modifyData(opt, opt.data);
-
-				Global$1.batcher.write(function () {
-					opt.element.value = opt.data;
-				});
-
-			}
-
-		}
-
-	};
-
-	Render.attribute = function (opt) {
-
-		Global$1.batcher.read(function () {
-
-			if (opt.element[opt.type] === opt.data) {
+			if (opt.element.required === opt.data) {
+				opt.pending = false;
 				return;
 			}
 
 			Global$1.batcher.write(function () {
-				opt.element[opt.type] = Global$1.binder.modifyData(opt, opt.data);
+				opt.element.required = Global$1.binder.modifyData(opt, opt.data);
+				opt.pending = false;
 			});
+		});
+	};
 
+	Render.disable = function (opt) {
+		Global$1.batcher.read(function () {
+
+			if (opt.element.disabled === opt.data) {
+				opt.pending = false;
+				return;
+			}
+
+			Global$1.batcher.write(function () {
+				opt.element.disabled = Global$1.binder.modifyData(opt, opt.data);
+				opt.pending = false;
+			});
+		});
+	};
+
+	Render.enable = function (opt) {
+		Global$1.batcher.read(function () {
+
+			if (opt.element.disabled === !opt.data) {
+				opt.pending = false;
+				return;
+			}
+
+			Global$1.batcher.write(function () {
+				opt.element.disabled = !Global$1.binder.modifyData(opt, opt.data);
+				opt.pending = false;
+			});
+		});
+	};
+
+	Render.hide = function (opt) {
+		Global$1.batcher.read(function () {
+
+			if (opt.element.hidden === opt.data) {
+				opt.pending = false;
+				return;
+			}
+
+			Global$1.batcher.write(function () {
+				opt.element.hidden = Global$1.binder.modifyData(opt, opt.data);
+				opt.pending = false;
+			});
+		});
+	};
+
+	Render.show = function (opt) {
+		Global$1.batcher.read(function () {
+
+			if (opt.element.hidden === !opt.data) {
+				opt.pending = false;
+				return;
+			}
+
+			Global$1.batcher.write(function () {
+				opt.element.hidden = !Global$1.binder.modifyData(opt, opt.data);
+				opt.pending = false;
+			});
+		});
+	};
+
+	Render.read = function (opt) {
+		Global$1.batcher.read(function () {
+
+			if (opt.element.readOnly === opt.data) {
+				opt.pending = false;
+				return;
+			}
+
+			Global$1.batcher.write(function () {
+				opt.element.readOnly = Global$1.binder.modifyData(opt, opt.data);
+				opt.pending = false;
+			});
+		});
+	};
+
+	Render.write = function (opt) {
+		Global$1.batcher.read(function () {
+
+			if (opt.element.readOnly === !opt.data) {
+				opt.pending = false;
+				return;
+			}
+
+			Global$1.batcher.write(function () {
+				opt.element.readOnly = !Global$1.binder.modifyData(opt, opt.data);
+				opt.pending = false;
+			});
+		});
+	};
+
+	Render.html = function (opt) {
+		Global$1.batcher.read(function () {
+
+			if (opt.element.innerHTML === opt.data) {
+				opt.pending = false;
+				return;
+			}
+
+			Global$1.batcher.write(function () {
+				opt.element.innerHTML = Global$1.binder.modifyData(opt, opt.data);
+				opt.pending = false;
+			});
+		});
+	};
+
+	Render.css = function (opt) {
+		var data = opt.data;
+
+		Global$1.batcher.read(function () {
+			if (opt.element.style.cssText === data) {
+				opt.pending = false;
+				return;
+			}
+
+			if (opt.names.length > 1) {
+				data = opt.names.slice(1).join('-') + ': ' +  data + ';';
+			}
+
+			Global$1.batcher.write(function () {
+				opt.element.style.cssText = Global$1.binder.modifyData(opt, data);
+				opt.pending = false;
+			});
+		});
+	};
+
+	Render.class = function (opt) {
+		var data = opt.data;
+		var name = opt.names.slice(1).join('-');
+		Global$1.batcher.write(function () {
+			data = Global$1.binder.modifyData(opt, data);
+			opt.element.classList.toggle(name, data);
+			opt.pending = false;
+		});
+	};
+
+	Render.on = function (opt) {
+
+		if (opt.cache) {
+			opt.element.removeEventListener(opt.names[1], opt.cache);
+		}
+
+		opt.cache = Global$1.utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path).bind(opt.model);
+		opt.element.addEventListener(opt.names[1], opt.cache);
+		opt.pending = false;
+	};
+
+	Render.text = function (opt) {
+		var data = opt.data === undefined || opt.data === null ? '' : opt.data;
+
+		if (data && typeof data === 'object') {
+			data = JSON.stringify(data);
+		} else if (data && typeof data !== 'string') {
+			data = String(data);
+		}
+
+		Global$1.batcher.write(function () {
+			opt.element.innerText = Global$1.binder.modifyData(opt, data);
+			opt.pending = false;
 		});
 
 	};
 
-	var Setup = {};
+	Render.each = function (opt) {
+		var self = this;
 
-	Setup.disable = function (opt) {
-		if (opt.data === undefined) {
-			opt.data = Global$1.model.set(opt.keys, true);
+		if (!opt.cache) {
+			opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 		}
+
+		Global$1.batcher.read(function () {
+			var data = Global$1.binder.modifyData(opt, opt.data);
+			var dataLength = data.length;
+			var elementLength = opt.element.children.length;
+
+			Global$1.batcher.write(function () {
+				var time = performance.now();
+
+				while (elementLength !== dataLength) {
+					if (performance.now() - time > self.fps) {
+						return self.each(opt);
+					} else if (elementLength > dataLength) {
+						elementLength--;
+						opt.element.removeChild(opt.element.children[elementLength]);
+					} else if (elementLength < dataLength) {
+						var clone = opt.cache.cloneNode(true);
+						Global$1.utility.replaceEachVariable(clone, opt.names[1], opt.path, elementLength);
+						opt.element.appendChild(clone);
+						elementLength++;
+					}
+				}
+
+				opt.pending = false;
+			});
+		});
 	};
 
-	Setup.enable = function (opt) {
-		if (opt.data === undefined) {
-			opt.data = Global$1.model.set(opt.keys, true);
-		}
-	};
+	Render.value = function (opt, caller) {
+		Global$1.batcher.read(function () {
+			var data, attribute, query;
+			var i, l, element, elements;
+			var type = opt.element.type;
+			var name = opt.element.nodeName;
 
-	Setup.hide = function (opt) {
-		if (opt.data === undefined) {
-			opt.data = Global$1.model.set(opt.keys, true);
-		}
-	};
+			if (caller === 'view') {
 
-	Setup.read = function (opt) {
-		if (opt.data === undefined) {
-			opt.data = Global$1.model.set(opt.keys, true);
-		}
-	};
+				if (name === 'SELECT') {
+					data = opt.element.multiple ? [] : '';
+					elements = opt.element.options;
+					for (i = 0, l = elements.length; i < l; i++) {
+						element = elements[i];
+						if (element.selected) {
+							if (opt.element.multiple) {
+								data.push(element.value || element.innerText);
+							} else {
+								data = element.value || element.innerText;
+								break;
+							}
+						}
+					}
+				} else if (type === 'radio') {
+					query = 'input[type="radio"][o-value="' + opt.value + '"]';
+					elements = opt.container.querySelectorAll(query);
+					for (i = 0, l = elements.length; i < l; i++) {
+						element = elements[i];
+						if (opt.element === element) {
+							data = i;
+							break;
+						}
+					}
+				} else if (type === 'file') {
+					data = opt.element.files;
+				} else if (type === 'checkbox') {
+					data = opt.element.checked;
+				} else {
+					data = opt.element.value;
+				}
 
-	Setup.required = function (opt) {
-		if (opt.data === undefined) {
-			opt.data = Global$1.model.set(opt.keys, true);
-		}
-	};
+				Global$1.model.set(opt.keys, data);
+				opt.pending = false;
 
-	Setup.selected = function (opt) {
-		if (opt.data === undefined) {
-			opt.data = Global$1.model.set(opt.keys, 0);
-		}
-	};
-
-	Setup.show = function (opt) {
-		if (opt.data === undefined) {
-			opt.data = Global$1.model.set(opt.keys, true);
-		}
-	};
-
-	Setup.write = function (opt) {
-		if (opt.data === undefined) {
-			opt.data = Global$1.model.set(opt.keys, true);
-		}
-	};
-
-	Setup.value = function (opt) {
-		if (opt.element.type === 'checkbox') {
-			if (opt.data === undefined) {
-				Global$1.batcher.write(function () {
-					opt.element.value = opt.data;
-					opt.element.checked = opt.data;
-					opt.data = Global$1.model.set(opt.keys, false);
-				});
 			} else {
-				// console.log(opt.setup);
+				Global$1.batcher.write(function () {
+
+					if (name === 'SELECT') {
+						data = opt.data === undefined ? opt.element.multiple ? [] : '' : opt.data;
+						elements = opt.element.options;
+						for (i = 0, l = elements.length; i < l; i++) {
+							element = elements[i];
+							if (opt.element.multiple && (element.value === data[i] || element.innerText === data[i])) {
+								element.selected = true;
+								data.push(element.value || element.innerText);
+							} else if (element.value === data || element.innerText === data) {
+								element.selected = true;
+								data = element.value || element.innerText;
+								break;
+							}
+						}
+						if (opt.element.multiple) {
+							// data = !data.length ? [elements[0].value || elements[0].innerText] : data;
+							// Global.model.set(opt.keys, data);
+						} else {
+							data = !data ? elements[0].value || elements[0].innerText : data;
+							Global$1.model.set(opt.keys, data);
+						}
+					} else if (type === 'radio') {
+						data = opt.data === undefined ? Global$1.model.set(opt.keys, 0) : opt.data;
+						query = 'input[type="radio"][o-value="' + opt.value + '"]';
+						elements = opt.container.querySelectorAll(query);
+						for (i = 0, l = elements.length; i < l; i++) {
+							element = elements[i];
+							element.checked = i === data;
+						}
+						elements[data].checked = true;
+					} else if (type === 'file') {
+						attribute = 'files';
+						data = opt.data === undefined ? Global$1.model.set(opt.keys, []) : opt.data;
+					} else if (type === 'checkbox') {
+						attribute = 'checked';
+						data = opt.data === undefined ? Global$1.model.set(opt.keys, false) : opt.data;
+					} else {
+						attribute = 'value';
+						data = opt.data === undefined ? Global$1.model.set(opt.keys, '') : opt.data;
+					}
+
+					if (attribute) {
+						opt.element[attribute] = Global$1.binder.modifyData(opt, data);
+					}
+
+					opt.pending = false;
+
+				});
 			}
-		}
+
+		});
 	};
 
-	Setup.on = function (opt) {
-		opt.cache = Global$1.utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path).bind(opt.model);
-		opt.element.addEventListener(opt.names[1], opt.cache);
-	};
+	Render.default = function (opt) {
+		var data = opt.data;
 
-	Setup.each = function (opt) {
+		Global$1.batcher.read(function () {
 
-		if (!opt.data) {
-			opt.data = Global$1.model.set(opt.keys, []);
-		}
+			if (opt.element[opt.type] === data) {
+				return;
+			}
 
-		opt.variable = opt.names[1];
-		opt.pattern = new RegExp('\\$(' + opt.variable + '|index)', 'ig');
+			Global$1.batcher.write(function () {
+				opt.element[opt.type] = Global$1.binder.modifyData(opt, data);
+			});
 
-		opt.clone = opt.element.removeChild(opt.element.firstElementChild);
-
-		opt.clone = opt.clone.outerHTML.replace(
-			new RegExp('((?:data-)?o-.*?=")' + opt.variable + '((?:\\.\\w+)*\\s*(?:\\|.*?)?")', 'g'),
-			'$1' + opt.path + '.$' + opt.variable + '$2'
-		);
-
+		});
 	};
 
 	var Binder = function () {
 		this.data = {};
-		this.setupMethod = Setup;
-		this.renderMethod = Render;
-		this.unrenderMethod = Unrender;
 	};
 
 	Binder.prototype.modifyData = function (opt, data) {
@@ -2012,16 +1988,6 @@
 
 	Binder.prototype.add = function (opt) {
 
-		// if (opt.exists) {
-		// 	return;
-		// } else {
-		// 	opt.exists = true;
-		// }
-
-		if (opt.type === 'value') {
-			return;
-		}
-
 		if (!(opt.uid in this.data)) {
 			this.data[opt.uid] = {};
 		}
@@ -2034,10 +2000,6 @@
 	};
 
 	Binder.prototype.remove = function (opt) {
-
-		if (!opt.exists) {
-			return;
-		}
 
 		if (!(opt.uid in this.data)) {
 			return;
@@ -2072,11 +2034,11 @@
 
 		var data = this.data[opt.uid][opt.path];
 
-		for (var i = 0, l = data.length; i < l; i++) {
-
+		for (var i = 0; i < data.length; i++) {
 			var item = data[i];
 
 			if (item.element === opt.element) {
+				item.data = Global$1.model.get(item.keys);
 				return item;
 			}
 
@@ -2088,15 +2050,21 @@
 	Binder.prototype.each = function (uid, path, callback) {
 		var paths = this.data[uid];
 
+
 		for (var key in paths) {
 
 			if (key.indexOf(path) === 0) {
-				var binders = paths[key];
 
-				for (var i = 0, l = binders.length; i < l; i++) {
-					var binder = binders[i];
+				if (key === path || key.slice(path.length).charAt(0) === '.') {
 
-					callback(binder, i, binders, paths, key);
+					var binders = paths[key];
+
+					for (var i = 0, l = binders.length; i < l; i++) {
+						var binder = binders[i];
+
+						callback(binder, i, binders, paths, key);
+					}
+
 				}
 
 			}
@@ -2130,60 +2098,53 @@
 		opt.model = opt.model || Global$1.model.data[opt.uid];
 		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
 
-		opt.setup = false;
-		opt.exists = false;
-		opt.pending = false;
+		opt.data = Global$1.model.get(opt.keys);
 
 		return opt;
 	};
 
 	Binder.prototype.unrender = function (opt, caller) {
-		var self = this;
 
-		opt = self.get(opt);
+		opt = this.get(opt);
 
 		if (!opt) {
 			return;
 		}
 
-		if (opt.type in self.unrenderMethod) {
-			self.unrenderMethod[opt.type](opt, caller);
+		if (opt.type in Unrender) {
+			Unrender[opt.type](opt, caller);
 		} else {
-			// self.unrenderMethod.attribute(opt);
+			Unrender.default(opt);
 		}
 
-		self.remove(opt);
+		this.remove(opt);
 
 	};
 
 	Binder.prototype.render = function (opt, caller) {
-		var self = this;
 
-		opt = self.get(opt) || self.create(opt);
+		opt = this.create(opt);
+		opt = this.get(opt) || opt;
 
-		opt.data = Global$1.model.get(opt.keys);
+		// if (opt.data === undefined) {
+		// 	opt.data = Global.model.set(opt.keys, undefined);
+		// }
 
 		if (!opt.exists) {
 			opt.exists = true;
-
-			if (opt.type in self.setupMethod) {
-				self.setupMethod[opt.type](opt);
-			}
-
-			self.add(opt);
+			this.add(opt);
 		}
 
-		// if (opt.type in self.setupMethod) {
-		// 	if (!opt.setup) {
-		// 		opt.setup = true;
-		// 		self.setupMethod[opt.type](opt);
-		// 	}
-		// }
+		if (!opt.pending) {
 
-		if (opt.type in self.renderMethod) {
-			self.renderMethod[opt.type](opt, caller);
-		} else {
-			self.renderMethod.attribute(opt);
+			opt.pending = true;
+
+			if (opt.type in Render) {
+				Render[opt.type](opt, caller);
+			} else {
+				Render.default(opt);
+			}
+
 		}
 
 	};
@@ -3041,7 +3002,7 @@
 		},
 		setup: {
 			enumerable: true,
-			value: function (options) {
+			value: function setup (options) {
 
 				if (this.isSetup) {
 					return;
@@ -3168,11 +3129,9 @@
 
 		var path = Global$1.utility.resolve(element.src || element.href);
 
-		Global$1.loader.modules[path].code = element;
-
 		var listener;
 		while (listener = Global$1.loader.modules[path].listener.shift()) {
-			listener();
+			listener(Global$1.loader.modules[path]);
 		}
 
 	}, true);
@@ -3292,28 +3251,32 @@
 		subtree: true
 	});
 
-	// window.requestAnimationFrame(function () {
-		var eStyle = Global$1.document.createElement('style');
-		var sStyle = Global$1.document.createTextNode('o-view, o-view > :first-child { display: block; }');
+	Global$1.document.addEventListener('DOMContentLoaded', function () {
+		Global$1.batcher.read(function () {
+			var eStyle = Global$1.document.createElement('style');
+			var sStyle = Global$1.document.createTextNode('o-view, o-view > :first-child { display: block; }');
 
-		eStyle.setAttribute('title', 'Oxe');
-		eStyle.setAttribute('type', 'text/css');
-		eStyle.appendChild(sStyle);
+			eStyle.setAttribute('title', 'Oxe');
+			eStyle.setAttribute('type', 'text/css');
+			eStyle.appendChild(sStyle);
 
-		Global$1.head.appendChild(eStyle);
-		Global$1.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
+			Global$1.batcher.write(function () {
+				Global$1.head.appendChild(eStyle);
+			});
 
-		var eScript = Global$1.document.querySelector('[o-index]');
-		var eIndex = eScript ? eScript.getAttribute('o-index') : null;
+			Global$1.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
 
-		if (eIndex) {
-			Global$1.loader.load({ url: eIndex });
-		}
+			var eScript = Global$1.document.querySelector('[o-index]');
+			var eIndex = eScript ? eScript.getAttribute('o-index') : null;
 
-	// });
+			if (eIndex) {
+				Global$1.loader.load({ url: eIndex });
+			}
 
-	Global$1.view.run();
-	Global$1.model.run();
+			Global$1.view.run();
+			Global$1.model.run();
+		});
+	});
 
 	return Global$1;
 

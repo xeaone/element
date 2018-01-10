@@ -243,38 +243,31 @@ Router.prototype.toLocationObject = function (path) {
 	return location;
 };
 
-Router.prototype.batch = function (route) {
-	var self = this, component;
-
-	component = self.cache[route.component];
-
-	if (!component) {
-		component = self.cache[route.component] = document.createElement(route.component);
-		component.inRouterCache = false;
-		component.isRouterComponent = true;
-	}
-
-	Global.batcher.write(function () {
-		var child;
-		while (child = self.view.firstChild) self.view.removeChild(child);
-		self.view.appendChild(component);
-		self.scroll(0, 0);
-		self.emit('navigated');
-	});
-
-};
-
 Router.prototype.render = function (route) {
+	var self = this;
 
 	if (route.title) {
 		document.title = route.title;
 	}
 
-	if (route.url && !(route.component in this.cache)) {
-		Global.loader.load(route.url, this.batch.bind(this, route));
-	} else {
-		this.batch(route);
-	}
+	Global.loader.load(route.url, function (load) {
+		var child;
+
+		while (child = self.view.firstChild) {
+			self.view.removeChild(child);
+		}
+
+		if (!load.code) {
+			load.code = document.createElement(route.component);
+			load.code.inRouterCache = false;
+			load.code.isRouterComponent = true;
+		}
+
+		self.view.appendChild(load.code);
+		self.scroll(0, 0);
+		self.emit('navigated');
+
+	});
 
 };
 

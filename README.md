@@ -148,13 +148,18 @@ ES6 import and export module support. Currently `export default` is the only imp
 		- `es` Enables ES6 module and template string re-writes uses XHR
 		- `esm` Enables ES6 module re-writes uses XHR (Note: default export/import only)
 		- `est` Enables ES6 template string re-writes uses XHR (Note: Any backtick will be re-writen)
-	- `loads: Array<Object, String>` Adds load objects or strings such as non route components
+	- `loads: Array` Adds load objects or strings such as non route components
 		- `load: Object, String`
 			- `url: String` Path to file resources
 			- `type: String` If not defined uses the default type
 - `setup: Function`
 	- `options: Object` Accepts the above options
 - `load: Function`
+	- `load: Object, String`
+		- `url: String` Path to file resources
+		- `type: String` If not defined uses the default type
+- `on: EventEmitter`
+	- `setup`
 
 ### Oxe.keeper
 Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, and Router changes.
@@ -236,7 +241,7 @@ Automatically use the default action for non origin matching hrefs
 		- `replace: Boolean` (deafult: false) replace or push state
 		- `query: Object` Converts a key value pair to a query/search string and appends to the path
 - `on: EventEmitter`
-	- `navigated: Event`
+	- `navigated`
 
 ### Oxe.batcher
 Batches DOM reads and writes.

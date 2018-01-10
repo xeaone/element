@@ -1,13 +1,9 @@
 import Unrender from './lib/unrender';
 import Render from './lib/render';
-import Setup from './lib/setup';
 import Global from './global';
 
 var Binder = function () {
 	this.data = {};
-	this.setupMethod = Setup;
-	this.renderMethod = Render;
-	this.unrenderMethod = Unrender;
 };
 
 Binder.prototype.modifyData = function (opt, data) {
@@ -26,16 +22,6 @@ Binder.prototype.modifyData = function (opt, data) {
 
 Binder.prototype.add = function (opt) {
 
-	// if (opt.exists) {
-	// 	return;
-	// } else {
-	// 	opt.exists = true;
-	// }
-
-	if (opt.type === 'value') {
-		return;
-	}
-
 	if (!(opt.uid in this.data)) {
 		this.data[opt.uid] = {};
 	}
@@ -48,10 +34,6 @@ Binder.prototype.add = function (opt) {
 };
 
 Binder.prototype.remove = function (opt) {
-
-	if (!opt.exists) {
-		return;
-	}
 
 	if (!(opt.uid in this.data)) {
 		return;
@@ -86,11 +68,11 @@ Binder.prototype.get = function (opt) {
 
 	var data = this.data[opt.uid][opt.path];
 
-	for (var i = 0, l = data.length; i < l; i++) {
-
+	for (var i = 0; i < data.length; i++) {
 		var item = data[i];
 
 		if (item.element === opt.element) {
+			item.data = Global.model.get(item.keys);
 			return item;
 		}
 
@@ -102,15 +84,21 @@ Binder.prototype.get = function (opt) {
 Binder.prototype.each = function (uid, path, callback) {
 	var paths = this.data[uid];
 
+
 	for (var key in paths) {
 
 		if (key.indexOf(path) === 0) {
-			var binders = paths[key];
 
-			for (var i = 0, l = binders.length; i < l; i++) {
-				var binder = binders[i];
+			if (key === path || key.slice(path.length).charAt(0) === '.') {
 
-				callback(binder, i, binders, paths, key);
+				var binders = paths[key];
+
+				for (var i = 0, l = binders.length; i < l; i++) {
+					var binder = binders[i];
+
+					callback(binder, i, binders, paths, key);
+				}
+
 			}
 
 		}
@@ -144,60 +132,53 @@ Binder.prototype.create = function (opt) {
 	opt.model = opt.model || Global.model.data[opt.uid];
 	opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
 
-	opt.setup = false;
-	opt.exists = false;
-	opt.pending = false;
+	opt.data = Global.model.get(opt.keys);
 
 	return opt;
 };
 
 Binder.prototype.unrender = function (opt, caller) {
-	var self = this;
 
-	opt = self.get(opt);
+	opt = this.get(opt);
 
 	if (!opt) {
 		return;
 	}
 
-	if (opt.type in self.unrenderMethod) {
-		self.unrenderMethod[opt.type](opt, caller);
+	if (opt.type in Unrender) {
+		Unrender[opt.type](opt, caller);
 	} else {
-		// self.unrenderMethod.attribute(opt);
+		Unrender.default(opt);
 	}
 
-	self.remove(opt);
+	this.remove(opt);
 
 };
 
 Binder.prototype.render = function (opt, caller) {
-	var self = this;
 
-	opt = self.get(opt) || self.create(opt);
+	opt = this.create(opt);
+	opt = this.get(opt) || opt;
 
-	opt.data = Global.model.get(opt.keys);
+	// if (opt.data === undefined) {
+	// 	opt.data = Global.model.set(opt.keys, undefined);
+	// }
 
 	if (!opt.exists) {
 		opt.exists = true;
-
-		if (opt.type in self.setupMethod) {
-			self.setupMethod[opt.type](opt);
-		}
-
-		self.add(opt);
+		this.add(opt);
 	}
 
-	// if (opt.type in self.setupMethod) {
-	// 	if (!opt.setup) {
-	// 		opt.setup = true;
-	// 		self.setupMethod[opt.type](opt);
-	// 	}
-	// }
+	if (!opt.pending) {
 
-	if (opt.type in self.renderMethod) {
-		self.renderMethod[opt.type](opt, caller);
-	} else {
-		self.renderMethod.attribute(opt);
+		opt.pending = true;
+
+		if (opt.type in Render) {
+			Render[opt.type](opt, caller);
+		} else {
+			Render.default(opt);
+		}
+
 	}
 
 };

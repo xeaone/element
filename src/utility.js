@@ -105,6 +105,39 @@ Utility.formData = function (form, model, callback) {
 
 };
 
+Utility.walker = function (node, callback) {
+	callback(node);
+	node = node.firstChild;
+	while (node) {
+	    this.walker(node, callback);
+	    node = node.nextSibling;
+	}
+};
+
+Utility.replaceEachVariable = function (element, variable, path, index) {
+	var self = this;
+	var iindex = '$index';
+	var vindex = '$' + variable;
+	this.walker(element, function (node) {
+		if (node.nodeType === 3) {
+			if (node.nodeValue === vindex || node.nodeValue === iindex) {
+				node.nodeValue = index;
+			}
+		} else if (node.nodeType === 1) {
+			for (var i = 0, l = node.attributes.length; i < l; i++) {
+				var attribute = node.attributes[i];
+				var name = attribute.name;
+				var value = attribute.value.split(' ')[0].split('|')[0];
+				if (name.indexOf('o-') === 0 || name.indexOf('data-o-') === 0) {
+					if (value === variable || value.indexOf(variable) === 0) {
+						attribute.value = path + '.' + index + attribute.value.slice(variable.length);
+					}
+				}
+			}
+		}
+	});
+}
+
 Utility.traverse = function (data, path, callback) {
 	var keys = typeof path === 'string' ? path.split('.') : path;
 	var last = keys.length - 1;

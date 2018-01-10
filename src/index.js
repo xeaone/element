@@ -95,11 +95,9 @@ Global.document.addEventListener('load', function (e) {
 
 	var path = Global.utility.resolve(element.src || element.href);
 
-	Global.loader.modules[path].code = element;
-
 	var listener;
 	while (listener = Global.loader.modules[path].listener.shift()) {
-		listener();
+		listener(Global.loader.modules[path]);
 	}
 
 }, true);
@@ -219,27 +217,31 @@ new Global.window.MutationObserver(function (mutations) {
 	subtree: true
 });
 
-// window.requestAnimationFrame(function () {
-	var eStyle = Global.document.createElement('style');
-	var sStyle = Global.document.createTextNode('o-view, o-view > :first-child { display: block; }');
+Global.document.addEventListener('DOMContentLoaded', function () {
+	Global.batcher.read(function () {
+		var eStyle = Global.document.createElement('style');
+		var sStyle = Global.document.createTextNode('o-view, o-view > :first-child { display: block; }');
 
-	eStyle.setAttribute('title', 'Oxe');
-	eStyle.setAttribute('type', 'text/css');
-	eStyle.appendChild(sStyle);
+		eStyle.setAttribute('title', 'Oxe');
+		eStyle.setAttribute('type', 'text/css');
+		eStyle.appendChild(sStyle);
 
-	Global.head.appendChild(eStyle);
-	Global.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
+		Global.batcher.write(function () {
+			Global.head.appendChild(eStyle);
+		});
 
-	var eScript = Global.document.querySelector('[o-index]')
-	var eIndex = eScript ? eScript.getAttribute('o-index') : null;
+		Global.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
 
-	if (eIndex) {
-		Global.loader.load({ url: eIndex });
-	}
+		var eScript = Global.document.querySelector('[o-index]')
+		var eIndex = eScript ? eScript.getAttribute('o-index') : null;
 
-// });
+		if (eIndex) {
+			Global.loader.load({ url: eIndex });
+		}
 
-Global.view.run();
-Global.model.run();
+		Global.view.run();
+		Global.model.run();
+	});
+});
 
 export default Global;

@@ -1,47 +1,57 @@
 import Transformer from './lib/transformer';
+import Events from './lib/events';
 import Global from './global';
 
+// TODO need to emit a setup event
+
+// if (!self.isLoaded) {
+// 	self.isLoaded = true;
+// 	self.emit('setup');
+// }
+
 var Loader = function (options) {
+	Events.call(this);
 
 	this.loads = [];
 	this.modules = {};
-	this.loaded = null;
 	this.isRan = false;
 	this.type = 'module';
+	this.isLoaded = false;
 
 	this.setup(options);
 };
+
+Loader.prototype = Object.create(Events.prototype);
+Loader.prototype.constructor = Loader;
 
 Loader.prototype.setup = function (options) {
 	options = options || {};
 	this.type = options.type || this.type;
 	this.loads = options.loads || this.loads;
-	this.loaded = options.loaded || this.loaded;
 };
 
 Loader.prototype.execute = function (data) {
 	data = '\'use strict\';\n\n' + data;
 
 	return new Function('$LOADER', 'window', data)(this, window);
-
-	// return (function(d, l, w) {
-	// 	'use strict';
-	// 	return new Function('$LOADER', 'window', d)(l, w);
-	// }(data, this, window));
 };
 
 Loader.prototype.xhr = function (url, callback) {
 	var xhr = new XMLHttpRequest();
 
+	xhr.responseType = 'text';
+
 	xhr.addEventListener('readystatechange', function () {
 		if (xhr.readyState === 4) {
 			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-				if (callback) callback(xhr.responseText);
+				if (callback) {
+					callback(xhr.responseText);
+				}
 			} else {
 				throw new Error(xhr.responseText);
 			}
 		}
-	});
+	}, true);
 
 	xhr.open('GET', url);
 	xhr.send();
@@ -70,8 +80,9 @@ Loader.prototype.transform = function (data) {
 
 		var listener;
 		while (listener = self.modules[data.url].listener.shift()) {
-			listener();
+			listener(self.modules[data.url]);
 		}
+
 	}
 
 	if (data.ast && data.ast.imports.length) {
@@ -90,7 +101,6 @@ Loader.prototype.transform = function (data) {
 
 		for (var i = 0; i < total; i++) {
 			self.load({
-				// base: data.base,
 				url: data.ast.imports[i].url
 			}, callback);
 		}
@@ -159,10 +169,15 @@ Loader.prototype.load = function (data, callback) {
 	if (data.url in self.modules) {
 		if (self.modules[data.url].listener.length) {
 			return self.modules[data.url].listener.push(callback);
+		} else {
+			return callback(self.modules[data.url]);
 		}
+	} else {
+		self.modules[data.url] = {
+			url: data.url,
+			listener: [ callback ]
+		};
 	}
-
-	self.modules[data.url] = { listener: [ callback ] };
 
 	if (data.extension === 'js') {
 		self.js(data);
@@ -175,16 +190,17 @@ Loader.prototype.load = function (data, callback) {
 };
 
 Loader.prototype.run = function () {
-	var load;
+	var self = this;
+	var load, loaded;
 
-	if (this.isRan) {
+	if (self.isRan) {
 		return;
 	}
 
-	this.isRan = true;
+	self.isRan = true;
 
-	while (load = this.loads.shift()) {
-		this.load(load, this.loaded);
+	while (load = self.loads.shift()) {
+		self.load(load);
 	}
 
 };

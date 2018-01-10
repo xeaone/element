@@ -54,21 +54,17 @@ Batcher.prototype.flush = function (time) {
 		this.run(this.reads, time);
 		this.run(this.writes, time);
 	} catch (e) {
-		error = e;
+		if (this.events.error && this.events.error.length) {
+			this.emit('error', e);
+		} else {
+			throw e;
+		}
 	}
 
 	this.pending = false;
 
 	if (this.reads.length || this.writes.length) {
 		this.tick();
-	}
-
-	if (error) {
-		if (this.events.error && this.events.error.length) {
-			this.emit('error', error);
-		} else {
-			throw error;
-		}
 	}
 
 };
@@ -80,7 +76,7 @@ Batcher.prototype.run = function (tasks, time) {
 
 		task();
 
-		if (this.maxFrameTime && performance.now() - time > this.fps) {
+		if (this.fps && performance.now() - time > this.fps) {
 			break;
 		}
 
