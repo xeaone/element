@@ -125,7 +125,9 @@ Global.document.addEventListener('submit', function (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-	if (!submit) return;
+	if (!submit) {
+		return;
+	}
 
 	e.preventDefault();
 
@@ -242,6 +244,6 @@ Global.document.addEventListener('DOMContentLoaded', function () {
 		Global.view.run();
 		Global.model.run();
 	});
-});
+}, true);
 
 export default Global;

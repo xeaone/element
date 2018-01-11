@@ -2,22 +2,7 @@ import Global from '../global';
 
 var Render = {};
 
-Render.fps = 1000/60;
-
-// Render.selected = function (opt) {
-// 	Global.batcher.read(function () {
-//
-// 		if (opt.element.selectedIndex === opt.data) {
-// 			opt.pending = false;
-// 			return;
-// 		}
-//
-// 		Global.batcher.write(function () {
-// 			opt.element.selectedIndex = Global.binder.modifyData(opt, opt.data);
-// 			opt.pending = false;
-// 		});
-// 	});
-// };
+// TODO dynamic for list dont handle selected
 
 Render.required = function (opt) {
 	Global.batcher.read(function () {
@@ -139,32 +124,10 @@ Render.html = function (opt) {
 	});
 };
 
-Render.css = function (opt) {
-	var data = opt.data
-
-	Global.batcher.read(function () {
-		if (opt.element.style.cssText === data) {
-			opt.pending = false;
-			return;
-		}
-
-		if (opt.names.length > 1) {
-			data = opt.names.slice(1).join('-') + ': ' +  data + ';';
-		}
-
-		Global.batcher.write(function () {
-			opt.element.style.cssText = Global.binder.modifyData(opt, data);
-			opt.pending = false;
-		});
-	});
-};
-
 Render.class = function (opt) {
-	var data = opt.data;
-	var name = opt.names.slice(1).join('-');
 	Global.batcher.write(function () {
-		data = Global.binder.modifyData(opt, data);
-		opt.element.classList.toggle(name, data);
+		var name = opt.names.slice(1).join('-');
+		opt.element.classList.toggle(name, Global.binder.modifyData(opt, opt.data));
 		opt.pending = false;
 	});
 };
@@ -178,6 +141,27 @@ Render.on = function (opt) {
 	opt.cache = Global.utility.getByPath(Global.events.data, opt.uid + '.' + opt.path).bind(opt.model);
 	opt.element.addEventListener(opt.names[1], opt.cache);
 	opt.pending = false;
+};
+
+Render.css = function (opt) {
+	Global.batcher.read(function () {
+
+		if (opt.element.style.cssText === opt.data) {
+			opt.pending = false;
+			return;
+		}
+
+		var data;
+
+		if (opt.names.length > 1) {
+			data = opt.names.slice(1).join('-') + ': ' +  data + ';';
+		}
+
+		Global.batcher.write(function () {
+			opt.element.style.cssText = Global.binder.modifyData(opt, data);
+			opt.pending = false;
+		});
+	});
 };
 
 Render.text = function (opt) {
@@ -197,32 +181,43 @@ Render.text = function (opt) {
 };
 
 Render.each = function (opt) {
-	var self = this;
+
+	if (opt.element.children.length === opt.data.length) {
+		opt.pending = false;
+		return;
+	}
 
 	if (!opt.cache) {
 		opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 	}
 
 	Global.batcher.read(function () {
+
+		var clone;
+		var element = opt.element;
 		var data = Global.binder.modifyData(opt, opt.data);
-		var dataLength = data.length;
-		var elementLength = opt.element.children.length;
+
+		var dLength = data.length;
+		var eLength = element.children.length;
 
 		Global.batcher.write(function () {
-			var time = performance.now();
 
-			while (elementLength !== dataLength) {
-				if (performance.now() - time > self.fps) {
-					return self.each(opt);
-				} else if (elementLength > dataLength) {
-					elementLength--;
-					opt.element.removeChild(opt.element.children[elementLength]);
-				} else if (elementLength < dataLength) {
-					var clone = opt.cache.cloneNode(true);
-					Global.utility.replaceEachVariable(clone, opt.names[1], opt.path, elementLength);
-					opt.element.appendChild(clone);
-					elementLength++;
+			while (eLength !== dLength) {
+
+				if (eLength > dLength) {
+
+					eLength--;
+					element.removeChild(element.children[eLength]);
+
+				} else if (eLength < dLength) {
+
+					clone = opt.cache.cloneNode(true);
+					Global.utility.replaceEachVariable(clone, opt.names[1], opt.path, eLength);
+					element.appendChild(clone);
+					eLength++;
+
 				}
+
 			}
 
 			opt.pending = false;
@@ -231,7 +226,9 @@ Render.each = function (opt) {
 };
 
 Render.value = function (opt, caller) {
+
 	Global.batcher.read(function () {
+
 		var data, attribute, query;
 		var i, l, element, elements;
 		var type = opt.element.type;
@@ -242,8 +239,10 @@ Render.value = function (opt, caller) {
 			if (name === 'SELECT') {
 				data = opt.element.multiple ? [] : '';
 				elements = opt.element.options;
+
 				for (i = 0, l = elements.length; i < l; i++) {
 					element = elements[i];
+
 					if (element.selected) {
 						if (opt.element.multiple) {
 							data.push(element.value || element.innerText);
@@ -252,17 +251,23 @@ Render.value = function (opt, caller) {
 							break;
 						}
 					}
+
 				}
+
 			} else if (type === 'radio') {
 				query = 'input[type="radio"][o-value="' + opt.value + '"]';
 				elements = opt.container.querySelectorAll(query);
+
 				for (i = 0, l = elements.length; i < l; i++) {
 					element = elements[i];
+
 					if (opt.element === element) {
 						data = i;
 						break;
 					}
+
 				}
+
 			} else if (type === 'file') {
 				data = opt.element.files;
 			} else if (type === 'checkbox') {
@@ -271,7 +276,7 @@ Render.value = function (opt, caller) {
 				data = opt.element.value;
 			}
 
-			Global.model.set(opt.keys, data);
+			Global.model.data.$set(opt.keys, data);
 			opt.pending = false;
 
 		} else {
@@ -279,46 +284,47 @@ Render.value = function (opt, caller) {
 
 				if (name === 'SELECT') {
 					data = opt.data === undefined ? opt.element.multiple ? [] : '' : opt.data;
-					elements = opt.element.options;
-					for (i = 0, l = elements.length; i < l; i++) {
-						element = elements[i];
-						if (opt.element.multiple && (element.value === data[i] || element.innerText === data[i])) {
-							element.selected = true;
-							data.push(element.value || element.innerText);
-						} else if (element.value === data || element.innerText === data) {
-							element.selected = true;
-							data = element.value || element.innerText;
-							break;
+
+					for (i = 0, l = opt.element.options.length; i < l; i++) {
+						if (!opt.element.options[i].disabled) {
+							if (opt.element.options[i].selected) {
+								if (opt.element.multiple) {
+									data.push(opt.element.options[i].value || opt.element.options[i].innerText || '');
+								} else {
+									data = opt.element.options[i].value || opt.element.options[i].innerText || '';
+									break;
+								}
+							} else if (i === l-1 && !opt.element.multiple) {
+								data = opt.element.options[0].value || opt.element.options[0].innerText || '';
+							}
 						}
 					}
-					if (opt.element.multiple) {
-						// data = !data.length ? [elements[0].value || elements[0].innerText] : data;
-						// Global.model.set(opt.keys, data);
-					} else {
-						data = !data ? elements[0].value || elements[0].innerText : data;
-						Global.model.set(opt.keys, data);
-					}
+
+					Global.model.data.$set(opt.keys, data);
 				} else if (type === 'radio') {
-					data = opt.data === undefined ? Global.model.set(opt.keys, 0) : opt.data;
+					data = opt.data === undefined ? Global.model.data.$set(opt.keys, 0) : opt.data;
 					query = 'input[type="radio"][o-value="' + opt.value + '"]';
 					elements = opt.container.querySelectorAll(query);
+
 					for (i = 0, l = elements.length; i < l; i++) {
 						element = elements[i];
 						element.checked = i === data;
 					}
+
 					elements[data].checked = true;
 				} else if (type === 'file') {
 					attribute = 'files';
-					data = opt.data === undefined ? Global.model.set(opt.keys, []) : opt.data;
+					data = opt.data === undefined ? Global.model.data.$set(opt.keys, []) : opt.data;
 				} else if (type === 'checkbox') {
 					attribute = 'checked';
-					data = opt.data === undefined ? Global.model.set(opt.keys, false) : opt.data;
+					data = opt.data === undefined ? Global.model.data.$set(opt.keys, false) : opt.data;
 				} else {
 					attribute = 'value';
-					data = opt.data === undefined ? Global.model.set(opt.keys, '') : opt.data;
+					data = opt.data === undefined ? Global.model.data.$set(opt.keys, '') : opt.data;
 				}
 
 				if (attribute) {
+					opt.element[attribute] = data;
 					opt.element[attribute] = Global.binder.modifyData(opt, data);
 				}
 
@@ -328,19 +334,18 @@ Render.value = function (opt, caller) {
 		}
 
 	});
+
 };
 
 Render.default = function (opt) {
-	var data = opt.data;
-
 	Global.batcher.read(function () {
 
-		if (opt.element[opt.type] === data) {
+		if (opt.element[opt.type] === opt.data) {
 			return;
 		}
 
 		Global.batcher.write(function () {
-			opt.element[opt.type] = Global.binder.modifyData(opt, data);
+			opt.element[opt.type] = Global.binder.modifyData(opt, opt.data);
 		});
 
 	});

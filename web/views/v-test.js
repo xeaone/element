@@ -6,10 +6,10 @@ Oxe.component.define({
 		blank: '',
 		show_hide: true,
 		mcar: 'mcar',
-		// car: 'mercedes',
-		// cars: [
-		// 	'Audi',
-		// ],
+		car: 'mercedes',
+		cars: [
+			'Audi'
+		],
 		allcars: [
 			'Audi',
 			'Saab',
@@ -98,32 +98,32 @@ Oxe.component.define({
 
 		window.self = self;
 
-		// var total = self.add(1, 2, 3);
-        //
-		// setTimeout(function () {
-        //
-		// 	var increaseInterval = setInterval(function () {
-        //
-		// 		if (self.model.items.length === 10) {
-		// 			clearInterval(increaseInterval);
-        //
-		// 			var decreaseInterval = setInterval(function () {
-        //
-		// 				if (self.model.items.length === 5) {
-		// 					clearInterval(decreaseInterval);
-		// 				} else {
-		// 					self.model.items.pop();
-		// 				}
-        //
-		// 			}, 10);
-        //
-		// 		} else {
-		// 			self.model.items.push({ it: { val: self.model.items.length } });
-		// 		}
-        //
-		// 	}, 10);
-        //
-		// }, 3000);
+		var total = self.add(1, 2, 3);
+
+		setTimeout(function () {
+
+			var increaseInterval = setInterval(function () {
+
+				if (self.model.items.length === 10) {
+					clearInterval(increaseInterval);
+
+					var decreaseInterval = setInterval(function () {
+
+						if (self.model.items.length === 5) {
+							clearInterval(decreaseInterval);
+						} else {
+							self.model.items.pop();
+						}
+
+					}, 6);
+
+				} else {
+					self.model.items.push({ it: { val: self.model.items.length } });
+				}
+
+			}, 6);
+
+		}, 3000);
 
 		Say('v-test created');
 	},
@@ -193,7 +193,7 @@ Oxe.component.define({
 		<div o-text="car"></div>
 		<select o-value="car">
 			<option value="audi">audi</option>
-			<option value="saab">saab</option>
+			<option value="saab" selected>saab</option>
 			<option value="volvo">volvo</option>
 			<option value="mercedes">mercedes</option>
 		</select>
@@ -201,7 +201,7 @@ Oxe.component.define({
 		<br>
 
 		<div o-text="cars"></div>
-		<select o-value="cars" o-each-onecar="allcars" multiple>
+		<select o-value="cars" o-value="cars" o-each-onecar="allcars" multiple>
 			<option o-value="onecar" o-text="onecar"></option>
 		</select>
 		<br>
@@ -243,9 +243,9 @@ Oxe.component.define({
 
 		<div o-html="html"></div>
 
-		<div o-on-click="overwriteArray" o-each-ac="arrayChange">
-			<div o-text="ac"></div>
-		</div>
-
 	`
 });
+
+// <div o-on-click="overwriteArray" o-each-ac="arrayChange">
+// 	<div o-text="ac"></div>
+// </div>

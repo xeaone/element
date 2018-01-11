@@ -109,10 +109,44 @@ Observer.overrideObjectMethods = function (data, callback, path) {
 	var self = this;
 
 	Object.defineProperties(data, {
+		$get: {
+			configurable: true,
+			value: function (keys) {
+
+				if (typeof keys === 'string') {
+					keys = [keys];
+				}
+
+				var key = keys[keys.length-1];
+				var collection = this;
+
+				for (var i = 0, l = keys.length-1; i < l; i++) {
+					if (!(keys[i] in collection)) {
+						return undefined;
+					} else {
+						collection = collection[keys[i]];
+					}
+				}
+
+				return collection[key];
+			}
+		},
 		$set: {
 			configurable: true,
-			value: function (key, value) {
-				value = self.defineProperty(this, key, value, callback, path);
+			value: function (keys, value) {
+
+				if (typeof keys === 'string') {
+					keys = [keys];
+				}
+
+				var key = keys[keys.length-1];
+				var collection = this;
+
+				for (var i = 0, l = keys.length-1; i < l; i++) {
+					collection = collection[keys[i]];
+				}
+
+				value = self.defineProperty(collection, key, value, callback, path);
 
 				if (callback) {
 					callback(value, path + key, key, this);
@@ -123,13 +157,25 @@ Observer.overrideObjectMethods = function (data, callback, path) {
 		},
 		$remove: {
 			configurable: true,
-			value: function (key) {
-				var value = this[key];
+			value: function (keys) {
 
-				delete this[key];
+				if (typeof keys === 'string') {
+					keys = [keys];
+				}
+
+				var key = keys[keys.length-1];
+				var collection = this;
+
+				for (var i = 0, l = keys.length-1; i < l; i++) {
+					collection = collection[keys[i]];
+				}
+
+				var value = collection[key];
+
+				delete collection[key];
 
 				if (callback) {
-					callback(undefined, path + key, key, this);
+					callback(undefined, path + key, key, collection);
 				}
 
 				return value;

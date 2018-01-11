@@ -41,7 +41,7 @@ Loader.prototype.xhr = function (url, callback) {
 
 	xhr.responseType = 'text';
 
-	xhr.addEventListener('readystatechange', function () {
+	xhr.onreadystatechange = function () {
 		if (xhr.readyState === 4) {
 			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
 				if (callback) {
@@ -51,7 +51,7 @@ Loader.prototype.xhr = function (url, callback) {
 				throw new Error(xhr.responseText);
 			}
 		}
-	}, true);
+	};
 
 	xhr.open('GET', url);
 	xhr.send();

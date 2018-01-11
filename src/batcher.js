@@ -44,15 +44,11 @@ Batcher.prototype.tick = function () {
 };
 
 Batcher.prototype.flush = function (time) {
-	var error;
-
-	if (!this.reads.length && !this.writes.length) {
-		return;
-	}
+	var error, count;
 
 	try {
-		this.run(this.reads, time);
-		this.run(this.writes, time);
+		count = this.runReads(this.reads, time);
+		this.runWrites(this.writes, count);
 	} catch (e) {
 		if (this.events.error && this.events.error.length) {
 			this.emit('error', e);
@@ -69,7 +65,22 @@ Batcher.prototype.flush = function (time) {
 
 };
 
-Batcher.prototype.run = function (tasks, time) {
+Batcher.prototype.runWrites = function (tasks, count) {
+	var task;
+
+	while (task = tasks.shift()) {
+
+		task();
+
+		if (count && tasks.length === count) {
+			return;
+		}
+
+	}
+
+};
+
+Batcher.prototype.runReads = function (tasks, time) {
 	var task;
 
 	while (task = tasks.shift()) {
@@ -77,7 +88,7 @@ Batcher.prototype.run = function (tasks, time) {
 		task();
 
 		if (this.fps && performance.now() - time > this.fps) {
-			break;
+			return tasks.length;
 		}
 
 	}

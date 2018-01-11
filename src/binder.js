@@ -72,8 +72,9 @@ Binder.prototype.get = function (opt) {
 		var item = data[i];
 
 		if (item.element === opt.element) {
-			item.data = Global.model.get(item.keys);
-			return item;
+			if (item.name === opt.name) {
+				return item;
+			}
 		}
 
 	}
@@ -132,8 +133,6 @@ Binder.prototype.create = function (opt) {
 	opt.model = opt.model || Global.model.data[opt.uid];
 	opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
 
-	opt.data = Global.model.get(opt.keys);
-
 	return opt;
 };
 
@@ -160,9 +159,7 @@ Binder.prototype.render = function (opt, caller) {
 	opt = this.create(opt);
 	opt = this.get(opt) || opt;
 
-	// if (opt.data === undefined) {
-	// 	opt.data = Global.model.set(opt.keys, undefined);
-	// }
+	opt.data = Global.model.data.$get(opt.keys);
 
 	if (!opt.exists) {
 		opt.exists = true;

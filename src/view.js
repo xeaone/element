@@ -31,7 +31,10 @@ View.eachAttribute = function (element, callback) {
 		var attribute = attributes[i];
 
 		if (
-			attribute.value
+			(
+				attribute.name.indexOf('o-') === 0
+				|| attribute.name.indexOf('data-o-') === 0
+			)
 			&& attribute.name !== 'o-uid'
 			&& attribute.name !== 'o-auth'
 			&& attribute.name !== 'o-reset'
@@ -44,7 +47,6 @@ View.eachAttribute = function (element, callback) {
 			&& attribute.name !== 'data-o-method'
 			&& attribute.name !== 'data-o-action'
 			&& attribute.name !== 'data-o-external'
-			&& (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0)
 		) {
 			callback.call(this, attribute);
 		}

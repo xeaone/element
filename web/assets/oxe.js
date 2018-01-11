@@ -88,13 +88,11 @@
 			enumerable: true,
 			configurable: true,
 			get: function () {
-				var uid = this.uid;
-				return Global$1.model.get(uid);
+				return Global$1.model.data.$get(this.uid);
 			},
 			set: function (data) {
-				var uid = this.uid;
-				data = data && data.constructor === Object ? data : {};
-				Global$1.model.set(uid, data);
+				data = data && typeof data === 'object' ? data : {};
+				return Global$1.model.data.$set(this.uid, data);
 			}
 		};
 
@@ -131,7 +129,7 @@
 
 			element.setAttribute('o-uid', element.uid);
 
-			Global$1.model.set(element.uid, options.model);
+			Global$1.model.data.$set(element.uid, options.model || {});
 			Global$1.events.data[element.uid] = options.events;
 			Global$1.modifiers.data[element.uid] = options.modifiers;
 
@@ -518,15 +516,11 @@
 	};
 
 	Batcher.prototype.flush = function (time) {
-		var error;
-
-		if (!this.reads.length && !this.writes.length) {
-			return;
-		}
+		var error, count;
 
 		try {
-			this.run(this.reads, time);
-			this.run(this.writes, time);
+			count = this.runReads(this.reads, time);
+			this.runWrites(this.writes, count);
 		} catch (e) {
 			if (this.events.error && this.events.error.length) {
 				this.emit('error', e);
@@ -543,7 +537,22 @@
 
 	};
 
-	Batcher.prototype.run = function (tasks, time) {
+	Batcher.prototype.runWrites = function (tasks, count) {
+		var task;
+
+		while (task = tasks.shift()) {
+
+			task();
+
+			if (count && tasks.length === count) {
+				return;
+			}
+
+		}
+
+	};
+
+	Batcher.prototype.runReads = function (tasks, time) {
 		var task;
 
 		while (task = tasks.shift()) {
@@ -551,7 +560,7 @@
 			task();
 
 			if (this.fps && performance.now() - time > this.fps) {
-				break;
+				return tasks.length;
 			}
 
 		}
@@ -1042,7 +1051,7 @@
 		Global$1.loader.load(route.url, function (load) {
 			var child;
 
-			while (child = self.view.firstChild) {
+			while (child = self.view.children[0]) {
 				self.view.removeChild(child);
 			}
 
@@ -1348,7 +1357,7 @@
 
 		xhr.responseType = 'text';
 
-		xhr.addEventListener('readystatechange', function () {
+		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
 				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
 					if (callback) {
@@ -1358,7 +1367,7 @@
 					throw new Error(xhr.responseText);
 				}
 			}
-		}, true);
+		};
 
 		xhr.open('GET', url);
 		xhr.send();
@@ -1624,22 +1633,7 @@
 
 	var Render = {};
 
-	Render.fps = 1000/60;
-
-	// Render.selected = function (opt) {
-	// 	Global.batcher.read(function () {
-	//
-	// 		if (opt.element.selectedIndex === opt.data) {
-	// 			opt.pending = false;
-	// 			return;
-	// 		}
-	//
-	// 		Global.batcher.write(function () {
-	// 			opt.element.selectedIndex = Global.binder.modifyData(opt, opt.data);
-	// 			opt.pending = false;
-	// 		});
-	// 	});
-	// };
+	// TODO dynamic for list dont handle selected
 
 	Render.required = function (opt) {
 		Global$1.batcher.read(function () {
@@ -1761,32 +1755,10 @@
 		});
 	};
 
-	Render.css = function (opt) {
-		var data = opt.data;
-
-		Global$1.batcher.read(function () {
-			if (opt.element.style.cssText === data) {
-				opt.pending = false;
-				return;
-			}
-
-			if (opt.names.length > 1) {
-				data = opt.names.slice(1).join('-') + ': ' +  data + ';';
-			}
-
-			Global$1.batcher.write(function () {
-				opt.element.style.cssText = Global$1.binder.modifyData(opt, data);
-				opt.pending = false;
-			});
-		});
-	};
-
 	Render.class = function (opt) {
-		var data = opt.data;
-		var name = opt.names.slice(1).join('-');
 		Global$1.batcher.write(function () {
-			data = Global$1.binder.modifyData(opt, data);
-			opt.element.classList.toggle(name, data);
+			var name = opt.names.slice(1).join('-');
+			opt.element.classList.toggle(name, Global$1.binder.modifyData(opt, opt.data));
 			opt.pending = false;
 		});
 	};
@@ -1800,6 +1772,27 @@
 		opt.cache = Global$1.utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path).bind(opt.model);
 		opt.element.addEventListener(opt.names[1], opt.cache);
 		opt.pending = false;
+	};
+
+	Render.css = function (opt) {
+		Global$1.batcher.read(function () {
+
+			if (opt.element.style.cssText === opt.data) {
+				opt.pending = false;
+				return;
+			}
+
+			var data;
+
+			if (opt.names.length > 1) {
+				data = opt.names.slice(1).join('-') + ': ' +  data + ';';
+			}
+
+			Global$1.batcher.write(function () {
+				opt.element.style.cssText = Global$1.binder.modifyData(opt, data);
+				opt.pending = false;
+			});
+		});
 	};
 
 	Render.text = function (opt) {
@@ -1819,32 +1812,43 @@
 	};
 
 	Render.each = function (opt) {
-		var self = this;
+
+		if (opt.element.children.length === opt.data.length) {
+			opt.pending = false;
+			return;
+		}
 
 		if (!opt.cache) {
 			opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 		}
 
 		Global$1.batcher.read(function () {
+
+			var clone;
+			var element = opt.element;
 			var data = Global$1.binder.modifyData(opt, opt.data);
-			var dataLength = data.length;
-			var elementLength = opt.element.children.length;
+
+			var dLength = data.length;
+			var eLength = element.children.length;
 
 			Global$1.batcher.write(function () {
-				var time = performance.now();
 
-				while (elementLength !== dataLength) {
-					if (performance.now() - time > self.fps) {
-						return self.each(opt);
-					} else if (elementLength > dataLength) {
-						elementLength--;
-						opt.element.removeChild(opt.element.children[elementLength]);
-					} else if (elementLength < dataLength) {
-						var clone = opt.cache.cloneNode(true);
-						Global$1.utility.replaceEachVariable(clone, opt.names[1], opt.path, elementLength);
-						opt.element.appendChild(clone);
-						elementLength++;
+				while (eLength !== dLength) {
+
+					if (eLength > dLength) {
+
+						eLength--;
+						element.removeChild(element.children[eLength]);
+
+					} else if (eLength < dLength) {
+
+						clone = opt.cache.cloneNode(true);
+						Global$1.utility.replaceEachVariable(clone, opt.names[1], opt.path, eLength);
+						element.appendChild(clone);
+						eLength++;
+
 					}
+
 				}
 
 				opt.pending = false;
@@ -1853,7 +1857,9 @@
 	};
 
 	Render.value = function (opt, caller) {
+
 		Global$1.batcher.read(function () {
+
 			var data, attribute, query;
 			var i, l, element, elements;
 			var type = opt.element.type;
@@ -1864,8 +1870,10 @@
 				if (name === 'SELECT') {
 					data = opt.element.multiple ? [] : '';
 					elements = opt.element.options;
+
 					for (i = 0, l = elements.length; i < l; i++) {
 						element = elements[i];
+
 						if (element.selected) {
 							if (opt.element.multiple) {
 								data.push(element.value || element.innerText);
@@ -1874,17 +1882,23 @@
 								break;
 							}
 						}
+
 					}
+
 				} else if (type === 'radio') {
 					query = 'input[type="radio"][o-value="' + opt.value + '"]';
 					elements = opt.container.querySelectorAll(query);
+
 					for (i = 0, l = elements.length; i < l; i++) {
 						element = elements[i];
+
 						if (opt.element === element) {
 							data = i;
 							break;
 						}
+
 					}
+
 				} else if (type === 'file') {
 					data = opt.element.files;
 				} else if (type === 'checkbox') {
@@ -1893,7 +1907,7 @@
 					data = opt.element.value;
 				}
 
-				Global$1.model.set(opt.keys, data);
+				Global$1.model.data.$set(opt.keys, data);
 				opt.pending = false;
 
 			} else {
@@ -1901,46 +1915,47 @@
 
 					if (name === 'SELECT') {
 						data = opt.data === undefined ? opt.element.multiple ? [] : '' : opt.data;
-						elements = opt.element.options;
-						for (i = 0, l = elements.length; i < l; i++) {
-							element = elements[i];
-							if (opt.element.multiple && (element.value === data[i] || element.innerText === data[i])) {
-								element.selected = true;
-								data.push(element.value || element.innerText);
-							} else if (element.value === data || element.innerText === data) {
-								element.selected = true;
-								data = element.value || element.innerText;
-								break;
+
+						for (i = 0, l = opt.element.options.length; i < l; i++) {
+							if (!opt.element.options[i].disabled) {
+								if (opt.element.options[i].selected) {
+									if (opt.element.multiple) {
+										data.push(opt.element.options[i].value || opt.element.options[i].innerText || '');
+									} else {
+										data = opt.element.options[i].value || opt.element.options[i].innerText || '';
+										break;
+									}
+								} else if (i === l-1 && !opt.element.multiple) {
+									data = opt.element.options[0].value || opt.element.options[0].innerText || '';
+								}
 							}
 						}
-						if (opt.element.multiple) {
-							// data = !data.length ? [elements[0].value || elements[0].innerText] : data;
-							// Global.model.set(opt.keys, data);
-						} else {
-							data = !data ? elements[0].value || elements[0].innerText : data;
-							Global$1.model.set(opt.keys, data);
-						}
+
+						Global$1.model.data.$set(opt.keys, data);
 					} else if (type === 'radio') {
-						data = opt.data === undefined ? Global$1.model.set(opt.keys, 0) : opt.data;
+						data = opt.data === undefined ? Global$1.model.data.$set(opt.keys, 0) : opt.data;
 						query = 'input[type="radio"][o-value="' + opt.value + '"]';
 						elements = opt.container.querySelectorAll(query);
+
 						for (i = 0, l = elements.length; i < l; i++) {
 							element = elements[i];
 							element.checked = i === data;
 						}
+
 						elements[data].checked = true;
 					} else if (type === 'file') {
 						attribute = 'files';
-						data = opt.data === undefined ? Global$1.model.set(opt.keys, []) : opt.data;
+						data = opt.data === undefined ? Global$1.model.data.$set(opt.keys, []) : opt.data;
 					} else if (type === 'checkbox') {
 						attribute = 'checked';
-						data = opt.data === undefined ? Global$1.model.set(opt.keys, false) : opt.data;
+						data = opt.data === undefined ? Global$1.model.data.$set(opt.keys, false) : opt.data;
 					} else {
 						attribute = 'value';
-						data = opt.data === undefined ? Global$1.model.set(opt.keys, '') : opt.data;
+						data = opt.data === undefined ? Global$1.model.data.$set(opt.keys, '') : opt.data;
 					}
 
 					if (attribute) {
+						opt.element[attribute] = data;
 						opt.element[attribute] = Global$1.binder.modifyData(opt, data);
 					}
 
@@ -1950,19 +1965,18 @@
 			}
 
 		});
+
 	};
 
 	Render.default = function (opt) {
-		var data = opt.data;
-
 		Global$1.batcher.read(function () {
 
-			if (opt.element[opt.type] === data) {
+			if (opt.element[opt.type] === opt.data) {
 				return;
 			}
 
 			Global$1.batcher.write(function () {
-				opt.element[opt.type] = Global$1.binder.modifyData(opt, data);
+				opt.element[opt.type] = Global$1.binder.modifyData(opt, opt.data);
 			});
 
 		});
@@ -2038,8 +2052,9 @@
 			var item = data[i];
 
 			if (item.element === opt.element) {
-				item.data = Global$1.model.get(item.keys);
-				return item;
+				if (item.name === opt.name) {
+					return item;
+				}
 			}
 
 		}
@@ -2098,8 +2113,6 @@
 		opt.model = opt.model || Global$1.model.data[opt.uid];
 		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
 
-		opt.data = Global$1.model.get(opt.keys);
-
 		return opt;
 	};
 
@@ -2126,9 +2139,7 @@
 		opt = this.create(opt);
 		opt = this.get(opt) || opt;
 
-		// if (opt.data === undefined) {
-		// 	opt.data = Global.model.set(opt.keys, undefined);
-		// }
+		opt.data = Global$1.model.data.$get(opt.keys);
 
 		if (!opt.exists) {
 			opt.exists = true;
@@ -2442,10 +2453,44 @@
 		var self = this;
 
 		Object.defineProperties(data, {
+			$get: {
+				configurable: true,
+				value: function (keys) {
+
+					if (typeof keys === 'string') {
+						keys = [keys];
+					}
+
+					var key = keys[keys.length-1];
+					var collection = this;
+
+					for (var i = 0, l = keys.length-1; i < l; i++) {
+						if (!(keys[i] in collection)) {
+							return undefined;
+						} else {
+							collection = collection[keys[i]];
+						}
+					}
+
+					return collection[key];
+				}
+			},
 			$set: {
 				configurable: true,
-				value: function (key, value) {
-					value = self.defineProperty(this, key, value, callback, path);
+				value: function (keys, value) {
+
+					if (typeof keys === 'string') {
+						keys = [keys];
+					}
+
+					var key = keys[keys.length-1];
+					var collection = this;
+
+					for (var i = 0, l = keys.length-1; i < l; i++) {
+						collection = collection[keys[i]];
+					}
+
+					value = self.defineProperty(collection, key, value, callback, path);
 
 					if (callback) {
 						callback(value, path + key, key, this);
@@ -2456,13 +2501,25 @@
 			},
 			$remove: {
 				configurable: true,
-				value: function (key) {
-					var value = this[key];
+				value: function (keys) {
 
-					delete this[key];
+					if (typeof keys === 'string') {
+						keys = [keys];
+					}
+
+					var key = keys[keys.length-1];
+					var collection = this;
+
+					for (var i = 0, l = keys.length-1; i < l; i++) {
+						collection = collection[keys[i]];
+					}
+
+					var value = collection[key];
+
+					delete collection[key];
 
 					if (callback) {
-						callback(undefined, path + key, key, this);
+						callback(undefined, path + key, key, collection);
 					}
 
 					return value;
@@ -2691,46 +2748,46 @@
 	// 	);
 	// };
 
-	Model.traverse = function (path, create) {
-		return Global$1.utility.traverse(this.data, path, function (data, key, index, keys) {
+	// Model.traverse = function (path, create) {
+	// 	return Global.utility.traverse(this.data, path, function (data, key, index, keys) {
+	//
+	// 		if (create) {
+	//
+	// 			if (isNaN(keys[index + 1])) {
+	// 				data.$set(key, {});
+	// 			} else {
+	// 				data.$set(key, []);
+	// 			}
+	//
+	// 		}
+	//
+	// 	});
+	// };
+	//
+	// Model.get = function (keys) {
+	// 	var result = Global.utility.traverse(this.data, keys);
+	// 	return result ? result.data[result.key] : undefined;
+	// };
+	//
+	// Model.set = function (keys, value) {
+	// 	var result = this.traverse(keys, true);
+	// 	return result.data.$set(result.key, value);
+	// };
 
-			if (create) {
-
-				if (isNaN(keys[index + 1])) {
-					data.$set(key, {});
-				} else {
-					data.$set(key, []);
-				}
-
-			}
-
-		});
-	};
-
-	Model.get = function (keys) {
-		var result = Global$1.utility.traverse(this.data, keys);
-		return result ? result.data[result.key] : undefined;
-	};
-
-	Model.set = function (keys, value) {
-		var result = this.traverse(keys, true);
-		return result.data.$set(result.key, value);
-	};
-
-	Model.observer = function (data, path) {
-		var paths = path.split('.');
-		var uid = paths[0];
-		var type = data === undefined ? 'unrender' : 'render';
-
-		path = paths.slice(1).join('.');
-
-		if (!path) return;
-
-		Global$1.binder.each(uid, path, function (binder) {
-			Global$1.binder[type](binder);
-		});
-
-	};
+	// Model.observer = function (data, path) {
+	// 	var paths = path.split('.');
+	// 	var uid = paths[0];
+	// 	var type = data === undefined ? 'unrender' : 'render';
+	//
+	// 	path = paths.slice(1).join('.');
+	//
+	// 	if (!path) return;
+	//
+	// 	Global.binder.each(uid, path, function (binder) {
+	// 		Global.binder[type](binder);
+	// 	});
+	//
+	// };
 
 	Model.run = function () {
 
@@ -2740,10 +2797,23 @@
 
 		this.isRan = true;
 
-		Observer.create(
-			this.data,
-			this.observer.bind(this)
-		);
+		Observer.create(this.data,function (data, path) {
+			
+			var paths = path.split('.');
+			var uid = paths[0];
+			var type = data === undefined ? 'unrender' : 'render';
+
+			path = paths.slice(1).join('.');
+
+			if (!path) {
+				return;
+			}
+
+			Global$1.binder.each(uid, path, function (binder) {
+				Global$1.binder[type](binder);
+			});
+
+		});
 
 	};
 
@@ -2778,7 +2848,10 @@
 			var attribute = attributes[i];
 
 			if (
-				attribute.value
+				(
+					attribute.name.indexOf('o-') === 0
+					|| attribute.name.indexOf('data-o-') === 0
+				)
 				&& attribute.name !== 'o-uid'
 				&& attribute.name !== 'o-auth'
 				&& attribute.name !== 'o-reset'
@@ -2791,7 +2864,6 @@
 				&& attribute.name !== 'data-o-method'
 				&& attribute.name !== 'data-o-action'
 				&& attribute.name !== 'data-o-external'
-				&& (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0)
 			) {
 				callback.call(this, attribute);
 			}
@@ -3159,7 +3231,9 @@
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-		if (!submit) return;
+		if (!submit) {
+			return;
+		}
 
 		e.preventDefault();
 
@@ -3276,7 +3350,7 @@
 			Global$1.view.run();
 			Global$1.model.run();
 		});
-	});
+	}, true);
 
 	return Global$1;
 

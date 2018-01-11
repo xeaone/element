@@ -11,7 +11,7 @@ Oxe.component.define({
 		window.self = self;
 
 		// for (var i = 0; i < 1000; i++) {
-		for (var i = 0; i < 2600; i++) {
+		for (var i = 0; i < 2400; i++) {
 			self.model.items.push({ number: self.model.items.length });
 		}
 

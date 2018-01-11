@@ -253,7 +253,7 @@ Router.prototype.render = function (route) {
 	Global.loader.load(route.url, function (load) {
 		var child;
 
-		while (child = self.view.firstChild) {
+		while (child = self.view.children[0]) {
 			self.view.removeChild(child);
 		}
 
