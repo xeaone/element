@@ -804,11 +804,12 @@
 
 		this.cache = {};
 		this.routes = [];
-		this.hash = false;
+		this.ran = false;
 		this.auth = false;
-		this.isRan = false;
+		this.hash = false;
 		this.location = {};
-		this.view = 'o-view';
+		this.container = null;
+		this.element = null;
 		this.trailing = false;
 
 		this.setup(options);
@@ -821,9 +822,9 @@
 		options = options || {};
 		this.container = options.container;
 		this.auth = options.auth === undefined ? this.auth : options.auth;
-		this.view = options.view === undefined ? this.view : options.view;
 		this.hash = options.hash === undefined ? this.hash : options.hash;
 		this.routes = options.routes === undefined ? this.routes: options.routes;
+		this.element = options.element === undefined ? this.element : options.element;
 		this.external = options.external === undefined ? this.external : options.external;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 	};
@@ -1044,26 +1045,32 @@
 	Router.prototype.render = function (route) {
 		var self = this;
 
+		self.emit('navigating');
+
 		if (route.title) {
 			document.title = route.title;
 		}
 
 		Global$1.loader.load(route.url, function (load) {
-			var child;
 
-			while (child = self.view.children[0]) {
-				self.view.removeChild(child);
+			if (!load.result) {
+				load.result = document.createElement(route.component);
+				load.result.inRouterCache = false;
+				load.result.isRouterComponent = true;
 			}
 
-			if (!load.code) {
-				load.code = document.createElement(route.component);
-				load.code.inRouterCache = false;
-				load.code.isRouterComponent = true;
-			}
+			self.domReady(function () {
+				var child;
 
-			self.view.appendChild(load.code);
-			self.scroll(0, 0);
-			self.emit('navigated');
+				while (child = self.element.children[0]) {
+					self.element.removeChild(child);
+				}
+
+				self.element.appendChild(load.result);
+
+				self.scroll(0, 0);
+				self.emit('navigated');
+			});
 
 		});
 
@@ -1113,23 +1120,38 @@
 		}
 	};
 
+	Router.prototype.elementReady = function (callback) {
+		this.element = this.element || 'o-router';
+
+		if (typeof this.element === 'string') {
+			this.element = document.body.querySelector(this.element);
+		}
+
+		return callback();
+	};
+
+	Router.prototype.domReady = function (callback) {
+		if (document.readyState === 'interactive' || document.readyState === 'complete') {
+			this.elementReady(callback);
+		} else {
+			document.onreadystatechange = function () {
+				if (document.readyState === 'interactive' || document.readyState === 'complete') {
+					this.elementReady(callback);
+				}
+			}.bind(this);
+		}
+	};
+
 	Router.prototype.run = function () {
 
-		if (this.isRan) {
+		if (this.ran) {
 			return;
-		}
-
-		this.isRan = true;
-
-		if (typeof this.view === 'string') {
-			this.view = document.body.querySelector(this.view);
-		}
-
-		if (!this.view) {
-			throw new Error('Oxe.router - requires a view element');
+		} else {
+			this.ran = true;
 		}
 
 		var options = { replace: true };
+
 		this.navigate(window.location.href, options);
 	};
 
@@ -1271,7 +1293,7 @@
 		for (var i = 0, l = imps.length; i < l; i++) {
 			var imp = imps[i];
 
-			var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\'].code';
+			var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\'].result';
 
 			text = text.replace(imp.raw, pattern);
 		}
@@ -1318,21 +1340,14 @@
 		return ast;
 	};
 
-	// TODO need to emit a setup event
-
-	// if (!self.isLoaded) {
-	// 	self.isLoaded = true;
-	// 	self.emit('setup');
-	// }
-
 	var Loader = function (options) {
 		Events.call(this);
 
 		this.loads = [];
+		this.ran = false;
+		this.methods = {};
 		this.modules = {};
-		this.isRan = false;
-		this.type = 'module';
-		this.isLoaded = false;
+		this.transformers = {};
 
 		this.setup(options);
 	};
@@ -1342,181 +1357,214 @@
 
 	Loader.prototype.setup = function (options) {
 		options = options || {};
-		this.type = options.type || this.type;
+		this.methods = options.methods || this.methods;
 		this.loads = options.loads || this.loads;
+		this.transformers = options.transformers || this.transformers;
 	};
 
 	Loader.prototype.execute = function (data) {
-		data = '\'use strict\';\n\n' + data;
-
-		return new Function('$LOADER', 'window', data)(this, window);
+		var text = '\'use strict\';\n\n' + (data.ast ? data.ast.cooked : data.text);
+		var code = new Function('$LOADER', 'window', text);
+		data.result = code(this, window);
 	};
 
-	Loader.prototype.xhr = function (url, callback) {
-		var xhr = new XMLHttpRequest();
+	Loader.prototype.ready = function (data) {
+		if (data && data.listener && data.listener.length) {
+			var listener;
+			while (listener = data.listener.shift()) {
+				listener(data);
+			}
+		}
+	};
 
-		xhr.responseType = 'text';
+	Loader.prototype.fetch = function (data) {
+		var self = this;
+		var fetch = new XMLHttpRequest();
 
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState === 4) {
-				if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-					if (callback) {
-						callback(xhr.responseText);
+		fetch.onreadystatechange = function () {
+			if (fetch.readyState === 4) {
+				if (fetch.status >= 200 && fetch.status < 300 || fetch.status == 304) {
+					data.text = fetch.responseText;
+					if (data.extension === 'js') {
+						if (data.transformer) {
+							self.transform(data, function () {
+								self.execute(data);
+								self.ready(data);
+							});
+						} else {
+							self.execute(data);
+							self.ready(data);
+						}
+					} else {
+						self.ready(data);
 					}
 				} else {
-					throw new Error(xhr.responseText);
+					throw new Error(fetch.responseText);
 				}
 			}
 		};
 
-		xhr.open('GET', url);
-		xhr.send();
-
+		fetch.open('GET', data.url);
+		fetch.send();
 	};
 
-	Loader.prototype.transform = function (data) {
-		var self = this;
+	Loader.prototype.transform = function (data, callback) {
 
-		if (
-			self.type === 'es' || data.type === 'es'
-			|| self.type === 'est' || data.type === 'est'
-		) {
+		if (data.transformer === 'es' || data.transformer === 'est') {
 			data.text = Transformer.template(data.text);
 		}
 
-		if (
-			self.type === 'es' || data.type === 'es'
-			|| self.type === 'esm' || data.type === 'esm'
-		) {
+		if (data.transformer === 'es' || data.transformer === 'esm') {
 			data.ast = Transformer.ast(data);
 		}
-
-		var done = function () {
-			self.modules[data.url].code = self.execute(data.ast ? data.ast.cooked : data.text);
-
-			var listener;
-			while (listener = self.modules[data.url].listener.shift()) {
-				listener(self.modules[data.url]);
-			}
-
-		};
 
 		if (data.ast && data.ast.imports.length) {
 
 			var count = 0;
 			var total = data.ast.imports.length;
 
-			var callback = function () {
+			var listener = function () {
 				count++;
 
 				if (count === total) {
-					done();
+					callback();
 				}
 
 			};
 
 			for (var i = 0; i < total; i++) {
-				self.load({
-					url: data.ast.imports[i].url
-				}, callback);
+				this.load(data.ast.imports[i].url, listener);
 			}
 
 		} else {
-			done();
+			callback();
 		}
 
 	};
 
-	Loader.prototype.js = function (data) {
-		var self = this;
+	Loader.prototype.attach = function (data) {
+		var element = document.createElement(data.tag);
 
-		if (
-			self.type === 'es' || data.type === 'es'
-			|| self.type === 'est' || data.type === 'est'
-			|| self.type === 'esm' || data.type === 'esm'
-		) {
-			self.xhr(data.url, function (text) {
-				data.text = text;
-				self.transform(data);
-			});
-		} else {
-			var element = document.createElement('script');
+		data.attributes['o-load'] = '';
 
-			element.setAttribute('src', data.url);
-			element.setAttribute('async', 'true');
-
-			if (self.type === 'module' || data.type === 'module') {
-				element.setAttribute('type','module');
-			}
-
-			element.setAttribute('o-load', '');
-
-			document.head.appendChild(element);
+		for (var name in data.attributes) {
+			element.setAttribute(name, data.attributes[name]);
 		}
-
-	};
-
-	Loader.prototype.css = function (data) {
-		var self = this;
-		var element = document.createElement('link');
-
-		element.setAttribute('href', data.url);
-		element.setAttribute('rel','stylesheet');
-		element.setAttribute('type', 'text/css');
-		element.setAttribute('o-load', '');
 
 		document.head.appendChild(element);
 	};
 
-	Loader.prototype.load = function (data, callback) {
-		var self = this;
+	Loader.prototype.js = function (data) {
+		if (
+			data.method === 'fetch'
+			|| data.transformer === 'es'
+			|| data.transformer === 'est'
+			|| data.transformer === 'esm'
+		) {
+			this.fetch(data);
+		} else if (data.method === 'script') {
+			this.attach({
+				tag: 'script',
+				attributes: {
+					async: '',
+					src: data.url,
+					type: 'text/javascript',
+				}
+			});
+		} else {
+			this.attach({
+				tag: 'module',
+				attributes: {
+					async: '',
+					src: data.url,
+					type: 'module',
+				}
+			});
+		}
+	};
 
-		if (data.constructor === String) {
+	Loader.prototype.css = function (data) {
+		if (data.method === 'fetch') {
+			this.fetch(data);
+		} else {
+			this.attach({
+				tag: 'link',
+				attributes: {
+					href: data.url,
+					type: 'text/css',
+					rel: 'stylesheet'
+				}
+			});
+		}
+	};
+
+	Loader.prototype.load = function (data, listener) {
+
+		if (typeof data === 'string') {
 			data = { url: data };
 		}
 
 		data.url = Global$1.utility.resolve(data.url);
-		data.extension = Global$1.utility.extension(data.url);
 
-		if (!data.extension) {
-			data.url = data.url + '.js';
-		}
+		if (data.url in this.modules) {
+			var load = this.modules[data.url];
 
-		if (data.url in self.modules) {
-			if (self.modules[data.url].listener.length) {
-				return self.modules[data.url].listener.push(callback);
+			if (load.listener.length) {
+				if (listener) {
+					load.listener.push(listener);
+				}
 			} else {
-				return callback(self.modules[data.url]);
+				load.listener.push(listener);
+				this.ready(load);
 			}
-		} else {
-			self.modules[data.url] = {
-				url: data.url,
-				listener: [ callback ]
-			};
+
+			return;
 		}
+
+		this.modules[data.url] = data;
+
+		data.extension = data.extension || Global$1.utility.extension(data.url);
+
+		data.listener = listener ? [listener] : [];
+		data.method = data.method || this.methods[data.extension];
+		data.transformer = data.transformer || this.transformers[data.extension];
 
 		if (data.extension === 'js') {
-			self.js(data);
+			this.js(data);
 		} else if (data.extension === 'css') {
-			self.css(data);
+			this.css(data);
 		} else {
-			throw new Error('Oxe.Loader - unreconized file type');
+			this.fetch(data);
 		}
 
 	};
 
-	Loader.prototype.run = function () {
-		var self = this;
-		var load, loaded;
+	Loader.prototype.listener = function (e) {
+		var element = e.target;
 
-		if (self.isRan) {
+		if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
 			return;
 		}
 
-		self.isRan = true;
+		var path = Global$1.utility.resolve(element.src || element.href);
+		var load = this.modules[path];
 
-		while (load = self.loads.shift()) {
-			self.load(load);
+		this.ready(load);
+	};
+
+	Loader.prototype.run = function () {
+
+		if (this.ran) {
+			return;
+		} else {
+			this.ran = true;
+		}
+
+		Global$1.document.addEventListener('load', this.listener.bind(this), true);
+
+		var load;
+		while (load = this.loads.shift()) {
+			this.load(load);
 		}
 
 	};
@@ -2139,6 +2187,7 @@
 		opt = this.create(opt);
 		opt = this.get(opt) || opt;
 
+		// opt.data = Global.model.get(opt.keys);
 		opt.data = Global$1.model.data.$get(opt.keys);
 
 		if (!opt.exists) {
@@ -2345,49 +2394,13 @@
 
 	var Observer = {};
 
-	Observer.create = function (data, callback, path) {
-		var self = this;
-		self.defineProperties(data, callback, path, true);
+	Observer.GET = 2;
+	Observer.SET = 3;
+	Observer.REMOVE = 4;
+
+	Observer.create = function (data, callback) {
+		this.properties(data, callback, null, true);
 		return data;
-	};
-
-	Observer.defineProperties = function (data, callback, path, redefine) {
-		var self = this;
-
-		path = path ? path + '.' : '';
-
-		var propertyDescriptors = {};
-
-		for (var key in data) {
-			var propertyDescriptor = self.createPropertyDescriptor(data, key, data[key], callback, path, redefine);
-
-			if (propertyDescriptor) {
-				propertyDescriptors[key] = propertyDescriptor;
-			}
-
-		}
-
-		Object.defineProperties(data, propertyDescriptors);
-
-		if (data && data.constructor === Object || data.constructor === Array) {
-			self.overrideObjectMethods(data, callback, path);
-		}
-
-		if (data && data.constructor === Array) {
-			self.overrideArrayMethods(data, callback, path);
-		}
-
-	};
-
-	Observer.defineProperty = function (data, key, value, callback, path, redefine) {
-		var self = this;
-		var propertyDescriptor = self.createPropertyDescriptor(data, key, value, callback, path, redefine);
-
-		if (propertyDescriptor) {
-			Object.defineProperty(data, key, propertyDescriptor);
-		}
-
-		return data[key];
 	};
 
 	Observer.createPropertyDescriptor = function (data, key, value, callback, path, redefine) {
@@ -2406,7 +2419,7 @@
 
 		// recursive observe child properties
 		if (value && typeof value === 'object') {
-			self.defineProperties(value, callback, path + key, redefine);
+			self.properties(value, callback, path + key, redefine);
 		}
 
 		// set the property value if getter setter previously defined and redefine is false
@@ -2438,7 +2451,7 @@
 
 				//	adds attributes to new valued property getter setter
 				if (newValue && typeof newValue === 'object') {
-					self.defineProperties(newValue, callback, path + key, redefine);
+					self.properties(newValue, callback, path + key, redefine);
 				}
 
 				if (callback) {
@@ -2449,6 +2462,99 @@
 		};
 	};
 
+	Observer.properties = function (data, callback, path, redefine) {
+		path = path ? path + '.' : '';
+
+		var propertyDescriptors = {};
+
+		for (var key in data) {
+			var propertyDescriptor = this.createPropertyDescriptor(data, key, data[key], callback, path, redefine);
+
+			if (propertyDescriptor) {
+				propertyDescriptors[key] = propertyDescriptor;
+			}
+
+		}
+
+		Object.defineProperties(data, propertyDescriptors);
+
+		if (data && data.constructor === Object || data.constructor === Array) {
+			this.overrideObjectMethods(data, callback, path);
+		}
+
+		if (data && data.constructor === Array) {
+			this.overrideArrayMethods(data, callback, path);
+		}
+
+	};
+
+	Observer.property = function (data, key, value, callback, path, redefine) {
+		var propertyDescriptor = this.createPropertyDescriptor(data, key, value, callback, path, redefine);
+
+		if (propertyDescriptor) {
+			Object.defineProperty(data, key, propertyDescriptor);
+		}
+
+		return data[key];
+	};
+
+	Observer.traverse = function (data, keys, type, callback, value) {
+
+		if (typeof keys === 'string') {
+			keys = [keys];
+		}
+
+		var v, p, path, result;
+		var key = keys[keys.length-1];
+
+		for (var i = 0, l = keys.length-1; i < l; i++) {
+
+			if (!(keys[i] in data)) {
+
+				if (type === this.GET || type === this.REMOVE) {
+
+					return undefined;
+
+				} else if (type === this.SET) {
+
+					v = isNaN(keys[i+1]) ? {} : [];
+					p = keys.slice(0, i+1).join('.');
+					v = this.property(data, keys[i], v, callback, p);
+
+					if (callback) {
+						callback(v, p, keys[i], data);
+					}
+
+				}
+
+			}
+
+			data = data[keys[i]];
+		}
+
+		if (type === this.SET) {
+
+			path = keys.join('.');
+			result = this.property(data, key, value, callback, path);
+
+			if (callback) {
+				callback(result, path, keys, data);
+			}
+
+		} else if (type === this.GET) {
+
+			result = data[key];
+
+		} else if (type === this.REMOVE) {
+
+			result = data[key];
+			delete data[key];
+
+		}
+
+		return result;
+	};
+
 	Observer.overrideObjectMethods = function (data, callback, path) {
 		var self = this;
 
@@ -2456,73 +2562,19 @@
 			$get: {
 				configurable: true,
 				value: function (keys) {
-
-					if (typeof keys === 'string') {
-						keys = [keys];
-					}
-
-					var key = keys[keys.length-1];
-					var collection = this;
-
-					for (var i = 0, l = keys.length-1; i < l; i++) {
-						if (!(keys[i] in collection)) {
-							return undefined;
-						} else {
-							collection = collection[keys[i]];
-						}
-					}
-
-					return collection[key];
+					return self.traverse(data, keys, self.GET, callback);
 				}
 			},
 			$set: {
 				configurable: true,
 				value: function (keys, value) {
-
-					if (typeof keys === 'string') {
-						keys = [keys];
-					}
-
-					var key = keys[keys.length-1];
-					var collection = this;
-
-					for (var i = 0, l = keys.length-1; i < l; i++) {
-						collection = collection[keys[i]];
-					}
-
-					value = self.defineProperty(collection, key, value, callback, path);
-
-					if (callback) {
-						callback(value, path + key, key, this);
-					}
-
-					return value;
+					return self.traverse(data, keys, self.SET, callback, value);
 				}
 			},
 			$remove: {
 				configurable: true,
 				value: function (keys) {
-
-					if (typeof keys === 'string') {
-						keys = [keys];
-					}
-
-					var key = keys[keys.length-1];
-					var collection = this;
-
-					for (var i = 0, l = keys.length-1; i < l; i++) {
-						collection = collection[keys[i]];
-					}
-
-					var value = collection[key];
-
-					delete collection[key];
-
-					if (callback) {
-						callback(undefined, path + key, key, collection);
-					}
-
-					return value;
+					return self.traverse(data, keys, self.REMOVE, callback);
 				}
 			}
 		});
@@ -2541,7 +2593,7 @@
 					}
 
 					for (var i = 0, l = arguments.length; i < l; i++) {
-						self.defineProperty(data, data.length, arguments[i], callback, path);
+						self.property(data, data.length, arguments[i], callback, path);
 
 						if (callback) {
 							callback(data.length, path.slice(0, -1), 'length', data);
@@ -2576,7 +2628,7 @@
 					}
 
 					for (i = 0, l = result.length; i < l; i++) {
-						self.defineProperty(data, data.length, result[i], callback, path);
+						self.property(data, data.length, result[i], callback, path);
 
 						if (callback) {
 							callback(data.length, path.slice(0, -1), 'length', data);
@@ -2707,7 +2759,7 @@
 					if (i > 0) {
 
 						while (i--) {
-							self.defineProperty(data, data.length, result[index++], callback, path);
+							self.property(data, data.length, result[index++], callback, path);
 
 							if (callback) {
 								callback(data.length, path.slice(0, -1), 'length', data);
@@ -2739,7 +2791,7 @@
 	var Model = {};
 
 	Model.data = {};
-	Model.isRan = false;
+	Model.ran = false;
 
 	// Model.overwrite = function (data) {
 	// 	Observer.create(
@@ -2763,16 +2815,6 @@
 	//
 	// 	});
 	// };
-	//
-	// Model.get = function (keys) {
-	// 	var result = Global.utility.traverse(this.data, keys);
-	// 	return result ? result.data[result.key] : undefined;
-	// };
-	//
-	// Model.set = function (keys, value) {
-	// 	var result = this.traverse(keys, true);
-	// 	return result.data.$set(result.key, value);
-	// };
 
 	// Model.observer = function (data, path) {
 	// 	var paths = path.split('.');
@@ -2789,39 +2831,89 @@
 	//
 	// };
 
-	Model.run = function () {
+	// Model.traverse = function (data, keys, value) {
+	//
+	// 	if (typeof keys === 'string') {
+	// 		keys = [keys];
+	// 	}
+	//
+	// 	var v, p, path, result;
+	// 	var key = keys[keys.length-1];
+	//
+	// 	for (var i = 0, l = keys.length-1; i < l; i++) {
+	//
+	// 		if (!(keys[i] in data)) {
+	//
+	// 			if (value !== undefined) {
+	//
+	// 				v = isNaN(keys[i+1]) ? {} : [];
+	// 				p = keys.slice(0, i+1).join('.');
+	// 				v = Observer.defineProperty(data, keys[i], v, this.listener, p);
+	//
+	// 				this.listener(v, p, keys[i], data);
+	//
+	// 			} else {
+	// 				return undefined;
+	// 			}
+	//
+	// 		}
+	//
+	// 		data = data[keys[i]];
+	// 	}
+	//
+	// 	if (value !== undefined) {
+	// 		path = keys.join('.');
+	// 		result = Observer.defineProperty(data, key, value, this.listener, path);
+	// 		this.listener(result, path, keys, data);
+	// 	} else {
+	// 		result = data[key];
+	// 	}
+	//
+	// 	return result;
+	// };
 
-		if (this.isRan) {
+	Model.get = function (keys) {
+		return this.traverse(this.data, keys);
+	};
+
+	Model.set = function (keys, value) {
+		return this.traverse(this.data, keys, value);
+	};
+
+	Model.listener = function (data, path) {
+
+		var paths = path.split('.');
+		var uid = paths[0];
+		var type = data === undefined ? 'unrender' : 'render';
+
+		path = paths.slice(1).join('.');
+
+		if (!path) {
 			return;
 		}
 
-		this.isRan = true;
-
-		Observer.create(this.data,function (data, path) {
-			
-			var paths = path.split('.');
-			var uid = paths[0];
-			var type = data === undefined ? 'unrender' : 'render';
-
-			path = paths.slice(1).join('.');
-
-			if (!path) {
-				return;
-			}
-
-			Global$1.binder.each(uid, path, function (binder) {
-				Global$1.binder[type](binder);
-			});
-
+		Global$1.binder.each(uid, path, function (binder) {
+			Global$1.binder[type](binder);
 		});
 
+	};
+
+	Model.run = function () {
+
+		if (this.ran) {
+			return;
+		} else {
+			this.ran = true;
+		}
+
+		Observer.create(this.data, this.listener);
 	};
 
 	var View = {};
 
 	View.data = {};
-	View.isRan = false;
-	View.container = document.body;
+	View.ran = false;
+	View.element = document.body;
 
 	View.hasAcceptAttribute = function (element) {
 		var attributes = element.attributes;
@@ -2942,20 +3034,14 @@
 
 	View.run = function () {
 
-		if (this.isRan) {
+		if (this.ran) {
 			return;
+		} else {
+			this.ran = true;
 		}
 
-		this.isRan = true;
-
-		this.add(this.container);
+		this.add(this.element);
 	};
-
-	window.requestAnimationFrame = window.requestAnimationFrame
-		|| window.webkitRequestAnimationFrame
-		|| window.mozRequestAnimationFrame
-		|| window.msRequestAnimationFrame
-		|| function(c) { return setTimeout(c, 16); };
 
 	var Global$1 = Object.defineProperties({}, {
 		window: {
@@ -3000,22 +3086,6 @@
 				return (window.document._currentScript || window.document.currentScript).ownerDocument;
 			}
 		},
-		// requestAnimationFrame: {
-		// 	enumerable: true,
-		// 	value: window.requestAnimationFrame
-		// 		|| window.webkitRequestAnimationFrame
-		// 		|| window.mozRequestAnimationFrame
-		// 		|| window.msRequestAnimationFrame
-		// 		|| function(c) { return setTimeout(c, 16); }
-		// },
-		// clicks: {
-		// 	enumerable: true,
-		// 	value: []
-		// },
-		// popstates: {
-		// 	enumerable: true,
-		// 	value: []
-		// },
 		global: {
 			enumerable: true,
 			value: {}
@@ -3106,7 +3176,7 @@
 		}
 	});
 
-	Global$1.document.addEventListener('click', function (e) {
+	Global$1.document.addEventListener('click', function clickListener (e) {
 
 			// if shadow dom use
 			var target = e.path ? e.path[0] : e.target;
@@ -3169,7 +3239,7 @@
 
 	}, true);
 
-	Global$1.document.addEventListener('input', function (e) {
+	Global$1.document.addEventListener('input', function inputListener (e) {
 
 		if (
 			e.target.type !== 'checkbox'
@@ -3185,30 +3255,32 @@
 
 	}, true);
 
-	Global$1.document.addEventListener('change', function (e) {
+	Global$1.document.addEventListener('change', function changeListener (e) {
 		Global$1.binder.render({
 			name: 'o-value',
 			element: e.target,
 		}, 'view');
 	}, true);
 
-	Global$1.document.addEventListener('load', function (e) {
-		var element = e.target;
+	// Global.document.addEventListener('load', function loadListener (e) {
+	// 	var element = e.target;
+	//
+	// 	if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
+	// 		return;
+	// 	}
+	//
+	// 	var path = Global.utility.resolve(element.src || element.href);
+	//
+	// 	var listener;
+	// 	var load = Global.loader.modules[path];
+	//
+	// 	while (listener = load.listener.shift()) {
+	// 		listener(load);
+	// 	}
+	//
+	// }, true);
 
-		if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
-			return;
-		}
-
-		var path = Global$1.utility.resolve(element.src || element.href);
-
-		var listener;
-		while (listener = Global$1.loader.modules[path].listener.shift()) {
-			listener(Global$1.loader.modules[path]);
-		}
-
-	}, true);
-
-	Global$1.document.addEventListener('reset', function (e) {
+	Global$1.document.addEventListener('reset', function resetListener (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -3227,7 +3299,7 @@
 
 	}, true);
 
-	Global$1.document.addEventListener('submit', function (e) {
+	Global$1.document.addEventListener('submit', function submitListener (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -3273,12 +3345,12 @@
 
 	}, true);
 
-	Global$1.window.addEventListener('popstate', function (e) {
+	Global$1.window.addEventListener('popstate', function popstateListener (e) {
 		var options = { replace: true };
 		Global$1.router.navigate(e.state || window.location.href, options);
 	}, true);
 
-	new Global$1.window.MutationObserver(function (mutations) {
+	new Global$1.window.MutationObserver(function mutationListener (mutations) {
 		var c, i = mutations.length;
 
 		while (i--) {
@@ -3325,32 +3397,34 @@
 		subtree: true
 	});
 
-	Global$1.document.addEventListener('DOMContentLoaded', function () {
-		Global$1.batcher.read(function () {
-			var eStyle = Global$1.document.createElement('style');
-			var sStyle = Global$1.document.createTextNode('o-view, o-view > :first-child { display: block; }');
+	var eStyle = Global$1.document.createElement('style');
+	var sStyle = Global$1.document.createTextNode('o-router, o-router > :first-child { display: block; }');
 
-			eStyle.setAttribute('title', 'Oxe');
-			eStyle.setAttribute('type', 'text/css');
-			eStyle.appendChild(sStyle);
+	eStyle.setAttribute('title', 'Oxe');
+	eStyle.setAttribute('type', 'text/css');
+	eStyle.appendChild(sStyle);
+	Global$1.head.appendChild(eStyle);
 
-			Global$1.batcher.write(function () {
-				Global$1.head.appendChild(eStyle);
-			});
+	Global$1.document.registerElement('o-router', {
+		prototype: Object.create(HTMLElement.prototype)
+	});
 
-			Global$1.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
+	var eIndex = Global$1.document.querySelector('[o-index-url]');
 
-			var eScript = Global$1.document.querySelector('[o-index]');
-			var eIndex = eScript ? eScript.getAttribute('o-index') : null;
+	if (eIndex) {
+		var url = eIndex.getAttribute('o-index-url');
+		var method = eIndex.getAttribute('o-index-method');
+		var transformer = eIndex.getAttribute('o-index-transformer');
 
-			if (eIndex) {
-				Global$1.loader.load({ url: eIndex });
-			}
-
-			Global$1.view.run();
-			Global$1.model.run();
+		Global$1.loader.load({
+			url: url,
+			method: method,
+			transformer: transformer
 		});
-	}, true);
+	}
+
+	Global$1.view.run();
+	Global$1.model.run();
 
 	return Global$1;
 

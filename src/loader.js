@@ -2,21 +2,14 @@ import Transformer from './lib/transformer';
 import Events from './lib/events';
 import Global from './global';
 
-// TODO need to emit a setup event
-
-// if (!self.isLoaded) {
-// 	self.isLoaded = true;
-// 	self.emit('setup');
-// }
-
 var Loader = function (options) {
 	Events.call(this);
 
 	this.loads = [];
+	this.ran = false;
+	this.methods = {};
 	this.modules = {};
-	this.isRan = false;
-	this.type = 'module';
-	this.isLoaded = false;
+	this.transformers = {};
 
 	this.setup(options);
 };
@@ -26,63 +19,65 @@ Loader.prototype.constructor = Loader;
 
 Loader.prototype.setup = function (options) {
 	options = options || {};
-	this.type = options.type || this.type;
+	this.methods = options.methods || this.methods;
 	this.loads = options.loads || this.loads;
+	this.transformers = options.transformers || this.transformers;
 };
 
 Loader.prototype.execute = function (data) {
-	data = '\'use strict\';\n\n' + data;
-
-	return new Function('$LOADER', 'window', data)(this, window);
+	var text = '\'use strict\';\n\n' + (data.ast ? data.ast.cooked : data.text);
+	var code = new Function('$LOADER', 'window', text);
+	data.result = code(this, window);
 };
 
-Loader.prototype.xhr = function (url, callback) {
-	var xhr = new XMLHttpRequest();
+Loader.prototype.ready = function (data) {
+	if (data && data.listener && data.listener.length) {
+		var listener;
+		while (listener = data.listener.shift()) {
+			listener(data);
+		}
+	}
+};
 
-	xhr.responseType = 'text';
+Loader.prototype.fetch = function (data) {
+	var self = this;
+	var fetch = new XMLHttpRequest();
 
-	xhr.onreadystatechange = function () {
-		if (xhr.readyState === 4) {
-			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-				if (callback) {
-					callback(xhr.responseText);
+	fetch.onreadystatechange = function () {
+		if (fetch.readyState === 4) {
+			if (fetch.status >= 200 && fetch.status < 300 || fetch.status == 304) {
+				data.text = fetch.responseText;
+				if (data.extension === 'js') {
+					if (data.transformer) {
+						self.transform(data, function () {
+							self.execute(data);
+							self.ready(data);
+						});
+					} else {
+						self.execute(data);
+						self.ready(data);
+					}
+				} else {
+					self.ready(data);
 				}
 			} else {
-				throw new Error(xhr.responseText);
+				throw new Error(fetch.responseText);
 			}
 		}
 	};
 
-	xhr.open('GET', url);
-	xhr.send();
-
+	fetch.open('GET', data.url);
+	fetch.send();
 };
 
-Loader.prototype.transform = function (data) {
-	var self = this;
+Loader.prototype.transform = function (data, callback) {
 
-	if (
-		self.type === 'es' || data.type === 'es'
-		|| self.type === 'est' || data.type === 'est'
-	) {
+	if (data.transformer === 'es' || data.transformer === 'est') {
 		data.text = Transformer.template(data.text);
 	}
 
-	if (
-		self.type === 'es' || data.type === 'es'
-		|| self.type === 'esm' || data.type === 'esm'
-	) {
+	if (data.transformer === 'es' || data.transformer === 'esm') {
 		data.ast = Transformer.ast(data);
-	}
-
-	var done = function () {
-		self.modules[data.url].code = self.execute(data.ast ? data.ast.cooked : data.text);
-
-		var listener;
-		while (listener = self.modules[data.url].listener.shift()) {
-			listener(self.modules[data.url]);
-		}
-
 	}
 
 	if (data.ast && data.ast.imports.length) {
@@ -90,117 +85,148 @@ Loader.prototype.transform = function (data) {
 		var count = 0;
 		var total = data.ast.imports.length;
 
-		var callback = function () {
+		var listener = function () {
 			count++;
 
 			if (count === total) {
-				done();
+				callback();
 			}
 
 		};
 
 		for (var i = 0; i < total; i++) {
-			self.load({
-				url: data.ast.imports[i].url
-			}, callback);
+			this.load(data.ast.imports[i].url, listener);
 		}
 
 	} else {
-		done();
+		callback();
 	}
 
 };
 
-Loader.prototype.js = function (data) {
-	var self = this;
+Loader.prototype.attach = function (data) {
+	var element = document.createElement(data.tag);
 
-	if (
-		self.type === 'es' || data.type === 'es'
-		|| self.type === 'est' || data.type === 'est'
-		|| self.type === 'esm' || data.type === 'esm'
-	) {
-		self.xhr(data.url, function (text) {
-			data.text = text;
-			self.transform(data);
-		});
-	} else {
-		var element = document.createElement('script');
+	data.attributes['o-load'] = '';
 
-		element.setAttribute('src', data.url);
-		element.setAttribute('async', 'true');
-
-		if (self.type === 'module' || data.type === 'module') {
-			element.setAttribute('type','module');
-		}
-
-		element.setAttribute('o-load', '');
-
-		document.head.appendChild(element);
+	for (var name in data.attributes) {
+		element.setAttribute(name, data.attributes[name]);
 	}
-
-};
-
-Loader.prototype.css = function (data) {
-	var self = this;
-	var element = document.createElement('link');
-
-	element.setAttribute('href', data.url);
-	element.setAttribute('rel','stylesheet');
-	element.setAttribute('type', 'text/css');
-	element.setAttribute('o-load', '');
 
 	document.head.appendChild(element);
 };
 
-Loader.prototype.load = function (data, callback) {
-	var self = this;
+Loader.prototype.js = function (data) {
+	if (
+		data.method === 'fetch'
+		|| data.transformer === 'es'
+		|| data.transformer === 'est'
+		|| data.transformer === 'esm'
+	) {
+		this.fetch(data);
+	} else if (data.method === 'script') {
+		this.attach({
+			tag: 'script',
+			attributes: {
+				async: '',
+				src: data.url,
+				type: 'text/javascript',
+			}
+		});
+	} else {
+		this.attach({
+			tag: 'module',
+			attributes: {
+				async: '',
+				src: data.url,
+				type: 'module',
+			}
+		});
+	}
+};
 
-	if (data.constructor === String) {
+Loader.prototype.css = function (data) {
+	if (data.method === 'fetch') {
+		this.fetch(data);
+	} else {
+		this.attach({
+			tag: 'link',
+			attributes: {
+				href: data.url,
+				type: 'text/css',
+				rel: 'stylesheet'
+			}
+		});
+	}
+};
+
+Loader.prototype.load = function (data, listener) {
+
+	if (typeof data === 'string') {
 		data = { url: data };
 	}
 
 	data.url = Global.utility.resolve(data.url);
-	data.extension = Global.utility.extension(data.url);
 
-	if (!data.extension) {
-		data.url = data.url + '.js';
-	}
+	if (data.url in this.modules) {
+		var load = this.modules[data.url];
 
-	if (data.url in self.modules) {
-		if (self.modules[data.url].listener.length) {
-			return self.modules[data.url].listener.push(callback);
+		if (load.listener.length) {
+			if (listener) {
+				load.listener.push(listener);
+			}
 		} else {
-			return callback(self.modules[data.url]);
+			load.listener.push(listener);
+			this.ready(load);
 		}
-	} else {
-		self.modules[data.url] = {
-			url: data.url,
-			listener: [ callback ]
-		};
+
+		return;
 	}
+
+	this.modules[data.url] = data;
+
+	data.extension = data.extension || Global.utility.extension(data.url);
+
+	data.listener = listener ? [listener] : [];
+	data.method = data.method || this.methods[data.extension];
+	data.transformer = data.transformer || this.transformers[data.extension];
 
 	if (data.extension === 'js') {
-		self.js(data);
+		this.js(data);
 	} else if (data.extension === 'css') {
-		self.css(data);
+		this.css(data);
 	} else {
-		throw new Error('Oxe.Loader - unreconized file type');
+		this.fetch(data);
 	}
 
 };
 
-Loader.prototype.run = function () {
-	var self = this;
-	var load, loaded;
+Loader.prototype.listener = function (e) {
+	var element = e.target;
 
-	if (self.isRan) {
+	if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
 		return;
 	}
 
-	self.isRan = true;
+	var path = Global.utility.resolve(element.src || element.href);
+	var load = this.modules[path];
 
-	while (load = self.loads.shift()) {
-		self.load(load);
+	this.ready(load);
+};
+
+Loader.prototype.run = function () {
+
+	if (this.ran) {
+		return;
+	} else {
+		this.ran = true;
+	}
+
+	Global.document.addEventListener('load', this.listener.bind(this), true);
+
+	var load;
+	while (load = this.loads.shift()) {
+		this.load(load);
 	}
 
 };

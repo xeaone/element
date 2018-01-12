@@ -43,12 +43,19 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 ### Oxe.loader
 ES6 import and export module support. Currently `export default` is the only import/export format supported. Can handle css file loading.
 - `options: Object`
-	- `type: String` The method in which the loader will load files.
-		- `module` Appends a module script tag **default**
-		- `script` Appends a standard script tag
-		- `es` Enables ES6 module and template string re-writes uses XHR
-		- `esm` Enables ES6 module re-writes uses XHR (Note: default export/import only)
-		- `est` Enables ES6 template string re-writes uses XHR (Note: Any backtick will be re-writen)
+	- `transformers: Objcet`
+		- `js: String`
+			- `es` Enables ES6 module and template string re-writes
+			- `esm` Enables ES6 module re-writes uses (Note: only supporting default export/import)
+			- `est` Enables ES6 template string re-writes uses (Note: Any backtick will be re-writen)
+	- `methods: Objcet`
+		- `js: String`
+			- `fetch` Fetches the content and executes
+			- `script` Appends to header as a standard script tag
+			- `attach` Appends to header as a module script tag  **default**
+		- `css: String`
+			- `fetch` Fetches the content
+			- `attach` Appends to header as a link tag **default**
 	- `loads: Array` Adds load objects or strings such as non route components
 		- `load: Object, String`
 			- `url: String` Path to file resources
@@ -91,6 +98,7 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 ### Oxe.router
 Automatically use the default action for non origin matching hrefs
 - `options: Object`
+	- `element: String, Element` (default: 'o-router') The container to render route changes
 	- `auth: Boolean` (default: false) Enables Oxe.Keeper
 	- `hash: Boolean` (default: false) Hash URL mode
 	- `trailing: Boolean` (default: false) Trailing slash
@@ -103,7 +111,7 @@ Automatically use the default action for non origin matching hrefs
 				- `parameters: String` Named '/account/{user}', or catchalls '{\*}'
 			- `title: String` The title for the page
 			- `handler: Function` Overrieds the default render method
-			- `component: String` The name of a component to insert into o-view
+			- `component: String` The name of a component to insert into o-router
 			- `url: Object, String` URL path to JS web-component or a Oxe.loader.load Object
 - `setup: Function`
 	- `options: Object` Accepts the above options
@@ -124,7 +132,7 @@ Automatically use the default action for non origin matching hrefs
 	- `username: String`
 	- `password: String`
 	- `parameters: Object` Key value pairs of the route params (dynamic route paths)
-- `run: Function` Must be called after <o-view></o-view> is created
+- `run: Function` Must be called after <o-router></o-router> is created
 - `render: Function` Will render a route object it is usefull if your using route has a handler
 - `redirect: Function` Uses window.location.href which is treated like a 301 redirect for SEO
 	- `path: String`

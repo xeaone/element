@@ -1,6 +1,6 @@
 import Global from './global';
 
-Global.document.addEventListener('click', function (e) {
+Global.document.addEventListener('click', function clickListener (e) {
 
 		// if shadow dom use
 		var target = e.path ? e.path[0] : e.target;
@@ -63,7 +63,7 @@ Global.document.addEventListener('click', function (e) {
 
 }, true);
 
-Global.document.addEventListener('input', function (e) {
+Global.document.addEventListener('input', function inputListener (e) {
 
 	if (
 		e.target.type !== 'checkbox'
@@ -79,30 +79,32 @@ Global.document.addEventListener('input', function (e) {
 
 }, true);
 
-Global.document.addEventListener('change', function (e) {
+Global.document.addEventListener('change', function changeListener (e) {
 	Global.binder.render({
 		name: 'o-value',
 		element: e.target,
 	}, 'view');
 }, true);
 
-Global.document.addEventListener('load', function (e) {
-	var element = e.target;
+// Global.document.addEventListener('load', function loadListener (e) {
+// 	var element = e.target;
+//
+// 	if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
+// 		return;
+// 	}
+//
+// 	var path = Global.utility.resolve(element.src || element.href);
+//
+// 	var listener;
+// 	var load = Global.loader.modules[path];
+//
+// 	while (listener = load.listener.shift()) {
+// 		listener(load);
+// 	}
+//
+// }, true);
 
-	if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
-		return;
-	}
-
-	var path = Global.utility.resolve(element.src || element.href);
-
-	var listener;
-	while (listener = Global.loader.modules[path].listener.shift()) {
-		listener(Global.loader.modules[path]);
-	}
-
-}, true);
-
-Global.document.addEventListener('reset', function (e) {
+Global.document.addEventListener('reset', function resetListener (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -121,7 +123,7 @@ Global.document.addEventListener('reset', function (e) {
 
 }, true);
 
-Global.document.addEventListener('submit', function (e) {
+Global.document.addEventListener('submit', function submitListener (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -167,12 +169,12 @@ Global.document.addEventListener('submit', function (e) {
 
 }, true);
 
-Global.window.addEventListener('popstate', function (e) {
+Global.window.addEventListener('popstate', function popstateListener (e) {
 	var options = { replace: true };
 	Global.router.navigate(e.state || window.location.href, options);
 }, true);
 
-new Global.window.MutationObserver(function (mutations) {
+new Global.window.MutationObserver(function mutationListener (mutations) {
 	var c, i = mutations.length;
 
 	while (i--) {
@@ -219,31 +221,33 @@ new Global.window.MutationObserver(function (mutations) {
 	subtree: true
 });
 
-Global.document.addEventListener('DOMContentLoaded', function () {
-	Global.batcher.read(function () {
-		var eStyle = Global.document.createElement('style');
-		var sStyle = Global.document.createTextNode('o-view, o-view > :first-child { display: block; }');
+var eStyle = Global.document.createElement('style');
+var sStyle = Global.document.createTextNode('o-router, o-router > :first-child { display: block; }');
 
-		eStyle.setAttribute('title', 'Oxe');
-		eStyle.setAttribute('type', 'text/css');
-		eStyle.appendChild(sStyle);
+eStyle.setAttribute('title', 'Oxe');
+eStyle.setAttribute('type', 'text/css');
+eStyle.appendChild(sStyle);
+Global.head.appendChild(eStyle);
 
-		Global.batcher.write(function () {
-			Global.head.appendChild(eStyle);
-		});
+Global.document.registerElement('o-router', {
+	prototype: Object.create(HTMLElement.prototype)
+});
 
-		Global.document.registerElement('o-view', { prototype: Object.create(HTMLElement.prototype) });
+var eIndex = Global.document.querySelector('[o-index-url]')
 
-		var eScript = Global.document.querySelector('[o-index]')
-		var eIndex = eScript ? eScript.getAttribute('o-index') : null;
+if (eIndex) {
+	var url = eIndex.getAttribute('o-index-url');
+	var method = eIndex.getAttribute('o-index-method');
+	var transformer = eIndex.getAttribute('o-index-transformer');
 
-		if (eIndex) {
-			Global.loader.load({ url: eIndex });
-		}
-
-		Global.view.run();
-		Global.model.run();
+	Global.loader.load({
+		url: url,
+		method: method,
+		transformer: transformer
 	});
-}, true);
+}
+
+Global.view.run();
+Global.model.run();
 
 export default Global;

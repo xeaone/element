@@ -1,6 +1,6 @@
 
 Oxe.component.define({
-	name: 'v-js',
+	name: 'r-js',
 	model: {
 		text: 'Hello from js test'
 	},

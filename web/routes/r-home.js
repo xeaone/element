@@ -3,7 +3,7 @@ import Say from '/modules/say.js';
 
 var home = Escape(`
 	Oxe.component.define({
-		name: 'v-home',
+		name: 'r-home',
 		html: \`
 			<h1 o-text="title"></h1>
 		\`,
@@ -23,29 +23,28 @@ var indexjs = Escape(`
 		},
 		fetcher: {
 			auth: true, // enables keeper for all fetches
-			request: function (opt, xhr) {
-				return true; // false will cancel the fetcher.fetch
-			},
-			response: function (opt, xhr) {
-				return true; // false will cancel the fetcher.fetch handlers
-			}
 		},
 		loader: {
-			type: 'es', // Enables ES6 module and template string re-write support
+			transformers: {
+				js: 'es', // enables ES6 module and template string re-writes
+			},
+			methods: {
+				js: 'fetch'
+			},
 			loads: [
-				{
-					url: '/components/e-menu.js'
-				}
+				'index.css',
+				'elements/e-menu.js'
 			]
 		},
 		router: {
 			auth: true, // enables keeper for all routes
 			routes: [
 				{
+					auth: false, // individually disable/eneable auth
 					path: '/',
 					title: 'Home',
-					component: 'v-home',
-					url: 'views/v-home.js'
+					component: 'r-home',
+					url: 'routes/r-home.js'
 				}
 			]
 		}
@@ -56,8 +55,7 @@ var indexhtml = Escape(/*html*/`
 	<html>
 	<head>
 		<base href="/">
-		<script src="oxe.min.js" defer></script>
-		<script src="index.js" defer></script>
+		<script src="oxe.min.js" o-index-url="index.js" o-index-method="fetch" o-index-transformer="es" async></script>
 	</head>
 	<body>
 		<e-menu>
@@ -65,19 +63,18 @@ var indexhtml = Escape(/*html*/`
 				<li><a href="/home">Home</a></li>
 			</ul>
 		</e-menu>
-		<o-view></o-view>
+		<o-router></o-router>
 	</body>
 	</html>
 `);
 
 Oxe.component.define({
-	name: 'v-home',
+	name: 'r-home',
 	attached: function () {
 		Prism.highlightAll();
 	},
 	created: function () {
-		console.log(Oxe.location);
-		Say('v-home created');
+		Say('r-home created');
 	},
 	html: `
 		<h2>Overview</h2>

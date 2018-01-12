@@ -1,9 +1,14 @@
 
 Oxe.setup({
 	loader: {
-		type: 'es',
+		methods: {
+			js: 'fetch'
+		},
+		transformers: {
+			js: 'es'
+		},
 		loads: [
-			'./o-loop.js'
+			'./e-loop.js'
 		]
 	}
 });

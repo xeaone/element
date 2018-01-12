@@ -1,7 +1,7 @@
 import Say from '../modules/say.js';
 
 Oxe.component.define({
-	name: 'v-test',
+	name: 'r-test',
 	model: {
 		blank: '',
 		show_hide: true,
@@ -125,7 +125,7 @@ Oxe.component.define({
 
 		}, 3000);
 
-		Say('v-test created');
+		Say('r-test created');
 	},
 	html: `
 		<style>

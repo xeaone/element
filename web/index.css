@@ -1,15 +1,10 @@
-:root > * {
+html > * {
 	margin: 0;
 	padding: 0;
 	color: dimgray;
 	box-sizing: border-box;
 	font-family: sans-serif;
 }
-
-body {
-	opacity: 1;
-}
-
 html, body {
 	flex: 1;
 	width: 100vw;
@@ -19,7 +14,6 @@ html, body {
     flex-direction: column;
 	background-color: white;
 }
-
 h1 {
 	font-size: 3rem;
 	font-weight: 300;
@@ -52,7 +46,6 @@ pre {
 	font-family: monospace !important;
 	background-color: whitesmoke !important;
 }
-
 .title {
 	display: block;
 	padding: 1rem 0;
@@ -92,20 +85,15 @@ pre {
 /*
 	views
 */
-
-o-view {
+o-router {
 	padding: 1rem;
 	display: block;
 }
-o-view > :first-child {
+o-router > :first-child {
 	margin: auto;
 	max-width: 900px;
 }
-
-v-root {
-	flex-direction: column;
-}
-v-404 {
+r-404 {
 	text-align: center;
 	align-items: center;
 	align-content: center;

@@ -9,12 +9,6 @@ import Keeper from './keeper';
 import Model from './model';
 import View from './view';
 
-window.requestAnimationFrame = window.requestAnimationFrame
-	|| window.webkitRequestAnimationFrame
-	|| window.mozRequestAnimationFrame
-	|| window.msRequestAnimationFrame
-	|| function(c) { return setTimeout(c, 16); };
-
 var Global = Object.defineProperties({}, {
 	window: {
 		enumerable: true,
@@ -58,22 +52,6 @@ var Global = Object.defineProperties({}, {
 			return (window.document._currentScript || window.document.currentScript).ownerDocument;
 		}
 	},
-	// requestAnimationFrame: {
-	// 	enumerable: true,
-	// 	value: window.requestAnimationFrame
-	// 		|| window.webkitRequestAnimationFrame
-	// 		|| window.mozRequestAnimationFrame
-	// 		|| window.msRequestAnimationFrame
-	// 		|| function(c) { return setTimeout(c, 16); }
-	// },
-	// clicks: {
-	// 	enumerable: true,
-	// 	value: []
-	// },
-	// popstates: {
-	// 	enumerable: true,
-	// 	value: []
-	// },
 	global: {
 		enumerable: true,
 		value: {}

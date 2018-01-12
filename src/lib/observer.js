@@ -1,49 +1,13 @@
 
 var Observer = {};
 
-Observer.create = function (data, callback, path) {
-	var self = this;
-	self.defineProperties(data, callback, path, true);
+Observer.GET = 2;
+Observer.SET = 3;
+Observer.REMOVE = 4;
+
+Observer.create = function (data, callback) {
+	this.properties(data, callback, null, true);
 	return data;
-};
-
-Observer.defineProperties = function (data, callback, path, redefine) {
-	var self = this;
-
-	path = path ? path + '.' : '';
-
-	var propertyDescriptors = {};
-
-	for (var key in data) {
-		var propertyDescriptor = self.createPropertyDescriptor(data, key, data[key], callback, path, redefine);
-
-		if (propertyDescriptor) {
-			propertyDescriptors[key] = propertyDescriptor;
-		}
-
-	}
-
-	Object.defineProperties(data, propertyDescriptors);
-
-	if (data && data.constructor === Object || data.constructor === Array) {
-		self.overrideObjectMethods(data, callback, path);
-	}
-
-	if (data && data.constructor === Array) {
-		self.overrideArrayMethods(data, callback, path);
-	}
-
-};
-
-Observer.defineProperty = function (data, key, value, callback, path, redefine) {
-	var self = this;
-	var propertyDescriptor = self.createPropertyDescriptor(data, key, value, callback, path, redefine);
-
-	if (propertyDescriptor) {
-		Object.defineProperty(data, key, propertyDescriptor);
-	}
-
-	return data[key];
 };
 
 Observer.createPropertyDescriptor = function (data, key, value, callback, path, redefine) {
@@ -62,7 +26,7 @@ Observer.createPropertyDescriptor = function (data, key, value, callback, path, 
 
 	// recursive observe child properties
 	if (value && typeof value === 'object') {
-		self.defineProperties(value, callback, path + key, redefine);
+		self.properties(value, callback, path + key, redefine);
 	}
 
 	// set the property value if getter setter previously defined and redefine is false
@@ -94,7 +58,7 @@ Observer.createPropertyDescriptor = function (data, key, value, callback, path, 
 
 			//	adds attributes to new valued property getter setter
 			if (newValue && typeof newValue === 'object') {
-				self.defineProperties(newValue, callback, path + key, redefine);
+				self.properties(newValue, callback, path + key, redefine);
 			}
 
 			if (callback) {
@@ -105,6 +69,99 @@ Observer.createPropertyDescriptor = function (data, key, value, callback, path, 
 	};
 };
 
+Observer.properties = function (data, callback, path, redefine) {
+	path = path ? path + '.' : '';
+
+	var propertyDescriptors = {};
+
+	for (var key in data) {
+		var propertyDescriptor = this.createPropertyDescriptor(data, key, data[key], callback, path, redefine);
+
+		if (propertyDescriptor) {
+			propertyDescriptors[key] = propertyDescriptor;
+		}
+
+	}
+
+	Object.defineProperties(data, propertyDescriptors);
+
+	if (data && data.constructor === Object || data.constructor === Array) {
+		this.overrideObjectMethods(data, callback, path);
+	}
+
+	if (data && data.constructor === Array) {
+		this.overrideArrayMethods(data, callback, path);
+	}
+
+};
+
+Observer.property = function (data, key, value, callback, path, redefine) {
+	var propertyDescriptor = this.createPropertyDescriptor(data, key, value, callback, path, redefine);
+
+	if (propertyDescriptor) {
+		Object.defineProperty(data, key, propertyDescriptor);
+	}
+
+	return data[key];
+};
+
+Observer.traverse = function (data, keys, type, callback, value) {
+
+	if (typeof keys === 'string') {
+		keys = [keys];
+	}
+
+	var v, p, path, result;
+	var key = keys[keys.length-1];
+
+	for (var i = 0, l = keys.length-1; i < l; i++) {
+
+		if (!(keys[i] in data)) {
+
+			if (type === this.GET || type === this.REMOVE) {
+
+				return undefined;
+
+			} else if (type === this.SET) {
+
+				v = isNaN(keys[i+1]) ? {} : [];
+				p = keys.slice(0, i+1).join('.');
+				v = this.property(data, keys[i], v, callback, p);
+
+				if (callback) {
+					callback(v, p, keys[i], data);
+				}
+
+			}
+
+		}
+
+		data = data[keys[i]];
+	}
+
+	if (type === this.SET) {
+
+		path = keys.join('.');
+		result = this.property(data, key, value, callback, path);
+
+		if (callback) {
+			callback(result, path, keys, data);
+		}
+
+	} else if (type === this.GET) {
+
+		result = data[key];
+
+	} else if (type === this.REMOVE) {
+
+		result = data[key];
+		delete data[key];
+
+	}
+
+	return result;
+};
+
 Observer.overrideObjectMethods = function (data, callback, path) {
 	var self = this;
 
@@ -112,73 +169,19 @@ Observer.overrideObjectMethods = function (data, callback, path) {
 		$get: {
 			configurable: true,
 			value: function (keys) {
-
-				if (typeof keys === 'string') {
-					keys = [keys];
-				}
-
-				var key = keys[keys.length-1];
-				var collection = this;
-
-				for (var i = 0, l = keys.length-1; i < l; i++) {
-					if (!(keys[i] in collection)) {
-						return undefined;
-					} else {
-						collection = collection[keys[i]];
-					}
-				}
-
-				return collection[key];
+				return self.traverse(data, keys, self.GET, callback);
 			}
 		},
 		$set: {
 			configurable: true,
 			value: function (keys, value) {
-
-				if (typeof keys === 'string') {
-					keys = [keys];
-				}
-
-				var key = keys[keys.length-1];
-				var collection = this;
-
-				for (var i = 0, l = keys.length-1; i < l; i++) {
-					collection = collection[keys[i]];
-				}
-
-				value = self.defineProperty(collection, key, value, callback, path);
-
-				if (callback) {
-					callback(value, path + key, key, this);
-				}
-
-				return value;
+				return self.traverse(data, keys, self.SET, callback, value);
 			}
 		},
 		$remove: {
 			configurable: true,
 			value: function (keys) {
-
-				if (typeof keys === 'string') {
-					keys = [keys];
-				}
-
-				var key = keys[keys.length-1];
-				var collection = this;
-
-				for (var i = 0, l = keys.length-1; i < l; i++) {
-					collection = collection[keys[i]];
-				}
-
-				var value = collection[key];
-
-				delete collection[key];
-
-				if (callback) {
-					callback(undefined, path + key, key, collection);
-				}
-
-				return value;
+				return self.traverse(data, keys, self.REMOVE, callback);
 			}
 		}
 	});
@@ -197,7 +200,7 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 				}
 
 				for (var i = 0, l = arguments.length; i < l; i++) {
-					self.defineProperty(data, data.length, arguments[i], callback, path);
+					self.property(data, data.length, arguments[i], callback, path);
 
 					if (callback) {
 						callback(data.length, path.slice(0, -1), 'length', data);
@@ -232,7 +235,7 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 				}
 
 				for (i = 0, l = result.length; i < l; i++) {
-					self.defineProperty(data, data.length, result[i], callback, path);
+					self.property(data, data.length, result[i], callback, path);
 
 					if (callback) {
 						callback(data.length, path.slice(0, -1), 'length', data);
@@ -363,7 +366,7 @@ Observer.overrideArrayMethods = function (data, callback, path) {
 				if (i > 0) {
 
 					while (i--) {
-						self.defineProperty(data, data.length, result[index++], callback, path);
+						self.property(data, data.length, result[index++], callback, path);
 
 						if (callback) {
 							callback(data.length, path.slice(0, -1), 'length', data);

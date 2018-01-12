@@ -3,8 +3,8 @@ import Global from './global';
 var View = {};
 
 View.data = {};
-View.isRan = false;
-View.container = document.body;
+View.ran = false;
+View.element = document.body;
 
 View.hasAcceptAttribute = function (element) {
 	var attributes = element.attributes;
@@ -125,13 +125,13 @@ View.remove = function (removedElement, target) {
 
 View.run = function () {
 
-	if (this.isRan) {
+	if (this.ran) {
 		return;
+	} else {
+		this.ran = true;
 	}
 
-	this.isRan = true;
-
-	this.add(this.container);
+	this.add(this.element);
 };
 
 export default View;

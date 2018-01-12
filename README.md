@@ -42,7 +42,7 @@ Loader uses XHR and new Function to load modules on-demand. If your worried abou
 ## Example
 ```js
 Oxe.component.define({
-	name: 'v-home',
+	name: 'r-home',
 	html: `
 		<h1 o-text="title"></h1>
 	`,
@@ -63,9 +63,15 @@ Oxe.setup({
 		auth: true, // enables keeper for all fetches
 	},
 	loader: {
-		type: 'es', // Enables ES6 module and template string re-write support
+		transformers: {
+			js: 'es', // enables ES6 module and template string re-writes
+		},
+		methods: {
+			js: 'fetch'
+		},
 		loads: [
-			'/components/e-menu.js'
+			'index.css',
+			'elements/e-menu.js'
 		]
 	},
 	router: {
@@ -75,8 +81,8 @@ Oxe.setup({
 				auth: false, // individually disable/eneable auth
 				path: '/',
 				title: 'Home',
-				component: 'v-home',
-				url: 'views/v-home.js'
+				component: 'r-home',
+				url: 'routes/r-home.js'
 			}
 		]
 	}
@@ -86,16 +92,17 @@ Oxe.setup({
 <html>
 <head>
 	<base href="/">
-	<script src="oxe.min.js" defer></script>
-	<script src="index.js" defer></script>
+	<script src="oxe.min.js" o-index-url="index.js" o-index-method="fetch" o-index-transformer="es" async></script>
 </head>
 <body>
 	<e-menu>
 		<ul>
-			<li><a href="/home">Home</a></li>
+			<li>
+				<a href="/home">Home</a>
+			</li>
 		</ul>
 	</e-menu>
-	<o-view></o-view>
+	<o-router></o-router>
 </body>
 </html>
 ```

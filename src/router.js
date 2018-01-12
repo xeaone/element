@@ -6,11 +6,12 @@ var Router = function (options) {
 
 	this.cache = {};
 	this.routes = [];
-	this.hash = false;
+	this.ran = false;
 	this.auth = false;
-	this.isRan = false;
+	this.hash = false;
 	this.location = {};
-	this.view = 'o-view';
+	this.container = null;
+	this.element = null;
 	this.trailing = false;
 
 	this.setup(options);
@@ -23,9 +24,9 @@ Router.prototype.setup = function (options) {
 	options = options || {};
 	this.container = options.container;
 	this.auth = options.auth === undefined ? this.auth : options.auth;
-	this.view = options.view === undefined ? this.view : options.view;
 	this.hash = options.hash === undefined ? this.hash : options.hash;
 	this.routes = options.routes === undefined ? this.routes: options.routes;
+	this.element = options.element === undefined ? this.element : options.element;
 	this.external = options.external === undefined ? this.external : options.external;
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 };
@@ -246,26 +247,32 @@ Router.prototype.toLocationObject = function (path) {
 Router.prototype.render = function (route) {
 	var self = this;
 
+	self.emit('navigating');
+
 	if (route.title) {
 		document.title = route.title;
 	}
 
 	Global.loader.load(route.url, function (load) {
-		var child;
 
-		while (child = self.view.children[0]) {
-			self.view.removeChild(child);
+		if (!load.result) {
+			load.result = document.createElement(route.component);
+			load.result.inRouterCache = false;
+			load.result.isRouterComponent = true;
 		}
 
-		if (!load.code) {
-			load.code = document.createElement(route.component);
-			load.code.inRouterCache = false;
-			load.code.isRouterComponent = true;
-		}
+		self.domReady(function () {
+			var child;
 
-		self.view.appendChild(load.code);
-		self.scroll(0, 0);
-		self.emit('navigated');
+			while (child = self.element.children[0]) {
+				self.element.removeChild(child);
+			}
+
+			self.element.appendChild(load.result);
+
+			self.scroll(0, 0);
+			self.emit('navigated');
+		});
 
 	});
 
@@ -315,23 +322,38 @@ Router.prototype.navigate = function (data, options) {
 	}
 };
 
+Router.prototype.elementReady = function (callback) {
+	this.element = this.element || 'o-router';
+
+	if (typeof this.element === 'string') {
+		this.element = document.body.querySelector(this.element);
+	}
+
+	return callback();
+};
+
+Router.prototype.domReady = function (callback) {
+	if (document.readyState === 'interactive' || document.readyState === 'complete') {
+		this.elementReady(callback);
+	} else {
+		document.onreadystatechange = function () {
+			if (document.readyState === 'interactive' || document.readyState === 'complete') {
+				this.elementReady(callback);
+			}
+		}.bind(this);
+	}
+};
+
 Router.prototype.run = function () {
 
-	if (this.isRan) {
+	if (this.ran) {
 		return;
-	}
-
-	this.isRan = true;
-
-	if (typeof this.view === 'string') {
-		this.view = document.body.querySelector(this.view);
-	}
-
-	if (!this.view) {
-		throw new Error('Oxe.router - requires a view element');
+	} else {
+		this.ran = true;
 	}
 
 	var options = { replace: true };
+
 	this.navigate(window.location.href, options);
 };
 

@@ -159,6 +159,7 @@ Binder.prototype.render = function (opt, caller) {
 	opt = this.create(opt);
 	opt = this.get(opt) || opt;
 
+	// opt.data = Global.model.get(opt.keys);
 	opt.data = Global.model.data.$get(opt.keys);
 
 	if (!opt.exists) {

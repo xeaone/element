@@ -1,9 +1,30 @@
 
+Oxe.loader.load('./index.css', function () {
+	document.body.style.opacity = 1;
+});
+
+Oxe.loader.load('./assets/prism.css');
+
+Oxe.router.on('navigating', function () {
+	if (Oxe.router.element) {
+		Oxe.router.element.style.opacity = 0;
+	}
+});
+
+Oxe.router.on('navigated', function () {
+	Oxe.router.element.style.opacity = 1;
+});
+
 Oxe.setup({
 	loader: {
-		type: 'es',
+		methods: {
+			js: 'fetch'
+		},
+		transformers: {
+			js: 'es'
+		},
 		loads: [
-			'./assets/prism.css',
+			'./assets/prism.js',
 			'./elements/e-menu.js'
 		]
 	},
@@ -14,35 +35,27 @@ Oxe.setup({
 			{
 				title: 'Home',
 				path: '/',
-				component: 'v-home',
-				url: './views/v-home.js'
+				component: 'r-home',
+				url: './routes/r-home.js'
 			},
 			{
 				title: 'Test',
 				path: '/test',
-				component: 'v-test',
-				url: './views/v-test.js'
+				component: 'r-test',
+				url: './routes/r-test.js'
 			},
 			{
 				title: 'JS',
 				path: '/js',
-				component: 'v-js',
-				url: './views/v-js.js'
+				component: 'r-js',
+				url: './routes/r-js.js'
 			},
 			{
 				title: '404',
 				path: '/{*}',
-				component: 'v-404',
-				url: './views/v-404.js'
+				component: 'r-404',
+				url: './routes/r-404.js'
 			}
 		]
 	}
-});
-
-Oxe.router.on('navigated', function () {
-	console.log('router: navigated');
-});
-
-Oxe.loader.on('setup', function () {
-	console.log('loader: setup');
 });

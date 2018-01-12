@@ -138,7 +138,7 @@ Transformer.replaceImports = function (text, imps) {
 	for (var i = 0, l = imps.length; i < l; i++) {
 		var imp = imps[i];
 
-		var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\'].code';
+		var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\'].result';
 
 		text = text.replace(imp.raw, pattern);
 	}

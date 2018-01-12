@@ -1,6 +1,6 @@
 
 Oxe.component.define({
-	name: 'o-loop',
+	name: 'e-loop',
 	model: {
 		items: [
 			{ number: 0 },
@@ -10,8 +10,7 @@ Oxe.component.define({
 		var self = this;
 		window.self = self;
 
-		// for (var i = 0; i < 1000; i++) {
-		for (var i = 0; i < 2400; i++) {
+		for (var i = 0; i < 1000; i++) {
 			self.model.items.push({ number: self.model.items.length });
 		}
 
