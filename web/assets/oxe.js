@@ -2187,7 +2187,6 @@
 		opt = this.create(opt);
 		opt = this.get(opt) || opt;
 
-		// opt.data = Global.model.get(opt.keys);
 		opt.data = Global$1.model.data.$get(opt.keys);
 
 		if (!opt.exists) {
