@@ -68,13 +68,13 @@ var Global = Object.defineProperties({}, {
 			data: {}
 		}
 	},
-	view: {
-		enumerable: true,
-		value: View
-	},
 	model: {
 		enumerable: true,
-		value: Model
+		value: new Model()
+	},
+	view: {
+		enumerable: true,
+		value: new View()
 	},
 	utility: {
 		enumerable: true,

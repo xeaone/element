@@ -1,12 +1,24 @@
 import Global from './global';
 
-var View = {};
+var View = function (options) {
+	options = options || {};
 
-View.data = {};
-View.ran = false;
-View.element = document.body;
+	this.data = {};
+	this.element = options.element || window.document.body;
 
-View.hasAcceptAttribute = function (element) {
+	if (window.document.readyState === 'interactive' || window.document.readyState === 'complete') {
+		this.add(this.element);
+	} else {
+		window.document.onreadystatechange = function () {
+			if (window.document.readyState === 'interactive' || window.document.readyState === 'complete') {
+				this.add(this.element);
+			}
+		}.bind(this);
+	}
+
+};
+
+View.prototype.hasAcceptAttribute = function (element) {
 	var attributes = element.attributes;
 
 	for (var i = 0, l = attributes.length; i < l; i++) {
@@ -24,7 +36,7 @@ View.hasAcceptAttribute = function (element) {
 	return false;
 };
 
-View.eachAttribute = function (element, callback) {
+View.prototype.eachAttribute = function (element, callback) {
 	var attributes = element.attributes;
 
 	for (var i = 0, l = attributes.length; i < l; i++) {
@@ -55,7 +67,7 @@ View.eachAttribute = function (element, callback) {
 
 };
 
-View.each = function (element, callback, container) {
+View.prototype.each = function (element, callback, container) {
 
 	if (
 		element.nodeName !== 'O-VIEW'
@@ -95,7 +107,7 @@ View.each = function (element, callback, container) {
 
 };
 
-View.add = function (addedElement) {
+View.prototype.add = function (addedElement) {
 	this.each(addedElement, function (element, container, uid) {
 		this.eachAttribute(element, function (attribute) {
 			Global.binder.render({
@@ -109,7 +121,7 @@ View.add = function (addedElement) {
 	});
 };
 
-View.remove = function (removedElement, target) {
+View.prototype.remove = function (removedElement, target) {
 	this.each(removedElement, function (element, container, uid) {
 		this.eachAttribute(element, function (attribute) {
 			Global.binder.unrender({
@@ -121,17 +133,6 @@ View.remove = function (removedElement, target) {
 			});
 		});
 	}, target);
-};
-
-View.run = function () {
-
-	if (this.ran) {
-		return;
-	} else {
-		this.ran = true;
-	}
-
-	this.add(this.element);
 };
 
 export default View;

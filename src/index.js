@@ -247,7 +247,4 @@ if (eIndex) {
 	});
 }
 
-Global.view.run();
-Global.model.run();
-
 export default Global;

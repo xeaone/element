@@ -2787,48 +2787,14 @@
 		});
 	};
 
-	var Model = {};
+	var Model = function (options) {
+		options = options || {};
 
-	Model.data = {};
-	Model.ran = false;
+		this.data = {};
 
-	// Model.overwrite = function (data) {
-	// 	Observer.create(
-	// 		this.data = data,
-	// 		this.observer.bind(this)
-	// 	);
-	// };
+		Observer.create(this.data, this.listener);
 
-	// Model.traverse = function (path, create) {
-	// 	return Global.utility.traverse(this.data, path, function (data, key, index, keys) {
-	//
-	// 		if (create) {
-	//
-	// 			if (isNaN(keys[index + 1])) {
-	// 				data.$set(key, {});
-	// 			} else {
-	// 				data.$set(key, []);
-	// 			}
-	//
-	// 		}
-	//
-	// 	});
-	// };
-
-	// Model.observer = function (data, path) {
-	// 	var paths = path.split('.');
-	// 	var uid = paths[0];
-	// 	var type = data === undefined ? 'unrender' : 'render';
-	//
-	// 	path = paths.slice(1).join('.');
-	//
-	// 	if (!path) return;
-	//
-	// 	Global.binder.each(uid, path, function (binder) {
-	// 		Global.binder[type](binder);
-	// 	});
-	//
-	// };
+	};
 
 	// Model.traverse = function (data, keys, value) {
 	//
@@ -2871,15 +2837,15 @@
 	// 	return result;
 	// };
 
-	Model.get = function (keys) {
-		return this.traverse(this.data, keys);
+	Model.prototype.get = function (keys) {
+		// return this.traverse(this.data, keys);
 	};
 
-	Model.set = function (keys, value) {
-		return this.traverse(this.data, keys, value);
+	Model.prototype.set = function (keys, value) {
+		// return this.traverse(this.data, keys, value);
 	};
 
-	Model.listener = function (data, path) {
+	Model.prototype.listener = function (data, path) {
 
 		var paths = path.split('.');
 		var uid = paths[0];
@@ -2897,24 +2863,25 @@
 
 	};
 
-	Model.run = function () {
+	var View = function (options) {
+		options = options || {};
 
-		if (this.ran) {
-			return;
+		this.data = {};
+		this.element = options.element || window.document.body;
+
+		if (window.document.readyState === 'interactive' || window.document.readyState === 'complete') {
+			this.add(this.element);
 		} else {
-			this.ran = true;
+			window.document.onreadystatechange = function () {
+				if (window.document.readyState === 'interactive' || window.document.readyState === 'complete') {
+					this.add(this.element);
+				}
+			}.bind(this);
 		}
 
-		Observer.create(this.data, this.listener);
 	};
 
-	var View = {};
-
-	View.data = {};
-	View.ran = false;
-	View.element = document.body;
-
-	View.hasAcceptAttribute = function (element) {
+	View.prototype.hasAcceptAttribute = function (element) {
 		var attributes = element.attributes;
 
 		for (var i = 0, l = attributes.length; i < l; i++) {
@@ -2932,7 +2899,7 @@
 		return false;
 	};
 
-	View.eachAttribute = function (element, callback) {
+	View.prototype.eachAttribute = function (element, callback) {
 		var attributes = element.attributes;
 
 		for (var i = 0, l = attributes.length; i < l; i++) {
@@ -2963,7 +2930,7 @@
 
 	};
 
-	View.each = function (element, callback, container) {
+	View.prototype.each = function (element, callback, container) {
 
 		if (
 			element.nodeName !== 'O-VIEW'
@@ -3003,7 +2970,7 @@
 
 	};
 
-	View.add = function (addedElement) {
+	View.prototype.add = function (addedElement) {
 		this.each(addedElement, function (element, container, uid) {
 			this.eachAttribute(element, function (attribute) {
 				Global$1.binder.render({
@@ -3017,7 +2984,7 @@
 		});
 	};
 
-	View.remove = function (removedElement, target) {
+	View.prototype.remove = function (removedElement, target) {
 		this.each(removedElement, function (element, container, uid) {
 			this.eachAttribute(element, function (attribute) {
 				Global$1.binder.unrender({
@@ -3029,17 +2996,6 @@
 				});
 			});
 		}, target);
-	};
-
-	View.run = function () {
-
-		if (this.ran) {
-			return;
-		} else {
-			this.ran = true;
-		}
-
-		this.add(this.element);
 	};
 
 	var Global$1 = Object.defineProperties({}, {
@@ -3101,13 +3057,13 @@
 				data: {}
 			}
 		},
-		view: {
-			enumerable: true,
-			value: View
-		},
 		model: {
 			enumerable: true,
-			value: Model
+			value: new Model()
+		},
+		view: {
+			enumerable: true,
+			value: new View()
 		},
 		utility: {
 			enumerable: true,
@@ -3421,9 +3377,6 @@
 			transformer: transformer
 		});
 	}
-
-	Global$1.view.run();
-	Global$1.model.run();
 
 	return Global$1;
 

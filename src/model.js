@@ -1,48 +1,14 @@
 import Observer from './lib/observer';
 import Global from './global';
 
-var Model = {};
+var Model = function (options) {
+	options = options || {};
 
-Model.data = {};
-Model.ran = false;
+	this.data = {};
 
-// Model.overwrite = function (data) {
-// 	Observer.create(
-// 		this.data = data,
-// 		this.observer.bind(this)
-// 	);
-// };
+	Observer.create(this.data, this.listener);
 
-// Model.traverse = function (path, create) {
-// 	return Global.utility.traverse(this.data, path, function (data, key, index, keys) {
-//
-// 		if (create) {
-//
-// 			if (isNaN(keys[index + 1])) {
-// 				data.$set(key, {});
-// 			} else {
-// 				data.$set(key, []);
-// 			}
-//
-// 		}
-//
-// 	});
-// };
-
-// Model.observer = function (data, path) {
-// 	var paths = path.split('.');
-// 	var uid = paths[0];
-// 	var type = data === undefined ? 'unrender' : 'render';
-//
-// 	path = paths.slice(1).join('.');
-//
-// 	if (!path) return;
-//
-// 	Global.binder.each(uid, path, function (binder) {
-// 		Global.binder[type](binder);
-// 	});
-//
-// };
+};
 
 // Model.traverse = function (data, keys, value) {
 //
@@ -85,15 +51,15 @@ Model.ran = false;
 // 	return result;
 // };
 
-Model.get = function (keys) {
-	return this.traverse(this.data, keys);
+Model.prototype.get = function (keys) {
+	// return this.traverse(this.data, keys);
 };
 
-Model.set = function (keys, value) {
-	return this.traverse(this.data, keys, value);
+Model.prototype.set = function (keys, value) {
+	// return this.traverse(this.data, keys, value);
 };
 
-Model.listener = function (data, path) {
+Model.prototype.listener = function (data, path) {
 
 	var paths = path.split('.');
 	var uid = paths[0];
@@ -109,17 +75,6 @@ Model.listener = function (data, path) {
 		Global.binder[type](binder);
 	});
 
-};
-
-Model.run = function () {
-
-	if (this.ran) {
-		return;
-	} else {
-		this.ran = true;
-	}
-
-	Observer.create(this.data, this.listener);
 };
 
 export default Model;
