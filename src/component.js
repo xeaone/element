@@ -84,11 +84,11 @@ Component.prototype.define = function (options) {
 		enumerable: true,
 		configurable: true,
 		get: function () {
-			return Global.model.data.$get(this.uid);
+			return Global.model.get(this.uid);
 		},
 		set: function (data) {
 			data = data && typeof data === 'object' ? data : {};
-			return Global.model.data.$set(this.uid, data);
+			return Global.model.set(this.uid, data);
 		}
 	};
 
@@ -125,7 +125,7 @@ Component.prototype.define = function (options) {
 
 		element.setAttribute('o-uid', element.uid);
 
-		Global.model.data.$set(element.uid, options.model || {});
+		Global.model.set(element.uid, options.model || {});
 		Global.events.data[element.uid] = options.events;
 		Global.modifiers.data[element.uid] = options.modifiers;
 

@@ -276,7 +276,7 @@ Render.value = function (opt, caller) {
 				data = opt.element.value;
 			}
 
-			Global.model.data.$set(opt.keys, data);
+			Global.model.set(opt.keys, data);
 			opt.pending = false;
 
 		} else {
@@ -300,9 +300,9 @@ Render.value = function (opt, caller) {
 						}
 					}
 
-					Global.model.data.$set(opt.keys, data);
+					Global.model.set(opt.keys, data);
 				} else if (type === 'radio') {
-					data = opt.data === undefined ? Global.model.data.$set(opt.keys, 0) : opt.data;
+					data = opt.data === undefined ? Global.model.set(opt.keys, 0) : opt.data;
 					query = 'input[type="radio"][o-value="' + opt.value + '"]';
 					elements = opt.container.querySelectorAll(query);
 
@@ -314,13 +314,13 @@ Render.value = function (opt, caller) {
 					elements[data].checked = true;
 				} else if (type === 'file') {
 					attribute = 'files';
-					data = opt.data === undefined ? Global.model.data.$set(opt.keys, []) : opt.data;
+					data = opt.data === undefined ? Global.model.set(opt.keys, []) : opt.data;
 				} else if (type === 'checkbox') {
 					attribute = 'checked';
-					data = opt.data === undefined ? Global.model.data.$set(opt.keys, false) : opt.data;
+					data = opt.data === undefined ? Global.model.set(opt.keys, false) : opt.data;
 				} else {
 					attribute = 'value';
-					data = opt.data === undefined ? Global.model.data.$set(opt.keys, '') : opt.data;
+					data = opt.data === undefined ? Global.model.set(opt.keys, '') : opt.data;
 				}
 
 				if (attribute) {
