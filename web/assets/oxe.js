@@ -2554,7 +2554,10 @@
 						this.$meta[key] = result;
 						Object.defineProperty(this, key, self.property(listener, path, key));
 
-						callback();
+						if (callback) {
+							callback();
+						}
+
 						listener(result, path + key, key);
 						return result;
 					}
