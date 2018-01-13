@@ -1,7 +1,13 @@
 
 var Observer = {};
 
-// TODO sort reverse
+/*
+	TODO:
+		sort, reverse
+		need to test array methods.
+		find a better way to notify length change causing issues
+*/
+
 
 Observer.arrayProperties = function (callback, path) {
 	var self = this;
