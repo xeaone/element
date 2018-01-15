@@ -118,6 +118,8 @@ Utility.replaceEachVariable = function (element, variable, path, index) {
 	var self = this;
 	var iindex = '$index';
 	var vindex = '$' + variable;
+	var result = [];
+
 	this.walker(element, function (node) {
 		if (node.nodeType === 3) {
 			if (node.nodeValue === vindex || node.nodeValue === iindex) {
@@ -136,7 +138,8 @@ Utility.replaceEachVariable = function (element, variable, path, index) {
 			}
 		}
 	});
-}
+
+};
 
 Utility.traverse = function (data, path, callback) {
 	var keys = typeof path === 'string' ? path.split('.') : path;
