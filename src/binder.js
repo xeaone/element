@@ -94,9 +94,8 @@ Binder.prototype.each = function (uid, path, callback) {
 
 				var binders = paths[key];
 
-				for (var i = 0, l = binders.length; i < l; i++) {
+				for (var i = 0; i < binders.length; i++) {
 					var binder = binders[i];
-
 					callback(binder, i, binders, paths, key);
 				}
 

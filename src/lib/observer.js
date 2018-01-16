@@ -5,26 +5,105 @@ var Observer = {};
 	TODO:
 		sort, reverse
 		need to test array methods.
-		find a better way to notify length change causing issues
 */
 
+Observer.splice = function () {
+	var startIndex = arguments[0];
+	var deleteCount = arguments[1];
+	var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
 
-Observer.arrayProperties = function (callback, path) {
+	if (
+		!this.length
+		|| typeof startIndex !== 'number' || typeof deleteCount !== 'number'
+	) {
+		return [];
+	}
+
+	// handle negative startIndex
+	if (startIndex < 0) {
+		startIndex = this.length + startIndex;
+		startIndex = startIndex > 0 ? startIndex : 0;
+	} else {
+		startIndex = startIndex < this.length ? startIndex : this.length;
+	}
+
+	// handle negative deleteCount
+	if (deleteCount < 0) {
+		deleteCount = 0;
+	} else if (deleteCount > (this.length - startIndex)) {
+		deleteCount = this.length - startIndex;
+	}
+
+	var totalCount = this.$meta.length;
+	var key, index, value, updateCount;
+	var argumentIndex = 2;
+	var argumentsCount = arguments.length - argumentIndex;
+	var result = this.slice(startIndex, deleteCount);
+
+	// if (addCount === deleteCount) {
+	// 	updateCount = addCount;
+	// } else if (addCount > deleteCount) {
+	// 	updateCount = deleteCount % addCount;
+	// } else if (deleteCount > addCount) {
+	// 	updateCount = addCount % deleteCount;
+	// }
+
+	updateCount = (totalCount - 1) - startIndex;
+
+	// console.log(`startIndex: ${startIndex}`);
+	// console.log(`updateCount: ${updateCount}`);
+	// console.log(`addCount: ${addCount}`);
+	// console.log(`deleteCount: ${deleteCount}`);
+
+	if (updateCount > 0) {
+		index = startIndex;
+		while (updateCount--) {
+			key = index++;
+
+			if (argumentsCount && argumentIndex < argumentsCount) {
+				value = arguments[argumentIndex++];
+			} else {
+				value = this.$meta[index];
+			}
+
+			this.$meta[key] = Observer.create(value, this.$meta.listener, this.$meta.path + key);
+			this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
+		}
+	}
+
+	if (addCount > 0) {
+		while (addCount--) {
+			key = this.length;
+			this.$meta[key] = Observer.create(arguments[argumentIndex++], this.$meta.listener, this.$meta.path + key);
+			Observer.defineProperty(this, key);
+			this.$meta.listener(this.length, this.$meta.path.slice(0, -1), 'length');
+			this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
+		}
+	}
+
+	if (deleteCount > 0) {
+		while (deleteCount--) {
+			this.$meta.length--;
+			this.length--;
+			key = this.length;
+			this.$meta.listener(key, this.$meta.path.slice(0, -1), 'length');
+			this.$meta.listener(undefined, this.$meta.path + key, key);
+		}
+	}
+
+	return result;
+};
+
+Observer.arrayProperties = function () {
 	var self = this;
 
 	return {
 		push: {
 			value: function () {
-
-				if (!arguments.length) {
-					return this.length;
-				}
-
+				if (!arguments.length) return this.length;
 
 				for (var i = 0, l = arguments.length; i < l; i++) {
-					this.$set(this.length, arguments[i], function () {
-						callback(this.length + arguments.length, path.slice(0, -1), 'length');
-					});
+					self.splice.call(this, this.length, 0, arguments[i]);
 				}
 
 				return this.length;
@@ -32,18 +111,10 @@ Observer.arrayProperties = function (callback, path) {
 		},
 		unshift: {
 			value: function () {
+				if (!arguments.length) return this.length;
 
-				if (!arguments.length) {
-					return this.length;
-				}
-
-				callback(this.length + arguments.length, path.slice(0, -1), 'length');
-				Array.prototype.unshift.apply(this, arguments);
-
-				throw new Error('this needs to be looked at');
-
-				for (var i = 0, l = this.length; i < l; i++) {
-					this.$set(i, this[i]);
+				for (var i = 0, l = arguments.length; i < l; i++) {
+					self.splice.call(this, 0, 0, arguments[i]);
 				}
 
 				return this.length;
@@ -51,107 +122,23 @@ Observer.arrayProperties = function (callback, path) {
 		},
 		pop: {
 			value: function () {
-
-				if (!this.length) {
-					return;
-				}
-
-				var value = this[this.length-1];
-
-				// this.length--;
-				// this.$meta.length--;
-				callback(this.length-1, path.slice(0, -1), 'length');
-				this.$remove(this.length);
-				// callback(undefined, path + this.length, this.length);
-
-				return value;
+				if (!this.length) return;
+				return self.splice.call(this, this.length-1, 1);
 			}
 		},
 		shift: {
 			value: function () {
-
-				if (!this.length) {
-					return;
-				}
-
-				var value = this[0];
-
-				for (var i = 0, l = this.length-1; i < l; i++) {
-					this[i] = this[i+1];
-				}
-
-				// this.length--;
-				// this.$meta.length--;
-				callback(this.length-1, path.slice(0, -1), 'length');
-				this.$remove(this.length);
-				// callback(undefined, path + this.length, this.length);
-
-				return value;
+				if (!this.length) return;
+				return self.splice.call(this, 0, 1);
 			}
 		},
 		splice: {
-			value: function () {
-
-				var startIndex = arguments[0];
-				var deleteCount = arguments[1];
-				var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
-
-				if (
-					!this.length
-					|| typeof startIndex !== 'number' || typeof deleteCount !== 'number'
-				) {
-					return [];
-				}
-
-				// handle negative startIndex
-				if (startIndex < 0) {
-					startIndex = this.length + startIndex;
-					startIndex = startIndex > 0 ? startIndex : 0;
-				} else {
-					startIndex = startIndex < this.length ? startIndex : this.length;
-				}
-
-				// handle negative deleteCount
-				if (deleteCount < 0) {
-					deleteCount = 0;
-				} else if (deleteCount > (this.length - startIndex)) {
-					deleteCount = this.length - startIndex;
-				}
-
-				var index = 2;
-				var result = this.slice(startIndex, deleteCount);
-				var updateCount = deleteCount < addCount ? addCount-deleteCount : deleteCount-addCount;
-
-				deleteCount = deleteCount-updateCount;
-				addCount = addCount-updateCount;
-
-				if (updateCount > 0) {
-					while (updateCount--) {
-						this.$set(startIndex++, arguments[index++]);
-					}
-				}
-
-				if (addCount > 0) {
-					callback(this.length + addCount, path, 'length');
-					while (addCount--) {
-						this.$set(this.length, arguments[index++]);
-					}
-				}
-
-				if (deleteCount > 0) {
-					callback(this.length - deleteCount, path, 'length');
-					while (deleteCount--) {
-						this.$remove(this.length-1);
-					}
-				}
-
-				return result;
-			}
+			value: self.splice
 		}
 	};
 };
 
-Observer.objectProperties = function (listener, path) {
+Observer.objectProperties = function () {
 	var self = this;
 
 	return {
@@ -161,18 +148,15 @@ Observer.objectProperties = function (listener, path) {
 			}
 		},
 		$set: {
-			value: function (key, value, callback) {
+			value: function (key, value) {
 				if (value !== this[key]) {
-					var result = self.create(value, listener, path + key);
+					var result = self.create(value, this.$meta.listener, this.$meta.path + key);
 
 					this.$meta[key] = result;
-					Object.defineProperty(this, key, self.property(listener, path, key));
+					self.defineProperty(this, key);
 
-					if (callback) {
-						callback();
-					}
+					this.$meta.listener(result, this.$meta.path + key, key);
 
-					listener(result, path + key, key);
 					return result;
 				}
 			}
@@ -180,25 +164,22 @@ Observer.objectProperties = function (listener, path) {
 		$remove: {
 			value: function (key) {
 				if (key in this) {
-					var result = this[key];
-
 					if (this.constructor === Array) {
-						Array.prototype.splice.call(this.$meta, key, 1);
-						Array.prototype.splice.call(this, key, 1);
+						return self.splice.call(this, key, 1);
 					} else {
+						var result = this[key];
 						delete this.$meta[key];
 						delete this[key];
+						this.$meta.listener(undefined, this.$meta.path + key, key);
+						return result;
 					}
-
-					listener(undefined, path + key, key);
-					return result;
 				}
 			}
 		}
 	};
 };
 
-Observer.property = function (callback, path, key) {
+Observer.property = function (key) {
 	var self = this;
 
 	return {
@@ -210,15 +191,19 @@ Observer.property = function (callback, path, key) {
 		set: function (value) {
 			if (value !== this.$meta[key]) {
 
-				this.$meta[key] = self.create(value, callback, path + key);
+				this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
 
-				callback(this[key], path + key, key, this);
+				this.$meta.listener(this[key], this.$meta.path + key, key, this);
 			}
 		}
 	};
 };
 
-Observer.create = function (source, callback, path) {
+Observer.defineProperty = function (data, key) {
+	return Object.defineProperty(data, key, this.property(key));
+};
+
+Observer.create = function (source, listener, path) {
 	var self = this;
 
 	if (!source || typeof source !== 'object') {
@@ -236,14 +221,18 @@ Observer.create = function (source, callback, path) {
 		value: source.constructor()
 	};
 
+	properties.$meta.value.path = path;
+	properties.$meta.value.listener = listener;
+
 	if (type === Array) {
 
 		for (key = 0, length = source.length; key < length; key++) {
-			properties.$meta.value[key] = self.create(source[key], callback, path + key);
-			properties[key] = self.property(callback, path, key);
+			properties.$meta.value[key] = self.create(source[key], listener, path + key);
+			properties[key] = self.property(key);
 		}
 
-		var arrayProperties = self.arrayProperties(callback, path);
+		var arrayProperties = self.arrayProperties();
+
 		for (key in arrayProperties) {
 			properties[key] = arrayProperties[key];
 		}
@@ -251,13 +240,14 @@ Observer.create = function (source, callback, path) {
 	} else {
 
 		for (key in source) {
-			properties.$meta.value[key] = self.create(source[key], callback, path + key);
-			properties[key] = self.property(callback, path, key);
+			properties.$meta.value[key] = self.create(source[key], listener, path + key);
+			properties[key] = self.property(key);
 		}
 
 	}
 
-	var objectProperties = self.objectProperties(callback, path);
+	var objectProperties = self.objectProperties();
+
 	for (key in objectProperties) {
 		properties[key] = objectProperties[key];
 	}
