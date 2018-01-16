@@ -2397,8 +2397,9 @@
 
 	/*
 		TODO:
-			sort, reverse
-			need to test array methods.
+			sort reverse
+			test array methods
+			figure out a way to not update removed items
 	*/
 
 	Observer.splice = function () {

@@ -3,8 +3,9 @@ var Observer = {};
 
 /*
 	TODO:
-		sort, reverse
-		need to test array methods.
+		sort reverse
+		test array methods
+		figure out a way to not update removed items
 */
 
 Observer.splice = function () {
@@ -254,25 +255,5 @@ Observer.create = function (source, listener, path) {
 
 	return Object.defineProperties(target, properties);
 };
-
-
-// var d = { a: ['one'] };
-// // var d = { a: 'foo', b: { c: 'la' } };
-//
-// var o = Observer.create(d, function () {
-// 	console.log(arguments);
-// });
-//
-// // o.a = 'bar';
-// // console.log(d);
-// // o.b.$set('d', { e: 'f' });
-// // o.b.d.e = 'ff';
-// // o.$set('g', [1])
-// // o.g.push(2)
-// // o.$remove('$meta')
-//
-// // o.a.push('two');
-// o.a.splice(0, 1, 'two');
-// console.log(JSON.stringify(o.a));
 
 export default Observer;
