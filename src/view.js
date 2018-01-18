@@ -42,12 +42,14 @@ View.prototype.eachAttribute = function (element, callback) {
 	for (var i = 0, l = attributes.length; i < l; i++) {
 		var attribute = attributes[i];
 
+		if (attribute.name.indexOf('o-') !== 0
+			&& attribute.name.indexOf('data-o-') !== 0
+		) {
+			continue;
+		}
+
 		if (
-			(
-				attribute.name.indexOf('o-') === 0
-				|| attribute.name.indexOf('data-o-') === 0
-			)
-			&& attribute.name !== 'o-uid'
+			attribute.name !== 'o-uid'
 			&& attribute.name !== 'o-auth'
 			&& attribute.name !== 'o-reset'
 			&& attribute.name !== 'o-method'
@@ -92,8 +94,8 @@ View.prototype.each = function (element, callback, container) {
 	}
 
 	if (
-		element.nodeName !== 'SVG'
-		& element.nodeName !== 'STYLE'
+		// element.nodeName !== 'SVG'
+		element.nodeName !== 'STYLE'
 		& element.nodeName !== 'SCRIPT'
 		& element.nodeName !== 'OBJECT'
 		& element.nodeName !== 'IFRAME'

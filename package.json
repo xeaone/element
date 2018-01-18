@@ -3,6 +3,7 @@
 	"version": "2.9.9",
 	"description": "A mighty tiny web components framework/library",
 	"main": "dist/oxe.min.js",
+	"bin": "bin/index.js",
 	"scripts": {
 		"b": "node build.js",
 		"s": "muleify serve -sw web dev",
@@ -48,5 +49,8 @@
 	},
 	"devDependencies": {
 		"muleify": "^4.0.3"
+	},
+	"dependencies": {
+		"cliy": "^1.1.2"
 	}
 }

@@ -56,13 +56,7 @@ var Global = Object.defineProperties({}, {
 		enumerable: true,
 		value: {}
 	},
-	events: {
-		enumerable: true,
-		value: {
-			data: {}
-		}
-	},
-	modifiers: {
+	methods: {
 		enumerable: true,
 		value: {
 			data: {}

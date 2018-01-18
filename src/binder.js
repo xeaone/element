@@ -14,7 +14,7 @@ Binder.prototype.modifyData = function (opt, data) {
 
 	for (var i = 0, l = opt.modifiers.length; i < l; i++) {
 		var modifier = opt.modifiers[i];
-		data = Global.modifiers.data[opt.uid][modifier].call(opt.model, data);
+		data = Global.methods.data[opt.uid][modifier].call(opt.element, data);
 	}
 
 	return data;
@@ -130,7 +130,7 @@ Binder.prototype.create = function (opt) {
 
 	opt.keys = opt.keys || [opt.uid].concat(opt.values);
 	opt.model = opt.model || Global.model.data[opt.uid];
-	opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
+	// opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
 
 	return opt;
 };

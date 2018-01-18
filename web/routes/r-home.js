@@ -76,7 +76,7 @@ Oxe.component.define({
 	created: function () {
 		Say('r-home created');
 	},
-	html: `
+	template: /*html*/`
 		<h2>Overview</h2>
 
 		<strong>Synopsis</strong>

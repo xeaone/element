@@ -251,6 +251,10 @@ Utility.resolve = function (path, base) {
 
 	path = path.replace(window.location.origin, '');
 
+	if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('//') === 0) {
+		return path;
+	}
+
 	if (path.indexOf('/') !== 0) {
 		base = base || this.base();
 		path = base + '/' + path;

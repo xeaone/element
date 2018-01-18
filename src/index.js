@@ -86,24 +86,6 @@ Global.document.addEventListener('change', function changeListener (e) {
 	}, 'view');
 }, true);
 
-// Global.document.addEventListener('load', function loadListener (e) {
-// 	var element = e.target;
-//
-// 	if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
-// 		return;
-// 	}
-//
-// 	var path = Global.utility.resolve(element.src || element.href);
-//
-// 	var listener;
-// 	var load = Global.loader.modules[path];
-//
-// 	while (listener = load.listener.shift()) {
-// 		listener(load);
-// 	}
-//
-// }, true);
-
 Global.document.addEventListener('reset', function resetListener (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
@@ -139,7 +121,7 @@ Global.document.addEventListener('submit', function submitListener (e) {
 
 	Global.utility.formData(element, model, function (data) {
 
-		var method = Global.utility.getByPath(container.events, submit);
+		var method = Global.utility.getByPath(container.methods, submit);
 		var options = method.call(model, data, e);
 
 		if (options && typeof options === 'object') {
@@ -187,6 +169,10 @@ new Global.window.MutationObserver(function mutationListener (mutations) {
 		while (c--) {
 			var addedNode = addedNodes[c];
 
+			// if (addedNode.nodeType === 1) {
+			// 	Global.view.add(addedNode);
+			// }
+
 			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 
 				if (addedNode.isRouterComponent) {
@@ -202,6 +188,10 @@ new Global.window.MutationObserver(function mutationListener (mutations) {
 
 		while (c--) {
 			var removedNode = removedNodes[c];
+
+			// if (removedNode.nodeType === 1) {
+			// 	Global.view.remove(removedNode, target);
+			// }
 
 			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 
@@ -224,27 +214,40 @@ new Global.window.MutationObserver(function mutationListener (mutations) {
 var eStyle = Global.document.createElement('style');
 var sStyle = Global.document.createTextNode('o-router, o-router > :first-child { display: block; }');
 
+eStyle.appendChild(sStyle);
 eStyle.setAttribute('title', 'Oxe');
 eStyle.setAttribute('type', 'text/css');
-eStyle.appendChild(sStyle);
 Global.head.appendChild(eStyle);
 
-Global.document.registerElement('o-router', {
-	prototype: Object.create(HTMLElement.prototype)
-});
+var listener = function () {
+	var eIndex = Global.document.querySelector('[o-index-url]');
 
-var eIndex = Global.document.querySelector('[o-index-url]')
+	if (eIndex) {
 
-if (eIndex) {
-	var url = eIndex.getAttribute('o-index-url');
-	var method = eIndex.getAttribute('o-index-method');
-	var transformer = eIndex.getAttribute('o-index-transformer');
+		var url = eIndex.getAttribute('o-index-url');
+		var method = eIndex.getAttribute('o-index-method');
+		var transformer = eIndex.getAttribute('o-index-transformer');
 
-	Global.loader.load({
-		url: url,
-		method: method,
-		transformer: transformer
+		Global.loader.load({
+			url: url,
+			method: method,
+			transformer: transformer
+		});
+
+	}
+
+	Global.document.registerElement('o-router', {
+		prototype: Object.create(HTMLElement.prototype)
 	});
+}
+
+if ('registerElement' in Global.document && 'content' in Global.document.createElement('template')) {
+	listener();
+} else {
+	Global.loader.load({
+		method: 'script',
+		url: 'https://unpkg.com/oxe@2.9.9/dist/webcomponents-lite.min.js',
+	}, listener);
 }
 
 export default Global;

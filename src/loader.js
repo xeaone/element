@@ -12,6 +12,8 @@ var Loader = function (options) {
 	this.transformers = {};
 
 	this.setup(options);
+
+	document.addEventListener('load', this.listener.bind(this), true);
 };
 
 Loader.prototype = Object.create(Events.prototype);
@@ -107,7 +109,7 @@ Loader.prototype.transform = function (data, callback) {
 Loader.prototype.attach = function (data) {
 	var element = document.createElement(data.tag);
 
-	data.attributes['o-load'] = '';
+	data.attributes['o-load'] = 'true';
 
 	for (var name in data.attributes) {
 		element.setAttribute(name, data.attributes[name]);
@@ -128,7 +130,7 @@ Loader.prototype.js = function (data) {
 		this.attach({
 			tag: 'script',
 			attributes: {
-				async: '',
+				async: 'true',
 				src: data.url,
 				type: 'text/javascript',
 			}
@@ -137,7 +139,7 @@ Loader.prototype.js = function (data) {
 		this.attach({
 			tag: 'module',
 			attributes: {
-				async: '',
+				async: 'true',
 				src: data.url,
 				type: 'module',
 			}
@@ -222,9 +224,8 @@ Loader.prototype.run = function () {
 		this.ran = true;
 	}
 
-	Global.document.addEventListener('load', this.listener.bind(this), true);
-
 	var load;
+
 	while (load = this.loads.shift()) {
 		this.load(load);
 	}

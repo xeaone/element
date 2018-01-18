@@ -4,6 +4,8 @@
 	(global.Oxe = factory());
 }(this, (function () { 'use strict';
 
+	// TODO want to handle default slot
+
 	var Component = function () {
 		this.data = {};
 	};
@@ -24,37 +26,62 @@
 
 	};
 
-	Component.prototype.handleTemplate = function (data) {
-		var template;
+	Component.prototype.render = function (data, name, callback) {
 
-		if (data.html) {
-			template = document.createElement('template');
-			template.innerHTML = data.html;
-		} else if (data.query) {
-
-			try {
-				template = Global$1.ownerDocument.querySelector(data.query);
-			} catch (e) {
-				template = Global$1.document.querySelector(data.query);
-			}
-
-			if (template.nodeType !== 'TEMPLATE') {
-				template = document.createElement('template');
-				template.content.appendChild(data.element);
-			}
-
-		} else if (data.element) {
-
-			if (data.element.nodeType === 'TEMPLATE') {
-				template = data.element;
-			} else {
-				template = document.createElement('template');
-				template.content.appendChild(data.element);
-			}
-
+		if (this.data[name].ready) {
+			return callback ? callback() : undefined;
 		}
 
-		return template;
+		if (typeof data === 'function') {
+			return data(function (d) {
+				this.render(d, name, callback);
+			}.bind(this));
+		}
+
+		var template = document.createElement('template');
+
+		if (typeof data === 'string') {
+			template.innerHTML = data;
+		} else if (typeof data === 'object') {
+			template.content.appendChild(data);
+		}
+
+		this.data[name].ready = true;
+		this.data[name].template = template;
+
+		return callback ? callback() : undefined;
+	};
+
+	Component.prototype.created = function (element, component) {
+		var self = this;
+		// var component = self.data[element.nodeName.toLowerCase()];
+
+		Object.defineProperty(element, 'uid', {
+			enumerable: true,
+			value: component.name + '-' + component.count++
+		});
+
+		element.setAttribute('o-uid', element.uid);
+
+		Global$1.model.set(element.uid, component.model || {});
+		Global$1.methods.data[element.uid] = component.methods;
+
+		self.render(component.template, component.name, function () {
+
+			if (component.shadow && 'attachShadow' in document.body) {
+				element.attachShadow({ mode: 'open' }).appendChild(document.importNode(component.template.content, true));
+			} else if (component.shadow && 'createShadowRoot' in document.body) {
+				element.createShadowRoot().appendChild(document.importNode(component.template.content, true));
+			} else {
+				self.handleSlots(element, component.template);
+				element.appendChild(document.importNode(component.template.content, true));
+			}
+
+			if (component.created) {
+				component.created.call(element);
+			}
+
+		});
 	};
 
 	Component.prototype.define = function (options) {
@@ -64,25 +91,21 @@
 			throw new Error('Oxe.component.define - Requires name');
 		}
 
-		if (!options.html && !options.query && !options.element) {
-			throw new Error('Oxe.component.define - Requires html, query, or element');
-		}
-
 		if (options.name in self.data) {
 			throw new Error('Oxe.component.define - Component already defined');
 		}
 
-		if (!(options.name in self.data)) {
-			self.data[options.name] = 0;
-			// self.data[options.name] = [];
-		}
-
-		// options.view = options.view || {};
+		options.count = 0;
+		options.ready = false;
 		options.model = options.model || {};
 		options.shadow = options.shadow || false;
-		options.template = self.handleTemplate(options);
-
+		options.template = options.template || '';
 		options.properties = options.properties || {};
+
+		options.properties.uid = {
+			enumerable: true,
+			configurable: true
+		};
 
 		options.properties.model = {
 			enumerable: true,
@@ -96,19 +119,10 @@
 			}
 		};
 
-		options.properties.events = {
+		options.properties.methods = {
 			enumerable: true,
 			get: function () {
-				var uid = this.uid;
-				return Global$1.events.data[uid];
-			}
-		};
-
-		options.properties.modifiers = {
-			enumerable: true,
-			get: function () {
-				var uid = this.uid;
-				return Global$1.modifiers.data[uid];
+				return Global$1.methods.data[this.uid];
 			}
 		};
 
@@ -119,39 +133,14 @@
 		options.proto.attributeChangedCallback = options.attributed;
 
 		options.proto.createdCallback = function () {
-			var element = this;
-
-			Object.defineProperty(element, 'uid', {
-				enumerable: true,
-				configurable: true,
-				value: options.name + '-' + self.data[options.name]++
-			});
-
-			element.setAttribute('o-uid', element.uid);
-
-			Global$1.model.set(element.uid, options.model || {});
-			Global$1.events.data[element.uid] = options.events;
-			Global$1.modifiers.data[element.uid] = options.modifiers;
-
-			if (options.shadow) {
-				// element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
-				element.attachShadow({ mode: 'open' }).appendChild(document.importNode(options.template.content, true));
-			} else {
-				// might want to handle default slot
-				// might want to overwrite content
-				self.handleSlots(element, options.template);
-				element.appendChild(document.importNode(options.template.content, true));
-			}
-
-			if (options.created) {
-				options.created.call(element);
-			}
-
+			self.created(this, options);
 		};
 
 		document.registerElement(options.name, {
 			prototype: options.proto
 		});
+
+		self.data[options.name] = options;
 	};
 
 	var Utility = {};
@@ -405,6 +394,10 @@
 		var result = [];
 
 		path = path.replace(window.location.origin, '');
+
+		if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('//') === 0) {
+			return path;
+		}
 
 		if (path.indexOf('/') !== 0) {
 			base = base || this.base();
@@ -812,6 +805,7 @@
 		this.hash = false;
 		this.location = {};
 		this.container = null;
+		this.cone = null;
 		this.element = null;
 		this.trailing = false;
 
@@ -1055,26 +1049,21 @@
 		}
 
 		Global$1.loader.load(route.url, function (load) {
-
-			if (!load.result) {
-				load.result = document.createElement(route.component);
-				load.result.inRouterCache = false;
-				load.result.isRouterComponent = true;
-			}
-
 			self.domReady(function () {
-				var child;
 
-				while (child = self.element.children[0]) {
-					self.element.removeChild(child);
+				if (!load.result) {
+					load.result = self.clone.cloneNode();
+					load.result.inRouterCache = false;
+					load.result.isRouterComponent = true;
+					load.result.innerHTML = route.template;
 				}
 
-				self.element.appendChild(load.result);
+				self.element.parentNode.replaceChild(load.result, self.element);
+				self.element = load.result;
 
 				self.scroll(0, 0);
 				self.emit('navigated');
 			});
-
 		});
 
 	};
@@ -1097,6 +1086,10 @@
 			location.parameters = this.toParameterObject(location.route.path, location.routePath);
 		} else {
 			location = data;
+		}
+
+		if (location.href === this.location.href) {
+			return;
 		}
 
 		if (
@@ -1129,6 +1122,8 @@
 		if (typeof this.element === 'string') {
 			this.element = document.body.querySelector(this.element);
 		}
+
+		this.clone = this.element.cloneNode();
 
 		return callback();
 	};
@@ -1353,6 +1348,8 @@
 		this.transformers = {};
 
 		this.setup(options);
+
+		document.addEventListener('load', this.listener.bind(this), true);
 	};
 
 	Loader.prototype = Object.create(Events.prototype);
@@ -1448,7 +1445,7 @@
 	Loader.prototype.attach = function (data) {
 		var element = document.createElement(data.tag);
 
-		data.attributes['o-load'] = '';
+		data.attributes['o-load'] = 'true';
 
 		for (var name in data.attributes) {
 			element.setAttribute(name, data.attributes[name]);
@@ -1469,7 +1466,7 @@
 			this.attach({
 				tag: 'script',
 				attributes: {
-					async: '',
+					async: 'true',
 					src: data.url,
 					type: 'text/javascript',
 				}
@@ -1478,7 +1475,7 @@
 			this.attach({
 				tag: 'module',
 				attributes: {
-					async: '',
+					async: 'true',
 					src: data.url,
 					type: 'module',
 				}
@@ -1563,9 +1560,8 @@
 			this.ran = true;
 		}
 
-		Global$1.document.addEventListener('load', this.listener.bind(this), true);
-
 		var load;
+
 		while (load = this.loads.shift()) {
 			this.load(load);
 		}
@@ -1818,9 +1814,10 @@
 
 		if (opt.cache) {
 			opt.element.removeEventListener(opt.names[1], opt.cache);
+		} else {
+			opt.cache = Global$1.utility.getByPath(Global$1.methods.data, opt.uid + '.' + opt.path).bind(opt.element);
 		}
 
-		opt.cache = Global$1.utility.getByPath(Global$1.events.data, opt.uid + '.' + opt.path).bind(opt.model);
 		opt.element.addEventListener(opt.names[1], opt.cache);
 		opt.pending = false;
 	};
@@ -2045,7 +2042,7 @@
 
 		for (var i = 0, l = opt.modifiers.length; i < l; i++) {
 			var modifier = opt.modifiers[i];
-			data = Global$1.modifiers.data[opt.uid][modifier].call(opt.model, data);
+			data = Global$1.methods.data[opt.uid][modifier].call(opt.element, data);
 		}
 
 		return data;
@@ -2161,7 +2158,7 @@
 
 		opt.keys = opt.keys || [opt.uid].concat(opt.values);
 		opt.model = opt.model || Global$1.model.data[opt.uid];
-		opt.modifiers = opt.modifiers || Global$1.modifiers.data[opt.uid];
+		// opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
 
 		return opt;
 	};
@@ -2768,12 +2765,14 @@
 		for (var i = 0, l = attributes.length; i < l; i++) {
 			var attribute = attributes[i];
 
+			if (attribute.name.indexOf('o-') !== 0
+				&& attribute.name.indexOf('data-o-') !== 0
+			) {
+				continue;
+			}
+
 			if (
-				(
-					attribute.name.indexOf('o-') === 0
-					|| attribute.name.indexOf('data-o-') === 0
-				)
-				&& attribute.name !== 'o-uid'
+				attribute.name !== 'o-uid'
 				&& attribute.name !== 'o-auth'
 				&& attribute.name !== 'o-reset'
 				&& attribute.name !== 'o-method'
@@ -2818,8 +2817,8 @@
 		}
 
 		if (
-			element.nodeName !== 'SVG'
-			& element.nodeName !== 'STYLE'
+			// element.nodeName !== 'SVG'
+			element.nodeName !== 'STYLE'
 			& element.nodeName !== 'SCRIPT'
 			& element.nodeName !== 'OBJECT'
 			& element.nodeName !== 'IFRAME'
@@ -2908,13 +2907,7 @@
 			enumerable: true,
 			value: {}
 		},
-		events: {
-			enumerable: true,
-			value: {
-				data: {}
-			}
-		},
-		modifiers: {
+		methods: {
 			enumerable: true,
 			value: {
 				data: {}
@@ -3080,24 +3073,6 @@
 		}, 'view');
 	}, true);
 
-	// Global.document.addEventListener('load', function loadListener (e) {
-	// 	var element = e.target;
-	//
-	// 	if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
-	// 		return;
-	// 	}
-	//
-	// 	var path = Global.utility.resolve(element.src || element.href);
-	//
-	// 	var listener;
-	// 	var load = Global.loader.modules[path];
-	//
-	// 	while (listener = load.listener.shift()) {
-	// 		listener(load);
-	// 	}
-	//
-	// }, true);
-
 	Global$1.document.addEventListener('reset', function resetListener (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
@@ -3133,7 +3108,7 @@
 
 		Global$1.utility.formData(element, model, function (data) {
 
-			var method = Global$1.utility.getByPath(container.events, submit);
+			var method = Global$1.utility.getByPath(container.methods, submit);
 			var options = method.call(model, data, e);
 
 			if (options && typeof options === 'object') {
@@ -3181,6 +3156,10 @@
 			while (c--) {
 				var addedNode = addedNodes[c];
 
+				// if (addedNode.nodeType === 1) {
+				// 	Global.view.add(addedNode);
+				// }
+
 				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 
 					if (addedNode.isRouterComponent) {
@@ -3196,6 +3175,10 @@
 
 			while (c--) {
 				var removedNode = removedNodes[c];
+
+				// if (removedNode.nodeType === 1) {
+				// 	Global.view.remove(removedNode, target);
+				// }
 
 				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 
@@ -3218,27 +3201,40 @@
 	var eStyle = Global$1.document.createElement('style');
 	var sStyle = Global$1.document.createTextNode('o-router, o-router > :first-child { display: block; }');
 
+	eStyle.appendChild(sStyle);
 	eStyle.setAttribute('title', 'Oxe');
 	eStyle.setAttribute('type', 'text/css');
-	eStyle.appendChild(sStyle);
 	Global$1.head.appendChild(eStyle);
 
-	Global$1.document.registerElement('o-router', {
-		prototype: Object.create(HTMLElement.prototype)
-	});
+	var listener = function () {
+		var eIndex = Global$1.document.querySelector('[o-index-url]');
 
-	var eIndex = Global$1.document.querySelector('[o-index-url]');
+		if (eIndex) {
 
-	if (eIndex) {
-		var url = eIndex.getAttribute('o-index-url');
-		var method = eIndex.getAttribute('o-index-method');
-		var transformer = eIndex.getAttribute('o-index-transformer');
+			var url = eIndex.getAttribute('o-index-url');
+			var method = eIndex.getAttribute('o-index-method');
+			var transformer = eIndex.getAttribute('o-index-transformer');
 
-		Global$1.loader.load({
-			url: url,
-			method: method,
-			transformer: transformer
+			Global$1.loader.load({
+				url: url,
+				method: method,
+				transformer: transformer
+			});
+
+		}
+
+		Global$1.document.registerElement('o-router', {
+			prototype: Object.create(HTMLElement.prototype)
 		});
+	};
+
+	if ('registerElement' in Global$1.document && 'content' in Global$1.document.createElement('template')) {
+		listener();
+	} else {
+		Global$1.loader.load({
+			method: 'script',
+			url: 'https://unpkg.com/oxe@2.9.9/dist/webcomponents-lite.min.js',
+		}, listener);
 	}
 
 	return Global$1;

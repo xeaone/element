@@ -7,11 +7,11 @@ A mighty tiny web components framework/library.
 Api documentation can be found at [API.md](https://github.com/AlexanderElias/oxe/blob/master/API.md).
 
 ### Features
-- Small
-- Robust
-- Routing
-- Auth handling
+- Small size
 - Module loading
+- Front end routing
+- Front end auth handling
+- Automatic pollyfilling only if required
 - In browser ES6/ESM Module and Template String pollyfill support (only export default)
 
 ### Support
@@ -26,13 +26,6 @@ Api documentation can be found at [API.md](https://github.com/AlexanderElias/oxe
 ### Overview
 Live examples [alexanderelias.github.io/oxe/](https://alexanderelias.github.io/oxe/).
 
-Loader uses XHR and new Function to load modules on-demand. If your worried about security please read the linked articles. In summary it is okay to use new Function/eval but only if your not to trying to process client input. So as long as your only importing your packages/modules then any safety concern is eliminated.
-
-**Resources:**
-- http://2ality.com/2014/01/eval.html
-- https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
-
-
 ### Install
 - `npm i oxe --save`
 - UMD `dist/oxe.min.js`
@@ -43,7 +36,7 @@ Loader uses XHR and new Function to load modules on-demand. If your worried abou
 ```js
 Oxe.component.define({
 	name: 'r-home',
-	html: `
+	template: `
 		<h1 o-text="title"></h1>
 	`,
 	model: {
@@ -81,7 +74,7 @@ Oxe.setup({
 				auth: false, // individually disable/eneable auth
 				path: '/',
 				title: 'Home',
-				component: 'r-home',
+				template: '<r-home></r-home>',
 				url: 'routes/r-home.js'
 			}
 		]

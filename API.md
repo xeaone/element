@@ -41,7 +41,11 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 		- `attributed: Function` Triggered attribute change
 
 ### Oxe.loader
-ES6 import and export module support. Currently `export default` is the only import/export format supported. Can handle css file loading.
+ES6 import/export module and template string re-write support via transformers.
+Currently `export default` is the only export format supported. Loader uses XHR and new Function to load modules on-demand.
+If your worried about security please read the linked articles. It is safe to use `new Function` or `eval` if your not processing client input.
+So as long as your only importing your modules then the safety concern is pretty much eliminated.
+Resources: http://2ality.com/2014/01/eval.html, https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/.
 - `options: Object`
 	- `transformers: Objcet`
 		- `js: String`

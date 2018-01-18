@@ -11,6 +11,7 @@ var Router = function (options) {
 	this.hash = false;
 	this.location = {};
 	this.container = null;
+	this.cone = null;
 	this.element = null;
 	this.trailing = false;
 
@@ -254,26 +255,21 @@ Router.prototype.render = function (route) {
 	}
 
 	Global.loader.load(route.url, function (load) {
-
-		if (!load.result) {
-			load.result = document.createElement(route.component);
-			load.result.inRouterCache = false;
-			load.result.isRouterComponent = true;
-		}
-
 		self.domReady(function () {
-			var child;
 
-			while (child = self.element.children[0]) {
-				self.element.removeChild(child);
+			if (!load.result) {
+				load.result = self.clone.cloneNode();
+				load.result.inRouterCache = false;
+				load.result.isRouterComponent = true;
+				load.result.innerHTML = route.template;
 			}
 
-			self.element.appendChild(load.result);
+			self.element.parentNode.replaceChild(load.result, self.element);
+			self.element = load.result;
 
 			self.scroll(0, 0);
 			self.emit('navigated');
 		});
-
 	});
 
 };
@@ -296,6 +292,10 @@ Router.prototype.navigate = function (data, options) {
 		location.parameters = this.toParameterObject(location.route.path, location.routePath);
 	} else {
 		location = data;
+	}
+
+	if (location.href === this.location.href) {
+		return;
 	}
 
 	if (
@@ -328,6 +328,8 @@ Router.prototype.elementReady = function (callback) {
 	if (typeof this.element === 'string') {
 		this.element = document.body.querySelector(this.element);
 	}
+
+	this.clone = this.element.cloneNode();
 
 	return callback();
 };

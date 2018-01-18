@@ -35,25 +35,25 @@ Oxe.setup({
 			{
 				title: 'Home',
 				path: '/',
-				component: 'r-home',
+				template: '<r-home></r-home>',
 				url: './routes/r-home.js'
 			},
 			{
 				title: 'Test',
 				path: '/test',
-				component: 'r-test',
+				template: '<r-test></r-test>',
 				url: './routes/r-test.js'
 			},
 			{
 				title: 'JS',
 				path: '/js',
-				component: 'r-js',
+				template: '<r-js></r-js>',
 				url: './routes/r-js.js'
 			},
 			{
 				title: '404',
 				path: '/{*}',
-				component: 'r-404',
+				template: '<r-404></r-404>',
 				url: './routes/r-404.js'
 			}
 		]

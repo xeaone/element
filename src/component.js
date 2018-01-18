@@ -1,5 +1,7 @@
 import Global from './global';
 
+// TODO want to handle default slot
+
 var Component = function () {
 	this.data = {};
 };
@@ -20,37 +22,62 @@ Component.prototype.handleSlots = function (element, template) {
 
 };
 
-Component.prototype.handleTemplate = function (data) {
-	var template;
+Component.prototype.render = function (data, name, callback) {
 
-	if (data.html) {
-		template = document.createElement('template');
-		template.innerHTML = data.html;
-	} else if (data.query) {
-
-		try {
-			template = Global.ownerDocument.querySelector(data.query);
-		} catch (e) {
-			template = Global.document.querySelector(data.query);
-		}
-
-		if (template.nodeType !== 'TEMPLATE') {
-			template = document.createElement('template');
-			template.content.appendChild(data.element);
-		}
-
-	} else if (data.element) {
-
-		if (data.element.nodeType === 'TEMPLATE') {
-			template = data.element;
-		} else {
-			template = document.createElement('template');
-			template.content.appendChild(data.element);
-		}
-
+	if (this.data[name].ready) {
+		return callback ? callback() : undefined;
 	}
 
-	return template;
+	if (typeof data === 'function') {
+		return data(function (d) {
+			this.render(d, name, callback);
+		}.bind(this));
+	}
+
+	var template = document.createElement('template');
+
+	if (typeof data === 'string') {
+		template.innerHTML = data;
+	} else if (typeof data === 'object') {
+		template.content.appendChild(data);
+	}
+
+	this.data[name].ready = true;
+	this.data[name].template = template;
+
+	return callback ? callback() : undefined;
+};
+
+Component.prototype.created = function (element, component) {
+	var self = this;
+	// var component = self.data[element.nodeName.toLowerCase()];
+
+	Object.defineProperty(element, 'uid', {
+		enumerable: true,
+		value: component.name + '-' + component.count++
+	});
+
+	element.setAttribute('o-uid', element.uid);
+
+	Global.model.set(element.uid, component.model || {});
+	Global.methods.data[element.uid] = component.methods;
+
+	self.render(component.template, component.name, function () {
+
+		if (component.shadow && 'attachShadow' in document.body) {
+			element.attachShadow({ mode: 'open' }).appendChild(document.importNode(component.template.content, true));
+		} else if (component.shadow && 'createShadowRoot' in document.body) {
+			element.createShadowRoot().appendChild(document.importNode(component.template.content, true));
+		} else {
+			self.handleSlots(element, component.template);
+			element.appendChild(document.importNode(component.template.content, true));
+		}
+
+		if (component.created) {
+			component.created.call(element);
+		}
+
+	});
 };
 
 Component.prototype.define = function (options) {
@@ -60,25 +87,21 @@ Component.prototype.define = function (options) {
 		throw new Error('Oxe.component.define - Requires name');
 	}
 
-	if (!options.html && !options.query && !options.element) {
-		throw new Error('Oxe.component.define - Requires html, query, or element');
-	}
-
 	if (options.name in self.data) {
 		throw new Error('Oxe.component.define - Component already defined');
 	}
 
-	if (!(options.name in self.data)) {
-		self.data[options.name] = 0;
-		// self.data[options.name] = [];
-	}
-
-	// options.view = options.view || {};
+	options.count = 0;
+	options.ready = false;
 	options.model = options.model || {};
 	options.shadow = options.shadow || false;
-	options.template = self.handleTemplate(options);
-
+	options.template = options.template || '';
 	options.properties = options.properties || {};
+
+	options.properties.uid = {
+		enumerable: true,
+		configurable: true
+	};
 
 	options.properties.model = {
 		enumerable: true,
@@ -92,19 +115,10 @@ Component.prototype.define = function (options) {
 		}
 	};
 
-	options.properties.events = {
+	options.properties.methods = {
 		enumerable: true,
 		get: function () {
-			var uid = this.uid;
-			return Global.events.data[uid];
-		}
-	};
-
-	options.properties.modifiers = {
-		enumerable: true,
-		get: function () {
-			var uid = this.uid;
-			return Global.modifiers.data[uid];
+			return Global.methods.data[this.uid];
 		}
 	};
 
@@ -115,39 +129,14 @@ Component.prototype.define = function (options) {
 	options.proto.attributeChangedCallback = options.attributed;
 
 	options.proto.createdCallback = function () {
-		var element = this;
-
-		Object.defineProperty(element, 'uid', {
-			enumerable: true,
-			configurable: true,
-			value: options.name + '-' + self.data[options.name]++
-		});
-
-		element.setAttribute('o-uid', element.uid);
-
-		Global.model.set(element.uid, options.model || {});
-		Global.events.data[element.uid] = options.events;
-		Global.modifiers.data[element.uid] = options.modifiers;
-
-		if (options.shadow) {
-			// element.createShadowRoot().appendChild(document.importNode(options.template.content, true));
-			element.attachShadow({ mode: 'open' }).appendChild(document.importNode(options.template.content, true));
-		} else {
-			// might want to handle default slot
-			// might want to overwrite content
-			self.handleSlots(element, options.template);
-			element.appendChild(document.importNode(options.template.content, true));
-		}
-
-		if (options.created) {
-			options.created.call(element);
-		}
-
+		self.created(this, options);
 	};
 
 	document.registerElement(options.name, {
 		prototype: options.proto
 	});
+
+	self.data[options.name] = options;
 };
 
 export default Component;
