@@ -6,9 +6,11 @@ const Fs = require('fs');
 const ReadFile = Util.promisify(Fs.readFile);
 const WriteFile = Util.promisify(Fs.writeFile);
 
+const version = Package.version;
+
 const header = `/*
 	Name: Oxe
-	Version: ${Package.version}
+	Version: ${version}
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -18,16 +20,14 @@ const header = `/*
 */
 `;
 
-const prepend = async function (data, path) {
+async function prepend (data, path) {
 	const fileData = await ReadFile(path, 'utf8');
 	await WriteFile(path, data + fileData, 'utf8');
 }
 
 (async function () {
 
-	let options;
-
-	options = { bundle: true };
+	const options = { bundle: true };
 
 	await Muleify.pack('src/index.js', 'web/assets/oxe.js', options);
 	await prepend(header, 'web/assets/oxe.js');
@@ -35,7 +35,7 @@ const prepend = async function (data, path) {
 	await Muleify.pack('src/index.js', 'dist/oxe.js', options);
 	await prepend(header, 'dist/oxe.js');
 
-	options.minify = true ;
+	options.minify = true;
 
 	await Muleify.pack('src/index.js', 'dist/oxe.min.js', options);
 	await prepend(header, 'dist/oxe.min.js');
