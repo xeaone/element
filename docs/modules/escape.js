@@ -1,5 +1,5 @@
 
-export default function (data) {
+export default function Escape (data) {
 	return data
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')

@@ -1,59 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 
 	<base href="/">
 
 	<script>
-		document.querySelector('base').href
-			= location.hostname === 'alexanderelias.github.io'
-			? '/oxe/performance/'
-			: '/performance/';
+		document.querySelector('base').href = location.hostname === 'alexanderelias.github.io' ? '/oxe/performance/' : '/performance/';
 	</script>
-
 
 	<title>Performance</title>
 
-	<script src="../assets/webcomponents-lite.min.js" defer></script>
-	<script src="../assets/oxe.js" defer></script>
-	<script src="./index.js" defer></script>
+	<script src="../assets/oxe.js" o-index-method="fetch" o-index-url="./index.js" async></script>
+
+	<style>
+		html > * {
+			margin: 0;
+			padding: 0;
+			text-align: center;
+		}
+		body, o-loop {
+			width: 100%;
+			height: 100%;
+			display: block;
+		}
+		.box {
+			width: 60px;
+			margin: 1.5px;
+			padding: 1.5px;
+			text-align: center;
+			display: inline-block;
+			background: lightgray;
+		}
+		.box input {
+			width: 90%;
+			margin: auto;
+			display: block;
+		}
+	</style>
 
 </head>
 <body>
 
-	<style>
-		html, body {
-			width: 100%;
-			display: block;
-		}
-		.group {
-			margin: 4px;
-			padding: 4px;
-			border: solid 1px dimgray;
-		}
-		.group input {
-			padding: 4px;
-			display: block;
-			margin: 4px auto;
-		}
-		.group div {
-			margin: 4px;
-			padding: 4px;
-			display: inline-block;
-			background: lightgray;
-		}
-		h3 {
-			text-align: center;
-		}
-		.box {
-			margin: 5px;
-			padding: 5px;
-			display: inline-block;
-		}
-	</style>
-
-	<h3>2600 Inputs two way binded</h3>
-	<h3>2600 Text one way binded</h3>
+	<h3>1000 Inputs two way binded</h3>
+	<h3>1000 Text one way binded</h3>
 
 	<o-loop></o-loop>
 

@@ -5,10 +5,7 @@
 	<base href="/">
 
 	<script>
-		document.querySelector('base').href
-			= location.hostname === 'alexanderelias.github.io'
-			? '/oxe/'
-			: '/';
+		document.querySelector('base').href = location.hostname === 'alexanderelias.github.io' ? '/oxe/' : '/';
 	</script>
 
 	<meta charset="utf-8">
@@ -17,15 +14,10 @@
 
 	<title>Oxe</title>
 
-	<!-- <script src="https://cdn.polyfill.io/v2/polyfill.min.js" defer></script> -->
-	<script src="assets/webcomponents-lite.min.js" defer></script>
-	<script src="assets/oxe.js" defer></script>
-	<script src="assets/prism.js" defer></script>
-	<script src="index.js" defer></script>
+	<script src="./assets/oxe.js" o-index-method="script" o-index-url="./index.js" async></script>
 
-	<link rel="stylesheet" href="index.css">
 </head>
-<body>
+<body style="opacity: 0;">
 
 	<div class="title">
 		<h1><span>O</span>xe</h1>
@@ -38,7 +30,7 @@
 		<a href="./performance" o-external>Performance</a>
 	</div>
 
-	<o-view></o-view>
+	<o-router></o-router>
 
 </body>
 </html>
