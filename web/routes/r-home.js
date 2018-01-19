@@ -1,5 +1,5 @@
 import Escape from '../modules/escape.js';
-import Say from '/modules/say.js';
+import Say from '../modules/say.js';
 
 var home = Escape(`
 	Oxe.component.define({
@@ -59,7 +59,7 @@ var indexjs = Escape(`
 var indexhtml = Escape(/*html*/`
 	<html>
 	<head>
-	
+
 		<base href="/">
 		<script src="oxe.min.js" o-index-url="index.js" o-index-method="fetch" o-index-transformer="es" async></script>
 
