@@ -255,7 +255,7 @@ Utility.resolve = function (path, base) {
 		return path;
 	}
 
-	if (path.indexOf('/') !== 0) {
+	if (path.charAt(0) !== '/') {
 		base = base || this.base();
 		path = base + '/' + path;
 		path = path.replace(window.location.origin, '');
