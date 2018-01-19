@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.0.1
+	Version: 3.0.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -410,7 +410,7 @@
 			return path;
 		}
 
-		if (path.indexOf('/') !== 0) {
+		if (path.charAt(0) !== '/') {
 			base = base || this.base();
 			path = base + '/' + path;
 			path = path.replace(window.location.origin, '');

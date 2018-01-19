@@ -24,17 +24,17 @@ Oxe.setup({
 					document.body.style.opacity = 1;
 				}
 			},
-			// './index.css',
-
 			'./routes/r-home.js',
 			'./routes/r-test.js',
 			'./routes/r-js.js',
 			'./routes/r-404.js',
-
 			'./elements/e-menu.js',
-
 			'./assets/prism.css',
-			'./assets/prism.js',
+			{
+				transformer: 'none',
+				url: './assets/prism.js',
+			}
+
 		]
 	},
 	router: {
