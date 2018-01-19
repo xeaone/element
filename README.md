@@ -42,6 +42,11 @@ Oxe.component.define({
 	model: {
 		title: 'Old Title'
 	},
+	methods: {
+		log: function () {
+			console.log(this.model.title);
+		}
+	},
 	created: function () {
 		this.model.title = 'New Title';
 	}
@@ -63,8 +68,9 @@ Oxe.setup({
 			js: 'fetch'
 		},
 		loads: [
-			'index.css',
-			'elements/e-menu.js'
+			'./index.css',
+			'./routes/r-home.js',
+			'./elements/e-menu.js'
 		]
 	},
 	router: {
@@ -75,7 +81,6 @@ Oxe.setup({
 				path: '/',
 				title: 'Home',
 				template: '<r-home></r-home>',
-				url: 'routes/r-home.js'
 			}
 		]
 	}
@@ -84,10 +89,13 @@ Oxe.setup({
 ```html
 <html>
 <head>
+	
 	<base href="/">
-	<script src="oxe.min.js" o-index-url="index.js" o-index-method="fetch" o-index-transformer="es" async></script>
+	<script src="./oxe.min.js" o-index-url="./index.js" o-index-method="fetch" o-index-transformer="es" async></script>
+	
 </head>
 <body>
+
 	<e-menu>
 		<ul>
 			<li>
@@ -95,7 +103,9 @@ Oxe.setup({
 			</li>
 		</ul>
 	</e-menu>
+
 	<o-router></o-router>
+
 </body>
 </html>
 ```

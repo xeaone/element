@@ -52,15 +52,15 @@ Component.prototype.created = function (element, component) {
 	var self = this;
 	// var component = self.data[element.nodeName.toLowerCase()];
 
-	Object.defineProperty(element, 'uid', {
+	Object.defineProperty(element, 'scope', {
 		enumerable: true,
 		value: component.name + '-' + component.count++
 	});
 
-	element.setAttribute('o-uid', element.uid);
+	element.setAttribute('o-scope', element.scope);
 
-	Global.model.set(element.uid, component.model || {});
-	Global.methods.data[element.uid] = component.methods;
+	Global.model.set(element.scope, component.model || {});
+	Global.methods.data[element.scope] = component.methods;
 
 	self.render(component.template, component.name, function () {
 
@@ -91,6 +91,8 @@ Component.prototype.define = function (options) {
 		throw new Error('Oxe.component.define - Component already defined');
 	}
 
+	self.data[options.name] = options;
+
 	options.count = 0;
 	options.ready = false;
 	options.model = options.model || {};
@@ -98,7 +100,7 @@ Component.prototype.define = function (options) {
 	options.template = options.template || '';
 	options.properties = options.properties || {};
 
-	options.properties.uid = {
+	options.properties.scope = {
 		enumerable: true,
 		configurable: true
 	};
@@ -107,18 +109,18 @@ Component.prototype.define = function (options) {
 		enumerable: true,
 		configurable: true,
 		get: function () {
-			return Global.model.get(this.uid);
+			return Global.model.get(this.scope);
 		},
 		set: function (data) {
 			data = data && typeof data === 'object' ? data : {};
-			return Global.model.set(this.uid, data);
+			return Global.model.set(this.scope, data);
 		}
 	};
 
 	options.properties.methods = {
 		enumerable: true,
 		get: function () {
-			return Global.methods.data[this.uid];
+			return Global.methods.data[this.scope];
 		}
 	};
 
@@ -136,7 +138,6 @@ Component.prototype.define = function (options) {
 		prototype: options.proto
 	});
 
-	self.data[options.name] = options;
 };
 
 export default Component;

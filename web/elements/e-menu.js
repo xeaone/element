@@ -4,7 +4,7 @@ Oxe.component.define({
 	created: function () {
 		console.log('created');
 	},
-	html: `
+	template: `
 		<ul>
 			<slot name="one"></slot>
 			<slot name="two"></slot>

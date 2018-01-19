@@ -4,7 +4,7 @@ Oxe.component.define({
 	model: {
 		text: 'Hello from js test'
 	},
-	html: `
+	template: `
 		<p o-text="text"></p>
 		<div>
 			<slot name="one"></slot>

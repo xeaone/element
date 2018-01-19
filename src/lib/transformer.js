@@ -84,9 +84,11 @@ Transformer.template = function (data) {
 */
 
 Transformer.patterns = {
-	imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
-	imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
-	exps: /export\s+(?:default|var|let|const)?\s+/g
+	// lines: /(.*(?:;|\n))/g,
+	// line: /(.*\s*{.*\s*.*\s*}.*)|((?:\/\*|`|'|").*\s*.*\s*(?:"|'|`|\*\/))|(.*(?:;|\n))/g,
+	exps: /export\s+(?:default|var|let|const)?\s+/g,
+	imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|")/g,
+	imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|")/
 };
 
 Transformer.getImports = function (text, base) {
@@ -138,7 +140,7 @@ Transformer.replaceImports = function (text, imps) {
 	for (var i = 0, l = imps.length; i < l; i++) {
 		var imp = imps[i];
 
-		var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\'].result';
+		var pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.modules[\'' + imp.url + '\'].result';
 
 		text = text.replace(imp.raw, pattern);
 	}

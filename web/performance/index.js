@@ -8,7 +8,7 @@ Oxe.setup({
 			js: 'es'
 		},
 		loads: [
-			'./e-loop.js'
+			'./o-loop.js'
 		]
 	}
 });

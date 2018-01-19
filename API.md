@@ -26,26 +26,29 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 ### Oxe.component
 - `define: Function` Defines a custom web component
 	- `options: Object`
-		- `shadow: Boolean` **Default: false** uses shadow DOM
 		- `name: String` **Required** the tag name
-		- `html: String` An HTML string
-		- `template: Element` A Element
-		- `query: String` Attempts currentScript.ownerDocument otherwise will use the document
-		- `model: Object<Any>` See Oxe.controller.model
-		- `events: Object<Function>` See Oxe.controller.events
-		- `modifiers: Object<Function>` See Oxe.controller.modifiers
-		- `properties: Object` Property descriptors added to the element prototype
+		- `model: Object<Any>`
+		- `methods: Object<Function>`
+		- `template: String, Function, Element`
+		- `shadow: Boolean` (default: false) use shadow DOM
+		- `properties: Object<Descriptors>` Property descriptors added to the element prototype
 		- `created: Function` Triggered once on DOM creation
 		- `attached: Function` Triggered on each DOM attachment
 		- `detached: Function` Triggered on each DOM detachment
 		- `attributed: Function` Triggered attribute change
 
 ### Oxe.loader
-ES6 import/export module and template string re-write support via transformers.
-Currently `export default` is the only export format supported. Loader uses XHR and new Function to load modules on-demand.
-If your worried about security please read the linked articles. It is safe to use `new Function` or `eval` if your not processing client input.
-So as long as your only importing your modules then the safety concern is pretty much eliminated.
-Resources: http://2ality.com/2014/01/eval.html, https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/.
+Loads files and dependencies asynchronously. ES6 import/export module and template string re-write support via transformers.
+
+**Caveats**
+- Supported import/export re-writes
+	- `import Name from './path'`
+	- `import './path'`
+	- `export default`
+- Commented import/export will still be re-written and loaded
+- Template string re-writes may not handle nested backtick/template string correctly
+- Method type of fetch will use XHR and new Function.
+
 - `options: Object`
 	- `transformers: Objcet`
 		- `js: String`
@@ -114,9 +117,9 @@ Automatically use the default action for non origin matching hrefs
 			- `path: String` Any path.
 				- `parameters: String` Named '/account/{user}', or catchalls '{\*}'
 			- `title: String` The title for the page
-			- `handler: Function` Overrieds the default render method
-			- `component: String` The name of a component to insert into o-router
-			- `url: Object, String` URL path to JS web-component or a Oxe.loader.load Object
+			- `handler: Function` Overrides the default render method
+			- `template: String, Function, Element` The name of a component to insert into o-router
+			- `load: Object, String` URL path to JS web-component or a Oxe.loader.load Object
 - `setup: Function`
 	- `options: Object` Accepts the above options
 - `location: Object` Similar to imitates window.location but for the Router
@@ -198,7 +201,6 @@ Uses XHR
 		- `password: String`
 		- `withCredentials: Boolean`
 		- `method: String` (default: GET)
-		<!-- - `cache: Boolean` (default: false) -->
 		- `url: String` (default: window.location.href)
 		- `success: Function` The Success handler
 			- `result: Object`

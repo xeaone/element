@@ -41,20 +41,7 @@ Observer.splice = function () {
 	var argumentsCount = arguments.length - argumentIndex;
 	var result = this.slice(startIndex, deleteCount);
 
-	// if (addCount === deleteCount) {
-	// 	updateCount = addCount;
-	// } else if (addCount > deleteCount) {
-	// 	updateCount = deleteCount % addCount;
-	// } else if (deleteCount > addCount) {
-	// 	updateCount = addCount % deleteCount;
-	// }
-
 	updateCount = (totalCount - 1) - startIndex;
-
-	// console.log(`startIndex: ${startIndex}`);
-	// console.log(`updateCount: ${updateCount}`);
-	// console.log(`addCount: ${addCount}`);
-	// console.log(`deleteCount: ${deleteCount}`);
 
 	if (updateCount > 0) {
 		index = startIndex;

@@ -1,21 +1,10 @@
 import Global from './global';
 
-var View = function (options) {
-	options = options || {};
-
+var View = function (opt) {
+	opt = opt || {};
 	this.data = {};
-	this.element = options.element || window.document.body;
-
-	if (window.document.readyState === 'interactive' || window.document.readyState === 'complete') {
-		this.add(this.element);
-	} else {
-		window.document.onreadystatechange = function () {
-			if (window.document.readyState === 'interactive' || window.document.readyState === 'complete') {
-				this.add(this.element);
-			}
-		}.bind(this);
-	}
-
+	this.ran = false;
+	this.element = opt.element || document.body;
 };
 
 View.prototype.hasAcceptAttribute = function (element) {
@@ -49,13 +38,13 @@ View.prototype.eachAttribute = function (element, callback) {
 		}
 
 		if (
-			attribute.name !== 'o-uid'
+			attribute.name !== 'o-scope'
 			&& attribute.name !== 'o-auth'
 			&& attribute.name !== 'o-reset'
 			&& attribute.name !== 'o-method'
 			&& attribute.name !== 'o-action'
 			&& attribute.name !== 'o-external'
-			&& attribute.name !== 'data-o-uid'
+			&& attribute.name !== 'data-o-scope'
 			&& attribute.name !== 'data-o-auth'
 			&& attribute.name !== 'data-o-reset'
 			&& attribute.name !== 'data-o-method'
@@ -72,15 +61,15 @@ View.prototype.eachAttribute = function (element, callback) {
 View.prototype.each = function (element, callback, container) {
 
 	if (
-		element.nodeName !== 'O-VIEW'
-		&& !element.hasAttribute('o-view')
+		element.nodeName !== 'O-ROUTER'
+		&& !element.hasAttribute('o-router')
 		&& !element.hasAttribute('o-external')
-		&& !element.hasAttribute('data-o-view')
+		&& !element.hasAttribute('data-o-router')
 		&& !element.hasAttribute('data-o-external')
 		&& this.hasAcceptAttribute(element)
 	) {
 
-		if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) {
+		if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 			container = element;
 		} else if (!document.body.contains(element)) {
 			container = Global.utility.getContainer(container);
@@ -88,9 +77,9 @@ View.prototype.each = function (element, callback, container) {
 			container = Global.utility.getContainer(element);
 		}
 
-		var uid = container.getAttribute('o-uid') || container.getAttribute('data-o-uid');
+		var scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
 
-		callback.call(this, element, container, uid);
+		callback.call(this, element, container, scope);
 	}
 
 	if (
@@ -110,10 +99,10 @@ View.prototype.each = function (element, callback, container) {
 };
 
 View.prototype.add = function (addedElement) {
-	this.each(addedElement, function (element, container, uid) {
+	this.each(addedElement, function (element, container, scope) {
 		this.eachAttribute(element, function (attribute) {
 			Global.binder.render({
-				uid: uid,
+				scope: scope,
 				element: element,
 				container: container,
 				name: attribute.name,
@@ -124,10 +113,10 @@ View.prototype.add = function (addedElement) {
 };
 
 View.prototype.remove = function (removedElement, target) {
-	this.each(removedElement, function (element, container, uid) {
+	this.each(removedElement, function (element, container, scope) {
 		this.eachAttribute(element, function (attribute) {
 			Global.binder.unrender({
-				uid: uid,
+				scope: scope,
 				element: element,
 				container: container,
 				name: attribute.name,
@@ -135,6 +124,98 @@ View.prototype.remove = function (removedElement, target) {
 			});
 		});
 	}, target);
+};
+
+View.prototype.inputListener = function (e) {
+	if (
+		e.target.type !== 'checkbox'
+		&& e.target.type !== 'radio'
+		&& e.target.type !== 'option'
+		&& e.target.nodeName !== 'SELECT'
+	) {
+		Global.binder.render({
+			name: 'o-value',
+			element: e.target,
+		}, 'view');
+	}
+};
+
+View.prototype.changeListener = function (e) {
+	Global.binder.render({
+		name: 'o-value',
+		element: e.target,
+	}, 'view');
+};
+
+View.prototype.loadListener = function () {
+	this.add(this.element);
+};
+
+View.prototype.mutationListener = function (mutations) {
+	var c, i = mutations.length;
+
+	while (i--) {
+		var target = mutations[i].target;
+		var addedNodes = mutations[i].addedNodes;
+		var removedNodes = mutations[i].removedNodes;
+
+		c = addedNodes.length;
+
+		while (c--) {
+			var addedNode = addedNodes[c];
+
+			// if (addedNode.nodeType === 1) {
+			// 	Global.view.add(addedNode);
+			// }
+
+			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
+
+				if (addedNode.isRouterComponent) {
+					addedNode.inRouterCache = true;
+				}
+
+				this.add(addedNode);
+			}
+
+		}
+
+		c = removedNodes.length;
+
+		while (c--) {
+			var removedNode = removedNodes[c];
+
+			// if (removedNode.nodeType === 1) {
+			// 	Global.view.remove(removedNode, target);
+			// }
+
+			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
+
+				if (removedNode.isRouterComponent) {
+					removedNode.inRouterCache = true;
+				}
+
+				this.remove(removedNode, target);
+			}
+
+		}
+
+	}
+
+};
+
+View.prototype.run = function () {
+	var self = this;
+
+	if (self.ran) return;
+	else self.ran = true;
+
+	document.addEventListener('input', self.inputListener.bind(self), true);
+	document.addEventListener('change', self.changeListener.bind(self), true);
+
+	if (document.readyState === 'interactive' || document.readyState === 'complete') self.add(self.element);
+	else document.addEventListener('DOMContentLoaded', self.loadListener.bind(self), true);
+
+	new MutationObserver(self.mutationListener.bind(self)).observe(self.element, { childList: true, subtree: true });
 };
 
 export default View;

@@ -14,7 +14,7 @@ Binder.prototype.modifyData = function (opt, data) {
 
 	for (var i = 0, l = opt.modifiers.length; i < l; i++) {
 		var modifier = opt.modifiers[i];
-		data = Global.methods.data[opt.uid][modifier].call(opt.element, data);
+		data = Global.methods.data[opt.scope][modifier].call(opt.element, data);
 	}
 
 	return data;
@@ -22,28 +22,28 @@ Binder.prototype.modifyData = function (opt, data) {
 
 Binder.prototype.add = function (opt) {
 
-	if (!(opt.uid in this.data)) {
-		this.data[opt.uid] = {};
+	if (!(opt.scope in this.data)) {
+		this.data[opt.scope] = {};
 	}
 
-	if (!(opt.path in this.data[opt.uid])) {
-		this.data[opt.uid][opt.path] = [];
+	if (!(opt.path in this.data[opt.scope])) {
+		this.data[opt.scope][opt.path] = [];
 	}
 
-	this.data[opt.uid][opt.path].push(opt);
+	this.data[opt.scope][opt.path].push(opt);
 };
 
 Binder.prototype.remove = function (opt) {
 
-	if (!(opt.uid in this.data)) {
+	if (!(opt.scope in this.data)) {
 		return;
 	}
 
-	if (!(opt.path in this.data[opt.uid])) {
+	if (!(opt.path in this.data[opt.scope])) {
 		return;
 	}
 
-	var data = this.data[opt.uid][opt.path];
+	var data = this.data[opt.scope][opt.path];
 
 	for (var i = 0, l = data.length; i < l; i++) {
 		var item = data[i];
@@ -58,15 +58,15 @@ Binder.prototype.remove = function (opt) {
 
 Binder.prototype.get = function (opt) {
 
-	if (!(opt.uid in this.data)) {
+	if (!(opt.scope in this.data)) {
 		return null;
 	}
 
-	if (!(opt.path in this.data[opt.uid])) {
+	if (!(opt.path in this.data[opt.scope])) {
 		return null;
 	}
 
-	var data = this.data[opt.uid][opt.path];
+	var data = this.data[opt.scope][opt.path];
 
 	for (var i = 0; i < data.length; i++) {
 		var item = data[i];
@@ -82,8 +82,8 @@ Binder.prototype.get = function (opt) {
 	return null;
 };
 
-Binder.prototype.each = function (uid, path, callback) {
-	var paths = this.data[uid];
+Binder.prototype.each = function (scope, path, callback) {
+	var paths = this.data[scope];
 
 
 	for (var key in paths) {
@@ -119,7 +119,7 @@ Binder.prototype.create = function (opt) {
 	}
 
 	opt.container = opt.container || Global.utility.getContainer(opt.element);
-	opt.uid = opt.uid || opt.container.getAttribute('o-uid');
+	opt.scope = opt.scope || opt.container.getAttribute('o-scope');
 	opt.value = opt.value || opt.element.getAttribute(opt.name);
 	opt.path = opt.path || Global.utility.binderPath(opt.value);
 
@@ -128,9 +128,8 @@ Binder.prototype.create = function (opt) {
 	opt.values = opt.values || Global.utility.binderValues(opt.value);
 	opt.modifiers = opt.modifiers || Global.utility.binderModifiers(opt.value);
 
-	opt.keys = opt.keys || [opt.uid].concat(opt.values);
-	opt.model = opt.model || Global.model.data[opt.uid];
-	// opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
+	opt.keys = opt.keys || [opt.scope].concat(opt.values);
+	opt.model = opt.model || Global.model.data[opt.scope];
 
 	return opt;
 };

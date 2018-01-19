@@ -4,11 +4,16 @@ import Say from '/modules/say.js';
 var home = Escape(`
 	Oxe.component.define({
 		name: 'r-home',
-		html: \`
+		template: \`
 			<h1 o-text="title"></h1>
 		\`,
 		model: {
 			title: 'Old Title'
+		},
+		methods: {
+			log: function () {
+				console.log(this.model.title);
+			}
 		},
 		created: function () {
 			this.model.title = 'New Title';
@@ -32,8 +37,9 @@ var indexjs = Escape(`
 				js: 'fetch'
 			},
 			loads: [
-				'index.css',
-				'elements/e-menu.js'
+				'./index.css',
+				'./routes/r-home.js',
+				'./elements/e-menu.js'
 			]
 		},
 		router: {
@@ -43,8 +49,7 @@ var indexjs = Escape(`
 					auth: false, // individually disable/eneable auth
 					path: '/',
 					title: 'Home',
-					component: 'r-home',
-					url: 'routes/r-home.js'
+					template: '<r-home></r-home>'
 				}
 			]
 		}
@@ -54,16 +59,21 @@ var indexjs = Escape(`
 var indexhtml = Escape(/*html*/`
 	<html>
 	<head>
+	
 		<base href="/">
 		<script src="oxe.min.js" o-index-url="index.js" o-index-method="fetch" o-index-transformer="es" async></script>
+
 	</head>
 	<body>
+
 		<e-menu>
 			<ul>
 				<li><a href="/home">Home</a></li>
 			</ul>
 		</e-menu>
+
 		<o-router></o-router>
+
 	</body>
 	</html>
 `);

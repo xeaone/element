@@ -62,6 +62,10 @@ var Global = Object.defineProperties({}, {
 			data: {}
 		}
 	},
+	utility: {
+		enumerable: true,
+		value: Utility
+	},
 	model: {
 		enumerable: true,
 		value: new Model()
@@ -69,10 +73,6 @@ var Global = Object.defineProperties({}, {
 	view: {
 		enumerable: true,
 		value: new View()
-	},
-	utility: {
-		enumerable: true,
-		value: Utility
 	},
 	binder: {
 		enumerable: true,
@@ -104,7 +104,7 @@ var Global = Object.defineProperties({}, {
 	},
 	setup: {
 		enumerable: true,
-		value: function setup (options) {
+		value: function (options) {
 
 			if (this.isSetup) {
 				return;
@@ -124,14 +124,16 @@ var Global = Object.defineProperties({}, {
 
 			if (options.loader) {
 				this.loader.setup(options.loader);
-				this.loader.run();
 			}
 
 			if (options.router) {
 				this.router.setup(options.router);
-				this.router.run();
 			}
 
+			this.loader.run();
+			this.router.run();
+			this.model.run();
+			this.view.run();
 		}
 	}
 });

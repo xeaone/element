@@ -4,16 +4,18 @@ import Global from './global';
 var Router = function (options) {
 	Events.call(this);
 
-	this.cache = {};
+	this.route = {};
 	this.routes = [];
+	this.location = {};
+
 	this.ran = false;
 	this.auth = false;
 	this.hash = false;
-	this.location = {};
-	this.container = null;
-	this.cone = null;
-	this.element = null;
 	this.trailing = false;
+
+	this.clone = null;
+	this.element = null;
+	this.container = null;
 
 	this.setup(options);
 };
@@ -254,18 +256,14 @@ Router.prototype.render = function (route) {
 		document.title = route.title;
 	}
 
-	Global.loader.load(route.url, function (load) {
-		self.domReady(function () {
+	if (route.url) {
+		Global.loader.load(route.url);
+	}
 
-			if (!load.result) {
-				load.result = self.clone.cloneNode();
-				load.result.inRouterCache = false;
-				load.result.isRouterComponent = true;
-				load.result.innerHTML = route.template;
-			}
-
-			self.element.parentNode.replaceChild(load.result, self.element);
-			self.element = load.result;
+	self.domReady(function () {
+		self.routeReady(route, function () {
+			self.element.parentNode.replaceChild(route.element, self.element);
+			self.element = route.element;
 
 			self.scroll(0, 0);
 			self.emit('navigated');
@@ -275,7 +273,7 @@ Router.prototype.render = function (route) {
 };
 
 Router.prototype.navigate = function (data, options) {
-	var location;
+	var location, route;
 
 	options = options || {};
 
@@ -286,64 +284,164 @@ Router.prototype.navigate = function (data, options) {
 		}
 
 		location = this.toLocationObject(data);
-		location.route = this.find(location.routePath) || {};
-		location.title = location.route.title || '';
+		route = this.find(location.routePath) || {};
+
+		location.title = route.title || '';
 		location.query = this.toQueryObject(location.search);
-		location.parameters = this.toParameterObject(location.route.path, location.routePath);
+		location.parameters = this.toParameterObject(route.path, location.routePath);
+
 	} else {
 		location = data;
+		route = this.find(location.routePath) || {};
 	}
 
-	if (location.href === this.location.href) {
-		return;
-	}
+	if (this.auth && (route.auth === true || route.auth === undefined)) {
 
-	if (
-		this.auth &&
-		(location.route.auth === true ||
-		location.route.auth === undefined)
-	) {
-
-		if (Global.keeper.route(location.route) === false) {
+		if (Global.keeper.route(route) === false) {
 			return;
 		}
 
 	}
 
-	this.location = location;
-	window.history[options.replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
-
-	if (this.location.route.handler) {
-		this.location.route.handler(this.location);
-	} else if (this.location.route.redirect) {
-		this.redirect(this.location.route.redirect);
-	} else {
-		this.render(this.location.route);
+	if (route.handler) {
+		return route.handler(route);
 	}
+
+	if (route.redirect) {
+		return redirect(route.redirect);
+	}
+
+	this.route = route;
+	this.location = location;
+
+	window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
+
+	this.render(route);
+};
+
+Router.prototype.routeReady = function (data, callback) {
+
+	if (data.element) {
+		return callback(data);
+	}
+
+	if (typeof data.template === 'function') {
+		return data.template(function (template) {
+			data.template = template;
+			this.routeReady(data, callback);
+		}.bind(this));
+	}
+
+	var template = this.clone.cloneNode();
+
+	if (typeof data.template === 'string') {
+		template.innerHTML = data.template;
+	} else if (typeof data.template === 'object') {
+		template.appendChild(data.template);
+	}
+
+	data.element = template;
+	data.element.inRouterCache = false;
+	data.element.isRouterComponent = true;
+
+	callback(data);
 };
 
 Router.prototype.elementReady = function (callback) {
-	this.element = this.element || 'o-router';
 
-	if (typeof this.element === 'string') {
-		this.element = document.body.querySelector(this.element);
+	if (this.clone && this.element) {
+		return callback();
 	}
 
-	this.clone = this.element.cloneNode();
+	var element = this.element || 'o-router';
 
-	return callback();
+	if (typeof element === 'string') {
+		element = document.body.querySelector(element);
+	}
+
+	if (!element) {
+		return;
+	}
+
+	this.element = element;
+	this.clone = element.cloneNode();
+
+	callback();
 };
 
 Router.prototype.domReady = function (callback) {
 	if (document.readyState === 'interactive' || document.readyState === 'complete') {
 		this.elementReady(callback);
 	} else {
-		document.onreadystatechange = function () {
-			if (document.readyState === 'interactive' || document.readyState === 'complete') {
-				this.elementReady(callback);
-			}
-		}.bind(this);
+		document.addEventListener('DOMContentLoaded', this.domReady.bind(this), true);
 	}
+};
+
+Router.prototype.stateListener = function (e) {
+	this.navigate(e.state || window.location.href, { replace: true });
+};
+
+Router.prototype.clickListener = function (e) {
+
+	// if shadow dom use
+	var target = e.path ? e.path[0] : e.target;
+	var parent = target.parentNode;
+
+	if (this.container) {
+
+		while (parent) {
+
+			if (parent === this.container) {
+				break;
+			} else {
+				parent = parent.parentNode;
+			}
+
+		}
+
+		if (parent !== this.container) {
+			return;
+		}
+
+	}
+
+	if (e.metaKey || e.ctrlKey || e.shiftKey) {
+		return;
+	}
+
+	// ensure target is anchor tag
+	while (target && 'A' !== target.nodeName) {
+		target = target.parentNode;
+	}
+
+	if (!target || 'A' !== target.nodeName) {
+		return;
+	}
+
+	// check non acceptables
+	if (target.hasAttribute('download') ||
+		target.hasAttribute('external') ||
+		target.hasAttribute('o-external') ||
+		target.href.indexOf('tel:') === 0 ||
+		target.href.indexOf('ftp:') === 0 ||
+		target.href.indexOf('file:') === 0 ||
+		target.href.indexOf('mailto:') === 0 ||
+		target.href.indexOf(window.location.origin) !== 0
+	) return;
+
+	// if external is true then default action
+	if (this.external &&
+		(this.external.constructor.name === 'RegExp' && this.external.test(target.href) ||
+		this.external.constructor.name === 'Function' && this.external(target.href) ||
+		this.external.constructor.name === 'String' && this.external === target.href)
+	) return;
+
+	e.preventDefault();
+
+	if (this.location.href !== target.href) {
+		this.navigate(target.href);
+	}
+
 };
 
 Router.prototype.run = function () {
@@ -356,6 +454,8 @@ Router.prototype.run = function () {
 
 	var options = { replace: true };
 
+	document.addEventListener('click', this.clickListener.bind(this), true);
+	window.addEventListener('popstate', this.stateListener.bind(this), true);
 	this.navigate(window.location.href, options);
 };
 

@@ -130,18 +130,18 @@ Loader.prototype.js = function (data) {
 		this.attach({
 			tag: 'script',
 			attributes: {
-				async: 'true',
-				src: data.url,
 				type: 'text/javascript',
+				src: data.url,
+				async: 'true',
 			}
 		});
 	} else {
 		this.attach({
-			tag: 'module',
+			tag: 'script',
 			attributes: {
-				async: 'true',
-				src: data.url,
 				type: 'module',
+				src: data.url,
+				async: 'true',
 			}
 		});
 	}
@@ -166,6 +166,8 @@ Loader.prototype.load = function (data, listener) {
 
 	if (typeof data === 'string') {
 		data = { url: data };
+	} else {
+		listener = data.listener;
 	}
 
 	data.url = Global.utility.resolve(data.url);

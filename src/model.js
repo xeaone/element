@@ -1,12 +1,12 @@
 import Observer from './lib/observer';
 import Global from './global';
 
-var Model = function (options) {
-	options = options || {};
+var Model = function (opt) {
+	opt = opt || {};
 	this.GET = 2;
 	this.SET = 3;
 	this.REMOVE = 4;
-	this.data = Observer.create(options.data || {}, this.listener);
+	this.data = opt.data || {};
 };
 
 Model.prototype.traverse = function (type, keys, value) {
@@ -66,15 +66,19 @@ Model.prototype.listener = function (data, path) {
 		return;
 	}
 
-	var uid = paths[0];
+	var scope = paths[0];
 	var type = data === undefined ? 'unrender' : 'render';
 
 	path = paths.slice(1).join('.');
 
-	Global.binder.each(uid, path, function (binder) {
+	Global.binder.each(scope, path, function (binder) {
 		Global.binder[type](binder);
 	});
 
+};
+
+Model.prototype.run = function () {
+	this.data = Observer.create(this.data, this.listener);
 };
 
 export default Model;

@@ -56,15 +56,15 @@
 		var self = this;
 		// var component = self.data[element.nodeName.toLowerCase()];
 
-		Object.defineProperty(element, 'uid', {
+		Object.defineProperty(element, 'scope', {
 			enumerable: true,
 			value: component.name + '-' + component.count++
 		});
 
-		element.setAttribute('o-uid', element.uid);
+		element.setAttribute('o-scope', element.scope);
 
-		Global$1.model.set(element.uid, component.model || {});
-		Global$1.methods.data[element.uid] = component.methods;
+		Global$1.model.set(element.scope, component.model || {});
+		Global$1.methods.data[element.scope] = component.methods;
 
 		self.render(component.template, component.name, function () {
 
@@ -95,6 +95,8 @@
 			throw new Error('Oxe.component.define - Component already defined');
 		}
 
+		self.data[options.name] = options;
+
 		options.count = 0;
 		options.ready = false;
 		options.model = options.model || {};
@@ -102,7 +104,7 @@
 		options.template = options.template || '';
 		options.properties = options.properties || {};
 
-		options.properties.uid = {
+		options.properties.scope = {
 			enumerable: true,
 			configurable: true
 		};
@@ -111,18 +113,18 @@
 			enumerable: true,
 			configurable: true,
 			get: function () {
-				return Global$1.model.get(this.uid);
+				return Global$1.model.get(this.scope);
 			},
 			set: function (data) {
 				data = data && typeof data === 'object' ? data : {};
-				return Global$1.model.set(this.uid, data);
+				return Global$1.model.set(this.scope, data);
 			}
 		};
 
 		options.properties.methods = {
 			enumerable: true,
 			get: function () {
-				return Global$1.methods.data[this.uid];
+				return Global$1.methods.data[this.scope];
 			}
 		};
 
@@ -140,7 +142,6 @@
 			prototype: options.proto
 		});
 
-		self.data[options.name] = options;
 	};
 
 	var Utility = {};
@@ -358,7 +359,7 @@
 
 	Utility.getContainer = function getContainer (element) {
 
-		if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) {
+		if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 			return element;
 		}
 
@@ -366,7 +367,7 @@
 			return this.getContainer(element.parentElement);
 		}
 
-		console.warn('Oxe.utility - could not find container uid');
+		console.warn('Oxe.utility - could not find container scope');
 		console.warn(element);
 	};
 
@@ -798,16 +799,18 @@
 	var Router = function (options) {
 		Events.call(this);
 
-		this.cache = {};
+		this.route = {};
 		this.routes = [];
+		this.location = {};
+
 		this.ran = false;
 		this.auth = false;
 		this.hash = false;
-		this.location = {};
-		this.container = null;
-		this.cone = null;
-		this.element = null;
 		this.trailing = false;
+
+		this.clone = null;
+		this.element = null;
+		this.container = null;
 
 		this.setup(options);
 	};
@@ -1048,18 +1051,14 @@
 			document.title = route.title;
 		}
 
-		Global$1.loader.load(route.url, function (load) {
-			self.domReady(function () {
+		if (route.url) {
+			Global$1.loader.load(route.url);
+		}
 
-				if (!load.result) {
-					load.result = self.clone.cloneNode();
-					load.result.inRouterCache = false;
-					load.result.isRouterComponent = true;
-					load.result.innerHTML = route.template;
-				}
-
-				self.element.parentNode.replaceChild(load.result, self.element);
-				self.element = load.result;
+		self.domReady(function () {
+			self.routeReady(route, function () {
+				self.element.parentNode.replaceChild(route.element, self.element);
+				self.element = route.element;
 
 				self.scroll(0, 0);
 				self.emit('navigated');
@@ -1069,7 +1068,7 @@
 	};
 
 	Router.prototype.navigate = function (data, options) {
-		var location;
+		var location, route;
 
 		options = options || {};
 
@@ -1080,64 +1079,164 @@
 			}
 
 			location = this.toLocationObject(data);
-			location.route = this.find(location.routePath) || {};
-			location.title = location.route.title || '';
+			route = this.find(location.routePath) || {};
+
+			location.title = route.title || '';
 			location.query = this.toQueryObject(location.search);
-			location.parameters = this.toParameterObject(location.route.path, location.routePath);
+			location.parameters = this.toParameterObject(route.path, location.routePath);
+
 		} else {
 			location = data;
+			route = this.find(location.routePath) || {};
 		}
 
-		if (location.href === this.location.href) {
-			return;
-		}
+		if (this.auth && (route.auth === true || route.auth === undefined)) {
 
-		if (
-			this.auth &&
-			(location.route.auth === true ||
-			location.route.auth === undefined)
-		) {
-
-			if (Global$1.keeper.route(location.route) === false) {
+			if (Global$1.keeper.route(route) === false) {
 				return;
 			}
 
 		}
 
-		this.location = location;
-		window.history[options.replace ? 'replaceState' : 'pushState'](this.location, this.location.title, this.location.href);
-
-		if (this.location.route.handler) {
-			this.location.route.handler(this.location);
-		} else if (this.location.route.redirect) {
-			this.redirect(this.location.route.redirect);
-		} else {
-			this.render(this.location.route);
+		if (route.handler) {
+			return route.handler(route);
 		}
+
+		if (route.redirect) {
+			return redirect(route.redirect);
+		}
+
+		this.route = route;
+		this.location = location;
+
+		window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
+
+		this.render(route);
+	};
+
+	Router.prototype.routeReady = function (data, callback) {
+
+		if (data.element) {
+			return callback(data);
+		}
+
+		if (typeof data.template === 'function') {
+			return data.template(function (template) {
+				data.template = template;
+				this.routeReady(data, callback);
+			}.bind(this));
+		}
+
+		var template = this.clone.cloneNode();
+
+		if (typeof data.template === 'string') {
+			template.innerHTML = data.template;
+		} else if (typeof data.template === 'object') {
+			template.appendChild(data.template);
+		}
+
+		data.element = template;
+		data.element.inRouterCache = false;
+		data.element.isRouterComponent = true;
+
+		callback(data);
 	};
 
 	Router.prototype.elementReady = function (callback) {
-		this.element = this.element || 'o-router';
 
-		if (typeof this.element === 'string') {
-			this.element = document.body.querySelector(this.element);
+		if (this.clone && this.element) {
+			return callback();
 		}
 
-		this.clone = this.element.cloneNode();
+		var element = this.element || 'o-router';
 
-		return callback();
+		if (typeof element === 'string') {
+			element = document.body.querySelector(element);
+		}
+
+		if (!element) {
+			return;
+		}
+
+		this.element = element;
+		this.clone = element.cloneNode();
+
+		callback();
 	};
 
 	Router.prototype.domReady = function (callback) {
 		if (document.readyState === 'interactive' || document.readyState === 'complete') {
 			this.elementReady(callback);
 		} else {
-			document.onreadystatechange = function () {
-				if (document.readyState === 'interactive' || document.readyState === 'complete') {
-					this.elementReady(callback);
-				}
-			}.bind(this);
+			document.addEventListener('DOMContentLoaded', this.domReady.bind(this), true);
 		}
+	};
+
+	Router.prototype.stateListener = function (e) {
+		this.navigate(e.state || window.location.href, { replace: true });
+	};
+
+	Router.prototype.clickListener = function (e) {
+
+		// if shadow dom use
+		var target = e.path ? e.path[0] : e.target;
+		var parent = target.parentNode;
+
+		if (this.container) {
+
+			while (parent) {
+
+				if (parent === this.container) {
+					break;
+				} else {
+					parent = parent.parentNode;
+				}
+
+			}
+
+			if (parent !== this.container) {
+				return;
+			}
+
+		}
+
+		if (e.metaKey || e.ctrlKey || e.shiftKey) {
+			return;
+		}
+
+		// ensure target is anchor tag
+		while (target && 'A' !== target.nodeName) {
+			target = target.parentNode;
+		}
+
+		if (!target || 'A' !== target.nodeName) {
+			return;
+		}
+
+		// check non acceptables
+		if (target.hasAttribute('download') ||
+			target.hasAttribute('external') ||
+			target.hasAttribute('o-external') ||
+			target.href.indexOf('tel:') === 0 ||
+			target.href.indexOf('ftp:') === 0 ||
+			target.href.indexOf('file:') === 0 ||
+			target.href.indexOf('mailto:') === 0 ||
+			target.href.indexOf(window.location.origin) !== 0
+		) return;
+
+		// if external is true then default action
+		if (this.external &&
+			(this.external.constructor.name === 'RegExp' && this.external.test(target.href) ||
+			this.external.constructor.name === 'Function' && this.external(target.href) ||
+			this.external.constructor.name === 'String' && this.external === target.href)
+		) return;
+
+		e.preventDefault();
+
+		if (this.location.href !== target.href) {
+			this.navigate(target.href);
+		}
+
 	};
 
 	Router.prototype.run = function () {
@@ -1150,6 +1249,8 @@
 
 		var options = { replace: true };
 
+		document.addEventListener('click', this.clickListener.bind(this), true);
+		window.addEventListener('popstate', this.stateListener.bind(this), true);
 		this.navigate(window.location.href, options);
 	};
 
@@ -1237,9 +1338,11 @@
 	*/
 
 	Transformer.patterns = {
-		imps: /import\s+\w+\s+from\s+(?:'|").*?(?:'|")/g,
-		imp: /import\s+(\w+)\s+from\s+(?:'|")(.*?)(?:'|")/,
-		exps: /export\s+(?:default|var|let|const)?\s+/g
+		// lines: /(.*(?:;|\n))/g,
+		// line: /(.*\s*{.*\s*.*\s*}.*)|((?:\/\*|`|'|").*\s*.*\s*(?:"|'|`|\*\/))|(.*(?:;|\n))/g,
+		exps: /export\s+(?:default|var|let|const)?\s+/g,
+		imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|")/g,
+		imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|")/
 	};
 
 	Transformer.getImports = function (text, base) {
@@ -1291,7 +1394,7 @@
 		for (var i = 0, l = imps.length; i < l; i++) {
 			var imp = imps[i];
 
-			var pattern = 'var ' + imp.name + ' = $LOADER.modules[\'' + imp.url + '\'].result';
+			var pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.modules[\'' + imp.url + '\'].result';
 
 			text = text.replace(imp.raw, pattern);
 		}
@@ -1466,18 +1569,18 @@
 			this.attach({
 				tag: 'script',
 				attributes: {
-					async: 'true',
-					src: data.url,
 					type: 'text/javascript',
+					src: data.url,
+					async: 'true',
 				}
 			});
 		} else {
 			this.attach({
-				tag: 'module',
+				tag: 'script',
 				attributes: {
-					async: 'true',
-					src: data.url,
 					type: 'module',
+					src: data.url,
+					async: 'true',
 				}
 			});
 		}
@@ -1502,6 +1605,8 @@
 
 		if (typeof data === 'string') {
 			data = { url: data };
+		} else {
+			listener = data.listener;
 		}
 
 		data.url = Global$1.utility.resolve(data.url);
@@ -1573,8 +1678,6 @@
 	/*
 		https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
 	*/
-
-	// import Global from '../global';
 
 	var Unrender = {};
 
@@ -1815,7 +1918,7 @@
 		if (opt.cache) {
 			opt.element.removeEventListener(opt.names[1], opt.cache);
 		} else {
-			opt.cache = Global$1.utility.getByPath(Global$1.methods.data, opt.uid + '.' + opt.path).bind(opt.element);
+			opt.cache = Global$1.utility.getByPath(Global$1.methods.data, opt.scope + '.' + opt.path).bind(opt.container);
 		}
 
 		opt.element.addEventListener(opt.names[1], opt.cache);
@@ -2042,7 +2145,7 @@
 
 		for (var i = 0, l = opt.modifiers.length; i < l; i++) {
 			var modifier = opt.modifiers[i];
-			data = Global$1.methods.data[opt.uid][modifier].call(opt.element, data);
+			data = Global$1.methods.data[opt.scope][modifier].call(opt.element, data);
 		}
 
 		return data;
@@ -2050,28 +2153,28 @@
 
 	Binder.prototype.add = function (opt) {
 
-		if (!(opt.uid in this.data)) {
-			this.data[opt.uid] = {};
+		if (!(opt.scope in this.data)) {
+			this.data[opt.scope] = {};
 		}
 
-		if (!(opt.path in this.data[opt.uid])) {
-			this.data[opt.uid][opt.path] = [];
+		if (!(opt.path in this.data[opt.scope])) {
+			this.data[opt.scope][opt.path] = [];
 		}
 
-		this.data[opt.uid][opt.path].push(opt);
+		this.data[opt.scope][opt.path].push(opt);
 	};
 
 	Binder.prototype.remove = function (opt) {
 
-		if (!(opt.uid in this.data)) {
+		if (!(opt.scope in this.data)) {
 			return;
 		}
 
-		if (!(opt.path in this.data[opt.uid])) {
+		if (!(opt.path in this.data[opt.scope])) {
 			return;
 		}
 
-		var data = this.data[opt.uid][opt.path];
+		var data = this.data[opt.scope][opt.path];
 
 		for (var i = 0, l = data.length; i < l; i++) {
 			var item = data[i];
@@ -2086,15 +2189,15 @@
 
 	Binder.prototype.get = function (opt) {
 
-		if (!(opt.uid in this.data)) {
+		if (!(opt.scope in this.data)) {
 			return null;
 		}
 
-		if (!(opt.path in this.data[opt.uid])) {
+		if (!(opt.path in this.data[opt.scope])) {
 			return null;
 		}
 
-		var data = this.data[opt.uid][opt.path];
+		var data = this.data[opt.scope][opt.path];
 
 		for (var i = 0; i < data.length; i++) {
 			var item = data[i];
@@ -2110,8 +2213,8 @@
 		return null;
 	};
 
-	Binder.prototype.each = function (uid, path, callback) {
-		var paths = this.data[uid];
+	Binder.prototype.each = function (scope, path, callback) {
+		var paths = this.data[scope];
 
 
 		for (var key in paths) {
@@ -2147,7 +2250,7 @@
 		}
 
 		opt.container = opt.container || Global$1.utility.getContainer(opt.element);
-		opt.uid = opt.uid || opt.container.getAttribute('o-uid');
+		opt.scope = opt.scope || opt.container.getAttribute('o-scope');
 		opt.value = opt.value || opt.element.getAttribute(opt.name);
 		opt.path = opt.path || Global$1.utility.binderPath(opt.value);
 
@@ -2156,9 +2259,8 @@
 		opt.values = opt.values || Global$1.utility.binderValues(opt.value);
 		opt.modifiers = opt.modifiers || Global$1.utility.binderModifiers(opt.value);
 
-		opt.keys = opt.keys || [opt.uid].concat(opt.values);
-		opt.model = opt.model || Global$1.model.data[opt.uid];
-		// opt.modifiers = opt.modifiers || Global.modifiers.data[opt.uid];
+		opt.keys = opt.keys || [opt.scope].concat(opt.values);
+		opt.model = opt.model || Global$1.model.data[opt.scope];
 
 		return opt;
 	};
@@ -2432,20 +2534,7 @@
 		var argumentsCount = arguments.length - argumentIndex;
 		var result = this.slice(startIndex, deleteCount);
 
-		// if (addCount === deleteCount) {
-		// 	updateCount = addCount;
-		// } else if (addCount > deleteCount) {
-		// 	updateCount = deleteCount % addCount;
-		// } else if (deleteCount > addCount) {
-		// 	updateCount = addCount % deleteCount;
-		// }
-
 		updateCount = (totalCount - 1) - startIndex;
-
-		// console.log(`startIndex: ${startIndex}`);
-		// console.log(`updateCount: ${updateCount}`);
-		// console.log(`addCount: ${addCount}`);
-		// console.log(`deleteCount: ${deleteCount}`);
 
 		if (updateCount > 0) {
 			index = startIndex;
@@ -2647,12 +2736,12 @@
 		return Object.defineProperties(target, properties);
 	};
 
-	var Model = function (options) {
-		options = options || {};
+	var Model = function (opt) {
+		opt = opt || {};
 		this.GET = 2;
 		this.SET = 3;
 		this.REMOVE = 4;
-		this.data = Observer.create(options.data || {}, this.listener);
+		this.data = opt.data || {};
 	};
 
 	Model.prototype.traverse = function (type, keys, value) {
@@ -2712,33 +2801,26 @@
 			return;
 		}
 
-		var uid = paths[0];
+		var scope = paths[0];
 		var type = data === undefined ? 'unrender' : 'render';
 
 		path = paths.slice(1).join('.');
 
-		Global$1.binder.each(uid, path, function (binder) {
+		Global$1.binder.each(scope, path, function (binder) {
 			Global$1.binder[type](binder);
 		});
 
 	};
 
-	var View = function (options) {
-		options = options || {};
+	Model.prototype.run = function () {
+		this.data = Observer.create(this.data, this.listener);
+	};
 
+	var View = function (opt) {
+		opt = opt || {};
 		this.data = {};
-		this.element = options.element || window.document.body;
-
-		if (window.document.readyState === 'interactive' || window.document.readyState === 'complete') {
-			this.add(this.element);
-		} else {
-			window.document.onreadystatechange = function () {
-				if (window.document.readyState === 'interactive' || window.document.readyState === 'complete') {
-					this.add(this.element);
-				}
-			}.bind(this);
-		}
-
+		this.ran = false;
+		this.element = opt.element || document.body;
 	};
 
 	View.prototype.hasAcceptAttribute = function (element) {
@@ -2772,13 +2854,13 @@
 			}
 
 			if (
-				attribute.name !== 'o-uid'
+				attribute.name !== 'o-scope'
 				&& attribute.name !== 'o-auth'
 				&& attribute.name !== 'o-reset'
 				&& attribute.name !== 'o-method'
 				&& attribute.name !== 'o-action'
 				&& attribute.name !== 'o-external'
-				&& attribute.name !== 'data-o-uid'
+				&& attribute.name !== 'data-o-scope'
 				&& attribute.name !== 'data-o-auth'
 				&& attribute.name !== 'data-o-reset'
 				&& attribute.name !== 'data-o-method'
@@ -2795,15 +2877,15 @@
 	View.prototype.each = function (element, callback, container) {
 
 		if (
-			element.nodeName !== 'O-VIEW'
-			&& !element.hasAttribute('o-view')
+			element.nodeName !== 'O-ROUTER'
+			&& !element.hasAttribute('o-router')
 			&& !element.hasAttribute('o-external')
-			&& !element.hasAttribute('data-o-view')
+			&& !element.hasAttribute('data-o-router')
 			&& !element.hasAttribute('data-o-external')
 			&& this.hasAcceptAttribute(element)
 		) {
 
-			if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) {
+			if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 				container = element;
 			} else if (!document.body.contains(element)) {
 				container = Global$1.utility.getContainer(container);
@@ -2811,9 +2893,9 @@
 				container = Global$1.utility.getContainer(element);
 			}
 
-			var uid = container.getAttribute('o-uid') || container.getAttribute('data-o-uid');
+			var scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
 
-			callback.call(this, element, container, uid);
+			callback.call(this, element, container, scope);
 		}
 
 		if (
@@ -2833,10 +2915,10 @@
 	};
 
 	View.prototype.add = function (addedElement) {
-		this.each(addedElement, function (element, container, uid) {
+		this.each(addedElement, function (element, container, scope) {
 			this.eachAttribute(element, function (attribute) {
 				Global$1.binder.render({
-					uid: uid,
+					scope: scope,
 					element: element,
 					container: container,
 					name: attribute.name,
@@ -2847,10 +2929,10 @@
 	};
 
 	View.prototype.remove = function (removedElement, target) {
-		this.each(removedElement, function (element, container, uid) {
+		this.each(removedElement, function (element, container, scope) {
 			this.eachAttribute(element, function (attribute) {
 				Global$1.binder.unrender({
-					uid: uid,
+					scope: scope,
 					element: element,
 					container: container,
 					name: attribute.name,
@@ -2858,6 +2940,98 @@
 				});
 			});
 		}, target);
+	};
+
+	View.prototype.inputListener = function (e) {
+		if (
+			e.target.type !== 'checkbox'
+			&& e.target.type !== 'radio'
+			&& e.target.type !== 'option'
+			&& e.target.nodeName !== 'SELECT'
+		) {
+			Global$1.binder.render({
+				name: 'o-value',
+				element: e.target,
+			}, 'view');
+		}
+	};
+
+	View.prototype.changeListener = function (e) {
+		Global$1.binder.render({
+			name: 'o-value',
+			element: e.target,
+		}, 'view');
+	};
+
+	View.prototype.loadListener = function () {
+		this.add(this.element);
+	};
+
+	View.prototype.mutationListener = function (mutations) {
+		var c, i = mutations.length;
+
+		while (i--) {
+			var target = mutations[i].target;
+			var addedNodes = mutations[i].addedNodes;
+			var removedNodes = mutations[i].removedNodes;
+
+			c = addedNodes.length;
+
+			while (c--) {
+				var addedNode = addedNodes[c];
+
+				// if (addedNode.nodeType === 1) {
+				// 	Global.view.add(addedNode);
+				// }
+
+				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
+
+					if (addedNode.isRouterComponent) {
+						addedNode.inRouterCache = true;
+					}
+
+					this.add(addedNode);
+				}
+
+			}
+
+			c = removedNodes.length;
+
+			while (c--) {
+				var removedNode = removedNodes[c];
+
+				// if (removedNode.nodeType === 1) {
+				// 	Global.view.remove(removedNode, target);
+				// }
+
+				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
+
+					if (removedNode.isRouterComponent) {
+						removedNode.inRouterCache = true;
+					}
+
+					this.remove(removedNode, target);
+				}
+
+			}
+
+		}
+
+	};
+
+	View.prototype.run = function () {
+		var self = this;
+
+		if (self.ran) return;
+		else self.ran = true;
+
+		document.addEventListener('input', self.inputListener.bind(self), true);
+		document.addEventListener('change', self.changeListener.bind(self), true);
+
+		if (document.readyState === 'interactive' || document.readyState === 'complete') self.add(self.element);
+		else document.addEventListener('DOMContentLoaded', self.loadListener.bind(self), true);
+
+		new MutationObserver(self.mutationListener.bind(self)).observe(self.element, { childList: true, subtree: true });
 	};
 
 	var Global$1 = Object.defineProperties({}, {
@@ -2913,6 +3087,10 @@
 				data: {}
 			}
 		},
+		utility: {
+			enumerable: true,
+			value: Utility
+		},
 		model: {
 			enumerable: true,
 			value: new Model()
@@ -2920,10 +3098,6 @@
 		view: {
 			enumerable: true,
 			value: new View()
-		},
-		utility: {
-			enumerable: true,
-			value: Utility
 		},
 		binder: {
 			enumerable: true,
@@ -2955,7 +3129,7 @@
 		},
 		setup: {
 			enumerable: true,
-			value: function setup (options) {
+			value: function (options) {
 
 				if (this.isSetup) {
 					return;
@@ -2975,103 +3149,19 @@
 
 				if (options.loader) {
 					this.loader.setup(options.loader);
-					this.loader.run();
 				}
 
 				if (options.router) {
 					this.router.setup(options.router);
-					this.router.run();
 				}
 
+				this.loader.run();
+				this.router.run();
+				this.model.run();
+				this.view.run();
 			}
 		}
 	});
-
-	Global$1.document.addEventListener('click', function clickListener (e) {
-
-			// if shadow dom use
-			var target = e.path ? e.path[0] : e.target;
-			var parent = target.parentNode;
-
-			if (Global$1.router.container) {
-
-				while (parent) {
-
-					if (parent === Global$1.router.container) {
-						break;
-					} else {
-						parent = parent.parentNode;
-					}
-
-				}
-
-				if (parent !== Global$1.router.container) {
-					return;
-				}
-
-			}
-
-			if (e.metaKey || e.ctrlKey || e.shiftKey) {
-				return;
-			}
-
-			// ensure target is anchor tag
-			while (target && 'A' !== target.nodeName) {
-				target = target.parentNode;
-			}
-
-			if (!target || 'A' !== target.nodeName) {
-				return;
-			}
-
-			// check non acceptables
-			if (target.hasAttribute('download') ||
-				target.hasAttribute('external') ||
-				target.hasAttribute('o-external') ||
-				target.href.indexOf('tel:') === 0 ||
-				target.href.indexOf('ftp:') === 0 ||
-				target.href.indexOf('file:') === 0 ||
-				target.href.indexOf('mailto:') === 0 ||
-				target.href.indexOf(window.location.origin) !== 0
-			) return;
-
-			// if external is true then default action
-			if (Global$1.router.external &&
-				(Global$1.router.external.constructor.name === 'RegExp' && Global$1.router.external.test(target.href) ||
-				Global$1.router.external.constructor.name === 'Function' && Global$1.router.external(target.href) ||
-				Global$1.router.external.constructor.name === 'String' && Global$1.router.external === target.href)
-			) return;
-
-			e.preventDefault();
-
-			if (Global$1.router.location.href !== target.href) {
-				Global$1.router.navigate(target.href);
-			}
-
-	}, true);
-
-	Global$1.document.addEventListener('input', function inputListener (e) {
-
-		if (
-			e.target.type !== 'checkbox'
-			&& e.target.type !== 'radio'
-			&& e.target.type !== 'option'
-			&& e.target.nodeName !== 'SELECT'
-		) {
-			Global$1.binder.render({
-				name: 'o-value',
-				element: e.target,
-			}, 'view');
-		}
-
-	}, true);
-
-	Global$1.document.addEventListener('change', function changeListener (e) {
-		Global$1.binder.render({
-			name: 'o-value',
-			element: e.target,
-		}, 'view');
-	}, true);
 
 	Global$1.document.addEventListener('reset', function resetListener (e) {
 		var element = e.target;
@@ -3103,8 +3193,8 @@
 		e.preventDefault();
 
 		var container = Global$1.utility.getContainer(element);
-		var uid = container.getAttribute('o-uid');
-		var model = Global$1.model.data[uid];
+		var scope = container.getAttribute('o-scope');
+		var model = Global$1.model.data[scope];
 
 		Global$1.utility.formData(element, model, function (data) {
 
@@ -3137,66 +3227,6 @@
 		});
 
 	}, true);
-
-	Global$1.window.addEventListener('popstate', function popstateListener (e) {
-		var options = { replace: true };
-		Global$1.router.navigate(e.state || window.location.href, options);
-	}, true);
-
-	new Global$1.window.MutationObserver(function mutationListener (mutations) {
-		var c, i = mutations.length;
-
-		while (i--) {
-			var target = mutations[i].target;
-			var addedNodes = mutations[i].addedNodes;
-			var removedNodes = mutations[i].removedNodes;
-
-			c = addedNodes.length;
-
-			while (c--) {
-				var addedNode = addedNodes[c];
-
-				// if (addedNode.nodeType === 1) {
-				// 	Global.view.add(addedNode);
-				// }
-
-				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
-
-					if (addedNode.isRouterComponent) {
-						addedNode.inRouterCache = true;
-					}
-
-					Global$1.view.add(addedNode);
-				}
-
-			}
-
-			c = removedNodes.length;
-
-			while (c--) {
-				var removedNode = removedNodes[c];
-
-				// if (removedNode.nodeType === 1) {
-				// 	Global.view.remove(removedNode, target);
-				// }
-
-				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
-
-					if (removedNode.isRouterComponent) {
-						removedNode.inRouterCache = true;
-					}
-
-					Global$1.view.remove(removedNode, target);
-				}
-
-			}
-
-		}
-
-	}).observe(Global$1.body, {
-		childList: true,
-		subtree: true
-	});
 
 	var eStyle = Global$1.document.createElement('style');
 	var sStyle = Global$1.document.createTextNode('o-router, o-router > :first-child { display: block; }');

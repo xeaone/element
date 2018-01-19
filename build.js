@@ -6,11 +6,9 @@ const Fs = require('fs');
 const ReadFile = Util.promisify(Fs.readFile);
 const WriteFile = Util.promisify(Fs.writeFile);
 
-const version = Package.version;
-
 const header = `/*
 	Name: Oxe
-	Version: ${version}
+	Version: ${Package.version}
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -20,35 +18,28 @@ const header = `/*
 */
 `;
 
-async function prepend (data, path) {
+const prepend = async function (data, path) {
 	const fileData = await ReadFile(path, 'utf8');
 	await WriteFile(path, data + fileData, 'utf8');
 }
 
 (async function () {
-	try {
-		let options;
 
-		options = { bundle: true };
+	let options;
 
-		await Muleify.pack('src/index.js', 'web/assets/oxe.js', options);
-		await prepend(header, 'web/assets/oxe.js');
+	options = { bundle: true };
 
-		await Muleify.pack('src/index.js', 'dist/oxe.js', options);
-		await prepend(header, 'dist/oxe.js');
+	await Muleify.pack('src/index.js', 'web/assets/oxe.js', options);
+	await prepend(header, 'web/assets/oxe.js');
 
-		options.minify = true ;
+	await Muleify.pack('src/index.js', 'dist/oxe.js', options);
+	await prepend(header, 'dist/oxe.js');
 
-		await Muleify.pack('src/index.js', 'dist/oxe.min.js', options);
-		await prepend(header, 'dist/oxe.min.js');
+	options.minify = true ;
 
-		await Muleify.pack('src/index.js', 'dist/oxe.polly.min.js', options);
-		await prepend(header, 'dist/oxe.polly.min.js');
+	await Muleify.pack('src/index.js', 'dist/oxe.min.js', options);
+	await prepend(header, 'dist/oxe.min.js');
 
-		const opm = await ReadFile('dist/webcomponents-lite.min.js', 'utf8');
-		await prepend(opm, 'dist/oxe.polly.min.js');
-
-	} catch (error) {
-		console.error(error);
-	}
-}());
+}()).catch(function (error) {
+	console.error(error);
+});

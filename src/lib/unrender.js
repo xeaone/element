@@ -1,4 +1,3 @@
-// import Global from '../global';
 
 var Unrender = {};
 

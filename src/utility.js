@@ -214,7 +214,7 @@ Utility.joinDot = function () {
 
 Utility.getContainer = function getContainer (element) {
 
-	if (element.hasAttribute('o-uid') || element.hasAttribute('data-o-uid')) {
+	if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 		return element;
 	}
 
@@ -222,7 +222,7 @@ Utility.getContainer = function getContainer (element) {
 		return this.getContainer(element.parentElement);
 	}
 
-	console.warn('Oxe.utility - could not find container uid');
+	console.warn('Oxe.utility - could not find container scope');
 	console.warn(element);
 };
 

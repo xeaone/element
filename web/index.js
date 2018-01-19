@@ -1,10 +1,4 @@
 
-Oxe.loader.load('./index.css', function () {
-	document.body.style.opacity = 1;
-});
-
-Oxe.loader.load('./assets/prism.css');
-
 Oxe.router.on('navigating', function () {
 	if (Oxe.router.element) {
 		Oxe.router.element.style.opacity = 0;
@@ -24,8 +18,23 @@ Oxe.setup({
 			js: 'es'
 		},
 		loads: [
+			{
+				url: './index.css',
+				listener: function () {
+					document.body.style.opacity = 1;
+				}
+			},
+			// './index.css',
+
+			'./routes/r-home.js',
+			'./routes/r-test.js',
+			'./routes/r-js.js',
+			'./routes/r-404.js',
+
+			'./elements/e-menu.js',
+
+			'./assets/prism.css',
 			'./assets/prism.js',
-			'./elements/e-menu.js'
 		]
 	},
 	router: {
@@ -35,26 +44,24 @@ Oxe.setup({
 			{
 				title: 'Home',
 				path: '/',
-				template: '<r-home></r-home>',
-				url: './routes/r-home.js'
+				template: function (render) {
+					render(document.createElement('r-home'));
+				},
 			},
 			{
 				title: 'Test',
 				path: '/test',
 				template: '<r-test></r-test>',
-				url: './routes/r-test.js'
 			},
 			{
 				title: 'JS',
 				path: '/js',
 				template: '<r-js></r-js>',
-				url: './routes/r-js.js'
 			},
 			{
 				title: '404',
 				path: '/{*}',
 				template: '<r-404></r-404>',
-				url: './routes/r-404.js'
 			}
 		]
 	}

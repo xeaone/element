@@ -42,10 +42,11 @@ Oxe.component.define({
 			this.model.arrayChange = [3, 4, 5, 6];
 		},
 		foo: function () {
-			console.log(this);
+			console.log(this.model);
 			console.log('foo');
 		},
 		toggle_show_hide: function () {
+			console.log(this);
 			this.model.show_hide = !this.model.show_hide;
 		},
 		submitGet: function () {
@@ -98,34 +99,34 @@ Oxe.component.define({
 
 		var total = self.add(1, 2, 3);
 
-		setTimeout(function () {
-			console.log(self.model.items.shift());
-		}, 1000);
-
 		// setTimeout(function () {
-        //
-		// 	var increaseInterval = setInterval(function () {
-        //
-		// 		if (self.model.items.length === 10) {
-		// 			clearInterval(increaseInterval);
-        //
-		// 			var decreaseInterval = setInterval(function () {
-        //
-		// 				if (self.model.items.length === 5) {
-		// 					clearInterval(decreaseInterval);
-		// 				} else {
-		// 					self.model.items.pop();
-		// 				}
-        //
-		// 			}, 6);
-        //
-		// 		} else {
-		// 			self.model.items.push({ it: { val: self.model.items.length } });
-		// 		}
-        //
-		// 	}, 6);
-        //
-		// }, 3000);
+		// 	console.log(self.model.items.shift());
+		// }, 1000);
+
+		setTimeout(function () {
+
+			var increaseInterval = setInterval(function () {
+
+				if (self.model.items.length === 10) {
+					clearInterval(increaseInterval);
+
+					var decreaseInterval = setInterval(function () {
+
+						if (self.model.items.length === 5) {
+							clearInterval(decreaseInterval);
+						} else {
+							self.model.items.pop();
+						}
+
+					}, 6);
+
+				} else {
+					self.model.items.push({ it: { val: self.model.items.length } });
+				}
+
+			}, 6);
+
+		}, 3000);
 
 		Say('r-test created');
 	},
