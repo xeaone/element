@@ -262,8 +262,21 @@ Router.prototype.render = function (route) {
 
 	self.domReady(function () {
 		self.routeReady(route, function () {
+			// self.element.parentNode.insertBefore(route.element, self.element);
+			// self.element.parentNode.removeChild(self.element);
+
 			self.element.parentNode.replaceChild(route.element, self.element);
 			self.element = route.element;
+
+			// while (self.element.firstChild) {
+			// 	self.element.removeChild(self.element.firstChild);
+			// }
+            //
+			// while (route.element.firstChild) {
+			// 	self.element.appendChild(route.element.firstChild);
+			// }
+            //
+			// console.log(route.element);
 
 			self.scroll(0, 0);
 			self.emit('navigated');
@@ -326,8 +339,8 @@ Router.prototype.routeReady = function (data, callback) {
 	}
 
 	if (typeof data.template === 'function') {
-		return data.template(function (template) {
-			data.template = template;
+		return data.template(function (t) {
+			data.template = t;
 			this.routeReady(data, callback);
 		}.bind(this));
 	}
@@ -360,7 +373,7 @@ Router.prototype.elementReady = function (callback) {
 	}
 
 	if (!element) {
-		return;
+		throw new Error('Oxe.router - Missing o-router element or attribute');
 	}
 
 	this.element = element;
@@ -373,7 +386,7 @@ Router.prototype.domReady = function (callback) {
 	if (document.readyState === 'interactive' || document.readyState === 'complete') {
 		this.elementReady(callback);
 	} else {
-		document.addEventListener('DOMContentLoaded', this.domReady.bind(this), true);
+		document.addEventListener('DOMContentLoaded', this.elementReady.bind(this, callback), true);
 	}
 };
 
