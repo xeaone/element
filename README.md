@@ -11,7 +11,7 @@ Api documentation can be found at [API.md](https://github.com/AlexanderElias/oxe
 - Module loading
 - Front end routing
 - Front end auth handling
-- Automatic pollyfilling only if required
+- Automatic pollyfilling if required [web components v0](https://github.com/webcomponents/webcomponentsjs/tree/v0)
 - In browser ES6/ESM Module and Template String pollyfill support (only export default)
 
 ### Support
@@ -89,10 +89,10 @@ Oxe.setup({
 ```html
 <html>
 <head>
-	
+
 	<base href="/">
 	<script src="./oxe.min.js" o-index-url="./index.js" o-index-method="fetch" o-index-transformer="es" async></script>
-	
+
 </head>
 <body>
 
