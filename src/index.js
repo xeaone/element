@@ -74,7 +74,7 @@ eStyle.setAttribute('type', 'text/css');
 Global.head.appendChild(eStyle);
 
 var listener = function () {
-	var eIndex = Global.document.querySelector('[o-index-url]');
+	var eIndex = document.querySelector('[o-index-url]');
 
 	if (eIndex) {
 
@@ -90,7 +90,7 @@ var listener = function () {
 
 	}
 
-	Global.document.registerElement('o-router', {
+	document.registerElement('o-router', {
 		prototype: Object.create(HTMLElement.prototype)
 	});
 }
