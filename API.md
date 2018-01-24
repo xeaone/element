@@ -30,6 +30,7 @@ The recommend entry point. This allows you to setup Oxe and automatically starts
 		- `model: Object<Any>`
 		- `methods: Object<Function>`
 		- `template: String, Function, Element`
+		- `style: String, Function` Rewrites CSS variables and :scope if browser support is lacking
 		- `shadow: Boolean` (default: false) use shadow DOM
 		- `properties: Object<Descriptors>` Property descriptors added to the element prototype
 		- `created: Function` Triggered once on DOM creation

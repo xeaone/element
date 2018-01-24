@@ -1,14 +1,4 @@
 
-Oxe.router.on('navigating', function () {
-	if (Oxe.router.element) {
-		Oxe.router.element.style.opacity = 0;
-	}
-});
-
-Oxe.router.on('navigated', function () {
-	Oxe.router.element.style.opacity = 1;
-});
-
 Oxe.setup({
 	loader: {
 		methods: {
@@ -18,12 +8,12 @@ Oxe.setup({
 			js: 'es'
 		},
 		loads: [
-			{
-				url: './index.css',
-				listener: function () {
-					document.body.style.opacity = 1;
-				}
-			},
+			// {
+			// 	url: './index.css',
+			// 	listener: function () {
+			// 		document.body.style.opacity = 1;
+			// 	}
+			// },
 			'./routes/r-home.js',
 			'./routes/r-test.js',
 			'./routes/r-js.js',
@@ -34,7 +24,6 @@ Oxe.setup({
 				transformer: 'none',
 				url: './assets/prism.js',
 			}
-
 		]
 	},
 	router: {
@@ -44,6 +33,7 @@ Oxe.setup({
 			{
 				title: 'Home',
 				path: '/',
+				// template: '<r-home></r-home>',
 				template: function (render) {
 					render(document.createElement('r-home'));
 				},

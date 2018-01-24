@@ -308,6 +308,9 @@ Router.prototype.navigate = function (data, options) {
 		route = this.find(location.routePath) || {};
 	}
 
+	console.log(location);
+	console.log(this.location);
+
 	if (this.auth && (route.auth === true || route.auth === undefined)) {
 
 		if (Global.keeper.route(route) === false) {

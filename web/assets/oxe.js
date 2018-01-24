@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 3.0.2
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -20,78 +10,129 @@
 		this.data = {};
 	};
 
-	Component.prototype.handleSlots = function (element, template) {
-		var tSlots = template.content.querySelectorAll('slot');
-
-		for (var i = 0, l = tSlots.length; i < l; i++) {
-			var tSlot = tSlots[i];
-			var tName = tSlot.getAttribute('name');
-			var eSlot = element.querySelector('[slot="'+ tName + '"]');
-
-			if (eSlot) {
-				tSlot.parentElement.replaceChild(eSlot, tSlot);
-			}
-
+	Component.prototype.renderSlot = function (element, component) {
+		var slots = component.fragment.querySelectorAll('slot');
+		for (var i = 0, l = slots.length; i < l; i++) {
+			var name = slots[i].getAttribute('name');
+			var slot = element.querySelector('[slot="'+ name + '"]');
+			if (slot) slots[i].parentElement.replaceChild(slot, slots[i]);
 		}
-
 	};
 
-	Component.prototype.render = function (data, name, callback) {
+	Component.prototype.renderStyle = function (element, component, callback) {
+		var self = this;
 
-		if (this.data[name].ready) {
+		if (!component.style || component.styleReady) {
 			return callback ? callback() : undefined;
 		}
 
-		if (typeof data === 'function') {
-			return data(function (d) {
-				this.render(d, name, callback);
-			}.bind(this));
+		if (typeof component.style === 'function') {
+			return component.style(function (s) {
+				component.style = s;
+				self.renderStyle(element, component, callback);
+			});
 		}
 
-		var template = document.createElement('template');
+		if (typeof component.style === 'string') {
+			var style = component.style;
 
-		if (typeof data === 'string') {
-			template.innerHTML = data;
-		} else if (typeof data === 'object') {
-			template.content.appendChild(data);
+			if (!window.CSS || !window.CSS.supports) {
+
+				if (!window.CSS.supports('(--t: black)')) {
+					var matches = data.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+					matches.forEach(function (match) {
+						var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+						var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+						style = style.replace(rule[0], '');
+						style = style.replace(pattern, rule[2]);
+					});
+				}
+
+				if (!window.CSS.supports(':scope')) {
+					style = style.replace(/\:scope/g, '[o-scope="' + element.scope + '"]');
+				}
+
+			}
+
+			var estyle = document.createElement('style');
+			var nstyle = document.createTextNode(style);
+			estyle.appendChild(nstyle);
+			component.fragment.appendChild(estyle);
+		} else if (typeof component.style === 'object') {
+			component.fragment.appendChild(component.style);
 		}
 
-		this.data[name].ready = true;
-		this.data[name].template = template;
+		component.styleReady = true;
+
+		return callback ? callback() : undefined;
+	};
+
+	Component.prototype.renderTemplate = function (element, component, callback) {
+		var self = this;
+
+		console.log(element.scope);
+		console.log(!component.template || component.templateReady);
+		console.log('\n');
+
+		if (!component.template || component.templateReady) {
+			return callback ? callback() : undefined;
+		}
+
+		if (typeof component.template === 'function') {
+			return component.template(function (t) {
+				component.template = t;
+				self.renderTemplate(element, component, callback);
+			});
+		}
+
+		if (typeof component.template === 'string') {
+			var template = document.createElement('div');
+			template.innerHTML = component.template;
+			while (template.firstChild) {
+				component.fragment.appendChild(template.firstChild);
+			}
+		} else if (typeof component.template === 'object') {
+			component.fragment.appendChild(component.template);
+		}
+
+		component.templateReady = true;
 
 		return callback ? callback() : undefined;
 	};
 
 	Component.prototype.created = function (element, component) {
 		var self = this;
-		// var component = self.data[element.nodeName.toLowerCase()];
+		var scope = component.name + '-' + component.count++;
 
 		Object.defineProperty(element, 'scope', {
 			enumerable: true,
-			value: component.name + '-' + component.count++
+			value: scope
 		});
 
-		element.setAttribute('o-scope', element.scope);
+		element.setAttribute('o-scope', scope);
+		Global$1.model.set(scope, component.model || {});
+		Global$1.methods.data[scope] = component.methods;
 
-		Global$1.model.set(element.scope, component.model || {});
-		Global$1.methods.data[element.scope] = component.methods;
+		self.renderStyle(element, component, function () {
+			self.renderTemplate(element, component, function () {
 
-		self.render(component.template, component.name, function () {
+				if (component.shadow && 'attachShadow' in document.body) {
+					element.attachShadow({ mode: 'open' }).appendChild(component.fragment.cloneNode(true));
+				} else if (component.shadow && 'createShadowRoot' in document.body) {
+					element.createShadowRoot().appendChild(component.fragment.cloneNode(true));
+				} else {
+					// self.renderSlot(element, component);
+					// while (element.firstChild) element.removeChild(element.firstChild);
+					element.appendChild(component.fragment.cloneNode(true));
+				}
 
-			if (component.shadow && 'attachShadow' in document.body) {
-				element.attachShadow({ mode: 'open' }).appendChild(document.importNode(component.template.content, true));
-			} else if (component.shadow && 'createShadowRoot' in document.body) {
-				element.createShadowRoot().appendChild(document.importNode(component.template.content, true));
-			} else {
-				self.handleSlots(element, component.template);
-				element.appendChild(document.importNode(component.template.content, true));
-			}
+				if (component.created) {
+					component.created.call(element);
+				}
 
-			if (component.created) {
-				component.created.call(element);
-			}
-
+			});
 		});
+
 	};
 
 	Component.prototype.define = function (options) {
@@ -113,6 +154,7 @@
 		options.shadow = options.shadow || false;
 		options.template = options.template || '';
 		options.properties = options.properties || {};
+		options.fragment = document.createDocumentFragment();
 
 		options.properties.scope = {
 			enumerable: true,
@@ -1067,8 +1109,21 @@
 
 		self.domReady(function () {
 			self.routeReady(route, function () {
+				// self.element.parentNode.insertBefore(route.element, self.element);
+				// self.element.parentNode.removeChild(self.element);
+
 				self.element.parentNode.replaceChild(route.element, self.element);
 				self.element = route.element;
+
+				// while (self.element.firstChild) {
+				// 	self.element.removeChild(self.element.firstChild);
+				// }
+	            //
+				// while (route.element.firstChild) {
+				// 	self.element.appendChild(route.element.firstChild);
+				// }
+	            //
+				// console.log(route.element);
 
 				self.scroll(0, 0);
 				self.emit('navigated');
@@ -1099,6 +1154,9 @@
 			location = data;
 			route = this.find(location.routePath) || {};
 		}
+
+		console.log(location);
+		console.log(this.location);
 
 		if (this.auth && (route.auth === true || route.auth === undefined)) {
 
@@ -1131,8 +1189,8 @@
 		}
 
 		if (typeof data.template === 'function') {
-			return data.template(function (template) {
-				data.template = template;
+			return data.template(function (t) {
+				data.template = t;
 				this.routeReady(data, callback);
 			}.bind(this));
 		}
@@ -1165,7 +1223,7 @@
 		}
 
 		if (!element) {
-			return;
+			throw new Error('Oxe.router - Missing o-router element or attribute');
 		}
 
 		this.element = element;
@@ -1178,7 +1236,7 @@
 		if (document.readyState === 'interactive' || document.readyState === 'complete') {
 			this.elementReady(callback);
 		} else {
-			document.addEventListener('DOMContentLoaded', this.domReady.bind(this), true);
+			document.addEventListener('DOMContentLoaded', this.elementReady.bind(this, callback), true);
 		}
 	};
 
@@ -3247,7 +3305,7 @@
 	Global$1.head.appendChild(eStyle);
 
 	var listener = function () {
-		var eIndex = Global$1.document.querySelector('[o-index-url]');
+		var eIndex = document.querySelector('[o-index-url]');
 
 		if (eIndex) {
 
@@ -3263,7 +3321,7 @@
 
 		}
 
-		Global$1.document.registerElement('o-router', {
+		document.registerElement('o-router', {
 			prototype: Object.create(HTMLElement.prototype)
 		});
 	};
