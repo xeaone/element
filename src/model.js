@@ -1,13 +1,21 @@
 import Observer from './lib/observer';
+import Events from './lib/events';
 import Global from './global';
 
 var Model = function (opt) {
+	Events.call(this);
+
 	opt = opt || {};
+
 	this.GET = 2;
 	this.SET = 3;
 	this.REMOVE = 4;
+	this.ran = false;
 	this.data = opt.data || {};
 };
+
+Model.prototype = Object.create(Events.prototype);
+Model.prototype.constructor = Model;
 
 Model.prototype.traverse = function (type, keys, value) {
 
@@ -77,8 +85,19 @@ Model.prototype.listener = function (data, path) {
 
 };
 
+Model.prototype.ready = function (callback) {
+	if (this.ran) {
+		callback();
+	} else {
+		this.on('ready', callback);
+	}
+}
+
 Model.prototype.run = function () {
+	if (this.ran) return
+	else this.ran = true;
 	this.data = Observer.create(this.data, this.listener);
+	this.emit('ready');
 };
 
 export default Model;
