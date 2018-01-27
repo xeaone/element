@@ -97,7 +97,12 @@ Loader.prototype.transform = function (data, callback) {
 		};
 
 		for (var i = 0; i < total; i++) {
-			this.load(data.ast.imports[i].url, listener);
+			this.load({
+				listener: listener,
+				method: data.method,
+				url: data.ast.imports[i].url,
+				transformer: data.transformer
+			});
 		}
 
 	} else {
