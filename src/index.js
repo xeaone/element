@@ -73,6 +73,8 @@ eStyle.setAttribute('title', 'Oxe');
 eStyle.setAttribute('type', 'text/css');
 Global.head.appendChild(eStyle);
 
+// https://cdn.polyfill.io/v2/polyfill.min.js
+
 var listener = function () {
 	var eIndex = document.querySelector('[o-index-url]');
 
