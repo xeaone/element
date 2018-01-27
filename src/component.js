@@ -9,10 +9,15 @@ var Component = function () {
 
 Component.prototype.renderSlot = function (element, component) {
 	var slots = component.fragment.querySelectorAll('slot');
+	
 	for (var i = 0, l = slots.length; i < l; i++) {
 		var name = slots[i].getAttribute('name');
 		var slot = element.querySelector('[slot="'+ name + '"]');
-		if (slot) slots[i].parentElement.replaceChild(slot, slots[i]);
+
+		if (slot) {
+			slots[i].parentElement.replaceChild(slot, slots[i]);
+		}
+
 	}
 };
 
@@ -53,6 +58,7 @@ Component.prototype.renderStyle = function (element, component, callback) {
 
 		var estyle = document.createElement('style');
 		var nstyle = document.createTextNode(style);
+
 		estyle.appendChild(nstyle);
 		component.fragment.appendChild(estyle);
 	} else if (typeof component.style === 'object') {
@@ -67,11 +73,13 @@ Component.prototype.renderStyle = function (element, component, callback) {
 Component.prototype.renderTemplate = function (element, component, callback) {
 	var self = this;
 
-	console.log(element.scope);
-	console.log(!component.template || component.templateReady);
-	console.log('\n');
+	if (component.templateReady) {
+		console.log('ready');
+		return;
+	}
 
-	if (!component.template || component.templateReady) {
+	if (!component.template) {
+	// if (!component.template || component.templateReady) {
 		return callback ? callback() : undefined;
 	}
 
@@ -107,29 +115,32 @@ Component.prototype.created = function (element, component) {
 	});
 
 	element.setAttribute('o-scope', scope);
-	Global.model.set(scope, component.model || {});
-	Global.methods.data[scope] = component.methods;
 
-	self.renderStyle(element, component, function () {
-		self.renderTemplate(element, component, function () {
+	Global.model.ready(function () {
 
-			if (component.shadow && 'attachShadow' in document.body) {
-				element.attachShadow({ mode: 'open' }).appendChild(component.fragment.cloneNode(true));
-			} else if (component.shadow && 'createShadowRoot' in document.body) {
-				element.createShadowRoot().appendChild(component.fragment.cloneNode(true));
-			} else {
-				// self.renderSlot(element, component);
-				// while (element.firstChild) element.removeChild(element.firstChild);
-				element.appendChild(component.fragment.cloneNode(true));
-			}
+		Global.model.set(scope, component.model || {});
+		Global.methods.data[scope] = component.methods;
 
-			if (component.created) {
-				component.created.call(element);
-			}
+		// self.renderStyle(element, component, function () {
+			self.renderTemplate(element, component, function () {
 
-		});
+				if (component.shadow && 'attachShadow' in document.body) {
+					element.attachShadow({ mode: 'open' }).appendChild(component.fragment.cloneNode(true));
+				} else if (component.shadow && 'createShadowRoot' in document.body) {
+					element.createShadowRoot().appendChild(component.fragment.cloneNode(true));
+				} else {
+					self.renderSlot(element, component);
+					while (element.firstChild) element.removeChild(element.firstChild);
+					element.appendChild(component.fragment.cloneNode(true));
+				}
+
+				if (component.created) {
+					component.created.call(element);
+				}
+
+			});
+		// });
 	});
-
 };
 
 Component.prototype.define = function (options) {
