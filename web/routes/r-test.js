@@ -33,6 +33,8 @@ var template = /*html*/`
 	<br>
 	<br>
 
+	<e-foo></e-foo>
+
 	<e-menu>
 		<li slot="one">Item One</li>
 		<li slot="two">Item Two</li>

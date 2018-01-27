@@ -1,3 +1,10 @@
+// import './routes/r-js.js';
+// import './routes/r-404.js';
+// import './routes/r-test.js';
+// import './routes/r-index.js';
+// import './elements/e-foo.js';
+// import './elements/e-menu.js';
+// import './assets/prism.js';
 
 Oxe.setup({
 	loader: {
@@ -8,16 +15,11 @@ Oxe.setup({
 			js: 'es'
 		},
 		loads: [
-			// {
-			// 	url: './index.css',
-			// 	listener: function () {
-			// 		document.body.style.opacity = 1;
-			// 	}
-			// },
-			'./routes/r-home.js',
-			'./routes/r-test.js',
 			'./routes/r-js.js',
 			'./routes/r-404.js',
+			'./routes/r-test.js',
+			'./routes/r-index.js',
+			'./elements/e-foo.js',
 			'./elements/e-menu.js',
 			'./assets/prism.css',
 			{
@@ -31,12 +33,12 @@ Oxe.setup({
 		// trailing: true,
 		routes: [
 			{
-				title: 'Home',
+				title: 'Oxe',
 				path: '/',
-				// template: '<r-home></r-home>',
-				template: function (render) {
-					render(document.createElement('r-home'));
-				},
+				template: '<r-index></r-index>',
+				// template: function (render) {
+				// 	render(document.createElement('r-index'));
+				// }
 			},
 			{
 				title: 'Test',

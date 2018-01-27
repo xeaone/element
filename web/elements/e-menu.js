@@ -2,7 +2,7 @@
 Oxe.component.define({
 	name: 'e-menu',
 	created: function () {
-		console.log('created');
+		console.log('e-menu');
 	},
 	style: `
 		:scope {

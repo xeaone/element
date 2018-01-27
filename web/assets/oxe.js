@@ -5,6 +5,7 @@
 }(this, (function () { 'use strict';
 
 	// TODO want to handle default slot
+	// FIXME issue with the recreating elements
 
 	var Component = function () {
 		this.data = {};
@@ -12,10 +13,15 @@
 
 	Component.prototype.renderSlot = function (element, component) {
 		var slots = component.fragment.querySelectorAll('slot');
+		
 		for (var i = 0, l = slots.length; i < l; i++) {
 			var name = slots[i].getAttribute('name');
 			var slot = element.querySelector('[slot="'+ name + '"]');
-			if (slot) slots[i].parentElement.replaceChild(slot, slots[i]);
+
+			if (slot) {
+				slots[i].parentElement.replaceChild(slot, slots[i]);
+			}
+
 		}
 	};
 
@@ -56,6 +62,7 @@
 
 			var estyle = document.createElement('style');
 			var nstyle = document.createTextNode(style);
+
 			estyle.appendChild(nstyle);
 			component.fragment.appendChild(estyle);
 		} else if (typeof component.style === 'object') {
@@ -70,11 +77,13 @@
 	Component.prototype.renderTemplate = function (element, component, callback) {
 		var self = this;
 
-		console.log(element.scope);
-		console.log(!component.template || component.templateReady);
-		console.log('\n');
+		if (component.templateReady) {
+			console.log('ready');
+			return;
+		}
 
-		if (!component.template || component.templateReady) {
+		if (!component.template) {
+		// if (!component.template || component.templateReady) {
 			return callback ? callback() : undefined;
 		}
 
@@ -110,29 +119,32 @@
 		});
 
 		element.setAttribute('o-scope', scope);
-		Global$1.model.set(scope, component.model || {});
-		Global$1.methods.data[scope] = component.methods;
 
-		self.renderStyle(element, component, function () {
-			self.renderTemplate(element, component, function () {
+		Global$1.model.ready(function () {
 
-				if (component.shadow && 'attachShadow' in document.body) {
-					element.attachShadow({ mode: 'open' }).appendChild(component.fragment.cloneNode(true));
-				} else if (component.shadow && 'createShadowRoot' in document.body) {
-					element.createShadowRoot().appendChild(component.fragment.cloneNode(true));
-				} else {
-					// self.renderSlot(element, component);
-					// while (element.firstChild) element.removeChild(element.firstChild);
-					element.appendChild(component.fragment.cloneNode(true));
-				}
+			Global$1.model.set(scope, component.model || {});
+			Global$1.methods.data[scope] = component.methods;
 
-				if (component.created) {
-					component.created.call(element);
-				}
+			// self.renderStyle(element, component, function () {
+				self.renderTemplate(element, component, function () {
 
-			});
+					if (component.shadow && 'attachShadow' in document.body) {
+						element.attachShadow({ mode: 'open' }).appendChild(component.fragment.cloneNode(true));
+					} else if (component.shadow && 'createShadowRoot' in document.body) {
+						element.createShadowRoot().appendChild(component.fragment.cloneNode(true));
+					} else {
+						self.renderSlot(element, component);
+						while (element.firstChild) element.removeChild(element.firstChild);
+						element.appendChild(component.fragment.cloneNode(true));
+					}
+
+					if (component.created) {
+						component.created.call(element);
+					}
+
+				});
+			// });
 		});
-
 	};
 
 	Component.prototype.define = function (options) {
@@ -1155,8 +1167,8 @@
 			route = this.find(location.routePath) || {};
 		}
 
-		console.log(location);
-		console.log(this.location);
+		// console.log(location);
+		// console.log(this.location);
 
 		if (this.auth && (route.auth === true || route.auth === undefined)) {
 
@@ -1604,7 +1616,12 @@
 			};
 
 			for (var i = 0; i < total; i++) {
-				this.load(data.ast.imports[i].url, listener);
+				this.load({
+					listener: listener,
+					method: data.method,
+					url: data.ast.imports[i].url,
+					transformer: data.transformer
+				});
 			}
 
 		} else {
@@ -2805,12 +2822,19 @@
 	};
 
 	var Model = function (opt) {
+		Events.call(this);
+
 		opt = opt || {};
+
 		this.GET = 2;
 		this.SET = 3;
 		this.REMOVE = 4;
+		this.ran = false;
 		this.data = opt.data || {};
 	};
+
+	Model.prototype = Object.create(Events.prototype);
+	Model.prototype.constructor = Model;
 
 	Model.prototype.traverse = function (type, keys, value) {
 
@@ -2880,8 +2904,19 @@
 
 	};
 
+	Model.prototype.ready = function (callback) {
+		if (this.ran) {
+			callback();
+		} else {
+			this.on('ready', callback);
+		}
+	};
+
 	Model.prototype.run = function () {
+		if (this.ran) return
+		else this.ran = true;
 		this.data = Observer.create(this.data, this.listener);
+		this.emit('ready');
 	};
 
 	var View = function (opt) {
@@ -3303,6 +3338,8 @@
 	eStyle.setAttribute('title', 'Oxe');
 	eStyle.setAttribute('type', 'text/css');
 	Global$1.head.appendChild(eStyle);
+
+	// https://cdn.polyfill.io/v2/polyfill.min.js
 
 	var listener = function () {
 		var eIndex = document.querySelector('[o-index-url]');
