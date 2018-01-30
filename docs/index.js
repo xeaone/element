@@ -1,14 +1,4 @@
 
-Oxe.router.on('navigating', function () {
-	if (Oxe.router.element) {
-		Oxe.router.element.style.opacity = 0;
-	}
-});
-
-Oxe.router.on('navigated', function () {
-	Oxe.router.element.style.opacity = 1;
-});
-
 Oxe.setup({
 	loader: {
 		methods: {
@@ -18,23 +8,15 @@ Oxe.setup({
 			js: 'es'
 		},
 		loads: [
-			{
-				url: './index.css',
-				listener: function () {
-					document.body.style.opacity = 1;
-				}
-			},
-			'./routes/r-home.js',
 			'./routes/r-test.js',
-			'./routes/r-js.js',
-			'./routes/r-404.js',
+			'./routes/r-index.js',
+			'./elements/e-foo.js',
 			'./elements/e-menu.js',
 			'./assets/prism.css',
 			{
 				transformer: 'none',
 				url: './assets/prism.js',
 			}
-
 		]
 	},
 	router: {
@@ -42,26 +24,31 @@ Oxe.setup({
 		// trailing: true,
 		routes: [
 			{
-				title: 'Home',
+				title: 'Oxe',
 				path: '/',
-				template: function (render) {
-					render(document.createElement('r-home'));
-				},
+				component: 'r-index'
 			},
 			{
 				title: 'Test',
 				path: '/test',
-				template: '<r-test></r-test>',
+				component: 'r-test'
 			},
 			{
 				title: 'JS',
 				path: '/js',
-				template: '<r-js></r-js>',
+				component: 'r-js',
+				load: './routes/r-js.js'
 			},
 			{
 				title: '404',
 				path: '/{*}',
-				template: '<r-404></r-404>',
+				component: {
+					name: 'r-404',
+					template: `
+						<h1>404</h1>
+						<h2>This page does not exists</h2>
+					`
+				}
 			}
 		]
 	}

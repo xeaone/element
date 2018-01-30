@@ -79,7 +79,7 @@ var indexhtml = Escape(/*html*/`
 `);
 
 Oxe.component.define({
-	name: 'r-home',
+	name: 'r-index',
 	attached: function () {
 		Prism.highlightAll();
 	},
