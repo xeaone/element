@@ -130,10 +130,6 @@ var Global = Object.defineProperties({}, {
 				this.router.setup(options.router);
 			}
 
-			this.loader.run();
-			this.model.run();
-			this.view.run();
-			this.router.run();
 		}
 	}
 });

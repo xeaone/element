@@ -2,7 +2,7 @@ import Transformer from './lib/transformer';
 import Events from './lib/events';
 import Global from './global';
 
-var Loader = function (options) {
+var Loader = function () {
 	Events.call(this);
 
 	this.data = {};
@@ -10,7 +10,7 @@ var Loader = function (options) {
 	this.methods = {};
 	this.transformers = {};
 
-	this.setup(options);
+	document.addEventListener('load', this.listener.bind(this), true);
 };
 
 Loader.prototype = Object.create(Events.prototype);
@@ -20,8 +20,15 @@ Loader.prototype.setup = function (options) {
 	options = options || {};
 
 	this.methods = options.methods || this.methods;
-	if (options.loads) this._data = options.loads;
 	this.transformers = options.transformers || this.transformers;
+
+	if (options.loads) {
+		var load;
+		while (load = options.loads.shift()) {
+			this.load(load);
+		}
+	}
+
 };
 
 Loader.prototype.execute = function (data) {
@@ -225,28 +232,6 @@ Loader.prototype.listener = function (e) {
 	var load = this.data[path];
 
 	this.ready(load);
-};
-
-Loader.prototype.run = function () {
-
-	if (this.ran) {
-		return;
-	} else {
-		this.ran = true;
-	}
-
-	document.addEventListener('load', this.listener.bind(this), true);
-
-	if (this._data) {
-		var load;
-
-		while (load = this._data.shift()) {
-			this.load(load);
-		}
-
-		delete this._data;
-	}
-
 };
 
 export default Loader;

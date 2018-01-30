@@ -112,34 +112,32 @@ Component.prototype.created = function (element, options) {
 
 	element.setAttribute('o-scope', scope);
 
-	Global.model.ready(function () {
+	Global.model.set(scope, options.model || {});
+	Global.methods.data[scope] = options.methods;
 
-		Global.model.set(scope, options.model || {});
-		Global.methods.data[scope] = options.methods;
+	self.renderTemplate(options.template, function (etemplate) {
+		self.renderStyle(options.style, scope, function (estyle) {
 
-		self.renderTemplate(options.template, function (etemplate) {
-			self.renderStyle(options.style, scope, function (estyle) {
+			if (estyle) {
+				etemplate.insertBefore(estyle, etemplate.firstChild);
+			}
 
-				if (estyle) {
-					etemplate.insertBefore(estyle, etemplate.firstChild);
-				}
+			if (options.shadow && 'attachShadow' in document.body) {
+				element.attachShadow({ mode: 'open' }).appendChild(etemplate);
+			} else if (options.shadow && 'createShadowRoot' in document.body) {
+				element.createShadowRoot().appendChild(etemplate);
+			} else {
+				self.renderSlot(etemplate, element);
+				element.appendChild(etemplate);
+			}
 
-				if (options.shadow && 'attachShadow' in document.body) {
-					element.attachShadow({ mode: 'open' }).appendChild(etemplate);
-				} else if (options.shadow && 'createShadowRoot' in document.body) {
-					element.createShadowRoot().appendChild(etemplate);
-				} else {
-					self.renderSlot(etemplate, element);
-					element.appendChild(etemplate);
-				}
+			if (options.created) {
+				options.created.call(element);
+			}
 
-				if (options.created) {
-					options.created.call(element);
-				}
-
-			});
 		});
 	});
+
 };
 
 Component.prototype.define = function (options) {

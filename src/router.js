@@ -1,7 +1,7 @@
 import Events from './lib/events';
 import Global from './global';
 
-var Router = function (options) {
+var Router = function () {
 	Events.call(this);
 
 	this.data = [];
@@ -15,7 +15,8 @@ var Router = function (options) {
 	this.element = null;
 	this.container = null;
 
-	this.setup(options);
+	document.addEventListener('click', this.clickListener.bind(this), true);
+	window.addEventListener('popstate', this.stateListener.bind(this), true);
 };
 
 Router.prototype = Object.create(Events.prototype);
@@ -24,13 +25,18 @@ Router.prototype.constructor = Router;
 Router.prototype.setup = function (options) {
 	options = options || {};
 
-	this.container = options.container;
 	this.auth = options.auth === undefined ? this.auth : options.auth;
 	this.hash = options.hash === undefined ? this.hash : options.hash;
 	this.element = options.element === undefined ? this.element : options.element;
 	this.external = options.external === undefined ? this.external : options.external;
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
-	this.data = options.routes === undefined ? this.data : this.data.concat(options.routes);
+	this.container = options.container === undefined ? this.container : options.container;
+
+	if (options.routes) {
+		this.data = this.data.concat(options.routes);
+	}
+
+	this.route(window.location.href, { replace: true });
 };
 
 Router.prototype.scroll = function (x, y) {
@@ -282,7 +288,10 @@ Router.prototype.render = function (route) {
 		this.emit('routed');
 
 	} else {
-		document.addEventListener('DOMContentLoaded', this.render.bind(this, route), true);
+		document.addEventListener('DOMContentLoaded', function _ () {
+			this.render.bind(this, route);
+			document.removeEventListener('DOMContentLoaded', _);
+		}.bind(this), true);
 	}
 
 };
@@ -398,20 +407,6 @@ Router.prototype.clickListener = function (e) {
 		this.route(target.href);
 	}
 
-};
-
-Router.prototype.run = function () {
-
-	if (this.ran) {
-		return;
-	} else {
-		this.ran = true;
-	}
-
-	document.addEventListener('click', this.clickListener.bind(this), true);
-	window.addEventListener('popstate', this.stateListener.bind(this), true);
-
-	this.route(window.location.href, { replace: true });
 };
 
 export default Router;

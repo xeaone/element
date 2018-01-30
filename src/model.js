@@ -2,16 +2,15 @@ import Observer from './lib/observer';
 import Events from './lib/events';
 import Global from './global';
 
-var Model = function (opt) {
+var Model = function () {
 	Events.call(this);
-
-	opt = opt || {};
 
 	this.GET = 2;
 	this.SET = 3;
 	this.REMOVE = 4;
 	this.ran = false;
-	this.data = opt.data || {};
+
+	this.data = Observer.create({}, this.listener);
 };
 
 Model.prototype = Object.create(Events.prototype);
@@ -83,21 +82,6 @@ Model.prototype.listener = function (data, path) {
 		Global.binder[type](binder);
 	});
 
-};
-
-Model.prototype.ready = function (callback) {
-	if (this.ran) {
-		callback();
-	} else {
-		this.on('ready', callback);
-	}
-}
-
-Model.prototype.run = function () {
-	if (this.ran) return
-	else this.ran = true;
-	this.data = Observer.create(this.data, this.listener);
-	this.emit('ready');
 };
 
 export default Model;

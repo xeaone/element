@@ -1,10 +1,23 @@
 import Global from './global';
 
-var View = function (opt) {
-	opt = opt || {};
+var View = function () {
+
 	this.data = {};
-	this.ran = false;
-	this.element = opt.element || document.body;
+
+	document.addEventListener('input', this.inputListener.bind(this), true);
+	document.addEventListener('change', this.changeListener.bind(this), true);
+
+	if (document.readyState === 'interactive' || document.readyState === 'complete') {
+		this.add(document.body);
+	} else {
+		document.addEventListener('DOMContentLoaded', function _ () {
+			this.add(document.body);
+			document.removeEventListener('DOMContentLoaded', _);
+		}.bind(this), true);
+	}
+
+	this.mutationObserver = new MutationObserver(this.mutationListener.bind(this));
+	this.mutationObserver.observe(document.body, { childList: true, subtree: true });
 };
 
 View.prototype.hasAcceptAttribute = function (element) {
@@ -149,10 +162,6 @@ View.prototype.changeListener = function (e) {
 	}, 'view');
 };
 
-View.prototype.loadListener = function () {
-	this.add(this.element);
-};
-
 View.prototype.mutationListener = function (mutations) {
 	var c, i = mutations.length;
 
@@ -195,25 +204,6 @@ View.prototype.mutationListener = function (mutations) {
 
 	}
 
-};
-
-View.prototype.run = function () {
-	var self = this;
-
-	if (self.ran) return;
-	else self.ran = true;
-
-	document.addEventListener('input', self.inputListener.bind(self), true);
-	document.addEventListener('change', self.changeListener.bind(self), true);
-
-	if (document.readyState === 'interactive' || document.readyState === 'complete') {
-		self.add(self.element);
-	} else {
-		document.addEventListener('DOMContentLoaded', self.loadListener.bind(self), true);
-	}
-
-	self.mutationObserver = new MutationObserver(self.mutationListener.bind(self));
-	self.mutationObserver.observe(self.element, { childList: true, subtree: true });
 };
 
 export default View;
