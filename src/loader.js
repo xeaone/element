@@ -18,16 +18,10 @@ Loader.prototype.constructor = Loader;
 
 Loader.prototype.setup = function (options) {
 	options = options || {};
-	
+
 	this.methods = options.methods || this.methods;
+	if (options.loads) this._data = options.loads;
 	this.transformers = options.transformers || this.transformers;
-
-	if (options.loads) {
-		for (var name in options.loads) {
-			this.data[name] = options.loads[name];
-		}
-	}
-
 };
 
 Loader.prototype.execute = function (data) {
@@ -185,11 +179,17 @@ Loader.prototype.load = function (data, listener) {
 		var load = this.data[data.url];
 
 		if (load.listener.length) {
+
 			if (listener) {
 				load.listener.push(listener);
 			}
+
 		} else {
-			load.listener.push(listener);
+
+			if (listener) {
+				load.listener.push(listener);
+			}
+
 			this.ready(load);
 		}
 
@@ -237,11 +237,14 @@ Loader.prototype.run = function () {
 
 	document.addEventListener('load', this.listener.bind(this), true);
 
-	if (this.data) {
+	if (this._data) {
 		var load;
-		while (load = this.data.shift()) {
+
+		while (load = this._data.shift()) {
 			this.load(load);
 		}
+
+		delete this._data;
 	}
 
 };
