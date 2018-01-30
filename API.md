@@ -15,7 +15,7 @@
 - global
 
 ### Oxe.setup(options)
-The recommend entry point. This allows you to setup Oxe and automatically starts the router
+The recommend entry or setup method.
 - `options: Object`
 	- `loader: Object` Oxe.loader options
 	- `keeper: Object` Oxe.keeper options
@@ -74,7 +74,6 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 	- `load: Object, String`
 		- `url: String` Path to file resources
 		- `type: String` If not defined uses the default type
-- `run: Function`
 - `on: EventEmitter`
 	- `setup`
 
@@ -105,7 +104,6 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 - `decode: Function` Wraps window.atob
 
 ### Oxe.router
-Automatically use the default action for non origin matching hrefs
 - `options: Object`
 	- `element: String, Element` (default: 'o-router') The container to render route changes
 	- `auth: Boolean` (default: false) Enables Oxe.Keeper
@@ -140,7 +138,6 @@ Automatically use the default action for non origin matching hrefs
 	- `username: String`
 	- `password: String`
 	- `parameters: Object` Key value pairs of the route dynamic route parameters
-- `run: Function`
 - `render: Function` Will render a route object it is useful if your using route as a handler
 - `redirect: Function` Uses window.location.href which is treated like a 301 redirect for SEO
 	- `path: String`
@@ -171,7 +168,6 @@ Batches DOM reads and writes.
 - `write: Function`
 - `tick: Function`
 - `flush: Function`
-- `run: Function`
 - `remove: Function`
 - `clear: Function`
 - `emit: Function`
