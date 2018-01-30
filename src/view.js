@@ -38,14 +38,14 @@ View.prototype.eachAttribute = function (element, callback) {
 		}
 
 		if (
-			attribute.name !== 'o-scope'
-			&& attribute.name !== 'o-auth'
+			attribute.name !== 'o-auth'
+			&& attribute.name !== 'o-scope'
 			&& attribute.name !== 'o-reset'
 			&& attribute.name !== 'o-method'
 			&& attribute.name !== 'o-action'
 			&& attribute.name !== 'o-external'
-			&& attribute.name !== 'data-o-scope'
 			&& attribute.name !== 'data-o-auth'
+			&& attribute.name !== 'data-o-scope'
 			&& attribute.name !== 'data-o-reset'
 			&& attribute.name !== 'data-o-method'
 			&& attribute.name !== 'data-o-action'
@@ -62,8 +62,10 @@ View.prototype.each = function (element, callback, container) {
 
 	if (
 		element.nodeName !== 'O-ROUTER'
+		&& !element.hasAttribute('o-setup')
 		&& !element.hasAttribute('o-router')
 		&& !element.hasAttribute('o-external')
+		&& !element.hasAttribute('data-o-setup')
 		&& !element.hasAttribute('data-o-router')
 		&& !element.hasAttribute('data-o-external')
 		&& this.hasAcceptAttribute(element)
@@ -164,10 +166,6 @@ View.prototype.mutationListener = function (mutations) {
 		while (c--) {
 			var addedNode = addedNodes[c];
 
-			// if (addedNode.nodeType === 1) {
-			// 	Global.view.add(addedNode);
-			// }
-
 			if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 
 				if (addedNode.isRouterComponent) {
@@ -183,10 +181,6 @@ View.prototype.mutationListener = function (mutations) {
 
 		while (c--) {
 			var removedNode = removedNodes[c];
-
-			// if (removedNode.nodeType === 1) {
-			// 	Global.view.remove(removedNode, target);
-			// }
 
 			if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 
@@ -212,10 +206,14 @@ View.prototype.run = function () {
 	document.addEventListener('input', self.inputListener.bind(self), true);
 	document.addEventListener('change', self.changeListener.bind(self), true);
 
-	if (document.readyState === 'interactive' || document.readyState === 'complete') self.add(self.element);
-	else document.addEventListener('DOMContentLoaded', self.loadListener.bind(self), true);
+	if (document.readyState === 'interactive' || document.readyState === 'complete') {
+		self.add(self.element);
+	} else {
+		document.addEventListener('DOMContentLoaded', self.loadListener.bind(self), true);
+	}
 
-	new MutationObserver(self.mutationListener.bind(self)).observe(self.element, { childList: true, subtree: true });
+	self.mutationObserver = new MutationObserver(self.mutationListener.bind(self));
+	self.mutationObserver.observe(self.element, { childList: true, subtree: true });
 };
 
 export default View;
