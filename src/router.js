@@ -4,8 +4,7 @@ import Global from './global';
 var Router = function (options) {
 	Events.call(this);
 
-	this.route = {};
-	this.routes = [];
+	this.data = [];
 	this.location = {};
 
 	this.ran = false;
@@ -13,7 +12,6 @@ var Router = function (options) {
 	this.hash = false;
 	this.trailing = false;
 
-	this.clone = null;
 	this.element = null;
 	this.container = null;
 
@@ -25,13 +23,14 @@ Router.prototype.constructor = Router;
 
 Router.prototype.setup = function (options) {
 	options = options || {};
+
 	this.container = options.container;
 	this.auth = options.auth === undefined ? this.auth : options.auth;
 	this.hash = options.hash === undefined ? this.hash : options.hash;
-	this.routes = options.routes === undefined ? this.routes: options.routes;
 	this.element = options.element === undefined ? this.element : options.element;
 	this.external = options.external === undefined ? this.external : options.external;
 	this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
+	this.data = options.routes === undefined ? this.data : this.data.concat(options.routes);
 };
 
 Router.prototype.scroll = function (x, y) {
@@ -47,62 +46,48 @@ Router.prototype.redirect = function (path) {
 };
 
 Router.prototype.add = function (route) {
-
-	if (route.constructor.name === 'Object') {
-		this.routes.push(route);
+	if (!route) {
+		throw new Error('Oxe.router.add - requires route parameter');
+	} else if (route.constructor.name === 'Object') {
+		this.data.push(route);
 	} else if (route.constructor.name === 'Array') {
-		this.routes = this.routes.concat(route);
+		this.data = this.data.concat(route);
 	}
-
 };
 
 Router.prototype.remove = function (path) {
-
-	for (var i = 0, l = this.routes.length; i < l; i++) {
-
-		if (path === this.routes[i].path) {
-			this.routes.splice(i, 1);
+	for (var i = 0, l = this.data.length; i < l; i++) {
+		if (path === this.data[i].path) {
+			this.data.splice(i, 1);
 		}
-
 	}
-
 };
 
 Router.prototype.get = function (path) {
-
-	for (var i = 0, l = this.routes.length; i < l; i++) {
-		var route = this.routes[i];
-
+	for (var i = 0, l = this.data.length; i < l; i++) {
+		var route = this.data[i];
 		if (path === route.path) {
 			return route;
 		}
-
 	}
-
 };
 
 Router.prototype.find = function (path) {
-
-	for (var i = 0, l = this.routes.length; i < l; i++) {
-		var route = this.routes[i];
-
+	for (var i = 0, l = this.data.length; i < l; i++) {
+		var route = this.data[i];
 		if (this.isPath(route.path, path)) {
 			return route;
 		}
-
 	}
-
 };
 
 Router.prototype.isPath = function (routePath, userPath) {
-	userPath = userPath || '/';
-
 	return new RegExp(
 		'^' + routePath
 		.replace(/{\*}/g, '(?:.*)')
 		.replace(/{(\w+)}/g, '([^\/]+)')
 		+ '(\/)?$'
-	).test(userPath);
+	).test(userPath || '/');
 };
 
 Router.prototype.toParameterObject = function (routePath, userPath) {
@@ -248,44 +233,61 @@ Router.prototype.toLocationObject = function (path) {
 };
 
 Router.prototype.render = function (route) {
-	var self = this;
 
-	self.emit('navigating');
+	if (document.readyState === 'interactive' || document.readyState === 'complete') {
 
-	if (route.title) {
-		document.title = route.title;
+		this.emit('routing');
+
+		if (!this.element) {
+			this.element = this.element || 'o-router';
+
+			if (typeof this.element === 'string') {
+				this.element = document.body.querySelector(this.element);
+			}
+
+			if (!this.element) {
+				throw new Error('Oxe.router - Missing o-router');
+			}
+
+		}
+
+		if (route.title) {
+			document.title = route.title;
+		}
+
+		if (!route.element) {
+
+			if (route.load) {
+				Global.loader.load(route.load);
+			}
+
+			if (typeof route.component === 'string') {
+				route.element = document.createElement(route.component);
+			} else {
+				Global.component.define(route.component);
+				route.element = document.createElement(route.component.name);
+			}
+
+			route.element.inRouterCache = false;
+			route.element.isRouterComponent = true;
+		}
+
+		while (this.element.firstChild) {
+			this.element.removeChild(this.element.firstChild);
+		}
+
+		this.element.appendChild(route.element);
+
+		this.scroll(0, 0);
+		this.emit('routed');
+
+	} else {
+		document.addEventListener('DOMContentLoaded', this.render.bind(this, route), true);
 	}
-
-	if (route.url) {
-		Global.loader.load(route.url);
-	}
-
-	self.domReady(function () {
-		self.routeReady(route, function () {
-			// self.element.parentNode.insertBefore(route.element, self.element);
-			// self.element.parentNode.removeChild(self.element);
-
-			self.element.parentNode.replaceChild(route.element, self.element);
-			self.element = route.element;
-
-			// while (self.element.firstChild) {
-			// 	self.element.removeChild(self.element.firstChild);
-			// }
-            //
-			// while (route.element.firstChild) {
-			// 	self.element.appendChild(route.element.firstChild);
-			// }
-            //
-			// console.log(route.element);
-
-			self.scroll(0, 0);
-			self.emit('navigated');
-		});
-	});
 
 };
 
-Router.prototype.navigate = function (data, options) {
+Router.prototype.route = function (data, options) {
 	var location, route;
 
 	options = options || {};
@@ -308,9 +310,6 @@ Router.prototype.navigate = function (data, options) {
 		route = this.find(location.routePath) || {};
 	}
 
-	console.log(location);
-	console.log(this.location);
-
 	if (this.auth && (route.auth === true || route.auth === undefined)) {
 
 		if (Global.keeper.route(route) === false) {
@@ -327,7 +326,6 @@ Router.prototype.navigate = function (data, options) {
 		return redirect(route.redirect);
 	}
 
-	this.route = route;
 	this.location = location;
 
 	window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
@@ -335,66 +333,8 @@ Router.prototype.navigate = function (data, options) {
 	this.render(route);
 };
 
-Router.prototype.routeReady = function (data, callback) {
-
-	if (data.element) {
-		return callback(data);
-	}
-
-	if (typeof data.template === 'function') {
-		return data.template(function (t) {
-			data.template = t;
-			this.routeReady(data, callback);
-		}.bind(this));
-	}
-
-	var template = this.clone.cloneNode();
-
-	if (typeof data.template === 'string') {
-		template.innerHTML = data.template;
-	} else if (typeof data.template === 'object') {
-		template.appendChild(data.template);
-	}
-
-	data.element = template;
-	data.element.inRouterCache = false;
-	data.element.isRouterComponent = true;
-
-	callback(data);
-};
-
-Router.prototype.elementReady = function (callback) {
-
-	if (this.clone && this.element) {
-		return callback();
-	}
-
-	var element = this.element || 'o-router';
-
-	if (typeof element === 'string') {
-		element = document.body.querySelector(element);
-	}
-
-	if (!element) {
-		throw new Error('Oxe.router - Missing o-router element or attribute');
-	}
-
-	this.element = element;
-	this.clone = element.cloneNode();
-
-	callback();
-};
-
-Router.prototype.domReady = function (callback) {
-	if (document.readyState === 'interactive' || document.readyState === 'complete') {
-		this.elementReady(callback);
-	} else {
-		document.addEventListener('DOMContentLoaded', this.elementReady.bind(this, callback), true);
-	}
-};
-
 Router.prototype.stateListener = function (e) {
-	this.navigate(e.state || window.location.href, { replace: true });
+	this.route(e.state || window.location.href, { replace: true });
 };
 
 Router.prototype.clickListener = function (e) {
@@ -455,7 +395,7 @@ Router.prototype.clickListener = function (e) {
 	e.preventDefault();
 
 	if (this.location.href !== target.href) {
-		this.navigate(target.href);
+		this.route(target.href);
 	}
 
 };
@@ -468,11 +408,10 @@ Router.prototype.run = function () {
 		this.ran = true;
 	}
 
-	var options = { replace: true };
-
 	document.addEventListener('click', this.clickListener.bind(this), true);
 	window.addEventListener('popstate', this.stateListener.bind(this), true);
-	this.navigate(window.location.href, options);
+
+	this.route(window.location.href, { replace: true });
 };
 
 export default Router;
