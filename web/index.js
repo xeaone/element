@@ -1,10 +1,3 @@
-// import './routes/r-js.js';
-// import './routes/r-404.js';
-// import './routes/r-test.js';
-// import './routes/r-index.js';
-// import './elements/e-foo.js';
-// import './elements/e-menu.js';
-// import './assets/prism.js';
 
 Oxe.setup({
 	loader: {
@@ -15,8 +8,6 @@ Oxe.setup({
 			js: 'es'
 		},
 		loads: [
-			'./routes/r-js.js',
-			'./routes/r-404.js',
 			'./routes/r-test.js',
 			'./routes/r-index.js',
 			'./elements/e-foo.js',
@@ -35,25 +26,29 @@ Oxe.setup({
 			{
 				title: 'Oxe',
 				path: '/',
-				template: '<r-index></r-index>',
-				// template: function (render) {
-				// 	render(document.createElement('r-index'));
-				// }
+				component: 'r-index'
 			},
 			{
 				title: 'Test',
 				path: '/test',
-				template: '<r-test></r-test>',
+				component: 'r-test'
 			},
 			{
 				title: 'JS',
 				path: '/js',
-				template: '<r-js></r-js>',
+				component: 'r-js',
+				load: './routes/r-js.js'
 			},
 			{
 				title: '404',
 				path: '/{*}',
-				template: '<r-404></r-404>',
+				component: {
+					name: 'r-404',
+					template: `
+						<h1>404</h1>
+						<h2>This page does not exists</h2>
+					`
+				}
 			}
 		]
 	}

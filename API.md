@@ -74,6 +74,7 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 	- `load: Object, String`
 		- `url: String` Path to file resources
 		- `type: String` If not defined uses the default type
+- `run: Function`
 - `on: EventEmitter`
 	- `setup`
 
@@ -84,10 +85,10 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 		- `local`
 		- `session`
 	- `scheme: String` (default: bearer) Any valid authentication scheme
-	- `forbidden: String, Function` If string Router.navigate other wise call the function
-	- `unauthorized: String, Function` If string Router.navigate other wise call the function
-	- `authenticated: String, Function` If string Router.navigate other wise call the function
-	- `unauthenticated: String, Function` If string Router.navigate other wise call the function
+	- `forbidden: String, Function` If string Router.route other wise call the function
+	- `unauthorized: String, Function` If string Router.route other wise call the function
+	- `authenticated: String, Function` If string Router.route other wise call the function
+	- `unauthenticated: String, Function` If string Router.route other wise call the function
 - `setup: Function`
 	- `options: Object` Accepts the above options
 - `token: String` Readable only token
@@ -109,26 +110,25 @@ Automatically use the default action for non origin matching hrefs
 	- `element: String, Element` (default: 'o-router') The container to render route changes
 	- `auth: Boolean` (default: false) Enables Oxe.Keeper
 	- `hash: Boolean` (default: false) Hash URL mode
-	- `trailing: Boolean` (default: false) Trailing slash
+	- `trailing: Boolean` (default: false) Trailing slash mode
 	- `external: String, RegExp, Function` Filters URL requests. If true or match Oxe.router will not handle request
 	- `container: Element` Contains all href clicks to the container. Default is window. Good for embedding especially
 	- `routes: Array`
 		- `route: Object`
 			- `auth: Boolean` (default: false) Enables Oxe.Keeper
-			- `path: String` Any path.
-				- `parameters: String` Named '/account/{user}', or catchalls '{\*}'
+			- `path: String` Any path starting with forward slash
+				- `parameters: String` Paths can have parameters `/account/{user}` or catchalls `{\*}`
 			- `title: String` The title for the page
 			- `handler: Function` Overrides the default render method
-			- `template: String, Function, Element` The name of a component to insert into o-router
-			- `load: Object, String` URL path to JS web-component or a Oxe.loader.load Object
+			- `component: Object, String` An Oxe.component.define options object or a component name
+			- `load: Object, String` An Oxe.loader.load options object or a url
 - `setup: Function`
 	- `options: Object` Accepts the above options
-- `location: Object` Similar to imitates window.location but for the Router
+- `location: Object` Similar to window.location
 	- `base: String` Base href or origin
 	- `hash: String`
 	- `href: String`
 	- `host: String`
-	- `route: Object` The current route
 	- `title: String`
 	- `query: Object` Key value pairs of search/query
 	- `origin: String`
@@ -139,9 +139,9 @@ Automatically use the default action for non origin matching hrefs
 	- `protocol: String`
 	- `username: String`
 	- `password: String`
-	- `parameters: Object` Key value pairs of the route params (dynamic route paths)
-- `run: Function` Must be called after <o-router></o-router> is created
-- `render: Function` Will render a route object it is usefull if your using route has a handler
+	- `parameters: Object` Key value pairs of the route dynamic route parameters
+- `run: Function`
+- `render: Function` Will render a route object it is useful if your using route as a handler
 - `redirect: Function` Uses window.location.href which is treated like a 301 redirect for SEO
 	- `path: String`
 - `add: Function`
@@ -149,21 +149,22 @@ Automatically use the default action for non origin matching hrefs
 - `remove: Function`
 	- `path: String`
 - `get: Function`
-	- `path: String` Strict path matching, route path variables are not taken into account
+	- `path: String` Strict path matching the route path parameters are not considered
 - `find: Function`
-	- `path: String` Loose path matching, route path variables, url base, and hash urls, are taken into account
-- `navigate: Function` Navgiates to path
+	- `path: String` Loose path matching the route path parameters are considered
+- `route: Function` Routes to the path
 	- `path: String` Path to navigate
 	- `options: Object`
-		- `replace: Boolean` (deafult: false) replace or push state
+		- `replace: Boolean` (default: false) replace or push state
 		- `query: Object` Converts a key value pair to a query/search string and appends to the path
 - `on: EventEmitter`
-	- `navigated`
+	- `routing`
+	- `routed`
 
 ### Oxe.batcher
 Batches DOM reads and writes.
 - `options: Object`
-	- `fps: Number` (default: 1000/60) if set to 0 the totaly load time decreases but the progress/lazy load is lost.
+	- `fps: Number` (default: 1000/60) if set to 0 the total load time decreases but the progress/lazy load is lost.
 - `setup: Function`
 	- `options: Object`
 - `read: Function`

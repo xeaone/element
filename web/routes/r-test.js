@@ -1,6 +1,6 @@
 import Say from '../modules/say.js';
 
-var template = /*html*/`
+var template = `
 	<style>
 		[o-each-item] {
 			min-height: 150px;
@@ -32,8 +32,6 @@ var template = /*html*/`
 	<button o-on-click="toggle_show_hide">Show/Hide</button>
 	<br>
 	<br>
-
-	<e-foo></e-foo>
 
 	<e-menu>
 		<li slot="one">Item One</li>
@@ -251,14 +249,9 @@ Oxe.component.define({
 
 		Say('r-test created');
 	},
-	template: template
-	// template: function (render) {
-	// 	setTimeout(function () {
-	// 		render(template)
-	// 	}, 1);
-	// }
+	template: function (render) {
+		setTimeout(function () {
+			render(template)
+		}, 0);
+	}
 });
-
-// <div o-on-click="overwriteArray" o-each-ac="arrayChange">
-// 	<div o-text="ac"></div>
-// </div>

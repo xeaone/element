@@ -4,48 +4,72 @@
 	(global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-	// TODO want to handle default slot
-	// FIXME issue with the recreating elements
-
 	var Component = function () {
 		this.data = {};
 	};
 
-	Component.prototype.renderSlot = function (element, component) {
-		var slots = component.fragment.querySelectorAll('slot');
-		
+	Component.prototype.renderSlot = function (target, source) {
+		var slots = target.querySelectorAll('slot[name]');
+
 		for (var i = 0, l = slots.length; i < l; i++) {
+
 			var name = slots[i].getAttribute('name');
-			var slot = element.querySelector('[slot="'+ name + '"]');
+			var slot = source.querySelector('[slot="'+ name + '"]');
 
 			if (slot) {
-				slots[i].parentElement.replaceChild(slot, slots[i]);
+				slots[i].parentNode.replaceChild(slot, slots[i]);
 			}
 
 		}
+
+		var defaultSlot = target.querySelector('slot:not([name])');
+
+		if (defaultSlot && source.children.length) {
+
+			while (source.firstChild) {
+				defaultSlot.insertBefore(source.firstChild);
+			}
+
+			defaultSlot.parentNode.removeChild(defaultSlot);
+
+		}
+
 	};
 
-	Component.prototype.renderStyle = function (element, component, callback) {
-		var self = this;
+	Component.prototype.renderTemplate = function (data, callback) {
+		if (!data) {
+			callback(document.createDocumentFragment());
+		} else if (typeof data === 'string') {
+			var fragment = document.createDocumentFragment();
+			var temporary = document.createElement('div');
 
-		if (!component.style || component.styleReady) {
-			return callback ? callback() : undefined;
+			temporary.innerHTML = data;
+
+			while (temporary.firstChild) {
+				fragment.appendChild(temporary.firstChild);
+			}
+
+			callback(fragment);
+		} else if (typeof data === 'object') {
+			callback(data);
+		} else if (typeof data === 'function') {
+			data(function (t) {
+				this.renderTemplate(t, callback);
+			}.bind(this));
+		} else {
+			throw new Error('Oxe.component.renderTemplate - invalid template type');
 		}
+	};
 
-		if (typeof component.style === 'function') {
-			return component.style(function (s) {
-				component.style = s;
-				self.renderStyle(element, component, callback);
-			});
-		}
+	Component.prototype.renderStyle = function (style, scope, callback) {
+		if (!style) {
+			callback();
+		} else if (typeof style === 'string') {
 
-		if (typeof component.style === 'string') {
-			var style = component.style;
-
-			if (!window.CSS || !window.CSS.supports) {
+			if (window.CSS && window.CSS.supports) {
 
 				if (!window.CSS.supports('(--t: black)')) {
-					var matches = data.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+					var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 					matches.forEach(function (match) {
 						var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
 						var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
@@ -55,7 +79,11 @@
 				}
 
 				if (!window.CSS.supports(':scope')) {
-					style = style.replace(/\:scope/g, '[o-scope="' + element.scope + '"]');
+					style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
+				}
+
+				if (!window.CSS.supports(':host')) {
+					style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
 				}
 
 			}
@@ -64,54 +92,22 @@
 			var nstyle = document.createTextNode(style);
 
 			estyle.appendChild(nstyle);
-			component.fragment.appendChild(estyle);
-		} else if (typeof component.style === 'object') {
-			component.fragment.appendChild(component.style);
+
+			callback(estyle);
+		} else if (typeof style === 'object') {
+			callback(style);
+		} else if (typeof style === 'function') {
+			style(function (s) {
+				this.renderStyle(s, scope, callback);
+			}.bind(this));
+		} else {
+			throw new Error('Oxe.component.renderStyle - invalid style type');
 		}
-
-		component.styleReady = true;
-
-		return callback ? callback() : undefined;
 	};
 
-	Component.prototype.renderTemplate = function (element, component, callback) {
+	Component.prototype.created = function (element, options) {
 		var self = this;
-
-		if (component.templateReady) {
-			console.log('ready');
-			return;
-		}
-
-		if (!component.template) {
-		// if (!component.template || component.templateReady) {
-			return callback ? callback() : undefined;
-		}
-
-		if (typeof component.template === 'function') {
-			return component.template(function (t) {
-				component.template = t;
-				self.renderTemplate(element, component, callback);
-			});
-		}
-
-		if (typeof component.template === 'string') {
-			var template = document.createElement('div');
-			template.innerHTML = component.template;
-			while (template.firstChild) {
-				component.fragment.appendChild(template.firstChild);
-			}
-		} else if (typeof component.template === 'object') {
-			component.fragment.appendChild(component.template);
-		}
-
-		component.templateReady = true;
-
-		return callback ? callback() : undefined;
-	};
-
-	Component.prototype.created = function (element, component) {
-		var self = this;
-		var scope = component.name + '-' + component.count++;
+		var scope = options.name + '-' + options.count++;
 
 		Object.defineProperty(element, 'scope', {
 			enumerable: true,
@@ -122,28 +118,31 @@
 
 		Global$1.model.ready(function () {
 
-			Global$1.model.set(scope, component.model || {});
-			Global$1.methods.data[scope] = component.methods;
+			Global$1.model.set(scope, options.model || {});
+			Global$1.methods.data[scope] = options.methods;
 
-			// self.renderStyle(element, component, function () {
-				self.renderTemplate(element, component, function () {
+			self.renderTemplate(options.template, function (etemplate) {
+				self.renderStyle(options.style, scope, function (estyle) {
 
-					if (component.shadow && 'attachShadow' in document.body) {
-						element.attachShadow({ mode: 'open' }).appendChild(component.fragment.cloneNode(true));
-					} else if (component.shadow && 'createShadowRoot' in document.body) {
-						element.createShadowRoot().appendChild(component.fragment.cloneNode(true));
-					} else {
-						self.renderSlot(element, component);
-						while (element.firstChild) element.removeChild(element.firstChild);
-						element.appendChild(component.fragment.cloneNode(true));
+					if (estyle) {
+						etemplate.insertBefore(estyle, etemplate.firstChild);
 					}
 
-					if (component.created) {
-						component.created.call(element);
+					if (options.shadow && 'attachShadow' in document.body) {
+						element.attachShadow({ mode: 'open' }).appendChild(etemplate);
+					} else if (options.shadow && 'createShadowRoot' in document.body) {
+						element.createShadowRoot().appendChild(etemplate);
+					} else {
+						self.renderSlot(etemplate, element);
+						element.appendChild(etemplate);
+					}
+
+					if (options.created) {
+						options.created.call(element);
 					}
 
 				});
-			// });
+			});
 		});
 	};
 
@@ -151,11 +150,11 @@
 		var self = this;
 
 		if (!options.name) {
-			throw new Error('Oxe.component.define - Requires name');
+			throw new Error('Oxe.component.define - requires name');
 		}
 
 		if (options.name in self.data) {
-			throw new Error('Oxe.component.define - Component already defined');
+			throw new Error('Oxe.component.define - component defined');
 		}
 
 		self.data[options.name] = options;
@@ -166,7 +165,6 @@
 		options.shadow = options.shadow || false;
 		options.template = options.template || '';
 		options.properties = options.properties || {};
-		options.fragment = document.createDocumentFragment();
 
 		options.properties.scope = {
 			enumerable: true,
@@ -202,7 +200,7 @@
 			self.created(this, options);
 		};
 
-		document.registerElement(options.name, {
+		return document.registerElement(options.name, {
 			prototype: options.proto
 		});
 
@@ -863,8 +861,7 @@
 	var Router = function (options) {
 		Events.call(this);
 
-		this.route = {};
-		this.routes = [];
+		this.data = [];
 		this.location = {};
 
 		this.ran = false;
@@ -872,7 +869,6 @@
 		this.hash = false;
 		this.trailing = false;
 
-		this.clone = null;
 		this.element = null;
 		this.container = null;
 
@@ -884,13 +880,14 @@
 
 	Router.prototype.setup = function (options) {
 		options = options || {};
+
 		this.container = options.container;
 		this.auth = options.auth === undefined ? this.auth : options.auth;
 		this.hash = options.hash === undefined ? this.hash : options.hash;
-		this.routes = options.routes === undefined ? this.routes: options.routes;
 		this.element = options.element === undefined ? this.element : options.element;
 		this.external = options.external === undefined ? this.external : options.external;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
+		this.data = options.routes === undefined ? this.data : this.data.concat(options.routes);
 	};
 
 	Router.prototype.scroll = function (x, y) {
@@ -906,62 +903,48 @@
 	};
 
 	Router.prototype.add = function (route) {
-
-		if (route.constructor.name === 'Object') {
-			this.routes.push(route);
+		if (!route) {
+			throw new Error('Oxe.router.add - requires route parameter');
+		} else if (route.constructor.name === 'Object') {
+			this.data.push(route);
 		} else if (route.constructor.name === 'Array') {
-			this.routes = this.routes.concat(route);
+			this.data = this.data.concat(route);
 		}
-
 	};
 
 	Router.prototype.remove = function (path) {
-
-		for (var i = 0, l = this.routes.length; i < l; i++) {
-
-			if (path === this.routes[i].path) {
-				this.routes.splice(i, 1);
+		for (var i = 0, l = this.data.length; i < l; i++) {
+			if (path === this.data[i].path) {
+				this.data.splice(i, 1);
 			}
-
 		}
-
 	};
 
 	Router.prototype.get = function (path) {
-
-		for (var i = 0, l = this.routes.length; i < l; i++) {
-			var route = this.routes[i];
-
+		for (var i = 0, l = this.data.length; i < l; i++) {
+			var route = this.data[i];
 			if (path === route.path) {
 				return route;
 			}
-
 		}
-
 	};
 
 	Router.prototype.find = function (path) {
-
-		for (var i = 0, l = this.routes.length; i < l; i++) {
-			var route = this.routes[i];
-
+		for (var i = 0, l = this.data.length; i < l; i++) {
+			var route = this.data[i];
 			if (this.isPath(route.path, path)) {
 				return route;
 			}
-
 		}
-
 	};
 
 	Router.prototype.isPath = function (routePath, userPath) {
-		userPath = userPath || '/';
-
 		return new RegExp(
 			'^' + routePath
 			.replace(/{\*}/g, '(?:.*)')
 			.replace(/{(\w+)}/g, '([^\/]+)')
 			+ '(\/)?$'
-		).test(userPath);
+		).test(userPath || '/');
 	};
 
 	Router.prototype.toParameterObject = function (routePath, userPath) {
@@ -1107,44 +1090,61 @@
 	};
 
 	Router.prototype.render = function (route) {
-		var self = this;
 
-		self.emit('navigating');
+		if (document.readyState === 'interactive' || document.readyState === 'complete') {
 
-		if (route.title) {
-			document.title = route.title;
+			this.emit('routing');
+
+			if (!this.element) {
+				this.element = this.element || 'o-router';
+
+				if (typeof this.element === 'string') {
+					this.element = document.body.querySelector(this.element);
+				}
+
+				if (!this.element) {
+					throw new Error('Oxe.router - Missing o-router');
+				}
+
+			}
+
+			if (route.title) {
+				document.title = route.title;
+			}
+
+			if (!route.element) {
+
+				if (route.load) {
+					Global$1.loader.load(route.load);
+				}
+
+				if (typeof route.component === 'string') {
+					route.element = document.createElement(route.component);
+				} else {
+					Global$1.component.define(route.component);
+					route.element = document.createElement(route.component.name);
+				}
+
+				route.element.inRouterCache = false;
+				route.element.isRouterComponent = true;
+			}
+
+			while (this.element.firstChild) {
+				this.element.removeChild(this.element.firstChild);
+			}
+
+			this.element.appendChild(route.element);
+
+			this.scroll(0, 0);
+			this.emit('routed');
+
+		} else {
+			document.addEventListener('DOMContentLoaded', this.render.bind(this, route), true);
 		}
-
-		if (route.url) {
-			Global$1.loader.load(route.url);
-		}
-
-		self.domReady(function () {
-			self.routeReady(route, function () {
-				// self.element.parentNode.insertBefore(route.element, self.element);
-				// self.element.parentNode.removeChild(self.element);
-
-				self.element.parentNode.replaceChild(route.element, self.element);
-				self.element = route.element;
-
-				// while (self.element.firstChild) {
-				// 	self.element.removeChild(self.element.firstChild);
-				// }
-	            //
-				// while (route.element.firstChild) {
-				// 	self.element.appendChild(route.element.firstChild);
-				// }
-	            //
-				// console.log(route.element);
-
-				self.scroll(0, 0);
-				self.emit('navigated');
-			});
-		});
 
 	};
 
-	Router.prototype.navigate = function (data, options) {
+	Router.prototype.route = function (data, options) {
 		var location, route;
 
 		options = options || {};
@@ -1167,9 +1167,6 @@
 			route = this.find(location.routePath) || {};
 		}
 
-		// console.log(location);
-		// console.log(this.location);
-
 		if (this.auth && (route.auth === true || route.auth === undefined)) {
 
 			if (Global$1.keeper.route(route) === false) {
@@ -1186,7 +1183,6 @@
 			return redirect(route.redirect);
 		}
 
-		this.route = route;
 		this.location = location;
 
 		window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
@@ -1194,66 +1190,8 @@
 		this.render(route);
 	};
 
-	Router.prototype.routeReady = function (data, callback) {
-
-		if (data.element) {
-			return callback(data);
-		}
-
-		if (typeof data.template === 'function') {
-			return data.template(function (t) {
-				data.template = t;
-				this.routeReady(data, callback);
-			}.bind(this));
-		}
-
-		var template = this.clone.cloneNode();
-
-		if (typeof data.template === 'string') {
-			template.innerHTML = data.template;
-		} else if (typeof data.template === 'object') {
-			template.appendChild(data.template);
-		}
-
-		data.element = template;
-		data.element.inRouterCache = false;
-		data.element.isRouterComponent = true;
-
-		callback(data);
-	};
-
-	Router.prototype.elementReady = function (callback) {
-
-		if (this.clone && this.element) {
-			return callback();
-		}
-
-		var element = this.element || 'o-router';
-
-		if (typeof element === 'string') {
-			element = document.body.querySelector(element);
-		}
-
-		if (!element) {
-			throw new Error('Oxe.router - Missing o-router element or attribute');
-		}
-
-		this.element = element;
-		this.clone = element.cloneNode();
-
-		callback();
-	};
-
-	Router.prototype.domReady = function (callback) {
-		if (document.readyState === 'interactive' || document.readyState === 'complete') {
-			this.elementReady(callback);
-		} else {
-			document.addEventListener('DOMContentLoaded', this.elementReady.bind(this, callback), true);
-		}
-	};
-
 	Router.prototype.stateListener = function (e) {
-		this.navigate(e.state || window.location.href, { replace: true });
+		this.route(e.state || window.location.href, { replace: true });
 	};
 
 	Router.prototype.clickListener = function (e) {
@@ -1314,7 +1252,7 @@
 		e.preventDefault();
 
 		if (this.location.href !== target.href) {
-			this.navigate(target.href);
+			this.route(target.href);
 		}
 
 	};
@@ -1327,11 +1265,10 @@
 			this.ran = true;
 		}
 
-		var options = { replace: true };
-
 		document.addEventListener('click', this.clickListener.bind(this), true);
 		window.addEventListener('popstate', this.stateListener.bind(this), true);
-		this.navigate(window.location.href, options);
+
+		this.route(window.location.href, { replace: true });
 	};
 
 	var Transformer = {};
@@ -1474,7 +1411,7 @@
 		for (var i = 0, l = imps.length; i < l; i++) {
 			var imp = imps[i];
 
-			var pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.modules[\'' + imp.url + '\'].result';
+			var pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.data[\'' + imp.url + '\'].result';
 
 			text = text.replace(imp.raw, pattern);
 		}
@@ -1524,15 +1461,12 @@
 	var Loader = function (options) {
 		Events.call(this);
 
-		this.loads = [];
+		this.data = {};
 		this.ran = false;
 		this.methods = {};
-		this.modules = {};
 		this.transformers = {};
 
 		this.setup(options);
-
-		document.addEventListener('load', this.listener.bind(this), true);
 	};
 
 	Loader.prototype = Object.create(Events.prototype);
@@ -1540,8 +1474,9 @@
 
 	Loader.prototype.setup = function (options) {
 		options = options || {};
+
 		this.methods = options.methods || this.methods;
-		this.loads = options.loads || this.loads;
+		if (options.loads) this._data = options.loads;
 		this.transformers = options.transformers || this.transformers;
 	};
 
@@ -1696,22 +1631,28 @@
 
 		data.url = Global$1.utility.resolve(data.url);
 
-		if (data.url in this.modules) {
-			var load = this.modules[data.url];
+		if (data.url in this.data) {
+			var load = this.data[data.url];
 
 			if (load.listener.length) {
+
 				if (listener) {
 					load.listener.push(listener);
 				}
+
 			} else {
-				load.listener.push(listener);
+
+				if (listener) {
+					load.listener.push(listener);
+				}
+
 				this.ready(load);
 			}
 
 			return;
 		}
 
-		this.modules[data.url] = data;
+		this.data[data.url] = data;
 
 		data.extension = data.extension || Global$1.utility.extension(data.url);
 
@@ -1737,7 +1678,7 @@
 		}
 
 		var path = Global$1.utility.resolve(element.src || element.href);
-		var load = this.modules[path];
+		var load = this.data[path];
 
 		this.ready(load);
 	};
@@ -1750,10 +1691,16 @@
 			this.ran = true;
 		}
 
-		var load;
+		document.addEventListener('load', this.listener.bind(this), true);
 
-		while (load = this.loads.shift()) {
-			this.load(load);
+		if (this._data) {
+			var load;
+
+			while (load = this._data.shift()) {
+				this.load(load);
+			}
+
+			delete this._data;
 		}
 
 	};
@@ -2957,14 +2904,14 @@
 			}
 
 			if (
-				attribute.name !== 'o-scope'
-				&& attribute.name !== 'o-auth'
+				attribute.name !== 'o-auth'
+				&& attribute.name !== 'o-scope'
 				&& attribute.name !== 'o-reset'
 				&& attribute.name !== 'o-method'
 				&& attribute.name !== 'o-action'
 				&& attribute.name !== 'o-external'
-				&& attribute.name !== 'data-o-scope'
 				&& attribute.name !== 'data-o-auth'
+				&& attribute.name !== 'data-o-scope'
 				&& attribute.name !== 'data-o-reset'
 				&& attribute.name !== 'data-o-method'
 				&& attribute.name !== 'data-o-action'
@@ -2981,8 +2928,10 @@
 
 		if (
 			element.nodeName !== 'O-ROUTER'
+			&& !element.hasAttribute('o-setup')
 			&& !element.hasAttribute('o-router')
 			&& !element.hasAttribute('o-external')
+			&& !element.hasAttribute('data-o-setup')
 			&& !element.hasAttribute('data-o-router')
 			&& !element.hasAttribute('data-o-external')
 			&& this.hasAcceptAttribute(element)
@@ -3083,10 +3032,6 @@
 			while (c--) {
 				var addedNode = addedNodes[c];
 
-				// if (addedNode.nodeType === 1) {
-				// 	Global.view.add(addedNode);
-				// }
-
 				if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
 
 					if (addedNode.isRouterComponent) {
@@ -3102,10 +3047,6 @@
 
 			while (c--) {
 				var removedNode = removedNodes[c];
-
-				// if (removedNode.nodeType === 1) {
-				// 	Global.view.remove(removedNode, target);
-				// }
 
 				if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
 
@@ -3131,10 +3072,14 @@
 		document.addEventListener('input', self.inputListener.bind(self), true);
 		document.addEventListener('change', self.changeListener.bind(self), true);
 
-		if (document.readyState === 'interactive' || document.readyState === 'complete') self.add(self.element);
-		else document.addEventListener('DOMContentLoaded', self.loadListener.bind(self), true);
+		if (document.readyState === 'interactive' || document.readyState === 'complete') {
+			self.add(self.element);
+		} else {
+			document.addEventListener('DOMContentLoaded', self.loadListener.bind(self), true);
+		}
 
-		new MutationObserver(self.mutationListener.bind(self)).observe(self.element, { childList: true, subtree: true });
+		self.mutationObserver = new MutationObserver(self.mutationListener.bind(self));
+		self.mutationObserver.observe(self.element, { childList: true, subtree: true });
 	};
 
 	var Global$1 = Object.defineProperties({}, {
@@ -3259,14 +3204,14 @@
 				}
 
 				this.loader.run();
-				this.router.run();
 				this.model.run();
 				this.view.run();
+				this.router.run();
 			}
 		}
 	});
 
-	Global$1.document.addEventListener('reset', function resetListener (e) {
+	document.addEventListener('reset', function resetListener (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -3285,7 +3230,7 @@
 
 	}, true);
 
-	Global$1.document.addEventListener('submit', function submitListener (e) {
+	document.addEventListener('submit', function submitListener (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -3331,45 +3276,44 @@
 
 	}, true);
 
-	var eStyle = Global$1.document.createElement('style');
-	var sStyle = Global$1.document.createTextNode('o-router, o-router > :first-child { display: block; }');
+	var style = document.createElement('style');
 
-	eStyle.appendChild(sStyle);
-	eStyle.setAttribute('title', 'Oxe');
-	eStyle.setAttribute('type', 'text/css');
-	Global$1.head.appendChild(eStyle);
+	style.setAttribute('type', 'text/css');
+	style.appendChild(document.createTextNode('o-router, o-router > :first-child { display: block; }'));
 
-	// https://cdn.polyfill.io/v2/polyfill.min.js
+	document.head.appendChild(style);
 
 	var listener = function () {
-		var eIndex = document.querySelector('[o-index-url]');
+		var element = document.querySelector('script[o-setup]');
 
-		if (eIndex) {
-
-			var url = eIndex.getAttribute('o-index-url');
-			var method = eIndex.getAttribute('o-index-method');
-			var transformer = eIndex.getAttribute('o-index-transformer');
-
+		if (element) {
+			var args = element.getAttribute('o-setup').split(/\s*,\s*/);
 			Global$1.loader.load({
-				url: url,
-				method: method,
-				transformer: transformer
+				url: args[0],
+				method: args[2],
+				transformer: args[1]
 			});
-
 		}
 
 		document.registerElement('o-router', {
 			prototype: Object.create(HTMLElement.prototype)
 		});
+
 	};
 
-	if ('registerElement' in Global$1.document && 'content' in Global$1.document.createElement('template')) {
+	if ('registerElement' in document && 'content' in document.createElement('template')) {
 		listener();
 	} else {
-		Global$1.loader.load({
-			method: 'script',
-			url: 'https://unpkg.com/oxe@2.9.9/dist/webcomponents-lite.min.js',
-		}, listener);
+		var polly = document.createElement('script');
+		
+		polly.setAttribute('type', 'text/javascript');
+		polly.setAttribute('src', 'https://unpkg.com/oxe@2.9.9/dist/webcomponents-lite.min.js');
+		polly.addEventListener('load', function () {
+			listener();
+			this.removeEventListener('load', listener);
+		}, true);
+
+		document.head.appendChild(polly);
 	}
 
 	return Global$1;
