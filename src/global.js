@@ -131,9 +131,9 @@ var Global = Object.defineProperties({}, {
 			}
 
 			this.loader.run();
-			this.router.run();
 			this.model.run();
 			this.view.run();
+			this.router.run();
 		}
 	}
 });
