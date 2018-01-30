@@ -49,7 +49,7 @@ var indexjs = Escape(`
 					auth: false, // individually disable/eneable auth
 					path: '/',
 					title: 'Home',
-					template: '<r-home></r-home>'
+					template: 'r-home'
 				}
 			]
 		}
@@ -61,7 +61,7 @@ var indexhtml = Escape(/*html*/`
 	<head>
 
 		<base href="/">
-		<script src="oxe.min.js" o-index-url="index.js" o-index-method="fetch" o-index-transformer="es" async></script>
+		<script src="./oxe.min.js" o-setup="./index.js, es" async></script>
 
 	</head>
 	<body>

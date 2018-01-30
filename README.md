@@ -1,4 +1,3 @@
-**Beta API Can Change**
 
 # Oxe
 A mighty tiny web components framework/library.
@@ -80,7 +79,7 @@ Oxe.setup({
 				auth: false, // individually disable/eneable auth
 				path: '/',
 				title: 'Home',
-				template: '<r-home></r-home>',
+				template: 'r-home',
 			}
 		]
 	}
@@ -91,16 +90,14 @@ Oxe.setup({
 <head>
 
 	<base href="/">
-	<script src="./oxe.min.js" o-index-url="./index.js" o-index-method="fetch" o-index-transformer="es" async></script>
+	<script src="./oxe.min.js" o-setup="./index.js, es" async></script>
 
 </head>
 <body>
 
 	<e-menu>
 		<ul>
-			<li>
-				<a href="/home">Home</a>
-			</li>
+			<li><a href="/home">Home</a></li>
 		</ul>
 	</e-menu>
 
