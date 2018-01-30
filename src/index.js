@@ -94,7 +94,7 @@ if ('registerElement' in document && 'content' in document.createElement('templa
 	listener();
 } else {
 	var polly = document.createElement('script');
-	
+
 	polly.setAttribute('type', 'text/javascript');
 	polly.setAttribute('src', 'https://unpkg.com/oxe@2.9.9/dist/webcomponents-lite.min.js');
 	polly.addEventListener('load', function () {

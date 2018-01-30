@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.1
+	Version: 3.1.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -3263,7 +3263,7 @@
 		listener();
 	} else {
 		var polly = document.createElement('script');
-		
+
 		polly.setAttribute('type', 'text/javascript');
 		polly.setAttribute('src', 'https://unpkg.com/oxe@2.9.9/dist/webcomponents-lite.min.js');
 		polly.addEventListener('load', function () {
