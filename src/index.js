@@ -1,6 +1,6 @@
 import Global from './global';
 
-Global.document.addEventListener('reset', function resetListener (e) {
+document.addEventListener('reset', function resetListener (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -19,7 +19,7 @@ Global.document.addEventListener('reset', function resetListener (e) {
 
 }, true);
 
-Global.document.addEventListener('submit', function submitListener (e) {
+document.addEventListener('submit', function submitListener (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
@@ -65,45 +65,44 @@ Global.document.addEventListener('submit', function submitListener (e) {
 
 }, true);
 
-var eStyle = Global.document.createElement('style');
-var sStyle = Global.document.createTextNode('o-router, o-router > :first-child { display: block; }');
+var style = document.createElement('style');
 
-eStyle.appendChild(sStyle);
-eStyle.setAttribute('title', 'Oxe');
-eStyle.setAttribute('type', 'text/css');
-Global.head.appendChild(eStyle);
+style.setAttribute('type', 'text/css');
+style.appendChild(document.createTextNode('o-router, o-router > :first-child { display: block; }'));
 
-// https://cdn.polyfill.io/v2/polyfill.min.js
+document.head.appendChild(style);
 
 var listener = function () {
-	var eIndex = document.querySelector('[o-index-url]');
+	var element = document.querySelector('script[o-setup]');
 
-	if (eIndex) {
-
-		var url = eIndex.getAttribute('o-index-url');
-		var method = eIndex.getAttribute('o-index-method');
-		var transformer = eIndex.getAttribute('o-index-transformer');
-
+	if (element) {
+		var args = element.getAttribute('o-setup').split(/\s*,\s*/);
 		Global.loader.load({
-			url: url,
-			method: method,
-			transformer: transformer
+			url: args[0],
+			method: args[2],
+			transformer: args[1]
 		});
-
 	}
 
 	document.registerElement('o-router', {
 		prototype: Object.create(HTMLElement.prototype)
 	});
+
 }
 
-if ('registerElement' in Global.document && 'content' in Global.document.createElement('template')) {
+if ('registerElement' in document && 'content' in document.createElement('template')) {
 	listener();
 } else {
-	Global.loader.load({
-		method: 'script',
-		url: 'https://unpkg.com/oxe@2.9.9/dist/webcomponents-lite.min.js',
-	}, listener);
+	var polly = document.createElement('script');
+	
+	polly.setAttribute('type', 'text/javascript');
+	polly.setAttribute('src', 'https://unpkg.com/oxe@2.9.9/dist/webcomponents-lite.min.js');
+	polly.addEventListener('load', function () {
+		listener();
+		this.removeEventListener('load', listener);
+	}, true);
+
+	document.head.appendChild(polly);
 }
 
 export default Global;
