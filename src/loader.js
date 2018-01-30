@@ -5,15 +5,13 @@ import Global from './global';
 var Loader = function (options) {
 	Events.call(this);
 
-	this.loads = [];
+	// this.data = [];
+	this.data = {};
 	this.ran = false;
 	this.methods = {};
-	this.modules = {};
 	this.transformers = {};
 
 	this.setup(options);
-
-	document.addEventListener('load', this.listener.bind(this), true);
 };
 
 Loader.prototype = Object.create(Events.prototype);
@@ -22,7 +20,6 @@ Loader.prototype.constructor = Loader;
 Loader.prototype.setup = function (options) {
 	options = options || {};
 	this.methods = options.methods || this.methods;
-	this.loads = options.loads || this.loads;
 	this.transformers = options.transformers || this.transformers;
 };
 
@@ -177,8 +174,8 @@ Loader.prototype.load = function (data, listener) {
 
 	data.url = Global.utility.resolve(data.url);
 
-	if (data.url in this.modules) {
-		var load = this.modules[data.url];
+	if (data.url in this.data) {
+		var load = this.data[data.url];
 
 		if (load.listener.length) {
 			if (listener) {
@@ -192,7 +189,7 @@ Loader.prototype.load = function (data, listener) {
 		return;
 	}
 
-	this.modules[data.url] = data;
+	this.data[data.url] = data;
 
 	data.extension = data.extension || Global.utility.extension(data.url);
 
@@ -218,12 +215,12 @@ Loader.prototype.listener = function (e) {
 	}
 
 	var path = Global.utility.resolve(element.src || element.href);
-	var load = this.modules[path];
+	var load = this.data[path];
 
 	this.ready(load);
 };
 
-Loader.prototype.run = function () {
+Loader.prototype.run = function (loads) {
 
 	if (this.ran) {
 		return;
@@ -231,10 +228,13 @@ Loader.prototype.run = function () {
 		this.ran = true;
 	}
 
-	var load;
+	document.addEventListener('load', this.listener.bind(this), true);
 
-	while (load = this.loads.shift()) {
-		this.load(load);
+	if (loads) {
+		var load;
+		while (load = loads.shift()) {
+			this.load(load);
+		}
 	}
 
 };
