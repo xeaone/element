@@ -1,47 +1,71 @@
 import Global from './global';
 
-// TODO want to handle default slot
-// FIXME issue with the recreating elements
-
 var Component = function () {
 	this.data = {};
 };
 
-Component.prototype.renderSlot = function (element, component) {
-	var slots = component.fragment.querySelectorAll('slot');
-	
+Component.prototype.renderSlot = function (target, source) {
+	var slots = target.querySelectorAll('slot[name]');
+
 	for (var i = 0, l = slots.length; i < l; i++) {
+
 		var name = slots[i].getAttribute('name');
-		var slot = element.querySelector('[slot="'+ name + '"]');
+		var slot = source.querySelector('[slot="'+ name + '"]');
 
 		if (slot) {
-			slots[i].parentElement.replaceChild(slot, slots[i]);
+			slots[i].parentNode.replaceChild(slot, slots[i]);
 		}
 
 	}
+
+	var defaultSlot = target.querySelector('slot:not([name])');
+
+	if (defaultSlot && source.children.length) {
+
+		while (source.firstChild) {
+			defaultSlot.insertBefore(source.firstChild);
+		}
+
+		defaultSlot.parentNode.removeChild(defaultSlot);
+
+	}
+
 };
 
-Component.prototype.renderStyle = function (element, component, callback) {
-	var self = this;
+Component.prototype.renderTemplate = function (data, callback) {
+	if (!data) {
+		callback(document.createDocumentFragment());
+	} else if (typeof data === 'string') {
+		var fragment = document.createDocumentFragment();
+		var temporary = document.createElement('div');
 
-	if (!component.style || component.styleReady) {
-		return callback ? callback() : undefined;
+		temporary.innerHTML = data;
+
+		while (temporary.firstChild) {
+			fragment.appendChild(temporary.firstChild);
+		}
+
+		callback(fragment);
+	} else if (typeof data === 'object') {
+		callback(data);
+	} else if (typeof data === 'function') {
+		data(function (t) {
+			this.renderTemplate(t, callback);
+		}.bind(this));
+	} else {
+		throw new Error('Oxe.component.renderTemplate - invalid template type');
 	}
+};
 
-	if (typeof component.style === 'function') {
-		return component.style(function (s) {
-			component.style = s;
-			self.renderStyle(element, component, callback);
-		});
-	}
+Component.prototype.renderStyle = function (style, scope, callback) {
+	if (!style) {
+		callback();
+	} else if (typeof style === 'string') {
 
-	if (typeof component.style === 'string') {
-		var style = component.style;
-
-		if (!window.CSS || !window.CSS.supports) {
+		if (window.CSS && window.CSS.supports) {
 
 			if (!window.CSS.supports('(--t: black)')) {
-				var matches = data.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+				var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 				matches.forEach(function (match) {
 					var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
 					var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
@@ -51,7 +75,11 @@ Component.prototype.renderStyle = function (element, component, callback) {
 			}
 
 			if (!window.CSS.supports(':scope')) {
-				style = style.replace(/\:scope/g, '[o-scope="' + element.scope + '"]');
+				style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
+			}
+
+			if (!window.CSS.supports(':host')) {
+				style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
 			}
 
 		}
@@ -60,54 +88,22 @@ Component.prototype.renderStyle = function (element, component, callback) {
 		var nstyle = document.createTextNode(style);
 
 		estyle.appendChild(nstyle);
-		component.fragment.appendChild(estyle);
-	} else if (typeof component.style === 'object') {
-		component.fragment.appendChild(component.style);
+
+		callback(estyle);
+	} else if (typeof style === 'object') {
+		callback(style);
+	} else if (typeof style === 'function') {
+		style(function (s) {
+			this.renderStyle(s, scope, callback);
+		}.bind(this));
+	} else {
+		throw new Error('Oxe.component.renderStyle - invalid style type');
 	}
-
-	component.styleReady = true;
-
-	return callback ? callback() : undefined;
 };
 
-Component.prototype.renderTemplate = function (element, component, callback) {
+Component.prototype.created = function (element, options) {
 	var self = this;
-
-	if (component.templateReady) {
-		console.log('ready');
-		return;
-	}
-
-	if (!component.template) {
-	// if (!component.template || component.templateReady) {
-		return callback ? callback() : undefined;
-	}
-
-	if (typeof component.template === 'function') {
-		return component.template(function (t) {
-			component.template = t;
-			self.renderTemplate(element, component, callback);
-		});
-	}
-
-	if (typeof component.template === 'string') {
-		var template = document.createElement('div');
-		template.innerHTML = component.template;
-		while (template.firstChild) {
-			component.fragment.appendChild(template.firstChild);
-		}
-	} else if (typeof component.template === 'object') {
-		component.fragment.appendChild(component.template);
-	}
-
-	component.templateReady = true;
-
-	return callback ? callback() : undefined;
-};
-
-Component.prototype.created = function (element, component) {
-	var self = this;
-	var scope = component.name + '-' + component.count++;
+	var scope = options.name + '-' + options.count++;
 
 	Object.defineProperty(element, 'scope', {
 		enumerable: true,
@@ -118,28 +114,31 @@ Component.prototype.created = function (element, component) {
 
 	Global.model.ready(function () {
 
-		Global.model.set(scope, component.model || {});
-		Global.methods.data[scope] = component.methods;
+		Global.model.set(scope, options.model || {});
+		Global.methods.data[scope] = options.methods;
 
-		// self.renderStyle(element, component, function () {
-			self.renderTemplate(element, component, function () {
+		self.renderTemplate(options.template, function (etemplate) {
+			self.renderStyle(options.style, scope, function (estyle) {
 
-				if (component.shadow && 'attachShadow' in document.body) {
-					element.attachShadow({ mode: 'open' }).appendChild(component.fragment.cloneNode(true));
-				} else if (component.shadow && 'createShadowRoot' in document.body) {
-					element.createShadowRoot().appendChild(component.fragment.cloneNode(true));
-				} else {
-					self.renderSlot(element, component);
-					while (element.firstChild) element.removeChild(element.firstChild);
-					element.appendChild(component.fragment.cloneNode(true));
+				if (estyle) {
+					etemplate.insertBefore(estyle, etemplate.firstChild);
 				}
 
-				if (component.created) {
-					component.created.call(element);
+				if (options.shadow && 'attachShadow' in document.body) {
+					element.attachShadow({ mode: 'open' }).appendChild(etemplate);
+				} else if (options.shadow && 'createShadowRoot' in document.body) {
+					element.createShadowRoot().appendChild(etemplate);
+				} else {
+					self.renderSlot(etemplate, element);
+					element.appendChild(etemplate);
+				}
+
+				if (options.created) {
+					options.created.call(element);
 				}
 
 			});
-		// });
+		});
 	});
 };
 
@@ -147,11 +146,11 @@ Component.prototype.define = function (options) {
 	var self = this;
 
 	if (!options.name) {
-		throw new Error('Oxe.component.define - Requires name');
+		throw new Error('Oxe.component.define - requires name');
 	}
 
 	if (options.name in self.data) {
-		throw new Error('Oxe.component.define - Component already defined');
+		throw new Error('Oxe.component.define - component defined');
 	}
 
 	self.data[options.name] = options;
@@ -162,7 +161,6 @@ Component.prototype.define = function (options) {
 	options.shadow = options.shadow || false;
 	options.template = options.template || '';
 	options.properties = options.properties || {};
-	options.fragment = document.createDocumentFragment();
 
 	options.properties.scope = {
 		enumerable: true,
@@ -198,7 +196,7 @@ Component.prototype.define = function (options) {
 		self.created(this, options);
 	};
 
-	document.registerElement(options.name, {
+	return document.registerElement(options.name, {
 		prototype: options.proto
 	});
 
