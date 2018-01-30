@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.0
+	Version: 3.1.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -126,34 +126,32 @@
 
 		element.setAttribute('o-scope', scope);
 
-		Global$1.model.ready(function () {
+		Global$1.model.set(scope, options.model || {});
+		Global$1.methods.data[scope] = options.methods;
 
-			Global$1.model.set(scope, options.model || {});
-			Global$1.methods.data[scope] = options.methods;
+		self.renderTemplate(options.template, function (etemplate) {
+			self.renderStyle(options.style, scope, function (estyle) {
 
-			self.renderTemplate(options.template, function (etemplate) {
-				self.renderStyle(options.style, scope, function (estyle) {
+				if (estyle) {
+					etemplate.insertBefore(estyle, etemplate.firstChild);
+				}
 
-					if (estyle) {
-						etemplate.insertBefore(estyle, etemplate.firstChild);
-					}
+				if (options.shadow && 'attachShadow' in document.body) {
+					element.attachShadow({ mode: 'open' }).appendChild(etemplate);
+				} else if (options.shadow && 'createShadowRoot' in document.body) {
+					element.createShadowRoot().appendChild(etemplate);
+				} else {
+					self.renderSlot(etemplate, element);
+					element.appendChild(etemplate);
+				}
 
-					if (options.shadow && 'attachShadow' in document.body) {
-						element.attachShadow({ mode: 'open' }).appendChild(etemplate);
-					} else if (options.shadow && 'createShadowRoot' in document.body) {
-						element.createShadowRoot().appendChild(etemplate);
-					} else {
-						self.renderSlot(etemplate, element);
-						element.appendChild(etemplate);
-					}
+				if (options.created) {
+					options.created.call(element);
+				}
 
-					if (options.created) {
-						options.created.call(element);
-					}
-
-				});
 			});
 		});
+
 	};
 
 	Component.prototype.define = function (options) {
@@ -868,7 +866,7 @@
 		return this.fetch(opt);
 	};
 
-	var Router = function (options) {
+	var Router = function () {
 		Events.call(this);
 
 		this.data = [];
@@ -882,7 +880,8 @@
 		this.element = null;
 		this.container = null;
 
-		this.setup(options);
+		document.addEventListener('click', this.clickListener.bind(this), true);
+		window.addEventListener('popstate', this.stateListener.bind(this), true);
 	};
 
 	Router.prototype = Object.create(Events.prototype);
@@ -891,13 +890,18 @@
 	Router.prototype.setup = function (options) {
 		options = options || {};
 
-		this.container = options.container;
 		this.auth = options.auth === undefined ? this.auth : options.auth;
 		this.hash = options.hash === undefined ? this.hash : options.hash;
 		this.element = options.element === undefined ? this.element : options.element;
 		this.external = options.external === undefined ? this.external : options.external;
 		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
-		this.data = options.routes === undefined ? this.data : this.data.concat(options.routes);
+		this.container = options.container === undefined ? this.container : options.container;
+
+		if (options.routes) {
+			this.data = this.data.concat(options.routes);
+		}
+
+		this.route(window.location.href, { replace: true });
 	};
 
 	Router.prototype.scroll = function (x, y) {
@@ -1149,7 +1153,10 @@
 			this.emit('routed');
 
 		} else {
-			document.addEventListener('DOMContentLoaded', this.render.bind(this, route), true);
+			document.addEventListener('DOMContentLoaded', function _ () {
+				this.render.bind(this, route);
+				document.removeEventListener('DOMContentLoaded', _);
+			}.bind(this), true);
 		}
 
 	};
@@ -1265,20 +1272,6 @@
 			this.route(target.href);
 		}
 
-	};
-
-	Router.prototype.run = function () {
-
-		if (this.ran) {
-			return;
-		} else {
-			this.ran = true;
-		}
-
-		document.addEventListener('click', this.clickListener.bind(this), true);
-		window.addEventListener('popstate', this.stateListener.bind(this), true);
-
-		this.route(window.location.href, { replace: true });
 	};
 
 	var Transformer = {};
@@ -1468,7 +1461,7 @@
 		return ast;
 	};
 
-	var Loader = function (options) {
+	var Loader = function () {
 		Events.call(this);
 
 		this.data = {};
@@ -1476,7 +1469,7 @@
 		this.methods = {};
 		this.transformers = {};
 
-		this.setup(options);
+		document.addEventListener('load', this.listener.bind(this), true);
 	};
 
 	Loader.prototype = Object.create(Events.prototype);
@@ -1486,8 +1479,15 @@
 		options = options || {};
 
 		this.methods = options.methods || this.methods;
-		if (options.loads) this._data = options.loads;
 		this.transformers = options.transformers || this.transformers;
+
+		if (options.loads) {
+			var load;
+			while (load = options.loads.shift()) {
+				this.load(load);
+			}
+		}
+
 	};
 
 	Loader.prototype.execute = function (data) {
@@ -1691,28 +1691,6 @@
 		var load = this.data[path];
 
 		this.ready(load);
-	};
-
-	Loader.prototype.run = function () {
-
-		if (this.ran) {
-			return;
-		} else {
-			this.ran = true;
-		}
-
-		document.addEventListener('load', this.listener.bind(this), true);
-
-		if (this._data) {
-			var load;
-
-			while (load = this._data.shift()) {
-				this.load(load);
-			}
-
-			delete this._data;
-		}
-
 	};
 
 
@@ -2778,16 +2756,15 @@
 		return Object.defineProperties(target, properties);
 	};
 
-	var Model = function (opt) {
+	var Model = function () {
 		Events.call(this);
-
-		opt = opt || {};
 
 		this.GET = 2;
 		this.SET = 3;
 		this.REMOVE = 4;
 		this.ran = false;
-		this.data = opt.data || {};
+
+		this.data = Observer.create({}, this.listener);
 	};
 
 	Model.prototype = Object.create(Events.prototype);
@@ -2861,26 +2838,24 @@
 
 	};
 
-	Model.prototype.ready = function (callback) {
-		if (this.ran) {
-			callback();
-		} else {
-			this.on('ready', callback);
-		}
-	};
+	var View = function () {
 
-	Model.prototype.run = function () {
-		if (this.ran) return
-		else this.ran = true;
-		this.data = Observer.create(this.data, this.listener);
-		this.emit('ready');
-	};
-
-	var View = function (opt) {
-		opt = opt || {};
 		this.data = {};
-		this.ran = false;
-		this.element = opt.element || document.body;
+
+		document.addEventListener('input', this.inputListener.bind(this), true);
+		document.addEventListener('change', this.changeListener.bind(this), true);
+
+		if (document.readyState === 'interactive' || document.readyState === 'complete') {
+			this.add(document.body);
+		} else {
+			document.addEventListener('DOMContentLoaded', function _ () {
+				this.add(document.body);
+				document.removeEventListener('DOMContentLoaded', _);
+			}.bind(this), true);
+		}
+
+		this.mutationObserver = new MutationObserver(this.mutationListener.bind(this));
+		this.mutationObserver.observe(document.body, { childList: true, subtree: true });
 	};
 
 	View.prototype.hasAcceptAttribute = function (element) {
@@ -3025,10 +3000,6 @@
 		}, 'view');
 	};
 
-	View.prototype.loadListener = function () {
-		this.add(this.element);
-	};
-
 	View.prototype.mutationListener = function (mutations) {
 		var c, i = mutations.length;
 
@@ -3071,25 +3042,6 @@
 
 		}
 
-	};
-
-	View.prototype.run = function () {
-		var self = this;
-
-		if (self.ran) return;
-		else self.ran = true;
-
-		document.addEventListener('input', self.inputListener.bind(self), true);
-		document.addEventListener('change', self.changeListener.bind(self), true);
-
-		if (document.readyState === 'interactive' || document.readyState === 'complete') {
-			self.add(self.element);
-		} else {
-			document.addEventListener('DOMContentLoaded', self.loadListener.bind(self), true);
-		}
-
-		self.mutationObserver = new MutationObserver(self.mutationListener.bind(self));
-		self.mutationObserver.observe(self.element, { childList: true, subtree: true });
 	};
 
 	var Global$1 = Object.defineProperties({}, {
@@ -3213,10 +3165,6 @@
 					this.router.setup(options.router);
 				}
 
-				this.loader.run();
-				this.model.run();
-				this.view.run();
-				this.router.run();
 			}
 		}
 	});
