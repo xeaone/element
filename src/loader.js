@@ -5,7 +5,6 @@ import Global from './global';
 var Loader = function (options) {
 	Events.call(this);
 
-	// this.data = [];
 	this.data = {};
 	this.ran = false;
 	this.methods = {};
@@ -19,8 +18,16 @@ Loader.prototype.constructor = Loader;
 
 Loader.prototype.setup = function (options) {
 	options = options || {};
+	
 	this.methods = options.methods || this.methods;
 	this.transformers = options.transformers || this.transformers;
+
+	if (options.loads) {
+		for (var name in options.loads) {
+			this.data[name] = options.loads[name];
+		}
+	}
+
 };
 
 Loader.prototype.execute = function (data) {
@@ -220,7 +227,7 @@ Loader.prototype.listener = function (e) {
 	this.ready(load);
 };
 
-Loader.prototype.run = function (loads) {
+Loader.prototype.run = function () {
 
 	if (this.ran) {
 		return;
@@ -230,9 +237,9 @@ Loader.prototype.run = function (loads) {
 
 	document.addEventListener('load', this.listener.bind(this), true);
 
-	if (loads) {
+	if (this.data) {
 		var load;
-		while (load = loads.shift()) {
+		while (load = this.data.shift()) {
 			this.load(load);
 		}
 	}
