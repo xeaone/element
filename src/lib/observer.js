@@ -194,7 +194,7 @@ Observer.defineProperty = function (data, key) {
 Observer.create = function (source, listener, path) {
 	var self = this;
 
-	if (!source || typeof source !== 'object') {
+	if (!source || source.constructor !== Object && source.constructor !== Array) {
 		return source;
 	}
 
