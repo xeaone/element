@@ -71,7 +71,7 @@ Keeper.prototype.authenticate = function (token, user) {
 	this.setUser(user);
 
 	if (typeof this._.authenticated === 'string') {
-		Global.router.navigate(this._.authenticated);
+		Global.router.route(this._.authenticated);
 	} else if (typeof this._.authenticated === 'function') {
 		this._.authenticated();
 	}
@@ -83,7 +83,7 @@ Keeper.prototype.unauthenticate = function () {
 	this.removeUser();
 
 	if (typeof this._.unauthenticated === 'string') {
-		Global.router.navigate(this._.unauthenticated);
+		Global.router.route(this._.unauthenticated);
 	} else if (typeof this._.unauthenticated === 'function') {
 		this._.unauthenticated();
 	}
@@ -93,7 +93,7 @@ Keeper.prototype.unauthenticate = function () {
 Keeper.prototype.forbidden = function (result) {
 
 	if (typeof this._.forbidden === 'string') {
-		Global.router.navigate(this._.forbidden);
+		Global.router.route(this._.forbidden);
 	} else if (typeof this._.forbidden === 'function') {
 		this._.forbidden(result);
 	}
@@ -107,7 +107,7 @@ Keeper.prototype.unauthorized = function (result) {
 	// this.removeUser();
 
 	if (typeof this._.unauthorized === 'string') {
-		Global.router.navigate(this._.unauthorized);
+		Global.router.route(this._.unauthorized);
 	} else if (typeof this._.unauthorized === 'function') {
 		this._.unauthorized(result);
 	}
