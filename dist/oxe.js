@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.2
+	Version: 3.1.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2400,7 +2400,7 @@
 		this.setUser(user);
 
 		if (typeof this._.authenticated === 'string') {
-			Global$1.router.navigate(this._.authenticated);
+			Global$1.router.route(this._.authenticated);
 		} else if (typeof this._.authenticated === 'function') {
 			this._.authenticated();
 		}
@@ -2412,7 +2412,7 @@
 		this.removeUser();
 
 		if (typeof this._.unauthenticated === 'string') {
-			Global$1.router.navigate(this._.unauthenticated);
+			Global$1.router.route(this._.unauthenticated);
 		} else if (typeof this._.unauthenticated === 'function') {
 			this._.unauthenticated();
 		}
@@ -2422,7 +2422,7 @@
 	Keeper.prototype.forbidden = function (result) {
 
 		if (typeof this._.forbidden === 'string') {
-			Global$1.router.navigate(this._.forbidden);
+			Global$1.router.route(this._.forbidden);
 		} else if (typeof this._.forbidden === 'function') {
 			this._.forbidden(result);
 		}
@@ -2436,7 +2436,7 @@
 		// this.removeUser();
 
 		if (typeof this._.unauthorized === 'string') {
-			Global$1.router.navigate(this._.unauthorized);
+			Global$1.router.route(this._.unauthorized);
 		} else if (typeof this._.unauthorized === 'function') {
 			this._.unauthorized(result);
 		}
