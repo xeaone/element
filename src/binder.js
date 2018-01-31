@@ -83,28 +83,31 @@ Binder.prototype.get = function (opt) {
 };
 
 Binder.prototype.each = function (scope, path, callback) {
+	var i, key, binder, binders;
 	var paths = this.data[scope];
-
-
-	for (var key in paths) {
-
-		if (key.indexOf(path) === 0) {
-
-			if (key === path || key.slice(path.length).charAt(0) === '.') {
-
-				var binders = paths[key];
-
-				for (var i = 0; i < binders.length; i++) {
-					var binder = binders[i];
-					callback(binder, i, binders, paths, key);
-				}
-
+	if (!path) {
+		for (key in paths) {
+			binders = paths[key];
+			for (i = 0; i < binders.length; i++) {
+				binder = binders[i];
+				callback(binder, i, binders, paths, key);
 			}
-
 		}
+	} else {
+		for (key in paths) {
+			if (key.indexOf(path) === 0) {
+				if (key === path || key.slice(path.length).charAt(0) === '.') {
+					binders = paths[key];
 
+					for (i = 0; i < binders.length; i++) {
+						binder = binders[i];
+						callback(binder, i, binders, paths, key);
+					}
+
+				}
+			}
+		}
 	}
-
 };
 
 Binder.prototype.create = function (opt) {
