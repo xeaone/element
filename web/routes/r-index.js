@@ -38,7 +38,6 @@ var indexjs = Escape(`
 			},
 			loads: [
 				'./index.css',
-				'./routes/r-home.js',
 				'./elements/e-menu.js'
 			]
 		},
@@ -49,7 +48,8 @@ var indexjs = Escape(`
 					auth: false, // individually disable/eneable auth
 					path: '/',
 					title: 'Home',
-					template: 'r-home'
+					component: 'r-home',
+					load: './routes/r-home.js'
 				}
 			]
 		}

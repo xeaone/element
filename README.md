@@ -68,7 +68,6 @@ Oxe.setup({
 		},
 		loads: [
 			'./index.css',
-			'./routes/r-home.js',
 			'./elements/e-menu.js'
 		]
 	},
@@ -79,7 +78,8 @@ Oxe.setup({
 				auth: false, // individually disable/eneable auth
 				path: '/',
 				title: 'Home',
-				template: 'r-home',
+				component: 'r-home',
+				load: './routes/r-home.js'
 			}
 		]
 	}
