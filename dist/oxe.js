@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.5
+	Version: 3.1.6
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2234,28 +2234,31 @@
 	};
 
 	Binder.prototype.each = function (scope, path, callback) {
+		var i, key, binder, binders;
 		var paths = this.data[scope];
-
-
-		for (var key in paths) {
-
-			if (key.indexOf(path) === 0) {
-
-				if (key === path || key.slice(path.length).charAt(0) === '.') {
-
-					var binders = paths[key];
-
-					for (var i = 0; i < binders.length; i++) {
-						var binder = binders[i];
-						callback(binder, i, binders, paths, key);
-					}
-
+		if (!path) {
+			for (key in paths) {
+				binders = paths[key];
+				for (i = 0; i < binders.length; i++) {
+					binder = binders[i];
+					callback(binder, i, binders, paths, key);
 				}
-
 			}
+		} else {
+			for (key in paths) {
+				if (key.indexOf(path) === 0) {
+					if (key === path || key.slice(path.length).charAt(0) === '.') {
+						binders = paths[key];
 
+						for (i = 0; i < binders.length; i++) {
+							binder = binders[i];
+							callback(binder, i, binders, paths, key);
+						}
+
+					}
+				}
+			}
 		}
-
 	};
 
 	Binder.prototype.create = function (opt) {
@@ -2820,12 +2823,11 @@
 	};
 
 	Model.prototype.listener = function (data, path) {
-
 		var paths = path.split('.');
 
-		if (paths.length < 2) {
-			return;
-		}
+		// if (paths.length < 2) {
+		// 	return;
+		// }
 
 		var scope = paths[0];
 		var type = data === undefined ? 'unrender' : 'render';
