@@ -183,17 +183,13 @@ Render.text = function (opt) {
 
 Render.each = function (opt) {
 
-	if (!opt.data && typeof opt.data.constructor !== 'object') {
-		return;
-	}
-
-	if (opt.data && opt.element.children.length === opt.data.length) {
-		opt.pending = false;
-		return;
-	}
-
 	if (!opt.cache) {
 		opt.cache = opt.element.removeChild(opt.element.firstElementChild);
+	}
+
+	if (!opt.data || typeof opt.data !== 'object' || opt.element.children.length === opt.data.length) {
+		opt.pending = false;
+		return;
 	}
 
 	Global.batcher.read(function () {
