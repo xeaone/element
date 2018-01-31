@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.6
+	Version: 3.1.7
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2071,7 +2071,10 @@
 					}
 
 				} else if (type === 'file') {
-					data = opt.element.files;
+					data = data || [];
+					for (i = 0, l = opt.element.files.length; i < l; i++) {
+						data[i] = opt.element.files[i];
+					}
 				} else if (type === 'checkbox') {
 					data = opt.element.checked;
 				} else {
@@ -2115,8 +2118,10 @@
 
 						elements[data].checked = true;
 					} else if (type === 'file') {
-						attribute = 'files';
 						data = opt.data === undefined ? Global$1.model.set(opt.keys, []) : opt.data;
+						for (i = 0, l = data.length; i < l; i++) {
+							opt.element.files = data[i];
+						}
 					} else if (type === 'checkbox') {
 						attribute = 'checked';
 						data = opt.data === undefined ? Global$1.model.set(opt.keys, false) : opt.data;
@@ -2710,7 +2715,7 @@
 	Observer.create = function (source, listener, path) {
 		var self = this;
 
-		if (!source || typeof source !== 'object') {
+		if (!source || source.constructor !== Object && source.constructor !== Array) {
 			return source;
 		}
 
