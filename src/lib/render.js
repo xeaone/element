@@ -270,7 +270,10 @@ Render.value = function (opt, caller) {
 				}
 
 			} else if (type === 'file') {
-				data = opt.element.files;
+				data = data || [];
+				for (i = 0, l = opt.element.files.length; i < l; i++) {
+					data[i] = opt.element.files[i];
+				}
 			} else if (type === 'checkbox') {
 				data = opt.element.checked;
 			} else {
@@ -314,8 +317,10 @@ Render.value = function (opt, caller) {
 
 					elements[data].checked = true;
 				} else if (type === 'file') {
-					attribute = 'files';
 					data = opt.data === undefined ? Global.model.set(opt.keys, []) : opt.data;
+					for (i = 0, l = data.length; i < l; i++) {
+						opt.element.files = data[i];
+					}
 				} else if (type === 'checkbox') {
 					attribute = 'checked';
 					data = opt.data === undefined ? Global.model.set(opt.keys, false) : opt.data;
