@@ -15,10 +15,12 @@ Fetcher.prototype.mime = {
 Fetcher.prototype.setup = function (options) {
 	options = options || {};
 	this.auth = options.auth || false;
-	this.type = options.type || 'text';
 	this.method = options.method || 'get';
-	this.request = options.request || options.request;
-	this.response = options.response || options.response;
+	this.request = options.request;
+	this.response = options.response;
+	this.acceptType = options.acceptType;
+	this.contentType = options.contentType;
+	this.responseType = options.responseType;
 };
 
 Fetcher.prototype.serialize = function (data) {
@@ -97,19 +99,15 @@ Fetcher.prototype.fetch = function (opt) {
 
 	opt.headers = {};
 	opt.url = opt.url ? opt.url : window.location.href;
-	opt.type = opt.type === undefined || opt.type === null ? this.type : opt.type;
 	opt.auth = opt.auth === undefined || opt.auth === null ? this.auth : opt.auth;
 	opt.method = opt.method === undefined || opt.method === null ? this.method : opt.method;
+	opt.acceptType = opt.acceptType === undefined || opt.acceptType === null ? this.acceptType : opt.acceptType;
+	opt.contentType = opt.contentType === undefined || opt.contentType === null ? this.contentType : opt.contentType;
+	opt.responseType = opt.responseType === undefined || opt.responseType === null ? this.responseType : opt.responseType;
 
 	opt.method = opt.method.toUpperCase();
 
 	xhr.open(opt.method, opt.url, true, opt.username, opt.password);
-
-	if (opt.type) {
-		opt.acceptType = opt.acceptType || opt.type;
-		opt.contentType = opt.contentType || opt.type;
-		opt.responseType = opt.responseType || opt.type;
-	}
 
 	if (opt.contentType) {
 		switch (opt.contentType) {
@@ -117,7 +115,7 @@ Fetcher.prototype.fetch = function (opt) {
 			case 'xml': opt.headers['Content-Type'] = this.mime.xml; break;
 			case 'html': opt.headers['Content-Type'] = this.mime.html; break;
 			case 'json': opt.headers['Content-Type'] = this.mime.json; break;
-			default: opt.headers['Content-Type'] = this.mime.text;
+			default: opt.headers['Content-Type'] = opt.contentType;
 		}
 	}
 
@@ -127,19 +125,20 @@ Fetcher.prototype.fetch = function (opt) {
 			case 'xml': opt.headers['Accept'] = this.mime.xml; break;
 			case 'html': opt.headers['Accept'] = this.mime.html; break;
 			case 'json': opt.headers['Accept'] = this.mime.json; break;
-			default: opt.headers['Accept'] = this.mime.text;
+			default: opt.headers['Accept'] = opt.acceptType;
 		}
 	}
 
 	if (opt.responseType) {
 		switch (opt.responseType) {
+			case 'text': xhr.responseType = 'text'; break;
 			case 'json': xhr.responseType = 'json'; break;
 			case 'blob': xhr.responseType = 'blob'; break;
 			case 'xml': xhr.responseType = 'document'; break;
 			case 'html': xhr.responseType = 'document'; break;
 			case 'document': xhr.responseType = 'document'; break;
 			case 'arraybuffer': xhr.responseType = 'arraybuffer'; break;
-			default: xhr.responseType = 'text';
+			default: xhr.responseType = opt.responseType;
 		}
 	}
 

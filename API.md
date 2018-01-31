@@ -180,6 +180,9 @@ Batches DOM reads and writes.
 ### Oxe.fetcher
 Uses XHR
 - `options: Object`
+	- `acceptType: String`
+	- `contentType: String`
+	- `responseType: String`
 	- `auth: Boolean` Enables Oxe.Keeper (default: false)
 	- `request: Function` Intercepts the request if the return value is false the fetch will not continue
 		- `xhr: Object` The xhr going to be used for the request
@@ -223,22 +226,21 @@ Uses XHR
 				- `data: Object|String` The response transformed by resonseType
 				- `error: Boolean` If status >= 200 && status < 300 || status == 304 will be false otherwise true
 		- `data: Object` If method is GET than data is concatenated to the url as parameters
-		- `type: String` A shortcut for setting the contentType, acceptType, and responseType
-		- `contentType: String` (default: text) The header Content-Type of the data being posted to the server
+		- `contentType: String` The header Content-Type of the data being posted to the server
 			- `*` Any string
 			- `xml` 'text/xml; charset=utf-8'
 			- `text` 'text/text; charset=utf-8'
 			- `html` 'text/html; charset=utf-8'
 			- `json` 'application/json; charset=utf-8'
 			- `js` 'application/javascript; charset=utf-8'
-		- `acceptType: String` The header Accept type to expect from the server (default: text)
+		- `acceptType: String` The header Accept type to expect from the server
 			- `*` Any string
 			- `xml` 'text/xml; charset=utf-8'
 			- `text` 'text/text; charset=utf-8'
 			- `html` 'text/html; charset=utf-8'
 			- `json` 'application/json; charset=utf-8'
 			- `js` 'application/javascript; charset=utf-8'
-		- `responseType: String` Blob support for older browsers is still needed (default: text)
+		- `responseType: String` Blob support for older browsers is still needed
 			- `*` Any string
 			- `arraybuffer`
 			- `document`
