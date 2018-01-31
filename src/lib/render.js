@@ -183,7 +183,7 @@ Render.text = function (opt) {
 
 Render.each = function (opt) {
 
-	if (!opt.data && opt.data.constructor !== 'Array') {
+	if (!opt.data && typeof opt.data.constructor !== 'object') {
 		return;
 	}
 
