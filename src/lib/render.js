@@ -183,7 +183,11 @@ Render.text = function (opt) {
 
 Render.each = function (opt) {
 
-	if (opt.element.children.length === opt.data.length) {
+	if (!opt.data && opt.data.constructor !== 'Array') {
+		return;
+	}
+
+	if (opt.data && opt.element.children.length === opt.data.length) {
 		opt.pending = false;
 		return;
 	}
