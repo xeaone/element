@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.4
+	Version: 3.1.5
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1984,17 +1984,13 @@
 
 	Render.each = function (opt) {
 
-		if (!opt.data && typeof opt.data.constructor !== 'object') {
-			return;
-		}
-
-		if (opt.data && opt.element.children.length === opt.data.length) {
-			opt.pending = false;
-			return;
-		}
-
 		if (!opt.cache) {
 			opt.cache = opt.element.removeChild(opt.element.firstElementChild);
+		}
+
+		if (!opt.data || typeof opt.data !== 'object' || opt.element.children.length === opt.data.length) {
+			opt.pending = false;
+			return;
 		}
 
 		Global$1.batcher.read(function () {
