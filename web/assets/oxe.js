@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.8
+	Version: 3.1.9
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2085,7 +2085,7 @@
 					} else if (type === 'file') {
 						data = opt.data === undefined ? Global$1.model.set(opt.keys, []) : opt.data;
 						for (i = 0, l = data.length; i < l; i++) {
-							opt.element.files = data[i];
+							opt.element.files[i] = data[i];
 						}
 					} else if (type === 'checkbox') {
 						attribute = 'checked';
@@ -3180,10 +3180,29 @@
 			var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
 			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
 			var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+			// var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
 
 			options.url = options.url || action;
 			options.method = options.method || method;
 			options.auth = options.auth === undefined ? auth : options.auth;
+
+			// if (!options.contentType || options.contentType.indexOf('multipart/form-data') === 0) {
+			// 	var formData = new FormData();
+			// 	for (var name in options.data) {
+			// 		var value = options.data[name];
+			// 		if (value && value.constructor.length && value[0] && value[0].constructor === File) {
+			// 			for (var i = 0, l = value.length; i < l; i++) {
+			// 				var file = value[i];
+			// 				formData.append(file.name, file, file.name);
+			// 			}
+			// 		} else {
+			// 			formData.append(name, value);
+			// 		}
+			// 	}
+			// 	options.data = formData;
+			// } else if (options.contentType.indexOf('json') === 0 || options.contentType.indexOf('application/json') === 0) {
+	        //
+			// }
 
 			Global$1.fetcher.fetch(options);
 		}
@@ -3225,6 +3244,22 @@
 		});
 
 	};
+
+	// if (!FileReader.prototype.readAsBinaryString) {
+	//     FileReader.prototype.readAsBinaryString = function (data) {
+	//        var binary = '';
+	//        var reader = new FileReader();
+	//        reader.onload = function () {
+	// 	           var bytes = new Uint8Array(reader.result);
+	// 	           for (var i = 0, l = bytes.byteLength; i < l; i++) {
+	// 	               binary += String.fromCharCode(bytes[i]);
+	// 	           }
+	// 	        this.content = binary;
+	// 	        this.onload();
+	// 	    }
+	//     	reader.readAsArrayBuffer(data);
+	// 	}
+	// }
 
 	if ('registerElement' in document && 'content' in document.createElement('template')) {
 		listener();
