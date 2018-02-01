@@ -161,6 +161,8 @@ Fetcher.prototype.fetch = function (opt) {
 			opt.url = opt.url + '?' + this.serialize(opt.data);
 		} else if (opt.contentType === 'json') {
 			data = JSON.stringify(opt.data);
+		} else {
+			data = opt.data;
 		}
 	}
 
