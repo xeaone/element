@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.7
+	Version: 3.1.8
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -261,7 +261,7 @@
 		return Utility.binderNormalize(data).replace(Utility.PATH, '');
 	};
 
-	Utility.formData = function (form, model, callback) {
+	Utility.formData = function (form, model) {
 		var elements = form.querySelectorAll('[o-value]');
 		var data = {};
 
@@ -279,45 +279,9 @@
 			var name = path.split('.').slice(-1);
 
 			data[name] = Utility.getByPath(model, path);
-
-			if (!data[name] || data[name].constructor !== FileList) continue
-
-			var files = data[name];
-			data[name] = [];
-
-			for (var c = 0, t = files.length; c < t; c++) {
-				var file = files[c];
-				var reader = new FileReader();
-
-				count++;
-
-				reader.onload = function(d, n, f, e) {
-
-					d[n].push({
-						type: f.type,
-						size: f.size,
-						name: f.name,
-						data: e.target.result,
-						lastModified: f.lastModified
-					});
-
-					done++;
-
-					if (i === l && count === done) {
-						callback(d);
-					}
-
-				}.bind(null, data, name, file);
-
-				reader.readAsText(file);
-			}
-
 		}
 
-		if (i === l && count === done) {
-			callback(data);
-		}
-
+		return data;
 	};
 
 	Utility.walker = function (node, callback) {
@@ -658,10 +622,12 @@
 	Fetcher.prototype.setup = function (options) {
 		options = options || {};
 		this.auth = options.auth || false;
-		this.type = options.type || 'text';
 		this.method = options.method || 'get';
-		this.request = options.request || options.request;
-		this.response = options.response || options.response;
+		this.request = options.request;
+		this.response = options.response;
+		this.acceptType = options.acceptType;
+		this.contentType = options.contentType;
+		this.responseType = options.responseType;
 	};
 
 	Fetcher.prototype.serialize = function (data) {
@@ -740,19 +706,15 @@
 
 		opt.headers = {};
 		opt.url = opt.url ? opt.url : window.location.href;
-		opt.type = opt.type === undefined || opt.type === null ? this.type : opt.type;
 		opt.auth = opt.auth === undefined || opt.auth === null ? this.auth : opt.auth;
 		opt.method = opt.method === undefined || opt.method === null ? this.method : opt.method;
+		opt.acceptType = opt.acceptType === undefined || opt.acceptType === null ? this.acceptType : opt.acceptType;
+		opt.contentType = opt.contentType === undefined || opt.contentType === null ? this.contentType : opt.contentType;
+		opt.responseType = opt.responseType === undefined || opt.responseType === null ? this.responseType : opt.responseType;
 
 		opt.method = opt.method.toUpperCase();
 
 		xhr.open(opt.method, opt.url, true, opt.username, opt.password);
-
-		if (opt.type) {
-			opt.acceptType = opt.acceptType || opt.type;
-			opt.contentType = opt.contentType || opt.type;
-			opt.responseType = opt.responseType || opt.type;
-		}
 
 		if (opt.contentType) {
 			switch (opt.contentType) {
@@ -760,7 +722,7 @@
 				case 'xml': opt.headers['Content-Type'] = this.mime.xml; break;
 				case 'html': opt.headers['Content-Type'] = this.mime.html; break;
 				case 'json': opt.headers['Content-Type'] = this.mime.json; break;
-				default: opt.headers['Content-Type'] = this.mime.text;
+				default: opt.headers['Content-Type'] = opt.contentType;
 			}
 		}
 
@@ -770,19 +732,20 @@
 				case 'xml': opt.headers['Accept'] = this.mime.xml; break;
 				case 'html': opt.headers['Accept'] = this.mime.html; break;
 				case 'json': opt.headers['Accept'] = this.mime.json; break;
-				default: opt.headers['Accept'] = this.mime.text;
+				default: opt.headers['Accept'] = opt.acceptType;
 			}
 		}
 
 		if (opt.responseType) {
 			switch (opt.responseType) {
+				case 'text': xhr.responseType = 'text'; break;
 				case 'json': xhr.responseType = 'json'; break;
 				case 'blob': xhr.responseType = 'blob'; break;
 				case 'xml': xhr.responseType = 'document'; break;
 				case 'html': xhr.responseType = 'document'; break;
 				case 'document': xhr.responseType = 'document'; break;
 				case 'arraybuffer': xhr.responseType = 'arraybuffer'; break;
-				default: xhr.responseType = 'text';
+				default: xhr.responseType = opt.responseType;
 			}
 		}
 
@@ -805,6 +768,8 @@
 				opt.url = opt.url + '?' + this.serialize(opt.data);
 			} else if (opt.contentType === 'json') {
 				data = JSON.stringify(opt.data);
+			} else {
+				data = opt.data;
 			}
 		}
 
@@ -3199,9 +3164,7 @@
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-		if (!submit) {
-			return;
-		}
+		if (!submit) return;
 
 		e.preventDefault();
 
@@ -3209,35 +3172,32 @@
 		var scope = container.getAttribute('o-scope');
 		var model = Global$1.model.data[scope];
 
-		Global$1.utility.formData(element, model, function (data) {
+		var data = Global$1.utility.formData(element, model);
+		var method = Global$1.utility.getByPath(container.methods, submit);
+		var options = method.call(model, data, e);
 
-			var method = Global$1.utility.getByPath(container.methods, submit);
-			var options = method.call(model, data, e);
+		if (options && typeof options === 'object') {
+			var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
+			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+			var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
 
-			if (options && typeof options === 'object') {
-				var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-				var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-				var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+			options.url = options.url || action;
+			options.method = options.method || method;
+			options.auth = options.auth === undefined ? auth : options.auth;
 
-				options.url = options.url || action;
-				options.method = options.method || method;
-				options.auth = options.auth === undefined ? auth : options.auth;
+			Global$1.fetcher.fetch(options);
+		}
 
-				Global$1.fetcher.fetch(options);
-			}
-
-			if (
-				(
-					options
-					&& typeof options === 'object'
-					&& options.reset
-				)
-				|| element.hasAttribute('o-reset')
-			) {
-				element.reset();
-			}
-
-		});
+		if (
+			(
+				options
+				&& typeof options === 'object'
+				&& options.reset
+			)
+			|| element.hasAttribute('o-reset')
+		) {
+			element.reset();
+		}
 
 	}, true);
 
