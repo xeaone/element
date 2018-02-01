@@ -85,17 +85,19 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 		- `session`
 	- `scheme: String` (default: bearer) Any valid authentication scheme
 	- `forbidden: String, Function` If string Router.route other wise call the function
-	- `unauthorized: String, Function` If string Router.route other wise call the function
-	- `authenticated: String, Function` If string Router.route other wise call the function
-	- `unauthenticated: String, Function` If string Router.route other wise call the function
+	- `unauthorized: String, Function` If string uses Router.route other wise call the function
+	- `authenticated: String, Function` If string uses Router.route other wise call the function
+	- `unauthenticated: String, Function` If string uses Router.route other wise call the function
 - `setup: Function`
 	- `options: Object` Accepts the above options
 - `token: String` Readable only token
 - `user: String` Readable only user
-- `setToken: String` Sets the token
-- `setUser: Object` Sets the user
-- `removeToken: String` Removes the token
-- `removeUser: String` Removes the user
+- `setToken: Function` Sets the token
+	- `token: String`
+- `setUser: Function` Sets the user
+	- `user: Object`
+- `removeToken: Function` Removes the token
+- `removeUser: Function` Removes the user
 - `authenticate: Function` Adds a token
 	- `token: String` The token to add
 	- `user: Object` The user data to add
