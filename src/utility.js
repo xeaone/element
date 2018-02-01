@@ -46,7 +46,7 @@ Utility.binderPath = function (data) {
 	return Utility.binderNormalize(data).replace(Utility.PATH, '');
 };
 
-Utility.formData = function (form, model, callback) {
+Utility.formData = function (form, model) {
 	var elements = form.querySelectorAll('[o-value]');
 	var data = {};
 
@@ -64,45 +64,9 @@ Utility.formData = function (form, model, callback) {
 		var name = path.split('.').slice(-1);
 
 		data[name] = Utility.getByPath(model, path);
-
-		if (!data[name] || data[name].constructor !== FileList) continue
-
-		var files = data[name];
-		data[name] = [];
-
-		for (var c = 0, t = files.length; c < t; c++) {
-			var file = files[c];
-			var reader = new FileReader();
-
-			count++;
-
-			reader.onload = function(d, n, f, e) {
-
-				d[n].push({
-					type: f.type,
-					size: f.size,
-					name: f.name,
-					data: e.target.result,
-					lastModified: f.lastModified
-				});
-
-				done++;
-
-				if (i === l && count === done) {
-					callback(d);
-				}
-
-			}.bind(null, data, name, file);
-
-			reader.readAsText(file);
-		}
-
 	}
 
-	if (i === l && count === done) {
-		callback(data);
-	}
-
+	return data;
 };
 
 Utility.walker = function (node, callback) {

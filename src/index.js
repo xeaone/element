@@ -23,9 +23,7 @@ document.addEventListener('submit', function submitListener (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-	if (!submit) {
-		return;
-	}
+	if (!submit) return;
 
 	e.preventDefault();
 
@@ -33,35 +31,32 @@ document.addEventListener('submit', function submitListener (e) {
 	var scope = container.getAttribute('o-scope');
 	var model = Global.model.data[scope];
 
-	Global.utility.formData(element, model, function (data) {
+	var data = Global.utility.formData(element, model);
+	var method = Global.utility.getByPath(container.methods, submit);
+	var options = method.call(model, data, e);
 
-		var method = Global.utility.getByPath(container.methods, submit);
-		var options = method.call(model, data, e);
+	if (options && typeof options === 'object') {
+		var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
+		var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+		var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
 
-		if (options && typeof options === 'object') {
-			var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-			var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+		options.url = options.url || action;
+		options.method = options.method || method;
+		options.auth = options.auth === undefined ? auth : options.auth;
 
-			options.url = options.url || action;
-			options.method = options.method || method;
-			options.auth = options.auth === undefined ? auth : options.auth;
+		Global.fetcher.fetch(options);
+	}
 
-			Global.fetcher.fetch(options);
-		}
-
-		if (
-			(
-				options
-				&& typeof options === 'object'
-				&& options.reset
-			)
-			|| element.hasAttribute('o-reset')
-		) {
-			element.reset();
-		}
-
-	});
+	if (
+		(
+			options
+			&& typeof options === 'object'
+			&& options.reset
+		)
+		|| element.hasAttribute('o-reset')
+	) {
+		element.reset();
+	}
 
 }, true);
 
