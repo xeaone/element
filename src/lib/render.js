@@ -319,7 +319,7 @@ Render.value = function (opt, caller) {
 				} else if (type === 'file') {
 					data = opt.data === undefined ? Global.model.set(opt.keys, []) : opt.data;
 					for (i = 0, l = data.length; i < l; i++) {
-						opt.element.files = data[i];
+						opt.element.files[i] = data[i];
 					}
 				} else if (type === 'checkbox') {
 					attribute = 'checked';
