@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.9
+	Version: 3.1.10
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -391,14 +391,14 @@
 			.replace(/\.{2,}/g, '.');
 	};
 
-	Utility.getContainer = function getContainer (element) {
+	Utility.getScope = function getScope (element) {
 
 		if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 			return element;
 		}
 
 		if (element.parentElement) {
-			return this.getContainer(element.parentElement);
+			return this.getScope(element.parentElement);
 		}
 
 		console.warn('Oxe.utility - could not find container scope');
@@ -2242,7 +2242,7 @@
 			throw new Error('Binder.prototype.render - requires a element');
 		}
 
-		opt.container = opt.container || Global$1.utility.getContainer(opt.element);
+		opt.container = opt.container || Global$1.utility.getScope(opt.element);
 		opt.scope = opt.scope || opt.container.getAttribute('o-scope');
 		opt.value = opt.value || opt.element.getAttribute(opt.name);
 		opt.path = opt.path || Global$1.utility.binderPath(opt.value);
@@ -2897,9 +2897,9 @@
 			if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 				container = element;
 			} else if (!document.body.contains(element)) {
-				container = Global$1.utility.getContainer(container);
+				container = Global$1.utility.getScope(container);
 			} else if (!container) {
-				container = Global$1.utility.getContainer(element);
+				container = Global$1.utility.getScope(element);
 			}
 
 			var scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
@@ -3168,41 +3168,24 @@
 
 		e.preventDefault();
 
-		var container = Global$1.utility.getContainer(element);
-		var scope = container.getAttribute('o-scope');
-		var model = Global$1.model.data[scope];
+		var eScope = Global$1.utility.getScope(element);
+		var sScope = eScope.getAttribute('o-scope') || eScope.getAttribute('data-o-scope');
+		var model = Global$1.model.data[sScope];
 
 		var data = Global$1.utility.formData(element, model);
-		var method = Global$1.utility.getByPath(container.methods, submit);
-		var options = method.call(model, data, e);
+		var method = Global$1.utility.getByPath(eScope.methods, submit);
+		var options = method.call(eScope, data, e);
 
 		if (options && typeof options === 'object') {
 			var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
 			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
 			var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-			// var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+			var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
 
 			options.url = options.url || action;
 			options.method = options.method || method;
-			options.auth = options.auth === undefined ? auth : options.auth;
-
-			// if (!options.contentType || options.contentType.indexOf('multipart/form-data') === 0) {
-			// 	var formData = new FormData();
-			// 	for (var name in options.data) {
-			// 		var value = options.data[name];
-			// 		if (value && value.constructor.length && value[0] && value[0].constructor === File) {
-			// 			for (var i = 0, l = value.length; i < l; i++) {
-			// 				var file = value[i];
-			// 				formData.append(file.name, file, file.name);
-			// 			}
-			// 		} else {
-			// 			formData.append(name, value);
-			// 		}
-			// 	}
-			// 	options.data = formData;
-			// } else if (options.contentType.indexOf('json') === 0 || options.contentType.indexOf('application/json') === 0) {
-	        //
-			// }
+			options.contentType = options.contentType || enctype;
+			options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
 
 			Global$1.fetcher.fetch(options);
 		}
@@ -3244,22 +3227,6 @@
 		});
 
 	};
-
-	// if (!FileReader.prototype.readAsBinaryString) {
-	//     FileReader.prototype.readAsBinaryString = function (data) {
-	//        var binary = '';
-	//        var reader = new FileReader();
-	//        reader.onload = function () {
-	// 	           var bytes = new Uint8Array(reader.result);
-	// 	           for (var i = 0, l = bytes.byteLength; i < l; i++) {
-	// 	               binary += String.fromCharCode(bytes[i]);
-	// 	           }
-	// 	        this.content = binary;
-	// 	        this.onload();
-	// 	    }
-	//     	reader.readAsArrayBuffer(data);
-	// 	}
-	// }
 
 	if ('registerElement' in document && 'content' in document.createElement('template')) {
 		listener();
