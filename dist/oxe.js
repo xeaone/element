@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.11
+	Version: 3.1.12
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -3184,8 +3184,8 @@
 
 			options.url = options.url || action;
 			options.method = options.method || method;
-			options.contentType = options.contentType || enctype;
 			options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
+			options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
 
 			Global$1.fetcher.fetch(options);
 		}
