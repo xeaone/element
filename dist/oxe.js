@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.1.10
+	Version: 3.1.11
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2135,7 +2135,7 @@
 
 		for (var i = 0, l = opt.modifiers.length; i < l; i++) {
 			var modifier = opt.modifiers[i];
-			data = Global$1.methods.data[opt.scope][modifier].call(opt.element, data);
+			data = Global$1.methods.data[opt.scope][modifier].call(opt.container, data);
 		}
 
 		return data;
