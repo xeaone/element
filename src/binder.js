@@ -121,7 +121,7 @@ Binder.prototype.create = function (opt) {
 		throw new Error('Binder.prototype.render - requires a element');
 	}
 
-	opt.container = opt.container || Global.utility.getContainer(opt.element);
+	opt.container = opt.container || Global.utility.getScope(opt.element);
 	opt.scope = opt.scope || opt.container.getAttribute('o-scope');
 	opt.value = opt.value || opt.element.getAttribute(opt.name);
 	opt.path = opt.path || Global.utility.binderPath(opt.value);

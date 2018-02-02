@@ -176,14 +176,14 @@ Utility.joinDot = function () {
 		.replace(/\.{2,}/g, '.');
 };
 
-Utility.getContainer = function getContainer (element) {
+Utility.getScope = function getScope (element) {
 
 	if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 		return element;
 	}
 
 	if (element.parentElement) {
-		return this.getContainer(element.parentElement);
+		return this.getScope(element.parentElement);
 	}
 
 	console.warn('Oxe.utility - could not find container scope');

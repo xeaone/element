@@ -87,9 +87,9 @@ View.prototype.each = function (element, callback, container) {
 		if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 			container = element;
 		} else if (!document.body.contains(element)) {
-			container = Global.utility.getContainer(container);
+			container = Global.utility.getScope(container);
 		} else if (!container) {
-			container = Global.utility.getContainer(element);
+			container = Global.utility.getScope(element);
 		}
 
 		var scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
