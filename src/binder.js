@@ -14,7 +14,7 @@ Binder.prototype.modifyData = function (opt, data) {
 
 	for (var i = 0, l = opt.modifiers.length; i < l; i++) {
 		var modifier = opt.modifiers[i];
-		data = Global.methods.data[opt.scope][modifier].call(opt.element, data);
+		data = Global.methods.data[opt.scope][modifier].call(opt.container, data);
 	}
 
 	return data;
