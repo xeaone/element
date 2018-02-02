@@ -43,8 +43,8 @@ document.addEventListener('submit', function submitListener (e) {
 
 		options.url = options.url || action;
 		options.method = options.method || method;
-		options.contentType = options.contentType || enctype;
 		options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
+		options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
 
 		Global.fetcher.fetch(options);
 	}
