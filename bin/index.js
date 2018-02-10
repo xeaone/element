@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-const Package = require('../package');
-const Compile = require('./compile');
 const Cliy = require('cliy');
+const Compile = require('./compile');
+const Package = require('../package');
 const Program = new Cliy();
 
 (async function() {

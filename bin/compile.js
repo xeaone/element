@@ -7,6 +7,7 @@ const ReadFile = Util.promisify(Fs.readFile);
 const WriteFile = Util.promisify(Fs.writeFile);
 
 module.exports = async function Compile (value) {
+	
 	const values = value.split(' ');
 	const input = Path.resolve(values[0]);
 	const output = Path.resolve(values[1]);
