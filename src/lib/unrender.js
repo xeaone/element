@@ -34,7 +34,7 @@ Unrender.html = function (opt) {
 
 };
 
-Unrender.on = function UnrenderOn (opt) {
+Unrender.on = function (opt) {
 	opt.element.removeEventListener(opt.names[1], opt.cache, false);
 };
 
