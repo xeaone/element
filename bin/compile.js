@@ -1,12 +1,9 @@
 'use strict';
 
 /*
-	TODO
-		update Fsep
-		fix links on page not serving
+	TODO fix links on page not serving
 */
 
-const Fs = require('fs');
 const Vm = require('vm');
 const Fsep = require('fsep');
 const Path = require('path');
@@ -14,9 +11,6 @@ const Util = require('util');
 
 const Parser = require('./parser');
 const Bundle = require('./bundle');
-
-const ReadFile = Util.promisify(Fs.readFile);
-const WriteFile = Util.promisify(Fs.writeFile);
 
 const ENCODEING = 'utf8';
 
@@ -31,18 +25,18 @@ const O_SCRIPT_PLACEHOLDER = `${O_SCRIPT_PLACEHOLDER_START}${O_SCRIPT_PLACEHOLDE
 (async function() {
 	let setup, output = '';
 
-	const inputBasePath = Path.join(__dirname, '../', 'web',);
-	const outputBasePath = Path.join(__dirname, '../', 'dev',  '_',);
+	const inputBasePath = Path.join(__dirname, '../', 'web');
+	const outputBasePath = Path.join(__dirname, '../', 'dev');
 
 	// const oxePath = Path.join(__dirname, '../', 'dist', 'oxe.min.js');
-	// const oxeFile = await ReadFile(oxePath, ENCODEING);
+	// const oxeFile = await Fsep.readFile(oxePath, ENCODEING);
 
 	const inputIndexJsPath = Path.join(inputBasePath, 'index.js');
-	const inputIndexJsFile = await ReadFile(inputIndexJsPath, ENCODEING);
+	const inputIndexJsFile = await Fsep.readFile(inputIndexJsPath, ENCODEING);
 	const cleanInputIndexJsFile = inputIndexJsFile.replace(/^\s*import\s*.*?\s*;\s*$/igm, '');
 
 	const inputIndexHtmlPath = Path.join(inputBasePath, 'index.html');
-	const inputIndexHtmlFile = await ReadFile(inputIndexHtmlPath, ENCODEING);
+	const inputIndexHtmlFile = await Fsep.readFile(inputIndexHtmlPath, ENCODEING);
 
 	const cleanInputIndexHtmlFile = inputIndexHtmlFile.replace(/<!DOCTYPE html>/i, '');
 
@@ -96,7 +90,7 @@ const O_SCRIPT_PLACEHOLDER = `${O_SCRIPT_PLACEHOLDER_START}${O_SCRIPT_PLACEHOLDE
 						let routePath = route.path;
 
 						routePath = routePath === '/' ? routePath = '/index.html' : routePath;
-						routePath = Path.extname(routePath) === '.html' ? routePath : routePath + '.html';
+						routePath = Path.extname(routePath) === '.html' ? routePath : Path.join(routePath, 'index.html');
 
 						routeContent = routeContent
 							.replace(O_ROUTER_PLACEHOLDER, `<o-router><${route.component}></${route.component}></o-router>`);
@@ -118,18 +112,22 @@ const O_SCRIPT_PLACEHOLDER = `${O_SCRIPT_PLACEHOLDER_START}${O_SCRIPT_PLACEHOLDE
 
 	const outputIndexJsFile = bundle.code;
 	const outputIndexJsPath = Path.join(outputBasePath, 'index.js');
-	await WriteFile(outputIndexJsPath, outputIndexJsFile);
+
+	await Fsep.writeFile(outputIndexJsPath, outputIndexJsFile);
 
 	const options = {
-		filters: bundle.imports
+		filters: ['index.js', 'index.html']
 	};
+
+	Array.prototype.push.apply(options.filters, bundle.imports);
 
 	const filePaths = await Fsep.walk(inputBasePath, options);
 
 	for (let filePath of filePaths) {
+		const fileData = await Fsep.readFile(filePath, 'utf8');
 		filePath = filePath.slice(inputBasePath.length);
 		filePath = Path.join(outputBasePath, filePath);
-		await Fsep.ensureFile(filePath);
+		await Fsep.outputFile(filePath, fileData);
 	}
 
 }()).catch(function (error) {

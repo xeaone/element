@@ -1,12 +1,12 @@
 import './assets/prism.js';
 
-// import './elements/e-foo.js';
-// import './elements/e-menu.js';
+import './elements/e-foo.js';
+import './elements/e-menu.js';
 
 import './routes/r-index.js';
-// import './routes/r-test.js';
-// import './routes/r-js.js';
-// import './routes/r-test.js';
+import './routes/r-test.js';
+import './routes/r-js.js';
+import './routes/r-test.js';
 
 Oxe.setup({
 	loader: {

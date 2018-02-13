@@ -3,6 +3,7 @@
 const Cliy = require('cliy');
 const Compile = require('./compile');
 const Package = require('../package');
+
 const Program = new Cliy();
 
 (async function() {

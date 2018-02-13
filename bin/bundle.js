@@ -1,13 +1,10 @@
 'use strict';
 
-const Fs = require('fs');
-const Util = require('util');
+const Fsep = require('fsep');
 const Path = require('path');
 const BabelCore = require('babel-core');
 
 const Camelize = require('./camelize');
-const ReadFile = Util.promisify(Fs.readFile);
-const WriteFile = Util.promisify(Fs.writeFile);
 
 module.exports = async function Bundle (path, root, imports) {
 
@@ -22,7 +19,7 @@ module.exports = async function Bundle (path, root, imports) {
 	const imps = [];
 	const globals = {};
 	const basePath = Path.dirname(path);
-	const fileData = await ReadFile(path);
+	const fileData = await Fsep.readFile(path);
 	const modulePath = Path.relative(root, path);
 	const result = { code: '', imports: imports };
 
