@@ -14,6 +14,7 @@ var Router = function () {
 
 	this.element = null;
 	this.container = null;
+	this.compiled = false;
 
 	document.addEventListener('click', this.clickListener.bind(this), true);
 	window.addEventListener('popstate', this.stateListener.bind(this), true);
@@ -244,6 +245,10 @@ Router.prototype.render = function (route) {
 
 		this.emit('routing');
 
+		if (route.title) {
+			document.title = route.title;
+		}
+
 		if (!this.element) {
 			this.element = this.element || 'o-router';
 
@@ -255,10 +260,6 @@ Router.prototype.render = function (route) {
 				throw new Error('Oxe.router - Missing o-router');
 			}
 
-		}
-
-		if (route.title) {
-			document.title = route.title;
 		}
 
 		if (!route.element) {
@@ -335,6 +336,15 @@ Router.prototype.route = function (data, options) {
 		return redirect(route.redirect);
 	}
 
+	if (this.compiled) {
+
+		if (route.title) {
+			document.title = route.title;
+		}
+
+		return;
+	}
+
 	this.location = location;
 
 	window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
@@ -401,10 +411,12 @@ Router.prototype.clickListener = function (e) {
 		this.external.constructor.name === 'String' && this.external === target.href)
 	) return;
 
-	e.preventDefault();
-
 	if (this.location.href !== target.href) {
 		this.route(target.href);
+	}
+
+	if (!this.compiled) {
+		e.preventDefault();
 	}
 
 };

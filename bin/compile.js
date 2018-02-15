@@ -22,20 +22,31 @@ const O_SCRIPT_PLACEHOLDER_END = '<!--o-script-placeholder-->';
 const O_SCRIPT_PLACEHOLDER_START = '<!--/o-script-placeholder-->';
 const O_SCRIPT_PLACEHOLDER = `${O_SCRIPT_PLACEHOLDER_START}${O_SCRIPT_PLACEHOLDER_END}`;
 
-(async function() {
+return module.exports = async function (data) {
+	data = data || '';
+
+	console.log(arguments);
+	return;
+
+	const args = data.split(' ');
+
+	if (!args[0]) return console.error('Missing input path parameter');
+	if (!args[1]) return console.error('Missing output path parameter');
+
+	const inputPath = Path.resolve(process.cwd(), args[0]);
+	const outputPath = Path.resolve(process.cwd(), args[1]);
+
 	let setup, output = '';
-
-	const inputBasePath = Path.join(__dirname, '../', 'web');
-	const outputBasePath = Path.join(__dirname, '../', 'dev');
-
+	// const inputPath = Path.join(__dirname, '../', 'web');
+	// const outputPath = Path.join(__dirname, '../', 'dev');
 	// const oxePath = Path.join(__dirname, '../', 'dist', 'oxe.min.js');
 	// const oxeFile = await Fsep.readFile(oxePath, ENCODEING);
 
-	const inputIndexJsPath = Path.join(inputBasePath, 'index.js');
+	const inputIndexJsPath = Path.join(inputPath, 'index.js');
 	const inputIndexJsFile = await Fsep.readFile(inputIndexJsPath, ENCODEING);
 	const cleanInputIndexJsFile = inputIndexJsFile.replace(/^\s*import\s*.*?\s*;\s*$/igm, '');
 
-	const inputIndexHtmlPath = Path.join(inputBasePath, 'index.html');
+	const inputIndexHtmlPath = Path.join(inputPath, 'index.html');
 	const inputIndexHtmlFile = await Fsep.readFile(inputIndexHtmlPath, ENCODEING);
 
 	const cleanInputIndexHtmlFile = inputIndexHtmlFile.replace(/<!DOCTYPE html>/i, '');
@@ -49,8 +60,7 @@ const O_SCRIPT_PLACEHOLDER = `${O_SCRIPT_PLACEHOLDER_START}${O_SCRIPT_PLACEHOLDE
 				});
 
 				if (oscript) {
-					oscript.value = `${oscript.value.split(/\s*,\s*/)[0]}, null, script`;
-					// output += O_SCRIPT_PLACEHOLDER_START;
+					oscript.value = `${oscript.value.split(/\s*,\s*/)[0]}, compiled, script`;
 				}
 
 				output += Parser.createTagStart(tag, attributes);
@@ -95,8 +105,10 @@ const O_SCRIPT_PLACEHOLDER = `${O_SCRIPT_PLACEHOLDER_START}${O_SCRIPT_PLACEHOLDE
 						routeContent = routeContent
 							.replace(O_ROUTER_PLACEHOLDER, `<o-router><${route.component}></${route.component}></o-router>`);
 
-						const outputPath = Path.join(outputBasePath, routePath);
-						await Fsep.outputFile(outputPath, routeContent);
+						await Fsep.outputFile(
+							Path.join(outputPath, routePath),
+							routeContent
+						);
 
 					}
 
@@ -108,10 +120,13 @@ const O_SCRIPT_PLACEHOLDER = `${O_SCRIPT_PLACEHOLDER_START}${O_SCRIPT_PLACEHOLDE
 		}
 	});
 
-	const bundle = await Bundle(inputIndexJsPath, inputBasePath);
+	const bundle = await Bundle({
+		root: inputPath,
+		path: inputIndexJsPath
+	});
 
 	const outputIndexJsFile = bundle.code;
-	const outputIndexJsPath = Path.join(outputBasePath, 'index.js');
+	const outputIndexJsPath = Path.join(outputPath, 'index.js');
 
 	await Fsep.writeFile(outputIndexJsPath, outputIndexJsFile);
 
@@ -121,15 +136,13 @@ const O_SCRIPT_PLACEHOLDER = `${O_SCRIPT_PLACEHOLDER_START}${O_SCRIPT_PLACEHOLDE
 
 	Array.prototype.push.apply(options.filters, bundle.imports);
 
-	const filePaths = await Fsep.walk(inputBasePath, options);
+	const filePaths = await Fsep.walk(inputPath, options);
 
 	for (let filePath of filePaths) {
 		const fileData = await Fsep.readFile(filePath, 'utf8');
-		filePath = filePath.slice(inputBasePath.length);
-		filePath = Path.join(outputBasePath, filePath);
+		filePath = filePath.slice(inputPath.length);
+		filePath = Path.join(outputPath, filePath);
 		await Fsep.outputFile(filePath, fileData);
 	}
 
-}()).catch(function (error) {
-	console.error(error);
-});
+};

@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 3.1.12
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define('Oxe', factory) :
@@ -844,6 +834,7 @@
 
 		this.element = null;
 		this.container = null;
+		this.compiled = false;
 
 		document.addEventListener('click', this.clickListener.bind(this), true);
 		window.addEventListener('popstate', this.stateListener.bind(this), true);
@@ -1074,6 +1065,10 @@
 
 			this.emit('routing');
 
+			if (route.title) {
+				document.title = route.title;
+			}
+
 			if (!this.element) {
 				this.element = this.element || 'o-router';
 
@@ -1085,10 +1080,6 @@
 					throw new Error('Oxe.router - Missing o-router');
 				}
 
-			}
-
-			if (route.title) {
-				document.title = route.title;
 			}
 
 			if (!route.element) {
@@ -1165,6 +1156,15 @@
 			return redirect(route.redirect);
 		}
 
+		if (this.compiled) {
+
+			if (route.title) {
+				document.title = route.title;
+			}
+
+			return;
+		}
+
 		this.location = location;
 
 		window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
@@ -1231,10 +1231,12 @@
 			this.external.constructor.name === 'String' && this.external === target.href)
 		) return;
 
-		e.preventDefault();
-
 		if (this.location.href !== target.href) {
 			this.route(target.href);
+		}
+
+		if (!this.compiled) {
+			e.preventDefault();
 		}
 
 	};
@@ -1699,7 +1701,7 @@
 
 	};
 
-	Unrender.on = function UnrenderOn (opt) {
+	Unrender.on = function (opt) {
 		opt.element.removeEventListener(opt.names[1], opt.cache, false);
 	};
 
@@ -3215,11 +3217,17 @@
 
 		if (element) {
 			var args = element.getAttribute('o-setup').split(/\s*,\s*/);
+
+			if (args[1] === 'compiled') {
+				Global$1.router.compiled = true;
+			}
+
 			Global$1.loader.load({
 				url: args[0],
 				method: args[2],
 				transformer: args[1]
 			});
+
 		}
 
 		document.registerElement('o-router', {

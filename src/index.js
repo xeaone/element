@@ -74,11 +74,17 @@ var listener = function () {
 
 	if (element) {
 		var args = element.getAttribute('o-setup').split(/\s*,\s*/);
+
+		if (args[1] === 'compiled') {
+			Global.router.compiled = true;
+		}
+
 		Global.loader.load({
 			url: args[0],
 			method: args[2],
 			transformer: args[1]
 		});
+
 	}
 
 	document.registerElement('o-router', {

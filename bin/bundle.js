@@ -6,15 +6,11 @@ const BabelCore = require('babel-core');
 
 const Camelize = require('./camelize');
 
-module.exports = async function Bundle (path, root, imports) {
+module.exports = async function Bundle (data) {
 
-	imports = imports || [];
-	path = Path.normalize(path);
-	root = Path.normalize(root) || process.cwd();
-
-	if (!Path.isAbsolute(path)) {
-		path = Path.join(root, path);
-	}
+	const imports = data.imports || [];
+	const root = Path.normalize(data.root) || process.cwd();
+	const path = Path.isAbsolute(data.path) ? Path.normalize(data.path) : Path.join(root, data.path);
 
 	const imps = [];
 	const globals = {};
@@ -24,6 +20,7 @@ module.exports = async function Bundle (path, root, imports) {
 	const result = { code: '', imports: imports };
 
 	const transformed = BabelCore.transform(fileData, {
+		// minified: true,
 		moduleId: Camelize(modulePath),
 		plugins: [
 			[
@@ -54,13 +51,27 @@ module.exports = async function Bundle (path, root, imports) {
 				globals: globals,
 				exactGlobals: true
 			}]
+		],
+		presets: [
+			['env', {
+				// modules: 'umd',
+				targets: {
+					browsers: 'defaults'
+				}
+			}]
 		]
 	});
 
 	for (let imp of imps) {
 		if (!result.imports.includes(imp.fullPath)) {
 			result.imports.push(imp.fullPath);
-			let bundle = await Bundle(imp.fullPath, root, result.imports);
+
+			let bundle = await Bundle({
+				root: root,
+				path: imp.fullPath,
+				imports: result.imports
+			});
+
 			result.code += bundle.code;
 		}
 	}
