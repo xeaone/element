@@ -22,17 +22,15 @@ const O_SCRIPT_PLACEHOLDER_END = '<!--o-script-placeholder-->';
 const O_SCRIPT_PLACEHOLDER_START = '<!--/o-script-placeholder-->';
 const O_SCRIPT_PLACEHOLDER = `${O_SCRIPT_PLACEHOLDER_START}${O_SCRIPT_PLACEHOLDER_END}`;
 
-return module.exports = async function (data) {
-	data = data || '';
+return module.exports = async function (argument, values) {
+	argument = argument || '';
 
-	console.log(arguments);
-	return;
-
-	const args = data.split(' ');
+	const args = argument.split(' ');
 
 	if (!args[0]) return console.error('Missing input path parameter');
 	if (!args[1]) return console.error('Missing output path parameter');
 
+	const minify = values.minify;
 	const inputPath = Path.resolve(process.cwd(), args[0]);
 	const outputPath = Path.resolve(process.cwd(), args[1]);
 
@@ -122,6 +120,7 @@ return module.exports = async function (data) {
 
 	const bundle = await Bundle({
 		root: inputPath,
+		minify: minify,
 		path: inputIndexJsPath
 	});
 

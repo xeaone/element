@@ -19,8 +19,10 @@ module.exports = async function Bundle (data) {
 	const modulePath = Path.relative(root, path);
 	const result = { code: '', imports: imports };
 
+	console.log(data.minify);
+
 	const transformed = BabelCore.transform(fileData, {
-		// minified: true,
+		minified: data.minify,
 		moduleId: Camelize(modulePath),
 		plugins: [
 			[

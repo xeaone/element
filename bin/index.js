@@ -6,8 +6,6 @@ const Package = require('../package');
 
 const Program = new Cliy();
 
-// TODO update cliy and update with version
-
 (async function() {
 
 	await Program.setup({
@@ -17,13 +15,15 @@ const Program = new Cliy();
 			{
 				key: 'c',
 				name: 'compile',
-				options: {
-					key: 'm',
-					name: 'minify',
-					method: function () {
-						return true;
+				operations: [
+					{
+						key: 'm',
+						name: 'minify',
+						method: function () {
+							return true;
+						}
 					}
-				},
+				],
 				method: Compile
 			}
 		]
