@@ -20,6 +20,23 @@ const io = async function (argument, values) {
 	return values;
 };
 
+const operations = {
+	minify: {
+		key: 'm',
+		name: 'minify',
+		method: function () {
+			return true;
+		}
+	},
+	comments: {
+		key: 'c',
+		name: 'comments',
+		method: function () {
+			return false;
+		}
+	}
+};
+
 (async function() {
 
 	await Program.setup({
@@ -30,20 +47,8 @@ const io = async function (argument, values) {
 				key: 'c',
 				name: 'compile',
 				operations: [
-					{
-						key: 'm',
-						name: 'minify',
-						method: function () {
-							return true;
-						}
-					},
-					{
-						key: 'c',
-						name: 'comments',
-						method: function () {
-							return false;
-						}
-					}
+					operations.minify,
+					operations.comments
 				],
 				method: async function (argument, values) {
 					const data = await io(argument, values);
@@ -53,6 +58,10 @@ const io = async function (argument, values) {
 			{
 				key: 'b',
 				name: 'bundle',
+				operations: [
+					operations.minify,
+					operations.comments
+				],
 				method: async function (argument, values) {
 					const data = await io(argument, values);
 					await Bundle(data);

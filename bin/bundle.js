@@ -27,23 +27,6 @@ module.exports = async function (data) {
 	const outputIndexJsFile = bundle.code;
 	const outputIndexJsPath = Path.join(outputPath);
 
-	await Fsep.writeFile(outputIndexJsPath, outputIndexJsFile);
-
-	// const options = {
-	// 	filters: ['index.js']
-	// };
-
-	// Array.prototype.push.apply(options.filters, bundle.imports);
-
-	// const filePaths = await Fsep.walk(data.input, options);
-
-	// for (let filePath of filePaths) {
-	// 	const fileData = await Fsep.readFile(filePath, 'utf8');
-	//
-	// 	filePath = filePath.slice(data.input.length);
-	// 	filePath = Path.join(outputPath, filePath);
-	//
-	// 	await Fsep.outputFile(filePath, fileData);
-	// }
+	await Fsep.outputFile(outputIndexJsPath, outputIndexJsFile);
 
 };

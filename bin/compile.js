@@ -1,9 +1,5 @@
 'use strict';
 
-/*
-	TODO fix links on page not serving
-*/
-
 const Vm = require('vm');
 const Fsep = require('fsep');
 const Path = require('path');
@@ -34,7 +30,10 @@ return module.exports = async function (data) {
 
 	Parser.html(cleanInputIndexHtmlFile, {
 		start: function (tag, attributes, unary) {
-			if (tag === 'script') {
+			if (tag === 'title') {
+				outputContent += Parser.createTagStart(tag, attributes);
+				outputContent += Global.oTitlePlaceholder;
+			} else if (tag === 'script') {
 
 				const oscript = attributes.find(function (attribute) {
 					return attribute.name === 'o-setup';

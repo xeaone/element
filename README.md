@@ -5,6 +5,9 @@ A mighty tiny web components framework/library.
 ### API
 Api documentation can be found at [API.md](https://github.com/AlexanderElias/oxe/blob/master/API.md).
 
+### CLI
+CLI documentation can be found at [CLI.md](https://github.com/AlexanderElias/oxe/blob/master/CLI.md).
+
 ### Features
 - Small size
 - Module loading
