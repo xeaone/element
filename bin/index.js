@@ -1,10 +1,24 @@
 #!/usr/bin/env node
 
 const Cliy = require('cliy');
+const Path = require('path');
+const Bundle = require('./bundle');
 const Compile = require('./compile');
 const Package = require('../package');
 
 const Program = new Cliy();
+
+const io = async function (argument, values) {
+	const args = argument ? argument.split(' ') : [];
+
+	if (!args[0]) throw new Error('Missing input path parameter');
+	if (!args[1]) throw new Error('Missing output path parameter');
+
+	values.input = Path.resolve(process.cwd(), args[0]);
+	values.output = Path.resolve(process.cwd(), args[1]);
+
+	return values;
+};
 
 (async function() {
 
@@ -22,9 +36,27 @@ const Program = new Cliy();
 						method: function () {
 							return true;
 						}
+					},
+					{
+						key: 'c',
+						name: 'comments',
+						method: function () {
+							return false;
+						}
 					}
 				],
-				method: Compile
+				method: async function (argument, values) {
+					const data = await io(argument, values);
+					await Compile(data);
+				}
+			},
+			{
+				key: 'b',
+				name: 'bundle',
+				method: async function (argument, values) {
+					const data = await io(argument, values);
+					await Bundle(data);
+				}
 			}
 		]
 	});

@@ -2,83 +2,48 @@
 
 const Fsep = require('fsep');
 const Path = require('path');
-const BabelCore = require('babel-core');
 
-const Camelize = require('./camelize');
+const Global = require('./global');
+const Bundle = require('./lib/bundle');
 
-module.exports = async function Bundle (data) {
+module.exports = async function (data) {
 
-	const imports = data.imports || [];
-	const root = Path.normalize(data.root) || process.cwd();
-	const path = Path.isAbsolute(data.path) ? Path.normalize(data.path) : Path.join(root, data.path);
+	const inputPath = data.input;
+	const outputPath = data.output;
+	const minify = data.minify || false;
+	const comments = data.comments || false;
 
-	const imps = [];
-	const globals = {};
-	const basePath = Path.dirname(path);
-	const fileData = await Fsep.readFile(path);
-	const modulePath = Path.relative(root, path);
-	const result = { code: '', imports: imports };
+	const inputIndexJsPath = Path.normalize(inputPath);
+	const inputIndexJsFile = await Fsep.readFile(inputIndexJsPath, Global.encoding);
+	const cleanInputIndexJsFile = inputIndexJsFile.replace(/^\s*import\s*.*?\s*;\s*$/igm, '');
 
-	console.log(data.minify);
-
-	const transformed = BabelCore.transform(fileData, {
-		minified: data.minify,
-		moduleId: Camelize(modulePath),
-		plugins: [
-			[
-				function () {
-					return {
-						visitor: {
-							ImportDeclaration: function (data) {
-								const rawPath = data.node.source.value;
-								const fullPath = Path.resolve(basePath, rawPath);
-								const relativePath = Path.relative(root, fullPath);
-
-								globals[relativePath] = Camelize(relativePath);
-
-								imps.push({
-									rawPath: rawPath,
-									basePath: basePath,
-									fullPath: fullPath,
-									relativePath: relativePath
-								});
-
-								data.node.source.value = relativePath;
-							}
-						}
-					};
-				}
-			],
-			['transform-es2015-modules-umd', {
-				globals: globals,
-				exactGlobals: true
-			}]
-		],
-		presets: [
-			['env', {
-				// modules: 'umd',
-				targets: {
-					browsers: 'defaults'
-				}
-			}]
-		]
+	const bundle = await Bundle({
+		minify: minify,
+		root: inputPath,
+		comments: comments,
+		path: inputIndexJsPath
 	});
 
-	for (let imp of imps) {
-		if (!result.imports.includes(imp.fullPath)) {
-			result.imports.push(imp.fullPath);
+	const outputIndexJsFile = bundle.code;
+	const outputIndexJsPath = Path.join(outputPath);
 
-			let bundle = await Bundle({
-				root: root,
-				path: imp.fullPath,
-				imports: result.imports
-			});
+	await Fsep.writeFile(outputIndexJsPath, outputIndexJsFile);
 
-			result.code += bundle.code;
-		}
-	}
+	// const options = {
+	// 	filters: ['index.js']
+	// };
 
-	result.code += `\n${transformed.code}`;
+	// Array.prototype.push.apply(options.filters, bundle.imports);
 
-	return result;
+	// const filePaths = await Fsep.walk(data.input, options);
+
+	// for (let filePath of filePaths) {
+	// 	const fileData = await Fsep.readFile(filePath, 'utf8');
+	//
+	// 	filePath = filePath.slice(data.input.length);
+	// 	filePath = Path.join(outputPath, filePath);
+	//
+	// 	await Fsep.outputFile(filePath, fileData);
+	// }
+
 };

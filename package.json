@@ -52,7 +52,7 @@
 	},
 	"dependencies": {
 		"babel-core": "^6.26.0",
-		"cliy": "^1.4.0",
+		"cliy": "^1.4.1",
 		"fsep": "^3.0.0"
 	}
 }
