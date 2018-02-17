@@ -120,7 +120,7 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 				- `parameters: String` Paths can have parameters `/account/{user}` or catchalls `{\*}`
 			- `title: String` The title for the page
 			- `handler: Function` Overrides the default render method
-			- `component: Object, String` An Oxe.component.define options object or a component name
+			- `component: String, Object, Oxe.Component` An Oxe.component.define options object or a component name
 			- `load: Object, String` An Oxe.loader.load options object or a url
 - `setup: Function`
 	- `options: Object` Accepts the above options
