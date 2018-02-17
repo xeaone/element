@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.2.0
+	Version: 3.2.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1098,11 +1098,15 @@
 					Global$1.loader.load(route.load);
 				}
 
-				if (typeof route.component === 'string') {
+				if (!route.component) {
+					throw new Error('Oxe.router - missing route component');
+				} else if (typeof route.component === 'string') {
 					route.element = document.createElement(route.component);
-				} else {
+				} else if (route.component.constructor.name === 'Object') {
 					Global$1.component.define(route.component);
 					route.element = document.createElement(route.component.name);
+				} else if (route.component.constructor.name === 'Component') {
+					route.element = route.component;
 				}
 
 				route.element.inRouterCache = false;
