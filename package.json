@@ -7,7 +7,7 @@
 	"scripts": {
 		"b": "node build.js",
 		"s": "muleify serve -sw web dev",
-		"w": "muleify pack -p src -wb src/index.js web/assets/oxe.js",
+		"w": "muleify pack -p src -wbt src/index.js web/assets/oxe.js",
 		"bd": "rm -r docs/* && muleify pack web docs",
 		"ba": "npm run b && npm run bd"
 	},

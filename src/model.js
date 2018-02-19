@@ -2,85 +2,84 @@ import Observer from './lib/observer';
 import Events from './lib/events';
 import Global from './global';
 
-var Model = function () {
-	Events.call(this);
+export default class Model extends Events {
 
-	this.GET = 2;
-	this.SET = 3;
-	this.REMOVE = 4;
-	this.ran = false;
+	constructor () {
+		super();
 
-	this.data = Observer.create({}, this.listener);
-};
+		this.GET = 2;
+		this.SET = 3;
+		this.REMOVE = 4;
+		this.ran = false;
 
-Model.prototype = Object.create(Events.prototype);
-Model.prototype.constructor = Model;
-
-Model.prototype.traverse = function (type, keys, value) {
-
-	if (typeof keys === 'string') {
-		keys = [keys];
+		this.data = Observer.create({}, this.listener);
 	}
 
-	var data = this.data;
-	var v, p, path, result;
-	var key = keys[keys.length-1];
+	traverse (type, keys, value) {
 
-	for (var i = 0, l = keys.length-1; i < l; i++) {
-
-		if (!(keys[i] in data)) {
-
-			if (type === this.GET || type === this.REMOVE) {
-				return undefined;
-			} else if (type === this.SET) {
-				data.$set(keys[i], isNaN(keys[i+1]) ? {} : []);
-			}
-
+		if (typeof keys === 'string') {
+			keys = [keys];
 		}
 
-		data = data[keys[i]];
+		var data = this.data;
+		var v, p, path, result;
+		var key = keys[keys.length-1];
+
+		for (var i = 0, l = keys.length-1; i < l; i++) {
+
+			if (!(keys[i] in data)) {
+
+				if (type === this.GET || type === this.REMOVE) {
+					return undefined;
+				} else if (type === this.SET) {
+					data.$set(keys[i], isNaN(keys[i+1]) ? {} : []);
+				}
+
+			}
+
+			data = data[keys[i]];
+		}
+
+		if (type === this.SET) {
+			result = data.$set(key, value);
+		} else if (type === this.GET) {
+			result = data[key];
+		} else if (type === this.REMOVE) {
+			result = data[key];
+			data.$remove(key);
+		}
+
+		return result;
 	}
 
-	if (type === this.SET) {
-		result = data.$set(key, value);
-	} else if (type === this.GET) {
-		result = data[key];
-	} else if (type === this.REMOVE) {
-		result = data[key];
-		data.$remove(key);
+	get (keys) {
+		return this.traverse(this.GET, keys);
 	}
 
-	return result;
-};
+	remove (keys) {
+		return this.traverse(this.REMOVE, keys);
+	}
 
-Model.prototype.get = function (keys) {
-	return this.traverse(this.GET, keys);
-};
+	set (keys, value) {
+		return this.traverse(this.SET, keys, value);
+	}
 
-Model.prototype.remove = function (keys) {
-	return this.traverse(this.REMOVE, keys);
-};
+	listener (data, path) {
+		var paths = path.split('.');
 
-Model.prototype.set = function (keys, value) {
-	return this.traverse(this.SET, keys, value);
-};
+		// if (paths.length < 2) {
+		// 	return;
+		// }
 
-Model.prototype.listener = function (data, path) {
-	var paths = path.split('.');
+		var scope = paths[0];
+		var type = data === undefined ? 'unrender' : 'render';
 
-	// if (paths.length < 2) {
-	// 	return;
-	// }
+		path = paths.slice(1).join('.');
 
-	var scope = paths[0];
-	var type = data === undefined ? 'unrender' : 'render';
+		Global.binder.each(scope, path, function (binder) {
+			Global.binder[type](binder);
+		});
 
-	path = paths.slice(1).join('.');
+	}
 
-	Global.binder.each(scope, path, function (binder) {
-		Global.binder[type](binder);
-	});
-
-};
-
-export default Model;
+}

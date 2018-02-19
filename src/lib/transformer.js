@@ -1,190 +1,186 @@
 import Global from '../global';
 
-var Transformer = {};
+export default {
 
-/*
+	/*
+		templates
+	*/
 
-	templates
+	_innerHandler (char) {
+		if (char === '\'') return '\\\'';
+		if (char === '\"') return '\\"';
+		if (char === '\t') return '\\t';
+		if (char === '\n') return '\\n';
+	},
 
-*/
+	_updateString (value, index, string) {
+		return string.slice(0, index) + value + string.slice(index+1);
+	},
 
-Transformer._innerHandler = function (char) {
-	if (char === '\'') return '\\\'';
-	if (char === '\"') return '\\"';
-	if (char === '\t') return '\\t';
-	if (char === '\n') return '\\n';
-};
+	_updateIndex (value, index) {
+		return index + value.length-1;
+	},
 
-Transformer._updateString = function (value, index, string) {
-	return string.slice(0, index) + value + string.slice(index+1);
-};
+	template (data) {
+		// NOTE: double backtick in strings or regex could possibly causes issues
 
-Transformer._updateIndex = function (value, index) {
-	return index + value.length-1;
-};
+		var first = data.indexOf('`');
+		var second = data.indexOf('`', first+1);
 
-Transformer.template = function (data) {
-	// NOTE: double backtick in strings or regex could possibly causes issues
+		if (first === -1 || second === -1) return data;
 
-	var first = data.indexOf('`');
-	var second = data.indexOf('`', first+1);
+		var value;
+		var ends = 0;
+		var starts = 0;
+		var string = data;
+		var isInner = false;
 
-	if (first === -1 || second === -1) return data;
+		for (var index = 0; index < string.length; index++) {
+			var char = string[index];
 
-	var value;
-	var ends = 0;
-	var starts = 0;
-	var string = data;
-	var isInner = false;
+			if (char === '`' && string[index-1] !== '\\') {
 
-	for (var index = 0; index < string.length; index++) {
-		var char = string[index];
+				if (isInner) {
+					ends++;
+					value = '\'';
+					isInner = false;
+					string = this._updateString(value, index, string);
+					index = this._updateIndex(value, index);
+				} else {
+					starts++;
+					value = '\'';
+					isInner = true;
+					string = this._updateString(value, index, string);
+					index = this._updateIndex(value, index);
+				}
 
-		if (char === '`' && string[index-1] !== '\\') {
+			} else if (isInner) {
 
-			if (isInner) {
-				ends++;
-				value = '\'';
-				isInner = false;
-				string = this._updateString(value, index, string);
-				index = this._updateIndex(value, index);
-			} else {
-				starts++;
-				value = '\'';
-				isInner = true;
-				string = this._updateString(value, index, string);
-				index = this._updateIndex(value, index);
-			}
+				if (value = this._innerHandler(char, index, string)) {
+					string = this._updateString(value, index, string);
+					index = this._updateIndex(value, index);
+				}
 
-		} else if (isInner) {
-
-			if (value = this._innerHandler(char, index, string)) {
-				string = this._updateString(value, index, string);
-				index = this._updateIndex(value, index);
 			}
 
 		}
 
-	}
+		string = string.replace(/\${(.*?)}/g, '\'+$1+\'');
 
-	string = string.replace(/\${(.*?)}/g, '\'+$1+\'');
-
-	if (starts === ends) {
-		return string;
-	} else {
-		throw new Error('Oxe - Transformer missing backtick');
-	}
-
-};
-
-/*
-
-	modules
-
-*/
-
-Transformer.patterns = {
-	// lines: /(.*(?:;|\n))/g,
-	// line: /(.*\s*{.*\s*.*\s*}.*)|((?:\/\*|`|'|").*\s*.*\s*(?:"|'|`|\*\/))|(.*(?:;|\n))/g,
-	exps: /export\s+(?:default|var|let|const)?\s+/g,
-	imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|")/g,
-	imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|")/
-};
-
-Transformer.getImports = function (text, base) {
-	var result = [];
-	var imps = text.match(this.patterns.imps) || [];
-
-	for (var i = 0, l = imps.length; i < l; i++) {
-		var imp = imps[i].match(this.patterns.imp);
-
-		result[i] = {
-			raw: imp[0],
-			name: imp[1],
-			url: Global.utility.resolve(imp[2], base),
-			extension: Global.utility.extension(imp[2])
-		};
-
-		if (!result[i].extension) {
-			result[i].url = result[i].url + '.js';
+		if (starts === ends) {
+			return string;
+		} else {
+			throw new Error('Oxe - Transformer missing backtick');
 		}
 
-	}
+	},
 
-	return result;
-};
+	/*
+		modules
+	*/
 
-Transformer.getExports = function (text) {
-	var result = [];
-	var exps = text.match(this.patterns.exps) || [];
+	patterns: {
+		// lines: /(.*(?:;|\n))/g,
+		// line: /(.*\s*{.*\s*.*\s*}.*)|((?:\/\*|`|'|").*\s*.*\s*(?:"|'|`|\*\/))|(.*(?:;|\n))/g,
+		exps: /export\s+(?:default|var|let|const)?\s+/g,
+		imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|")/g,
+		imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|")/
+	},
 
-	for (var i = 0, l = exps.length; i < l; i++) {
-		var exp = exps[i];
+	getImports (text, base) {
+		var result = [];
+		var imps = text.match(this.patterns.imps) || [];
 
-		result[i] = {
-			raw: exp,
-			default: exp.indexOf('default') !== -1,
-		};
+		for (var i = 0, l = imps.length; i < l; i++) {
+			var imp = imps[i].match(this.patterns.imp);
 
-	}
+			result[i] = {
+				raw: imp[0],
+				name: imp[1],
+				url: Global.utility.resolve(imp[2], base),
+				extension: Global.utility.extension(imp[2])
+			};
 
-	return result;
-};
+			if (!result[i].extension) {
+				result[i].url = result[i].url + '.js';
+			}
 
-Transformer.replaceImports = function (text, imps) {
+		}
 
-	if (!imps.length) {
+		return result;
+	},
+
+	getExports (text) {
+		var result = [];
+		var exps = text.match(this.patterns.exps) || [];
+
+		for (var i = 0, l = exps.length; i < l; i++) {
+			var exp = exps[i];
+
+			result[i] = {
+				raw: exp,
+				default: exp.indexOf('default') !== -1,
+			};
+
+		}
+
+		return result;
+	},
+
+	replaceImports (text, imps) {
+
+		if (!imps.length) {
+			return text;
+		}
+
+		for (var i = 0, l = imps.length; i < l; i++) {
+			var imp = imps[i];
+
+			var pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.data[\'' + imp.url + '\'].result';
+
+			text = text.replace(imp.raw, pattern);
+		}
+
 		return text;
-	}
+	},
 
-	for (var i = 0, l = imps.length; i < l; i++) {
-		var imp = imps[i];
+	replaceExports (text, exps) {
 
-		var pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.data[\'' + imp.url + '\'].result';
+		if (!exps.length) {
+			return text;
+		}
 
-		text = text.replace(imp.raw, pattern);
-	}
+		if (exps.length === 1) {
+			return text.replace(exps[0].raw, 'return ');
+		}
 
-	return text;
-};
+		var i, l, pattern;
 
-Transformer.replaceExports = function (text, exps) {
+		text = 'var $EXPORT = {};\n' + text;
+		text = text + '\nreturn $EXPORT;\n';
 
-	if (!exps.length) {
+		for (i = 0, l = exps.length; i < l; i++) {
+			text = text.replace(exps[i].raw, '$EXPORT.');
+		}
+
 		return text;
+	},
+
+	ast (data) {
+		var ast = {};
+
+		ast.url = data.url;
+		ast.raw = data.text;
+		ast.cooked = data.text;
+		ast.base = ast.url.slice(0, ast.url.lastIndexOf('/') + 1);
+
+		ast.imports = this.getImports(ast.raw, ast.base);
+		ast.exports = this.getExports(ast.raw);
+
+		ast.cooked = this.replaceImports(ast.cooked, ast.imports);
+		ast.cooked = this.replaceExports(ast.cooked, ast.exports);
+
+		return ast;
 	}
 
-	if (exps.length === 1) {
-		return text.replace(exps[0].raw, 'return ');
-	}
-
-	var i, l, pattern;
-
-	text = 'var $EXPORT = {};\n' + text;
-	text = text + '\nreturn $EXPORT;\n';
-
-	for (i = 0, l = exps.length; i < l; i++) {
-		text = text.replace(exps[i].raw, '$EXPORT.');
-	}
-
-	return text;
-};
-
-Transformer.ast = function (data) {
-	var ast = {};
-
-	ast.url = data.url;
-	ast.raw = data.text;
-	ast.cooked = data.text;
-	ast.base = ast.url.slice(0, ast.url.lastIndexOf('/') + 1);
-
-	ast.imports = this.getImports(ast.raw, ast.base);
-	ast.exports = this.getExports(ast.raw);
-
-	ast.cooked = this.replaceImports(ast.cooked, ast.imports);
-	ast.cooked = this.replaceExports(ast.cooked, ast.exports);
-
-	return ast;
-};
-
-export default Transformer;
+}

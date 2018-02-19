@@ -9,7 +9,7 @@ import Keeper from './keeper';
 import Model from './model';
 import View from './view';
 
-var Global = Object.defineProperties({}, {
+const Global = Object.defineProperties({}, {
 	window: {
 		enumerable: true,
 		get: function () {
