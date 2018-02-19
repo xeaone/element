@@ -25,9 +25,17 @@ async function prepend (data, path) {
 	await WriteFile(path, data + fileData, 'utf8');
 }
 
+// const Path = require('path');
+// const Bundle = require('./bin/bundle');
+
 (async function () {
 
-	const options = { bundle: true };
+	const options = { bundle: true, transpile: true };
+
+	// options.name = 'Oxe';
+	// options.input = Path.resolve('src/index.js');
+	// options.output = Path.resolve('web/assets/oxe.js');
+	// await Bundle(options);
 
 	await Muleify.pack('src/index.js', 'web/assets/oxe.js', options);
 	await prepend(header, 'web/assets/oxe.js');
