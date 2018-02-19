@@ -10,7 +10,11 @@ module.exports = async function Bundle (data) {
 
 	const imports = data.imports || [];
 	const root = Path.normalize(data.root) || process.cwd();
-	const path = Path.isAbsolute(data.path) ? Path.normalize(data.path) : Path.join(root, data.path);
+
+	let path = data.path;
+
+	path = Path.isAbsolute(path) ? Path.normalize(path) : Path.join(root, path);
+	path = Path.extname(path) ? path : `${path}.js`;
 
 	const imps = [];
 	const globals = {};
@@ -20,16 +24,17 @@ module.exports = async function Bundle (data) {
 	const result = { code: '', imports: imports };
 
 	const transformed = BabelCore.transform(fileData, {
+		sourceType: 'module',
 		minified: data.minify,
 		comments: data.comments,
-		moduleId: Camelize(modulePath),
+		moduleId: data.name || Camelize(modulePath),
 		plugins: [
 			[
 				function () {
 					return {
 						visitor: {
 							ImportDeclaration: function (data) {
-								const rawPath = data.node.source.value;
+								const rawPath = Path.extname(data.node.source.value) ? data.node.source.value : `${data.node.source.value}.js`;
 								const fullPath = Path.resolve(basePath, rawPath);
 								const relativePath = Path.relative(root, fullPath);
 

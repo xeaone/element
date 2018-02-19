@@ -8,16 +8,17 @@ const Bundle = require('./lib/bundle');
 
 module.exports = async function (data) {
 
-	const inputPath = data.input;
-	const outputPath = data.output;
 	const minify = data.minify || false;
 	const comments = data.comments || false;
 
+	const inputPath = Path.extname(data.input) ? data.input : `${data.input}.js`;
+	const outputPath = Path.extname(data.output) ? data.output : `${data.output}.js`;
+
 	const inputIndexJsPath = Path.normalize(inputPath);
 	const inputIndexJsFile = await Fsep.readFile(inputIndexJsPath, Global.encoding);
-	const cleanInputIndexJsFile = inputIndexJsFile.replace(/^\s*import\s*.*?\s*;\s*$/igm, '');
 
 	const bundle = await Bundle({
+		name: data.name,
 		minify: minify,
 		root: inputPath,
 		comments: comments,
