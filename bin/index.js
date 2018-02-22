@@ -39,7 +39,7 @@ const operations = {
 		key: 't',
 		name: 'transpile',
 		method: function () {
-			return false;
+			return true;
 		}
 	}
 };
@@ -55,7 +55,8 @@ const operations = {
 				name: 'compile',
 				operations: [
 					operations.minify,
-					operations.comments
+					operations.comments,
+					operations.transpile
 				],
 				method: async function (argument, values) {
 					const data = await io(argument, values);
@@ -68,6 +69,7 @@ const operations = {
 				operations: [
 					operations.minify,
 					operations.comments,
+					operations.transpile,
 					{
 						key: 'n',
 						name: 'name',

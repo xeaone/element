@@ -14,8 +14,9 @@ module.exports = async function (data) {
 	const bundle = await Bundle({
 		name: data.name,
 		path: inputPath,
-		minify: data.minify || false,
-		comments: data.comments || false,
+		minify: data.minify,
+		comments: data.comments,
+		transpile: data.transpile
 	});
 
 	const outputData = bundle.code;

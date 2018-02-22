@@ -72,7 +72,8 @@ module.exports = async function Bundle (data) {
 				cwd: cwd,
 				path: imp.fullPath,
 				minify: data.minify,
-				imports: result.imports
+				imports: result.imports,
+				transpile: data.transpile
 			});
 
 			result.code += bundle.code;
