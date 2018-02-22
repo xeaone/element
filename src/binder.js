@@ -14,9 +14,18 @@ export default class Binder {
 			return data;
 		}
 
+		if (!Global.methods.data[opt.scope]) {
+			return data;
+		}
+
 		for (var i = 0, l = opt.modifiers.length; i < l; i++) {
 			var modifier = opt.modifiers[i];
-			data = Global.methods.data[opt.scope][modifier].call(opt.container, data);
+			var scope = Global.methods.data[opt.scope];
+
+			if (scope) {
+				data = scope[modifier].call(opt.container, data);
+			}
+
 		}
 
 		return data;
@@ -87,7 +96,9 @@ export default class Binder {
 	each (scope, path, callback) {
 		var i, key, binder, binders;
 		var paths = this.data[scope];
+
 		if (!path) {
+
 			for (key in paths) {
 				binders = paths[key];
 				for (i = 0; i < binders.length; i++) {
@@ -95,7 +106,9 @@ export default class Binder {
 					callback(binder, i, binders, paths, key);
 				}
 			}
+
 		} else {
+
 			for (key in paths) {
 				if (key.indexOf(path) === 0) {
 					if (key === path || key.slice(path.length).charAt(0) === '.') {
@@ -109,7 +122,9 @@ export default class Binder {
 					}
 				}
 			}
+
 		}
+
 	}
 
 	create (opt) {

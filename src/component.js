@@ -1,4 +1,4 @@
-import Global from './global';
+import Global from './global.js';
 
 export default class Component {
 
@@ -34,82 +34,71 @@ export default class Component {
 
 	}
 
-	renderTemplate (data, callback) {
-		if (!data) {
-			callback(document.createDocumentFragment());
-		} else if (typeof data === 'string') {
-			var fragment = document.createDocumentFragment();
-			var temporary = document.createElement('div');
+	renderTemplate (template) {
+		var fragment = document.createDocumentFragment();
+		var temporary = document.createElement('div');
 
-			temporary.innerHTML = data;
+		temporary.innerHTML = template || '';
 
-			while (temporary.firstChild) {
-				fragment.appendChild(temporary.firstChild);
-			}
-
-			callback(fragment);
-		} else if (typeof data === 'object') {
-			callback(data);
-		} else if (typeof data === 'function') {
-			data(function (t) {
-				this.renderTemplate(t, callback);
-			}.bind(this));
-		} else {
-			throw new Error('Oxe.component.renderTemplate - invalid template type');
+		while (temporary.firstChild) {
+			fragment.appendChild(temporary.firstChild);
 		}
+
+		return fragment;
 	}
 
-	renderStyle (style, scope, callback) {
-		if (!style) {
-			callback();
-		} else if (typeof style === 'string') {
+	renderStyle (style, scope) {
 
-			if (window.CSS && window.CSS.supports) {
+		if (!style) return;
 
-				if (!window.CSS.supports('(--t: black)')) {
-					var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
-					matches.forEach(function (match) {
-						var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-						var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
-						style = style.replace(rule[0], '');
-						style = style.replace(pattern, rule[2]);
-					});
-				}
+		if (window.CSS && window.CSS.supports) {
 
-				if (!window.CSS.supports(':scope')) {
-					style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
-				}
+			if (!window.CSS.supports('(--t: black)')) {
+				var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-				if (!window.CSS.supports(':host')) {
-					style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
-				}
+				matches.forEach(function (match) {
+
+					var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+					var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+
+					style = style.replace(rule[0], '');
+					style = style.replace(pattern, rule[2]);
+
+				});
 
 			}
 
-			var estyle = document.createElement('style');
-			var nstyle = document.createTextNode(style);
+			if (!window.CSS.supports(':scope')) {
+				style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
+			}
 
-			estyle.appendChild(nstyle);
+			if (!window.CSS.supports(':host')) {
+				style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
+			}
 
-			callback(estyle);
-		} else if (typeof style === 'object') {
-			callback(style);
-		} else if (typeof style === 'function') {
-			style(function (s) {
-				this.renderStyle(s, scope, callback);
-			}.bind(this));
-		} else {
-			throw new Error('Oxe.component.renderStyle - invalid style type');
 		}
+
+		var estyle = document.createElement('style');
+		var nstyle = document.createTextNode(style);
+
+		estyle.appendChild(nstyle);
+
+		return estyle;
 	}
 
 	created (element, options) {
 		var self = this;
 		var scope = options.name + '-' + options.count++;
 
-		Object.defineProperty(element, 'scope', {
-			enumerable: true,
-			value: scope
+		Object.defineProperties(element, {
+			scope: {
+				enumerable: true,
+				value: scope
+			},
+			status: {
+				enumerable: true,
+				value: 'created'
+			}
 		});
 
 		element.setAttribute('o-scope', scope);
@@ -117,28 +106,31 @@ export default class Component {
 		Global.model.set(scope, options.model || {});
 		Global.methods.data[scope] = options.methods;
 
-		self.renderTemplate(options.template, function (etemplate) {
-			self.renderStyle(options.style, scope, function (estyle) {
+		if (element.parentNode.nodeName !== 'O-ROUTER' && self.compiled) {
 
-				if (estyle) {
-					etemplate.insertBefore(estyle, etemplate.firstChild);
-				}
+			var eTemplate = self.renderTemplate(options.template);
+			var eStyle = self.renderStyle(options.style, scope);
 
-				if (options.shadow && 'attachShadow' in document.body) {
-					element.attachShadow({ mode: 'open' }).appendChild(etemplate);
-				} else if (options.shadow && 'createShadowRoot' in document.body) {
-					element.createShadowRoot().appendChild(etemplate);
-				} else {
-					self.renderSlot(etemplate, element);
-					element.appendChild(etemplate);
-				}
+			if (eStyle) {
+				eTemplate.insertBefore(eStyle, eTemplate.firstChild);
+			}
 
-				if (options.created) {
-					options.created.call(element);
-				}
+			if (options.shadow && 'attachShadow' in document.body) {
+				element.attachShadow({ mode: 'open' }).appendChild(eTemplate);
+			} else if (options.shadow && 'createShadowRoot' in document.body) {
+				element.createShadowRoot().appendChild(eTemplate);
+			} else {
+				self.renderSlot(eTemplate, element);
+				element.appendChild(eTemplate);
+			}
 
-			});
-		});
+		}
+
+		Global.view.add(element);
+
+		if (options.created) {
+			options.created.call(element);
+		}
 
 	}
 
@@ -156,7 +148,7 @@ export default class Component {
 		self.data[options.name] = options;
 
 		options.count = 0;
-		options.ready = false;
+		options.compiled = false;
 		options.model = options.model || {};
 		options.shadow = options.shadow || false;
 		options.template = options.template || '';
@@ -165,6 +157,12 @@ export default class Component {
 		options.properties.scope = {
 			enumerable: true,
 			configurable: true
+		};
+
+		options.properties.status = {
+			enumerable: true,
+			configurable: true,
+			value: 'define'
 		};
 
 		options.properties.model = {

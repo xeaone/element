@@ -58,7 +58,9 @@ export default class View {
 				&& attribute.name !== 'o-method'
 				&& attribute.name !== 'o-action'
 				&& attribute.name !== 'o-external'
+				&& attribute.name !== 'o-compiled'
 				&& attribute.name !== 'data-o-auth'
+				&& attribute.name !== 'data-o-compiled'
 				&& attribute.name !== 'data-o-scope'
 				&& attribute.name !== 'data-o-reset'
 				&& attribute.name !== 'data-o-method'
@@ -72,30 +74,34 @@ export default class View {
 
 	};
 
-	each (element, callback, container) {
+	each (element, callback, scope) {
 
 		if (
 			element.nodeName !== 'O-ROUTER'
+			&& !element.hasAttribute('o-scope')
 			&& !element.hasAttribute('o-setup')
 			&& !element.hasAttribute('o-router')
+			&& !element.hasAttribute('o-compiled')
 			&& !element.hasAttribute('o-external')
+			&& !element.hasAttribute('data-o-scope')
 			&& !element.hasAttribute('data-o-setup')
 			&& !element.hasAttribute('data-o-router')
+			&& !element.hasAttribute('data-o-compiled')
 			&& !element.hasAttribute('data-o-external')
 			&& this.hasAcceptAttribute(element)
 		) {
 
-			if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
-				container = element;
-			} else if (!document.body.contains(element)) {
-				container = Global.utility.getScope(container);
-			} else if (!container) {
-				container = Global.utility.getScope(element);
+			if (!scope) {
+				scope = Global.utility.getScope(element);
+			} else if (!scope.hasAttribute('o-scope') || !scope.hasAttribute('data-o-scope')) {
+				scope = Global.utility.getScope(scope);
 			}
 
-			var scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
+			if (scope.status !== 'created') {
+				return;
+			}
 
-			callback.call(this, element, container, scope);
+			callback.call(this, element, scope);
 		}
 
 		if (
@@ -106,35 +112,33 @@ export default class View {
 			& element.nodeName !== 'IFRAME'
 		) {
 
-			for (var i = 0, l = element.children.length; i < l; i++) {
-				this.each(element.children[i], callback, container);
+			for (var i = 0; i < element.children.length; i++) {
+				this.each(element.children[i], callback, scope);
 			}
 
 		}
 
 	};
 
-	add (addedElement) {
-		this.each(addedElement, function (element, container, scope) {
+	add (addedElement, target) {
+		this.each(addedElement, function (element, scope) {
 			this.eachAttribute(element, function (attribute) {
 				Global.binder.render({
-					scope: scope,
 					element: element,
-					container: container,
+					container: scope,
 					name: attribute.name,
 					value: attribute.value
 				});
 			});
-		});
+		}, target);
 	};
 
 	remove (removedElement, target) {
-		this.each(removedElement, function (element, container, scope) {
+		this.each(removedElement, function (element, scope) {
 			this.eachAttribute(element, function (attribute) {
 				Global.binder.unrender({
-					scope: scope,
 					element: element,
-					container: container,
+					container: scope,
 					name: attribute.name,
 					value: attribute.value
 				});
@@ -167,6 +171,7 @@ export default class View {
 		var c, i = mutations.length;
 
 		while (i--) {
+			var scope;
 			var target = mutations[i].target;
 			var addedNodes = mutations[i].addedNodes;
 			var removedNodes = mutations[i].removedNodes;
@@ -182,7 +187,7 @@ export default class View {
 						addedNode.inRouterCache = true;
 					}
 
-					this.add(addedNode);
+					this.add(addedNode, target);
 				}
 
 			}

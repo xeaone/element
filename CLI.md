@@ -17,3 +17,4 @@
 - `-b, --bundle  <input> <output>` Bundles the ES6 modules of o-setup file.
 	- `-m, --minify`
 	- `-c, --comment`
+	- `-n, --name <name>`

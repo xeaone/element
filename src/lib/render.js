@@ -133,11 +133,16 @@ const Render = {
 	},
 
 	on (opt) {
+		var data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
+
+		if (!data) {
+			return;
+		}
 
 		if (opt.cache) {
 			opt.element.removeEventListener(opt.names[1], opt.cache);
 		} else {
-			opt.cache = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path).bind(opt.container);
+			opt.cache = data.bind(opt.container);
 		}
 
 		opt.element.addEventListener(opt.names[1], opt.cache);

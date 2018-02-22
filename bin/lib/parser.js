@@ -4,9 +4,13 @@ const makeMap = function (string) {
 	const result = {};
 	const items = string.split(',');
 
-	for (let index = 0; index < items.length; index++) {
-		result[items[index]] = true;
+	for (let item of items) {
+		result[item] = true;
 	}
+
+	// for (let i = 0, l = items.length; i < l; i++) {
+	// 	result[ items[i] ] = true;
+	// }
 
 	return result;
 };

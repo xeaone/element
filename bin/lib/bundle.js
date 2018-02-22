@@ -9,22 +9,27 @@ const Camelize = require('./camelize');
 module.exports = async function Bundle (data) {
 
 	const imports = data.imports || [];
-	const root = Path.normalize(data.root) || process.cwd();
+	const cwd = data.cwd ? Path.normalize(data.cwd) : process.cwd();
 
 	let path = data.path;
 
-	path = Path.isAbsolute(path) ? Path.normalize(path) : Path.join(root, path);
+	path = Path.isAbsolute(path) ? Path.normalize(path) : Path.resolve(cwd, path);
 	path = Path.extname(path) ? path : `${path}.js`;
 
 	const imps = [];
 	const globals = {};
 	const basePath = Path.dirname(path);
 	const fileData = await Fsep.readFile(path);
-	const modulePath = Path.relative(root, path);
+	const modulePath = Path.relative(cwd, path);
 	const result = { code: '', imports: imports };
 
+	const presets = [];
+
+	if (data.transpile) {
+		presets.push(['env', { targets: { browsers: 'defaults' } }]);
+	}
+
 	const transformed = BabelCore.transform(fileData, {
-		// sourceType: 'module',
 		minified: data.minify,
 		comments: data.comments,
 		moduleId: data.name || Camelize(modulePath),
@@ -36,7 +41,7 @@ module.exports = async function Bundle (data) {
 							ImportDeclaration: function (data) {
 								const rawPath = Path.extname(data.node.source.value) ? data.node.source.value : `${data.node.source.value}.js`;
 								const fullPath = Path.resolve(basePath, rawPath);
-								const relativePath = Path.relative(root, fullPath);
+								const relativePath = Path.relative(cwd, fullPath);
 
 								globals[relativePath] = Camelize(relativePath);
 
@@ -55,9 +60,7 @@ module.exports = async function Bundle (data) {
 			],
 			['transform-es2015-modules-umd', { globals: globals, exactGlobals: true }]
 		],
-		presets: [
-			['env', { targets: { browsers: 'defaults' } }]
-		]
+		presets: presets
 	});
 
 	for (let imp of imps) {
@@ -66,7 +69,7 @@ module.exports = async function Bundle (data) {
 			result.imports.push(imp.fullPath);
 
 			let bundle = await Bundle({
-				root: root,
+				cwd: cwd,
 				path: imp.fullPath,
 				minify: data.minify,
 				imports: result.imports

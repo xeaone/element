@@ -29,8 +29,8 @@ The recommend entry or setup method.
 		- `name: String` **Required** the tag name
 		- `model: Object<Any>`
 		- `methods: Object<Function>`
-		- `template: String, Function, Element`
-		- `style: String, Function` Rewrites CSS variables and :scope if browser support is lacking
+		- `template: String`
+		- `style: String` Rewrites CSS variables and :scope if browser support is lacking
 		- `shadow: Boolean` (default: false) use shadow DOM
 		- `properties: Object<Descriptors>` Property descriptors added to the element prototype
 		- `created: Function` Triggered once on DOM creation
@@ -110,7 +110,7 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 	- `element: String, Element` (default: 'o-router') The container to render route changes
 	- `auth: Boolean` (default: false) Enables Oxe.Keeper
 	- `hash: Boolean` (default: false) Hash URL mode
-	- `trailing: Boolean` (default: false) Trailing slash mode
+	- `trailing: Boolean` (default: true) Trailing slash mode
 	- `external: String, RegExp, Function` Filters URL requests. If true or match Oxe.router will not handle request
 	- `container: Element` Contains all href clicks to the container. Default is window. Good for embedding especially
 	- `routes: Array`
@@ -120,7 +120,7 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 				- `parameters: String` Paths can have parameters `/account/{user}` or catchalls `{\*}`
 			- `title: String` The title for the page
 			- `handler: Function` Overrides the default render method
-			- `component: String, Object, Oxe.Component` An Oxe.component.define options object or a component name
+			- `component: Object, String` An Oxe.component.define options object or a component name
 			- `load: Object, String` An Oxe.loader.load options object or a url
 - `setup: Function`
 	- `options: Object` Accepts the above options
@@ -143,6 +143,8 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 - `render: Function` Will render a route object it is useful if your using route as a handler
 - `redirect: Function` Uses window.location.href which is treated like a 301 redirect for SEO
 	- `path: String`
+- `create: Function`
+	- `route: Object`
 - `add: Function`
 	- `path: String`
 - `remove: Function`
@@ -292,4 +294,4 @@ Alias for `window.document.head`
 Alias for `window.document.body`
 
 ### Oxe.global
-A global object for you
+A global object for random data.

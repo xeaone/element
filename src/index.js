@@ -70,13 +70,22 @@ style.appendChild(document.createTextNode('o-router, o-router > :first-child { d
 document.head.appendChild(style);
 
 var listener = function () {
+
+	if (document.body.hasAttribute('o-compiled')) {
+		Global.compiled = true;
+		Global.router.compiled = true;
+		Global.component.compiled = true;
+	}
+
 	var element = document.querySelector('script[o-setup]');
 
 	if (element) {
+
 		var args = element.getAttribute('o-setup').split(/\s*,\s*/);
 
-		if (args[1] === 'compiled') {
-			Global.router.compiled = true;
+		if (Global.compiled) {
+			args[1] = 'null';
+			args[2] = 'script';
 		}
 
 		Global.loader.load({

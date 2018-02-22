@@ -12,7 +12,7 @@ export default class Router extends Events {
 		this.ran = false;
 		this.auth = false;
 		this.hash = false;
-		this.trailing = false;
+		this.trailing = true;
 
 		this.element = null;
 		this.container = null;
@@ -33,7 +33,7 @@ export default class Router extends Events {
 		this.container = options.container === undefined ? this.container : options.container;
 
 		if (options.routes) {
-			this.data = this.data.concat(options.routes);
+			this.add(options.routes);
 		}
 
 		this.route(window.location.href, { replace: true });
@@ -51,13 +51,13 @@ export default class Router extends Events {
 		window.location.href = path;
 	}
 
-	add (route) {
-		if (!route) {
-			throw new Error('Oxe.router.add - requires route parameter');
-		} else if (route.constructor.name === 'Object') {
-			this.data.push(route);
-		} else if (route.constructor.name === 'Array') {
-			this.data = this.data.concat(route);
+	add (data) {
+		if (!data) {
+			throw new Error('Oxe.router.add - requires data parameter');
+		} else if (data.constructor.name === 'Object') {
+			Array.prototype.push.call(this.data, data);
+		} else if (data.constructor.name === 'Array') {
+			Array.prototype.push.apply(this.data, data);
 		}
 	}
 
@@ -269,24 +269,32 @@ export default class Router extends Events {
 
 				if (!route.component) {
 					throw new Error('Oxe.router - missing route component');
-				} else if (typeof route.component === 'string') {
+				} else if (route.component.constructor.name === 'String') {
 					route.element = document.createElement(route.component);
 				} else if (route.component.constructor.name === 'Object') {
+
 					Global.component.define(route.component);
-					route.element = document.createElement(route.component.name);
-				} else if (route.component.constructor.name === 'Component') {
-					route.element = route.component;
+
+					if (this.compiled) {
+						route.element = this.element.firstChild;
+					} else {
+						route.element = document.createElement(route.component.name);
+					}
+
 				}
 
 				route.element.inRouterCache = false;
 				route.element.isRouterComponent = true;
 			}
 
-			while (this.element.firstChild) {
-				this.element.removeChild(this.element.firstChild);
-			}
+			if (!this.compiled) {
 
-			this.element.appendChild(route.element);
+				while (this.element.firstChild) {
+					this.element.removeChild(this.element.firstChild);
+				}
+
+				this.element.appendChild(route.element);
+			}
 
 			this.scroll(0, 0);
 			this.emit('routed');
@@ -339,18 +347,11 @@ export default class Router extends Events {
 			return redirect(route.redirect);
 		}
 
-		if (this.compiled) {
-
-			if (route.title) {
-				document.title = route.title;
-			}
-
-			return;
-		}
-
 		this.location = location;
 
-		window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
+		if (!this.compiled) {
+			window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
+		}
 
 		this.render(route);
 	}

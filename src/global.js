@@ -9,7 +9,11 @@ import Keeper from './keeper';
 import Model from './model';
 import View from './view';
 
-const Global = Object.defineProperties({}, {
+const Global = {
+	compiled: false
+};
+
+Object.defineProperties(Global, {
 	window: {
 		enumerable: true,
 		get: function () {
@@ -66,42 +70,6 @@ const Global = Object.defineProperties({}, {
 		enumerable: true,
 		value: Utility
 	},
-	model: {
-		enumerable: true,
-		value: new Model()
-	},
-	view: {
-		enumerable: true,
-		value: new View()
-	},
-	binder: {
-		enumerable: true,
-		value: new Binder()
-	},
-	keeper:{
-		enumerable: true,
-		value: new Keeper()
-	},
-	loader:{
-		enumerable: true,
-		value: new Loader()
-	},
-	router:{
-		enumerable: true,
-		value: new Router()
-	},
-	batcher:{
-		enumerable: true,
-		value: new Batcher()
-	},
-	fetcher:{
-		enumerable: true,
-		value: new Fetcher()
-	},
-	component:{
-		enumerable: true,
-		value: new Component()
-	},
 	setup: {
 		enumerable: true,
 		value: function (options) {
@@ -132,6 +100,51 @@ const Global = Object.defineProperties({}, {
 
 		}
 	}
+});
+
+Object.defineProperty(Global, 'batcher', {
+	enumerable: true,
+	value: new Batcher()
+});
+
+Object.defineProperty(Global, 'loader', {
+	enumerable: true,
+	value: new Loader()
+});
+
+Object.defineProperty(Global, 'binder', {
+	enumerable: true,
+	value: new Binder()
+});
+
+Object.defineProperty(Global, 'fetcher', {
+	enumerable: true,
+	value: new Fetcher()
+});
+
+Object.defineProperty(Global, 'keeper', {
+	enumerable: true,
+	value: new Keeper()
+});
+
+Object.defineProperty(Global, 'component', {
+	enumerable: true,
+	value: new Component()
+});
+
+Object.defineProperty(Global, 'router', {
+	enumerable: true,
+	value: new Router()
+});
+
+Object.defineProperty(Global, 'model', {
+	enumerable: true,
+	value: new Model()
+});
+
+Object.defineProperty(Global, 'view', {
+	enumerable: true,
+	value: new View()
 });
 
 export default Global;

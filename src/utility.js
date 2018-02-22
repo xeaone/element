@@ -182,12 +182,11 @@ export default {
 			return element;
 		}
 
-		if (element.parentElement) {
-			return this.getScope(element.parentElement);
+		if (element.parentNode) {
+			return this.getScope(element.parentNode);
 		}
 
-		console.warn('Oxe.utility - could not find container scope');
-		console.warn(element);
+		// console.warn('Oxe.utility - could not find container scope');
 	},
 
 	extension (data) {

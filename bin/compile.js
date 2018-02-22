@@ -1,100 +1,63 @@
 'use strict';
 
-const Vm = require('vm');
 const Fsep = require('fsep');
 const Path = require('path');
 const Util = require('util');
 
 const Global = require('./global');
-const Setup = require('./lib/setup');
 const Parser = require('./lib/parser');
 const Bundle = require('./lib/bundle');
+const RouteFiles = require('./handlers/route-files.js');
+const TemplateFile = require('./handlers/template-file.js');
 
-return module.exports = async function (data) {
+module.exports = async function (data) {
 
-	let outputContent = '';
+	const inputIndexJsPath = Path.join(data.input, 'index.js');
+	const inputIndexHtmlPath = Path.join(data.input, 'index.html');
 
-	const inputPath = data.input;
-	const outputPath = data.output;
-	const minify = data.minify || false;
-	const comments = data.comments || false;
+	let inputIndexHtmlFile = await Fsep.readFile(inputIndexHtmlPath, Global.encoding);
+	inputIndexHtmlFile = inputIndexHtmlFile.replace(/<!DOCTYPE html>/i, '');
 
-	const inputIndexJsPath = Path.join(inputPath, 'index.js');
-	const inputIndexJsFile = await Fsep.readFile(inputIndexJsPath, Global.encoding);
-	const cleanInputIndexJsFile = inputIndexJsFile.replace(/^\s*import\s*.*?\s*;\s*$/igm, '');
-
-	const inputIndexHtmlPath = Path.join(inputPath, 'index.html');
-	const inputIndexHtmlFile = await Fsep.readFile(inputIndexHtmlPath, Global.encoding);
-
-	const cleanInputIndexHtmlFile = inputIndexHtmlFile.replace(/<!DOCTYPE html>/i, '');
-
-	Parser.html(cleanInputIndexHtmlFile, {
-		start: function (tag, attributes, unary) {
-			if (tag === 'title') {
-				outputContent += Parser.createTagStart(tag, attributes);
-				outputContent += Global.oTitlePlaceholder;
-			} else if (tag === 'script') {
-
-				const oscript = attributes.find(function (attribute) {
-					return attribute.name === 'o-setup';
-				});
-
-				if (oscript) {
-					oscript.value = `${oscript.value.split(/\s*,\s*/)[0]}, compiled, script`;
-				}
-
-				outputContent += Parser.createTagStart(tag, attributes);
-
-			} else if (tag === 'o-router') {
-				outputContent += Global.oRouterPlaceholderStart;
-			} else {
-				outputContent += Parser.createTagStart(tag, attributes);
-			}
-		},
-		end: function (tag) {
-			if (tag === 'o-router') {
-				outputContent += Global.oRouterPlaceholderEnd;
-			} else {
-				outputContent += `</${tag}>`;
-			}
-		},
-		chars: function (text) {
-			outputContent += text;
-		},
-		comment: function (text) {
-			outputContent += `<!--${text}-->`;
-		}
-	});
-
-	Vm.runInNewContext(cleanInputIndexJsFile, {
-		Oxe: { setup: Setup.bind(null, outputContent, outputPath) }
-	});
-
-	const bundle = await Bundle({
-		minify: minify,
-		root: inputPath,
-		comments: comments,
+	const inputIndexJsBundle = await Bundle({
+		cwd: data.input,
 		path: inputIndexJsPath
 	});
 
-	const outputIndexJsFile = bundle.code;
-	const outputIndexJsPath = Path.join(outputPath, 'index.js');
+	const inputIndexJsFile = inputIndexJsBundle.code;
+
+	const templateFile = await TemplateFile(inputIndexHtmlFile);
+	const routeFiles = await RouteFiles(inputIndexJsFile, templateFile);
+
+	for (let routeFile of routeFiles) {
+		await Fsep.outputFile(
+			Path.join(data.output, routeFile.path),
+			routeFile.data
+		);
+	}
+
+	const outputIndexJsBundle = await Bundle({
+		cwd: data.input,
+		path: inputIndexJsPath,
+		minify: data.minify || false,
+		comments: data.comments || false
+	});
+
+	const outputIndexJsFile = outputIndexJsBundle.code;
+	const outputIndexJsPath = Path.join(data.output, 'index.js');
 
 	await Fsep.writeFile(outputIndexJsPath, outputIndexJsFile);
 
 	const options = {
-		filters: ['index.js', 'index.html']
+		filters: ['index.js', 'index.html'].concat(outputIndexJsBundle.imports)
 	};
 
-	Array.prototype.push.apply(options.filters, bundle.imports);
-
-	const filePaths = await Fsep.walk(inputPath, options);
+	const filePaths = await Fsep.walk(data.input, options);
 
 	for (let filePath of filePaths) {
 		const fileData = await Fsep.readFile(filePath, 'utf8');
 
-		filePath = filePath.slice(inputPath.length);
-		filePath = Path.join(outputPath, filePath);
+		filePath = filePath.slice(data.input.length);
+		filePath = Path.join(data.output, filePath);
 
 		await Fsep.outputFile(filePath, fileData);
 	}

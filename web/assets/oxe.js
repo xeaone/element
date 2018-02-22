@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 3.2.1
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -58,73 +48,54 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'renderTemplate',
-			value: function renderTemplate(data, callback) {
-				if (!data) {
-					callback(document.createDocumentFragment());
-				} else if (typeof data === 'string') {
-					var fragment = document.createDocumentFragment();
-					var temporary = document.createElement('div');
+			value: function renderTemplate(template) {
+				var fragment = document.createDocumentFragment();
+				var temporary = document.createElement('div');
 
-					temporary.innerHTML = data;
+				temporary.innerHTML = template || '';
 
-					while (temporary.firstChild) {
-						fragment.appendChild(temporary.firstChild);
-					}
-
-					callback(fragment);
-				} else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
-					callback(data);
-				} else if (typeof data === 'function') {
-					data(function (t) {
-						this.renderTemplate(t, callback);
-					}.bind(this));
-				} else {
-					throw new Error('Oxe.component.renderTemplate - invalid template type');
+				while (temporary.firstChild) {
+					fragment.appendChild(temporary.firstChild);
 				}
+
+				return fragment;
 			}
 		}, {
 			key: 'renderStyle',
-			value: function renderStyle(style, scope, callback) {
-				if (!style) {
-					callback();
-				} else if (typeof style === 'string') {
+			value: function renderStyle(style, scope) {
 
-					if (window.CSS && window.CSS.supports) {
+				if (!style) return;
 
-						if (!window.CSS.supports('(--t: black)')) {
-							var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
-							matches.forEach(function (match) {
-								var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-								var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
-								style = style.replace(rule[0], '');
-								style = style.replace(pattern, rule[2]);
-							});
-						}
+				if (window.CSS && window.CSS.supports) {
 
-						if (!window.CSS.supports(':scope')) {
-							style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
-						}
+					if (!window.CSS.supports('(--t: black)')) {
+						var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-						if (!window.CSS.supports(':host')) {
-							style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
-						}
+						matches.forEach(function (match) {
+
+							var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+							var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
+
+							style = style.replace(rule[0], '');
+							style = style.replace(pattern, rule[2]);
+						});
 					}
 
-					var estyle = document.createElement('style');
-					var nstyle = document.createTextNode(style);
+					if (!window.CSS.supports(':scope')) {
+						style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
+					}
 
-					estyle.appendChild(nstyle);
-
-					callback(estyle);
-				} else if ((typeof style === 'undefined' ? 'undefined' : _typeof(style)) === 'object') {
-					callback(style);
-				} else if (typeof style === 'function') {
-					style(function (s) {
-						this.renderStyle(s, scope, callback);
-					}.bind(this));
-				} else {
-					throw new Error('Oxe.component.renderStyle - invalid style type');
+					if (!window.CSS.supports(':host')) {
+						style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
+					}
 				}
+
+				var estyle = document.createElement('style');
+				var nstyle = document.createTextNode(style);
+
+				estyle.appendChild(nstyle);
+
+				return estyle;
 			}
 		}, {
 			key: 'created',
@@ -132,9 +103,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var self = this;
 				var scope = options.name + '-' + options.count++;
 
-				Object.defineProperty(element, 'scope', {
-					enumerable: true,
-					value: scope
+				Object.defineProperties(element, {
+					scope: {
+						enumerable: true,
+						value: scope
+					},
+					status: {
+						enumerable: true,
+						value: 'created'
+					}
 				});
 
 				element.setAttribute('o-scope', scope);
@@ -142,27 +119,30 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				Global$1.model.set(scope, options.model || {});
 				Global$1.methods.data[scope] = options.methods;
 
-				self.renderTemplate(options.template, function (etemplate) {
-					self.renderStyle(options.style, scope, function (estyle) {
+				if (element.parentNode.nodeName !== 'O-ROUTER' && self.compiled) {
 
-						if (estyle) {
-							etemplate.insertBefore(estyle, etemplate.firstChild);
-						}
+					var eTemplate = self.renderTemplate(options.template);
+					var eStyle = self.renderStyle(options.style, scope);
 
-						if (options.shadow && 'attachShadow' in document.body) {
-							element.attachShadow({ mode: 'open' }).appendChild(etemplate);
-						} else if (options.shadow && 'createShadowRoot' in document.body) {
-							element.createShadowRoot().appendChild(etemplate);
-						} else {
-							self.renderSlot(etemplate, element);
-							element.appendChild(etemplate);
-						}
+					if (eStyle) {
+						eTemplate.insertBefore(eStyle, eTemplate.firstChild);
+					}
 
-						if (options.created) {
-							options.created.call(element);
-						}
-					});
-				});
+					if (options.shadow && 'attachShadow' in document.body) {
+						element.attachShadow({ mode: 'open' }).appendChild(eTemplate);
+					} else if (options.shadow && 'createShadowRoot' in document.body) {
+						element.createShadowRoot().appendChild(eTemplate);
+					} else {
+						self.renderSlot(eTemplate, element);
+						element.appendChild(eTemplate);
+					}
+				}
+
+				Global$1.view.add(element);
+
+				if (options.created) {
+					options.created.call(element);
+				}
 			}
 		}, {
 			key: 'define',
@@ -180,7 +160,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				self.data[options.name] = options;
 
 				options.count = 0;
-				options.ready = false;
+				options.compiled = false;
 				options.model = options.model || {};
 				options.shadow = options.shadow || false;
 				options.template = options.template || '';
@@ -189,6 +169,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options.properties.scope = {
 					enumerable: true,
 					configurable: true
+				};
+
+				options.properties.status = {
+					enumerable: true,
+					configurable: true,
+					value: 'define'
 				};
 
 				options.properties.model = {
@@ -386,12 +372,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				return element;
 			}
 
-			if (element.parentElement) {
-				return this.getScope(element.parentElement);
+			if (element.parentNode) {
+				return this.getScope(element.parentNode);
 			}
 
-			console.warn('Oxe.utility - could not find container scope');
-			console.warn(element);
+			// console.warn('Oxe.utility - could not find container scope');
 		},
 		extension: function extension(data) {
 			var position = data.lastIndexOf('.');
@@ -890,7 +875,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_this2.ran = false;
 			_this2.auth = false;
 			_this2.hash = false;
-			_this2.trailing = false;
+			_this2.trailing = true;
 
 			_this2.element = null;
 			_this2.container = null;
@@ -914,7 +899,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.container = options.container === undefined ? this.container : options.container;
 
 				if (options.routes) {
-					this.data = this.data.concat(options.routes);
+					this.add(options.routes);
 				}
 
 				this.route(window.location.href, { replace: true });
@@ -936,13 +921,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'add',
-			value: function add(route) {
-				if (!route) {
-					throw new Error('Oxe.router.add - requires route parameter');
-				} else if (route.constructor.name === 'Object') {
-					this.data.push(route);
-				} else if (route.constructor.name === 'Array') {
-					this.data = this.data.concat(route);
+			value: function add(data) {
+				if (!data) {
+					throw new Error('Oxe.router.add - requires data parameter');
+				} else if (data.constructor.name === 'Object') {
+					Array.prototype.push.call(this.data, data);
+				} else if (data.constructor.name === 'Array') {
+					Array.prototype.push.apply(this.data, data);
 				}
 			}
 		}, {
@@ -1144,24 +1129,31 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 						if (!route.component) {
 							throw new Error('Oxe.router - missing route component');
-						} else if (typeof route.component === 'string') {
+						} else if (route.component.constructor.name === 'String') {
 							route.element = document.createElement(route.component);
 						} else if (route.component.constructor.name === 'Object') {
+
 							Global$1.component.define(route.component);
-							route.element = document.createElement(route.component.name);
-						} else if (route.component.constructor.name === 'Component') {
-							route.element = route.component;
+
+							if (this.compiled) {
+								route.element = this.element.firstChild;
+							} else {
+								route.element = document.createElement(route.component.name);
+							}
 						}
 
 						route.element.inRouterCache = false;
 						route.element.isRouterComponent = true;
 					}
 
-					while (this.element.firstChild) {
-						this.element.removeChild(this.element.firstChild);
-					}
+					if (!this.compiled) {
 
-					this.element.appendChild(route.element);
+						while (this.element.firstChild) {
+							this.element.removeChild(this.element.firstChild);
+						}
+
+						this.element.appendChild(route.element);
+					}
 
 					this.scroll(0, 0);
 					this.emit('routed');
@@ -1211,18 +1203,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return redirect(route.redirect);
 				}
 
-				if (this.compiled) {
-
-					if (route.title) {
-						document.title = route.title;
-					}
-
-					return;
-				}
-
 				this.location = location;
 
-				window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
+				if (!this.compiled) {
+					window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
+				}
 
 				this.render(route);
 			}
@@ -1906,11 +1891,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 		},
 		on: function on(opt) {
+			var data = Global$1.utility.getByPath(Global$1.methods.data, opt.scope + '.' + opt.path);
+
+			if (!data) {
+				return;
+			}
 
 			if (opt.cache) {
 				opt.element.removeEventListener(opt.names[1], opt.cache);
 			} else {
-				opt.cache = Global$1.utility.getByPath(Global$1.methods.data, opt.scope + '.' + opt.path).bind(opt.container);
+				opt.cache = data.bind(opt.container);
 			}
 
 			opt.element.addEventListener(opt.names[1], opt.cache);
@@ -2128,9 +2118,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return data;
 				}
 
+				if (!Global$1.methods.data[opt.scope]) {
+					return data;
+				}
+
 				for (var i = 0, l = opt.modifiers.length; i < l; i++) {
 					var modifier = opt.modifiers[i];
-					data = Global$1.methods.data[opt.scope][modifier].call(opt.container, data);
+					var scope = Global$1.methods.data[opt.scope];
+
+					if (scope) {
+						data = scope[modifier].call(opt.container, data);
+					}
 				}
 
 				return data;
@@ -2202,7 +2200,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function each(scope, path, callback) {
 				var i, key, binder, binders;
 				var paths = this.data[scope];
+
 				if (!path) {
+
 					for (key in paths) {
 						binders = paths[key];
 						for (i = 0; i < binders.length; i++) {
@@ -2211,6 +2211,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				} else {
+
 					for (key in paths) {
 						if (key.indexOf(path) === 0) {
 							if (key === path || key.slice(path.length).charAt(0) === '.') {
@@ -2869,63 +2870,61 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						continue;
 					}
 
-					if (attribute.name !== 'o-auth' && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-method' && attribute.name !== 'o-action' && attribute.name !== 'o-external' && attribute.name !== 'data-o-auth' && attribute.name !== 'data-o-scope' && attribute.name !== 'data-o-reset' && attribute.name !== 'data-o-method' && attribute.name !== 'data-o-action' && attribute.name !== 'data-o-external') {
+					if (attribute.name !== 'o-auth' && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-method' && attribute.name !== 'o-action' && attribute.name !== 'o-external' && attribute.name !== 'o-compiled' && attribute.name !== 'data-o-auth' && attribute.name !== 'data-o-compiled' && attribute.name !== 'data-o-scope' && attribute.name !== 'data-o-reset' && attribute.name !== 'data-o-method' && attribute.name !== 'data-o-action' && attribute.name !== 'data-o-external') {
 						callback.call(this, attribute);
 					}
 				}
 			}
 		}, {
 			key: 'each',
-			value: function each(element, callback, container) {
+			value: function each(element, callback, scope) {
 
-				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-external') && this.hasAcceptAttribute(element)) {
+				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external') && this.hasAcceptAttribute(element)) {
 
-					if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
-						container = element;
-					} else if (!document.body.contains(element)) {
-						container = Global$1.utility.getScope(container);
-					} else if (!container) {
-						container = Global$1.utility.getScope(element);
+					if (!scope) {
+						scope = Global$1.utility.getScope(element);
+					} else if (!scope.hasAttribute('o-scope') || !scope.hasAttribute('data-o-scope')) {
+						scope = Global$1.utility.getScope(scope);
 					}
 
-					var scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
+					if (scope.status !== 'created') {
+						return;
+					}
 
-					callback.call(this, element, container, scope);
+					callback.call(this, element, scope);
 				}
 
 				if (
 				// element.nodeName !== 'SVG'
 				element.nodeName !== 'STYLE' & element.nodeName !== 'SCRIPT' & element.nodeName !== 'OBJECT' & element.nodeName !== 'IFRAME') {
 
-					for (var i = 0, l = element.children.length; i < l; i++) {
-						this.each(element.children[i], callback, container);
+					for (var i = 0; i < element.children.length; i++) {
+						this.each(element.children[i], callback, scope);
 					}
 				}
 			}
 		}, {
 			key: 'add',
-			value: function add(addedElement) {
-				this.each(addedElement, function (element, container, scope) {
+			value: function add(addedElement, target) {
+				this.each(addedElement, function (element, scope) {
 					this.eachAttribute(element, function (attribute) {
 						Global$1.binder.render({
-							scope: scope,
 							element: element,
-							container: container,
+							container: scope,
 							name: attribute.name,
 							value: attribute.value
 						});
 					});
-				});
+				}, target);
 			}
 		}, {
 			key: 'remove',
 			value: function remove(removedElement, target) {
-				this.each(removedElement, function (element, container, scope) {
+				this.each(removedElement, function (element, scope) {
 					this.eachAttribute(element, function (attribute) {
 						Global$1.binder.unrender({
-							scope: scope,
 							element: element,
-							container: container,
+							container: scope,
 							name: attribute.name,
 							value: attribute.value
 						});
@@ -2957,6 +2956,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				    i = mutations.length;
 
 				while (i--) {
+					var scope;
 					var target = mutations[i].target;
 					var addedNodes = mutations[i].addedNodes;
 					var removedNodes = mutations[i].removedNodes;
@@ -2972,7 +2972,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 								addedNode.inRouterCache = true;
 							}
 
-							this.add(addedNode);
+							this.add(addedNode, target);
 						}
 					}
 
@@ -2997,7 +2997,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return View;
 	}();
 
-	var Global$1 = Object.defineProperties({}, {
+	var Global$1 = {
+		compiled: false
+	};
+
+	Object.defineProperties(Global$1, {
 		window: {
 			enumerable: true,
 			get: function get() {
@@ -3054,42 +3058,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			enumerable: true,
 			value: Utility
 		},
-		model: {
-			enumerable: true,
-			value: new Model()
-		},
-		view: {
-			enumerable: true,
-			value: new View()
-		},
-		binder: {
-			enumerable: true,
-			value: new Binder()
-		},
-		keeper: {
-			enumerable: true,
-			value: new Keeper()
-		},
-		loader: {
-			enumerable: true,
-			value: new Loader()
-		},
-		router: {
-			enumerable: true,
-			value: new Router()
-		},
-		batcher: {
-			enumerable: true,
-			value: new Batcher()
-		},
-		fetcher: {
-			enumerable: true,
-			value: new Fetcher()
-		},
-		component: {
-			enumerable: true,
-			value: new Component()
-		},
 		setup: {
 			enumerable: true,
 			value: function value(options) {
@@ -3119,6 +3087,51 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			}
 		}
+	});
+
+	Object.defineProperty(Global$1, 'batcher', {
+		enumerable: true,
+		value: new Batcher()
+	});
+
+	Object.defineProperty(Global$1, 'loader', {
+		enumerable: true,
+		value: new Loader()
+	});
+
+	Object.defineProperty(Global$1, 'binder', {
+		enumerable: true,
+		value: new Binder()
+	});
+
+	Object.defineProperty(Global$1, 'fetcher', {
+		enumerable: true,
+		value: new Fetcher()
+	});
+
+	Object.defineProperty(Global$1, 'keeper', {
+		enumerable: true,
+		value: new Keeper()
+	});
+
+	Object.defineProperty(Global$1, 'component', {
+		enumerable: true,
+		value: new Component()
+	});
+
+	Object.defineProperty(Global$1, 'router', {
+		enumerable: true,
+		value: new Router()
+	});
+
+	Object.defineProperty(Global$1, 'model', {
+		enumerable: true,
+		value: new Model()
+	});
+
+	Object.defineProperty(Global$1, 'view', {
+		enumerable: true,
+		value: new View()
 	});
 
 	document.addEventListener('reset', function resetListener(e) {
@@ -3181,13 +3194,22 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	document.head.appendChild(style);
 
 	var listener = function listener() {
+
+		if (document.body.hasAttribute('o-compiled')) {
+			Global$1.compiled = true;
+			Global$1.router.compiled = true;
+			Global$1.component.compiled = true;
+		}
+
 		var element = document.querySelector('script[o-setup]');
 
 		if (element) {
+
 			var args = element.getAttribute('o-setup').split(/\s*,\s*/);
 
-			if (args[1] === 'compiled') {
-				Global$1.router.compiled = true;
+			if (Global$1.compiled) {
+				args[1] = 'null';
+				args[2] = 'script';
 			}
 
 			Global$1.loader.load({

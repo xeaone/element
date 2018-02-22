@@ -34,6 +34,13 @@ const operations = {
 		method: function () {
 			return false;
 		}
+	},
+	transpile: {
+		key: 't',
+		name: 'transpile',
+		method: function () {
+			return false;
+		}
 	}
 };
 
@@ -60,7 +67,14 @@ const operations = {
 				name: 'bundle',
 				operations: [
 					operations.minify,
-					operations.comments
+					operations.comments,
+					{
+						key: 'n',
+						name: 'name',
+						method: function (name) {
+							return name;
+						}
+					}
 				],
 				method: async function (argument, values) {
 					const data = await io(argument, values);

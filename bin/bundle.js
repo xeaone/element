@@ -8,26 +8,18 @@ const Bundle = require('./lib/bundle');
 
 module.exports = async function (data) {
 
-	const minify = data.minify || false;
-	const comments = data.comments || false;
-
-	const inputPath = Path.extname(data.input) ? data.input : `${data.input}.js`;
-	const outputPath = Path.extname(data.output) ? data.output : `${data.output}.js`;
-
-	const inputIndexJsPath = Path.normalize(inputPath);
-	const inputIndexJsFile = await Fsep.readFile(inputIndexJsPath, Global.encoding);
+	const inputPath = Path.normalize(data.input);
+	const outputPath = Path.normalize(data.output);
 
 	const bundle = await Bundle({
 		name: data.name,
-		minify: minify,
-		root: inputPath,
-		comments: comments,
-		path: inputIndexJsPath
+		path: inputPath,
+		minify: data.minify || false,
+		comments: data.comments || false,
 	});
 
-	const outputIndexJsFile = bundle.code;
-	const outputIndexJsPath = Path.join(outputPath);
+	const outputData = bundle.code;
 
-	await Fsep.outputFile(outputIndexJsPath, outputIndexJsFile);
+	await Fsep.outputFile(outputPath, outputData);
 
 };
