@@ -10,11 +10,13 @@
 - `-v, --version`
 - `-h, --help`
 
-- `-c, --compile <input> <output>` Static compile of a project.
+- `-c, --compile <input> <output>` Static compiles a project.
 	- `-m, --minify`
 	- `-c, --comment`
+	- `-t, --transpile`
 
-- `-b, --bundle  <input> <output>` Bundles the ES6 modules of o-setup file.
+- `-b, --bundle  <input> <output>` Bundles a project.
 	- `-m, --minify`
 	- `-c, --comment`
+	- `-t, --transpile`
 	- `-n, --name <name>`
