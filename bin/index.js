@@ -89,5 +89,5 @@ const operations = {
 	await Program.run(process.argv);
 
 }()).catch(function (error) {
-	console.error(error);
+	console.error(error.stack);
 });

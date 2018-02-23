@@ -2,8 +2,21 @@ import Global from './global.js';
 
 export default class Component {
 
-	constructor () {
+	constructor (options) {
 		this.data = {};
+		this.setup(options);
+	}
+
+	setup (options) {
+		options = options || {};
+
+		if (options.components) {
+			for (var i = 0, l = options.components.length; i < l; i++) {
+				var component = options.components[i];
+				this.define(component);
+			}
+		}
+
 	}
 
 	renderSlot (target, source) {
@@ -106,8 +119,13 @@ export default class Component {
 		Global.model.set(scope, options.model || {});
 		Global.methods.data[scope] = options.methods;
 
-		if (element.parentNode.nodeName !== 'O-ROUTER' && self.compiled) {
+		if (self.compiled && element.parentNode && element.parentNode.nodeName === 'O-ROUTER') {
+			Global.view.add(element);
 
+			if (options.created) {
+				options.created.call(element);
+			}
+		} else {
 			var eTemplate = self.renderTemplate(options.template);
 			var eStyle = self.renderStyle(options.style, scope);
 
@@ -124,12 +142,12 @@ export default class Component {
 				element.appendChild(eTemplate);
 			}
 
-		}
+			Global.view.add(element);
 
-		Global.view.add(element);
+			if (options.created) {
+				options.created.call(element);
+			}
 
-		if (options.created) {
-			options.created.call(element);
 		}
 
 	}

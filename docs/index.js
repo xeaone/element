@@ -1,10 +1,12 @@
 import './assets/prism.js';
-import './elements/e-foo.js';
-import './elements/e-menu.js';
-import './routes/r-index.js';
-import './routes/r-test.js';
-import './routes/r-404.js';
-import './routes/r-js.js';
+
+import cMenu from './components/c-menu.js';
+import cFoo from './components/c-foo.js';
+
+import rIndex from './routes/r-index.js';
+import rTest from './routes/r-test.js';
+import r404 from './routes/r-404.js';
+import rJs from './routes/r-js.js';
 
 Oxe.setup({
 	loader: {
@@ -19,7 +21,17 @@ Oxe.setup({
 		]
 	},
 	router: {
-		// hash: true,
-		// trailing: true,
+		routes: [
+			rIndex,
+			rTest,
+			rJs,
+			r404
+		]
+	},
+	component: {
+		components: [
+			cFoo,
+			cMenu
+		]
 	}
 });

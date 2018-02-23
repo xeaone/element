@@ -8,7 +8,7 @@ const Global = require('./global');
 const Parser = require('./lib/parser');
 const Bundle = require('./lib/bundle');
 const RouteFiles = require('./handlers/route-files.js');
-const TemplateFile = require('./handlers/template-file.js');
+const LayoutFile = require('./handlers/layout-file.js');
 
 module.exports = async function (data) {
 
@@ -19,14 +19,13 @@ module.exports = async function (data) {
 	inputIndexHtmlFile = inputIndexHtmlFile.replace(/<!DOCTYPE html>/i, '');
 
 	const inputIndexJsBundle = await Bundle({
-		cwd: data.input,
 		path: inputIndexJsPath
 	});
 
 	const inputIndexJsFile = inputIndexJsBundle.code;
 
-	const templateFile = await TemplateFile(inputIndexHtmlFile);
-	const routeFiles = await RouteFiles(inputIndexJsFile, templateFile);
+	const layoutFile = await LayoutFile(inputIndexHtmlFile);
+	const routeFiles = await RouteFiles(inputIndexJsFile, layoutFile);
 
 	for (let routeFile of routeFiles) {
 		await Fsep.outputFile(
@@ -45,7 +44,7 @@ module.exports = async function (data) {
 	const outputIndexJsFile = outputIndexJsBundle.code;
 	const outputIndexJsPath = Path.join(data.output, 'index.js');
 
-	await Fsep.writeFile(outputIndexJsPath, outputIndexJsFile);
+	await Fsep.outputFile(outputIndexJsPath, outputIndexJsFile);
 
 	const options = {
 		filters: ['index.js', 'index.html'].concat(outputIndexJsBundle.imports)

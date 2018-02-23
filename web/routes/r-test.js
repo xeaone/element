@@ -1,6 +1,6 @@
 import Say from '../modules/say.js';
 
-Oxe.router.add({
+export default {
 	title: 'Test',
 	path: '/test',
 	component: {
@@ -170,10 +170,10 @@ Oxe.router.add({
 			<br>
 			<br>
 
-			<e-menu>
+			<c-menu>
 				<li slot="one">Item One</li>
 				<li slot="two">Item Two</li>
-			</e-menu>
+			</c-menu>
 			<br>
 			<br>
 
@@ -256,4 +256,4 @@ Oxe.router.add({
 
 		`
 	}
-});
+}

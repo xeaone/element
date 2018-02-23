@@ -1,8 +1,8 @@
 
-Oxe.component.define({
-	name: 'e-menu',
+export default {
+	name: 'c-menu',
 	created: function () {
-		console.log('created e-menu');
+		console.log('created c-menu');
 	},
 	style: `
 		:host {
@@ -22,4 +22,4 @@ Oxe.component.define({
 			<slot name="two"></slot>
 		</ul>
 	`
-});
+}

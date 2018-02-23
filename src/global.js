@@ -94,6 +94,10 @@ Object.defineProperties(Global, {
 				this.loader.setup(options.loader);
 			}
 
+			if (options.component) {
+				this.component.setup(options.component);
+			}
+
 			if (options.router) {
 				this.router.setup(options.router);
 			}

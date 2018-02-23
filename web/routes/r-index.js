@@ -78,7 +78,7 @@ var indexhtml = Escape(`
 	</html>
 `);
 
-Oxe.router.add({
+export default {
 	title: 'Oxe',
 	path: '/',
 	component: {
@@ -144,4 +144,4 @@ Oxe.router.add({
 			</pre>
 		`
 	}
-});
+};

@@ -178,6 +178,10 @@ export default {
 
 	getScope (element) {
 
+		if (!element) {
+			return;
+		}
+
 		if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 			return element;
 		}

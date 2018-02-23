@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.4.0
+	Version: 3.4.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -24,13 +24,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	'use strict';
 
 	var Component = function () {
-		function Component() {
+		function Component(options) {
 			_classCallCheck(this, Component);
 
 			this.data = {};
+			this.setup(options);
 		}
 
 		_createClass(Component, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
+
+				if (options.components) {
+					for (var i = 0, l = options.components.length; i < l; i++) {
+						var component = options.components[i];
+						this.define(component);
+					}
+				}
+			}
+		}, {
 			key: 'renderSlot',
 			value: function renderSlot(target, source) {
 				var slots = target.querySelectorAll('slot[name]');
@@ -129,8 +142,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				Global$1.model.set(scope, options.model || {});
 				Global$1.methods.data[scope] = options.methods;
 
-				if (element.parentNode.nodeName !== 'O-ROUTER' && self.compiled) {
+				if (self.compiled && element.parentNode && element.parentNode.nodeName === 'O-ROUTER') {
+					Global$1.view.add(element);
 
+					if (options.created) {
+						options.created.call(element);
+					}
+				} else {
 					var eTemplate = self.renderTemplate(options.template);
 					var eStyle = self.renderStyle(options.style, scope);
 
@@ -146,12 +164,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						self.renderSlot(eTemplate, element);
 						element.appendChild(eTemplate);
 					}
-				}
 
-				Global$1.view.add(element);
+					Global$1.view.add(element);
 
-				if (options.created) {
-					options.created.call(element);
+					if (options.created) {
+						options.created.call(element);
+					}
 				}
 			}
 		}, {
@@ -377,6 +395,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			return Array.prototype.join.call(arguments, '.').replace(/\.{2,}/g, '.');
 		},
 		getScope: function getScope(element) {
+
+			if (!element) {
+				return;
+			}
 
 			if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
 				return element;
@@ -885,7 +907,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_this2.ran = false;
 			_this2.auth = false;
 			_this2.hash = false;
-			_this2.trailing = true;
+			_this2.trailing = false;
+			// this.trailing = true;
 
 			_this2.element = null;
 			_this2.container = null;
@@ -970,9 +993,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			}
 		}, {
+			key: 'filter',
+			value: function filter(path) {
+				var result = [];
+
+				for (var i = 0, l = this.data.length; i < l; i++) {
+					var route = this.data[i];
+					if (this.isPath(route.path, path)) {
+						result.push(route);
+					}
+				}
+
+				return result;
+			}
+		}, {
 			key: 'isPath',
 			value: function isPath(routePath, userPath) {
-				return new RegExp('^' + routePath.replace(/{\*}/g, '(?:.*)').replace(/{(\w+)}/g, '([^\/]+)') + '(\/)?$').test(userPath || '/');
+				if (!userPath) {
+					return false;
+				} else if (userPath.constructor.name === 'String') {
+					return new RegExp('^' + routePath.replace(/{\*}/g, '(?:.*)').replace(/{(\w+)}/g, '([^\/]+)') + '(\/)?$').test(userPath || '/');
+				} else if (userPath.constructor.name === 'RegExp') {
+					return userPath.test(routePath);
+				}
 			}
 		}, {
 			key: 'toParameterObject',
@@ -2887,14 +2930,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'each',
-			value: function each(element, callback, scope) {
+			value: function each(element, callback, target) {
 
 				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external') && this.hasAcceptAttribute(element)) {
 
+					var scope = Global$1.utility.getScope(element);
+
 					if (!scope) {
-						scope = Global$1.utility.getScope(element);
-					} else if (!scope.hasAttribute('o-scope') || !scope.hasAttribute('data-o-scope')) {
-						scope = Global$1.utility.getScope(scope);
+						scope = Global$1.utility.getScope(target);
 					}
 
 					if (scope.status !== 'created') {
@@ -2909,7 +2952,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				element.nodeName !== 'STYLE' & element.nodeName !== 'SCRIPT' & element.nodeName !== 'OBJECT' & element.nodeName !== 'IFRAME') {
 
 					for (var i = 0; i < element.children.length; i++) {
-						this.each(element.children[i], callback, scope);
+						this.each(element.children[i], callback, target);
 					}
 				}
 			}
@@ -3090,6 +3133,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (options.loader) {
 					this.loader.setup(options.loader);
+				}
+
+				if (options.component) {
+					this.component.setup(options.component);
 				}
 
 				if (options.router) {

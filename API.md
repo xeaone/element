@@ -24,7 +24,11 @@ The recommend entry or setup method.
 	- `fetcher: Object` Oxe.fetcher options
 
 ### Oxe.component
-- `define: Function` Defines a custom web component
+- `setup: Function`
+	- `options: Object`
+		- `components: Array`
+			- `component: Object` A component definition.
+- `define: Function` Defines a custom web component.
 	- `options: Object`
 		- `name: String` **Required** the tag name
 		- `model: Object<Any>`
@@ -153,6 +157,8 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 	- `path: String` Strict path matching the route path parameters are not considered
 - `find: Function`
 	- `path: String` Loose path matching the route path parameters are considered
+- `filter: Function`
+	- `path: String, RegExp` Loose path matching the route path parameters are considered or a RegExp.
 - `route: Function` Routes to the path
 	- `path: String` Path to navigate
 	- `options: Object`

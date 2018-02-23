@@ -1,5 +1,5 @@
 
-Oxe.router.add({
+export default {
 	title: '404',
 	path: '/{*}',
 	component: {
@@ -9,4 +9,4 @@ Oxe.router.add({
 			<h2>This page does not exists</h2>
 		`
 	}
-});
+}

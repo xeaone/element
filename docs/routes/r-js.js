@@ -1,5 +1,5 @@
 
-Oxe.router.add({
+export default {
 	title: 'JS',
 	path: '/js',
 	component: {
@@ -25,4 +25,4 @@ Oxe.router.add({
 			console.log('detached ' + this.name);
 		},
 	}
-});
+}

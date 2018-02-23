@@ -74,7 +74,7 @@ export default class View {
 
 	};
 
-	each (element, callback, scope) {
+	each (element, callback, target) {
 
 		if (
 			element.nodeName !== 'O-ROUTER'
@@ -91,12 +91,12 @@ export default class View {
 			&& this.hasAcceptAttribute(element)
 		) {
 
-			if (!scope) {
-				scope = Global.utility.getScope(element);
-			} else if (!scope.hasAttribute('o-scope') || !scope.hasAttribute('data-o-scope')) {
-				scope = Global.utility.getScope(scope);
-			}
+			var	scope = Global.utility.getScope(element);
 
+			if (!scope) {
+				scope = Global.utility.getScope(target);
+			}
+			
 			if (scope.status !== 'created') {
 				return;
 			}
@@ -113,7 +113,7 @@ export default class View {
 		) {
 
 			for (var i = 0; i < element.children.length; i++) {
-				this.each(element.children[i], callback, scope);
+				this.each(element.children[i], callback, target);
 			}
 
 		}

@@ -12,7 +12,8 @@ export default class Router extends Events {
 		this.ran = false;
 		this.auth = false;
 		this.hash = false;
-		this.trailing = true;
+		this.trailing = false;
+		// this.trailing = true;
 
 		this.element = null;
 		this.container = null;
@@ -87,13 +88,32 @@ export default class Router extends Events {
 		}
 	}
 
+	filter (path) {
+		var result = [];
+
+		for (var i = 0, l = this.data.length; i < l; i++) {
+			var route = this.data[i];
+			if (this.isPath(route.path, path)) {
+				result.push(route);
+			}
+		}
+
+		return result;
+	}
+
 	isPath (routePath, userPath) {
-		return new RegExp(
-			'^' + routePath
-			.replace(/{\*}/g, '(?:.*)')
-			.replace(/{(\w+)}/g, '([^\/]+)')
-			+ '(\/)?$'
-		).test(userPath || '/');
+		if (!userPath) {
+			return false;
+		} else if (userPath.constructor.name === 'String') {
+			return new RegExp(
+				'^' + routePath
+				.replace(/{\*}/g, '(?:.*)')
+				.replace(/{(\w+)}/g, '([^\/]+)')
+				+ '(\/)?$'
+			).test(userPath || '/');
+		} else if (userPath.constructor.name === 'RegExp') {
+			return userPath.test(routePath);
+		}
 	}
 
 	toParameterObject (routePath, userPath) {
@@ -272,6 +292,7 @@ export default class Router extends Events {
 				} else if (route.component.constructor.name === 'String') {
 					route.element = document.createElement(route.component);
 				} else if (route.component.constructor.name === 'Object') {
+
 
 					Global.component.define(route.component);
 
