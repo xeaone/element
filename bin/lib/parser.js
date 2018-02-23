@@ -8,10 +8,6 @@ const makeMap = function (string) {
 		result[item] = true;
 	}
 
-	// for (let i = 0, l = items.length; i < l; i++) {
-	// 	result[ items[i] ] = true;
-	// }
-
 	return result;
 };
 

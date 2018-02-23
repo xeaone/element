@@ -8,22 +8,21 @@ const Camelize = require('./camelize');
 
 module.exports = async function Bundle (data) {
 
-	const imports = data.imports || [];
-	const cwd = data.cwd ? Path.normalize(data.cwd) : process.cwd();
-
+	let base = data.base;
 	let path = data.path;
 
-	path = Path.isAbsolute(path) ? Path.normalize(path) : Path.resolve(cwd, path);
-	path = Path.extname(path) ? path : `${path}.js`;
+	path = Path.extname(path) ? Path.resolve(path) : Path.resolve(`${path}.js`);
+	base = base ? Path.resolve(base) : Path.dirname(path);
+
+	const imports = data.imports || [];
 
 	const imps = [];
-	const globals = {};
-	const basePath = Path.dirname(path);
-	const fileData = await Fsep.readFile(path);
-	const modulePath = Path.relative(cwd, path);
-	const result = { code: '', imports: imports };
-
 	const presets = [];
+	const globals = {};
+	const folderPath = Path.dirname(path);
+	const fileData = await Fsep.readFile(path);
+	const modulePath = Path.relative(base, path);
+	const result = { code: '', imports: imports };
 
 	if (data.transpile) {
 		presets.push(['env', { targets: { browsers: 'defaults' } }]);
@@ -40,14 +39,14 @@ module.exports = async function Bundle (data) {
 						visitor: {
 							ImportDeclaration: function (data) {
 								const rawPath = Path.extname(data.node.source.value) ? data.node.source.value : `${data.node.source.value}.js`;
-								const fullPath = Path.resolve(basePath, rawPath);
-								const relativePath = Path.relative(cwd, fullPath);
+								const fullPath = Path.resolve(folderPath, rawPath);
+								const relativePath = Path.relative(base, fullPath);
 
 								globals[relativePath] = Camelize(relativePath);
 
 								imps.push({
 									rawPath: rawPath,
-									basePath: basePath,
+									folderPath: folderPath,
 									fullPath: fullPath,
 									relativePath: relativePath
 								});
@@ -69,7 +68,7 @@ module.exports = async function Bundle (data) {
 			result.imports.push(imp.fullPath);
 
 			let bundle = await Bundle({
-				cwd: cwd,
+				base: base,
 				path: imp.fullPath,
 				minify: data.minify,
 				imports: result.imports,

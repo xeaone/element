@@ -36,7 +36,6 @@ module.exports = async function (data) {
 	}
 
 	const outputIndexJsBundle = await Bundle({
-		cwd: data.input,
 		minify: data.minify,
 		path: inputIndexJsPath,
 		comments: data.comments,
