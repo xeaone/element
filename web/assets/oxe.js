@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.4.2
+	Version: 3.4.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1331,7 +1331,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
   	templates
   */
 
-		_innerHandler: function _innerHandler(char) {
+		_innerHandler: function _innerHandler(char, index, string) {
+			if (string[index - 1] === '\\') return;
 			if (char === '\'') return '\\\'';
 			if (char === '\"') return '\\"';
 			if (char === '\t') return '\\t';
