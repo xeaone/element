@@ -6,7 +6,8 @@ export default {
 		templates
 	*/
 
-	_innerHandler (char) {
+	_innerHandler (char, index, string) {
+		if (string[index-1] === '\\') return;
 		if (char === '\'') return '\\\'';
 		if (char === '\"') return '\\"';
 		if (char === '\t') return '\\t';
