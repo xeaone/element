@@ -293,15 +293,13 @@ export default class Router extends Events {
 					route.element = document.createElement(route.component);
 				} else if (route.component.constructor.name === 'Object') {
 
-
-					Global.component.define(route.component);
-
 					if (this.compiled) {
 						route.element = this.element.firstChild;
 					} else {
 						route.element = document.createElement(route.component.name);
 					}
 
+					Global.component.define(route.component);
 				}
 
 				route.element.inRouterCache = false;

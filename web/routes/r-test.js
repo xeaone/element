@@ -177,6 +177,13 @@ export default {
 			<br>
 			<br>
 
+			<c-menu>
+				<li>Item Three</li>
+				<li>Item Four</li>
+			</c-menu>
+			<br>
+			<br>
+
 			<p o-text="text | upper"></p>
 			<p o-text="text | lower"></p>
 			<input type="text" o-value="text | lower" placeholder="text">

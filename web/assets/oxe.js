@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 3.4.3
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -55,17 +45,21 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					if (slot) {
 						slots[i].parentNode.replaceChild(slot, slots[i]);
+					} else {
+						slots[i].parentNode.removeChild(slots[i]);
 					}
 				}
 
+				// FIXME default slot not workings
 				var defaultSlot = target.querySelector('slot:not([name])');
 
 				if (defaultSlot && source.children.length) {
-
 					while (source.firstChild) {
-						defaultSlot.insertBefore(source.firstChild);
+						defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
 					}
+				}
 
+				if (defaultSlot) {
 					defaultSlot.parentNode.removeChild(defaultSlot);
 				}
 			}
@@ -73,14 +67,22 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'renderTemplate',
 			value: function renderTemplate(template) {
 				var fragment = document.createDocumentFragment();
-				var temporary = document.createElement('div');
 
-				temporary.innerHTML = template || '';
+				if (template) {
+					if (typeof template === 'string') {
+						var temporary = document.createElement('div');
 
-				while (temporary.firstChild) {
-					fragment.appendChild(temporary.firstChild);
+						temporary.innerHTML = template;
+
+						while (temporary.firstChild) {
+							fragment.appendChild(temporary.firstChild);
+						}
+					} else {
+						fragment.appendChild(template);
+					}
 				}
 
+				// return document.importNode(fragment, true);
 				return fragment;
 			}
 		}, {
@@ -168,7 +170,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					Global$1.view.add(element);
 
 					if (options.created) {
-						options.created.call(element);
+						window.requestAnimationFrame(options.created.bind(element));
 					}
 				}
 			}
@@ -1186,13 +1188,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							route.element = document.createElement(route.component);
 						} else if (route.component.constructor.name === 'Object') {
 
-							Global$1.component.define(route.component);
-
 							if (this.compiled) {
 								route.element = this.element.firstChild;
 							} else {
 								route.element = document.createElement(route.component.name);
 							}
+
+							Global$1.component.define(route.component);
 						}
 
 						route.element.inRouterCache = false;

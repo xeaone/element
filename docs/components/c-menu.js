@@ -20,6 +20,7 @@ export default {
 		<ul>
 			<slot name="one"></slot>
 			<slot name="two"></slot>
+			<slot></slot>
 		</ul>
 	`
 }

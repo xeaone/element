@@ -29,34 +29,46 @@ export default class Component {
 
 			if (slot) {
 				slots[i].parentNode.replaceChild(slot, slots[i]);
+			} else {
+				slots[i].parentNode.removeChild(slots[i]);
 			}
 
 		}
 
+		// FIXME default slot not workings
 		var defaultSlot = target.querySelector('slot:not([name])');
 
 		if (defaultSlot && source.children.length) {
-
 			while (source.firstChild) {
-				defaultSlot.insertBefore(source.firstChild);
+				defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
 			}
+		}
 
+		if (defaultSlot) {
 			defaultSlot.parentNode.removeChild(defaultSlot);
-
 		}
 
 	}
 
 	renderTemplate (template) {
 		var fragment = document.createDocumentFragment();
-		var temporary = document.createElement('div');
 
-		temporary.innerHTML = template || '';
+		if (template) {
+			if (typeof template === 'string') {
+				var temporary = document.createElement('div');
 
-		while (temporary.firstChild) {
-			fragment.appendChild(temporary.firstChild);
+				temporary.innerHTML = template;
+
+				while (temporary.firstChild) {
+					fragment.appendChild(temporary.firstChild);
+				}
+
+			} else {
+				fragment.appendChild(template);
+			}
 		}
 
+		// return document.importNode(fragment, true);
 		return fragment;
 	}
 
@@ -145,7 +157,7 @@ export default class Component {
 			Global.view.add(element);
 
 			if (options.created) {
-				options.created.call(element);
+				window.requestAnimationFrame(options.created.bind(element));
 			}
 
 		}
