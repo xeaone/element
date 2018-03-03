@@ -13,7 +13,6 @@ export default class Router extends Events {
 		this.auth = false;
 		this.hash = false;
 		this.trailing = false;
-		// this.trailing = true;
 
 		this.element = null;
 		this.container = null;
@@ -260,70 +259,70 @@ export default class Router extends Events {
 
 	render (route) {
 
-		if (document.readyState === 'interactive' || document.readyState === 'complete') {
-
-			this.emit('routing');
-
-			if (route.title) {
-				document.title = route.title;
-			}
-
-			if (!this.element) {
-				this.element = this.element || 'o-router';
-
-				if (typeof this.element === 'string') {
-					this.element = document.body.querySelector(this.element);
-				}
-
-				if (!this.element) {
-					throw new Error('Oxe.router - Missing o-router');
-				}
-
-			}
-
-			if (!route.element) {
-
-				if (route.load) {
-					Global.loader.load(route.load);
-				}
-
-				if (!route.component) {
-					throw new Error('Oxe.router - missing route component');
-				} else if (route.component.constructor.name === 'String') {
-					route.element = document.createElement(route.component);
-				} else if (route.component.constructor.name === 'Object') {
-
-					if (this.compiled) {
-						route.element = this.element.firstChild;
-					} else {
-						route.element = document.createElement(route.component.name);
-					}
-
-					Global.component.define(route.component);
-				}
-
-				route.element.inRouterCache = false;
-				route.element.isRouterComponent = true;
-			}
-
-			if (!this.compiled) {
-
-				while (this.element.firstChild) {
-					this.element.removeChild(this.element.firstChild);
-				}
-
-				this.element.appendChild(route.element);
-			}
-
-			this.scroll(0, 0);
-			this.emit('routed');
-
-		} else {
-			document.addEventListener('DOMContentLoaded', function _ () {
-				this.render.bind(this, route);
+		if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
+			return document.addEventListener('DOMContentLoaded', function _ () {
+				this.render.call(this, route);
 				document.removeEventListener('DOMContentLoaded', _);
 			}.bind(this), true);
 		}
+
+		this.emit('routing');
+
+		if (route.title) {
+			document.title = route.title;
+		}
+
+		if (!this.element) {
+			this.element = this.element || 'o-router';
+
+			if (typeof this.element === 'string') {
+				this.element = document.body.querySelector(this.element);
+			}
+
+			if (!this.element) {
+				throw new Error('Oxe.router - missing o-router element');
+			}
+
+		}
+
+		if (!route.element) {
+
+			if (route.load) {
+				Global.loader.load(route.load);
+			}
+
+			if (!route.component) {
+				throw new Error('Oxe.router - missing route component');
+			} else if (route.component.constructor.name === 'String') {
+				route.element = document.createElement(route.component);
+			} else if (route.component.constructor.name === 'Object') {
+
+				Global.component.define(route.component);
+
+				if (this.compiled) {
+					route.element = this.element.firstChild;
+				} else {
+					route.element = document.createElement(route.component.name);
+				}
+
+			}
+
+		}
+
+		route.element.inRouterCache = false;
+		route.element.isRouterComponent = true;
+
+		if (!this.compiled) {
+
+			while (this.element.firstChild) {
+				this.element.removeChild(this.element.firstChild);
+			}
+
+			this.element.appendChild(route.element);
+		}
+
+		this.scroll(0, 0);
+		this.emit('routed');
 
 	}
 

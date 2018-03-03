@@ -910,7 +910,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_this2.auth = false;
 			_this2.hash = false;
 			_this2.trailing = false;
-			// this.trailing = true;
 
 			_this2.element = null;
 			_this2.container = null;
@@ -1156,68 +1155,67 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'render',
 			value: function render(route) {
 
-				if (document.readyState === 'interactive' || document.readyState === 'complete') {
-
-					this.emit('routing');
-
-					if (route.title) {
-						document.title = route.title;
-					}
-
-					if (!this.element) {
-						this.element = this.element || 'o-router';
-
-						if (typeof this.element === 'string') {
-							this.element = document.body.querySelector(this.element);
-						}
-
-						if (!this.element) {
-							throw new Error('Oxe.router - Missing o-router');
-						}
-					}
-
-					if (!route.element) {
-
-						if (route.load) {
-							Global$1.loader.load(route.load);
-						}
-
-						if (!route.component) {
-							throw new Error('Oxe.router - missing route component');
-						} else if (route.component.constructor.name === 'String') {
-							route.element = document.createElement(route.component);
-						} else if (route.component.constructor.name === 'Object') {
-
-							if (this.compiled) {
-								route.element = this.element.firstChild;
-							} else {
-								route.element = document.createElement(route.component.name);
-							}
-
-							Global$1.component.define(route.component);
-						}
-
-						route.element.inRouterCache = false;
-						route.element.isRouterComponent = true;
-					}
-
-					if (!this.compiled) {
-
-						while (this.element.firstChild) {
-							this.element.removeChild(this.element.firstChild);
-						}
-
-						this.element.appendChild(route.element);
-					}
-
-					this.scroll(0, 0);
-					this.emit('routed');
-				} else {
-					document.addEventListener('DOMContentLoaded', function _() {
-						this.render.bind(this, route);
+				if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
+					return document.addEventListener('DOMContentLoaded', function _() {
+						this.render.call(this, route);
 						document.removeEventListener('DOMContentLoaded', _);
 					}.bind(this), true);
 				}
+
+				this.emit('routing');
+
+				if (route.title) {
+					document.title = route.title;
+				}
+
+				if (!this.element) {
+					this.element = this.element || 'o-router';
+
+					if (typeof this.element === 'string') {
+						this.element = document.body.querySelector(this.element);
+					}
+
+					if (!this.element) {
+						throw new Error('Oxe.router - missing o-router element');
+					}
+				}
+
+				if (!route.element) {
+
+					if (route.load) {
+						Global$1.loader.load(route.load);
+					}
+
+					if (!route.component) {
+						throw new Error('Oxe.router - missing route component');
+					} else if (route.component.constructor.name === 'String') {
+						route.element = document.createElement(route.component);
+					} else if (route.component.constructor.name === 'Object') {
+
+						Global$1.component.define(route.component);
+
+						if (this.compiled) {
+							route.element = this.element.firstChild;
+						} else {
+							route.element = document.createElement(route.component.name);
+						}
+					}
+				}
+
+				route.element.inRouterCache = false;
+				route.element.isRouterComponent = true;
+
+				if (!this.compiled) {
+
+					while (this.element.firstChild) {
+						this.element.removeChild(this.element.firstChild);
+					}
+
+					this.element.appendChild(route.element);
+				}
+
+				this.scroll(0, 0);
+				this.emit('routed');
 			}
 		}, {
 			key: 'route',
@@ -2553,6 +2551,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	/*
  	TODO:
+ 		push not working
  		sort reverse
  		test array methods
  		figure out a way to not update removed items
@@ -2882,24 +2881,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_classCallCheck(this, View);
 
 			this.data = {};
-
 			document.addEventListener('input', this.inputListener.bind(this), true);
 			document.addEventListener('change', this.changeListener.bind(this), true);
-
-			if (document.readyState === 'interactive' || document.readyState === 'complete') {
-				this.add(document.body);
-			} else {
-				document.addEventListener('DOMContentLoaded', function _() {
-					this.add(document.body);
-					document.removeEventListener('DOMContentLoaded', _);
-				}.bind(this), true);
-			}
-
-			this.mutationObserver = new MutationObserver(this.mutationListener.bind(this));
-			this.mutationObserver.observe(document.body, { childList: true, subtree: true });
+			this._ready();
 		}
 
 		_createClass(View, [{
+			key: '_ready',
+			value: function _ready() {
+
+				if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
+					return document.addEventListener('DOMContentLoaded', function _() {
+						this._ready();
+						document.removeEventListener('DOMContentLoaded', _);
+					}.bind(this), true);
+				}
+
+				this.add(document.body);
+				this.mutationObserver = new MutationObserver(this.mutationListener.bind(this));
+				this.mutationObserver.observe(document.body, { childList: true, subtree: true });
+			}
+		}, {
 			key: 'hasAcceptAttribute',
 			value: function hasAcceptAttribute(element) {
 				var attributes = element.attributes;
@@ -3246,20 +3248,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	}, true);
 
-	var style = document.createElement('style');
+	var eStyle = document.createElement('style');
+	var tStyle = document.createTextNode('o-router, o-router > :first-child { display: block; }');
 
-	style.setAttribute('type', 'text/css');
-	style.appendChild(document.createTextNode('o-router, o-router > :first-child { display: block; }'));
+	eStyle.setAttribute('type', 'text/css');
+	eStyle.appendChild(tStyle);
 
-	document.head.appendChild(style);
+	document.head.appendChild(eStyle);
 
 	var listener = function listener() {
-
-		if (document.body.hasAttribute('o-compiled')) {
-			Global$1.compiled = true;
-			Global$1.router.compiled = true;
-			Global$1.component.compiled = true;
-		}
 
 		var element = document.querySelector('script[o-setup]');
 
@@ -3267,9 +3264,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			var args = element.getAttribute('o-setup').split(/\s*,\s*/);
 
-			if (Global$1.compiled) {
+			if (document.head.hasAttribute('o-compiled')) {
 				args[1] = 'null';
 				args[2] = 'script';
+				Global$1.compiled = true;
+				Global$1.router.compiled = true;
+				Global$1.component.compiled = true;
 			}
 
 			Global$1.loader.load({

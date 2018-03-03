@@ -11,7 +11,7 @@ module.exports = async function (file) {
 			if (tag === 'title') {
 				data += Parser.createTagStart(tag, attributes);
 				data += Global.oTitlePlaceholder;
-			} else if (tag === 'body') {
+			} else if (tag === 'head') {
 
 				attributes.push({
 					value: 'true',

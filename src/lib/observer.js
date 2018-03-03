@@ -1,6 +1,7 @@
 
 /*
 	TODO:
+		push not working
 		sort reverse
 		test array methods
 		figure out a way to not update removed items

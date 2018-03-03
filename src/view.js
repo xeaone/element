@@ -4,19 +4,21 @@ export default class View {
 
 	constructor () {
 		this.data = {};
-
 		document.addEventListener('input', this.inputListener.bind(this), true);
 		document.addEventListener('change', this.changeListener.bind(this), true);
+		this._ready();
+	}
 
-		if (document.readyState === 'interactive' || document.readyState === 'complete') {
-			this.add(document.body);
-		} else {
-			document.addEventListener('DOMContentLoaded', function _ () {
-				this.add(document.body);
+	_ready () {
+
+		if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
+			return document.addEventListener('DOMContentLoaded', function _ () {
+				this._ready();
 				document.removeEventListener('DOMContentLoaded', _);
 			}.bind(this), true);
 		}
 
+		this.add(document.body);
 		this.mutationObserver = new MutationObserver(this.mutationListener.bind(this));
 		this.mutationObserver.observe(document.body, { childList: true, subtree: true });
 	}
@@ -96,7 +98,7 @@ export default class View {
 			if (!scope) {
 				scope = Global.utility.getScope(target);
 			}
-			
+
 			if (scope.status !== 'created') {
 				return;
 			}

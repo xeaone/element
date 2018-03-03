@@ -62,20 +62,15 @@ document.addEventListener('submit', function submitListener (e) {
 
 }, true);
 
-var style = document.createElement('style');
+var eStyle = document.createElement('style');
+var tStyle = document.createTextNode('o-router, o-router > :first-child { display: block; }')
 
-style.setAttribute('type', 'text/css');
-style.appendChild(document.createTextNode('o-router, o-router > :first-child { display: block; }'));
+eStyle.setAttribute('type', 'text/css');
+eStyle.appendChild(tStyle);
 
-document.head.appendChild(style);
+document.head.appendChild(eStyle);
 
 var listener = function () {
-
-	if (document.body.hasAttribute('o-compiled')) {
-		Global.compiled = true;
-		Global.router.compiled = true;
-		Global.component.compiled = true;
-	}
 
 	var element = document.querySelector('script[o-setup]');
 
@@ -83,9 +78,12 @@ var listener = function () {
 
 		var args = element.getAttribute('o-setup').split(/\s*,\s*/);
 
-		if (Global.compiled) {
+		if (document.head.hasAttribute('o-compiled')) {
 			args[1] = 'null';
 			args[2] = 'script';
+			Global.compiled = true;
+			Global.router.compiled = true;
+			Global.component.compiled = true;
 		}
 
 		Global.loader.load({
