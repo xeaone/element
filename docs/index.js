@@ -9,12 +9,12 @@ import rJs from './routes/r-js.js';
 
 Oxe.setup({
 	loader: {
-		// methods: {
-		// 	js: 'fetch'
-		// },
-		// transformers: {
-		// 	js: 'es'
-		// },
+		methods: {
+			js: 'fetch'
+		},
+		transformers: {
+			js: 'es'
+		},
 		loads: [
 			'./assets/prism.css',
 		]
