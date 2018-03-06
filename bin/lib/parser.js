@@ -39,6 +39,10 @@ const Parser = {
 	html: function (html, handler) {
 		let index, chars, match, stack = [], last = html;
 
+		// if (html.indexOf('<!DOCTYPE html>') === 0) {
+		// 	html = html.slice('<!DOCTYPE html>'.length);
+		// }
+
 		stack.last = function () {
 			return this[this.length-1];
 		};

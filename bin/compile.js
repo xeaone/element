@@ -16,7 +16,7 @@ module.exports = async function (data) {
 	const inputIndexHtmlPath = Path.join(data.input, 'index.html');
 
 	let inputIndexHtmlFile = await Fsep.readFile(inputIndexHtmlPath, Global.encoding);
-	inputIndexHtmlFile = inputIndexHtmlFile.replace(/<!DOCTYPE html>/i, '');
+	inputIndexHtmlFile = inputIndexHtmlFile.replace(/^<!DOCTYPE html>/i, '');
 
 	const inputIndexJsBundle = await Bundle({
 		path: inputIndexJsPath
@@ -30,7 +30,7 @@ module.exports = async function (data) {
 	for (let routeFile of routeFiles) {
 		await Fsep.outputFile(
 			Path.join(data.output, routeFile.path),
-			routeFile.data
+			`<!DOCTYPE html>${routeFile.data}`
 		);
 	}
 
