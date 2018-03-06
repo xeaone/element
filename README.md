@@ -13,7 +13,7 @@ CLI documentation can be found at [CLI.md](https://github.com/AlexanderElias/oxe
 - Module loading
 - Front end routing
 - Front end auth handling
-- Automatic pollyfilling if required [web components v0](https://github.com/webcomponents/webcomponentsjs/tree/v0)
+- Automatic pollyfilling if required [web components v0](https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js)
 - In browser ES6/ESM Module and Template String pollyfill support (only export default)
 
 ### Support
