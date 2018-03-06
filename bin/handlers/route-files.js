@@ -10,6 +10,7 @@ module.exports = async function (inputIndexJsContent, template) {
 
 	Vm.runInNewContext(inputIndexJsContent, {
 		Oxe: {
+			global: {},
 			component: {
 				define: function (c) {
 					return function () {

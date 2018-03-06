@@ -11,14 +11,6 @@ module.exports = async function (file) {
 			if (tag === 'title') {
 				data += Parser.createTagStart(tag, attributes);
 				data += Global.oTitlePlaceholder;
-			// } else if (tag === 'head') {
-			//
-			// 	attributes.push({
-			// 		value: 'true',
-			// 		name: 'o-compiled'
-			// 	});
-			//
-			// 	data += Parser.createTagStart(tag, attributes);
 			} else if (tag === 'o-router') {
 				data += Global.oRouterPlaceholderStart;
 			} else {
