@@ -3,7 +3,8 @@
 const Fsep = require('fsep');
 const Path = require('path');
 const BabelCore = require('babel-core');
-const TransformModules = require('babel-plugin-transform-es2015-modules-umd');
+const BabelEnv = require('babel-preset-env');
+const BabelTransformModules = require('babel-plugin-transform-es2015-modules-umd');
 
 const Camelize = require('./camelize');
 
@@ -26,7 +27,7 @@ module.exports = async function Bundle (data) {
 	const result = { code: '', imports: imports };
 
 	if (data.transpile) {
-		presets.push(['env', { targets: { browsers: 'defaults' } }]);
+		presets.push([BabelEnv, { targets: { browsers: 'defaults' } }]);
 	}
 
 	const transformed = BabelCore.transform(fileData, {
@@ -58,7 +59,7 @@ module.exports = async function Bundle (data) {
 					};
 				}
 			],
-			[TransformModules, { globals: globals, exactGlobals: true }]
+			[BabelTransformModules, { globals: globals, exactGlobals: true }]
 		],
 		presets: presets
 	});
