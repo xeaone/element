@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.5.0
+	Version: 3.5.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -3349,7 +3349,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		var polly = document.createElement('script');
 
 		polly.setAttribute('type', 'text/javascript');
-		polly.setAttribute('src', 'https://unpkg.com/oxe@2.9.9/dist/webcomponents-lite.min.js');
+		polly.setAttribute('src', 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
 		polly.addEventListener('load', function () {
 			listener();
 			this.removeEventListener('load', listener);
