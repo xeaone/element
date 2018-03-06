@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.4.5
+	Version: 3.4.6
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -60,7 +60,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				// FIXME default slot not workings
 				var defaultSlot = target.querySelector('slot:not([name])');
 
 				if (defaultSlot && source.children.length) {
@@ -3273,8 +3272,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		if (element) {
 
 			var args = element.getAttribute('o-setup').split(/\s*,\s*/);
+			var meta = document.querySelector('meta[name="oxe"]');
 
-			if (document.head.hasAttribute('o-compiled')) {
+			if (meta.hasAttribute('compiled')) {
 				args[1] = 'null';
 				args[2] = 'script';
 				Global$1.compiled = true;

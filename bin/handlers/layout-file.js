@@ -11,14 +11,14 @@ module.exports = async function (file) {
 			if (tag === 'title') {
 				data += Parser.createTagStart(tag, attributes);
 				data += Global.oTitlePlaceholder;
-			} else if (tag === 'head') {
-
-				attributes.push({
-					value: 'true',
-					name: 'o-compiled'
-				});
-
-				data += Parser.createTagStart(tag, attributes);
+			// } else if (tag === 'head') {
+			//
+			// 	attributes.push({
+			// 		value: 'true',
+			// 		name: 'o-compiled'
+			// 	});
+			//
+			// 	data += Parser.createTagStart(tag, attributes);
 			} else if (tag === 'o-router') {
 				data += Global.oRouterPlaceholderStart;
 			} else {
@@ -26,7 +26,9 @@ module.exports = async function (file) {
 			}
 		},
 		end: function (tag) {
-			if (tag === 'o-router') {
+			if (tag === 'head') {
+				data += `\t<meta name="oxe" compiled></${tag}>`;
+			} else if (tag === 'o-router') {
 				data += Global.oRouterPlaceholderEnd;
 			} else {
 				data += `</${tag}>`;

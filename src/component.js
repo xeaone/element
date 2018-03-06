@@ -35,7 +35,6 @@ export default class Component {
 
 		}
 
-		// FIXME default slot not workings
 		var defaultSlot = target.querySelector('slot:not([name])');
 
 		if (defaultSlot && source.children.length) {

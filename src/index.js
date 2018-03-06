@@ -77,8 +77,9 @@ var listener = function () {
 	if (element) {
 
 		var args = element.getAttribute('o-setup').split(/\s*,\s*/);
+		var meta = document.querySelector('meta[name="oxe"]');
 
-		if (document.head.hasAttribute('o-compiled')) {
+		if (meta.hasAttribute('compiled')) {
 			args[1] = 'null';
 			args[2] = 'script';
 			Global.compiled = true;

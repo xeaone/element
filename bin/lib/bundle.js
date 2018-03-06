@@ -3,6 +3,7 @@
 const Fsep = require('fsep');
 const Path = require('path');
 const BabelCore = require('babel-core');
+const TransformModules = require('babel-plugin-transform-es2015-modules-umd');
 
 const Camelize = require('./camelize');
 
@@ -57,7 +58,7 @@ module.exports = async function Bundle (data) {
 					};
 				}
 			],
-			['transform-es2015-modules-umd', { globals: globals, exactGlobals: true }]
+			[TransformModules, { globals: globals, exactGlobals: true }]
 		],
 		presets: presets
 	});
