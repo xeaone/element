@@ -1,6 +1,6 @@
-import Unrender from './lib/unrender';
-import Render from './lib/render';
-import Global from './global';
+import Unrender from './lib/unrender.js';
+import Render from './lib/render.js';
+import Global from './global.js';
 
 export default class Binder {
 

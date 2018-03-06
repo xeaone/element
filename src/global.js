@@ -1,13 +1,14 @@
-import Component from './component';
-import Utility from './utility';
-import Batcher from './batcher';
-import Fetcher from './fetcher';
-import Router from './router';
-import Loader from './loader';
-import Binder from './binder';
-import Keeper from './keeper';
-import Model from './model';
-import View from './view';
+import Component from './component.js';
+import General from './general.js';
+import Utility from './utility.js';
+import Batcher from './batcher.js';
+import Fetcher from './fetcher.js';
+import Router from './router.js';
+import Loader from './loader.js';
+import Binder from './binder.js';
+import Keeper from './keeper.js';
+import Model from './model.js';
+import View from './view.js';
 
 const Global = {
 	compiled: false
@@ -72,38 +73,55 @@ Object.defineProperties(Global, {
 	},
 	setup: {
 		enumerable: true,
-		value: function (options) {
+		value: function (data) {
 
-			if (this.isSetup) {
+			if (this._setup) {
 				return;
 			} else {
-				this.isSetup = true;
+				this._setup = true;
 			}
 
-			options = options || {};
+			data = data || {};
 
-			if (options.keeper) {
-				this.keeper.setup(options.keeper);
+			if (data.listener && data.listener.before) {
+				data.listener.before();
 			}
 
-			if (options.fetcher) {
-				this.fetcher.setup(options.fetcher);
+			if (data.general) {
+				this.general.setup(data.general);
 			}
 
-			if (options.loader) {
-				this.loader.setup(options.loader);
+			if (data.keeper) {
+				this.keeper.setup(data.keeper);
 			}
 
-			if (options.component) {
-				this.component.setup(options.component);
+			if (data.fetcher) {
+				this.fetcher.setup(data.fetcher);
 			}
 
-			if (options.router) {
-				this.router.setup(options.router);
+			if (data.loader) {
+				this.loader.setup(data.loader);
+			}
+
+			if (data.component) {
+				this.component.setup(data.component);
+			}
+
+			if (data.router) {
+				this.router.setup(data.router);
+			}
+
+			if (data.listener && data.listener.after) {
+				data.listener.after();
 			}
 
 		}
 	}
+});
+
+Object.defineProperty(Global, 'general', {
+	enumerable: true,
+	value: new General()
 });
 
 Object.defineProperty(Global, 'batcher', {

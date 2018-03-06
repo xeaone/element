@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 3.4.6
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -254,6 +244,90 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Component;
 	}();
 
+	var Path = {
+		extension: function extension(data) {
+			var position = data.lastIndexOf('.');
+			return position > 0 ? data.slice(position + 1) : '';
+		},
+		join: function join() {
+			return Array.prototype.join.call(arguments, '/').replace(/\/{2,}/g, '/').replace(/^(https?:\/)/, '$1/');
+		},
+
+
+		// NOTE might want to move this function to location class
+		base: function base(href) {
+			var base = window.document.querySelector('base');
+
+			if (href) {
+				if (base) {
+					base.href = href;
+				} else {
+					base = window.document.createElement('base');
+					base.href = href;
+					window.document.head.insertBefore(base, window.document.head.firstElementChild);
+				}
+			}
+
+			return base ? base.href : window.location.href.replace(/(\?|#).*?$/, '');
+		},
+		resolve: function resolve(path, base) {
+			var result = [];
+
+			path = path.replace(window.location.origin, '');
+
+			if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('//') === 0) {
+				return path;
+			}
+
+			if (path.charAt(0) !== '/') {
+				base = base || this.base();
+				path = base + '/' + path;
+				path = path.replace(window.location.origin, '');
+			}
+
+			path = path.replace(/\/{2,}/, '/');
+			path = path.replace(/^\//, '');
+			path = path.replace(/\/$/, '');
+
+			var paths = path.split('/');
+
+			for (var i = 0, l = paths.length; i < l; i++) {
+				if (paths[i] === '.' || paths[i] === '') {
+					continue;
+				} else if (paths[i] === '..') {
+					if (i > 0) {
+						result.splice(i - 1, 1);
+					}
+				} else {
+					result.push(paths[i]);
+				}
+			}
+
+			return '/' + result.join('/');
+		}
+	};
+
+	var General = function () {
+		function General(options) {
+			_classCallCheck(this, General);
+
+			this.setup(options);
+		}
+
+		_createClass(General, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
+
+				if (options.base) {
+					Path.base(options.base);
+				}
+			}
+		}]);
+
+		return General;
+	}();
+
 	var Utility = {
 
 		PATH: /\s*\|.*/,
@@ -421,54 +495,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			// console.warn('Oxe.utility - could not find container scope');
 		},
-		extension: function extension(data) {
-			var position = data.lastIndexOf('.');
-			return position > 0 ? data.slice(position + 1) : '';
-		},
-		join: function join() {
-			return Array.prototype.join.call(arguments, '/').replace(/\/{2,}/g, '/').replace(/^(https?:\/)/, '$1/');
-		},
-		base: function base() {
-			if (window.document.head.querySelector('base')) {
-				return window.document.head.querySelector('base').href;
-			} else {
-				return window.location.origin + '/';
-			}
-		},
-		resolve: function resolve(path, base) {
-			var result = [];
-
-			path = path.replace(window.location.origin, '');
-
-			if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('//') === 0) {
-				return path;
-			}
-
-			if (path.charAt(0) !== '/') {
-				base = base || this.base();
-				path = base + '/' + path;
-				path = path.replace(window.location.origin, '');
-			}
-
-			path = path.replace(/\/{2,}/, '/');
-			path = path.replace(/^\//, '');
-			path = path.replace(/\/$/, '');
-
-			var paths = path.split('/');
-
-			for (var i = 0, l = paths.length; i < l; i++) {
-				if (paths[i] === '.' || paths[i] === '') {
-					continue;
-				} else if (paths[i] === '..') {
-					if (i > 0) {
-						result.splice(i - 1, 1);
-					}
+		ready: function ready(callback) {
+			if (callback) {
+				if (window.document.readyState !== 'interactive' && window.document.readyState !== 'complete') {
+					window.document.addEventListener('DOMContentLoaded', function _() {
+						callback();
+						window.document.removeEventListener('DOMContentLoaded', _);
+					}, true);
 				} else {
-					result.push(paths[i]);
+					callback();
 				}
 			}
-
-			return '/' + result.join('/');
 		}
 	};
 
@@ -921,7 +958,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_this2.trailing = false;
 
 			_this2.element = null;
-			_this2.container = null;
+			_this2.contain = false;
 			_this2.compiled = false;
 
 			document.addEventListener('click', _this2.clickListener.bind(_this2), true);
@@ -937,9 +974,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.auth = options.auth === undefined ? this.auth : options.auth;
 				this.hash = options.hash === undefined ? this.hash : options.hash;
 				this.element = options.element === undefined ? this.element : options.element;
+				this.contain = options.contain === undefined ? this.contain : options.contain;
 				this.external = options.external === undefined ? this.external : options.external;
 				this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
-				this.container = options.container === undefined ? this.container : options.container;
 
 				if (options.routes) {
 					this.add(options.routes);
@@ -1097,8 +1134,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				location.username = window.location.username;
 				location.password = window.location.password;
 
-				location.pathname = decodeURI(path);
-				location.base = Global$1.utility.base();
+				location.pathname = path;
+				location.base = Path.base();
 				location.basename = location.base;
 
 				if (location.basename.indexOf(location.origin) === 0) {
@@ -1137,13 +1174,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					location.search = '';
 				}
 
-				location.routePath = Global$1.utility.join('/', location.pathname);
-				location.pathname = Global$1.utility.join(location.basename, location.pathname);
-				location.href = Global$1.utility.join(location.origin, this.hash ? '#' : '/', location.pathname);
+				location.routePath = Path.join('/', location.pathname);
+				location.pathname = Path.join(location.basename, location.pathname);
+				location.href = Path.join(location.origin, this.hash ? '#' : '/', location.pathname);
 
 				if (this.trailing) {
-					location.href = Global$1.utility.join(location.href, '/');
-					location.pathname = Global$1.utility.join(location.pathname, '/');
+					location.href = Path.join(location.href, '/');
+					location.pathname = Path.join(location.pathname, '/');
 				} else {
 					location.href = location.href.replace(/\/{1,}$/, '');
 					location.pathname = location.pathname.replace(/\/{1,}$/, '');
@@ -1163,68 +1200,63 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'render',
 			value: function render(route) {
+				Global$1.utility.ready(function () {
 
-				if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
-					return document.addEventListener('DOMContentLoaded', function _() {
-						this.render.call(this, route);
-						document.removeEventListener('DOMContentLoaded', _);
-					}.bind(this), true);
-				}
+					this.emit('routing');
 
-				this.emit('routing');
-
-				if (route.title) {
-					document.title = route.title;
-				}
-
-				if (!this.element) {
-					this.element = this.element || 'o-router';
-
-					if (typeof this.element === 'string') {
-						this.element = document.body.querySelector(this.element);
+					if (route.title) {
+						document.title = route.title;
 					}
 
 					if (!this.element) {
-						throw new Error('Oxe.router - missing o-router element');
-					}
-				}
+						this.element = this.element || 'o-router';
 
-				if (!route.element) {
+						if (typeof this.element === 'string') {
+							this.element = document.body.querySelector(this.element);
+						}
 
-					if (route.load) {
-						Global$1.loader.load(route.load);
-					}
-
-					if (!route.component) {
-						throw new Error('Oxe.router - missing route component');
-					} else if (route.component.constructor.name === 'String') {
-						route.element = document.createElement(route.component);
-					} else if (route.component.constructor.name === 'Object') {
-
-						Global$1.component.define(route.component);
-
-						if (this.compiled) {
-							route.element = this.element.firstChild;
-						} else {
-							route.element = document.createElement(route.component.name);
+						if (!this.element) {
+							throw new Error('Oxe.router - missing o-router element');
 						}
 					}
-				}
 
-				route.element.inRouterCache = false;
-				route.element.isRouterComponent = true;
+					if (!route.element) {
 
-				if (!this.compiled) {
+						if (route.load) {
+							Global$1.loader.load(route.load);
+						}
 
-					while (this.element.firstChild) {
-						this.element.removeChild(this.element.firstChild);
+						if (!route.component) {
+							throw new Error('Oxe.router - missing route component');
+						} else if (route.component.constructor.name === 'String') {
+							route.element = document.createElement(route.component);
+						} else if (route.component.constructor.name === 'Object') {
+
+							Global$1.component.define(route.component);
+
+							if (this.compiled) {
+								route.element = this.element.firstChild;
+							} else {
+								route.element = document.createElement(route.component.name);
+							}
+						}
 					}
 
-					this.element.appendChild(route.element);
-				}
+					route.element.inRouterCache = false;
+					route.element.isRouterComponent = true;
 
-				this.scroll(0, 0);
-				this.emit('routed');
+					if (!this.compiled) {
+
+						while (this.element.firstChild) {
+							this.element.removeChild(this.element.firstChild);
+						}
+
+						this.element.appendChild(route.element);
+					}
+
+					this.scroll(0, 0);
+					this.emit('routed');
+				}.bind(this));
 			}
 		}, {
 			key: 'route',
@@ -1286,18 +1318,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var target = e.path ? e.path[0] : e.target;
 				var parent = target.parentNode;
 
-				if (this.container) {
+				if (this.contain) {
 
 					while (parent) {
 
-						if (parent === this.container) {
+						if (parent.nodeName === 'O-ROUTER') {
 							break;
 						} else {
 							parent = parent.parentNode;
 						}
 					}
 
-					if (parent !== this.container) {
+					if (parent.nodeName !== 'O-ROUTER') {
 						return;
 					}
 				}
@@ -1426,8 +1458,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				result[i] = {
 					raw: imp[0],
 					name: imp[1],
-					url: Global$1.utility.resolve(imp[2], base),
-					extension: Global$1.utility.extension(imp[2])
+					url: Path.resolve(imp[2], base),
+					extension: Path.extension(imp[2])
 				};
 
 				if (!result[i].extension) {
@@ -1689,7 +1721,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					listener = data.listener;
 				}
 
-				data.url = Global$1.utility.resolve(data.url);
+				data.url = Path.resolve(data.url);
 
 				if (data.url in this.data) {
 					var load = this.data[data.url];
@@ -1713,7 +1745,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				this.data[data.url] = data;
 
-				data.extension = data.extension || Global$1.utility.extension(data.url);
+				data.extension = data.extension || Path.extension(data.url);
 
 				data.listener = listener ? [listener] : [];
 				data.method = data.method || this.methods[data.extension];
@@ -1736,7 +1768,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				var path = Global$1.utility.resolve(element.src || element.href);
+				var path = Path.resolve(element.src || element.href);
 				var load = this.data[path];
 
 				this.ready(load);
@@ -2892,25 +2924,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			this.data = {};
 			document.addEventListener('input', this.inputListener.bind(this), true);
 			document.addEventListener('change', this.changeListener.bind(this), true);
-			this._ready();
-		}
 
-		_createClass(View, [{
-			key: '_ready',
-			value: function _ready() {
-
-				if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
-					return document.addEventListener('DOMContentLoaded', function _() {
-						this._ready();
-						document.removeEventListener('DOMContentLoaded', _);
-					}.bind(this), true);
-				}
-
+			Global$1.utility.ready(function () {
 				this.add(document.body);
 				this.mutationObserver = new MutationObserver(this.mutationListener.bind(this));
 				this.mutationObserver.observe(document.body, { childList: true, subtree: true });
-			}
-		}, {
+			}.bind(this));
+		}
+
+		_createClass(View, [{
 			key: 'hasAcceptAttribute',
 			value: function hasAcceptAttribute(element) {
 				var attributes = element.attributes;
@@ -3127,37 +3149,54 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		setup: {
 			enumerable: true,
-			value: function value(options) {
+			value: function value(data) {
 
-				if (this.isSetup) {
+				if (this._setup) {
 					return;
 				} else {
-					this.isSetup = true;
+					this._setup = true;
 				}
 
-				options = options || {};
+				data = data || {};
 
-				if (options.keeper) {
-					this.keeper.setup(options.keeper);
+				if (data.listener && data.listener.before) {
+					data.listener.before();
 				}
 
-				if (options.fetcher) {
-					this.fetcher.setup(options.fetcher);
+				if (data.general) {
+					this.general.setup(data.general);
 				}
 
-				if (options.loader) {
-					this.loader.setup(options.loader);
+				if (data.keeper) {
+					this.keeper.setup(data.keeper);
 				}
 
-				if (options.component) {
-					this.component.setup(options.component);
+				if (data.fetcher) {
+					this.fetcher.setup(data.fetcher);
 				}
 
-				if (options.router) {
-					this.router.setup(options.router);
+				if (data.loader) {
+					this.loader.setup(data.loader);
+				}
+
+				if (data.component) {
+					this.component.setup(data.component);
+				}
+
+				if (data.router) {
+					this.router.setup(data.router);
+				}
+
+				if (data.listener && data.listener.after) {
+					data.listener.after();
 				}
 			}
 		}
+	});
+
+	Object.defineProperty(Global$1, 'general', {
+		enumerable: true,
+		value: new General()
 	});
 
 	Object.defineProperty(Global$1, 'batcher', {
@@ -3274,7 +3313,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var args = element.getAttribute('o-setup').split(/\s*,\s*/);
 			var meta = document.querySelector('meta[name="oxe"]');
 
-			if (meta.hasAttribute('compiled')) {
+			if (meta && meta.hasAttribute('compiled')) {
 				args[1] = 'null';
 				args[2] = 'script';
 				Global$1.compiled = true;

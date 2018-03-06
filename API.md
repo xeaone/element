@@ -17,6 +17,11 @@
 ### Oxe.setup(options)
 The recommend entry or setup method.
 - `options: Object`
+	- `listener: Object`
+		- `before: Function`
+		- `after: Function`
+	- `utility: Object`
+		- `base: String` Sets or and creates a base tag
 	- `loader: Object` Oxe.loader options
 	- `keeper: Object` Oxe.keeper options
 	- `router: Object` Oxe.router options
@@ -111,12 +116,12 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 
 ### Oxe.router
 - `options: Object`
-	- `element: String, Element` (default: 'o-router') The container to render route changes
 	- `auth: Boolean` (default: false) Enables Oxe.Keeper
 	- `hash: Boolean` (default: false) Hash URL mode
 	- `trailing: Boolean` (default: true) Trailing slash mode
+	- `element: String, Element` (default: 'o-router') The element to render route changes
+	- `contain: Boolean` (default: false) Limits all href clicks to the 'o-router' element
 	- `external: String, RegExp, Function` Filters URL requests. If true or match Oxe.router will not handle request
-	- `container: Element` Contains all href clicks to the container. Default is window. Good for embedding especially
 	- `routes: Array`
 		- `route: Object`
 			- `auth: Boolean` (default: false) Enables Oxe.Keeper

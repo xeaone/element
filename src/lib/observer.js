@@ -7,7 +7,7 @@
 		figure out a way to not update removed items
 */
 
-const Observer = {
+var Observer = {
 
 	splice () {
 		var startIndex = arguments[0];

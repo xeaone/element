@@ -1,6 +1,7 @@
-import Transformer from './lib/transformer';
-import Events from './lib/events';
-import Global from './global';
+import Transformer from './lib/transformer.js';
+import Events from './lib/events.js';
+import Path from './lib/path.js';
+import Global from './global.js';
 
 export default class Loader extends Events {
 
@@ -179,7 +180,7 @@ export default class Loader extends Events {
 			listener = data.listener;
 		}
 
-		data.url = Global.utility.resolve(data.url);
+		data.url = Path.resolve(data.url);
 
 		if (data.url in this.data) {
 			var load = this.data[data.url];
@@ -204,7 +205,7 @@ export default class Loader extends Events {
 
 		this.data[data.url] = data;
 
-		data.extension = data.extension || Global.utility.extension(data.url);
+		data.extension = data.extension || Path.extension(data.url);
 
 		data.listener = listener ? [listener] : [];
 		data.method = data.method || this.methods[data.extension];
@@ -227,7 +228,7 @@ export default class Loader extends Events {
 			return;
 		}
 
-		var path = Global.utility.resolve(element.src || element.href);
+		var path = Path.resolve(element.src || element.href);
 		var load = this.data[path];
 
 		this.ready(load);

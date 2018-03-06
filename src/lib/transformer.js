@@ -1,4 +1,4 @@
-import Global from '../global';
+import Path from './path.js';
 
 export default {
 
@@ -98,8 +98,8 @@ export default {
 			result[i] = {
 				raw: imp[0],
 				name: imp[1],
-				url: Global.utility.resolve(imp[2], base),
-				extension: Global.utility.extension(imp[2])
+				url: Path.resolve(imp[2], base),
+				extension: Path.extension(imp[2])
 			};
 
 			if (!result[i].extension) {

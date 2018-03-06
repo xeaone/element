@@ -1,4 +1,4 @@
-import Events from './lib/events';
+import Events from './lib/events.js';
 
 class Batcher extends Events {
 

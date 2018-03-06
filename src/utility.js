@@ -193,60 +193,17 @@ export default {
 		// console.warn('Oxe.utility - could not find container scope');
 	},
 
-	extension (data) {
-		var position = data.lastIndexOf('.');
-		return position > 0 ? data.slice(position + 1) : '';
-	},
-
-	join () {
-		return Array.prototype.join
-			.call(arguments, '/')
-			.replace(/\/{2,}/g, '/')
-			.replace(/^(https?:\/)/, '$1/');
-	},
-
-	base () {
-		if (window.document.head.querySelector('base')) {
-			return window.document.head.querySelector('base').href;
-		} else {
-			return window.location.origin + '/';
-		}
-	},
-
-	resolve (path, base) {
-		var result = [];
-
-		path = path.replace(window.location.origin, '');
-
-		if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('//') === 0) {
-			return path;
-		}
-
-		if (path.charAt(0) !== '/') {
-			base = base || this.base();
-			path = base + '/' + path;
-			path = path.replace(window.location.origin, '');
-		}
-
-		path = path.replace(/\/{2,}/, '/');
-		path = path.replace(/^\//, '');
-		path = path.replace(/\/$/, '');
-
-		var paths = path.split('/');
-
-		for (var i = 0, l = paths.length; i < l; i++) {
-			if (paths[i] === '.' || paths[i] === '') {
-				continue;
-			} else if (paths[i] === '..') {
-				if (i > 0) {
-					result.splice(i - 1, 1);
-				}
+	ready (callback) {
+		if (callback) {
+			if (window.document.readyState !== 'interactive' && window.document.readyState !== 'complete') {
+				window.document.addEventListener('DOMContentLoaded', function _ () {
+					callback();
+					window.document.removeEventListener('DOMContentLoaded', _);
+				}, true);
 			} else {
-				result.push(paths[i]);
+				callback();
 			}
 		}
-
-		return '/' + result.join('/');
 	}
 
 }

@@ -1,4 +1,4 @@
-import Global from './global';
+import Global from './global.js';
 
 export default class View {
 
@@ -6,21 +6,13 @@ export default class View {
 		this.data = {};
 		document.addEventListener('input', this.inputListener.bind(this), true);
 		document.addEventListener('change', this.changeListener.bind(this), true);
-		this._ready();
-	}
 
-	_ready () {
+		Global.utility.ready(function () {
+			this.add(document.body);
+			this.mutationObserver = new MutationObserver(this.mutationListener.bind(this));
+			this.mutationObserver.observe(document.body, { childList: true, subtree: true });
+		}.bind(this));
 
-		if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
-			return document.addEventListener('DOMContentLoaded', function _ () {
-				this._ready();
-				document.removeEventListener('DOMContentLoaded', _);
-			}.bind(this), true);
-		}
-
-		this.add(document.body);
-		this.mutationObserver = new MutationObserver(this.mutationListener.bind(this));
-		this.mutationObserver.observe(document.body, { childList: true, subtree: true });
 	}
 
 	hasAcceptAttribute (element) {

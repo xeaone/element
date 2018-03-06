@@ -53,6 +53,7 @@ const operations = {
 			{
 				key: 'c',
 				name: 'compile',
+				description: 'Compiles project to static files requires a index.html and index.js.',
 				operations: [
 					operations.minify,
 					operations.comments,

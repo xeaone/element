@@ -1,6 +1,6 @@
-import Observer from './lib/observer';
-import Events from './lib/events';
-import Global from './global';
+import Observer from './lib/observer.js';
+import Events from './lib/events.js';
+import Global from './global.js';
 
 export default class Model extends Events {
 

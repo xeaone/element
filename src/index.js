@@ -1,4 +1,4 @@
-import Global from './global';
+import Global from './global.js';
 
 document.addEventListener('reset', function resetListener (e) {
 	var element = e.target;
@@ -79,7 +79,7 @@ var listener = function () {
 		var args = element.getAttribute('o-setup').split(/\s*,\s*/);
 		var meta = document.querySelector('meta[name="oxe"]');
 
-		if (meta.hasAttribute('compiled')) {
+		if (meta && meta.hasAttribute('compiled')) {
 			args[1] = 'null';
 			args[2] = 'script';
 			Global.compiled = true;
