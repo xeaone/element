@@ -20,7 +20,7 @@ The recommend entry or setup method.
 	- `listener: Object`
 		- `before: Function`
 		- `after: Function`
-	- `utility: Object`
+	- `general: Object`
 		- `base: String` Sets or and creates a base tag
 	- `loader: Object` Oxe.loader options
 	- `keeper: Object` Oxe.keeper options
