@@ -2,7 +2,7 @@ import Say from '../modules/say.js';
 
 export default {
 	title: 'Test',
-	path: '/test',
+	path: './test',
 	component: {
 		name: 'r-test',
 		model: {

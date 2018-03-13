@@ -1,7 +1,7 @@
 
 export default {
 	title: '404',
-	path: '/{*}',
+	path: './{*}',
 	component: {
 		name: 'r-404',
 		template: `
