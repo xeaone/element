@@ -13,7 +13,6 @@ export default {
 			.replace(/^(https?:\/)/, '$1/');
 	},
 
-	// NOTE might want to move this function to location class
 	base (href) {
 		var base = window.document.querySelector('base');
 
@@ -27,7 +26,7 @@ export default {
 			}
 		}
 
-		return base ? base.href : window.location.href.replace(/(\?|#).*?$/, '');
+		return base ? base.href : window.location.origin + window.location.pathname;
 	},
 
 	resolve (path, base) {

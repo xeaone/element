@@ -216,6 +216,9 @@ export default {
 				<a href="js">js</a>
 			</li>
 			<li>
+				<a href="js?name=ferret&color=purple#hash">js?name=ferret&amp;color=purple#hash</a>
+			</li>
+			<li>
 				<a href="js/?name=ferret&color=purple#hash">js/?name=ferret&amp;color=purple#hash</a>
 			</li>
 			<li>

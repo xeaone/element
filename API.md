@@ -117,7 +117,6 @@ Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, 
 ### Oxe.router
 - `options: Object`
 	- `auth: Boolean` (default: false) Enables Oxe.Keeper
-	- `hash: Boolean` (default: false) Hash URL mode
 	- `trailing: Boolean` (default: true) Trailing slash mode
 	- `element: String, Element` (default: 'o-router') The element to render route changes
 	- `contain: Boolean` (default: false) Limits all href clicks to the 'o-router' element

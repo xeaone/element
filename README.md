@@ -8,6 +8,9 @@ Api documentation can be found at [API.md](https://github.com/AlexanderElias/oxe
 ### CLI
 CLI documentation can be found at [CLI.md](https://github.com/AlexanderElias/oxe/blob/master/CLI.md).
 
+### VER
+Breaking version changes can be found at [VER.md](https://github.com/AlexanderElias/oxe/blob/master/VER.md).
+
 ### Features
 - Small size
 - Module loading

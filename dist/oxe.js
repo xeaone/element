@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.5.1
+	Version: 3.6.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -262,9 +262,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		join: function join() {
 			return Array.prototype.join.call(arguments, '/').replace(/\/{2,}/g, '/').replace(/^(https?:\/)/, '$1/');
 		},
-
-
-		// NOTE might want to move this function to location class
 		base: function base(href) {
 			var base = window.document.querySelector('base');
 
@@ -278,7 +275,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			}
 
-			return base ? base.href : window.location.href.replace(/(\?|#).*?$/, '');
+			return base ? base.href : window.location.origin + window.location.pathname;
 		},
 		resolve: function resolve(path, base) {
 			var result = [];
@@ -964,7 +961,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			_this2.ran = false;
 			_this2.auth = false;
-			_this2.hash = false;
 			_this2.trailing = false;
 
 			_this2.element = null;
@@ -982,7 +978,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options = options || {};
 
 				this.auth = options.auth === undefined ? this.auth : options.auth;
-				this.hash = options.hash === undefined ? this.hash : options.hash;
 				this.element = options.element === undefined ? this.element : options.element;
 				this.contain = options.contain === undefined ? this.contain : options.contain;
 				this.external = options.external === undefined ? this.external : options.external;
@@ -1003,6 +998,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'back',
 			value: function back() {
 				window.history.back();
+			}
+		}, {
+			key: 'forward',
+			value: function forward() {
+				window.history.forward();
 			}
 		}, {
 			key: 'redirect',
@@ -1066,6 +1066,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'isPath',
 			value: function isPath(routePath, userPath) {
+
+				if (routePath.slice(0, 1) !== '/') {
+					routePath = Path.resolve(routePath);
+				}
+
 				if (!userPath) {
 					return false;
 				} else if (userPath.constructor.name === 'String') {
@@ -1132,80 +1137,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'toLocationObject',
-			value: function toLocationObject(path) {
-				var location = {};
-
-				location.port = window.location.port;
-				location.host = window.location.host;
-				location.hash = window.location.hash;
-				location.origin = window.location.origin;
-				location.hostname = window.location.hostname;
-				location.protocol = window.location.protocol;
-				location.username = window.location.username;
-				location.password = window.location.password;
-
-				location.pathname = path;
-				location.base = Path.base();
-				location.basename = location.base;
-
-				if (location.basename.indexOf(location.origin) === 0) {
-					location.basename = location.basename.slice(location.origin.length);
-				}
-
-				if (location.pathname.indexOf(location.origin) === 0) {
-					location.pathname = location.pathname.slice(location.origin.length);
-				}
-
-				if (location.pathname.indexOf(location.basename) === 0) {
-					location.pathname = location.pathname.slice(location.basename.length);
-				}
-
-				if (location.pathname.indexOf(location.basename.slice(0, -1)) === 0) {
-					location.pathname = location.pathname.slice(location.basename.slice(0, -1).length);
-				}
-
-				if (this.hash && location.pathname.indexOf('#') === 0 || location.pathname.indexOf('/#') === 0 || location.pathname.indexOf('#/') === 0 || location.pathname.indexOf('/#/') === 0) {
-					location.pathname = location.pathname.slice(2);
-				}
-
-				var hashIndex = location.pathname.indexOf('#');
-				if (hashIndex !== -1) {
-					location.hash = location.pathname.slice(hashIndex);
-					location.pathname = location.pathname.slice(0, hashIndex);
-				} else {
-					location.hash = '';
-				}
-
-				var searchIndex = location.pathname.indexOf('?');
-				if (searchIndex !== -1) {
-					location.search = location.pathname.slice(searchIndex);
-					location.pathname = location.pathname.slice(0, searchIndex);
-				} else {
-					location.search = '';
-				}
-
-				location.routePath = Path.join('/', location.pathname);
-				location.pathname = Path.join(location.basename, location.pathname);
-				location.href = Path.join(location.origin, this.hash ? '#' : '/', location.pathname);
-
-				if (this.trailing) {
-					location.href = Path.join(location.href, '/');
-					location.pathname = Path.join(location.pathname, '/');
-				} else {
-					location.href = location.href.replace(/\/{1,}$/, '');
-					location.pathname = location.pathname.replace(/\/{1,}$/, '');
-				}
-
-				if (this.hash && /\/#$/.test(location.href)) {
-					location.href = location.href + '/';
-				}
-
-				location.routePath = location.routePath || '/';
-				location.pathname = location.pathname || '/';
-				location.href += location.search;
-				location.href += location.hash;
-
-				return location;
+			value: function toLocationObject() {
+				return {
+					port: window.location.port || '',
+					host: window.location.host || '',
+					hash: window.location.hash || '',
+					href: window.location.href || '',
+					origin: window.location.origin || '',
+					search: window.location.search || '',
+					pathname: window.location.pathname || '',
+					hostname: window.location.hostname || '',
+					protocol: window.location.protocol || '',
+					username: window.location.username || '',
+					password: window.location.password || ''
+				};
 			}
 		}, {
 			key: 'render',
@@ -1270,55 +1215,69 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'route',
-			value: function route(data, options) {
+			value: function route(path, options) {
 				var location, route;
 
 				options = options || {};
 
-				if (typeof data === 'string') {
-
-					if (options.query) {
-						data += this.toQueryString(options.query);
-					}
-
-					location = this.toLocationObject(data);
-					route = this.find(location.routePath) || {};
-
-					location.title = route.title || '';
-					location.query = this.toQueryObject(location.search);
-					location.parameters = this.toParameterObject(route.path, location.routePath);
-				} else {
-					location = data;
-					route = this.find(location.routePath) || {};
+				if (options.query) {
+					path += this.toQueryString(options.query);
 				}
 
-				if (this.auth && (route.auth === true || route.auth === undefined)) {
+				if (!this.compiled) {
+					window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
+				}
 
-					if (Global$1.keeper.route(route) === false) {
+				this.location = this.toLocationObject();
+
+				if (this.location.pathname !== '/') {
+					var path = '';
+
+					if (this.trailing && this.location.pathname.slice(-1) !== '/') {
+						path += this.location.origin;
+						path += this.location.pathname;
+						path += '/';
+						path += this.location.search;
+						path += this.location.hash;
+						return this.redirect(path);
+					}
+
+					if (!this.trailing && this.location.pathname.slice(-1) === '/') {
+						path += this.location.origin;
+						path += this.location.pathname.slice(0, -1);
+						path += this.location.search;
+						path += this.location.hash;
+						return this.redirect(path);
+					}
+				}
+
+				this.location.route = this.find(this.location.pathname);
+				this.location.title = this.location.route.title || '';
+				this.location.query = this.toQueryObject(this.location.search);
+				this.location.parameters = this.toParameterObject(this.location.route.path, this.location.pathname);
+
+				if (this.auth && (this.location.route.auth === true || this.location.route.auth === undefined)) {
+
+					if (Global$1.keeper.route(this.location.route) === false) {
 						return;
 					}
 				}
 
-				if (route.handler) {
-					return route.handler(route);
+				if (this.location.route.handler) {
+					return route.handler(this.location.route);
 				}
 
-				if (route.redirect) {
-					return redirect(route.redirect);
+				if (this.location.route.redirect) {
+					return redirect(this.location.route.redirect);
 				}
 
-				this.location = location;
-
-				if (!this.compiled) {
-					window.history[options.replace ? 'replaceState' : 'pushState'](location, location.title, location.href);
-				}
-
-				this.render(route);
+				this.render(this.location.route);
 			}
 		}, {
 			key: 'stateListener',
 			value: function stateListener(e) {
-				this.route(e.state || window.location.href, { replace: true });
+				var path = e && e.state ? e.state.path : window.location.href;
+				this.route(path, { replace: true });
 			}
 		}, {
 			key: 'clickListener',
