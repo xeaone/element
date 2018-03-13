@@ -80,7 +80,7 @@ var indexhtml = Escape(`
 
 export default {
 	title: 'Oxe',
-	path: '/',
+	path: './',
 	component: {
 		name: 'r-index',
 		attached: function () {
