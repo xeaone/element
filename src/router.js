@@ -12,7 +12,6 @@ export default class Router extends Events {
 
 		this.ran = false;
 		this.auth = false;
-		this.trailing = false;
 
 		this.element = null;
 		this.contain = false;
@@ -29,7 +28,6 @@ export default class Router extends Events {
 		this.element = options.element === undefined ? this.element : options.element;
 		this.contain = options.contain === undefined ? this.contain : options.contain;
 		this.external = options.external === undefined ? this.external : options.external;
-		this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 
 		if (options.routes) {
 			this.add(options.routes);
@@ -277,28 +275,6 @@ export default class Router extends Events {
 		}
 
 		this.location = this.toLocationObject();
-
-		if (this.location.pathname !== '/') {
-			var path = '';
-
-			if (this.trailing && this.location.pathname.slice(-1) !== '/') {
-				path += this.location.origin
-				path += this.location.pathname;
-				path += '/';
-				path += this.location.search;
-				path += this.location.hash;
-				return this.redirect(path);
-			}
-
-			if (!this.trailing && this.location.pathname.slice(-1) === '/') {
-				path += this.location.origin
-				path += this.location.pathname.slice(0, -1);
-				path += this.location.search;
-				path += this.location.hash;
-				return this.redirect(path);
-			}
-
-		}
 
 		this.location.route = this.find(this.location.pathname);
 		this.location.title = this.location.route.title || '';

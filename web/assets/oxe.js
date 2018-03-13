@@ -961,7 +961,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			_this2.ran = false;
 			_this2.auth = false;
-			_this2.trailing = false;
 
 			_this2.element = null;
 			_this2.contain = false;
@@ -981,7 +980,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.element = options.element === undefined ? this.element : options.element;
 				this.contain = options.contain === undefined ? this.contain : options.contain;
 				this.external = options.external === undefined ? this.external : options.external;
-				this.trailing = options.trailing === undefined ? this.trailing : options.trailing;
 
 				if (options.routes) {
 					this.add(options.routes);
@@ -1229,27 +1227,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				this.location = this.toLocationObject();
-
-				if (this.location.pathname !== '/') {
-					var path = '';
-
-					if (this.trailing && this.location.pathname.slice(-1) !== '/') {
-						path += this.location.origin;
-						path += this.location.pathname;
-						path += '/';
-						path += this.location.search;
-						path += this.location.hash;
-						return this.redirect(path);
-					}
-
-					if (!this.trailing && this.location.pathname.slice(-1) === '/') {
-						path += this.location.origin;
-						path += this.location.pathname.slice(0, -1);
-						path += this.location.search;
-						path += this.location.hash;
-						return this.redirect(path);
-					}
-				}
 
 				this.location.route = this.find(this.location.pathname);
 				this.location.title = this.location.route.title || '';
