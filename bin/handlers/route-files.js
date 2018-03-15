@@ -2,7 +2,6 @@
 
 const Vm = require('vm');
 const Path = require('path');
-const Fsep = require('fsep');
 const Global = require('../global');
 
 module.exports = async function (inputIndexJsContent, template) {
