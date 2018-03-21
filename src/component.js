@@ -11,8 +11,7 @@ export default class Component {
 		options = options || {};
 
 		if (options.components) {
-			for (var i = 0, l = options.components.length; i < l; i++) {
-				var component = options.components[i];
+			for (var component of options.components) {
 				this.define(component);
 			}
 		}
@@ -20,17 +19,17 @@ export default class Component {
 	}
 
 	renderSlot (target, source) {
-		var slots = target.querySelectorAll('slot[name]');
+		var targetSlots = target.querySelectorAll('slot[name]');
 
-		for (var i = 0, l = slots.length; i < l; i++) {
+		for (var targetSlot of targetSlots) {
 
-			var name = slots[i].getAttribute('name');
-			var slot = source.querySelector('[slot="'+ name + '"]');
+			var name = targetSlot.getAttribute('name');
+			var sourceSlot = source.querySelector('[slot="'+ name + '"]');
 
-			if (slot) {
-				slots[i].parentNode.replaceChild(slot, slots[i]);
+			if (sourceSlot) {
+				targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
 			} else {
-				slots[i].parentNode.removeChild(slots[i]);
+				targetSlot.parentNode.removeChild(targetSlot);
 			}
 
 		}
@@ -67,7 +66,6 @@ export default class Component {
 			}
 		}
 
-		// return document.importNode(fragment, true);
 		return fragment;
 	}
 
@@ -80,15 +78,15 @@ export default class Component {
 			if (!window.CSS.supports('(--t: black)')) {
 				var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-				matches.forEach(function (match) {
-
+				for (var match of matches) {
+					
 					var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
 					var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
 
 					style = style.replace(rule[0], '');
 					style = style.replace(pattern, rule[2]);
 
-				});
+				}
 
 			}
 
@@ -153,14 +151,31 @@ export default class Component {
 				element.appendChild(eTemplate);
 			}
 
-			Global.view.add(element);
+			// Global.view.add(element);
 
 			if (options.created) {
-				window.requestAnimationFrame(options.created.bind(element));
+				options.created.call(element);
+				// window.requestAnimationFrame(options.created.bind(element));
 			}
 
 		}
 
+	}
+
+	attached (element, options) {
+		Global.binder.bind(element);
+
+		if (options.attached) {
+			options.attached.call(element);
+		}
+	}
+
+	detached (element, options) {
+		Global.binder.unbind(element);
+
+		if (options.detached) {
+			options.detached.call(element);
+		}
 	}
 
 	define (options) {
@@ -215,12 +230,18 @@ export default class Component {
 
 		options.proto = Object.create(HTMLElement.prototype, options.properties);
 
-		options.proto.attachedCallback = options.attached;
-		options.proto.detachedCallback = options.detached;
 		options.proto.attributeChangedCallback = options.attributed;
 
 		options.proto.createdCallback = function () {
 			self.created(this, options);
+		};
+
+		options.proto.attachedCallback = function () {
+			self.attached(this, options);
+		};
+
+		options.proto.detachedCallback = function () {
+			self.detached(this, options);
 		};
 
 		return document.registerElement(options.name, {
