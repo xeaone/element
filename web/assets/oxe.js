@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 3.6.2
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -37,26 +27,67 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options = options || {};
 
 				if (options.components) {
-					for (var i = 0, l = options.components.length; i < l; i++) {
-						var component = options.components[i];
-						this.define(component);
+					var _iteratorNormalCompletion = true;
+					var _didIteratorError = false;
+					var _iteratorError = undefined;
+
+					try {
+						for (var _iterator = options.components[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+							var component = _step.value;
+
+							this.define(component);
+						}
+					} catch (err) {
+						_didIteratorError = true;
+						_iteratorError = err;
+					} finally {
+						try {
+							if (!_iteratorNormalCompletion && _iterator.return) {
+								_iterator.return();
+							}
+						} finally {
+							if (_didIteratorError) {
+								throw _iteratorError;
+							}
+						}
 					}
 				}
 			}
 		}, {
 			key: 'renderSlot',
 			value: function renderSlot(target, source) {
-				var slots = target.querySelectorAll('slot[name]');
+				var targetSlots = target.querySelectorAll('slot[name]');
 
-				for (var i = 0, l = slots.length; i < l; i++) {
+				var _iteratorNormalCompletion2 = true;
+				var _didIteratorError2 = false;
+				var _iteratorError2 = undefined;
 
-					var name = slots[i].getAttribute('name');
-					var slot = source.querySelector('[slot="' + name + '"]');
+				try {
+					for (var _iterator2 = targetSlots[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+						var targetSlot = _step2.value;
 
-					if (slot) {
-						slots[i].parentNode.replaceChild(slot, slots[i]);
-					} else {
-						slots[i].parentNode.removeChild(slots[i]);
+
+						var name = targetSlot.getAttribute('name');
+						var sourceSlot = source.querySelector('[slot="' + name + '"]');
+
+						if (sourceSlot) {
+							targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
+						} else {
+							targetSlot.parentNode.removeChild(targetSlot);
+						}
+					}
+				} catch (err) {
+					_didIteratorError2 = true;
+					_iteratorError2 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion2 && _iterator2.return) {
+							_iterator2.return();
+						}
+					} finally {
+						if (_didIteratorError2) {
+							throw _iteratorError2;
+						}
 					}
 				}
 
@@ -91,7 +122,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				// return document.importNode(fragment, true);
 				return fragment;
 			}
 		}, {
@@ -105,14 +135,35 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (!window.CSS.supports('(--t: black)')) {
 						var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-						matches.forEach(function (match) {
+						var _iteratorNormalCompletion3 = true;
+						var _didIteratorError3 = false;
+						var _iteratorError3 = undefined;
 
-							var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-							var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
+						try {
+							for (var _iterator3 = matches[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+								var match = _step3.value;
 
-							style = style.replace(rule[0], '');
-							style = style.replace(pattern, rule[2]);
-						});
+
+								var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+								var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
+
+								style = style.replace(rule[0], '');
+								style = style.replace(pattern, rule[2]);
+							}
+						} catch (err) {
+							_didIteratorError3 = true;
+							_iteratorError3 = err;
+						} finally {
+							try {
+								if (!_iteratorNormalCompletion3 && _iterator3.return) {
+									_iterator3.return();
+								}
+							} finally {
+								if (_didIteratorError3) {
+									throw _iteratorError3;
+								}
+							}
+						}
 					}
 
 					if (!window.CSS.supports(':scope')) {
@@ -176,11 +227,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						element.appendChild(eTemplate);
 					}
 
-					Global$1.view.add(element);
+					Global$1.binder.bind(element);
 
 					if (options.created) {
-						window.requestAnimationFrame(options.created.bind(element));
+						options.created.call(element);
 					}
+				}
+			}
+		}, {
+			key: 'attached',
+			value: function attached(element, options) {
+				// Global.binder.bind(element);
+
+				if (options.attached) {
+					options.attached.call(element);
+				}
+			}
+		}, {
+			key: 'detached',
+			value: function detached(element, options) {
+				// Global.binder.unbind(element);
+
+				if (options.detached) {
+					options.detached.call(element);
 				}
 			}
 		}, {
@@ -237,12 +306,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				options.proto = Object.create(HTMLElement.prototype, options.properties);
 
-				options.proto.attachedCallback = options.attached;
-				options.proto.detachedCallback = options.detached;
 				options.proto.attributeChangedCallback = options.attributed;
 
 				options.proto.createdCallback = function () {
 					self.created(this, options);
+				};
+
+				options.proto.attachedCallback = function () {
+					self.attached(this, options);
+				};
+
+				options.proto.detachedCallback = function () {
+					self.detached(this, options);
 				};
 
 				return document.registerElement(options.name, {
@@ -486,22 +561,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		joinDot: function joinDot() {
 			return Array.prototype.join.call(arguments, '.').replace(/\.{2,}/g, '.');
 		},
-		getScope: function getScope(element) {
 
-			if (!element) {
-				return;
-			}
 
-			if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
-				return element;
-			}
+		// getScope (element) {
+		//
+		// 	if (!element) {
+		// 		return;
+		// 	}
+		//
+		// 	if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
+		// 		return element;
+		// 	}
+		//
+		// 	if (element.parentNode) {
+		// 		return this.getScope(element.parentNode);
+		// 	}
+		//
+		// 	// console.warn('Oxe.utility - could not find container scope');
+		// },
 
-			if (element.parentNode) {
-				return this.getScope(element.parentNode);
-			}
-
-			// console.warn('Oxe.utility - could not find container scope');
-		},
 		ready: function ready(callback) {
 			if (callback) {
 				if (window.document.readyState !== 'interactive' && window.document.readyState !== 'complete') {
@@ -1758,27 +1836,21 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			opt.element.removeEventListener(opt.names[1], opt.cache, false);
 		},
 		css: function css(opt) {
-
 			opt.element.style.cssText = '';
 		},
 		required: function required(opt) {
-
 			opt.element.required = false;
 		},
 		src: function src(opt) {
 			opt.element.src = '';
 		},
-		text: function text(opt, data) {
+		text: function text(opt) {
 			opt.element.innerText = '';
 		},
 		value: function value(opt) {
 			var i, l, query, element, elements;
 
-			if (opt.element.type === 'checkbox') {
-
-				opt.element.checked = false;
-				opt.element.value = false;
-			} else if (opt.element.nodeName === 'SELECT') {
+			if (opt.element.nodeName === 'SELECT') {
 
 				elements = opt.element.options;
 
@@ -1800,12 +1872,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						element.checked = false;
 					}
 				}
+			} else if (opt.element.type === 'checkbox') {
+
+				opt.element.checked = false;
+				opt.element.value = false;
 			} else {
 				opt.element.value = '';
 			}
 		},
 		default: function _default(opt) {
-			console.log(opt);
+			// console.log(opt);
 		}
 	};
 
@@ -1814,234 +1890,284 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	var Render = {
 		required: function required(opt) {
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				if (opt.element.required === opt.data) {
-					opt.pending = false;
+				if (opt.element.required === data) {
 					return;
 				}
 
+				data = Global$1.utility.binderModifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element.required = Global$1.binder.modifyData(opt, opt.data);
-					opt.pending = false;
+					opt.element.required = data;
 				});
 			});
 		},
 		disable: function disable(opt) {
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				if (opt.element.disabled === opt.data) {
-					opt.pending = false;
+				if (opt.element.disabled === data) {
 					return;
 				}
 
+				data = Global$1.binder.modifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element.disabled = Global$1.binder.modifyData(opt, opt.data);
-					opt.pending = false;
+					opt.element.disabled = data;
 				});
 			});
 		},
 		enable: function enable(opt) {
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				if (opt.element.disabled === !opt.data) {
-					opt.pending = false;
+				if (opt.element.disabled === !data) {
 					return;
 				}
 
+				data = Global$1.binder.modifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element.disabled = !Global$1.binder.modifyData(opt, opt.data);
-					opt.pending = false;
+					opt.element.disabled = !data;
 				});
 			});
 		},
 		hide: function hide(opt) {
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				if (opt.element.hidden === opt.data) {
-					opt.pending = false;
+				if (opt.element.hidden === data) {
 					return;
 				}
 
+				data = Global$1.binder.modifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element.hidden = Global$1.binder.modifyData(opt, opt.data);
-					opt.pending = false;
+					opt.element.hidden = data;
 				});
 			});
 		},
 		show: function show(opt) {
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				if (opt.element.hidden === !opt.data) {
-					opt.pending = false;
+				if (opt.element.hidden === !data) {
 					return;
 				}
 
+				data = Global$1.binder.modifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element.hidden = !Global$1.binder.modifyData(opt, opt.data);
-					opt.pending = false;
+					opt.element.hidden = !data;
 				});
 			});
 		},
 		read: function read(opt) {
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				if (opt.element.readOnly === opt.data) {
-					opt.pending = false;
+				if (opt.element.readOnly === data) {
 					return;
 				}
 
+				data = Global$1.binder.modifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element.readOnly = Global$1.binder.modifyData(opt, opt.data);
-					opt.pending = false;
+					opt.element.readOnly = data;
 				});
 			});
 		},
 		write: function write(opt) {
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				if (opt.element.readOnly === !opt.data) {
-					opt.pending = false;
+				if (opt.element.readOnly === !data) {
 					return;
 				}
 
+				data = Global$1.binder.modifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element.readOnly = !Global$1.binder.modifyData(opt, opt.data);
-					opt.pending = false;
+					opt.element.readOnly = !data;
 				});
 			});
 		},
 		html: function html(opt) {
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				if (opt.element.innerHTML === opt.data) {
-					opt.pending = false;
+				if (opt.element.innerHTML === data) {
 					return;
 				}
 
+				data = Global$1.binder.modifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element.innerHTML = Global$1.binder.modifyData(opt, opt.data);
-					opt.pending = false;
+					opt.element.innerHTML = data;
 				});
 			});
 		},
 		class: function _class(opt) {
 			Global$1.batcher.write(function () {
+				var data = Global$1.model.get(opt.keys);
 				var name = opt.names.slice(1).join('-');
-				opt.element.classList.toggle(name, Global$1.binder.modifyData(opt, opt.data));
-				opt.pending = false;
+				data = Global$1.binder.modifyData(opt, data);
+				opt.element.classList.toggle(name, data);
 			});
 		},
 		on: function on(opt) {
-			var data = Global$1.utility.getByPath(Global$1.methods.data, opt.scope + '.' + opt.path);
+			Global$1.batcher.write(function () {
+				var data = Global$1.utility.getByPath(Global$1.methods.data, opt.scope + '.' + opt.path);
 
-			if (!data) {
-				return;
-			}
-
-			if (opt.cache) {
-				opt.element.removeEventListener(opt.names[1], opt.cache);
-			} else {
-				opt.cache = data.bind(opt.container);
-			}
-
-			opt.element.addEventListener(opt.names[1], opt.cache);
-			opt.pending = false;
-		},
-		css: function css(opt) {
-			Global$1.batcher.read(function () {
-
-				if (opt.element.style.cssText === opt.data) {
-					opt.pending = false;
+				if (!data || typeof data !== 'function') {
 					return;
 				}
 
-				var data;
+				if (opt.cache) {
+					opt.element.removeEventListener(opt.names[1], opt.cache);
+				} else {
+					opt.cache = data.bind(opt.container);
+				}
+
+				opt.element.addEventListener(opt.names[1], opt.cache);
+			});
+		},
+		css: function css(opt) {
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
+
+				if (opt.element.style.cssText === data) {
+					return;
+				}
 
 				if (opt.names.length > 1) {
 					data = opt.names.slice(1).join('-') + ': ' + data + ';';
 				}
 
+				data = Global$1.binder.modifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element.style.cssText = Global$1.binder.modifyData(opt, data);
-					opt.pending = false;
+					opt.element.style.cssText = data;
 				});
 			});
 		},
 		text: function text(opt) {
-			var data = opt.data === undefined || opt.data === null ? '' : opt.data;
-
-			if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
-				data = JSON.stringify(data);
-			} else if (data && typeof data !== 'string') {
-				data = String(data);
-			}
-
-			Global$1.batcher.write(function () {
-				opt.element.innerText = Global$1.binder.modifyData(opt, data);
-				opt.pending = false;
-			});
-		},
-		each: function each(opt) {
-
-			if (!opt.cache) {
-				opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-			}
-
-			if (!opt.data || _typeof(opt.data) !== 'object' || opt.element.children.length === opt.data.length) {
-				opt.pending = false;
-				return;
-			}
-
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				var clone;
-				var element = opt.element;
-				var data = Global$1.binder.modifyData(opt, opt.data);
+				data = data === undefined || data === null ? '' : data;
 
-				var dLength = data.length;
-				var eLength = element.children.length;
+				if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
+					data = JSON.stringify(data);
+				} else if (data && typeof data !== 'string') {
+					data = String(data);
+				}
+
+				data = Global$1.binder.modifyData(opt, data);
 
 				Global$1.batcher.write(function () {
-
-					while (eLength !== dLength) {
-
-						if (eLength > dLength) {
-
-							eLength--;
-							element.removeChild(element.children[eLength]);
-						} else if (eLength < dLength) {
-
-							clone = opt.cache.cloneNode(true);
-							Global$1.utility.replaceEachVariable(clone, opt.names[1], opt.path, eLength);
-							element.appendChild(clone);
-							eLength++;
-						}
-					}
-
-					opt.pending = false;
+					opt.element.innerText = data;
 				});
 			});
 		},
-		value: function value(opt, caller) {
+		each: function each(opt) {
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
+				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object' || opt.element.children.lengthength === data.length) {
+					return;
+				}
+
+				data = Global$1.binder.modifyData(opt, data);
+
+				Global$1.batcher.write(function () {
+
+					while (opt.element.children.length !== data.length) {
+
+						if (opt.element.children.length > data.length) {
+							opt.element.removeChild(opt.element.children[opt.element.children.length - 1]);
+						} else if (opt.element.children.length < data.length) {
+							var clone = opt.cache.cloneNode(true);
+
+							Global$1.utility.replaceEachVariable(clone, opt.names[1], opt.path, opt.element.children.length);
+							Global$1.binder.bind(clone, opt.container);
+
+							opt.element.appendChild(clone);
+						}
+					}
+				});
+			});
+		},
+		value: function value(opt) {
 			Global$1.batcher.read(function () {
 
-				var data, attribute, query;
-				var i, l, element, elements;
 				var type = opt.element.type;
 				var name = opt.element.nodeName;
+				var attribute, query, multiple;
+				var i, l, data, element, elements;
 
-				if (caller === 'view') {
+				if (opt.setup) {
+					opt.setup = false;
+
+					data = Global$1.model.get(opt.keys);
 
 					if (name === 'SELECT') {
-						data = opt.element.multiple ? [] : '';
 						elements = opt.element.options;
-
+						multiple = opt.element.multiple;
+						data = data === undefined ? multiple ? [] : '' : data;
+						for (i = 0, l = elements.length; i < l; i++) {
+							if (!elements[i].disabled) {
+								if (elements[i].selected) {
+									if (multiple) {
+										data.push(elements[i].value || elements[i].innerText || '');
+									} else {
+										data = elements[i].value || elements[i].innerText || '';
+										break;
+									}
+								} else if (i === l - 1 && !multiple) {
+									data = elements[0].value || elements[0].innerText || '';
+								}
+							}
+						}
+					} else if (type === 'radio') {
+						data = data === undefined ? 0 : data;
+						query = 'input[type="radio"][o-value="' + opt.value + '"]';
+						elements = opt.container.querySelectorAll(query);
 						for (i = 0, l = elements.length; i < l; i++) {
 							element = elements[i];
+							if (i === data) {
+								element.checked = true;
+							} else {
+								element.checked = false;
+							}
+						}
+					} else if (type === 'file') {
+						data = data === undefined ? [] : data;
+						for (i = 0, l = data.length; i < l; i++) {
+							opt.element.files[i] = data[i];
+						}
+					} else if (type === 'checkbox') {
+						attribute = 'checked';
+						data = data === undefined ? false : data;
+					} else {
+						attribute = 'value';
+						data = data === undefined ? '' : data;
+					}
 
+					if (attribute) {
+						opt.element[attribute] = Global$1.binder.modifyData(opt, data);
+					}
+				} else {
+
+					if (name === 'SELECT') {
+						multiple = opt.element.multiple;
+						elements = opt.element.options;
+						data = multiple ? [] : '';
+						for (i = 0, l = elements.length; i < l; i++) {
+							element = elements[i];
 							if (element.selected) {
-								if (opt.element.multiple) {
+								if (multiple) {
 									data.push(element.value || element.innerText);
 								} else {
 									data = element.value || element.innerText;
@@ -2052,13 +2178,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					} else if (type === 'radio') {
 						query = 'input[type="radio"][o-value="' + opt.value + '"]';
 						elements = opt.container.querySelectorAll(query);
-
 						for (i = 0, l = elements.length; i < l; i++) {
 							element = elements[i];
-
 							if (opt.element === element) {
 								data = i;
-								break;
+								element.checked = true;
+							} else {
+								element.checked = false;
 							}
 						}
 					} else if (type === 'file') {
@@ -2071,74 +2197,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					} else {
 						data = opt.element.value;
 					}
+				}
 
+				if (data !== undefined) {
 					Global$1.model.set(opt.keys, data);
-					opt.pending = false;
-				} else {
-					Global$1.batcher.write(function () {
-
-						if (name === 'SELECT') {
-							data = opt.data === undefined ? opt.element.multiple ? [] : '' : opt.data;
-
-							for (i = 0, l = opt.element.options.length; i < l; i++) {
-								if (!opt.element.options[i].disabled) {
-									if (opt.element.options[i].selected) {
-										if (opt.element.multiple) {
-											data.push(opt.element.options[i].value || opt.element.options[i].innerText || '');
-										} else {
-											data = opt.element.options[i].value || opt.element.options[i].innerText || '';
-											break;
-										}
-									} else if (i === l - 1 && !opt.element.multiple) {
-										data = opt.element.options[0].value || opt.element.options[0].innerText || '';
-									}
-								}
-							}
-
-							Global$1.model.set(opt.keys, data);
-						} else if (type === 'radio') {
-							data = opt.data === undefined ? Global$1.model.set(opt.keys, 0) : opt.data;
-							query = 'input[type="radio"][o-value="' + opt.value + '"]';
-							elements = opt.container.querySelectorAll(query);
-
-							for (i = 0, l = elements.length; i < l; i++) {
-								element = elements[i];
-								element.checked = i === data;
-							}
-
-							elements[data].checked = true;
-						} else if (type === 'file') {
-							data = opt.data === undefined ? Global$1.model.set(opt.keys, []) : opt.data;
-							for (i = 0, l = data.length; i < l; i++) {
-								opt.element.files[i] = data[i];
-							}
-						} else if (type === 'checkbox') {
-							attribute = 'checked';
-							data = opt.data === undefined ? Global$1.model.set(opt.keys, false) : opt.data;
-						} else {
-							attribute = 'value';
-							data = opt.data === undefined ? Global$1.model.set(opt.keys, '') : opt.data;
-						}
-
-						if (attribute) {
-							opt.element[attribute] = data;
-							opt.element[attribute] = Global$1.binder.modifyData(opt, data);
-						}
-
-						opt.pending = false;
-					});
 				}
 			});
 		},
 		default: function _default(opt) {
 			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
-				if (opt.element[opt.type] === opt.data) {
+				if (opt.element[opt.type] === data) {
 					return;
 				}
 
+				data = Global$1.binder.modifyData(opt, data);
+
 				Global$1.batcher.write(function () {
-					opt.element[opt.type] = Global$1.binder.modifyData(opt, opt.data);
+					opt.element[opt.type] = data;
 				});
 			});
 		}
@@ -2149,92 +2226,147 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_classCallCheck(this, Binder);
 
 			this.data = {};
+			this.values = [];
 		}
 
 		_createClass(Binder, [{
-			key: 'modifyData',
-			value: function modifyData(opt, data) {
+			key: 'set',
+			value: function set(opt) {
+				opt = opt || {};
 
-				if (!opt.modifiers.length) {
-					return data;
+				if (!opt.name) {
+					throw new Error('Oxe.render.create - missing name');
 				}
 
-				if (!Global$1.methods.data[opt.scope]) {
-					return data;
+				if (!opt.value) {
+					throw new Error('Oxe.render.create - missing value');
 				}
 
-				for (var i = 0, l = opt.modifiers.length; i < l; i++) {
-					var modifier = opt.modifiers[i];
-					var scope = Global$1.methods.data[opt.scope];
-
-					if (scope) {
-						data = scope[modifier].call(opt.container, data);
-					}
+				if (!opt.element) {
+					throw new Error('Oxe.render.create - missing element');
 				}
 
-				return data;
-			}
-		}, {
-			key: 'add',
-			value: function add(opt) {
-
-				if (!(opt.scope in this.data)) {
-					this.data[opt.scope] = {};
+				if (!opt.container) {
+					throw new Error('Oxe.render.create - missing container');
 				}
 
-				if (!(opt.path in this.data[opt.scope])) {
-					this.data[opt.scope][opt.path] = [];
+				opt.scope = opt.scope || opt.container.getAttribute('o-scope');
+				// opt.value = opt.value || opt.element.getAttribute(opt.name);
+				opt.path = opt.path || Global$1.utility.binderPath(opt.value);
+
+				opt.type = opt.type || Global$1.utility.binderType(opt.name);
+				opt.names = opt.names || Global$1.utility.binderNames(opt.name);
+				opt.values = opt.values || Global$1.utility.binderValues(opt.value);
+				opt.modifiers = opt.modifiers || Global$1.utility.binderModifiers(opt.value);
+
+				opt.keys = opt.keys || [opt.scope].concat(opt.values);
+
+				if (opt.name === 'o-value' || opt.name === 'data-o-value') {
+					opt.setup = true;
 				}
 
-				this.data[opt.scope][opt.path].push(opt);
-			}
-		}, {
-			key: 'remove',
-			value: function remove(opt) {
-
-				if (!(opt.scope in this.data)) {
-					return;
+				if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
+					opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 				}
 
-				if (!(opt.path in this.data[opt.scope])) {
-					return;
-				}
-
-				var data = this.data[opt.scope][opt.path];
-
-				for (var i = 0, l = data.length; i < l; i++) {
-					var item = data[i];
-
-					if (item.element === opt.element) {
-						return data.splice(i, 1);
-					}
-				}
+				return opt;
 			}
 		}, {
 			key: 'get',
 			value: function get(opt) {
+				var items;
 
-				if (!(opt.scope in this.data)) {
-					return null;
+				if (opt.name === 'o-value') {
+					items = this.values;
+				} else {
+
+					if (!(opt.scope in this.data)) {
+						return null;
+					}
+
+					if (!(opt.path in this.data[opt.scope])) {
+						return null;
+					}
+
+					items = this.data[opt.scope][opt.path];
 				}
 
-				if (!(opt.path in this.data[opt.scope])) {
-					return null;
-				}
+				var _iteratorNormalCompletion4 = true;
+				var _didIteratorError4 = false;
+				var _iteratorError4 = undefined;
 
-				var data = this.data[opt.scope][opt.path];
+				try {
+					for (var _iterator4 = items[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+						var item = _step4.value;
 
-				for (var i = 0; i < data.length; i++) {
-					var item = data[i];
-
-					if (item.element === opt.element) {
-						if (item.name === opt.name) {
+						if (item.element === opt.element && item.name === opt.name) {
 							return item;
+						}
+					}
+				} catch (err) {
+					_didIteratorError4 = true;
+					_iteratorError4 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion4 && _iterator4.return) {
+							_iterator4.return();
+						}
+					} finally {
+						if (_didIteratorError4) {
+							throw _iteratorError4;
 						}
 					}
 				}
 
 				return null;
+			}
+		}, {
+			key: 'add',
+			value: function add(opt) {
+				var items;
+
+				if (opt.name === 'o-value') {
+					items = this.values;
+				} else {
+
+					if (!(opt.scope in this.data)) {
+						this.data[opt.scope] = {};
+					}
+
+					if (!(opt.path in this.data[opt.scope])) {
+						this.data[opt.scope][opt.path] = [];
+					}
+
+					items = this.data[opt.scope][opt.path];
+				}
+
+				items.push(opt);
+			}
+		}, {
+			key: 'remove',
+			value: function remove(opt) {
+				var items;
+
+				if (opt.name === 'o-value') {
+					items = this.values;
+				} else {
+
+					if (!(opt.scope in this.data)) {
+						return;
+					}
+
+					if (!(opt.path in this.data[opt.scope])) {
+						return;
+					}
+
+					items = this.data[opt.scope][opt.path];
+				}
+
+				for (var i = 0, l = items.length; i < l; i++) {
+					if (items[i].element === opt.element) {
+						return items.splice(i, 1);
+					}
+				}
 			}
 		}, {
 			key: 'each',
@@ -2268,75 +2400,208 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			}
 		}, {
-			key: 'create',
-			value: function create(opt) {
-				opt = opt || {};
-
-				if (!opt.name) {
-					throw new Error('render a name');
-				}
-
-				if (!opt.element) {
-					throw new Error('render a element');
-				}
-
-				opt.container = opt.container || Global$1.utility.getScope(opt.element);
-				opt.scope = opt.scope || opt.container.getAttribute('o-scope');
-				opt.value = opt.value || opt.element.getAttribute(opt.name);
-				opt.path = opt.path || Global$1.utility.binderPath(opt.value);
-
-				opt.type = opt.type || Global$1.utility.binderType(opt.name);
-				opt.names = opt.names || Global$1.utility.binderNames(opt.name);
-				opt.values = opt.values || Global$1.utility.binderValues(opt.value);
-				opt.modifiers = opt.modifiers || Global$1.utility.binderModifiers(opt.value);
-
-				opt.keys = opt.keys || [opt.scope].concat(opt.values);
-				opt.model = opt.model || Global$1.model.data[opt.scope];
-
-				return opt;
-			}
-		}, {
 			key: 'unrender',
-			value: function unrender(opt, caller) {
-
-				opt = this.get(opt);
-
-				if (!opt) {
-					return;
-				}
-
+			value: function unrender(opt) {
 				if (opt.type in Unrender) {
-					Unrender[opt.type](opt, caller);
+					Unrender[opt.type](opt);
 				} else {
 					Unrender.default(opt);
 				}
-
-				this.remove(opt);
 			}
 		}, {
 			key: 'render',
-			value: function render(opt, caller) {
+			value: function render(opt) {
+				if (opt.type in Render) {
+					Render[opt.type](opt);
+				} else {
+					Render.default(opt);
+				}
+			}
+		}, {
+			key: 'modifyData',
+			value: function modifyData(opt, data) {
 
-				opt = this.create(opt);
-				opt = this.get(opt) || opt;
-
-				opt.data = Global$1.model.get(opt.keys);
-
-				if (!opt.exists) {
-					opt.exists = true;
-					this.add(opt);
+				if (!opt.modifiers.length) {
+					return data;
 				}
 
-				if (!opt.pending) {
+				if (!Global$1.methods.data[opt.scope]) {
+					return data;
+				}
 
-					opt.pending = true;
+				var _iteratorNormalCompletion5 = true;
+				var _didIteratorError5 = false;
+				var _iteratorError5 = undefined;
 
-					if (opt.type in Render) {
-						Render[opt.type](opt, caller);
-					} else {
-						Render.default(opt);
+				try {
+					for (var _iterator5 = opt.modifiers[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+						var modifier = _step5.value;
+
+						var scope = Global$1.methods.data[opt.scope];
+						if (scope) {
+							data = scope[modifier].call(opt.container, data);
+						}
+					}
+				} catch (err) {
+					_didIteratorError5 = true;
+					_iteratorError5 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion5 && _iterator5.return) {
+							_iterator5.return();
+						}
+					} finally {
+						if (_didIteratorError5) {
+							throw _iteratorError5;
+						}
 					}
 				}
+
+				return data;
+			}
+		}, {
+			key: 'skipChildren',
+			value: function skipChildren(element) {
+
+				if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
+					return true;
+				}
+
+				var _iteratorNormalCompletion6 = true;
+				var _didIteratorError6 = false;
+				var _iteratorError6 = undefined;
+
+				try {
+					for (var _iterator6 = element.attributes[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+						var attribute = _step6.value;
+
+						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
+							return true;
+						}
+					}
+				} catch (err) {
+					_didIteratorError6 = true;
+					_iteratorError6 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion6 && _iterator6.return) {
+							_iterator6.return();
+						}
+					} finally {
+						if (_didIteratorError6) {
+							throw _iteratorError6;
+						}
+					}
+				}
+
+				return false;
+			}
+		}, {
+			key: 'eachElement',
+			value: function eachElement(element, scope, callback) {
+
+				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
+					callback.call(this, element);
+				}
+
+				if (this.skipChildren(element) === false) {
+					var _iteratorNormalCompletion7 = true;
+					var _didIteratorError7 = false;
+					var _iteratorError7 = undefined;
+
+					try {
+						for (var _iterator7 = element.children[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+							var child = _step7.value;
+
+							this.eachElement(child, scope, callback);
+						}
+					} catch (err) {
+						_didIteratorError7 = true;
+						_iteratorError7 = err;
+					} finally {
+						try {
+							if (!_iteratorNormalCompletion7 && _iterator7.return) {
+								_iterator7.return();
+							}
+						} finally {
+							if (_didIteratorError7) {
+								throw _iteratorError7;
+							}
+						}
+					}
+				}
+			}
+		}, {
+			key: 'eachAttribute',
+			value: function eachAttribute(element, callback) {
+				var _iteratorNormalCompletion8 = true;
+				var _didIteratorError8 = false;
+				var _iteratorError8 = undefined;
+
+				try {
+					for (var _iterator8 = element.attributes[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+						var attribute = _step8.value;
+
+						if (attribute && attribute.value && attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
+							callback.call(this, attribute);
+						}
+					}
+				} catch (err) {
+					_didIteratorError8 = true;
+					_iteratorError8 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion8 && _iterator8.return) {
+							_iterator8.return();
+						}
+					} finally {
+						if (_didIteratorError8) {
+							throw _iteratorError8;
+						}
+					}
+				}
+			}
+		}, {
+			key: 'unbind',
+			value: function unbind(element, scope) {
+				scope = scope || element;
+
+				this.eachElement(element, scope, function (child) {
+					this.eachAttribute(child, function (attribute) {
+
+						var binder = this.get({
+							element: child,
+							container: scope,
+							name: attribute.name,
+							value: attribute.value,
+							scope: scope.getAttribute('o-scope'),
+							path: Global$1.utility.binderPath(attribute.value)
+						});
+
+						this.remove(binder);
+						this.unrender(binder);
+					});
+				});
+			}
+		}, {
+			key: 'bind',
+			value: function bind(element, scope) {
+				scope = scope || element;
+
+				this.eachElement(element, scope, function (child) {
+					this.eachAttribute(child, function (attribute) {
+
+						var binder = this.set({
+							element: child,
+							container: scope,
+							name: attribute.name,
+							value: attribute.value
+						});
+
+						this.add(binder);
+						this.render(binder);
+					});
+				});
 			}
 		}]);
 
@@ -2863,175 +3128,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Model;
 	}(Events);
 
-	var View = function () {
-		function View() {
-			_classCallCheck(this, View);
-
-			this.data = {};
-			document.addEventListener('input', this.inputListener.bind(this), true);
-			document.addEventListener('change', this.changeListener.bind(this), true);
-
-			Global$1.utility.ready(function () {
-				this.add(document.body);
-				this.mutationObserver = new MutationObserver(this.mutationListener.bind(this));
-				this.mutationObserver.observe(document.body, { childList: true, subtree: true });
-			}.bind(this));
-		}
-
-		_createClass(View, [{
-			key: 'hasAcceptAttribute',
-			value: function hasAcceptAttribute(element) {
-				var attributes = element.attributes;
-
-				for (var i = 0, l = attributes.length; i < l; i++) {
-					var attribute = attributes[i];
-
-					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-						return true;
-					}
-				}
-
-				return false;
-			}
-		}, {
-			key: 'eachAttribute',
-			value: function eachAttribute(element, callback) {
-				var attributes = element.attributes;
-
-				for (var i = 0, l = attributes.length; i < l; i++) {
-					var attribute = attributes[i];
-
-					if (attribute.name.indexOf('o-') !== 0 && attribute.name.indexOf('data-o-') !== 0) {
-						continue;
-					}
-
-					if (attribute.name !== 'o-auth' && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-method' && attribute.name !== 'o-action' && attribute.name !== 'o-external' && attribute.name !== 'o-compiled' && attribute.name !== 'data-o-auth' && attribute.name !== 'data-o-compiled' && attribute.name !== 'data-o-scope' && attribute.name !== 'data-o-reset' && attribute.name !== 'data-o-method' && attribute.name !== 'data-o-action' && attribute.name !== 'data-o-external') {
-						callback.call(this, attribute);
-					}
-				}
-			}
-		}, {
-			key: 'each',
-			value: function each(element, callback, target) {
-
-				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external') && this.hasAcceptAttribute(element)) {
-
-					var scope = Global$1.utility.getScope(element);
-
-					if (!scope) {
-						scope = Global$1.utility.getScope(target);
-					}
-
-					if (scope.status !== 'created') {
-						return;
-					}
-
-					callback.call(this, element, scope);
-				}
-
-				if (
-				// element.nodeName !== 'SVG'
-				element.nodeName !== 'STYLE' & element.nodeName !== 'SCRIPT' & element.nodeName !== 'OBJECT' & element.nodeName !== 'IFRAME') {
-
-					for (var i = 0; i < element.children.length; i++) {
-						this.each(element.children[i], callback, target);
-					}
-				}
-			}
-		}, {
-			key: 'add',
-			value: function add(addedElement, target) {
-				this.each(addedElement, function (element, scope) {
-					this.eachAttribute(element, function (attribute) {
-						Global$1.binder.render({
-							element: element,
-							container: scope,
-							name: attribute.name,
-							value: attribute.value
-						});
-					});
-				}, target);
-			}
-		}, {
-			key: 'remove',
-			value: function remove(removedElement, target) {
-				this.each(removedElement, function (element, scope) {
-					this.eachAttribute(element, function (attribute) {
-						Global$1.binder.unrender({
-							element: element,
-							container: scope,
-							name: attribute.name,
-							value: attribute.value
-						});
-					});
-				}, target);
-			}
-		}, {
-			key: 'inputListener',
-			value: function inputListener(e) {
-				if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT') {
-					Global$1.binder.render({
-						name: 'o-value',
-						element: e.target
-					}, 'view');
-				}
-			}
-		}, {
-			key: 'changeListener',
-			value: function changeListener(e) {
-				Global$1.binder.render({
-					name: 'o-value',
-					element: e.target
-				}, 'view');
-			}
-		}, {
-			key: 'mutationListener',
-			value: function mutationListener(mutations) {
-				var c,
-				    i = mutations.length;
-
-				while (i--) {
-					var scope;
-					var target = mutations[i].target;
-					var addedNodes = mutations[i].addedNodes;
-					var removedNodes = mutations[i].removedNodes;
-
-					c = addedNodes.length;
-
-					while (c--) {
-						var addedNode = addedNodes[c];
-
-						if (addedNode.nodeType === 1 && !addedNode.inRouterCache) {
-
-							if (addedNode.isRouterComponent) {
-								addedNode.inRouterCache = true;
-							}
-
-							this.add(addedNode, target);
-						}
-					}
-
-					c = removedNodes.length;
-
-					while (c--) {
-						var removedNode = removedNodes[c];
-
-						if (removedNode.nodeType === 1 && !removedNode.inRouterCache) {
-
-							if (removedNode.isRouterComponent) {
-								removedNode.inRouterCache = true;
-							}
-
-							this.remove(removedNode, target);
-						}
-					}
-				}
-			}
-		}]);
-
-		return View;
-	}();
-
 	var Global$1 = {
 		compiled: false
 	};
@@ -3185,11 +3281,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		value: new Model()
 	});
 
-	Object.defineProperty(Global$1, 'view', {
-		enumerable: true,
-		value: new View()
-	});
-
 	document.addEventListener('reset', function resetListener(e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
@@ -3278,6 +3369,33 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			prototype: Object.create(HTMLElement.prototype)
 		});
 	};
+
+	document.addEventListener('input', function (e) {
+		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
+
+			var binder = Global$1.binder.get({
+				name: 'o-value',
+				element: e.target
+			});
+
+			Global$1.binder.render(binder);
+
+			// Global.model.set(binder.keys, e.target.value);
+		}
+	}, true);
+
+	document.addEventListener('change', function (e) {
+		if (e.target.hasAttribute('o-value')) {
+
+			var binder = Global$1.binder.get({
+				name: 'o-value',
+				element: e.target
+			});
+
+			Global$1.binder.render(binder);
+			// Global.model.set(binder.keys, e.target.value);
+		}
+	}, true);
 
 	if ('registerElement' in document && 'content' in document.createElement('template')) {
 		listener();

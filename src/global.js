@@ -8,7 +8,6 @@ import Loader from './loader.js';
 import Binder from './binder.js';
 import Keeper from './keeper.js';
 import Model from './model.js';
-import View from './view.js';
 
 const Global = {
 	compiled: false
@@ -162,11 +161,6 @@ Object.defineProperty(Global, 'router', {
 Object.defineProperty(Global, 'model', {
 	enumerable: true,
 	value: new Model()
-});
-
-Object.defineProperty(Global, 'view', {
-	enumerable: true,
-	value: new View()
 });
 
 export default Global;

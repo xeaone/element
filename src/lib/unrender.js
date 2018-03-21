@@ -39,34 +39,25 @@ export default {
 	},
 
 	css (opt) {
-
 		opt.element.style.cssText = '';
-
 	},
 
 	required (opt) {
-
 		opt.element.required = false;
-
 	},
 
 	src (opt) {
 		opt.element.src = '';
 	},
 
-	text (opt, data) {
+	text (opt) {
 		opt.element.innerText = '';
 	},
 
 	value (opt) {
 		var i , l, query, element, elements;
 
-		if (opt.element.type === 'checkbox') {
-
-			opt.element.checked = false
-			opt.element.value = false;
-
-		} else if (opt.element.nodeName === 'SELECT') {
+		if (opt.element.nodeName === 'SELECT') {
 
 			elements = opt.element.options;
 
@@ -91,6 +82,11 @@ export default {
 
 			}
 
+		} else if (opt.element.type === 'checkbox') {
+
+			opt.element.checked = false
+			opt.element.value = false;
+
 		} else {
 			opt.element.value = '';
 		}
@@ -98,7 +94,7 @@ export default {
 	},
 
 	default (opt) {
-		console.log(opt);
+		// console.log(opt);
 	}
 
 }

@@ -79,7 +79,7 @@ export default class Component {
 				var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
 				for (var match of matches) {
-					
+
 					var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
 					var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
 
@@ -151,11 +151,10 @@ export default class Component {
 				element.appendChild(eTemplate);
 			}
 
-			// Global.view.add(element);
+			Global.binder.bind(element);
 
 			if (options.created) {
 				options.created.call(element);
-				// window.requestAnimationFrame(options.created.bind(element));
 			}
 
 		}
@@ -163,7 +162,7 @@ export default class Component {
 	}
 
 	attached (element, options) {
-		Global.binder.bind(element);
+		// Global.binder.bind(element);
 
 		if (options.attached) {
 			options.attached.call(element);
@@ -171,7 +170,7 @@ export default class Component {
 	}
 
 	detached (element, options) {
-		Global.binder.unbind(element);
+		// Global.binder.unbind(element);
 
 		if (options.detached) {
 			options.detached.call(element);

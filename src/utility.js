@@ -176,22 +176,22 @@ export default {
 			.replace(/\.{2,}/g, '.');
 	},
 
-	getScope (element) {
-
-		if (!element) {
-			return;
-		}
-
-		if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
-			return element;
-		}
-
-		if (element.parentNode) {
-			return this.getScope(element.parentNode);
-		}
-
-		// console.warn('Oxe.utility - could not find container scope');
-	},
+	// getScope (element) {
+	//
+	// 	if (!element) {
+	// 		return;
+	// 	}
+	//
+	// 	if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
+	// 		return element;
+	// 	}
+	//
+	// 	if (element.parentNode) {
+	// 		return this.getScope(element.parentNode);
+	// 	}
+	//
+	// 	// console.warn('Oxe.utility - could not find container scope');
+	// },
 
 	ready (callback) {
 		if (callback) {

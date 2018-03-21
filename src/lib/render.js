@@ -6,274 +6,318 @@ const Render = {
 
 	required (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element.required === opt.data) {
-				opt.pending = false;
+			if (opt.element.required === data) {
 				return;
 			}
 
+			data = Global.utility.binderModifyData(opt, data);
+
 			Global.batcher.write(function () {
-				opt.element.required = Global.binder.modifyData(opt, opt.data);
-				opt.pending = false;
+				opt.element.required = data;
 			});
 		});
 	},
 
 	disable (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element.disabled === opt.data) {
-				opt.pending = false;
+			if (opt.element.disabled === data) {
 				return;
 			}
 
+			data = Global.binder.modifyData(opt, data);
+
 			Global.batcher.write(function () {
-				opt.element.disabled = Global.binder.modifyData(opt, opt.data);
-				opt.pending = false;
+				opt.element.disabled = data;
 			});
 		});
 	},
 
 	enable (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element.disabled === !opt.data) {
-				opt.pending = false;
+			if (opt.element.disabled === !data) {
 				return;
 			}
 
+			data = Global.binder.modifyData(opt, data);
+
 			Global.batcher.write(function () {
-				opt.element.disabled = !Global.binder.modifyData(opt, opt.data);
-				opt.pending = false;
+				opt.element.disabled = !data;
 			});
 		});
 	},
 
 	hide (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element.hidden === opt.data) {
-				opt.pending = false;
+			if (opt.element.hidden === data) {
 				return;
 			}
 
+			data = Global.binder.modifyData(opt, data);
+
 			Global.batcher.write(function () {
-				opt.element.hidden = Global.binder.modifyData(opt, opt.data);
-				opt.pending = false;
+				opt.element.hidden = data;
 			});
 		});
 	},
 
 	show (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element.hidden === !opt.data) {
-				opt.pending = false;
+			if (opt.element.hidden === !data) {
 				return;
 			}
 
+			data = Global.binder.modifyData(opt, data);
+
 			Global.batcher.write(function () {
-				opt.element.hidden = !Global.binder.modifyData(opt, opt.data);
-				opt.pending = false;
+				opt.element.hidden = !data;
 			});
 		});
 	},
 
 	read (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element.readOnly === opt.data) {
-				opt.pending = false;
+			if (opt.element.readOnly === data) {
 				return;
 			}
 
+			data = Global.binder.modifyData(opt, data);
+
 			Global.batcher.write(function () {
-				opt.element.readOnly = Global.binder.modifyData(opt, opt.data);
-				opt.pending = false;
+				opt.element.readOnly = data;
 			});
 		});
 	},
 
 	write (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element.readOnly === !opt.data) {
-				opt.pending = false;
+			if (opt.element.readOnly === !data) {
 				return;
 			}
 
+			data = Global.binder.modifyData(opt, data);
+
 			Global.batcher.write(function () {
-				opt.element.readOnly = !Global.binder.modifyData(opt, opt.data);
-				opt.pending = false;
+				opt.element.readOnly = !data;
 			});
 		});
 	},
 
 	html (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element.innerHTML === opt.data) {
-				opt.pending = false;
+			if (opt.element.innerHTML === data) {
 				return;
 			}
 
+			data = Global.binder.modifyData(opt, data);
+
 			Global.batcher.write(function () {
-				opt.element.innerHTML = Global.binder.modifyData(opt, opt.data);
-				opt.pending = false;
+				opt.element.innerHTML = data;
 			});
 		});
 	},
 
 	class (opt) {
 		Global.batcher.write(function () {
+			var data = Global.model.get(opt.keys);
 			var name = opt.names.slice(1).join('-');
-			opt.element.classList.toggle(name, Global.binder.modifyData(opt, opt.data));
-			opt.pending = false;
+			data = Global.binder.modifyData(opt, data);
+			opt.element.classList.toggle(name, data);
 		});
 	},
 
 	on (opt) {
-		var data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
+		Global.batcher.write(function () {
+			var data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
 
-		if (!data) {
-			return;
-		}
+			if (!data || typeof data !== 'function') {
+				return;
+			}
 
-		if (opt.cache) {
-			opt.element.removeEventListener(opt.names[1], opt.cache);
-		} else {
-			opt.cache = data.bind(opt.container);
-		}
+			if (opt.cache) {
+				opt.element.removeEventListener(opt.names[1], opt.cache);
+			} else {
+				opt.cache = data.bind(opt.container);
+			}
 
-		opt.element.addEventListener(opt.names[1], opt.cache);
-		opt.pending = false;
+			opt.element.addEventListener(opt.names[1], opt.cache);
+		});
 	},
 
 	css (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element.style.cssText === opt.data) {
-				opt.pending = false;
+			if (opt.element.style.cssText === data) {
 				return;
 			}
-
-			var data;
 
 			if (opt.names.length > 1) {
 				data = opt.names.slice(1).join('-') + ': ' +  data + ';';
 			}
 
+			data = Global.binder.modifyData(opt, data);
+
 			Global.batcher.write(function () {
-				opt.element.style.cssText = Global.binder.modifyData(opt, data);
-				opt.pending = false;
+				opt.element.style.cssText = data;
 			});
 		});
 	},
 
 	text (opt) {
-		var data = opt.data === undefined || opt.data === null ? '' : opt.data;
-
-		if (data && typeof data === 'object') {
-			data = JSON.stringify(data);
-		} else if (data && typeof data !== 'string') {
-			data = String(data);
-		}
-
-		Global.batcher.write(function () {
-			opt.element.innerText = Global.binder.modifyData(opt, data);
-			opt.pending = false;
-		});
-
-	},
-
-	each (opt) {
-
-		if (!opt.cache) {
-			opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-		}
-
-		if (!opt.data || typeof opt.data !== 'object' || opt.element.children.length === opt.data.length) {
-			opt.pending = false;
-			return;
-		}
-
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			var clone;
-			var element = opt.element;
-			var data = Global.binder.modifyData(opt, opt.data);
+			data = data === undefined || data === null ? '' : data;
 
-			var dLength = data.length;
-			var eLength = element.children.length;
+			if (data && typeof data === 'object') {
+				data = JSON.stringify(data);
+			} else if (data && typeof data !== 'string') {
+				data = String(data);
+			}
+
+			data = Global.binder.modifyData(opt, data);
 
 			Global.batcher.write(function () {
-
-				while (eLength !== dLength) {
-
-					if (eLength > dLength) {
-
-						eLength--;
-						element.removeChild(element.children[eLength]);
-
-					} else if (eLength < dLength) {
-
-						clone = opt.cache.cloneNode(true);
-						Global.utility.replaceEachVariable(clone, opt.names[1], opt.path, eLength);
-						element.appendChild(clone);
-						eLength++;
-
-					}
-
-				}
-
-				opt.pending = false;
+				opt.element.innerText = data;
 			});
 		});
 	},
 
-	value (opt, caller) {
+	each (opt) {
+		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
+			if (!data || typeof data !== 'object' || opt.element.children.lengthength === data.length) {
+				return;
+			}
+
+			data = Global.binder.modifyData(opt, data);
+
+			Global.batcher.write(function () {
+
+				while (opt.element.children.length !== data.length) {
+
+					if (opt.element.children.length > data.length) {
+						opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
+					} else if (opt.element.children.length < data.length) {
+						var clone = opt.cache.cloneNode(true);
+
+						Global.utility.replaceEachVariable(clone, opt.names[1], opt.path, opt.element.children.length);
+						Global.binder.bind(clone, opt.container);
+
+						opt.element.appendChild(clone);
+					}
+				}
+
+			});
+		});
+	},
+
+	value (opt) {
 		Global.batcher.read(function () {
 
-			var data, attribute, query;
-			var i, l, element, elements;
 			var type = opt.element.type;
 			var name = opt.element.nodeName;
+			var attribute, query, multiple;
+			var i, l, data, element, elements;
 
-			if (caller === 'view') {
+			if (opt.setup) {
+				opt.setup = false;
+
+				data = Global.model.get(opt.keys);
 
 				if (name === 'SELECT') {
-					data = opt.element.multiple ? [] : '';
 					elements = opt.element.options;
-
+					multiple = opt.element.multiple;
+					data = data === undefined ? (multiple ? [] : '') : data;
+					for (i = 0, l = elements.length; i < l; i++) {
+						if (!elements[i].disabled) {
+							if (elements[i].selected) {
+								if (multiple) {
+									data.push(elements[i].value || elements[i].innerText || '');
+								} else {
+									data = elements[i].value || elements[i].innerText || '';
+									break;
+								}
+							} else if (i === l-1 && !multiple) {
+								data = elements[0].value || elements[0].innerText || '';
+							}
+						}
+					}
+				} else if (type === 'radio') {
+					data = data === undefined ? 0 : data;
+					query = 'input[type="radio"][o-value="' + opt.value + '"]';
+					elements = opt.container.querySelectorAll(query);
 					for (i = 0, l = elements.length; i < l; i++) {
 						element = elements[i];
+						if (i === data) {
+							element.checked = true;
+						} else {
+							element.checked = false;
+						}
+					}
+				} else if (type === 'file') {
+					data = data === undefined ? [] : data;
+					for (i = 0, l = data.length; i < l; i++) {
+						opt.element.files[i] = data[i];
+					}
+				} else if (type === 'checkbox') {
+					attribute = 'checked';
+					data = data === undefined ? false : data;
+				} else {
+					attribute = 'value';
+					data = data === undefined ? '' : data;
+				}
 
+				if (attribute) {
+					opt.element[attribute] = Global.binder.modifyData(opt, data);
+				}
+
+			} else {
+
+				if (name === 'SELECT') {
+					multiple = opt.element.multiple;
+					elements = opt.element.options;
+					data = multiple ? [] : '';
+					for (i = 0, l = elements.length; i < l; i++) {
+						element = elements[i];
 						if (element.selected) {
-							if (opt.element.multiple) {
+							if (multiple) {
 								data.push(element.value || element.innerText);
 							} else {
 								data = element.value || element.innerText;
 								break;
 							}
 						}
-
 					}
-
 				} else if (type === 'radio') {
 					query = 'input[type="radio"][o-value="' + opt.value + '"]';
 					elements = opt.container.querySelectorAll(query);
-
 					for (i = 0, l = elements.length; i < l; i++) {
 						element = elements[i];
-
 						if (opt.element === element) {
 							data = i;
-							break;
+							element.checked = true;
+						} else {
+							element.checked = false;
 						}
-
 					}
-
 				} else if (type === 'file') {
 					data = data || [];
 					for (i = 0, l = opt.element.files.length; i < l; i++) {
@@ -285,80 +329,28 @@ const Render = {
 					data = opt.element.value;
 				}
 
+			}
+
+			if (data !== undefined) {
 				Global.model.set(opt.keys, data);
-				opt.pending = false;
-
-			} else {
-				Global.batcher.write(function () {
-
-					if (name === 'SELECT') {
-						data = opt.data === undefined ? opt.element.multiple ? [] : '' : opt.data;
-
-						for (i = 0, l = opt.element.options.length; i < l; i++) {
-							if (!opt.element.options[i].disabled) {
-								if (opt.element.options[i].selected) {
-									if (opt.element.multiple) {
-										data.push(opt.element.options[i].value || opt.element.options[i].innerText || '');
-									} else {
-										data = opt.element.options[i].value || opt.element.options[i].innerText || '';
-										break;
-									}
-								} else if (i === l-1 && !opt.element.multiple) {
-									data = opt.element.options[0].value || opt.element.options[0].innerText || '';
-								}
-							}
-						}
-
-						Global.model.set(opt.keys, data);
-					} else if (type === 'radio') {
-						data = opt.data === undefined ? Global.model.set(opt.keys, 0) : opt.data;
-						query = 'input[type="radio"][o-value="' + opt.value + '"]';
-						elements = opt.container.querySelectorAll(query);
-
-						for (i = 0, l = elements.length; i < l; i++) {
-							element = elements[i];
-							element.checked = i === data;
-						}
-
-						elements[data].checked = true;
-					} else if (type === 'file') {
-						data = opt.data === undefined ? Global.model.set(opt.keys, []) : opt.data;
-						for (i = 0, l = data.length; i < l; i++) {
-							opt.element.files[i] = data[i];
-						}
-					} else if (type === 'checkbox') {
-						attribute = 'checked';
-						data = opt.data === undefined ? Global.model.set(opt.keys, false) : opt.data;
-					} else {
-						attribute = 'value';
-						data = opt.data === undefined ? Global.model.set(opt.keys, '') : opt.data;
-					}
-
-					if (attribute) {
-						opt.element[attribute] = data;
-						opt.element[attribute] = Global.binder.modifyData(opt, data);
-					}
-
-					opt.pending = false;
-
-				});
 			}
 
 		});
-
 	},
 
 	default (opt) {
 		Global.batcher.read(function () {
+			var data = Global.model.get(opt.keys);
 
-			if (opt.element[opt.type] === opt.data) {
+			if (opt.element[opt.type] === data) {
 				return;
 			}
 
-			Global.batcher.write(function () {
-				opt.element[opt.type] = Global.binder.modifyData(opt, opt.data);
-			});
+			data = Global.binder.modifyData(opt, data);
 
+			Global.batcher.write(function () {
+				opt.element[opt.type] = data;
+			});
 		});
 	}
 

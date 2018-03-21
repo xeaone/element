@@ -101,6 +101,39 @@ var listener = function () {
 
 }
 
+document.addEventListener('input', function (e) {
+	if (
+		e.target.type !== 'checkbox'
+		&& e.target.type !== 'radio'
+		&& e.target.type !== 'option'
+		&& e.target.nodeName !== 'SELECT'
+		&& e.target.hasAttribute('o-value')
+	) {
+
+		var binder = Global.binder.get({
+			name: 'o-value',
+			element: e.target,
+		});
+
+		Global.binder.render(binder);
+
+		// Global.model.set(binder.keys, e.target.value);
+	}
+}, true);
+
+document.addEventListener('change', function (e) {
+	if (e.target.hasAttribute('o-value')) {
+
+		var binder = Global.binder.get({
+			name: 'o-value',
+			element: e.target,
+		});
+
+		Global.binder.render(binder);
+		// Global.model.set(binder.keys, e.target.value);
+	}
+}, true);
+
 if ('registerElement' in document && 'content' in document.createElement('template')) {
 	listener();
 } else {
