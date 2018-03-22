@@ -274,11 +274,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options.template = options.template || '';
 				options.properties = options.properties || {};
 
-				options.properties.scope = {
-					enumerable: true,
-					configurable: true
-				};
-
 				options.properties.status = {
 					enumerable: true,
 					configurable: true,
@@ -1337,9 +1332,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							}
 						}
 					}
-
-					route.element.inRouterCache = false;
-					route.element.isRouterComponent = true;
 
 					if (!this.compiled) {
 
@@ -2436,14 +2428,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'each',
 			value: function each(scope, path, callback) {
-				var i, key, binder, binders;
+				var i, l, key, binder, binders;
 				var paths = this.data[scope];
 
 				if (!path) {
+					// NOTE this might no me needed
 
 					for (key in paths) {
 						binders = paths[key];
-						for (i = 0; i < binders.length; i++) {
+						for (i = 0, l = binders.length; i < l; i++) {
 							binder = binders[i];
 							callback(binder, i, binders, paths, key);
 						}
@@ -2455,7 +2448,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							if (key === path || key.slice(path.length).charAt(0) === '.') {
 								binders = paths[key];
 
-								for (i = 0; i < binders.length; i++) {
+								for (i = 0, l = binders.length; i < l; i++) {
 									binder = binders[i];
 									callback(binder, i, binders, paths, key);
 								}

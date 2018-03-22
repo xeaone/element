@@ -125,14 +125,15 @@ export default class Binder {
 	}
 
 	each (scope, path, callback) {
-		var i, key, binder, binders;
+		var i, l, key, binder, binders;
 		var paths = this.data[scope];
 
 		if (!path) {
+			// NOTE this might no me needed
 
 			for (key in paths) {
 				binders = paths[key];
-				for (i = 0; i < binders.length; i++) {
+				for (i = 0, l = binders.length; i < l; i++) {
 					binder = binders[i];
 					callback(binder, i, binders, paths, key);
 				}
@@ -145,7 +146,7 @@ export default class Binder {
 					if (key === path || key.slice(path.length).charAt(0) === '.') {
 						binders = paths[key];
 
-						for (i = 0; i < binders.length; i++) {
+						for (i = 0, l = binders.length; i < l; i++) {
 							binder = binders[i];
 							callback(binder, i, binders, paths, key);
 						}

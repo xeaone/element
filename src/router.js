@@ -269,9 +269,6 @@ export default class Router extends Events {
 
 			}
 
-			route.element.inRouterCache = false;
-			route.element.isRouterComponent = true;
-
 			if (!this.compiled) {
 
 				while (this.element.firstChild) {

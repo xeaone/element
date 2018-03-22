@@ -197,11 +197,6 @@ export default class Component {
 		options.template = options.template || '';
 		options.properties = options.properties || {};
 
-		options.properties.scope = {
-			enumerable: true,
-			configurable: true
-		};
-
 		options.properties.status = {
 			enumerable: true,
 			configurable: true,
