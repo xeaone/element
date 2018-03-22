@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.6.3
+	Version: 3.6.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -1374,6 +1374,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.location = this.toLocationObject();
 
 				this.location.route = this.find(this.location.pathname);
+
+				if (!this.location.route) {
+					throw new Error('Oxe.router.route - no matching route');
+				}
+
 				this.location.title = this.location.route.title || '';
 				this.location.query = this.toQueryObject(this.location.search);
 				this.location.parameters = this.toParameterObject(this.location.route.path, this.location.pathname);
@@ -2567,12 +2572,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'eachElement',
 			value: function eachElement(element, scope, callback) {
+				var sid = scope.getAttribute('o-scope') || scope.getAttribute('data-o-scope');
+				var eid = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
+				var idCheck = eid ? eid === sid : true;
 
 				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
 					callback.call(this, element);
 				}
 
-				if (this.skipChildren(element) === false) {
+				if (idCheck && this.skipChildren(element) === false) {
 					var _iteratorNormalCompletion8 = true;
 					var _didIteratorError8 = false;
 					var _iteratorError8 = undefined;

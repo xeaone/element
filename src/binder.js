@@ -219,6 +219,9 @@ export default class Binder {
 	}
 
 	eachElement (element, scope, callback) {
+		var sid = scope.getAttribute('o-scope') || scope.getAttribute('data-o-scope');
+		var eid = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
+		var idCheck = eid ? eid === sid : true;
 
 		if (
 			element.nodeName !== 'O-ROUTER'
@@ -236,7 +239,7 @@ export default class Binder {
 			callback.call(this, element);
 		}
 
-		if (this.skipChildren(element) === false) {
+		if (idCheck && this.skipChildren(element) === false) {
 			for (var child of element.children) {
 				this.eachElement(child, scope, callback);
 			}
