@@ -46,6 +46,32 @@ export default {
 		return this.binderNormalize(data).replace(this.PATH, '');
 	},
 
+	ensureElement (data) {
+		data.query = data.query || '';
+		data.scope = data.scope || document.body;
+
+		var element = data.scope.querySelector(`${data.name}${data.query}`);
+
+		if (!element) {
+			element = document.createElement(data.name);
+
+			if (data.position === 'afterbegin') {
+				data.scope.insertBefore(element, data.scope.firstChild);
+			} else if (data.position === 'beforeend') {
+				data.scope.appendChild(element);
+			} else {
+				data.scope.appendChild(element);
+			}
+
+		}
+
+		for (var attribute of data.attributes) {
+			element.setAttribute(attribute.name, attribute.value);
+		}
+
+		return element;
+	},
+
 	formData (form, model) {
 		var elements = form.querySelectorAll('[o-value]');
 		var data = {};
