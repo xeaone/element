@@ -128,13 +128,7 @@ export default class Component {
 		Global.model.set(scope, options.model || {});
 		Global.methods.data[scope] = options.methods;
 
-		if (self.compiled && element.parentNode && element.parentNode.nodeName === 'O-ROUTER') {
-			Global.view.add(element);
-
-			if (options.created) {
-				options.created.call(element);
-			}
-		} else {
+		if (!self.compiled || (self.compiled && element.parentNode.nodeName !== 'O-ROUTER')) {
 			var eTemplate = self.renderTemplate(options.template);
 			var eStyle = self.renderStyle(options.style, scope);
 
@@ -151,12 +145,12 @@ export default class Component {
 				element.appendChild(eTemplate);
 			}
 
-			Global.binder.bind(element);
+		}
 
-			if (options.created) {
-				options.created.call(element);
-			}
+		Global.binder.bind(element);
 
+		if (options.created) {
+			options.created.call(element);
 		}
 
 	}
