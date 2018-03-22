@@ -3,7 +3,6 @@
 	"version": "3.6.2",
 	"description": "A mighty tiny web components framework/library",
 	"main": "dist/oxe.min.js",
-	"bin": "bin/index.js",
 	"scripts": {
 		"b": "node build.js",
 		"t": "muleify serve -sw web",
@@ -49,12 +48,5 @@
 	},
 	"devDependencies": {
 		"muleify": "^4.0.5"
-	},
-	"dependencies": {
-		"babel-core": "^6.26.0",
-		"babel-plugin-transform-es2015-modules-umd": "^6.24.1",
-		"babel-preset-env": "^1.6.1",
-		"cliy": "^1.4.2",
-		"fsep": "^3.0.1"
 	}
 }

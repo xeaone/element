@@ -1,12 +1,10 @@
 
 # Oxe
 A mighty tiny web components framework/library.
+Command line interface moved to [oxe-cli](https://github.com/AlexanderElias/oxe-cli).
 
 ### API
 Api documentation can be found at [API.md](https://github.com/AlexanderElias/oxe/blob/master/API.md).
-
-### CLI
-CLI documentation can be found at [CLI.md](https://github.com/AlexanderElias/oxe/blob/master/CLI.md).
 
 ### VER
 Breaking version changes can be found at [VER.md](https://github.com/AlexanderElias/oxe/blob/master/VER.md).
