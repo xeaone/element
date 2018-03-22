@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.6.4
+	Version: 3.6.5
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -214,13 +214,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				Global$1.model.set(scope, options.model || {});
 				Global$1.methods.data[scope] = options.methods;
 
-				if (self.compiled && element.parentNode && element.parentNode.nodeName === 'O-ROUTER') {
-					Global$1.view.add(element);
-
-					if (options.created) {
-						options.created.call(element);
-					}
-				} else {
+				if (!self.compiled || self.compiled && element.parentNode.nodeName !== 'O-ROUTER') {
 					var eTemplate = self.renderTemplate(options.template);
 					var eStyle = self.renderStyle(options.style, scope);
 
@@ -236,12 +230,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						self.renderSlot(eTemplate, element);
 						element.appendChild(eTemplate);
 					}
+				}
 
-					Global$1.binder.bind(element);
+				Global$1.binder.bind(element);
 
-					if (options.created) {
-						options.created.call(element);
-					}
+				if (options.created) {
+					options.created.call(element);
 				}
 			}
 		}, {
