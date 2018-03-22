@@ -300,6 +300,11 @@ export default class Router extends Events {
 		this.location = this.toLocationObject();
 
 		this.location.route = this.find(this.location.pathname);
+
+		if (!this.location.route) {
+			throw new Error('Oxe.router.route - no matching route');
+		}
+
 		this.location.title = this.location.route.title || '';
 		this.location.query = this.toQueryObject(this.location.search);
 		this.location.parameters = this.toParameterObject(this.location.route.path, this.location.pathname);
