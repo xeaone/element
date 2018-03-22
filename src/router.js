@@ -206,6 +206,32 @@ export default class Router extends Events {
 				document.title = route.title;
 			}
 
+			if (route.description) {
+				Global.utility.ensureElement({
+					name: 'meta',
+					scope: document.head,
+					position: 'afterbegin',
+					query: '[name="description"]',
+					attributes: [
+						{ name: 'name', value: 'description' },
+						{ name: 'content', value: route.description }
+					]
+				});
+			}
+
+			if (route.keywords) {
+				Global.utility.ensureElement({
+					name: 'meta',
+					scope: document.head,
+					position: 'afterbegin',
+					query: '[name="keywords"]',
+					attributes: [
+						{ name: 'name', value: 'keywords' },
+						{ name: 'content', value: route.keywords }
+					]
+				});
+			}
+
 			if (!this.element) {
 				this.element = this.element || 'o-router';
 

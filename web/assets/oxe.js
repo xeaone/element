@@ -443,6 +443,51 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		binderPath: function binderPath(data) {
 			return this.binderNormalize(data).replace(this.PATH, '');
 		},
+		ensureElement: function ensureElement(data) {
+			data.query = data.query || '';
+			data.scope = data.scope || document.body;
+
+			var element = data.scope.querySelector('' + data.name + data.query);
+
+			if (!element) {
+				element = document.createElement(data.name);
+
+				if (data.position === 'afterbegin') {
+					data.scope.insertBefore(element, data.scope.firstChild);
+				} else if (data.position === 'beforeend') {
+					data.scope.appendChild(element);
+				} else {
+					data.scope.appendChild(element);
+				}
+			}
+
+			var _iteratorNormalCompletion4 = true;
+			var _didIteratorError4 = false;
+			var _iteratorError4 = undefined;
+
+			try {
+				for (var _iterator4 = data.attributes[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+					var attribute = _step4.value;
+
+					element.setAttribute(attribute.name, attribute.value);
+				}
+			} catch (err) {
+				_didIteratorError4 = true;
+				_iteratorError4 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion4 && _iterator4.return) {
+						_iterator4.return();
+					}
+				} finally {
+					if (_didIteratorError4) {
+						throw _iteratorError4;
+					}
+				}
+			}
+
+			return element;
+		},
 		formData: function formData(form, model) {
 			var elements = form.querySelectorAll('[o-value]');
 			var data = {};
@@ -1237,6 +1282,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					if (route.title) {
 						document.title = route.title;
+					}
+
+					if (route.description) {
+						Global$1.utility.ensureElement({
+							name: 'meta',
+							scope: document.head,
+							position: 'afterbegin',
+							query: '[name="description"]',
+							attributes: [{ name: 'name', value: 'description' }, { name: 'content', value: route.description }]
+						});
+					}
+
+					if (route.keywords) {
+						Global$1.utility.ensureElement({
+							name: 'meta',
+							scope: document.head,
+							position: 'afterbegin',
+							query: '[name="keywords"]',
+							attributes: [{ name: 'name', value: 'keywords' }, { name: 'content', value: route.keywords }]
+						});
 					}
 
 					if (!this.element) {
@@ -2291,29 +2356,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					items = this.data[opt.scope][opt.path];
 				}
 
-				var _iteratorNormalCompletion4 = true;
-				var _didIteratorError4 = false;
-				var _iteratorError4 = undefined;
+				var _iteratorNormalCompletion5 = true;
+				var _didIteratorError5 = false;
+				var _iteratorError5 = undefined;
 
 				try {
-					for (var _iterator4 = items[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-						var item = _step4.value;
+					for (var _iterator5 = items[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+						var item = _step5.value;
 
 						if (item.element === opt.element && item.name === opt.name) {
 							return item;
 						}
 					}
 				} catch (err) {
-					_didIteratorError4 = true;
-					_iteratorError4 = err;
+					_didIteratorError5 = true;
+					_iteratorError5 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion4 && _iterator4.return) {
-							_iterator4.return();
+						if (!_iteratorNormalCompletion5 && _iterator5.return) {
+							_iterator5.return();
 						}
 					} finally {
-						if (_didIteratorError4) {
-							throw _iteratorError4;
+						if (_didIteratorError5) {
+							throw _iteratorError5;
 						}
 					}
 				}
@@ -2429,54 +2494,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return data;
 				}
 
-				var _iteratorNormalCompletion5 = true;
-				var _didIteratorError5 = false;
-				var _iteratorError5 = undefined;
-
-				try {
-					for (var _iterator5 = opt.modifiers[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-						var modifier = _step5.value;
-
-						var scope = Global$1.methods.data[opt.scope];
-						if (scope) {
-							data = scope[modifier].call(opt.container, data);
-						}
-					}
-				} catch (err) {
-					_didIteratorError5 = true;
-					_iteratorError5 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion5 && _iterator5.return) {
-							_iterator5.return();
-						}
-					} finally {
-						if (_didIteratorError5) {
-							throw _iteratorError5;
-						}
-					}
-				}
-
-				return data;
-			}
-		}, {
-			key: 'skipChildren',
-			value: function skipChildren(element) {
-
-				if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
-					return true;
-				}
-
 				var _iteratorNormalCompletion6 = true;
 				var _didIteratorError6 = false;
 				var _iteratorError6 = undefined;
 
 				try {
-					for (var _iterator6 = element.attributes[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-						var attribute = _step6.value;
+					for (var _iterator6 = opt.modifiers[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+						var modifier = _step6.value;
 
-						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
-							return true;
+						var scope = Global$1.methods.data[opt.scope];
+						if (scope) {
+							data = scope[modifier].call(opt.container, data);
 						}
 					}
 				} catch (err) {
@@ -2494,6 +2522,43 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
+				return data;
+			}
+		}, {
+			key: 'skipChildren',
+			value: function skipChildren(element) {
+
+				if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
+					return true;
+				}
+
+				var _iteratorNormalCompletion7 = true;
+				var _didIteratorError7 = false;
+				var _iteratorError7 = undefined;
+
+				try {
+					for (var _iterator7 = element.attributes[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+						var attribute = _step7.value;
+
+						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
+							return true;
+						}
+					}
+				} catch (err) {
+					_didIteratorError7 = true;
+					_iteratorError7 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion7 && _iterator7.return) {
+							_iterator7.return();
+						}
+					} finally {
+						if (_didIteratorError7) {
+							throw _iteratorError7;
+						}
+					}
+				}
+
 				return false;
 			}
 		}, {
@@ -2505,27 +2570,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (this.skipChildren(element) === false) {
-					var _iteratorNormalCompletion7 = true;
-					var _didIteratorError7 = false;
-					var _iteratorError7 = undefined;
+					var _iteratorNormalCompletion8 = true;
+					var _didIteratorError8 = false;
+					var _iteratorError8 = undefined;
 
 					try {
-						for (var _iterator7 = element.children[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-							var child = _step7.value;
+						for (var _iterator8 = element.children[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+							var child = _step8.value;
 
 							this.eachElement(child, scope, callback);
 						}
 					} catch (err) {
-						_didIteratorError7 = true;
-						_iteratorError7 = err;
+						_didIteratorError8 = true;
+						_iteratorError8 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion7 && _iterator7.return) {
-								_iterator7.return();
+							if (!_iteratorNormalCompletion8 && _iterator8.return) {
+								_iterator8.return();
 							}
 						} finally {
-							if (_didIteratorError7) {
-								throw _iteratorError7;
+							if (_didIteratorError8) {
+								throw _iteratorError8;
 							}
 						}
 					}
@@ -2534,29 +2599,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'eachAttribute',
 			value: function eachAttribute(element, callback) {
-				var _iteratorNormalCompletion8 = true;
-				var _didIteratorError8 = false;
-				var _iteratorError8 = undefined;
+				var _iteratorNormalCompletion9 = true;
+				var _didIteratorError9 = false;
+				var _iteratorError9 = undefined;
 
 				try {
-					for (var _iterator8 = element.attributes[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-						var attribute = _step8.value;
+					for (var _iterator9 = element.attributes[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+						var attribute = _step9.value;
 
 						if (attribute && attribute.value && attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 							callback.call(this, attribute);
 						}
 					}
 				} catch (err) {
-					_didIteratorError8 = true;
-					_iteratorError8 = err;
+					_didIteratorError9 = true;
+					_iteratorError9 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion8 && _iterator8.return) {
-							_iterator8.return();
+						if (!_iteratorNormalCompletion9 && _iterator9.return) {
+							_iterator9.return();
 						}
 					} finally {
-						if (_didIteratorError8) {
-							throw _iteratorError8;
+						if (_didIteratorError9) {
+							throw _iteratorError9;
 						}
 					}
 				}
