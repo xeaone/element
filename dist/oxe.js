@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.6.6
+	Version: 3.6.8
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2293,6 +2293,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			this.data = {};
 			this.values = [];
+			this.submits = [];
 		}
 
 		_createClass(Binder, [{
@@ -2344,6 +2345,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (opt.name === 'o-value') {
 					items = this.values;
+				} else if (opt.name === 'o-submit') {
+					items = this.submits;
 				} else {
 
 					if (!(opt.scope in this.data)) {
@@ -2393,6 +2396,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (opt.name === 'o-value') {
 					items = this.values;
+				} else if (opt.name === 'o-submit') {
+					items = this.submits;
 				} else {
 
 					if (!(opt.scope in this.data)) {
@@ -2415,8 +2420,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (opt.name === 'o-value') {
 					items = this.values;
+				} else if (opt.name === 'o-submit') {
+					items = this.submits;
 				} else {
-
 					if (!(opt.scope in this.data)) {
 						return;
 					}
@@ -3354,8 +3360,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		e.preventDefault();
 
-		var eScope = Global$1.utility.getScope(element);
-		var sScope = eScope.getAttribute('o-scope') || eScope.getAttribute('data-o-scope');
+		var binder = Global$1.binder.get({
+			name: 'o-submit',
+			element: element
+		});
+
+		var sScope = binder.scope;
+		var eScope = binder.container;
 		var model = Global$1.model.data[sScope];
 
 		var data = Global$1.utility.formData(element, model);
