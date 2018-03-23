@@ -7,6 +7,7 @@ export default class Binder {
 	constructor () {
 		this.data = {};
 		this.values = [];
+		this.submits = [];
 	}
 
 	set (opt) {
@@ -55,6 +56,8 @@ export default class Binder {
 
 		if (opt.name === 'o-value') {
 			items = this.values;
+		} else if (opt.name === 'o-submit') {
+			items = this.submits;
 		} else {
 
 			if (!(opt.scope in this.data)) {
@@ -82,6 +85,8 @@ export default class Binder {
 
 		if (opt.name === 'o-value') {
 			items = this.values;
+		} else if (opt.name === 'o-submit') {
+			items = this.submits;
 		} else {
 
 			if (!(opt.scope in this.data)) {
@@ -103,8 +108,9 @@ export default class Binder {
 
 		if (opt.name === 'o-value') {
 			items = this.values;
+		} else if (opt.name === 'o-submit') {
+			items = this.submits;
 		} else {
-
 			if (!(opt.scope in this.data)) {
 				return;
 			}

@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 3.6.6
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -2293,6 +2283,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			this.data = {};
 			this.values = [];
+			this.submits = [];
 		}
 
 		_createClass(Binder, [{
@@ -2344,6 +2335,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (opt.name === 'o-value') {
 					items = this.values;
+				} else if (opt.name === 'o-submit') {
+					items = this.submits;
 				} else {
 
 					if (!(opt.scope in this.data)) {
@@ -2393,6 +2386,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (opt.name === 'o-value') {
 					items = this.values;
+				} else if (opt.name === 'o-submit') {
+					items = this.submits;
 				} else {
 
 					if (!(opt.scope in this.data)) {
@@ -2415,8 +2410,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (opt.name === 'o-value') {
 					items = this.values;
+				} else if (opt.name === 'o-submit') {
+					items = this.submits;
 				} else {
-
 					if (!(opt.scope in this.data)) {
 						return;
 					}
@@ -3354,8 +3350,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		e.preventDefault();
 
-		var eScope = Global$1.utility.getScope(element);
-		var sScope = eScope.getAttribute('o-scope') || eScope.getAttribute('data-o-scope');
+		var binder = Global$1.binder.get({
+			name: 'o-submit',
+			element: element
+		});
+
+		var sScope = binder.scope;
+		var eScope = binder.container;
 		var model = Global$1.model.data[sScope];
 
 		var data = Global$1.utility.formData(element, model);

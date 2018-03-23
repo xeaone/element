@@ -27,8 +27,13 @@ document.addEventListener('submit', function submitListener (e) {
 
 	e.preventDefault();
 
-	var eScope = Global.utility.getScope(element);
-	var sScope = eScope.getAttribute('o-scope') || eScope.getAttribute('data-o-scope');
+	var binder = Global.binder.get({
+		name: 'o-submit',
+		element: element
+	});
+
+	var sScope = binder.scope;
+	var eScope = binder.container;
 	var model = Global.model.data[sScope];
 
 	var data = Global.utility.formData(element, model);
@@ -51,9 +56,9 @@ document.addEventListener('submit', function submitListener (e) {
 
 	if (
 		(
-			options
-			&& typeof options === 'object'
-			&& options.reset
+			options &&
+			typeof options === 'object' &&
+			options.reset
 		)
 		|| element.hasAttribute('o-reset')
 	) {
