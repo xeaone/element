@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 3.6.5
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -2436,32 +2426,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'each',
-			value: function each(scope, path, callback) {
-				var i, l, key, binder, binders;
-				var paths = this.data[scope];
+			value: function each(path, callback) {
+				var scope, paths;
 
-				if (!path) {
-					// NOTE this might no me needed
+				var paths = path.split('.');
+				var scope = paths[0];
+				var binderPaths = this.data[scope];
+				var relativePath = paths.slice(1).join('.');
 
-					for (key in paths) {
-						binders = paths[key];
-						for (i = 0, l = binders.length; i < l; i++) {
-							binder = binders[i];
-							callback(binder, i, binders, paths, key);
-						}
-					}
-				} else {
-
-					for (key in paths) {
-						if (key.indexOf(path) === 0) {
-							if (key === path || key.slice(path.length).charAt(0) === '.') {
-								binders = paths[key];
-
-								for (i = 0, l = binders.length; i < l; i++) {
-									binder = binders[i];
-									callback(binder, i, binders, paths, key);
-								}
-							}
+				for (var binderPath in binderPaths) {
+					if (binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
+						var binders = binderPaths[binderPath];
+						for (var i = 0, l = binders.length; i < l; i++) {
+							var binder = binders[i];
+							callback(binder);
 						}
 					}
 				}
@@ -3178,18 +3156,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'listener',
 			value: function listener(data, path) {
-				var paths = path.split('.');
-
-				// if (paths.length < 2) {
-				// 	return;
-				// }
-
-				var scope = paths[0];
 				var type = data === undefined ? 'unrender' : 'render';
-
-				path = paths.slice(1).join('.');
-
-				Global$1.binder.each(scope, path, function (binder) {
+				Global$1.binder.each(path, function (binder) {
 					Global$1.binder[type](binder);
 				});
 			}

@@ -124,39 +124,29 @@ export default class Binder {
 
 	}
 
-	each (scope, path, callback) {
-		var i, l, key, binder, binders;
-		var paths = this.data[scope];
+	each (path, callback) {
+		var scope, paths;
 
-		if (!path) {
-			// NOTE this might no me needed
+		var paths = path.split('.');
+		var scope = paths[0];
+		var binderPaths = this.data[scope];
+		var relativePath = paths.slice(1).join('.');
 
-			for (key in paths) {
-				binders = paths[key];
-				for (i = 0, l = binders.length; i < l; i++) {
-					binder = binders[i];
-					callback(binder, i, binders, paths, key);
+		for (var binderPath in binderPaths) {
+			if (
+				binderPath.indexOf(relativePath) === 0 &&
+				(
+					binderPath === relativePath ||
+					binderPath.charAt(relativePath.length) === '.'
+				)
+			) {
+				var binders = binderPaths[binderPath];
+				for (var i = 0, l = binders.length; i < l; i++) {
+					var binder = binders[i];
+					callback(binder);
 				}
 			}
-
-		} else {
-
-			for (key in paths) {
-				if (key.indexOf(path) === 0) {
-					if (key === path || key.slice(path.length).charAt(0) === '.') {
-						binders = paths[key];
-
-						for (i = 0, l = binders.length; i < l; i++) {
-							binder = binders[i];
-							callback(binder, i, binders, paths, key);
-						}
-
-					}
-				}
-			}
-
 		}
-
 	}
 
 	unrender (opt) {

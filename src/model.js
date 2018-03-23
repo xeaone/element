@@ -65,21 +65,10 @@ export default class Model extends Events {
 	}
 
 	listener (data, path) {
-		var paths = path.split('.');
-
-		// if (paths.length < 2) {
-		// 	return;
-		// }
-
-		var scope = paths[0];
 		var type = data === undefined ? 'unrender' : 'render';
-
-		path = paths.slice(1).join('.');
-
-		Global.binder.each(scope, path, function (binder) {
+		Global.binder.each(path, function (binder) {
 			Global.binder[type](binder);
 		});
-
 	}
 
 }
