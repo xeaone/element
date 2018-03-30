@@ -9,10 +9,12 @@ document.addEventListener('reset', function resetListener (e) {
 		var i = elements.length;
 
 		while (i--) {
+
 			Global.binder.unrender({
 				name: 'o-value',
 				element: elements[i]
 			}, 'view');
+
 		}
 
 	}
@@ -104,7 +106,7 @@ var listener = function () {
 		prototype: Object.create(HTMLElement.prototype)
 	});
 
-}
+};
 
 document.addEventListener('input', function (e) {
 	if (
@@ -121,8 +123,6 @@ document.addEventListener('input', function (e) {
 		});
 
 		Global.binder.render(binder);
-
-		// Global.model.set(binder.keys, e.target.value);
 	}
 }, true);
 
@@ -135,7 +135,6 @@ document.addEventListener('change', function (e) {
 		});
 
 		Global.binder.render(binder);
-		// Global.model.set(binder.keys, e.target.value);
 	}
 }, true);
 
