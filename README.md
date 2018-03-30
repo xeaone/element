@@ -94,7 +94,7 @@ Oxe.setup({
 <head>
 
 	<base href="/">
-	<script src="./oxe.min.js" o-setup="./index.js, es" async></script>
+	<script src="./oxe.min.js" o-setup="./index.js, es, fetch" async></script>
 
 </head>
 <body>
