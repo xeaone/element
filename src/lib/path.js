@@ -17,6 +17,7 @@ export default {
 		var base = window.document.querySelector('base');
 
 		if (href) {
+
 			if (base) {
 				base.href = href;
 			} else {
@@ -24,6 +25,7 @@ export default {
 				base.href = href;
 				window.document.head.insertBefore(base, window.document.head.firstElementChild);
 			}
+
 		}
 
 		return base ? base.href : window.location.origin + window.location.pathname;
@@ -51,15 +53,19 @@ export default {
 		var paths = path.split('/');
 
 		for (var i = 0, l = paths.length; i < l; i++) {
+
 			if (paths[i] === '.' || paths[i] === '') {
 				continue;
 			} else if (paths[i] === '..') {
+				
 				if (i > 0) {
 					result.splice(i - 1, 1);
 				}
+				
 			} else {
 				result.push(paths[i]);
 			}
+
 		}
 
 		return '/' + result.join('/');
