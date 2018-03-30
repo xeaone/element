@@ -55,19 +55,25 @@ export default class Fetcher {
 
 			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
 			if (opt.responseType === 'json' && typeof result.data === 'string') {
+				
 				try {
 					result.data = JSON.parse(result.data);
 				} catch (error) {
 					console.warn(error);
 				}
+				
 			}
 
 			if (xhr.status === 401 || xhr.status === 403) {
+
 				if (result.opt.auth) {
+
 					if (Global.keeper.response) {
 						return Global.keeper.response(result);
 					}
+
 				}
+
 			}
 
 			if (this.response && this.response(result) === false) {
@@ -75,19 +81,23 @@ export default class Fetcher {
 			}
 
 			if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+
 				if (opt.success) {
 					opt.success(result);
 				} else if (opt.handler) {
 					opt.error = false;
 					opt.handler(result);
 				}
+
 			} else {
+
 				if (opt.error) {
 					opt.error(result);
 				} else if (opt.handler) {
 					opt.error = true;
 					opt.handler(result);
 				}
+
 			}
 
 		}
