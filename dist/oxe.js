@@ -340,6 +340,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var base = window.document.querySelector('base');
 
 			if (href) {
+
 				if (base) {
 					base.href = href;
 				} else {
@@ -373,9 +374,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var paths = path.split('/');
 
 			for (var i = 0, l = paths.length; i < l; i++) {
+
 				if (paths[i] === '.' || paths[i] === '') {
 					continue;
 				} else if (paths[i] === '..') {
+
 					if (i > 0) {
 						result.splice(i - 1, 1);
 					}
@@ -868,6 +871,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
 					if (opt.responseType === 'json' && typeof result.data === 'string') {
+
 						try {
 							result.data = JSON.parse(result.data);
 						} catch (error) {
@@ -876,7 +880,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					if (xhr.status === 401 || xhr.status === 403) {
+
 						if (result.opt.auth) {
+
 							if (Global$1.keeper.response) {
 								return Global$1.keeper.response(result);
 							}
@@ -888,6 +894,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+
 						if (opt.success) {
 							opt.success(result);
 						} else if (opt.handler) {
@@ -895,6 +902,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							opt.handler(result);
 						}
 					} else {
+
 						if (opt.error) {
 							opt.error(result);
 						} else if (opt.handler) {
@@ -1685,10 +1693,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var fetch = new XMLHttpRequest();
 
 				fetch.onreadystatechange = function () {
+
 					if (fetch.readyState === 4) {
+
 						if (fetch.status >= 200 && fetch.status < 300 || fetch.status == 304) {
 							data.text = fetch.responseText;
+
 							if (data.extension === 'js') {
+
 								if (data.transformer) {
 									self.transform(data, function () {
 										self.execute(data);
@@ -1874,81 +1886,98 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Unrender = {
 		alt: function alt(opt) {
-			opt.element.alt = '';
+			Global$1.batcher.write(function () {
+				opt.element.alt = '';
+			});
 		},
 		each: function each(opt) {
-			var element;
+			Global$1.batcher.write(function () {
+				var element;
 
-			while (element = opt.element.lastElementChild) {
-				opt.element.removeChild(element);
-			}
+				while (element = opt.element.lastElementChild) {
+					opt.element.removeChild(element);
+				}
+			});
 		},
 		href: function href(opt) {
-			opt.element.href = '';
+			Global$1.batcher.write(function () {
+				opt.element.href = '';
+			});
 		},
 		class: function _class(opt) {
-
-			var className = opt.names.slice(1).join('-');
-			opt.element.classList.remove(className);
+			Global$1.batcher.write(function () {
+				var className = opt.names.slice(1).join('-');
+				opt.element.classList.remove(className);
+			});
 		},
 		html: function html(opt) {
-			var element;
+			Global$1.batcher.write(function () {
+				var element;
 
-			while (element = opt.element.lastElementChild) {
-				opt.element.removeChild(element);
-			}
+				while (element = opt.element.lastElementChild) {
+					opt.element.removeChild(element);
+				}
+			});
 		},
 		on: function on(opt) {
 			opt.element.removeEventListener(opt.names[1], opt.cache, false);
 		},
 		css: function css(opt) {
-			opt.element.style.cssText = '';
+			Global$1.batcher.write(function () {
+				opt.element.style.cssText = '';
+			});
 		},
 		required: function required(opt) {
-			opt.element.required = false;
+			Global$1.batcher.write(function () {
+				opt.element.required = false;
+			});
 		},
 		src: function src(opt) {
-			opt.element.src = '';
+			Global$1.batcher.write(function () {
+				opt.element.src = '';
+			});
 		},
 		text: function text(opt) {
-			opt.element.innerText = '';
+			Global$1.batcher.write(function () {
+				opt.element.innerText = '';
+			});
 		},
 		value: function value(opt) {
-			var i, l, query, element, elements;
+			Global$1.batcher.write(function () {
+				var i, l, query, element, elements;
 
-			if (opt.element.nodeName === 'SELECT') {
+				if (opt.element.nodeName === 'SELECT') {
 
-				elements = opt.element.options;
+					elements = opt.element.options;
 
-				for (i = 0, l = elements.length; i < l; i++) {
-					element = elements[i];
-					element.selected = false;
-				}
-			} else if (opt.element.type === 'radio') {
-
-				query = 'input[type="radio"][o-value="' + opt.path + '"]';
-				elements = opt.element.parentNode.querySelectorAll(query);
-
-				for (i = 0, l = elements.length; i < l; i++) {
-					element = elements[i];
-
-					if (i === 0) {
-						element.checked = true;
-					} else {
-						element.checked = false;
+					for (i = 0, l = elements.length; i < l; i++) {
+						element = elements[i];
+						element.selected = false;
 					}
-				}
-			} else if (opt.element.type === 'checkbox') {
+				} else if (opt.element.type === 'radio') {
 
-				opt.element.checked = false;
-				opt.element.value = false;
-			} else {
-				opt.element.value = '';
-			}
+					query = 'input[type="radio"][o-value="' + opt.path + '"]';
+					elements = opt.element.parentNode.querySelectorAll(query);
+
+					for (i = 0, l = elements.length; i < l; i++) {
+						element = elements[i];
+
+						if (i === 0) {
+							element.checked = true;
+						} else {
+							element.checked = false;
+						}
+					}
+				} else if (opt.element.type === 'checkbox') {
+
+					opt.element.checked = false;
+					opt.element.value = false;
+				} else {
+					opt.element.value = '';
+				}
+			});
 		},
-		default: function _default(opt) {
-			// console.log(opt);
-		}
+		default: function _default(opt) {}
 	};
 
 	// TODO dynamic for list dont handle selected
@@ -2676,9 +2705,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		function Keeper(options) {
 			_classCallCheck(this, Keeper);
 
-			this._ = {};
-			this._.token;
-
+			this._user;
+			this._token;
 			this.scheme = 'Bearer';
 			this.type = 'sessionStorage';
 
@@ -2686,13 +2714,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				token: {
 					enumerable: true,
 					get: function get() {
-						return this._.token = this._.token || window[this.type].getItem('token');
+						return this._token = this._token || window[this.type].getItem('token');
 					}
 				},
 				user: {
 					enumerable: true,
 					get: function get() {
-						return this._.user = this._.user || JSON.parse(window[this.type].getItem('user'));
+						return this._user = this._user || JSON.parse(window[this.type].getItem('user'));
 					}
 				}
 			});
@@ -2705,10 +2733,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function setup(options) {
 				options = options || {};
 
-				this._.forbidden = options.forbidden || this._.forbidden;
-				this._.unauthorized = options.unauthorized || this._.unauthorized;
-				this._.authenticated = options.authenticated || this._.authenticated;
-				this._.unauthenticated = options.unauthenticated || this._.unauthenticated;
+				this._forbidden = options.forbidden || this._forbidden;
+				this._unauthorized = options.unauthorized || this._unauthorized;
+				this._authenticated = options.authenticated || this._authenticated;
+				this._unauthenticated = options.unauthenticated || this._unauthenticated;
 
 				if (options.type) {
 					this.type = options.type + 'Storage';
@@ -2723,25 +2751,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function setToken(token) {
 				if (!token) return;
 				if (this.scheme === 'Basic') token = this.encode(token);
-				this._.token = window[this.type].setItem('token', token);
+				this._token = window[this.type].setItem('token', token);
 			}
 		}, {
 			key: 'setUser',
 			value: function setUser(user) {
 				if (!user) return;
 				user = JSON.stringify(user);
-				this._.user = window[this.type].setItem('user', user);
+				this._user = window[this.type].setItem('user', user);
 			}
 		}, {
 			key: 'removeToken',
 			value: function removeToken() {
-				this._.token = null;
+				this._token = null;
 				window[this.type].removeItem('token');
 			}
 		}, {
 			key: 'removeUser',
 			value: function removeUser() {
-				this._.user = null;
+				this._user = null;
 				window[this.type].removeItem('user');
 			}
 		}, {
@@ -2750,10 +2778,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.setToken(token);
 				this.setUser(user);
 
-				if (typeof this._.authenticated === 'string') {
-					Global$1.router.route(this._.authenticated);
-				} else if (typeof this._.authenticated === 'function') {
-					this._.authenticated();
+				if (typeof this._authenticated === 'string') {
+					Global$1.router.route(this._authenticated);
+				} else if (typeof this._authenticated === 'function') {
+					this._authenticated();
 				}
 			}
 		}, {
@@ -2762,20 +2790,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.removeToken();
 				this.removeUser();
 
-				if (typeof this._.unauthenticated === 'string') {
-					Global$1.router.route(this._.unauthenticated);
-				} else if (typeof this._.unauthenticated === 'function') {
-					this._.unauthenticated();
+				if (typeof this._unauthenticated === 'string') {
+					Global$1.router.route(this._unauthenticated);
+				} else if (typeof this._unauthenticated === 'function') {
+					this._unauthenticated();
 				}
 			}
 		}, {
 			key: 'forbidden',
 			value: function forbidden(result) {
 
-				if (typeof this._.forbidden === 'string') {
-					Global$1.router.route(this._.forbidden);
-				} else if (typeof this._.forbidden === 'function') {
-					this._.forbidden(result);
+				if (typeof this._forbidden === 'string') {
+					Global$1.router.route(this._forbidden);
+				} else if (typeof this._forbidden === 'function') {
+					this._forbidden(result);
 				}
 
 				return false;
@@ -2787,10 +2815,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				// this.removeToken();
 				// this.removeUser();
 
-				if (typeof this._.unauthorized === 'string') {
-					Global$1.router.route(this._.unauthorized);
-				} else if (typeof this._.unauthorized === 'function') {
-					this._.unauthorized(result);
+				if (typeof this._unauthorized === 'string') {
+					Global$1.router.route(this._unauthorized);
+				} else if (typeof this._unauthorized === 'function') {
+					this._unauthorized(result);
 				}
 
 				return false;
@@ -2848,7 +2876,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}();
 
 	/*
- 		https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
+ 	https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
  		// encode (data) {
  	// 	// encodeURIComponent to get percent-encoded UTF-8
  	// 	// convert the percent encodings into raw bytes which
@@ -2863,7 +2891,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  	//         return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2);
  	//     }).join(''));
  	// };
- 	*/
+ */
 
 	/*
  	TODO:
@@ -3344,6 +3372,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var i = elements.length;
 
 			while (i--) {
+
 				Global$1.binder.unrender({
 					name: 'o-value',
 					element: elements[i]
@@ -3438,8 +3467,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 
 			Global$1.binder.render(binder);
-
-			// Global.model.set(binder.keys, e.target.value);
 		}
 	}, true);
 
@@ -3452,7 +3479,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 
 			Global$1.binder.render(binder);
-			// Global.model.set(binder.keys, e.target.value);
 		}
 	}, true);
 
