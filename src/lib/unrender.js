@@ -97,4 +97,4 @@ export default {
 		// console.log(opt);
 	}
 
-}
+};

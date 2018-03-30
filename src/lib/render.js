@@ -2,7 +2,7 @@ import Global from '../global';
 
 // TODO dynamic for list dont handle selected
 
-const Render = {
+export default {
 
 	required (opt) {
 		Global.batcher.read(function () {
@@ -354,6 +354,4 @@ const Render = {
 		});
 	}
 
-}
-
-export default Render;
+};
