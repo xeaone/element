@@ -51,10 +51,14 @@ export default class Loader extends Events {
 		var fetch = new XMLHttpRequest();
 
 		fetch.onreadystatechange = function () {
+
 			if (fetch.readyState === 4) {
+
 				if (fetch.status >= 200 && fetch.status < 300 || fetch.status == 304) {
 					data.text = fetch.responseText;
+
 					if (data.extension === 'js') {
+
 						if (data.transformer) {
 							self.transform(data, function () {
 								self.execute(data);
@@ -64,13 +68,17 @@ export default class Loader extends Events {
 							self.execute(data);
 							self.ready(data);
 						}
+
 					} else {
 						self.ready(data);
 					}
+
 				} else {
 					throw new Error(fetch.responseText);
 				}
+
 			}
+
 		};
 
 		fetch.open('GET', data.url);
