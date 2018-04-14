@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.6.9
+	Version: 3.6.10
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2480,7 +2480,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var relativePath = paths.slice(1).join('.');
 
 				for (var binderPath in binderPaths) {
-					if (binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
+					if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
 						var binders = binderPaths[binderPath];
 						for (var i = 0, l = binders.length; i < l; i++) {
 							var binder = binders[i];
@@ -3026,6 +3026,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				},
 				$set: {
 					value: function value(key, _value) {
+						// if (key !== undefined && value !== undefined) {
 						if (_value !== this[key]) {
 							var result = self.create(_value, this.$meta.listener, this.$meta.path + key);
 
@@ -3036,6 +3037,22 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 							return result;
 						}
+						// } else {
+
+						// if (!key || key.constructor !== this.constructor) {
+						// 	return this;
+						// } else if (key.constructor === Array) {
+						// 	for (var value of key) {
+						// 		this.$set(name, value);
+						// 	}
+						// } else if (key.constructor === Object) {
+						// 	for (var name in key) {
+						// 		this.$set(name, key[name]);
+						// 	}
+						// }
+						//
+						// return this;
+						// }
 					}
 				},
 				$remove: {

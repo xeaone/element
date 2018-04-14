@@ -140,6 +140,7 @@ export default class Binder {
 
 		for (var binderPath in binderPaths) {
 			if (
+				relativePath === '' ||
 				binderPath.indexOf(relativePath) === 0 &&
 				(
 					binderPath === relativePath ||

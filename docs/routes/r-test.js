@@ -7,6 +7,7 @@ export default {
 	component: {
 		name: 'r-test',
 		model: {
+			empty: {},
 			blank: '',
 			show_hide: true,
 			mcar: 'mcar',
@@ -113,6 +114,8 @@ export default {
 			}, 3000);
 
 			Say('r-test created');
+
+			// this.model.empty.$set({ boo: 'ha'});
 		},
 		template: `
 		<style>

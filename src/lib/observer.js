@@ -138,16 +138,33 @@ var Observer = {
 			},
 			$set: {
 				value: function (key, value) {
-					if (value !== this[key]) {
-						var result = self.create(value, this.$meta.listener, this.$meta.path + key);
+					// if (key !== undefined && value !== undefined) {
+						if (value !== this[key]) {
+							var result = self.create(value, this.$meta.listener, this.$meta.path + key);
 
-						this.$meta[key] = result;
-						self.defineProperty(this, key);
+							this.$meta[key] = result;
+							self.defineProperty(this, key);
 
-						this.$meta.listener(result, this.$meta.path + key, key);
+							this.$meta.listener(result, this.$meta.path + key, key);
 
-						return result;
-					}
+							return result;
+						}
+					// } else {
+
+						// if (!key || key.constructor !== this.constructor) {
+						// 	return this;
+						// } else if (key.constructor === Array) {
+						// 	for (var value of key) {
+						// 		this.$set(name, value);
+						// 	}
+						// } else if (key.constructor === Object) {
+						// 	for (var name in key) {
+						// 		this.$set(name, key[name]);
+						// 	}
+						// }
+						//
+						// return this;
+					// }
 				}
 			},
 			$remove: {
