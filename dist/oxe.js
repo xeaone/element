@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.6.10
+	Version: 3.6.11
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -3103,7 +3103,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			path = path ? path + '.' : '';
 
-			var key;
+			var key, length;
 			var type = source.constructor;
 			var target = source.constructor();
 			var properties = source.constructor();
@@ -3127,7 +3127,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				for (key in arrayProperties) {
 					properties[key] = arrayProperties[key];
 				}
-			} else {
+			}
+
+			if (type === Object) {
 
 				for (key in source) {
 					properties.$meta.value[key] = self.create(source[key], listener, path + key);
