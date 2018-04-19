@@ -3093,7 +3093,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			path = path ? path + '.' : '';
 
-			var key;
+			var key, length;
 			var type = source.constructor;
 			var target = source.constructor();
 			var properties = source.constructor();
@@ -3117,7 +3117,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				for (key in arrayProperties) {
 					properties[key] = arrayProperties[key];
 				}
-			} else {
+			}
+
+			if (type === Object) {
 
 				for (key in source) {
 					properties.$meta.value[key] = self.create(source[key], listener, path + key);

@@ -30,6 +30,11 @@ export default {
 				{ it: { val: 1 } },
 				{ it: { val: 2 } }
 			],
+			o: [
+				{ n: 1, a: [ '1' ] },
+				{ n: 2, a: [ '2' ] },
+				{ n: 3, a: [ '3' ] }
+			],
 			arrayChange: [1, 2],
 			html: '<h3 o-text="text"></h3>'
 		},
@@ -114,6 +119,13 @@ export default {
 			}, 3000);
 
 			Say('r-test created');
+
+			console.log(this.model.o);
+			// [
+			// 	{ n: 1, a: [ '1' ] },
+			// 	{ n: 2, a: [ '2' ] },
+			// 	{ n: 3, a: [ '3' ] }
+			// ]
 
 			// this.model.empty.$set({ boo: 'ha'});
 		},
