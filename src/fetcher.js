@@ -55,13 +55,13 @@ export default class Fetcher {
 
 			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
 			if (opt.responseType === 'json' && typeof result.data === 'string') {
-				
+
 				try {
 					result.data = JSON.parse(result.data);
 				} catch (error) {
 					console.warn(error);
 				}
-				
+
 			}
 
 			if (xhr.status === 401 || xhr.status === 403) {
@@ -110,13 +110,14 @@ export default class Fetcher {
 
 		opt = opt || {};
 
-		opt.headers = {};
-		opt.url = opt.url ? opt.url : window.location.href;
+		if (!opt.url) throw new Error('Oxe.fetcher - requires url options');
+
+		opt.headers = opt.headers || {};
+		opt.method = opt.method || this.method;
+		opt.acceptType = opt.acceptType || this.acceptType;
+		opt.contentType = opt.contentType || this.contentType;
+		opt.responseType = opt.responseType || this.responseType;
 		opt.auth = opt.auth === undefined || opt.auth === null ? this.auth : opt.auth;
-		opt.method = opt.method === undefined || opt.method === null ? this.method : opt.method;
-		opt.acceptType = opt.acceptType === undefined || opt.acceptType === null ? this.acceptType : opt.acceptType;
-		opt.contentType = opt.contentType === undefined || opt.contentType === null ? this.contentType : opt.contentType;
-		opt.responseType = opt.responseType === undefined || opt.responseType === null ? this.responseType : opt.responseType;
 
 		opt.method = opt.method.toUpperCase();
 
