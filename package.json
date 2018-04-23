@@ -1,6 +1,6 @@
 {
 	"name": "oxe",
-	"version": "3.6.11",
+	"version": "3.6.12",
 	"description": "A mighty tiny web components framework/library",
 	"main": "dist/oxe.min.js",
 	"scripts": {
