@@ -4,11 +4,22 @@ document.addEventListener('reset', function resetListener (e) {
 	var element = e.target;
 	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
+	var binder = Global.binder.get({
+		name: 'o-submit',
+		element: element
+	});
+
+	var scope = binder.scope;
+
 	if (submit) {
 		var elements = element.querySelectorAll('[o-value]');
 		var i = elements.length;
 
 		while (i--) {
+			var path = elements[i].getAttribute('o-value');
+			var keys = [scope].concat(path.split('.'));
+
+			Global.model.set(keys, '');
 
 			Global.binder.unrender({
 				name: 'o-value',
