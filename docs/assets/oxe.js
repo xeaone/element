@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.6.12
+	Version: 3.6.13
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -3387,11 +3387,22 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
+		var binder = Global$1.binder.get({
+			name: 'o-submit',
+			element: element
+		});
+
+		var scope = binder.scope;
+
 		if (submit) {
 			var elements = element.querySelectorAll('[o-value]');
 			var i = elements.length;
 
 			while (i--) {
+				var path = elements[i].getAttribute('o-value');
+				var keys = [scope].concat(path.split('.'));
+
+				Global$1.model.set(keys, '');
 
 				Global$1.binder.unrender({
 					name: 'o-value',
