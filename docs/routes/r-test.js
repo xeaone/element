@@ -214,7 +214,7 @@ export default {
 		<input type="text" o-value="items.0.it.val">
 		<div o-each-item="items">
 			<span>
-				<span>$item</span>
+				<span data-index="$index">$item</span>
 				<span o-on-click="foo" o-text="item.it.val"></span>
 				<span>,</span>
 			</span>

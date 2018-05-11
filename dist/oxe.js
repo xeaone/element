@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.6.13
+	Version: 3.6.14
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -525,6 +525,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var iindex = '$index';
 			var vindex = '$' + variable;
 			var result = [];
+			var pattern = new RegExp('\\$index|\\$' + variable, 'g');
 
 			this.walker(element, function (node) {
 				if (node.nodeType === 3) {
@@ -534,6 +535,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				} else if (node.nodeType === 1) {
 					for (var i = 0, l = node.attributes.length; i < l; i++) {
 						var attribute = node.attributes[i];
+						attribute.value = attribute.value.replace(pattern, index);
 						var name = attribute.name;
 						var value = attribute.value.split(' ')[0].split('|')[0];
 						if (name.indexOf('o-') === 0 || name.indexOf('data-o-') === 0) {
