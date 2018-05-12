@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.6.14
+	Version: 3.7.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -520,7 +520,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				node = node.nextSibling;
 			}
 		},
-		replaceEachVariable: function replaceEachVariable(element, variable, path, index) {
+		replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
 			var self = this;
 			var iindex = '$index';
 			var vindex = '$' + variable;
@@ -530,17 +530,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			this.walker(element, function (node) {
 				if (node.nodeType === 3) {
 					if (node.nodeValue === vindex || node.nodeValue === iindex) {
-						node.nodeValue = index;
+						node.nodeValue = key;
 					}
 				} else if (node.nodeType === 1) {
 					for (var i = 0, l = node.attributes.length; i < l; i++) {
 						var attribute = node.attributes[i];
-						attribute.value = attribute.value.replace(pattern, index);
+						attribute.value = attribute.value.replace(pattern, key);
 						var name = attribute.name;
 						var value = attribute.value.split(' ')[0].split('|')[0];
 						if (name.indexOf('o-') === 0 || name.indexOf('data-o-') === 0) {
 							if (value === variable || value.indexOf(variable) === 0) {
-								attribute.value = path + '.' + index + attribute.value.slice(variable.length);
+								attribute.value = path + '.' + key + attribute.value.slice(variable.length);
 							}
 						}
 					}
@@ -2172,8 +2172,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		each: function each(opt) {
 			Global$1.batcher.read(function () {
 				var data = Global$1.model.get(opt.keys);
+				var isArray = data ? data.constructor === Array : false;
+				var isObject = data ? data.constructor === Object : false;
 
-				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object' || opt.element.children.lengthength === data.length) {
+				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') {
+					return;
+				} else if (isArray && opt.element.children.length === data.length) {
+					return;
+				} else if (isObject && opt.element.children.length === Object.keys(data).length) {
 					return;
 				}
 
@@ -2181,14 +2187,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				Global$1.batcher.write(function () {
 
+					if (isObject) {
+						data = Object.keys(data);
+					}
+
 					while (opt.element.children.length !== data.length) {
 
 						if (opt.element.children.length > data.length) {
 							opt.element.removeChild(opt.element.children[opt.element.children.length - 1]);
 						} else if (opt.element.children.length < data.length) {
+							var key;
 							var clone = opt.cache.cloneNode(true);
 
-							Global$1.utility.replaceEachVariable(clone, opt.names[1], opt.path, opt.element.children.length);
+							if (isArray) {
+								key = opt.element.children.length;
+							} else if (isObject) {
+								key = data[opt.element.children.length];
+							}
+
+							Global$1.utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
 							Global$1.binder.bind(clone, opt.container);
 
 							opt.element.appendChild(clone);

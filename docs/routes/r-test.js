@@ -35,6 +35,11 @@ export default {
 				{ n: 2, a: [ '2' ] },
 				{ n: 3, a: [ '3' ] }
 			],
+			eo: {
+				one: 1,
+				two: 2,
+				three: 3,
+			},
 			arrayChange: [1, 2],
 			html: '<h3 o-text="text"></h3>'
 		},
@@ -221,6 +226,16 @@ export default {
 		</div>
 
 		<button o-on-click="say">Console Log</button>
+		<br>
+		<br>
+
+		<div o-each-item="eo">
+			<span>
+				<span>$item</span>
+				<span o-text="item"></span>
+				<span>,</span>
+			</span>
+		</div>
 		<br>
 		<br>
 

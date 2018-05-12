@@ -104,7 +104,7 @@ export default {
 		}
 	},
 
-	replaceEachVariable (element, variable, path, index) {
+	replaceEachVariable (element, variable, path, key) {
 		var self = this;
 		var iindex = '$index';
 		var vindex = '$' + variable;
@@ -114,17 +114,17 @@ export default {
 		this.walker(element, function (node) {
 			if (node.nodeType === 3) {
 				if (node.nodeValue === vindex || node.nodeValue === iindex) {
-					node.nodeValue = index;
+					node.nodeValue = key;
 				}
 			} else if (node.nodeType === 1) {
 				for (var i = 0, l = node.attributes.length; i < l; i++) {
 					var attribute = node.attributes[i];
-					attribute.value = attribute.value.replace(pattern, index);
+					attribute.value = attribute.value.replace(pattern, key);
 					var name = attribute.name;
 					var value = attribute.value.split(' ')[0].split('|')[0];
 					if (name.indexOf('o-') === 0 || name.indexOf('data-o-') === 0) {
 						if (value === variable || value.indexOf(variable) === 0) {
-							attribute.value = path + '.' + index + attribute.value.slice(variable.length);
+							attribute.value = path + '.' + key + attribute.value.slice(variable.length);
 						}
 					}
 				}

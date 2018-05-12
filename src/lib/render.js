@@ -202,8 +202,14 @@ export default {
 	each (opt) {
 		Global.batcher.read(function () {
 			var data = Global.model.get(opt.keys);
+			var isArray = data ? data.constructor === Array : false;
+			var isObject = data ? data.constructor === Object: false;
 
-			if (!data || typeof data !== 'object' || opt.element.children.lengthength === data.length) {
+			if (!data || typeof data !== 'object') {
+				return;
+			} else if (isArray && opt.element.children.length === data.length) {
+				return;
+			} else if (isObject && opt.element.children.length === Object.keys(data).length) {
 				return;
 			}
 
@@ -211,14 +217,25 @@ export default {
 
 			Global.batcher.write(function () {
 
+				if (isObject) {
+					data = Object.keys(data);
+				}
+
 				while (opt.element.children.length !== data.length) {
 
 					if (opt.element.children.length > data.length) {
 						opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
 					} else if (opt.element.children.length < data.length) {
+						var key;
 						var clone = opt.cache.cloneNode(true);
 
-						Global.utility.replaceEachVariable(clone, opt.names[1], opt.path, opt.element.children.length);
+						if (isArray) {
+							key = opt.element.children.length;
+						} else if (isObject) {
+							key = data[opt.element.children.length];
+						}
+
+						Global.utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
 						Global.binder.bind(clone, opt.container);
 
 						opt.element.appendChild(clone);
