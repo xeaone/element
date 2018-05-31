@@ -1,13 +1,3 @@
-/*
-	Name: Oxe
-	Version: 3.8.0
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -856,6 +846,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'change',
 			value: function change(opt, xhr) {
+				var self = this;
+
 				if (xhr.readyState === 4) {
 
 					var result = {
@@ -889,33 +881,76 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 
-					if (this.response && this.response(result) === false) {
-						return;
-					}
+					var end = function end() {
+						if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
 
-					if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+							if (opt.success) {
+								opt.success(result);
+							} else if (opt.handler) {
+								opt.error = false;
+								opt.handler(result);
+							}
+						} else {
 
-						if (opt.success) {
-							opt.success(result);
-						} else if (opt.handler) {
-							opt.error = false;
-							opt.handler(result);
+							if (opt.error) {
+								opt.error(result);
+							} else if (opt.handler) {
+								opt.error = true;
+								opt.handler(result);
+							}
+						}
+					};
+
+					if (this.response) {
+						var responseResult = this.response(result);
+
+						if (responseResult === false) {
+							return;
+						} else if (responseResult && responseResult.constructor === Promise) {
+							responseResult.then(function (r) {
+								if (r !== false) {
+									end();
+								}
+							}).catch(function (error) {
+								console.error(error);
+							});
+						} else {
+							end();
 						}
 					} else {
-
-						if (opt.error) {
-							opt.error(result);
-						} else if (opt.handler) {
-							opt.error = true;
-							opt.handler(result);
-						}
+						end();
 					}
+
+					// if (this.response && this.response(result) === false) {
+					// 	return;
+					// }
+
+					// if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+					//
+					// 	if (opt.success) {
+					// 		opt.success(result);
+					// 	} else if (opt.handler) {
+					// 		opt.error = false;
+					// 		opt.handler(result);
+					// 	}
+					//
+					// } else {
+					//
+					// 	if (opt.error) {
+					// 		opt.error(result);
+					// 	} else if (opt.handler) {
+					// 		opt.error = true;
+					// 		opt.handler(result);
+					// 	}
+					//
+					// }
 				}
 			}
 		}, {
 			key: 'fetch',
 			value: function fetch(opt) {
 				var data;
+				var self = this;
 				var xhr = new XMLHttpRequest();
 
 				opt = opt || {};
@@ -1020,12 +1055,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				if (this.request && this.request(result) === false) {
-					return;
+				var end = function end() {
+					xhr.onreadystatechange = self.change.bind(self, opt, xhr);
+					xhr.send(data);
+				};
+
+				if (this.request) {
+					var requestResult = this.request(result);
+
+					if (requestResult === false) {
+						return;
+					} else if (requestResult && requestResult.constructor === Promise) {
+						requestResult.then(function (r) {
+							if (r !== false) {
+								end();
+							}
+						}).catch(function (error) {
+							console.error(error);
+						});
+					} else {
+						end();
+					}
+				} else {
+					end();
 				}
 
-				xhr.onreadystatechange = this.change.bind(this, opt, xhr);
-				xhr.send(data);
+				// if (this.request && this.request(result) === false) {
+				// 	return;
+				// }
+				//
+				// xhr.onreadystatechange = this.change.bind(this, opt, xhr);
+				// xhr.send(data);
 			}
 		}, {
 			key: 'post',

@@ -1,13 +1,13 @@
 {
 	"name": "oxe",
-	"version": "3.8.0",
+	"version": "3.9.0",
 	"description": "A mighty tiny web components framework/library",
 	"main": "dist/oxe.min.js",
 	"scripts": {
 		"b": "node build.js",
-		"t": "muleify serve -sw web",
-		"w": "muleify pack -p src -wbt src/index.js web/assets/oxe.js",
-		"bd": "rm -r docs/* && muleify pack web docs",
+		"t": "muleify -ssw web",
+		"w": "muleify -pwbt src/index.js web/assets/oxe.js --path src",
+		"bd": "rm -r docs/* && muleify -p web docs",
 		"ba": "npm run b && npm run bd"
 	},
 	"repository": {
@@ -47,6 +47,6 @@
 		"src": "src"
 	},
 	"devDependencies": {
-		"muleify": "^4.0.8"
+		"muleify": "^5.0.3"
 	}
 }
