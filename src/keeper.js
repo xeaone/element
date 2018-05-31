@@ -143,9 +143,9 @@ export default class Keeper {
 
 	response (result) {
 
-		if (result.statusCode === 401) {
+		if (result.code === 401) {
 			return this.unauthorized(result);
-		} else if (result.statusCode === 403) {
+		} else if (result.code === 403) {
 			return this.forbidden(result);
 		} else {
 			return true;

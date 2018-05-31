@@ -205,8 +205,8 @@ Uses XHR
 		- `opt: Object` The options going to be used for the request
 		- `data: Object|String` The data to be sent as either payload or parameters
 	- `response: Function` Intercepts the request if the return value is false the fetch will not continue
-		- `statusCode: Number` The xhr.status
-		- `statusText: String` The xhr.statusText
+		- `code: Number` The xhr.status
+		- `message: String` The xhr.statusText
 		- `xhr: Object` The xhr used for the request
 		- `opt: Object` The options used for the request
 		- `data: Object|String` The response transformed by resonseType
@@ -221,22 +221,22 @@ Uses XHR
 		- `url: String` (default: window.location.href)
 		- `success: Function` The Success handler
 			- `result: Object`
-				- `statusCode: Number` The xhr.status
-				- `statusText: String` The xhr.statusText
+				- `code: Number` The xhr.status
+				- `message: String` The xhr.statusText
 				- `xhr: Object` The xhr used for the request
 				- `opt: Object` The options used for the request
 				- `data: Object|String` The response transformed by resonseType
 		- `error: Function` The Error Handler
 			- `result: Object`
-				- `statusCode: Number` The xhr.status
-				- `statusText: String` The xhr.statusText
+				- `code: Number` The xhr.status
+				- `message: String` The xhr.statusText
 				- `xhr: Object` The xhr used for the request
 				- `opt: Object` The options used for the request
 				- `data: Object|String` The response transformed by resonseType
 		- `handler: Function` Called if no success or error handler
 			- `result: Object` The result
-				- `statusCode: Number` The xhr.status
-				- `statusText: String` The xhr.statusText
+				- `code: Number` The xhr.status
+				- `message: String` The xhr.statusText
 				- `xhr: Object` The xhr used for the request
 				- `opt: Object` The options used for the request
 				- `data: Object|String` The response transformed by resonseType

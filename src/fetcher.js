@@ -37,20 +37,20 @@ export default class Fetcher {
 		return string;
 	}
 
-	change (opt, result, xhr) {
+	change (opt, xhr) {
 		if (xhr.readyState === 4) {
 
-			result.opt = opt;
-			result.xhr = xhr;
-			result.statusCode = xhr.status;
-			result.statusText = xhr.statusText;
+			var result = {
+				opt: opt,
+				xhr: xhr,
+				code: xhr.status,
+				message: xhr.statusText
+			};
 
 			if (xhr['response'] !== undefined) {
 				result.data = xhr.response;
 			} else if (xhr['responseText'] !== undefined) {
 				result.data = xhr.responseText;
-			} else {
-				result.data = undefined;
 			}
 
 			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
@@ -65,15 +65,11 @@ export default class Fetcher {
 			}
 
 			if (xhr.status === 401 || xhr.status === 403) {
-
-				if (result.opt.auth) {
-
-					if (Global.keeper.response) {
-						return Global.keeper.response(result);
+				if (opt.auth) {
+					if (Global.keeper.response && Global.keeper.response(result) === false) {
+						return;
 					}
-
 				}
-
 			}
 
 			if (this.response && this.response(result) === false) {
@@ -105,7 +101,6 @@ export default class Fetcher {
 
 	fetch (opt) {
 		var data;
-		var result = {};
 		var xhr = new XMLHttpRequest();
 
 		opt = opt || {};
@@ -180,12 +175,14 @@ export default class Fetcher {
 			}
 		}
 
-		result.xhr = xhr;
-		result.opt = opt;
-		result.data = opt.data;
+		var result = {
+			xhr: xhr,
+			opt: opt,
+			data: opt.data
+		};
 
-		if (result.opt.auth) {
-			if (Global.keeper.request(result) === false) {
+		if (opt.auth) {
+			if (Global.keeper.request && Global.keeper.request(result) === false) {
 				return;
 			}
 		}
@@ -194,7 +191,7 @@ export default class Fetcher {
 			return;
 		}
 
-		xhr.onreadystatechange = this.change.bind(this, opt, result, xhr);
+		xhr.onreadystatechange = this.change.bind(this, opt, xhr);
 		xhr.send(data);
 	}
 
