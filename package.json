@@ -47,6 +47,6 @@
 		"src": "src"
 	},
 	"devDependencies": {
-		"muleify": "^4.0.5"
+		"muleify": "^4.0.8"
 	}
 }

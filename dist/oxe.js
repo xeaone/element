@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.7.0
+	Version: 3.8.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -855,20 +855,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'change',
-			value: function change(opt, result, xhr) {
+			value: function change(opt, xhr) {
 				if (xhr.readyState === 4) {
 
-					result.opt = opt;
-					result.xhr = xhr;
-					result.statusCode = xhr.status;
-					result.statusText = xhr.statusText;
+					var result = {
+						opt: opt,
+						xhr: xhr,
+						code: xhr.status,
+						message: xhr.statusText
+					};
 
 					if (xhr['response'] !== undefined) {
 						result.data = xhr.response;
 					} else if (xhr['responseText'] !== undefined) {
 						result.data = xhr.responseText;
-					} else {
-						result.data = undefined;
 					}
 
 					// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
@@ -882,11 +882,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					if (xhr.status === 401 || xhr.status === 403) {
-
-						if (result.opt.auth) {
-
-							if (Global$1.keeper.response) {
-								return Global$1.keeper.response(result);
+						if (opt.auth) {
+							if (Global$1.keeper.response && Global$1.keeper.response(result) === false) {
+								return;
 							}
 						}
 					}
@@ -918,7 +916,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'fetch',
 			value: function fetch(opt) {
 				var data;
-				var result = {};
 				var xhr = new XMLHttpRequest();
 
 				opt = opt || {};
@@ -1011,12 +1008,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				result.xhr = xhr;
-				result.opt = opt;
-				result.data = opt.data;
+				var result = {
+					xhr: xhr,
+					opt: opt,
+					data: opt.data
+				};
 
-				if (result.opt.auth) {
-					if (Global$1.keeper.request(result) === false) {
+				if (opt.auth) {
+					if (Global$1.keeper.request && Global$1.keeper.request(result) === false) {
 						return;
 					}
 				}
@@ -1025,7 +1024,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				xhr.onreadystatechange = this.change.bind(this, opt, result, xhr);
+				xhr.onreadystatechange = this.change.bind(this, opt, xhr);
 				xhr.send(data);
 			}
 		}, {
@@ -2872,9 +2871,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'response',
 			value: function response(result) {
 
-				if (result.statusCode === 401) {
+				if (result.code === 401) {
 					return this.unauthorized(result);
-				} else if (result.statusCode === 403) {
+				} else if (result.code === 403) {
 					return this.forbidden(result);
 				} else {
 					return true;
