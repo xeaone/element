@@ -200,11 +200,11 @@ Uses XHR
 	- `contentType: String`
 	- `responseType: String`
 	- `auth: Boolean` Enables Oxe.Keeper (default: false)
-	- `request: Function` Intercepts the request if the return value is false the fetch will not continue
+	- `request: Function` Intercepts the request if the return value is false the fetch will not continue. Accepts a promise.
 		- `xhr: Object` The xhr going to be used for the request
 		- `opt: Object` The options going to be used for the request
 		- `data: Object|String` The data to be sent as either payload or parameters
-	- `response: Function` Intercepts the request if the return value is false the fetch will not continue
+	- `response: Function` Intercepts the request if the return value is false the fetch will not continue. Accepts a promise.
 		- `code: Number` The xhr.status
 		- `message: String` The xhr.statusText
 		- `xhr: Object` The xhr used for the request
