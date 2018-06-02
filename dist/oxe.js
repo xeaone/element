@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.8.0
+	Version: 3.9.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -856,6 +856,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'change',
 			value: function change(opt, xhr) {
+				var self = this;
+
 				if (xhr.readyState === 4) {
 
 					var result = {
@@ -889,33 +891,76 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 
-					if (this.response && this.response(result) === false) {
-						return;
-					}
+					var end = function end() {
+						if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
 
-					if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+							if (opt.success) {
+								opt.success(result);
+							} else if (opt.handler) {
+								opt.error = false;
+								opt.handler(result);
+							}
+						} else {
 
-						if (opt.success) {
-							opt.success(result);
-						} else if (opt.handler) {
-							opt.error = false;
-							opt.handler(result);
+							if (opt.error) {
+								opt.error(result);
+							} else if (opt.handler) {
+								opt.error = true;
+								opt.handler(result);
+							}
+						}
+					};
+
+					if (this.response) {
+						var responseResult = this.response(result);
+
+						if (responseResult === false) {
+							return;
+						} else if (responseResult && responseResult.constructor === Promise) {
+							responseResult.then(function (r) {
+								if (r !== false) {
+									end();
+								}
+							}).catch(function (error) {
+								console.error(error);
+							});
+						} else {
+							end();
 						}
 					} else {
-
-						if (opt.error) {
-							opt.error(result);
-						} else if (opt.handler) {
-							opt.error = true;
-							opt.handler(result);
-						}
+						end();
 					}
+
+					// if (this.response && this.response(result) === false) {
+					// 	return;
+					// }
+
+					// if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+					//
+					// 	if (opt.success) {
+					// 		opt.success(result);
+					// 	} else if (opt.handler) {
+					// 		opt.error = false;
+					// 		opt.handler(result);
+					// 	}
+					//
+					// } else {
+					//
+					// 	if (opt.error) {
+					// 		opt.error(result);
+					// 	} else if (opt.handler) {
+					// 		opt.error = true;
+					// 		opt.handler(result);
+					// 	}
+					//
+					// }
 				}
 			}
 		}, {
 			key: 'fetch',
 			value: function fetch(opt) {
 				var data;
+				var self = this;
 				var xhr = new XMLHttpRequest();
 
 				opt = opt || {};
@@ -1020,12 +1065,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				if (this.request && this.request(result) === false) {
-					return;
+				var end = function end() {
+					xhr.onreadystatechange = self.change.bind(self, opt, xhr);
+					xhr.send(data);
+				};
+
+				if (this.request) {
+					var requestResult = this.request(result);
+
+					if (requestResult === false) {
+						return;
+					} else if (requestResult && requestResult.constructor === Promise) {
+						requestResult.then(function (r) {
+							if (r !== false) {
+								end();
+							}
+						}).catch(function (error) {
+							console.error(error);
+						});
+					} else {
+						end();
+					}
+				} else {
+					end();
 				}
 
-				xhr.onreadystatechange = this.change.bind(this, opt, xhr);
-				xhr.send(data);
+				// if (this.request && this.request(result) === false) {
+				// 	return;
+				// }
+				//
+				// xhr.onreadystatechange = this.change.bind(this, opt, xhr);
+				// xhr.send(data);
 			}
 		}, {
 			key: 'post',
