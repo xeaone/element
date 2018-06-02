@@ -227,18 +227,16 @@ Uses XHR
 				- `opt: Object` The options used for the request
 				- `data: Object|String` The response transformed by resonseType
 		- `error: Function` The Error Handler
-			- `result: Object`
+			- `result: Object` The options used for the request/response
 				- `code: Number` The xhr.status
 				- `message: String` The xhr.statusText
 				- `xhr: Object` The xhr used for the request
-				- `opt: Object` The options used for the request
 				- `data: Object|String` The response transformed by resonseType
 		- `handler: Function` Called if no success or error handler
-			- `result: Object` The result
+			- `result: Object` The options used for the request/response
 				- `code: Number` The xhr.status
 				- `message: String` The xhr.statusText
 				- `xhr: Object` The xhr used for the request
-				- `opt: Object` The options used for the request
 				- `data: Object|String` The response transformed by resonseType
 				- `error: Boolean` If status >= 200 && status < 300 || status == 304 will be false otherwise true
 		- `data: Object` If method is GET than data is concatenated to the url as parameters

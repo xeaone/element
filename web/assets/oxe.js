@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.9.1
+	Version: 3.9.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -2892,7 +2892,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'request',
 			value: function request(result) {
 
-				if (result.opt.auth === false) {
+				if (result.auth === false) {
 					return true;
 				} else if (!this.token) {
 					return this.unauthorized(result);

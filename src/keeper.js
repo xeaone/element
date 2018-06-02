@@ -130,7 +130,7 @@ export default class Keeper {
 
 	request (result) {
 
-		if (result.opt.auth === false) {
+		if (result.auth === false) {
 			return true;
 		} else if (!this.token) {
 			return this.unauthorized(result);
