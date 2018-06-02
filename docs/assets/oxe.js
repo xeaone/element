@@ -1,6 +1,6 @@
 /*
 	Name: Oxe
-	Version: 3.7.0
+	Version: 3.9.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elias@gmail.com
@@ -855,76 +855,91 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'change',
-			value: function change(opt, result, xhr) {
-				if (xhr.readyState === 4) {
+			value: function change(opt) {
+				var self = this;
 
-					result.opt = opt;
-					result.xhr = xhr;
-					result.statusCode = xhr.status;
-					result.statusText = xhr.statusText;
+				if (opt.xhr.readyState === 4) {
 
-					if (xhr['response'] !== undefined) {
-						result.data = xhr.response;
-					} else if (xhr['responseText'] !== undefined) {
-						result.data = xhr.responseText;
-					} else {
-						result.data = undefined;
+					opt.code = opt.xhr.status;
+					opt.message = opt.xhr.statusText;
+
+					if (opt.xhr['response'] !== undefined) {
+						opt.data = opt.xhr.response;
+					} else if (opt.xhr['responseText'] !== undefined) {
+						opt.data = opt.xhr.responseText;
 					}
 
 					// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
-					if (opt.responseType === 'json' && typeof result.data === 'string') {
+					if (opt.responseType === 'json' && typeof opt.data === 'string') {
 
 						try {
-							result.data = JSON.parse(result.data);
+							opt.data = JSON.parse(opt.data);
 						} catch (error) {
 							console.warn(error);
 						}
 					}
 
-					if (xhr.status === 401 || xhr.status === 403) {
-
-						if (result.opt.auth) {
-
-							if (Global$1.keeper.response) {
-								return Global$1.keeper.response(result);
+					if (opt.xhr.status === 401 || opt.xhr.status === 403) {
+						if (opt.auth) {
+							if (Global$1.keeper.response && Global$1.keeper.response(opt) === false) {
+								return;
 							}
 						}
 					}
 
-					if (this.response && this.response(result) === false) {
-						return;
-					}
+					var end = function end() {
+						if (opt.xhr.status >= 200 && opt.xhr.status < 300 || opt.xhr.status == 304) {
 
-					if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+							if (opt.success) {
+								opt.success(opt);
+							} else if (opt.handler) {
+								opt.error = false;
+								opt.handler(opt);
+							}
+						} else {
 
-						if (opt.success) {
-							opt.success(result);
-						} else if (opt.handler) {
-							opt.error = false;
-							opt.handler(result);
+							if (opt.error) {
+								opt.error(opt);
+							} else if (opt.handler) {
+								opt.error = true;
+								opt.handler(opt);
+							}
+						}
+					};
+
+					if (this.response) {
+						var responseResult = this.response(opt);
+
+						if (responseResult === false) {
+							return;
+						} else if (responseResult && responseResult.constructor === Promise) {
+							Promise.resolve().then(function () {
+								return responseResult;
+							}).then(function (r) {
+								if (r !== false) {
+									end();
+								}
+							}).catch(function (error) {
+								console.error(error);
+							});
+						} else {
+							end();
 						}
 					} else {
-
-						if (opt.error) {
-							opt.error(result);
-						} else if (opt.handler) {
-							opt.error = true;
-							opt.handler(result);
-						}
+						end();
 					}
 				}
 			}
 		}, {
 			key: 'fetch',
 			value: function fetch(opt) {
-				var data;
-				var result = {};
-				var xhr = new XMLHttpRequest();
+				var self = this;
 
 				opt = opt || {};
 
 				if (!opt.url) throw new Error('Oxe.fetcher - requires url options');
 
+				opt.xhr = new XMLHttpRequest();
 				opt.headers = opt.headers || {};
 				opt.method = opt.method || this.method;
 				opt.acceptType = opt.acceptType || this.acceptType;
@@ -934,7 +949,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				opt.method = opt.method.toUpperCase();
 
-				xhr.open(opt.method, opt.url, true, opt.username, opt.password);
+				opt.xhr.open(opt.method, opt.url, true, opt.username, opt.password);
 
 				if (opt.contentType) {
 					switch (opt.contentType) {
@@ -969,64 +984,82 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (opt.responseType) {
 					switch (opt.responseType) {
 						case 'text':
-							xhr.responseType = 'text';break;
+							opt.xhr.responseType = 'text';break;
 						case 'json':
-							xhr.responseType = 'json';break;
+							opt.xhr.responseType = 'json';break;
 						case 'blob':
-							xhr.responseType = 'blob';break;
+							opt.xhr.responseType = 'blob';break;
 						case 'xml':
-							xhr.responseType = 'document';break;
+							opt.xhr.responseType = 'document';break;
 						case 'html':
-							xhr.responseType = 'document';break;
+							opt.xhr.responseType = 'document';break;
 						case 'document':
-							xhr.responseType = 'document';break;
+							opt.xhr.responseType = 'document';break;
 						case 'arraybuffer':
-							xhr.responseType = 'arraybuffer';break;
+							opt.xhr.responseType = 'arraybuffer';break;
 						default:
-							xhr.responseType = opt.responseType;
+							opt.xhr.responseType = opt.responseType;
 					}
 				}
 
 				if (opt.mimeType) {
-					xhr.overrideMimeType(opt.mimeType);
+					opt.xhr.overrideMimeType(opt.mimeType);
 				}
 
 				if (opt.withCredentials) {
-					xhr.withCredentials = opt.withCredentials;
+					opt.xhr.withCredentials = opt.withCredentials;
 				}
 
 				if (opt.headers) {
 					for (var name in opt.headers) {
-						xhr.setRequestHeader(name, opt.headers[name]);
+						opt.xhr.setRequestHeader(name, opt.headers[name]);
 					}
 				}
 
-				if (opt.data) {
-					if (opt.method === 'GET') {
-						opt.url = opt.url + '?' + this.serialize(opt.data);
-					} else if (opt.contentType === 'json') {
-						data = JSON.stringify(opt.data);
-					} else {
-						data = opt.data;
-					}
-				}
-
-				result.xhr = xhr;
-				result.opt = opt;
-				result.data = opt.data;
-
-				if (result.opt.auth) {
-					if (Global$1.keeper.request(result) === false) {
+				if (opt.auth) {
+					if (Global$1.keeper.request && Global$1.keeper.request(opt) === false) {
 						return;
 					}
 				}
 
-				if (this.request && this.request(result) === false) {
-					return;
-				}
+				var end = function end() {
+					var data;
 
-				xhr.onreadystatechange = this.change.bind(this, opt, result, xhr);
-				xhr.send(data);
+					if (opt.data) {
+						if (opt.method === 'GET') {
+							opt.url = opt.url + '?' + this.serialize(opt.data);
+						} else if (opt.contentType === 'json') {
+							data = JSON.stringify(opt.data);
+						} else {
+							data = opt.data;
+						}
+					}
+
+					opt.xhr.onreadystatechange = self.change.bind(self, opt);
+					opt.xhr.send(data);
+				};
+
+				if (this.request) {
+					var requestResult = this.request(opt);
+
+					if (requestResult === false) {
+						return;
+					} else if (requestResult && requestResult.constructor === Promise) {
+						Promise.resolve().then(function () {
+							return requestResult;
+						}).then(function (r) {
+							if (r !== false) {
+								end();
+							}
+						}).catch(function (error) {
+							console.error(error);
+						});
+					} else {
+						end();
+					}
+				} else {
+					end();
+				}
 			}
 		}, {
 			key: 'post',
@@ -2872,9 +2905,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'response',
 			value: function response(result) {
 
-				if (result.statusCode === 401) {
+				if (result.code === 401) {
 					return this.unauthorized(result);
-				} else if (result.statusCode === 403) {
+				} else if (result.code === 403) {
 					return this.forbidden(result);
 				} else {
 					return true;

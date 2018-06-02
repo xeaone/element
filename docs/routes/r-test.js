@@ -81,6 +81,14 @@ export default {
 						}
 					}
 				}
+			},
+			fetch: function () {
+				Oxe.fetcher.get({
+					url: 'www.google.com',
+					handler: function (data) {
+						console.log(data);
+					}
+				});
 			}
 		},
 		properties: {
@@ -262,6 +270,12 @@ export default {
 				<a href="https://google.com/" target="_blank">google target_blank</a>
 			</li>
 		</ul>
+		<br>
+		<br>
+
+		<button o-on-click="fetch">Fetch</button>
+		<br>
+		<br>
 
 		<div o-html="html"></div>
 		`

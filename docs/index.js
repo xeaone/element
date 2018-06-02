@@ -8,6 +8,13 @@ import r404 from './routes/r-404.js';
 import rJs from './routes/r-js.js';
 
 Oxe.setup({
+	fetcher: {
+		request: function () {
+			return Promise.resolve().then(function () {
+				return true;
+			});
+		}
+	},
 	loader: {
 		methods: {
 			js: 'fetch'
