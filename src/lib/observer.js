@@ -7,17 +7,14 @@
 		figure out a way to not update removed items
 */
 
-var Observer = {
+let Observer = {
 
 	splice () {
-		var startIndex = arguments[0];
-		var deleteCount = arguments[1];
-		var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
+		let startIndex = arguments[0];
+		let deleteCount = arguments[1];
+		let addCount = arguments.length > 2 ? arguments.length - 2 : 0;
 
-		if (
-			!this.length
-			|| typeof startIndex !== 'number' || typeof deleteCount !== 'number'
-		) {
+		if (!this.length || typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
 			return [];
 		}
 
@@ -36,11 +33,11 @@ var Observer = {
 			deleteCount = this.length - startIndex;
 		}
 
-		var totalCount = this.$meta.length;
-		var key, index, value, updateCount;
-		var argumentIndex = 2;
-		var argumentsCount = arguments.length - argumentIndex;
-		var result = this.slice(startIndex, deleteCount);
+		let totalCount = this.$meta.length;
+		let key, index, value, updateCount;
+		let argumentIndex = 2;
+		let argumentsCount = arguments.length - argumentIndex;
+		let result = this.slice(startIndex, deleteCount);
 
 		updateCount = (totalCount - 1) - startIndex;
 
@@ -84,14 +81,14 @@ var Observer = {
 	},
 
 	arrayProperties () {
-		var self = this;
+		let self = this;
 
 		return {
 			push: {
 				value: function () {
 					if (!arguments.length) return this.length;
 
-					for (var i = 0, l = arguments.length; i < l; i++) {
+					for (let i = 0, l = arguments.length; i < l; i++) {
 						self.splice.call(this, this.length, 0, arguments[i]);
 					}
 
@@ -102,7 +99,7 @@ var Observer = {
 				value: function () {
 					if (!arguments.length) return this.length;
 
-					for (var i = 0, l = arguments.length; i < l; i++) {
+					for (let i = 0, l = arguments.length; i < l; i++) {
 						self.splice.call(this, 0, 0, arguments[i]);
 					}
 
@@ -128,7 +125,7 @@ var Observer = {
 	},
 
 	objectProperties () {
-		var self = this;
+		let self = this;
 
 		return {
 			$get: {
@@ -140,7 +137,7 @@ var Observer = {
 				value: function (key, value) {
 					// if (key !== undefined && value !== undefined) {
 						if (value !== this[key]) {
-							var result = self.create(value, this.$meta.listener, this.$meta.path + key);
+							let result = self.create(value, this.$meta.listener, this.$meta.path + key);
 
 							this.$meta[key] = result;
 							self.defineProperty(this, key);
@@ -154,11 +151,11 @@ var Observer = {
 						// if (!key || key.constructor !== this.constructor) {
 						// 	return this;
 						// } else if (key.constructor === Array) {
-						// 	for (var value of key) {
+						// 	for (let value of key) {
 						// 		this.$set(name, value);
 						// 	}
 						// } else if (key.constructor === Object) {
-						// 	for (var name in key) {
+						// 	for (let name in key) {
 						// 		this.$set(name, key[name]);
 						// 	}
 						// }
@@ -173,7 +170,7 @@ var Observer = {
 						if (this.constructor === Array) {
 							return self.splice.call(this, key, 1);
 						} else {
-							var result = this[key];
+							let result = this[key];
 							delete this.$meta[key];
 							delete this[key];
 							this.$meta.listener(undefined, this.$meta.path + key, key);
@@ -186,7 +183,7 @@ var Observer = {
 	},
 
 	property (key) {
-		var self = this;
+		let self = this;
 
 		return {
 			enumerable: true,
@@ -210,7 +207,7 @@ var Observer = {
 	},
 
 	create (source, listener, path) {
-		var self = this;
+		let self = this;
 
 		if (!source || source.constructor !== Object && source.constructor !== Array) {
 			return source;
@@ -218,10 +215,10 @@ var Observer = {
 
 		path = path ? path + '.' : '';
 
-		var key, length;
-		var type = source.constructor;
-		var target = source.constructor();
-		var properties = source.constructor();
+		let key, length;
+		let type = source.constructor;
+		let target = source.constructor();
+		let properties = source.constructor();
 
 		properties.$meta = {
 			value: source.constructor()
@@ -237,7 +234,7 @@ var Observer = {
 				properties[key] = self.property(key);
 			}
 
-			var arrayProperties = self.arrayProperties();
+			let arrayProperties = self.arrayProperties();
 
 			for (key in arrayProperties) {
 				properties[key] = arrayProperties[key];
@@ -254,7 +251,7 @@ var Observer = {
 
 		}
 
-		var objectProperties = self.objectProperties();
+		let objectProperties = self.objectProperties();
 
 		for (key in objectProperties) {
 			properties[key] = objectProperties[key];

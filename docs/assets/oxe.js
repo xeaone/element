@@ -1,9 +1,9 @@
 /*
-	Name: Oxe
+	Name: oxe
 	Version: 3.9.2
 	License: MPL-2.0
 	Author: Alexander Elias
-	Email: alex.steven.elias@gmail.com
+	Email: undefined
 	This Source Code Form is subject to the terms of the Mozilla Public
 	License, v. 2.0. If a copy of the MPL was not distributed with this
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -2980,7 +2980,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 
 			var totalCount = this.$meta.length;
-			var key, index, value, updateCount;
+			var key = void 0,
+			    index = void 0,
+			    value = void 0,
+			    updateCount = void 0;
 			var argumentIndex = 2;
 			var argumentsCount = arguments.length - argumentIndex;
 			var result = this.slice(startIndex, deleteCount);
@@ -3095,11 +3098,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						// if (!key || key.constructor !== this.constructor) {
 						// 	return this;
 						// } else if (key.constructor === Array) {
-						// 	for (var value of key) {
+						// 	for (let value of key) {
 						// 		this.$set(name, value);
 						// 	}
 						// } else if (key.constructor === Object) {
-						// 	for (var name in key) {
+						// 	for (let name in key) {
 						// 		this.$set(name, key[name]);
 						// 	}
 						// }
@@ -3156,7 +3159,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			path = path ? path + '.' : '';
 
-			var key, length;
+			var key = void 0,
+			    length = void 0;
 			var type = source.constructor;
 			var target = source.constructor();
 			var properties = source.constructor();

@@ -6,8 +6,8 @@ Command line interface moved to [oxe-cli](https://github.com/AlexanderElias/oxe-
 ### API
 Api documentation can be found at [API.md](https://github.com/AlexanderElias/oxe/blob/master/API.md).
 
-### VER
-Breaking version changes can be found at [VER.md](https://github.com/AlexanderElias/oxe/blob/master/VER.md).
+### VERSION
+Breaking version changes can be found at [VERSION.md](https://github.com/AlexanderElias/oxe/blob/master/VERSION.md).
 
 ### Features
 - Small size
