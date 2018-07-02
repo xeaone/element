@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.9.2
+	Version: 3.9.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: undefined
@@ -2948,7 +2948,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	/*
  	TODO:
- 		push not working
  		sort reverse
  		test array methods
  		figure out a way to not update removed items
@@ -2960,7 +2959,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var deleteCount = arguments[1];
 			var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
 
-			if (!this.length || typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
+			if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
 				return [];
 			}
 

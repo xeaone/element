@@ -1,7 +1,6 @@
 
 /*
 	TODO:
-		push not working
 		sort reverse
 		test array methods
 		figure out a way to not update removed items
@@ -14,7 +13,7 @@ let Observer = {
 		let deleteCount = arguments[1];
 		let addCount = arguments.length > 2 ? arguments.length - 2 : 0;
 
-		if (!this.length || typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
+		if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
 			return [];
 		}
 
