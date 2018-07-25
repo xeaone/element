@@ -127,9 +127,9 @@ export default {
 			<strong>Install</strong>
 			<ul>
 				<li><i>npm install oxe --save</i></li>
-				<li>UMD <i>"dist/oxe.min.js"</i></li>
-				<li>UMD with Web Component Pollyfill <i>"dist/oxe.polly.min.js"</i></li>
-				<li>Web Component Pollyfill <i>"dist/webcomponents-lite.min.js"</i></li>
+				<li>UMD <i>"dst/oxe.min.js"</i></li>
+				<li>UMD with Web Component Pollyfill <i>"dst/oxe.polly.min.js"</i></li>
+				<li>Web Component Pollyfill <i>"dst/webcomponents-lite.min.js"</i></li>
 			</ul>
 
 			<h2>Example</h2>

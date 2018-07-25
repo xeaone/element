@@ -48,13 +48,13 @@ async function prepend (data, path) {
 	await Muleify.pack('src/index.js', 'web/assets/oxe.js', options);
 	await prepend(header, 'web/assets/oxe.js');
 
-	await Muleify.pack('src/index.js', 'dist/oxe.js', options);
-	await prepend(header, 'dist/oxe.js');
+	await Muleify.pack('src/index.js', 'dst/oxe.js', options);
+	await prepend(header, 'dst/oxe.js');
 
 	options.minify = true;
 
-	await Muleify.pack('src/index.js', 'dist/oxe.min.js', options);
-	await prepend(header, 'dist/oxe.min.js');
+	await Muleify.pack('src/index.js', 'dst/oxe.min.js', options);
+	await prepend(header, 'dst/oxe.min.js');
 
 }()).catch(function (error) {
 	console.error(error);

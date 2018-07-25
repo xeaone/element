@@ -1,8 +1,8 @@
 {
 	"name": "oxe",
-	"version": "3.9.4",
+	"version": "3.9.5",
 	"description": "A mighty tiny web components framework/library",
-	"main": "dist/oxe.min.js",
+	"main": "dst/oxe.min.js",
 	"scripts": {
 		"b": "node build.js",
 		"t": "muleify -ssw web",
@@ -43,7 +43,7 @@
 	],
 	"directories": {
 		"docs": "docs",
-		"dist": "dist",
+		"dst": "dst",
 		"src": "src"
 	},
 	"devDependencies": {}

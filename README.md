@@ -31,9 +31,9 @@ Live examples [alexanderelias.github.io/oxe/](https://alexanderelias.github.io/o
 
 ### Install
 - `npm i oxe --save`
-- UMD `dist/oxe.min.js`
-- UMD with Web Component Pollyfill `dist/oxe.polly.min.js`
-- Web Component Pollyfill `dist/webcomponents-lite.min.js`
+- UMD `dst/oxe.min.js`
+- UMD with Web Component Pollyfill `dst/oxe.polly.min.js`
+- Web Component Pollyfill `dst/webcomponents-lite.min.js`
 
 ## Example
 ```js
