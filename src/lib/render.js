@@ -1,4 +1,5 @@
 import Global from '../global';
+import Wraper from '../wraper.js';
 
 // TODO dynamic for list dont handle selected
 
@@ -150,12 +151,17 @@ export default {
 			}
 
 			if (opt.cache) {
-				opt.element.removeEventListener(opt.names[1], opt.cache);
+				opt.element.removeEventListener(opt.names[1], function (e) {
+					Wraper(opt.cache.bind(null, e));
+				});
 			} else {
 				opt.cache = data.bind(opt.container);
 			}
 
-			opt.element.addEventListener(opt.names[1], opt.cache);
+			opt.element.addEventListener(opt.names[1], function (e) {
+				Wraper(opt.cache.bind(null, e));
+			});
+
 		});
 	},
 

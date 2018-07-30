@@ -1,4 +1,5 @@
 import Global from './global.js';
+import Wraper from './wraper.js';
 
 export default class Fetcher {
 
@@ -92,25 +93,12 @@ export default class Fetcher {
 				}
 			};
 
-			if (this.response) {
-				var responseResult = this.response(opt);
-
-				if (responseResult === false) {
-					return;
-				} else if (responseResult && responseResult.constructor === Promise) {
-					Promise.resolve().then(function () {
-						return responseResult;
-					}).then(function (r) {
-						if (r !== false) {
-							end();
-						}
-					}).catch(function (error) {
-						console.error(error);
-					});
-				} else {
-					end();
-				}
-
+			if (self.response) {
+				Wraper(self.response.bind(null, opt), function (result) {
+					if (result !== false) {
+						end();
+					}
+				});
 			} else {
 				end();
 			}
@@ -127,11 +115,11 @@ export default class Fetcher {
 
 		opt.xhr = new XMLHttpRequest();
 		opt.headers = opt.headers || {};
-		opt.method = opt.method || this.method;
-		opt.acceptType = opt.acceptType || this.acceptType;
-		opt.contentType = opt.contentType || this.contentType;
-		opt.responseType = opt.responseType || this.responseType;
-		opt.auth = opt.auth === undefined || opt.auth === null ? this.auth : opt.auth;
+		opt.method = opt.method || self.method;
+		opt.acceptType = opt.acceptType || self.acceptType;
+		opt.contentType = opt.contentType || self.contentType;
+		opt.responseType = opt.responseType || self.responseType;
+		opt.auth = opt.auth === undefined || opt.auth === null ? self.auth : opt.auth;
 
 		opt.method = opt.method.toUpperCase();
 
@@ -139,20 +127,20 @@ export default class Fetcher {
 
 		if (opt.contentType) {
 			switch (opt.contentType) {
-				case 'js': opt.headers['Content-Type'] = this.mime.js; break;
-				case 'xml': opt.headers['Content-Type'] = this.mime.xml; break;
-				case 'html': opt.headers['Content-Type'] = this.mime.html; break;
-				case 'json': opt.headers['Content-Type'] = this.mime.json; break;
+				case 'js': opt.headers['Content-Type'] = self.mime.js; break;
+				case 'xml': opt.headers['Content-Type'] = self.mime.xml; break;
+				case 'html': opt.headers['Content-Type'] = self.mime.html; break;
+				case 'json': opt.headers['Content-Type'] = self.mime.json; break;
 				default: opt.headers['Content-Type'] = opt.contentType;
 			}
 		}
 
 		if (opt.acceptType) {
 			switch (opt.acceptType) {
-				case 'js': opt.headers['Accept'] = this.mime.js; break;
-				case 'xml': opt.headers['Accept'] = this.mime.xml; break;
-				case 'html': opt.headers['Accept'] = this.mime.html; break;
-				case 'json': opt.headers['Accept'] = this.mime.json; break;
+				case 'js': opt.headers['Accept'] = self.mime.js; break;
+				case 'xml': opt.headers['Accept'] = self.mime.xml; break;
+				case 'html': opt.headers['Accept'] = self.mime.html; break;
+				case 'json': opt.headers['Accept'] = self.mime.json; break;
 				default: opt.headers['Accept'] = opt.acceptType;
 			}
 		}
@@ -195,7 +183,7 @@ export default class Fetcher {
 
 			if (opt.data) {
 				if (opt.method === 'GET') {
-					opt.url = opt.url + '?' + this.serialize(opt.data);
+					opt.url = opt.url + '?' + self.serialize(opt.data);
 				} else if (opt.contentType === 'json') {
 					data = JSON.stringify(opt.data);
 				} else {
@@ -207,25 +195,12 @@ export default class Fetcher {
 			opt.xhr.send(data);
 		};
 
-		if (this.request) {
-			var requestResult = this.request(opt);
-
-			if (requestResult === false) {
-				return;
-			} else if (requestResult && requestResult.constructor === Promise) {
-				Promise.resolve().then(function () {
-					return requestResult;
-				}).then(function (r) {
-					if (r !== false) {
-						end();
-					}
-				}).catch(function (error) {
-					console.error(error);
-				});
-			} else {
-				end();
-			}
-
+		if (self.request) {
+			Wraper(self.request.bind(null, opt), function (result) {
+				if (result !== false) {
+					end();
+				}
+			});
 		} else {
 			end();
 		}

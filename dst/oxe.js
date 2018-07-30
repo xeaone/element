@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.10.5
+	Version: 3.11.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: undefined
@@ -814,6 +814,41 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Batcher;
 	}(Events);
 
+	var Wraper = function Wraper(action, complete) {
+
+		if (action && action.constructor.name === 'AsyncFunction') {
+
+			return Promise.resolve().then(function () {
+				return action();
+			}).then(function (data) {
+				if (complete) {
+					return complete(data);
+				}
+			}).catch(function (error) {
+				console.error(error);
+			});
+		} else {
+			var result = action();
+
+			if (result && result.constructor.name === 'Promise') {
+
+				return Promise.resolve().then(function () {
+					return result;
+				}).then(function (data) {
+					if (complete) {
+						return complete(data);
+					}
+				}).catch(function (error) {
+					console.error(error);
+				});
+			} else {
+				if (complete) {
+					return complete(result);
+				}
+			}
+		}
+	};
+
 	var Fetcher = function () {
 		function Fetcher(options) {
 			_classCallCheck(this, Fetcher);
@@ -907,24 +942,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					};
 
-					if (this.response) {
-						var responseResult = this.response(opt);
-
-						if (responseResult === false) {
-							return;
-						} else if (responseResult && responseResult.constructor === Promise) {
-							Promise.resolve().then(function () {
-								return responseResult;
-							}).then(function (r) {
-								if (r !== false) {
-									end();
-								}
-							}).catch(function (error) {
-								console.error(error);
-							});
-						} else {
-							end();
-						}
+					if (self.response) {
+						Wraper(self.response.bind(null, opt), function (result) {
+							if (result !== false) {
+								end();
+							}
+						});
 					} else {
 						end();
 					}
@@ -941,11 +964,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				opt.xhr = new XMLHttpRequest();
 				opt.headers = opt.headers || {};
-				opt.method = opt.method || this.method;
-				opt.acceptType = opt.acceptType || this.acceptType;
-				opt.contentType = opt.contentType || this.contentType;
-				opt.responseType = opt.responseType || this.responseType;
-				opt.auth = opt.auth === undefined || opt.auth === null ? this.auth : opt.auth;
+				opt.method = opt.method || self.method;
+				opt.acceptType = opt.acceptType || self.acceptType;
+				opt.contentType = opt.contentType || self.contentType;
+				opt.responseType = opt.responseType || self.responseType;
+				opt.auth = opt.auth === undefined || opt.auth === null ? self.auth : opt.auth;
 
 				opt.method = opt.method.toUpperCase();
 
@@ -954,13 +977,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (opt.contentType) {
 					switch (opt.contentType) {
 						case 'js':
-							opt.headers['Content-Type'] = this.mime.js;break;
+							opt.headers['Content-Type'] = self.mime.js;break;
 						case 'xml':
-							opt.headers['Content-Type'] = this.mime.xml;break;
+							opt.headers['Content-Type'] = self.mime.xml;break;
 						case 'html':
-							opt.headers['Content-Type'] = this.mime.html;break;
+							opt.headers['Content-Type'] = self.mime.html;break;
 						case 'json':
-							opt.headers['Content-Type'] = this.mime.json;break;
+							opt.headers['Content-Type'] = self.mime.json;break;
 						default:
 							opt.headers['Content-Type'] = opt.contentType;
 					}
@@ -969,13 +992,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (opt.acceptType) {
 					switch (opt.acceptType) {
 						case 'js':
-							opt.headers['Accept'] = this.mime.js;break;
+							opt.headers['Accept'] = self.mime.js;break;
 						case 'xml':
-							opt.headers['Accept'] = this.mime.xml;break;
+							opt.headers['Accept'] = self.mime.xml;break;
 						case 'html':
-							opt.headers['Accept'] = this.mime.html;break;
+							opt.headers['Accept'] = self.mime.html;break;
 						case 'json':
-							opt.headers['Accept'] = this.mime.json;break;
+							opt.headers['Accept'] = self.mime.json;break;
 						default:
 							opt.headers['Accept'] = opt.acceptType;
 					}
@@ -1027,7 +1050,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					if (opt.data) {
 						if (opt.method === 'GET') {
-							opt.url = opt.url + '?' + this.serialize(opt.data);
+							opt.url = opt.url + '?' + self.serialize(opt.data);
 						} else if (opt.contentType === 'json') {
 							data = JSON.stringify(opt.data);
 						} else {
@@ -1039,24 +1062,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					opt.xhr.send(data);
 				};
 
-				if (this.request) {
-					var requestResult = this.request(opt);
-
-					if (requestResult === false) {
-						return;
-					} else if (requestResult && requestResult.constructor === Promise) {
-						Promise.resolve().then(function () {
-							return requestResult;
-						}).then(function (r) {
-							if (r !== false) {
-								end();
-							}
-						}).catch(function (error) {
-							console.error(error);
-						});
-					} else {
-						end();
-					}
+				if (self.request) {
+					Wraper(self.request.bind(null, opt), function (result) {
+						if (result !== false) {
+							end();
+						}
+					});
 				} else {
 					end();
 				}
@@ -2156,12 +2167,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (opt.cache) {
-					opt.element.removeEventListener(opt.names[1], opt.cache);
+					opt.element.removeEventListener(opt.names[1], function (e) {
+						Wraper(opt.cache.bind(null, e));
+					});
 				} else {
 					opt.cache = data.bind(opt.container);
 				}
 
-				opt.element.addEventListener(opt.names[1], opt.cache);
+				opt.element.addEventListener(opt.names[1], function (e) {
+					Wraper(opt.cache.bind(null, e));
+				});
 			});
 		},
 		css: function css(opt) {
@@ -3507,17 +3522,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		};
 
-		if (method.constructor.name === 'AsyncFunction') {
-			Promise.resolve().then(function () {
-				return method.call(eScope, data, e);
-			}).catch(function (options) {
-				done(options);
-			}).catch(function (error) {
-				console.error(error);
-			});
-		} else {
-			done(method.call(eScope, data, e));
-		}
+		Wraper(method.bind(eScope, data, e), done);
 	}, true);
 
 	var eStyle = document.createElement('style');

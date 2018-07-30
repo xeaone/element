@@ -1,4 +1,5 @@
 import Global from './global.js';
+import Wraper from './wraper.js';
 
 document.addEventListener('reset', function resetListener (e) {
 	var element = e.target;
@@ -79,17 +80,7 @@ document.addEventListener('submit', function submitListener (e) {
 		}
 	};
 
-	if (method.constructor.name === 'AsyncFunction') {
-		Promise.resolve().then(function () {
-			return method.call(eScope, data, e);
-		}).catch(function (options) {
-			done(options);
-		}).catch(function (error) {
-			console.error(error);
-		});
-	} else {
-		done(method.call(eScope, data, e));
-	}
+	Wraper(method.bind(eScope, data, e), done);
 
 }, true);
 
