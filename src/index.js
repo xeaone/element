@@ -51,31 +51,44 @@ document.addEventListener('submit', function submitListener (e) {
 
 	var data = Global.utility.formData(element, model);
 	var method = Global.utility.getByPath(eScope.methods, submit);
-	var options = method.call(eScope, data, e);
 
-	if (options && typeof options === 'object') {
-		var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-		var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-		var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-		var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+	var done = function (options) {
+		if (options && typeof options === 'object') {
+			var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
+			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+			var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+			var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
 
-		options.url = options.url || action;
-		options.method = options.method || method;
-		options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
-		options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
+			options.url = options.url || action;
+			options.method = options.method || method;
+			options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
+			options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
 
-		Global.fetcher.fetch(options);
-	}
+			Global.fetcher.fetch(options);
+		}
 
-	if (
-		(
-			options &&
-			typeof options === 'object' &&
-			options.reset
-		)
-		|| element.hasAttribute('o-reset')
-	) {
-		element.reset();
+		if (
+			(
+				options &&
+				typeof options === 'object' &&
+				options.reset
+			)
+			|| element.hasAttribute('o-reset')
+		) {
+			element.reset();
+		}
+	};
+
+	if (method.constructor.name === 'AsyncFunction') {
+		Promise.resolve().then(function () {
+			return method.call(eScope, data, e);
+		}).catch(function (options) {
+			done(options);
+		}).catch(function (error) {
+			console.error(error);
+		});
+	} else {
+		done(method.call(eScope, data, e));
 	}
 
 }, true);

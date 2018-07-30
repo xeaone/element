@@ -7,6 +7,7 @@ export default {
 	component: {
 		name: 'r-test',
 		model: {
+			submit: 'hello world',
 			empty: {},
 			blank: '',
 			show_hide: true,
@@ -45,6 +46,9 @@ export default {
 		},
 		methods: {
 			say: Say,
+			async submit (data) {
+				console.log(data);
+			},
 			lower: function (text) {
 				text = text || '';
 				return text.toLowerCase();
@@ -244,6 +248,13 @@ export default {
 				<span>,</span>
 			</span>
 		</div>
+		<br>
+		<br>
+
+		<form o-submit="submit">
+			<input type="text" o-value="submit"/>
+			<input type="submit" value="Submit Form"/>
+		</fomr>
 		<br>
 		<br>
 

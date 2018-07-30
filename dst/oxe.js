@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.9.5
+	Version: 3.10.5
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: undefined
@@ -211,8 +211,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				element.setAttribute('o-scope', scope);
 
-				Global.model.set(scope, options.model || {});
-				Global.methods.data[scope] = options.methods;
+				Global$1.model.set(scope, options.model || {});
+				Global$1.methods.data[scope] = options.methods;
 
 				if (!self.compiled || self.compiled && element.parentNode.nodeName !== 'O-ROUTER') {
 					var eTemplate = self.renderTemplate(options.template);
@@ -232,7 +232,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				Global.binder.bind(element);
+				Global$1.binder.bind(element);
 
 				if (options.created) {
 					options.created.call(element);
@@ -288,18 +288,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					enumerable: true,
 					configurable: true,
 					get: function get() {
-						return Global.model.get(this.scope);
+						return Global$1.model.get(this.scope);
 					},
 					set: function set(data) {
 						data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
-						return Global.model.set(this.scope, data);
+						return Global$1.model.set(this.scope, data);
 					}
 				};
 
 				options.properties.methods = {
 					enumerable: true,
 					get: function get() {
-						return Global.methods.data[this.scope];
+						return Global$1.methods.data[this.scope];
 					}
 				};
 
@@ -494,6 +494,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var elements = form.querySelectorAll('[o-value]');
 			var data = {};
 
+			var done = 0;
+			var count = 0;
+
 			for (var i = 0, l = elements.length; i < l; i++) {
 
 				var element = elements[i];
@@ -518,8 +521,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		},
 		replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
+			var self = this;
 			var iindex = '$index';
 			var vindex = '$' + variable;
+			var result = [];
 			var pattern = new RegExp('\\$index|\\$' + variable, 'g');
 
 			this.walker(element, function (node) {
@@ -746,7 +751,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'flush',
 			value: function flush(time) {
-				var count;
+				var error, count;
 
 				try {
 					count = this.runReads(this.reads, time);
@@ -851,6 +856,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'change',
 			value: function change(opt) {
+				var self = this;
 
 				if (opt.xhr.readyState === 4) {
 
@@ -875,7 +881,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					if (opt.xhr.status === 401 || opt.xhr.status === 403) {
 						if (opt.auth) {
-							if (Global.keeper.response && Global.keeper.response(opt) === false) {
+							if (Global$1.keeper.response && Global$1.keeper.response(opt) === false) {
 								return;
 							}
 						}
@@ -1011,7 +1017,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (opt.auth) {
-					if (Global.keeper.request && Global.keeper.request(opt) === false) {
+					if (Global$1.keeper.request && Global$1.keeper.request(opt) === false) {
 						return;
 					}
 				}
@@ -1313,7 +1319,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'render',
 			value: function render(route) {
-				Global.utility.ready(function () {
+				Global$1.utility.ready(function () {
 
 					this.emit('routing');
 
@@ -1322,7 +1328,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					if (route.description) {
-						Global.utility.ensureElement({
+						Global$1.utility.ensureElement({
 							name: 'meta',
 							scope: document.head,
 							position: 'afterbegin',
@@ -1332,7 +1338,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					if (route.keywords) {
-						Global.utility.ensureElement({
+						Global$1.utility.ensureElement({
 							name: 'meta',
 							scope: document.head,
 							position: 'afterbegin',
@@ -1356,7 +1362,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (!route.element) {
 
 						if (route.load) {
-							Global.loader.load(route.load);
+							Global$1.loader.load(route.load);
 						}
 
 						if (!route.component) {
@@ -1365,7 +1371,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							route.element = document.createElement(route.component);
 						} else if (route.component.constructor.name === 'Object') {
 
-							Global.component.define(route.component);
+							Global$1.component.define(route.component);
 
 							if (this.compiled) {
 								route.element = this.element.firstChild;
@@ -1391,7 +1397,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'route',
 			value: function route(path, options) {
-				var route;
+				var location, route;
 
 				options = options || {};
 
@@ -1417,7 +1423,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (this.auth && (this.location.route.auth === true || this.location.route.auth === undefined)) {
 
-					if (Global.keeper.route(this.location.route) === false) {
+					if (Global$1.keeper.route(this.location.route) === false) {
 						return;
 					}
 				}
@@ -1638,7 +1644,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				return text.replace(exps[0].raw, 'return ');
 			}
 
-			var i, l;
+			var i, l, pattern;
 
 			text = 'var $EXPORT = {};\n' + text;
 			text = text + '\nreturn $EXPORT;\n';
@@ -1916,12 +1922,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Unrender = {
 		alt: function alt(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				opt.element.alt = '';
 			});
 		},
 		each: function each(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				var element;
 
 				while (element = opt.element.lastElementChild) {
@@ -1930,18 +1936,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 		},
 		href: function href(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				opt.element.href = '';
 			});
 		},
 		class: function _class(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				var className = opt.names.slice(1).join('-');
 				opt.element.classList.remove(className);
 			});
 		},
 		html: function html(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				var element;
 
 				while (element = opt.element.lastElementChild) {
@@ -1953,27 +1959,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			opt.element.removeEventListener(opt.names[1], opt.cache, false);
 		},
 		css: function css(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				opt.element.style.cssText = '';
 			});
 		},
 		required: function required(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				opt.element.required = false;
 			});
 		},
 		src: function src(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				opt.element.src = '';
 			});
 		},
 		text: function text(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				opt.element.innerText = '';
 			});
 		},
 		value: function value(opt) {
-			Global.batcher.write(function () {
+			Global$1.batcher.write(function () {
 				var i, l, query, element, elements;
 
 				if (opt.element.nodeName === 'SELECT') {
@@ -2014,136 +2020,136 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Render = {
 		required: function required(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element.required === data) {
 					return;
 				}
 
-				data = Global.utility.binderModifyData(opt, data);
+				data = Global$1.utility.binderModifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.required = data;
 				});
 			});
 		},
 		disable: function disable(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element.disabled === data) {
 					return;
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.disabled = data;
 				});
 			});
 		},
 		enable: function enable(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element.disabled === !data) {
 					return;
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.disabled = !data;
 				});
 			});
 		},
 		hide: function hide(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element.hidden === data) {
 					return;
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.hidden = data;
 				});
 			});
 		},
 		show: function show(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element.hidden === !data) {
 					return;
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.hidden = !data;
 				});
 			});
 		},
 		read: function read(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element.readOnly === data) {
 					return;
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.readOnly = data;
 				});
 			});
 		},
 		write: function write(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element.readOnly === !data) {
 					return;
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.readOnly = !data;
 				});
 			});
 		},
 		html: function html(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element.innerHTML === data) {
 					return;
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.innerHTML = data;
 				});
 			});
 		},
 		class: function _class(opt) {
-			Global.batcher.write(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.write(function () {
+				var data = Global$1.model.get(opt.keys);
 				var name = opt.names.slice(1).join('-');
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 				opt.element.classList.toggle(name, data);
 			});
 		},
 		on: function on(opt) {
-			Global.batcher.write(function () {
-				var data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
+			Global$1.batcher.write(function () {
+				var data = Global$1.utility.getByPath(Global$1.methods.data, opt.scope + '.' + opt.path);
 
 				if (!data || typeof data !== 'function') {
 					return;
@@ -2159,8 +2165,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 		},
 		css: function css(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element.style.cssText === data) {
 					return;
@@ -2170,16 +2176,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					data = opt.names.slice(1).join('-') + ': ' + data + ';';
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.style.cssText = data;
 				});
 			});
 		},
 		text: function text(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				data = data === undefined || data === null ? '' : data;
 
@@ -2189,16 +2195,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					data = String(data);
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element.innerText = data;
 				});
 			});
 		},
 		each: function each(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 				var isArray = data ? data.constructor === Array : false;
 				var isObject = data ? data.constructor === Object : false;
 
@@ -2210,9 +2216,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 
 					if (isObject) {
 						data = Object.keys(data);
@@ -2232,8 +2238,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 								key = data[opt.element.children.length];
 							}
 
-							Global.utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-							Global.binder.bind(clone, opt.container);
+							Global$1.utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
+							Global$1.binder.bind(clone, opt.container);
 
 							opt.element.appendChild(clone);
 						}
@@ -2242,7 +2248,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 		},
 		value: function value(opt) {
-			Global.batcher.read(function () {
+			Global$1.batcher.read(function () {
 
 				var type = opt.element.type;
 				var name = opt.element.nodeName;
@@ -2252,7 +2258,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (opt.setup) {
 					opt.setup = false;
 
-					data = Global.model.get(opt.keys);
+					data = Global$1.model.get(opt.keys);
 
 					if (name === 'SELECT') {
 						elements = opt.element.options;
@@ -2298,7 +2304,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					if (attribute) {
-						opt.element[attribute] = Global.binder.modifyData(opt, data);
+						opt.element[attribute] = Global$1.binder.modifyData(opt, data);
 					}
 				} else {
 
@@ -2342,21 +2348,21 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (data !== undefined) {
-					Global.model.set(opt.keys, data);
+					Global$1.model.set(opt.keys, data);
 				}
 			});
 		},
 		default: function _default(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+			Global$1.batcher.read(function () {
+				var data = Global$1.model.get(opt.keys);
 
 				if (opt.element[opt.type] === data) {
 					return;
 				}
 
-				data = Global.binder.modifyData(opt, data);
+				data = Global$1.binder.modifyData(opt, data);
 
-				Global.batcher.write(function () {
+				Global$1.batcher.write(function () {
 					opt.element[opt.type] = data;
 				});
 			});
@@ -2395,12 +2401,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				opt.scope = opt.scope || opt.container.getAttribute('o-scope');
 				// opt.value = opt.value || opt.element.getAttribute(opt.name);
-				opt.path = opt.path || Global.utility.binderPath(opt.value);
+				opt.path = opt.path || Global$1.utility.binderPath(opt.value);
 
-				opt.type = opt.type || Global.utility.binderType(opt.name);
-				opt.names = opt.names || Global.utility.binderNames(opt.name);
-				opt.values = opt.values || Global.utility.binderValues(opt.value);
-				opt.modifiers = opt.modifiers || Global.utility.binderModifiers(opt.value);
+				opt.type = opt.type || Global$1.utility.binderType(opt.name);
+				opt.names = opt.names || Global$1.utility.binderNames(opt.name);
+				opt.values = opt.values || Global$1.utility.binderValues(opt.value);
+				opt.modifiers = opt.modifiers || Global$1.utility.binderModifiers(opt.value);
 
 				opt.keys = opt.keys || [opt.scope].concat(opt.values);
 
@@ -2541,6 +2547,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function unrender(opt) {
 				if (opt.type in Unrender) {
 					Unrender[opt.type](opt);
+				} else {
+					Unrender.default(opt);
 				}
 			}
 		}, {
@@ -2560,7 +2568,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return data;
 				}
 
-				if (!Global.methods.data[opt.scope]) {
+				if (!Global$1.methods.data[opt.scope]) {
 					return data;
 				}
 
@@ -2572,7 +2580,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					for (var _iterator6 = opt.modifiers[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
 						var modifier = _step6.value;
 
-						var scope = Global.methods.data[opt.scope];
+						var scope = Global$1.methods.data[opt.scope];
 						if (scope) {
 							data = scope[modifier].call(opt.container, data);
 						}
@@ -2713,7 +2721,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							name: attribute.name,
 							value: attribute.value,
 							scope: scope.getAttribute('o-scope'),
-							path: Global.utility.binderPath(attribute.value)
+							path: Global$1.utility.binderPath(attribute.value)
 						});
 
 						this.remove(binder);
@@ -2824,7 +2832,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.setUser(user);
 
 				if (typeof this._authenticated === 'string') {
-					Global.router.route(this._authenticated);
+					Global$1.router.route(this._authenticated);
 				} else if (typeof this._authenticated === 'function') {
 					this._authenticated();
 				}
@@ -2836,7 +2844,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.removeUser();
 
 				if (typeof this._unauthenticated === 'string') {
-					Global.router.route(this._unauthenticated);
+					Global$1.router.route(this._unauthenticated);
 				} else if (typeof this._unauthenticated === 'function') {
 					this._unauthenticated();
 				}
@@ -2846,7 +2854,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function forbidden(result) {
 
 				if (typeof this._forbidden === 'string') {
-					Global.router.route(this._forbidden);
+					Global$1.router.route(this._forbidden);
 				} else if (typeof this._forbidden === 'function') {
 					this._forbidden(result);
 				}
@@ -2861,7 +2869,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				// this.removeUser();
 
 				if (typeof this._unauthorized === 'string') {
-					Global.router.route(this._unauthorized);
+					Global$1.router.route(this._unauthorized);
 				} else if (typeof this._unauthorized === 'function') {
 					this._unauthorized(result);
 				}
@@ -3221,7 +3229,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				var data = this.data;
-				var result;
+				var v, p, path, result;
 				var key = keys[keys.length - 1];
 
 				for (var i = 0, l = keys.length - 1; i < l; i++) {
@@ -3268,8 +3276,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'listener',
 			value: function listener(data, path) {
 				var type = data === undefined ? 'unrender' : 'render';
-				Global.binder.each(path, function (binder) {
-					Global.binder[type](binder);
+				Global$1.binder.each(path, function (binder) {
+					Global$1.binder[type](binder);
 				});
 			}
 		}]);
@@ -3277,11 +3285,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Model;
 	}(Events);
 
-	var Global = {
+	var Global$1 = {
 		compiled: false
 	};
 
-	Object.defineProperties(Global, {
+	Object.defineProperties(Global$1, {
 		window: {
 			enumerable: true,
 			get: function get() {
@@ -3385,47 +3393,47 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	});
 
-	Object.defineProperty(Global, 'general', {
+	Object.defineProperty(Global$1, 'general', {
 		enumerable: true,
 		value: new General()
 	});
 
-	Object.defineProperty(Global, 'batcher', {
+	Object.defineProperty(Global$1, 'batcher', {
 		enumerable: true,
 		value: new Batcher()
 	});
 
-	Object.defineProperty(Global, 'loader', {
+	Object.defineProperty(Global$1, 'loader', {
 		enumerable: true,
 		value: new Loader()
 	});
 
-	Object.defineProperty(Global, 'binder', {
+	Object.defineProperty(Global$1, 'binder', {
 		enumerable: true,
 		value: new Binder()
 	});
 
-	Object.defineProperty(Global, 'fetcher', {
+	Object.defineProperty(Global$1, 'fetcher', {
 		enumerable: true,
 		value: new Fetcher()
 	});
 
-	Object.defineProperty(Global, 'keeper', {
+	Object.defineProperty(Global$1, 'keeper', {
 		enumerable: true,
 		value: new Keeper()
 	});
 
-	Object.defineProperty(Global, 'component', {
+	Object.defineProperty(Global$1, 'component', {
 		enumerable: true,
 		value: new Component()
 	});
 
-	Object.defineProperty(Global, 'router', {
+	Object.defineProperty(Global$1, 'router', {
 		enumerable: true,
 		value: new Router()
 	});
 
-	Object.defineProperty(Global, 'model', {
+	Object.defineProperty(Global$1, 'model', {
 		enumerable: true,
 		value: new Model()
 	});
@@ -3434,7 +3442,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-		var binder = Global.binder.get({
+		var binder = Global$1.binder.get({
 			name: 'o-submit',
 			element: element
 		});
@@ -3449,9 +3457,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var path = elements[i].getAttribute('o-value');
 				var keys = [scope].concat(path.split('.'));
 
-				Global.model.set(keys, '');
+				Global$1.model.set(keys, '');
 
-				Global.binder.unrender({
+				Global$1.binder.unrender({
 					name: 'o-value',
 					element: elements[i]
 				}, 'view');
@@ -3467,35 +3475,48 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		e.preventDefault();
 
-		var binder = Global.binder.get({
+		var binder = Global$1.binder.get({
 			name: 'o-submit',
 			element: element
 		});
 
 		var sScope = binder.scope;
 		var eScope = binder.container;
-		var model = Global.model.data[sScope];
+		var model = Global$1.model.data[sScope];
 
-		var data = Global.utility.formData(element, model);
-		var method = Global.utility.getByPath(eScope.methods, submit);
-		var options = method.call(eScope, data, e);
+		var data = Global$1.utility.formData(element, model);
+		var method = Global$1.utility.getByPath(eScope.methods, submit);
 
-		if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
-			var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-			var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-			var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+		var done = function done(options) {
+			if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
+				var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
+				var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+				var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+				var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
 
-			options.url = options.url || action;
-			options.method = options.method || method;
-			options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
-			options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
+				options.url = options.url || action;
+				options.method = options.method || method;
+				options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
+				options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
 
-			Global.fetcher.fetch(options);
-		}
+				Global$1.fetcher.fetch(options);
+			}
 
-		if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset')) {
-			element.reset();
+			if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset')) {
+				element.reset();
+			}
+		};
+
+		if (method.constructor.name === 'AsyncFunction') {
+			Promise.resolve().then(function () {
+				return method.call(eScope, data, e);
+			}).catch(function (options) {
+				done(options);
+			}).catch(function (error) {
+				console.error(error);
+			});
+		} else {
+			done(method.call(eScope, data, e));
 		}
 	}, true);
 
@@ -3519,12 +3540,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			if (meta && meta.hasAttribute('compiled')) {
 				args[1] = 'null';
 				args[2] = 'script';
-				Global.compiled = true;
-				Global.router.compiled = true;
-				Global.component.compiled = true;
+				Global$1.compiled = true;
+				Global$1.router.compiled = true;
+				Global$1.component.compiled = true;
 			}
 
-			Global.loader.load({
+			Global$1.loader.load({
 				url: args[0],
 				method: args[2],
 				transformer: args[1]
@@ -3539,24 +3560,24 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	document.addEventListener('input', function (e) {
 		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
 
-			var binder = Global.binder.get({
+			var binder = Global$1.binder.get({
 				name: 'o-value',
 				element: e.target
 			});
 
-			Global.binder.render(binder);
+			Global$1.binder.render(binder);
 		}
 	}, true);
 
 	document.addEventListener('change', function (e) {
 		if (e.target.hasAttribute('o-value')) {
 
-			var binder = Global.binder.get({
+			var binder = Global$1.binder.get({
 				name: 'o-value',
 				element: e.target
 			});
 
-			Global.binder.render(binder);
+			Global$1.binder.render(binder);
 		}
 	}, true);
 
@@ -3575,5 +3596,5 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		document.head.appendChild(polly);
 	}
 
-	return Global;
+	return Global$1;
 });
