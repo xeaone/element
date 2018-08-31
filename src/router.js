@@ -55,10 +55,14 @@ export default class Router extends Events {
 	add (data) {
 		if (!data) {
 			throw new Error('Oxe.router.add - requires data parameter');
-		} else if (data.constructor.name === 'Object') {
-			Array.prototype.push.call(this.data, data);
-		} else if (data.constructor.name === 'Array') {
-			Array.prototype.push.apply(this.data, data);
+		} else if (data.constructor === Object) {
+			if (!data.path) throw new Error('Oxe.router.add - route path required');
+			if (!data.component) throw new Error('Oxe.router.add - route component required');
+			this.data.push(data);
+		} else if (data.constructor === Array) {
+			for (var i = 0, l = data.length; i < l; i++) {
+				this.add(data[i]);
+			}
 		}
 	}
 
