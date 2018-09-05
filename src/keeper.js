@@ -6,8 +6,8 @@ export default class Keeper {
 
 		this._user;
 		this._token;
-		this.type = 'session';
-		this.scheme = 'session';
+		this.scheme = 'Session';
+		this.type = 'sessionStorage';
 
 		Object.defineProperties(this, {
 			token: {

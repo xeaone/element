@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.11.2
+	Version: 3.11.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2772,8 +2772,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			this._user;
 			this._token;
-			this.type = 'session';
-			this.scheme = 'session';
+			this.scheme = 'Session';
+			this.type = 'sessionStorage';
 
 			Object.defineProperties(this, {
 				token: {
