@@ -6,8 +6,8 @@ export default class Keeper {
 
 		this._user;
 		this._token;
-		this.scheme = 'Bearer';
-		this.type = 'sessionStorage';
+		this.type = 'session';
+		this.scheme = 'session';
 
 		Object.defineProperties(this, {
 			token: {
@@ -120,8 +120,12 @@ export default class Keeper {
 
 		if (result.auth === false) {
 			return true;
-		} else if (!this.token) {
-			return this.unauthorized(result);
+		} else if (this.scheme !== 'Session') {
+			if (!this.token) {
+				return this.unauthorized(result);
+			} else {
+				return true;
+			}
 		} else {
 			return true;
 		}
@@ -132,10 +136,14 @@ export default class Keeper {
 
 		if (result.auth === false) {
 			return true;
-		} else if (!this.token) {
-			return this.unauthorized(result);
+		} else if (this.scheme !== 'Session') {
+			if (!this.token) {
+				return this.unauthorized(result);
+			} else {
+				result.xhr.setRequestHeader('Authorization', this.scheme + ' ' + this.token);
+				return true;
+			}
 		} else {
-			result.xhr.setRequestHeader('Authorization', this.scheme + ' ' + this.token);
 			return true;
 		}
 
