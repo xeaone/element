@@ -84,8 +84,49 @@ document.addEventListener('submit', function submitListener (e) {
 
 }, true);
 
+document.addEventListener('input', function (e) {
+	if (
+		e.target.type !== 'checkbox'
+		&& e.target.type !== 'radio'
+		&& e.target.type !== 'option'
+		&& e.target.nodeName !== 'SELECT'
+		&& e.target.hasAttribute('o-value')
+	) {
+
+		var binder = Global.binder.get({
+			name: 'o-value',
+			element: e.target,
+		});
+
+		Global.binder.render(binder);
+	}
+}, true);
+
+document.addEventListener('change', function (e) {
+	if (e.target.hasAttribute('o-value')) {
+
+		var binder = Global.binder.get({
+			name: 'o-value',
+			element: e.target,
+		});
+
+		Global.binder.render(binder);
+	}
+}, true);
+
 var eStyle = document.createElement('style');
-var tStyle = document.createTextNode('o-router, o-router > :first-child { display: block; }')
+var tStyle = document.createTextNode(' \
+	o-router, o-router > :first-child { \
+		display: block; \
+	} \
+	o-router, [o-scope] { \
+		animation: o-transition 150ms ease-in-out; \
+	} \
+	@keyframes o-transition { \
+		0% { opacity: 0; } \
+		100% { opacity: 1; } \
+	} \
+');
 
 eStyle.setAttribute('type', 'text/css');
 eStyle.appendChild(tStyle);
@@ -122,36 +163,6 @@ var listener = function () {
 	});
 
 };
-
-document.addEventListener('input', function (e) {
-	if (
-		e.target.type !== 'checkbox'
-		&& e.target.type !== 'radio'
-		&& e.target.type !== 'option'
-		&& e.target.nodeName !== 'SELECT'
-		&& e.target.hasAttribute('o-value')
-	) {
-
-		var binder = Global.binder.get({
-			name: 'o-value',
-			element: e.target,
-		});
-
-		Global.binder.render(binder);
-	}
-}, true);
-
-document.addEventListener('change', function (e) {
-	if (e.target.hasAttribute('o-value')) {
-
-		var binder = Global.binder.get({
-			name: 'o-value',
-			element: e.target,
-		});
-
-		Global.binder.render(binder);
-	}
-}, true);
 
 if ('registerElement' in document && 'content' in document.createElement('template')) {
 	listener();

@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 3.11.3
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -3530,8 +3520,43 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		Wraper(method.bind(eScope, data, e), done);
 	}, true);
 
+	document.addEventListener('input', function (e) {
+		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
+
+			var binder = Global.binder.get({
+				name: 'o-value',
+				element: e.target
+			});
+
+			Global.binder.render(binder);
+		}
+	}, true);
+
+	document.addEventListener('change', function (e) {
+		if (e.target.hasAttribute('o-value')) {
+
+			var binder = Global.binder.get({
+				name: 'o-value',
+				element: e.target
+			});
+
+			Global.binder.render(binder);
+		}
+	}, true);
+
 	var eStyle = document.createElement('style');
-	var tStyle = document.createTextNode('o-router, o-router > :first-child { display: block; }');
+	var tStyle = document.createTextNode(' \
+	o-router, o-router > :first-child { \
+		display: block; \
+	} \
+	o-router, [o-scope] { \
+		animation: o-transition 150ms ease-in-out; \
+	} \
+	@keyframes o-transition { \
+		0% { opacity: 0; } \
+		100% { opacity: 1; } \
+	} \
+');
 
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(tStyle);
@@ -3566,30 +3591,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			prototype: Object.create(HTMLElement.prototype)
 		});
 	};
-
-	document.addEventListener('input', function (e) {
-		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
-
-			var binder = Global.binder.get({
-				name: 'o-value',
-				element: e.target
-			});
-
-			Global.binder.render(binder);
-		}
-	}, true);
-
-	document.addEventListener('change', function (e) {
-		if (e.target.hasAttribute('o-value')) {
-
-			var binder = Global.binder.get({
-				name: 'o-value',
-				element: e.target
-			});
-
-			Global.binder.render(binder);
-		}
-	}, true);
 
 	if ('registerElement' in document && 'content' in document.createElement('template')) {
 		listener();

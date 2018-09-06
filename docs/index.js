@@ -31,7 +31,7 @@ Oxe.setup({
 			js: 'es'
 		},
 		loads: [
-			'./assets/prism.css',
+			'./assets/prism.css'
 		]
 	},
 	router: {

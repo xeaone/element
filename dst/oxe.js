@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.11.3
+	Version: 3.11.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -3531,7 +3531,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}, true);
 
 	var eStyle = document.createElement('style');
-	var tStyle = document.createTextNode('o-router, o-router > :first-child { display: block; }');
+	var tStyle = document.createTextNode(' \
+	o-router, o-router > :first-child { \
+		display: block; \
+	} \
+	o-router, [o-scope] { \
+		animation: o-transition 150ms ease-in-out; \
+	} \
+	@keyframes o-transition { \
+		0% { opacity: 0; } \
+		100% { opacity: 1; } \
+	} \
+');
 
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(tStyle);
