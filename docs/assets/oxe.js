@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.11.4
+	Version: 3.12.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -819,9 +819,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (complete) {
 					return complete(data);
 				}
-			}).catch(function (error) {
-				console.error(error);
-			});
+			}).catch(console.error);
 		} else {
 			var result = action();
 
@@ -833,9 +831,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (complete) {
 						return complete(data);
 					}
-				}).catch(function (error) {
-					console.error(error);
-				});
+				}).catch(console.error);
 			} else {
 				if (complete) {
 					return complete(result);
@@ -2593,6 +2589,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						var modifier = _step6.value;
 
 						var scope = Global.methods.data[opt.scope];
+
 						if (scope) {
 							data = scope[modifier].call(opt.container, data);
 						}
@@ -2808,7 +2805,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (options.scheme) {
-					this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1);
+					this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1).toLowerCase();
 				}
 			}
 		}, {
@@ -3530,6 +3527,30 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		Wraper(method.bind(eScope, data, e), done);
 	}, true);
 
+	document.addEventListener('input', function (e) {
+		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
+
+			var binder = Global.binder.get({
+				name: 'o-value',
+				element: e.target
+			});
+
+			Global.binder.render(binder);
+		}
+	}, true);
+
+	document.addEventListener('change', function (e) {
+		if (e.target.hasAttribute('o-value')) {
+
+			var binder = Global.binder.get({
+				name: 'o-value',
+				element: e.target
+			});
+
+			Global.binder.render(binder);
+		}
+	}, true);
+
 	var eStyle = document.createElement('style');
 	var tStyle = document.createTextNode(' \
 	o-router, o-router > :first-child { \
@@ -3549,7 +3570,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	document.head.appendChild(eStyle);
 
-	var listener = function listener() {
+	var currentCount = 0;
+	var requiredCount = 0;
+	var loadedCalled = false;
+
+	var loaded = function loaded() {
+		if (loadedCalled) return;
+		if (currentCount !== requiredCount) return;
+
+		loadedCalled = true;
 
 		var element = document.querySelector('script[o-setup]');
 
@@ -3578,42 +3607,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		});
 	};
 
-	document.addEventListener('input', function (e) {
-		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
-
-			var binder = Global.binder.get({
-				name: 'o-value',
-				element: e.target
-			});
-
-			Global.binder.render(binder);
-		}
-	}, true);
-
-	document.addEventListener('change', function (e) {
-		if (e.target.hasAttribute('o-value')) {
-
-			var binder = Global.binder.get({
-				name: 'o-value',
-				element: e.target
-			});
-
-			Global.binder.render(binder);
-		}
-	}, true);
+	if ('Promise' in window && 'fetch' in window) {
+		loaded();
+	} else {
+		requiredCount++;
+		var polly = document.createElement('script');
+		polly.setAttribute('src', 'https://cdn.polyfill.io/v2/polyfill.min.js?features=fetch,promise');
+		polly.addEventListener('load', function () {
+			currentCount++;
+			loaded();
+		}, true);
+		document.head.appendChild(polly);
+	}
 
 	if ('registerElement' in document && 'content' in document.createElement('template')) {
-		listener();
+		loaded();
 	} else {
+		requiredCount++;
 		var polly = document.createElement('script');
-
-		polly.setAttribute('type', 'text/javascript');
 		polly.setAttribute('src', 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
 		polly.addEventListener('load', function () {
-			listener();
-			this.removeEventListener('load', listener);
+			currentCount++;
+			loaded();
 		}, true);
-
 		document.head.appendChild(polly);
 	}
 
