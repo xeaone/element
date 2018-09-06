@@ -40,7 +40,7 @@ export default class Keeper {
 		}
 
 		if (options.scheme) {
-			this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1);
+			this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1).toLowerCase();
 		}
 
 	}

@@ -809,9 +809,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (complete) {
 					return complete(data);
 				}
-			}).catch(function (error) {
-				console.error(error);
-			});
+			}).catch(console.error);
 		} else {
 			var result = action();
 
@@ -823,9 +821,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (complete) {
 						return complete(data);
 					}
-				}).catch(function (error) {
-					console.error(error);
-				});
+				}).catch(console.error);
 			} else {
 				if (complete) {
 					return complete(result);
@@ -2583,6 +2579,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						var modifier = _step6.value;
 
 						var scope = Global.methods.data[opt.scope];
+
 						if (scope) {
 							data = scope[modifier].call(opt.container, data);
 						}
@@ -2798,7 +2795,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (options.scheme) {
-					this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1);
+					this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1).toLowerCase();
 				}
 			}
 		}, {
@@ -3563,7 +3560,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	document.head.appendChild(eStyle);
 
-	var listener = function listener() {
+	var currentCount = 0;
+	var requiredCount = 0;
+	var loadedCalled = false;
+
+	var loaded = function loaded() {
+		if (loadedCalled) return;
+		if (currentCount !== requiredCount) return;
+
+		loadedCalled = true;
 
 		var element = document.querySelector('script[o-setup]');
 
@@ -3592,18 +3597,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		});
 	};
 
-	if ('registerElement' in document && 'content' in document.createElement('template')) {
-		listener();
+	if ('Promise' in window && 'fetch' in window) {
+		loaded();
 	} else {
+		requiredCount++;
 		var polly = document.createElement('script');
+		polly.setAttribute('src', 'https://cdn.polyfill.io/v2/polyfill.min.js?features=fetch,promise');
+		polly.addEventListener('load', function () {
+			currentCount++;
+			loaded();
+		}, true);
+		document.head.appendChild(polly);
+	}
 
-		polly.setAttribute('type', 'text/javascript');
+	if ('registerElement' in document && 'content' in document.createElement('template')) {
+		loaded();
+	} else {
+		requiredCount++;
+		var polly = document.createElement('script');
 		polly.setAttribute('src', 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
 		polly.addEventListener('load', function () {
-			listener();
-			this.removeEventListener('load', listener);
+			currentCount++;
+			loaded();
 		}, true);
-
 		document.head.appendChild(polly);
 	}
 

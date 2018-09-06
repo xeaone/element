@@ -184,9 +184,11 @@ export default class Binder {
 
 		for (var modifier of opt.modifiers) {
 			var scope = Global.methods.data[opt.scope];
+
 			if (scope) {
 				data = scope[modifier].call(opt.container, data);
 			}
+
 		}
 
 		return data;

@@ -9,9 +9,7 @@ export default function (action, complete) {
 			if (complete) {
 				return complete(data);
 			}
-		}).catch(function (error) {
-			console.error(error);
-		});
+		}).catch(console.error);
 
 	} else {
 		var result = action();
@@ -24,9 +22,7 @@ export default function (action, complete) {
 				if (complete) {
 					return complete(data);
 				}
-			}).catch(function (error) {
-				console.error(error);
-			});
+			}).catch(console.error);
 
 		} else {
 			if (complete) {
