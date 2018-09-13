@@ -1,7 +1,8 @@
 import Global from './global.js';
+import Router from './router.js';
 import Wraper from './wraper.js';
 
-export default class Fetcher {
+export default class Fetcher
 
 	constructor (options) {
 
@@ -18,8 +19,13 @@ export default class Fetcher {
 
 	setup (options) {
 		options = options || {};
-		this.auth = options.auth || false;
+
+		this.headers = options.headers || {};
 		this.method = options.method || 'get';
+
+		this.forbidden = options.forbidden;
+		this.unauthorized = options.unauthorized;
+
 		this.request = options.request;
 		this.response = options.response;
 		this.acceptType = options.acceptType;
@@ -27,15 +33,15 @@ export default class Fetcher {
 		this.responseType = options.responseType;
 	}
 
-	serialize (data) {
-		var string = '';
+	async serialize (data) {
+		let query = '';
 
-		for (var name in data) {
-			string = string.length > 0 ? string + '&' : string;
-			string = string + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+		for (let name in data) {
+			query = query.length > 0 ? query + '&' : query;
+			query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
 		}
 
-		return string;
+		return query;
 	}
 
 	change (opt) {
@@ -106,105 +112,113 @@ export default class Fetcher {
 		}
 	}
 
-	fetch (opt) {
-		var self = this;
+	async fetch (data) {
+		data = Object.assign({}, data || {});
 
-		opt = opt || {};
+		if (!data.url) throw new Error('Oxe.fetcher - requires url option');
 
-		if (!opt.url) throw new Error('Oxe.fetcher - requires url options');
+		// const result = {};
+		const request = {};
+		const response = {};
 
-		opt.xhr = new XMLHttpRequest();
-		opt.headers = opt.headers || {};
-		opt.method = opt.method || self.method;
-		opt.acceptType = opt.acceptType || self.acceptType;
-		opt.contentType = opt.contentType || self.contentType;
-		opt.responseType = opt.responseType || self.responseType;
-		opt.auth = opt.auth === undefined || opt.auth === null ? self.auth : opt.auth;
+		data.headers = data.headers || this.headers;
+		data.forbidden = data.forbidden || this.forbidden;
+		data.unauthorized = data.unauthorized || this.unauthorized;
+		data.method = (data.method || this.method).toUpperCase();
 
-		opt.method = opt.method.toUpperCase();
+		// request.body = data.body;
+		// request.method = data.method;
+		// request.headers = data.headers;
 
-		opt.xhr.open(opt.method, opt.url, true, opt.username, opt.password);
-
-		if (opt.contentType) {
-			switch (opt.contentType) {
-				case 'js': opt.headers['Content-Type'] = self.mime.js; break;
-				case 'xml': opt.headers['Content-Type'] = self.mime.xml; break;
-				case 'html': opt.headers['Content-Type'] = self.mime.html; break;
-				case 'json': opt.headers['Content-Type'] = self.mime.json; break;
-				default: opt.headers['Content-Type'] = opt.contentType;
-			}
+		switch (data.contentType) {
+			case 'js': request.headers['Content-Type'] = this.mime.js; break;
+			case 'xml': request.headers['Content-Type'] = this.mime.xml; break;
+			case 'html': request.headers['Content-Type'] = this.mime.html; break;
+			case 'json': request.headers['Content-Type'] = this.mime.json; break;
+			default: request.headers['Content-Type'] = this.contentType;
 		}
 
-		if (opt.acceptType) {
-			switch (opt.acceptType) {
-				case 'js': opt.headers['Accept'] = self.mime.js; break;
-				case 'xml': opt.headers['Accept'] = self.mime.xml; break;
-				case 'html': opt.headers['Accept'] = self.mime.html; break;
-				case 'json': opt.headers['Accept'] = self.mime.json; break;
-				default: opt.headers['Accept'] = opt.acceptType;
-			}
+		switch (data.acceptType) {
+			case 'js': request.headers['Accept'] = this.mime.js; break;
+			case 'xml': request.headers['Accept'] = this.mime.xml; break;
+			case 'html': request.headers['Accept'] = this.mime.html; break;
+			case 'json': request.headers['Accept'] = this.mime.json; break;
+			default: request.headers['Accept'] = this.acceptType;
 		}
 
-		if (opt.responseType) {
-			switch (opt.responseType) {
-				case 'text': opt.xhr.responseType = 'text'; break;
-				case 'json': opt.xhr.responseType = 'json'; break;
-				case 'blob': opt.xhr.responseType = 'blob'; break;
-				case 'xml': opt.xhr.responseType = 'document'; break;
-				case 'html': opt.xhr.responseType = 'document'; break;
-				case 'document': opt.xhr.responseType = 'document'; break;
-				case 'arraybuffer': opt.xhr.responseType = 'arraybuffer'; break;
-				default: opt.xhr.responseType = opt.responseType;
-			}
-		}
+		// if (opt.mimeType) {
+			// opt.xhr.overrideMimeType(opt.mimeType);
+		// }
 
-		if (opt.mimeType) {
-			opt.xhr.overrideMimeType(opt.mimeType);
-		}
+		// if (opt.withCredentials) {
+			// opt.xhr.withCredentials = opt.withCredentials;
+		// }
 
-		if (opt.withCredentials) {
-			opt.xhr.withCredentials = opt.withCredentials;
-		}
+		if (data.body) {
 
-		if (opt.headers) {
-			for (var name in opt.headers) {
-				opt.xhr.setRequestHeader(name, opt.headers[name]);
-			}
-		}
-
-		if (opt.auth) {
-			if (Global.keeper.request && Global.keeper.request(opt) === false) {
-				return;
-			}
-		}
-
-		var end = function () {
-			var data;
-
-			if (opt.data) {
-				if (opt.method === 'GET') {
-					opt.url = opt.url + '?' + self.serialize(opt.data);
-				} else if (opt.contentType === 'json') {
-					data = JSON.stringify(opt.data);
-				} else {
-					data = opt.data;
-				}
+			if (data.method === 'GET') {
+				data.url = data.url + '?' + await this.serialize(data.body);
+				request.url = data.url;
+			} else if (data.contentType === 'json') {
+				data.body = JSON.stringify(data.body);
+				request.body = data.body;
 			}
 
-			opt.xhr.onreadystatechange = self.change.bind(self, opt);
-			opt.xhr.send(data);
-		};
+		}
 
-		if (self.request) {
-			Wraper(self.request.bind(null, opt), function (result) {
-				if (result !== false) {
-					end();
-				}
-			});
+		if (typeof this.request === 'function') {
+			const copy = Object.assign({}, request);
+			const result = await this.request(copy);
+
+			if (result === false) {
+				return request;
+			}
+
+			if (typeof result === 'object') {
+				Object.assign(request, result);
+			}
+
+		}
+
+		const fetched = await window.fetch(request.url, request);
+
+		response.code = fetched.status;
+		response.message = fetched.statusText;
+
+		switch (data.responseType) {
+			case 'text': response.body = fetched.text(); break;
+			case 'json': response.body = fetched.json(); break;
+			case 'blob': response.body = fetched.blob(); break;
+			case 'buffer': response.body = fetched.arrayBuffer(); break;
+			default: response.body = fetched.body;
+		}
+
+		if (response.code === 401 || response.code === 403) {
+			const method = response.code === 401 ? 'unauthorized' : 'forbidden';
+
+			if (typeof data[method] === 'string') {
+				Router.route(data[method]);
+			}
+
+			if (typeof data[method] === 'function') {
+				await data[method](response);
+			}
+
+			return response;
+		}
+		
+		if (response.code >= 200 && result.code < 300 || result.code == 304) {
+			result.error = false;
 		} else {
-			end();
+			result.error = true;
 		}
 
+		if (this.response) {
+			const end = await this.response(result);
+			if (end === false) return;
+		}
+
+		return result;
 	}
 
 	post (opt) {
