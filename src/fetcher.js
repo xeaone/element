@@ -1,6 +1,3 @@
-import Global from './global.js';
-import Router from './router.js';
-import Wraper from './wraper.js';
 
 export default class Fetcher {
 
@@ -22,9 +19,6 @@ export default class Fetcher {
 
 		this.headers = options.headers || {};
 		this.method = options.method || 'get';
-
-		this.forbidden = options.forbidden;
-		this.unauthorized = options.unauthorized;
 
 		this.request = options.request;
 		this.response = options.response;
@@ -49,15 +43,11 @@ export default class Fetcher {
 
 		if (!data.url) throw new Error('Oxe.fetcher - requires url option');
 
-		data.method = (data.method || this.method).toUpperCase();
-
 		data.headers = data.headers || this.headers;
-		data.forbidden = data.forbidden || this.forbidden;
-		data.unauthorized = data.unauthorized || this.unauthorized;
-
 		data.acceptType = data.acceptType || this.acceptType;
 		data.contentType = data.contentType || this.contentType;
 		data.responseType = data.responseType || this.responseType;
+		data.method = (data.method || this.method).toUpperCase();
 
 		// omit, same-origin, or include
 		data.credentials = data.credentials || this.credentials;
@@ -136,16 +126,6 @@ export default class Fetcher {
 			case 'blob': data.body = fetched.blob(); break;
 			case 'buffer': data.body = fetched.arrayBuffer(); break;
 			default: data.body = fetched.body;
-		}
-
-		if (data.code === 401 || data.code === 403) {
-			const method = data.code === 401 ? 'unauthorized' : 'forbidden';
-
-			if (typeof data[method] === 'string') {
-				Router.route(data[method]);
-			}
-
-			return data;
 		}
 
 		if (this.response) {

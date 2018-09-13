@@ -837,27 +837,277 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Batcher;
 	}(Events);
 
+	var Fetcher = function () {
+		function Fetcher(options) {
+			_classCallCheck(this, Fetcher);
+
+			this.mime = {
+				xml: 'text/xml; charset=utf-8',
+				html: 'text/html; charset=utf-8',
+				text: 'text/plain; charset=utf-8',
+				json: 'application/json; charset=utf-8',
+				js: 'application/javascript; charset=utf-8'
+			};
+
+			this.setup(options);
+		}
+
+		_createClass(Fetcher, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
+
+				this.headers = options.headers || {};
+				this.method = options.method || 'get';
+
+				this.request = options.request;
+				this.response = options.response;
+				this.acceptType = options.acceptType;
+				this.contentType = options.contentType;
+				this.responseType = options.responseType;
+			}
+		}, {
+			key: 'serialize',
+			value: _async(function (data) {
+				var query = '';
+
+				for (var name in data) {
+					query = query.length > 0 ? query + '&' : query;
+					query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+				}
+
+				return query;
+			})
+		}, {
+			key: 'fetch',
+			value: _async(function (options) {
+				var _this2 = this;
+
+				var data = Object.assign({}, options);
+
+				if (!data.url) throw new Error('Oxe.fetcher - requires url option');
+
+				data.headers = data.headers || _this2.headers;
+				data.acceptType = data.acceptType || _this2.acceptType;
+				data.contentType = data.contentType || _this2.contentType;
+				data.responseType = data.responseType || _this2.responseType;
+				data.method = (data.method || _this2.method).toUpperCase();
+
+				// omit, same-origin, or include
+				data.credentials = data.credentials || _this2.credentials;
+
+				// cors, no-cors, or same-origin
+				data.mode = data.mode || _this2.mode;
+
+				// default, no-store, reload, no-cache, force-cache, or only-if-cached
+				data.cahce = data.cache || _this2.cache;
+
+				// follow, error, or manual
+				data.redirect = data.redirect || _this2.redirect;
+
+				// no-referrer, client, or a URL
+				data.referrer = data.referrer || _this2.referrer;
+
+				// no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
+				data.referrerPolicy = data.referrerPolicy || _this2.referrerPolicy;
+
+				data.signal = data.signal || _this2.signal;
+				data.integrity = data.integrity || _this2.integrity;
+				data.keepAlive = data.keepAlive || _this2.keepAlive;
+
+				if (data.contentType) {
+					switch (data.contentType) {
+						case 'js':
+							data.headers['Content-Type'] = _this2.mime.js;break;
+						case 'xml':
+							data.headers['Content-Type'] = _this2.mime.xml;break;
+						case 'html':
+							data.headers['Content-Type'] = _this2.mime.html;break;
+						case 'json':
+							data.headers['Content-Type'] = _this2.mime.json;break;
+						default:
+							data.headers['Content-Type'] = _this2.contentType;
+					}
+				}
+
+				if (data.acceptType) {
+					switch (data.acceptType) {
+						case 'js':
+							data.headers['Accept'] = _this2.mime.js;break;
+						case 'xml':
+							data.headers['Accept'] = _this2.mime.xml;break;
+						case 'html':
+							data.headers['Accept'] = _this2.mime.html;break;
+						case 'json':
+							data.headers['Accept'] = _this2.mime.json;break;
+						default:
+							data.headers['Accept'] = _this2.acceptType;
+					}
+				}
+
+				return _invoke(function () {
+					if (data.body) {
+						return _invokeIgnored(function () {
+							if (data.method === 'GET') {
+								var _temp = data.url + '?';
+
+								return _await(_this2.serialize(data.body), function (_this2$serialize) {
+									data.url = _temp + _this2$serialize;
+								});
+							} else if (data.contentType === 'json') {
+								data.body = JSON.stringify(data.body);
+							}
+						});
+					}
+				}, function () {
+					var _exit = false;
+					return _invoke(function () {
+						if (typeof _this2.request === 'function') {
+							var copy = Object.assign({}, data);
+							return _await(_this2.request(copy), function (result) {
+
+								if (result === false) {
+									_exit = true;
+									return data;
+								}
+
+								if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
+									Object.assign(data, result);
+								}
+							});
+						}
+					}, function (_result) {
+						return _exit ? _result : _await(window.fetch(data.url, data), function (fetched) {
+							var _exit2 = false;
+
+
+							data.code = fetched.status;
+							data.message = fetched.statusText;
+
+							switch (data.responseType) {
+								case 'text':
+									data.body = fetched.text();break;
+								case 'json':
+									data.body = fetched.json();break;
+								case 'blob':
+									data.body = fetched.blob();break;
+								case 'buffer':
+									data.body = fetched.arrayBuffer();break;
+								default:
+									data.body = fetched.body;
+							}
+
+							return _invoke(function () {
+								if (_this2.response) {
+									var copy = Object.assign({}, data);
+									return _await(_this2.response(copy), function (result) {
+
+										if (result === false) {
+											_exit2 = true;
+											return data;
+										}
+
+										if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
+											Object.assign(data, result);
+										}
+									});
+								}
+							}, function (_result2) {
+								return _exit2 ? _result2 : data;
+							});
+						});
+					});
+				});
+			})
+		}, {
+			key: 'post',
+			value: _async(function (data) {
+				var _this3 = this;
+
+				data.method = 'post';
+				return _this3.fetch(data);
+			})
+		}, {
+			key: 'get',
+			value: _async(function (data) {
+				var _this4 = this;
+
+				data.method = 'get';
+				return _this4.fetch(data);
+			})
+		}, {
+			key: 'put',
+			value: _async(function (data) {
+				var _this5 = this;
+
+				data.method = 'put';
+				return _this5.fetch(data);
+			})
+		}, {
+			key: 'head',
+			value: _async(function (data) {
+				var _this6 = this;
+
+				data.method = 'head';
+				return _this6.fetch(data);
+			})
+		}, {
+			key: 'patch',
+			value: _async(function (data) {
+				var _this7 = this;
+
+				data.method = 'patch';
+				return _this7.fetch(data);
+			})
+		}, {
+			key: 'delete',
+			value: _async(function (data) {
+				var _this8 = this;
+
+				data.method = 'delete';
+				return _this8.fetch(data);
+			})
+		}, {
+			key: 'options',
+			value: _async(function (data) {
+				var _this9 = this;
+
+				data.method = 'options';
+				return _this9.fetch(data);
+			})
+		}, {
+			key: 'connect',
+			value: _async(function (data) {
+				var _this10 = this;
+
+				data.method = 'connect';
+				return _this10.fetch(data);
+			})
+		}]);
+
+		return Fetcher;
+	}();
+
 	var Router = function (_Events2) {
 		_inherits(Router, _Events2);
 
 		function Router() {
 			_classCallCheck(this, Router);
 
-			var _this2 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
+			var _this11 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
 
-			_this2.data = [];
-			_this2.location = {};
+			_this11.data = [];
+			_this11.location = {};
 
-			_this2.ran = false;
-			_this2.auth = false;
+			_this11.ran = false;
 
-			_this2.element = null;
-			_this2.contain = false;
-			_this2.compiled = false;
+			_this11.element = null;
+			_this11.contain = false;
+			_this11.compiled = false;
 
-			document.addEventListener('click', _this2.clickListener.bind(_this2), true);
-			window.addEventListener('popstate', _this2.stateListener.bind(_this2), true);
-			return _this2;
+			document.addEventListener('click', _this11.clickListener.bind(_this11), true);
+			window.addEventListener('popstate', _this11.stateListener.bind(_this11), true);
+			return _this11;
 		}
 
 		_createClass(Router, [{
@@ -865,10 +1115,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function setup(options) {
 				options = options || {};
 
-				this.auth = options.auth === undefined ? this.auth : options.auth;
 				this.element = options.element === undefined ? this.element : options.element;
 				this.contain = options.contain === undefined ? this.contain : options.contain;
 				this.external = options.external === undefined ? this.external : options.external;
+
+				this.after = options.after === undefined ? this.after : options.after;
+				this.before = options.before === undefined ? this.before : options.before;
 
 				if (options.routes) {
 					this.add(options.routes);
@@ -1123,15 +1375,24 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'route',
-			value: function route(path, options) {
-				var route;
+			value: function (_route) {
+				function route(_x, _x2) {
+					return _route.apply(this, arguments);
+				}
 
+				route.toString = function () {
+					return _route.toString();
+				};
+
+				return route;
+			}(function (path, options) {
 				options = options || {};
 
 				if (options.query) {
 					path += this.toQueryString(options.query);
 				}
 
+				// todo might need to be moved to the end
 				if (!this.compiled) {
 					window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
 				}
@@ -1148,11 +1409,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.location.query = this.toQueryObject(this.location.search);
 				this.location.parameters = this.toParameterObject(this.location.route.path, this.location.pathname);
 
-				if (this.auth && (this.location.route.auth === true || this.location.route.auth === undefined)) {
-
-					if (Global.keeper.route(this.location.route) === false) {
-						return;
-					}
+				if (typeof this.before === 'function') {
+					var result = this.before(this.location);
+					if (result === false) return;
 				}
 
 				if (this.location.route.handler) {
@@ -1164,7 +1423,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				this.render(this.location.route);
-			}
+			})
 		}, {
 			key: 'stateListener',
 			value: function stateListener(e) {
@@ -1226,305 +1485,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		return Router;
 	}(Events);
-
-	function Wraper(action, complete) {
-
-		if (action && action.constructor.name === 'AsyncFunction') {
-
-			return Promise.resolve().then(function () {
-				return action();
-			}).then(function (data) {
-				if (complete) {
-					return complete(data);
-				}
-			}).catch(console.error);
-		} else {
-			var result = action();
-
-			if (result && result.constructor.name === 'Promise') {
-
-				return Promise.resolve().then(function () {
-					return result;
-				}).then(function (data) {
-					if (complete) {
-						return complete(data);
-					}
-				}).catch(console.error);
-			} else {
-				if (complete) {
-					return complete(result);
-				}
-			}
-		}
-	}
-
-	var Fetcher = function () {
-		function Fetcher(options) {
-			_classCallCheck(this, Fetcher);
-
-			this.mime = {
-				xml: 'text/xml; charset=utf-8',
-				html: 'text/html; charset=utf-8',
-				text: 'text/plain; charset=utf-8',
-				json: 'application/json; charset=utf-8',
-				js: 'application/javascript; charset=utf-8'
-			};
-
-			this.setup(options);
-		}
-
-		_createClass(Fetcher, [{
-			key: 'setup',
-			value: function setup(options) {
-				options = options || {};
-
-				this.headers = options.headers || {};
-				this.method = options.method || 'get';
-
-				this.forbidden = options.forbidden;
-				this.unauthorized = options.unauthorized;
-
-				this.request = options.request;
-				this.response = options.response;
-				this.acceptType = options.acceptType;
-				this.contentType = options.contentType;
-				this.responseType = options.responseType;
-			}
-		}, {
-			key: 'serialize',
-			value: _async(function (data) {
-				var query = '';
-
-				for (var name in data) {
-					query = query.length > 0 ? query + '&' : query;
-					query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
-				}
-
-				return query;
-			})
-		}, {
-			key: 'fetch',
-			value: _async(function (options) {
-				var _this3 = this;
-
-				var data = Object.assign({}, options);
-
-				if (!data.url) throw new Error('Oxe.fetcher - requires url option');
-
-				data.method = (data.method || _this3.method).toUpperCase();
-
-				data.headers = data.headers || _this3.headers;
-				data.forbidden = data.forbidden || _this3.forbidden;
-				data.unauthorized = data.unauthorized || _this3.unauthorized;
-
-				data.acceptType = data.acceptType || _this3.acceptType;
-				data.contentType = data.contentType || _this3.contentType;
-				data.responseType = data.responseType || _this3.responseType;
-
-				// omit, same-origin, or include
-				data.credentials = data.credentials || _this3.credentials;
-
-				// cors, no-cors, or same-origin
-				data.mode = data.mode || _this3.mode;
-
-				// default, no-store, reload, no-cache, force-cache, or only-if-cached
-				data.cahce = data.cache || _this3.cache;
-
-				// follow, error, or manual
-				data.redirect = data.redirect || _this3.redirect;
-
-				// no-referrer, client, or a URL
-				data.referrer = data.referrer || _this3.referrer;
-
-				// no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
-				data.referrerPolicy = data.referrerPolicy || _this3.referrerPolicy;
-
-				data.signal = data.signal || _this3.signal;
-				data.integrity = data.integrity || _this3.integrity;
-				data.keepAlive = data.keepAlive || _this3.keepAlive;
-
-				if (data.contentType) {
-					switch (data.contentType) {
-						case 'js':
-							data.headers['Content-Type'] = _this3.mime.js;break;
-						case 'xml':
-							data.headers['Content-Type'] = _this3.mime.xml;break;
-						case 'html':
-							data.headers['Content-Type'] = _this3.mime.html;break;
-						case 'json':
-							data.headers['Content-Type'] = _this3.mime.json;break;
-						default:
-							data.headers['Content-Type'] = _this3.contentType;
-					}
-				}
-
-				if (data.acceptType) {
-					switch (data.acceptType) {
-						case 'js':
-							data.headers['Accept'] = _this3.mime.js;break;
-						case 'xml':
-							data.headers['Accept'] = _this3.mime.xml;break;
-						case 'html':
-							data.headers['Accept'] = _this3.mime.html;break;
-						case 'json':
-							data.headers['Accept'] = _this3.mime.json;break;
-						default:
-							data.headers['Accept'] = _this3.acceptType;
-					}
-				}
-
-				return _invoke(function () {
-					if (data.body) {
-						return _invokeIgnored(function () {
-							if (data.method === 'GET') {
-								var _temp = data.url + '?';
-
-								return _await(_this3.serialize(data.body), function (_this3$serialize) {
-									data.url = _temp + _this3$serialize;
-								});
-							} else if (data.contentType === 'json') {
-								data.body = JSON.stringify(data.body);
-							}
-						});
-					}
-				}, function () {
-					var _exit = false;
-					return _invoke(function () {
-						if (typeof _this3.request === 'function') {
-							var copy = Object.assign({}, data);
-							return _await(_this3.request(copy), function (result) {
-
-								if (result === false) {
-									_exit = true;
-									return data;
-								}
-
-								if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
-									Object.assign(data, result);
-								}
-							});
-						}
-					}, function (_result) {
-						return _exit ? _result : _await(window.fetch(data.url, data), function (fetched) {
-							var _exit2 = false;
-
-
-							data.code = fetched.status;
-							data.message = fetched.statusText;
-
-							switch (data.responseType) {
-								case 'text':
-									data.body = fetched.text();break;
-								case 'json':
-									data.body = fetched.json();break;
-								case 'blob':
-									data.body = fetched.blob();break;
-								case 'buffer':
-									data.body = fetched.arrayBuffer();break;
-								default:
-									data.body = fetched.body;
-							}
-
-							if (data.code === 401 || data.code === 403) {
-								var method = data.code === 401 ? 'unauthorized' : 'forbidden';
-
-								if (typeof data[method] === 'string') {
-									Router.route(data[method]);
-								}
-
-								return data;
-							}
-
-							return _invoke(function () {
-								if (_this3.response) {
-									var copy = Object.assign({}, data);
-									return _await(_this3.response(copy), function (result) {
-
-										if (result === false) {
-											_exit2 = true;
-											return data;
-										}
-
-										if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
-											Object.assign(data, result);
-										}
-									});
-								}
-							}, function (_result2) {
-								return _exit2 ? _result2 : data;
-							});
-						});
-					});
-				});
-			})
-		}, {
-			key: 'post',
-			value: _async(function (data) {
-				var _this4 = this;
-
-				data.method = 'post';
-				return _this4.fetch(data);
-			})
-		}, {
-			key: 'get',
-			value: _async(function (data) {
-				var _this5 = this;
-
-				data.method = 'get';
-				return _this5.fetch(data);
-			})
-		}, {
-			key: 'put',
-			value: _async(function (data) {
-				var _this6 = this;
-
-				data.method = 'put';
-				return _this6.fetch(data);
-			})
-		}, {
-			key: 'head',
-			value: _async(function (data) {
-				var _this7 = this;
-
-				data.method = 'head';
-				return _this7.fetch(data);
-			})
-		}, {
-			key: 'patch',
-			value: _async(function (data) {
-				var _this8 = this;
-
-				data.method = 'patch';
-				return _this8.fetch(data);
-			})
-		}, {
-			key: 'delete',
-			value: _async(function (data) {
-				var _this9 = this;
-
-				data.method = 'delete';
-				return _this9.fetch(data);
-			})
-		}, {
-			key: 'options',
-			value: _async(function (data) {
-				var _this10 = this;
-
-				data.method = 'options';
-				return _this10.fetch(data);
-			})
-		}, {
-			key: 'connect',
-			value: _async(function (data) {
-				var _this11 = this;
-
-				data.method = 'connect';
-				return _this11.fetch(data);
-			})
-		}]);
-
-		return Fetcher;
-	}();
 
 	var Transformer = {
 
@@ -2041,6 +2001,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		default: function _default(opt) {}
 	};
+
+	function Wraper(action, complete) {
+
+		if (action && action.constructor.name === 'AsyncFunction') {
+
+			return Promise.resolve().then(function () {
+				return action();
+			}).then(function (data) {
+				if (complete) {
+					return complete(data);
+				}
+			}).catch(console.error);
+		} else {
+			var result = action();
+
+			if (result && result.constructor.name === 'Promise') {
+
+				return Promise.resolve().then(function () {
+					return result;
+				}).then(function (data) {
+					if (complete) {
+						return complete(data);
+					}
+				}).catch(console.error);
+			} else {
+				if (complete) {
+					return complete(result);
+				}
+			}
+		}
+	}
 
 	// TODO dynamic for list dont handle selected
 
@@ -2787,26 +2778,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		function Keeper(options) {
 			_classCallCheck(this, Keeper);
 
-			this._user;
-			this._token;
 			this.scheme = 'Session';
 			this.type = 'sessionStorage';
-
-			Object.defineProperties(this, {
-				token: {
-					enumerable: true,
-					get: function get() {
-						return this._token = this._token || window[this.type].getItem('token');
-					}
-				},
-				user: {
-					enumerable: true,
-					get: function get() {
-						return this._user = this._user || JSON.parse(window[this.type].getItem('user'));
-					}
-				}
-			});
-
 			this.setup(options);
 		}
 
@@ -2814,11 +2787,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'setup',
 			value: function setup(options) {
 				options = options || {};
-
-				this._forbidden = options.forbidden || this._forbidden;
-				this._unauthorized = options.unauthorized || this._unauthorized;
-				this._authenticated = options.authenticated || this._authenticated;
-				this._unauthenticated = options.unauthenticated || this._unauthenticated;
 
 				if (options.type) {
 					this.type = options.type + 'Storage';
@@ -2833,122 +2801,34 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function setToken(token) {
 				if (!token) return;
 				if (this.scheme === 'Basic') token = this.encode(token);
-				this._token = window[this.type].setItem('token', token);
+				window[this.type].setItem('token', token);
 			}
 		}, {
 			key: 'setUser',
 			value: function setUser(user) {
 				if (!user) return;
-				user = JSON.stringify(user);
-				this._user = window[this.type].setItem('user', user);
+				if ((typeof user === 'undefined' ? 'undefined' : _typeof(user)) !== 'object') throw new Error('Oxe.keeper.setUser - requires object');
+				window[this.type].setItem('user', JSON.stringify(user));
+			}
+		}, {
+			key: 'getToken',
+			value: function getToken() {
+				return window[this.type].getItem('token');
+			}
+		}, {
+			key: 'getUser',
+			value: function getUser() {
+				return JSON.parse(window[this.type].getItem('user') || {});
 			}
 		}, {
 			key: 'removeToken',
 			value: function removeToken() {
-				this._token = null;
 				window[this.type].removeItem('token');
 			}
 		}, {
 			key: 'removeUser',
 			value: function removeUser() {
-				this._user = null;
 				window[this.type].removeItem('user');
-			}
-		}, {
-			key: 'authenticate',
-			value: function authenticate(token, user) {
-				this.setToken(token);
-				this.setUser(user);
-
-				if (typeof this._authenticated === 'string') {
-					Global.router.route(this._authenticated);
-				} else if (typeof this._authenticated === 'function') {
-					this._authenticated();
-				}
-			}
-		}, {
-			key: 'unauthenticate',
-			value: function unauthenticate() {
-				this.removeToken();
-				this.removeUser();
-
-				if (typeof this._unauthenticated === 'string') {
-					Global.router.route(this._unauthenticated);
-				} else if (typeof this._unauthenticated === 'function') {
-					this._unauthenticated();
-				}
-			}
-		}, {
-			key: 'forbidden',
-			value: function forbidden(result) {
-
-				if (typeof this._forbidden === 'string') {
-					Global.router.route(this._forbidden);
-				} else if (typeof this._forbidden === 'function') {
-					this._forbidden(result);
-				}
-
-				return false;
-			}
-		}, {
-			key: 'unauthorized',
-			value: function unauthorized(result) {
-				// NOTE might want to remove token and user
-				// this.removeToken();
-				// this.removeUser();
-
-				if (typeof this._unauthorized === 'string') {
-					Global.router.route(this._unauthorized);
-				} else if (typeof this._unauthorized === 'function') {
-					this._unauthorized(result);
-				}
-
-				return false;
-			}
-		}, {
-			key: 'route',
-			value: function route(result) {
-
-				if (result.auth === false) {
-					return true;
-				} else if (this.scheme !== 'Session') {
-					if (!this.token) {
-						return this.unauthorized(result);
-					} else {
-						return true;
-					}
-				} else {
-					return true;
-				}
-			}
-		}, {
-			key: 'request',
-			value: function request(result) {
-
-				if (result.auth === false) {
-					return true;
-				} else if (this.scheme !== 'Session') {
-					if (!this.token) {
-						return this.unauthorized(result);
-					} else {
-						result.xhr.setRequestHeader('Authorization', this.scheme + ' ' + this.token);
-						return true;
-					}
-				} else {
-					return true;
-				}
-			}
-		}, {
-			key: 'response',
-			value: function response(result) {
-
-				if (result.code === 401) {
-					return this.unauthorized(result);
-				} else if (result.code === 403) {
-					return this.forbidden(result);
-				} else {
-					return true;
-				}
 			}
 		}, {
 			key: 'encode',
@@ -3639,33 +3519,35 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		});
 	};
 
-	if ('Promise' in window && 'fetch' in window) {
-		loaded();
-	} else {
-		requiredCount++;
-		var polly = document.createElement('script');
-		polly.setAttribute('async', 'true');
-		polly.setAttribute('src', 'https://cdn.polyfill.io/v2/polyfill.min.js?features=fetch,promise');
-		polly.addEventListener('load', function () {
-			currentCount++;
+	var loader = function loader(condition, url) {
+		if (condition) {
+			requiredCount++;
+			var polly = document.createElement('script');
+			polly.setAttribute('async', 'true');
+			polly.setAttribute('src', url);
+			polly.addEventListener('load', function () {
+				currentCount++;
+				loaded();
+			}, true);
+			document.head.appendChild(polly);
+		} else {
 			loaded();
-		}, true);
-		document.head.appendChild(polly);
-	}
+		}
+	};
 
-	if ('registerElement' in document && 'content' in document.createElement('template')) {
-		loaded();
-	} else {
-		requiredCount++;
-		var polly = document.createElement('script');
-		polly.setAttribute('async', 'true');
-		polly.setAttribute('src', 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
-		polly.addEventListener('load', function () {
-			currentCount++;
-			loaded();
-		}, true);
-		document.head.appendChild(polly);
-	}
+	var features = [];
+
+	var isNotFetch = !('fetch' in window);
+	var isNotAssign = !('assign' in Object);
+	var isNotPromise = !('Promise' in window);
+
+	if (isNotFetch) features.push('fetch');
+	if (isNotPromise) features.push('Promise');
+	if (isNotAssign) features.push('Object.assign');
+
+	loader(isNotPromise || isNotFetch || isNotAssign, 'https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','));
+
+	loader(!('registerElement' in document) || !('content' in document.createElement('template')), 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
 
 	return Global;
 });

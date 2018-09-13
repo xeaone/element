@@ -11,7 +11,6 @@ export default class Router extends Events {
 		this.location = {};
 
 		this.ran = false;
-		this.auth = false;
 
 		this.element = null;
 		this.contain = false;
@@ -24,10 +23,12 @@ export default class Router extends Events {
 	setup (options) {
 		options = options || {};
 
-		this.auth = options.auth === undefined ? this.auth : options.auth;
 		this.element = options.element === undefined ? this.element : options.element;
 		this.contain = options.contain === undefined ? this.contain : options.contain;
 		this.external = options.external === undefined ? this.external : options.external;
+
+		this.after = options.after === undefined ? this.after : options.after;
+		this.before = options.before === undefined ? this.before : options.before;
 
 		if (options.routes) {
 			this.add(options.routes);
@@ -289,14 +290,13 @@ export default class Router extends Events {
 	}
 
 	route (path, options) {
-		var location, route;
-
 		options = options || {};
 
 		if (options.query) {
 			path += this.toQueryString(options.query);
 		}
 
+		// todo might need to be moved to the end
 		if (!this.compiled) {
 			window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
 		}
@@ -313,12 +313,9 @@ export default class Router extends Events {
 		this.location.query = this.toQueryObject(this.location.search);
 		this.location.parameters = this.toParameterObject(this.location.route.path, this.location.pathname);
 
-		if (this.auth && (this.location.route.auth === true || this.location.route.auth === undefined)) {
-
-			if (Global.keeper.route(this.location.route) === false) {
-				return;
-			}
-
+		if (typeof this.before === 'function') {
+			const result = this.before(this.location);
+			if (result === false) return;
 		}
 
 		if (this.location.route.handler) {
