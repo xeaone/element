@@ -3,37 +3,13 @@ import Global from './global.js';
 export default class Keeper {
 
 	constructor (options) {
-
-		this._user;
-		this._token;
 		this.scheme = 'Session';
 		this.type = 'sessionStorage';
-
-		Object.defineProperties(this, {
-			token: {
-				enumerable: true,
-				get: function () {
-					return this._token = this._token || window[this.type].getItem('token');
-				}
-			},
-			user: {
-				enumerable: true,
-				get: function () {
-					return this._user = this._user || JSON.parse(window[this.type].getItem('user'));
-				}
-			}
-		});
-
 		this.setup(options);
 	}
 
 	setup (options) {
 		options = options || {};
-
-		this._forbidden = options.forbidden || this._forbidden;
-		this._unauthorized = options.unauthorized || this._unauthorized;
-		this._authenticated = options.authenticated || this._authenticated;
-		this._unauthenticated = options.unauthenticated || this._unauthenticated;
 
 		if (options.type) {
 			this.type = options.type + 'Storage';
@@ -48,117 +24,29 @@ export default class Keeper {
 	setToken (token) {
 		if (!token) return;
 		if (this.scheme === 'Basic') token = this.encode(token);
-		this._token = window[this.type].setItem('token', token);
+		window[this.type].setItem('token', token);
 	};
 
 	setUser (user) {
 		if (!user) return;
-		user = JSON.stringify(user);
-		this._user = window[this.type].setItem('user', user);
+		if (typeof user !== 'object') throw new Error('Oxe.keeper.setUser - requires object');
+		window[this.type].setItem('user', JSON.stringify(user));
+	}
+
+	getToken () {
+		return window[this.type].getItem('token');
+	}
+
+	getUser () {
+		return JSON.parse(window[this.type].getItem('user') || {});
 	}
 
 	removeToken () {
-		this._token = null;
 		window[this.type].removeItem('token');
 	}
 
 	removeUser () {
-		this._user = null;
 		window[this.type].removeItem('user');
-	}
-
-	authenticate (token, user) {
-		this.setToken(token);
-		this.setUser(user);
-
-		if (typeof this._authenticated === 'string') {
-			Global.router.route(this._authenticated);
-		} else if (typeof this._authenticated === 'function') {
-			this._authenticated();
-		}
-
-	}
-
-	unauthenticate () {
-		this.removeToken();
-		this.removeUser();
-
-		if (typeof this._unauthenticated === 'string') {
-			Global.router.route(this._unauthenticated);
-		} else if (typeof this._unauthenticated === 'function') {
-			this._unauthenticated();
-		}
-
-	}
-
-	forbidden (result) {
-
-		if (typeof this._forbidden === 'string') {
-			Global.router.route(this._forbidden);
-		} else if (typeof this._forbidden === 'function') {
-			this._forbidden(result);
-		}
-
-		return false;
-	}
-
-	unauthorized (result) {
-		// NOTE might want to remove token and user
-		// this.removeToken();
-		// this.removeUser();
-
-		if (typeof this._unauthorized === 'string') {
-			Global.router.route(this._unauthorized);
-		} else if (typeof this._unauthorized === 'function') {
-			this._unauthorized(result);
-		}
-
-		return false;
-	}
-
-	route (result) {
-
-		if (result.auth === false) {
-			return true;
-		} else if (this.scheme !== 'Session') {
-			if (!this.token) {
-				return this.unauthorized(result);
-			} else {
-				return true;
-			}
-		} else {
-			return true;
-		}
-
-	}
-
-	request (result) {
-
-		if (result.auth === false) {
-			return true;
-		} else if (this.scheme !== 'Session') {
-			if (!this.token) {
-				return this.unauthorized(result);
-			} else {
-				result.xhr.setRequestHeader('Authorization', this.scheme + ' ' + this.token);
-				return true;
-			}
-		} else {
-			return true;
-		}
-
-	}
-
-	response (result) {
-
-		if (result.code === 401) {
-			return this.unauthorized(result);
-		} else if (result.code === 403) {
-			return this.forbidden(result);
-		} else {
-			return true;
-		}
-
 	}
 
 	encode (data) {
