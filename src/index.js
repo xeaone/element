@@ -20,11 +20,11 @@ eStyle.appendChild(tStyle);
 
 document.head.appendChild(eStyle);
 
-var currentCount = 0;
-var requiredCount = 0;
-var loadedCalled = false;
+let currentCount = 0;
+let requiredCount = 0;
+let loadedCalled = false;
 
-var loaded = function () {
+const loaded = function () {
 	if (loadedCalled) return;
 	if (currentCount !== requiredCount) return;
 
@@ -185,32 +185,40 @@ var loaded = function () {
 
 };
 
-if ('Promise' in window && 'fetch' in window) {
-	loaded();
-} else {
-	requiredCount++;
-	var polly = document.createElement('script');
-	polly.setAttribute('async', 'true');
-	polly.setAttribute('src', 'https://cdn.polyfill.io/v2/polyfill.min.js?features=fetch,promise');
-	polly.addEventListener('load', function () {
-		currentCount++;
+const loader = function (condition, url) {
+	if (condition) {
+		requiredCount++;
+		var polly = document.createElement('script');
+		polly.setAttribute('async', 'true');
+		polly.setAttribute('src', url);
+		polly.addEventListener('load', function () {
+			currentCount++;
+			loaded();
+		}, true);
+		document.head.appendChild(polly);
+	} else {
 		loaded();
-	}, true);
-	document.head.appendChild(polly);
-}
+	}
+};
 
-if ('registerElement' in document && 'content' in document.createElement('template')) {
-	loaded();
-} else {
-	requiredCount++;
-	var polly = document.createElement('script');
-	polly.setAttribute('async', 'true');
-	polly.setAttribute('src', 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
-	polly.addEventListener('load', function () {
-		currentCount++;
-		loaded();
-	}, true);
-	document.head.appendChild(polly);
-}
+let features = [];
+
+const isNotFetch = !('fetch' in window);
+const isNotAssign = !('assign' in Object);
+const isNotPromise = !('Promise' in window);
+
+if (isNotFetch) features.push('fetch');
+if (isNotPromise) features.push('Promise');
+if (isNotAssign) features.push('Object.assign');
+
+loader(
+	isNotPromise || isNotFetch || isNotAssign,
+	'https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(',')
+);
+
+loader(
+	!('registerElement' in document) || !('content' in document.createElement('template')),
+	'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js'
+);
 
 export default Global;
