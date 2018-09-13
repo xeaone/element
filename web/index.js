@@ -20,7 +20,10 @@ Oxe.setup({
 		// 	return true;
 		// }
 		request: function () {
-			return true;
+			console.log(arguments);
+		},
+		response: function () {
+			console.log(arguments);
 		}
 	},
 	loader: {
@@ -49,3 +52,11 @@ Oxe.setup({
 		]
 	}
 });
+
+Promise.resolve().then(function () {
+	return Oxe.fetcher.get({
+		url: 'https://jsonplaceholder.typicode.com/todos/1'
+	});
+})
+.then(console.log)
+.catch(console.error);

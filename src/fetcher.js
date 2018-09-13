@@ -2,7 +2,7 @@ import Global from './global.js';
 import Router from './router.js';
 import Wraper from './wraper.js';
 
-export default class Fetcher
+export default class Fetcher {
 
 	constructor (options) {
 
@@ -44,221 +44,165 @@ export default class Fetcher
 		return query;
 	}
 
-	change (opt) {
-		var self = this;
-
-		if (opt.xhr.readyState === 4) {
-
-			opt.code = opt.xhr.status;
-			opt.message = opt.xhr.statusText;
-
-			if (opt.xhr['response'] !== undefined) {
-				opt.data = opt.xhr.response;
-			} else if (opt.xhr['responseText'] !== undefined) {
-				opt.data = opt.xhr.responseText;
-			}
-
-			// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
-			if (opt.responseType === 'json' && typeof opt.data === 'string') {
-
-				try {
-					opt.data = JSON.parse(opt.data);
-				} catch (error) {
-					console.warn(error);
-				}
-
-			}
-
-			if (opt.xhr.status === 401 || opt.xhr.status === 403) {
-				if (opt.auth) {
-					if (Global.keeper.response && Global.keeper.response(opt) === false) {
-						return;
-					}
-				}
-			}
-
-			var end = function () {
-				if (opt.xhr.status >= 200 && opt.xhr.status < 300 || opt.xhr.status == 304) {
-
-					if (opt.success) {
-						opt.success(opt);
-					} else if (opt.handler) {
-						opt.error = false;
-						opt.handler(opt);
-					}
-
-				} else {
-
-					if (opt.error) {
-						opt.error(opt);
-					} else if (opt.handler) {
-						opt.error = true;
-						opt.handler(opt);
-					}
-
-				}
-			};
-
-			if (self.response) {
-				Wraper(self.response.bind(null, opt), function (result) {
-					if (result !== false) {
-						end();
-					}
-				});
-			} else {
-				end();
-			}
-
-		}
-	}
-
-	async fetch (data) {
-		data = Object.assign({}, data || {});
+	async fetch (options) {
+		const data = Object.assign({}, options);
 
 		if (!data.url) throw new Error('Oxe.fetcher - requires url option');
 
-		// const result = {};
-		const request = {};
-		const response = {};
+		data.method = (data.method || this.method).toUpperCase();
 
 		data.headers = data.headers || this.headers;
 		data.forbidden = data.forbidden || this.forbidden;
 		data.unauthorized = data.unauthorized || this.unauthorized;
-		data.method = (data.method || this.method).toUpperCase();
 
-		// request.body = data.body;
-		// request.method = data.method;
-		// request.headers = data.headers;
+		data.acceptType = data.acceptType || this.acceptType;
+		data.contentType = data.contentType || this.contentType;
+		data.responseType = data.responseType || this.responseType;
 
-		switch (data.contentType) {
-			case 'js': request.headers['Content-Type'] = this.mime.js; break;
-			case 'xml': request.headers['Content-Type'] = this.mime.xml; break;
-			case 'html': request.headers['Content-Type'] = this.mime.html; break;
-			case 'json': request.headers['Content-Type'] = this.mime.json; break;
-			default: request.headers['Content-Type'] = this.contentType;
+		// omit, same-origin, or include
+		data.credentials = data.credentials || this.credentials;
+
+		// cors, no-cors, or same-origin
+		data.mode = data.mode || this.mode;
+
+		// default, no-store, reload, no-cache, force-cache, or only-if-cached
+		data.cahce = data.cache || this.cache;
+
+		// follow, error, or manual
+		data.redirect = data.redirect || this.redirect;
+
+		// no-referrer, client, or a URL
+		data.referrer = data.referrer || this.referrer;
+
+		// no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
+		data.referrerPolicy = data.referrerPolicy || this.referrerPolicy;
+
+		data.signal = data.signal || this.signal;
+		data.integrity = data.integrity || this.integrity;
+		data.keepAlive = data.keepAlive || this.keepAlive;
+
+		if (data.contentType) {
+			switch (data.contentType) {
+				case 'js': data.headers['Content-Type'] = this.mime.js; break;
+				case 'xml': data.headers['Content-Type'] = this.mime.xml; break;
+				case 'html': data.headers['Content-Type'] = this.mime.html; break;
+				case 'json': data.headers['Content-Type'] = this.mime.json; break;
+				default: data.headers['Content-Type'] = this.contentType;
+			}
 		}
 
-		switch (data.acceptType) {
-			case 'js': request.headers['Accept'] = this.mime.js; break;
-			case 'xml': request.headers['Accept'] = this.mime.xml; break;
-			case 'html': request.headers['Accept'] = this.mime.html; break;
-			case 'json': request.headers['Accept'] = this.mime.json; break;
-			default: request.headers['Accept'] = this.acceptType;
+		if (data.acceptType) {
+			switch (data.acceptType) {
+				case 'js': data.headers['Accept'] = this.mime.js; break;
+				case 'xml': data.headers['Accept'] = this.mime.xml; break;
+				case 'html': data.headers['Accept'] = this.mime.html; break;
+				case 'json': data.headers['Accept'] = this.mime.json; break;
+				default: data.headers['Accept'] = this.acceptType;
+			}
 		}
-
-		// if (opt.mimeType) {
-			// opt.xhr.overrideMimeType(opt.mimeType);
-		// }
-
-		// if (opt.withCredentials) {
-			// opt.xhr.withCredentials = opt.withCredentials;
-		// }
 
 		if (data.body) {
 
 			if (data.method === 'GET') {
 				data.url = data.url + '?' + await this.serialize(data.body);
-				request.url = data.url;
 			} else if (data.contentType === 'json') {
 				data.body = JSON.stringify(data.body);
-				request.body = data.body;
 			}
 
 		}
 
 		if (typeof this.request === 'function') {
-			const copy = Object.assign({}, request);
+			const copy = Object.assign({}, data);
 			const result = await this.request(copy);
 
 			if (result === false) {
-				return request;
+				return data;
 			}
 
 			if (typeof result === 'object') {
-				Object.assign(request, result);
+				Object.assign(data, result);
 			}
 
 		}
 
-		const fetched = await window.fetch(request.url, request);
+		const fetched = await window.fetch(data.url, data);
 
-		response.code = fetched.status;
-		response.message = fetched.statusText;
+		data.code = fetched.status;
+		data.message = fetched.statusText;
 
 		switch (data.responseType) {
-			case 'text': response.body = fetched.text(); break;
-			case 'json': response.body = fetched.json(); break;
-			case 'blob': response.body = fetched.blob(); break;
-			case 'buffer': response.body = fetched.arrayBuffer(); break;
-			default: response.body = fetched.body;
+			case 'text': data.body = fetched.text(); break;
+			case 'json': data.body = fetched.json(); break;
+			case 'blob': data.body = fetched.blob(); break;
+			case 'buffer': data.body = fetched.arrayBuffer(); break;
+			default: data.body = fetched.body;
 		}
 
-		if (response.code === 401 || response.code === 403) {
-			const method = response.code === 401 ? 'unauthorized' : 'forbidden';
+		if (data.code === 401 || data.code === 403) {
+			const method = data.code === 401 ? 'unauthorized' : 'forbidden';
 
 			if (typeof data[method] === 'string') {
 				Router.route(data[method]);
 			}
 
-			if (typeof data[method] === 'function') {
-				await data[method](response);
-			}
-
-			return response;
-		}
-		
-		if (response.code >= 200 && result.code < 300 || result.code == 304) {
-			result.error = false;
-		} else {
-			result.error = true;
+			return data;
 		}
 
 		if (this.response) {
-			const end = await this.response(result);
-			if (end === false) return;
+			const copy = Object.assign({}, data);
+			const result = await this.response(copy);
+
+			if (result === false) {
+				return data;
+			}
+
+			if (typeof result === 'object') {
+				Object.assign(data, result);
+			}
+
 		}
 
-		return result;
+		return data;
 	}
 
-	post (opt) {
-		opt.method = 'post';
-		return this.fetch(opt);
+	async post (data) {
+		data.method = 'post';
+		return this.fetch(data);
 	}
 
-	get (opt) {
-		opt.method = 'get';
-		return this.fetch(opt);
+	async get (data) {
+		data.method = 'get';
+		return this.fetch(data);
 	}
 
-	put (opt) {
-		opt.method = 'put';
-		return this.fetch(opt);
+	async put (data) {
+		data.method = 'put';
+		return this.fetch(data);
 	}
 
-	head (opt) {
-		opt.method = 'head';
-		return this.fetch(opt);
+	async head (data) {
+		data.method = 'head';
+		return this.fetch(data);
 	}
 
-	patch (opt) {
-		opt.method = 'patch';
-		return this.fetch(opt);
+	async patch (data) {
+		data.method = 'patch';
+		return this.fetch(data);
 	}
 
-	delete (opt) {
-		opt.method = 'delete';
-		return this.fetch(opt);
+	async delete (data) {
+		data.method = 'delete';
+		return this.fetch(data);
 	}
 
-	options (opt) {
-		opt.method = 'options';
-		return this.fetch(opt);
+	async options (data) {
+		data.method = 'options';
+		return this.fetch(data);
 	}
 
-	connect (opt) {
-		opt.method = 'connect';
-		return this.fetch(opt);
+	async connect (data) {
+		data.method = 'connect';
+		return this.fetch(data);
 	}
 
 }
