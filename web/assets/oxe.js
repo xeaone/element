@@ -2,10 +2,116 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-function _invoke(body, then) {
+function _continue(value, then) {
+	return value && value.then ? value.then(then) : then(value);
+}function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
+}function _switch(discriminant, cases) {
+	var dispatchIndex = -1;var awaitBody;outer: {
+		for (var i = 0; i < cases.length; i++) {
+			var test = cases[i][0];if (test) {
+				var testValue = test();if (testValue && testValue.then) {
+					break outer;
+				}if (testValue === discriminant) {
+					dispatchIndex = i;break;
+				}
+			} else {
+				// Found the default case, set it as the pending dispatch case
+				dispatchIndex = i;
+			}
+		}if (dispatchIndex !== -1) {
+			do {
+				var body = cases[dispatchIndex][1];while (!body) {
+					dispatchIndex++;body = cases[dispatchIndex][1];
+				}var result = body();if (result && result.then) {
+					awaitBody = true;break outer;
+				}var fallthroughCheck = cases[dispatchIndex][2];dispatchIndex++;
+			} while (fallthroughCheck && !fallthroughCheck());return result;
+		}
+	}var pact = new _Pact();var reject = _settle.bind(null, pact, 2);(awaitBody ? result.then(_resumeAfterBody) : testValue.then(_resumeAfterTest)).then(void 0, reject);return pact;function _resumeAfterTest(value) {
+		for (;;) {
+			if (value === discriminant) {
+
+				dispatchIndex = i;break;
+			}if (++i === cases.length) {
+				if (dispatchIndex !== -1) {
+					break;
+				} else {
+					_settle(pact, 1, result);return;
+				}
+			}test = cases[i][0];if (test) {
+				value = test();if (value && value.then) {
+					value.then(_resumeAfterTest).then(void 0, reject);return;
+				}
+			} else {
+				dispatchIndex = i;
+			}
+		}do {
+			var body = cases[dispatchIndex][1];while (!body) {
+				dispatchIndex++;body = cases[dispatchIndex][1];
+			}var result = body();if (result && result.then) {
+				result.then(_resumeAfterBody).then(void 0, reject);return;
+			}var fallthroughCheck = cases[dispatchIndex][2];dispatchIndex++;
+		} while (fallthroughCheck && !fallthroughCheck());_settle(pact, 1, result);
+	}function _resumeAfterBody(result) {
+		for (;;) {
+			var fallthroughCheck = cases[dispatchIndex][2];if (!fallthroughCheck || fallthroughCheck()) {
+				break;
+			}dispatchIndex++;var body = cases[dispatchIndex][1];while (!body) {
+				dispatchIndex++;body = cases[dispatchIndex][1];
+			}result = body();if (result && result.then) {
+				result.then(_resumeAfterBody).then(void 0, reject);return;
+			}
+		}_settle(pact, 1, result);
+	}
+}var _Pact = function () {
+	function _Pact() {}_Pact.prototype.then = function (onFulfilled, onRejected) {
+		var state = this.__state;if (state) {
+			var callback = state == 1 ? onFulfilled : onRejected;
+			if (callback) {
+				var _result6 = new _Pact();try {
+					_settle(_result6, 1, callback(this.__value));
+				} catch (e) {
+					_settle(_result6, 2, e);
+				}return _result6;
+			} else {
+				return this;
+			}
+		}
+
+		var result = new _Pact();this.__observer = function (_this) {
+			try {
+				var value = _this.__value;if (_this.__state == 1) {
+					_settle(result, 1, onFulfilled ? onFulfilled(value) : value);
+				} else if (onRejected) {
+					_settle(result, 1, onRejected(value));
+				} else {
+					_settle(result, 2, value);
+				}
+			} catch (e) {
+				_settle(result, 2, e);
+			}
+		};return result;
+	};return _Pact;
+}();function _settle(pact, state, value) {
+	if (!pact.__state) {
+		if (value instanceof _Pact) {
+			if (value.__state) {
+				if (state === 1) {
+					state = value.__state;
+				}
+				value = value.__value;
+			} else {
+				value.__observer = _settle.bind(null, pact, state);return;
+			}
+		}if (value && value.then) {
+			value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));return;
+		}pact.__state = state;pact.__value = value;var observer = pact.__observer;if (observer) {
+			observer(pact);
+		}
+	}
 }function _invokeIgnored(body) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
@@ -686,7 +792,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'off',
 			value: function off(name, method) {
-
 				if (name in this.events) {
 
 					var index = this.events[name].indexOf(method);
@@ -978,42 +1083,58 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}, function (_result) {
 						return _exit ? _result : _await(window.fetch(data.url, data), function (fetched) {
-							var _exit2 = false;
+							var _interrupt = false;
 
 
 							data.code = fetched.status;
 							data.message = fetched.statusText;
 
-							switch (data.responseType) {
-								case 'text':
-									data.body = fetched.text();break;
-								case 'json':
-									data.body = fetched.json();break;
-								case 'blob':
-									data.body = fetched.blob();break;
-								case 'buffer':
-									data.body = fetched.arrayBuffer();break;
-								default:
-									data.body = fetched.body;
-							}
+							return _continue(_switch(data.responseType, [[function () {
+								return 'text';
+							}, function () {
+								return _await(fetched.text(), function (_fetched$text) {
+									data.body = _fetched$text;_interrupt = true;
+								});
+							}], [function () {
+								return 'json';
+							}, function () {
+								return _await(fetched.json(), function (_fetched$json) {
+									data.body = _fetched$json;_interrupt = true;
+								});
+							}], [function () {
+								return 'blob';
+							}, function () {
+								return _await(fetched.blob(), function (_fetched$blob) {
+									data.body = _fetched$blob;_interrupt = true;
+								});
+							}], [function () {
+								return 'buffer';
+							}, function () {
+								return _await(fetched.arrayBuffer(), function (_fetched$arrayBuffer) {
+									data.body = _fetched$arrayBuffer;_interrupt = true;
+								});
+							}], [void 0, function () {
+								data.body = fetched.body;
+							}, _empty]]), function () {
+								var _exit2 = false;
+								return _invoke(function () {
+									if (_this2.response) {
+										var copy = Object.assign({}, data);
+										return _await(_this2.response(copy), function (result) {
 
-							return _invoke(function () {
-								if (_this2.response) {
-									var copy = Object.assign({}, data);
-									return _await(_this2.response(copy), function (result) {
+											if (result === false) {
+												_exit2 = true;
+												return data;
+											}
 
-										if (result === false) {
-											_exit2 = true;
-											return data;
-										}
-
-										if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
-											Object.assign(data, result);
-										}
-									});
-								}
-							}, function (_result2) {
-								return _exit2 ? _result2 : data;
+											if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
+												Object.assign(data, result);
+											}
+										});
+									}
+								}, function (_result2) {
+									return _exit2 ? _result2 : data;
+								});
 							});
 						});
 					});
@@ -1115,12 +1236,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function setup(options) {
 				options = options || {};
 
+				this.after = options.after === undefined ? this.after : options.after;
+				this.before = options.before === undefined ? this.before : options.before;
 				this.element = options.element === undefined ? this.element : options.element;
 				this.contain = options.contain === undefined ? this.contain : options.contain;
 				this.external = options.external === undefined ? this.external : options.external;
-
-				this.after = options.after === undefined ? this.after : options.after;
-				this.before = options.before === undefined ? this.before : options.before;
 
 				if (options.routes) {
 					this.add(options.routes);
@@ -1300,8 +1420,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function render(route) {
 				Global.utility.ready(function () {
 
-					this.emit('routing');
-
 					if (route.title) {
 						document.title = route.title;
 					}
@@ -1334,7 +1452,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 
 						if (!this.element) {
-							throw new Error('Oxe.router - missing o-router element');
+							throw new Error('Oxe.router.render - missing o-router element');
 						}
 					}
 
@@ -1345,7 +1463,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 
 						if (!route.component) {
-							throw new Error('Oxe.router - missing route component');
+							throw new Error('Oxe.router.render - missing route component');
 						} else if (route.component.constructor.name === 'String') {
 							route.element = document.createElement(route.component);
 						} else if (route.component.constructor.name === 'Object') {
@@ -1397,32 +1515,34 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
 				}
 
-				this.location = this.toLocationObject();
+				var location = this.toLocationObject();
 
-				this.location.route = this.find(this.location.pathname);
+				location.route = this.find(location.pathname);
 
-				if (!this.location.route) {
-					throw new Error('Oxe.router.route - no matching route');
+				if (!location.route) {
+					throw new Error('Oxe.router.route - route not found');
 				}
 
-				this.location.title = this.location.route.title || '';
-				this.location.query = this.toQueryObject(this.location.search);
-				this.location.parameters = this.toParameterObject(this.location.route.path, this.location.pathname);
+				location.title = location.route.title || '';
+				location.query = this.toQueryObject(location.search);
+				location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
 				if (typeof this.before === 'function') {
-					var result = this.before(this.location);
-					if (result === false) return;
+					var _result3 = this.before(location);
+					if (_result3 === false) return;
 				}
 
-				if (this.location.route.handler) {
-					return route.handler(this.location.route);
+				if (location.route.handler) {
+					return route.handler(location.route);
 				}
 
-				if (this.location.route.redirect) {
-					return redirect(this.location.route.redirect);
+				if (location.route.redirect) {
+					return this.redirect(location.route.redirect);
 				}
 
-				this.render(this.location.route);
+				this.location = location;
+				this.emit('routing');
+				this.render(location.route);
 			})
 		}, {
 			key: 'stateListener',
@@ -2774,95 +2894,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Binder;
 	}();
 
-	var Keeper = function () {
-		function Keeper(options) {
-			_classCallCheck(this, Keeper);
-
-			this.scheme = 'Session';
-			this.type = 'sessionStorage';
-			this.setup(options);
-		}
-
-		_createClass(Keeper, [{
-			key: 'setup',
-			value: function setup(options) {
-				options = options || {};
-
-				if (options.type) {
-					this.type = options.type + 'Storage';
-				}
-
-				if (options.scheme) {
-					this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1).toLowerCase();
-				}
-			}
-		}, {
-			key: 'setToken',
-			value: function setToken(token) {
-				if (!token) return;
-				if (this.scheme === 'Basic') token = this.encode(token);
-				window[this.type].setItem('token', token);
-			}
-		}, {
-			key: 'setUser',
-			value: function setUser(user) {
-				if (!user) return;
-				if ((typeof user === 'undefined' ? 'undefined' : _typeof(user)) !== 'object') throw new Error('Oxe.keeper.setUser - requires object');
-				window[this.type].setItem('user', JSON.stringify(user));
-			}
-		}, {
-			key: 'getToken',
-			value: function getToken() {
-				return window[this.type].getItem('token');
-			}
-		}, {
-			key: 'getUser',
-			value: function getUser() {
-				return JSON.parse(window[this.type].getItem('user') || {});
-			}
-		}, {
-			key: 'removeToken',
-			value: function removeToken() {
-				window[this.type].removeItem('token');
-			}
-		}, {
-			key: 'removeUser',
-			value: function removeUser() {
-				window[this.type].removeItem('user');
-			}
-		}, {
-			key: 'encode',
-			value: function encode(data) {
-				return window.btoa(data);
-			}
-		}, {
-			key: 'decode',
-			value: function decode(data) {
-				return window.atob(data);
-			}
-		}]);
-
-		return Keeper;
-	}();
-
-	/*
- 	https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
- 		// encode (data) {
- 	// 	// encodeURIComponent to get percent-encoded UTF-8
- 	// 	// convert the percent encodings into raw bytes which
- 	// 	return window.btoa(window.encodeURIComponent(data).replace(/%([0-9A-F]{2})/g, function (match, char) {
- 	// 		return String.fromCharCode('0x' + char);
- 	// 	}));
- 	// };
- 	//
- 	// decode (data) {
- 	// 	// from bytestream to percent-encoding to original string
- 	//     return window.decodeURIComponent(window.atob(data).split('').map(function(char) {
- 	//         return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2);
- 	//     }).join(''));
- 	// };
- */
-
 	/*
  	TODO:
  		sort reverse
@@ -2952,8 +2983,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					value: function value() {
 						if (!arguments.length) return this.length;
 
-						for (var i = 0, l = arguments.length; i < l; i++) {
-							self.splice.call(this, this.length, 0, arguments[i]);
+						for (var _i = 0, l = arguments.length; _i < l; _i++) {
+							self.splice.call(this, this.length, 0, arguments[_i]);
 						}
 
 						return this.length;
@@ -2963,8 +2994,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					value: function value() {
 						if (!arguments.length) return this.length;
 
-						for (var i = 0, l = arguments.length; i < l; i++) {
-							self.splice.call(this, 0, 0, arguments[i]);
+						for (var _i2 = 0, l = arguments.length; _i2 < l; _i2++) {
+							self.splice.call(this, 0, 0, arguments[_i2]);
 						}
 
 						return this.length;
@@ -3000,14 +3031,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					value: function value(key, _value) {
 						// if (key !== undefined && value !== undefined) {
 						if (_value !== this[key]) {
-							var result = self.create(_value, this.$meta.listener, this.$meta.path + key);
+							var _result4 = self.create(_value, this.$meta.listener, this.$meta.path + key);
 
-							this.$meta[key] = result;
+							this.$meta[key] = _result4;
 							self.defineProperty(this, key);
 
-							this.$meta.listener(result, this.$meta.path + key, key);
+							this.$meta.listener(_result4, this.$meta.path + key, key);
 
-							return result;
+							return _result4;
 						}
 						// } else {
 
@@ -3033,11 +3064,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							if (this.constructor === Array) {
 								return self.splice.call(this, key, 1);
 							} else {
-								var result = this[key];
+								var _result5 = this[key];
 								delete this.$meta[key];
 								delete this[key];
 								this.$meta.listener(undefined, this.$meta.path + key, key);
-								return result;
+								return _result5;
 							}
 						}
 					}
@@ -3283,10 +3314,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					this.general.setup(data.general);
 				}
 
-				if (data.keeper) {
-					this.keeper.setup(data.keeper);
-				}
-
 				if (data.fetcher) {
 					this.fetcher.setup(data.fetcher);
 				}
@@ -3333,11 +3360,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	Object.defineProperty(Global, 'fetcher', {
 		enumerable: true,
 		value: new Fetcher()
-	});
-
-	Object.defineProperty(Global, 'keeper', {
-		enumerable: true,
-		value: new Keeper()
 	});
 
 	Object.defineProperty(Global, 'component', {

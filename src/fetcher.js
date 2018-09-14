@@ -121,10 +121,10 @@ export default class Fetcher {
 		data.message = fetched.statusText;
 
 		switch (data.responseType) {
-			case 'text': data.body = fetched.text(); break;
-			case 'json': data.body = fetched.json(); break;
-			case 'blob': data.body = fetched.blob(); break;
-			case 'buffer': data.body = fetched.arrayBuffer(); break;
+			case 'text': data.body = await fetched.text(); break;
+			case 'json': data.body = await fetched.json(); break;
+			case 'blob': data.body = await fetched.blob(); break;
+			case 'buffer': data.body = await fetched.arrayBuffer(); break;
 			default: data.body = fetched.body;
 		}
 

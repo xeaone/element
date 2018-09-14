@@ -6,7 +6,6 @@ import Fetcher from './fetcher.js';
 import Router from './router.js';
 import Loader from './loader.js';
 import Binder from './binder.js';
-import Keeper from './keeper.js';
 import Model from './model.js';
 
 const Global = {
@@ -90,10 +89,6 @@ Object.defineProperties(Global, {
 				this.general.setup(data.general);
 			}
 
-			if (data.keeper) {
-				this.keeper.setup(data.keeper);
-			}
-
 			if (data.fetcher) {
 				this.fetcher.setup(data.fetcher);
 			}
@@ -141,11 +136,6 @@ Object.defineProperty(Global, 'binder', {
 Object.defineProperty(Global, 'fetcher', {
 	enumerable: true,
 	value: new Fetcher()
-});
-
-Object.defineProperty(Global, 'keeper', {
-	enumerable: true,
-	value: new Keeper()
 });
 
 Object.defineProperty(Global, 'component', {

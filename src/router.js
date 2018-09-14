@@ -23,12 +23,11 @@ export default class Router extends Events {
 	setup (options) {
 		options = options || {};
 
+		this.after = options.after === undefined ? this.after : options.after;
+		this.before = options.before === undefined ? this.before : options.before;
 		this.element = options.element === undefined ? this.element : options.element;
 		this.contain = options.contain === undefined ? this.contain : options.contain;
 		this.external = options.external === undefined ? this.external : options.external;
-
-		this.after = options.after === undefined ? this.after : options.after;
-		this.before = options.before === undefined ? this.before : options.before;
 
 		if (options.routes) {
 			this.add(options.routes);
@@ -205,8 +204,6 @@ export default class Router extends Events {
 	render (route) {
 		Global.utility.ready(function () {
 
-			this.emit('routing');
-
 			if (route.title) {
 				document.title = route.title;
 			}
@@ -245,7 +242,7 @@ export default class Router extends Events {
 				}
 
 				if (!this.element) {
-					throw new Error('Oxe.router - missing o-router element');
+					throw new Error('Oxe.router.render - missing o-router element');
 				}
 
 			}
@@ -257,7 +254,7 @@ export default class Router extends Events {
 				}
 
 				if (!route.component) {
-					throw new Error('Oxe.router - missing route component');
+					throw new Error('Oxe.router.render - missing route component');
 				} else if (route.component.constructor.name === 'String') {
 					route.element = document.createElement(route.component);
 				} else if (route.component.constructor.name === 'Object') {
@@ -301,32 +298,34 @@ export default class Router extends Events {
 			window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
 		}
 
-		this.location = this.toLocationObject();
+		const location = this.toLocationObject();
 
-		this.location.route = this.find(this.location.pathname);
+		location.route = this.find(location.pathname);
 
-		if (!this.location.route) {
-			throw new Error('Oxe.router.route - no matching route');
+		if (!location.route) {
+			throw new Error('Oxe.router.route - route not found');
 		}
 
-		this.location.title = this.location.route.title || '';
-		this.location.query = this.toQueryObject(this.location.search);
-		this.location.parameters = this.toParameterObject(this.location.route.path, this.location.pathname);
+		location.title = location.route.title || '';
+		location.query = this.toQueryObject(location.search);
+		location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
 		if (typeof this.before === 'function') {
-			const result = this.before(this.location);
+			const result = this.before(location);
 			if (result === false) return;
 		}
 
-		if (this.location.route.handler) {
-			return route.handler(this.location.route);
+		if (location.route.handler) {
+			return route.handler(location.route);
 		}
 
-		if (this.location.route.redirect) {
-			return redirect(this.location.route.redirect);
+		if (location.route.redirect) {
+			return this.redirect(location.route.redirect);
 		}
 
-		this.render(this.location.route);
+		this.location = location;
+		this.emit('routing');
+		this.render(location.route);
 	}
 
 	stateListener (e) {
