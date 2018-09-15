@@ -86,44 +86,14 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 - `on: EventEmitter`
 	- `setup`
 
-### Oxe.keeper
-Keeper is an auth module. It can handle the sign-in, sigh-out, Fetcher request, and Router changes.
-- `options: Object`
-	- `type: String` Token storage type
-		- `local`
-		- `session`
-	- `scheme: String` (default: session) Any valid authentication scheme or 'session' which can be used for cookie header auth.
-	- `forbidden: String, Function` If string Router.route other wise call the function
-	- `unauthorized: String, Function` If string uses Router.route other wise call the function
-	- `authenticated: String, Function` If string uses Router.route other wise call the function
-	- `unauthenticated: String, Function` If string uses Router.route other wise call the function
-- `setup: Function`
-	- `options: Object` Accepts the above options
-- `token: String` Readable only token
-- `user: String` Readable only user
-- `setToken: Function` Sets the token
-	- `token: String`
-- `setUser: Function` Sets the user
-	- `user: Object`
-- `removeToken: Function` Removes the token
-- `removeUser: Function` Removes the user
-- `authenticate: Function` Adds a token
-	- `token: String` The token to add
-	- `user: Object` The user data to add
-- `unauthenticate: Function` Removes the token and user data
-- `encode: Function` Wraps window.btoa
-- `decode: Function` Wraps window.atob
-
 ### Oxe.router
 - `options: Object`
-	- `auth: Boolean` (default: false) Enables Oxe.Keeper
 	- `trailing: Boolean` (default: true) Trailing slash mode
 	- `element: String, Element` (default: 'o-router') The element to render route changes
 	- `contain: Boolean` (default: false) Limits all href clicks to the 'o-router' element
 	- `external: String, RegExp, Function` Filters URL requests. If true or match Oxe.router will not handle request
 	- `routes: Array`
 		- `route: Object`
-			- `auth: Boolean` (default: false) Enables Oxe.Keeper
 			- `path: String` Any path starting with forward slash
 				- `parameters: String` Paths can have parameters `/account/{user}` or catchalls `{\*}`
 			- `title: String` Sets the page title
@@ -194,75 +164,43 @@ Batches DOM reads and writes.
 	- `error: Array`
 
 ### Oxe.fetcher
-Uses XHR
-- `options: Object`
-	- `acceptType: String`
-	- `contentType: String`
-	- `responseType: String`
-	- `auth: Boolean` Enables Oxe.Keeper (default: false)
-	- `request: Function` Intercepts the request if the return value is false the fetch will not continue. Accepts a promise.
-		- `xhr: Object` The xhr going to be used for the request
-		- `opt: Object` The options going to be used for the request
-		- `data: Object|String` The data to be sent as either payload or parameters
-	- `response: Function` Intercepts the request if the return value is false the fetch will not continue. Accepts a promise.
-		- `code: Number` The xhr.status
-		- `message: String` The xhr.statusText
-		- `xhr: Object` The xhr used for the request
-		- `opt: Object` The options used for the request
-		- `data: Object|String` The response transformed by resonseType
 - `setup: Function`
 	- `options: Object` Accepts Fetcher options
-- `fetch: Function` A fetch request.
-	- `options: Object`
-		- `username: String`
-		- `password: String`
-		- `withCredentials: Boolean`
-		- `method: String` (default: GET)
-		- `url: String` (default: window.location.href)
-		- `success: Function` The Success handler
-			- `result: Object`
-				- `code: Number` The xhr.status
-				- `message: String` The xhr.statusText
-				- `xhr: Object` The xhr used for the request
-				- `opt: Object` The options used for the request
-				- `data: Object|String` The response transformed by resonseType
-		- `error: Function` The Error Handler
-			- `result: Object` The options used for the request/response
-				- `code: Number` The xhr.status
-				- `message: String` The xhr.statusText
-				- `xhr: Object` The xhr used for the request
-				- `data: Object|String` The response transformed by resonseType
-		- `handler: Function` Called if no success or error handler
-			- `result: Object` The options used for the request/response
-				- `code: Number` The xhr.status
-				- `message: String` The xhr.statusText
-				- `xhr: Object` The xhr used for the request
-				- `data: Object|String` The response transformed by resonseType
-				- `error: Boolean` If status >= 200 && status < 300 || status == 304 will be false otherwise true
-		- `data: Object` If method is GET than data is concatenated to the url as parameters
-		- `contentType: String` The header Content-Type of the data being posted to the server
+		- `headers: Object` Content to be assigned to the request data.
+		- `acceptType: String`
 			- `*` Any string
 			- `xml` 'text/xml; charset=utf-8'
 			- `text` 'text/text; charset=utf-8'
 			- `html` 'text/html; charset=utf-8'
 			- `json` 'application/json; charset=utf-8'
 			- `js` 'application/javascript; charset=utf-8'
-		- `acceptType: String` The header Accept type to expect from the server
+		- `contentType: String`
 			- `*` Any string
 			- `xml` 'text/xml; charset=utf-8'
 			- `text` 'text/text; charset=utf-8'
 			- `html` 'text/html; charset=utf-8'
 			- `json` 'application/json; charset=utf-8'
 			- `js` 'application/javascript; charset=utf-8'
-		- `responseType: String` Blob support for older browsers is still needed
+		- `responseType: String`
 			- `*` Any string
 			- `arraybuffer`
 			- `document`
 			- `blob`
 			- `json`
 			- `text`
-		- `mimeType: String` Override the MIME type of the response
-		- `headers: Object` A Map of String to be directly applied to the the XHR header
+		- `request: Function` Intercepts the request. If the return value is false the fetch will stop if the value is a object it will assign/overwrite the current request data.
+			- `data: Object` The options going to be used for the request.
+		- `response: Function` Intercepts the response. If the return value is false the fetch will stop if the value is a object it will assign/overwrite the current response data.
+			- `data: Object` The options going to be used for the response.
+- `fetch: Function` Accepts window.fetch options.
+	- `options: Object`
+		- `method: String` (default: GET)
+		- `url: String` (default: window.location.href)
+		- `body: Object` If method is GET than data is concatenated to the url as parameters
+		- `headers: Object`
+		- `contentType: String`
+		- `acceptType: String`
+		- `responseType: String`
 - `get: Function`
 	- `options: Object` Uses fetch options
 - `put`
