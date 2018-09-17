@@ -181,44 +181,43 @@ Batches DOM reads and writes.
 			- `html` 'text/html; charset=utf-8'
 			- `json` 'application/json; charset=utf-8'
 			- `js` 'application/javascript; charset=utf-8'
-		- `responseType: String`
-			- `*` Any string
-			- `arraybuffer`
+		- `responseType: String` (default: ReadableStream)
+			- `arrayBuffer`
 			- `document`
 			- `blob`
 			- `json`
 			- `text`
-		- `request: Function` Intercepts the request. If the return value is false the fetch will stop if the value is a object it will assign/overwrite the current request data.
+		- `request: Function, AsyncFunction` Intercepts the request. If the return value is false the fetch will stop if the value is a object it will assign/overwrite the current request data.
 			- `data: Object` The options going to be used for the request.
-		- `response: Function` Intercepts the response. If the return value is false the fetch will stop if the value is a object it will assign/overwrite the current response data.
+		- `response: Function, AsyncFunction` Intercepts the response. If the return value is false the fetch will stop if the value is a object it will assign/overwrite the current response data.
 			- `data: Object` The options going to be used for the response.
-- `fetch: Function` Accepts window.fetch options.
+- `fetch: AsyncFunction` Accepts window.fetch options.
 	- `options: Object`
-		- `method: String` (default: GET)
-		- `url: String` (default: window.location.href)
+		- `url: String` Required absolute url
+		- `method: String` Required http methods
 		- `body: Object` If method is GET than data is concatenated to the url as parameters
-		- `headers: Object`
+		- `head: Object`
 		- `contentType: String`
 		- `acceptType: String`
 		- `responseType: String`
-- `get: Function`
+- `get: AsyncFunction`
 	- `options: Object` Uses fetch options
-- `put`
+- `put: AsyncFunction`
 	- `options: Object` Uses fetch options
-- `post: Function`
+- `post: AsyncFunction`
 	- `options: Object` Uses fetch options
-- `head: Function`
+- `head: AsyncFunction`
 	- `options: Object` Uses fetch options
-- `delete: Function`
+- `delete: AsyncFunction`
 	- `options: Object` Uses fetch options
-- `patch: Function`
+- `patch: AsyncFunction`
 	- `options: Object` Uses fetch options
-- `options: Function`
+- `options: AsyncFunction`
 	- `options: Object` Uses fetch options
-- `connect: Function`
+- `connect: AsyncFunction`
 	- `options: Object` Uses fetch options
+- `serialize: AsyncFunction`
 - `mime: Object`
-- `serialize: Function`
 
 ### Oxe.location
 Alias for `Oxe.router.location`

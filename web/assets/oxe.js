@@ -10,7 +10,9 @@ function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
-}function _empty() {}function _await(value, then, direct) {
+}
+
+function _empty() {}function _await(value, then, direct) {
 	if (direct) {
 		return then ? then(value) : value;
 	}value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -857,7 +859,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function setup(options) {
 				options = options || {};
 
-				this.headers = options.headers || {};
+				this.head = options.head || {};
 				this.method = options.method || 'get';
 
 				this.request = options.request;
@@ -886,62 +888,62 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var data = Object.assign({}, options);
 
 				if (!data.url) throw new Error('Oxe.fetcher - requires url option');
+				if (!data.method) throw new Error('Oxe.fetcher - requires method option');if (!data.head && Object.keys(_this2.head).length) data.head = _this2.head;
+				if (typeof data.method === 'string') data.method = data.method.toUpperCase() || _this2.method;
 
-				data.headers = data.headers || _this2.headers;
-				data.acceptType = data.acceptType || _this2.acceptType;
-				data.contentType = data.contentType || _this2.contentType;
-				data.responseType = data.responseType || _this2.responseType;
-				data.method = (data.method || _this2.method).toUpperCase();
+				if (!data.acceptType && _this2.acceptType) data.acceptType = _this2.acceptType;
+				if (!data.contentType && _this2.contentType) data.contentType = _this2.contentType;
+				if (!data.responseType && _this2.responseType) data.responseType = _this2.responseType;
 
 				// omit, same-origin, or include
-				data.credentials = data.credentials || _this2.credentials;
+				if (!data.credentials && _this2.credentials) data.credentials = _this2.credentials;
 
 				// cors, no-cors, or same-origin
-				data.mode = data.mode || _this2.mode;
+				if (!data.mode && _this2.mode) data.mode = _this2.mode;
 
 				// default, no-store, reload, no-cache, force-cache, or only-if-cached
-				data.cahce = data.cache || _this2.cache;
+				if (!data.cache && _this2.cache) data.cahce = _this2.cache;
 
 				// follow, error, or manual
-				data.redirect = data.redirect || _this2.redirect;
+				if (!data.redirect && _this2.redirect) data.redirect = _this2.redirect;
 
 				// no-referrer, client, or a URL
-				data.referrer = data.referrer || _this2.referrer;
+				if (!data.referrer && _this2.referrer) data.referrer = _this2.referrer;
 
 				// no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
-				data.referrerPolicy = data.referrerPolicy || _this2.referrerPolicy;
+				if (!data.referrerPolicy && _this2.referrerPolicy) data.referrerPolicy = _this2.referrerPolicy;
 
-				data.signal = data.signal || _this2.signal;
-				data.integrity = data.integrity || _this2.integrity;
-				data.keepAlive = data.keepAlive || _this2.keepAlive;
+				if (!data.signal && _this2.signal) data.signal = _this2.signal;
+				if (!data.integrity && _this2.integrity) data.integrity = _this2.integrity;
+				if (!data.keepAlive && _this2.keepAlive) data.keepAlive = _this2.keepAlive;
 
 				if (data.contentType) {
 					switch (data.contentType) {
 						case 'js':
-							data.headers['Content-Type'] = _this2.mime.js;break;
+							data.head['Content-Type'] = _this2.mime.js;break;
 						case 'xml':
-							data.headers['Content-Type'] = _this2.mime.xml;break;
+							data.head['Content-Type'] = _this2.mime.xml;break;
 						case 'html':
-							data.headers['Content-Type'] = _this2.mime.html;break;
+							data.head['Content-Type'] = _this2.mime.html;break;
 						case 'json':
-							data.headers['Content-Type'] = _this2.mime.json;break;
+							data.head['Content-Type'] = _this2.mime.json;break;
 						default:
-							data.headers['Content-Type'] = _this2.contentType;
+							data.head['Content-Type'] = _this2.contentType;
 					}
 				}
 
 				if (data.acceptType) {
 					switch (data.acceptType) {
 						case 'js':
-							data.headers['Accept'] = _this2.mime.js;break;
+							data.head['Accept'] = _this2.mime.js;break;
 						case 'xml':
-							data.headers['Accept'] = _this2.mime.xml;break;
+							data.head['Accept'] = _this2.mime.xml;break;
 						case 'html':
-							data.headers['Accept'] = _this2.mime.html;break;
+							data.head['Accept'] = _this2.mime.html;break;
 						case 'json':
-							data.headers['Accept'] = _this2.mime.json;break;
+							data.head['Accept'] = _this2.mime.json;break;
 						default:
-							data.headers['Accept'] = _this2.acceptType;
+							data.head['Accept'] = _this2.acceptType;
 					}
 				}
 
@@ -977,7 +979,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							});
 						}
 					}, function (_result) {
-						return _exit ? _result : _await(window.fetch(data.url, data), function (fetched) {
+						if (_exit) return _result;
+
+
+						if (data.head) {
+							data.header = data.head;
+						}
+
+						return _await(window.fetch(data.url, data), function (fetched) {
 
 							data.code = fetched.status;
 							data.message = fetched.statusText;

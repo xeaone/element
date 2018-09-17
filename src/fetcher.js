@@ -17,7 +17,7 @@ export default class Fetcher {
 	setup (options) {
 		options = options || {};
 
-		this.headers = options.headers || {};
+		this.head = options.head || {};
 		this.method = options.method || 'get';
 
 		this.request = options.request;
@@ -42,52 +42,54 @@ export default class Fetcher {
 		const data = Object.assign({}, options);
 
 		if (!data.url) throw new Error('Oxe.fetcher - requires url option');
+		if (!data.method) throw new Error('Oxe.fetcher - requires method option');
 
-		data.headers = data.headers || this.headers;
-		data.acceptType = data.acceptType || this.acceptType;
-		data.contentType = data.contentType || this.contentType;
-		data.responseType = data.responseType || this.responseType;
-		data.method = (data.method || this.method).toUpperCase();
+		if (!data.head && Object.keys(this.head).length) data.head = this.head;
+		if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.method;
+
+		if (!data.acceptType && this.acceptType) data.acceptType = this.acceptType;
+		if (!data.contentType && this.contentType) data.contentType = this.contentType;
+		if (!data.responseType && this.responseType) data.responseType = this.responseType;
 
 		// omit, same-origin, or include
-		data.credentials = data.credentials || this.credentials;
+		if (!data.credentials && this.credentials) data.credentials = this.credentials;
 
 		// cors, no-cors, or same-origin
-		data.mode = data.mode || this.mode;
+		if (!data.mode && this.mode) data.mode = this.mode;
 
 		// default, no-store, reload, no-cache, force-cache, or only-if-cached
-		data.cahce = data.cache || this.cache;
+		if (!data.cache && this.cache) data.cahce = this.cache;
 
 		// follow, error, or manual
-		data.redirect = data.redirect || this.redirect;
+		if (!data.redirect && this.redirect) data.redirect = this.redirect;
 
 		// no-referrer, client, or a URL
-		data.referrer = data.referrer || this.referrer;
+		if (!data.referrer && this.referrer) data.referrer = this.referrer;
 
 		// no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
-		data.referrerPolicy = data.referrerPolicy || this.referrerPolicy;
+		if (!data.referrerPolicy && this.referrerPolicy) data.referrerPolicy = this.referrerPolicy;
 
-		data.signal = data.signal || this.signal;
-		data.integrity = data.integrity || this.integrity;
-		data.keepAlive = data.keepAlive || this.keepAlive;
+		if (!data.signal && this.signal) data.signal = this.signal;
+		if (!data.integrity && this.integrity) data.integrity = this.integrity;
+		if (!data.keepAlive && this.keepAlive) data.keepAlive = this.keepAlive;
 
 		if (data.contentType) {
 			switch (data.contentType) {
-				case 'js': data.headers['Content-Type'] = this.mime.js; break;
-				case 'xml': data.headers['Content-Type'] = this.mime.xml; break;
-				case 'html': data.headers['Content-Type'] = this.mime.html; break;
-				case 'json': data.headers['Content-Type'] = this.mime.json; break;
-				default: data.headers['Content-Type'] = this.contentType;
+				case 'js': data.head['Content-Type'] = this.mime.js; break;
+				case 'xml': data.head['Content-Type'] = this.mime.xml; break;
+				case 'html': data.head['Content-Type'] = this.mime.html; break;
+				case 'json': data.head['Content-Type'] = this.mime.json; break;
+				default: data.head['Content-Type'] = this.contentType;
 			}
 		}
 
 		if (data.acceptType) {
 			switch (data.acceptType) {
-				case 'js': data.headers['Accept'] = this.mime.js; break;
-				case 'xml': data.headers['Accept'] = this.mime.xml; break;
-				case 'html': data.headers['Accept'] = this.mime.html; break;
-				case 'json': data.headers['Accept'] = this.mime.json; break;
-				default: data.headers['Accept'] = this.acceptType;
+				case 'js': data.head['Accept'] = this.mime.js; break;
+				case 'xml': data.head['Accept'] = this.mime.xml; break;
+				case 'html': data.head['Accept'] = this.mime.html; break;
+				case 'json': data.head['Accept'] = this.mime.json; break;
+				default: data.head['Accept'] = this.acceptType;
 			}
 		}
 
@@ -113,6 +115,10 @@ export default class Fetcher {
 				Object.assign(data, result);
 			}
 
+		}
+
+		if (data.head) {
+			data.header = data.head;
 		}
 
 		const fetched = await window.fetch(data.url, data);
