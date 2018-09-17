@@ -2,116 +2,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-function _continue(value, then) {
-	return value && value.then ? value.then(then) : then(value);
-}function _invoke(body, then) {
+function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
-}function _switch(discriminant, cases) {
-	var dispatchIndex = -1;var awaitBody;outer: {
-		for (var i = 0; i < cases.length; i++) {
-			var test = cases[i][0];if (test) {
-				var testValue = test();if (testValue && testValue.then) {
-					break outer;
-				}if (testValue === discriminant) {
-					dispatchIndex = i;break;
-				}
-			} else {
-				// Found the default case, set it as the pending dispatch case
-				dispatchIndex = i;
-			}
-		}if (dispatchIndex !== -1) {
-			do {
-				var body = cases[dispatchIndex][1];while (!body) {
-					dispatchIndex++;body = cases[dispatchIndex][1];
-				}var result = body();if (result && result.then) {
-					awaitBody = true;break outer;
-				}var fallthroughCheck = cases[dispatchIndex][2];dispatchIndex++;
-			} while (fallthroughCheck && !fallthroughCheck());return result;
-		}
-	}var pact = new _Pact();var reject = _settle.bind(null, pact, 2);(awaitBody ? result.then(_resumeAfterBody) : testValue.then(_resumeAfterTest)).then(void 0, reject);return pact;function _resumeAfterTest(value) {
-		for (;;) {
-			if (value === discriminant) {
-
-				dispatchIndex = i;break;
-			}if (++i === cases.length) {
-				if (dispatchIndex !== -1) {
-					break;
-				} else {
-					_settle(pact, 1, result);return;
-				}
-			}test = cases[i][0];if (test) {
-				value = test();if (value && value.then) {
-					value.then(_resumeAfterTest).then(void 0, reject);return;
-				}
-			} else {
-				dispatchIndex = i;
-			}
-		}do {
-			var body = cases[dispatchIndex][1];while (!body) {
-				dispatchIndex++;body = cases[dispatchIndex][1];
-			}var result = body();if (result && result.then) {
-				result.then(_resumeAfterBody).then(void 0, reject);return;
-			}var fallthroughCheck = cases[dispatchIndex][2];dispatchIndex++;
-		} while (fallthroughCheck && !fallthroughCheck());_settle(pact, 1, result);
-	}function _resumeAfterBody(result) {
-		for (;;) {
-			var fallthroughCheck = cases[dispatchIndex][2];if (!fallthroughCheck || fallthroughCheck()) {
-				break;
-			}dispatchIndex++;var body = cases[dispatchIndex][1];while (!body) {
-				dispatchIndex++;body = cases[dispatchIndex][1];
-			}result = body();if (result && result.then) {
-				result.then(_resumeAfterBody).then(void 0, reject);return;
-			}
-		}_settle(pact, 1, result);
-	}
-}var _Pact = function () {
-	function _Pact() {}_Pact.prototype.then = function (onFulfilled, onRejected) {
-		var state = this.__state;if (state) {
-			var callback = state == 1 ? onFulfilled : onRejected;
-			if (callback) {
-				var _result6 = new _Pact();try {
-					_settle(_result6, 1, callback(this.__value));
-				} catch (e) {
-					_settle(_result6, 2, e);
-				}return _result6;
-			} else {
-				return this;
-			}
-		}
-
-		var result = new _Pact();this.__observer = function (_this) {
-			try {
-				var value = _this.__value;if (_this.__state == 1) {
-					_settle(result, 1, onFulfilled ? onFulfilled(value) : value);
-				} else if (onRejected) {
-					_settle(result, 1, onRejected(value));
-				} else {
-					_settle(result, 2, value);
-				}
-			} catch (e) {
-				_settle(result, 2, e);
-			}
-		};return result;
-	};return _Pact;
-}();function _settle(pact, state, value) {
-	if (!pact.__state) {
-		if (value instanceof _Pact) {
-			if (value.__state) {
-				if (state === 1) {
-					state = value.__state;
-				}
-				value = value.__value;
-			} else {
-				value.__observer = _settle.bind(null, pact, state);return;
-			}
-		}if (value && value.then) {
-			value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));return;
-		}pact.__state = state;pact.__value = value;var observer = pact.__observer;if (observer) {
-			observer(pact);
-		}
-	}
 }function _invokeIgnored(body) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
@@ -792,6 +686,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'off',
 			value: function off(name, method) {
+
 				if (name in this.events) {
 
 					var index = this.events[name].indexOf(method);
@@ -1083,39 +978,19 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}, function (_result) {
 						return _exit ? _result : _await(window.fetch(data.url, data), function (fetched) {
-							var _interrupt = false;
-
 
 							data.code = fetched.status;
 							data.message = fetched.statusText;
 
-							return _continue(_switch(data.responseType, [[function () {
-								return 'text';
+							return _invoke(function () {
+								if (!data.responseType) {
+									data.body = fetched.body;
+								} else {
+									return _await(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType](), function (_fetched) {
+										data.body = _fetched;
+									});
+								}
 							}, function () {
-								return _await(fetched.text(), function (_fetched$text) {
-									data.body = _fetched$text;_interrupt = true;
-								});
-							}], [function () {
-								return 'json';
-							}, function () {
-								return _await(fetched.json(), function (_fetched$json) {
-									data.body = _fetched$json;_interrupt = true;
-								});
-							}], [function () {
-								return 'blob';
-							}, function () {
-								return _await(fetched.blob(), function (_fetched$blob) {
-									data.body = _fetched$blob;_interrupt = true;
-								});
-							}], [function () {
-								return 'buffer';
-							}, function () {
-								return _await(fetched.arrayBuffer(), function (_fetched$arrayBuffer) {
-									data.body = _fetched$arrayBuffer;_interrupt = true;
-								});
-							}], [void 0, function () {
-								data.body = fetched.body;
-							}, _empty]]), function () {
 								var _exit2 = false;
 								return _invoke(function () {
 									if (_this2.response) {
@@ -1528,8 +1403,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
 				if (typeof this.before === 'function') {
-					var _result3 = this.before(location);
-					if (_result3 === false) return;
+					var result = this.before(location);
+					if (result === false) return;
 				}
 
 				if (location.route.handler) {
@@ -2983,8 +2858,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					value: function value() {
 						if (!arguments.length) return this.length;
 
-						for (var _i = 0, l = arguments.length; _i < l; _i++) {
-							self.splice.call(this, this.length, 0, arguments[_i]);
+						for (var i = 0, l = arguments.length; i < l; i++) {
+							self.splice.call(this, this.length, 0, arguments[i]);
 						}
 
 						return this.length;
@@ -2994,8 +2869,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					value: function value() {
 						if (!arguments.length) return this.length;
 
-						for (var _i2 = 0, l = arguments.length; _i2 < l; _i2++) {
-							self.splice.call(this, 0, 0, arguments[_i2]);
+						for (var i = 0, l = arguments.length; i < l; i++) {
+							self.splice.call(this, 0, 0, arguments[i]);
 						}
 
 						return this.length;
@@ -3031,14 +2906,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					value: function value(key, _value) {
 						// if (key !== undefined && value !== undefined) {
 						if (_value !== this[key]) {
-							var _result4 = self.create(_value, this.$meta.listener, this.$meta.path + key);
+							var result = self.create(_value, this.$meta.listener, this.$meta.path + key);
 
-							this.$meta[key] = _result4;
+							this.$meta[key] = result;
 							self.defineProperty(this, key);
 
-							this.$meta.listener(_result4, this.$meta.path + key, key);
+							this.$meta.listener(result, this.$meta.path + key, key);
 
-							return _result4;
+							return result;
 						}
 						// } else {
 
@@ -3064,11 +2939,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							if (this.constructor === Array) {
 								return self.splice.call(this, key, 1);
 							} else {
-								var _result5 = this[key];
+								var result = this[key];
 								delete this.$meta[key];
 								delete this[key];
 								this.$meta.listener(undefined, this.$meta.path + key, key);
-								return _result5;
+								return result;
 							}
 						}
 					}

@@ -22,7 +22,7 @@ Oxe.setup({
 		request: function () {
 			console.log(arguments);
 		},
-		response: function () {
+		response: async function () {
 			console.log(arguments);
 		}
 	},
