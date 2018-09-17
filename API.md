@@ -165,22 +165,10 @@ Batches DOM reads and writes.
 
 ### Oxe.fetcher
 - `setup: Function`
-	- `options: Object` Accepts Fetcher options
-		- `headers: Object` Content to be assigned to the request data.
-		- `acceptType: String`
-			- `*` Any string
-			- `xml` 'text/xml; charset=utf-8'
-			- `text` 'text/text; charset=utf-8'
-			- `html` 'text/html; charset=utf-8'
-			- `json` 'application/json; charset=utf-8'
-			- `js` 'application/javascript; charset=utf-8'
-		- `contentType: String`
-			- `*` Any string
-			- `xml` 'text/xml; charset=utf-8'
-			- `text` 'text/text; charset=utf-8'
-			- `html` 'text/html; charset=utf-8'
-			- `json` 'application/json; charset=utf-8'
-			- `js` 'application/javascript; charset=utf-8'
+	- `options: Object` Accepts `window.fetch` options
+		- `head: Object` Valid http header content to be assigned to all requests
+		- `acceptType: String`  Valid http `Accept-Type` value or a Oxe.fetcher.mime name
+		- `contentType: String` Valid http `Content-Type` value or a Oxe.fetcher.mime name
 		- `responseType: String` (default: ReadableStream)
 			- `arrayBuffer`
 			- `document`
@@ -188,36 +176,41 @@ Batches DOM reads and writes.
 			- `json`
 			- `text`
 		- `request: Function, AsyncFunction` Intercepts the request. If the return value is false the fetch will stop if the value is a object it will assign/overwrite the current request data.
-			- `data: Object` The options going to be used for the request.
+			- `data: Object` Argument to be sent as the request
 		- `response: Function, AsyncFunction` Intercepts the response. If the return value is false the fetch will stop if the value is a object it will assign/overwrite the current response data.
-			- `data: Object` The options going to be used for the response.
-- `fetch: AsyncFunction` Accepts window.fetch options.
+			- `data: Object` Argument to be sent as the response
+- `fetch: AsyncFunction` Accepts `window.fetch` options
 	- `options: Object`
 		- `url: String` Required absolute url
-		- `method: String` Required http methods
-		- `body: Object` If method is GET than data is concatenated to the url as parameters
+		- `method: String` Required http method
+		- `body: Object` If method is GET than body is concatenated to the url as parameters
 		- `head: Object`
-		- `contentType: String`
-		- `acceptType: String`
-		- `responseType: String`
+		- `contentType: String` Overrides the setup contentType.
+		- `acceptType: String` Overrides the setup acceptType.
+		- `responseType: String` Overrides the setup responseType.
 - `get: AsyncFunction`
-	- `options: Object` Uses fetch options
+	- `options: Object` Accepts `Oxe.fetcher.fetch` options
 - `put: AsyncFunction`
-	- `options: Object` Uses fetch options
+	- `options: Object` Accepts `Oxe.fetcher.fetch` options
 - `post: AsyncFunction`
-	- `options: Object` Uses fetch options
+	- `options: Object` Accepts `Oxe.fetcher.fetch` options
 - `head: AsyncFunction`
-	- `options: Object` Uses fetch options
+	- `options: Object` Accepts `Oxe.fetcher.fetch` options
 - `delete: AsyncFunction`
-	- `options: Object` Uses fetch options
+	- `options: Object` Accepts `Oxe.fetcher.fetch` options
 - `patch: AsyncFunction`
-	- `options: Object` Uses fetch options
+	- `options: Object` Accepts `Oxe.fetcher.fetch` options
 - `options: AsyncFunction`
-	- `options: Object` Uses fetch options
+	- `options: Object` Accepts `Oxe.fetcher.fetch` options
 - `connect: AsyncFunction`
-	- `options: Object` Uses fetch options
+	- `options: Object` Accepts `Oxe.fetcher.fetch` options
 - `serialize: AsyncFunction`
 - `mime: Object`
+	- `xml` 'text/xml; charset=utf-8'
+	- `text` 'text/text; charset=utf-8'
+	- `html` 'text/html; charset=utf-8'
+	- `json` 'application/json; charset=utf-8'
+	- `js` 'application/javascript; charset=utf-8'
 
 ### Oxe.location
 Alias for `Oxe.router.location`

@@ -117,11 +117,14 @@ export default class Fetcher {
 
 		}
 
-		if (data.head) {
-			data.header = data.head;
+		const fetchOptions = Object.assign({}, data);
+
+		if (fetchOptions.head) {
+			fetchOptions.header = fetchOptions.head;
+			delete fetchOptions.head;
 		}
 
-		const fetched = await window.fetch(data.url, data);
+		const fetched = await window.fetch(data.url, fetchOptions);
 
 		data.code = fetched.status;
 		data.message = fetched.statusText;

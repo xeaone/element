@@ -982,11 +982,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						if (_exit) return _result;
 
 
-						if (data.head) {
-							data.header = data.head;
+						var fetchOptions = Object.assign({}, data);
+
+						if (fetchOptions.head) {
+							fetchOptions.header = fetchOptions.head;
+							delete fetchOptions.head;
 						}
 
-						return _await(window.fetch(data.url, data), function (fetched) {
+						return _await(window.fetch(data.url, fetchOptions), function (fetched) {
 
 							data.code = fetched.status;
 							data.message = fetched.statusText;

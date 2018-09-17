@@ -9,16 +9,6 @@ import rJs from './routes/r-js.js';
 
 Oxe.setup({
 	fetcher: {
-		// request: function () {
-		// 	return new Promise(function (resolve) {
-		// 		setTimeout(function () {
-		// 			resolve(true);
-		// 		}, 1500);
-		// 	});
-		// }
-		// request: async function () {
-		// 	return true;
-		// }
 		request: function () {
 			console.log(arguments);
 		},
