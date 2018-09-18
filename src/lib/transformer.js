@@ -1,5 +1,7 @@
 import Path from './path.js';
 
+// FIXME import export in strings cause error
+
 export default {
 
 	/*
