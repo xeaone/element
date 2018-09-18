@@ -74,22 +74,24 @@ export default class Fetcher {
 		if (!data.keepAlive && this.keepAlive) data.keepAlive = this.keepAlive;
 
 		if (data.contentType) {
+			data.head = data.head || {};
 			switch (data.contentType) {
 				case 'js': data.head['Content-Type'] = this.mime.js; break;
 				case 'xml': data.head['Content-Type'] = this.mime.xml; break;
 				case 'html': data.head['Content-Type'] = this.mime.html; break;
 				case 'json': data.head['Content-Type'] = this.mime.json; break;
-				default: data.head['Content-Type'] = this.contentType;
+				default: data.head['Content-Type'] = data.contentType;
 			}
 		}
 
 		if (data.acceptType) {
+			data.head = data.head || {};
 			switch (data.acceptType) {
 				case 'js': data.head['Accept'] = this.mime.js; break;
 				case 'xml': data.head['Accept'] = this.mime.xml; break;
 				case 'html': data.head['Accept'] = this.mime.html; break;
 				case 'json': data.head['Accept'] = this.mime.json; break;
-				default: data.head['Accept'] = this.acceptType;
+				default: data.head['Accept'] = data.acceptType;
 			}
 		}
 

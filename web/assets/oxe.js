@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.13.0
+	Version: 3.13.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -928,6 +928,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (!data.keepAlive && _this2.keepAlive) data.keepAlive = _this2.keepAlive;
 
 				if (data.contentType) {
+					data.head = data.head || {};
 					switch (data.contentType) {
 						case 'js':
 							data.head['Content-Type'] = _this2.mime.js;break;
@@ -938,11 +939,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						case 'json':
 							data.head['Content-Type'] = _this2.mime.json;break;
 						default:
-							data.head['Content-Type'] = _this2.contentType;
+							data.head['Content-Type'] = data.contentType;
 					}
 				}
 
 				if (data.acceptType) {
+					data.head = data.head || {};
 					switch (data.acceptType) {
 						case 'js':
 							data.head['Accept'] = _this2.mime.js;break;
@@ -953,7 +955,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						case 'json':
 							data.head['Accept'] = _this2.mime.json;break;
 						default:
-							data.head['Accept'] = _this2.acceptType;
+							data.head['Accept'] = data.acceptType;
 					}
 				}
 
