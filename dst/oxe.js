@@ -1503,6 +1503,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Router;
 	}(Events);
 
+	// FIXME import export in strings cause error
+
 	var Transformer = {
 
 		/*
