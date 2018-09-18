@@ -122,7 +122,7 @@ export default class Fetcher {
 		const fetchOptions = Object.assign({}, data);
 
 		if (fetchOptions.head) {
-			fetchOptions.header = fetchOptions.head;
+			fetchOptions.headers = fetchOptions.head;
 			delete fetchOptions.head;
 		}
 

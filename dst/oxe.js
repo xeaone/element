@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.13.1
+	Version: 3.13.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -997,7 +997,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						var fetchOptions = Object.assign({}, data);
 
 						if (fetchOptions.head) {
-							fetchOptions.header = fetchOptions.head;
+							fetchOptions.headers = fetchOptions.head;
 							delete fetchOptions.head;
 						}
 
