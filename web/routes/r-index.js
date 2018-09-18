@@ -2,33 +2,39 @@ import Escape from '../modules/escape.js';
 import Say from '../modules/say.js';
 
 var home = Escape(`
-	Oxe.component.define({
-		name: 'r-home',
-		template: \`
-			<h1 o-text="title"></h1>
-		\`,
-		model: {
-			title: 'Old Title'
-		},
-		methods: {
-			log: function () {
-				console.log(this.model.title);
+	// home.js
+
+	exprt default {
+		path: '/',
+		title: 'Home',
+		component: {
+			name: 'r-home',
+			template: \`
+				<h1 o-text="title"></h1>
+				<button o-on-click="greet">Greet</button>
+			\`,
+			model: {
+				greeting: 'Old Hello World'
+			},
+			methods: {
+				greet: function () {
+					console.log(this.model.greeting);
+				}
+			},
+			created: function () {
+				console.log(this.model.greeting);
+				this.model.greeting = 'New Hello World';
 			}
-		},
-		created: function () {
-			this.model.title = 'New Title';
 		}
-	});
+	};
 `);
 
 var indexjs = Escape(`
+	// index.js
+
+	import Home from './home.js';
+
 	Oxe.setup({
-		keeper: {
-			unauthorized: '/sign-in', // string or function
-		},
-		fetcher: {
-			auth: true, // enables keeper for all fetches
-		},
 		loader: {
 			transformers: {
 				js: 'es', // enables ES6 module and template string re-writes
@@ -42,21 +48,17 @@ var indexjs = Escape(`
 			]
 		},
 		router: {
-			auth: true, // enables keeper for all routes
 			routes: [
-				{
-					auth: false, // individually disable/eneable auth
-					path: '/',
-					title: 'Home',
-					component: 'r-home',
-					load: './routes/r-home.js'
-				}
+				Home
 			]
 		}
 	});
+
 `);
 
 var indexhtml = Escape(`
+	<!-- index.html -->
+
 	<html>
 	<head>
 
@@ -99,8 +101,11 @@ export default {
 
 			<strong>Features</strong>
 			<ul>
-				<li>Really Small 8.09KB gzipped and 27.08KB uncompressed</li>
-				<li>In browser ES6/ESM module and template strings support</li>
+				<li>Small size</li>
+				<li>Front end routing</li>
+				<li>Optional module loading</li>
+				<li>In browser ES6/ESM module rewrites</li>
+				<li>In browser Template string rewrites</li>
 			</ul>
 
 			<strong>Support</strong>
@@ -116,7 +121,7 @@ export default {
 
 			<strong>Note</strong>
 			<p>
-			Loader uses <i>XHR </i> and <i>new Function</i> to load on-demand and execute modules. If your worried about security please read the linked articles. In summary the articles support not using new Function/eval to process client input. So as long as your only importing local modules (Loader enforces this) then the safety concern is eliminated.
+			Loader uses <i>XHR </i> and <i>new Function</i> to load on-demand and execute modules. If your worried about security please read the linked articles. In summary the articles support not using new Function/eval to process client input. Therefore if the modules imported are local (Loader enforces this) and contains no malicious code then the safety concern is eliminated.
 				<div>Resources</div>
 				<ul>
 					<li><a href="http://2ality.com/2014/01/eval.html" target="_blank" re="noopener">http://2ality.com/2014/01/eval.html</a></li>

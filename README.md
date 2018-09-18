@@ -11,11 +11,11 @@ Breaking version changes can be found at [VERSION.md](https://github.com/Alexand
 
 ### Features
 - Small size
-- Module loading
 - Front end routing
-- Front end auth handling
-- Automatic pollyfilling if required [web components v0](https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js)
-- In browser ES6/ESM Module and Template String pollyfill support (only export default)
+- Optional module loading
+- In browser ES6/ESM module rewrites
+- In browser Template string rewrites
+- Automatic conditional pollyfills [web components v0](https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js) [fetch, Promise, Object.assign](https://cdn.polyfill.io/v2/polyfill.min.js?features=fetch,Promise,Object.assign)
 
 ### Support
 - IE10~
@@ -37,32 +37,38 @@ Live examples [alexanderelias.github.io/oxe/](https://alexanderelias.github.io/o
 
 ## Example
 ```js
-Oxe.component.define({
-	name: 'r-home',
-	template: `
-		<h1 o-text="title"></h1>
-	`,
-	model: {
-		title: 'Old Title'
-	},
-	methods: {
-		log: function () {
-			console.log(this.model.title);
+// home.js
+
+export default {
+	path: '/',
+	title: 'Home',
+	component: {
+		name: 'r-home',
+		template: `
+			<h1 o-text="title"></h1>
+			<button o-on-click="greet">Greet</button>
+		`,
+		model: {
+			greeting: 'Old Hello World'
+		},
+		methods: {
+			greet: function () {
+				console.log(this.model.greeting);
+			}
+		},
+		created: function () {
+			console.log(this.model.greeting);
+			this.model.greeting = 'New Hello World';
 		}
-	},
-	created: function () {
-		this.model.title = 'New Title';
 	}
-});
+};
 ```
 ```js
+// index.js
+
+import Home from './home.js';
+
 Oxe.setup({
-	keeper: {
-		unauthorized: '/sign-in', // string or function
-	},
-	fetcher: {
-		auth: true, // enables keeper for all fetches
-	},
 	loader: {
 		transformers: {
 			js: 'es', // enables ES6 module and template string re-writes
@@ -76,20 +82,15 @@ Oxe.setup({
 		]
 	},
 	router: {
-		auth: true, // enables keeper for all routes
 		routes: [
-			{
-				auth: false, // individually disable/eneable auth
-				path: '/',
-				title: 'Home',
-				component: 'r-home',
-				load: './routes/r-home.js'
-			}
+			Home
 		]
 	}
 });
 ```
 ```html
+<!-- index.html -->
+
 <html>
 <head>
 

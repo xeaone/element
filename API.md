@@ -55,7 +55,7 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 	- `import Name from './path'`
 	- `import './path'`
 	- `export default`
-- Commented import/export will still be re-written and loaded
+- Commented and string or template string import/export might have issues
 - Template string re-writes may not handle nested backtick/template string correctly
 - Method type of fetch will use XHR and new Function.
 
