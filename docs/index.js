@@ -9,18 +9,11 @@ import rJs from './routes/r-js.js';
 
 Oxe.setup({
 	fetcher: {
-		// request: function () {
-		// 	return new Promise(function (resolve) {
-		// 		setTimeout(function () {
-		// 			resolve(true);
-		// 		}, 1500);
-		// 	});
-		// }
-		// request: async function () {
-		// 	return true;
-		// }
 		request: function () {
-			return true;
+			console.log(arguments);
+		},
+		response: async function () {
+			console.log(arguments);
 		}
 	},
 	loader: {
@@ -49,3 +42,11 @@ Oxe.setup({
 		]
 	}
 });
+
+Promise.resolve().then(function () {
+	return Oxe.fetcher.get({
+		url: 'https://jsonplaceholder.typicode.com/todos/1'
+	});
+})
+.then(console.log)
+.catch(console.error);

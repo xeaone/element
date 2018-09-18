@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.12.0
+	Version: 3.13.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -12,6 +12,48 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
+function _invoke(body, then) {
+	var result = body();if (result && result.then) {
+		return result.then(then);
+	}return then(result);
+}function _invokeIgnored(body) {
+	var result = body();if (result && result.then) {
+		return result.then(_empty);
+	}
+}
+
+function _empty() {}function _await(value, then, direct) {
+	if (direct) {
+		return then ? then(value) : value;
+	}value = Promise.resolve(value);return then ? value.then(then) : value;
+}
+
+var _async = function () {
+	try {
+		if (isNaN.apply(null, {})) {
+			return function (f) {
+				return function () {
+					try {
+						return Promise.resolve(f.apply(this, arguments));
+					} catch (e) {
+						return Promise.reject(e);
+					}
+				};
+			};
+		}
+	} catch (e) {}return function (f) {
+		// Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
+		return function () {
+			var args = [];for (var i = 0; i < arguments.length; i++) {
+				args[i] = arguments[i];
+			}try {
+				return Promise.resolve(f.apply(this, args));
+			} catch (e) {
+				return Promise.reject(e);
+			}
+		};
+	};
+}();
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
@@ -196,9 +238,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'created',
 			value: function created(element, options) {
 				var self = this;
-				var scope = options.name + '-' + options.count++;
-
-				Object.defineProperties(element, {
+				var scope = options.name + '-' + options.count++;Object.defineProperties(element, {
 					scope: {
 						enumerable: true,
 						value: scope
@@ -809,37 +849,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Batcher;
 	}(Events);
 
-	function Wraper(action, complete) {
-
-		if (action && action.constructor.name === 'AsyncFunction') {
-
-			return Promise.resolve().then(function () {
-				return action();
-			}).then(function (data) {
-				if (complete) {
-					return complete(data);
-				}
-			}).catch(console.error);
-		} else {
-			var result = action();
-
-			if (result && result.constructor.name === 'Promise') {
-
-				return Promise.resolve().then(function () {
-					return result;
-				}).then(function (data) {
-					if (complete) {
-						return complete(data);
-					}
-				}).catch(console.error);
-			} else {
-				if (complete) {
-					return complete(result);
-				}
-			}
-		}
-	}
-
 	var Fetcher = function () {
 		function Fetcher(options) {
 			_classCallCheck(this, Fetcher);
@@ -859,8 +868,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'setup',
 			value: function setup(options) {
 				options = options || {};
-				this.auth = options.auth || false;
+
+				this.head = options.head || {};
 				this.method = options.method || 'get';
+
 				this.request = options.request;
 				this.response = options.response;
 				this.acceptType = options.acceptType;
@@ -869,248 +880,227 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'serialize',
-			value: function serialize(data) {
-				var string = '';
+			value: _async(function (data) {
+				var query = '';
 
 				for (var name in data) {
-					string = string.length > 0 ? string + '&' : string;
-					string = string + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+					query = query.length > 0 ? query + '&' : query;
+					query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
 				}
 
-				return string;
-			}
-		}, {
-			key: 'change',
-			value: function change(opt) {
-				var self = this;
-
-				if (opt.xhr.readyState === 4) {
-
-					opt.code = opt.xhr.status;
-					opt.message = opt.xhr.statusText;
-
-					if (opt.xhr['response'] !== undefined) {
-						opt.data = opt.xhr.response;
-					} else if (opt.xhr['responseText'] !== undefined) {
-						opt.data = opt.xhr.responseText;
-					}
-
-					// NOTE this is added for IE10-11 support http://caniuse.com/#search=xhr2
-					if (opt.responseType === 'json' && typeof opt.data === 'string') {
-
-						try {
-							opt.data = JSON.parse(opt.data);
-						} catch (error) {
-							console.warn(error);
-						}
-					}
-
-					if (opt.xhr.status === 401 || opt.xhr.status === 403) {
-						if (opt.auth) {
-							if (Global.keeper.response && Global.keeper.response(opt) === false) {
-								return;
-							}
-						}
-					}
-
-					var end = function end() {
-						if (opt.xhr.status >= 200 && opt.xhr.status < 300 || opt.xhr.status == 304) {
-
-							if (opt.success) {
-								opt.success(opt);
-							} else if (opt.handler) {
-								opt.error = false;
-								opt.handler(opt);
-							}
-						} else {
-
-							if (opt.error) {
-								opt.error(opt);
-							} else if (opt.handler) {
-								opt.error = true;
-								opt.handler(opt);
-							}
-						}
-					};
-
-					if (self.response) {
-						Wraper(self.response.bind(null, opt), function (result) {
-							if (result !== false) {
-								end();
-							}
-						});
-					} else {
-						end();
-					}
-				}
-			}
+				return query;
+			})
 		}, {
 			key: 'fetch',
-			value: function fetch(opt) {
-				var self = this;
+			value: _async(function (options) {
+				var _this2 = this;
 
-				opt = opt || {};
+				var data = Object.assign({}, options);
 
-				if (!opt.url) throw new Error('Oxe.fetcher - requires url options');
+				if (!data.url) throw new Error('Oxe.fetcher - requires url option');
+				if (!data.method) throw new Error('Oxe.fetcher - requires method option');if (!data.head && Object.keys(_this2.head).length) data.head = _this2.head;
+				if (typeof data.method === 'string') data.method = data.method.toUpperCase() || _this2.method;
 
-				opt.xhr = new XMLHttpRequest();
-				opt.headers = opt.headers || {};
-				opt.method = opt.method || self.method;
-				opt.acceptType = opt.acceptType || self.acceptType;
-				opt.contentType = opt.contentType || self.contentType;
-				opt.responseType = opt.responseType || self.responseType;
-				opt.auth = opt.auth === undefined || opt.auth === null ? self.auth : opt.auth;
+				if (!data.acceptType && _this2.acceptType) data.acceptType = _this2.acceptType;
+				if (!data.contentType && _this2.contentType) data.contentType = _this2.contentType;
+				if (!data.responseType && _this2.responseType) data.responseType = _this2.responseType;
 
-				opt.method = opt.method.toUpperCase();
+				// omit, same-origin, or include
+				if (!data.credentials && _this2.credentials) data.credentials = _this2.credentials;
 
-				opt.xhr.open(opt.method, opt.url, true, opt.username, opt.password);
+				// cors, no-cors, or same-origin
+				if (!data.mode && _this2.mode) data.mode = _this2.mode;
 
-				if (opt.contentType) {
-					switch (opt.contentType) {
+				// default, no-store, reload, no-cache, force-cache, or only-if-cached
+				if (!data.cache && _this2.cache) data.cahce = _this2.cache;
+
+				// follow, error, or manual
+				if (!data.redirect && _this2.redirect) data.redirect = _this2.redirect;
+
+				// no-referrer, client, or a URL
+				if (!data.referrer && _this2.referrer) data.referrer = _this2.referrer;
+
+				// no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
+				if (!data.referrerPolicy && _this2.referrerPolicy) data.referrerPolicy = _this2.referrerPolicy;
+
+				if (!data.signal && _this2.signal) data.signal = _this2.signal;
+				if (!data.integrity && _this2.integrity) data.integrity = _this2.integrity;
+				if (!data.keepAlive && _this2.keepAlive) data.keepAlive = _this2.keepAlive;
+
+				if (data.contentType) {
+					switch (data.contentType) {
 						case 'js':
-							opt.headers['Content-Type'] = self.mime.js;break;
+							data.head['Content-Type'] = _this2.mime.js;break;
 						case 'xml':
-							opt.headers['Content-Type'] = self.mime.xml;break;
+							data.head['Content-Type'] = _this2.mime.xml;break;
 						case 'html':
-							opt.headers['Content-Type'] = self.mime.html;break;
+							data.head['Content-Type'] = _this2.mime.html;break;
 						case 'json':
-							opt.headers['Content-Type'] = self.mime.json;break;
+							data.head['Content-Type'] = _this2.mime.json;break;
 						default:
-							opt.headers['Content-Type'] = opt.contentType;
+							data.head['Content-Type'] = _this2.contentType;
 					}
 				}
 
-				if (opt.acceptType) {
-					switch (opt.acceptType) {
+				if (data.acceptType) {
+					switch (data.acceptType) {
 						case 'js':
-							opt.headers['Accept'] = self.mime.js;break;
+							data.head['Accept'] = _this2.mime.js;break;
 						case 'xml':
-							opt.headers['Accept'] = self.mime.xml;break;
+							data.head['Accept'] = _this2.mime.xml;break;
 						case 'html':
-							opt.headers['Accept'] = self.mime.html;break;
+							data.head['Accept'] = _this2.mime.html;break;
 						case 'json':
-							opt.headers['Accept'] = self.mime.json;break;
+							data.head['Accept'] = _this2.mime.json;break;
 						default:
-							opt.headers['Accept'] = opt.acceptType;
+							data.head['Accept'] = _this2.acceptType;
 					}
 				}
 
-				if (opt.responseType) {
-					switch (opt.responseType) {
-						case 'text':
-							opt.xhr.responseType = 'text';break;
-						case 'json':
-							opt.xhr.responseType = 'json';break;
-						case 'blob':
-							opt.xhr.responseType = 'blob';break;
-						case 'xml':
-							opt.xhr.responseType = 'document';break;
-						case 'html':
-							opt.xhr.responseType = 'document';break;
-						case 'document':
-							opt.xhr.responseType = 'document';break;
-						case 'arraybuffer':
-							opt.xhr.responseType = 'arraybuffer';break;
-						default:
-							opt.xhr.responseType = opt.responseType;
+				return _invoke(function () {
+					if (data.body) {
+						return _invokeIgnored(function () {
+							if (data.method === 'GET') {
+								var _temp = data.url + '?';
+
+								return _await(_this2.serialize(data.body), function (_this2$serialize) {
+									data.url = _temp + _this2$serialize;
+								});
+							} else if (data.contentType === 'json') {
+								data.body = JSON.stringify(data.body);
+							}
+						});
 					}
-				}
+				}, function () {
+					var _exit = false;
+					return _invoke(function () {
+						if (typeof _this2.request === 'function') {
+							var copy = Object.assign({}, data);
+							return _await(_this2.request(copy), function (result) {
 
-				if (opt.mimeType) {
-					opt.xhr.overrideMimeType(opt.mimeType);
-				}
+								if (result === false) {
+									_exit = true;
+									return data;
+								}
 
-				if (opt.withCredentials) {
-					opt.xhr.withCredentials = opt.withCredentials;
-				}
-
-				if (opt.headers) {
-					for (var name in opt.headers) {
-						opt.xhr.setRequestHeader(name, opt.headers[name]);
-					}
-				}
-
-				if (opt.auth) {
-					if (Global.keeper.request && Global.keeper.request(opt) === false) {
-						return;
-					}
-				}
-
-				var end = function end() {
-					var data;
-
-					if (opt.data) {
-						if (opt.method === 'GET') {
-							opt.url = opt.url + '?' + self.serialize(opt.data);
-						} else if (opt.contentType === 'json') {
-							data = JSON.stringify(opt.data);
-						} else {
-							data = opt.data;
+								if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
+									Object.assign(data, result);
+								}
+							});
 						}
-					}
+					}, function (_result) {
+						if (_exit) return _result;
 
-					opt.xhr.onreadystatechange = self.change.bind(self, opt);
-					opt.xhr.send(data);
-				};
 
-				if (self.request) {
-					Wraper(self.request.bind(null, opt), function (result) {
-						if (result !== false) {
-							end();
+						var fetchOptions = Object.assign({}, data);
+
+						if (fetchOptions.head) {
+							fetchOptions.header = fetchOptions.head;
+							delete fetchOptions.head;
 						}
+
+						return _await(window.fetch(data.url, fetchOptions), function (fetched) {
+
+							data.code = fetched.status;
+							data.message = fetched.statusText;
+
+							return _invoke(function () {
+								if (!data.responseType) {
+									data.body = fetched.body;
+								} else {
+									return _await(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType](), function (_fetched) {
+										data.body = _fetched;
+									});
+								}
+							}, function () {
+								var _exit2 = false;
+								return _invoke(function () {
+									if (_this2.response) {
+										var copy = Object.assign({}, data);
+										return _await(_this2.response(copy), function (result) {
+
+											if (result === false) {
+												_exit2 = true;
+												return data;
+											}
+
+											if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
+												Object.assign(data, result);
+											}
+										});
+									}
+								}, function (_result2) {
+									return _exit2 ? _result2 : data;
+								});
+							});
+						});
 					});
-				} else {
-					end();
-				}
-			}
+				});
+			})
 		}, {
 			key: 'post',
-			value: function post(opt) {
-				opt.method = 'post';
-				return this.fetch(opt);
-			}
+			value: _async(function (data) {
+				var _this3 = this;
+
+				data.method = 'post';
+				return _this3.fetch(data);
+			})
 		}, {
 			key: 'get',
-			value: function get(opt) {
-				opt.method = 'get';
-				return this.fetch(opt);
-			}
+			value: _async(function (data) {
+				var _this4 = this;
+
+				data.method = 'get';
+				return _this4.fetch(data);
+			})
 		}, {
 			key: 'put',
-			value: function put(opt) {
-				opt.method = 'put';
-				return this.fetch(opt);
-			}
+			value: _async(function (data) {
+				var _this5 = this;
+
+				data.method = 'put';
+				return _this5.fetch(data);
+			})
 		}, {
 			key: 'head',
-			value: function head(opt) {
-				opt.method = 'head';
-				return this.fetch(opt);
-			}
+			value: _async(function (data) {
+				var _this6 = this;
+
+				data.method = 'head';
+				return _this6.fetch(data);
+			})
 		}, {
 			key: 'patch',
-			value: function patch(opt) {
-				opt.method = 'patch';
-				return this.fetch(opt);
-			}
+			value: _async(function (data) {
+				var _this7 = this;
+
+				data.method = 'patch';
+				return _this7.fetch(data);
+			})
 		}, {
 			key: 'delete',
-			value: function _delete(opt) {
-				opt.method = 'delete';
-				return this.fetch(opt);
-			}
+			value: _async(function (data) {
+				var _this8 = this;
+
+				data.method = 'delete';
+				return _this8.fetch(data);
+			})
 		}, {
 			key: 'options',
-			value: function options(opt) {
-				opt.method = 'options';
-				return this.fetch(opt);
-			}
+			value: _async(function (data) {
+				var _this9 = this;
+
+				data.method = 'options';
+				return _this9.fetch(data);
+			})
 		}, {
 			key: 'connect',
-			value: function connect(opt) {
-				opt.method = 'connect';
-				return this.fetch(opt);
-			}
+			value: _async(function (data) {
+				var _this10 = this;
+
+				data.method = 'connect';
+				return _this10.fetch(data);
+			})
 		}]);
 
 		return Fetcher;
@@ -1122,21 +1112,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		function Router() {
 			_classCallCheck(this, Router);
 
-			var _this2 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
+			var _this11 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
 
-			_this2.data = [];
-			_this2.location = {};
+			_this11.data = [];
+			_this11.location = {};
 
-			_this2.ran = false;
-			_this2.auth = false;
+			_this11.ran = false;
 
-			_this2.element = null;
-			_this2.contain = false;
-			_this2.compiled = false;
+			_this11.element = null;
+			_this11.contain = false;
+			_this11.compiled = false;
 
-			document.addEventListener('click', _this2.clickListener.bind(_this2), true);
-			window.addEventListener('popstate', _this2.stateListener.bind(_this2), true);
-			return _this2;
+			document.addEventListener('click', _this11.clickListener.bind(_this11), true);
+			window.addEventListener('popstate', _this11.stateListener.bind(_this11), true);
+			return _this11;
 		}
 
 		_createClass(Router, [{
@@ -1144,7 +1133,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function setup(options) {
 				options = options || {};
 
-				this.auth = options.auth === undefined ? this.auth : options.auth;
+				this.after = options.after === undefined ? this.after : options.after;
+				this.before = options.before === undefined ? this.before : options.before;
 				this.element = options.element === undefined ? this.element : options.element;
 				this.contain = options.contain === undefined ? this.contain : options.contain;
 				this.external = options.external === undefined ? this.external : options.external;
@@ -1327,8 +1317,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function render(route) {
 				Global.utility.ready(function () {
 
-					this.emit('routing');
-
 					if (route.title) {
 						document.title = route.title;
 					}
@@ -1361,7 +1349,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 
 						if (!this.element) {
-							throw new Error('Oxe.router - missing o-router element');
+							throw new Error('Oxe.router.render - missing o-router element');
 						}
 					}
 
@@ -1372,7 +1360,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 
 						if (!route.component) {
-							throw new Error('Oxe.router - missing route component');
+							throw new Error('Oxe.router.render - missing route component');
 						} else if (route.component.constructor.name === 'String') {
 							route.element = document.createElement(route.component);
 						} else if (route.component.constructor.name === 'Object') {
@@ -1402,48 +1390,57 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'route',
-			value: function route(path, options) {
-				var route;
+			value: function (_route) {
+				function route(_x, _x2) {
+					return _route.apply(this, arguments);
+				}
 
+				route.toString = function () {
+					return _route.toString();
+				};
+
+				return route;
+			}(function (path, options) {
 				options = options || {};
 
 				if (options.query) {
 					path += this.toQueryString(options.query);
 				}
 
+				// todo might need to be moved to the end
 				if (!this.compiled) {
 					window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
 				}
 
-				this.location = this.toLocationObject();
+				var location = this.toLocationObject();
 
-				this.location.route = this.find(this.location.pathname);
+				location.route = this.find(location.pathname);
 
-				if (!this.location.route) {
-					throw new Error('Oxe.router.route - no matching route');
+				if (!location.route) {
+					throw new Error('Oxe.router.route - route not found');
 				}
 
-				this.location.title = this.location.route.title || '';
-				this.location.query = this.toQueryObject(this.location.search);
-				this.location.parameters = this.toParameterObject(this.location.route.path, this.location.pathname);
+				location.title = location.route.title || '';
+				location.query = this.toQueryObject(location.search);
+				location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
-				if (this.auth && (this.location.route.auth === true || this.location.route.auth === undefined)) {
-
-					if (Global.keeper.route(this.location.route) === false) {
-						return;
-					}
+				if (typeof this.before === 'function') {
+					var result = this.before(location);
+					if (result === false) return;
 				}
 
-				if (this.location.route.handler) {
-					return route.handler(this.location.route);
+				if (location.route.handler) {
+					return route.handler(location.route);
 				}
 
-				if (this.location.route.redirect) {
-					return redirect(this.location.route.redirect);
+				if (location.route.redirect) {
+					return this.redirect(location.route.redirect);
 				}
 
-				this.render(this.location.route);
-			}
+				this.location = location;
+				this.emit('routing');
+				this.render(location.route);
+			})
 		}, {
 			key: 'stateListener',
 			value: function stateListener(e) {
@@ -1685,15 +1682,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		function Loader() {
 			_classCallCheck(this, Loader);
 
-			var _this3 = _possibleConstructorReturn(this, (Loader.__proto__ || Object.getPrototypeOf(Loader)).call(this));
+			var _this12 = _possibleConstructorReturn(this, (Loader.__proto__ || Object.getPrototypeOf(Loader)).call(this));
 
-			_this3.data = {};
-			_this3.ran = false;
-			_this3.methods = {};
-			_this3.transformers = {};
+			_this12.data = {};
+			_this12.ran = false;
+			_this12.methods = {};
+			_this12.transformers = {};
 
-			document.addEventListener('load', _this3.listener.bind(_this3), true);
-			return _this3;
+			document.addEventListener('load', _this12.listener.bind(_this12), true);
+			return _this12;
 		}
 
 		_createClass(Loader, [{
@@ -2021,6 +2018,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		default: function _default(opt) {}
 	};
+
+	function Wraper(action, complete) {
+
+		if (action && action.constructor.name === 'AsyncFunction') {
+
+			return Promise.resolve().then(function () {
+				return action();
+			}).then(function (data) {
+				if (complete) {
+					return complete(data);
+				}
+			}).catch(console.error);
+		} else {
+			var result = action();
+
+			if (result && result.constructor.name === 'Promise') {
+
+				return Promise.resolve().then(function () {
+					return result;
+				}).then(function (data) {
+					if (complete) {
+						return complete(data);
+					}
+				}).catch(console.error);
+			} else {
+				if (complete) {
+					return complete(result);
+				}
+			}
+		}
+	}
 
 	// TODO dynamic for list dont handle selected
 
@@ -2763,206 +2791,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Binder;
 	}();
 
-	var Keeper = function () {
-		function Keeper(options) {
-			_classCallCheck(this, Keeper);
-
-			this._user;
-			this._token;
-			this.scheme = 'Session';
-			this.type = 'sessionStorage';
-
-			Object.defineProperties(this, {
-				token: {
-					enumerable: true,
-					get: function get() {
-						return this._token = this._token || window[this.type].getItem('token');
-					}
-				},
-				user: {
-					enumerable: true,
-					get: function get() {
-						return this._user = this._user || JSON.parse(window[this.type].getItem('user'));
-					}
-				}
-			});
-
-			this.setup(options);
-		}
-
-		_createClass(Keeper, [{
-			key: 'setup',
-			value: function setup(options) {
-				options = options || {};
-
-				this._forbidden = options.forbidden || this._forbidden;
-				this._unauthorized = options.unauthorized || this._unauthorized;
-				this._authenticated = options.authenticated || this._authenticated;
-				this._unauthenticated = options.unauthenticated || this._unauthenticated;
-
-				if (options.type) {
-					this.type = options.type + 'Storage';
-				}
-
-				if (options.scheme) {
-					this.scheme = options.scheme.slice(0, 1).toUpperCase() + options.scheme.slice(1).toLowerCase();
-				}
-			}
-		}, {
-			key: 'setToken',
-			value: function setToken(token) {
-				if (!token) return;
-				if (this.scheme === 'Basic') token = this.encode(token);
-				this._token = window[this.type].setItem('token', token);
-			}
-		}, {
-			key: 'setUser',
-			value: function setUser(user) {
-				if (!user) return;
-				user = JSON.stringify(user);
-				this._user = window[this.type].setItem('user', user);
-			}
-		}, {
-			key: 'removeToken',
-			value: function removeToken() {
-				this._token = null;
-				window[this.type].removeItem('token');
-			}
-		}, {
-			key: 'removeUser',
-			value: function removeUser() {
-				this._user = null;
-				window[this.type].removeItem('user');
-			}
-		}, {
-			key: 'authenticate',
-			value: function authenticate(token, user) {
-				this.setToken(token);
-				this.setUser(user);
-
-				if (typeof this._authenticated === 'string') {
-					Global.router.route(this._authenticated);
-				} else if (typeof this._authenticated === 'function') {
-					this._authenticated();
-				}
-			}
-		}, {
-			key: 'unauthenticate',
-			value: function unauthenticate() {
-				this.removeToken();
-				this.removeUser();
-
-				if (typeof this._unauthenticated === 'string') {
-					Global.router.route(this._unauthenticated);
-				} else if (typeof this._unauthenticated === 'function') {
-					this._unauthenticated();
-				}
-			}
-		}, {
-			key: 'forbidden',
-			value: function forbidden(result) {
-
-				if (typeof this._forbidden === 'string') {
-					Global.router.route(this._forbidden);
-				} else if (typeof this._forbidden === 'function') {
-					this._forbidden(result);
-				}
-
-				return false;
-			}
-		}, {
-			key: 'unauthorized',
-			value: function unauthorized(result) {
-				// NOTE might want to remove token and user
-				// this.removeToken();
-				// this.removeUser();
-
-				if (typeof this._unauthorized === 'string') {
-					Global.router.route(this._unauthorized);
-				} else if (typeof this._unauthorized === 'function') {
-					this._unauthorized(result);
-				}
-
-				return false;
-			}
-		}, {
-			key: 'route',
-			value: function route(result) {
-
-				if (result.auth === false) {
-					return true;
-				} else if (this.scheme !== 'Session') {
-					if (!this.token) {
-						return this.unauthorized(result);
-					} else {
-						return true;
-					}
-				} else {
-					return true;
-				}
-			}
-		}, {
-			key: 'request',
-			value: function request(result) {
-
-				if (result.auth === false) {
-					return true;
-				} else if (this.scheme !== 'Session') {
-					if (!this.token) {
-						return this.unauthorized(result);
-					} else {
-						result.xhr.setRequestHeader('Authorization', this.scheme + ' ' + this.token);
-						return true;
-					}
-				} else {
-					return true;
-				}
-			}
-		}, {
-			key: 'response',
-			value: function response(result) {
-
-				if (result.code === 401) {
-					return this.unauthorized(result);
-				} else if (result.code === 403) {
-					return this.forbidden(result);
-				} else {
-					return true;
-				}
-			}
-		}, {
-			key: 'encode',
-			value: function encode(data) {
-				return window.btoa(data);
-			}
-		}, {
-			key: 'decode',
-			value: function decode(data) {
-				return window.atob(data);
-			}
-		}]);
-
-		return Keeper;
-	}();
-
-	/*
- 	https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
- 		// encode (data) {
- 	// 	// encodeURIComponent to get percent-encoded UTF-8
- 	// 	// convert the percent encodings into raw bytes which
- 	// 	return window.btoa(window.encodeURIComponent(data).replace(/%([0-9A-F]{2})/g, function (match, char) {
- 	// 		return String.fromCharCode('0x' + char);
- 	// 	}));
- 	// };
- 	//
- 	// decode (data) {
- 	// 	// from bytestream to percent-encoding to original string
- 	//     return window.decodeURIComponent(window.atob(data).split('').map(function(char) {
- 	//         return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2);
- 	//     }).join(''));
- 	// };
- */
-
 	/*
  	TODO:
  		sort reverse
@@ -3226,15 +3054,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		function Model() {
 			_classCallCheck(this, Model);
 
-			var _this4 = _possibleConstructorReturn(this, (Model.__proto__ || Object.getPrototypeOf(Model)).call(this));
+			var _this13 = _possibleConstructorReturn(this, (Model.__proto__ || Object.getPrototypeOf(Model)).call(this));
 
-			_this4.GET = 2;
-			_this4.SET = 3;
-			_this4.REMOVE = 4;
-			_this4.ran = false;
+			_this13.GET = 2;
+			_this13.SET = 3;
+			_this13.REMOVE = 4;
+			_this13.ran = false;
 
-			_this4.data = Observer.create({}, _this4.listener);
-			return _this4;
+			_this13.data = Observer.create({}, _this13.listener);
+			return _this13;
 		}
 
 		_createClass(Model, [{
@@ -3383,10 +3211,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					this.general.setup(data.general);
 				}
 
-				if (data.keeper) {
-					this.keeper.setup(data.keeper);
-				}
-
 				if (data.fetcher) {
 					this.fetcher.setup(data.fetcher);
 				}
@@ -3435,11 +3259,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		value: new Fetcher()
 	});
 
-	Object.defineProperty(Global, 'keeper', {
-		enumerable: true,
-		value: new Keeper()
-	});
-
 	Object.defineProperty(Global, 'component', {
 		enumerable: true,
 		value: new Component()
@@ -3454,102 +3273,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		enumerable: true,
 		value: new Model()
 	});
-
-	document.addEventListener('reset', function resetListener(e) {
-		var element = e.target;
-		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-		var binder = Global.binder.get({
-			name: 'o-submit',
-			element: element
-		});
-
-		var scope = binder.scope;
-
-		if (submit) {
-			var elements = element.querySelectorAll('[o-value]');
-			var i = elements.length;
-
-			while (i--) {
-				var path = elements[i].getAttribute('o-value');
-				var keys = [scope].concat(path.split('.'));
-
-				Global.model.set(keys, '');
-
-				Global.binder.unrender({
-					name: 'o-value',
-					element: elements[i]
-				}, 'view');
-			}
-		}
-	}, true);
-
-	document.addEventListener('submit', function submitListener(e) {
-		var element = e.target;
-		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-		if (!submit) return;
-
-		e.preventDefault();
-
-		var binder = Global.binder.get({
-			name: 'o-submit',
-			element: element
-		});
-
-		var sScope = binder.scope;
-		var eScope = binder.container;
-		var model = Global.model.data[sScope];
-
-		var data = Global.utility.formData(element, model);
-		var method = Global.utility.getByPath(eScope.methods, submit);
-
-		var done = function done(options) {
-			if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
-				var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-				var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-				var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-				var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
-
-				options.url = options.url || action;
-				options.method = options.method || method;
-				options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
-				options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
-
-				Global.fetcher.fetch(options);
-			}
-
-			if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset')) {
-				element.reset();
-			}
-		};
-
-		Wraper(method.bind(eScope, data, e), done);
-	}, true);
-
-	document.addEventListener('input', function (e) {
-		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
-
-			var binder = Global.binder.get({
-				name: 'o-value',
-				element: e.target
-			});
-
-			Global.binder.render(binder);
-		}
-	}, true);
-
-	document.addEventListener('change', function (e) {
-		if (e.target.hasAttribute('o-value')) {
-
-			var binder = Global.binder.get({
-				name: 'o-value',
-				element: e.target
-			});
-
-			Global.binder.render(binder);
-		}
-	}, true);
 
 	var eStyle = document.createElement('style');
 	var tStyle = document.createTextNode(' \
@@ -3580,6 +3303,102 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		loadedCalled = true;
 
+		document.addEventListener('reset', function resetListener(e) {
+			var element = e.target;
+			var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
+			var binder = Global.binder.get({
+				name: 'o-submit',
+				element: element
+			});
+
+			var scope = binder.scope;
+
+			if (submit) {
+				var elements = element.querySelectorAll('[o-value]');
+				var i = elements.length;
+
+				while (i--) {
+					var path = elements[i].getAttribute('o-value');
+					var keys = [scope].concat(path.split('.'));
+
+					Global.model.set(keys, '');
+
+					Global.binder.unrender({
+						name: 'o-value',
+						element: elements[i]
+					}, 'view');
+				}
+			}
+		}, true);
+
+		document.addEventListener('submit', function submitListener(e) {
+			var element = e.target;
+			var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
+			if (!submit) return;
+
+			e.preventDefault();
+
+			var binder = Global.binder.get({
+				name: 'o-submit',
+				element: element
+			});
+
+			var sScope = binder.scope;
+			var eScope = binder.container;
+			var model = Global.model.data[sScope];
+
+			var data = Global.utility.formData(element, model);
+			var method = Global.utility.getByPath(eScope.methods, submit);
+
+			var done = function done(options) {
+				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
+					var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
+					var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+					var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+					var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+
+					options.url = options.url || action;
+					options.method = options.method || method;
+					options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
+					options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
+
+					Global.fetcher.fetch(options);
+				}
+
+				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset')) {
+					element.reset();
+				}
+			};
+
+			Wraper(method.bind(eScope, data, e), done);
+		}, true);
+
+		document.addEventListener('input', function (e) {
+			if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
+
+				var binder = Global.binder.get({
+					name: 'o-value',
+					element: e.target
+				});
+
+				Global.binder.render(binder);
+			}
+		}, true);
+
+		document.addEventListener('change', function (e) {
+			if (e.target.hasAttribute('o-value')) {
+
+				var binder = Global.binder.get({
+					name: 'o-value',
+					element: e.target
+				});
+
+				Global.binder.render(binder);
+			}
+		}, true);
+
 		var element = document.querySelector('script[o-setup]');
 
 		if (element) {
@@ -3595,11 +3414,23 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				Global.component.compiled = true;
 			}
 
-			Global.loader.load({
-				url: args[0],
-				method: args[2],
-				transformer: args[1]
-			});
+			if (!args[0]) {
+				throw new Error('Oxe - o-setup attribute requires a url');
+			}
+
+			if (args.length > 1) {
+				Global.loader.load({
+					url: args[0],
+					method: args[2],
+					transformer: args[1]
+				});
+			} else {
+				var index = document.createElement('script');
+				index.setAttribute('src', args[0]);
+				index.setAttribute('async', 'true');
+				index.setAttribute('type', 'module');
+				element.insertAdjacentElement('afterend', index);
+			}
 		}
 
 		document.registerElement('o-router', {
@@ -3607,31 +3438,35 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		});
 	};
 
-	if ('Promise' in window && 'fetch' in window) {
-		loaded();
-	} else {
-		requiredCount++;
-		var polly = document.createElement('script');
-		polly.setAttribute('src', 'https://cdn.polyfill.io/v2/polyfill.min.js?features=fetch,promise');
-		polly.addEventListener('load', function () {
-			currentCount++;
+	var loader = function loader(condition, url) {
+		if (condition) {
+			requiredCount++;
+			var polly = document.createElement('script');
+			polly.setAttribute('async', 'true');
+			polly.setAttribute('src', url);
+			polly.addEventListener('load', function () {
+				currentCount++;
+				loaded();
+			}, true);
+			document.head.appendChild(polly);
+		} else {
 			loaded();
-		}, true);
-		document.head.appendChild(polly);
-	}
+		}
+	};
 
-	if ('registerElement' in document && 'content' in document.createElement('template')) {
-		loaded();
-	} else {
-		requiredCount++;
-		var polly = document.createElement('script');
-		polly.setAttribute('src', 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
-		polly.addEventListener('load', function () {
-			currentCount++;
-			loaded();
-		}, true);
-		document.head.appendChild(polly);
-	}
+	var features = [];
+
+	var isNotFetch = !('fetch' in window);
+	var isNotAssign = !('assign' in Object);
+	var isNotPromise = !('Promise' in window);
+
+	if (isNotFetch) features.push('fetch');
+	if (isNotPromise) features.push('Promise');
+	if (isNotAssign) features.push('Object.assign');
+
+	loader(isNotPromise || isNotFetch || isNotAssign, 'https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','));
+
+	loader(!('registerElement' in document) || !('content' in document.createElement('template')), 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
 
 	return Global;
 });
