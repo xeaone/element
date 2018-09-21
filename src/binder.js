@@ -14,19 +14,19 @@ export default class Binder {
 		opt = opt || {};
 
 		if (!opt.name) {
-			throw new Error('Oxe.render.create - missing name');
+			throw new Error('Oxe.binder.set - missing name');
 		}
 
 		if (!opt.value) {
-			throw new Error('Oxe.render.create - missing value');
+			throw new Error('Oxe.binder.set - missing value');
 		}
 
 		if (!opt.element) {
-			throw new Error('Oxe.render.create - missing element');
+			throw new Error('Oxe.binder.set - missing element');
 		}
 
 		if (!opt.container) {
-			throw new Error('Oxe.render.create - missing container');
+			throw new Error('Oxe.binder.set - missing container');
 		}
 
 		opt.scope = opt.scope || opt.container.getAttribute('o-scope');
