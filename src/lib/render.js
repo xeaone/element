@@ -1,5 +1,4 @@
 import Global from '../global';
-import Wraper from '../wraper.js';
 
 // TODO dynamic for list dont handle selected
 
