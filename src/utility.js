@@ -105,28 +105,64 @@ export default {
 	},
 
 	replaceEachVariable (element, variable, path, key) {
-		var self = this;
-		var iindex = '$index';
-		var vindex = '$' + variable;
-		var result = [];
-		var pattern = new RegExp('\\$index|\\$' + variable, 'g');
+		const self = this;
+	 	const iindex = '$index';
+		const vindex = '$' + variable;
+		// const pattern = new RegExp('\\$index|\\$' + variable, 'ig');
 
-		this.walker(element, function (node) {
+		self.walker(element, function (node) {
 			if (node.nodeType === 3) {
 				if (node.nodeValue === vindex || node.nodeValue === iindex) {
 					node.nodeValue = key;
 				}
 			} else if (node.nodeType === 1) {
-				for (var i = 0, l = node.attributes.length; i < l; i++) {
-					var attribute = node.attributes[i];
-					attribute.value = attribute.value.replace(pattern, key);
-					var name = attribute.name;
-					var value = attribute.value.split(' ')[0].split('|')[0];
-					if (name.indexOf('o-') === 0 || name.indexOf('data-o-') === 0) {
-						if (value === variable || value.indexOf(variable) === 0) {
-							attribute.value = path + '.' + key + attribute.value.slice(variable.length);
+				for (let i = 0, l = node.attributes.length; i < l; i++) {
+					const attribute = node.attributes[i];
+
+					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
+
+						// attribute.value = attribute.value.replace(pattern, key);
+						// if (value === variable || value.indexOf(variable) === 0) {
+							// attribute.value = path + '.' + key + attribute.value.slice(variable.length);
+						// }
+
+						const value = attribute.value;
+						const length = value.length;
+						const last = length - 1;
+						const result = [];
+
+						let item = '';
+
+						for (let index = 0; index < length; index++) {
+						 	const char = value[index];
+
+							if (char === '$' && value.slice(index, iindex.length) === iindex) {
+								item += key;
+								index = index + iindex.length - 1;
+							} else if (char === '$' && value.slice(index, vindex.length) === vindex) {
+								item += key;
+								index = index + vindex.length - 1;
+							} else {
+								item += char;
+							}
+
+							if (char === ' ' || char === '|' || char === ',' || index === last) {
+
+								if (item.indexOf(variable) === 0) {
+									const tail = item.slice(variable.length);
+									result.push(path + '.' + key + tail);
+								} else {
+									result.push(item);
+								}
+
+								item = '';
+							}
+
 						}
+
+						attribute.value = result.join('');
 					}
+
 				}
 			}
 		});

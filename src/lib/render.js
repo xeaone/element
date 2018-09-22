@@ -151,16 +151,25 @@ export default {
 			}
 
 			if (opt.cache) {
-				opt.element.removeEventListener(opt.names[1], function (e) {
-					Wraper(opt.cache.bind(null, e));
-				});
+				opt.element.removeEventListener(opt.names[1], opt.cache);
 			} else {
-				opt.cache = data.bind(opt.container);
+				opt.cache = function (e) {
+					return Promise.resolve().then(function () {
+						const parameters = [e];
+
+						for (let i = 0, l = opt.modifiers.length; i < l; i++) {
+							const keys = opt.modifiers[i].split('.');
+							keys.unshift(opt.scope);
+							const parameter = Oxe.model.get(keys);
+							parameters.push(parameter);
+						}
+
+						return data.apply(opt.container, parameters);
+					}).catch(console.error);
+				};
 			}
 
-			opt.element.addEventListener(opt.names[1], function (e) {
-				Wraper(opt.cache.bind(null, e));
-			});
+			opt.element.addEventListener(opt.names[1], opt.cache);
 
 		});
 	},
