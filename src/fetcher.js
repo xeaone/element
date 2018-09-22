@@ -17,7 +17,7 @@ export default class Fetcher {
 	setup (options) {
 		options = options || {};
 
-		this.head = options.head || {};
+		this.head = options.head || null;
 		this.method = options.method || 'get';
 
 		this.request = options.request;
@@ -44,7 +44,7 @@ export default class Fetcher {
 		if (!data.url) throw new Error('Oxe.fetcher - requires url option');
 		if (!data.method) throw new Error('Oxe.fetcher - requires method option');
 
-		if (!data.head && Object.keys(this.head).length) data.head = this.head;
+		if (!data.head && this.head) data.head = this.head;
 		if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.method;
 
 		if (!data.acceptType && this.acceptType) data.acceptType = this.acceptType;
@@ -94,6 +94,15 @@ export default class Fetcher {
 				default: data.head['Accept'] = data.acceptType;
 			}
 		}
+
+		// IDEA for auth tokens
+		// if (data.head) {
+		// 	for (let name in data.head) {
+		// 		if (typeof data.head[name] === 'function') {
+		// 			data.head[name] = await data.head[name]();
+		// 		}
+		// 	}
+		// }
 
 		if (data.body) {
 

@@ -166,7 +166,7 @@ Batches DOM reads and writes.
 ### Oxe.fetcher
 - `setup: Function`
 	- `options: Object` Accepts `window.fetch` options
-		- `head: Object` Valid http header content to be assigned to all requests
+		- `head: Object` (default: null) Http headers to be assigned to requests
 		- `acceptType: String`  Valid http `Accept-Type` value or a Oxe.fetcher.mime name
 		- `contentType: String` Valid http `Content-Type` value or a Oxe.fetcher.mime name
 		- `responseType: String` (default: ReadableStream)
