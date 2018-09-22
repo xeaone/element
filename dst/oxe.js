@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.13.2
+	Version: 3.14.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -13,6 +13,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 function _invoke(body, then) {
+
 	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
@@ -20,9 +21,7 @@ function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
-}
-
-function _empty() {}function _await(value, then, direct) {
+}function _empty() {}function _await(value, then, direct) {
 	if (direct) {
 		return then ? then(value) : value;
 	}value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -558,11 +557,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		},
 		replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
+			var self = this;
 			var iindex = '$index';
 			var vindex = '$' + variable;
-			var pattern = new RegExp('\\$index|\\$' + variable, 'g');
+			// const pattern = new RegExp('\\$index|\\$' + variable, 'ig');
 
-			this.walker(element, function (node) {
+			self.walker(element, function (node) {
 				if (node.nodeType === 3) {
 					if (node.nodeValue === vindex || node.nodeValue === iindex) {
 						node.nodeValue = key;
@@ -570,13 +570,48 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				} else if (node.nodeType === 1) {
 					for (var i = 0, l = node.attributes.length; i < l; i++) {
 						var attribute = node.attributes[i];
-						attribute.value = attribute.value.replace(pattern, key);
-						var name = attribute.name;
-						var value = attribute.value.split(' ')[0].split('|')[0];
-						if (name.indexOf('o-') === 0 || name.indexOf('data-o-') === 0) {
-							if (value === variable || value.indexOf(variable) === 0) {
-								attribute.value = path + '.' + key + attribute.value.slice(variable.length);
+
+						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
+
+							// attribute.value = attribute.value.replace(pattern, key);
+							// if (value === variable || value.indexOf(variable) === 0) {
+							// attribute.value = path + '.' + key + attribute.value.slice(variable.length);
+							// }
+
+							var value = attribute.value;
+							var length = value.length;
+							var last = length - 1;
+							var result = [];
+
+							var item = '';
+
+							for (var index = 0; index < length; index++) {
+								var char = value[index];
+
+								if (char === '$' && value.slice(index, iindex.length) === iindex) {
+									item += key;
+									index = index + iindex.length - 1;
+								} else if (char === '$' && value.slice(index, vindex.length) === vindex) {
+									item += key;
+									index = index + vindex.length - 1;
+								} else {
+									item += char;
+								}
+
+								if (char === ' ' || char === '|' || char === ',' || index === last) {
+
+									if (item.indexOf(variable) === 0) {
+										var tail = item.slice(variable.length);
+										result.push(path + '.' + key + tail);
+									} else {
+										result.push(item);
+									}
+
+									item = '';
+								}
 							}
+
+							attribute.value = result.join('');
 						}
 					}
 				}
@@ -760,9 +795,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.reads.push(task);
 				this.tick();
 				return task;
-			}
-
-			// adds a task to the write batch
+			} // adds a task to the write batch
 
 		}, {
 			key: 'write',
@@ -869,7 +902,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function setup(options) {
 				options = options || {};
 
-				this.head = options.head || {};
+				this.head = options.head || null;
 				this.method = options.method || 'get';
 
 				this.request = options.request;
@@ -898,7 +931,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var data = Object.assign({}, options);
 
 				if (!data.url) throw new Error('Oxe.fetcher - requires url option');
-				if (!data.method) throw new Error('Oxe.fetcher - requires method option');if (!data.head && Object.keys(_this2.head).length) data.head = _this2.head;
+				if (!data.method) throw new Error('Oxe.fetcher - requires method option');
+
+				if (!data.head && _this2.head) data.head = _this2.head;
 				if (typeof data.method === 'string') data.method = data.method.toUpperCase() || _this2.method;
 
 				if (!data.acceptType && _this2.acceptType) data.acceptType = _this2.acceptType;
@@ -958,6 +993,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							data.head['Accept'] = data.acceptType;
 					}
 				}
+
+				// IDEA for auth tokens
+				// if (data.head) {
+				// 	for (let name in data.head) {
+				// 		if (typeof data.head[name] === 'function') {
+				// 			data.head[name] = await data.head[name]();
+				// 		}
+				// 	}
+				// }
 
 				return _invoke(function () {
 					if (data.body) {
@@ -1140,6 +1184,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.element = options.element === undefined ? this.element : options.element;
 				this.contain = options.contain === undefined ? this.contain : options.contain;
 				this.external = options.external === undefined ? this.external : options.external;
+				// this.validate = options.validate === undefined ? this.validate : options.validate;
 
 				if (options.routes) {
 					this.add(options.routes);
@@ -1314,6 +1359,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					password: window.location.password || ''
 				};
 			}
+
+			// validate () {
+			//
+			// }
+
 		}, {
 			key: 'render',
 			value: function render(route) {
@@ -1425,6 +1475,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				location.title = location.route.title || '';
 				location.query = this.toQueryObject(location.search);
 				location.parameters = this.toParameterObject(location.route.path, location.pathname);
+
+				// if (this.auth || location.route.auth && typeof this.validate === 'function') {
+				// 	const data = this.validate(location);
+				// 	if (!data.valid) return this.route(data.path);
+				// }
 
 				if (typeof this.before === 'function') {
 					var result = this.before(location);
@@ -2023,37 +2078,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		default: function _default(opt) {}
 	};
 
-	function Wraper(action, complete) {
-
-		if (action && action.constructor.name === 'AsyncFunction') {
-
-			return Promise.resolve().then(function () {
-				return action();
-			}).then(function (data) {
-				if (complete) {
-					return complete(data);
-				}
-			}).catch(console.error);
-		} else {
-			var result = action();
-
-			if (result && result.constructor.name === 'Promise') {
-
-				return Promise.resolve().then(function () {
-					return result;
-				}).then(function (data) {
-					if (complete) {
-						return complete(data);
-					}
-				}).catch(console.error);
-			} else {
-				if (complete) {
-					return complete(result);
-				}
-			}
-		}
-	}
-
 	// TODO dynamic for list dont handle selected
 
 	var Render = {
@@ -2189,21 +2213,28 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			Global.batcher.write(function () {
 				var data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
 
-				if (!data || typeof data !== 'function') {
-					return;
-				}
+				if (typeof data !== 'function') return;
 
 				if (opt.cache) {
-					opt.element.removeEventListener(opt.names[1], function (e) {
-						Wraper(opt.cache.bind(null, e));
-					});
+					opt.element.removeEventListener(opt.names[1], opt.cache);
 				} else {
-					opt.cache = data.bind(opt.container);
+					opt.cache = function (e) {
+						return Promise.resolve().then(function () {
+							var parameters = [e];
+
+							for (var i = 0, l = opt.modifiers.length; i < l; i++) {
+								var keys = opt.modifiers[i].split('.');
+								keys.unshift(opt.scope);
+								var parameter = Oxe.model.get(keys);
+								parameters.push(parameter);
+							}
+
+							return data.apply(opt.container, parameters);
+						}).catch(console.error);
+					};
 				}
 
-				opt.element.addEventListener(opt.names[1], function (e) {
-					Wraper(opt.cache.bind(null, e));
-				});
+				opt.element.addEventListener(opt.names[1], opt.cache);
 			});
 		},
 		css: function css(opt) {
@@ -2426,19 +2457,19 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				opt = opt || {};
 
 				if (!opt.name) {
-					throw new Error('Oxe.render.create - missing name');
+					throw new Error('Oxe.binder.set - missing name');
 				}
 
 				if (!opt.value) {
-					throw new Error('Oxe.render.create - missing value');
+					throw new Error('Oxe.binder.set - missing value');
 				}
 
 				if (!opt.element) {
-					throw new Error('Oxe.render.create - missing element');
+					throw new Error('Oxe.binder.set - missing element');
 				}
 
 				if (!opt.container) {
-					throw new Error('Oxe.render.create - missing container');
+					throw new Error('Oxe.binder.set - missing container');
 				}
 
 				opt.scope = opt.scope || opt.container.getAttribute('o-scope');
@@ -3277,6 +3308,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		enumerable: true,
 		value: new Model()
 	});
+
+	function Wraper(action, complete) {
+
+		if (action && action.constructor.name === 'AsyncFunction') {
+
+			return Promise.resolve().then(function () {
+				return action();
+			}).then(function (data) {
+				if (complete) {
+					return complete(data);
+				}
+			}).catch(console.error);
+		} else {
+			var result = action();
+
+			if (result && result.constructor.name === 'Promise') {
+
+				return Promise.resolve().then(function () {
+					return result;
+				}).then(function (data) {
+					if (complete) {
+						return complete(data);
+					}
+				}).catch(console.error);
+			} else {
+				if (complete) {
+					return complete(result);
+				}
+			}
+		}
+	}
 
 	var eStyle = document.createElement('style');
 	var tStyle = document.createTextNode(' \

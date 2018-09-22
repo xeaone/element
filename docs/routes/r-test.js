@@ -46,8 +46,12 @@ export default {
 		},
 		methods: {
 			say: Say,
-			async submit (data) {
+			submit: function (data) {
 				console.log(data);
+			},
+			mod: function () {
+				console.log('here');
+				console.log(arguments);
 			},
 			lower: function (text) {
 				text = text || '';
@@ -60,8 +64,8 @@ export default {
 			overwriteArray: function () {
 				this.model.arrayChange = [3, 4, 5, 6];
 			},
-			foo: function () {
-				console.log(this.model);
+			foo: function (e, item) {
+				console.log(item);
 				console.log('foo');
 			},
 			toggle_show_hide: function () {
@@ -87,12 +91,11 @@ export default {
 				}
 			},
 			fetch: function () {
-				Oxe.fetcher.get({
-					url: 'www.google.com',
-					handler: function (data) {
-						console.log(data);
-					}
-				});
+				return Promise.resolve().then(function () {
+					return Oxe.fetcher.get({
+						url: 'https://jsonplaceholder.typicode.com/todos/1'
+					});
+				}).then(console.log).catch(console.error);
 			}
 		},
 		properties: {
@@ -231,8 +234,8 @@ export default {
 		<input type="text" o-value="items.0.it.val">
 		<div o-each-item="items">
 			<span>
-				<span data-index="$index">$item</span>
-				<span o-on-click="foo" o-text="item.it.val"></span>
+				<span data-o-index="$index">$item</span>
+				<span o-on-click="foo | item" o-text="item.it.val"></span>
 				<span>,</span>
 			</span>
 		</div>
@@ -254,7 +257,7 @@ export default {
 		<form o-submit="submit">
 			<input type="text" o-value="submit"/>
 			<input type="submit" value="Submit Form"/>
-		</fomr>
+		</form>
 		<br>
 		<br>
 
@@ -284,7 +287,7 @@ export default {
 		<br>
 		<br>
 
-		<button o-on-click="fetch">Fetch</button>
+		<button o-on-click="fetch | text">Fetch</button>
 		<br>
 		<br>
 

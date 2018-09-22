@@ -12,7 +12,7 @@ Oxe.setup({
 		request: function () {
 			console.log(arguments);
 		},
-		response: async function () {
+		response: function () {
 			console.log(arguments);
 		}
 	},
@@ -42,11 +42,3 @@ Oxe.setup({
 		]
 	}
 });
-
-Promise.resolve().then(function () {
-	return Oxe.fetcher.get({
-		url: 'https://jsonplaceholder.typicode.com/todos/1'
-	});
-})
-.then(console.log)
-.catch(console.error);
