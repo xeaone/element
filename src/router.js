@@ -28,6 +28,7 @@ export default class Router extends Events {
 		this.element = options.element === undefined ? this.element : options.element;
 		this.contain = options.contain === undefined ? this.contain : options.contain;
 		this.external = options.external === undefined ? this.external : options.external;
+		// this.validate = options.validate === undefined ? this.validate : options.validate;
 
 		if (options.routes) {
 			this.add(options.routes);
@@ -201,6 +202,10 @@ export default class Router extends Events {
 		};
 	}
 
+	// validate () {
+	//
+	// }
+
 	render (route) {
 		Global.utility.ready(function () {
 
@@ -309,6 +314,11 @@ export default class Router extends Events {
 		location.title = location.route.title || '';
 		location.query = this.toQueryObject(location.search);
 		location.parameters = this.toParameterObject(location.route.path, location.pathname);
+
+		// if (this.auth || location.route.auth && typeof this.validate === 'function') {
+		// 	const data = this.validate(location);
+		// 	if (!data.valid) return this.route(data.path);
+		// }
 
 		if (typeof this.before === 'function') {
 			const result = this.before(location);

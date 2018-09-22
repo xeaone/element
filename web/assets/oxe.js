@@ -1173,8 +1173,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.before = options.before === undefined ? this.before : options.before;
 				this.element = options.element === undefined ? this.element : options.element;
 				this.contain = options.contain === undefined ? this.contain : options.contain;
-				this.validate = options.validate === undefined ? this.validate : options.validate;
 				this.external = options.external === undefined ? this.external : options.external;
+				// this.validate = options.validate === undefined ? this.validate : options.validate;
 
 				if (options.routes) {
 					this.add(options.routes);
@@ -1349,9 +1349,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					password: window.location.password || ''
 				};
 			}
-		}, {
-			key: 'validate',
-			value: function validate() {}
+
+			// validate () {
+			//
+			// }
+
 		}, {
 			key: 'render',
 			value: function render(route) {
@@ -1464,20 +1466,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				location.query = this.toQueryObject(location.search);
 				location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
-				if (this.auth || location.route.auth && typeof this.validate === 'function') {
-					var data = this.validate(location);
-					if (!data.valid) return this.route(data.path);
-				}
+				// if (this.auth || location.route.auth && typeof this.validate === 'function') {
+				// 	const data = this.validate(location);
+				// 	if (!data.valid) return this.route(data.path);
+				// }
 
 				if (typeof this.before === 'function') {
-					var copy = Object.assign(location);
-					var result = this.before(copy);
-
-					if (result && (typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
-						return this.route(result.path, result);
-					} else if (result === false) {
-						return;
-					}
+					var result = this.before(location);
+					if (result === false) return;
 				}
 
 				if (location.route.handler) {
@@ -2072,37 +2068,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		default: function _default(opt) {}
 	};
 
-	function Wraper(action, complete) {
-
-		if (action && action.constructor.name === 'AsyncFunction') {
-
-			return Promise.resolve().then(function () {
-				return action();
-			}).then(function (data) {
-				if (complete) {
-					return complete(data);
-				}
-			}).catch(console.error);
-		} else {
-			var result = action();
-
-			if (result && result.constructor.name === 'Promise') {
-
-				return Promise.resolve().then(function () {
-					return result;
-				}).then(function (data) {
-					if (complete) {
-						return complete(data);
-					}
-				}).catch(console.error);
-			} else {
-				if (complete) {
-					return complete(result);
-				}
-			}
-		}
-	}
-
 	// TODO dynamic for list dont handle selected
 
 	var Render = {
@@ -2238,9 +2203,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			Global.batcher.write(function () {
 				var data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
 
-				if (!data || typeof data !== 'function') {
-					return;
-				}
+				if (typeof data !== 'function') return;
 
 				if (opt.cache) {
 					opt.element.removeEventListener(opt.names[1], opt.cache);
@@ -3335,6 +3298,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		enumerable: true,
 		value: new Model()
 	});
+
+	function Wraper(action, complete) {
+
+		if (action && action.constructor.name === 'AsyncFunction') {
+
+			return Promise.resolve().then(function () {
+				return action();
+			}).then(function (data) {
+				if (complete) {
+					return complete(data);
+				}
+			}).catch(console.error);
+		} else {
+			var result = action();
+
+			if (result && result.constructor.name === 'Promise') {
+
+				return Promise.resolve().then(function () {
+					return result;
+				}).then(function (data) {
+					if (complete) {
+						return complete(data);
+					}
+				}).catch(console.error);
+			} else {
+				if (complete) {
+					return complete(result);
+				}
+			}
+		}
+	}
 
 	var eStyle = document.createElement('style');
 	var tStyle = document.createTextNode(' \
