@@ -143,11 +143,9 @@ export default {
 
 	on (opt) {
 		Global.batcher.write(function () {
-			var data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
+			const data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
 
-			if (!data || typeof data !== 'function') {
-				return;
-			}
+			if (typeof data !== 'function') return;
 
 			if (opt.cache) {
 				opt.element.removeEventListener(opt.names[1], opt.cache);
