@@ -1,7 +1,11 @@
 
+### 3.14.1
+- fixed default select item for the o-each
+- input, select, options, check radio dont allow | pipe modification
+
 ### 3.13.0
 - removed Oxe.Keeper
-- major Oxe.fetcher changes 
+- major Oxe.fetcher changes
 - made Oxe.fetcher promised
 
 ### 3.6.0
