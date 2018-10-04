@@ -244,13 +244,11 @@ export default class Binder {
 			}
 		}
 
-	};
+	}
 
 	eachAttribute (element, callback) {
-		for (var attribute of element.attributes) {
+		for (const attribute of element.attributes) {
 			if (
-				attribute &&
-				attribute.value &&
 				attribute.name.indexOf('o-') === 0 ||
 				attribute.name.indexOf('data-o-') === 0
 			) {

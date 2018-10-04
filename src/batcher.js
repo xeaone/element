@@ -22,7 +22,7 @@ class Batcher extends Events {
 	read (method, context) {
 		var task = context ? method.bind(context) : method;
 		this.reads.push(task);
-		this.tick();
+		this.schedule();
 		return task;
 	}
 
@@ -30,15 +30,19 @@ class Batcher extends Events {
 	write (method, context) {
 		var task = context ? method.bind(context) : method;
 		this.writes.push(task);
-		this.tick();
+		this.schedule();
 		return task;
 	};
 
+	tick (callback) {
+		window.requestAnimationFrame(callback);
+	}
+
 	// schedules a new read/write batch if one is not pending
-	tick () {
+	schedule () {
 		if (!this.pending) {
 			this.pending = true;
-			window.requestAnimationFrame(this.flush.bind(this));
+			this.tick(this.flush.bind(this));
 		}
 	}
 
@@ -59,7 +63,7 @@ class Batcher extends Events {
 		this.pending = false;
 
 		if (this.reads.length || this.writes.length) {
-			this.tick();
+			this.schedule();
 		}
 
 	}

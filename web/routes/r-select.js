@@ -1,56 +1,60 @@
+var title = 'Select';
 
 export default {
-	title: 'Select',
+	title: title,
 	path: './select',
 	component: {
 		name: 'r-select',
 		model: {
-			car: 'mercedes',
+			title: title,
 			cars: [
-				'Audi'
-			],
-			allcars: [
 				'Audi',
 				'Saab',
-				'Volvo',
-				'Mercedes',
+				'Volvo'
 			],
 			names: [
 				'jon',
 				'alex',
-				'bill',
 				'dave'
 			],
 			result: {
-				name: ''
+				name: '',
+				fruit: '',
+				cars: []
 			}
 		},
 		template: `
 
-		<div o-text="car"></div>
-		<select o-value="car">
-			<option value="audi">audi</option>
-			<option value="volvo">volvo</option>
-			<option value="mercedes">mercedes</option>
-			<option value="saab" selected>saab</option>
-		</select>
+			<h2 o-text="title"></h2>
 
-		<hr>
+			<hr>
 
-		<div o-text="cars"></div>
-		<select o-value="cars" o-each-onecar="allcars" multiple>
-			<option o-value="onecar" o-text="onecar"></option>
-		</select>
+			<div o-text="result.fruit"></div>
+			<select o-value="result.fruit">
+				<option value="apple">apple</option>
+				<option value="pear">pear</option>
+				<option value="peach" selected>peach</option>
+			</select>
 
-		<hr>
+			<hr>
 
-		<div o-text="result.name"></div>
-		// <label>Select Name</label>
-		// o-label="Select Name" 
-		<select o-value="result.name" o-each-name="names">
-			<option o-value="name" o-text="name"></option>
-		</select>
+			<div o-text="result.cars"></div>
+			<select o-value="result.cars" o-each-car="cars" multiple>
+				<option o-value="car" o-text="car"></option>
+			</select>
+			
+			<hr>
+
+			<div o-text="result.name"></div>
+			<select o-value="result.name" o-each-name="names">
+				<option o-value="name" o-text="name"></option>
+			</select>
 
 		`
 	}
 }
+
+/*
+
+
+*/

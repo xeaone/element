@@ -212,6 +212,8 @@ export default {
 	},
 
 	each (opt) {
+		const self = this;
+
 		Global.batcher.read(function () {
 			var data = Global.model.get(opt.keys);
 			var isArray = data ? data.constructor === Array : false;
@@ -254,6 +256,30 @@ export default {
 					}
 				}
 
+				/*
+					check if select element with o-value
+					perform a re-render of the o-value
+					becuase of o-each is async
+				*/
+				if (
+					opt.element.nodeName === 'SELECT' &&
+					opt.element.attributes['o-value'] ||
+					opt.element.attributes['data-o-value']
+				) {
+					const name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
+					const value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
+					const keys = [opt.scope].concat(value.split('|')[0].split('.'));
+
+					self.value({
+						setup: true,
+						keys: keys,
+						name: name,
+						value: value,
+						container: opt.scope,
+						element: opt.element
+					});
+				}
+
 			});
 		});
 	},
@@ -275,6 +301,7 @@ export default {
 					elements = opt.element.options;
 					multiple = opt.element.multiple;
 					data = data === undefined ? (multiple ? [] : '') : data;
+
 					for (i = 0, l = elements.length; i < l; i++) {
 						if (!elements[i].disabled) {
 							if (elements[i].selected) {
@@ -293,6 +320,7 @@ export default {
 					data = data === undefined ? 0 : data;
 					query = 'input[type="radio"][o-value="' + opt.value + '"]';
 					elements = opt.container.querySelectorAll(query);
+
 					for (i = 0, l = elements.length; i < l; i++) {
 						element = elements[i];
 						if (i === data) {
@@ -303,6 +331,7 @@ export default {
 					}
 				} else if (type === 'file') {
 					data = data === undefined ? [] : data;
+
 					for (i = 0, l = data.length; i < l; i++) {
 						opt.element.files[i] = data[i];
 					}
@@ -321,13 +350,11 @@ export default {
 			} else {
 
 				if (name === 'SELECT') {
-					multiple = opt.element.multiple;
-					elements = opt.element.options;
-					data = multiple ? [] : '';
-					for (i = 0, l = elements.length; i < l; i++) {
-						element = elements[i];
+					data = opt.element.multiple ? [] : '';
+
+					for (const element of opt.element.options) {
 						if (element.selected) {
-							if (multiple) {
+							if (opt.element.multiple) {
 								data.push(element.value || element.innerText);
 							} else {
 								data = element.value || element.innerText;
@@ -338,6 +365,7 @@ export default {
 				} else if (type === 'radio') {
 					query = 'input[type="radio"][o-value="' + opt.value + '"]';
 					elements = opt.container.querySelectorAll(query);
+
 					for (i = 0, l = elements.length; i < l; i++) {
 						element = elements[i];
 						if (opt.element === element) {
@@ -366,6 +394,18 @@ export default {
 
 		});
 	},
+
+	// label (opt) {
+	// 	Global.batcher.read(function () {
+	//
+	// 		data = Global.binder.modifyData(opt, data);
+	//
+	// 		Global.batcher.write(function () {
+	// 			opt.element[opt.type] = data;
+	// 		});
+	//
+	// 	});
+	// },
 
 	default (opt) {
 		Global.batcher.read(function () {
