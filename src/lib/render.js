@@ -6,7 +6,7 @@ export default {
 
 	required (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element.required === data) {
 				return;
@@ -22,7 +22,7 @@ export default {
 
 	disable (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element.disabled === data) {
 				return;
@@ -38,7 +38,7 @@ export default {
 
 	enable (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element.disabled === !data) {
 				return;
@@ -54,7 +54,7 @@ export default {
 
 	hide (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element.hidden === data) {
 				return;
@@ -70,7 +70,7 @@ export default {
 
 	show (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element.hidden === !data) {
 				return;
@@ -86,7 +86,7 @@ export default {
 
 	read (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element.readOnly === data) {
 				return;
@@ -102,7 +102,7 @@ export default {
 
 	write (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element.readOnly === !data) {
 				return;
@@ -118,7 +118,7 @@ export default {
 
 	html (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element.innerHTML === data) {
 				return;
@@ -134,8 +134,8 @@ export default {
 
 	class (opt) {
 		Global.batcher.write(function () {
-			var data = Global.model.get(opt.keys);
-			var name = opt.names.slice(1).join('-');
+			let data = Global.model.get(opt.keys);
+			let name = opt.names.slice(1).join('-');
 			data = Global.binder.modifyData(opt, data);
 			opt.element.classList.toggle(name, data);
 		});
@@ -173,7 +173,7 @@ export default {
 
 	css (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element.style.cssText === data) {
 				return;
@@ -193,8 +193,9 @@ export default {
 
 	text (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data;
 
+			data = Global.model.get(opt.keys);
 			data = data === undefined || data === null ? '' : data;
 
 			if (data && typeof data === 'object') {
@@ -215,9 +216,9 @@ export default {
 		const self = this;
 
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
-			var isArray = data ? data.constructor === Array : false;
-			var isObject = data ? data.constructor === Object: false;
+			let data = Global.model.get(opt.keys);
+			let isArray = data ? data.constructor === Array : false;
+			let isObject = data ? data.constructor === Object: false;
 
 			if (!data || typeof data !== 'object') {
 				return;
@@ -225,6 +226,10 @@ export default {
 				return;
 			} else if (isObject && opt.element.children.length === Object.keys(data).length) {
 				return;
+			}
+
+			if (!opt.cache) {
+				opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 			}
 
 			data = Global.binder.modifyData(opt, data);
@@ -235,13 +240,14 @@ export default {
 					data = Object.keys(data);
 				}
 
+
 				while (opt.element.children.length !== data.length) {
 
 					if (opt.element.children.length > data.length) {
 						opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
 					} else if (opt.element.children.length < data.length) {
-						var key;
-						var clone = opt.cache.cloneNode(true);
+						let key;
+						let clone = opt.cache.cloneNode(true);
 
 						if (isArray) {
 							key = opt.element.children.length;
@@ -287,10 +293,10 @@ export default {
 	value (opt) {
 		Global.batcher.read(function () {
 
-			var type = opt.element.type;
-			var name = opt.element.nodeName;
-			var attribute, query, multiple;
-			var i, l, data, element, elements;
+			let type = opt.element.type;
+			let name = opt.element.nodeName;
+			let attribute, query, multiple;
+			let i, l, data, element, elements;
 
 			if (opt.setup) {
 				opt.setup = false;
@@ -302,7 +308,7 @@ export default {
 					multiple = opt.element.multiple;
 					data = data === undefined ? (multiple ? [] : '') : data;
 
-					for (i = 0, l = elements.length; i < l; i++) {
+					for (let i = 0, l = elements.length; i < l; i++) {
 						if (!elements[i].disabled) {
 							if (elements[i].selected) {
 								if (multiple) {
@@ -344,7 +350,7 @@ export default {
 				}
 
 				if (attribute) {
-					opt.element[attribute] = Global.binder.modifyData(opt, data);
+					opt.element[attribute] = data;
 				}
 
 			} else {
@@ -395,21 +401,9 @@ export default {
 		});
 	},
 
-	// label (opt) {
-	// 	Global.batcher.read(function () {
-	//
-	// 		data = Global.binder.modifyData(opt, data);
-	//
-	// 		Global.batcher.write(function () {
-	// 			opt.element[opt.type] = data;
-	// 		});
-	//
-	// 	});
-	// },
-
 	default (opt) {
 		Global.batcher.read(function () {
-			var data = Global.model.get(opt.keys);
+			let data = Global.model.get(opt.keys);
 
 			if (opt.element[opt.type] === data) {
 				return;

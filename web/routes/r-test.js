@@ -10,19 +10,8 @@ export default {
 			submit: 'hello world',
 			empty: {},
 			blank: '',
-			show_hide: true,
-			mcar: 'mcar',
-			car: 'mercedes',
-			cars: [
-				'Audi'
-			],
-			allcars: [
-				'Audi',
-				'Saab',
-				'Volvo',
-				'Mercedes',
-			],
 			numRadio: 0,
+			showHide: true,
 			isChecked: true,
 			text: 'Hello from model',
 			loopy: { doopy: 'soopy' },
@@ -68,8 +57,8 @@ export default {
 				console.log(item);
 				console.log('foo');
 			},
-			toggle_show_hide: function () {
-				this.model.show_hide = !this.model.show_hide;
+			toggleShowHide: function () {
+				this.model.showHide = !this.model.showHide;
 			},
 			submitGet: function () {
 				console.log(arguments);
@@ -171,8 +160,8 @@ export default {
 		<br>
 		<br>
 
-		<div o-show="show_hide">Now you see me!</div>
-		<button o-on-click="toggle_show_hide">Show/Hide</button>
+		<div o-show="showHide">Now you see me!</div>
+		<button o-on-click="toggleShowHide">Show/Hide</button>
 		<br>
 		<br>
 
@@ -210,23 +199,6 @@ export default {
 		<div o-text="numRadio"></div>
 		<input type="radio" o-value="numRadio">
 		<input type="radio" o-value="numRadio">
-		<br>
-		<br>
-
-		<div o-text="car"></div>
-		<select o-value="car">
-			<option value="audi">audi</option>
-			<option value="saab" selected>saab</option>
-			<option value="volvo">volvo</option>
-			<option value="mercedes">mercedes</option>
-		</select>
-		<br>
-		<br>
-
-		<div o-text="cars"></div>
-		<select o-value="cars" o-value="cars" o-each-onecar="allcars" multiple>
-			<option o-value="onecar" o-text="onecar"></option>
-		</select>
 		<br>
 		<br>
 

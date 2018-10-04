@@ -13,21 +13,10 @@ export default class Binder {
 	set (opt) {
 		opt = opt || {};
 
-		if (!opt.name) {
-			throw new Error('Oxe.binder.set - missing name');
-		}
-
-		if (!opt.value) {
-			throw new Error('Oxe.binder.set - missing value');
-		}
-
-		if (!opt.element) {
-			throw new Error('Oxe.binder.set - missing element');
-		}
-
-		if (!opt.container) {
-			throw new Error('Oxe.binder.set - missing container');
-		}
+		if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
+		if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
+		if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
+		if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
 
 		opt.scope = opt.scope || opt.container.getAttribute('o-scope');
 		// opt.value = opt.value || opt.element.getAttribute(opt.name);
@@ -44,9 +33,9 @@ export default class Binder {
 			opt.setup = true;
 		}
 
-		if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
-			opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-		}
+		// if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
+		// 	opt.cache = opt.element.removeChild(opt.element.firstElementChild);
+		// }
 
 		return opt;
 	}
@@ -294,7 +283,6 @@ export default class Binder {
 
 				this.add(binder);
 				this.render(binder);
-
 			});
 		});
 	}

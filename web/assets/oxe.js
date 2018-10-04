@@ -2254,8 +2254,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		text: function text(opt) {
 			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+				var data = void 0;
 
+				data = Global.model.get(opt.keys);
 				data = data === undefined || data === null ? '' : data;
 
 				if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
@@ -2287,6 +2288,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
+				if (!opt.cache) {
+					opt.cache = opt.element.removeChild(opt.element.firstElementChild);
+				}
+
 				data = Global.binder.modifyData(opt, data);
 
 				Global.batcher.write(function () {
@@ -2300,7 +2305,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						if (opt.element.children.length > data.length) {
 							opt.element.removeChild(opt.element.children[opt.element.children.length - 1]);
 						} else if (opt.element.children.length < data.length) {
-							var key;
+							var key = void 0;
 							var clone = opt.cache.cloneNode(true);
 
 							if (isArray) {
@@ -2343,8 +2348,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				var type = opt.element.type;
 				var name = opt.element.nodeName;
-				var attribute, query, multiple;
-				var i, l, data, element, elements;
+				var attribute = void 0,
+				    query = void 0,
+				    multiple = void 0;
+				var i = void 0,
+				    l = void 0,
+				    data = void 0,
+				    element = void 0,
+				    elements = void 0;
 
 				if (opt.setup) {
 					opt.setup = false;
@@ -2356,16 +2367,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						multiple = opt.element.multiple;
 						data = data === undefined ? multiple ? [] : '' : data;
 
-						for (i = 0, l = elements.length; i < l; i++) {
-							if (!elements[i].disabled) {
-								if (elements[i].selected) {
+						for (var _i = 0, _l = elements.length; _i < _l; _i++) {
+							if (!elements[_i].disabled) {
+								if (elements[_i].selected) {
 									if (multiple) {
-										data.push(elements[i].value || elements[i].innerText || '');
+										data.push(elements[_i].value || elements[_i].innerText || '');
 									} else {
-										data = elements[i].value || elements[i].innerText || '';
+										data = elements[_i].value || elements[_i].innerText || '';
 										break;
 									}
-								} else if (i === l - 1 && !multiple) {
+								} else if (_i === _l - 1 && !multiple) {
 									data = elements[0].value || elements[0].innerText || '';
 								}
 							}
@@ -2398,7 +2409,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					if (attribute) {
-						opt.element[attribute] = Global.binder.modifyData(opt, data);
+						opt.element[attribute] = data;
 					}
 				} else {
 
@@ -2466,20 +2477,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			});
 		},
-
-
-		// label (opt) {
-		// 	Global.batcher.read(function () {
-		//
-		// 		data = Global.binder.modifyData(opt, data);
-		//
-		// 		Global.batcher.write(function () {
-		// 			opt.element[opt.type] = data;
-		// 		});
-		//
-		// 	});
-		// },
-
 		default: function _default(opt) {
 			Global.batcher.read(function () {
 				var data = Global.model.get(opt.keys);
@@ -2511,21 +2508,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function set(opt) {
 				opt = opt || {};
 
-				if (!opt.name) {
-					throw new Error('Oxe.binder.set - missing name');
-				}
-
-				if (!opt.value) {
-					throw new Error('Oxe.binder.set - missing value');
-				}
-
-				if (!opt.element) {
-					throw new Error('Oxe.binder.set - missing element');
-				}
-
-				if (!opt.container) {
-					throw new Error('Oxe.binder.set - missing container');
-				}
+				if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
+				if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
+				if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
+				if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
 
 				opt.scope = opt.scope || opt.container.getAttribute('o-scope');
 				// opt.value = opt.value || opt.element.getAttribute(opt.name);
@@ -2542,9 +2528,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					opt.setup = true;
 				}
 
-				if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
-					opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-				}
+				// if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
+				// 	opt.cache = opt.element.removeChild(opt.element.firstElementChild);
+				// }
 
 				return opt;
 			}
