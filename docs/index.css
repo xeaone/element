@@ -41,10 +41,11 @@ i {
 }
 pre {
 	flex: 1 0;
-	/*width: 100%;*/
-	/*min-height: 300px;*/
 	font-family: monospace !important;
 	background-color: whitesmoke !important;
+}
+hr {
+	margin: 3rem 0;
 }
 .title {
 	display: block;
@@ -73,14 +74,34 @@ pre {
 	background-color: whitesmoke;
 	border-bottom: solid 3px darkorange;
 }
-.menu > a {
+.menu a {
 	display: inline-block;
+	vertical-align: middle;
 	padding: 1.3rem 1.9rem;
 	text-transform: uppercase;
 }
-.menu > a:hover {
+.menu a:hover {
 	background: rgba(0, 0, 0, 0.1);
 }
+.menu-item {
+	position: relative;
+	display: inline-block;
+}
+.menu-item-button > a::after {
+	margin: 0.6rem;
+	content: '\2bc6';
+	color: darkorange;
+}
+.menu-item-content {
+	z-index: 1;
+	display: none;
+	position: absolute;
+	background: whitesmoke;
+}
+.menu-item:hover .menu-item-content {
+  display: block;
+}
+
 o-router {
 	padding: 1rem;
 	display: block;

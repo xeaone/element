@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.14.0
+	Version: 3.14.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -13,11 +13,11 @@ var _createClass = function () { function defineProperties(target, props) { for 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 function _invoke(body, then) {
-
 	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
-}function _invokeIgnored(body) {
+}
+function _invokeIgnored(body) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
@@ -793,27 +793,33 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function read(method, context) {
 				var task = context ? method.bind(context) : method;
 				this.reads.push(task);
-				this.tick();
+				this.schedule();
 				return task;
-			} // adds a task to the write batch
+			}
+
+			// adds a task to the write batch
 
 		}, {
 			key: 'write',
 			value: function write(method, context) {
 				var task = context ? method.bind(context) : method;
 				this.writes.push(task);
-				this.tick();
-				return task;
+				this.schedule();return task;
 			}
 		}, {
 			key: 'tick',
-
+			value: function tick(callback) {
+				window.requestAnimationFrame(callback);
+			}
 
 			// schedules a new read/write batch if one is not pending
-			value: function tick() {
+
+		}, {
+			key: 'schedule',
+			value: function schedule() {
 				if (!this.pending) {
 					this.pending = true;
-					window.requestAnimationFrame(this.flush.bind(this));
+					this.tick(this.flush.bind(this));
 				}
 			}
 		}, {
@@ -835,7 +841,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.pending = false;
 
 				if (this.reads.length || this.writes.length) {
-					this.tick();
+					this.schedule();
 				}
 			}
 		}, {
@@ -2258,8 +2264,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		text: function text(opt) {
 			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
+				var data = void 0;
 
+				data = Global.model.get(opt.keys);
 				data = data === undefined || data === null ? '' : data;
 
 				if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
@@ -2276,6 +2283,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 		},
 		each: function each(opt) {
+			var self = this;
+
 			Global.batcher.read(function () {
 				var data = Global.model.get(opt.keys);
 				var isArray = data ? data.constructor === Array : false;
@@ -2287,6 +2296,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				} else if (isObject && opt.element.children.length === Object.keys(data).length) {
 					return;
+				}
+
+				if (!opt.cache) {
+					opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 				}
 
 				data = Global.binder.modifyData(opt, data);
@@ -2302,7 +2315,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						if (opt.element.children.length > data.length) {
 							opt.element.removeChild(opt.element.children[opt.element.children.length - 1]);
 						} else if (opt.element.children.length < data.length) {
-							var key;
+							var key = void 0;
 							var clone = opt.cache.cloneNode(true);
 
 							if (isArray) {
@@ -2317,6 +2330,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							opt.element.appendChild(clone);
 						}
 					}
+
+					/*
+     	check if select element with o-value
+     	perform a re-render of the o-value
+     	becuase of o-each is async
+     */
+					if (opt.element.nodeName === 'SELECT' && opt.element.attributes['o-value'] || opt.element.attributes['data-o-value']) {
+						var name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
+						var value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
+						var keys = [opt.scope].concat(value.split('|')[0].split('.'));
+
+						self.value({
+							setup: true,
+							keys: keys,
+							name: name,
+							value: value,
+							container: opt.scope,
+							element: opt.element
+						});
+					}
 				});
 			});
 		},
@@ -2325,8 +2358,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				var type = opt.element.type;
 				var name = opt.element.nodeName;
-				var attribute, query, multiple;
-				var i, l, data, element, elements;
+				var attribute = void 0,
+				    query = void 0,
+				    multiple = void 0;
+				var i = void 0,
+				    l = void 0,
+				    data = void 0,
+				    element = void 0,
+				    elements = void 0;
 
 				if (opt.setup) {
 					opt.setup = false;
@@ -2337,16 +2376,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						elements = opt.element.options;
 						multiple = opt.element.multiple;
 						data = data === undefined ? multiple ? [] : '' : data;
-						for (i = 0, l = elements.length; i < l; i++) {
-							if (!elements[i].disabled) {
-								if (elements[i].selected) {
+
+						for (var _i = 0, _l = elements.length; _i < _l; _i++) {
+							if (!elements[_i].disabled) {
+								if (elements[_i].selected) {
 									if (multiple) {
-										data.push(elements[i].value || elements[i].innerText || '');
+										data.push(elements[_i].value || elements[_i].innerText || '');
 									} else {
-										data = elements[i].value || elements[i].innerText || '';
+										data = elements[_i].value || elements[_i].innerText || '';
 										break;
 									}
-								} else if (i === l - 1 && !multiple) {
+								} else if (_i === _l - 1 && !multiple) {
 									data = elements[0].value || elements[0].innerText || '';
 								}
 							}
@@ -2355,6 +2395,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						data = data === undefined ? 0 : data;
 						query = 'input[type="radio"][o-value="' + opt.value + '"]';
 						elements = opt.container.querySelectorAll(query);
+
 						for (i = 0, l = elements.length; i < l; i++) {
 							element = elements[i];
 							if (i === data) {
@@ -2365,6 +2406,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					} else if (type === 'file') {
 						data = data === undefined ? [] : data;
+
 						for (i = 0, l = data.length; i < l; i++) {
 							opt.element.files[i] = data[i];
 						}
@@ -2377,28 +2419,48 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					if (attribute) {
-						opt.element[attribute] = Global.binder.modifyData(opt, data);
+						opt.element[attribute] = data;
 					}
 				} else {
 
 					if (name === 'SELECT') {
-						multiple = opt.element.multiple;
-						elements = opt.element.options;
-						data = multiple ? [] : '';
-						for (i = 0, l = elements.length; i < l; i++) {
-							element = elements[i];
-							if (element.selected) {
-								if (multiple) {
-									data.push(element.value || element.innerText);
-								} else {
-									data = element.value || element.innerText;
-									break;
+						data = opt.element.multiple ? [] : '';
+
+						var _iteratorNormalCompletion5 = true;
+						var _didIteratorError5 = false;
+						var _iteratorError5 = undefined;
+
+						try {
+							for (var _iterator5 = opt.element.options[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+								var _element = _step5.value;
+
+								if (_element.selected) {
+									if (opt.element.multiple) {
+										data.push(_element.value || _element.innerText);
+									} else {
+										data = _element.value || _element.innerText;
+										break;
+									}
+								}
+							}
+						} catch (err) {
+							_didIteratorError5 = true;
+							_iteratorError5 = err;
+						} finally {
+							try {
+								if (!_iteratorNormalCompletion5 && _iterator5.return) {
+									_iterator5.return();
+								}
+							} finally {
+								if (_didIteratorError5) {
+									throw _iteratorError5;
 								}
 							}
 						}
 					} else if (type === 'radio') {
 						query = 'input[type="radio"][o-value="' + opt.value + '"]';
 						elements = opt.container.querySelectorAll(query);
+
 						for (i = 0, l = elements.length; i < l; i++) {
 							element = elements[i];
 							if (opt.element === element) {
@@ -2456,21 +2518,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function set(opt) {
 				opt = opt || {};
 
-				if (!opt.name) {
-					throw new Error('Oxe.binder.set - missing name');
-				}
-
-				if (!opt.value) {
-					throw new Error('Oxe.binder.set - missing value');
-				}
-
-				if (!opt.element) {
-					throw new Error('Oxe.binder.set - missing element');
-				}
-
-				if (!opt.container) {
-					throw new Error('Oxe.binder.set - missing container');
-				}
+				if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
+				if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
+				if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
+				if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
 
 				opt.scope = opt.scope || opt.container.getAttribute('o-scope');
 				// opt.value = opt.value || opt.element.getAttribute(opt.name);
@@ -2487,9 +2538,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					opt.setup = true;
 				}
 
-				if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
-					opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-				}
+				// if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
+				// 	opt.cache = opt.element.removeChild(opt.element.firstElementChild);
+				// }
 
 				return opt;
 			}
@@ -2515,29 +2566,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					items = this.data[opt.scope][opt.path];
 				}
 
-				var _iteratorNormalCompletion5 = true;
-				var _didIteratorError5 = false;
-				var _iteratorError5 = undefined;
+				var _iteratorNormalCompletion6 = true;
+				var _didIteratorError6 = false;
+				var _iteratorError6 = undefined;
 
 				try {
-					for (var _iterator5 = items[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-						var item = _step5.value;
+					for (var _iterator6 = items[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+						var item = _step6.value;
 
 						if (item.element === opt.element && item.name === opt.name) {
 							return item;
 						}
 					}
 				} catch (err) {
-					_didIteratorError5 = true;
-					_iteratorError5 = err;
+					_didIteratorError6 = true;
+					_iteratorError6 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion5 && _iterator5.return) {
-							_iterator5.return();
+						if (!_iteratorNormalCompletion6 && _iterator6.return) {
+							_iterator6.return();
 						}
 					} finally {
-						if (_didIteratorError5) {
-							throw _iteratorError5;
+						if (_didIteratorError6) {
+							throw _iteratorError6;
 						}
 					}
 				}
@@ -2643,13 +2694,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return data;
 				}
 
-				var _iteratorNormalCompletion6 = true;
-				var _didIteratorError6 = false;
-				var _iteratorError6 = undefined;
+				var _iteratorNormalCompletion7 = true;
+				var _didIteratorError7 = false;
+				var _iteratorError7 = undefined;
 
 				try {
-					for (var _iterator6 = opt.modifiers[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-						var modifier = _step6.value;
+					for (var _iterator7 = opt.modifiers[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+						var modifier = _step7.value;
 
 						var scope = Global.methods.data[opt.scope];
 
@@ -2658,16 +2709,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				} catch (err) {
-					_didIteratorError6 = true;
-					_iteratorError6 = err;
+					_didIteratorError7 = true;
+					_iteratorError7 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion6 && _iterator6.return) {
-							_iterator6.return();
+						if (!_iteratorNormalCompletion7 && _iterator7.return) {
+							_iterator7.return();
 						}
 					} finally {
-						if (_didIteratorError6) {
-							throw _iteratorError6;
+						if (_didIteratorError7) {
+							throw _iteratorError7;
 						}
 					}
 				}
@@ -2682,29 +2733,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return true;
 				}
 
-				var _iteratorNormalCompletion7 = true;
-				var _didIteratorError7 = false;
-				var _iteratorError7 = undefined;
+				var _iteratorNormalCompletion8 = true;
+				var _didIteratorError8 = false;
+				var _iteratorError8 = undefined;
 
 				try {
-					for (var _iterator7 = element.attributes[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-						var attribute = _step7.value;
+					for (var _iterator8 = element.attributes[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+						var attribute = _step8.value;
 
 						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
 							return true;
 						}
 					}
 				} catch (err) {
-					_didIteratorError7 = true;
-					_iteratorError7 = err;
+					_didIteratorError8 = true;
+					_iteratorError8 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion7 && _iterator7.return) {
-							_iterator7.return();
+						if (!_iteratorNormalCompletion8 && _iterator8.return) {
+							_iterator8.return();
 						}
 					} finally {
-						if (_didIteratorError7) {
-							throw _iteratorError7;
+						if (_didIteratorError8) {
+							throw _iteratorError8;
 						}
 					}
 				}
@@ -2723,27 +2774,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (idCheck && this.skipChildren(element) === false) {
-					var _iteratorNormalCompletion8 = true;
-					var _didIteratorError8 = false;
-					var _iteratorError8 = undefined;
+					var _iteratorNormalCompletion9 = true;
+					var _didIteratorError9 = false;
+					var _iteratorError9 = undefined;
 
 					try {
-						for (var _iterator8 = element.children[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-							var child = _step8.value;
+						for (var _iterator9 = element.children[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+							var child = _step9.value;
 
 							this.eachElement(child, scope, callback);
 						}
 					} catch (err) {
-						_didIteratorError8 = true;
-						_iteratorError8 = err;
+						_didIteratorError9 = true;
+						_iteratorError9 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion8 && _iterator8.return) {
-								_iterator8.return();
+							if (!_iteratorNormalCompletion9 && _iterator9.return) {
+								_iterator9.return();
 							}
 						} finally {
-							if (_didIteratorError8) {
-								throw _iteratorError8;
+							if (_didIteratorError9) {
+								throw _iteratorError9;
 							}
 						}
 					}
@@ -2752,29 +2803,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'eachAttribute',
 			value: function eachAttribute(element, callback) {
-				var _iteratorNormalCompletion9 = true;
-				var _didIteratorError9 = false;
-				var _iteratorError9 = undefined;
+				var _iteratorNormalCompletion10 = true;
+				var _didIteratorError10 = false;
+				var _iteratorError10 = undefined;
 
 				try {
-					for (var _iterator9 = element.attributes[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-						var attribute = _step9.value;
+					for (var _iterator10 = element.attributes[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+						var attribute = _step10.value;
 
-						if (attribute && attribute.value && attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
+						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 							callback.call(this, attribute);
 						}
 					}
 				} catch (err) {
-					_didIteratorError9 = true;
-					_iteratorError9 = err;
+					_didIteratorError10 = true;
+					_iteratorError10 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion9 && _iterator9.return) {
-							_iterator9.return();
+						if (!_iteratorNormalCompletion10 && _iterator10.return) {
+							_iterator10.return();
 						}
 					} finally {
-						if (_didIteratorError9) {
-							throw _iteratorError9;
+						if (_didIteratorError10) {
+							throw _iteratorError10;
 						}
 					}
 				}
