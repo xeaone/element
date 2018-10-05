@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.14.1
+	Version: 3.14.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -16,8 +16,7 @@ function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
-}
-function _invokeIgnored(body) {
+}function _invokeIgnored(body) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
@@ -533,17 +532,38 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var elements = form.querySelectorAll('[o-value]');
 			var data = {};
 
-			for (var i = 0, l = elements.length; i < l; i++) {
+			var _iteratorNormalCompletion5 = true;
+			var _didIteratorError5 = false;
+			var _iteratorError5 = undefined;
 
-				var element = elements[i];
-				var path = element.getAttribute('o-value');
+			try {
+				for (var _iterator5 = elements[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+					var element = _step5.value;
 
-				if (!path) continue;
+					if (element.nodeName === 'OPTION') continue;
 
-				path = path.replace(/\s*\|.*/, '');
-				var name = path.split('.').slice(-1);
+					var path = element.getAttribute('o-value');
 
-				data[name] = this.getByPath(model, path);
+					if (!path) continue;
+
+					path = path.replace(/\s*\|.*/, '');
+					var name = path.split('.').slice(-1);
+
+					data[name] = this.getByPath(model, path);
+				}
+			} catch (err) {
+				_didIteratorError5 = true;
+				_iteratorError5 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion5 && _iterator5.return) {
+						_iterator5.return();
+					}
+				} finally {
+					if (_didIteratorError5) {
+						throw _iteratorError5;
+					}
+				}
 			}
 
 			return data;
@@ -804,7 +824,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function write(method, context) {
 				var task = context ? method.bind(context) : method;
 				this.writes.push(task);
-				this.schedule();return task;
+				this.schedule();
+				return task;
 			}
 		}, {
 			key: 'tick',
@@ -2426,13 +2447,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (name === 'SELECT') {
 						data = opt.element.multiple ? [] : '';
 
-						var _iteratorNormalCompletion5 = true;
-						var _didIteratorError5 = false;
-						var _iteratorError5 = undefined;
+						var _iteratorNormalCompletion6 = true;
+						var _didIteratorError6 = false;
+						var _iteratorError6 = undefined;
 
 						try {
-							for (var _iterator5 = opt.element.options[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-								var _element = _step5.value;
+							for (var _iterator6 = opt.element.options[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+								var _element = _step6.value;
 
 								if (_element.selected) {
 									if (opt.element.multiple) {
@@ -2444,16 +2465,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 								}
 							}
 						} catch (err) {
-							_didIteratorError5 = true;
-							_iteratorError5 = err;
+							_didIteratorError6 = true;
+							_iteratorError6 = err;
 						} finally {
 							try {
-								if (!_iteratorNormalCompletion5 && _iterator5.return) {
-									_iterator5.return();
+								if (!_iteratorNormalCompletion6 && _iterator6.return) {
+									_iterator6.return();
 								}
 							} finally {
-								if (_didIteratorError5) {
-									throw _iteratorError5;
+								if (_didIteratorError6) {
+									throw _iteratorError6;
 								}
 							}
 						}
@@ -2566,29 +2587,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					items = this.data[opt.scope][opt.path];
 				}
 
-				var _iteratorNormalCompletion6 = true;
-				var _didIteratorError6 = false;
-				var _iteratorError6 = undefined;
+				var _iteratorNormalCompletion7 = true;
+				var _didIteratorError7 = false;
+				var _iteratorError7 = undefined;
 
 				try {
-					for (var _iterator6 = items[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-						var item = _step6.value;
+					for (var _iterator7 = items[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+						var item = _step7.value;
 
 						if (item.element === opt.element && item.name === opt.name) {
 							return item;
 						}
 					}
 				} catch (err) {
-					_didIteratorError6 = true;
-					_iteratorError6 = err;
+					_didIteratorError7 = true;
+					_iteratorError7 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion6 && _iterator6.return) {
-							_iterator6.return();
+						if (!_iteratorNormalCompletion7 && _iterator7.return) {
+							_iterator7.return();
 						}
 					} finally {
-						if (_didIteratorError6) {
-							throw _iteratorError6;
+						if (_didIteratorError7) {
+							throw _iteratorError7;
 						}
 					}
 				}
@@ -2694,13 +2715,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return data;
 				}
 
-				var _iteratorNormalCompletion7 = true;
-				var _didIteratorError7 = false;
-				var _iteratorError7 = undefined;
+				var _iteratorNormalCompletion8 = true;
+				var _didIteratorError8 = false;
+				var _iteratorError8 = undefined;
 
 				try {
-					for (var _iterator7 = opt.modifiers[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-						var modifier = _step7.value;
+					for (var _iterator8 = opt.modifiers[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+						var modifier = _step8.value;
 
 						var scope = Global.methods.data[opt.scope];
 
@@ -2709,16 +2730,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				} catch (err) {
-					_didIteratorError7 = true;
-					_iteratorError7 = err;
+					_didIteratorError8 = true;
+					_iteratorError8 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion7 && _iterator7.return) {
-							_iterator7.return();
+						if (!_iteratorNormalCompletion8 && _iterator8.return) {
+							_iterator8.return();
 						}
 					} finally {
-						if (_didIteratorError7) {
-							throw _iteratorError7;
+						if (_didIteratorError8) {
+							throw _iteratorError8;
 						}
 					}
 				}
@@ -2733,29 +2754,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return true;
 				}
 
-				var _iteratorNormalCompletion8 = true;
-				var _didIteratorError8 = false;
-				var _iteratorError8 = undefined;
+				var _iteratorNormalCompletion9 = true;
+				var _didIteratorError9 = false;
+				var _iteratorError9 = undefined;
 
 				try {
-					for (var _iterator8 = element.attributes[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-						var attribute = _step8.value;
+					for (var _iterator9 = element.attributes[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+						var attribute = _step9.value;
 
 						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
 							return true;
 						}
 					}
 				} catch (err) {
-					_didIteratorError8 = true;
-					_iteratorError8 = err;
+					_didIteratorError9 = true;
+					_iteratorError9 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion8 && _iterator8.return) {
-							_iterator8.return();
+						if (!_iteratorNormalCompletion9 && _iterator9.return) {
+							_iterator9.return();
 						}
 					} finally {
-						if (_didIteratorError8) {
-							throw _iteratorError8;
+						if (_didIteratorError9) {
+							throw _iteratorError9;
 						}
 					}
 				}
@@ -2774,27 +2795,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (idCheck && this.skipChildren(element) === false) {
-					var _iteratorNormalCompletion9 = true;
-					var _didIteratorError9 = false;
-					var _iteratorError9 = undefined;
+					var _iteratorNormalCompletion10 = true;
+					var _didIteratorError10 = false;
+					var _iteratorError10 = undefined;
 
 					try {
-						for (var _iterator9 = element.children[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-							var child = _step9.value;
+						for (var _iterator10 = element.children[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+							var child = _step10.value;
 
 							this.eachElement(child, scope, callback);
 						}
 					} catch (err) {
-						_didIteratorError9 = true;
-						_iteratorError9 = err;
+						_didIteratorError10 = true;
+						_iteratorError10 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion9 && _iterator9.return) {
-								_iterator9.return();
+							if (!_iteratorNormalCompletion10 && _iterator10.return) {
+								_iterator10.return();
 							}
 						} finally {
-							if (_didIteratorError9) {
-								throw _iteratorError9;
+							if (_didIteratorError10) {
+								throw _iteratorError10;
 							}
 						}
 					}
@@ -2803,29 +2824,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'eachAttribute',
 			value: function eachAttribute(element, callback) {
-				var _iteratorNormalCompletion10 = true;
-				var _didIteratorError10 = false;
-				var _iteratorError10 = undefined;
+				var _iteratorNormalCompletion11 = true;
+				var _didIteratorError11 = false;
+				var _iteratorError11 = undefined;
 
 				try {
-					for (var _iterator10 = element.attributes[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-						var attribute = _step10.value;
+					for (var _iterator11 = element.attributes[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+						var attribute = _step11.value;
 
 						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 							callback.call(this, attribute);
 						}
 					}
 				} catch (err) {
-					_didIteratorError10 = true;
-					_iteratorError10 = err;
+					_didIteratorError11 = true;
+					_iteratorError11 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion10 && _iterator10.return) {
-							_iterator10.return();
+						if (!_iteratorNormalCompletion11 && _iterator11.return) {
+							_iterator11.return();
 						}
 					} finally {
-						if (_didIteratorError10) {
-							throw _iteratorError10;
+						if (_didIteratorError11) {
+							throw _iteratorError11;
 						}
 					}
 				}
