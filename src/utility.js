@@ -79,9 +79,9 @@ export default {
 		var done = 0;
 		var count = 0;
 
-		for (var i = 0, l = elements.length; i < l; i++) {
-
-			var element = elements[i];
+		for (const element of elements) {
+			if (element.nodeName === 'OPTION') continue;
+			
 			var path = element.getAttribute('o-value');
 
 			if (!path) continue;
