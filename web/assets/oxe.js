@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.14.2
+	Version: 3.14.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -937,6 +937,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.acceptType = options.acceptType;
 				this.contentType = options.contentType;
 				this.responseType = options.responseType;
+				this.credentials = options.credentials;
 			}
 		}, {
 			key: 'serialize',

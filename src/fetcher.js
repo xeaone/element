@@ -25,6 +25,7 @@ export default class Fetcher {
 		this.acceptType = options.acceptType;
 		this.contentType = options.contentType;
 		this.responseType = options.responseType;
+		this.credentials = options.credentials;
 	}
 
 	async serialize (data) {
