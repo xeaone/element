@@ -4,6 +4,8 @@ import Submit from './submit.js';
 import Reset from './reset.js';
 import Input from './input.js';
 
+// OPTIMIZE wait until polyfill are ready then allow setup
+
 var eStyle = document.createElement('style');
 var tStyle = document.createTextNode(' \
 	o-router, o-router > :first-child { \

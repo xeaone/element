@@ -3505,6 +3505,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	}
 
+	// OPTIMIZE wait until polyfill are ready then allow setup
+
 	var eStyle = document.createElement('style');
 	var tStyle = document.createTextNode(' \
 	o-router, o-router > :first-child { \
