@@ -1,8 +1,10 @@
-import Events from './lib/events.js';
-import Path from './lib/path.js';
-import Global from './global.js';
+import Path from './path.js';
+import Events from './events.js';
+import Loader from './loader.js';
+import Utility from './utility.js';
+import Component from './component.js';
 
-export default class Router extends Events {
+class Router extends Events {
 
 	constructor () {
 		super();
@@ -207,14 +209,14 @@ export default class Router extends Events {
 	// }
 
 	render (route) {
-		Global.utility.ready(function () {
+		Utility.ready(function () {
 
 			if (route.title) {
 				document.title = route.title;
 			}
 
 			if (route.description) {
-				Global.utility.ensureElement({
+				Utility.ensureElement({
 					name: 'meta',
 					scope: document.head,
 					position: 'afterbegin',
@@ -227,7 +229,7 @@ export default class Router extends Events {
 			}
 
 			if (route.keywords) {
-				Global.utility.ensureElement({
+				Utility.ensureElement({
 					name: 'meta',
 					scope: document.head,
 					position: 'afterbegin',
@@ -255,7 +257,7 @@ export default class Router extends Events {
 			if (!route.element) {
 
 				if (route.load) {
-					Global.loader.load(route.load);
+					Loader.load(route.load);
 				}
 
 				if (!route.component) {
@@ -264,7 +266,7 @@ export default class Router extends Events {
 					route.element = document.createElement(route.component);
 				} else if (route.component.constructor.name === 'Object') {
 
-					Global.component.define(route.component);
+					Component.define(route.component);
 
 					if (this.compiled) {
 						route.element = this.element.firstChild;
@@ -409,3 +411,5 @@ export default class Router extends Events {
 	}
 
 }
+
+export default new Router();

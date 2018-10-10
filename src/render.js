@@ -1,149 +1,153 @@
-import Global from '../global';
+import Batcher from './batcher.js';
+import Utility from './utility.js';
+import Methods from './methods.js';
+import Binder from './binder.js';
+import Model from './model.js';
 
 // TODO dynamic for list dont handle selected
 
 export default {
 
 	required (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element.required === data) {
 				return;
 			}
 
-			data = Global.utility.binderModifyData(opt, data);
+			data = Utility.binderModifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.required = data;
 			});
 		});
 	},
 
 	disable (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element.disabled === data) {
 				return;
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.disabled = data;
 			});
 		});
 	},
 
 	enable (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element.disabled === !data) {
 				return;
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.disabled = !data;
 			});
 		});
 	},
 
 	hide (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element.hidden === data) {
 				return;
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.hidden = data;
 			});
 		});
 	},
 
 	show (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element.hidden === !data) {
 				return;
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.hidden = !data;
 			});
 		});
 	},
 
 	read (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element.readOnly === data) {
 				return;
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.readOnly = data;
 			});
 		});
 	},
 
 	write (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element.readOnly === !data) {
 				return;
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.readOnly = !data;
 			});
 		});
 	},
 
 	html (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element.innerHTML === data) {
 				return;
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.innerHTML = data;
 			});
 		});
 	},
 
 	class (opt) {
-		Global.batcher.write(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.write(function () {
+			let data = Model.get(opt.keys);
 			let name = opt.names.slice(1).join('-');
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 			opt.element.classList.toggle(name, data);
 		});
 	},
 
 	on (opt) {
-		Global.batcher.write(function () {
-			const data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
+		Batcher.write(function () {
+			const data = Utility.getByPath(Methods.data, opt.scope + '.' + opt.path);
 
 			if (typeof data !== 'function') return;
 
@@ -172,8 +176,8 @@ export default {
 	},
 
 	css (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element.style.cssText === data) {
 				return;
@@ -183,19 +187,19 @@ export default {
 				data = opt.names.slice(1).join('-') + ': ' +  data + ';';
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.style.cssText = data;
 			});
 		});
 	},
 
 	text (opt) {
-		Global.batcher.read(function () {
+		Batcher.read(function () {
 			let data;
 
-			data = Global.model.get(opt.keys);
+			data = Model.get(opt.keys);
 			data = data === undefined || data === null ? '' : data;
 
 			if (data && typeof data === 'object') {
@@ -204,9 +208,9 @@ export default {
 				data = String(data);
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element.innerText = data;
 			});
 		});
@@ -215,8 +219,8 @@ export default {
 	each (opt) {
 		const self = this;
 
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 			let isArray = data ? data.constructor === Array : false;
 			let isObject = data ? data.constructor === Object: false;
 
@@ -232,9 +236,9 @@ export default {
 				opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 
 				if (isObject) {
 					data = Object.keys(data);
@@ -255,8 +259,8 @@ export default {
 							key = data[opt.element.children.length];
 						}
 
-						Global.utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-						Global.binder.bind(clone, opt.container);
+						Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
+						Binder.bind(clone, opt.container);
 
 						opt.element.appendChild(clone);
 					}
@@ -291,7 +295,7 @@ export default {
 	},
 
 	value (opt) {
-		Global.batcher.read(function () {
+		Batcher.read(function () {
 
 			let type = opt.element.type;
 			let name = opt.element.nodeName;
@@ -301,7 +305,7 @@ export default {
 			if (opt.setup) {
 				opt.setup = false;
 
-				data = Global.model.get(opt.keys);
+				data = Model.get(opt.keys);
 
 				if (name === 'SELECT') {
 					elements = opt.element.options;
@@ -395,23 +399,23 @@ export default {
 			}
 
 			if (data !== undefined) {
-				Global.model.set(opt.keys, data);
+				Model.set(opt.keys, data);
 			}
 
 		});
 	},
 
 	default (opt) {
-		Global.batcher.read(function () {
-			let data = Global.model.get(opt.keys);
+		Batcher.read(function () {
+			let data = Model.get(opt.keys);
 
 			if (opt.element[opt.type] === data) {
 				return;
 			}
 
-			data = Global.binder.modifyData(opt, data);
+			data = Binder.modifyData(opt, data);
 
-			Global.batcher.write(function () {
+			Batcher.write(function () {
 				opt.element[opt.type] = data;
 			});
 		});

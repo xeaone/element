@@ -1,5 +1,5 @@
 
-export default class Fetcher {
+class Fetcher {
 
 	constructor (options) {
 
@@ -207,3 +207,5 @@ export default class Fetcher {
 	}
 
 }
+
+export default new Fetcher();

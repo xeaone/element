@@ -8,149 +8,134 @@ import Loader from './loader.js';
 import Binder from './binder.js';
 import Model from './model.js';
 
-const Global = {
-	compiled: false
-};
+class Global {
 
-Object.defineProperties(Global, {
-	window: {
-		enumerable: true,
-		get: function () {
-			return window;
-		}
-	},
-	document: {
-		enumerable: true,
-		get: function () {
-			return window.document;
-		}
-	},
-	body: {
-		enumerable: true,
-		get: function () {
-			return window.document.body;
-		}
-	},
-	head: {
-		enumerable: true,
-		get: function () {
-			return window.document.head;
-		}
-	},
-	location: {
-		enumerable: true,
-		get: function () {
-			return this.router.location;
-		}
-	},
-	currentScript: {
-		enumerable: true,
-		get: function () {
-			return (window.document._currentScript || window.document.currentScript);
-		}
-	},
-	ownerDocument: {
-		enumerable: true,
-		get: function () {
-			return (window.document._currentScript || window.document.currentScript).ownerDocument;
-		}
-	},
-	global: {
-		enumerable: true,
-		value: {}
-	},
-	methods: {
-		enumerable: true,
-		value: {
-			data: {}
-		}
-	},
-	utility: {
-		enumerable: true,
-		value: Utility
-	},
-	setup: {
-		enumerable: true,
-		value: function (data) {
-
-			if (this._setup) {
-				return;
-			} else {
-				this._setup = true;
-			}
-
-			data = data || {};
-
-			if (data.listener && data.listener.before) {
-				data.listener.before();
-			}
-
-			if (data.general) {
-				this.general.setup(data.general);
-			}
-
-			if (data.fetcher) {
-				this.fetcher.setup(data.fetcher);
-			}
-
-			if (data.loader) {
-				this.loader.setup(data.loader);
-			}
-
-			if (data.component) {
-				this.component.setup(data.component);
-			}
-
-			if (data.router) {
-				this.router.setup(data.router);
-			}
-
-			if (data.listener && data.listener.after) {
-				data.listener.after();
-			}
-
-		}
+	constructor () {
+		this._compiled = false;
 	}
-});
 
-Object.defineProperty(Global, 'general', {
-	enumerable: true,
-	value: new General()
-});
+	set compiled (data) {
+		return this._compiled = data;
+	}
 
-Object.defineProperty(Global, 'batcher', {
-	enumerable: true,
-	value: new Batcher()
-});
+	get compiled () {
+		return this._compiled;
+	}
 
-Object.defineProperty(Global, 'loader', {
-	enumerable: true,
-	value: new Loader()
-});
+	get window () {
+		return window;
+	}
 
-Object.defineProperty(Global, 'binder', {
-	enumerable: true,
-	value: new Binder()
-});
+	get document () {
+		return window.document;
+	}
 
-Object.defineProperty(Global, 'fetcher', {
-	enumerable: true,
-	value: new Fetcher()
-});
+	get body () {
+		return window.document.body;
+	}
 
-Object.defineProperty(Global, 'component', {
-	enumerable: true,
-	value: new Component()
-});
+	get head () {
+		return window.document.head;
+	}
 
-Object.defineProperty(Global, 'router', {
-	enumerable: true,
-	value: new Router()
-});
+	get location () {
+		return this.router.location;
+	}
 
-Object.defineProperty(Global, 'model', {
-	enumerable: true,
-	value: new Model()
-});
+	get currentScript () {
+		return (window.document._currentScript || window.document.currentScript);
+	}
 
-export default Global;
+	get ownerDocument () {
+		return (window.document._currentScript || window.document.currentScript).ownerDocument;
+	}
+
+	get global () {
+		return {};
+	}
+
+	get methods () {
+		return {
+			data: {}
+		};
+	}
+
+	get utility () {
+		return Utility;
+	}
+
+	get general () {
+		return General;
+	}
+
+	get batcher () {
+		return Batcher;
+	}
+
+	get loader () {
+		return Loader;
+	}
+
+	get binder () {
+		return Binder;
+	}
+
+	get fetcher () {
+		return Fetcher;
+	}
+
+	get component () {
+		return Component;
+	}
+
+	get router () {
+		return Router;
+	}
+
+	get model () {
+		return Model;
+	}
+
+	setup (data) {
+
+		if (this._setup) {
+			return;
+		} else {
+			this._setup = true;
+		}
+
+		data = data || {};
+
+		if (data.listener && data.listener.before) {
+			data.listener.before();
+		}
+
+		if (data.general) {
+			this.general.setup(data.general);
+		}
+
+		if (data.fetcher) {
+			this.fetcher.setup(data.fetcher);
+		}
+
+		if (data.loader) {
+			this.loader.setup(data.loader);
+		}
+
+		if (data.component) {
+			this.component.setup(data.component);
+		}
+
+		if (data.router) {
+			this.router.setup(data.router);
+		}
+
+		if (data.listener && data.listener.after) {
+			data.listener.after();
+		}
+
+	}
+
+}
+
+export default new Global();
