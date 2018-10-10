@@ -1,5 +1,8 @@
 import Global from './global.js';
-import Wraper from './wraper.js';
+import Change from './change.js';
+import Submit from './submit.js';
+import Reset from './reset.js';
+import Input from './input.js';
 
 var eStyle = document.createElement('style');
 var tStyle = document.createTextNode(' \
@@ -17,7 +20,6 @@ var tStyle = document.createTextNode(' \
 
 eStyle.setAttribute('type', 'text/css');
 eStyle.appendChild(tStyle);
-
 document.head.appendChild(eStyle);
 
 let currentCount = 0;
@@ -30,118 +32,10 @@ const loaded = function () {
 
 	loadedCalled = true;
 
-	document.addEventListener('reset', function resetListener (e) {
-		var element = e.target;
-		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-		var binder = Global.binder.get({
-			name: 'o-submit',
-			element: element
-		});
-
-		var scope = binder.scope;
-
-		if (submit) {
-			var elements = element.querySelectorAll('[o-value]');
-			var i = elements.length;
-
-			while (i--) {
-				var path = elements[i].getAttribute('o-value');
-				var keys = [scope].concat(path.split('.'));
-
-				Global.model.set(keys, '');
-
-				Global.binder.unrender({
-					name: 'o-value',
-					element: elements[i]
-				}, 'view');
-
-			}
-
-		}
-
-	}, true);
-
-	document.addEventListener('submit', function submitListener (e) {
-		var element = e.target;
-		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-		if (!submit) return;
-
-		e.preventDefault();
-
-		var binder = Global.binder.get({
-			name: 'o-submit',
-			element: element
-		});
-
-		var sScope = binder.scope;
-		var eScope = binder.container;
-		var model = Global.model.data[sScope];
-
-		var data = Global.utility.formData(element, model);
-		var method = Global.utility.getByPath(eScope.methods, submit);
-
-		var done = function (options) {
-			if (options && typeof options === 'object') {
-				var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-				var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-				var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-				var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
-
-				options.url = options.url || action;
-				options.method = options.method || method;
-				options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
-				options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
-
-				Global.fetcher.fetch(options);
-			}
-
-			if (
-				(
-					options &&
-					typeof options === 'object' &&
-					options.reset
-				)
-				|| element.hasAttribute('o-reset')
-			) {
-				element.reset();
-			}
-		};
-
-		Wraper(method.bind(eScope, data, e), done);
-
-	}, true);
-
-	document.addEventListener('input', function (e) {
-		if (
-			e.target.type !== 'checkbox'
-			&& e.target.type !== 'radio'
-			&& e.target.type !== 'option'
-			&& e.target.nodeName !== 'SELECT'
-			&& e.target.hasAttribute('o-value')
-		) {
-
-			var binder = Global.binder.get({
-				name: 'o-value',
-				element: e.target,
-			});
-
-			Global.binder.render(binder);
-		}
-	}, true);
-
-	document.addEventListener('change', function (e) {
-		if (e.target.hasAttribute('o-value')) {
-
-			var binder = Global.binder.get({
-				name: 'o-value',
-				element: e.target,
-			});
-
-			Global.binder.render(binder);
-		}
-	}, true);
+	document.addEventListener('input', Input, true);
+	document.addEventListener('reset', Reset, true);
+	document.addEventListener('submit', Submit, true);
+	document.addEventListener('change', Change, true);
 
 	var element = document.querySelector('script[o-setup]');
 
@@ -201,8 +95,7 @@ const loader = function (condition, url) {
 	}
 };
 
-let features = [];
-
+const features = [];
 const isNotFetch = !('fetch' in window);
 const isNotAssign = !('assign' in Object);
 const isNotPromise = !('Promise' in window);

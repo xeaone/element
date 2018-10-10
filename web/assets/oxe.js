@@ -1,18 +1,12 @@
-/*
-	Name: oxe
-	Version: 3.14.3
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-function _invoke(body, then) {
+function _awaitIgnored(value, direct) {
+	if (!direct) {
+		return Promise.resolve(value).then(_empty);
+	}
+}function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
@@ -3382,34 +3376,101 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		value: new Model()
 	});
 
-	function Wraper(action, complete) {
+	function Change(e) {
+		if (e.target.hasAttribute('o-value')) {
 
-		if (action && action.constructor.name === 'AsyncFunction') {
+			var binder = Global.binder.get({
+				name: 'o-value',
+				element: e.target
+			});
 
-			return Promise.resolve().then(function () {
-				return action();
-			}).then(function (data) {
-				if (complete) {
-					return complete(data);
+			Global.binder.render(binder);
+		}
+	}
+
+	function Submit(e) {
+		var element = e.target;
+		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
+		if (!submit) return;
+
+		e.preventDefault();
+
+		var binder = Global.binder.get({
+			name: 'o-submit',
+			element: element
+		});
+
+		var sScope = binder.scope;
+		var eScope = binder.container;
+		var model = Global.model.data[sScope];
+
+		var data = Global.utility.formData(element, model);
+		var method = Global.utility.getByPath(eScope.methods, submit);
+
+		var done = _async(function (options) {
+			return _invoke(function () {
+				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
+					var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
+					var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+					var _method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+					var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+
+					options.url = options.url || action;
+					options.method = options.method || _method;
+					options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
+					options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
+
+					return _awaitIgnored(Global.fetcher.fetch(options));
 				}
-			}).catch(console.error);
-		} else {
-			var result = action();
-
-			if (result && result.constructor.name === 'Promise') {
-
-				return Promise.resolve().then(function () {
-					return result;
-				}).then(function (data) {
-					if (complete) {
-						return complete(data);
-					}
-				}).catch(console.error);
-			} else {
-				if (complete) {
-					return complete(result);
+			}, function () {
+				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset')) {
+					element.reset();
 				}
+			});
+		});
+
+		Promise.resolve().then(method.bind(eScope, data, e)).then(done).catch(console.error);
+	}
+
+	function Reset(e) {
+		var element = e.target;
+		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
+		var binder = Global.binder.get({
+			name: 'o-submit',
+			element: element
+		});
+
+		var scope = binder.scope;
+
+		if (submit) {
+			var elements = element.querySelectorAll('[o-value]');
+			var i = elements.length;
+
+			while (i--) {
+				var path = elements[i].getAttribute('o-value');
+				var keys = [scope].concat(path.split('.'));
+
+				Global.model.set(keys, '');
+
+				Global.binder.unrender({
+					name: 'o-value',
+					element: elements[i]
+				}, 'view');
 			}
+		}
+	}
+
+	function Input(e) {
+		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
+
+			var binder = Global.binder.get({
+				name: 'o-value',
+				element: e.target
+			});
+
+			Global.binder.render(binder);
 		}
 	}
 
@@ -3429,7 +3490,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(tStyle);
-
 	document.head.appendChild(eStyle);
 
 	var currentCount = 0;
@@ -3442,101 +3502,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		loadedCalled = true;
 
-		document.addEventListener('reset', function resetListener(e) {
-			var element = e.target;
-			var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-			var binder = Global.binder.get({
-				name: 'o-submit',
-				element: element
-			});
-
-			var scope = binder.scope;
-
-			if (submit) {
-				var elements = element.querySelectorAll('[o-value]');
-				var i = elements.length;
-
-				while (i--) {
-					var path = elements[i].getAttribute('o-value');
-					var keys = [scope].concat(path.split('.'));
-
-					Global.model.set(keys, '');
-
-					Global.binder.unrender({
-						name: 'o-value',
-						element: elements[i]
-					}, 'view');
-				}
-			}
-		}, true);
-
-		document.addEventListener('submit', function submitListener(e) {
-			var element = e.target;
-			var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-			if (!submit) return;
-
-			e.preventDefault();
-
-			var binder = Global.binder.get({
-				name: 'o-submit',
-				element: element
-			});
-
-			var sScope = binder.scope;
-			var eScope = binder.container;
-			var model = Global.model.data[sScope];
-
-			var data = Global.utility.formData(element, model);
-			var method = Global.utility.getByPath(eScope.methods, submit);
-
-			var done = function done(options) {
-				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
-					var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-					var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-					var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-					var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
-
-					options.url = options.url || action;
-					options.method = options.method || method;
-					options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
-					options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
-
-					Global.fetcher.fetch(options);
-				}
-
-				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset')) {
-					element.reset();
-				}
-			};
-
-			Wraper(method.bind(eScope, data, e), done);
-		}, true);
-
-		document.addEventListener('input', function (e) {
-			if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
-
-				var binder = Global.binder.get({
-					name: 'o-value',
-					element: e.target
-				});
-
-				Global.binder.render(binder);
-			}
-		}, true);
-
-		document.addEventListener('change', function (e) {
-			if (e.target.hasAttribute('o-value')) {
-
-				var binder = Global.binder.get({
-					name: 'o-value',
-					element: e.target
-				});
-
-				Global.binder.render(binder);
-			}
-		}, true);
+		document.addEventListener('input', Input, true);
+		document.addEventListener('reset', Reset, true);
+		document.addEventListener('submit', Submit, true);
+		document.addEventListener('change', Change, true);
 
 		var element = document.querySelector('script[o-setup]');
 
@@ -3594,7 +3563,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	};
 
 	var features = [];
-
 	var isNotFetch = !('fetch' in window);
 	var isNotAssign = !('assign' in Object);
 	var isNotPromise = !('Promise' in window);
