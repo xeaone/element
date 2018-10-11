@@ -32,7 +32,7 @@ export default {
 				return;
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 				opt.element.disabled = data;
@@ -48,7 +48,7 @@ export default {
 				return;
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 				opt.element.disabled = !data;
@@ -64,7 +64,7 @@ export default {
 				return;
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 				opt.element.hidden = data;
@@ -80,7 +80,7 @@ export default {
 				return;
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 				opt.element.hidden = !data;
@@ -96,7 +96,7 @@ export default {
 				return;
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 				opt.element.readOnly = data;
@@ -112,7 +112,7 @@ export default {
 				return;
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 				opt.element.readOnly = !data;
@@ -128,7 +128,7 @@ export default {
 				return;
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 				opt.element.innerHTML = data;
@@ -140,14 +140,14 @@ export default {
 		Batcher.write(function () {
 			let data = Model.get(opt.keys);
 			let name = opt.names.slice(1).join('-');
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 			opt.element.classList.toggle(name, data);
 		});
 	},
 
 	on (opt) {
 		Batcher.write(function () {
-			const data = Utility.getByPath(Methods.data, opt.scope + '.' + opt.path);
+			const data = Methods.get(opt.keys);
 
 			if (typeof data !== 'function') return;
 
@@ -157,8 +157,8 @@ export default {
 				opt.cache = function (e) {
 					const parameters = [e];
 
-					for (let i = 0, l = opt.modifiers.length; i < l; i++) {
-						const keys = opt.modifiers[i].split('.');
+					for (let i = 0, l = opt.pipes.length; i < l; i++) {
+						const keys = opt.pipes[i].split('.');
 						keys.unshift(opt.scope);
 						const parameter = Oxe.model.get(keys);
 						parameters.push(parameter);
@@ -187,7 +187,7 @@ export default {
 				data = opt.names.slice(1).join('-') + ': ' +  data + ';';
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 				opt.element.style.cssText = data;
@@ -207,7 +207,7 @@ export default {
 				data = String(data);
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 				opt.element.innerText = data;
@@ -235,7 +235,7 @@ export default {
 				opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 			}
 
-			data = Binder.modifyData(opt, data);
+			data = Binder.piper(opt, data);
 
 			Batcher.write(function () {
 
@@ -280,12 +280,12 @@ export default {
 					const keys = [opt.scope].concat(value.split('|')[0].split('.'));
 
 					self.value({
-						setup: true,
 						keys: keys,
 						name: name,
 						value: value,
-						container: opt.scope,
-						element: opt.element
+						scope: opt.scope,
+						element: opt.element,
+						container: opt.container,
 					});
 				}
 
@@ -408,7 +408,7 @@ export default {
 					return;
 				}
 
-				data = Binder.modifyData(opt, data);
+				data = Binder.piper(opt, data);
 
 				Batcher.write(function () {
 					opt.element[opt.type] = data;

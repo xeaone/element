@@ -32,10 +32,8 @@ function _awaitIgnored(value, direct) {
 			};
 		}
 	} catch (e) {}return function (f) {
-
 		// Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
 		return function () {
-
 			var args = [];for (var i = 0; i < arguments.length; i++) {
 				args[i] = arguments[i];
 			}try {
@@ -56,6 +54,45 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	(typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object' && typeof module !== 'undefined' ? module.exports = factory() : typeof define === 'function' && define.amd ? define('Oxe', factory) : global.Oxe = factory();
 })(this, function () {
 	'use strict';
+
+	var Submit = _async(function (e) {
+		var element = e.target;
+		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
+		if (!submit) return;else e.preventDefault();
+
+		var binder = Binder$1.elements.get(element).get('submit');
+		var method = Methods.get(binder.keys);
+		var model = Model$1.get(binder.scope);
+
+		var data = Utility.formData(element, model);
+
+		return _await(method.call(binder.container, data, e), function (options) {
+			return _invoke(function () {
+				if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
+					var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+					var _method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+					var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+
+					options.url = options.url || action;
+					options.method = options.method || _method;
+					options.contentType = options.contentType || enctype;
+
+					return _await(Fetcher$1.fetch(options), function (result) {
+						return _invokeIgnored(function () {
+							if (options.handler) {
+								return _awaitIgnored(options.handler(result));
+							}
+						});
+					});
+				}
+			}, function () {
+				if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset')) {
+					element.reset();
+				}
+			});
+		});
+	});
 
 	var Update = _async(function (element, attribute) {
 
@@ -78,13 +115,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = multiple ? [] : '';
 
-				var _iteratorNormalCompletion11 = true;
-				var _didIteratorError11 = false;
-				var _iteratorError11 = undefined;
+				var _iteratorNormalCompletion13 = true;
+				var _didIteratorError13 = false;
+				var _iteratorError13 = undefined;
 
 				try {
-					for (var _iterator11 = elements[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-						var _element = _step11.value;
+					for (var _iterator13 = elements[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
+						var _element = _step13.value;
 
 						// NOTE might need to handle disable
 
@@ -100,16 +137,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				} catch (err) {
-					_didIteratorError11 = true;
-					_iteratorError11 = err;
+					_didIteratorError13 = true;
+					_iteratorError13 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion11 && _iterator11.return) {
-							_iterator11.return();
+						if (!_iteratorNormalCompletion13 && _iterator13.return) {
+							_iterator13.return();
 						}
 					} finally {
-						if (_didIteratorError11) {
-							throw _iteratorError11;
+						if (_didIteratorError13) {
+							throw _iteratorError13;
 						}
 					}
 				}
@@ -133,27 +170,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = data || [];
 
-				var _iteratorNormalCompletion12 = true;
-				var _didIteratorError12 = false;
-				var _iteratorError12 = undefined;
+				var _iteratorNormalCompletion14 = true;
+				var _didIteratorError14 = false;
+				var _iteratorError14 = undefined;
 
 				try {
-					for (var _iterator12 = files[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
-						var file = _step12.value;
+					for (var _iterator14 = files[Symbol.iterator](), _step14; !(_iteratorNormalCompletion14 = (_step14 = _iterator14.next()).done); _iteratorNormalCompletion14 = true) {
+						var file = _step14.value;
 
 						data.push(file);
 					}
 				} catch (err) {
-					_didIteratorError12 = true;
-					_iteratorError12 = err;
+					_didIteratorError14 = true;
+					_iteratorError14 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion12 && _iterator12.return) {
-							_iterator12.return();
+						if (!_iteratorNormalCompletion14 && _iterator14.return) {
+							_iterator14.return();
 						}
 					} finally {
-						if (_didIteratorError12) {
-							throw _iteratorError12;
+						if (_didIteratorError14) {
+							throw _iteratorError14;
 						}
 					}
 				}
@@ -180,42 +217,40 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		});
 	});
 
-	var Methods = {
-		data: {}
-	};
-
 	var Utility = {
 
-		PATH: /\s*\|.*/,
-		PREFIX: /(data-)?o-/,
+		// PATH: /\s*\|.*/,
+		PREFIX: /data-o-|o-/,
 		ROOT: /^(https?:)?\/?\//,
-		TYPE: /(data-)?o-|-.*$/g,
-		SPLIT_MODIFIERS: /\s|\s?,\s?/,
+		// TYPE: /(data-)?o-|-.*$/g,
+		// SPLIT_PIPES: /\s|\s?,\s?/,
 
-		binderNormalize: function binderNormalize(data) {
-			return !data ? '' : data.replace(/\s+$/, '').replace(/^\s+/, '').replace(/\.{2,}/g, '.').replace(/\|{2,}/g, '|').replace(/\,{2,}/g, ',').replace(/\s{2,}/g, ' ').replace(/\s?\|\s?/, '|');
-		},
-		binderName: function binderName(data) {
-			return data.replace(this.PREFIX, '');
-		},
-		binderType: function binderType(data) {
-			return data.replace(this.TYPE, '');
-		},
+		DOT: /\.+/,
+		PIPE: /\s?\|\s?/,
+		PIPES: /\s?,\s?|\s+/,
+
+		// binderNormalize (data) {
+		// 	return !data ? '' : data
+		// 		.replace(/\s+$/, '')
+		// 		.replace(/^\s+/, '')
+		// 		.replace(/\.{2,}/g, '.')
+		// 		.replace(/\|{2,}/g, '|')
+		// 		.replace(/\,{2,}/g, ',')
+		// 		.replace(/\s{2,}/g, ' ')
+		// 		.replace(/\s?\|\s?/, '|');
+		// },
+
 		binderNames: function binderNames(data) {
-			return data.replace(this.PREFIX, '').split('-');
+			data = data.split(this.PREFIX)[1];
+			return data ? data.split('-') : [];
 		},
 		binderValues: function binderValues(data) {
-			data = this.binderNormalize(data);
-			var index = data.indexOf('|');
-			return index === -1 ? data.split('.') : data.slice(0, index).split('.');
+			data = data.split(this.PIPE)[0];
+			return data ? data.split('.') : [];
 		},
-		binderModifiers: function binderModifiers(data) {
-			data = this.binderNormalize(data);
-			var index = data.indexOf('|');
-			return index === -1 ? [] : data.slice(index + 1).split(this.SPLIT_MODIFIERS);
-		},
-		binderPath: function binderPath(data) {
-			return this.binderNormalize(data).replace(this.PATH, '');
+		binderPipes: function binderPipes(data) {
+			data = data.split(this.PIPE)[1];
+			return data ? data.split(this.PIPES) : [];
 		},
 		ensureElement: function ensureElement(data) {
 			data.query = data.query || '';
@@ -264,7 +299,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		formData: function formData(form, model) {
 			var elements = form.querySelectorAll('[o-value]');
-			var data = {};var _iteratorNormalCompletion2 = true;
+			var data = {};
+
+			var _iteratorNormalCompletion2 = true;
 			var _didIteratorError2 = false;
 			var _iteratorError2 = undefined;
 
@@ -274,14 +311,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					if (element.nodeName === 'OPTION') continue;
 
-					var path = element.getAttribute('o-value');
+					var value = element.getAttribute('o-value');
 
-					if (!path) continue;
+					if (!value) continue;
 
-					path = path.replace(/\s*\|.*/, '');
-					var name = path.split('.').slice(-1);
+					var values = this.binderValues(value);
 
-					data[name] = this.getByPath(model, path);
+					data[values[0]] = this.getByPath(model, values);
 				}
 			} catch (err) {
 				_didIteratorError2 = true;
@@ -299,6 +335,40 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 
 			return data;
+		},
+		formReset: function formReset(form, model) {
+			var elements = form.querySelectorAll('[o-value]');var _iteratorNormalCompletion3 = true;
+			var _didIteratorError3 = false;
+			var _iteratorError3 = undefined;
+
+			try {
+				for (var _iterator3 = elements[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+					var element = _step3.value;
+
+					if (element.nodeName === 'OPTION') continue;
+
+					var value = element.getAttribute('o-value');
+
+					if (!value) continue;
+
+					var values = this.binderValues(value);
+
+					this.setByPath(model, values, '');
+				}
+			} catch (err) {
+				_didIteratorError3 = true;
+				_iteratorError3 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion3 && _iterator3.return) {
+						_iterator3.return();
+					}
+				} finally {
+					if (_didIteratorError3) {
+						throw _iteratorError3;
+					}
+				}
+			}
 		},
 		walker: function walker(node, callback) {
 			callback(node);
@@ -462,6 +532,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					callback();
 				}
 			}
+		}
+	};
+
+	var DATA = {};
+
+	var Methods = {
+		get: function get(path) {
+			return Utility.getByPath(DATA, path);
+		},
+		set: function set(path, data) {
+			return Utility.setByPath(DATA, path, data);
 		}
 	};
 
@@ -871,7 +952,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			if (type === Array) {
 
 				for (key = 0, length = source.length; key < length; key++) {
-					properties.$meta.value[key] = self.create(source[key], listener, path + key);properties[key] = self.property(key);
+					properties.$meta.value[key] = self.create(source[key], listener, path + key);
+					properties[key] = self.property(key);
 				}
 
 				var arrayProperties = self.arrayProperties();
@@ -1109,7 +1191,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 					opt.element.disabled = data;
@@ -1124,7 +1206,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 					opt.element.disabled = !data;
@@ -1139,7 +1221,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 					opt.element.hidden = data;
@@ -1154,7 +1236,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 					opt.element.hidden = !data;
@@ -1169,7 +1251,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 					opt.element.readOnly = data;
@@ -1184,7 +1266,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 					opt.element.readOnly = !data;
@@ -1199,7 +1281,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return;
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 					opt.element.innerHTML = data;
@@ -1210,13 +1292,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			Batcher$1.write(function () {
 				var data = Model$1.get(opt.keys);
 				var name = opt.names.slice(1).join('-');
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 				opt.element.classList.toggle(name, data);
 			});
 		},
 		on: function on(opt) {
 			Batcher$1.write(function () {
-				var data = Utility.getByPath(Methods.data, opt.scope + '.' + opt.path);
+				var data = Methods.get(opt.keys);
 
 				if (typeof data !== 'function') return;
 
@@ -1226,8 +1308,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					opt.cache = function (e) {
 						var parameters = [e];
 
-						for (var i = 0, l = opt.modifiers.length; i < l; i++) {
-							var keys = opt.modifiers[i].split('.');
+						for (var i = 0, l = opt.pipes.length; i < l; i++) {
+							var keys = opt.pipes[i].split('.');
 							keys.unshift(opt.scope);
 							var parameter = Oxe.model.get(keys);
 							parameters.push(parameter);
@@ -1252,7 +1334,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					data = opt.names.slice(1).join('-') + ': ' + data + ';';
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 					opt.element.style.cssText = data;
@@ -1271,7 +1353,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					data = String(data);
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 					opt.element.innerText = data;
@@ -1298,7 +1380,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 				}
 
-				data = Binder$1.modifyData(opt, data);
+				data = Binder$1.piper(opt, data);
 
 				Batcher$1.write(function () {
 
@@ -1338,12 +1420,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						var keys = [opt.scope].concat(value.split('|')[0].split('.'));
 
 						self.value({
-							setup: true,
 							keys: keys,
 							name: name,
 							value: value,
-							container: opt.scope,
-							element: opt.element
+							scope: opt.scope,
+							element: opt.element,
+							container: opt.container
 						});
 					}
 				});
@@ -1452,7 +1534,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						return;
 					}
 
-					data = Binder$1.modifyData(opt, data);
+					data = Binder$1.piper(opt, data);
 
 					Batcher$1.write(function () {
 						opt.element[opt.type] = data;
@@ -1467,8 +1549,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_classCallCheck(this, Binder);
 
 			this.data = {};
-			this.values = [];
-			this.submits = [];
 			this.elements = new Map();
 		}
 
@@ -1480,39 +1560,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
 				if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
+				if (opt.scope === undefined) throw new Error('Oxe.binder.set - missing scope');
 				if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
 				if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
 
-				opt.scope = opt.scope || opt.container.getAttribute('o-scope');
-				// opt.value = opt.value || opt.element.getAttribute(opt.name);
-				opt.path = opt.path || Utility.binderPath(opt.value);
-
-				opt.type = opt.type || Utility.binderType(opt.name);
 				opt.names = opt.names || Utility.binderNames(opt.name);
+				opt.pipes = opt.pipes || Utility.binderPipes(opt.value);
 				opt.values = opt.values || Utility.binderValues(opt.value);
-				opt.modifiers = opt.modifiers || Utility.binderModifiers(opt.value);
 
-				opt.keys = opt.keys || [opt.scope].concat(opt.values);
-
-				// Object.defineProperty(opt, 'data', {
-				// 	enumerable: true,
-				// 	get: function () {
-				// 		let data = Model.get(opt.keys);
-				//
-				// 		if (
-				// 			opt.name.indexOf('o-on') !== 0 &&
-				// 			opt.name.indexOf('data-o-on') !== 0
-				// 		) {
-				// 			data = self.modifyData(opt, data);
-				// 		}
-				//
-				// 		return data;
-				// 	}
-				// });
-
-				// if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
-				// 	opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-				// }
+				opt.path = opt.values.join('.');
+				opt.type = opt.type || opt.names[0];
+				opt.keys = [opt.scope].concat(opt.values);
 
 				return opt;
 			}
@@ -1530,29 +1588,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				var items = this.data[opt.scope][opt.path];
 
-				var _iteratorNormalCompletion3 = true;
-				var _didIteratorError3 = false;
-				var _iteratorError3 = undefined;
+				var _iteratorNormalCompletion4 = true;
+				var _didIteratorError4 = false;
+				var _iteratorError4 = undefined;
 
 				try {
-					for (var _iterator3 = items[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-						var item = _step3.value;
+					for (var _iterator4 = items[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+						var item = _step4.value;
 
 						if (item.element === opt.element && item.name === opt.name) {
 							return item;
 						}
 					}
 				} catch (err) {
-					_didIteratorError3 = true;
-					_iteratorError3 = err;
+					_didIteratorError4 = true;
+					_iteratorError4 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion3 && _iterator3.return) {
-							_iterator3.return();
+						if (!_iteratorNormalCompletion4 && _iterator4.return) {
+							_iterator4.return();
 						}
 					} finally {
-						if (_didIteratorError3) {
-							throw _iteratorError3;
+						if (_didIteratorError4) {
+							throw _iteratorError4;
 						}
 					}
 				}
@@ -1570,7 +1628,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (!this.elements.get(opt.element).has(opt.names[0])) {
 					this.elements.get(opt.element).set(opt.names[0], opt);
 				} else {
-					throw new Error('Oxe - duplicate attribute');
+					throw new Error('Oxe - duplicate attribute ' + opt.names[0]);
 				}
 
 				if (!(opt.scope in this.data)) {
@@ -1618,70 +1676,84 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'each',
 			value: function each(path, callback) {
-				var scope, paths;
-
-				if (typeof path === 'string') {
-					paths = path.split('.');
-					scope = paths[0];
-				} else {
-					paths = path;
-					scope = paths[0];
-				}
+				var paths = typeof path === 'string' ? path.split('.') : path;
+				var scope = paths[0];
 
 				var binderPaths = this.data[scope];
 				var relativePath = paths.slice(1).join('.');
 
 				for (var binderPath in binderPaths) {
+
 					if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
 						var binders = binderPaths[binderPath];
-						for (var i = 0, l = binders.length; i < l; i++) {
-							var binder = binders[i];
-							callback(binder);
+
+						var _iteratorNormalCompletion5 = true;
+						var _didIteratorError5 = false;
+						var _iteratorError5 = undefined;
+
+						try {
+							for (var _iterator5 = binders[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+								var binder = _step5.value;
+
+								callback(binder);
+							}
+						} catch (err) {
+							_didIteratorError5 = true;
+							_iteratorError5 = err;
+						} finally {
+							try {
+								if (!_iteratorNormalCompletion5 && _iterator5.return) {
+									_iterator5.return();
+								}
+							} finally {
+								if (_didIteratorError5) {
+									throw _iteratorError5;
+								}
+							}
 						}
 					}
 				}
 			}
 		}, {
-			key: 'modifyData',
-			value: function modifyData(opt, data) {
+			key: 'piper',
+			value: function piper(opt, data) {
 
-				if (!opt.modifiers.length) {
+				if (!opt.pipes.length) {
 					return data;
 				}
 
-				if (!Methods.data[opt.scope]) {
+				var methods = Methods.get(opt.scope);
+
+				if (!methods) {
 					return data;
 				}
 
-				var _iteratorNormalCompletion4 = true;
-				var _didIteratorError4 = false;
-				var _iteratorError4 = undefined;
+				var _iteratorNormalCompletion6 = true;
+				var _didIteratorError6 = false;
+				var _iteratorError6 = undefined;
 
 				try {
-					for (var _iterator4 = opt.modifiers[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-						var modifier = _step4.value;
+					for (var _iterator6 = opt.pipes[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+						var method = _step6.value;
 
-						var scope = Methods.data[opt.scope];
 
-						if (scope) {
-							if (modifier in scope) {
-								data = scope[modifier].call(opt.container, data);
-							} else {
-								throw new Error('Oxe - modifier ' + modifier + ' not found in ' + opt.scope + ' scope');
-							}
+						if (method in methods) {
+							data = methods[method].call(opt.container, data);
+						} else {
+							throw new Error('Oxe - pipe method ' + method + ' not found in scope ' + opt.scope);
 						}
 					}
 				} catch (err) {
-					_didIteratorError4 = true;
-					_iteratorError4 = err;
+					_didIteratorError6 = true;
+					_iteratorError6 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion4 && _iterator4.return) {
-							_iterator4.return();
+						if (!_iteratorNormalCompletion6 && _iterator6.return) {
+							_iterator6.return();
 						}
 					} finally {
-						if (_didIteratorError4) {
-							throw _iteratorError4;
+						if (_didIteratorError6) {
+							throw _iteratorError6;
 						}
 					}
 				}
@@ -1696,76 +1768,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return true;
 				}
 
-				var _iteratorNormalCompletion5 = true;
-				var _didIteratorError5 = false;
-				var _iteratorError5 = undefined;
-
-				try {
-					for (var _iterator5 = element.attributes[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-						var attribute = _step5.value;
-
-						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
-							return true;
-						}
-					}
-				} catch (err) {
-					_didIteratorError5 = true;
-					_iteratorError5 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion5 && _iterator5.return) {
-							_iterator5.return();
-						}
-					} finally {
-						if (_didIteratorError5) {
-							throw _iteratorError5;
-						}
-					}
-				}
-
-				return false;
-			}
-		}, {
-			key: 'eachElement',
-			value: function eachElement(element, scope, callback) {
-				var sid = scope.getAttribute('o-scope') || scope.getAttribute('data-o-scope');
-				var eid = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
-				var idCheck = eid ? eid === sid : true;
-
-				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
-					callback.call(this, element);
-				}
-
-				if (idCheck && this.skipChildren(element) === false) {
-					var _iteratorNormalCompletion6 = true;
-					var _didIteratorError6 = false;
-					var _iteratorError6 = undefined;
-
-					try {
-						for (var _iterator6 = element.children[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-							var child = _step6.value;
-
-							this.eachElement(child, scope, callback);
-						}
-					} catch (err) {
-						_didIteratorError6 = true;
-						_iteratorError6 = err;
-					} finally {
-						try {
-							if (!_iteratorNormalCompletion6 && _iterator6.return) {
-								_iterator6.return();
-							}
-						} finally {
-							if (_didIteratorError6) {
-								throw _iteratorError6;
-							}
-						}
-					}
-				}
-			}
-		}, {
-			key: 'eachAttribute',
-			value: function eachAttribute(element, callback) {
 				var _iteratorNormalCompletion7 = true;
 				var _didIteratorError7 = false;
 				var _iteratorError7 = undefined;
@@ -1774,8 +1776,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					for (var _iterator7 = element.attributes[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
 						var attribute = _step7.value;
 
-						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-							callback.call(this, attribute);
+						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
+							return true;
 						}
 					}
 				} catch (err) {
@@ -1792,22 +1794,96 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				}
+
+				return false;
+			}
+		}, {
+			key: 'eachElement',
+			value: function eachElement(element, container, callback) {
+				var containerScope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
+				var elementScope = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
+				var scoped = elementScope ? elementScope === containerScope : true;
+
+				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
+					callback.call(this, element);
+				}
+
+				if (scoped && this.skipChildren(element) === false) {
+					var _iteratorNormalCompletion8 = true;
+					var _didIteratorError8 = false;
+					var _iteratorError8 = undefined;
+
+					try {
+
+						for (var _iterator8 = element.children[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+							var child = _step8.value;
+
+							this.eachElement(child, container, callback);
+						}
+					} catch (err) {
+						_didIteratorError8 = true;
+						_iteratorError8 = err;
+					} finally {
+						try {
+							if (!_iteratorNormalCompletion8 && _iterator8.return) {
+								_iterator8.return();
+							}
+						} finally {
+							if (_didIteratorError8) {
+								throw _iteratorError8;
+							}
+						}
+					}
+				}
+			}
+		}, {
+			key: 'eachAttribute',
+			value: function eachAttribute(element, callback) {
+				var _iteratorNormalCompletion9 = true;
+				var _didIteratorError9 = false;
+				var _iteratorError9 = undefined;
+
+				try {
+
+					for (var _iterator9 = element.attributes[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+						var attribute = _step9.value;
+
+
+						if ((attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype' && attribute.name !== 'data-o-reset' && attribute.name !== 'data-o-action' && attribute.name !== 'data-o-method' && attribute.name !== 'data-o-enctype') {
+							callback.call(this, attribute);
+						}
+					}
+				} catch (err) {
+					_didIteratorError9 = true;
+					_iteratorError9 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion9 && _iterator9.return) {
+							_iterator9.return();
+						}
+					} finally {
+						if (_didIteratorError9) {
+							throw _iteratorError9;
+						}
+					}
+				}
 			}
 		}, {
 			key: 'unbind',
-			value: function unbind(element, scope) {
-				scope = scope || element;
+			value: function unbind(element, container) {
+				container = container || element;
 
-				this.eachElement(element, scope, function (child) {
+				var scope = container.getAttribute('o-scope');
+
+				this.eachElement(element, container, function (child) {
 					this.eachAttribute(child, function (attribute) {
 
 						var binder = this.get({
+							scope: scope,
 							element: child,
-							container: scope,
+							container: container,
 							name: attribute.name,
-							value: attribute.value,
-							scope: scope.getAttribute('o-scope'),
-							path: Utility.binderPath(attribute.value)
+							value: attribute.value
 						});
 
 						this.remove(binder);
@@ -1817,15 +1893,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'bind',
-			value: function bind(element, scope) {
-				scope = scope || element;
+			value: function bind(element, container) {
+				container = container || element;
 
-				this.eachElement(element, scope, function (child) {
+				var scope = container.getAttribute('o-scope');
+
+				this.eachElement(element, container, function (child) {
 					this.eachAttribute(child, function (attribute) {
 
 						var binder = this.set({
+							scope: scope,
 							element: child,
-							container: scope,
+							container: container,
 							name: attribute.name,
 							value: attribute.value
 						});
@@ -1856,27 +1935,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options = options || {};
 
 				if (options.components) {
-					var _iteratorNormalCompletion8 = true;
-					var _didIteratorError8 = false;
-					var _iteratorError8 = undefined;
+					var _iteratorNormalCompletion10 = true;
+					var _didIteratorError10 = false;
+					var _iteratorError10 = undefined;
 
 					try {
-						for (var _iterator8 = options.components[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-							var component = _step8.value;
+						for (var _iterator10 = options.components[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+							var component = _step10.value;
 
 							this.define(component);
 						}
 					} catch (err) {
-						_didIteratorError8 = true;
-						_iteratorError8 = err;
+						_didIteratorError10 = true;
+						_iteratorError10 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion8 && _iterator8.return) {
-								_iterator8.return();
+							if (!_iteratorNormalCompletion10 && _iterator10.return) {
+								_iterator10.return();
 							}
 						} finally {
-							if (_didIteratorError8) {
-								throw _iteratorError8;
+							if (_didIteratorError10) {
+								throw _iteratorError10;
 							}
 						}
 					}
@@ -1887,13 +1966,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function renderSlot(target, source) {
 				var targetSlots = target.querySelectorAll('slot[name]');
 
-				var _iteratorNormalCompletion9 = true;
-				var _didIteratorError9 = false;
-				var _iteratorError9 = undefined;
+				var _iteratorNormalCompletion11 = true;
+				var _didIteratorError11 = false;
+				var _iteratorError11 = undefined;
 
 				try {
-					for (var _iterator9 = targetSlots[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-						var targetSlot = _step9.value;
+					for (var _iterator11 = targetSlots[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+						var targetSlot = _step11.value;
 
 
 						var name = targetSlot.getAttribute('name');
@@ -1906,16 +1985,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				} catch (err) {
-					_didIteratorError9 = true;
-					_iteratorError9 = err;
+					_didIteratorError11 = true;
+					_iteratorError11 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion9 && _iterator9.return) {
-							_iterator9.return();
+						if (!_iteratorNormalCompletion11 && _iterator11.return) {
+							_iterator11.return();
 						}
 					} finally {
-						if (_didIteratorError9) {
-							throw _iteratorError9;
+						if (_didIteratorError11) {
+							throw _iteratorError11;
 						}
 					}
 				}
@@ -1964,13 +2043,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (!window.CSS.supports('(--t: black)')) {
 						var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-						var _iteratorNormalCompletion10 = true;
-						var _didIteratorError10 = false;
-						var _iteratorError10 = undefined;
+						var _iteratorNormalCompletion12 = true;
+						var _didIteratorError12 = false;
+						var _iteratorError12 = undefined;
 
 						try {
-							for (var _iterator10 = matches[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-								var match = _step10.value;
+							for (var _iterator12 = matches[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+								var match = _step12.value;
 
 
 								var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
@@ -1980,16 +2059,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 								style = style.replace(pattern, rule[2]);
 							}
 						} catch (err) {
-							_didIteratorError10 = true;
-							_iteratorError10 = err;
+							_didIteratorError12 = true;
+							_iteratorError12 = err;
 						} finally {
 							try {
-								if (!_iteratorNormalCompletion10 && _iterator10.return) {
-									_iterator10.return();
+								if (!_iteratorNormalCompletion12 && _iterator12.return) {
+									_iterator12.return();
 								}
 							} finally {
-								if (_didIteratorError10) {
-									throw _iteratorError10;
+								if (_didIteratorError12) {
+									throw _iteratorError12;
 								}
 							}
 						}
@@ -2031,7 +2110,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				element.setAttribute('o-scope', scope);
 
 				Model$1.set(scope, options.model || {});
-				Methods.data[scope] = options.methods;
+				Methods.set(scope, options.methods || {});
 
 				if (!self.compiled || self.compiled && element.parentNode.nodeName !== 'O-ROUTER') {
 					var eTemplate = self.renderTemplate(options.template);
@@ -2118,7 +2197,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options.properties.methods = {
 					enumerable: true,
 					get: function get() {
-						return Methods.data[this.scope];
+						return Methods.get(this.scope);
 					}
 				};
 
@@ -3464,75 +3543,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	}
 
-	function Submit(e) {
-		var element = e.target;
-		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-		if (!submit) return;
-
-		e.preventDefault();
-
-		var binder = Binder$1.elements.get(element).get('submit');
-
-		var sScope = binder.scope;
-		var eScope = binder.container;
-		var model = Model$1.data[sScope];
-
-		var data = Utility.formData(element, model);
-		var method = Utility.getByPath(eScope.methods, submit);
-
-		var done = _async(function (options) {
-			return _invoke(function () {
-				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
-					var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-					var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-					var _method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-					var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
-
-					options.url = options.url || action;
-					options.method = options.method || _method;
-					options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
-					options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
-
-					return _awaitIgnored(Fetcher$1.fetch(options));
-				}
-			}, function () {
-				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset')) {
-					element.reset();
-				}
-			});
-		});
-
-		Promise.resolve().then(method.bind(eScope, data, e)).then(done).catch(console.error);
-	}
-
 	function Reset(e) {
 		var element = e.target;
-		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+		var reset = element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset');
 
-		var binder = Binder$1.get({
-			name: 'o-submit',
-			element: element
-		});
+		if (!reset) return;else e.preventDefault();
 
-		var scope = binder.scope;
+		var binder = Binder$1.elements.get(element).get('submit');
+		var elements = element.querySelectorAll('[o-value]');
+		var model = Model$1.get(binder.scope);
 
-		if (submit) {
-			var elements = element.querySelectorAll('[o-value]');
-			var i = elements.length;
-
-			while (i--) {
-				var path = elements[i].getAttribute('o-value');
-				var keys = [scope].concat(path.split('.'));
-
-				Model$1.set(keys, '');
-
-				// Binder.unrender({
-				// 	name: 'o-value',
-				// 	element: elements[i]
-				// }, 'view');
-			}
-		}
+		Utility.formReset(element, model);
 	}
 
 	function Input(e) {

@@ -1,49 +1,40 @@
 
 export default {
 
-	PATH: /\s*\|.*/,
-	PREFIX: /(data-)?o-/,
+	// PATH: /\s*\|.*/,
+	PREFIX: /data-o-|o-/,
 	ROOT: /^(https?:)?\/?\//,
-	TYPE: /(data-)?o-|-.*$/g,
-	SPLIT_MODIFIERS: /\s|\s?,\s?/,
+	// TYPE: /(data-)?o-|-.*$/g,
+	// SPLIT_PIPES: /\s|\s?,\s?/,
 
-	binderNormalize (data) {
-		return !data ? '' : data
-			.replace(/\s+$/, '')
-			.replace(/^\s+/, '')
-			.replace(/\.{2,}/g, '.')
-			.replace(/\|{2,}/g, '|')
-			.replace(/\,{2,}/g, ',')
-			.replace(/\s{2,}/g, ' ')
-			.replace(/\s?\|\s?/, '|');
-	},
+	DOT: /\.+/,
+	PIPE: /\s?\|\s?/,
+	PIPES: /\s?,\s?|\s+/,
 
-	binderName (data) {
-		return data.replace(this.PREFIX, '');
-	},
-
-	binderType (data) {
-		return data.replace(this.TYPE, '');
-	},
+	// binderNormalize (data) {
+	// 	return !data ? '' : data
+	// 		.replace(/\s+$/, '')
+	// 		.replace(/^\s+/, '')
+	// 		.replace(/\.{2,}/g, '.')
+	// 		.replace(/\|{2,}/g, '|')
+	// 		.replace(/\,{2,}/g, ',')
+	// 		.replace(/\s{2,}/g, ' ')
+	// 		.replace(/\s?\|\s?/, '|');
+	// },
 
 	binderNames (data) {
-		return data.replace(this.PREFIX, '').split('-');
+		data = data.split(this.PREFIX)[1];
+		return data ? data.split('-') : [];
 	},
 
 	binderValues (data) {
-		data = this.binderNormalize(data);
-		var index = data.indexOf('|');
-		return index === -1 ? data.split('.') : data.slice(0, index).split('.');
+		data = data.split(this.PIPE)[0];
+		return data ? data.split('.') : [];
 	},
 
-	binderModifiers (data) {
-		data = this.binderNormalize(data);
-		var index = data.indexOf('|');
-		return index === -1 ? [] : data.slice(index + 1).split(this.SPLIT_MODIFIERS);
-	},
-
-	binderPath (data) {
-		return this.binderNormalize(data).replace(this.PATH, '');
+	binderPipes (data) {
+		data = data.split(this.PIPE)[1];
+		return data ? data.split(this.PIPES) : [];
 	},
 
 	ensureElement (data) {
@@ -73,26 +64,39 @@ export default {
 	},
 
 	formData (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		var data = {};
-
-		var done = 0;
-		var count = 0;
+		const elements = form.querySelectorAll('[o-value]');
+		const data = {};
 
 		for (const element of elements) {
 			if (element.nodeName === 'OPTION') continue;
 
-			var path = element.getAttribute('o-value');
+			const value = element.getAttribute('o-value');
 
-			if (!path) continue;
+			if (!value) continue;
 
-			path = path.replace(/\s*\|.*/, '');
-			var name = path.split('.').slice(-1);
+			const values = this.binderValues(value);
 
-			data[name] = this.getByPath(model, path);
+			data[values[0]] = this.getByPath(model, values);
 		}
 
 		return data;
+	},
+
+	formReset (form, model) {
+		const elements = form.querySelectorAll('[o-value]');
+
+		for (const element of elements) {
+			if (element.nodeName === 'OPTION') continue;
+
+			const value = element.getAttribute('o-value');
+
+			if (!value) continue;
+
+			const values = this.binderValues(value);
+
+			this.setByPath(model, values, '');
+		}
+
 	},
 
 	walker (node, callback) {
@@ -194,11 +198,11 @@ export default {
 	},
 
 	setByPath (data, path, value) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
+		const keys = typeof path === 'string' ? path.split('.') : path;
+		const last = keys.length - 1;
 
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
+		for (let i = 0; i < last; i++) {
+			const key = keys[i];
 
 			if (!(key in data)) {
 
@@ -217,11 +221,11 @@ export default {
 	},
 
 	getByPath (data, path) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
+		const keys = typeof path === 'string' ? path.split('.') : path;
+		const last = keys.length - 1;
 
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
+		for (let i = 0; i < last; i++) {
+			const key = keys[i];
 
 			if (!(key in data)) {
 				return undefined;

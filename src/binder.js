@@ -7,8 +7,6 @@ class Binder {
 
 	constructor () {
 		this.data = {};
-		this.values = [];
-		this.submits = [];
 		this.elements = new Map();
 	}
 
@@ -19,39 +17,17 @@ class Binder {
 
 		if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
 		if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
+		if (opt.scope === undefined) throw new Error('Oxe.binder.set - missing scope');
 		if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
 		if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
 
-		opt.scope = opt.scope || opt.container.getAttribute('o-scope');
-		// opt.value = opt.value || opt.element.getAttribute(opt.name);
-		opt.path = opt.path || Utility.binderPath(opt.value);
-
-		opt.type = opt.type || Utility.binderType(opt.name);
 		opt.names = opt.names || Utility.binderNames(opt.name);
+		opt.pipes = opt.pipes || Utility.binderPipes(opt.value);
 		opt.values = opt.values || Utility.binderValues(opt.value);
-		opt.modifiers = opt.modifiers || Utility.binderModifiers(opt.value);
 
-		opt.keys = opt.keys || [opt.scope].concat(opt.values);
-
-		// Object.defineProperty(opt, 'data', {
-		// 	enumerable: true,
-		// 	get: function () {
-		// 		let data = Model.get(opt.keys);
-		//
-		// 		if (
-		// 			opt.name.indexOf('o-on') !== 0 &&
-		// 			opt.name.indexOf('data-o-on') !== 0
-		// 		) {
-		// 			data = self.modifyData(opt, data);
-		// 		}
-		//
-		// 		return data;
-		// 	}
-		// });
-
-		// if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
-		// 	opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-		// }
+		opt.path = opt.values.join('.');
+		opt.type = opt.type || opt.names[0];
+		opt.keys = [opt.scope].concat(opt.values);
 
 		return opt;
 	}
@@ -86,7 +62,7 @@ class Binder {
 		if (!this.elements.get(opt.element).has(opt.names[0])) {
 			this.elements.get(opt.element).set(opt.names[0], opt);
 		} else {
-			throw new Error('Oxe - duplicate attribute');
+			throw new Error(`Oxe - duplicate attribute ${opt.names[0]}`);
 		}
 
 		if (!(opt.scope in this.data)) {
@@ -135,20 +111,14 @@ class Binder {
 	}
 
 	each (path, callback) {
-		var scope, paths;
+		const paths = typeof path === 'string' ? path.split('.') : path;
+		const scope = paths[0];
 
-		if (typeof path === 'string') {
-			paths = path.split('.');
-			scope = paths[0];
-		} else {
-			paths = path;
-			scope = paths[0];
-		}
+		const binderPaths = this.data[scope];
+		const relativePath = paths.slice(1).join('.');
 
-		var binderPaths = this.data[scope];
-		var relativePath = paths.slice(1).join('.');
+		for (const binderPath in binderPaths) {
 
-		for (var binderPath in binderPaths) {
 			if (
 				relativePath === '' ||
 				binderPath.indexOf(relativePath) === 0 &&
@@ -157,34 +127,36 @@ class Binder {
 					binderPath.charAt(relativePath.length) === '.'
 				)
 			) {
-				var binders = binderPaths[binderPath];
-				for (var i = 0, l = binders.length; i < l; i++) {
-					var binder = binders[i];
+				const binders = binderPaths[binderPath];
+
+				for (const binder of binders) {
 					callback(binder);
 				}
+
 			}
+
 		}
+
 	}
 
-	modifyData (opt, data) {
+	piper (opt, data) {
 
-		if (!opt.modifiers.length) {
+		if (!opt.pipes.length) {
 			return data;
 		}
 
-		if (!Methods.data[opt.scope]) {
+		const methods = Methods.get(opt.scope);
+
+		if (!methods) {
 			return data;
 		}
 
-		for (let modifier of opt.modifiers) {
-			let scope = Methods.data[opt.scope];
+		for (const method of opt.pipes) {
 
-			if (scope) {
-				if (modifier in scope) {
-					data = scope[modifier].call(opt.container, data);
-				} else {
-					throw new Error(`Oxe - modifier ${modifier} not found in ${opt.scope} scope`);
-				}
+			if (method in methods) {
+				data = methods[method].call(opt.container, data);
+			} else {
+				throw new Error(`Oxe - pipe method ${method} not found in scope ${opt.scope}`);
 			}
 
 		}
@@ -203,7 +175,7 @@ class Binder {
 			return true;
 		}
 
-		for (var attribute of element.attributes) {
+		for (const attribute of element.attributes) {
 			if (
 				attribute.name.indexOf('o-each') === 0 ||
 				attribute.name.indexOf('data-o-each') === 0
@@ -215,10 +187,10 @@ class Binder {
 		return false;
 	}
 
-	eachElement (element, scope, callback) {
-		var sid = scope.getAttribute('o-scope') || scope.getAttribute('data-o-scope');
-		var eid = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
-		var idCheck = eid ? eid === sid : true;
+	eachElement (element, container, callback) {
+		const containerScope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
+		const elementScope = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
+		const scoped = elementScope ? elementScope === containerScope : true;
 
 		if (
 			element.nodeName !== 'O-ROUTER'
@@ -236,38 +208,53 @@ class Binder {
 			callback.call(this, element);
 		}
 
-		if (idCheck && this.skipChildren(element) === false) {
-			for (var child of element.children) {
-				this.eachElement(child, scope, callback);
+		if (scoped && this.skipChildren(element) === false) {
+
+			for (const child of element.children) {
+				this.eachElement(child, container, callback);
 			}
+
 		}
 
 	}
 
 	eachAttribute (element, callback) {
+
 		for (const attribute of element.attributes) {
+
 			if (
-				attribute.name.indexOf('o-') === 0 ||
-				attribute.name.indexOf('data-o-') === 0
+				(attribute.name.indexOf('o-') === 0
+				|| attribute.name.indexOf('data-o-') === 0)
+				&& attribute.name !== 'o-reset'
+				&& attribute.name !== 'o-action'
+				&& attribute.name !== 'o-method'
+				&& attribute.name !== 'o-enctype'
+				&& attribute.name !== 'data-o-reset'
+				&& attribute.name !== 'data-o-action'
+				&& attribute.name !== 'data-o-method'
+				&& attribute.name !== 'data-o-enctype'
 			) {
 				callback.call(this, attribute);
 			}
+
 		}
+
 	}
 
-	unbind (element, scope) {
-		scope = scope || element;
+	unbind (element, container) {
+		container = container || element;
 
-		this.eachElement(element, scope, function (child) {
+		const scope = container.getAttribute('o-scope');
+
+		this.eachElement(element, container, function (child) {
 			this.eachAttribute(child, function (attribute) {
 
-				var binder = this.get({
+				const binder = this.get({
+					scope: scope,
 					element: child,
-					container: scope,
+					container: container,
 					name: attribute.name,
-					value: attribute.value,
-					scope: scope.getAttribute('o-scope'),
-					path: Utility.binderPath(attribute.value)
+					value: attribute.value
 				});
 
 				this.remove(binder);
@@ -277,15 +264,18 @@ class Binder {
 		});
 	}
 
-	bind (element, scope) {
-		scope = scope || element;
+	bind (element, container) {
+		container = container || element;
 
-		this.eachElement(element, scope, function (child) {
+		const scope = container.getAttribute('o-scope');
+
+		this.eachElement(element, container, function (child) {
 			this.eachAttribute(child, function (attribute) {
 
-				var binder = this.set({
+				const binder = this.set({
+					scope: scope,
 					element: child,
-					container: scope,
+					container: container,
 					name: attribute.name,
 					value: attribute.value
 				});

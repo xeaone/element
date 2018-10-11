@@ -73,18 +73,18 @@ export default {
 						reset: true,
 						url: '/foo',
 						method: 'get',
-						handler: function () {
-							console.log(arguments);
+						handler: function (result) {
+							console.log(result);
 						}
 					}
 				}
 			},
 			fetch: function () {
-				return Promise.resolve().then(function () {
-					return Oxe.fetcher.get({
-						url: 'https://jsonplaceholder.typicode.com/todos/1'
-					});
-				}).then(console.log).catch(console.error);
+				const options = { url: 'https://jsonplaceholder.typicode.com/todos/1' };
+				return Promise.resolve()
+					.then(Oxe.fetcher.get.bind(null, options))
+					.then(console.log)
+					.catch(console.error);
 			}
 		},
 		properties: {
@@ -206,7 +206,7 @@ export default {
 		<input type="text" o-value="items.0.it.val">
 		<div o-each-item="items">
 			<span>
-				<span data-o-index="$index">$item</span>
+				<span>$item</span>
 				<span o-on-click="foo | item" o-text="item.it.val"></span>
 				<span>,</span>
 			</span>

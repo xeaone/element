@@ -128,7 +128,7 @@ class Component {
 		element.setAttribute('o-scope', scope);
 
 		Model.set(scope, options.model || {});
-		Methods.data[scope] = options.methods;
+		Methods.set(scope, options.methods || {});
 
 		if (!self.compiled || (self.compiled && element.parentNode.nodeName !== 'O-ROUTER')) {
 			var eTemplate = self.renderTemplate(options.template);
@@ -214,7 +214,7 @@ class Component {
 		options.properties.methods = {
 			enumerable: true,
 			get: function () {
-				return Methods.data[this.scope];
+				return Methods.get(this.scope);
 			}
 		};
 

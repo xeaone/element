@@ -1,34 +1,17 @@
+import Utility from './utility.js';
 import Binder from './binder.js';
 import Model from './model.js';
 
 export default function (e) {
-	let element = e.target;
-	let submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+	const element = e.target;
+	const reset = element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset');
 
-	let binder = Binder.get({
-		name: 'o-submit',
-		element: element
-	});
+	if (!reset) return;
+	else e.preventDefault();
 
-	let scope = binder.scope;
+	const binder = Binder.elements.get(element).get('submit');
+	const elements = element.querySelectorAll('[o-value]');
+	const model = Model.get(binder.scope);
 
-	if (submit) {
-		let elements = element.querySelectorAll('[o-value]');
-		let i = elements.length;
-
-		while (i--) {
-			let path = elements[i].getAttribute('o-value');
-			let keys = [scope].concat(path.split('.'));
-
-			Model.set(keys, '');
-
-			// Binder.unrender({
-			// 	name: 'o-value',
-			// 	element: elements[i]
-			// }, 'view');
-
-		}
-
-	}
-
+	Utility.formReset(element, model);
 }

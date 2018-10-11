@@ -2,54 +2,46 @@ import Model from './model.js';
 import Binder from './binder.js';
 import Utility from './utility.js';
 import Fetcher from './fetcher.js';
+import Methods from './methods.js';
 
-export default function (e) {
-	let element = e.target;
-	let submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+export default async function (e) {
+	const element = e.target;
+	const submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
 	if (!submit) return;
+	else e.preventDefault();
 
-	e.preventDefault();
+	const binder = Binder.elements.get(element).get('submit');
+	const method = Methods.get(binder.keys);
+	const model = Model.get(binder.scope);
 
-	let binder = Binder.elements.get(element).get('submit');
+	const data = Utility.formData(element, model);
 
-	let sScope = binder.scope;
-	let eScope = binder.container;
-	let model = Model.data[sScope];
+	const options = await method.call(binder.container, data, e);
 
-	let data = Utility.formData(element, model);
-	let method = Utility.getByPath(eScope.methods, submit);
+	if (typeof options === 'object') {
+		const action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+		const method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+		const enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
 
-	let done = async function (options) {
+		options.url = options.url || action;
+		options.method = options.method || method;
+		options.contentType = options.contentType || enctype;
 
-		if (options && typeof options === 'object') {
-			let auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-			let action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-			let method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-			let enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+		const result = await Fetcher.fetch(options);
 
-			options.url = options.url || action;
-			options.method = options.method || method;
-			options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
-			options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
-
-			await Fetcher.fetch(options);
+		if (options.handler) {
+			await options.handler(result);
 		}
 
-		if (
-			(
-				options &&
-				typeof options === 'object' &&
-				options.reset
-			)
-			|| element.hasAttribute('o-reset')
-		) {
-			element.reset();
-		}
-	};
+	}
 
-	Promise.resolve()
-	.then(method.bind(eScope, data, e))
-	.then(done)
-	.catch(console.error);
-}
+	if (
+		typeof options === 'object' && options.reset
+		|| element.hasAttribute('o-reset')
+		|| element.hasAttribute('data-o-reset')
+	) {
+		element.reset();
+	}
+
+};
