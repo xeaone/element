@@ -3,12 +3,10 @@ import Utility from './utility.js';
 import Render from './render.js';
 import Model from './model.js';
 
-class Binder {
+export default {
 
-	constructor () {
-		this.data = {};
-		this.elements = new Map();
-	}
+	data: {},
+	elements: new Map(),
 
 	set (opt) {
 		const self = this;
@@ -30,7 +28,7 @@ class Binder {
 		opt.keys = [opt.scope].concat(opt.values);
 
 		return opt;
-	}
+	},
 
 	get (opt) {
 
@@ -51,7 +49,7 @@ class Binder {
 		}
 
 		return null;
-	}
+	},
 
 	add (opt) {
 
@@ -74,7 +72,7 @@ class Binder {
 		}
 
 		this.data[opt.scope][opt.path].push(opt);
-	}
+	},
 
 	remove (opt) {
 
@@ -108,7 +106,7 @@ class Binder {
 
 		}
 
-	}
+	},
 
 	each (path, callback) {
 		const paths = typeof path === 'string' ? path.split('.') : path;
@@ -137,7 +135,7 @@ class Binder {
 
 		}
 
-	}
+	},
 
 	piper (opt, data) {
 
@@ -162,7 +160,7 @@ class Binder {
 		}
 
 		return data;
-	}
+	},
 
 	skipChildren (element) {
 
@@ -185,7 +183,7 @@ class Binder {
 		}
 
 		return false;
-	}
+	},
 
 	eachElement (element, container, callback) {
 		const containerScope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
@@ -216,7 +214,7 @@ class Binder {
 
 		}
 
-	}
+	},
 
 	eachAttribute (element, callback) {
 
@@ -239,7 +237,7 @@ class Binder {
 
 		}
 
-	}
+	},
 
 	unbind (element, container) {
 		container = container || element;
@@ -262,7 +260,7 @@ class Binder {
 
 			});
 		});
-	}
+	},
 
 	bind (element, container) {
 		container = container || element;
@@ -287,5 +285,3 @@ class Binder {
 	}
 
 }
-
-export default new Binder();

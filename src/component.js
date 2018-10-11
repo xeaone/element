@@ -2,31 +2,32 @@ import Methods from './methods.js';
 import Binder from './binder.js';
 import Model from './model.js';
 
-class Component {
+export default {
 
-	constructor (options) {
-		this.data = {};
-		this.setup(options);
-	}
+	data: {},
 
 	setup (options) {
 		options = options || {};
 
-		if (options.components) {
-			for (var component of options.components) {
+		const components = options.components;
+
+		if (components) {
+
+			for (const component of components) {
 				this.define(component);
 			}
+
 		}
 
-	}
+	},
 
 	renderSlot (target, source) {
-		var targetSlots = target.querySelectorAll('slot[name]');
+		const targetSlots = target.querySelectorAll('slot[name]');
 
-		for (var targetSlot of targetSlots) {
+		for (const targetSlot of targetSlots) {
 
-			var name = targetSlot.getAttribute('name');
-			var sourceSlot = source.querySelector('[slot="'+ name + '"]');
+			const name = targetSlot.getAttribute('name');
+			const sourceSlot = source.querySelector('[slot="'+ name + '"]');
 
 			if (sourceSlot) {
 				targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
@@ -36,26 +37,29 @@ class Component {
 
 		}
 
-		var defaultSlot = target.querySelector('slot:not([name])');
+		const defaultSlot = target.querySelector('slot:not([name])');
 
 		if (defaultSlot && source.children.length) {
+
 			while (source.firstChild) {
 				defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
 			}
+
 		}
 
 		if (defaultSlot) {
 			defaultSlot.parentNode.removeChild(defaultSlot);
 		}
 
-	}
+	},
 
 	renderTemplate (template) {
-		var fragment = document.createDocumentFragment();
+		const fragment = document.createDocumentFragment();
 
 		if (template) {
+
 			if (typeof template === 'string') {
-				var temporary = document.createElement('div');
+				const temporary = document.createElement('div');
 
 				temporary.innerHTML = template;
 
@@ -66,10 +70,11 @@ class Component {
 			} else {
 				fragment.appendChild(template);
 			}
+
 		}
 
 		return fragment;
-	}
+	},
 
 	renderStyle (style, scope) {
 
@@ -78,12 +83,12 @@ class Component {
 		if (window.CSS && window.CSS.supports) {
 
 			if (!window.CSS.supports('(--t: black)')) {
-				var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+				const matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-				for (var match of matches) {
+				for (const match of matches) {
 
-					var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-					var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+					const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+					const pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
 
 					style = style.replace(rule[0], '');
 					style = style.replace(pattern, rule[2]);
@@ -102,17 +107,17 @@ class Component {
 
 		}
 
-		var estyle = document.createElement('style');
-		var nstyle = document.createTextNode(style);
+		const estyle = document.createElement('style');
+		const nstyle = document.createTextNode(style);
 
 		estyle.appendChild(nstyle);
 
 		return estyle;
-	}
+	},
 
 	created (element, options) {
-		var self = this;
-		var scope = options.name + '-' + options.count++;
+		const self = this;
+		const scope = options.name + '-' + options.count++;
 
 		Object.defineProperties(element, {
 			scope: {
@@ -131,8 +136,8 @@ class Component {
 		Methods.set(scope, options.methods || {});
 
 		if (!self.compiled || (self.compiled && element.parentNode.nodeName !== 'O-ROUTER')) {
-			var eTemplate = self.renderTemplate(options.template);
-			var eStyle = self.renderStyle(options.style, scope);
+			const eTemplate = self.renderTemplate(options.template);
+			const eStyle = self.renderStyle(options.style, scope);
 
 			if (eStyle) {
 				eTemplate.insertBefore(eStyle, eTemplate.firstChild);
@@ -155,23 +160,21 @@ class Component {
 			options.created.call(element);
 		}
 
-	}
+	},
 
 	attached (element, options) {
 		// Binder.bind(element);
-
 		if (options.attached) {
 			options.attached.call(element);
 		}
-	}
+	},
 
 	detached (element, options) {
 		// Binder.unbind(element);
-
 		if (options.detached) {
 			options.detached.call(element);
 		}
-	}
+	},
 
 	define (options) {
 		var self = this;
@@ -241,5 +244,3 @@ class Component {
 	}
 
 }
-
-export default new Component();
