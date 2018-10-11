@@ -2,9 +2,12 @@ import Methods from './methods.js';
 import Binder from './binder.js';
 import Model from './model.js';
 
-export default {
+class Component {
 
-	data: {},
+	constructor () {
+		this.data = {};
+		this.compiled = false;
+	}
 
 	setup (options) {
 		options = options || {};
@@ -19,7 +22,7 @@ export default {
 
 		}
 
-	},
+	}
 
 	renderSlot (target, source) {
 		const targetSlots = target.querySelectorAll('slot[name]');
@@ -51,7 +54,7 @@ export default {
 			defaultSlot.parentNode.removeChild(defaultSlot);
 		}
 
-	},
+	}
 
 	renderTemplate (template) {
 		const fragment = document.createDocumentFragment();
@@ -74,7 +77,7 @@ export default {
 		}
 
 		return fragment;
-	},
+	}
 
 	renderStyle (style, scope) {
 
@@ -113,7 +116,7 @@ export default {
 		estyle.appendChild(nstyle);
 
 		return estyle;
-	},
+	}
 
 	created (element, options) {
 		const self = this;
@@ -123,7 +126,7 @@ export default {
 			scope: {
 				enumerable: true,
 				value: scope
-			},
+			}
 			status: {
 				enumerable: true,
 				value: 'created'
@@ -160,21 +163,21 @@ export default {
 			options.created.call(element);
 		}
 
-	},
+	}
 
 	attached (element, options) {
 		// Binder.bind(element);
 		if (options.attached) {
 			options.attached.call(element);
 		}
-	},
+	}
 
 	detached (element, options) {
 		// Binder.unbind(element);
 		if (options.detached) {
 			options.detached.call(element);
 		}
-	},
+	}
 
 	define (options) {
 		var self = this;
@@ -244,3 +247,5 @@ export default {
 	}
 
 }
+
+export default new Component();

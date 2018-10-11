@@ -13,13 +13,9 @@ class Router extends Events {
 		this.location = {};
 
 		this.ran = false;
-
 		this.element = null;
 		this.contain = false;
 		this.compiled = false;
-
-		document.addEventListener('click', this.clickListener.bind(this), true);
-		window.addEventListener('popstate', this.stateListener.bind(this), true);
 	}
 
 	setup (options) {
@@ -338,76 +334,6 @@ class Router extends Events {
 		this.location = location;
 		this.emit('routing');
 		this.render(location.route);
-	}
-
-	stateListener (e) {
-		var path = e && e.state ? e.state.path : window.location.href;
-		this.route(path, { replace: true });
-	}
-
-	clickListener (e) {
-
-		// if shadow dom use
-		var target = e.path ? e.path[0] : e.target;
-		var parent = target.parentNode;
-
-		if (this.contain) {
-
-			while (parent) {
-
-				if (parent.nodeName === 'O-ROUTER') {
-					break;
-				} else {
-					parent = parent.parentNode;
-				}
-
-			}
-
-			if (parent.nodeName !== 'O-ROUTER') {
-				return;
-			}
-
-		}
-
-		if (e.metaKey || e.ctrlKey || e.shiftKey) {
-			return;
-		}
-
-		// ensure target is anchor tag
-		while (target && 'A' !== target.nodeName) {
-			target = target.parentNode;
-		}
-
-		if (!target || 'A' !== target.nodeName) {
-			return;
-		}
-
-		// check non acceptables
-		if (target.hasAttribute('download') ||
-			target.hasAttribute('external') ||
-			target.hasAttribute('o-external') ||
-			target.href.indexOf('tel:') === 0 ||
-			target.href.indexOf('ftp:') === 0 ||
-			target.href.indexOf('file:') === 0 ||
-			target.href.indexOf('mailto:') === 0 ||
-			target.href.indexOf(window.location.origin) !== 0
-		) return;
-
-		// if external is true then default action
-		if (this.external &&
-			(this.external.constructor.name === 'RegExp' && this.external.test(target.href) ||
-			this.external.constructor.name === 'Function' && this.external(target.href) ||
-			this.external.constructor.name === 'String' && this.external === target.href)
-		) return;
-
-		if (this.location.href !== target.href) {
-			this.route(target.href);
-		}
-
-		if (!this.compiled) {
-			e.preventDefault();
-		}
-
 	}
 
 }

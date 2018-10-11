@@ -1,15 +1,17 @@
 
-export default {
+class Batcher {
 
-	reads: [],
-	writes: [],
-	fps: 1000/60,
-	pending: false,
+	constructor () {
+		this.reads = [];
+		this.writes = [];
+		this.fps = 1000/60;
+		this.pending = false;
+	}
 
 	setup (options) {
 		options = options || {};
 		this.fps = options.fps || this.fps;
-	},
+	}
 
 	// adds a task to the read batch
 	read (method, context) {
@@ -19,7 +21,7 @@ export default {
 		this.schedule();
 
 		return task;
-	},
+	}
 
 	// adds a task to the write batch
 	write (method, context) {
@@ -29,11 +31,11 @@ export default {
 		this.schedule();
 
 		return task;
-	},
+	}
 
 	tick (callback) {
 		window.requestAnimationFrame(callback);
-	},
+	}
 
 	// schedules a new read/write batch if one is not pending
 	schedule () {
@@ -41,7 +43,7 @@ export default {
 			this.pending = true;
 			this.tick(this.flush.bind(this));
 		}
-	},
+	}
 
 	flush (time) {
 
@@ -62,7 +64,7 @@ export default {
 			this.schedule();
 		}
 
-	},
+	}
 
 	runWrites (tasks, count) {
 		let task;
@@ -77,7 +79,7 @@ export default {
 
 		}
 
-	},
+	}
 
 	runReads (tasks, time) {
 		let task;
@@ -92,15 +94,17 @@ export default {
 
 		}
 
-	},
+	}
 
 	remove (tasks, task) {
 		const index = tasks.indexOf(task);
 		return !!~index && !!tasks.splice(index, 1);
-	},
+	}
 
 	clear (task) {
 		return this.remove(this.reads, task) || this.remove(this.writes, task);
 	}
 
 }
+
+export default new Batcher();

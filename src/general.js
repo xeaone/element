@@ -2,8 +2,8 @@ import Path from './path.js';
 
 class General {
 
-	constructor (options) {
-		this.setup(options);
+	constructor () {
+		this.compiled = false;
 	}
 
 	setup (options) {

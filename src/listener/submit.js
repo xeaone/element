@@ -1,8 +1,8 @@
-import Model from './model.js';
-import Binder from './binder.js';
-import Utility from './utility.js';
-import Fetcher from './fetcher.js';
-import Methods from './methods.js';
+import Model from '../model.js';
+import Binder from '../binder.js';
+import Utility from '../utility.js';
+import Fetcher from '../fetcher.js';
+import Methods from '../methods.js';
 
 export default async function (e) {
 	const element = e.target;

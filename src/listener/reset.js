@@ -1,6 +1,6 @@
-import Utility from './utility.js';
-import Binder from './binder.js';
-import Model from './model.js';
+import Utility from '../utility.js';
+import Binder from '../binder.js';
+import Model from '../model.js';
 
 export default function (e) {
 	const element = e.target;

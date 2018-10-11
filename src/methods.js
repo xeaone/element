@@ -1,15 +1,19 @@
 import Utility from './utility.js';
 
-const DATA = {};
+class Methods {
 
-export default {
+	constructor () {
+		this.data = {};
+	}
 
 	get (path) {
-		return Utility.getByPath(DATA, path);
-	},
+		return Utility.getByPath(this.data, path);
+	}
 
 	set (path, data) {
-		return Utility.setByPath(DATA, path, data);
+		return Utility.setByPath(this.data, path, data);
 	}
 
 }
+
+export default new Methods();

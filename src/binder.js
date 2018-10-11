@@ -3,14 +3,14 @@ import Utility from './utility.js';
 import Render from './render.js';
 import Model from './model.js';
 
-export default {
+class Binder {
 
-	data: {},
-	elements: new Map(),
+	constructor () {
+		this.data = {};
+		this.elements = new Map();
+	}
 
 	set (opt) {
-		const self = this;
-
 		opt = opt || {};
 
 		if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
@@ -28,7 +28,7 @@ export default {
 		opt.keys = [opt.scope].concat(opt.values);
 
 		return opt;
-	},
+	}
 
 	get (opt) {
 
@@ -49,7 +49,7 @@ export default {
 		}
 
 		return null;
-	},
+	}
 
 	add (opt) {
 
@@ -72,7 +72,7 @@ export default {
 		}
 
 		this.data[opt.scope][opt.path].push(opt);
-	},
+	}
 
 	remove (opt) {
 
@@ -106,7 +106,7 @@ export default {
 
 		}
 
-	},
+	}
 
 	each (path, callback) {
 		const paths = typeof path === 'string' ? path.split('.') : path;
@@ -135,7 +135,7 @@ export default {
 
 		}
 
-	},
+	}
 
 	piper (opt, data) {
 
@@ -160,7 +160,7 @@ export default {
 		}
 
 		return data;
-	},
+	}
 
 	skipChildren (element) {
 
@@ -183,7 +183,7 @@ export default {
 		}
 
 		return false;
-	},
+	}
 
 	eachElement (element, container, callback) {
 		const containerScope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
@@ -214,7 +214,7 @@ export default {
 
 		}
 
-	},
+	}
 
 	eachAttribute (element, callback) {
 
@@ -237,7 +237,7 @@ export default {
 
 		}
 
-	},
+	}
 
 	unbind (element, container) {
 		container = container || element;
@@ -260,7 +260,7 @@ export default {
 
 			});
 		});
-	},
+	}
 
 	bind (element, container) {
 		container = container || element;
@@ -285,3 +285,5 @@ export default {
 	}
 
 }
+
+export default new Binder();

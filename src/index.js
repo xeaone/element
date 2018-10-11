@@ -1,13 +1,25 @@
-import Global from './global.js';
-import Change from './change.js';
-import Submit from './submit.js';
-import Reset from './reset.js';
-import Input from './input.js';
+import Change from './listener/change.js';
+import Submit from './listener/submit.js';
+import Input from './listener/input.js';
+import Reset from './listener/reset.js';
+import Click from './listener/click.js';
+import State from './listener/state.js';
+import Load from './listener/load.js';
+import Component from './component.js';
+import General from './general.js';
+import Utility from './utility.js';
+import Batcher from './batcher.js';
+import Fetcher from './fetcher.js';
+import Methods from './methods.js'
+import Router from './router.js';
+import Loader from './loader.js';
+import Binder from './binder.js';
+import Model from './model.js';
 
 // OPTIMIZE wait until polyfill are ready then allow setup
 
-var eStyle = document.createElement('style');
-var tStyle = document.createTextNode(' \
+const eStyle = document.createElement('style');
+const tStyle = document.createTextNode(' \
 	o-router, o-router > :first-child { \
 		display: block; \
 	} \
@@ -34,24 +46,27 @@ const loaded = function () {
 
 	loadedCalled = true;
 
+	document.addEventListener('load', Load, true);
 	document.addEventListener('input', Input, true);
 	document.addEventListener('reset', Reset, true);
+	document.addEventListener('click', Click, true);
 	document.addEventListener('submit', Submit, true);
 	document.addEventListener('change', Change, true);
+	window.addEventListener('popstate', State, true);
 
-	var element = document.querySelector('script[o-setup]');
+	const element = document.querySelector('script[o-setup]');
 
 	if (element) {
 
-		var args = element.getAttribute('o-setup').split(/\s*,\s*/);
-		var meta = document.querySelector('meta[name="oxe"]');
+		const args = element.getAttribute('o-setup').split(/\s*,\s*/);
+		const meta = document.querySelector('meta[name="oxe"]');
 
 		if (meta && meta.hasAttribute('compiled')) {
 			args[1] = 'null';
 			args[2] = 'script';
-			Global.compiled = true;
-			Global.router.compiled = true;
-			Global.component.compiled = true;
+			Router.compiled = true;
+			General.compiled = true;
+			Component.compiled = true;
 		}
 
 		if (!args[0]) {
@@ -60,13 +75,13 @@ const loaded = function () {
 
 
 		if (args.length > 1) {
-			Global.loader.load({
+			Loader.load({
 				url: args[0],
 				method: args[2],
 				transformer: args[1]
 			});
 		} else {
-			var index = document.createElement('script');
+			const index = document.createElement('script');
 			index.setAttribute('src', args[0]);
 			index.setAttribute('async', 'true');
 			index.setAttribute('type', 'module');
@@ -116,4 +131,124 @@ loader(
 	'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js'
 );
 
-export default Global;
+class Oxe {
+
+	constructor () {
+		// this.compiled = true;
+	}
+
+	get window () {
+		return window;
+	}
+
+	get document () {
+		return window.document;
+	}
+
+	get body () {
+		return window.document.body;
+	}
+
+	get head () {
+		return window.document.head;
+	}
+
+	get location () {
+		return this.router.location;
+	}
+
+	get currentScript () {
+		return (window.document._currentScript || window.document.currentScript);
+	}
+
+	get ownerDocument () {
+		return (window.document._currentScript || window.document.currentScript).ownerDocument;
+	}
+
+	get global () {
+		return {};
+	}
+
+	get methods () {
+		return 	Methods;
+	}
+
+	get utility () {
+		return Utility;
+	}
+
+	get general () {
+		return General;
+	}
+
+	get batcher () {
+		return Batcher;
+	}
+
+	get loader () {
+		return Loader;
+	}
+
+	get binder () {
+		return Binder;
+	}
+
+	get fetcher () {
+		return Fetcher;
+	}
+
+	get component () {
+		return Component;
+	}
+
+	get router () {
+		return Router;
+	}
+
+	get model () {
+		return Model;
+	}
+
+	setup (data) {
+
+		if (this._setup) {
+			return;
+		} else {
+			this._setup = true;
+		}
+
+		data = data || {};
+
+		if (data.listener && data.listener.before) {
+			data.listener.before();
+		}
+
+		if (data.general) {
+			this.general.setup(data.general);
+		}
+
+		if (data.fetcher) {
+			this.fetcher.setup(data.fetcher);
+		}
+
+		if (data.loader) {
+			this.loader.setup(data.loader);
+		}
+
+		if (data.component) {
+			this.component.setup(data.component);
+		}
+
+		if (data.router) {
+			this.router.setup(data.router);
+		}
+
+		if (data.listener && data.listener.after) {
+			data.listener.after();
+		}
+
+	}
+
+}
+
+export default new Oxe();

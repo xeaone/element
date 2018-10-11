@@ -1,8 +1,9 @@
 
 class Fetcher {
 
-	constructor (options) {
-
+	constructor () {
+		this.head = null;
+		this.method = 'get';
 		this.mime = {
 			xml: 'text/xml; charset=utf-8',
 			html: 'text/html; charset=utf-8',
@@ -10,22 +11,18 @@ class Fetcher {
 			json: 'application/json; charset=utf-8',
 			js: 'application/javascript; charset=utf-8'
 		};
-
-		this.setup(options);
 	}
 
 	setup (options) {
 		options = options || {};
-
-		this.head = options.head || null;
-		this.method = options.method || 'get';
-
+		this.head = options.head || this.head;
+		this.method = options.method || this.method;
 		this.request = options.request;
 		this.response = options.response;
 		this.acceptType = options.acceptType;
+		this.credentials = options.credentials;
 		this.contentType = options.contentType;
 		this.responseType = options.responseType;
-		this.credentials = options.credentials;
 	}
 
 	async serialize (data) {

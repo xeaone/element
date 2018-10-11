@@ -6,13 +6,10 @@ class Loader extends Events {
 
 	constructor () {
 		super();
-
 		this.data = {};
 		this.ran = false;
 		this.methods = {};
 		this.transformers = {};
-
-		document.addEventListener('load', this.listener.bind(this), true);
 	}
 
 	setup (options) {
@@ -226,19 +223,6 @@ class Loader extends Events {
 			this.fetch(data);
 		}
 
-	}
-
-	listener (e) {
-		var element = e.target;
-
-		if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
-			return;
-		}
-
-		var path = Path.resolve(element.src || element.href);
-		var load = this.data[path];
-
-		this.ready(load);
 	}
 
 }
