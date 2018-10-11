@@ -379,17 +379,17 @@ export default {
 				}
 
 			} else if (type === 'checkbox') {
-				opt.element.checked = data || false;
+				opt.element.checked = data === undefined ? false : data;
 
 				if (data !== opt.element.checked) {
-					Model.set(opt.keys, data || false);
+					Model.set(opt.keys, data === undefined ? false : data);
 				}
 
 			} else {
-				opt.element.value = data || '';
+				opt.element.value = data === undefined ? '' : data;
 
 				if (data !== opt.element.value) {
-					Model.set(opt.keys, data || '');
+					Model.set(opt.keys, data === undefined ? '' : data);
 				}
 
 			}

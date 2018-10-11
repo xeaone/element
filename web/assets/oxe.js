@@ -1427,16 +1427,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				} else if (type === 'checkbox') {
-					opt.element.checked = data || false;
+					opt.element.checked = data === undefined ? false : data;
 
 					if (data !== opt.element.checked) {
-						Model$1.set(opt.keys, data || false);
+						Model$1.set(opt.keys, data === undefined ? false : data);
 					}
 				} else {
-					opt.element.value = data || '';
+					opt.element.value = data === undefined ? '' : data;
 
 					if (data !== opt.element.value) {
-						Model$1.set(opt.keys, data || '');
+						Model$1.set(opt.keys, data === undefined ? '' : data);
 					}
 				}
 			});
