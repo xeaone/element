@@ -1,7 +1,7 @@
-import Render from './render.js';
 import Methods from './methods.js';
 import Utility from './utility.js';
-import Unrender from './unrender.js';
+import Render from './render.js';
+import Model from './model.js';
 
 class Binder {
 
@@ -9,9 +9,12 @@ class Binder {
 		this.data = {};
 		this.values = [];
 		this.submits = [];
+		this.elements = new Map();
 	}
 
 	set (opt) {
+		const self = this;
+
 		opt = opt || {};
 
 		if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
@@ -30,9 +33,21 @@ class Binder {
 
 		opt.keys = opt.keys || [opt.scope].concat(opt.values);
 
-		if (opt.name === 'o-value' || opt.name === 'data-o-value') {
-			opt.setup = true;
-		}
+		// Object.defineProperty(opt, 'data', {
+		// 	enumerable: true,
+		// 	get: function () {
+		// 		let data = Model.get(opt.keys);
+		//
+		// 		if (
+		// 			opt.name.indexOf('o-on') !== 0 &&
+		// 			opt.name.indexOf('data-o-on') !== 0
+		// 		) {
+		// 			data = self.modifyData(opt, data);
+		// 		}
+		//
+		// 		return data;
+		// 	}
+		// });
 
 		// if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
 		// 	opt.cache = opt.element.removeChild(opt.element.firstElementChild);
@@ -42,26 +57,18 @@ class Binder {
 	}
 
 	get (opt) {
-		var items;
 
-		if (opt.name === 'o-value') {
-			items = this.values;
-		} else if (opt.name === 'o-submit') {
-			items = this.submits;
-		} else {
-
-			if (!(opt.scope in this.data)) {
-				return null;
-			}
-
-			if (!(opt.path in this.data[opt.scope])) {
-				return null;
-			}
-
-			items = this.data[opt.scope][opt.path];
+		if (!(opt.scope in this.data)) {
+			return null;
 		}
 
-		for (var item of items) {
+		if (!(opt.path in this.data[opt.scope])) {
+			return null;
+		}
+
+		const items = this.data[opt.scope][opt.path];
+
+		for (const item of items) {
 			if (item.element === opt.element && item.name === opt.name) {
 				return item;
 			}
@@ -71,51 +78,58 @@ class Binder {
 	}
 
 	add (opt) {
-		var items;
 
-		if (opt.name === 'o-value') {
-			items = this.values;
-		} else if (opt.name === 'o-submit') {
-			items = this.submits;
-		} else {
-
-			if (!(opt.scope in this.data)) {
-				this.data[opt.scope] = {};
-			}
-
-			if (!(opt.path in this.data[opt.scope])) {
-				this.data[opt.scope][opt.path] = [];
-			}
-
-			items = this.data[opt.scope][opt.path];
+		if (!this.elements.has(opt.element)) {
+			this.elements.set(opt.element, new Map());
 		}
 
-		items.push(opt);
+		if (!this.elements.get(opt.element).has(opt.names[0])) {
+			this.elements.get(opt.element).set(opt.names[0], opt);
+		} else {
+			throw new Error('Oxe - duplicate attribute');
+		}
+
+		if (!(opt.scope in this.data)) {
+			this.data[opt.scope] = {};
+		}
+
+		if (!(opt.path in this.data[opt.scope])) {
+			this.data[opt.scope][opt.path] = [];
+		}
+
+		this.data[opt.scope][opt.path].push(opt);
 	}
 
 	remove (opt) {
-		var items;
 
-		if (opt.name === 'o-value') {
-			items = this.values;
-		} else if (opt.name === 'o-submit') {
-			items = this.submits;
-		} else {
-			if (!(opt.scope in this.data)) {
-				return;
+		if (this.elements.has(opt.element)) {
+
+			if (this.elements.get(opt.element).has(opt.names[0])) {
+				this.elements.get(opt.element).remove(opt.names[0]);
 			}
 
-			if (!(opt.path in this.data[opt.scope])) {
-				return;
+			if (this.elements.get(opt.elements).length === 0) {
+				this.elements.remove(opt.elements);
 			}
 
-			items = this.data[opt.scope][opt.path];
 		}
 
-		for (var i = 0, l = items.length; i < l; i++) {
+		if (!(opt.scope in this.data)) {
+			return;
+		}
+
+		if (!(opt.path in this.data[opt.scope])) {
+			return;
+		}
+
+		const items = this.data[opt.scope][opt.path];
+
+		for (let i = 0, l = items.length; i < l; i++) {
+
 			if (items[i].element === opt.element) {
 				return items.splice(i, 1);
 			}
+
 		}
 
 	}
@@ -123,8 +137,14 @@ class Binder {
 	each (path, callback) {
 		var scope, paths;
 
-		var paths = path.split('.');
-		var scope = paths[0];
+		if (typeof path === 'string') {
+			paths = path.split('.');
+			scope = paths[0];
+		} else {
+			paths = path;
+			scope = paths[0];
+		}
+
 		var binderPaths = this.data[scope];
 		var relativePath = paths.slice(1).join('.');
 
@@ -146,22 +166,6 @@ class Binder {
 		}
 	}
 
-	unrender (opt) {
-		if (opt.type in Unrender) {
-			Unrender[opt.type](opt);
-		} else {
-			Unrender.default(opt);
-		}
-	}
-
-	render (opt) {
-		if (opt.type in Render) {
-			Render[opt.type](opt);
-		} else {
-			Render.default(opt);
-		}
-	}
-
 	modifyData (opt, data) {
 
 		if (!opt.modifiers.length) {
@@ -172,11 +176,15 @@ class Binder {
 			return data;
 		}
 
-		for (var modifier of opt.modifiers) {
-			var scope = Methods.data[opt.scope];
+		for (let modifier of opt.modifiers) {
+			let scope = Methods.data[opt.scope];
 
 			if (scope) {
-				data = scope[modifier].call(opt.container, data);
+				if (modifier in scope) {
+					data = scope[modifier].call(opt.container, data);
+				} else {
+					throw new Error(`Oxe - modifier ${modifier} not found in ${opt.scope} scope`);
+				}
 			}
 
 		}
@@ -263,7 +271,7 @@ class Binder {
 				});
 
 				this.remove(binder);
-				this.unrender(binder);
+				Unrender.default(binder);
 
 			});
 		});
@@ -283,7 +291,7 @@ class Binder {
 				});
 
 				this.add(binder);
-				this.render(binder);
+				Render.default(binder);
 			});
 		});
 	}

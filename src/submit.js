@@ -1,4 +1,7 @@
-import Global from './global.js';
+import Model from './model.js';
+import Binder from './binder.js';
+import Utility from './utility.js';
+import Fetcher from './fetcher.js';
 
 export default function (e) {
 	let element = e.target;
@@ -8,17 +11,14 @@ export default function (e) {
 
 	e.preventDefault();
 
-	let binder = Global.binder.get({
-		name: 'o-submit',
-		element: element
-	});
+	let binder = Binder.elements.get(element).get('submit');
 
 	let sScope = binder.scope;
 	let eScope = binder.container;
-	let model = Global.model.data[sScope];
+	let model = Model.data[sScope];
 
-	let data = Global.utility.formData(element, model);
-	let method = Global.utility.getByPath(eScope.methods, submit);
+	let data = Utility.formData(element, model);
+	let method = Utility.getByPath(eScope.methods, submit);
 
 	let done = async function (options) {
 
@@ -33,7 +33,7 @@ export default function (e) {
 			options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
 			options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
 
-			await Global.fetcher.fetch(options);
+			await Fetcher.fetch(options);
 		}
 
 		if (

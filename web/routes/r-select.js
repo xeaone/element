@@ -18,8 +18,8 @@ export default {
 				'dave'
 			],
 			result: {
-				name: '',
 				fruit: '',
+				name: '',
 				cars: []
 			}
 		},
@@ -42,7 +42,7 @@ export default {
 			<select o-value="result.cars" o-each-car="cars" multiple>
 				<option o-value="car" o-text="car"></option>
 			</select>
-			
+
 			<hr>
 
 			<div o-text="result.name"></div>

@@ -1,13 +1,7 @@
-import Global from './global.js';
+import Update from './update.js';
 
 export default function (e) {
 	if (e.target.hasAttribute('o-value')) {
-
-		let binder = Global.binder.get({
-			name: 'o-value',
-			element: e.target,
-		});
-
-		Global.binder.render(binder);
+		Update(e.target, 'value').catch(console.error);
 	}
 }

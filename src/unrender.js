@@ -110,6 +110,12 @@ export default {
 		});
 	},
 
-	default (opt) {}
+	default (opt) {
+		if (opt.type in this) {
+			this[opt.type](opt);
+		} else {
+			
+		}
+	}
 
 };

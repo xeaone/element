@@ -259,7 +259,7 @@ export default {
 		<br>
 		<br>
 
-		<button o-on-click="fetch | text">Fetch</button>
+		<button o-on-click="fetch">Fetch</button>
 		<br>
 		<br>
 

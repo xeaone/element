@@ -1,10 +1,11 @@
-import Global from './global.js';
+import Binder from './binder.js';
+import Model from './model.js';
 
 export default function (e) {
 	let element = e.target;
 	let submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-	let binder = Global.binder.get({
+	let binder = Binder.get({
 		name: 'o-submit',
 		element: element
 	});
@@ -19,12 +20,12 @@ export default function (e) {
 			let path = elements[i].getAttribute('o-value');
 			let keys = [scope].concat(path.split('.'));
 
-			Global.model.set(keys, '');
+			Model.set(keys, '');
 
-			Global.binder.unrender({
-				name: 'o-value',
-				element: elements[i]
-			}, 'view');
+			// Binder.unrender({
+			// 	name: 'o-value',
+			// 	element: elements[i]
+			// }, 'view');
 
 		}
 

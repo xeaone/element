@@ -1,4 +1,4 @@
-import Global from './global.js';
+import Update from './update.js';
 
 export default function (e) {
 	if (
@@ -8,12 +8,6 @@ export default function (e) {
 		&& e.target.nodeName !== 'SELECT'
 		&& e.target.hasAttribute('o-value')
 	) {
-
-		let binder = Global.binder.get({
-			name: 'o-value',
-			element: e.target,
-		});
-
-		Global.binder.render(binder);
+		Update(e.target, 'value').catch(console.error);
 	}
 }

@@ -1,6 +1,8 @@
 import Observer from './observer.js';
+import Unrender from './unrender.js';
 import Events from './events.js';
 import Binder from './binder.js';
+import Render from './render.js';
 
 class Model extends Events {
 
@@ -65,9 +67,9 @@ class Model extends Events {
 	}
 
 	listener (data, path) {
-		var type = data === undefined ? 'unrender' : 'render';
+		const method = data === undefined ? Unrender : Render;
 		Binder.each(path, function (binder) {
-			Binder[type](binder);
+			method.default(binder);
 		});
 	}
 

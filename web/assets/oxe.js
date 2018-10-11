@@ -17,8 +17,7 @@ function _awaitIgnored(value, direct) {
 }function _empty() {}function _await(value, then, direct) {
 	if (direct) {
 		return then ? then(value) : value;
-	}
-	value = Promise.resolve(value);return then ? value.then(then) : value;
+	}value = Promise.resolve(value);return then ? value.then(then) : value;
 }var _async = function () {
 	try {
 		if (isNaN.apply(null, {})) {
@@ -33,8 +32,10 @@ function _awaitIgnored(value, direct) {
 			};
 		}
 	} catch (e) {}return function (f) {
+
 		// Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
 		return function () {
+
 			var args = [];for (var i = 0; i < arguments.length; i++) {
 				args[i] = arguments[i];
 			}try {
@@ -56,187 +57,132 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 })(this, function () {
 	'use strict';
 
+	var Update = _async(function (element, attribute) {
+
+		if (!element) throw new Error('Oxe - requires element argument');
+		if (!attribute) throw new Error('Oxe - requires attribute argument');
+
+		var binder = Binder$1.elements.get(element).get(attribute);
+
+		Batcher$1.read(function () {
+			var type = binder.element.type;
+			var name = binder.element.nodeName;
+
+			var data = void 0;
+
+			if (name === 'SELECT') {
+				var elements = binder.element.options;
+				var multiple = binder.element.multiple;
+
+				var selected = false;
+
+				data = multiple ? [] : '';
+
+				var _iteratorNormalCompletion11 = true;
+				var _didIteratorError11 = false;
+				var _iteratorError11 = undefined;
+
+				try {
+					for (var _iterator11 = elements[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+						var _element = _step11.value;
+
+						// NOTE might need to handle disable
+
+						if (_element.selected) {
+							selected = true;
+
+							if (multiple) {
+								data.push(_element.value);
+							} else {
+								data = _element.value;
+								break;
+							}
+						}
+					}
+				} catch (err) {
+					_didIteratorError11 = true;
+					_iteratorError11 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion11 && _iterator11.return) {
+							_iterator11.return();
+						}
+					} finally {
+						if (_didIteratorError11) {
+							throw _iteratorError11;
+						}
+					}
+				}
+
+				if (elements.length && !multiple && !selected) {
+					data = elements[0].value;
+				}
+			} else if (type === 'radio') {
+				var query = 'input[type="radio"][o-value="' + binder.value + '"]';
+				var _elements2 = binder.container.querySelectorAll(query);
+
+				for (var i = 0, l = _elements2.length; i < l; i++) {
+					var _element2 = _elements2[i];
+
+					if (binder.element === _element2) {
+						data = i;
+					}
+				}
+			} else if (type === 'file') {
+				var files = binder.element.files;
+
+				data = data || [];
+
+				var _iteratorNormalCompletion12 = true;
+				var _didIteratorError12 = false;
+				var _iteratorError12 = undefined;
+
+				try {
+					for (var _iterator12 = files[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+						var file = _step12.value;
+
+						data.push(file);
+					}
+				} catch (err) {
+					_didIteratorError12 = true;
+					_iteratorError12 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion12 && _iterator12.return) {
+							_iterator12.return();
+						}
+					} finally {
+						if (_didIteratorError12) {
+							throw _iteratorError12;
+						}
+					}
+				}
+			} else if (type === 'checkbox') {
+				data = binder.element.checked;
+			} else {
+				data = binder.element.value;
+			}
+
+			if (data !== undefined) {
+				var original = Model$1.get(binder.keys);
+
+				if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' && data.constructor === original.constructor) {
+					for (var key in data) {
+						if (data[key] !== original[key]) {
+							Model$1.set(binder.keys, data);
+							break;
+						}
+					}
+				} else if (original !== data) {
+					Model$1.set(binder.keys, data);
+				}
+			}
+		});
+	});
+
 	var Methods = {
 		data: {}
 	};
-
-	var Events = function () {
-		function Events() {
-			_classCallCheck(this, Events);
-
-			this.events = {};
-		}
-
-		_createClass(Events, [{
-			key: 'on',
-			value: function on(name, method) {
-
-				if (!(name in this.events)) {
-					this.events[name] = [];
-				}
-
-				this.events[name].push(method);
-			}
-		}, {
-			key: 'off',
-			value: function off(name, method) {
-
-				if (name in this.events) {
-
-					var index = this.events[name].indexOf(method);
-
-					if (index !== -1) {
-						this.events[name].splice(index, 1);
-					}
-				}
-			}
-		}, {
-			key: 'emit',
-			value: function emit(name) {
-
-				if (name in this.events) {
-
-					var methods = this.events[name];
-					var args = Array.prototype.slice.call(arguments, 1);
-
-					for (var i = 0, l = methods.length; i < l; i++) {
-						methods[i].apply(this, args);
-					}
-				}
-			}
-		}]);
-
-		return Events;
-	}();
-
-	var Batcher = function (_Events) {
-		_inherits(Batcher, _Events);
-
-		function Batcher(options) {
-			_classCallCheck(this, Batcher);
-
-			var _this = _possibleConstructorReturn(this, (Batcher.__proto__ || Object.getPrototypeOf(Batcher)).call(this));
-
-			_this.reads = [];
-			_this.writes = [];
-			_this.fps = 1000 / 60;
-			_this.pending = false;
-
-			_this.setup(options);
-			return _this;
-		}
-
-		_createClass(Batcher, [{
-			key: 'setup',
-			value: function setup(options) {
-				options = options || {};
-				options.fps = options.fps === undefined || options.fps === null ? this.fps : options.fps;
-			}
-
-			// adds a task to the read batch
-
-		}, {
-			key: 'read',
-			value: function read(method, context) {
-				var task = context ? method.bind(context) : method;
-				this.reads.push(task);
-				this.schedule();
-				return task;
-			}
-
-			// adds a task to the write batch
-
-		}, {
-			key: 'write',
-			value: function write(method, context) {
-				var task = context ? method.bind(context) : method;
-				this.writes.push(task);
-				this.schedule();
-				return task;
-			}
-		}, {
-			key: 'tick',
-			value: function tick(callback) {
-				window.requestAnimationFrame(callback);
-			}
-
-			// schedules a new read/write batch if one is not pending
-
-		}, {
-			key: 'schedule',
-			value: function schedule() {
-				if (!this.pending) {
-					this.pending = true;
-					this.tick(this.flush.bind(this));
-				}
-			}
-		}, {
-			key: 'flush',
-			value: function flush(time) {
-				var count;
-
-				try {
-					count = this.runReads(this.reads, time);
-					this.runWrites(this.writes, count);
-				} catch (e) {
-					if (this.events.error && this.events.error.length) {
-						this.emit('error', e);
-					} else {
-						throw e;
-					}
-				}
-
-				this.pending = false;
-
-				if (this.reads.length || this.writes.length) {
-					this.schedule();
-				}
-			}
-		}, {
-			key: 'runWrites',
-			value: function runWrites(tasks, count) {
-				var task;
-
-				while (task = tasks.shift()) {
-
-					task();
-
-					if (count && tasks.length === count) {
-						return;
-					}
-				}
-			}
-		}, {
-			key: 'runReads',
-			value: function runReads(tasks, time) {
-				var task;
-
-				while (task = tasks.shift()) {
-
-					task();
-
-					if (this.fps && performance.now() - time > this.fps) {
-						return tasks.length;
-					}
-				}
-			}
-		}, {
-			key: 'remove',
-			value: function remove(tasks, task) {
-				var index = tasks.indexOf(task);
-				return !!~index && !!tasks.splice(index, 1);
-			}
-		}, {
-			key: 'clear',
-			value: function clear(task) {
-				return this.remove(this.reads, task) || this.remove(this.writes, task);
-			}
-		}]);
-
-		return Batcher;
-	}(Events);
-
-	var Batcher$1 = new Batcher();
 
 	var Utility = {
 
@@ -318,9 +264,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		formData: function formData(form, model) {
 			var elements = form.querySelectorAll('[o-value]');
-			var data = {};
-
-			var _iteratorNormalCompletion2 = true;
+			var data = {};var _iteratorNormalCompletion2 = true;
 			var _didIteratorError2 = false;
 			var _iteratorError2 = undefined;
 
@@ -520,6 +464,184 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}
 	};
+
+	var Events = function () {
+		function Events() {
+			_classCallCheck(this, Events);
+
+			this.events = {};
+		}
+
+		_createClass(Events, [{
+			key: 'on',
+			value: function on(name, method) {
+
+				if (!(name in this.events)) {
+					this.events[name] = [];
+				}
+
+				this.events[name].push(method);
+			}
+		}, {
+			key: 'off',
+			value: function off(name, method) {
+
+				if (name in this.events) {
+
+					var index = this.events[name].indexOf(method);
+
+					if (index !== -1) {
+						this.events[name].splice(index, 1);
+					}
+				}
+			}
+		}, {
+			key: 'emit',
+			value: function emit(name) {
+
+				if (name in this.events) {
+
+					var methods = this.events[name];
+					var args = Array.prototype.slice.call(arguments, 1);
+
+					for (var i = 0, l = methods.length; i < l; i++) {
+						methods[i].apply(this, args);
+					}
+				}
+			}
+		}]);
+
+		return Events;
+	}();
+
+	var Batcher = function (_Events) {
+		_inherits(Batcher, _Events);
+
+		function Batcher(options) {
+			_classCallCheck(this, Batcher);
+
+			var _this = _possibleConstructorReturn(this, (Batcher.__proto__ || Object.getPrototypeOf(Batcher)).call(this));
+
+			_this.reads = [];
+			_this.writes = [];
+			_this.fps = 1000 / 60;
+			_this.pending = false;
+
+			_this.setup(options);
+			return _this;
+		}
+
+		_createClass(Batcher, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
+				options.fps = options.fps === undefined || options.fps === null ? this.fps : options.fps;
+			}
+
+			// adds a task to the read batch
+
+		}, {
+			key: 'read',
+			value: function read(method, context) {
+				var task = context ? method.bind(context) : method;
+				this.reads.push(task);
+				this.schedule();
+				return task;
+			}
+
+			// adds a task to the write batch
+
+		}, {
+			key: 'write',
+			value: function write(method, context) {
+				var task = context ? method.bind(context) : method;
+				this.writes.push(task);
+				this.schedule();
+				return task;
+			}
+		}, {
+			key: 'tick',
+			value: function tick(callback) {
+				window.requestAnimationFrame(callback);
+			}
+
+			// schedules a new read/write batch if one is not pending
+
+		}, {
+			key: 'schedule',
+			value: function schedule() {
+				if (!this.pending) {
+					this.pending = true;
+					this.tick(this.flush.bind(this));
+				}
+			}
+		}, {
+			key: 'flush',
+			value: function flush(time) {
+				var count;
+
+				try {
+					count = this.runReads(this.reads, time);
+					this.runWrites(this.writes, count);
+				} catch (e) {
+					if (this.events.error && this.events.error.length) {
+						this.emit('error', e);
+					} else {
+						throw e;
+					}
+				}
+
+				this.pending = false;
+
+				if (this.reads.length || this.writes.length) {
+					this.schedule();
+				}
+			}
+		}, {
+			key: 'runWrites',
+			value: function runWrites(tasks, count) {
+				var task;
+
+				while (task = tasks.shift()) {
+
+					task();
+
+					if (count && tasks.length === count) {
+						return;
+					}
+				}
+			}
+		}, {
+			key: 'runReads',
+			value: function runReads(tasks, time) {
+				var task;
+
+				while (task = tasks.shift()) {
+
+					task();
+
+					if (this.fps && performance.now() - time > this.fps) {
+						return tasks.length;
+					}
+				}
+			}
+		}, {
+			key: 'remove',
+			value: function remove(tasks, task) {
+				var index = tasks.indexOf(task);
+				return !!~index && !!tasks.splice(index, 1);
+			}
+		}, {
+			key: 'clear',
+			value: function clear(task) {
+				return this.remove(this.reads, task) || this.remove(this.writes, task);
+			}
+		}]);
+
+		return Batcher;
+	}(Events);
+
+	var Batcher$1 = new Batcher();
 
 	/*
  	TODO:
@@ -749,8 +871,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			if (type === Array) {
 
 				for (key = 0, length = source.length; key < length; key++) {
-					properties.$meta.value[key] = self.create(source[key], listener, path + key);
-					properties[key] = self.property(key);
+					properties.$meta.value[key] = self.create(source[key], listener, path + key);properties[key] = self.property(key);
 				}
 
 				var arrayProperties = self.arrayProperties();
@@ -775,6 +896,106 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 
 			return Object.defineProperties(target, properties);
+		}
+	};
+
+	var Unrender$1 = {
+		alt: function alt(opt) {
+			Batcher$1.write(function () {
+				opt.element.alt = '';
+			});
+		},
+		each: function each(opt) {
+			Batcher$1.write(function () {
+				var element;
+
+				while (element = opt.element.lastElementChild) {
+					opt.element.removeChild(element);
+				}
+			});
+		},
+		href: function href(opt) {
+			Batcher$1.write(function () {
+				opt.element.href = '';
+			});
+		},
+		class: function _class(opt) {
+			Batcher$1.write(function () {
+				var className = opt.names.slice(1).join('-');
+				opt.element.classList.remove(className);
+			});
+		},
+		html: function html(opt) {
+			Batcher$1.write(function () {
+				var element;
+
+				while (element = opt.element.lastElementChild) {
+					opt.element.removeChild(element);
+				}
+			});
+		},
+		on: function on(opt) {
+			opt.element.removeEventListener(opt.names[1], opt.cache, false);
+		},
+		css: function css(opt) {
+			Batcher$1.write(function () {
+				opt.element.style.cssText = '';
+			});
+		},
+		required: function required(opt) {
+			Batcher$1.write(function () {
+				opt.element.required = false;
+			});
+		},
+		src: function src(opt) {
+			Batcher$1.write(function () {
+				opt.element.src = '';
+			});
+		},
+		text: function text(opt) {
+			Batcher$1.write(function () {
+				opt.element.innerText = '';
+			});
+		},
+		value: function value(opt) {
+			Batcher$1.write(function () {
+				var i, l, query, element, elements;
+
+				if (opt.element.nodeName === 'SELECT') {
+
+					elements = opt.element.options;
+
+					for (i = 0, l = elements.length; i < l; i++) {
+						element = elements[i];
+						element.selected = false;
+					}
+				} else if (opt.element.type === 'radio') {
+
+					query = 'input[type="radio"][o-value="' + opt.path + '"]';
+					elements = opt.element.parentNode.querySelectorAll(query);
+
+					for (i = 0, l = elements.length; i < l; i++) {
+						element = elements[i];
+
+						if (i === 0) {
+							element.checked = true;
+						} else {
+							element.checked = false;
+						}
+					}
+				} else if (opt.element.type === 'checkbox') {
+
+					opt.element.checked = false;
+					opt.element.value = false;
+				} else {
+					opt.element.value = '';
+				}
+			});
+		},
+		default: function _default(opt) {
+			if (opt.type in this) {
+				this[opt.type](opt);
+			}
 		}
 	};
 
@@ -850,9 +1071,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'listener',
 			value: function listener(data, path) {
-				var type = data === undefined ? 'unrender' : 'render';
+				var method = data === undefined ? Unrender$1 : Render;
 				Binder$1.each(path, function (binder) {
-					Binder$1[type](binder);
+					method.default(binder);
 				});
 			}
 		}]);
@@ -1003,18 +1224,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					opt.element.removeEventListener(opt.names[1], opt.cache);
 				} else {
 					opt.cache = function (e) {
-						return Promise.resolve().then(function () {
-							var parameters = [e];
+						var parameters = [e];
 
-							for (var i = 0, l = opt.modifiers.length; i < l; i++) {
-								var keys = opt.modifiers[i].split('.');
-								keys.unshift(opt.scope);
-								var parameter = Oxe.model.get(keys);
-								parameters.push(parameter);
-							}
+						for (var i = 0, l = opt.modifiers.length; i < l; i++) {
+							var keys = opt.modifiers[i].split('.');
+							keys.unshift(opt.scope);
+							var parameter = Oxe.model.get(keys);
+							parameters.push(parameter);
+						}
 
-							return data.apply(opt.container, parameters);
-						}).catch(console.error);
+						Promise.resolve().then(data.bind(opt.container).apply(null, parameters)).catch(console.error);
 					};
 				}
 
@@ -1042,12 +1261,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		text: function text(opt) {
 			Batcher$1.read(function () {
-				var data = void 0;
+				var data = Model$1.get(opt.keys);
 
-				data = Model$1.get(opt.keys);
-				data = data === undefined || data === null ? '' : data;
-
-				if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
+				if (data === undefined || data === null) {
+					data = '';
+				} else if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
 					data = JSON.stringify(data);
 				} else if (data && typeof data !== 'string') {
 					data = String(data);
@@ -1133,249 +1351,115 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		value: function value(opt) {
 			Batcher$1.read(function () {
-
 				var type = opt.element.type;
 				var name = opt.element.nodeName;
-				var attribute = void 0,
-				    query = void 0,
-				    multiple = void 0;
-				var i = void 0,
-				    l = void 0,
-				    data = void 0,
-				    element = void 0,
-				    elements = void 0;
+				var current = Model$1.get(opt.keys);
 
-				if (opt.setup) {
-					opt.setup = false;
-
-					data = Model$1.get(opt.keys);
-
-					if (name === 'SELECT') {
-						elements = opt.element.options;
-						multiple = opt.element.multiple;
-						data = data === undefined ? multiple ? [] : '' : data;
-
-						for (var _i = 0, _l = elements.length; _i < _l; _i++) {
-							if (!elements[_i].disabled) {
-								if (elements[_i].selected) {
-									if (multiple) {
-										data.push(elements[_i].value || elements[_i].innerText || '');
-									} else {
-										data = elements[_i].value || elements[_i].innerText || '';
-										break;
-									}
-								} else if (_i === _l - 1 && !multiple) {
-									data = elements[0].value || elements[0].innerText || '';
-								}
-							}
-						}
-					} else if (type === 'radio') {
-						data = data === undefined ? 0 : data;
-						query = 'input[type="radio"][o-value="' + opt.value + '"]';
-						elements = opt.container.querySelectorAll(query);
-
-						for (i = 0, l = elements.length; i < l; i++) {
-							element = elements[i];
-							if (i === data) {
-								element.checked = true;
-							} else {
-								element.checked = false;
-							}
-						}
-					} else if (type === 'file') {
-						data = data === undefined ? [] : data;
-
-						for (i = 0, l = data.length; i < l; i++) {
-							opt.element.files[i] = data[i];
-						}
-					} else if (type === 'checkbox') {
-						attribute = 'checked';
-						data = data === undefined ? false : data;
-					} else {
-						attribute = 'value';
-						data = data === undefined ? '' : data;
-					}
-
-					if (attribute) {
-						opt.element[attribute] = data;
-					}
-				} else {
-
-					if (name === 'SELECT') {
-						data = opt.element.multiple ? [] : '';
-
-						var _iteratorNormalCompletion3 = true;
-						var _didIteratorError3 = false;
-						var _iteratorError3 = undefined;
-
-						try {
-							for (var _iterator3 = opt.element.options[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-								var _element = _step3.value;
-
-								if (_element.selected) {
-									if (opt.element.multiple) {
-										data.push(_element.value || _element.innerText);
-									} else {
-										data = _element.value || _element.innerText;
-										break;
-									}
-								}
-							}
-						} catch (err) {
-							_didIteratorError3 = true;
-							_iteratorError3 = err;
-						} finally {
-							try {
-								if (!_iteratorNormalCompletion3 && _iterator3.return) {
-									_iterator3.return();
-								}
-							} finally {
-								if (_didIteratorError3) {
-									throw _iteratorError3;
-								}
-							}
-						}
-					} else if (type === 'radio') {
-						query = 'input[type="radio"][o-value="' + opt.value + '"]';
-						elements = opt.container.querySelectorAll(query);
-
-						for (i = 0, l = elements.length; i < l; i++) {
-							element = elements[i];
-							if (opt.element === element) {
-								data = i;
-								element.checked = true;
-							} else {
-								element.checked = false;
-							}
-						}
-					} else if (type === 'file') {
-						data = data || [];
-						for (i = 0, l = opt.element.files.length; i < l; i++) {
-							data[i] = opt.element.files[i];
-						}
-					} else if (type === 'checkbox') {
-						data = opt.element.checked;
-					} else {
-						data = opt.element.value;
-					}
-				}
-
-				if (data !== undefined) {
-					Model$1.set(opt.keys, data);
-				}
-			});
-		},
-		default: function _default(opt) {
-			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
-				if (opt.element[opt.type] === data) {
-					return;
-				}
+				if (name === 'SELECT') {
+					var elements = opt.element.options;
+					var multiple = opt.element.multiple;
 
-				data = Binder$1.modifyData(opt, data);
+					var selected = false;
 
-				Batcher$1.write(function () {
-					opt.element[opt.type] = data;
-				});
-			});
-		}
-	};
-
-	var Unrender = {
-		alt: function alt(opt) {
-			Batcher$1.write(function () {
-				opt.element.alt = '';
-			});
-		},
-		each: function each(opt) {
-			Batcher$1.write(function () {
-				var element;
-
-				while (element = opt.element.lastElementChild) {
-					opt.element.removeChild(element);
-				}
-			});
-		},
-		href: function href(opt) {
-			Batcher$1.write(function () {
-				opt.element.href = '';
-			});
-		},
-		class: function _class(opt) {
-			Batcher$1.write(function () {
-				var className = opt.names.slice(1).join('-');
-				opt.element.classList.remove(className);
-			});
-		},
-		html: function html(opt) {
-			Batcher$1.write(function () {
-				var element;
-
-				while (element = opt.element.lastElementChild) {
-					opt.element.removeChild(element);
-				}
-			});
-		},
-		on: function on(opt) {
-			opt.element.removeEventListener(opt.names[1], opt.cache, false);
-		},
-		css: function css(opt) {
-			Batcher$1.write(function () {
-				opt.element.style.cssText = '';
-			});
-		},
-		required: function required(opt) {
-			Batcher$1.write(function () {
-				opt.element.required = false;
-			});
-		},
-		src: function src(opt) {
-			Batcher$1.write(function () {
-				opt.element.src = '';
-			});
-		},
-		text: function text(opt) {
-			Batcher$1.write(function () {
-				opt.element.innerText = '';
-			});
-		},
-		value: function value(opt) {
-			Batcher$1.write(function () {
-				var i, l, query, element, elements;
-
-				if (opt.element.nodeName === 'SELECT') {
-
-					elements = opt.element.options;
-
-					for (i = 0, l = elements.length; i < l; i++) {
-						element = elements[i];
-						element.selected = false;
+					if (multiple && data.constructor !== Array) {
+						throw new Error('Oxe - invalid multiple select value type ' + opt.keys.join('.') + ' array required');
 					}
-				} else if (opt.element.type === 'radio') {
 
-					query = 'input[type="radio"][o-value="' + opt.path + '"]';
-					elements = opt.element.parentNode.querySelectorAll(query);
+					// NOTE might need to handle disable
+					for (var i = 0, l = elements.length; i < l; i++) {
+						var value = data && data.constructor === Array ? data[i] : data;
 
-					for (i = 0, l = elements.length; i < l; i++) {
-						element = elements[i];
+						if (value && elements[i].value === value) {
+							elements[i].setAttribute('selected', '');
+							elements[i].value = value;
+							selected = true;
+						} else {
+							elements[i].removeAttribute('selected');
+						}
+					}
 
-						if (i === 0) {
+					if (elements.length && !multiple && !selected) {
+						var _value2 = data && data.constructor === Array ? data[0] : data;
+
+						elements[0].setAttribute('selected', '');
+
+						if (_value2 !== (elements[0].value || '')) {
+							Model$1.set(opt.keys, elements[0].value || '');
+						}
+					}
+				} else if (type === 'radio') {
+					var query = 'input[type="radio"][o-value="' + opt.value + '"]';
+					var _elements = opt.container.querySelectorAll(query);
+
+					var checked = false;
+
+					for (var _i = 0, _l = _elements.length; _i < _l; _i++) {
+						var element = _elements[_i];
+
+						if (_i === data) {
+							checked = true;
 							element.checked = true;
 						} else {
 							element.checked = false;
 						}
 					}
-				} else if (opt.element.type === 'checkbox') {
 
-					opt.element.checked = false;
-					opt.element.value = false;
+					if (!checked) {
+						_elements[0].checked = true;
+						if (data !== 0) {
+							Model$1.set(opt.keys, 0);
+						}
+					}
+				} else if (type === 'file') {
+					data = data || [];
+
+					for (var _i2 = 0, _l2 = data.length; _i2 < _l2; _i2++) {
+
+						if (data[_i2] !== opt.element.files[_i2]) {
+
+							if (data[_i2]) {
+								opt.element.files[_i2] = data[_i2];
+							} else {
+								console.warn('Oxe - file remove not implemented');
+							}
+						}
+					}
+				} else if (type === 'checkbox') {
+					opt.element.checked = data || false;
+
+					if (data !== opt.element.checked) {
+						Model$1.set(opt.keys, data || false);
+					}
 				} else {
-					opt.element.value = '';
+					opt.element.value = data || '';
+
+					if (data !== opt.element.value) {
+						Model$1.set(opt.keys, data || '');
+					}
 				}
 			});
 		},
-		default: function _default(opt) {}
+		default: function _default(opt) {
+			if (opt.type in this) {
+				this[opt.type](opt);
+			} else {
+				Batcher$1.read(function () {
+					var data = Model$1.get(opt.keys);
+
+					if (opt.element[opt.type] === data) {
+						return;
+					}
+
+					data = Binder$1.modifyData(opt, data);
+
+					Batcher$1.write(function () {
+						opt.element[opt.type] = data;
+					});
+				});
+			}
+		}
 	};
 
 	var Binder = function () {
@@ -1385,11 +1469,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			this.data = {};
 			this.values = [];
 			this.submits = [];
+			this.elements = new Map();
 		}
 
 		_createClass(Binder, [{
 			key: 'set',
 			value: function set(opt) {
+
 				opt = opt || {};
 
 				if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
@@ -1408,9 +1494,21 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				opt.keys = opt.keys || [opt.scope].concat(opt.values);
 
-				if (opt.name === 'o-value' || opt.name === 'data-o-value') {
-					opt.setup = true;
-				}
+				// Object.defineProperty(opt, 'data', {
+				// 	enumerable: true,
+				// 	get: function () {
+				// 		let data = Model.get(opt.keys);
+				//
+				// 		if (
+				// 			opt.name.indexOf('o-on') !== 0 &&
+				// 			opt.name.indexOf('data-o-on') !== 0
+				// 		) {
+				// 			data = self.modifyData(opt, data);
+				// 		}
+				//
+				// 		return data;
+				// 	}
+				// });
 
 				// if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
 				// 	opt.cache = opt.element.removeChild(opt.element.firstElementChild);
@@ -1421,23 +1519,138 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'get',
 			value: function get(opt) {
-				var items;
 
-				if (opt.name === 'o-value') {
-					items = this.values;
-				} else if (opt.name === 'o-submit') {
-					items = this.submits;
+				if (!(opt.scope in this.data)) {
+					return null;
+				}
+
+				if (!(opt.path in this.data[opt.scope])) {
+					return null;
+				}
+
+				var items = this.data[opt.scope][opt.path];
+
+				var _iteratorNormalCompletion3 = true;
+				var _didIteratorError3 = false;
+				var _iteratorError3 = undefined;
+
+				try {
+					for (var _iterator3 = items[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+						var item = _step3.value;
+
+						if (item.element === opt.element && item.name === opt.name) {
+							return item;
+						}
+					}
+				} catch (err) {
+					_didIteratorError3 = true;
+					_iteratorError3 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion3 && _iterator3.return) {
+							_iterator3.return();
+						}
+					} finally {
+						if (_didIteratorError3) {
+							throw _iteratorError3;
+						}
+					}
+				}
+
+				return null;
+			}
+		}, {
+			key: 'add',
+			value: function add(opt) {
+
+				if (!this.elements.has(opt.element)) {
+					this.elements.set(opt.element, new Map());
+				}
+
+				if (!this.elements.get(opt.element).has(opt.names[0])) {
+					this.elements.get(opt.element).set(opt.names[0], opt);
 				} else {
+					throw new Error('Oxe - duplicate attribute');
+				}
 
-					if (!(opt.scope in this.data)) {
-						return null;
+				if (!(opt.scope in this.data)) {
+					this.data[opt.scope] = {};
+				}
+
+				if (!(opt.path in this.data[opt.scope])) {
+					this.data[opt.scope][opt.path] = [];
+				}
+
+				this.data[opt.scope][opt.path].push(opt);
+			}
+		}, {
+			key: 'remove',
+			value: function remove(opt) {
+
+				if (this.elements.has(opt.element)) {
+
+					if (this.elements.get(opt.element).has(opt.names[0])) {
+						this.elements.get(opt.element).remove(opt.names[0]);
 					}
 
-					if (!(opt.path in this.data[opt.scope])) {
-						return null;
+					if (this.elements.get(opt.elements).length === 0) {
+						this.elements.remove(opt.elements);
 					}
+				}
 
-					items = this.data[opt.scope][opt.path];
+				if (!(opt.scope in this.data)) {
+					return;
+				}
+
+				if (!(opt.path in this.data[opt.scope])) {
+					return;
+				}
+
+				var items = this.data[opt.scope][opt.path];
+
+				for (var i = 0, l = items.length; i < l; i++) {
+
+					if (items[i].element === opt.element) {
+						return items.splice(i, 1);
+					}
+				}
+			}
+		}, {
+			key: 'each',
+			value: function each(path, callback) {
+				var scope, paths;
+
+				if (typeof path === 'string') {
+					paths = path.split('.');
+					scope = paths[0];
+				} else {
+					paths = path;
+					scope = paths[0];
+				}
+
+				var binderPaths = this.data[scope];
+				var relativePath = paths.slice(1).join('.');
+
+				for (var binderPath in binderPaths) {
+					if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
+						var binders = binderPaths[binderPath];
+						for (var i = 0, l = binders.length; i < l; i++) {
+							var binder = binders[i];
+							callback(binder);
+						}
+					}
+				}
+			}
+		}, {
+			key: 'modifyData',
+			value: function modifyData(opt, data) {
+
+				if (!opt.modifiers.length) {
+					return data;
+				}
+
+				if (!Methods.data[opt.scope]) {
+					return data;
 				}
 
 				var _iteratorNormalCompletion4 = true;
@@ -1445,11 +1658,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var _iteratorError4 = undefined;
 
 				try {
-					for (var _iterator4 = items[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-						var item = _step4.value;
+					for (var _iterator4 = opt.modifiers[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+						var modifier = _step4.value;
 
-						if (item.element === opt.element && item.name === opt.name) {
-							return item;
+						var scope = Methods.data[opt.scope];
+
+						if (scope) {
+							if (modifier in scope) {
+								data = scope[modifier].call(opt.container, data);
+							} else {
+								throw new Error('Oxe - modifier ' + modifier + ' not found in ' + opt.scope + ' scope');
+							}
 						}
 					}
 				} catch (err) {
@@ -1467,105 +1686,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				return null;
+				return data;
 			}
 		}, {
-			key: 'add',
-			value: function add(opt) {
-				var items;
+			key: 'skipChildren',
+			value: function skipChildren(element) {
 
-				if (opt.name === 'o-value') {
-					items = this.values;
-				} else if (opt.name === 'o-submit') {
-					items = this.submits;
-				} else {
-
-					if (!(opt.scope in this.data)) {
-						this.data[opt.scope] = {};
-					}
-
-					if (!(opt.path in this.data[opt.scope])) {
-						this.data[opt.scope][opt.path] = [];
-					}
-
-					items = this.data[opt.scope][opt.path];
-				}
-
-				items.push(opt);
-			}
-		}, {
-			key: 'remove',
-			value: function remove(opt) {
-				var items;
-
-				if (opt.name === 'o-value') {
-					items = this.values;
-				} else if (opt.name === 'o-submit') {
-					items = this.submits;
-				} else {
-					if (!(opt.scope in this.data)) {
-						return;
-					}
-
-					if (!(opt.path in this.data[opt.scope])) {
-						return;
-					}
-
-					items = this.data[opt.scope][opt.path];
-				}
-
-				for (var i = 0, l = items.length; i < l; i++) {
-					if (items[i].element === opt.element) {
-						return items.splice(i, 1);
-					}
-				}
-			}
-		}, {
-			key: 'each',
-			value: function each(path, callback) {
-				var scope, paths;
-
-				var paths = path.split('.');
-				var scope = paths[0];
-				var binderPaths = this.data[scope];
-				var relativePath = paths.slice(1).join('.');
-
-				for (var binderPath in binderPaths) {
-					if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
-						var binders = binderPaths[binderPath];
-						for (var i = 0, l = binders.length; i < l; i++) {
-							var binder = binders[i];
-							callback(binder);
-						}
-					}
-				}
-			}
-		}, {
-			key: 'unrender',
-			value: function unrender(opt) {
-				if (opt.type in Unrender) {
-					Unrender[opt.type](opt);
-				}
-			}
-		}, {
-			key: 'render',
-			value: function render(opt) {
-				if (opt.type in Render) {
-					Render[opt.type](opt);
-				} else {
-					Render.default(opt);
-				}
-			}
-		}, {
-			key: 'modifyData',
-			value: function modifyData(opt, data) {
-
-				if (!opt.modifiers.length) {
-					return data;
-				}
-
-				if (!Methods.data[opt.scope]) {
-					return data;
+				if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
+					return true;
 				}
 
 				var _iteratorNormalCompletion5 = true;
@@ -1573,13 +1701,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var _iteratorError5 = undefined;
 
 				try {
-					for (var _iterator5 = opt.modifiers[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-						var modifier = _step5.value;
+					for (var _iterator5 = element.attributes[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+						var attribute = _step5.value;
 
-						var scope = Methods.data[opt.scope];
-
-						if (scope) {
-							data = scope[modifier].call(opt.container, data);
+						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
+							return true;
 						}
 					}
 				} catch (err) {
@@ -1593,43 +1719,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					} finally {
 						if (_didIteratorError5) {
 							throw _iteratorError5;
-						}
-					}
-				}
-
-				return data;
-			}
-		}, {
-			key: 'skipChildren',
-			value: function skipChildren(element) {
-
-				if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
-					return true;
-				}
-
-				var _iteratorNormalCompletion6 = true;
-				var _didIteratorError6 = false;
-				var _iteratorError6 = undefined;
-
-				try {
-					for (var _iterator6 = element.attributes[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-						var attribute = _step6.value;
-
-						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
-							return true;
-						}
-					}
-				} catch (err) {
-					_didIteratorError6 = true;
-					_iteratorError6 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion6 && _iterator6.return) {
-							_iterator6.return();
-						}
-					} finally {
-						if (_didIteratorError6) {
-							throw _iteratorError6;
 						}
 					}
 				}
@@ -1648,27 +1737,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (idCheck && this.skipChildren(element) === false) {
-					var _iteratorNormalCompletion7 = true;
-					var _didIteratorError7 = false;
-					var _iteratorError7 = undefined;
+					var _iteratorNormalCompletion6 = true;
+					var _didIteratorError6 = false;
+					var _iteratorError6 = undefined;
 
 					try {
-						for (var _iterator7 = element.children[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-							var child = _step7.value;
+						for (var _iterator6 = element.children[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+							var child = _step6.value;
 
 							this.eachElement(child, scope, callback);
 						}
 					} catch (err) {
-						_didIteratorError7 = true;
-						_iteratorError7 = err;
+						_didIteratorError6 = true;
+						_iteratorError6 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion7 && _iterator7.return) {
-								_iterator7.return();
+							if (!_iteratorNormalCompletion6 && _iterator6.return) {
+								_iterator6.return();
 							}
 						} finally {
-							if (_didIteratorError7) {
-								throw _iteratorError7;
+							if (_didIteratorError6) {
+								throw _iteratorError6;
 							}
 						}
 					}
@@ -1677,29 +1766,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'eachAttribute',
 			value: function eachAttribute(element, callback) {
-				var _iteratorNormalCompletion8 = true;
-				var _didIteratorError8 = false;
-				var _iteratorError8 = undefined;
+				var _iteratorNormalCompletion7 = true;
+				var _didIteratorError7 = false;
+				var _iteratorError7 = undefined;
 
 				try {
-					for (var _iterator8 = element.attributes[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-						var attribute = _step8.value;
+					for (var _iterator7 = element.attributes[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+						var attribute = _step7.value;
 
 						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 							callback.call(this, attribute);
 						}
 					}
 				} catch (err) {
-					_didIteratorError8 = true;
-					_iteratorError8 = err;
+					_didIteratorError7 = true;
+					_iteratorError7 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion8 && _iterator8.return) {
-							_iterator8.return();
+						if (!_iteratorNormalCompletion7 && _iterator7.return) {
+							_iterator7.return();
 						}
 					} finally {
-						if (_didIteratorError8) {
-							throw _iteratorError8;
+						if (_didIteratorError7) {
+							throw _iteratorError7;
 						}
 					}
 				}
@@ -1722,7 +1811,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						});
 
 						this.remove(binder);
-						this.unrender(binder);
+						Unrender.default(binder);
 					});
 				});
 			}
@@ -1742,7 +1831,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						});
 
 						this.add(binder);
-						this.render(binder);
+						Render.default(binder);
 					});
 				});
 			}
@@ -1767,27 +1856,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options = options || {};
 
 				if (options.components) {
-					var _iteratorNormalCompletion9 = true;
-					var _didIteratorError9 = false;
-					var _iteratorError9 = undefined;
+					var _iteratorNormalCompletion8 = true;
+					var _didIteratorError8 = false;
+					var _iteratorError8 = undefined;
 
 					try {
-						for (var _iterator9 = options.components[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-							var component = _step9.value;
+						for (var _iterator8 = options.components[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+							var component = _step8.value;
 
 							this.define(component);
 						}
 					} catch (err) {
-						_didIteratorError9 = true;
-						_iteratorError9 = err;
+						_didIteratorError8 = true;
+						_iteratorError8 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion9 && _iterator9.return) {
-								_iterator9.return();
+							if (!_iteratorNormalCompletion8 && _iterator8.return) {
+								_iterator8.return();
 							}
 						} finally {
-							if (_didIteratorError9) {
-								throw _iteratorError9;
+							if (_didIteratorError8) {
+								throw _iteratorError8;
 							}
 						}
 					}
@@ -1798,13 +1887,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function renderSlot(target, source) {
 				var targetSlots = target.querySelectorAll('slot[name]');
 
-				var _iteratorNormalCompletion10 = true;
-				var _didIteratorError10 = false;
-				var _iteratorError10 = undefined;
+				var _iteratorNormalCompletion9 = true;
+				var _didIteratorError9 = false;
+				var _iteratorError9 = undefined;
 
 				try {
-					for (var _iterator10 = targetSlots[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-						var targetSlot = _step10.value;
+					for (var _iterator9 = targetSlots[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+						var targetSlot = _step9.value;
 
 
 						var name = targetSlot.getAttribute('name');
@@ -1817,16 +1906,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				} catch (err) {
-					_didIteratorError10 = true;
-					_iteratorError10 = err;
+					_didIteratorError9 = true;
+					_iteratorError9 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion10 && _iterator10.return) {
-							_iterator10.return();
+						if (!_iteratorNormalCompletion9 && _iterator9.return) {
+							_iterator9.return();
 						}
 					} finally {
-						if (_didIteratorError10) {
-							throw _iteratorError10;
+						if (_didIteratorError9) {
+							throw _iteratorError9;
 						}
 					}
 				}
@@ -1875,13 +1964,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (!window.CSS.supports('(--t: black)')) {
 						var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-						var _iteratorNormalCompletion11 = true;
-						var _didIteratorError11 = false;
-						var _iteratorError11 = undefined;
+						var _iteratorNormalCompletion10 = true;
+						var _didIteratorError10 = false;
+						var _iteratorError10 = undefined;
 
 						try {
-							for (var _iterator11 = matches[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-								var match = _step11.value;
+							for (var _iterator10 = matches[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+								var match = _step10.value;
 
 
 								var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
@@ -1891,16 +1980,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 								style = style.replace(pattern, rule[2]);
 							}
 						} catch (err) {
-							_didIteratorError11 = true;
-							_iteratorError11 = err;
+							_didIteratorError10 = true;
+							_iteratorError10 = err;
 						} finally {
 							try {
-								if (!_iteratorNormalCompletion11 && _iterator11.return) {
-									_iterator11.return();
+								if (!_iteratorNormalCompletion10 && _iterator10.return) {
+									_iterator10.return();
 								}
 							} finally {
-								if (_didIteratorError11) {
-									throw _iteratorError11;
+								if (_didIteratorError10) {
+									throw _iteratorError10;
 								}
 							}
 						}
@@ -3253,169 +3342,125 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Router$1 = new Router();
 
-	var Global = function () {
-		function Global() {
-			_classCallCheck(this, Global);
+	var Global = {
 
-			this._compiled = false;
+		compiled: false,
+
+		get window() {
+			return window;
+		},
+
+		get document() {
+			return window.document;
+		},
+
+		get body() {
+			return window.document.body;
+		},
+
+		get head() {
+			return window.document.head;
+		},
+
+		get location() {
+			return this.router.location;
+		},
+
+		get currentScript() {
+			return window.document._currentScript || window.document.currentScript;
+		},
+
+		get ownerDocument() {
+			return (window.document._currentScript || window.document.currentScript).ownerDocument;
+		},
+
+		get global() {
+			return {};
+		},
+
+		get methods() {
+			return Methods;
+		},
+
+		get utility() {
+			return Utility;
+		},
+
+		get general() {
+			return General$1;
+		},
+
+		get batcher() {
+			return Batcher$1;
+		},
+
+		get loader() {
+			return Loader$1;
+		},
+
+		get binder() {
+			return Binder$1;
+		},
+
+		get fetcher() {
+			return Fetcher$1;
+		},
+
+		get component() {
+			return Component$1;
+		},
+
+		get router() {
+			return Router$1;
+		},
+
+		get model() {
+			return Model$1;
+		},
+
+		setup: function setup(data) {
+
+			if (this._setup) {
+				return;
+			} else {
+				this._setup = true;
+			}
+
+			data = data || {};
+
+			if (data.listener && data.listener.before) {
+				data.listener.before();
+			}
+
+			if (data.general) {
+				this.general.setup(data.general);
+			}
+
+			if (data.fetcher) {
+				this.fetcher.setup(data.fetcher);
+			}
+
+			if (data.loader) {
+				this.loader.setup(data.loader);
+			}
+
+			if (data.component) {
+				this.component.setup(data.component);
+			}
+
+			if (data.router) {
+				this.router.setup(data.router);
+			}
+
+			if (data.listener && data.listener.after) {
+				data.listener.after();
+			}
 		}
-
-		_createClass(Global, [{
-			key: 'setup',
-			value: function setup(data) {
-
-				if (this._setup) {
-					return;
-				} else {
-					this._setup = true;
-				}
-
-				data = data || {};
-
-				if (data.listener && data.listener.before) {
-					data.listener.before();
-				}
-
-				if (data.general) {
-					this.general.setup(data.general);
-				}
-
-				if (data.fetcher) {
-					this.fetcher.setup(data.fetcher);
-				}
-
-				if (data.loader) {
-					this.loader.setup(data.loader);
-				}
-
-				if (data.component) {
-					this.component.setup(data.component);
-				}
-
-				if (data.router) {
-					this.router.setup(data.router);
-				}
-
-				if (data.listener && data.listener.after) {
-					data.listener.after();
-				}
-			}
-		}, {
-			key: 'compiled',
-			set: function set(data) {
-				return this._compiled = data;
-			},
-			get: function get() {
-				return this._compiled;
-			}
-		}, {
-			key: 'window',
-			get: function get() {
-				return window;
-			}
-		}, {
-			key: 'document',
-			get: function get() {
-				return window.document;
-			}
-		}, {
-			key: 'body',
-			get: function get() {
-				return window.document.body;
-			}
-		}, {
-			key: 'head',
-			get: function get() {
-				return window.document.head;
-			}
-		}, {
-			key: 'location',
-			get: function get() {
-				return this.router.location;
-			}
-		}, {
-			key: 'currentScript',
-			get: function get() {
-				return window.document._currentScript || window.document.currentScript;
-			}
-		}, {
-			key: 'ownerDocument',
-			get: function get() {
-				return (window.document._currentScript || window.document.currentScript).ownerDocument;
-			}
-		}, {
-			key: 'global',
-			get: function get() {
-				return {};
-			}
-		}, {
-			key: 'methods',
-			get: function get() {
-				return {
-					data: {}
-				};
-			}
-		}, {
-			key: 'utility',
-			get: function get() {
-				return Utility;
-			}
-		}, {
-			key: 'general',
-			get: function get() {
-				return General$1;
-			}
-		}, {
-			key: 'batcher',
-			get: function get() {
-				return Batcher$1;
-			}
-		}, {
-			key: 'loader',
-			get: function get() {
-				return Loader$1;
-			}
-		}, {
-			key: 'binder',
-			get: function get() {
-				return Binder$1;
-			}
-		}, {
-			key: 'fetcher',
-			get: function get() {
-				return Fetcher$1;
-			}
-		}, {
-			key: 'component',
-			get: function get() {
-				return Component$1;
-			}
-		}, {
-			key: 'router',
-			get: function get() {
-				return Router$1;
-			}
-		}, {
-			key: 'model',
-			get: function get() {
-				return Model$1;
-			}
-		}]);
-
-		return Global;
-	}();
-
-	var Global$1 = new Global();
+	};
 
 	function Change(e) {
 		if (e.target.hasAttribute('o-value')) {
-
-			var binder = Global$1.binder.get({
-				name: 'o-value',
-				element: e.target
-			});
-
-			Global$1.binder.render(binder);
+			Update(e.target, 'value').catch(console.error);
 		}
 	}
 
@@ -3427,17 +3472,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		e.preventDefault();
 
-		var binder = Global$1.binder.get({
-			name: 'o-submit',
-			element: element
-		});
+		var binder = Binder$1.elements.get(element).get('submit');
 
 		var sScope = binder.scope;
 		var eScope = binder.container;
-		var model = Global$1.model.data[sScope];
+		var model = Model$1.data[sScope];
 
-		var data = Global$1.utility.formData(element, model);
-		var method = Global$1.utility.getByPath(eScope.methods, submit);
+		var data = Utility.formData(element, model);
+		var method = Utility.getByPath(eScope.methods, submit);
 
 		var done = _async(function (options) {
 			return _invoke(function () {
@@ -3452,7 +3494,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
 					options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
 
-					return _awaitIgnored(Global$1.fetcher.fetch(options));
+					return _awaitIgnored(Fetcher$1.fetch(options));
 				}
 			}, function () {
 				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset')) {
@@ -3468,7 +3510,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-		var binder = Global$1.binder.get({
+		var binder = Binder$1.get({
 			name: 'o-submit',
 			element: element
 		});
@@ -3483,25 +3525,19 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var path = elements[i].getAttribute('o-value');
 				var keys = [scope].concat(path.split('.'));
 
-				Global$1.model.set(keys, '');
+				Model$1.set(keys, '');
 
-				Global$1.binder.unrender({
-					name: 'o-value',
-					element: elements[i]
-				}, 'view');
+				// Binder.unrender({
+				// 	name: 'o-value',
+				// 	element: elements[i]
+				// }, 'view');
 			}
 		}
 	}
 
 	function Input(e) {
 		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
-
-			var binder = Global$1.binder.get({
-				name: 'o-value',
-				element: e.target
-			});
-
-			Global$1.binder.render(binder);
+			Update(e.target, 'value').catch(console.error);
 		}
 	}
 
@@ -3550,9 +3586,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			if (meta && meta.hasAttribute('compiled')) {
 				args[1] = 'null';
 				args[2] = 'script';
-				Global$1.compiled = true;
-				Global$1.router.compiled = true;
-				Global$1.component.compiled = true;
+				Global.compiled = true;
+				Global.router.compiled = true;
+				Global.component.compiled = true;
 			}
 
 			if (!args[0]) {
@@ -3560,7 +3596,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 
 			if (args.length > 1) {
-				Global$1.loader.load({
+				Global.loader.load({
 					url: args[0],
 					method: args[2],
 					transformer: args[1]
@@ -3608,5 +3644,5 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	loader(!('registerElement' in document) || !('content' in document.createElement('template')), 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
 
-	return Global$1;
+	return Global;
 });

@@ -81,7 +81,7 @@ export default {
 
 		for (const element of elements) {
 			if (element.nodeName === 'OPTION') continue;
-			
+
 			var path = element.getAttribute('o-value');
 
 			if (!path) continue;

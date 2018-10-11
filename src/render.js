@@ -155,18 +155,18 @@ export default {
 				opt.element.removeEventListener(opt.names[1], opt.cache);
 			} else {
 				opt.cache = function (e) {
-					return Promise.resolve().then(function () {
-						const parameters = [e];
+					const parameters = [e];
 
-						for (let i = 0, l = opt.modifiers.length; i < l; i++) {
-							const keys = opt.modifiers[i].split('.');
-							keys.unshift(opt.scope);
-							const parameter = Oxe.model.get(keys);
-							parameters.push(parameter);
-						}
+					for (let i = 0, l = opt.modifiers.length; i < l; i++) {
+						const keys = opt.modifiers[i].split('.');
+						keys.unshift(opt.scope);
+						const parameter = Oxe.model.get(keys);
+						parameters.push(parameter);
+					}
 
-						return data.apply(opt.container, parameters);
-					}).catch(console.error);
+					Promise.resolve()
+					.then(data.bind(opt.container).apply(null, parameters))
+					.catch(console.error);
 				};
 			}
 
@@ -197,12 +197,11 @@ export default {
 
 	text (opt) {
 		Batcher.read(function () {
-			let data;
+			let data = Model.get(opt.keys);
 
-			data = Model.get(opt.keys);
-			data = data === undefined || data === null ? '' : data;
-
-			if (data && typeof data === 'object') {
+			if (data === undefined || data === null) {
+				data = '';
+			} else if (data && typeof data === 'object') {
 				data = JSON.stringify(data);
 			} else if (data && typeof data !== 'string') {
 				data = String(data);
@@ -296,129 +295,126 @@ export default {
 
 	value (opt) {
 		Batcher.read(function () {
+			const type = opt.element.type;
+			const name = opt.element.nodeName;
+			const current = Model.get(opt.keys);
 
-			let type = opt.element.type;
-			let name = opt.element.nodeName;
-			let attribute, query, multiple;
-			let i, l, data, element, elements;
+			let data = Model.get(opt.keys);
 
-			if (opt.setup) {
-				opt.setup = false;
+			if (name === 'SELECT') {
+				const elements = opt.element.options;
+				const multiple = opt.element.multiple;
 
-				data = Model.get(opt.keys);
+				let selected = false;
 
-				if (name === 'SELECT') {
-					elements = opt.element.options;
-					multiple = opt.element.multiple;
-					data = data === undefined ? (multiple ? [] : '') : data;
-
-					for (let i = 0, l = elements.length; i < l; i++) {
-						if (!elements[i].disabled) {
-							if (elements[i].selected) {
-								if (multiple) {
-									data.push(elements[i].value || elements[i].innerText || '');
-								} else {
-									data = elements[i].value || elements[i].innerText || '';
-									break;
-								}
-							} else if (i === l-1 && !multiple) {
-								data = elements[0].value || elements[0].innerText || '';
-							}
-						}
-					}
-				} else if (type === 'radio') {
-					data = data === undefined ? 0 : data;
-					query = 'input[type="radio"][o-value="' + opt.value + '"]';
-					elements = opt.container.querySelectorAll(query);
-
-					for (i = 0, l = elements.length; i < l; i++) {
-						element = elements[i];
-						if (i === data) {
-							element.checked = true;
-						} else {
-							element.checked = false;
-						}
-					}
-				} else if (type === 'file') {
-					data = data === undefined ? [] : data;
-
-					for (i = 0, l = data.length; i < l; i++) {
-						opt.element.files[i] = data[i];
-					}
-				} else if (type === 'checkbox') {
-					attribute = 'checked';
-					data = data === undefined ? false : data;
-				} else {
-					attribute = 'value';
-					data = data === undefined ? '' : data;
+				if (multiple && data.constructor !== Array) {
+					throw new Error(`Oxe - invalid multiple select value type ${opt.keys.join('.')} array required`);
 				}
 
-				if (attribute) {
-					opt.element[attribute] = data;
+				// NOTE might need to handle disable
+				for (var i = 0, l = elements.length; i < l; i++) {
+					const value = data && data.constructor === Array ? data[i] : data;
+
+					if (value && elements[i].value === value) {
+						elements[i].setAttribute('selected', '');
+						elements[i].value = value;
+						selected = true;
+					} else {
+						elements[i].removeAttribute('selected');
+					}
+
+				}
+
+				if (elements.length && !multiple && !selected) {
+					const value = data && data.constructor === Array ? data[0] : data;
+
+					elements[0].setAttribute('selected', '');
+
+					if (value !== (elements[0].value || '')) {
+						Model.set(opt.keys, elements[0].value || '');
+					}
+
+				}
+
+			} else if (type === 'radio') {
+				const query = 'input[type="radio"][o-value="' + opt.value + '"]';
+				const elements = opt.container.querySelectorAll(query);
+
+				let checked = false;
+
+				for (let i = 0, l = elements.length; i < l; i++) {
+					const element = elements[i];
+
+					if (i === data) {
+						checked = true;
+						element.checked = true;
+					} else {
+						element.checked = false;
+					}
+
+				}
+
+				if (!checked) {
+					elements[0].checked = true;
+					if (data !== 0) {
+						Model.set(opt.keys, 0);
+					}
+				}
+
+			} else if (type === 'file') {
+				data = data || [];
+
+				for (let i = 0, l = data.length; i < l; i++) {
+
+					if (data[i] !== opt.element.files[i]) {
+
+						if (data[i]) {
+							opt.element.files[i] = data[i];
+						} else {
+							console.warn('Oxe - file remove not implemented');
+						}
+
+					}
+
+				}
+
+			} else if (type === 'checkbox') {
+				opt.element.checked = data || false;
+
+				if (data !== opt.element.checked) {
+					Model.set(opt.keys, data || false);
 				}
 
 			} else {
+				opt.element.value = data || '';
 
-				if (name === 'SELECT') {
-					data = opt.element.multiple ? [] : '';
-
-					for (const element of opt.element.options) {
-						if (element.selected) {
-							if (opt.element.multiple) {
-								data.push(element.value || element.innerText);
-							} else {
-								data = element.value || element.innerText;
-								break;
-							}
-						}
-					}
-				} else if (type === 'radio') {
-					query = 'input[type="radio"][o-value="' + opt.value + '"]';
-					elements = opt.container.querySelectorAll(query);
-
-					for (i = 0, l = elements.length; i < l; i++) {
-						element = elements[i];
-						if (opt.element === element) {
-							data = i;
-							element.checked = true;
-						} else {
-							element.checked = false;
-						}
-					}
-				} else if (type === 'file') {
-					data = data || [];
-					for (i = 0, l = opt.element.files.length; i < l; i++) {
-						data[i] = opt.element.files[i];
-					}
-				} else if (type === 'checkbox') {
-					data = opt.element.checked;
-				} else {
-					data = opt.element.value;
+				if (data !== opt.element.value) {
+					Model.set(opt.keys, data || '');
 				}
 
-			}
-
-			if (data !== undefined) {
-				Model.set(opt.keys, data);
 			}
 
 		});
 	},
 
 	default (opt) {
-		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+		if (opt.type in this) {
+			this[opt.type](opt);
+		} else {
+			Batcher.read(function () {
+				let data = Model.get(opt.keys);
 
-			if (opt.element[opt.type] === data) {
-				return;
-			}
+				if (opt.element[opt.type] === data) {
+					return;
+				}
 
-			data = Binder.modifyData(opt, data);
+				data = Binder.modifyData(opt, data);
 
-			Batcher.write(function () {
-				opt.element[opt.type] = data;
+				Batcher.write(function () {
+					opt.element[opt.type] = data;
+				});
 			});
-		});
+		}
 	}
 
 };
