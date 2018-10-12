@@ -4,7 +4,7 @@ class Batcher {
 	constructor () {
 		this.reads = [];
 		this.writes = [];
-		this.fps = 90;
+		this.fps = 1000/30;
 		// this.fps = 1000/60;
 		this.pending = false;
 	}
@@ -35,8 +35,7 @@ class Batcher {
 	}
 
 	tick (callback) {
-		// if (this.id) window.cancelAnimationFrame(this.id);
-		this.id = window.requestAnimationFrame(callback);
+		window.requestAnimationFrame(callback);
 	}
 
 	// schedules a new read/write batch if one is not pending
@@ -51,29 +50,25 @@ class Batcher {
 		}
 
 		try {
-			self.runReads(self.reads.slice());
-			self.runWrites(self.writes.slice());
-			self.reads = [];
-			self.writes = [];
 
-			// self.tick(function (time) {
-			//
-			// 	if (!count) {
-			//
-			// 		if (self.reads.length) {
-			// 			count = self.runReads(self.reads, time);
-			// 		} else {
-			// 			count = self.writes.length;
-			// 		}
-			//
-			// 	}
-			//
-			// 	if (performance.now() - time < self.fps) {
-			// 		count = self.runWrites(self.writes, time, count);
-			// 	}
-			//
-			// 	self.schedule(count);
-			// });
+			self.tick(function (time) {
+
+				if (!count) {
+
+					if (self.reads.length) {
+						count = self.runReads(self.reads, time);
+					} else {
+						count = self.writes.length;
+					}
+
+				}
+
+				if (performance.now() - time < self.fps) {
+					count = self.runWrites(self.writes, time, count);
+				}
+
+				self.schedule(count);
+			});
 
 		} catch (error) {
 
@@ -89,30 +84,28 @@ class Batcher {
 
 	runReads (tasks, time) {
 		let task;
-		// let i = 0;
+		let i = 0;
 
 		while (task = tasks.shift()) {
-			this.tick(task);
-			// task();
-			// i++;
-			// if (performance.now() - time > this.fps) break;
+			task();
+			i++;
+			if (performance.now() - time > this.fps) break;
 		}
 
-		// return i;
+		return i;
 	}
 
 	runWrites (tasks, time, count) {
 		let task;
-		// let i = 0;
+		let i = 0;
 
 		while (task = tasks.shift()) {
-			this.tick(task);
-			// task();
-			// i++;
-			// if (i === count || performance.now() - time > this.fps) break;
+			task();
+			i++;
+			if (i === count || performance.now() - time > this.fps) break;
 		}
 
-		// return count - i;
+		return count - i;
 	}
 
 	remove (tasks, task) {

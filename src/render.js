@@ -219,17 +219,25 @@ export default {
 		const self = this;
 
 		Batcher.read(function () {
+
 			let data = Model.get(opt.keys);
 			let isArray = data ? data.constructor === Array : false;
-			let isObject = data ? data.constructor === Object: false;
+			let isObject = data ? data.constructor === Object : false;
+
+			if (opt.pending) return;
 
 			if (!data || typeof data !== 'object') {
+				opt.pending = false;
 				return;
 			} else if (isArray && opt.element.children.length === data.length) {
+				opt.pending = false;
 				return;
 			} else if (isObject && opt.element.children.length === Object.keys(data).length) {
+				opt.pending = false;
 				return;
 			}
+
+			opt.pending = true;
 
 			if (!opt.cache) {
 				opt.cache = opt.element.removeChild(opt.element.firstElementChild);
@@ -237,32 +245,28 @@ export default {
 
 			data = Binder.piper(opt, data);
 
+			if (isObject) {
+				data = Object.keys(data);
+			}
+
+			let key;
+			let clone = opt.cache.cloneNode(true);
+
+			if (isArray) {
+				key = opt.element.children.length;
+			} else if (isObject) {
+				key = data[opt.element.children.length];
+			}
+
+			Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
+			Binder.bind(clone, opt.container);
+
 			Batcher.write(function () {
-
-				if (isObject) {
-					data = Object.keys(data);
-				}
-
-
-				while (opt.element.children.length !== data.length) {
-
-					if (opt.element.children.length > data.length) {
-						opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
-					} else if (opt.element.children.length < data.length) {
-						let key;
-						let clone = opt.cache.cloneNode(true);
-
-						if (isArray) {
-							key = opt.element.children.length;
-						} else if (isObject) {
-							key = data[opt.element.children.length];
-						}
-
-						Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-						Binder.bind(clone, opt.container);
-
-						opt.element.appendChild(clone);
-					}
+				
+				if (opt.element.children.length > data.length) {
+					opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
+				} else if (opt.element.children.length < data.length) {
+					opt.element.appendChild(clone);
 				}
 
 				/*
@@ -278,7 +282,6 @@ export default {
 					const name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
 					const value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
 					const keys = [opt.scope].concat(value.split('|')[0].split('.'));
-
 					self.value({
 						keys: keys,
 						name: name,
@@ -289,7 +292,52 @@ export default {
 					});
 				}
 
+				opt.pending = false;
+				self.each(opt);
 			});
+
+			// const done = function () {
+			// 	/*
+			// 		check if select element with o-value
+			// 		perform a re-render of the o-value
+			// 		becuase of o-each is async
+			// 	*/
+			// 	if (
+			// 		opt.element.nodeName === 'SELECT' &&
+			// 		opt.element.attributes['o-value'] ||
+			// 		opt.element.attributes['data-o-value']
+			// 	) {
+			// 		const name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
+			// 		const value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
+			// 		const keys = [opt.scope].concat(value.split('|')[0].split('.'));
+			// 		self.value({
+			// 			keys: keys,
+			// 			name: name,
+			// 			value: value,
+			// 			scope: opt.scope,
+			// 			element: opt.element,
+			// 			container: opt.container,
+			// 		});
+			// 	}
+			//
+			// 	opt.pending = false;
+			// 	self.each(opt);
+			// };
+			//
+			// if (opt.element.children.length > data.length) {
+			// 	return Batcher.write(function () {
+			// 		opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
+			// 		done();
+			// 	});
+			// }
+			//
+			// if (opt.element.children.length < data.length) {
+			// 	return Batcher.write(function () {
+			// 		opt.element.appendChild(clone);
+			// 		done();
+			// 	});
+			// }
+
 		});
 	},
 

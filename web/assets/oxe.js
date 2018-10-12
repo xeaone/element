@@ -15,12 +15,12 @@ function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
-}
-function _invokeIgnored(body) {
+}function _invokeIgnored(body) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
-}function _empty() {}function _await(value, then, direct) {
+}
+function _empty() {}function _await(value, then, direct) {
 	if (direct) {
 		return then ? then(value) : value;
 	}value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -482,7 +482,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			this.reads = [];
 			this.writes = [];
-			this.fps = 90;
+			this.fps = 1000 / 30;
 			// this.fps = 1000/60;
 			this.pending = false;
 		}
@@ -522,8 +522,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'tick',
 			value: function tick(callback) {
-				// if (this.id) window.cancelAnimationFrame(this.id);
-				this.id = window.requestAnimationFrame(callback);
+				window.requestAnimationFrame(callback);
 			}
 
 			// schedules a new read/write batch if one is not pending
@@ -541,29 +540,24 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				try {
-					self.runReads(self.reads.slice());
-					self.runWrites(self.writes.slice());
-					self.reads = [];
-					self.writes = [];
 
-					// self.tick(function (time) {
-					//
-					// 	if (!count) {
-					//
-					// 		if (self.reads.length) {
-					// 			count = self.runReads(self.reads, time);
-					// 		} else {
-					// 			count = self.writes.length;
-					// 		}
-					//
-					// 	}
-					//
-					// 	if (performance.now() - time < self.fps) {
-					// 		count = self.runWrites(self.writes, time, count);
-					// 	}
-					//
-					// 	self.schedule(count);
-					// });
+					self.tick(function (time) {
+
+						if (!count) {
+
+							if (self.reads.length) {
+								count = self.runReads(self.reads, time);
+							} else {
+								count = self.writes.length;
+							}
+						}
+
+						if (performance.now() - time < self.fps) {
+							count = self.runWrites(self.writes, time, count);
+						}
+
+						self.schedule(count);
+					});
 				} catch (error) {
 
 					if (typeof self.error === 'function') {
@@ -577,31 +571,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'runReads',
 			value: function runReads(tasks, time) {
 				var task = void 0;
-				// let i = 0;
+				var i = 0;
 
 				while (task = tasks.shift()) {
-					this.tick(task);
-					// task();
-					// i++;
-					// if (performance.now() - time > this.fps) break;
+					task();
+					i++;
+					if (performance.now() - time > this.fps) break;
 				}
 
-				// return i;
+				return i;
 			}
 		}, {
 			key: 'runWrites',
 			value: function runWrites(tasks, time, count) {
 				var task = void 0;
-				// let i = 0;
+				var i = 0;
 
 				while (task = tasks.shift()) {
-					this.tick(task);
-					// task();
-					// i++;
-					// if (i === count || performance.now() - time > this.fps) break;
+					task();
+					i++;
+					if (i === count || performance.now() - time > this.fps) break;
 				}
 
-				// return count - i;
+				return count - i;
 			}
 		}, {
 			key: 'remove',
@@ -944,9 +936,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					} else {
 						return undefined;
 					}
-				}
-
-				data = data[key];
+				}data = data[key];
 			}
 
 			return {
@@ -1250,17 +1240,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var self = this;
 
 			Batcher$1.read(function () {
+
 				var data = Model$1.get(opt.keys);
 				var isArray = data ? data.constructor === Array : false;
 				var isObject = data ? data.constructor === Object : false;
 
+				if (opt.pending) return;
+
 				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') {
+					opt.pending = false;
 					return;
 				} else if (isArray && opt.element.children.length === data.length) {
+					opt.pending = false;
 					return;
 				} else if (isObject && opt.element.children.length === Object.keys(data).length) {
+					opt.pending = false;
 					return;
 				}
+
+				opt.pending = true;
 
 				if (!opt.cache) {
 					opt.cache = opt.element.removeChild(opt.element.firstElementChild);
@@ -1268,31 +1266,28 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = Binder$1.piper(opt, data);
 
+				if (isObject) {
+					data = Object.keys(data);
+				}
+
+				var key = void 0;
+				var clone = opt.cache.cloneNode(true);
+
+				if (isArray) {
+					key = opt.element.children.length;
+				} else if (isObject) {
+					key = data[opt.element.children.length];
+				}
+
+				Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
+				Binder$1.bind(clone, opt.container);
+
 				Batcher$1.write(function () {
 
-					if (isObject) {
-						data = Object.keys(data);
-					}
-
-					while (opt.element.children.length !== data.length) {
-
-						if (opt.element.children.length > data.length) {
-							opt.element.removeChild(opt.element.children[opt.element.children.length - 1]);
-						} else if (opt.element.children.length < data.length) {
-							var key = void 0;
-							var clone = opt.cache.cloneNode(true);
-
-							if (isArray) {
-								key = opt.element.children.length;
-							} else if (isObject) {
-								key = data[opt.element.children.length];
-							}
-
-							Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-							Binder$1.bind(clone, opt.container);
-
-							opt.element.appendChild(clone);
-						}
+					if (opt.element.children.length > data.length) {
+						opt.element.removeChild(opt.element.children[opt.element.children.length - 1]);
+					} else if (opt.element.children.length < data.length) {
+						opt.element.appendChild(clone);
 					}
 
 					/*
@@ -1304,7 +1299,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						var name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
 						var value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
 						var keys = [opt.scope].concat(value.split('|')[0].split('.'));
-
 						self.value({
 							keys: keys,
 							name: name,
@@ -1314,7 +1308,52 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							container: opt.container
 						});
 					}
+
+					opt.pending = false;
+					self.each(opt);
 				});
+
+				// const done = function () {
+				// 	/*
+				// 		check if select element with o-value
+				// 		perform a re-render of the o-value
+				// 		becuase of o-each is async
+				// 	*/
+				// 	if (
+				// 		opt.element.nodeName === 'SELECT' &&
+				// 		opt.element.attributes['o-value'] ||
+				// 		opt.element.attributes['data-o-value']
+				// 	) {
+				// 		const name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
+				// 		const value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
+				// 		const keys = [opt.scope].concat(value.split('|')[0].split('.'));
+				// 		self.value({
+				// 			keys: keys,
+				// 			name: name,
+				// 			value: value,
+				// 			scope: opt.scope,
+				// 			element: opt.element,
+				// 			container: opt.container,
+				// 		});
+				// 	}
+				//
+				// 	opt.pending = false;
+				// 	self.each(opt);
+				// };
+				//
+				// if (opt.element.children.length > data.length) {
+				// 	return Batcher.write(function () {
+				// 		opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
+				// 		done();
+				// 	});
+				// }
+				//
+				// if (opt.element.children.length < data.length) {
+				// 	return Batcher.write(function () {
+				// 		opt.element.appendChild(clone);
+				// 		done();
+				// 	});
+				// }
 			});
 		},
 		value: function value(opt) {
