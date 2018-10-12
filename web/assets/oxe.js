@@ -6,11 +6,17 @@ function _awaitIgnored(value, direct) {
 	if (!direct) {
 		return Promise.resolve(value).then(_empty);
 	}
-}function _invoke(body, then) {
+}
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
-}function _invokeIgnored(body) {
+}
+function _invokeIgnored(body) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
@@ -31,7 +37,8 @@ function _awaitIgnored(value, direct) {
 				};
 			};
 		}
-	} catch (e) {}return function (f) {
+	} catch (e) {}
+	return function (f) {
 		// Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
 		return function () {
 			var args = [];for (var i = 0; i < arguments.length; i++) {
@@ -44,10 +51,6 @@ function _awaitIgnored(value, direct) {
 		};
 	};
 }();
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 (function (global, factory) {
@@ -55,14 +58,21 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 })(this, function () {
 	'use strict';
 
+	/*
+ 	TODO:
+ 		sort reverse
+ 		test array methods
+ 		figure out a way to not update removed items
+ */
+
 	var Submit = _async(function (e) {
 		var element = e.target;
 		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
 		if (!submit) return;else e.preventDefault();
 
-		var binder = Binder.elements.get(element).get('submit');
-		var method = Methods.get(binder.keys);
+		var binder = Binder$1.elements.get(element).get('submit');
+		var method = Methods$1.get(binder.keys);
 		var model = Model$1.get(binder.scope);
 
 		var data = Utility.formData(element, model);
@@ -99,9 +109,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		if (!element) throw new Error('Oxe - requires element argument');
 		if (!attribute) throw new Error('Oxe - requires attribute argument');
 
-		var binder = Binder.elements.get(element).get(attribute);
+		var binder = Binder$1.elements.get(element).get(attribute);
 
-		Batcher.read(function () {
+		Batcher$1.read(function () {
 			var type = binder.element.type;
 			var name = binder.element.nodeName;
 
@@ -217,439 +227,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		});
 	});
 
-	var Utility = {
-
-		// PATH: /\s*\|.*/,
-		PREFIX: /data-o-|o-/,
-		ROOT: /^(https?:)?\/?\//,
-		// TYPE: /(data-)?o-|-.*$/g,
-		// SPLIT_PIPES: /\s|\s?,\s?/,
-
-		DOT: /\.+/,
-		PIPE: /\s?\|\s?/,
-		PIPES: /\s?,\s?|\s+/,
-
-		// binderNormalize (data) {
-		// 	return !data ? '' : data
-		// 		.replace(/\s+$/, '')
-		// 		.replace(/^\s+/, '')
-		// 		.replace(/\.{2,}/g, '.')
-		// 		.replace(/\|{2,}/g, '|')
-		// 		.replace(/\,{2,}/g, ',')
-		// 		.replace(/\s{2,}/g, ' ')
-		// 		.replace(/\s?\|\s?/, '|');
-		// },
-
-		binderNames: function binderNames(data) {
-			data = data.split(this.PREFIX)[1];
-			return data ? data.split('-') : [];
-		},
-		binderValues: function binderValues(data) {
-			data = data.split(this.PIPE)[0];
-			return data ? data.split('.') : [];
-		},
-		binderPipes: function binderPipes(data) {
-			data = data.split(this.PIPE)[1];
-			return data ? data.split(this.PIPES) : [];
-		},
-		ensureElement: function ensureElement(data) {
-			data.query = data.query || '';
-			data.scope = data.scope || document.body;
-
-			var element = data.scope.querySelector('' + data.name + data.query);
-
-			if (!element) {
-				element = document.createElement(data.name);
-
-				if (data.position === 'afterbegin') {
-					data.scope.insertBefore(element, data.scope.firstChild);
-				} else if (data.position === 'beforeend') {
-					data.scope.appendChild(element);
-				} else {
-					data.scope.appendChild(element);
-				}
-			}
-
-			var _iteratorNormalCompletion = true;
-			var _didIteratorError = false;
-			var _iteratorError = undefined;
-
-			try {
-				for (var _iterator = data.attributes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-					var attribute = _step.value;
-
-					element.setAttribute(attribute.name, attribute.value);
-				}
-			} catch (err) {
-				_didIteratorError = true;
-				_iteratorError = err;
-			} finally {
-				try {
-					if (!_iteratorNormalCompletion && _iterator.return) {
-						_iterator.return();
-					}
-				} finally {
-					if (_didIteratorError) {
-						throw _iteratorError;
-					}
-				}
-			}
-
-			return element;
-		},
-		formData: function formData(form, model) {
-			var elements = form.querySelectorAll('[o-value]');
-			var data = {};
-
-			var _iteratorNormalCompletion2 = true;
-			var _didIteratorError2 = false;
-			var _iteratorError2 = undefined;
-
-			try {
-				for (var _iterator2 = elements[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-					var element = _step2.value;
-
-					if (element.nodeName === 'OPTION') continue;
-
-					var value = element.getAttribute('o-value');
-
-					if (!value) continue;
-
-					var values = this.binderValues(value);
-
-					data[values[0]] = this.getByPath(model, values);
-				}
-			} catch (err) {
-				_didIteratorError2 = true;
-				_iteratorError2 = err;
-			} finally {
-				try {
-					if (!_iteratorNormalCompletion2 && _iterator2.return) {
-						_iterator2.return();
-					}
-				} finally {
-					if (_didIteratorError2) {
-						throw _iteratorError2;
-					}
-				}
-			}
-
-			return data;
-		},
-		formReset: function formReset(form, model) {
-			var elements = form.querySelectorAll('[o-value]');var _iteratorNormalCompletion3 = true;
-			var _didIteratorError3 = false;
-			var _iteratorError3 = undefined;
-
-			try {
-				for (var _iterator3 = elements[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-					var element = _step3.value;
-
-					if (element.nodeName === 'OPTION') continue;
-
-					var value = element.getAttribute('o-value');
-
-					if (!value) continue;
-
-					var values = this.binderValues(value);
-
-					this.setByPath(model, values, '');
-				}
-			} catch (err) {
-				_didIteratorError3 = true;
-				_iteratorError3 = err;
-			} finally {
-				try {
-					if (!_iteratorNormalCompletion3 && _iterator3.return) {
-						_iterator3.return();
-					}
-				} finally {
-					if (_didIteratorError3) {
-						throw _iteratorError3;
-					}
-				}
-			}
-		},
-		walker: function walker(node, callback) {
-			callback(node);
-			node = node.firstChild;
-			while (node) {
-				this.walker(node, callback);
-				node = node.nextSibling;
-			}
-		},
-		replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
-			var self = this;
-			var iindex = '$index';
-			var vindex = '$' + variable;
-			// const pattern = new RegExp('\\$index|\\$' + variable, 'ig');
-
-			self.walker(element, function (node) {
-				if (node.nodeType === 3) {
-					if (node.nodeValue === vindex || node.nodeValue === iindex) {
-						node.nodeValue = key;
-					}
-				} else if (node.nodeType === 1) {
-					for (var i = 0, l = node.attributes.length; i < l; i++) {
-						var attribute = node.attributes[i];
-
-						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-
-							// attribute.value = attribute.value.replace(pattern, key);
-							// if (value === variable || value.indexOf(variable) === 0) {
-							// attribute.value = path + '.' + key + attribute.value.slice(variable.length);
-							// }
-
-							var value = attribute.value;
-							var length = value.length;
-							var last = length - 1;
-							var result = [];
-
-							var item = '';
-
-							for (var index = 0; index < length; index++) {
-								var char = value[index];
-
-								if (char === '$' && value.slice(index, iindex.length) === iindex) {
-									item += key;
-									index = index + iindex.length - 1;
-								} else if (char === '$' && value.slice(index, vindex.length) === vindex) {
-									item += key;
-									index = index + vindex.length - 1;
-								} else {
-									item += char;
-								}
-
-								if (char === ' ' || char === '|' || char === ',' || index === last) {
-
-									if (item.indexOf(variable) === 0) {
-										var tail = item.slice(variable.length);
-										result.push(path + '.' + key + tail);
-									} else {
-										result.push(item);
-									}
-
-									item = '';
-								}
-							}
-
-							attribute.value = result.join('');
-						}
-					}
-				}
-			});
-		},
-		traverse: function traverse(data, path, callback) {
-			var keys = typeof path === 'string' ? path.split('.') : path;
-			var last = keys.length - 1;
-
-			for (var i = 0; i < last; i++) {
-				var key = keys[i];
-
-				if (!(key in data)) {
-					if (typeof callback === 'function') {
-						callback(data, key, i, keys);
-					} else {
-						return undefined;
-					}
-				}
-
-				data = data[key];
-			}
-
-			return {
-				data: data,
-				key: keys[last]
-			};
-		},
-		setByPath: function setByPath(data, path, value) {
-			var keys = typeof path === 'string' ? path.split('.') : path;
-			var last = keys.length - 1;
-
-			for (var i = 0; i < last; i++) {
-				var key = keys[i];
-
-				if (!(key in data)) {
-
-					if (isNaN(keys[i + 1])) {
-						data[key] = {};
-					} else {
-						data[key] = [];
-					}
-				}
-
-				data = data[key];
-			}
-
-			return data[keys[last]] = value;
-		},
-		getByPath: function getByPath(data, path) {
-			var keys = typeof path === 'string' ? path.split('.') : path;
-			var last = keys.length - 1;
-
-			for (var i = 0; i < last; i++) {
-				var key = keys[i];
-
-				if (!(key in data)) {
-					return undefined;
-				} else {
-					data = data[key];
-				}
-			}
-
-			return data[keys[last]];
-		},
-		joinDot: function joinDot() {
-			return Array.prototype.join.call(arguments, '.').replace(/\.{2,}/g, '.');
-		},
-
-
-		// getScope (element) {
-		//
-		// 	if (!element) {
-		// 		return;
-		// 	}
-		//
-		// 	if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
-		// 		return element;
-		// 	}
-		//
-		// 	if (element.parentNode) {
-		// 		return this.getScope(element.parentNode);
-		// 	}
-		//
-		// 	// console.warn('Oxe.utility - could not find container scope');
-		// },
-
-		ready: function ready(callback) {
-			if (callback) {
-				if (window.document.readyState !== 'interactive' && window.document.readyState !== 'complete') {
-					window.document.addEventListener('DOMContentLoaded', function _() {
-						callback();
-						window.document.removeEventListener('DOMContentLoaded', _);
-					}, true);
-				} else {
-					callback();
-				}
-			}
-		}
-	};
-
-	var DATA = {};
-
-	var Methods = {
-		get: function get(path) {
-			return Utility.getByPath(DATA, path);
-		},
-		set: function set(path, data) {
-			return Utility.setByPath(DATA, path, data);
-		}
-	};
-
-	var Batcher = {
-
-		reads: [],
-		writes: [],
-		fps: 1000 / 60,
-		pending: false,
-
-		setup: function setup(options) {
-			options = options || {};
-			this.fps = options.fps || this.fps;
-		},
-
-
-		// adds a task to the read batch
-		read: function read(method, context) {
-			var task = context ? method.bind(context) : method;
-
-			this.reads.push(task);
-			this.schedule();
-
-			return task;
-		},
-
-
-		// adds a task to the write batch
-		write: function write(method, context) {
-			var task = context ? method.bind(context) : method;
-
-			this.writes.push(task);
-			this.schedule();
-
-			return task;
-		},
-		tick: function tick(callback) {
-			window.requestAnimationFrame(callback);
-		},
-
-
-		// schedules a new read/write batch if one is not pending
-		schedule: function schedule() {
-			if (!this.pending) {
-				this.pending = true;
-				this.tick(this.flush.bind(this));
-			}
-		},
-		flush: function flush(time) {
-
-			try {
-				var count = this.runReads(this.reads, time);
-				this.runWrites(this.writes, count);
-			} catch (error) {
-				if (typeof this.error === 'function') {
-					this.error(error);
-				} else {
-					throw error;
-				}
-			}
-
-			this.pending = false;
-
-			if (this.reads.length || this.writes.length) {
-				this.schedule();
-			}
-		},
-		runWrites: function runWrites(tasks, count) {
-			var task = void 0;
-
-			while (task = tasks.shift()) {
-
-				task();
-
-				if (count && tasks.length === count) {
-					return;
-				}
-			}
-		},
-		runReads: function runReads(tasks, time) {
-			var task = void 0;
-
-			while (task = tasks.shift()) {
-
-				task();
-
-				if (this.fps && performance.now() - time > this.fps) {
-					return tasks.length;
-				}
-			}
-		},
-		remove: function remove(tasks, task) {
-			var index = tasks.indexOf(task);
-			return !!~index && !!tasks.splice(index, 1);
-		},
-		clear: function clear(task) {
-			return this.remove(this.reads, task) || this.remove(this.writes, task);
-		}
-	};
-
-	/*
- 	TODO:
- 		sort reverse
- 		test array methods
- 		figure out a way to not update removed items
- */
-
 	var Observer = {
 		splice: function splice() {
 			var startIndex = arguments[0];
@@ -706,8 +283,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				while (addCount--) {
 					key = this.length;
 					this.$meta[key] = Observer.create(arguments[argumentIndex++], this.$meta.listener, this.$meta.path + key);
-					Observer.defineProperty(this, key);
-					this.$meta.listener(this.length, this.$meta.path.slice(0, -1), 'length');
+					Observer.defineProperty(this, key);this.$meta.listener(this.length, this.$meta.path.slice(0, -1), 'length');
 					this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
 				}
 			}
@@ -900,15 +476,160 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	};
 
+	var Batcher = function () {
+		function Batcher() {
+			_classCallCheck(this, Batcher);
+
+			this.reads = [];
+			this.writes = [];
+			this.fps = 90;
+			// this.fps = 1000/60;
+			this.pending = false;
+		}
+
+		_createClass(Batcher, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
+				this.fps = options.fps || this.fps;
+			}
+
+			// adds a task to the read batch
+
+		}, {
+			key: 'read',
+			value: function read(method, context) {
+				var task = context ? method.bind(context) : method;
+
+				this.reads.push(task);
+				this.schedule();
+
+				return task;
+			}
+
+			// adds a task to the write batch
+
+		}, {
+			key: 'write',
+			value: function write(method, context) {
+				var task = context ? method.bind(context) : method;
+
+				this.writes.push(task);
+				this.schedule();
+
+				return task;
+			}
+		}, {
+			key: 'tick',
+			value: function tick(callback) {
+				// if (this.id) window.cancelAnimationFrame(this.id);
+				this.id = window.requestAnimationFrame(callback);
+			}
+
+			// schedules a new read/write batch if one is not pending
+
+		}, {
+			key: 'schedule',
+			value: function schedule(count) {
+				var self = this;
+
+				if (!self.reads.length && !self.writes.length) {
+					self.pending = false;
+					return;
+				} else {
+					self.pending = true;
+				}
+
+				try {
+					self.runReads(self.reads.slice());
+					self.runWrites(self.writes.slice());
+					self.reads = [];
+					self.writes = [];
+
+					// self.tick(function (time) {
+					//
+					// 	if (!count) {
+					//
+					// 		if (self.reads.length) {
+					// 			count = self.runReads(self.reads, time);
+					// 		} else {
+					// 			count = self.writes.length;
+					// 		}
+					//
+					// 	}
+					//
+					// 	if (performance.now() - time < self.fps) {
+					// 		count = self.runWrites(self.writes, time, count);
+					// 	}
+					//
+					// 	self.schedule(count);
+					// });
+				} catch (error) {
+
+					if (typeof self.error === 'function') {
+						self.error(error);
+					} else {
+						throw error;
+					}
+				}
+			}
+		}, {
+			key: 'runReads',
+			value: function runReads(tasks, time) {
+				var task = void 0;
+				// let i = 0;
+
+				while (task = tasks.shift()) {
+					this.tick(task);
+					// task();
+					// i++;
+					// if (performance.now() - time > this.fps) break;
+				}
+
+				// return i;
+			}
+		}, {
+			key: 'runWrites',
+			value: function runWrites(tasks, time, count) {
+				var task = void 0;
+				// let i = 0;
+
+				while (task = tasks.shift()) {
+					this.tick(task);
+					// task();
+					// i++;
+					// if (i === count || performance.now() - time > this.fps) break;
+				}
+
+				// return count - i;
+			}
+		}, {
+			key: 'remove',
+			value: function remove(tasks, task) {
+				var index = tasks.indexOf(task);
+				return !!~index && !!tasks.splice(index, 1);
+			}
+		}, {
+			key: 'clear',
+			value: function clear(task) {
+				return this.remove(this.reads, task) || this.remove(this.writes, task);
+			}
+		}]);
+
+		return Batcher;
+	}();
+
+	var Batcher$1 = new Batcher();
+
 	var Unrender$1 = {
 		alt: function alt(opt) {
-			Batcher.write(function () {
+			Batcher$1.write(function () {
 				opt.element.alt = '';
 			});
 		},
 		each: function each(opt) {
-			Batcher.write(function () {
-				var element;
+			Batcher$1.write(function () {
+				var element = void 0;
 
 				while (element = opt.element.lastElementChild) {
 					opt.element.removeChild(element);
@@ -916,19 +637,19 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 		},
 		href: function href(opt) {
-			Batcher.write(function () {
+			Batcher$1.write(function () {
 				opt.element.href = '';
 			});
 		},
 		class: function _class(opt) {
-			Batcher.write(function () {
+			Batcher$1.write(function () {
 				var className = opt.names.slice(1).join('-');
 				opt.element.classList.remove(className);
 			});
 		},
 		html: function html(opt) {
-			Batcher.write(function () {
-				var element;
+			Batcher$1.write(function () {
+				var element = void 0;
 
 				while (element = opt.element.lastElementChild) {
 					opt.element.removeChild(element);
@@ -939,27 +660,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			opt.element.removeEventListener(opt.names[1], opt.cache, false);
 		},
 		css: function css(opt) {
-			Batcher.write(function () {
+			Batcher$1.write(function () {
 				opt.element.style.cssText = '';
 			});
 		},
 		required: function required(opt) {
-			Batcher.write(function () {
+			Batcher$1.write(function () {
 				opt.element.required = false;
 			});
 		},
 		src: function src(opt) {
-			Batcher.write(function () {
+			Batcher$1.write(function () {
 				opt.element.src = '';
 			});
 		},
 		text: function text(opt) {
-			Batcher.write(function () {
+			Batcher$1.write(function () {
 				opt.element.innerText = '';
 			});
 		},
 		value: function value(opt) {
-			Batcher.write(function () {
+			Batcher$1.write(function () {
 				var i, l, query, element, elements;
 
 				if (opt.element.nodeName === 'SELECT') {
@@ -1000,144 +721,341 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	};
 
-	var Events = function () {
-		function Events() {
-			_classCallCheck(this, Events);
+	var Utility = {
 
-			this.events = {};
-		}
+		PREFIX: /data-o-|o-/,
+		ROOT: /^(https?:)?\/?\//,
 
-		_createClass(Events, [{
-			key: 'on',
-			value: function on(name, method) {
+		DOT: /\.+/,
+		PIPE: /\s?\|\s?/,
+		PIPES: /\s?,\s?|\s+/,
 
-				if (!(name in this.events)) {
-					this.events[name] = [];
+		binderNames: function binderNames(data) {
+			data = data.split(this.PREFIX)[1];
+			return data ? data.split('-') : [];
+		},
+		binderValues: function binderValues(data) {
+			data = data.split(this.PIPE)[0];
+			return data ? data.split('.') : [];
+		},
+		binderPipes: function binderPipes(data) {
+			data = data.split(this.PIPE)[1];
+			return data ? data.split(this.PIPES) : [];
+		},
+		ensureElement: function ensureElement(data) {
+			data.query = data.query || '';
+			data.scope = data.scope || document.body;
+
+			var element = data.scope.querySelector('' + data.name + data.query);
+
+			if (!element) {
+				element = document.createElement(data.name);
+
+				if (data.position === 'afterbegin') {
+					data.scope.insertBefore(element, data.scope.firstChild);
+				} else if (data.position === 'beforeend') {
+					data.scope.appendChild(element);
+				} else {
+					data.scope.appendChild(element);
 				}
-
-				this.events[name].push(method);
 			}
-		}, {
-			key: 'off',
-			value: function off(name, method) {
 
-				if (name in this.events) {
+			var _iteratorNormalCompletion = true;
+			var _didIteratorError = false;
+			var _iteratorError = undefined;
 
-					var index = this.events[name].indexOf(method);
+			try {
+				for (var _iterator = data.attributes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+					var attribute = _step.value;
 
-					if (index !== -1) {
-						this.events[name].splice(index, 1);
+					element.setAttribute(attribute.name, attribute.value);
+				}
+			} catch (err) {
+				_didIteratorError = true;
+				_iteratorError = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion && _iterator.return) {
+						_iterator.return();
+					}
+				} finally {
+					if (_didIteratorError) {
+						throw _iteratorError;
 					}
 				}
 			}
-		}, {
-			key: 'emit',
-			value: function emit(name) {
 
-				if (name in this.events) {
+			return element;
+		},
+		formData: function formData(form, model) {
+			var elements = form.querySelectorAll('[o-value]');
+			var data = {};
 
-					var methods = this.events[name];
-					var args = Array.prototype.slice.call(arguments, 1);
+			var _iteratorNormalCompletion2 = true;
+			var _didIteratorError2 = false;
+			var _iteratorError2 = undefined;
 
-					for (var i = 0, l = methods.length; i < l; i++) {
-						methods[i].apply(this, args);
+			try {
+				for (var _iterator2 = elements[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+					var element = _step2.value;
+
+					if (element.nodeName === 'OPTION') continue;
+
+					var value = element.getAttribute('o-value');
+
+					if (!value) continue;
+
+					var values = this.binderValues(value);
+
+					data[values[0]] = this.getByPath(model, values);
+				}
+			} catch (err) {
+				_didIteratorError2 = true;
+				_iteratorError2 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion2 && _iterator2.return) {
+						_iterator2.return();
+					}
+				} finally {
+					if (_didIteratorError2) {
+						throw _iteratorError2;
 					}
 				}
 			}
-		}]);
 
-		return Events;
-	}();
+			return data;
+		},
+		formReset: function formReset(form, model) {
+			var elements = form.querySelectorAll('[o-value]');
 
-	var Model = function (_Events) {
-		_inherits(Model, _Events);
+			var _iteratorNormalCompletion3 = true;
+			var _didIteratorError3 = false;
+			var _iteratorError3 = undefined;
 
-		function Model() {
-			_classCallCheck(this, Model);
+			try {
+				for (var _iterator3 = elements[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+					var element = _step3.value;
 
-			var _this = _possibleConstructorReturn(this, (Model.__proto__ || Object.getPrototypeOf(Model)).call(this));
+					if (element.nodeName === 'OPTION') continue;
 
-			_this.GET = 2;
-			_this.SET = 3;
-			_this.REMOVE = 4;
-			_this.ran = false;
+					var value = element.getAttribute('o-value');
 
-			_this.data = Observer.create({}, _this.listener);
-			return _this;
-		}
+					if (!value) continue;
 
-		_createClass(Model, [{
-			key: 'traverse',
-			value: function traverse(type, keys, value) {
+					var values = this.binderValues(value);
 
-				if (typeof keys === 'string') {
-					keys = [keys];
+					this.setByPath(model, values, '');
 				}
+			} catch (err) {
+				_didIteratorError3 = true;
+				_iteratorError3 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion3 && _iterator3.return) {
+						_iterator3.return();
+					}
+				} finally {
+					if (_didIteratorError3) {
+						throw _iteratorError3;
+					}
+				}
+			}
+		},
+		walker: function walker(node, callback) {
+			callback(node);
+			node = node.firstChild;
+			while (node) {
+				this.walker(node, callback);
+				node = node.nextSibling;
+			}
+		},
+		replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
+			var self = this;
+			var iindex = '$index';
+			var vindex = '$' + variable;
+			// const pattern = new RegExp('\\$index|\\$' + variable, 'ig');
 
-				var data = this.data;
-				var result;
-				var key = keys[keys.length - 1];
+			self.walker(element, function (node) {
+				if (node.nodeType === 3) {
+					if (node.nodeValue === vindex || node.nodeValue === iindex) {
+						node.nodeValue = key;
+					}
+				} else if (node.nodeType === 1) {
+					for (var i = 0, l = node.attributes.length; i < l; i++) {
+						var attribute = node.attributes[i];
 
-				for (var i = 0, l = keys.length - 1; i < l; i++) {
+						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 
-					if (!(keys[i] in data)) {
+							// attribute.value = attribute.value.replace(pattern, key);
+							// if (value === variable || value.indexOf(variable) === 0) {
+							// attribute.value = path + '.' + key + attribute.value.slice(variable.length);
+							// }
 
-						if (type === this.GET || type === this.REMOVE) {
-							return undefined;
-						} else if (type === this.SET) {
-							data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
+							var value = attribute.value;
+							var length = value.length;
+							var last = length - 1;
+							var result = [];
+
+							var item = '';
+
+							for (var _index = 0; _index < length; _index++) {
+								var char = value[_index];
+
+								if (char === '$' && value.slice(_index, iindex.length) === iindex) {
+									item += key;
+									_index = _index + iindex.length - 1;
+								} else if (char === '$' && value.slice(_index, vindex.length) === vindex) {
+									item += key;
+									_index = _index + vindex.length - 1;
+								} else {
+									item += char;
+								}
+
+								if (char === ' ' || char === '|' || char === ',' || _index === last) {
+
+									if (item.indexOf(variable) === 0) {
+										var tail = item.slice(variable.length);
+										result.push(path + '.' + key + tail);
+									} else {
+										result.push(item);
+									}
+
+									item = '';
+								}
+							}
+
+							attribute.value = result.join('');
 						}
 					}
+				}
+			});
+		},
+		traverse: function traverse(data, path, callback) {
+			var keys = typeof path === 'string' ? path.split('.') : path;
+			var last = keys.length - 1;
 
-					data = data[keys[i]];
+			for (var i = 0; i < last; i++) {
+				var key = keys[i];
+
+				if (!(key in data)) {
+					if (typeof callback === 'function') {
+						callback(data, key, i, keys);
+					} else {
+						return undefined;
+					}
 				}
 
-				if (type === this.SET) {
-					result = data.$set(key, value);
-				} else if (type === this.GET) {
-					result = data[key];
-				} else if (type === this.REMOVE) {
-					result = data[key];
-					data.$remove(key);
-				}
-
-				return result;
+				data = data[key];
 			}
-		}, {
+
+			return {
+				data: data,
+				key: keys[last]
+			};
+		},
+		setByPath: function setByPath(data, path, value) {
+			var keys = typeof path === 'string' ? path.split('.') : path;
+			var last = keys.length - 1;
+
+			for (var i = 0; i < last; i++) {
+				var key = keys[i];
+
+				if (!(key in data)) {
+
+					if (isNaN(keys[i + 1])) {
+						data[key] = {};
+					} else {
+						data[key] = [];
+					}
+				}
+
+				data = data[key];
+			}
+
+			return data[keys[last]] = value;
+		},
+		getByPath: function getByPath(data, path) {
+			var keys = typeof path === 'string' ? path.split('.') : path;
+			var last = keys.length - 1;
+
+			for (var i = 0; i < last; i++) {
+				var key = keys[i];
+
+				if (!(key in data)) {
+					return undefined;
+				} else {
+					data = data[key];
+				}
+			}
+
+			return data[keys[last]];
+		},
+		joinDot: function joinDot() {
+			return Array.prototype.join.call(arguments, '.').replace(/\.{2,}/g, '.');
+		},
+
+
+		// getScope (element) {
+		//
+		// 	if (!element) {
+		// 		return;
+		// 	}
+		//
+		// 	if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
+		// 		return element;
+		// 	}
+		//
+		// 	if (element.parentNode) {
+		// 		return this.getScope(element.parentNode);
+		// 	}
+		//
+		// 	// console.warn('Oxe.utility - could not find container scope');
+		// },
+
+		ready: function ready(callback) {
+			if (callback) {
+				if (window.document.readyState !== 'interactive' && window.document.readyState !== 'complete') {
+					window.document.addEventListener('DOMContentLoaded', function _() {
+						callback();
+						window.document.removeEventListener('DOMContentLoaded', _);
+					}, true);
+				} else {
+					callback();
+				}
+			}
+		}
+	};
+
+	var Methods = function () {
+		function Methods() {
+			_classCallCheck(this, Methods);
+
+			this.data = {};
+		}
+
+		_createClass(Methods, [{
 			key: 'get',
-			value: function get(keys) {
-				return this.traverse(this.GET, keys);
-			}
-		}, {
-			key: 'remove',
-			value: function remove(keys) {
-				return this.traverse(this.REMOVE, keys);
+			value: function get(path) {
+				return Utility.getByPath(this.data, path);
 			}
 		}, {
 			key: 'set',
-			value: function set(keys, value) {
-				return this.traverse(this.SET, keys, value);
-			}
-		}, {
-			key: 'listener',
-			value: function listener(data, path) {
-				var method = data === undefined ? Unrender$1 : Render;
-				Binder.each(path, function (binder) {
-					method.default(binder);
-				});
+			value: function set(path, data) {
+				return Utility.setByPath(this.data, path, data);
 			}
 		}]);
 
-		return Model;
-	}(Events);
+		return Methods;
+	}();
 
-	var Model$1 = new Model();
+	var Methods$1 = new Methods();
 
 	// TODO dynamic for list dont handle selected
 
 	var Render = {
 		required: function required(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (opt.element.required === data) {
@@ -1146,127 +1064,127 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = Utility.binderModifyData(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.required = data;
 				});
 			});
 		},
 		disable: function disable(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (opt.element.disabled === data) {
 					return;
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.disabled = data;
 				});
 			});
 		},
 		enable: function enable(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (opt.element.disabled === !data) {
 					return;
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.disabled = !data;
 				});
 			});
 		},
 		hide: function hide(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (opt.element.hidden === data) {
 					return;
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.hidden = data;
 				});
 			});
 		},
 		show: function show(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (opt.element.hidden === !data) {
 					return;
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.hidden = !data;
 				});
 			});
 		},
 		read: function read(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (opt.element.readOnly === data) {
 					return;
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.readOnly = data;
 				});
 			});
 		},
 		write: function write(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (opt.element.readOnly === !data) {
 					return;
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.readOnly = !data;
 				});
 			});
 		},
 		html: function html(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (opt.element.innerHTML === data) {
 					return;
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.innerHTML = data;
 				});
 			});
 		},
 		class: function _class(opt) {
-			Batcher.write(function () {
+			Batcher$1.write(function () {
 				var data = Model$1.get(opt.keys);
 				var name = opt.names.slice(1).join('-');
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 				opt.element.classList.toggle(name, data);
 			});
 		},
 		on: function on(opt) {
-			Batcher.write(function () {
-				var data = Methods.get(opt.keys);
+			Batcher$1.write(function () {
+				var data = Methods$1.get(opt.keys);
 
 				if (typeof data !== 'function') return;
 
@@ -1291,7 +1209,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 		},
 		css: function css(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (opt.element.style.cssText === data) {
@@ -1302,15 +1220,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					data = opt.names.slice(1).join('-') + ': ' + data + ';';
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.style.cssText = data;
 				});
 			});
 		},
 		text: function text(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 
 				if (data === undefined || data === null) {
@@ -1321,9 +1239,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					data = String(data);
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 					opt.element.innerText = data;
 				});
 			});
@@ -1331,7 +1249,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		each: function each(opt) {
 			var self = this;
 
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var data = Model$1.get(opt.keys);
 				var isArray = data ? data.constructor === Array : false;
 				var isObject = data ? data.constructor === Object : false;
@@ -1348,9 +1266,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 				}
 
-				data = Binder.piper(opt, data);
+				data = Binder$1.piper(opt, data);
 
-				Batcher.write(function () {
+				Batcher$1.write(function () {
 
 					if (isObject) {
 						data = Object.keys(data);
@@ -1371,7 +1289,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							}
 
 							Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-							Binder.bind(clone, opt.container);
+							Binder$1.bind(clone, opt.container);
 
 							opt.element.appendChild(clone);
 						}
@@ -1400,7 +1318,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 		},
 		value: function value(opt) {
-			Batcher.read(function () {
+			Batcher$1.read(function () {
 				var type = opt.element.type;
 				var name = opt.element.nodeName;
 				var current = Model$1.get(opt.keys);
@@ -1495,16 +1413,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			if (opt.type in this) {
 				this[opt.type](opt);
 			} else {
-				Batcher.read(function () {
+				Batcher$1.read(function () {
 					var data = Model$1.get(opt.keys);
 
 					if (opt.element[opt.type] === data) {
 						return;
 					}
 
-					data = Binder.piper(opt, data);
+					data = Binder$1.piper(opt, data);
 
-					Batcher.write(function () {
+					Batcher$1.write(function () {
 						opt.element[opt.type] = data;
 					});
 				});
@@ -1512,637 +1430,759 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	};
 
-	var Binder = {
+	var Binder = function () {
+		function Binder() {
+			_classCallCheck(this, Binder);
 
-		data: {},
-		elements: new Map(),
+			this.data = {};
+			this.elements = new Map();
+		}
 
-		set: function set(opt) {
+		_createClass(Binder, [{
+			key: 'set',
+			value: function set(opt) {
+				opt = opt || {};
 
-			opt = opt || {};
+				if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
+				if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
+				if (opt.scope === undefined) throw new Error('Oxe.binder.set - missing scope');
+				if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
+				if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
 
-			if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
-			if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
-			if (opt.scope === undefined) throw new Error('Oxe.binder.set - missing scope');
-			if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
-			if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
+				opt.names = opt.names || Utility.binderNames(opt.name);
+				opt.pipes = opt.pipes || Utility.binderPipes(opt.value);
+				opt.values = opt.values || Utility.binderValues(opt.value);
 
-			opt.names = opt.names || Utility.binderNames(opt.name);
-			opt.pipes = opt.pipes || Utility.binderPipes(opt.value);
-			opt.values = opt.values || Utility.binderValues(opt.value);
+				opt.path = opt.values.join('.');
+				opt.type = opt.type || opt.names[0];
+				opt.keys = [opt.scope].concat(opt.values);
 
-			opt.path = opt.values.join('.');
-			opt.type = opt.type || opt.names[0];
-			opt.keys = [opt.scope].concat(opt.values);
-
-			return opt;
-		},
-		get: function get(opt) {
-
-			if (!(opt.scope in this.data)) {
-				return null;
+				return opt;
 			}
+		}, {
+			key: 'get',
+			value: function get(opt) {
 
-			if (!(opt.path in this.data[opt.scope])) {
-				return null;
-			}
-
-			var items = this.data[opt.scope][opt.path];
-
-			var _iteratorNormalCompletion4 = true;
-			var _didIteratorError4 = false;
-			var _iteratorError4 = undefined;
-
-			try {
-				for (var _iterator4 = items[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-					var item = _step4.value;
-
-					if (item.element === opt.element && item.name === opt.name) {
-						return item;
-					}
+				if (!(opt.scope in this.data)) {
+					return null;
 				}
-			} catch (err) {
-				_didIteratorError4 = true;
-				_iteratorError4 = err;
-			} finally {
+
+				if (!(opt.path in this.data[opt.scope])) {
+					return null;
+				}
+
+				var items = this.data[opt.scope][opt.path];
+
+				var _iteratorNormalCompletion4 = true;
+				var _didIteratorError4 = false;
+				var _iteratorError4 = undefined;
+
 				try {
-					if (!_iteratorNormalCompletion4 && _iterator4.return) {
-						_iterator4.return();
-					}
-				} finally {
-					if (_didIteratorError4) {
-						throw _iteratorError4;
-					}
-				}
-			}
+					for (var _iterator4 = items[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+						var item = _step4.value;
 
-			return null;
-		},
-		add: function add(opt) {
-
-			if (!this.elements.has(opt.element)) {
-				this.elements.set(opt.element, new Map());
-			}
-
-			if (!this.elements.get(opt.element).has(opt.names[0])) {
-				this.elements.get(opt.element).set(opt.names[0], opt);
-			} else {
-				throw new Error('Oxe - duplicate attribute ' + opt.names[0]);
-			}
-
-			if (!(opt.scope in this.data)) {
-				this.data[opt.scope] = {};
-			}
-
-			if (!(opt.path in this.data[opt.scope])) {
-				this.data[opt.scope][opt.path] = [];
-			}
-
-			this.data[opt.scope][opt.path].push(opt);
-		},
-		remove: function remove(opt) {
-
-			if (this.elements.has(opt.element)) {
-
-				if (this.elements.get(opt.element).has(opt.names[0])) {
-					this.elements.get(opt.element).remove(opt.names[0]);
-				}
-
-				if (this.elements.get(opt.elements).length === 0) {
-					this.elements.remove(opt.elements);
-				}
-			}
-
-			if (!(opt.scope in this.data)) {
-				return;
-			}
-
-			if (!(opt.path in this.data[opt.scope])) {
-				return;
-			}
-
-			var items = this.data[opt.scope][opt.path];
-
-			for (var i = 0, l = items.length; i < l; i++) {
-
-				if (items[i].element === opt.element) {
-					return items.splice(i, 1);
-				}
-			}
-		},
-		each: function each(path, callback) {
-			var paths = typeof path === 'string' ? path.split('.') : path;
-			var scope = paths[0];
-
-			var binderPaths = this.data[scope];
-			var relativePath = paths.slice(1).join('.');
-
-			for (var binderPath in binderPaths) {
-
-				if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
-					var binders = binderPaths[binderPath];
-
-					var _iteratorNormalCompletion5 = true;
-					var _didIteratorError5 = false;
-					var _iteratorError5 = undefined;
-
-					try {
-						for (var _iterator5 = binders[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-							var binder = _step5.value;
-
-							callback(binder);
+						if (item.element === opt.element && item.name === opt.name) {
+							return item;
 						}
-					} catch (err) {
-						_didIteratorError5 = true;
-						_iteratorError5 = err;
-					} finally {
-						try {
-							if (!_iteratorNormalCompletion5 && _iterator5.return) {
-								_iterator5.return();
-							}
-						} finally {
-							if (_didIteratorError5) {
-								throw _iteratorError5;
-							}
-						}
-					}
-				}
-			}
-		},
-		piper: function piper(opt, data) {
-
-			if (!opt.pipes.length) {
-				return data;
-			}
-
-			var methods = Methods.get(opt.scope);
-
-			if (!methods) {
-				return data;
-			}
-
-			var _iteratorNormalCompletion6 = true;
-			var _didIteratorError6 = false;
-			var _iteratorError6 = undefined;
-
-			try {
-				for (var _iterator6 = opt.pipes[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-					var method = _step6.value;
-
-
-					if (method in methods) {
-						data = methods[method].call(opt.container, data);
-					} else {
-						throw new Error('Oxe - pipe method ' + method + ' not found in scope ' + opt.scope);
-					}
-				}
-			} catch (err) {
-				_didIteratorError6 = true;
-				_iteratorError6 = err;
-			} finally {
-				try {
-					if (!_iteratorNormalCompletion6 && _iterator6.return) {
-						_iterator6.return();
-					}
-				} finally {
-					if (_didIteratorError6) {
-						throw _iteratorError6;
-					}
-				}
-			}
-
-			return data;
-		},
-		skipChildren: function skipChildren(element) {
-
-			if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
-				return true;
-			}
-
-			var _iteratorNormalCompletion7 = true;
-			var _didIteratorError7 = false;
-			var _iteratorError7 = undefined;
-
-			try {
-				for (var _iterator7 = element.attributes[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-					var attribute = _step7.value;
-
-					if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
-						return true;
-					}
-				}
-			} catch (err) {
-				_didIteratorError7 = true;
-				_iteratorError7 = err;
-			} finally {
-				try {
-					if (!_iteratorNormalCompletion7 && _iterator7.return) {
-						_iterator7.return();
-					}
-				} finally {
-					if (_didIteratorError7) {
-						throw _iteratorError7;
-					}
-				}
-			}
-
-			return false;
-		},
-		eachElement: function eachElement(element, container, callback) {
-			var containerScope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
-			var elementScope = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
-			var scoped = elementScope ? elementScope === containerScope : true;
-
-			if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
-				callback.call(this, element);
-			}
-
-			if (scoped && this.skipChildren(element) === false) {
-				var _iteratorNormalCompletion8 = true;
-				var _didIteratorError8 = false;
-				var _iteratorError8 = undefined;
-
-				try {
-
-					for (var _iterator8 = element.children[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-						var child = _step8.value;
-
-						this.eachElement(child, container, callback);
 					}
 				} catch (err) {
-					_didIteratorError8 = true;
-					_iteratorError8 = err;
+					_didIteratorError4 = true;
+					_iteratorError4 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion8 && _iterator8.return) {
-							_iterator8.return();
+						if (!_iteratorNormalCompletion4 && _iterator4.return) {
+							_iterator4.return();
 						}
 					} finally {
-						if (_didIteratorError8) {
-							throw _iteratorError8;
+						if (_didIteratorError4) {
+							throw _iteratorError4;
+						}
+					}
+				}
+
+				return null;
+			}
+		}, {
+			key: 'add',
+			value: function add(opt) {
+
+				if (!this.elements.has(opt.element)) {
+					this.elements.set(opt.element, new Map());
+				}
+
+				if (!this.elements.get(opt.element).has(opt.names[0])) {
+					this.elements.get(opt.element).set(opt.names[0], opt);
+				} else {
+					throw new Error('Oxe - duplicate attribute ' + opt.names[0]);
+				}
+
+				if (!(opt.scope in this.data)) {
+					this.data[opt.scope] = {};
+				}
+
+				if (!(opt.path in this.data[opt.scope])) {
+					this.data[opt.scope][opt.path] = [];
+				}
+
+				this.data[opt.scope][opt.path].push(opt);
+			}
+		}, {
+			key: 'remove',
+			value: function remove(opt) {
+
+				if (this.elements.has(opt.element)) {
+
+					if (this.elements.get(opt.element).has(opt.names[0])) {
+						this.elements.get(opt.element).remove(opt.names[0]);
+					}
+
+					if (this.elements.get(opt.elements).length === 0) {
+						this.elements.remove(opt.elements);
+					}
+				}
+
+				if (!(opt.scope in this.data)) {
+					return;
+				}
+
+				if (!(opt.path in this.data[opt.scope])) {
+					return;
+				}
+
+				var items = this.data[opt.scope][opt.path];
+
+				for (var i = 0, l = items.length; i < l; i++) {
+
+					if (items[i].element === opt.element) {
+						return items.splice(i, 1);
+					}
+				}
+			}
+		}, {
+			key: 'each',
+			value: function each(path, callback) {
+				var paths = typeof path === 'string' ? path.split('.') : path;
+				var scope = paths[0];
+
+				var binderPaths = this.data[scope];
+				var relativePath = paths.slice(1).join('.');
+
+				for (var binderPath in binderPaths) {
+
+					if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
+						var binders = binderPaths[binderPath];
+
+						var _iteratorNormalCompletion5 = true;
+						var _didIteratorError5 = false;
+						var _iteratorError5 = undefined;
+
+						try {
+							for (var _iterator5 = binders[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+								var binder = _step5.value;
+
+								callback(binder);
+							}
+						} catch (err) {
+							_didIteratorError5 = true;
+							_iteratorError5 = err;
+						} finally {
+							try {
+								if (!_iteratorNormalCompletion5 && _iterator5.return) {
+									_iterator5.return();
+								}
+							} finally {
+								if (_didIteratorError5) {
+									throw _iteratorError5;
+								}
+							}
 						}
 					}
 				}
 			}
-		},
-		eachAttribute: function eachAttribute(element, callback) {
-			var _iteratorNormalCompletion9 = true;
-			var _didIteratorError9 = false;
-			var _iteratorError9 = undefined;
+		}, {
+			key: 'piper',
+			value: function piper(opt, data) {
 
-			try {
-
-				for (var _iterator9 = element.attributes[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-					var attribute = _step9.value;
-
-
-					if ((attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype' && attribute.name !== 'data-o-reset' && attribute.name !== 'data-o-action' && attribute.name !== 'data-o-method' && attribute.name !== 'data-o-enctype') {
-						callback.call(this, attribute);
-					}
+				if (!opt.pipes.length) {
+					return data;
 				}
-			} catch (err) {
-				_didIteratorError9 = true;
-				_iteratorError9 = err;
-			} finally {
-				try {
-					if (!_iteratorNormalCompletion9 && _iterator9.return) {
-						_iterator9.return();
-					}
-				} finally {
-					if (_didIteratorError9) {
-						throw _iteratorError9;
-					}
+
+				var methods = Methods$1.get(opt.scope);
+
+				if (!methods) {
+					return data;
 				}
-			}
-		},
-		unbind: function unbind(element, container) {
-			container = container || element;
 
-			var scope = container.getAttribute('o-scope');
-
-			this.eachElement(element, container, function (child) {
-				this.eachAttribute(child, function (attribute) {
-
-					var binder = this.get({
-						scope: scope,
-						element: child,
-						container: container,
-						name: attribute.name,
-						value: attribute.value
-					});
-
-					this.remove(binder);
-					Unrender.default(binder);
-				});
-			});
-		},
-		bind: function bind(element, container) {
-			container = container || element;
-
-			var scope = container.getAttribute('o-scope');
-
-			this.eachElement(element, container, function (child) {
-				this.eachAttribute(child, function (attribute) {
-
-					var binder = this.set({
-						scope: scope,
-						element: child,
-						container: container,
-						name: attribute.name,
-						value: attribute.value
-					});
-
-					this.add(binder);
-					Render.default(binder);
-				});
-			});
-		}
-	};
-
-	var Component = {
-
-		data: {},
-
-		setup: function setup(options) {
-			options = options || {};
-
-			var components = options.components;
-
-			if (components) {
-				var _iteratorNormalCompletion10 = true;
-				var _didIteratorError10 = false;
-				var _iteratorError10 = undefined;
+				var _iteratorNormalCompletion6 = true;
+				var _didIteratorError6 = false;
+				var _iteratorError6 = undefined;
 
 				try {
+					for (var _iterator6 = opt.pipes[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+						var method = _step6.value;
 
-					for (var _iterator10 = components[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-						var component = _step10.value;
 
-						this.define(component);
+						if (method in methods) {
+							data = methods[method].call(opt.container, data);
+						} else {
+							throw new Error('Oxe - pipe method ' + method + ' not found in scope ' + opt.scope);
+						}
 					}
 				} catch (err) {
-					_didIteratorError10 = true;
-					_iteratorError10 = err;
+					_didIteratorError6 = true;
+					_iteratorError6 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion10 && _iterator10.return) {
-							_iterator10.return();
+						if (!_iteratorNormalCompletion6 && _iterator6.return) {
+							_iterator6.return();
 						}
 					} finally {
-						if (_didIteratorError10) {
-							throw _iteratorError10;
+						if (_didIteratorError6) {
+							throw _iteratorError6;
 						}
 					}
 				}
+
+				return data;
 			}
-		},
-		renderSlot: function renderSlot(target, source) {
-			var targetSlots = target.querySelectorAll('slot[name]');
+		}, {
+			key: 'skipChildren',
+			value: function skipChildren(element) {
 
-			var _iteratorNormalCompletion11 = true;
-			var _didIteratorError11 = false;
-			var _iteratorError11 = undefined;
-
-			try {
-				for (var _iterator11 = targetSlots[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-					var targetSlot = _step11.value;
-
-
-					var name = targetSlot.getAttribute('name');
-					var sourceSlot = source.querySelector('[slot="' + name + '"]');
-
-					if (sourceSlot) {
-						targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
-					} else {
-						targetSlot.parentNode.removeChild(targetSlot);
-					}
+				if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
+					return true;
 				}
-			} catch (err) {
-				_didIteratorError11 = true;
-				_iteratorError11 = err;
-			} finally {
+
+				var _iteratorNormalCompletion7 = true;
+				var _didIteratorError7 = false;
+				var _iteratorError7 = undefined;
+
 				try {
-					if (!_iteratorNormalCompletion11 && _iterator11.return) {
-						_iterator11.return();
+					for (var _iterator7 = element.attributes[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+						var attribute = _step7.value;
+
+						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
+							return true;
+						}
 					}
+				} catch (err) {
+					_didIteratorError7 = true;
+					_iteratorError7 = err;
 				} finally {
-					if (_didIteratorError11) {
-						throw _iteratorError11;
+					try {
+						if (!_iteratorNormalCompletion7 && _iterator7.return) {
+							_iterator7.return();
+						}
+					} finally {
+						if (_didIteratorError7) {
+							throw _iteratorError7;
+						}
 					}
 				}
+
+				return false;
 			}
+		}, {
+			key: 'eachElement',
+			value: function eachElement(element, container, callback) {
+				var containerScope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
+				var elementScope = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
+				var scoped = elementScope ? elementScope === containerScope : true;
 
-			var defaultSlot = target.querySelector('slot:not([name])');
-
-			if (defaultSlot && source.children.length) {
-
-				while (source.firstChild) {
-					defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
+				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
+					callback.call(this, element);
 				}
-			}
 
-			if (defaultSlot) {
-				defaultSlot.parentNode.removeChild(defaultSlot);
-			}
-		},
-		renderTemplate: function renderTemplate(template) {
-			var fragment = document.createDocumentFragment();
-
-			if (template) {
-
-				if (typeof template === 'string') {
-					var temporary = document.createElement('div');
-
-					temporary.innerHTML = template;
-
-					while (temporary.firstChild) {
-						fragment.appendChild(temporary.firstChild);
-					}
-				} else {
-					fragment.appendChild(template);
-				}
-			}
-
-			return fragment;
-		},
-		renderStyle: function renderStyle(style, scope) {
-
-			if (!style) return;
-
-			if (window.CSS && window.CSS.supports) {
-
-				if (!window.CSS.supports('(--t: black)')) {
-					var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
-
-					var _iteratorNormalCompletion12 = true;
-					var _didIteratorError12 = false;
-					var _iteratorError12 = undefined;
+				if (scoped && this.skipChildren(element) === false) {
+					var _iteratorNormalCompletion8 = true;
+					var _didIteratorError8 = false;
+					var _iteratorError8 = undefined;
 
 					try {
-						for (var _iterator12 = matches[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
-							var match = _step12.value;
 
+						for (var _iterator8 = element.children[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+							var child = _step8.value;
 
-							var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-							var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
-
-							style = style.replace(rule[0], '');
-							style = style.replace(pattern, rule[2]);
+							this.eachElement(child, container, callback);
 						}
 					} catch (err) {
-						_didIteratorError12 = true;
-						_iteratorError12 = err;
+						_didIteratorError8 = true;
+						_iteratorError8 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion12 && _iterator12.return) {
-								_iterator12.return();
+							if (!_iteratorNormalCompletion8 && _iterator8.return) {
+								_iterator8.return();
 							}
 						} finally {
-							if (_didIteratorError12) {
-								throw _iteratorError12;
+							if (_didIteratorError8) {
+								throw _iteratorError8;
 							}
 						}
 					}
 				}
-
-				if (!window.CSS.supports(':scope')) {
-					style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
-				}
-
-				if (!window.CSS.supports(':host')) {
-					style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
-				}
 			}
+		}, {
+			key: 'eachAttribute',
+			value: function eachAttribute(element, callback) {
+				var _iteratorNormalCompletion9 = true;
+				var _didIteratorError9 = false;
+				var _iteratorError9 = undefined;
 
-			var estyle = document.createElement('style');
-			var nstyle = document.createTextNode(style);
+				try {
 
-			estyle.appendChild(nstyle);
+					for (var _iterator9 = element.attributes[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+						var attribute = _step9.value;
 
-			return estyle;
-		},
-		created: function created(element, options) {
-			var self = this;
-			var scope = options.name + '-' + options.count++;
 
-			Object.defineProperties(element, {
-				scope: {
-					enumerable: true,
-					value: scope
-				},
-				status: {
-					enumerable: true,
-					value: 'created'
-				}
-			});
-
-			element.setAttribute('o-scope', scope);
-
-			Model$1.set(scope, options.model || {});
-			Methods.set(scope, options.methods || {});
-
-			if (!self.compiled || self.compiled && element.parentNode.nodeName !== 'O-ROUTER') {
-				var eTemplate = self.renderTemplate(options.template);
-				var _eStyle = self.renderStyle(options.style, scope);
-
-				if (_eStyle) {
-					eTemplate.insertBefore(_eStyle, eTemplate.firstChild);
-				}
-
-				if (options.shadow && 'attachShadow' in document.body) {
-					element.attachShadow({ mode: 'open' }).appendChild(eTemplate);
-				} else if (options.shadow && 'createShadowRoot' in document.body) {
-					element.createShadowRoot().appendChild(eTemplate);
-				} else {
-					self.renderSlot(eTemplate, element);
-					element.appendChild(eTemplate);
+						if ((attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype' && attribute.name !== 'data-o-reset' && attribute.name !== 'data-o-action' && attribute.name !== 'data-o-method' && attribute.name !== 'data-o-enctype') {
+							callback.call(this, attribute);
+						}
+					}
+				} catch (err) {
+					_didIteratorError9 = true;
+					_iteratorError9 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion9 && _iterator9.return) {
+							_iterator9.return();
+						}
+					} finally {
+						if (_didIteratorError9) {
+							throw _iteratorError9;
+						}
+					}
 				}
 			}
+		}, {
+			key: 'unbind',
+			value: function unbind(element, container) {
+				container = container || element;
 
-			Binder.bind(element);
+				var scope = container.getAttribute('o-scope');
 
-			if (options.created) {
-				options.created.call(element);
+				this.eachElement(element, container, function (child) {
+					this.eachAttribute(child, function (attribute) {
+
+						var binder = this.get({
+							scope: scope,
+							element: child,
+							container: container,
+							name: attribute.name,
+							value: attribute.value
+						});
+
+						this.remove(binder);
+						Unrender.default(binder);
+					});
+				});
 			}
-		},
-		attached: function attached(element, options) {
-			// Binder.bind(element);
-			if (options.attached) {
-				options.attached.call(element);
+		}, {
+			key: 'bind',
+			value: function bind(element, container) {
+				container = container || element;
+
+				var scope = container.getAttribute('o-scope');
+
+				this.eachElement(element, container, function (child) {
+					this.eachAttribute(child, function (attribute) {
+
+						var binder = this.set({
+							scope: scope,
+							element: child,
+							container: container,
+							name: attribute.name,
+							value: attribute.value
+						});
+
+						this.add(binder);
+						Render.default(binder);
+					});
+				});
 			}
-		},
-		detached: function detached(element, options) {
-			// Binder.unbind(element);
-			if (options.detached) {
-				options.detached.call(element);
-			}
-		},
-		define: function define(options) {
-			var self = this;
+		}]);
 
-			if (!options.name) {
-				throw new Error('Oxe.component.define - requires name');
-			}
+		return Binder;
+	}();
 
-			if (options.name in self.data) {
-				throw new Error('Oxe.component.define - component defined');
-			}
+	var Binder$1 = new Binder();
 
-			self.data[options.name] = options;
+	var Model = function () {
+		function Model() {
+			_classCallCheck(this, Model);
 
-			options.count = 0;
-			options.compiled = false;
-			options.model = options.model || {};
-			options.shadow = options.shadow || false;
-			options.template = options.template || '';
-			options.properties = options.properties || {};
-
-			options.properties.status = {
-				enumerable: true,
-				configurable: true,
-				value: 'define'
-			};
-
-			options.properties.model = {
-				enumerable: true,
-				configurable: true,
-				get: function get() {
-					return Model$1.get(this.scope);
-				},
-				set: function set(data) {
-					data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
-					return Model$1.set(this.scope, data);
-				}
-			};
-
-			options.properties.methods = {
-				enumerable: true,
-				get: function get() {
-					return Methods.get(this.scope);
-				}
-			};
-
-			options.proto = Object.create(HTMLElement.prototype, options.properties);
-
-			options.proto.attributeChangedCallback = options.attributed;
-
-			options.proto.createdCallback = function () {
-				self.created(this, options);
-			};
-
-			options.proto.attachedCallback = function () {
-				self.attached(this, options);
-			};
-
-			options.proto.detachedCallback = function () {
-				self.detached(this, options);
-			};
-
-			return document.registerElement(options.name, {
-				prototype: options.proto
-			});
+			this.GET = 2;
+			this.SET = 3;
+			this.REMOVE = 4;
+			this.ran = false;
+			this.data = Observer.create({}, this.listener);
 		}
-	};
+
+		_createClass(Model, [{
+			key: 'traverse',
+			value: function traverse(type, keys, value) {
+				var result = void 0;
+
+				if (typeof keys === 'string') {
+					keys = keys.split('.');
+					// keys = [keys];
+				}
+
+				var data = this.data;
+				var key = keys[keys.length - 1];
+
+				for (var i = 0, l = keys.length - 1; i < l; i++) {
+
+					if (!(keys[i] in data)) {
+
+						if (type === this.GET || type === this.REMOVE) {
+							return undefined;
+						} else if (type === this.SET) {
+							data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
+						}
+					}
+
+					data = data[keys[i]];
+				}
+
+				if (type === this.SET) {
+					result = data.$set(key, value);
+				} else if (type === this.GET) {
+					result = data[key];
+				} else if (type === this.REMOVE) {
+					result = data[key];
+					data.$remove(key);
+				}
+
+				return result;
+			}
+		}, {
+			key: 'get',
+			value: function get(keys) {
+				return this.traverse(this.GET, keys);
+			}
+		}, {
+			key: 'remove',
+			value: function remove(keys) {
+				return this.traverse(this.REMOVE, keys);
+			}
+		}, {
+			key: 'set',
+			value: function set(keys, value) {
+				return this.traverse(this.SET, keys, value);
+			}
+		}, {
+			key: 'listener',
+			value: function listener(data, path) {
+				var method = data === undefined ? Unrender$1 : Render;
+
+				Binder$1.each(path, function (binder) {
+
+					method.default(binder);
+				});
+			}
+		}]);
+
+		return Model;
+	}();
+
+	var Model$1 = new Model();
+
+	function Change(e) {
+
+		if (e.target.hasAttribute('o-value')) {
+			Update(e.target, 'value').catch(console.error);
+		}
+	}
+
+	var Fetcher = function () {
+		function Fetcher() {
+			_classCallCheck(this, Fetcher);
+
+			this.head = null;
+			this.method = 'get';
+			this.mime = {
+				xml: 'text/xml; charset=utf-8',
+				html: 'text/html; charset=utf-8',
+				text: 'text/plain; charset=utf-8',
+				json: 'application/json; charset=utf-8',
+				js: 'application/javascript; charset=utf-8'
+			};
+		}
+
+		_createClass(Fetcher, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
+				this.head = options.head || this.head;
+				this.method = options.method || this.method;
+				this.request = options.request;
+				this.response = options.response;
+				this.acceptType = options.acceptType;
+				this.credentials = options.credentials;
+				this.contentType = options.contentType;
+				this.responseType = options.responseType;
+			}
+		}, {
+			key: 'serialize',
+			value: _async(function (data) {
+				var query = '';
+
+				for (var name in data) {
+					query = query.length > 0 ? query + '&' : query;
+					query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+				}
+
+				return query;
+			})
+		}, {
+			key: 'fetch',
+			value: _async(function (options) {
+				var _this = this;
+
+				var data = Object.assign({}, options);
+
+				if (!data.url) throw new Error('Oxe.fetcher - requires url option');
+				if (!data.method) throw new Error('Oxe.fetcher - requires method option');
+
+				if (!data.head && _this.head) data.head = _this.head;
+				if (typeof data.method === 'string') data.method = data.method.toUpperCase() || _this.method;
+
+				if (!data.acceptType && _this.acceptType) data.acceptType = _this.acceptType;
+				if (!data.contentType && _this.contentType) data.contentType = _this.contentType;
+				if (!data.responseType && _this.responseType) data.responseType = _this.responseType;
+
+				// omit, same-origin, or include
+				if (!data.credentials && _this.credentials) data.credentials = _this.credentials;
+
+				// cors, no-cors, or same-origin
+				if (!data.mode && _this.mode) data.mode = _this.mode;
+
+				// default, no-store, reload, no-cache, force-cache, or only-if-cached
+				if (!data.cache && _this.cache) data.cahce = _this.cache;
+
+				// follow, error, or manual
+				if (!data.redirect && _this.redirect) data.redirect = _this.redirect;
+
+				// no-referrer, client, or a URL
+				if (!data.referrer && _this.referrer) data.referrer = _this.referrer;
+
+				// no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
+				if (!data.referrerPolicy && _this.referrerPolicy) data.referrerPolicy = _this.referrerPolicy;
+
+				if (!data.signal && _this.signal) data.signal = _this.signal;
+				if (!data.integrity && _this.integrity) data.integrity = _this.integrity;
+				if (!data.keepAlive && _this.keepAlive) data.keepAlive = _this.keepAlive;
+
+				if (data.contentType) {
+					data.head = data.head || {};
+					switch (data.contentType) {
+						case 'js':
+							data.head['Content-Type'] = _this.mime.js;break;
+						case 'xml':
+							data.head['Content-Type'] = _this.mime.xml;break;
+						case 'html':
+							data.head['Content-Type'] = _this.mime.html;break;
+						case 'json':
+							data.head['Content-Type'] = _this.mime.json;break;
+						default:
+							data.head['Content-Type'] = data.contentType;
+					}
+				}
+
+				if (data.acceptType) {
+					data.head = data.head || {};
+					switch (data.acceptType) {
+						case 'js':
+							data.head['Accept'] = _this.mime.js;break;
+						case 'xml':
+							data.head['Accept'] = _this.mime.xml;break;
+						case 'html':
+							data.head['Accept'] = _this.mime.html;break;
+						case 'json':
+							data.head['Accept'] = _this.mime.json;break;
+						default:
+							data.head['Accept'] = data.acceptType;
+					}
+				}
+
+				// IDEA for auth tokens
+				// if (data.head) {
+				// 	for (let name in data.head) {
+				// 		if (typeof data.head[name] === 'function') {
+				// 			data.head[name] = await data.head[name]();
+				// 		}
+				// 	}
+				// }
+
+				return _invoke(function () {
+					if (data.body) {
+						return _invokeIgnored(function () {
+							if (data.method === 'GET') {
+								var _temp = data.url + '?';
+
+								return _await(_this.serialize(data.body), function (_this$serialize) {
+									data.url = _temp + _this$serialize;
+								});
+							} else if (data.contentType === 'json') {
+								data.body = JSON.stringify(data.body);
+							}
+						});
+					}
+				}, function () {
+					var _exit = false;
+					return _invoke(function () {
+						if (typeof _this.request === 'function') {
+							var copy = Object.assign({}, data);
+							return _await(_this.request(copy), function (result) {
+
+								if (result === false) {
+									_exit = true;
+									return data;
+								}
+
+								if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
+									Object.assign(data, result);
+								}
+							});
+						}
+					}, function (_result) {
+						if (_exit) return _result;
+
+
+						var fetchOptions = Object.assign({}, data);
+
+						if (fetchOptions.head) {
+							fetchOptions.headers = fetchOptions.head;
+							delete fetchOptions.head;
+						}
+
+						return _await(window.fetch(data.url, fetchOptions), function (fetched) {
+
+							data.code = fetched.status;
+							data.message = fetched.statusText;
+
+							return _invoke(function () {
+								if (!data.responseType) {
+									data.body = fetched.body;
+								} else {
+									return _await(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType](), function (_fetched) {
+										data.body = _fetched;
+									});
+								}
+							}, function () {
+								var _exit2 = false;
+								return _invoke(function () {
+									if (_this.response) {
+										var copy = Object.assign({}, data);
+										return _await(_this.response(copy), function (result) {
+
+											if (result === false) {
+												_exit2 = true;
+												return data;
+											}
+
+											if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
+												Object.assign(data, result);
+											}
+										});
+									}
+								}, function (_result2) {
+									return _exit2 ? _result2 : data;
+								});
+							});
+						});
+					});
+				});
+			})
+		}, {
+			key: 'post',
+			value: _async(function (data) {
+				var _this2 = this;
+
+				data.method = 'post';
+				return _this2.fetch(data);
+			})
+		}, {
+			key: 'get',
+			value: _async(function (data) {
+				var _this3 = this;
+
+				data.method = 'get';
+				return _this3.fetch(data);
+			})
+		}, {
+			key: 'put',
+			value: _async(function (data) {
+				var _this4 = this;
+
+				data.method = 'put';
+				return _this4.fetch(data);
+			})
+		}, {
+			key: 'head',
+			value: _async(function (data) {
+				var _this5 = this;
+
+				data.method = 'head';
+				return _this5.fetch(data);
+			})
+		}, {
+			key: 'patch',
+			value: _async(function (data) {
+				var _this6 = this;
+
+				data.method = 'patch';
+				return _this6.fetch(data);
+			})
+		}, {
+			key: 'delete',
+			value: _async(function (data) {
+				var _this7 = this;
+
+				data.method = 'delete';
+				return _this7.fetch(data);
+			})
+		}, {
+			key: 'options',
+			value: _async(function (data) {
+				var _this8 = this;
+
+				data.method = 'options';
+				return _this8.fetch(data);
+			})
+		}, {
+			key: 'connect',
+			value: _async(function (data) {
+				var _this9 = this;
+
+				data.method = 'connect';
+				return _this9.fetch(data);
+			})
+		}]);
+
+		return Fetcher;
+	}();
+
+	var Fetcher$1 = new Fetcher();
+
+	function Input(e) {
+		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
+			Update(e.target, 'value').catch(console.error);
+		}
+	}
+
+	function Reset(e) {
+		var element = e.target;
+		var reset = element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset');
+
+		if (!reset) return;else e.preventDefault();
+
+		var binder = Binder$1.elements.get(element).get('submit');
+		var elements = element.querySelectorAll('[o-value]');
+		var model = Model$1.get(binder.scope);
+
+		Utility.formReset(element, model);
+	}
 
 	var Path = {
 		extension: function extension(data) {
@@ -2207,303 +2247,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	};
 
-	var General = function () {
-		function General(options) {
-			_classCallCheck(this, General);
-
-			this.setup(options);
-		}
-
-		_createClass(General, [{
-			key: 'setup',
-			value: function setup(options) {
-				options = options || {};
-
-				if (options.base) {
-					Path.base(options.base);
-				}
-			}
-		}]);
-
-		return General;
-	}();
-
-	var General$1 = new General();
-
-	var Fetcher = function () {
-		function Fetcher(options) {
-			_classCallCheck(this, Fetcher);
-
-			this.mime = {
-				xml: 'text/xml; charset=utf-8',
-				html: 'text/html; charset=utf-8',
-				text: 'text/plain; charset=utf-8',
-				json: 'application/json; charset=utf-8',
-				js: 'application/javascript; charset=utf-8'
-			};
-
-			this.setup(options);
-		}
-
-		_createClass(Fetcher, [{
-			key: 'setup',
-			value: function setup(options) {
-				options = options || {};
-
-				this.head = options.head || null;
-				this.method = options.method || 'get';
-
-				this.request = options.request;
-				this.response = options.response;
-				this.acceptType = options.acceptType;
-				this.contentType = options.contentType;
-				this.responseType = options.responseType;
-				this.credentials = options.credentials;
-			}
-		}, {
-			key: 'serialize',
-			value: _async(function (data) {
-				var query = '';
-
-				for (var name in data) {
-					query = query.length > 0 ? query + '&' : query;
-					query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
-				}
-
-				return query;
-			})
-		}, {
-			key: 'fetch',
-			value: _async(function (options) {
-				var _this2 = this;
-
-				var data = Object.assign({}, options);
-
-				if (!data.url) throw new Error('Oxe.fetcher - requires url option');
-				if (!data.method) throw new Error('Oxe.fetcher - requires method option');
-
-				if (!data.head && _this2.head) data.head = _this2.head;
-				if (typeof data.method === 'string') data.method = data.method.toUpperCase() || _this2.method;
-
-				if (!data.acceptType && _this2.acceptType) data.acceptType = _this2.acceptType;
-				if (!data.contentType && _this2.contentType) data.contentType = _this2.contentType;
-				if (!data.responseType && _this2.responseType) data.responseType = _this2.responseType;
-
-				// omit, same-origin, or include
-				if (!data.credentials && _this2.credentials) data.credentials = _this2.credentials;
-
-				// cors, no-cors, or same-origin
-				if (!data.mode && _this2.mode) data.mode = _this2.mode;
-
-				// default, no-store, reload, no-cache, force-cache, or only-if-cached
-				if (!data.cache && _this2.cache) data.cahce = _this2.cache;
-
-				// follow, error, or manual
-				if (!data.redirect && _this2.redirect) data.redirect = _this2.redirect;
-
-				// no-referrer, client, or a URL
-				if (!data.referrer && _this2.referrer) data.referrer = _this2.referrer;
-
-				// no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
-				if (!data.referrerPolicy && _this2.referrerPolicy) data.referrerPolicy = _this2.referrerPolicy;
-
-				if (!data.signal && _this2.signal) data.signal = _this2.signal;
-				if (!data.integrity && _this2.integrity) data.integrity = _this2.integrity;
-				if (!data.keepAlive && _this2.keepAlive) data.keepAlive = _this2.keepAlive;
-
-				if (data.contentType) {
-					data.head = data.head || {};
-					switch (data.contentType) {
-						case 'js':
-							data.head['Content-Type'] = _this2.mime.js;break;
-						case 'xml':
-							data.head['Content-Type'] = _this2.mime.xml;break;
-						case 'html':
-							data.head['Content-Type'] = _this2.mime.html;break;
-						case 'json':
-							data.head['Content-Type'] = _this2.mime.json;break;
-						default:
-							data.head['Content-Type'] = data.contentType;
-					}
-				}
-
-				if (data.acceptType) {
-					data.head = data.head || {};
-					switch (data.acceptType) {
-						case 'js':
-							data.head['Accept'] = _this2.mime.js;break;
-						case 'xml':
-							data.head['Accept'] = _this2.mime.xml;break;
-						case 'html':
-							data.head['Accept'] = _this2.mime.html;break;
-						case 'json':
-							data.head['Accept'] = _this2.mime.json;break;
-						default:
-							data.head['Accept'] = data.acceptType;
-					}
-				}
-
-				// IDEA for auth tokens
-				// if (data.head) {
-				// 	for (let name in data.head) {
-				// 		if (typeof data.head[name] === 'function') {
-				// 			data.head[name] = await data.head[name]();
-				// 		}
-				// 	}
-				// }
-
-				return _invoke(function () {
-					if (data.body) {
-						return _invokeIgnored(function () {
-							if (data.method === 'GET') {
-								var _temp = data.url + '?';
-
-								return _await(_this2.serialize(data.body), function (_this2$serialize) {
-									data.url = _temp + _this2$serialize;
-								});
-							} else if (data.contentType === 'json') {
-								data.body = JSON.stringify(data.body);
-							}
-						});
-					}
-				}, function () {
-					var _exit = false;
-					return _invoke(function () {
-						if (typeof _this2.request === 'function') {
-							var copy = Object.assign({}, data);
-							return _await(_this2.request(copy), function (result) {
-
-								if (result === false) {
-									_exit = true;
-									return data;
-								}
-
-								if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
-									Object.assign(data, result);
-								}
-							});
-						}
-					}, function (_result) {
-						if (_exit) return _result;
-
-
-						var fetchOptions = Object.assign({}, data);
-
-						if (fetchOptions.head) {
-							fetchOptions.headers = fetchOptions.head;
-							delete fetchOptions.head;
-						}
-
-						return _await(window.fetch(data.url, fetchOptions), function (fetched) {
-
-							data.code = fetched.status;
-							data.message = fetched.statusText;
-
-							return _invoke(function () {
-								if (!data.responseType) {
-									data.body = fetched.body;
-								} else {
-									return _await(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType](), function (_fetched) {
-										data.body = _fetched;
-									});
-								}
-							}, function () {
-								var _exit2 = false;
-								return _invoke(function () {
-									if (_this2.response) {
-										var copy = Object.assign({}, data);
-										return _await(_this2.response(copy), function (result) {
-
-											if (result === false) {
-												_exit2 = true;
-												return data;
-											}
-
-											if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
-												Object.assign(data, result);
-											}
-										});
-									}
-								}, function (_result2) {
-									return _exit2 ? _result2 : data;
-								});
-							});
-						});
-					});
-				});
-			})
-		}, {
-			key: 'post',
-			value: _async(function (data) {
-				var _this3 = this;
-
-				data.method = 'post';
-				return _this3.fetch(data);
-			})
-		}, {
-			key: 'get',
-			value: _async(function (data) {
-				var _this4 = this;
-
-				data.method = 'get';
-				return _this4.fetch(data);
-			})
-		}, {
-			key: 'put',
-			value: _async(function (data) {
-				var _this5 = this;
-
-				data.method = 'put';
-				return _this5.fetch(data);
-			})
-		}, {
-			key: 'head',
-			value: _async(function (data) {
-				var _this6 = this;
-
-				data.method = 'head';
-				return _this6.fetch(data);
-			})
-		}, {
-			key: 'patch',
-			value: _async(function (data) {
-				var _this7 = this;
-
-				data.method = 'patch';
-				return _this7.fetch(data);
-			})
-		}, {
-			key: 'delete',
-			value: _async(function (data) {
-				var _this8 = this;
-
-				data.method = 'delete';
-				return _this8.fetch(data);
-			})
-		}, {
-			key: 'options',
-			value: _async(function (data) {
-				var _this9 = this;
-
-				data.method = 'options';
-				return _this9.fetch(data);
-			})
-		}, {
-			key: 'connect',
-			value: _async(function (data) {
-				var _this10 = this;
-
-				data.method = 'connect';
-				return _this10.fetch(data);
-			})
-		}]);
-
-		return Fetcher;
-	}();
-
-	var Fetcher$1 = new Fetcher();
-
 	// FIXME import export in strings cause error
+	// FIXME double backtick in template strings or regex could possibly causes issues
 
 	var Transformer = {
 
@@ -2511,28 +2256,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
   	templates
   */
 
-		_innerHandler: function _innerHandler(char, index, string) {
+		innerHandler: function innerHandler(char, index, string) {
 			if (string[index - 1] === '\\') return;
 			if (char === '\'') return '\\\'';
 			if (char === '\"') return '\\"';
 			if (char === '\t') return '\\t';
 			if (char === '\n') return '\\n';
 		},
-		_updateString: function _updateString(value, index, string) {
+		updateString: function updateString(value, index, string) {
 			return string.slice(0, index) + value + string.slice(index + 1);
 		},
-		_updateIndex: function _updateIndex(value, index) {
+		updateIndex: function updateIndex(value, index) {
 			return index + value.length - 1;
 		},
 		template: function template(data) {
-			// NOTE: double backtick in strings or regex could possibly causes issues
 
 			var first = data.indexOf('`');
 			var second = data.indexOf('`', first + 1);
 
 			if (first === -1 || second === -1) return data;
 
-			var value;
+			var value = void 0;
 			var ends = 0;
 			var starts = 0;
 			var string = data;
@@ -2547,20 +2291,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						ends++;
 						value = '\'';
 						isInner = false;
-						string = this._updateString(value, index, string);
-						index = this._updateIndex(value, index);
+						string = this.updateString(value, index, string);
+						index = this.updateIndex(value, index);
 					} else {
 						starts++;
 						value = '\'';
 						isInner = true;
-						string = this._updateString(value, index, string);
-						index = this._updateIndex(value, index);
+						string = this.updateString(value, index, string);
+						index = this.updateIndex(value, index);
 					}
 				} else if (isInner) {
 
-					if (value = this._innerHandler(char, index, string)) {
-						string = this._updateString(value, index, string);
-						index = this._updateIndex(value, index);
+					if (value = this.innerHandler(char, index, string)) {
+						string = this.updateString(value, index, string);
+						index = this.updateIndex(value, index);
 					}
 				}
 			}
@@ -2649,50 +2393,95 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				return text.replace(exps[0].raw, 'return ');
 			}
 
-			var i, l;
-
 			text = 'var $EXPORT = {};\n' + text;
 			text = text + '\nreturn $EXPORT;\n';
 
-			for (i = 0, l = exps.length; i < l; i++) {
+			for (var i = 0, l = exps.length; i < l; i++) {
 				text = text.replace(exps[i].raw, '$EXPORT.');
 			}
 
 			return text;
 		},
 		ast: function ast(data) {
-			var ast = {};
+			var result = {};
 
-			ast.url = data.url;
-			ast.raw = data.text;
-			ast.cooked = data.text;
-			ast.base = ast.url.slice(0, ast.url.lastIndexOf('/') + 1);
+			result.url = data.url;
+			result.raw = data.text;
+			result.cooked = data.text;
+			result.base = result.url.slice(0, result.url.lastIndexOf('/') + 1);
 
-			ast.imports = this.getImports(ast.raw, ast.base);
-			ast.exports = this.getExports(ast.raw);
+			result.imports = this.getImports(result.raw, result.base);
+			result.exports = this.getExports(result.raw);
 
-			ast.cooked = this.replaceImports(ast.cooked, ast.imports);
-			ast.cooked = this.replaceExports(ast.cooked, ast.exports);
+			result.cooked = this.replaceImports(result.cooked, result.imports);
+			result.cooked = this.replaceExports(result.cooked, result.exports);
 
-			return ast;
+			return result;
 		}
 	};
 
-	var Loader = function (_Events2) {
-		_inherits(Loader, _Events2);
+	var Events = function () {
+		function Events() {
+			_classCallCheck(this, Events);
+
+			this.events = {};
+		}
+
+		_createClass(Events, [{
+			key: 'on',
+			value: function on(name, method) {
+
+				if (!(name in this.events)) {
+					this.events[name] = [];
+				}
+
+				this.events[name].push(method);
+			}
+		}, {
+			key: 'off',
+			value: function off(name, method) {
+
+				if (name in this.events) {
+
+					var index = this.events[name].indexOf(method);
+
+					if (index !== -1) {
+						this.events[name].splice(index, 1);
+					}
+				}
+			}
+		}, {
+			key: 'emit',
+			value: function emit(name) {
+
+				if (name in this.events) {
+
+					var methods = this.events[name];
+					var args = Array.prototype.slice.call(arguments, 1);
+
+					for (var i = 0, l = methods.length; i < l; i++) {
+						methods[i].apply(this, args);
+					}
+				}
+			}
+		}]);
+
+		return Events;
+	}();
+
+	var Loader = function (_Events) {
+		_inherits(Loader, _Events);
 
 		function Loader() {
 			_classCallCheck(this, Loader);
 
-			var _this11 = _possibleConstructorReturn(this, (Loader.__proto__ || Object.getPrototypeOf(Loader)).call(this));
+			var _this10 = _possibleConstructorReturn(this, (Loader.__proto__ || Object.getPrototypeOf(Loader)).call(this));
 
-			_this11.data = {};
-			_this11.ran = false;
-			_this11.methods = {};
-			_this11.transformers = {};
-
-			document.addEventListener('load', _this11.listener.bind(_this11), true);
-			return _this11;
+			_this10.data = {};
+			_this10.ran = false;
+			_this10.methods = {};
+			_this10.transformers = {};
+			return _this10;
 		}
 
 		_createClass(Loader, [{
@@ -2902,20 +2691,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					this.fetch(data);
 				}
 			}
-		}, {
-			key: 'listener',
-			value: function listener(e) {
-				var element = e.target;
-
-				if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
-					return;
-				}
-
-				var path = Path.resolve(element.src || element.href);
-				var load = this.data[path];
-
-				this.ready(load);
-			}
 		}]);
 
 		return Loader;
@@ -2927,26 +2702,331 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  	https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
  */
 
-	var Router = function (_Events3) {
-		_inherits(Router, _Events3);
+	var Component = function () {
+		function Component() {
+			_classCallCheck(this, Component);
+
+			this.data = {};
+			this.compiled = false;
+		}
+
+		_createClass(Component, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
+
+				var components = options.components;
+
+				if (components) {
+					var _iteratorNormalCompletion10 = true;
+					var _didIteratorError10 = false;
+					var _iteratorError10 = undefined;
+
+					try {
+
+						for (var _iterator10 = components[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+							var component = _step10.value;
+
+							this.define(component);
+						}
+					} catch (err) {
+						_didIteratorError10 = true;
+						_iteratorError10 = err;
+					} finally {
+						try {
+							if (!_iteratorNormalCompletion10 && _iterator10.return) {
+								_iterator10.return();
+							}
+						} finally {
+							if (_didIteratorError10) {
+								throw _iteratorError10;
+							}
+						}
+					}
+				}
+			}
+		}, {
+			key: 'renderSlot',
+			value: function renderSlot(target, source) {
+				var targetSlots = target.querySelectorAll('slot[name]');
+
+				var _iteratorNormalCompletion11 = true;
+				var _didIteratorError11 = false;
+				var _iteratorError11 = undefined;
+
+				try {
+					for (var _iterator11 = targetSlots[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+						var targetSlot = _step11.value;
+
+
+						var name = targetSlot.getAttribute('name');
+						var sourceSlot = source.querySelector('[slot="' + name + '"]');
+
+						if (sourceSlot) {
+							targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
+						} else {
+							targetSlot.parentNode.removeChild(targetSlot);
+						}
+					}
+				} catch (err) {
+					_didIteratorError11 = true;
+					_iteratorError11 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion11 && _iterator11.return) {
+							_iterator11.return();
+						}
+					} finally {
+						if (_didIteratorError11) {
+							throw _iteratorError11;
+						}
+					}
+				}
+
+				var defaultSlot = target.querySelector('slot:not([name])');
+
+				if (defaultSlot && source.children.length) {
+
+					while (source.firstChild) {
+						defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
+					}
+				}
+
+				if (defaultSlot) {
+					defaultSlot.parentNode.removeChild(defaultSlot);
+				}
+			}
+		}, {
+			key: 'renderTemplate',
+			value: function renderTemplate(template) {
+				var fragment = document.createDocumentFragment();
+
+				if (template) {
+
+					if (typeof template === 'string') {
+						var temporary = document.createElement('div');
+
+						temporary.innerHTML = template;
+
+						while (temporary.firstChild) {
+							fragment.appendChild(temporary.firstChild);
+						}
+					} else {
+						fragment.appendChild(template);
+					}
+				}
+
+				return fragment;
+			}
+		}, {
+			key: 'renderStyle',
+			value: function renderStyle(style, scope) {
+
+				if (!style) return;
+
+				if (window.CSS && window.CSS.supports) {
+
+					if (!window.CSS.supports('(--t: black)')) {
+						var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+
+						var _iteratorNormalCompletion12 = true;
+						var _didIteratorError12 = false;
+						var _iteratorError12 = undefined;
+
+						try {
+							for (var _iterator12 = matches[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+								var match = _step12.value;
+
+
+								var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+								var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
+
+								style = style.replace(rule[0], '');
+								style = style.replace(pattern, rule[2]);
+							}
+						} catch (err) {
+							_didIteratorError12 = true;
+							_iteratorError12 = err;
+						} finally {
+							try {
+								if (!_iteratorNormalCompletion12 && _iterator12.return) {
+									_iterator12.return();
+								}
+							} finally {
+								if (_didIteratorError12) {
+									throw _iteratorError12;
+								}
+							}
+						}
+					}
+
+					if (!window.CSS.supports(':scope')) {
+						style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
+					}
+
+					if (!window.CSS.supports(':host')) {
+						style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
+					}
+				}
+
+				var estyle = document.createElement('style');
+				var nstyle = document.createTextNode(style);
+
+				estyle.appendChild(nstyle);
+
+				return estyle;
+			}
+		}, {
+			key: 'created',
+			value: function created(element, options) {
+				var self = this;
+				var scope = options.name + '-' + options.count++;
+
+				Object.defineProperties(element, {
+					scope: {
+						enumerable: true,
+						value: scope
+					},
+					status: {
+						enumerable: true,
+						value: 'created'
+					}
+				});
+
+				element.setAttribute('o-scope', scope);
+
+				Model$1.set(scope, options.model || {});
+				Methods$1.set(scope, options.methods || {});
+
+				if (!self.compiled || self.compiled && element.parentNode.nodeName !== 'O-ROUTER') {
+					var eTemplate = self.renderTemplate(options.template);
+					var _eStyle = self.renderStyle(options.style, scope);
+
+					if (_eStyle) {
+						eTemplate.insertBefore(_eStyle, eTemplate.firstChild);
+					}
+
+					if (options.shadow && 'attachShadow' in document.body) {
+						element.attachShadow({ mode: 'open' }).appendChild(eTemplate);
+					} else if (options.shadow && 'createShadowRoot' in document.body) {
+						element.createShadowRoot().appendChild(eTemplate);
+					} else {
+						self.renderSlot(eTemplate, element);
+						element.appendChild(eTemplate);
+					}
+				}
+
+				Binder$1.bind(element);
+
+				if (options.created) {
+					options.created.call(element);
+				}
+			}
+		}, {
+			key: 'attached',
+			value: function attached(element, options) {
+				// Binder.bind(element);
+				if (options.attached) {
+					options.attached.call(element);
+				}
+			}
+		}, {
+			key: 'detached',
+			value: function detached(element, options) {
+				// Binder.unbind(element);
+				if (options.detached) {
+					options.detached.call(element);
+				}
+			}
+		}, {
+			key: 'define',
+			value: function define(options) {
+				var self = this;
+
+				if (!options.name) {
+					throw new Error('Oxe.component.define - requires name');
+				}
+
+				if (options.name in self.data) {
+					throw new Error('Oxe.component.define - component defined');
+				}
+
+				self.data[options.name] = options;
+
+				options.count = 0;
+				options.compiled = false;
+				options.model = options.model || {};
+				options.shadow = options.shadow || false;
+				options.template = options.template || '';
+				options.properties = options.properties || {};
+
+				options.properties.status = {
+					enumerable: true,
+					configurable: true,
+					value: 'define'
+				};
+
+				options.properties.model = {
+					enumerable: true,
+					configurable: true,
+					get: function get() {
+						return Model$1.get(this.scope);
+					},
+					set: function set(data) {
+						data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
+						return Model$1.set(this.scope, data);
+					}
+				};
+
+				options.properties.methods = {
+					enumerable: true,
+					get: function get() {
+						return Methods$1.get(this.scope);
+					}
+				};
+
+				options.proto = Object.create(HTMLElement.prototype, options.properties);
+
+				options.proto.attributeChangedCallback = options.attributed;
+
+				options.proto.createdCallback = function () {
+					self.created(this, options);
+				};
+
+				options.proto.attachedCallback = function () {
+					self.attached(this, options);
+				};
+
+				options.proto.detachedCallback = function () {
+					self.detached(this, options);
+				};
+
+				return document.registerElement(options.name, {
+					prototype: options.proto
+				});
+			}
+		}]);
+
+		return Component;
+	}();
+
+	var Component$1 = new Component();
+
+	var Router = function (_Events2) {
+		_inherits(Router, _Events2);
 
 		function Router() {
 			_classCallCheck(this, Router);
 
-			var _this12 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
+			var _this11 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
 
-			_this12.data = [];
-			_this12.location = {};
-
-			_this12.ran = false;
-
-			_this12.element = null;
-			_this12.contain = false;
-			_this12.compiled = false;
-
-			document.addEventListener('click', _this12.clickListener.bind(_this12), true);
-			window.addEventListener('popstate', _this12.stateListener.bind(_this12), true);
-			return _this12;
+			_this11.data = [];
+			_this11.location = {};
+			_this11.ran = false;
+			_this11.element = null;
+			_this11.contain = false;
+			_this11.compiled = false;
+			return _this11;
 		}
 
 		_createClass(Router, [{
@@ -3192,7 +3272,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							route.element = document.createElement(route.component);
 						} else if (route.component.constructor.name === 'Object') {
 
-							Component.define(route.component);
+							Component$1.define(route.component);
 
 							if (this.compiled) {
 								route.element = this.element.firstChild;
@@ -3273,63 +3353,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.emit('routing');
 				this.render(location.route);
 			})
-		}, {
-			key: 'stateListener',
-			value: function stateListener(e) {
-				var path = e && e.state ? e.state.path : window.location.href;
-				this.route(path, { replace: true });
-			}
-		}, {
-			key: 'clickListener',
-			value: function clickListener(e) {
-
-				// if shadow dom use
-				var target = e.path ? e.path[0] : e.target;
-				var parent = target.parentNode;
-
-				if (this.contain) {
-
-					while (parent) {
-
-						if (parent.nodeName === 'O-ROUTER') {
-							break;
-						} else {
-							parent = parent.parentNode;
-						}
-					}
-
-					if (parent.nodeName !== 'O-ROUTER') {
-						return;
-					}
-				}
-
-				if (e.metaKey || e.ctrlKey || e.shiftKey) {
-					return;
-				}
-
-				// ensure target is anchor tag
-				while (target && 'A' !== target.nodeName) {
-					target = target.parentNode;
-				}
-
-				if (!target || 'A' !== target.nodeName) {
-					return;
-				}
-
-				// check non acceptables
-				if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return;
-
-				// if external is true then default action
-				if (this.external && (this.external.constructor.name === 'RegExp' && this.external.test(target.href) || this.external.constructor.name === 'Function' && this.external(target.href) || this.external.constructor.name === 'String' && this.external === target.href)) return;
-
-				if (this.location.href !== target.href) {
-					this.route(target.href);
-				}
-
-				if (!this.compiled) {
-					e.preventDefault();
-				}
-			}
 		}]);
 
 		return Router;
@@ -3337,147 +3360,101 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Router$1 = new Router();
 
-	var Global = {
+	function Click(e) {
 
-		compiled: false,
+		var parent = void 0;
+		var target = void 0;
 
-		get window() {
-			return window;
-		},
+		// if shadow dom use
+		target = e.path ? e.path[0] : e.target;
+		parent = target.parentNode;
 
-		get document() {
-			return window.document;
-		},
+		if (Router$1.contain) {
 
-		get body() {
-			return window.document.body;
-		},
+			while (parent) {
 
-		get head() {
-			return window.document.head;
-		},
+				if (parent.nodeName === 'O-ROUTER') {
+					break;
+				} else {
+					parent = parent.parentNode;
+				}
+			}
 
-		get location() {
-			return this.router.location;
-		},
-
-		get currentScript() {
-			return window.document._currentScript || window.document.currentScript;
-		},
-
-		get ownerDocument() {
-			return (window.document._currentScript || window.document.currentScript).ownerDocument;
-		},
-
-		get global() {
-			return {};
-		},
-
-		get methods() {
-			return Methods;
-		},
-
-		get utility() {
-			return Utility;
-		},
-
-		get general() {
-			return General$1;
-		},
-
-		get batcher() {
-			return Batcher;
-		},
-
-		get loader() {
-			return Loader$1;
-		},
-
-		get binder() {
-			return Binder;
-		},
-
-		get fetcher() {
-			return Fetcher$1;
-		},
-
-		get component() {
-			return Component;
-		},
-
-		get router() {
-			return Router$1;
-		},
-
-		get model() {
-			return Model$1;
-		},
-
-		setup: function setup(data) {
-
-			if (this._setup) {
+			if (parent.nodeName !== 'O-ROUTER') {
 				return;
-			} else {
-				this._setup = true;
-			}
-
-			data = data || {};
-
-			if (data.listener && data.listener.before) {
-				data.listener.before();
-			}
-
-			if (data.general) {
-				this.general.setup(data.general);
-			}
-
-			if (data.fetcher) {
-				this.fetcher.setup(data.fetcher);
-			}
-
-			if (data.loader) {
-				this.loader.setup(data.loader);
-			}
-
-			if (data.component) {
-				this.component.setup(data.component);
-			}
-
-			if (data.router) {
-				this.router.setup(data.router);
-			}
-
-			if (data.listener && data.listener.after) {
-				data.listener.after();
 			}
 		}
-	};
 
-	function Change(e) {
+		if (e.metaKey || e.ctrlKey || e.shiftKey) {
+			return;
+		}
 
-		if (e.target.hasAttribute('o-value')) {
-			Update(e.target, 'value').catch(console.error);
+		// ensure target is anchor tag
+		while (target && 'A' !== target.nodeName) {
+			target = target.parentNode;
+		}
+
+		if (!target || 'A' !== target.nodeName) {
+			return;
+		}
+
+		// check non acceptables
+		if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return;
+
+		// if external is true then default action
+		if (Router$1.external && (Router$1.external.constructor.name === 'RegExp' && Router$1.external.test(target.href) || Router$1.external.constructor.name === 'Function' && Router$1.external(target.href) || Router$1.external.constructor.name === 'String' && Router$1.external === target.href)) return;
+
+		if (Router$1.location.href !== target.href) {
+			Router$1.route(target.href);
+		}
+
+		if (!Router$1.compiled) {
+			e.preventDefault();
 		}
 	}
 
-	function Reset(e) {
+	function State(e) {
+
+		var path = e && e.state ? e.state.path : window.location.href;
+
+		Router$1.route(path, { replace: true });
+	}
+
+	function Load(e) {
 		var element = e.target;
-		var reset = element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset');
 
-		if (!reset) return;else e.preventDefault();
-
-		var binder = Binder.elements.get(element).get('submit');
-		var elements = element.querySelectorAll('[o-value]');
-		var model = Model$1.get(binder.scope);
-
-		Utility.formReset(element, model);
-	}
-
-	function Input(e) {
-		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
-			Update(e.target, 'value').catch(console.error);
+		if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
+			return;
 		}
+
+		var path = Path.resolve(element.src || element.href);
+		var load = this.data[path];
+
+		Loader$1.ready(load);
 	}
+
+	var General = function () {
+		function General() {
+			_classCallCheck(this, General);
+
+			this.compiled = false;
+		}
+
+		_createClass(General, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
+
+				if (options.base) {
+					Path.base(options.base);
+				}
+			}
+		}]);
+
+		return General;
+	}();
+
+	var General$1 = new General();
 
 	// OPTIMIZE wait until polyfill are ready then allow setup
 
@@ -3509,42 +3486,45 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		loadedCalled = true;
 
+		document.addEventListener('load', Load, true);
 		document.addEventListener('input', Input, true);
 		document.addEventListener('reset', Reset, true);
+		document.addEventListener('click', Click, true);
 		document.addEventListener('submit', Submit, true);
 		document.addEventListener('change', Change, true);
+		window.addEventListener('popstate', State, true);
 
 		var element = document.querySelector('script[o-setup]');
 
 		if (element) {
 
-			var args = element.getAttribute('o-setup').split(/\s*,\s*/);
+			var _args = element.getAttribute('o-setup').split(/\s*,\s*/);
 			var meta = document.querySelector('meta[name="oxe"]');
 
 			if (meta && meta.hasAttribute('compiled')) {
-				args[1] = 'null';
-				args[2] = 'script';
-				Global.compiled = true;
-				Global.router.compiled = true;
-				Global.component.compiled = true;
+				_args[1] = 'null';
+				_args[2] = 'script';
+				Router$1.compiled = true;
+				General$1.compiled = true;
+				Component$1.compiled = true;
 			}
 
-			if (!args[0]) {
+			if (!_args[0]) {
 				throw new Error('Oxe - o-setup attribute requires a url');
 			}
 
-			if (args.length > 1) {
-				Global.loader.load({
-					url: args[0],
-					method: args[2],
-					transformer: args[1]
+			if (_args.length > 1) {
+				Loader$1.load({
+					url: _args[0],
+					method: _args[2],
+					transformer: _args[1]
 				});
 			} else {
-				var index = document.createElement('script');
-				index.setAttribute('src', args[0]);
-				index.setAttribute('async', 'true');
-				index.setAttribute('type', 'module');
-				element.insertAdjacentElement('afterend', index);
+				var _index2 = document.createElement('script');
+				_index2.setAttribute('src', _args[0]);
+				_index2.setAttribute('async', 'true');
+				_index2.setAttribute('type', 'module');
+				element.insertAdjacentElement('afterend', _index2);
 			}
 		}
 
@@ -3582,5 +3562,149 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	loader(!('registerElement' in document) || !('content' in document.createElement('template')), 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
 
-	return Global;
+	var Oxe$1 = function () {
+		function Oxe$1() {
+			// this.compiled = true;
+
+			_classCallCheck(this, Oxe$1);
+		}
+
+		_createClass(Oxe$1, [{
+			key: 'setup',
+			value: function setup(data) {
+
+				if (this._setup) {
+					return;
+				} else {
+					this._setup = true;
+				}
+
+				data = data || {};
+
+				if (data.listener && data.listener.before) {
+					data.listener.before();
+				}
+
+				if (data.general) {
+					this.general.setup(data.general);
+				}
+
+				if (data.fetcher) {
+					this.fetcher.setup(data.fetcher);
+				}
+
+				if (data.loader) {
+					this.loader.setup(data.loader);
+				}
+
+				if (data.component) {
+					this.component.setup(data.component);
+				}
+
+				if (data.router) {
+					this.router.setup(data.router);
+				}
+
+				if (data.listener && data.listener.after) {
+					data.listener.after();
+				}
+			}
+		}, {
+			key: 'window',
+			get: function get() {
+				return window;
+			}
+		}, {
+			key: 'document',
+			get: function get() {
+				return window.document;
+			}
+		}, {
+			key: 'body',
+			get: function get() {
+				return window.document.body;
+			}
+		}, {
+			key: 'head',
+			get: function get() {
+				return window.document.head;
+			}
+		}, {
+			key: 'location',
+			get: function get() {
+				return this.router.location;
+			}
+		}, {
+			key: 'currentScript',
+			get: function get() {
+				return window.document._currentScript || window.document.currentScript;
+			}
+		}, {
+			key: 'ownerDocument',
+			get: function get() {
+				return (window.document._currentScript || window.document.currentScript).ownerDocument;
+			}
+		}, {
+			key: 'global',
+			get: function get() {
+				return {};
+			}
+		}, {
+			key: 'methods',
+			get: function get() {
+				return Methods$1;
+			}
+		}, {
+			key: 'utility',
+			get: function get() {
+				return Utility;
+			}
+		}, {
+			key: 'general',
+			get: function get() {
+				return General$1;
+			}
+		}, {
+			key: 'batcher',
+			get: function get() {
+				return Batcher$1;
+			}
+		}, {
+			key: 'loader',
+			get: function get() {
+				return Loader$1;
+			}
+		}, {
+			key: 'binder',
+			get: function get() {
+				return Binder$1;
+			}
+		}, {
+			key: 'fetcher',
+			get: function get() {
+				return Fetcher$1;
+			}
+		}, {
+			key: 'component',
+			get: function get() {
+				return Component$1;
+			}
+		}, {
+			key: 'router',
+			get: function get() {
+				return Router$1;
+			}
+		}, {
+			key: 'model',
+			get: function get() {
+				return Model$1;
+			}
+		}]);
+
+		return Oxe$1;
+	}();
+
+	var index = new Oxe$1();
+
+	return index;
 });

@@ -1,17 +1,15 @@
 import Path from './path.js';
-import Events from './events.js';
 import Loader from './loader.js';
 import Utility from './utility.js';
 import Component from './component.js';
+import Events from './class/events.js';
 
 class Router extends Events {
 
 	constructor () {
 		super();
-
 		this.data = [];
 		this.location = {};
-
 		this.ran = false;
 		this.element = null;
 		this.contain = false;

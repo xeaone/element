@@ -1,33 +1,30 @@
 import Observer from './observer.js';
 import Unrender from './unrender.js';
-import Events from './events.js';
 import Binder from './binder.js';
 import Render from './render.js';
 
-class Model extends Events {
+class Model {
 
 	constructor () {
-		super();
-
 		this.GET = 2;
 		this.SET = 3;
 		this.REMOVE = 4;
 		this.ran = false;
-
 		this.data = Observer.create({}, this.listener);
 	}
 
 	traverse (type, keys, value) {
+		let result;
 
 		if (typeof keys === 'string') {
-			keys = [keys];
+			keys = keys.split('.');
+			// keys = [keys];
 		}
 
-		var data = this.data;
-		var v, p, path, result;
-		var key = keys[keys.length-1];
+		let data = this.data;
+		let key = keys[keys.length-1];
 
-		for (var i = 0, l = keys.length-1; i < l; i++) {
+		for (let i = 0, l = keys.length-1; i < l; i++) {
 
 			if (!(keys[i] in data)) {
 
@@ -68,9 +65,13 @@ class Model extends Events {
 
 	listener (data, path) {
 		const method = data === undefined ? Unrender : Render;
+
 		Binder.each(path, function (binder) {
+			
 			method.default(binder);
+
 		});
+
 	}
 
 }

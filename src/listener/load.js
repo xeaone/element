@@ -1,4 +1,5 @@
 import Loader from '../loader.js';
+import Path from '../path.js';
 
 export default function (e) {
 	const element = e.target;

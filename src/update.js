@@ -72,7 +72,6 @@ export default async function (element, attribute) {
 			data = binder.element.value;
 		}
 
-
 		if (data !== undefined) {
 			const original = Model.get(binder.keys);
 

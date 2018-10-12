@@ -1,26 +1,12 @@
 
 export default {
 
-	// PATH: /\s*\|.*/,
 	PREFIX: /data-o-|o-/,
 	ROOT: /^(https?:)?\/?\//,
-	// TYPE: /(data-)?o-|-.*$/g,
-	// SPLIT_PIPES: /\s|\s?,\s?/,
 
 	DOT: /\.+/,
 	PIPE: /\s?\|\s?/,
 	PIPES: /\s?,\s?|\s+/,
-
-	// binderNormalize (data) {
-	// 	return !data ? '' : data
-	// 		.replace(/\s+$/, '')
-	// 		.replace(/^\s+/, '')
-	// 		.replace(/\.{2,}/g, '.')
-	// 		.replace(/\|{2,}/g, '|')
-	// 		.replace(/\,{2,}/g, ',')
-	// 		.replace(/\s{2,}/g, ' ')
-	// 		.replace(/\s?\|\s?/, '|');
-	// },
 
 	binderNames (data) {
 		data = data.split(this.PREFIX)[1];

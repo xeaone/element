@@ -1,5 +1,5 @@
 import Transformer from './transformer.js';
-import Events from './events.js';
+import Events from './class/events.js';
 import Path from './path.js';
 
 class Loader extends Events {

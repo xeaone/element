@@ -126,7 +126,7 @@ class Component {
 			scope: {
 				enumerable: true,
 				value: scope
-			}
+			},
 			status: {
 				enumerable: true,
 				value: 'created'

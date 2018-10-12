@@ -10,11 +10,12 @@ export default {
 
 	each (opt) {
 		Batcher.write(function () {
-			var element;
+			let element;
 
 			while (element = opt.element.lastElementChild) {
 				opt.element.removeChild(element);
 			}
+
 		});
 	},
 
@@ -26,18 +27,19 @@ export default {
 
 	class (opt) {
 		Batcher.write(function () {
-			var className = opt.names.slice(1).join('-');
+			const className = opt.names.slice(1).join('-');
 			opt.element.classList.remove(className);
 		});
 	},
 
 	html (opt) {
 		Batcher.write(function () {
-			var element;
+			let element;
 
 			while (element = opt.element.lastElementChild) {
 				opt.element.removeChild(element);
 			}
+
 		});
 	},
 
@@ -113,8 +115,6 @@ export default {
 	default (opt) {
 		if (opt.type in this) {
 			this[opt.type](opt);
-		} else {
-			
 		}
 	}
 

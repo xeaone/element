@@ -1,6 +1,7 @@
 import Path from './path.js';
 
 // FIXME import export in strings cause error
+// FIXME double backtick in template strings or regex could possibly causes issues
 
 export default {
 
@@ -8,7 +9,7 @@ export default {
 		templates
 	*/
 
-	_innerHandler (char, index, string) {
+	innerHandler (char, index, string) {
 		if (string[index-1] === '\\') return;
 		if (char === '\'') return '\\\'';
 		if (char === '\"') return '\\"';
@@ -16,27 +17,26 @@ export default {
 		if (char === '\n') return '\\n';
 	},
 
-	_updateString (value, index, string) {
+	updateString (value, index, string) {
 		return string.slice(0, index) + value + string.slice(index+1);
 	},
 
-	_updateIndex (value, index) {
+	updateIndex (value, index) {
 		return index + value.length-1;
 	},
 
 	template (data) {
-		// NOTE: double backtick in strings or regex could possibly causes issues
 
-		var first = data.indexOf('`');
-		var second = data.indexOf('`', first+1);
+		let first = data.indexOf('`');
+		let second = data.indexOf('`', first+1);
 
 		if (first === -1 || second === -1) return data;
 
-		var value;
-		var ends = 0;
-		var starts = 0;
-		var string = data;
-		var isInner = false;
+		let value;
+		let ends = 0;
+		let starts = 0;
+		let string = data;
+		let isInner = false;
 
 		for (var index = 0; index < string.length; index++) {
 			var char = string[index];
@@ -47,21 +47,21 @@ export default {
 					ends++;
 					value = '\'';
 					isInner = false;
-					string = this._updateString(value, index, string);
-					index = this._updateIndex(value, index);
+					string = this.updateString(value, index, string);
+					index = this.updateIndex(value, index);
 				} else {
 					starts++;
 					value = '\'';
 					isInner = true;
-					string = this._updateString(value, index, string);
-					index = this._updateIndex(value, index);
+					string = this.updateString(value, index, string);
+					index = this.updateIndex(value, index);
 				}
 
 			} else if (isInner) {
 
-				if (value = this._innerHandler(char, index, string)) {
-					string = this._updateString(value, index, string);
-					index = this._updateIndex(value, index);
+				if (value = this.innerHandler(char, index, string)) {
+					string = this.updateString(value, index, string);
+					index = this.updateIndex(value, index);
 				}
 
 			}
@@ -91,11 +91,11 @@ export default {
 	},
 
 	getImports (text, base) {
-		var result = [];
-		var imps = text.match(this.patterns.imps) || [];
+		const result = [];
+		const imps = text.match(this.patterns.imps) || [];
 
-		for (var i = 0, l = imps.length; i < l; i++) {
-			var imp = imps[i].match(this.patterns.imp);
+		for (let i = 0, l = imps.length; i < l; i++) {
+		 	const imp = imps[i].match(this.patterns.imp);
 
 			result[i] = {
 				raw: imp[0],
@@ -114,11 +114,11 @@ export default {
 	},
 
 	getExports (text) {
-		var result = [];
-		var exps = text.match(this.patterns.exps) || [];
+		const result = [];
+		const exps = text.match(this.patterns.exps) || [];
 
-		for (var i = 0, l = exps.length; i < l; i++) {
-			var exp = exps[i];
+		for (let i = 0, l = exps.length; i < l; i++) {
+			const exp = exps[i];
 
 			result[i] = {
 				raw: exp,
@@ -136,10 +136,10 @@ export default {
 			return text;
 		}
 
-		for (var i = 0, l = imps.length; i < l; i++) {
-			var imp = imps[i];
+		for (let i = 0, l = imps.length; i < l; i++) {
+			const imp = imps[i];
 
-			var pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.data[\'' + imp.url + '\'].result';
+			const pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.data[\'' + imp.url + '\'].result';
 
 			text = text.replace(imp.raw, pattern);
 		}
@@ -157,12 +157,10 @@ export default {
 			return text.replace(exps[0].raw, 'return ');
 		}
 
-		var i, l, pattern;
-
 		text = 'var $EXPORT = {};\n' + text;
 		text = text + '\nreturn $EXPORT;\n';
 
-		for (i = 0, l = exps.length; i < l; i++) {
+		for (let i = 0, l = exps.length; i < l; i++) {
 			text = text.replace(exps[i].raw, '$EXPORT.');
 		}
 
@@ -170,20 +168,20 @@ export default {
 	},
 
 	ast (data) {
-		var ast = {};
+		const result = {};
 
-		ast.url = data.url;
-		ast.raw = data.text;
-		ast.cooked = data.text;
-		ast.base = ast.url.slice(0, ast.url.lastIndexOf('/') + 1);
+		result.url = data.url;
+		result.raw = data.text;
+		result.cooked = data.text;
+		result.base = result.url.slice(0, result.url.lastIndexOf('/') + 1);
 
-		ast.imports = this.getImports(ast.raw, ast.base);
-		ast.exports = this.getExports(ast.raw);
+		result.imports = this.getImports(result.raw, result.base);
+		result.exports = this.getExports(result.raw);
 
-		ast.cooked = this.replaceImports(ast.cooked, ast.imports);
-		ast.cooked = this.replaceExports(ast.cooked, ast.exports);
+		result.cooked = this.replaceImports(result.cooked, result.imports);
+		result.cooked = this.replaceExports(result.cooked, result.exports);
 
-		return ast;
+		return result;
 	}
 
 }
