@@ -98,7 +98,6 @@ export default {
 		const self = this;
 	 	const iindex = '$index';
 		const vindex = '$' + variable;
-		// const pattern = new RegExp('\\$index|\\$' + variable, 'ig');
 
 		self.walker(element, function (node) {
 			if (node.nodeType === 3) {
@@ -106,9 +105,7 @@ export default {
 					node.nodeValue = key;
 				}
 			} else if (node.nodeType === 1) {
-				for (let i = 0, l = node.attributes.length; i < l; i++) {
-					const attribute = node.attributes[i];
-
+				for (const attribute of node.attributes) {
 					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 
 						// attribute.value = attribute.value.replace(pattern, key);
@@ -152,7 +149,6 @@ export default {
 
 						attribute.value = result.join('');
 					}
-
 				}
 			}
 		});
