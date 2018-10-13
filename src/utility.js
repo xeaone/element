@@ -98,7 +98,6 @@ export default {
 		const self = this;
 	 	const iindex = '$index';
 		const vindex = '$' + variable;
-
 		self.walker(element, function (node) {
 			if (node.nodeType === 3) {
 				if (node.nodeValue === vindex || node.nodeValue === iindex) {
@@ -107,52 +106,13 @@ export default {
 			} else if (node.nodeType === 1) {
 				for (const attribute of node.attributes) {
 					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-
-						// attribute.value = attribute.value.replace(pattern, key);
-						// if (value === variable || value.indexOf(variable) === 0) {
-							// attribute.value = path + '.' + key + attribute.value.slice(variable.length);
-						// }
-
-						const value = attribute.value;
-						const length = value.length;
-						const last = length - 1;
-						const result = [];
-
-						let item = '';
-
-						for (let index = 0; index < length; index++) {
-						 	const char = value[index];
-
-							if (char === '$' && value.slice(index, iindex.length) === iindex) {
-								item += key;
-								index = index + iindex.length - 1;
-							} else if (char === '$' && value.slice(index, vindex.length) === vindex) {
-								item += key;
-								index = index + vindex.length - 1;
-							} else {
-								item += char;
-							}
-
-							if (char === ' ' || char === '|' || char === ',' || index === last) {
-
-								if (item.indexOf(variable) === 0) {
-									const tail = item.slice(variable.length);
-									result.push(path + '.' + key + tail);
-								} else {
-									result.push(item);
-								}
-
-								item = '';
-							}
-
+						if (attribute.value === variable || attribute.value.indexOf(variable) === 0) {
+							attribute.value = path + '.' + key + attribute.value.slice(variable.length);
 						}
-
-						attribute.value = result.join('');
 					}
 				}
 			}
 		});
-
 	},
 
 	traverse (data, path, callback) {

@@ -4,18 +4,23 @@ var oLoop = {
 	model: {
 		items: [],
 		message: '',
-		count: 1500
+		count: 6000
 	},
 	created: function () {
-		this.model.message = 'push started';
+	},
+	methods: {
+		loop: function () {
+			this.model.message = 'push started';
 
-		let time = performance.now();
+			var time = performance.now();
 
-		for (var i = 0; i < this.model.count; i++) {
-			this.model.items.push({ number: i });
-		}
+			for (var i = 0; i < this.model.count; i++) {
+				this.model.items.push({ number: this.model.items.length });
+			}
 
-		this.model.message = 'push ended ' + (performance.now() - time) + 'ms';
+			this.model.message = 'push ended ' + (performance.now() - time) + 'ms';
+		},
+
 	},
 	template: `
 
@@ -23,6 +28,11 @@ var oLoop = {
 		<h3><span o-text="count"></span> Text one way binded</h3>
 
 		<h3 o-text="message"></h3>
+
+		<form o-submit="loop">
+			<input o-value="count" type="number">
+			<input type="submit" value="Loop">
+		<form>
 
 		<div o-each-item="items">
 			<div class="box">

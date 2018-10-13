@@ -218,56 +218,61 @@ export default {
 	each (opt) {
 		const self = this;
 
+		if (opt.pending) return;
+		else opt.pending = true;
+
+		if (!opt.cache) opt.cache = opt.element.removeChild(opt.element.firstElementChild);
+
 		Batcher.read(function () {
 
 			let data = Model.get(opt.keys);
-			let isArray = data ? data.constructor === Array : false;
-			let isObject = data ? data.constructor === Object : false;
-
-			if (opt.pending) return;
 
 			if (!data || typeof data !== 'object') {
-				opt.pending = false;
-				return;
-			} else if (isArray && opt.element.children.length === data.length) {
-				opt.pending = false;
-				return;
-			} else if (isObject && opt.element.children.length === Object.keys(data).length) {
-				opt.pending = false;
+			 	opt.pending = false;
 				return;
 			}
 
-			opt.pending = true;
-
-			if (!opt.cache) {
-				opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-			}
+			const length = opt.element.children.length;
+			const isArray = data.constructor === Array;
+			const isObject = data.constructor === Object;
 
 			data = Binder.piper(opt, data);
 
-			if (isObject) {
-				data = Object.keys(data);
-			}
-
 			let key;
-			let clone = opt.cache.cloneNode(true);
+			const keys = isObject ? Object.keys(data) : [];
 
 			if (isArray) {
-				key = opt.element.children.length;
-			} else if (isObject) {
-				key = data[opt.element.children.length];
+				if (length === data.length) {
+					opt.pending = false;
+					return;
+				} else {
+					key = length;
+				}
 			}
 
+			if (isObject) {
+				if (length === keys.length) {
+					opt.pending = false;
+					return;
+				} else {
+					key = keys[length];
+				}
+			}
+
+			const element = length > data.length ? opt.element.lastElementChild : null;
+			const clone = opt.cache.cloneNode(true);
+			// console.log(data.length);
+			// console.log(length);
+			// console.log(key);
+
 			Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
+			console.log('past');
 			Binder.bind(clone, opt.container);
 
 			Batcher.write(function () {
-				
-				if (opt.element.children.length > data.length) {
-					opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
-				} else if (opt.element.children.length < data.length) {
-					opt.element.appendChild(clone);
-				}
+
+				if (element) opt.element.removeChild(element);
+				else opt.element.appendChild(clone);
 
 				/*
 					check if select element with o-value
