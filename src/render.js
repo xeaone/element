@@ -266,7 +266,6 @@ export default {
 			// console.log(key);
 
 			Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-			console.log('past');
 			Binder.bind(clone, opt.container);
 
 			Batcher.write(function () {

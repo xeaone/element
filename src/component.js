@@ -12,14 +12,10 @@ class Component {
 	setup (options) {
 		options = options || {};
 
-		const components = options.components;
-
-		if (components) {
-
-			for (const component of components) {
-				this.define(component);
+		if (options.components && options.components.length) {
+			for (let i = 0, l = options.components.length; i < l; i++) {
+				this.define(options.components[i]);
 			}
-
 		}
 
 	}
@@ -56,32 +52,32 @@ class Component {
 
 	}
 
-	renderTemplate (template) {
-		const fragment = document.createDocumentFragment();
-
-		if (template) {
-
-			if (typeof template === 'string') {
-				const temporary = document.createElement('div');
-
-				temporary.innerHTML = template;
-
-				while (temporary.firstChild) {
-					fragment.appendChild(temporary.firstChild);
-				}
-
-			} else {
-				fragment.appendChild(template);
-			}
-
-		}
-
-		return fragment;
-	}
+	// renderTemplate (template) {
+	// 	const fragment = document.createDocumentFragment();
+	//
+	// 	if (template) {
+	//
+	// 		if (typeof template === 'string') {
+	// 			const temporary = document.createElement('div');
+	//
+	// 			temporary.innerHTML = template;
+	//
+	// 			while (temporary.firstChild) {
+	// 				fragment.appendChild(temporary.firstChild);
+	// 			}
+	//
+	// 		} else {
+	// 			fragment.appendChild(template);
+	// 		}
+	//
+	// 	}
+	//
+	// 	return fragment;
+	// }
 
 	renderStyle (style, scope) {
 
-		if (!style) return;
+		if (!style) return '';
 
 		if (window.CSS && window.CSS.supports) {
 
@@ -110,12 +106,7 @@ class Component {
 
 		}
 
-		const estyle = document.createElement('style');
-		const nstyle = document.createTextNode(style);
-
-		estyle.appendChild(nstyle);
-
-		return estyle;
+		return '<style>' + style + '</style>';
 	}
 
 	created (element, options) {
@@ -124,35 +115,41 @@ class Component {
 
 		Object.defineProperties(element, {
 			scope: {
-				enumerable: true,
-				value: scope
+				value: scope,
+				enumerable: true
 			},
 			status: {
-				enumerable: true,
-				value: 'created'
+				value: 'created',
+				enumerable: true
 			}
 		});
 
 		element.setAttribute('o-scope', scope);
 
-		Model.set(scope, options.model || {});
-		Methods.set(scope, options.methods || {});
+		Model.set(scope, options.model);
+		Methods.set(scope, options.methods);
 
 		if (!self.compiled || (self.compiled && element.parentNode.nodeName !== 'O-ROUTER')) {
-			const eTemplate = self.renderTemplate(options.template);
-			const eStyle = self.renderStyle(options.style, scope);
+			const template = document.createElement('template');
+			const style = self.renderStyle(options.style, scope);
 
-			if (eStyle) {
-				eTemplate.insertBefore(eStyle, eTemplate.firstChild);
+			if (typeof options.template === 'string') {
+				template.innerHTML = style + options.template;
+			} else {
+				template.innerHTML = style;
+				template.appendChild(options.template);
 			}
 
 			if (options.shadow && 'attachShadow' in document.body) {
-				element.attachShadow({ mode: 'open' }).appendChild(eTemplate);
+				const clone = document.importNode(template.content, true);
+				element.attachShadow({ mode: 'open' }).appendChild(clone);
 			} else if (options.shadow && 'createShadowRoot' in document.body) {
-				element.createShadowRoot().appendChild(eTemplate);
+				const clone = document.importNode(template.content, true);
+				element.createShadowRoot().appendChild(clone);
 			} else {
-				self.renderSlot(eTemplate, element);
-				element.appendChild(eTemplate);
+				self.renderSlot(template.content, element);
+				const clone = document.importNode(template.content, true);
+				element.appendChild(clone);
 			}
 
 		}
@@ -166,21 +163,19 @@ class Component {
 	}
 
 	attached (element, options) {
-		// Binder.bind(element);
 		if (options.attached) {
 			options.attached.call(element);
 		}
 	}
 
 	detached (element, options) {
-		// Binder.unbind(element);
 		if (options.detached) {
 			options.detached.call(element);
 		}
 	}
 
 	define (options) {
-		var self = this;
+		const self = this;
 
 		if (!options.name) {
 			throw new Error('Oxe.component.define - requires name');
@@ -194,7 +189,9 @@ class Component {
 
 		options.count = 0;
 		options.compiled = false;
+		options.style = options.style || '';
 		options.model = options.model || {};
+		options.methods = options.methods || {};
 		options.shadow = options.shadow || false;
 		options.template = options.template || '';
 		options.properties = options.properties || {};

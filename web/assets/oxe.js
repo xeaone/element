@@ -124,13 +124,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = multiple ? [] : '';
 
-				var _iteratorNormalCompletion14 = true;
-				var _didIteratorError14 = false;
-				var _iteratorError14 = undefined;
+				var _iteratorNormalCompletion13 = true;
+				var _didIteratorError13 = false;
+				var _iteratorError13 = undefined;
 
 				try {
-					for (var _iterator14 = elements[Symbol.iterator](), _step14; !(_iteratorNormalCompletion14 = (_step14 = _iterator14.next()).done); _iteratorNormalCompletion14 = true) {
-						var _element = _step14.value;
+					for (var _iterator13 = elements[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
+						var _element = _step13.value;
 
 						// NOTE might need to handle disable
 
@@ -146,16 +146,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				} catch (err) {
-					_didIteratorError14 = true;
-					_iteratorError14 = err;
+					_didIteratorError13 = true;
+					_iteratorError13 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion14 && _iterator14.return) {
-							_iterator14.return();
+						if (!_iteratorNormalCompletion13 && _iterator13.return) {
+							_iterator13.return();
 						}
 					} finally {
-						if (_didIteratorError14) {
-							throw _iteratorError14;
+						if (_didIteratorError13) {
+							throw _iteratorError13;
 						}
 					}
 				}
@@ -179,27 +179,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = data || [];
 
-				var _iteratorNormalCompletion15 = true;
-				var _didIteratorError15 = false;
-				var _iteratorError15 = undefined;
+				var _iteratorNormalCompletion14 = true;
+				var _didIteratorError14 = false;
+				var _iteratorError14 = undefined;
 
 				try {
-					for (var _iterator15 = files[Symbol.iterator](), _step15; !(_iteratorNormalCompletion15 = (_step15 = _iterator15.next()).done); _iteratorNormalCompletion15 = true) {
-						var file = _step15.value;
+					for (var _iterator14 = files[Symbol.iterator](), _step14; !(_iteratorNormalCompletion14 = (_step14 = _iterator14.next()).done); _iteratorNormalCompletion14 = true) {
+						var file = _step14.value;
 
 						data.push(file);
 					}
 				} catch (err) {
-					_didIteratorError15 = true;
-					_iteratorError15 = err;
+					_didIteratorError14 = true;
+					_iteratorError14 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion15 && _iterator15.return) {
-							_iterator15.return();
+						if (!_iteratorNormalCompletion14 && _iterator14.return) {
+							_iterator14.return();
 						}
 					} finally {
-						if (_didIteratorError15) {
-							throw _iteratorError15;
+						if (_didIteratorError14) {
+							throw _iteratorError14;
 						}
 					}
 				}
@@ -1246,7 +1246,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				// console.log(key);
 
 				Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-				console.log('past');
 				Binder$1.bind(clone, opt.container);
 
 				Batcher$1.write(function () {
@@ -2717,33 +2716,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function setup(options) {
 				options = options || {};
 
-				var components = options.components;
-
-				if (components) {
-					var _iteratorNormalCompletion11 = true;
-					var _didIteratorError11 = false;
-					var _iteratorError11 = undefined;
-
-					try {
-
-						for (var _iterator11 = components[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-							var component = _step11.value;
-
-							this.define(component);
-						}
-					} catch (err) {
-						_didIteratorError11 = true;
-						_iteratorError11 = err;
-					} finally {
-						try {
-							if (!_iteratorNormalCompletion11 && _iterator11.return) {
-								_iterator11.return();
-							}
-						} finally {
-							if (_didIteratorError11) {
-								throw _iteratorError11;
-							}
-						}
+				if (options.components && options.components.length) {
+					for (var i = 0, l = options.components.length; i < l; i++) {
+						this.define(options.components[i]);
 					}
 				}
 			}
@@ -2752,13 +2727,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function renderSlot(target, source) {
 				var targetSlots = target.querySelectorAll('slot[name]');
 
-				var _iteratorNormalCompletion12 = true;
-				var _didIteratorError12 = false;
-				var _iteratorError12 = undefined;
+				var _iteratorNormalCompletion11 = true;
+				var _didIteratorError11 = false;
+				var _iteratorError11 = undefined;
 
 				try {
-					for (var _iterator12 = targetSlots[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
-						var targetSlot = _step12.value;
+					for (var _iterator11 = targetSlots[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+						var targetSlot = _step11.value;
 
 
 						var name = targetSlot.getAttribute('name');
@@ -2771,16 +2746,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					}
 				} catch (err) {
-					_didIteratorError12 = true;
-					_iteratorError12 = err;
+					_didIteratorError11 = true;
+					_iteratorError11 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion12 && _iterator12.return) {
-							_iterator12.return();
+						if (!_iteratorNormalCompletion11 && _iterator11.return) {
+							_iterator11.return();
 						}
 					} finally {
-						if (_didIteratorError12) {
-							throw _iteratorError12;
+						if (_didIteratorError11) {
+							throw _iteratorError11;
 						}
 					}
 				}
@@ -2798,46 +2773,48 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					defaultSlot.parentNode.removeChild(defaultSlot);
 				}
 			}
-		}, {
-			key: 'renderTemplate',
-			value: function renderTemplate(template) {
-				var fragment = document.createDocumentFragment();
 
-				if (template) {
+			// renderTemplate (template) {
+			// 	const fragment = document.createDocumentFragment();
+			//
+			// 	if (template) {
+			//
+			// 		if (typeof template === 'string') {
+			// 			const temporary = document.createElement('div');
+			//
+			// 			temporary.innerHTML = template;
+			//
+			// 			while (temporary.firstChild) {
+			// 				fragment.appendChild(temporary.firstChild);
+			// 			}
+			//
+			// 		} else {
+			// 			fragment.appendChild(template);
+			// 		}
+			//
+			// 	}
+			//
+			// 	return fragment;
+			// }
 
-					if (typeof template === 'string') {
-						var temporary = document.createElement('div');
-
-						temporary.innerHTML = template;
-
-						while (temporary.firstChild) {
-							fragment.appendChild(temporary.firstChild);
-						}
-					} else {
-						fragment.appendChild(template);
-					}
-				}
-
-				return fragment;
-			}
 		}, {
 			key: 'renderStyle',
 			value: function renderStyle(style, scope) {
 
-				if (!style) return;
+				if (!style) return '';
 
 				if (window.CSS && window.CSS.supports) {
 
 					if (!window.CSS.supports('(--t: black)')) {
 						var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-						var _iteratorNormalCompletion13 = true;
-						var _didIteratorError13 = false;
-						var _iteratorError13 = undefined;
+						var _iteratorNormalCompletion12 = true;
+						var _didIteratorError12 = false;
+						var _iteratorError12 = undefined;
 
 						try {
-							for (var _iterator13 = matches[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
-								var match = _step13.value;
+							for (var _iterator12 = matches[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+								var match = _step12.value;
 
 
 								var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
@@ -2847,16 +2824,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 								style = style.replace(pattern, rule[2]);
 							}
 						} catch (err) {
-							_didIteratorError13 = true;
-							_iteratorError13 = err;
+							_didIteratorError12 = true;
+							_iteratorError12 = err;
 						} finally {
 							try {
-								if (!_iteratorNormalCompletion13 && _iterator13.return) {
-									_iterator13.return();
+								if (!_iteratorNormalCompletion12 && _iterator12.return) {
+									_iterator12.return();
 								}
 							} finally {
-								if (_didIteratorError13) {
-									throw _iteratorError13;
+								if (_didIteratorError12) {
+									throw _iteratorError12;
 								}
 							}
 						}
@@ -2871,12 +2848,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				var estyle = document.createElement('style');
-				var nstyle = document.createTextNode(style);
-
-				estyle.appendChild(nstyle);
-
-				return estyle;
+				return '<style>' + style + '</style>';
 			}
 		}, {
 			key: 'created',
@@ -2886,35 +2858,41 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				Object.defineProperties(element, {
 					scope: {
-						enumerable: true,
-						value: scope
+						value: scope,
+						enumerable: true
 					},
 					status: {
-						enumerable: true,
-						value: 'created'
+						value: 'created',
+						enumerable: true
 					}
 				});
 
 				element.setAttribute('o-scope', scope);
 
-				Model$1.set(scope, options.model || {});
-				Methods$1.set(scope, options.methods || {});
+				Model$1.set(scope, options.model);
+				Methods$1.set(scope, options.methods);
 
 				if (!self.compiled || self.compiled && element.parentNode.nodeName !== 'O-ROUTER') {
-					var eTemplate = self.renderTemplate(options.template);
-					var _eStyle = self.renderStyle(options.style, scope);
+					var template = document.createElement('template');
+					var style = self.renderStyle(options.style, scope);
 
-					if (_eStyle) {
-						eTemplate.insertBefore(_eStyle, eTemplate.firstChild);
+					if (typeof options.template === 'string') {
+						template.innerHTML = style + options.template;
+					} else {
+						template.innerHTML = style;
+						template.appendChild(options.template);
 					}
 
 					if (options.shadow && 'attachShadow' in document.body) {
-						element.attachShadow({ mode: 'open' }).appendChild(eTemplate);
+						var clone = document.importNode(template.content, true);
+						element.attachShadow({ mode: 'open' }).appendChild(clone);
 					} else if (options.shadow && 'createShadowRoot' in document.body) {
-						element.createShadowRoot().appendChild(eTemplate);
+						var _clone = document.importNode(template.content, true);
+						element.createShadowRoot().appendChild(_clone);
 					} else {
-						self.renderSlot(eTemplate, element);
-						element.appendChild(eTemplate);
+						self.renderSlot(template.content, element);
+						var _clone2 = document.importNode(template.content, true);
+						element.appendChild(_clone2);
 					}
 				}
 
@@ -2927,7 +2905,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'attached',
 			value: function attached(element, options) {
-				// Binder.bind(element);
 				if (options.attached) {
 					options.attached.call(element);
 				}
@@ -2935,7 +2912,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'detached',
 			value: function detached(element, options) {
-				// Binder.unbind(element);
 				if (options.detached) {
 					options.detached.call(element);
 				}
@@ -2957,7 +2933,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				options.count = 0;
 				options.compiled = false;
+				options.style = options.style || '';
 				options.model = options.model || {};
+				options.methods = options.methods || {};
 				options.shadow = options.shadow || false;
 				options.template = options.template || '';
 				options.properties = options.properties || {};
