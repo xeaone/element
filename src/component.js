@@ -23,8 +23,8 @@ class Component {
 	renderSlot (target, source) {
 		const targetSlots = target.querySelectorAll('slot[name]');
 
-		for (const targetSlot of targetSlots) {
-
+		for (let i = 0, l = targetSlots.length; i < l; i++) {
+			const targetSlot = targetSlots[i];
 			const name = targetSlot.getAttribute('name');
 			const sourceSlot = source.querySelector('[slot="'+ name + '"]');
 
@@ -84,14 +84,12 @@ class Component {
 			if (!window.CSS.supports('(--t: black)')) {
 				const matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-				for (const match of matches) {
-
+				for (let i = 0, l = matches.length; i < l; i++) {
+					const match = matches[i];
 					const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
 					const pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
-
 					style = style.replace(rule[0], '');
 					style = style.replace(pattern, rule[2]);
-
 				}
 
 			}
@@ -140,21 +138,26 @@ class Component {
 				template.appendChild(options.template);
 			}
 
+			const clone = document.importNode(template.content, true);
+
+			Binder.bind(clone, element);
+
 			if (options.shadow && 'attachShadow' in document.body) {
-				const clone = document.importNode(template.content, true);
+				// const clone = document.importNode(template.content, true);
 				element.attachShadow({ mode: 'open' }).appendChild(clone);
 			} else if (options.shadow && 'createShadowRoot' in document.body) {
-				const clone = document.importNode(template.content, true);
+				// const clone = document.importNode(template.content, true);
 				element.createShadowRoot().appendChild(clone);
 			} else {
 				self.renderSlot(template.content, element);
-				const clone = document.importNode(template.content, true);
+				// const clone = document.importNode(template.content, true);
+				// Binder.bind(clone, element);
 				element.appendChild(clone);
 			}
 
 		}
 
-		Binder.bind(element);
+		// Binder.bind(element);
 
 		if (options.created) {
 			options.created.call(element);

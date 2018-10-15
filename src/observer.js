@@ -150,7 +150,7 @@ const Observer = {
 						// if (!key || key.constructor !== this.constructor) {
 						// 	return this;
 						// } else if (key.constructor === Array) {
-						// 	for (let value of key) {
+						// 	for () {
 						// 		this.$set(name, value);
 						// 	}
 						// } else if (key.constructor === Object) {

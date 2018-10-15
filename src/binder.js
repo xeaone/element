@@ -42,10 +42,13 @@ class Binder {
 
 		const items = this.data[opt.scope][opt.path];
 
-		for (const item of items) {
+		for (let i = 0, l = items.length; i < l; i++) {
+			const item = items[i];
+
 			if (item.element === opt.element && item.name === opt.name) {
 				return item;
 			}
+
 		}
 
 		return null;
@@ -113,6 +116,7 @@ class Binder {
 		const scope = paths[0];
 
 		const binderPaths = this.data[scope];
+		if (!binderPaths) return;
 		const relativePath = paths.slice(1).join('.');
 
 		for (const binderPath in binderPaths) {
@@ -127,8 +131,8 @@ class Binder {
 			) {
 				const binders = binderPaths[binderPath];
 
-				for (const binder of binders) {
-					callback(binder);
+				for (let c = 0, t = binders.length; c < t; c++) {
+					callback(binders[c]);
 				}
 
 			}
@@ -149,7 +153,8 @@ class Binder {
 			return data;
 		}
 
-		for (const method of opt.pipes) {
+		for (let i = 0, l = opt.pipes.length; i < l; i++) {
+			const method = opt.pipes[i];
 
 			if (method in methods) {
 				data = methods[method].call(opt.container, data);
@@ -162,7 +167,11 @@ class Binder {
 		return data;
 	}
 
-	skipChildren (element) {
+	checkChildren (element) {
+
+		if (element.nodeName === '#document-fragment') {
+			return true;
+		}
 
 		if (
 			element.nodeName === 'STYLE'
@@ -170,28 +179,30 @@ class Binder {
 			&& element.nodeName === 'OBJECT'
 			&& element.nodeName === 'IFRAME'
 		) {
-			return true;
+			return false;
 		}
 
-		for (const attribute of element.attributes) {
+		for (let i = 0, l = element.attributes.length; i < l; i++) {
+			const attribute = element.attributes[i];
+
 			if (
 				attribute.name.indexOf('o-each') === 0 ||
 				attribute.name.indexOf('data-o-each') === 0
 			) {
-				return true;
+				return false;
 			}
+
 		}
 
-		return false;
+		return true;
 	}
 
-	eachElement (element, container, callback) {
-		const containerScope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
-		const elementScope = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
-		const scoped = elementScope ? elementScope === containerScope : true;
+	eachElement (element, container, scope, callback) {
 
 		if (
 			element.nodeName !== 'O-ROUTER'
+			&& element.nodeName !== 'TEMPLATE'
+			&& element.nodeName !== '#document-fragment'
 			&& !element.hasAttribute('o-scope')
 			&& !element.hasAttribute('o-setup')
 			&& !element.hasAttribute('o-router')
@@ -206,10 +217,11 @@ class Binder {
 			callback.call(this, element);
 		}
 
-		if (scoped && this.skipChildren(element) === false) {
+		if (this.checkChildren(element)) {
 
-			for (const child of element.children) {
-				this.eachElement(child, container, callback);
+			for (let i = 0, l = element.children.length; i < l; i++) {
+				const child = element.children[i];
+				this.eachElement(child, container, scope, callback);
 			}
 
 		}
@@ -218,7 +230,8 @@ class Binder {
 
 	eachAttribute (element, callback) {
 
-		for (const attribute of element.attributes) {
+		for (let i = 0, l = element.attributes.length; i < l; i++) {
+			const attribute = element.attributes[i];
 
 			if (
 				(attribute.name.indexOf('o-') === 0
@@ -242,9 +255,11 @@ class Binder {
 	unbind (element, container) {
 		container = container || element;
 
-		const scope = container.getAttribute('o-scope');
+		const scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
 
-		this.eachElement(element, container, function (child) {
+		if (!scope) throw new Error('Oxe - bind requires container element scope attribute');
+
+		this.eachElement(element, container, scope, function (child) {
 			this.eachAttribute(child, function (attribute) {
 
 				const binder = this.get({
@@ -265,9 +280,11 @@ class Binder {
 	bind (element, container) {
 		container = container || element;
 
-		const scope = container.getAttribute('o-scope');
+		const scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
 
-		this.eachElement(element, container, function (child) {
+		if (!scope) throw new Error('Oxe - bind requires container element scope attribute');
+
+		this.eachElement(element, container, scope, function (child) {
 			this.eachAttribute(child, function (attribute) {
 
 				const binder = this.set({

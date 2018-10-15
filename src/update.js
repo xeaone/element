@@ -23,7 +23,8 @@ export default async function (element, attribute) {
 
 			data = multiple ? [] : '';
 
-			for (const element of elements) {
+			for (let i = 0, l = elements.length; i < l; i++) {
+				const element = elements[i];
 				// NOTE might need to handle disable
 
 				if (element.selected) {
@@ -62,7 +63,8 @@ export default async function (element, attribute) {
 
 			data = data || [];
 
-			for (const file of files) {
+			for (let i = 0, l = files.length; i < l; i++) {
+				const file = files[i];
 				data.push(file);
 			}
 

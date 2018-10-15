@@ -53,7 +53,9 @@ export default {
 		const elements = form.querySelectorAll('[o-value]');
 		const data = {};
 
-		for (const element of elements) {
+		for (let i = 0, l = elements.length; i < l; i++) {
+			const element = elements[i];
+
 			if (element.nodeName === 'OPTION') continue;
 
 			const value = element.getAttribute('o-value');
@@ -71,7 +73,9 @@ export default {
 	formReset (form, model) {
 		const elements = form.querySelectorAll('[o-value]');
 
-		for (const element of elements) {
+		for (let i = 0, l = elements.length; i < l; i++) {
+			const element = elements[i];
+			
 			if (element.nodeName === 'OPTION') continue;
 
 			const value = element.getAttribute('o-value');
