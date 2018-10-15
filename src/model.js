@@ -67,7 +67,7 @@ class Model {
 		const method = data === undefined ? Unrender : Render;
 
 		Binder.each(path, function (binder) {
-			
+
 			method.default(binder);
 
 		});
