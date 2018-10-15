@@ -2,12 +2,17 @@ import Router from '../router.js';
 
 export default function (e) {
 
-	let parent;
-	let target;
+	// ignore canceled events, modified clicks, and right clicks
+	if (e.button !== 0) return;
+	if (e.defaultPrevented) return;
+	if (e.target.nodeName === 'INPUT') return;
+	if (e.target.nodeName === 'BUTTON') return;
+	if (e.target.nodeName === 'SELECT') return;
+	if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
 
 	// if shadow dom use
-	target = e.path ? e.path[0] : e.target;
-	parent = target.parentNode;
+	let target = e.path ? e.path[0] : e.target;
+	let parent = target.parentNode;
 
 	if (Router.contain) {
 
@@ -27,10 +32,6 @@ export default function (e) {
 
 	}
 
-	if (e.metaKey || e.ctrlKey || e.shiftKey) {
-		return;
-	}
-
 	// ensure target is anchor tag
 	while (target && 'A' !== target.nodeName) {
 		target = target.parentNode;
@@ -40,7 +41,7 @@ export default function (e) {
 		return;
 	}
 
-	// check non acceptables
+	// check non-acceptables
 	if (target.hasAttribute('download') ||
 		target.hasAttribute('external') ||
 		target.hasAttribute('o-external') ||
