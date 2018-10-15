@@ -659,6 +659,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		DOT: /\.+/,
 		PIPE: /\s?\|\s?/,
 		PIPES: /\s?,\s?|\s+/,
+		VARIABLE_START: '(\\|*\\,*\\s*)',
+		VARIABLE_END: '([^a-zA-z]|$)',
 
 		binderNames: function binderNames(data) {
 			data = data.split(this.PREFIX)[1];
@@ -756,51 +758,41 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		walker: function walker(node, callback) {
 			callback(node);
-			node = node.firstChild;
+			node = node.firstElementChild;
+			// node = node.firstChild;
 			while (node) {
 				this.walker(node, callback);
-				node = node.nextSibling;
+				node = node.nextElementSibling;
+				// node = node.nextSibling;
 			}
 		},
 		replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
 			var self = this;
-			var iindex = '$index';
-			var vindex = '$' + variable;
+			// const iindex = '$index';
+			// const vindex = '$' + variable;
+			var pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
+
 			self.walker(element, function (node) {
-				if (node.nodeType === 3) {
-					if (node.nodeValue === vindex || node.nodeValue === iindex) {
-						node.nodeValue = key;
-					}
-				} else if (node.nodeType === 1) {
-					var _iteratorNormalCompletion2 = true;
-					var _didIteratorError2 = false;
-					var _iteratorError2 = undefined;
-
-					try {
-						for (var _iterator2 = node.attributes[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-							var attribute = _step2.value;
-
-							if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-								if (attribute.value === variable || attribute.value.indexOf(variable) === 0) {
-									attribute.value = path + '.' + key + attribute.value.slice(variable.length);
-								}
-							}
-						}
-					} catch (err) {
-						_didIteratorError2 = true;
-						_iteratorError2 = err;
-					} finally {
-						try {
-							if (!_iteratorNormalCompletion2 && _iterator2.return) {
-								_iterator2.return();
-							}
-						} finally {
-							if (_didIteratorError2) {
-								throw _iteratorError2;
-							}
-						}
+				// if (node.nodeType === 3) {
+				// 	if (node.nodeValue === vindex || node.nodeValue === iindex) {
+				// 		node.nodeValue = key;
+				// 	}
+				// } else if (node.nodeType === 1) {
+				for (var i = 0, l = node.attributes.length; i < l; i++) {
+					var attribute = node.attributes[i];
+					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
+						attribute.value = attribute.value.replace(pattern, '$1' + path + '.' + key + '$2');
+						// if (
+						// 	attribute.value.indexOf(variable) === 0
+						// 	|| attribute.value.indexOf(` ${variable}`) !== -1
+						// 	|| attribute.value.indexOf(`,${variable}`) !== -1
+						// 	|| attribute.value.indexOf(`|${variable}`) !== -1
+						// ) {
+						// 	attribute.value = path + '.' + key + attribute.value.slice(variable.length);
+						// }
 					}
 				}
+				// }
 			});
 		},
 		traverse: function traverse(data, path, callback) {

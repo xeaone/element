@@ -7,6 +7,8 @@ export default {
 	DOT: /\.+/,
 	PIPE: /\s?\|\s?/,
 	PIPES: /\s?,\s?|\s+/,
+	VARIABLE_START: '(\\|*\\,*\\s*)',
+	VARIABLE_END: '([^a-zA-z]|$)',
 
 	binderNames (data) {
 		data = data.split(this.PREFIX)[1];
@@ -75,7 +77,7 @@ export default {
 
 		for (let i = 0, l = elements.length; i < l; i++) {
 			const element = elements[i];
-			
+
 			if (element.nodeName === 'OPTION') continue;
 
 			const value = element.getAttribute('o-value');
@@ -91,31 +93,42 @@ export default {
 
 	walker (node, callback) {
 		callback(node);
-		node = node.firstChild;
+		node = node.firstElementChild;
+		// node = node.firstChild;
 		while (node) {
 		    this.walker(node, callback);
-		    node = node.nextSibling;
+		    node = node.nextElementSibling;
+		    // node = node.nextSibling;
 		}
 	},
 
 	replaceEachVariable (element, variable, path, key) {
 		const self = this;
-	 	const iindex = '$index';
-		const vindex = '$' + variable;
+	 	// const iindex = '$index';
+		// const vindex = '$' + variable;
+		const pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
+
 		self.walker(element, function (node) {
-			if (node.nodeType === 3) {
-				if (node.nodeValue === vindex || node.nodeValue === iindex) {
-					node.nodeValue = key;
-				}
-			} else if (node.nodeType === 1) {
-				for (const attribute of node.attributes) {
+			// if (node.nodeType === 3) {
+			// 	if (node.nodeValue === vindex || node.nodeValue === iindex) {
+			// 		node.nodeValue = key;
+			// 	}
+			// } else if (node.nodeType === 1) {
+				for (let i = 0, l = node.attributes.length; i < l; i++) {
+					const attribute = node.attributes[i];
 					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-						if (attribute.value === variable || attribute.value.indexOf(variable) === 0) {
-							attribute.value = path + '.' + key + attribute.value.slice(variable.length);
-						}
+						attribute.value = attribute.value.replace(pattern, `$1${path}.${key}$2`);
+						// if (
+						// 	attribute.value.indexOf(variable) === 0
+						// 	|| attribute.value.indexOf(` ${variable}`) !== -1
+						// 	|| attribute.value.indexOf(`,${variable}`) !== -1
+						// 	|| attribute.value.indexOf(`|${variable}`) !== -1
+						// ) {
+						// 	attribute.value = path + '.' + key + attribute.value.slice(variable.length);
+						// }
 					}
 				}
-			}
+			// }
 		});
 	},
 
