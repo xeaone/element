@@ -19,16 +19,16 @@ import Model from './model.js';
 // OPTIMIZE wait until polyfill are ready then allow setup
 
 const eStyle = document.createElement('style');
-const tStyle = document.createTextNode(' \
-	o-router, o-router > :first-child { \
-		display: block; \
-		animation: o-transition 150ms ease-in-out; \
-	} \
-	@keyframes o-transition { \
-		0% { opacity: 0; } \
-		100% { opacity: 1; } \
-	} \
-');
+const tStyle = document.createTextNode(`
+	o-router, o-router > :first-child {
+		display: block;
+		animation: o-transition 150ms ease-in-out;
+	}
+	@keyframes o-transition {
+		0% { opacity: 0; }
+		100% { opacity: 1; }
+	}
+`);
 
 eStyle.setAttribute('type', 'text/css');
 eStyle.appendChild(tStyle);
@@ -75,9 +75,11 @@ if (oSetup) {
 			});
 		} else {
 			const index = document.createElement('script');
+			
 			index.setAttribute('src', args[0]);
 			index.setAttribute('async', 'true');
 			index.setAttribute('type', 'module');
+
 			document.head.appendChild(index);
 		}
 
