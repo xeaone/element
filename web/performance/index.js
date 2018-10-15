@@ -32,7 +32,7 @@ var oLoop = {
 		<form o-submit="loop">
 			<input o-value="count" type="number">
 			<input type="submit" value="Loop">
-		<form>
+		</form>
 
 		<div o-each-item="items">
 			<div class="box">
