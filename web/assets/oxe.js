@@ -782,14 +782,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					var attribute = node.attributes[i];
 					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 						attribute.value = attribute.value.replace(pattern, '$1' + path + '.' + key + '$2');
-						// if (
-						// 	attribute.value.indexOf(variable) === 0
-						// 	|| attribute.value.indexOf(` ${variable}`) !== -1
-						// 	|| attribute.value.indexOf(`,${variable}`) !== -1
-						// 	|| attribute.value.indexOf(`|${variable}`) !== -1
-						// ) {
-						// 	attribute.value = path + '.' + key + attribute.value.slice(variable.length);
-						// }
 					}
 				}
 				// }
