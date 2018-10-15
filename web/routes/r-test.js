@@ -235,16 +235,18 @@ export default {
 
 		<ul>
 			<li>
-				<a href="test/">test</a>
+				<a href="./test">test</a>
 			</li>
 			<li>
-				<a href="js">js</a>
+				<a href="./js">
+					<strong>js</strong>
+				</a>
 			</li>
 			<li>
-				<a href="js?name=ferret&color=purple#hash">js?name=ferret&amp;color=purple#hash</a>
+				<a href="./js?name=ferret&color=purple#hash">js?name=ferret&amp;color=purple#hash</a>
 			</li>
 			<li>
-				<a href="js/?name=ferret&color=purple#hash">js/?name=ferret&amp;color=purple#hash</a>
+				<a href="./js/?name=ferret&color=purple#hash">js/?name=ferret&amp;color=purple#hash</a>
 			</li>
 			<li>
 				<a href="https://google.com/">google</a>

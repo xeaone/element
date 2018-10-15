@@ -3113,12 +3113,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	function Click(e) {
 
-		var parent = void 0;
-		var target = void 0;
+		// ignore canceled events, modified clicks, and right clicks
+		if (e.button !== 0) return;
+		if (e.defaultPrevented) return;
+		if (e.target.nodeName === 'INPUT') return;
+		if (e.target.nodeName === 'BUTTON') return;
+		if (e.target.nodeName === 'SELECT') return;
+		if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
 
 		// if shadow dom use
-		target = e.path ? e.path[0] : e.target;
-		parent = target.parentNode;
+		var target = e.path ? e.path[0] : e.target;
+		var parent = target.parentNode;
 
 		if (Router$1.contain) {
 
@@ -3136,10 +3141,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}
 
-		if (e.metaKey || e.ctrlKey || e.shiftKey) {
-			return;
-		}
-
 		// ensure target is anchor tag
 		while (target && 'A' !== target.nodeName) {
 			target = target.parentNode;
@@ -3149,7 +3150,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			return;
 		}
 
-		// check non acceptables
+		// check non-acceptables
 		if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return;
 
 		// if external is true then default action
@@ -3210,16 +3211,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	// OPTIMIZE wait until polyfill are ready then allow setup
 
 	var eStyle = document.createElement('style');
-	var tStyle = document.createTextNode(' \
-	o-router, o-router > :first-child { \
-		display: block; \
-		animation: o-transition 150ms ease-in-out; \
-	} \
-	@keyframes o-transition { \
-		0% { opacity: 0; } \
-		100% { opacity: 1; } \
-	} \
-');
+	var tStyle = document.createTextNode('\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition 150ms ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n');
 
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(tStyle);
@@ -3266,9 +3258,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				});
 			} else {
 				var _index = document.createElement('script');
+
 				_index.setAttribute('src', args[0]);
 				_index.setAttribute('async', 'true');
 				_index.setAttribute('type', 'module');
+
 				document.head.appendChild(_index);
 			}
 
