@@ -11,8 +11,6 @@ class Model {
 		this.REMOVE = 4;
 		this.ran = false;
 		this.data = Observer.create({}, this.listener.bind(this));
-
-		this.tl = 0;
 	}
 
 	traverse (type, keys, value) {
@@ -20,7 +18,6 @@ class Model {
 
 		if (typeof keys === 'string') {
 			keys = keys.split('.');
-			// keys = [keys];
 		}
 
 		let data = this.data;
@@ -67,8 +64,6 @@ class Model {
 
 	listener (data, path) {
 		const method = data === undefined ? Unrender : Render;
-
-		this.tl++;
 
 		Binder.each(path, function (binder) {
 

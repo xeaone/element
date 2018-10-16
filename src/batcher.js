@@ -4,13 +4,13 @@ class Batcher {
 	constructor () {
 		this.reads = [];
 		this.writes = [];
-		// this.time = 1000;
 		this.time = 1000/30;
 		this.pending = false;
 		this.mr = 0;
 		this.mw = 0;
 		this.tr = 0;
 		this.tw = 0;
+		this.tp = 0;
 	}
 
 	setup (options) {
@@ -47,67 +47,54 @@ class Batcher {
 		if (!this.pending) {
 			this.pending = true;
 			this.tick(this.flush.bind(this, null));
-			// this.flush();
 		}
 	}
 
 	flush (position, time) {
-		const self = this;
 
-		if (!self.reads.length && !self.writes.length) {
-			self.pending = false;
+		if (!this.reads.length && !this.writes.length) {
+			this.pending = false;
 			return;
 		}
 
-		// self.tick(function (time) {
-			let i;
+		let i;
 
-			if (position === null) {
+		if (position === null) {
 
-				// count = 0;
-				// while (read = self.reads.shift()) {
-				for (i = 0; i < self.reads.length; i++) {
-					self.tr++;
-					const read = self.reads[i];
-					if (read) read();
-					// count++;
-					if (performance.now() - time > self.time) {
-						self.mr++;
-						// return self.schedule(count);
-						self.reads.splice(0, i + 1);
-						return self.tick(self.flush.bind(self, i + 1));
-					}
+			for (i = 0; i < this.reads.length; i++) {
+				this.tr++;
+				this.reads[i]();
+
+				if (performance.now() - time > this.time) {
+					this.mr++;
+					this.reads.splice(0, i + 1);
+					return this.tick(this.flush.bind(this, i + 1));
 				}
-
-				self.reads.splice(0, i + 1);
 			}
 
-			// while (write = self.writes.shift()) {
-			for (i = 0; i < self.writes.length; i++) {
-				// write();
-				self.tw++;
-				const write = self.writes[i];
-				if (write) write();
+			this.reads.splice(0, i + 1);
+		}
 
-				if (i === position) {
-					console.log('position');
-					self.writes.splice(0, i + 1);
-					return self.flush(null, time);
-				}
+		for (i = 0; i < this.writes.length; i++) {
+			this.tw++;
+			this.writes[i]();
 
-				if (performance.now() - time > self.time) {
-					self.mw++;
-					self.writes.splice(0, i + 1);
-					// return self.flush(i + 1);
-					return self.tick(self.flush.bind(self, i + 1));
-				}
-
+			if (i === position) {
+				this.tp++;
+				this.writes.splice(0, i + 1);
+				return this.flush(null, time);
 			}
 
-			self.writes.splice(0, i + 1);
+			if (performance.now() - time > this.time) {
+				this.mw++;
+				this.writes.splice(0, i + 1);
+				return this.tick(this.flush.bind(this, i + 1));
+			}
 
-			self.flush(null, time);
-		// });
+		}
+
+		this.writes.splice(0, i + 1);
+		this.flush(null, time);
 	}
 
 	remove (tasks, task) {
@@ -155,8 +142,6 @@ class Batcher {
 		} else if (data.write) {
 			let write;
 
-			console.log('no read');
-
 			if (data.context) {
 				write = data.write.bind(data.context, data.shared);
 			} else {
@@ -173,3 +158,14 @@ class Batcher {
 }
 
 export default new Batcher();
+
+/*
+	// Every push or each increases the amount of reads and writes?
+
+	console.log('read ', Oxe.batcher.tr);
+	console.log('write ', Oxe.batcher.tw);
+	console.log('position ', Oxe.batcher.tp);
+	Oxe.batcher.tr = 0;
+	Oxe.batcher.tw = 0;
+	Oxe.batcher.tp = 0;
+*/

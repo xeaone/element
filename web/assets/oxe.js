@@ -16,7 +16,8 @@ function _invoke(body, then) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
-	var result = body();if (result && result.then) {
+	var result = body();
+	if (result && result.then) {
 		return result.then(_empty);
 	}
 }function _empty() {}function _await(value, then, direct) {
@@ -145,13 +146,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			} else if (type === 'radio') {
 				var query = 'input[type="radio"][o-value="' + binder.value + '"]';
-				var _elements2 = binder.container.querySelectorAll(query);
+				var _elements = binder.container.querySelectorAll(query);
 
-				for (var _i3 = 0, _l3 = _elements2.length; _i3 < _l3; _i3++) {
-					var _element2 = _elements2[_i3];
+				for (var _i2 = 0, _l2 = _elements.length; _i2 < _l2; _i2++) {
+					var _element2 = _elements[_i2];
 
 					if (binder.element === _element2) {
-						data = _i3;
+						data = _i2;
 					}
 				}
 			} else if (type === 'file') {
@@ -159,8 +160,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = data || [];
 
-				for (var _i4 = 0, _l4 = files.length; _i4 < _l4; _i4++) {
-					var file = files[_i4];
+				for (var _i3 = 0, _l3 = files.length; _i3 < _l3; _i3++) {
+					var file = files[_i3];
 					data.push(file);
 				}
 			} else if (type === 'checkbox') {
@@ -443,13 +444,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			this.reads = [];
 			this.writes = [];
-			// this.time = 1000;
 			this.time = 1000 / 30;
 			this.pending = false;
 			this.mr = 0;
 			this.mw = 0;
 			this.tr = 0;
 			this.tw = 0;
+			this.tp = 0;
 		}
 
 		_createClass(Batcher, [{
@@ -493,67 +494,54 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (!this.pending) {
 					this.pending = true;
 					this.tick(this.flush.bind(this, null));
-					// this.flush();
 				}
 			}
 		}, {
 			key: 'flush',
 			value: function flush(position, time) {
-				var self = this;
 
-				if (!self.reads.length && !self.writes.length) {
-					self.pending = false;
+				if (!this.reads.length && !this.writes.length) {
+					this.pending = false;
 					return;
 				}
 
-				// self.tick(function (time) {
 				var i = void 0;
 
 				if (position === null) {
 
-					// count = 0;
-					// while (read = self.reads.shift()) {
-					for (i = 0; i < self.reads.length; i++) {
-						self.tr++;
-						var read = self.reads[i];
-						if (read) read();
-						// count++;
-						if (performance.now() - time > self.time) {
-							self.mr++;
-							// return self.schedule(count);
-							self.reads.splice(0, i + 1);
-							return self.tick(self.flush.bind(self, i + 1));
+					for (i = 0; i < this.reads.length; i++) {
+						this.tr++;
+						this.reads[i]();
+
+						if (performance.now() - time > this.time) {
+							this.mr++;
+							this.reads.splice(0, i + 1);
+							return this.tick(this.flush.bind(this, i + 1));
 						}
 					}
 
-					self.reads.splice(0, i + 1);
+					this.reads.splice(0, i + 1);
 				}
 
-				// while (write = self.writes.shift()) {
-				for (i = 0; i < self.writes.length; i++) {
-					// write();
-					self.tw++;
-					var write = self.writes[i];
-					if (write) write();
+				for (i = 0; i < this.writes.length; i++) {
+					this.tw++;
+					this.writes[i]();
 
 					if (i === position) {
-						console.log('position');
-						self.writes.splice(0, i + 1);
-						return self.flush(null, time);
+						this.tp++;
+						this.writes.splice(0, i + 1);
+						return this.flush(null, time);
 					}
 
-					if (performance.now() - time > self.time) {
-						self.mw++;
-						self.writes.splice(0, i + 1);
-						// return self.flush(i + 1);
-						return self.tick(self.flush.bind(self, i + 1));
+					if (performance.now() - time > this.time) {
+						this.mw++;
+						this.writes.splice(0, i + 1);
+						return this.tick(this.flush.bind(this, i + 1));
 					}
 				}
 
-				self.writes.splice(0, i + 1);
-
-				self.flush(null, time);
-				// });
+				this.writes.splice(0, i + 1);
+				this.flush(null, time);
 			}
 		}, {
 			key: 'remove',
@@ -600,8 +588,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				} else if (data.write) {
 					var write = void 0;
 
-					console.log('no read');
-
 					if (data.context) {
 						write = data.write.bind(data.context, data.shared);
 					} else {
@@ -620,6 +606,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}();
 
 	var Batcher$1 = new Batcher();
+
+	/*
+ 	// Every push or each increases the amount of reads and writes?
+ 		console.log('read ', Oxe.batcher.tr);
+ 	console.log('write ', Oxe.batcher.tw);
+ 	console.log('position ', Oxe.batcher.tp);
+ 	Oxe.batcher.tr = 0;
+ 	Oxe.batcher.tw = 0;
+ 	Oxe.batcher.tp = 0;
+ */
 
 	var Unrender$1 = {
 		alt: function alt(opt) {
@@ -977,187 +973,342 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Methods$1 = new Methods();
 
+	function ValueDefault(binder) {
+
+		console.log('default');
+
+		binder.data = Model$1.get(binder.keys);
+		binder.element.value = binder.data === undefined ? '' : binder.data;
+
+		if (binder.data !== binder.element.value) {
+			Model$1.set(binder.keys, binder.data === undefined ? '' : binder.data);
+		}
+	}
+
+	function ValueSelect(opt) {
+		var selected = false;
+
+		console.log('select');
+
+		binder.data = Model$1.get(binder.keys);
+
+		if (binder.element.multiple && binder.data.constructor !== Array) {
+			throw new Error('Oxe - invalid multiple select value type ' + binder.keys.join('.') + ' array required');
+		}
+
+		// NOTE might need to handle disable
+		for (var i = 0; i < binder.element.options.length; i++) {
+			var element = binder.element.options[i];
+			var value = binder.data && binder.data.constructor === Array ? binder.data[i] : binder.data;
+
+			if (value && element.value === value) {
+				element.setAttribute('selected', '');
+				element.value = value;
+				selected = true;
+			} else {
+				element.removeAttribute('selected');
+			}
+		}
+
+		if (binder.element.options.length && !binder.element.multiple && !selected) {
+			var _value2 = binder.data && binder.data.constructor === Array ? binder.data[0] : binder.data;
+
+			binder.element.options[0].setAttribute('selected', '');
+
+			if (_value2 !== (binder.element.options[0].value || '')) {
+				Model$1.set(binder.keys, binder.element.options[0].value || '');
+			}
+		}
+	}
+
+	function Each(binder) {
+		var self = this;
+
+		var data = void 0;
+
+		console.log('each');
+
+		// if (binder.context.pending) return;
+		// else binder.context.pending = true;
+
+		if (binder.context.length === undefined) binder.context.length = 0;
+		// else binder.context.length++;
+
+		if (!binder.context.cache) binder.context.cache = binder.element.removeChild(binder.element.firstElementChild);
+
+		Batcher$1.batch({
+			read: function read() {
+
+				data = Model$1.get(binder.keys);
+
+				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') {
+					binder.pending = false;
+					binder.context.continue = false;
+					return;
+				}
+
+				// const length = binder.element.children.length;
+				var isArray = data.constructor === Array;
+				var isObject = data.constructor === Object;
+
+				data = Binder$1.piper(binder, data);
+
+				var keys = isObject ? Object.keys(data) : [];
+
+				if (isArray) {
+					if (binder.context.length === data.length) {
+						// if (length === data.length) {
+						// binder.pending = false;
+						binder.context.continue = false;
+						return;
+					} else {
+						binder.context.key = binder.context.length;
+						// binder.context.key = length;
+					}
+				}
+
+				if (isObject) {
+					if (binder.context.length === keys.length) {
+						// if (length === keys.length) {
+						// binder.context.pending = false;
+						binder.context.continue = false;
+						return;
+					} else {
+						binder.context.key = keys[binder.context.length];
+						// binder.context.key = keys[length];
+					}
+				}
+
+				if (binder.context.length > data.length && binder.element.children.length > data.length) {
+					binder.context.element = binder.element.lastElementChild;
+					binder.context.length = binder.context.length !== 0 ? binder.context.length - 1 : binder.context.length;
+				} else {
+					binder.context.length++;
+				}
+
+				// binder.context.element = length > data.length ? binder.element.lastElementChild : null;
+			},
+			write: function write() {
+
+				if (binder.context.element) {
+					binder.element.removeChild(binder.context.element);
+					binder.context.element = undefined;
+				} else {
+					var clone = binder.context.cache.cloneNode(true);
+					Utility.replaceEachVariable(clone, binder.names[1], binder.path, binder.context.key);
+					Binder$1.bind(clone, binder.container);
+					binder.element.appendChild(clone);
+				}
+
+				/*
+    	check if select element with o-value
+    	perform a re-render of the o-value
+    	becuase of o-each is async
+    */
+				if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value'] || binder.element.attributes['data-o-value']) {
+					var name = binder.element.attributes['o-value'] || binder.element.attributes['data-o-value'];
+					var value = binder.element.attributes['o-value'].value || binder.element.attributes['data-o-value'].value;
+					var keys = [binder.scope].concat(value.split('|')[0].split('.'));
+					self.value({
+						keys: keys,
+						name: name,
+						value: value,
+						scope: binder.scope,
+						element: binder.element,
+						container: binder.container
+					});
+				}
+
+				// binder.context.pending = false;
+				// self.default(binder);
+			}
+		});
+	}
+
 	// TODO dynamic for list dont handle selected
 
 	var Render = {
-		required: function required(opt) {
+
+		each: Each,
+
+		required: function required(binder) {
 			return {
 				read: function read() {
-					this.data = Model$1.get(opt.keys);
+					this.data = Model$1.get(binder.keys);
 
-					if (opt.element.required === data) {
+					if (binder.element.required === data) {
 						return;
 					}
 
-					this.data = Utility.binderModifyData(opt, this, data);
+					this.data = Utility.binderModifyData(binder, this, data);
 				},
 				write: function write() {
-					opt.element.required = this.data;
+					binder.element.required = this.data;
 				}
 			};
 		},
-		disable: function disable(opt) {
+		disable: function disable(binder) {
 			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+				var data = Model$1.get(binder.keys);
 
-				if (opt.element.disabled === data) {
+				if (binder.element.disabled === data) {
 					return;
 				}
 
-				data = Binder$1.piper(opt, data);
+				data = Binder$1.piper(binder, data);
 
 				Batcher$1.write(function () {
-					opt.element.disabled = data;
+					binder.element.disabled = data;
 				});
 			});
 		},
-		enable: function enable(opt) {
+		enable: function enable(binder) {
 			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+				var data = Model$1.get(binder.keys);
 
-				if (opt.element.disabled === !data) {
+				if (binder.element.disabled === !data) {
 					return;
 				}
 
-				data = Binder$1.piper(opt, data);
+				data = Binder$1.piper(binder, data);
 
 				Batcher$1.write(function () {
-					opt.element.disabled = !data;
+					binder.element.disabled = !data;
 				});
 			});
 		},
-		hide: function hide(opt) {
+		hide: function hide(binder) {
 			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+				var data = Model$1.get(binder.keys);
 
-				if (opt.element.hidden === data) {
+				if (binder.element.hidden === data) {
 					return;
 				}
 
-				data = Binder$1.piper(opt, data);
+				data = Binder$1.piper(binder, data);
 
 				Batcher$1.write(function () {
-					opt.element.hidden = data;
+					binder.element.hidden = data;
 				});
 			});
 		},
-		show: function show(opt) {
+		show: function show(binder) {
 			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+				var data = Model$1.get(binder.keys);
 
-				if (opt.element.hidden === !data) {
+				if (binder.element.hidden === !data) {
 					return;
 				}
 
-				data = Binder$1.piper(opt, data);
+				data = Binder$1.piper(binder, data);
 
 				Batcher$1.write(function () {
-					opt.element.hidden = !data;
+					binder.element.hidden = !data;
 				});
 			});
 		},
-		read: function read(opt) {
+		read: function read(binder) {
 			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+				var data = Model$1.get(binder.keys);
 
-				if (opt.element.readOnly === data) {
+				if (binder.element.readOnly === data) {
 					return;
 				}
 
-				data = Binder$1.piper(opt, data);
+				data = Binder$1.piper(binder, data);
 
 				Batcher$1.write(function () {
-					opt.element.readOnly = data;
+					binder.element.readOnly = data;
 				});
 			});
 		},
-		write: function write(opt) {
+		write: function write(binder) {
 			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+				var data = Model$1.get(binder.keys);
 
-				if (opt.element.readOnly === !data) {
+				if (binder.element.readOnly === !data) {
 					return;
 				}
 
-				data = Binder$1.piper(opt, data);
+				data = Binder$1.piper(binder, data);
 
 				Batcher$1.write(function () {
-					opt.element.readOnly = !data;
+					binder.element.readOnly = !data;
 				});
 			});
 		},
-		html: function html(opt) {
+		html: function html(binder) {
 			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+				var data = Model$1.get(binder.keys);
 
-				if (opt.element.innerHTML === data) {
+				if (binder.element.innerHTML === data) {
 					return;
 				}
 
-				data = Binder$1.piper(opt, data);
+				data = Binder$1.piper(binder, data);
 
 				Batcher$1.write(function () {
-					opt.element.innerHTML = data;
+					binder.element.innerHTML = data;
 				});
 			});
 		},
-		class: function _class(opt) {
+		class: function _class(binder) {
 			Batcher$1.write(function () {
-				var data = Model$1.get(opt.keys);
-				var name = opt.names.slice(1).join('-');
-				data = Binder$1.piper(opt, data);
-				opt.element.classList.toggle(name, data);
+				var data = Model$1.get(binder.keys);
+				var name = binder.names.slice(1).join('-');
+				data = Binder$1.piper(binder, data);
+				binder.element.classList.toggle(name, data);
 			});
 		},
-		on: function on(opt) {
+		on: function on(binder) {
 			Batcher$1.write(function () {
-				var data = Methods$1.get(opt.keys);
+				var data = Methods$1.get(binder.keys);
 
 				if (typeof data !== 'function') return;
 
-				if (opt.cache) {
-					opt.element.removeEventListener(opt.names[1], opt.cache);
+				if (binder.cache) {
+					binder.element.removeEventListener(binder.names[1], binder.cache);
 				} else {
-					opt.cache = function (e) {
+					binder.cache = function (e) {
 						var parameters = [e];
 
-						for (var i = 0, l = opt.pipes.length; i < l; i++) {
-							var keys = opt.pipes[i].split('.');
-							keys.unshift(opt.scope);
+						for (var i = 0, l = binder.pipes.length; i < l; i++) {
+							var keys = binder.pipes[i].split('.');
+							keys.unshift(binder.scope);
 							var parameter = Oxe.model.get(keys);
 							parameters.push(parameter);
 						}
 
-						Promise.resolve().then(data.bind(opt.container).apply(null, parameters)).catch(console.error);
+						Promise.resolve().then(data.bind(binder.container).apply(null, parameters)).catch(console.error);
 					};
 				}
 
-				opt.element.addEventListener(opt.names[1], opt.cache);
+				binder.element.addEventListener(binder.names[1], binder.cache);
 			});
 		},
-		css: function css(opt) {
+		css: function css(binder) {
 			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+				var data = Model$1.get(binder.keys);
 
-				if (opt.element.style.cssText === data) {
+				if (binder.element.style.cssText === data) {
 					return;
 				}
 
-				if (opt.names.length > 1) {
-					data = opt.names.slice(1).join('-') + ': ' + data + ';';
+				if (binder.names.length > 1) {
+					data = binder.names.slice(1).join('-') + ': ' + data + ';';
 				}
 
-				data = Binder$1.piper(opt, data);
+				data = Binder$1.piper(binder, data);
 
 				Batcher$1.write(function () {
-					opt.element.style.cssText = data;
+					binder.element.style.cssText = data;
 				});
 			});
 		},
-		text: function text(opt) {
+		text: function text(binder) {
 			return {
 				read: function read() {
-					this.data = Model$1.get(opt.keys);
+					this.data = Model$1.get(binder.keys);
 
 					if (this.data === undefined || this.data === null) {
 						this.data = '';
@@ -1167,154 +1318,31 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						this.data = String(this.data);
 					}
 
-					this.data = Binder$1.piper(opt, this.data);
+					this.data = Binder$1.piper(binder, this.data);
 				},
 				write: function write() {
-					opt.element.innerText = this.data;
+					binder.element.innerText = this.data;
 				}
 			};
 		},
-
-
-		te: 0,
-
-		each: function each(opt) {
-			var self = this;
-
-			if (opt.pending) return;else opt.pending = true;
-
-			self.te++;
-
-			if (!opt.cache) opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-
+		value: function value(binder) {
 			return {
 				read: function read() {
-
-					this.data = Model$1.get(opt.keys);
-
-					if (!this.data || _typeof(this.data) !== 'object') {
-						opt.pending = false;
-						this.continue = false;
-						return;
-					}
-
-					var length = opt.element.children.length;
-					var isArray = this.data.constructor === Array;
-					var isObject = this.data.constructor === Object;
-
-					this.data = Binder$1.piper(opt, this.data);
-
-					var keys = isObject ? Object.keys(this.data) : [];
-
-					if (isArray) {
-						if (length === this.data.length) {
-							opt.pending = false;
-							this.continue = false;
-							return;
-						} else {
-							this.key = length;
-						}
-					}
-
-					if (isObject) {
-						if (length === keys.length) {
-							opt.pending = false;
-							this.continue = false;
-							return;
-						} else {
-							this.key = keys[length];
-						}
-					}
-
-					this.element = length > this.data.length ? opt.element.lastElementChild : null;
-				},
-				write: function write() {
-
-					if (this.element) {
-						opt.element.removeChild(this.element);
-					} else {
-						var clone = opt.cache.cloneNode(true);
-						Utility.replaceEachVariable(clone, opt.names[1], opt.path, this.key);
-						Binder$1.bind(clone, opt.container);
-						opt.element.appendChild(clone);
-					}
-
-					/*
-     	check if select element with o-value
-     	perform a re-render of the o-value
-     	becuase of o-each is async
-     */
-					if (opt.element.nodeName === 'SELECT' && opt.element.attributes['o-value'] || opt.element.attributes['data-o-value']) {
-						var name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
-						var value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
-						var keys = [opt.scope].concat(value.split('|')[0].split('.'));
-						self.value({
-							keys: keys,
-							name: name,
-							value: value,
-							scope: opt.scope,
-							element: opt.element,
-							container: opt.container
-						});
-					}
-
-					opt.pending = false;
-					self.default(opt);
-				}
-			};
-		},
-		value: function value(opt) {
-			return {
-				read: function read() {
-
-					var type = opt.element.type;
-					var name = opt.element.nodeName;
-					var current = Model$1.get(opt.keys);
-
-					this.data = Model$1.get(opt.keys);
+					var type = binder.element.type;
+					var name = binder.element.nodeName;
 
 					if (name === 'SELECT') {
-						var elements = opt.element.options;
-						var multiple = opt.element.multiple;
-
-						var selected = false;
-
-						if (multiple && this.data.constructor !== Array) {
-							throw new Error('Oxe - invalid multiple select value type ' + opt.keys.join('.') + ' array required');
-						}
-
-						// NOTE might need to handle disable
-						for (var i = 0, l = elements.length; i < l; i++) {
-							var value = this.data && this.data.constructor === Array ? this.data[i] : this.data;
-
-							if (value && elements[i].value === value) {
-								elements[i].setAttribute('selected', '');
-								elements[i].value = value;
-								selected = true;
-							} else {
-								elements[i].removeAttribute('selected');
-							}
-						}
-
-						if (elements.length && !multiple && !selected) {
-							var _value2 = this.data && this.data.constructor === Array ? this.data[0] : this.data;
-
-							elements[0].setAttribute('selected', '');
-
-							if (_value2 !== (elements[0].value || '')) {
-								Model$1.set(opt.keys, elements[0].value || '');
-							}
-						}
+						return ValueSelect.call(this, binder);
 					} else if (type === 'radio') {
-						var query = 'input[type="radio"][o-value="' + opt.value + '"]';
-						var _elements = opt.container.querySelectorAll(query);
+						var query = 'input[type="radio"][o-value="' + binder.value + '"]';
+						var elements = binder.container.querySelectorAll(query);
 
 						var checked = false;
 
-						for (var _i = 0, _l = _elements.length; _i < _l; _i++) {
-							var element = _elements[_i];
+						for (var i = 0, l = elements.length; i < l; i++) {
+							var element = elements[i];
 
-							if (_i === this.data) {
+							if (i === this.data) {
 								checked = true;
 								element.checked = true;
 							} else {
@@ -1323,44 +1351,40 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 
 						if (!checked) {
-							_elements[0].checked = true;
+							elements[0].checked = true;
 							if (this.data !== 0) {
-								Model$1.set(opt.keys, 0);
+								Model$1.set(binder.keys, 0);
 							}
 						}
 					} else if (type === 'file') {
 						this.data = this.data || [];
 
-						for (var _i2 = 0, _l2 = this.data.length; _i2 < _l2; _i2++) {
+						for (var _i = 0, _l = this.data.length; _i < _l; _i++) {
 
-							if (this.data[_i2] !== opt.element.files[_i2]) {
+							if (this.data[_i] !== binder.element.files[_i]) {
 
-								if (this.data[_i2]) {
-									opt.element.files[_i2] = this.data[_i2];
+								if (this.data[_i]) {
+									binder.element.files[_i] = this.data[_i];
 								} else {
 									console.warn('Oxe - file remove not implemented');
 								}
 							}
 						}
 					} else if (type === 'checkbox') {
-						opt.element.checked = this.data === undefined ? false : this.data;
+						binder.element.checked = this.data === undefined ? false : this.data;
 
-						if (this.data !== opt.element.checked) {
-							Model$1.set(opt.keys, this.data === undefined ? false : this.data);
+						if (this.data !== binder.element.checked) {
+							Model$1.set(binder.keys, this.data === undefined ? false : this.data);
 						}
 					} else {
-						opt.element.value = this.data === undefined ? '' : this.data;
-
-						if (this.data !== opt.element.value) {
-							Model$1.set(opt.keys, this.data === undefined ? '' : this.data);
-						}
+						return ValueDefault.call(this, binder);
 					}
 				}
 			};
 		},
-		default: function _default(opt) {
-			if (opt.type in this) {
-				var render = this[opt.type](opt);
+		default: function _default(binder) {
+			if (binder.type in this) {
+				var render = this[binder.type](binder);
 				if (render) {
 					render.context = render.context || {};
 					Batcher$1.batch(render);
@@ -1369,16 +1393,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var _data = void 0;
 				Batcher$1.batch({
 					read: function read() {
-						_data = Model$1.get(opt.keys);
+						_data = Model$1.get(binder.keys);
 
-						if (opt.element[opt.type] === _data) {
+						if (binder.element[binder.type] === _data) {
 							return;
 						}
 
-						_data = Binder$1.piper(opt, _data);
+						_data = Binder$1.piper(binder, _data);
 					},
 					write: function write() {
-						opt.element[opt.type] = _data;
+						binder.element[binder.type] = _data;
 					}
 				});
 			}
@@ -1394,44 +1418,51 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 
 		_createClass(Binder, [{
-			key: 'set',
-			value: function set(opt) {
-				opt = opt || {};
+			key: 'create',
+			value: function create(data) {
+				var binder = {};
 
-				if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
-				if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
-				if (opt.scope === undefined) throw new Error('Oxe.binder.set - missing scope');
-				if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
-				if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
+				if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
+				if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
+				if (data.scope === undefined) throw new Error('Oxe.binder.create - missing scope');
+				if (data.element === undefined) throw new Error('Oxe.binder.create - missing element');
+				if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
 
-				opt.names = opt.names || Utility.binderNames(opt.name);
-				opt.pipes = opt.pipes || Utility.binderPipes(opt.value);
-				opt.values = opt.values || Utility.binderValues(opt.value);
+				binder.name = data.name;
+				binder.value = data.value;
+				binder.scope = data.scope;
+				binder.element = data.element;
+				binder.container = data.container;
 
-				opt.path = opt.values.join('.');
-				opt.type = opt.type || opt.names[0];
-				opt.keys = [opt.scope].concat(opt.values);
+				binder.names = data.names || Utility.binderNames(data.name);
+				binder.pipes = data.pipes || Utility.binderPipes(data.value);
+				binder.values = data.values || Utility.binderValues(data.value);
 
-				return opt;
+				binder.context = {};
+				binder.path = binder.values.join('.');
+				binder.type = binder.type || binder.names[0];
+				binder.keys = [binder.scope].concat(binder.values);
+
+				return binder;
 			}
 		}, {
 			key: 'get',
-			value: function get(opt) {
+			value: function get(binder) {
 
-				if (!(opt.scope in this.data)) {
+				if (!(binder.scope in this.data)) {
 					return null;
 				}
 
-				if (!(opt.path in this.data[opt.scope])) {
+				if (!(binder.path in this.data[binder.scope])) {
 					return null;
 				}
 
-				var items = this.data[opt.scope][opt.path];
+				var items = this.data[binder.scope][binder.path];
 
 				for (var i = 0, l = items.length; i < l; i++) {
 					var item = items[i];
 
-					if (item.element === opt.element && item.name === opt.name) {
+					if (item.element === binder.element && item.name === binder.name) {
 						return item;
 					}
 				}
@@ -1440,56 +1471,56 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'add',
-			value: function add(opt) {
+			value: function add(binder) {
 
-				if (!this.elements.has(opt.element)) {
-					this.elements.set(opt.element, new Map());
+				if (!this.elements.has(binder.element)) {
+					this.elements.set(binder.element, new Map());
 				}
 
-				if (!this.elements.get(opt.element).has(opt.names[0])) {
-					this.elements.get(opt.element).set(opt.names[0], opt);
+				if (!this.elements.get(binder.element).has(binder.names[0])) {
+					this.elements.get(binder.element).set(binder.names[0], binder);
 				} else {
-					throw new Error('Oxe - duplicate attribute ' + opt.names[0]);
+					throw new Error('Oxe - duplicate attribute ' + binder.names[0]);
 				}
 
-				if (!(opt.scope in this.data)) {
-					this.data[opt.scope] = {};
+				if (!(binder.scope in this.data)) {
+					this.data[binder.scope] = {};
 				}
 
-				if (!(opt.path in this.data[opt.scope])) {
-					this.data[opt.scope][opt.path] = [];
+				if (!(binder.path in this.data[binder.scope])) {
+					this.data[binder.scope][binder.path] = [];
 				}
 
-				this.data[opt.scope][opt.path].push(opt);
+				this.data[binder.scope][binder.path].push(binder);
 			}
 		}, {
 			key: 'remove',
-			value: function remove(opt) {
+			value: function remove(binder) {
 
-				if (this.elements.has(opt.element)) {
+				if (this.elements.has(binder.element)) {
 
-					if (this.elements.get(opt.element).has(opt.names[0])) {
-						this.elements.get(opt.element).remove(opt.names[0]);
+					if (this.elements.get(binder.element).has(binder.names[0])) {
+						this.elements.get(binder.element).remove(binder.names[0]);
 					}
 
-					if (this.elements.get(opt.elements).length === 0) {
-						this.elements.remove(opt.elements);
+					if (this.elements.get(binder.elements).length === 0) {
+						this.elements.remove(binder.elements);
 					}
 				}
 
-				if (!(opt.scope in this.data)) {
+				if (!(binder.scope in this.data)) {
 					return;
 				}
 
-				if (!(opt.path in this.data[opt.scope])) {
+				if (!(binder.path in this.data[binder.scope])) {
 					return;
 				}
 
-				var items = this.data[opt.scope][opt.path];
+				var items = this.data[binder.scope][binder.path];
 
 				for (var i = 0, l = items.length; i < l; i++) {
 
-					if (items[i].element === opt.element) {
+					if (items[i].element === binder.element) {
 						return items.splice(i, 1);
 					}
 				}
@@ -1517,25 +1548,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'piper',
-			value: function piper(opt, data) {
+			value: function piper(binder, data) {
 
-				if (!opt.pipes.length) {
+				if (!binder.pipes.length) {
 					return data;
 				}
 
-				var methods = Methods$1.get(opt.scope);
+				var methods = Methods$1.get(binder.scope);
 
 				if (!methods) {
 					return data;
 				}
 
-				for (var i = 0, l = opt.pipes.length; i < l; i++) {
-					var method = opt.pipes[i];
+				for (var i = 0, l = binder.pipes.length; i < l; i++) {
+					var method = binder.pipes[i];
 
 					if (method in methods) {
-						data = methods[method].call(opt.container, data);
+						data = methods[method].call(binder.container, data);
 					} else {
-						throw new Error('Oxe - pipe method ' + method + ' not found in scope ' + opt.scope);
+						throw new Error('Oxe - pipe method ' + method + ' not found in scope ' + binder.scope);
 					}
 				}
 
@@ -1628,7 +1659,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.eachElement(element, container, scope, function (child) {
 					this.eachAttribute(child, function (attribute) {
 
-						var binder = this.set({
+						var binder = this.create({
 							scope: scope,
 							element: child,
 							container: container,
@@ -1657,8 +1688,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			this.REMOVE = 4;
 			this.ran = false;
 			this.data = Observer.create({}, this.listener.bind(this));
-
-			this.tl = 0;
 		}
 
 		_createClass(Model, [{
@@ -1668,7 +1697,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (typeof keys === 'string') {
 					keys = keys.split('.');
-					// keys = [keys];
 				}
 
 				var data = this.data;
@@ -1718,8 +1746,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'listener',
 			value: function listener(data, path) {
 				var method = data === undefined ? Unrender$1 : Render;
-
-				this.tl++;
 
 				Binder$1.each(path, function (binder) {
 

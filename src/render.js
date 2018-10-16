@@ -1,3 +1,6 @@
+import ValueDefault from './value/default.js';
+import ValueSelect from './value/select.js';
+import Each from './attribute/each.js';
 import Batcher from './batcher.js';
 import Utility from './utility.js';
 import Methods from './methods.js';
@@ -8,198 +11,200 @@ import Model from './model.js';
 
 export default {
 
-	required (opt) {
+	each: Each,
+
+	required (binder) {
 		return {
 			read () {
-				this.data = Model.get(opt.keys);
+				this.data = Model.get(binder.keys);
 
-				if (opt.element.required === data) {
+				if (binder.element.required === data) {
 					return;
 				}
 
-				this.data = Utility.binderModifyData(opt, this,data);
+				this.data = Utility.binderModifyData(binder, this,data);
 			},
 			write () {
-				opt.element.required = this.data;
+				binder.element.required = this.data;
 			}
 		};
 	},
 
-	disable (opt) {
+	disable (binder) {
 		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+			let data = Model.get(binder.keys);
 
-			if (opt.element.disabled === data) {
+			if (binder.element.disabled === data) {
 				return;
 			}
 
-			data = Binder.piper(opt, data);
+			data = Binder.piper(binder, data);
 
 			Batcher.write(function () {
-				opt.element.disabled = data;
+				binder.element.disabled = data;
 			});
 		});
 	},
 
-	enable (opt) {
+	enable (binder) {
 		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+			let data = Model.get(binder.keys);
 
-			if (opt.element.disabled === !data) {
+			if (binder.element.disabled === !data) {
 				return;
 			}
 
-			data = Binder.piper(opt, data);
+			data = Binder.piper(binder, data);
 
 			Batcher.write(function () {
-				opt.element.disabled = !data;
+				binder.element.disabled = !data;
 			});
 		});
 	},
 
-	hide (opt) {
+	hide (binder) {
 		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+			let data = Model.get(binder.keys);
 
-			if (opt.element.hidden === data) {
+			if (binder.element.hidden === data) {
 				return;
 			}
 
-			data = Binder.piper(opt, data);
+			data = Binder.piper(binder, data);
 
 			Batcher.write(function () {
-				opt.element.hidden = data;
+				binder.element.hidden = data;
 			});
 		});
 	},
 
-	show (opt) {
+	show (binder) {
 		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+			let data = Model.get(binder.keys);
 
-			if (opt.element.hidden === !data) {
+			if (binder.element.hidden === !data) {
 				return;
 			}
 
-			data = Binder.piper(opt, data);
+			data = Binder.piper(binder, data);
 
 			Batcher.write(function () {
-				opt.element.hidden = !data;
+				binder.element.hidden = !data;
 			});
 		});
 	},
 
-	read (opt) {
+	read (binder) {
 		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+			let data = Model.get(binder.keys);
 
-			if (opt.element.readOnly === data) {
+			if (binder.element.readOnly === data) {
 				return;
 			}
 
-			data = Binder.piper(opt, data);
+			data = Binder.piper(binder, data);
 
 			Batcher.write(function () {
-				opt.element.readOnly = data;
+				binder.element.readOnly = data;
 			});
 		});
 	},
 
-	write (opt) {
+	write (binder) {
 		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+			let data = Model.get(binder.keys);
 
-			if (opt.element.readOnly === !data) {
+			if (binder.element.readOnly === !data) {
 				return;
 			}
 
-			data = Binder.piper(opt, data);
+			data = Binder.piper(binder, data);
 
 			Batcher.write(function () {
-				opt.element.readOnly = !data;
+				binder.element.readOnly = !data;
 			});
 		});
 	},
 
-	html (opt) {
+	html (binder) {
 		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+			let data = Model.get(binder.keys);
 
-			if (opt.element.innerHTML === data) {
+			if (binder.element.innerHTML === data) {
 				return;
 			}
 
-			data = Binder.piper(opt, data);
+			data = Binder.piper(binder, data);
 
 			Batcher.write(function () {
-				opt.element.innerHTML = data;
+				binder.element.innerHTML = data;
 			});
 		});
 	},
 
-	class (opt) {
+	class (binder) {
 		Batcher.write(function () {
-			let data = Model.get(opt.keys);
-			let name = opt.names.slice(1).join('-');
-			data = Binder.piper(opt, data);
-			opt.element.classList.toggle(name, data);
+			let data = Model.get(binder.keys);
+			let name = binder.names.slice(1).join('-');
+			data = Binder.piper(binder, data);
+			binder.element.classList.toggle(name, data);
 		});
 	},
 
-	on (opt) {
+	on (binder) {
 		Batcher.write(function () {
-			const data = Methods.get(opt.keys);
+			const data = Methods.get(binder.keys);
 
 			if (typeof data !== 'function') return;
 
-			if (opt.cache) {
-				opt.element.removeEventListener(opt.names[1], opt.cache);
+			if (binder.cache) {
+				binder.element.removeEventListener(binder.names[1], binder.cache);
 			} else {
-				opt.cache = function (e) {
+				binder.cache = function (e) {
 					const parameters = [e];
 
-					for (let i = 0, l = opt.pipes.length; i < l; i++) {
-						const keys = opt.pipes[i].split('.');
-						keys.unshift(opt.scope);
+					for (let i = 0, l = binder.pipes.length; i < l; i++) {
+						const keys = binder.pipes[i].split('.');
+						keys.unshift(binder.scope);
 						const parameter = Oxe.model.get(keys);
 						parameters.push(parameter);
 					}
 
 					Promise.resolve()
-					.then(data.bind(opt.container).apply(null, parameters))
+					.then(data.bind(binder.container).apply(null, parameters))
 					.catch(console.error);
 				};
 			}
 
-			opt.element.addEventListener(opt.names[1], opt.cache);
+			binder.element.addEventListener(binder.names[1], binder.cache);
 
 		});
 	},
 
-	css (opt) {
+	css (binder) {
 		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+			let data = Model.get(binder.keys);
 
-			if (opt.element.style.cssText === data) {
+			if (binder.element.style.cssText === data) {
 				return;
 			}
 
-			if (opt.names.length > 1) {
-				data = opt.names.slice(1).join('-') + ': ' +  data + ';';
+			if (binder.names.length > 1) {
+				data = binder.names.slice(1).join('-') + ': ' +  data + ';';
 			}
 
-			data = Binder.piper(opt, data);
+			data = Binder.piper(binder, data);
 
 			Batcher.write(function () {
-				opt.element.style.cssText = data;
+				binder.element.style.cssText = data;
 			});
 		});
 	},
 
-	text (opt) {
+	text (binder) {
 		return {
 			read () {
-				this.data = Model.get(opt.keys);
+				this.data = Model.get(binder.keys);
 
 				if (this.data === undefined || this.data === null) {
 					this.data = '';
@@ -209,155 +214,25 @@ export default {
 					this.data = String(this.data);
 				}
 
-				this.data = Binder.piper(opt, this.data);
+				this.data = Binder.piper(binder, this.data);
 			},
 			write () {
-				opt.element.innerText = this.data;
+				binder.element.innerText = this.data;
 			}
 		};
 	},
 
-	te: 0,
-
-	each (opt) {
-		const self = this;
-
-		if (opt.pending) return;
-		else opt.pending = true;
-
-		self.te++;
-
-		if (!opt.cache) opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-
+	value (binder) {
 		return {
 			read () {
-
-				this.data = Model.get(opt.keys);
-
-				if (!this.data || typeof this.data !== 'object') {
-					opt.pending = false;
-					this.continue = false;
-					return;
-				}
-
-				const length = opt.element.children.length;
-				const isArray = this.data.constructor === Array;
-				const isObject = this.data.constructor === Object;
-
-				this.data = Binder.piper(opt, this.data);
-
-				const keys = isObject ? Object.keys(this.data) : [];
-
-				if (isArray) {
-					if (length === this.data.length) {
-						opt.pending = false;
-						this.continue = false;
-						return;
-					} else {
-						this.key = length;
-					}
-				}
-
-				if (isObject) {
-					if (length === keys.length) {
-						opt.pending = false;
-						this.continue = false;
-						return;
-					} else {
-						this.key = keys[length];
-					}
-				}
-
-				this.element = length > this.data.length ? opt.element.lastElementChild : null;
-			},
-			write () {
-
-				if (this.element) {
-					opt.element.removeChild(this.element);
-				} else {
-					const clone = opt.cache.cloneNode(true);
-					Utility.replaceEachVariable(clone, opt.names[1], opt.path, this.key);
-					Binder.bind(clone, opt.container);
-					opt.element.appendChild(clone);
-				}
-
-				/*
-					check if select element with o-value
-					perform a re-render of the o-value
-					becuase of o-each is async
-				*/
-				if (
-					opt.element.nodeName === 'SELECT' &&
-					opt.element.attributes['o-value'] ||
-					opt.element.attributes['data-o-value']
-				) {
-					const name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
-					const value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
-					const keys = [opt.scope].concat(value.split('|')[0].split('.'));
-					self.value({
-						keys: keys,
-						name: name,
-						value: value,
-						scope: opt.scope,
-						element: opt.element,
-						container: opt.container,
-					});
-				}
-
-				opt.pending = false;
-				self.default(opt);
-			}
-		};
-	},
-
-	value (opt) {
-		return {
-			read () {
-
-				const type = opt.element.type;
-				const name = opt.element.nodeName;
-				const current = Model.get(opt.keys);
-
-				this.data = Model.get(opt.keys);
+				const type = binder.element.type;
+				const name = binder.element.nodeName;
 
 				if (name === 'SELECT') {
-					const elements = opt.element.options;
-					const multiple = opt.element.multiple;
-
-					let selected = false;
-
-					if (multiple && this.data.constructor !== Array) {
-						throw new Error(`Oxe - invalid multiple select value type ${opt.keys.join('.')} array required`);
-					}
-
-					// NOTE might need to handle disable
-					for (var i = 0, l = elements.length; i < l; i++) {
-						const value = this.data && this.data.constructor === Array ? this.data[i] : this.data;
-
-						if (value && elements[i].value === value) {
-							elements[i].setAttribute('selected', '');
-							elements[i].value = value;
-							selected = true;
-						} else {
-							elements[i].removeAttribute('selected');
-						}
-
-					}
-
-					if (elements.length && !multiple && !selected) {
-						const value = this.data && this.data.constructor === Array ? this.data[0] : this.data;
-
-						elements[0].setAttribute('selected', '');
-
-						if (value !== (elements[0].value || '')) {
-							Model.set(opt.keys, elements[0].value || '');
-						}
-
-					}
-
+					return ValueSelect.call(this, binder);
 				} else if (type === 'radio') {
-					const query = 'input[type="radio"][o-value="' + opt.value + '"]';
-					const elements = opt.container.querySelectorAll(query);
+					const query = 'input[type="radio"][o-value="' + binder.value + '"]';
+					const elements = binder.container.querySelectorAll(query);
 
 					let checked = false;
 
@@ -376,7 +251,7 @@ export default {
 					if (!checked) {
 						elements[0].checked = true;
 						if (this.data !== 0) {
-							Model.set(opt.keys, 0);
+							Model.set(binder.keys, 0);
 						}
 					}
 
@@ -385,10 +260,10 @@ export default {
 
 					for (let i = 0, l = this.data.length; i < l; i++) {
 
-						if (this.data[i] !== opt.element.files[i]) {
+						if (this.data[i] !== binder.element.files[i]) {
 
 							if (this.data[i]) {
-								opt.element.files[i] = this.data[i];
+								binder.element.files[i] = this.data[i];
 							} else {
 								console.warn('Oxe - file remove not implemented');
 							}
@@ -398,27 +273,22 @@ export default {
 					}
 
 				} else if (type === 'checkbox') {
-					opt.element.checked = this.data === undefined ? false : this.data;
+					binder.element.checked = this.data === undefined ? false : this.data;
 
-					if (this.data !== opt.element.checked) {
-						Model.set(opt.keys, this.data === undefined ? false : this.data);
+					if (this.data !== binder.element.checked) {
+						Model.set(binder.keys, this.data === undefined ? false : this.data);
 					}
 
 				} else {
-					opt.element.value = this.data === undefined ? '' : this.data;
-
-					if (this.data !== opt.element.value) {
-						Model.set(opt.keys, this.data === undefined ? '' : this.data);
-					}
-
+					return ValueDefault.call(this, binder);
 				}
 			}
 		};
 	},
 
-	default (opt) {
-		if (opt.type in this) {
-			const render = this[opt.type](opt);
+	default (binder) {
+		if (binder.type in this) {
+			const render = this[binder.type](binder);
 			if (render) {
 				render.context = render.context || {};
 				Batcher.batch(render);
@@ -427,16 +297,16 @@ export default {
 			let data;
 			Batcher.batch({
 				read () {
-					data = Model.get(opt.keys);
+					data = Model.get(binder.keys);
 
-					if (opt.element[opt.type] === data) {
+					if (binder.element[binder.type] === data) {
 						return;
 					}
 
-					data = Binder.piper(opt, data);
+					data = Binder.piper(binder, data);
 				},
 				write () {
-					opt.element[opt.type] = data;
+					binder.element[binder.type] = data;
 				}
 			});
 		}

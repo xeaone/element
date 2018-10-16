@@ -10,42 +10,49 @@ class Binder {
 		this.elements = new Map();
 	}
 
-	set (opt) {
-		opt = opt || {};
+	create (data) {
+		const binder = {};
 
-		if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
-		if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
-		if (opt.scope === undefined) throw new Error('Oxe.binder.set - missing scope');
-		if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
-		if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
+		if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
+		if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
+		if (data.scope === undefined) throw new Error('Oxe.binder.create - missing scope');
+		if (data.element === undefined) throw new Error('Oxe.binder.create - missing element');
+		if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
 
-		opt.names = opt.names || Utility.binderNames(opt.name);
-		opt.pipes = opt.pipes || Utility.binderPipes(opt.value);
-		opt.values = opt.values || Utility.binderValues(opt.value);
+		binder.name = data.name;
+		binder.value = data.value;
+		binder.scope = data.scope;
+		binder.element = data.element;
+		binder.container = data.container;
 
-		opt.path = opt.values.join('.');
-		opt.type = opt.type || opt.names[0];
-		opt.keys = [opt.scope].concat(opt.values);
+		binder.names = data.names || Utility.binderNames(data.name);
+		binder.pipes = data.pipes || Utility.binderPipes(data.value);
+		binder.values = data.values || Utility.binderValues(data.value);
 
-		return opt;
+		binder.context = {};
+		binder.path = binder.values.join('.');
+		binder.type = binder.type || binder.names[0];
+		binder.keys = [binder.scope].concat(binder.values);
+
+		return binder;
 	}
 
-	get (opt) {
+	get (binder) {
 
-		if (!(opt.scope in this.data)) {
+		if (!(binder.scope in this.data)) {
 			return null;
 		}
 
-		if (!(opt.path in this.data[opt.scope])) {
+		if (!(binder.path in this.data[binder.scope])) {
 			return null;
 		}
 
-		const items = this.data[opt.scope][opt.path];
+		const items = this.data[binder.scope][binder.path];
 
 		for (let i = 0, l = items.length; i < l; i++) {
 			const item = items[i];
 
-			if (item.element === opt.element && item.name === opt.name) {
+			if (item.element === binder.element && item.name === binder.name) {
 				return item;
 			}
 
@@ -54,56 +61,56 @@ class Binder {
 		return null;
 	}
 
-	add (opt) {
+	add (binder) {
 
-		if (!this.elements.has(opt.element)) {
-			this.elements.set(opt.element, new Map());
+		if (!this.elements.has(binder.element)) {
+			this.elements.set(binder.element, new Map());
 		}
 
-		if (!this.elements.get(opt.element).has(opt.names[0])) {
-			this.elements.get(opt.element).set(opt.names[0], opt);
+		if (!this.elements.get(binder.element).has(binder.names[0])) {
+			this.elements.get(binder.element).set(binder.names[0], binder);
 		} else {
-			throw new Error(`Oxe - duplicate attribute ${opt.names[0]}`);
+			throw new Error(`Oxe - duplicate attribute ${binder.names[0]}`);
 		}
 
-		if (!(opt.scope in this.data)) {
-			this.data[opt.scope] = {};
+		if (!(binder.scope in this.data)) {
+			this.data[binder.scope] = {};
 		}
 
-		if (!(opt.path in this.data[opt.scope])) {
-			this.data[opt.scope][opt.path] = [];
+		if (!(binder.path in this.data[binder.scope])) {
+			this.data[binder.scope][binder.path] = [];
 		}
 
-		this.data[opt.scope][opt.path].push(opt);
+		this.data[binder.scope][binder.path].push(binder);
 	}
 
-	remove (opt) {
+	remove (binder) {
 
-		if (this.elements.has(opt.element)) {
+		if (this.elements.has(binder.element)) {
 
-			if (this.elements.get(opt.element).has(opt.names[0])) {
-				this.elements.get(opt.element).remove(opt.names[0]);
+			if (this.elements.get(binder.element).has(binder.names[0])) {
+				this.elements.get(binder.element).remove(binder.names[0]);
 			}
 
-			if (this.elements.get(opt.elements).length === 0) {
-				this.elements.remove(opt.elements);
+			if (this.elements.get(binder.elements).length === 0) {
+				this.elements.remove(binder.elements);
 			}
 
 		}
 
-		if (!(opt.scope in this.data)) {
+		if (!(binder.scope in this.data)) {
 			return;
 		}
 
-		if (!(opt.path in this.data[opt.scope])) {
+		if (!(binder.path in this.data[binder.scope])) {
 			return;
 		}
 
-		const items = this.data[opt.scope][opt.path];
+		const items = this.data[binder.scope][binder.path];
 
 		for (let i = 0, l = items.length; i < l; i++) {
 
-			if (items[i].element === opt.element) {
+			if (items[i].element === binder.element) {
 				return items.splice(i, 1);
 			}
 
@@ -141,25 +148,25 @@ class Binder {
 
 	}
 
-	piper (opt, data) {
+	piper (binder, data) {
 
-		if (!opt.pipes.length) {
+		if (!binder.pipes.length) {
 			return data;
 		}
 
-		const methods = Methods.get(opt.scope);
+		const methods = Methods.get(binder.scope);
 
 		if (!methods) {
 			return data;
 		}
 
-		for (let i = 0, l = opt.pipes.length; i < l; i++) {
-			const method = opt.pipes[i];
+		for (let i = 0, l = binder.pipes.length; i < l; i++) {
+			const method = binder.pipes[i];
 
 			if (method in methods) {
-				data = methods[method].call(opt.container, data);
+				data = methods[method].call(binder.container, data);
 			} else {
-				throw new Error(`Oxe - pipe method ${method} not found in scope ${opt.scope}`);
+				throw new Error(`Oxe - pipe method ${method} not found in scope ${binder.scope}`);
 			}
 
 		}
@@ -287,7 +294,7 @@ class Binder {
 		this.eachElement(element, container, scope, function (child) {
 			this.eachAttribute(child, function (attribute) {
 
-				const binder = this.set({
+				const binder = this.create({
 					scope: scope,
 					element: child,
 					container: container,
