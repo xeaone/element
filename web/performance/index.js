@@ -6,8 +6,6 @@ var oLoop = {
 		message: '',
 		count: 6000
 	},
-	created: function () {
-	},
 	methods: {
 		loop: function () {
 			this.model.message = 'push started';
@@ -19,8 +17,7 @@ var oLoop = {
 			}
 
 			this.model.message = 'push ended ' + (performance.now() - time) + 'ms';
-		},
-
+		}
 	},
 	template: `
 

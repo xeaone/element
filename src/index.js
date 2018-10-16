@@ -16,6 +16,8 @@ import Loader from './loader.js';
 import Binder from './binder.js';
 import Model from './model.js';
 
+import Render from './render.js';
+
 // OPTIMIZE wait until polyfill are ready then allow setup
 
 const eStyle = document.createElement('style');
@@ -75,7 +77,7 @@ if (oSetup) {
 			});
 		} else {
 			const index = document.createElement('script');
-			
+
 			index.setAttribute('src', args[0]);
 			index.setAttribute('async', 'true');
 			index.setAttribute('type', 'module');
@@ -161,6 +163,10 @@ class Oxe {
 
 	get global () {
 		return {};
+	}
+
+	get render () {
+		return 	Render;
 	}
 
 	get methods () {

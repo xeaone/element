@@ -10,7 +10,9 @@ class Model {
 		this.SET = 3;
 		this.REMOVE = 4;
 		this.ran = false;
-		this.data = Observer.create({}, this.listener);
+		this.data = Observer.create({}, this.listener.bind(this));
+
+		this.tl = 0;
 	}
 
 	traverse (type, keys, value) {
@@ -65,6 +67,8 @@ class Model {
 
 	listener (data, path) {
 		const method = data === undefined ? Unrender : Render;
+
+		this.tl++;
 
 		Binder.each(path, function (binder) {
 

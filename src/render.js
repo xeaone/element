@@ -9,19 +9,20 @@ import Model from './model.js';
 export default {
 
 	required (opt) {
-		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+		return {
+			read () {
+				this.data = Model.get(opt.keys);
 
-			if (opt.element.required === data) {
-				return;
+				if (opt.element.required === data) {
+					return;
+				}
+
+				this.data = Utility.binderModifyData(opt, this,data);
+			},
+			write () {
+				opt.element.required = this.data;
 			}
-
-			data = Utility.binderModifyData(opt, data);
-
-			Batcher.write(function () {
-				opt.element.required = data;
-			});
-		});
+		};
 	},
 
 	disable (opt) {
@@ -196,24 +197,27 @@ export default {
 	},
 
 	text (opt) {
-		Batcher.read(function () {
-			let data = Model.get(opt.keys);
+		return {
+			read () {
+				this.data = Model.get(opt.keys);
 
-			if (data === undefined || data === null) {
-				data = '';
-			} else if (data && typeof data === 'object') {
-				data = JSON.stringify(data);
-			} else if (data && typeof data !== 'string') {
-				data = String(data);
+				if (this.data === undefined || this.data === null) {
+					this.data = '';
+				} else if (this.data && typeof this.data === 'object') {
+					this.data = JSON.stringify(this.data);
+				} else if (this.data && typeof this.data !== 'string') {
+					this.data = String(this.data);
+				}
+
+				this.data = Binder.piper(opt, this.data);
+			},
+			write () {
+				opt.element.innerText = this.data;
 			}
-
-			data = Binder.piper(opt, data);
-
-			Batcher.write(function () {
-				opt.element.innerText = data;
-			});
-		});
+		};
 	},
+
+	te: 0,
 
 	each (opt) {
 		const self = this;
@@ -221,57 +225,61 @@ export default {
 		if (opt.pending) return;
 		else opt.pending = true;
 
+		self.te++;
+
 		if (!opt.cache) opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 
-		Batcher.read(function () {
+		return {
+			read () {
 
-			let data = Model.get(opt.keys);
+				this.data = Model.get(opt.keys);
 
-			if (!data || typeof data !== 'object') {
-			 	opt.pending = false;
-				return;
-			}
-
-			const length = opt.element.children.length;
-			const isArray = data.constructor === Array;
-			const isObject = data.constructor === Object;
-
-			data = Binder.piper(opt, data);
-
-			let key;
-			const keys = isObject ? Object.keys(data) : [];
-
-			if (isArray) {
-				if (length === data.length) {
+				if (!this.data || typeof this.data !== 'object') {
 					opt.pending = false;
+					this.continue = false;
 					return;
-				} else {
-					key = length;
 				}
-			}
 
-			if (isObject) {
-				if (length === keys.length) {
-					opt.pending = false;
-					return;
-				} else {
-					key = keys[length];
+				const length = opt.element.children.length;
+				const isArray = this.data.constructor === Array;
+				const isObject = this.data.constructor === Object;
+
+				this.data = Binder.piper(opt, this.data);
+
+				const keys = isObject ? Object.keys(this.data) : [];
+
+				if (isArray) {
+					if (length === this.data.length) {
+						opt.pending = false;
+						this.continue = false;
+						return;
+					} else {
+						this.key = length;
+					}
 				}
-			}
 
-			const element = length > data.length ? opt.element.lastElementChild : null;
-			const clone = opt.cache.cloneNode(true);
-			// console.log(data.length);
-			// console.log(length);
-			// console.log(key);
+				if (isObject) {
+					if (length === keys.length) {
+						opt.pending = false;
+						this.continue = false;
+						return;
+					} else {
+						this.key = keys[length];
+					}
+				}
 
-			Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-			Binder.bind(clone, opt.container);
+				this.element = length > this.data.length ? opt.element.lastElementChild : null;
+			},
+			write () {
 
-			Batcher.write(function () {
-
-				if (element) opt.element.removeChild(element);
-				else opt.element.appendChild(clone);
+				if (this.element) {
+					opt.element.removeChild(this.element);
+				} else {
+					const clone = opt.cache.cloneNode(true);
+					Utility.replaceEachVariable(clone, opt.names[1], opt.path, this.key);
+					Binder.bind(clone, opt.container);
+					opt.element.appendChild(clone);
+				}
 
 				/*
 					check if select element with o-value
@@ -297,174 +305,139 @@ export default {
 				}
 
 				opt.pending = false;
-				self.each(opt);
-			});
-
-			// const done = function () {
-			// 	/*
-			// 		check if select element with o-value
-			// 		perform a re-render of the o-value
-			// 		becuase of o-each is async
-			// 	*/
-			// 	if (
-			// 		opt.element.nodeName === 'SELECT' &&
-			// 		opt.element.attributes['o-value'] ||
-			// 		opt.element.attributes['data-o-value']
-			// 	) {
-			// 		const name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
-			// 		const value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
-			// 		const keys = [opt.scope].concat(value.split('|')[0].split('.'));
-			// 		self.value({
-			// 			keys: keys,
-			// 			name: name,
-			// 			value: value,
-			// 			scope: opt.scope,
-			// 			element: opt.element,
-			// 			container: opt.container,
-			// 		});
-			// 	}
-			//
-			// 	opt.pending = false;
-			// 	self.each(opt);
-			// };
-			//
-			// if (opt.element.children.length > data.length) {
-			// 	return Batcher.write(function () {
-			// 		opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
-			// 		done();
-			// 	});
-			// }
-			//
-			// if (opt.element.children.length < data.length) {
-			// 	return Batcher.write(function () {
-			// 		opt.element.appendChild(clone);
-			// 		done();
-			// 	});
-			// }
-
-		});
+				self.default(opt);
+			}
+		};
 	},
 
 	value (opt) {
-		Batcher.read(function () {
-			const type = opt.element.type;
-			const name = opt.element.nodeName;
-			const current = Model.get(opt.keys);
+		return {
+			read () {
 
-			let data = Model.get(opt.keys);
+				const type = opt.element.type;
+				const name = opt.element.nodeName;
+				const current = Model.get(opt.keys);
 
-			if (name === 'SELECT') {
-				const elements = opt.element.options;
-				const multiple = opt.element.multiple;
+				this.data = Model.get(opt.keys);
 
-				let selected = false;
+				if (name === 'SELECT') {
+					const elements = opt.element.options;
+					const multiple = opt.element.multiple;
 
-				if (multiple && data.constructor !== Array) {
-					throw new Error(`Oxe - invalid multiple select value type ${opt.keys.join('.')} array required`);
-				}
+					let selected = false;
 
-				// NOTE might need to handle disable
-				for (var i = 0, l = elements.length; i < l; i++) {
-					const value = data && data.constructor === Array ? data[i] : data;
-
-					if (value && elements[i].value === value) {
-						elements[i].setAttribute('selected', '');
-						elements[i].value = value;
-						selected = true;
-					} else {
-						elements[i].removeAttribute('selected');
+					if (multiple && this.data.constructor !== Array) {
+						throw new Error(`Oxe - invalid multiple select value type ${opt.keys.join('.')} array required`);
 					}
 
-				}
+					// NOTE might need to handle disable
+					for (var i = 0, l = elements.length; i < l; i++) {
+						const value = this.data && this.data.constructor === Array ? this.data[i] : this.data;
 
-				if (elements.length && !multiple && !selected) {
-					const value = data && data.constructor === Array ? data[0] : data;
-
-					elements[0].setAttribute('selected', '');
-
-					if (value !== (elements[0].value || '')) {
-						Model.set(opt.keys, elements[0].value || '');
-					}
-
-				}
-
-			} else if (type === 'radio') {
-				const query = 'input[type="radio"][o-value="' + opt.value + '"]';
-				const elements = opt.container.querySelectorAll(query);
-
-				let checked = false;
-
-				for (let i = 0, l = elements.length; i < l; i++) {
-					const element = elements[i];
-
-					if (i === data) {
-						checked = true;
-						element.checked = true;
-					} else {
-						element.checked = false;
-					}
-
-				}
-
-				if (!checked) {
-					elements[0].checked = true;
-					if (data !== 0) {
-						Model.set(opt.keys, 0);
-					}
-				}
-
-			} else if (type === 'file') {
-				data = data || [];
-
-				for (let i = 0, l = data.length; i < l; i++) {
-
-					if (data[i] !== opt.element.files[i]) {
-
-						if (data[i]) {
-							opt.element.files[i] = data[i];
+						if (value && elements[i].value === value) {
+							elements[i].setAttribute('selected', '');
+							elements[i].value = value;
+							selected = true;
 						} else {
-							console.warn('Oxe - file remove not implemented');
+							elements[i].removeAttribute('selected');
 						}
 
 					}
 
+					if (elements.length && !multiple && !selected) {
+						const value = this.data && this.data.constructor === Array ? this.data[0] : this.data;
+
+						elements[0].setAttribute('selected', '');
+
+						if (value !== (elements[0].value || '')) {
+							Model.set(opt.keys, elements[0].value || '');
+						}
+
+					}
+
+				} else if (type === 'radio') {
+					const query = 'input[type="radio"][o-value="' + opt.value + '"]';
+					const elements = opt.container.querySelectorAll(query);
+
+					let checked = false;
+
+					for (let i = 0, l = elements.length; i < l; i++) {
+						const element = elements[i];
+
+						if (i === this.data) {
+							checked = true;
+							element.checked = true;
+						} else {
+							element.checked = false;
+						}
+
+					}
+
+					if (!checked) {
+						elements[0].checked = true;
+						if (this.data !== 0) {
+							Model.set(opt.keys, 0);
+						}
+					}
+
+				} else if (type === 'file') {
+					this.data = this.data || [];
+
+					for (let i = 0, l = this.data.length; i < l; i++) {
+
+						if (this.data[i] !== opt.element.files[i]) {
+
+							if (this.data[i]) {
+								opt.element.files[i] = this.data[i];
+							} else {
+								console.warn('Oxe - file remove not implemented');
+							}
+
+						}
+
+					}
+
+				} else if (type === 'checkbox') {
+					opt.element.checked = this.data === undefined ? false : this.data;
+
+					if (this.data !== opt.element.checked) {
+						Model.set(opt.keys, this.data === undefined ? false : this.data);
+					}
+
+				} else {
+					opt.element.value = this.data === undefined ? '' : this.data;
+
+					if (this.data !== opt.element.value) {
+						Model.set(opt.keys, this.data === undefined ? '' : this.data);
+					}
+
 				}
-
-			} else if (type === 'checkbox') {
-				opt.element.checked = data === undefined ? false : data;
-
-				if (data !== opt.element.checked) {
-					Model.set(opt.keys, data === undefined ? false : data);
-				}
-
-			} else {
-				opt.element.value = data === undefined ? '' : data;
-
-				if (data !== opt.element.value) {
-					Model.set(opt.keys, data === undefined ? '' : data);
-				}
-
 			}
-
-		});
+		};
 	},
 
 	default (opt) {
 		if (opt.type in this) {
-			this[opt.type](opt);
+			const render = this[opt.type](opt);
+			if (render) {
+				render.context = render.context || {};
+				Batcher.batch(render);
+			}
 		} else {
-			Batcher.read(function () {
-				let data = Model.get(opt.keys);
+			let data;
+			Batcher.batch({
+				read () {
+					data = Model.get(opt.keys);
 
-				if (opt.element[opt.type] === data) {
-					return;
-				}
+					if (opt.element[opt.type] === data) {
+						return;
+					}
 
-				data = Binder.piper(opt, data);
-
-				Batcher.write(function () {
+					data = Binder.piper(opt, data);
+				},
+				write () {
 					opt.element[opt.type] = data;
-				});
+				}
 			});
 		}
 	}

@@ -9,7 +9,7 @@ export default async function (element, attribute) {
 
 	const binder = Binder.elements.get(element).get(attribute);
 
-	Batcher.read(function () {
+	const read = function () {
 		const type = binder.element.type;
 	 	const name = binder.element.nodeName;
 
@@ -94,5 +94,7 @@ export default async function (element, attribute) {
 
 		}
 
-	});
+	};
+
+	Batcher.batch({ read });
 };

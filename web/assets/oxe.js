@@ -110,7 +110,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		var binder = Binder$1.elements.get(element).get(attribute);
 
-		Batcher$1.read(function () {
+		var read = function read() {
 			var type = binder.element.type;
 			var name = binder.element.nodeName;
 
@@ -183,7 +183,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					Model$1.set(binder.keys, data);
 				}
 			}
-		});
+		};
+
+		Batcher$1.batch({ read: read });
 	});
 
 	var Observer = {
@@ -441,8 +443,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			this.reads = [];
 			this.writes = [];
-			this.time = 300;
+			// this.time = 1000;
+			this.time = 1000 / 30;
 			this.pending = false;
+			this.mr = 0;
+			this.mw = 0;
+			this.tr = 0;
+			this.tw = 0;
 		}
 
 		_createClass(Batcher, [{
@@ -452,31 +459,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.time = options.time || this.time;
 			}
 
-			// adds a task to the read batch
+			// // adds a task to the read batch
+			// read (method, context) {
+			// 	const task = context ? method.bind(context) : method;
+			//
+			// 	this.reads.push(task);
+			// 	this.schedule();
+			//
+			// 	return task;
+			// }
+			//
+			// // adds a task to the write batch
+			// write (method, context) {
+			// 	const task = context ? method.bind(context) : method;
+			//
+			// 	this.writes.push(task);
+			// 	this.schedule();
+			//
+			// 	return task;
+			// }
 
-		}, {
-			key: 'read',
-			value: function read(method, context) {
-				var task = context ? method.bind(context) : method;
-
-				this.reads.push(task);
-				this.schedule();
-
-				return task;
-			}
-
-			// adds a task to the write batch
-
-		}, {
-			key: 'write',
-			value: function write(method, context) {
-				var task = context ? method.bind(context) : method;
-
-				this.writes.push(task);
-				this.schedule();
-
-				return task;
-			}
 		}, {
 			key: 'tick',
 			value: function tick(callback) {
@@ -487,51 +489,71 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		}, {
 			key: 'schedule',
-			value: function schedule(count) {
+			value: function schedule() {
+				if (!this.pending) {
+					this.pending = true;
+					this.tick(this.flush.bind(this, null));
+					// this.flush();
+				}
+			}
+		}, {
+			key: 'flush',
+			value: function flush(position, time) {
 				var self = this;
 
 				if (!self.reads.length && !self.writes.length) {
 					self.pending = false;
 					return;
-				} else {
-					self.pending = true;
 				}
 
-				self.tick(function (time) {
-					var read = void 0;
-					var write = void 0;
+				// self.tick(function (time) {
+				var i = void 0;
 
-					try {
+				if (position === null) {
 
-						if (count === undefined) {
-							count = 0;
-
-							while (read = self.reads.shift()) {
-								read();
-								count++;
-								if (performance.now() - time > self.time) {
-									return self.schedule(count);
-								}
-							}
-						}
-
-						while (write = self.writes.shift()) {
-							write();
-							if (--count < 1 || performance.now() - time > self.time) {
-								return self.schedule(count);
-							}
-						}
-					} catch (error) {
-
-						if (typeof self.error === 'function') {
-							self.error(error);
-						} else {
-							throw error;
+					// count = 0;
+					// while (read = self.reads.shift()) {
+					for (i = 0; i < self.reads.length; i++) {
+						self.tr++;
+						var read = self.reads[i];
+						if (read) read();
+						// count++;
+						if (performance.now() - time > self.time) {
+							self.mr++;
+							// return self.schedule(count);
+							self.reads.splice(0, i + 1);
+							return self.tick(self.flush.bind(self, i + 1));
 						}
 					}
 
-					self.schedule();
-				});
+					self.reads.splice(0, i + 1);
+				}
+
+				// while (write = self.writes.shift()) {
+				for (i = 0; i < self.writes.length; i++) {
+					// write();
+					self.tw++;
+					var write = self.writes[i];
+					if (write) write();
+
+					if (i === position) {
+						console.log('position');
+						self.writes.splice(0, i + 1);
+						return self.flush(null, time);
+					}
+
+					if (performance.now() - time > self.time) {
+						self.mw++;
+						self.writes.splice(0, i + 1);
+						// return self.flush(i + 1);
+						return self.tick(self.flush.bind(self, i + 1));
+					}
+				}
+
+				self.writes.splice(0, i + 1);
+
+				self.flush(null, time);
+				// });
 			}
 		}, {
 			key: 'remove',
@@ -543,6 +565,54 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'clear',
 			value: function clear(task) {
 				return this.remove(this.reads, task) || this.remove(this.writes, task);
+			}
+		}, {
+			key: 'batch',
+			value: function batch(data) {
+				var self = this;
+
+				if (data.read) {
+
+					var read = function read() {
+
+						if (data.context) {
+							data.read.call(data.context);
+						} else {
+							data.read();
+						}
+
+						if (data.write && !data.context || data.write && data.context && data.context.continue !== false) {
+							var write = void 0;
+
+							if (data.context) {
+								write = data.write.bind(data.context);
+							} else {
+								write = data.write;
+							}
+
+							self.writes.push(write);
+							self.schedule();
+						}
+					};
+
+					self.reads.push(read);
+					self.schedule();
+				} else if (data.write) {
+					var write = void 0;
+
+					console.log('no read');
+
+					if (data.context) {
+						write = data.write.bind(data.context, data.shared);
+					} else {
+						write = data.write;
+					}
+
+					self.writes.push(write);
+					self.schedule();
+				}
+
+				return data;
 			}
 		}]);
 
@@ -911,19 +981,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Render = {
 		required: function required(opt) {
-			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+			return {
+				read: function read() {
+					this.data = Model$1.get(opt.keys);
 
-				if (opt.element.required === data) {
-					return;
+					if (opt.element.required === data) {
+						return;
+					}
+
+					this.data = Utility.binderModifyData(opt, this, data);
+				},
+				write: function write() {
+					opt.element.required = this.data;
 				}
-
-				data = Utility.binderModifyData(opt, data);
-
-				Batcher$1.write(function () {
-					opt.element.required = data;
-				});
-			});
+			};
 		},
 		disable: function disable(opt) {
 			Batcher$1.read(function () {
@@ -1084,79 +1155,89 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			});
 		},
 		text: function text(opt) {
-			Batcher$1.read(function () {
-				var data = Model$1.get(opt.keys);
+			return {
+				read: function read() {
+					this.data = Model$1.get(opt.keys);
 
-				if (data === undefined || data === null) {
-					data = '';
-				} else if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
-					data = JSON.stringify(data);
-				} else if (data && typeof data !== 'string') {
-					data = String(data);
+					if (this.data === undefined || this.data === null) {
+						this.data = '';
+					} else if (this.data && _typeof(this.data) === 'object') {
+						this.data = JSON.stringify(this.data);
+					} else if (this.data && typeof this.data !== 'string') {
+						this.data = String(this.data);
+					}
+
+					this.data = Binder$1.piper(opt, this.data);
+				},
+				write: function write() {
+					opt.element.innerText = this.data;
 				}
-
-				data = Binder$1.piper(opt, data);
-
-				Batcher$1.write(function () {
-					opt.element.innerText = data;
-				});
-			});
+			};
 		},
+
+
+		te: 0,
+
 		each: function each(opt) {
 			var self = this;
 
 			if (opt.pending) return;else opt.pending = true;
 
+			self.te++;
+
 			if (!opt.cache) opt.cache = opt.element.removeChild(opt.element.firstElementChild);
 
-			Batcher$1.read(function () {
+			return {
+				read: function read() {
 
-				var data = Model$1.get(opt.keys);
+					this.data = Model$1.get(opt.keys);
 
-				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') {
-					opt.pending = false;
-					return;
-				}
-
-				var length = opt.element.children.length;
-				var isArray = data.constructor === Array;
-				var isObject = data.constructor === Object;
-
-				data = Binder$1.piper(opt, data);
-
-				var key = void 0;
-				var keys = isObject ? Object.keys(data) : [];
-
-				if (isArray) {
-					if (length === data.length) {
+					if (!this.data || _typeof(this.data) !== 'object') {
 						opt.pending = false;
+						this.continue = false;
 						return;
-					} else {
-						key = length;
 					}
-				}
 
-				if (isObject) {
-					if (length === keys.length) {
-						opt.pending = false;
-						return;
-					} else {
-						key = keys[length];
+					var length = opt.element.children.length;
+					var isArray = this.data.constructor === Array;
+					var isObject = this.data.constructor === Object;
+
+					this.data = Binder$1.piper(opt, this.data);
+
+					var keys = isObject ? Object.keys(this.data) : [];
+
+					if (isArray) {
+						if (length === this.data.length) {
+							opt.pending = false;
+							this.continue = false;
+							return;
+						} else {
+							this.key = length;
+						}
 					}
-				}
 
-				var element = length > data.length ? opt.element.lastElementChild : null;
-				var clone = opt.cache.cloneNode(true);
-				// console.log(data.length);
-				// console.log(length);
-				// console.log(key);
+					if (isObject) {
+						if (length === keys.length) {
+							opt.pending = false;
+							this.continue = false;
+							return;
+						} else {
+							this.key = keys[length];
+						}
+					}
 
-				Utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-				Binder$1.bind(clone, opt.container);
+					this.element = length > this.data.length ? opt.element.lastElementChild : null;
+				},
+				write: function write() {
 
-				Batcher$1.write(function () {
-
-					if (element) opt.element.removeChild(element);else opt.element.appendChild(clone);
+					if (this.element) {
+						opt.element.removeChild(this.element);
+					} else {
+						var clone = opt.cache.cloneNode(true);
+						Utility.replaceEachVariable(clone, opt.names[1], opt.path, this.key);
+						Binder$1.bind(clone, opt.container);
+						opt.element.appendChild(clone);
+					}
 
 					/*
      	check if select element with o-value
@@ -1166,9 +1247,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (opt.element.nodeName === 'SELECT' && opt.element.attributes['o-value'] || opt.element.attributes['data-o-value']) {
 						var name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
 						var value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
-						var _keys = [opt.scope].concat(value.split('|')[0].split('.'));
+						var keys = [opt.scope].concat(value.split('|')[0].split('.'));
 						self.value({
-							keys: _keys,
+							keys: keys,
 							name: name,
 							value: value,
 							scope: opt.scope,
@@ -1178,160 +1259,127 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					opt.pending = false;
-					self.each(opt);
-				});
-
-				// const done = function () {
-				// 	/*
-				// 		check if select element with o-value
-				// 		perform a re-render of the o-value
-				// 		becuase of o-each is async
-				// 	*/
-				// 	if (
-				// 		opt.element.nodeName === 'SELECT' &&
-				// 		opt.element.attributes['o-value'] ||
-				// 		opt.element.attributes['data-o-value']
-				// 	) {
-				// 		const name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
-				// 		const value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
-				// 		const keys = [opt.scope].concat(value.split('|')[0].split('.'));
-				// 		self.value({
-				// 			keys: keys,
-				// 			name: name,
-				// 			value: value,
-				// 			scope: opt.scope,
-				// 			element: opt.element,
-				// 			container: opt.container,
-				// 		});
-				// 	}
-				//
-				// 	opt.pending = false;
-				// 	self.each(opt);
-				// };
-				//
-				// if (opt.element.children.length > data.length) {
-				// 	return Batcher.write(function () {
-				// 		opt.element.removeChild(opt.element.children[opt.element.children.length-1]);
-				// 		done();
-				// 	});
-				// }
-				//
-				// if (opt.element.children.length < data.length) {
-				// 	return Batcher.write(function () {
-				// 		opt.element.appendChild(clone);
-				// 		done();
-				// 	});
-				// }
-			});
+					self.default(opt);
+				}
+			};
 		},
 		value: function value(opt) {
-			Batcher$1.read(function () {
-				var type = opt.element.type;
-				var name = opt.element.nodeName;
-				var current = Model$1.get(opt.keys);
+			return {
+				read: function read() {
 
-				var data = Model$1.get(opt.keys);
+					var type = opt.element.type;
+					var name = opt.element.nodeName;
+					var current = Model$1.get(opt.keys);
 
-				if (name === 'SELECT') {
-					var elements = opt.element.options;
-					var multiple = opt.element.multiple;
+					this.data = Model$1.get(opt.keys);
 
-					var selected = false;
+					if (name === 'SELECT') {
+						var elements = opt.element.options;
+						var multiple = opt.element.multiple;
 
-					if (multiple && data.constructor !== Array) {
-						throw new Error('Oxe - invalid multiple select value type ' + opt.keys.join('.') + ' array required');
-					}
+						var selected = false;
 
-					// NOTE might need to handle disable
-					for (var i = 0, l = elements.length; i < l; i++) {
-						var value = data && data.constructor === Array ? data[i] : data;
-
-						if (value && elements[i].value === value) {
-							elements[i].setAttribute('selected', '');
-							elements[i].value = value;
-							selected = true;
-						} else {
-							elements[i].removeAttribute('selected');
+						if (multiple && this.data.constructor !== Array) {
+							throw new Error('Oxe - invalid multiple select value type ' + opt.keys.join('.') + ' array required');
 						}
-					}
 
-					if (elements.length && !multiple && !selected) {
-						var _value2 = data && data.constructor === Array ? data[0] : data;
+						// NOTE might need to handle disable
+						for (var i = 0, l = elements.length; i < l; i++) {
+							var value = this.data && this.data.constructor === Array ? this.data[i] : this.data;
 
-						elements[0].setAttribute('selected', '');
-
-						if (_value2 !== (elements[0].value || '')) {
-							Model$1.set(opt.keys, elements[0].value || '');
-						}
-					}
-				} else if (type === 'radio') {
-					var query = 'input[type="radio"][o-value="' + opt.value + '"]';
-					var _elements = opt.container.querySelectorAll(query);
-
-					var checked = false;
-
-					for (var _i = 0, _l = _elements.length; _i < _l; _i++) {
-						var element = _elements[_i];
-
-						if (_i === data) {
-							checked = true;
-							element.checked = true;
-						} else {
-							element.checked = false;
-						}
-					}
-
-					if (!checked) {
-						_elements[0].checked = true;
-						if (data !== 0) {
-							Model$1.set(opt.keys, 0);
-						}
-					}
-				} else if (type === 'file') {
-					data = data || [];
-
-					for (var _i2 = 0, _l2 = data.length; _i2 < _l2; _i2++) {
-
-						if (data[_i2] !== opt.element.files[_i2]) {
-
-							if (data[_i2]) {
-								opt.element.files[_i2] = data[_i2];
+							if (value && elements[i].value === value) {
+								elements[i].setAttribute('selected', '');
+								elements[i].value = value;
+								selected = true;
 							} else {
-								console.warn('Oxe - file remove not implemented');
+								elements[i].removeAttribute('selected');
 							}
 						}
-					}
-				} else if (type === 'checkbox') {
-					opt.element.checked = data === undefined ? false : data;
 
-					if (data !== opt.element.checked) {
-						Model$1.set(opt.keys, data === undefined ? false : data);
-					}
-				} else {
-					opt.element.value = data === undefined ? '' : data;
+						if (elements.length && !multiple && !selected) {
+							var _value2 = this.data && this.data.constructor === Array ? this.data[0] : this.data;
 
-					if (data !== opt.element.value) {
-						Model$1.set(opt.keys, data === undefined ? '' : data);
+							elements[0].setAttribute('selected', '');
+
+							if (_value2 !== (elements[0].value || '')) {
+								Model$1.set(opt.keys, elements[0].value || '');
+							}
+						}
+					} else if (type === 'radio') {
+						var query = 'input[type="radio"][o-value="' + opt.value + '"]';
+						var _elements = opt.container.querySelectorAll(query);
+
+						var checked = false;
+
+						for (var _i = 0, _l = _elements.length; _i < _l; _i++) {
+							var element = _elements[_i];
+
+							if (_i === this.data) {
+								checked = true;
+								element.checked = true;
+							} else {
+								element.checked = false;
+							}
+						}
+
+						if (!checked) {
+							_elements[0].checked = true;
+							if (this.data !== 0) {
+								Model$1.set(opt.keys, 0);
+							}
+						}
+					} else if (type === 'file') {
+						this.data = this.data || [];
+
+						for (var _i2 = 0, _l2 = this.data.length; _i2 < _l2; _i2++) {
+
+							if (this.data[_i2] !== opt.element.files[_i2]) {
+
+								if (this.data[_i2]) {
+									opt.element.files[_i2] = this.data[_i2];
+								} else {
+									console.warn('Oxe - file remove not implemented');
+								}
+							}
+						}
+					} else if (type === 'checkbox') {
+						opt.element.checked = this.data === undefined ? false : this.data;
+
+						if (this.data !== opt.element.checked) {
+							Model$1.set(opt.keys, this.data === undefined ? false : this.data);
+						}
+					} else {
+						opt.element.value = this.data === undefined ? '' : this.data;
+
+						if (this.data !== opt.element.value) {
+							Model$1.set(opt.keys, this.data === undefined ? '' : this.data);
+						}
 					}
 				}
-			});
+			};
 		},
 		default: function _default(opt) {
 			if (opt.type in this) {
-				this[opt.type](opt);
+				var render = this[opt.type](opt);
+				if (render) {
+					render.context = render.context || {};
+					Batcher$1.batch(render);
+				}
 			} else {
-				Batcher$1.read(function () {
-					var data = Model$1.get(opt.keys);
+				var _data = void 0;
+				Batcher$1.batch({
+					read: function read() {
+						_data = Model$1.get(opt.keys);
 
-					if (opt.element[opt.type] === data) {
-						return;
+						if (opt.element[opt.type] === _data) {
+							return;
+						}
+
+						_data = Binder$1.piper(opt, _data);
+					},
+					write: function write() {
+						opt.element[opt.type] = _data;
 					}
-
-					data = Binder$1.piper(opt, data);
-
-					Batcher$1.write(function () {
-						opt.element[opt.type] = data;
-					});
 				});
 			}
 		}
@@ -1608,7 +1656,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			this.SET = 3;
 			this.REMOVE = 4;
 			this.ran = false;
-			this.data = Observer.create({}, this.listener);
+			this.data = Observer.create({}, this.listener.bind(this));
+
+			this.tl = 0;
 		}
 
 		_createClass(Model, [{
@@ -1668,6 +1718,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'listener',
 			value: function listener(data, path) {
 				var method = data === undefined ? Unrender$1 : Render;
+
+				this.tl++;
 
 				Binder$1.each(path, function (binder) {
 
@@ -3378,6 +3430,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'global',
 			get: function get() {
 				return {};
+			}
+		}, {
+			key: 'render',
+			get: function get() {
+				return Render;
 			}
 		}, {
 			key: 'methods',
