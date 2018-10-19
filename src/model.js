@@ -30,6 +30,8 @@ class Model {
 				if (type === this.GET || type === this.REMOVE) {
 					return undefined;
 				} else if (type === this.SET) {
+					// if (keys[i]) throw new Error('key is undefined');
+					// console.log(keys[i]);
 					data.$set(keys[i], isNaN(keys[i+1]) ? {} : []);
 				}
 

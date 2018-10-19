@@ -6,27 +6,26 @@ import Model from '../model.js';
 export default function (binder) {
 	const self = this;
 
-	let data ;
+	let data, length, pass, key;
 
 	console.log('each');
 
 	// if (binder.context.pending) return;
 	// else binder.context.pending = true;
 
-	if (binder.context.length === undefined) binder.context.length = 0;
-	// else binder.context.length++;
+	// if (length === undefined) length = 0;
+	// else length++;
 
-	if (!binder.context.cache) binder.context.cache = binder.element.removeChild(binder.element.firstElementChild);
+	if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
-	Batcher.batch({
+	return {
 		read () {
 
 			data = Model.get(binder.keys);
 
 			if (!data || typeof data !== 'object') {
 				binder.pending = false;
-				binder.context.continue = false;
-				return;
+				return false;
 			}
 
 			// const length = binder.element.children.length;
@@ -37,35 +36,35 @@ export default function (binder) {
 
 			const keys = isObject ? Object.keys(data) : [];
 
+			console.log(data.length);
+
 			if (isArray) {
-				if (binder.context.length === data.length) {
+				if (length === data.length) {
 				// if (length === data.length) {
 					// binder.pending = false;
-					binder.context.continue = false;
-					return;
+					return false;
 				} else {
-					binder.context.key = binder.context.length;
-					// binder.context.key = length;
+					key = length;
+					// key = length;
 				}
 			}
 
 			if (isObject) {
-				if (binder.context.length === keys.length) {
+				if (length === keys.length) {
 				// if (length === keys.length) {
 					// binder.context.pending = false;
-					binder.context.continue = false;
-					return;
+					return false;
 				} else {
-					binder.context.key = keys[binder.context.length];
-					// binder.context.key = keys[length];
+					key = keys[length];
+					// key = keys[length];
 				}
 			}
 
-			if (binder.context.length > data.length && binder.element.children.length > data.length) {
+			if (length > data.length && binder.element.children.length > data.length) {
 				binder.context.element = binder.element.lastElementChild;
-				binder.context.length = binder.context.length !== 0 ? binder.context.length-1 : binder.context.length;
+				length = length !== 0 ? length-1 : length;
 			} else {
-				binder.context.length++;
+				length++;
 			}
 
 			// binder.context.element = length > data.length ? binder.element.lastElementChild : null;
@@ -76,8 +75,8 @@ export default function (binder) {
 				binder.element.removeChild(binder.context.element);
 				binder.context.element = undefined;
 			} else {
-				const clone = binder.context.cache.cloneNode(true);
-				Utility.replaceEachVariable(clone, binder.names[1], binder.path, binder.context.key);
+				const clone = binder.cache.cloneNode(true);
+				Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
 				Binder.bind(clone, binder.container);
 				binder.element.appendChild(clone);
 			}
@@ -108,5 +107,5 @@ export default function (binder) {
 			// binder.context.pending = false;
 			// self.default(binder);
 		}
-	});
-}
+	};
+};

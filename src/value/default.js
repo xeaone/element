@@ -1,14 +1,16 @@
 import Model from '../model.js';
 
+let data;
+
 export default function (binder) {
 
 	console.log('default');
 
-	binder.data = Model.get(binder.keys);
-	binder.element.value = binder.data === undefined ? '' : binder.data;
+	data = Model.get(binder.keys);
+	binder.element.value = data === undefined ? '' : data;
 
-	if (binder.data !== binder.element.value) {
-		Model.set(binder.keys, binder.data === undefined ? '' : binder.data);
+	if (data !== binder.element.value) {
+		Model.set(binder.keys, data === undefined ? '' : data);
 	}
 
 }

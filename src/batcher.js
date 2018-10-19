@@ -112,17 +112,15 @@ class Batcher {
 		if (data.read) {
 
 			const read = function () {
+				let result;
 
 				if (data.context) {
 					data.read.call(data.context);
 				} else {
-					data.read();
+					result = data.read();
 				}
 
-				if (
-					(data.write && !data.context) ||
-					(data.write && data.context && data.context.continue !== false)
-				) {
+				if (data.write && result !== false) {
 					let write;
 
 					if (data.context) {

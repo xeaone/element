@@ -1,4 +1,5 @@
 import Batcher from './batcher.js';
+import TextAttributeUnrender from './unrender-attribute/text.js';
 
 export default {
 
@@ -65,11 +66,7 @@ export default {
 		});
 	},
 
-	text (opt) {
-		Batcher.write(function () {
-			opt.element.innerText = '';
-		});
-	},
+	text: TextAttributeUnrender,
 
 	value (opt) {
 		Batcher.write(function () {
@@ -112,10 +109,35 @@ export default {
 		});
 	},
 
-	default (opt) {
-		if (opt.type in this) {
-			this[opt.type](opt);
+	default (binder) {
+
+		if (binder.type in this) {
+			const unrender = this[binder.type](binder);
+
+			if (unrender) {
+				unrender.context = unrender.context || {};
+				Batcher.batch(unrender);
+			}
+
+		} else {
+			let data;
+
+			Batcher.batch({
+				read () {
+					data = Model.get(binder.keys);
+
+					if (binder.element[binder.type] === data) {
+						return;
+					}
+
+					data = Binder.piper(binder, data);
+				},
+				write () {
+					binder.element[binder.type] = data;
+				}
+			});
 		}
+
 	}
 
 };
