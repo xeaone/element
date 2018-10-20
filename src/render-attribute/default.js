@@ -3,19 +3,13 @@ import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
+	let render;
+	let data;
 
 	if (binder.type in this) {
-		const render = this[binder.type](binder);
-
-		if (render) {
-			render.context = render.context || {};
-			Batcher.batch(render);
-		}
-
+		render = this[binder.type](binder);
 	} else {
-		let data;
-
-		Batcher.batch({
+		render = {
 			read () {
 				data = Model.get(binder.keys);
 
@@ -28,7 +22,8 @@ export default function (binder) {
 			write () {
 				binder.element[binder.type] = data;
 			}
-		});
+		};
 	}
 
+	Batcher.batch(render);
 };

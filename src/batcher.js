@@ -115,7 +115,7 @@ class Batcher {
 				let result;
 
 				if (data.context) {
-					data.read.call(data.context);
+					result = data.read.call(data.context);
 				} else {
 					result = data.read();
 				}

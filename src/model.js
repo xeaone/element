@@ -30,8 +30,6 @@ class Model {
 				if (type === this.GET || type === this.REMOVE) {
 					return undefined;
 				} else if (type === this.SET) {
-					// if (keys[i]) throw new Error('key is undefined');
-					// console.log(keys[i]);
 					data.$set(keys[i], isNaN(keys[i+1]) ? {} : []);
 				}
 
@@ -64,14 +62,25 @@ class Model {
 		return this.traverse(this.SET, keys, value);
 	}
 
-	listener (data, path) {
+	listener (data, path, type) {
 		const method = data === undefined ? Unrender : Render;
 
-		Binder.each(path, function (binder) {
+		if (type === 'length') {
+			const scope = path.split('.').slice(0, 1).join('.');
+			const part = path.split('.').slice(1).join('.');
+
+			if (!(scope in Binder.data)) return;
+			if (!(part in Binder.data[scope])) return;
+			if (!(0 in Binder.data[scope][part])) return;
+
+			const binder = Binder.data[scope][part][0];
 
 			method.default(binder);
-
-		});
+		} else {
+			Binder.each(path, function (binder) {
+				method.default(binder);
+			});
+		}
 
 	}
 

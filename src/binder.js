@@ -37,7 +37,16 @@ class Binder {
 		return binder;
 	}
 
-	get (binder) {
+	get (data) {
+		let binder;
+
+		if (typeof data === 'string') {
+			binder = {};
+			binder.scope = data.split('.').slice(0, 1).join('.');
+			binder.path = data.split('.').slice(1).join('.');
+		} else {
+			binder = data;
+		}
 
 		if (!(binder.scope in this.data)) {
 			return null;

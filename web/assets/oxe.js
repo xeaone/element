@@ -12,8 +12,7 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 function _invoke(body, then) {
-	var result = body();
-	if (result && result.then) {
+	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
@@ -126,16 +125,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				data = multiple ? [] : '';
 
 				for (var i = 0, l = elements.length; i < l; i++) {
-					var _element = elements[i];
+					var _element2 = elements[i];
 					// NOTE might need to handle disable
 
-					if (_element.selected) {
+					if (_element2.selected) {
 						selected = true;
 
 						if (multiple) {
-							data.push(_element.value);
+							data.push(_element2.value);
 						} else {
-							data = _element.value;
+							data = _element2.value;
 							break;
 						}
 					}
@@ -148,11 +147,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var query = 'input[type="radio"][o-value="' + binder.value + '"]';
 				var _elements = binder.container.querySelectorAll(query);
 
-				for (var _i2 = 0, _l2 = _elements.length; _i2 < _l2; _i2++) {
-					var _element2 = _elements[_i2];
+				for (var _i3 = 0, _l2 = _elements.length; _i3 < _l2; _i3++) {
+					var _element3 = _elements[_i3];
 
-					if (binder.element === _element2) {
-						data = _i2;
+					if (binder.element === _element3) {
+						data = _i3;
 					}
 				}
 			} else if (type === 'file') {
@@ -160,8 +159,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = data || [];
 
-				for (var _i3 = 0, _l3 = files.length; _i3 < _l3; _i3++) {
-					var file = files[_i3];
+				for (var _i4 = 0, _l3 = files.length; _i4 < _l3; _i4++) {
+					var file = files[_i4];
 					data.push(file);
 				}
 			} else if (type === 'checkbox') {
@@ -565,7 +564,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						var result = void 0;
 
 						if (data.context) {
-							data.read.call(data.context);
+							result = data.read.call(data.context);
 						} else {
 							result = data.read();
 						}
@@ -728,20 +727,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					Batcher$1.batch(unrender);
 				}
 			} else {
-				var _data = void 0;
+				var data = void 0;
 
 				Batcher$1.batch({
 					read: function read() {
-						_data = Model.get(binder.keys);
+						data = Model.get(binder.keys);
 
-						if (binder.element[binder.type] === _data) {
+						if (binder.element[binder.type] === data) {
 							return;
 						}
 
-						_data = Binder.piper(binder, _data);
+						data = Binder.piper(binder, data);
 					},
 					write: function write() {
-						binder.element[binder.type] = _data;
+						binder.element[binder.type] = data;
 					}
 				});
 			}
@@ -1040,32 +1039,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}
 
 	function Default(binder) {
+		var render = void 0;
+		var data = void 0;
 
 		if (binder.type in this) {
-			var render = this[binder.type](binder);
-
-			if (render) {
-				render.context = render.context || {};
-				Batcher$1.batch(render);
-			}
+			render = this[binder.type](binder);
 		} else {
-			var _data2 = void 0;
-
-			Batcher$1.batch({
+			render = {
 				read: function read() {
-					_data2 = Model$2.get(binder.keys);
+					data = Model$2.get(binder.keys);
 
-					if (binder.element[binder.type] === _data2) {
+					if (binder.element[binder.type] === data) {
 						return;
 					}
 
-					_data2 = Binder$2.piper(binder, _data2);
+					data = Binder$2.piper(binder, data);
 				},
 				write: function write() {
-					binder.element[binder.type] = _data2;
+					binder.element[binder.type] = data;
 				}
-			});
+			};
 		}
+
+		Batcher$1.batch(render);
 	}
 
 	function Disable(binder) {
@@ -1091,17 +1087,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		var self = this;
 
 		var data = void 0,
-		    length = void 0,
+		    element = void 0,
 		    key = void 0;
-
-		console.log('each');
 
 		// if (binder.context.pending) return;
 		// else binder.context.pending = true;
 
-		// if (length === undefined) length = 0;
-		// else length++;
-
+		if (binder.length === undefined) binder.length = 0;
 		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
 		return {
@@ -1110,56 +1102,46 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				data = Model$2.get(binder.keys);
 
 				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') {
-					binder.pending = false;
 					return false;
 				}
 
-				// const length = binder.element.children.length;
 				var isArray = data.constructor === Array;
 				var isObject = data.constructor === Object;
 
 				data = Binder$2.piper(binder, data);
 
-				var keys = isObject ? Object.keys(data) : [];
-
-				console.log(data.length);
-
 				if (isArray) {
-					if (length === data.length) {
-						// if (length === data.length) {
-						// binder.pending = false;
+					if (binder.length === data.length) {
 						return false;
 					} else {
-						key = length;
-						// key = length;
+						key = binder.length;
 					}
 				}
 
 				if (isObject) {
-					if (length === keys.length) {
-						// if (length === keys.length) {
-						// binder.context.pending = false;
+					var keys = Object.keys(data);
+
+					if (binder.length === keys.length) {
 						return false;
 					} else {
-						key = keys[length];
-						// key = keys[length];
+						key = keys[binder.length];
 					}
 				}
 
-				if (length > data.length && binder.element.children.length > data.length) {
-					binder.context.element = binder.element.lastElementChild;
-					length = length !== 0 ? length - 1 : length;
+				// if (binder.length > data.length && binder.element.children.length > data.length) {
+				if (binder.length > data.length) {
+					element = binder.element.lastElementChild;
+				} else if (binder.length < data.length) {
+					binder.length++;
 				} else {
-					length++;
+					return false;
 				}
-
-				// binder.context.element = length > data.length ? binder.element.lastElementChild : null;
 			},
 			write: function write() {
 
-				if (binder.context.element) {
-					binder.element.removeChild(binder.context.element);
-					binder.context.element = undefined;
+				if (element) {
+					binder.element.removeChild(element);
+					element = undefined;
 				} else {
 					var clone = binder.cache.cloneNode(true);
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
@@ -1186,7 +1168,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					});
 				}
 
-				// binder.context.pending = false;
 				// self.default(binder);
 			}
 		};
@@ -1360,116 +1341,103 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	var data = void 0;
-
-	function Default$1(binder) {
-
-		console.log('default');
-
-		data = Model$2.get(binder.keys);
-		binder.element.value = data === undefined ? '' : data;
-
-		if (data !== binder.element.value) {
-			Model$2.set(binder.keys, data === undefined ? '' : data);
-		}
-	}
-
-	var data$1 = void 0;
-
-	function Select(opt) {
-		var selected = false;
-
-		console.log('value select');
-
-		data$1 = Model$2.get(binder.keys);
-
-		if (binder.element.multiple && data$1.constructor !== Array) {
-			throw new Error('Oxe - invalid multiple select value type ' + binder.keys.join('.') + ' array required');
-		}
-
-		// NOTE might need to handle disable
-		for (var i = 0; i < binder.element.options.length; i++) {
-			var element = binder.element.options[i];
-			var value = data$1 && data$1.constructor === Array ? data$1[i] : data$1;
-
-			if (value && element.value === value) {
-				element.setAttribute('selected', '');
-				element.value = value;
-				selected = true;
-			} else {
-				element.removeAttribute('selected');
-			}
-		}
-
-		if (binder.element.options.length && !binder.element.multiple && !selected) {
-			var _value2 = data$1 && data$1.constructor === Array ? data$1[0] : data$1;
-
-			binder.element.options[0].setAttribute('selected', '');
-
-			if (_value2 !== (binder.element.options[0].value || '')) {
-				Model$2.set(binder.keys, binder.element.options[0].value || '');
-			}
-		}
-	}
-
 	function Value(binder) {
 		var data = void 0;
 
-		return {
-			read: function read() {
-				var type = binder.element.type;
-				var name = binder.element.nodeName;
+		var type = binder.element.type;
+		var name = binder.element.nodeName;
 
-				if (name === 'SELECT') {
-					return Select(binder);
-				} else if (type === 'radio') {
-					var query = 'input[type="radio"][o-value="' + binder.value + '"]';
-					var elements = binder.container.querySelectorAll(query);
+		if (name === 'SELECT') {
+			var selected = false;
 
-					var checked = false;
+			data = Model$2.get(binder.keys);
 
-					for (var i = 0, l = elements.length; i < l; i++) {
-						var element = elements[i];
+			if (binder.element.multiple && data.constructor !== Array) {
+				throw new Error('Oxe - invalid multiple select value type ' + binder.keys.join('.') + ' array required');
+			}
 
-						if (i === data) {
-							checked = true;
-							element.checked = true;
-						} else {
-							element.checked = false;
-						}
-					}
+			// NOTE might need to handle disable
+			for (var i = 0; i < binder.element.options.length; i++) {
+				var element = binder.element.options[i];
+				var value = data && data.constructor === Array ? data[i] : data;
 
-					if (!checked) {
-						elements[0].checked = true;
-						if (data !== 0) {
-							Model$2.set(binder.keys, 0);
-						}
-					}
-				} else if (type === 'file') {
-					data = data || [];
-
-					for (var _i = 0, _l = data.length; _i < _l; _i++) {
-
-						if (data[_i] !== binder.element.files[_i]) {
-
-							if (data[_i]) {
-								binder.element.files[_i] = data[_i];
-							} else {
-								console.warn('Oxe - file remove not implemented');
-							}
-						}
-					}
-				} else if (type === 'checkbox') {
-					binder.element.checked = data === undefined ? false : data;
-
-					if (data !== binder.element.checked) {
-						Model$2.set(binder.keys, data === undefined ? false : data);
-					}
+				if (value && element.value === value) {
+					element.setAttribute('selected', '');
+					element.value = value;
+					selected = true;
 				} else {
-					return Default$1(binder);
+					element.removeAttribute('selected');
 				}
 			}
-		};
+
+			if (binder.element.options.length && !binder.element.multiple && !selected) {
+				var _value2 = data && data.constructor === Array ? data[0] : data;
+
+				binder.element.options[0].setAttribute('selected', '');
+
+				if (_value2 !== (binder.element.options[0].value || '')) {
+					Model$2.set(binder.keys, binder.element.options[0].value || '');
+				}
+			}
+		} else if (type === 'radio') {
+			var query = 'input[type="radio"][o-value="' + binder.value + '"]';
+			var elements = binder.container.querySelectorAll(query);
+
+			var checked = false;
+
+			for (var _i = 0, l = elements.length; _i < l; _i++) {
+				var _element = elements[_i];
+
+				if (_i === data) {
+					checked = true;
+					_element.checked = true;
+				} else {
+					_element.checked = false;
+				}
+			}
+
+			if (!checked) {
+				elements[0].checked = true;
+				if (data !== 0) {
+					Model$2.set(binder.keys, 0);
+				}
+			}
+		} else if (type === 'file') {
+			data = data || [];
+
+			for (var _i2 = 0, _l = data.length; _i2 < _l; _i2++) {
+
+				if (data[_i2] !== binder.element.files[_i2]) {
+
+					if (data[_i2]) {
+						binder.element.files[_i2] = data[_i2];
+					} else {
+						console.warn('Oxe - file remove not implemented');
+					}
+				}
+			}
+		} else if (type === 'checkbox') {
+			binder.element.checked = data === undefined ? false : data;
+
+			if (data !== binder.element.checked) {
+				Model$2.set(binder.keys, data === undefined ? false : data);
+			}
+		} else {
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
+
+					if (binder.element.value === data) {
+						return false;
+					}
+
+					// Model.set(binder.keys, data === undefined ? '' : data);
+				},
+				write: function write() {
+					binder.element.value = data;
+				}
+			};
+		}
 	}
 
 	function Write(binder) {
@@ -1547,7 +1515,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'get',
-			value: function get(binder) {
+			value: function get(data) {
+				var binder = void 0;
+
+				if (typeof data === 'string') {
+					binder = {};
+					binder.scope = data.split('.').slice(0, 1).join('.');
+					binder.path = data.split('.').slice(1).join('.');
+				} else {
+					binder = data;
+				}
 
 				if (!(binder.scope in this.data)) {
 					return null;
@@ -1809,8 +1786,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						if (type === this.GET || type === this.REMOVE) {
 							return undefined;
 						} else if (type === this.SET) {
-							// if (keys[i]) throw new Error('key is undefined');
-							// console.log(keys[i]);
 							data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
 						}
 					}
@@ -1846,13 +1821,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'listener',
-			value: function listener(data, path) {
+			value: function listener(data, path, type) {
 				var method = data === undefined ? Unrender$1 : Render;
 
-				Binder$2.each(path, function (binder) {
+				if (type === 'length') {
+					var scope = path.split('.').slice(0, 1).join('.');
+					var part = path.split('.').slice(1).join('.');
+
+					if (!(scope in Binder$2.data)) return;
+					if (!(part in Binder$2.data[scope])) return;
+					if (!(0 in Binder$2.data[scope][part])) return;
+
+					var binder = Binder$2.data[scope][part][0];
 
 					method.default(binder);
-				});
+				} else {
+					Binder$2.each(path, function (binder) {
+						method.default(binder);
+					});
+				}
 			}
 		}]);
 
