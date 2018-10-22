@@ -8,8 +8,8 @@ export default function (binder) {
 		read () {
 			data = Model.get(binder.keys);
 
-			if (binder.element.hidden === !data) {
-				return;
+			if (!data === binder.element.hidden) {
+				return false;
 			}
 
 			data = Binder.piper(binder, data);

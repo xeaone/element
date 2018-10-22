@@ -125,16 +125,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				data = multiple ? [] : '';
 
 				for (var i = 0, l = elements.length; i < l; i++) {
-					var _element2 = elements[i];
+					var _element = elements[i];
 					// NOTE might need to handle disable
 
-					if (_element2.selected) {
+					if (_element.selected) {
 						selected = true;
 
 						if (multiple) {
-							data.push(_element2.value);
+							data.push(_element.value);
 						} else {
-							data = _element2.value;
+							data = _element.value;
 							break;
 						}
 					}
@@ -145,13 +145,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			} else if (type === 'radio') {
 				var query = 'input[type="radio"][o-value="' + binder.value + '"]';
-				var _elements = binder.container.querySelectorAll(query);
+				var _elements2 = binder.container.querySelectorAll(query);
 
-				for (var _i3 = 0, _l2 = _elements.length; _i3 < _l2; _i3++) {
-					var _element3 = _elements[_i3];
+				for (var _i = 0, _l = _elements2.length; _i < _l; _i++) {
+					var _element2 = _elements2[_i];
 
-					if (binder.element === _element3) {
-						data = _i3;
+					if (binder.element === _element2) {
+						data = _i;
 					}
 				}
 			} else if (type === 'file') {
@@ -159,8 +159,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = data || [];
 
-				for (var _i4 = 0, _l3 = files.length; _i4 < _l3; _i4++) {
-					var file = files[_i4];
+				for (var _i2 = 0, _l2 = files.length; _i2 < _l2; _i2++) {
+					var file = files[_i2];
 					data.push(file);
 				}
 			} else if (type === 'checkbox') {
@@ -1004,12 +1004,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	var Methods$1 = new Methods();
 
 	function Class(binder) {
+		var data = void 0,
+		    name = void 0;
 
 		return {
 			write: function write() {
-				var data = Model$2.get(binder.keys);
-				var name = binder.names.slice(1).join('-');
+				data = Model$2.get(binder.keys);
 				data = Binder$2.piper(binder, data);
+				name = binder.names.slice(1).join('-');
 				binder.element.classList.toggle(name, data);
 			}
 		};
@@ -1022,15 +1024,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			read: function read() {
 				data = Model$2.get(binder.keys);
 
-				if (binder.element.style.cssText === data) {
-					return;
-				}
+				if (binder.element.style.cssText === data) return false;
 
 				if (binder.names.length > 1) {
 					data = binder.names.slice(1).join('-') + ': ' + data + ';';
 				}
 
 				data = Binder$2.piper(binder, data);
+
+				if (binder.element.style.cssText === data) return false;
 			},
 			write: function write() {
 				binder.element.style.cssText = data;
@@ -1071,11 +1073,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			read: function read() {
 				data = Model$2.get(binder.keys);
 
-				if (binder.element.disabled === data) {
-					return;
-				}
+				if (binder.element.disabled === data) return false;
 
-				data = Binder.piper(binder, data);
+				data = Binder$2.piper(binder, data);
+
+				if (binder.element.disabled === data) return false;
 			},
 			write: function write() {
 				binder.element.disabled = data;
@@ -1089,9 +1091,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		var data = void 0,
 		    element = void 0,
 		    key = void 0;
-
-		// if (binder.context.pending) return;
-		// else binder.context.pending = true;
 
 		if (binder.length === undefined) binder.length = 0;
 		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
@@ -1128,9 +1127,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				// if (binder.length > data.length && binder.element.children.length > data.length) {
 				if (binder.length > data.length) {
-					element = binder.element.lastElementChild;
+					element = binder.element.children[key];
+					binder.length--;
 				} else if (binder.length < data.length) {
 					binder.length++;
 				} else {
@@ -1180,11 +1179,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			read: function read() {
 				data = Model$2.get(binder.keys);
 
-				if (binder.element.disabled === !data) {
-					return;
-				}
+				if (binder.element.disabled === !data) return false;
 
 				data = Binder$2.piper(binder, data);
+
+				if (binder.element.disabled === !data) return false;
 			},
 			write: function write() {
 				binder.element.disabled = !data;
@@ -1199,11 +1198,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			read: function read() {
 				data = Model$2.get(binder.keys);
 
-				if (binder.element.hidden === data) {
-					return;
-				}
+				if (binder.element.hidden === data) return false;
 
 				data = Binder$2.piper(binder, data);
+
+				if (binder.element.hidden === data) return false;
 			},
 			write: function write() {
 				binder.element.hidden = data;
@@ -1218,11 +1217,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			read: function read() {
 				data = Model$2.get(binder.keys);
 
-				if (binder.element.innerHTML === data) {
-					return;
-				}
+				if (binder.element.innerHTML === data) return false;
 
 				data = Binder$2.piper(binder, data);
+
+				if (binder.element.innerHTML === data) return false;
 			},
 			write: function write() {
 				binder.element.innerHTML = data;
@@ -1237,18 +1236,19 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			write: function write() {
 				data = Methods$1.get(binder.keys);
 
-				if (typeof data !== 'function') return;
+				if (typeof data !== 'function') {
+					console.warn('Oxe - attribute o-on="' + binder.keys.join('.') + '" invalid type function required');
+					return false;
+				}
 
-				if (binder.cache) {
-					binder.element.removeEventListener(binder.names[1], binder.cache);
-				} else {
+				if (!binder.cache) {
 					binder.cache = function (e) {
 						var parameters = [e];
 
 						for (var i = 0, l = binder.pipes.length; i < l; i++) {
 							var keys = binder.pipes[i].split('.');
 							keys.unshift(binder.scope);
-							var parameter = Oxe.model.get(keys);
+							var parameter = Model$2.get(keys);
 							parameters.push(parameter);
 						}
 
@@ -1256,6 +1256,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					};
 				}
 
+				binder.element.removeEventListener(binder.names[1], binder.cache);
 				binder.element.addEventListener(binder.names[1], binder.cache);
 			}
 		};
@@ -1269,7 +1270,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				data = Model$2.get(binder.keys);
 
 				if (binder.element.readOnly === data) {
-					return;
+					return false;
 				}
 
 				data = Binder$2.piper(binder, data);
@@ -1288,10 +1289,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				data = Model$2.get(binder.keys);
 
 				if (binder.element.required === data) {
-					return;
+					return false;
 				}
 
-				data = Utility.binderModifyData(binder, data);
+				data = Binder$2.piper(binder, data);
 			},
 			write: function write() {
 				binder.element.required = data;
@@ -1306,8 +1307,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			read: function read() {
 				data = Model$2.get(binder.keys);
 
-				if (binder.element.hidden === !data) {
-					return;
+				if (!data === binder.element.hidden) {
+					return false;
 				}
 
 				data = Binder$2.piper(binder, data);
@@ -1325,8 +1326,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			read: function read() {
 				data = Model$2.get(binder.keys);
 
-				if (data === undefined || data === null) {
-					data = '';
+				if (data === undefined) {
+					Model$2.set(binder.keys, '');
+					return false;
+				} else if (data === null) {
+					return false;
 				} else if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
 					data = JSON.stringify(data);
 				} else if (data && typeof data !== 'string') {
@@ -1342,96 +1346,155 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}
 
 	function Value(binder) {
-		var data = void 0;
+		var data = void 0,
+		    multiple = void 0;
 
 		var type = binder.element.type;
 		var name = binder.element.nodeName;
 
 		if (name === 'SELECT') {
-			var selected = false;
+			var elements = void 0;
 
-			data = Model$2.get(binder.keys);
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
+					elements = binder.element.options;
+					multiple = binder.element.multiple;
 
-			if (binder.element.multiple && data.constructor !== Array) {
-				throw new Error('Oxe - invalid multiple select value type ' + binder.keys.join('.') + ' array required');
-			}
+					if (multiple && data.constructor !== Array) {
+						throw new Error('Oxe - invalid multiple select value type ' + binder.keys.join('.') + ' array required');
+					}
+				},
+				write: function write() {
+					var selected = false;
 
-			// NOTE might need to handle disable
-			for (var i = 0; i < binder.element.options.length; i++) {
-				var element = binder.element.options[i];
-				var value = data && data.constructor === Array ? data[i] : data;
+					// NOTE might need to handle disable
+					for (var i = 0; i < elements.length; i++) {
+						var element = elements[i];
+						var value = data && data.constructor === Array ? data[i] : data;
 
-				if (value && element.value === value) {
-					element.setAttribute('selected', '');
-					element.value = value;
-					selected = true;
-				} else {
-					element.removeAttribute('selected');
+						if (value && element.value === value) {
+							selected = true;
+							element.value = value;
+							element.setAttribute('selected', '');
+						} else {
+							element.value = false;
+							element.removeAttribute('selected');
+						}
+					}
+
+					if (elements.length && !multiple && !selected) {
+						var _value2 = data && data.constructor === Array ? data[0] : data;
+
+						elements[0].setAttribute('selected', '');
+
+						if (_value2 !== (elements[0].value || '')) ;
+					}
+
+					// if (binder.element.options.length && !binder.element.multiple && !selected) {
+					// 	const value = data && data.constructor === Array ? data[0] : data;
+					//
+					// 	binder.element.options[0].setAttribute('selected', '');
+					//
+					// 	if (value !== (binder.element.options[0].value || '')) {
+					// 		Model.set(binder.keys, binder.element.options[0].value || '');
+					// 	}
+					//
+					// }
 				}
-			}
-
-			if (binder.element.options.length && !binder.element.multiple && !selected) {
-				var _value2 = data && data.constructor === Array ? data[0] : data;
-
-				binder.element.options[0].setAttribute('selected', '');
-
-				if (_value2 !== (binder.element.options[0].value || '')) {
-					Model$2.set(binder.keys, binder.element.options[0].value || '');
-				}
-			}
+			};
 		} else if (type === 'radio') {
-			var query = 'input[type="radio"][o-value="' + binder.value + '"]';
-			var elements = binder.container.querySelectorAll(query);
+			var _elements = void 0;
 
-			var checked = false;
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
 
-			for (var _i = 0, l = elements.length; _i < l; _i++) {
-				var _element = elements[_i];
+					if (data === undefined) {
+						Model$2.set(binder.keys, 0);
+						return false;
+					}
 
-				if (_i === data) {
-					checked = true;
-					_element.checked = true;
-				} else {
-					_element.checked = false;
-				}
-			}
+					_elements = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
+				},
+				write: function write() {
+					var checked = false;
 
-			if (!checked) {
-				elements[0].checked = true;
-				if (data !== 0) {
-					Model$2.set(binder.keys, 0);
-				}
-			}
-		} else if (type === 'file') {
-			data = data || [];
+					for (var i = 0, l = _elements.length; i < l; i++) {
+						var element = _elements[i];
 
-			for (var _i2 = 0, _l = data.length; _i2 < _l; _i2++) {
+						if (i === data) {
+							checked = true;
+							element.checked = true;
+						} else {
+							element.checked = false;
+						}
+					}
 
-				if (data[_i2] !== binder.element.files[_i2]) {
-
-					if (data[_i2]) {
-						binder.element.files[_i2] = data[_i2];
-					} else {
-						console.warn('Oxe - file remove not implemented');
+					if (!checked) {
+						_elements[0].checked = true;
+						Model$2.set(binder.keys, 0);
 					}
 				}
-			}
-		} else if (type === 'checkbox') {
-			binder.element.checked = data === undefined ? false : data;
+			};
+		} else if (type === 'file') {
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
 
-			if (data !== binder.element.checked) {
-				Model$2.set(binder.keys, data === undefined ? false : data);
-			}
+					if (data === undefined) {
+						Model$2.set(binder.keys, []);
+						return false;
+					}
+
+					if (!data || data.constructor !== Array) {
+						console.warn('Oxe - file attribute invalid type');
+						return false;
+					}
+				},
+				write: function write() {
+					for (var i = 0, l = data.length; i < l; i++) {
+						if (data[i] !== binder.element.files[i]) {
+							if (data[i]) {
+								binder.element.files[i] = data[i];
+							} else {
+								console.warn('Oxe - file remove not implemented');
+							}
+						}
+					}
+				}
+			};
+		} else if (type === 'checkbox') {
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
+
+					if (data === undefined) {
+						Model$2.set(binder.keys, false);
+						return false;
+					}
+
+					if (data === binder.element.checked) {
+						return false;
+					}
+				},
+				write: function write() {
+					binder.element.checked = data;
+				}
+			};
 		} else {
 			return {
 				read: function read() {
 					data = Model$2.get(binder.keys);
 
-					if (binder.element.value === data) {
+					if (data === undefined) {
+						Model$2.set(binder.keys, '');
 						return false;
 					}
 
-					// Model.set(binder.keys, data === undefined ? '' : data);
+					if (data === binder.element.value) {
+						return false;
+					}
 				},
 				write: function write() {
 					binder.element.value = data;
@@ -1447,8 +1510,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			read: function read() {
 				data = Model$2.get(binder.keys);
 
-				if (binder.element.readOnly === !data) {
-					return;
+				if (!data === binder.element.readOnly) {
+					return false;
 				}
 
 				data = Binder$2.piper(binder, data);
@@ -3458,14 +3521,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		loaded();
 	}
 
-	var Oxe$1 = function () {
-		function Oxe$1() {
-			_classCallCheck(this, Oxe$1);
+	var Oxe = function () {
+		function Oxe() {
+			_classCallCheck(this, Oxe);
 
 			this.compiled = true;
 		}
 
-		_createClass(Oxe$1, [{
+		_createClass(Oxe, [{
 			key: 'setup',
 			value: _async(function (data) {
 				var _this12 = this;
@@ -3603,10 +3666,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}]);
 
-		return Oxe$1;
+		return Oxe;
 	}();
 
-	var index = new Oxe$1();
+	var index = new Oxe();
 
 	return index;
 });

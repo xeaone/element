@@ -8,9 +8,6 @@ export default function (binder) {
 
 	let data, element, pass, key;
 
-	// if (binder.context.pending) return;
-	// else binder.context.pending = true;
-
 	if (binder.length === undefined) binder.length = 0;
 	if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
@@ -46,9 +43,9 @@ export default function (binder) {
 				}
 			}
 
-			// if (binder.length > data.length && binder.element.children.length > data.length) {
 			if (binder.length > data.length) {
-				element = binder.element.lastElementChild;
+				element = binder.element.children[key];
+				binder.length--;
 			} else if (binder.length < data.length) {
 				binder.length++;
 			} else {

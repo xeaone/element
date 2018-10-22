@@ -8,11 +8,11 @@ export default function (binder) {
 		read () {
 			data = Model.get(binder.keys);
 
-			if (binder.element.disabled === !data) {
-				return;
-			}
+			if (binder.element.disabled === !data) return false;
 
 			data = Binder.piper(binder, data);
+			
+			if (binder.element.disabled === !data) return false;
 		},
 		write () {
 			binder.element.disabled = !data;

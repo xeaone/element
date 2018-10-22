@@ -8,15 +8,15 @@ export default function (binder) {
 		read () {
 			data = Model.get(binder.keys);
 
-			if (binder.element.style.cssText === data) {
-				return;
-			}
+			if (binder.element.style.cssText === data) return false;
 
 			if (binder.names.length > 1) {
 				data = binder.names.slice(1).join('-') + ': ' +  data + ';';
 			}
 
 			data = Binder.piper(binder, data);
+			
+			if (binder.element.style.cssText === data) return false;
 		},
 		write () {
 			binder.element.style.cssText = data;

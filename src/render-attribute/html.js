@@ -8,11 +8,12 @@ export default function (binder) {
 		read () {
 			data = Model.get(binder.keys);
 
-			if (binder.element.innerHTML === data) {
-				return;
-			}
+			if (binder.element.innerHTML === data) return false;
 
 			data = Binder.piper(binder, data);
+
+			if (binder.element.innerHTML === data) return false;
+
 		},
 		write () {
 			binder.element.innerHTML = data;

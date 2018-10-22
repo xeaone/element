@@ -9,7 +9,7 @@ export default function (binder) {
 			data = Model.get(binder.keys);
 
 			if (binder.element.readOnly === data) {
-				return;
+				return false;
 			}
 
 			data = Binder.piper(binder, data);

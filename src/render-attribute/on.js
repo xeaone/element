@@ -9,18 +9,19 @@ export default function (binder) {
 		write () {
 			data = Methods.get(binder.keys);
 
-			if (typeof data !== 'function') return;
+			if (typeof data !== 'function') {
+				console.warn(`Oxe - attribute o-on="${binder.keys.join('.')}" invalid type function required`);
+				return false;
+			}
 
-			if (binder.cache) {
-				binder.element.removeEventListener(binder.names[1], binder.cache);
-			} else {
+			if (!binder.cache) {
 				binder.cache = function (e) {
 					const parameters = [e];
 
 					for (let i = 0, l = binder.pipes.length; i < l; i++) {
 						const keys = binder.pipes[i].split('.');
 						keys.unshift(binder.scope);
-						const parameter = Oxe.model.get(keys);
+						const parameter = Model.get(keys);
 						parameters.push(parameter);
 					}
 
@@ -30,6 +31,7 @@ export default function (binder) {
 				};
 			}
 
+			binder.element.removeEventListener(binder.names[1], binder.cache);
 			binder.element.addEventListener(binder.names[1], binder.cache);
 		}
 	};

@@ -1,4 +1,4 @@
-import Utility from '../utility.js';
+import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
@@ -9,10 +9,10 @@ export default function (binder) {
 			data = Model.get(binder.keys);
 
 			if (binder.element.required === data) {
-				return;
+				return false;
 			}
 
-			data = Utility.binderModifyData(binder, data);
+			data = Binder.piper(binder, data);
 		},
 		write () {
 			binder.element.required = data;

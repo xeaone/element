@@ -2,105 +2,166 @@ import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
-	let data;
+	let data, multiple;
 
 	const type = binder.element.type;
 	const name = binder.element.nodeName;
 
 	if (name === 'SELECT') {
-		let selected = false;
+		let elements;
 
-		data = Model.get(binder.keys);
+		return {
+			read () {
+				data = Model.get(binder.keys);
+				elements = binder.element.options;
+				multiple = binder.element.multiple;
 
-		if (binder.element.multiple && data.constructor !== Array) {
-			throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
-		}
+				if (multiple && data.constructor !== Array) {
+					throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
+				}
 
-		// NOTE might need to handle disable
-		for (let i = 0; i < binder.element.options.length; i++) {
-			const element = binder.element.options[i];
-			const value = data && data.constructor === Array ? data[i] : data;
+			},
+			write () {
+				let selected = false;
 
-			if (value && element.value === value) {
-				element.setAttribute('selected', '');
-				element.value = value;
-				selected = true;
-			} else {
-				element.removeAttribute('selected');
+				// NOTE might need to handle disable
+				for (let i = 0; i < elements.length; i++) {
+					const element = elements[i];
+					const value = data && data.constructor === Array ? data[i] : data;
+
+					if (value && element.value === value) {
+						selected = true;
+						element.value = value;
+						element.setAttribute('selected', '');
+					} else {
+						element.value = false;
+						element.removeAttribute('selected');
+					}
+
+				}
+
+				if (elements.length && !multiple && !selected) {
+					const value = data && data.constructor === Array ? data[0] : data;
+
+					elements[0].setAttribute('selected', '');
+
+					if (value !== (elements[0].value || '')) {
+						// Model.set(binder.keys, elements[0].value || '');
+					}
+
+				}
+
+				// if (binder.element.options.length && !binder.element.multiple && !selected) {
+				// 	const value = data && data.constructor === Array ? data[0] : data;
+				//
+				// 	binder.element.options[0].setAttribute('selected', '');
+				//
+				// 	if (value !== (binder.element.options[0].value || '')) {
+				// 		Model.set(binder.keys, binder.element.options[0].value || '');
+				// 	}
+				//
+				// }
+
 			}
-
-		}
-
-		if (binder.element.options.length && !binder.element.multiple && !selected) {
-			const value = data && data.constructor === Array ? data[0] : data;
-
-			binder.element.options[0].setAttribute('selected', '');
-
-			if (value !== (binder.element.options[0].value || '')) {
-				Model.set(binder.keys, binder.element.options[0].value || '');
-			}
-
-		}
-
+		};
 	} else if (type === 'radio') {
-		const query = 'input[type="radio"][o-value="' + binder.value + '"]';
-		const elements = binder.container.querySelectorAll(query);
+		let elements;
 
-		let checked = false;
+		return {
+			read () {
+				data = Model.get(binder.keys);
 
-		for (let i = 0, l = elements.length; i < l; i++) {
-			const element = elements[i];
+				if (data === undefined) {
+					Model.set(binder.keys, 0);
+					return false;
+				}
 
-			if (i === data) {
-				checked = true;
-				element.checked = true;
-			} else {
-				element.checked = false;
-			}
+				elements = binder.container.querySelectorAll(
+					'input[type="radio"][o-value="' + binder.value + '"]'
+				);
+			},
+			write () {
+				let checked = false;
 
-		}
+				for (let i = 0, l = elements.length; i < l; i++) {
+					const element = elements[i];
 
-		if (!checked) {
-			elements[0].checked = true;
-			if (data !== 0) {
-				Model.set(binder.keys, 0);
-			}
-		}
+					if (i === data) {
+						checked = true;
+						element.checked = true;
+					} else {
+						element.checked = false;
+					}
 
-	} else if (type === 'file') {
-		data = data || [];
+				}
 
-		for (let i = 0, l = data.length; i < l; i++) {
-
-			if (data[i] !== binder.element.files[i]) {
-
-				if (data[i]) {
-					binder.element.files[i] = data[i];
-				} else {
-					console.warn('Oxe - file remove not implemented');
+				if (!checked) {
+					elements[0].checked = true;
+					Model.set(binder.keys, 0);
 				}
 
 			}
+		};
+	} else if (type === 'file') {
+		return {
+			read () {
+				data = Model.get(binder.keys);
 
-		}
+				if (data === undefined) {
+					Model.set(binder.keys, []);
+					return false;
+				}
 
+				if (!data || data.constructor !== Array) {
+					console.warn('Oxe - file attribute invalid type');
+					return false;
+				}
+			},
+			write () {
+				for (let i = 0, l = data.length; i < l; i++) {
+					if (data[i] !== binder.element.files[i]) {
+						if (data[i]) {
+							binder.element.files[i] = data[i];
+						} else {
+							console.warn('Oxe - file remove not implemented');
+						}
+					}
+				}
+			}
+		};
 	} else if (type === 'checkbox') {
-		binder.element.checked = data === undefined ? false : data;
+		return {
+			read () {
+				data = Model.get(binder.keys);
 
-		if (data !== binder.element.checked) {
-			Model.set(binder.keys, data === undefined ? false : data);
-		}
+				if (data === undefined) {
+					Model.set(binder.keys, false);
+					return false;
+				}
 
+				if (data === binder.element.checked) {
+					return false;
+				}
+
+			},
+			write () {
+				binder.element.checked = data;
+			}
+		};
 	} else {
 		return {
 			read () {
 				data = Model.get(binder.keys);
 
-				if (binder.element.value === data) {
+				if (data === undefined) {
+					Model.set(binder.keys, '');
 					return false;
 				}
 
-				// Model.set(binder.keys, data === undefined ? '' : data);
+				if (data === binder.element.value) {
+					return false;
+				}
+
 			},
 			write () {
 				binder.element.value = data;

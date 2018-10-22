@@ -8,8 +8,11 @@ export default function (binder) {
 		read () {
 			data = Model.get(binder.keys);
 
-			if (data === undefined || data === null) {
-				data = '';
+			if (data === undefined) {
+				Model.set(binder.keys, '');
+				return false;
+			} else if (data === null) {
+				return false;
 			} else if (data && typeof data === 'object') {
 				data = JSON.stringify(data);
 			} else if (data && typeof data !== 'string') {
