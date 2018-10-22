@@ -118,13 +118,13 @@ export default {
 							} else {
 								self.model.items.pop();
 							}
-						}, 6);
+						}, 90);
 
 					} else {
 						self.model.items.push({ it: { val: self.model.items.length } });
 					}
 
-				}, 6);
+				}, 90);
 			}, 3000);
 
 			Say('r-test created');

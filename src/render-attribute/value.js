@@ -134,7 +134,7 @@ export default function (binder) {
 			read () {
 				data = Model.get(binder.keys);
 
-				if (data === undefined) {
+				if (typeof data !== 'boolean') {
 					Model.set(binder.keys, false);
 					return false;
 				}

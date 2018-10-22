@@ -6,37 +6,17 @@ class Batcher {
 		this.writes = [];
 		this.time = 1000/30;
 		this.pending = false;
-		this.mr = 0;
-		this.mw = 0;
-		this.tr = 0;
-		this.tw = 0;
-		this.tp = 0;
+		// this.mr = 0;
+		// this.mw = 0;
+		// this.tr = 0;
+		// this.tw = 0;
+		// this.tp = 0;
 	}
 
 	setup (options) {
 		options = options || {};
 		this.time = options.time || this.time;
 	}
-
-	// // adds a task to the read batch
-	// read (method, context) {
-	// 	const task = context ? method.bind(context) : method;
-	//
-	// 	this.reads.push(task);
-	// 	this.schedule();
-	//
-	// 	return task;
-	// }
-	//
-	// // adds a task to the write batch
-	// write (method, context) {
-	// 	const task = context ? method.bind(context) : method;
-	//
-	// 	this.writes.push(task);
-	// 	this.schedule();
-	//
-	// 	return task;
-	// }
 
 	tick (callback) {
 		return window.requestAnimationFrame(callback);
@@ -62,11 +42,12 @@ class Batcher {
 		if (position === null) {
 
 			for (i = 0; i < this.reads.length; i++) {
-				this.tr++;
+				// this.tr++;
 				this.reads[i]();
 
+				// max read time
 				if (performance.now() - time > this.time) {
-					this.mr++;
+					// this.mr++;
 					this.reads.splice(0, i + 1);
 					return this.tick(this.flush.bind(this, i + 1));
 				}
@@ -76,17 +57,19 @@ class Batcher {
 		}
 
 		for (i = 0; i < this.writes.length; i++) {
-			this.tw++;
+			// this.tw++;
 			this.writes[i]();
 
+			// position of max read time
 			if (i === position) {
-				this.tp++;
+				// this.tp++;
 				this.writes.splice(0, i + 1);
 				return this.flush(null, time);
 			}
 
+			// max write time
 			if (performance.now() - time > this.time) {
-				this.mw++;
+				// this.mw++;
 				this.writes.splice(0, i + 1);
 				return this.tick(this.flush.bind(this, i + 1));
 			}
@@ -158,8 +141,6 @@ class Batcher {
 export default new Batcher();
 
 /*
-	// Every push or each increases the amount of reads and writes?
-
 	console.log('read ', Oxe.batcher.tr);
 	console.log('write ', Oxe.batcher.tw);
 	console.log('position ', Oxe.batcher.tp);

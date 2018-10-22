@@ -6,89 +6,66 @@ import Model from '../model.js';
 export default function (binder) {
 	const self = this;
 
-	let data, element, pass, key;
-
-	if (binder.length === undefined) binder.length = 0;
 	if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
 	return {
-		read () {
+		write () {
+			let key, keys, data, length;
 
 			data = Model.get(binder.keys);
 
-			if (!data || typeof data !== 'object') {
-				return false;
-			}
-
-			const isArray = data.constructor === Array;
-			const isObject = data.constructor === Object;
+			if (!data || typeof data !== 'object') return;
 
 			data = Binder.piper(binder, data);
 
-			if (isArray) {
-				if (binder.length === data.length) {
-					return false;
-				} else {
-					key = binder.length;
-				}
+			if (!data || typeof data !== 'object') return;
+
+			if (data.constructor === Array) {
+				length = data.length;
 			}
 
-			if (isObject) {
-				const keys = Object.keys(data);
-
-				if (binder.length === keys.length) {
-					return false;
-				} else {
-					key = keys[binder.length];
-				}
+			if (data.constructor === Object) {
+				keys = Object.keys(data);
+				length = keys.length;
 			}
 
-			if (binder.length > data.length) {
-				element = binder.element.children[key];
-				binder.length--;
-			} else if (binder.length < data.length) {
-				binder.length++;
-			} else {
-				return false;
-			}
-
-		},
-		write () {
-
-			if (element) {
-				binder.element.removeChild(element);
-				element = undefined;
-			} else {
+			if (binder.element.children.length > length) {
+				binder.element.removeChild(binder.element.lastElementChild);
+			} else if (binder.element.children.length < length) {
 				const clone = binder.cache.cloneNode(true);
+
+				if (data.constructor === Array) key = binder.element.children.length;
+				if (data.constructor === Object) key = keys[binder.element.children.length];
+
 				Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
 				Binder.bind(clone, binder.container);
 				binder.element.appendChild(clone);
+
+				/*
+					check if select element with o-value
+					perform a re-render of the o-value
+					becuase of o-each is async
+				*/
+				if (
+					binder.element.nodeName === 'SELECT' &&
+					binder.element.attributes['o-value'] ||
+					binder.element.attributes['data-o-value']
+				) {
+					const name = binder.element.attributes['o-value'] || binder.element.attributes['data-o-value'];
+					const value = binder.element.attributes['o-value'].value || binder.element.attributes['data-o-value'].value;
+					const keys = [binder.scope].concat(value.split('|')[0].split('.'));
+					self.value({
+						keys: keys,
+						name: name,
+						value: value,
+						scope: binder.scope,
+						element: binder.element,
+						container: binder.container,
+					});
+				}
+
 			}
 
-			/*
-				check if select element with o-value
-				perform a re-render of the o-value
-				becuase of o-each is async
-			*/
-			if (
-				binder.element.nodeName === 'SELECT' &&
-				binder.element.attributes['o-value'] ||
-				binder.element.attributes['data-o-value']
-			) {
-				const name = binder.element.attributes['o-value'] || binder.element.attributes['data-o-value'];
-				const value = binder.element.attributes['o-value'].value || binder.element.attributes['data-o-value'].value;
-				const keys = [binder.scope].concat(value.split('|')[0].split('.'));
-				self.value({
-					keys: keys,
-					name: name,
-					value: value,
-					scope: binder.scope,
-					element: binder.element,
-					container: binder.container,
-				});
-			}
-
-			// self.default(binder);
 		}
 	};
 };

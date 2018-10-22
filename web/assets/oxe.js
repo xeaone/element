@@ -445,11 +445,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			this.writes = [];
 			this.time = 1000 / 30;
 			this.pending = false;
-			this.mr = 0;
-			this.mw = 0;
-			this.tr = 0;
-			this.tw = 0;
-			this.tp = 0;
+			// this.mr = 0;
+			// this.mw = 0;
+			// this.tr = 0;
+			// this.tw = 0;
+			// this.tp = 0;
 		}
 
 		_createClass(Batcher, [{
@@ -458,27 +458,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options = options || {};
 				this.time = options.time || this.time;
 			}
-
-			// // adds a task to the read batch
-			// read (method, context) {
-			// 	const task = context ? method.bind(context) : method;
-			//
-			// 	this.reads.push(task);
-			// 	this.schedule();
-			//
-			// 	return task;
-			// }
-			//
-			// // adds a task to the write batch
-			// write (method, context) {
-			// 	const task = context ? method.bind(context) : method;
-			//
-			// 	this.writes.push(task);
-			// 	this.schedule();
-			//
-			// 	return task;
-			// }
-
 		}, {
 			key: 'tick',
 			value: function tick(callback) {
@@ -509,11 +488,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (position === null) {
 
 					for (i = 0; i < this.reads.length; i++) {
-						this.tr++;
+						// this.tr++;
 						this.reads[i]();
 
+						// max read time
 						if (performance.now() - time > this.time) {
-							this.mr++;
+							// this.mr++;
 							this.reads.splice(0, i + 1);
 							return this.tick(this.flush.bind(this, i + 1));
 						}
@@ -523,17 +503,19 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				for (i = 0; i < this.writes.length; i++) {
-					this.tw++;
+					// this.tw++;
 					this.writes[i]();
 
+					// position of max read time
 					if (i === position) {
-						this.tp++;
+						// this.tp++;
 						this.writes.splice(0, i + 1);
 						return this.flush(null, time);
 					}
 
+					// max write time
 					if (performance.now() - time > this.time) {
-						this.mw++;
+						// this.mw++;
 						this.writes.splice(0, i + 1);
 						return this.tick(this.flush.bind(this, i + 1));
 					}
@@ -608,8 +590,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	var Batcher$1 = new Batcher();
 
 	/*
- 	// Every push or each increases the amount of reads and writes?
- 		console.log('read ', Oxe.batcher.tr);
+ 	console.log('read ', Oxe.batcher.tr);
  	console.log('write ', Oxe.batcher.tw);
  	console.log('position ', Oxe.batcher.tp);
  	Oxe.batcher.tr = 0;
@@ -1088,86 +1069,63 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	function Each(binder) {
 		var self = this;
 
-		var data = void 0,
-		    element = void 0,
-		    key = void 0;
-
-		if (binder.length === undefined) binder.length = 0;
 		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
 		return {
-			read: function read() {
+			write: function write() {
+				var key = void 0,
+				    keys = void 0,
+				    data = void 0,
+				    length = void 0;
 
 				data = Model$2.get(binder.keys);
 
-				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') {
-					return false;
-				}
-
-				var isArray = data.constructor === Array;
-				var isObject = data.constructor === Object;
+				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
 
 				data = Binder$2.piper(binder, data);
 
-				if (isArray) {
-					if (binder.length === data.length) {
-						return false;
-					} else {
-						key = binder.length;
-					}
+				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
+
+				if (data.constructor === Array) {
+					length = data.length;
 				}
 
-				if (isObject) {
-					var keys = Object.keys(data);
-
-					if (binder.length === keys.length) {
-						return false;
-					} else {
-						key = keys[binder.length];
-					}
+				if (data.constructor === Object) {
+					keys = Object.keys(data);
+					length = keys.length;
 				}
 
-				if (binder.length > data.length) {
-					element = binder.element.children[key];
-					binder.length--;
-				} else if (binder.length < data.length) {
-					binder.length++;
-				} else {
-					return false;
-				}
-			},
-			write: function write() {
-
-				if (element) {
-					binder.element.removeChild(element);
-					element = undefined;
-				} else {
+				if (binder.element.children.length > length) {
+					binder.element.removeChild(binder.element.lastElementChild);
+				} else if (binder.element.children.length < length) {
 					var clone = binder.cache.cloneNode(true);
+
+					if (data.constructor === Array) key = binder.element.children.length;
+					if (data.constructor === Object) key = keys[binder.element.children.length];
+
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
 					Binder$2.bind(clone, binder.container);
 					binder.element.appendChild(clone);
-				}
 
-				/*
-    	check if select element with o-value
-    	perform a re-render of the o-value
-    	becuase of o-each is async
-    */
-				if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value'] || binder.element.attributes['data-o-value']) {
-					var name = binder.element.attributes['o-value'] || binder.element.attributes['data-o-value'];
-					var value = binder.element.attributes['o-value'].value || binder.element.attributes['data-o-value'].value;
-					var keys = [binder.scope].concat(value.split('|')[0].split('.'));
-					self.value({
-						keys: keys,
-						name: name,
-						value: value,
-						scope: binder.scope,
-						element: binder.element,
-						container: binder.container
-					});
+					/*
+     	check if select element with o-value
+     	perform a re-render of the o-value
+     	becuase of o-each is async
+     */
+					if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value'] || binder.element.attributes['data-o-value']) {
+						var name = binder.element.attributes['o-value'] || binder.element.attributes['data-o-value'];
+						var value = binder.element.attributes['o-value'].value || binder.element.attributes['data-o-value'].value;
+						var _keys = [binder.scope].concat(value.split('|')[0].split('.'));
+						self.value({
+							keys: _keys,
+							name: name,
+							value: value,
+							scope: binder.scope,
+							element: binder.element,
+							container: binder.container
+						});
+					}
 				}
-
-				// self.default(binder);
 			}
 		};
 	}
@@ -1469,7 +1427,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				read: function read() {
 					data = Model$2.get(binder.keys);
 
-					if (data === undefined) {
+					if (typeof data !== 'boolean') {
 						Model$2.set(binder.keys, false);
 						return false;
 					}
