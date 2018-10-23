@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.15.2
+	Version: 3.15.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1074,25 +1074,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
 					Binder$2.bind(clone, binder.container);
 					binder.element.appendChild(clone);
+				}
 
-					/*
-     	check if select element with o-value
-     	perform a re-render of the o-value
-     	becuase of o-each is async
-     */
-					if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value'] || binder.element.attributes['data-o-value']) {
-						var name = binder.element.attributes['o-value'] || binder.element.attributes['data-o-value'];
-						var value = binder.element.attributes['o-value'].value || binder.element.attributes['data-o-value'].value;
-						var _keys = [binder.scope].concat(value.split('|')[0].split('.'));
-						self.value({
-							keys: _keys,
-							name: name,
-							value: value,
-							scope: binder.scope,
-							element: binder.element,
-							container: binder.container
-						});
-					}
+				if (binder.element.children.length !== data.length) {
+					self.default(binder);
 				}
 			}
 		};
@@ -1272,11 +1257,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}
 
 	function Value(binder) {
-		var data = void 0,
-		    multiple = void 0;
-
+		var self = this;
 		var type = binder.element.type;
 		var name = binder.element.nodeName;
+
+		var data = void 0,
+		    multiple = void 0;
 
 		if (name === 'SELECT') {
 			var elements = void 0;
@@ -1287,46 +1273,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					elements = binder.element.options;
 					multiple = binder.element.multiple;
 
-					if (multiple && data.constructor !== Array) {
-						throw new Error('Oxe - invalid multiple select value type ' + binder.keys.join('.') + ' array required');
-					}
+					if (multiple) return false;
+
+					// if (multiple && data.constructor !== Array) {
+					// 	throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
+					// }
 				},
 				write: function write() {
+					var index = 0;
 					var selected = false;
 
 					// NOTE might need to handle disable
-					for (var i = 0; i < elements.length; i++) {
+					for (var i = 0, l = elements.length; i < l; i++) {
 						var element = elements[i];
-						var value = data && data.constructor === Array ? data[i] : data;
 
-						if (value && element.value === value) {
+						if (element.value === data) {
 							selected = true;
-							element.value = value;
 							element.setAttribute('selected', '');
+						} else if (element.hasAttribute('selected')) {
+							index = i;
+							element.removeAttribute('selected');
 						} else {
-							element.value = false;
 							element.removeAttribute('selected');
 						}
 					}
 
-					if (elements.length && !multiple && !selected) {
-						var _value2 = data && data.constructor === Array ? data[0] : data;
-
-						elements[0].setAttribute('selected', '');
-
-						if (_value2 !== (elements[0].value || '')) ;
+					if (elements.length && !selected) {
+						elements[index].setAttribute('selected', '');
+						if (data !== (elements[index].value || '')) {
+							Model$2.set(binder.keys, elements[index].value || '');
+						}
 					}
-
-					// if (binder.element.options.length && !binder.element.multiple && !selected) {
-					// 	const value = data && data.constructor === Array ? data[0] : data;
-					//
-					// 	binder.element.options[0].setAttribute('selected', '');
-					//
-					// 	if (value !== (binder.element.options[0].value || '')) {
-					// 		Model.set(binder.keys, binder.element.options[0].value || '');
-					// 	}
-					//
-					// }
 				}
 			};
 		} else if (type === 'radio') {
@@ -1412,6 +1389,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			return {
 				read: function read() {
 					data = Model$2.get(binder.keys);
+
+					if (name === 'OPTION' && binder.element.selected) {
+						var parent = binder.element.parentElement;
+						var select = Binder$2.elements.get(parent).get('value');
+						self.default(select);
+					}
 
 					if (data === undefined) {
 						Model$2.set(binder.keys, '');

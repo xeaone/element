@@ -40,30 +40,10 @@ export default function (binder) {
 				Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
 				Binder.bind(clone, binder.container);
 				binder.element.appendChild(clone);
+			}
 
-				/*
-					check if select element with o-value
-					perform a re-render of the o-value
-					becuase of o-each is async
-				*/
-				if (
-					binder.element.nodeName === 'SELECT' &&
-					binder.element.attributes['o-value'] ||
-					binder.element.attributes['data-o-value']
-				) {
-					const name = binder.element.attributes['o-value'] || binder.element.attributes['data-o-value'];
-					const value = binder.element.attributes['o-value'].value || binder.element.attributes['data-o-value'].value;
-					const keys = [binder.scope].concat(value.split('|')[0].split('.'));
-					self.value({
-						keys: keys,
-						name: name,
-						value: value,
-						scope: binder.scope,
-						element: binder.element,
-						container: binder.container,
-					});
-				}
-
+			if (binder.element.children.length !== data.length) {
+				self.default(binder);
 			}
 
 		}

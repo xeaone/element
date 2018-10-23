@@ -2,10 +2,11 @@ import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
-	let data, multiple;
-
+	const self = this;
 	const type = binder.element.type;
 	const name = binder.element.nodeName;
+
+	let data, multiple;
 
 	if (name === 'SELECT') {
 		let elements;
@@ -16,51 +17,38 @@ export default function (binder) {
 				elements = binder.element.options;
 				multiple = binder.element.multiple;
 
-				if (multiple && data.constructor !== Array) {
-					throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
-				}
+				if (multiple) return false;
+
+				// if (multiple && data.constructor !== Array) {
+				// 	throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
+				// }
 
 			},
 			write () {
+				let index = 0;
 				let selected = false;
 
 				// NOTE might need to handle disable
-				for (let i = 0; i < elements.length; i++) {
+				for (let i = 0, l = elements.length; i < l; i++) {
 					const element = elements[i];
-					const value = data && data.constructor === Array ? data[i] : data;
 
-					if (value && element.value === value) {
+					if (element.value === data) {
 						selected = true;
-						element.value = value;
 						element.setAttribute('selected', '');
+					} else if (element.hasAttribute('selected')) {
+						index = i;
+						element.removeAttribute('selected');
 					} else {
-						element.value = false;
 						element.removeAttribute('selected');
 					}
-
 				}
 
-				if (elements.length && !multiple && !selected) {
-					const value = data && data.constructor === Array ? data[0] : data;
-
-					elements[0].setAttribute('selected', '');
-
-					if (value !== (elements[0].value || '')) {
-						// Model.set(binder.keys, elements[0].value || '');
+				if (elements.length && !selected) {
+					elements[index].setAttribute('selected', '');
+					if (data !== (elements[index].value || '')) {
+						Model.set(binder.keys, elements[index].value || '');
 					}
-
 				}
-
-				// if (binder.element.options.length && !binder.element.multiple && !selected) {
-				// 	const value = data && data.constructor === Array ? data[0] : data;
-				//
-				// 	binder.element.options[0].setAttribute('selected', '');
-				//
-				// 	if (value !== (binder.element.options[0].value || '')) {
-				// 		Model.set(binder.keys, binder.element.options[0].value || '');
-				// 	}
-				//
-				// }
 
 			}
 		};
@@ -152,6 +140,12 @@ export default function (binder) {
 		return {
 			read () {
 				data = Model.get(binder.keys);
+
+				if (name === 'OPTION' && binder.element.selected) {
+					const parent = binder.element.parentElement;
+					const select = Binder.elements.get(parent).get('value');
+					self.default(select);
+				}
 
 				if (data === undefined) {
 					Model.set(binder.keys, '');
