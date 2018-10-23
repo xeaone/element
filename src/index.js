@@ -36,6 +36,18 @@ eStyle.setAttribute('type', 'text/css');
 eStyle.appendChild(tStyle);
 document.head.appendChild(eStyle);
 
+document.addEventListener('load', Load, true);
+document.addEventListener('input', Input, true);
+document.addEventListener('reset', Reset, true);
+document.addEventListener('click', Click, true);
+document.addEventListener('submit', Submit, true);
+document.addEventListener('change', Change, true);
+window.addEventListener('popstate', State, true);
+
+document.registerElement('o-router', {
+	prototype: Object.create(HTMLElement.prototype)
+});
+
 const oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
@@ -45,14 +57,6 @@ if (oSetup) {
 
 	const loaded = function () {
 		if (currentCount !== requiredCount) return;
-
-		document.addEventListener('load', Load, true);
-		document.addEventListener('input', Input, true);
-		document.addEventListener('reset', Reset, true);
-		document.addEventListener('click', Click, true);
-		document.addEventListener('submit', Submit, true);
-		document.addEventListener('change', Change, true);
-		window.addEventListener('popstate', State, true);
 
 		const args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
 		const meta = document.querySelector('meta[name="oxe"]');
@@ -84,10 +88,6 @@ if (oSetup) {
 
 			document.head.appendChild(index);
 		}
-
-		document.registerElement('o-router', {
-			prototype: Object.create(HTMLElement.prototype)
-		});
 
 	};
 
@@ -137,7 +137,7 @@ class Oxe {
 	get global () {
 		return this.g;
 	}
-	
+
 	get window () {
 		return window;
 	}

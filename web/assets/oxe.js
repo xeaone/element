@@ -1,27 +1,16 @@
-/*
-	Name: oxe
-	Version: 3.15.1
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 function _awaitIgnored(value, direct) {
 	if (!direct) {
 		return Promise.resolve(value).then(_empty);
 	}
-}
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-function _invoke(body, then) {
+}function _invoke(body, then) {
 	var result = body();
 	if (result && result.then) {
 		return result.then(then);
@@ -74,45 +63,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  		test array methods
  		figure out a way to not update removed items
  */
-
-	var Submit = _async(function (e) {
-		var element = e.target;
-		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-		if (!submit) return;else e.preventDefault();
-
-		var binder = Binder$2.elements.get(element).get('submit');
-		var method = Methods$1.get(binder.keys);
-		var model = Model$2.get(binder.scope);
-
-		var data = Utility.formData(element, model);
-
-		return _await(method.call(binder.container, data, e), function (options) {
-			return _invoke(function () {
-				if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
-					var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-					var _method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-					var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
-
-					options.url = options.url || action;
-					options.method = options.method || _method;
-					options.contentType = options.contentType || enctype;
-
-					return _await(Fetcher$1.fetch(options), function (result) {
-						return _invokeIgnored(function () {
-							if (options.handler) {
-								return _awaitIgnored(options.handler(result));
-							}
-						});
-					});
-				}
-			}, function () {
-				if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset')) {
-					element.reset();
-				}
-			});
-		});
-	});
 
 	var Update = _async(function (element, attribute) {
 
@@ -2155,6 +2105,47 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Fetcher$1 = new Fetcher();
 
+	function Submit(e) {
+		var element = e.target;
+		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+
+		if (!submit) return;else e.preventDefault();
+
+		var binder = Binder$2.elements.get(element).get('submit');
+		var method = Methods$1.get(binder.keys);
+		var model = Model$2.get(binder.scope);
+
+		var data = Utility.formData(element, model);
+
+		Promise.resolve().then(_async(function () {
+			return _await(method.call(binder.container, data, e), function (options) {
+				return _invoke(function () {
+					if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
+						var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+						var _method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+						var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+
+						options.url = options.url || action;
+						options.method = options.method || _method;
+						options.contentType = options.contentType || enctype;
+
+						return _await(Fetcher$1.fetch(options), function (result) {
+							return _invokeIgnored(function () {
+								if (options.handler) {
+									return _awaitIgnored(options.handler(result));
+								}
+							});
+						});
+					}
+				}, function () {
+					if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset')) {
+						element.reset();
+					}
+				});
+			});
+		})).catch(console.error);
+	}
+
 	function Input(e) {
 		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
 			Update(e.target, 'value').catch(console.error);
@@ -3397,6 +3388,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	eStyle.appendChild(tStyle);
 	document.head.appendChild(eStyle);
 
+	document.addEventListener('load', Load, true);
+	document.addEventListener('input', Input, true);
+	document.addEventListener('reset', Reset, true);
+	document.addEventListener('click', Click, true);
+	document.addEventListener('submit', Submit, true);
+	document.addEventListener('change', Change, true);
+	window.addEventListener('popstate', State, true);
+
+	document.registerElement('o-router', {
+		prototype: Object.create(HTMLElement.prototype)
+	});
+
 	var oSetup = document.querySelector('script[o-setup]');
 
 	if (oSetup) {
@@ -3406,14 +3409,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		var loaded = function loaded() {
 			if (currentCount !== requiredCount) return;
-
-			document.addEventListener('load', Load, true);
-			document.addEventListener('input', Input, true);
-			document.addEventListener('reset', Reset, true);
-			document.addEventListener('click', Click, true);
-			document.addEventListener('submit', Submit, true);
-			document.addEventListener('change', Change, true);
-			window.addEventListener('popstate', State, true);
 
 			var args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
 			var meta = document.querySelector('meta[name="oxe"]');
@@ -3445,10 +3440,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				document.head.appendChild(_index);
 			}
-
-			document.registerElement('o-router', {
-				prototype: Object.create(HTMLElement.prototype)
-			});
 		};
 
 		var loader = function loader(url, callback) {
