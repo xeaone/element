@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.15.0
+	Version: 3.15.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -3491,6 +3491,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		function Oxe() {
 			_classCallCheck(this, Oxe);
 
+			this.g = {};
 			this.compiled = true;
 		}
 
@@ -3536,6 +3537,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			})
 		}, {
+			key: 'global',
+			get: function get() {
+				return this.g;
+			}
+		}, {
 			key: 'window',
 			get: function get() {
 				return window;
@@ -3569,11 +3575,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'ownerDocument',
 			get: function get() {
 				return (window.document._currentScript || window.document.currentScript).ownerDocument;
-			}
-		}, {
-			key: 'global',
-			get: function get() {
-				return {};
 			}
 		}, {
 			key: 'render',

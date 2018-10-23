@@ -130,9 +130,14 @@ if (oSetup) {
 class Oxe {
 
 	constructor () {
+		this.g = {};
 		this.compiled = true;
 	}
 
+	get global () {
+		return this.g;
+	}
+	
 	get window () {
 		return window;
 	}
@@ -159,10 +164,6 @@ class Oxe {
 
 	get ownerDocument () {
 		return (window.document._currentScript || window.document.currentScript).ownerDocument;
-	}
-
-	get global () {
-		return {};
 	}
 
 	get render () {
