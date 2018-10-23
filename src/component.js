@@ -143,21 +143,15 @@ class Component {
 			Binder.bind(clone, element);
 
 			if (options.shadow && 'attachShadow' in document.body) {
-				// const clone = document.importNode(template.content, true);
 				element.attachShadow({ mode: 'open' }).appendChild(clone);
 			} else if (options.shadow && 'createShadowRoot' in document.body) {
-				// const clone = document.importNode(template.content, true);
 				element.createShadowRoot().appendChild(clone);
 			} else {
-				self.renderSlot(template.content, element);
-				// const clone = document.importNode(template.content, true);
-				// Binder.bind(clone, element);
+				self.renderSlot(clone, element);
 				element.appendChild(clone);
 			}
 
 		}
-
-		// Binder.bind(element);
 
 		if (options.created) {
 			options.created.call(element);
