@@ -12,7 +12,8 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 function _invoke(body, then) {
-	var result = body();if (result && result.then) {
+	var result = body();
+	if (result && result.then) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
@@ -835,33 +836,30 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		},
 		walker: function walker(node, callback) {
 			callback(node);
-			node = node.firstElementChild;
-			// node = node.firstChild;
+			// node = node.firstElementChild;
+			node = node.firstChild;
 			while (node) {
 				this.walker(node, callback);
-				node = node.nextElementSibling;
-				// node = node.nextSibling;
+				// node = node.nextElementSibling;
+				node = node.nextSibling;
 			}
 		},
 		replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
 			var self = this;
-			// const iindex = '$index';
-			// const vindex = '$' + variable;
 			var pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
 
 			self.walker(element, function (node) {
-				// if (node.nodeType === 3) {
-				// 	if (node.nodeValue === vindex || node.nodeValue === iindex) {
-				// 		node.nodeValue = key;
-				// 	}
-				// } else if (node.nodeType === 1) {
-				for (var i = 0, l = node.attributes.length; i < l; i++) {
-					var attribute = node.attributes[i];
-					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-						attribute.value = attribute.value.replace(pattern, '$1' + path + '.' + key + '$2');
+				if (node.nodeType === 3) {
+					if (node.nodeValue === '$' + variable || node.nodeValue === '$index') {
+						node.nodeValue = key;
+					}
+				} else if (node.nodeType === 1) {
+					for (var i = 0, l = node.attributes.length; i < l; i++) {
+						var attribute = node.attributes[i];if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
+							attribute.value = attribute.value.replace(pattern, '$1' + path + '.' + key + '$2');
+						}
 					}
 				}
-				// }
 			});
 		},
 		traverse: function traverse(data, path, callback) {

@@ -147,21 +147,15 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 ### Oxe.batcher
 Batches DOM reads and writes.
 - `options: Object`
-	- `fps: Number` (default: 1000/60) if set to 0 the total load time decreases but the progress/lazy load is lost.
+	- `time: Number` (default: 1000/60)
 - `setup: Function`
 	- `options: Object`
-- `read: Function`
-- `write: Function`
 - `tick: Function`
 - `flush: Function`
+- `schedule: Function`
 - `remove: Function`
 - `clear: Function`
-- `emit: Function`
-- `on: Function`
-	- `name: String`
-	- `method: Function`
-- `events: Object`
-	- `error: Array`
+- `batch: Function`
 
 ### Oxe.fetcher
 - `setup: Function`

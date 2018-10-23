@@ -93,34 +93,32 @@ export default {
 
 	walker (node, callback) {
 		callback(node);
-		node = node.firstElementChild;
-		// node = node.firstChild;
+		// node = node.firstElementChild;
+		node = node.firstChild;
 		while (node) {
 		    this.walker(node, callback);
-		    node = node.nextElementSibling;
-		    // node = node.nextSibling;
+		    // node = node.nextElementSibling;
+		    node = node.nextSibling;
 		}
 	},
 
 	replaceEachVariable (element, variable, path, key) {
 		const self = this;
-	 	// const iindex = '$index';
-		// const vindex = '$' + variable;
 		const pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
 
 		self.walker(element, function (node) {
-			// if (node.nodeType === 3) {
-			// 	if (node.nodeValue === vindex || node.nodeValue === iindex) {
-			// 		node.nodeValue = key;
-			// 	}
-			// } else if (node.nodeType === 1) {
+			if (node.nodeType === 3) {
+				if (node.nodeValue === `$${variable}` || node.nodeValue === '$index') {
+					node.nodeValue = key;
+				}
+			} else if (node.nodeType === 1) {
 				for (let i = 0, l = node.attributes.length; i < l; i++) {
 					const attribute = node.attributes[i];
 					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 						attribute.value = attribute.value.replace(pattern, `$1${path}.${key}$2`);
 					}
 				}
-			// }
+			}
 		});
 	},
 
