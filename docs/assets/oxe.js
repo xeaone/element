@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.14.3
+	Version: 3.15.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -12,8 +12,18 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
+function _awaitIgnored(value, direct) {
+	if (!direct) {
+		return Promise.resolve(value).then(_empty);
+	}
+}
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
 function _invoke(body, then) {
-	var result = body();if (result && result.then) {
+	var result = body();
+	if (result && result.then) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
@@ -24,9 +34,7 @@ function _invoke(body, then) {
 	if (direct) {
 		return then ? then(value) : value;
 	}value = Promise.resolve(value);return then ? value.then(then) : value;
-}
-
-var _async = function () {
+}var _async = function () {
 	try {
 		if (isNaN.apply(null, {})) {
 			return function (f) {
@@ -39,7 +47,8 @@ var _async = function () {
 				};
 			};
 		}
-	} catch (e) {}return function (f) {
+	} catch (e) {}
+	return function (f) {
 		// Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
 		return function () {
 			var args = [];for (var i = 0; i < arguments.length; i++) {
@@ -52,10 +61,6 @@ var _async = function () {
 		};
 	};
 }();
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 (function (global, factory) {
@@ -63,425 +68,699 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 })(this, function () {
 	'use strict';
 
-	var Component = function () {
-		function Component(options) {
-			_classCallCheck(this, Component);
+	/*
+ 	TODO:
+ 		sort reverse
+ 		test array methods
+ 		figure out a way to not update removed items
+ */
 
-			this.data = {};
-			this.setup(options);
-		}
+	var Submit = _async(function (e) {
+		var element = e.target;
+		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
-		_createClass(Component, [{
-			key: 'setup',
-			value: function setup(options) {
-				options = options || {};
+		if (!submit) return;else e.preventDefault();
 
-				if (options.components) {
-					var _iteratorNormalCompletion = true;
-					var _didIteratorError = false;
-					var _iteratorError = undefined;
+		var binder = Binder$2.elements.get(element).get('submit');
+		var method = Methods$1.get(binder.keys);
+		var model = Model$2.get(binder.scope);
 
-					try {
-						for (var _iterator = options.components[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-							var component = _step.value;
+		var data = Utility.formData(element, model);
 
-							this.define(component);
-						}
-					} catch (err) {
-						_didIteratorError = true;
-						_iteratorError = err;
-					} finally {
-						try {
-							if (!_iteratorNormalCompletion && _iterator.return) {
-								_iterator.return();
+		return _await(method.call(binder.container, data, e), function (options) {
+			return _invoke(function () {
+				if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
+					var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+					var _method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+					var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+
+					options.url = options.url || action;
+					options.method = options.method || _method;
+					options.contentType = options.contentType || enctype;
+
+					return _await(Fetcher$1.fetch(options), function (result) {
+						return _invokeIgnored(function () {
+							if (options.handler) {
+								return _awaitIgnored(options.handler(result));
 							}
-						} finally {
-							if (_didIteratorError) {
-								throw _iteratorError;
-							}
-						}
-					}
+						});
+					});
 				}
-			}
-		}, {
-			key: 'renderSlot',
-			value: function renderSlot(target, source) {
-				var targetSlots = target.querySelectorAll('slot[name]');
+			}, function () {
+				if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset')) {
+					element.reset();
+				}
+			});
+		});
+	});
 
-				var _iteratorNormalCompletion2 = true;
-				var _didIteratorError2 = false;
-				var _iteratorError2 = undefined;
+	var Update = _async(function (element, attribute) {
 
-				try {
-					for (var _iterator2 = targetSlots[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-						var targetSlot = _step2.value;
+		if (!element) throw new Error('Oxe - requires element argument');
+		if (!attribute) throw new Error('Oxe - requires attribute argument');
 
+		var binder = Binder$2.elements.get(element).get(attribute);
 
-						var name = targetSlot.getAttribute('name');
-						var sourceSlot = source.querySelector('[slot="' + name + '"]');
+		var read = function read() {
+			var type = binder.element.type;
+			var name = binder.element.nodeName;
 
-						if (sourceSlot) {
-							targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
+			var data = void 0;
+
+			if (name === 'SELECT') {
+				var elements = binder.element.options;
+				var multiple = binder.element.multiple;
+
+				var selected = false;
+
+				data = multiple ? [] : '';
+
+				for (var i = 0, l = elements.length; i < l; i++) {
+					var _element = elements[i];
+					// NOTE might need to handle disable
+
+					if (_element.selected) {
+						selected = true;
+
+						if (multiple) {
+							data.push(_element.value);
 						} else {
-							targetSlot.parentNode.removeChild(targetSlot);
-						}
-					}
-				} catch (err) {
-					_didIteratorError2 = true;
-					_iteratorError2 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion2 && _iterator2.return) {
-							_iterator2.return();
-						}
-					} finally {
-						if (_didIteratorError2) {
-							throw _iteratorError2;
+							data = _element.value;
+							break;
 						}
 					}
 				}
 
-				var defaultSlot = target.querySelector('slot:not([name])');
+				if (elements.length && !multiple && !selected) {
+					data = elements[0].value;
+				}
+			} else if (type === 'radio') {
+				var query = 'input[type="radio"][o-value="' + binder.value + '"]';
+				var _elements2 = binder.container.querySelectorAll(query);
 
-				if (defaultSlot && source.children.length) {
-					while (source.firstChild) {
-						defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
+				for (var _i = 0, _l = _elements2.length; _i < _l; _i++) {
+					var _element2 = _elements2[_i];
+
+					if (binder.element === _element2) {
+						data = _i;
 					}
 				}
+			} else if (type === 'file') {
+				var files = binder.element.files;
 
-				if (defaultSlot) {
-					defaultSlot.parentNode.removeChild(defaultSlot);
+				data = data || [];
+
+				for (var _i2 = 0, _l2 = files.length; _i2 < _l2; _i2++) {
+					var file = files[_i2];
+					data.push(file);
+				}
+			} else if (type === 'checkbox') {
+				data = binder.element.checked;
+			} else {
+				data = binder.element.value;
+			}
+
+			if (data !== undefined) {
+				var original = Model$2.get(binder.keys);
+
+				if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' && data.constructor === original.constructor) {
+					for (var key in data) {
+						if (data[key] !== original[key]) {
+							Model$2.set(binder.keys, data);
+							break;
+						}
+					}
+				} else if (original !== data) {
+					Model$2.set(binder.keys, data);
 				}
 			}
-		}, {
-			key: 'renderTemplate',
-			value: function renderTemplate(template) {
-				var fragment = document.createDocumentFragment();
+		};
 
-				if (template) {
-					if (typeof template === 'string') {
-						var temporary = document.createElement('div');
+		Batcher$1.batch({ read: read });
+	});
 
-						temporary.innerHTML = template;
+	var Observer = {
+		splice: function splice() {
+			var startIndex = arguments[0];
+			var deleteCount = arguments[1];
+			var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
 
-						while (temporary.firstChild) {
-							fragment.appendChild(temporary.firstChild);
-						}
+			if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
+				return [];
+			}
+
+			// handle negative startIndex
+			if (startIndex < 0) {
+				startIndex = this.length + startIndex;
+				startIndex = startIndex > 0 ? startIndex : 0;
+			} else {
+				startIndex = startIndex < this.length ? startIndex : this.length;
+			}
+
+			// handle negative deleteCount
+			if (deleteCount < 0) {
+				deleteCount = 0;
+			} else if (deleteCount > this.length - startIndex) {
+				deleteCount = this.length - startIndex;
+			}
+
+			var totalCount = this.$meta.length;
+			var key = void 0,
+			    index = void 0,
+			    value = void 0,
+			    updateCount = void 0;
+			var argumentIndex = 2;
+			var argumentsCount = arguments.length - argumentIndex;
+			var result = this.slice(startIndex, deleteCount);
+
+			updateCount = totalCount - 1 - startIndex;
+
+			if (updateCount > 0) {
+				index = startIndex;
+				while (updateCount--) {
+					key = index++;
+
+					if (argumentsCount && argumentIndex < argumentsCount) {
+						value = arguments[argumentIndex++];
 					} else {
-						fragment.appendChild(template);
+						value = this.$meta[index];
 					}
+
+					this.$meta[key] = Observer.create(value, this.$meta.listener, this.$meta.path + key);
+					this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
 				}
-
-				return fragment;
 			}
-		}, {
-			key: 'renderStyle',
-			value: function renderStyle(style, scope) {
 
-				if (!style) return;
+			if (addCount > 0) {
+				while (addCount--) {
+					key = this.length;
+					this.$meta[key] = Observer.create(arguments[argumentIndex++], this.$meta.listener, this.$meta.path + key);
+					Observer.defineProperty(this, key);this.$meta.listener(this.length, this.$meta.path.slice(0, -1), 'length');
+					this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
+				}
+			}
 
-				if (window.CSS && window.CSS.supports) {
+			if (deleteCount > 0) {
+				while (deleteCount--) {
+					this.$meta.length--;
+					this.length--;
+					key = this.length;
+					this.$meta.listener(key, this.$meta.path.slice(0, -1), 'length');
+					this.$meta.listener(undefined, this.$meta.path + key, key);
+				}
+			}
 
-					if (!window.CSS.supports('(--t: black)')) {
-						var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+			return result;
+		},
+		arrayProperties: function arrayProperties() {
+			var self = this;
 
-						var _iteratorNormalCompletion3 = true;
-						var _didIteratorError3 = false;
-						var _iteratorError3 = undefined;
+			return {
+				push: {
+					value: function value() {
+						if (!arguments.length) return this.length;
 
-						try {
-							for (var _iterator3 = matches[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-								var match = _step3.value;
+						for (var i = 0, l = arguments.length; i < l; i++) {
+							self.splice.call(this, this.length, 0, arguments[i]);
+						}
 
+						return this.length;
+					}
+				},
+				unshift: {
+					value: function value() {
+						if (!arguments.length) return this.length;
 
-								var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-								var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
+						for (var i = 0, l = arguments.length; i < l; i++) {
+							self.splice.call(this, 0, 0, arguments[i]);
+						}
 
-								style = style.replace(rule[0], '');
-								style = style.replace(pattern, rule[2]);
-							}
-						} catch (err) {
-							_didIteratorError3 = true;
-							_iteratorError3 = err;
-						} finally {
-							try {
-								if (!_iteratorNormalCompletion3 && _iterator3.return) {
-									_iterator3.return();
-								}
-							} finally {
-								if (_didIteratorError3) {
-									throw _iteratorError3;
-								}
+						return this.length;
+					}
+				},
+				pop: {
+					value: function value() {
+						if (!this.length) return;
+						return self.splice.call(this, this.length - 1, 1);
+					}
+				},
+				shift: {
+					value: function value() {
+						if (!this.length) return;
+						return self.splice.call(this, 0, 1);
+					}
+				},
+				splice: {
+					value: self.splice
+				}
+			};
+		},
+		objectProperties: function objectProperties() {
+			var self = this;
+
+			return {
+				$get: {
+					value: function value(key) {
+						return this[key];
+					}
+				},
+				$set: {
+					value: function value(key, _value) {
+						// if (key !== undefined && value !== undefined) {
+						if (_value !== this[key]) {
+							var result = self.create(_value, this.$meta.listener, this.$meta.path + key);
+
+							this.$meta[key] = result;
+							self.defineProperty(this, key);
+
+							this.$meta.listener(result, this.$meta.path + key, key);
+
+							return result;
+						}
+						// } else {
+
+						// if (!key || key.constructor !== this.constructor) {
+						// 	return this;
+						// } else if (key.constructor === Array) {
+						// 	for () {
+						// 		this.$set(name, value);
+						// 	}
+						// } else if (key.constructor === Object) {
+						// 	for (let name in key) {
+						// 		this.$set(name, key[name]);
+						// 	}
+						// }
+						//
+						// return this;
+						// }
+					}
+				},
+				$remove: {
+					value: function value(key) {
+						if (key in this) {
+							if (this.constructor === Array) {
+								return self.splice.call(this, key, 1);
+							} else {
+								var result = this[key];
+								delete this.$meta[key];
+								delete this[key];
+								this.$meta.listener(undefined, this.$meta.path + key, key);
+								return result;
 							}
 						}
 					}
-
-					if (!window.CSS.supports(':scope')) {
-						style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
-					}
-
-					if (!window.CSS.supports(':host')) {
-						style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
-					}
 				}
-
-				var estyle = document.createElement('style');
-				var nstyle = document.createTextNode(style);
-
-				estyle.appendChild(nstyle);
-
-				return estyle;
-			}
-		}, {
-			key: 'created',
-			value: function created(element, options) {
-				var self = this;
-				var scope = options.name + '-' + options.count++;Object.defineProperties(element, {
-					scope: {
-						enumerable: true,
-						value: scope
-					},
-					status: {
-						enumerable: true,
-						value: 'created'
-					}
-				});
-
-				element.setAttribute('o-scope', scope);
-
-				Global.model.set(scope, options.model || {});
-				Global.methods.data[scope] = options.methods;
-
-				if (!self.compiled || self.compiled && element.parentNode.nodeName !== 'O-ROUTER') {
-					var eTemplate = self.renderTemplate(options.template);
-					var eStyle = self.renderStyle(options.style, scope);
-
-					if (eStyle) {
-						eTemplate.insertBefore(eStyle, eTemplate.firstChild);
-					}
-
-					if (options.shadow && 'attachShadow' in document.body) {
-						element.attachShadow({ mode: 'open' }).appendChild(eTemplate);
-					} else if (options.shadow && 'createShadowRoot' in document.body) {
-						element.createShadowRoot().appendChild(eTemplate);
-					} else {
-						self.renderSlot(eTemplate, element);
-						element.appendChild(eTemplate);
-					}
-				}
-
-				Global.binder.bind(element);
-
-				if (options.created) {
-					options.created.call(element);
-				}
-			}
-		}, {
-			key: 'attached',
-			value: function attached(element, options) {
-				// Global.binder.bind(element);
-
-				if (options.attached) {
-					options.attached.call(element);
-				}
-			}
-		}, {
-			key: 'detached',
-			value: function detached(element, options) {
-				// Global.binder.unbind(element);
-
-				if (options.detached) {
-					options.detached.call(element);
-				}
-			}
-		}, {
-			key: 'define',
-			value: function define(options) {
-				var self = this;
-
-				if (!options.name) {
-					throw new Error('Oxe.component.define - requires name');
-				}
-
-				if (options.name in self.data) {
-					throw new Error('Oxe.component.define - component defined');
-				}
-
-				self.data[options.name] = options;
-
-				options.count = 0;
-				options.compiled = false;
-				options.model = options.model || {};
-				options.shadow = options.shadow || false;
-				options.template = options.template || '';
-				options.properties = options.properties || {};
-
-				options.properties.status = {
-					enumerable: true,
-					configurable: true,
-					value: 'define'
-				};
-
-				options.properties.model = {
-					enumerable: true,
-					configurable: true,
-					get: function get() {
-						return Global.model.get(this.scope);
-					},
-					set: function set(data) {
-						data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
-						return Global.model.set(this.scope, data);
-					}
-				};
-
-				options.properties.methods = {
-					enumerable: true,
-					get: function get() {
-						return Global.methods.data[this.scope];
-					}
-				};
-
-				options.proto = Object.create(HTMLElement.prototype, options.properties);
-
-				options.proto.attributeChangedCallback = options.attributed;
-
-				options.proto.createdCallback = function () {
-					self.created(this, options);
-				};
-
-				options.proto.attachedCallback = function () {
-					self.attached(this, options);
-				};
-
-				options.proto.detachedCallback = function () {
-					self.detached(this, options);
-				};
-
-				return document.registerElement(options.name, {
-					prototype: options.proto
-				});
-			}
-		}]);
-
-		return Component;
-	}();
-
-	var Path = {
-		extension: function extension(data) {
-			var position = data.lastIndexOf('.');
-			return position > 0 ? data.slice(position + 1) : '';
+			};
 		},
-		join: function join() {
-			return Array.prototype.join.call(arguments, '/').replace(/\/{2,}/g, '/').replace(/^(https?:\/)/, '$1/');
-		},
-		base: function base(href) {
-			var base = window.document.querySelector('base');
+		property: function property(key) {
+			var self = this;
 
-			if (href) {
+			return {
+				enumerable: true,
+				configurable: true,
+				get: function get() {
+					return this.$meta[key];
+				},
+				set: function set(value) {
+					if (value !== this.$meta[key]) {
 
-				if (base) {
-					base.href = href;
-				} else {
-					base = window.document.createElement('base');
-					base.href = href;
-					window.document.head.insertBefore(base, window.document.head.firstElementChild);
-				}
-			}
+						this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
 
-			return base ? base.href : window.location.origin + window.location.pathname;
-		},
-		resolve: function resolve(path, base) {
-			var result = [];
-
-			path = path.replace(window.location.origin, '');
-
-			if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('//') === 0) {
-				return path;
-			}
-
-			if (path.charAt(0) !== '/') {
-				base = base || this.base();
-				path = base + '/' + path;
-				path = path.replace(window.location.origin, '');
-			}
-
-			path = path.replace(/\/{2,}/, '/');
-			path = path.replace(/^\//, '');
-			path = path.replace(/\/$/, '');
-
-			var paths = path.split('/');
-
-			for (var i = 0, l = paths.length; i < l; i++) {
-
-				if (paths[i] === '.' || paths[i] === '') {
-					continue;
-				} else if (paths[i] === '..') {
-
-					if (i > 0) {
-						result.splice(i - 1, 1);
+						this.$meta.listener(this[key], this.$meta.path + key, key, this);
 					}
-				} else {
-					result.push(paths[i]);
+				}
+			};
+		},
+		defineProperty: function defineProperty(data, key) {
+			return Object.defineProperty(data, key, this.property(key));
+		},
+		create: function create(source, listener, path) {
+			var self = this;
+
+			if (!source || source.constructor !== Object && source.constructor !== Array) {
+				return source;
+			}
+
+			path = path ? path + '.' : '';
+
+			var key = void 0,
+			    length = void 0;
+			var type = source.constructor;
+			var target = source.constructor();
+			var properties = source.constructor();
+
+			properties.$meta = {
+				value: source.constructor()
+			};
+
+			properties.$meta.value.path = path;
+			properties.$meta.value.listener = listener;
+
+			if (type === Array) {
+
+				for (key = 0, length = source.length; key < length; key++) {
+					properties.$meta.value[key] = self.create(source[key], listener, path + key);
+					properties[key] = self.property(key);
+				}
+
+				var arrayProperties = self.arrayProperties();
+
+				for (key in arrayProperties) {
+					properties[key] = arrayProperties[key];
 				}
 			}
 
-			return '/' + result.join('/');
+			if (type === Object) {
+
+				for (key in source) {
+					properties.$meta.value[key] = self.create(source[key], listener, path + key);
+					properties[key] = self.property(key);
+				}
+			}
+
+			var objectProperties = self.objectProperties();
+
+			for (key in objectProperties) {
+				properties[key] = objectProperties[key];
+			}
+
+			return Object.defineProperties(target, properties);
 		}
 	};
 
-	var General = function () {
-		function General(options) {
-			_classCallCheck(this, General);
+	var Batcher = function () {
+		function Batcher() {
+			_classCallCheck(this, Batcher);
 
-			this.setup(options);
+			this.reads = [];
+			this.writes = [];
+			this.time = 1000 / 30;
+			this.pending = false;
+			// this.mr = 0;
+			// this.mw = 0;
+			// this.tr = 0;
+			// this.tw = 0;
+			// this.tp = 0;
 		}
 
-		_createClass(General, [{
+		_createClass(Batcher, [{
 			key: 'setup',
 			value: function setup(options) {
 				options = options || {};
+				this.time = options.time || this.time;
+			}
+		}, {
+			key: 'tick',
+			value: function tick(callback) {
+				return window.requestAnimationFrame(callback);
+			}
 
-				if (options.base) {
-					Path.base(options.base);
+			// schedules a new read/write batch if one is not pending
+
+		}, {
+			key: 'schedule',
+			value: function schedule() {
+				if (!this.pending) {
+					this.pending = true;
+					this.tick(this.flush.bind(this, null));
 				}
+			}
+		}, {
+			key: 'flush',
+			value: function flush(position, time) {
+
+				if (!this.reads.length && !this.writes.length) {
+					this.pending = false;
+					return;
+				}
+
+				var i = void 0;
+
+				if (position === null) {
+
+					for (i = 0; i < this.reads.length; i++) {
+						// this.tr++;
+						this.reads[i]();
+
+						// max read time
+						if (performance.now() - time > this.time) {
+							// this.mr++;
+							this.reads.splice(0, i + 1);
+							return this.tick(this.flush.bind(this, i + 1));
+						}
+					}
+
+					this.reads.splice(0, i + 1);
+				}
+
+				for (i = 0; i < this.writes.length; i++) {
+					// this.tw++;
+					this.writes[i]();
+
+					// position of max read time
+					if (i === position) {
+						// this.tp++;
+						this.writes.splice(0, i + 1);
+						return this.flush(null, time);
+					}
+
+					// max write time
+					if (performance.now() - time > this.time) {
+						// this.mw++;
+						this.writes.splice(0, i + 1);
+						return this.tick(this.flush.bind(this, i + 1));
+					}
+				}
+
+				this.writes.splice(0, i + 1);
+				this.flush(null, time);
+			}
+		}, {
+			key: 'remove',
+			value: function remove(tasks, task) {
+				var index = tasks.indexOf(task);
+				return !!~index && !!tasks.splice(index, 1);
+			}
+		}, {
+			key: 'clear',
+			value: function clear(task) {
+				return this.remove(this.reads, task) || this.remove(this.writes, task);
+			}
+		}, {
+			key: 'batch',
+			value: function batch(data) {
+				var self = this;
+
+				if (data.read) {
+
+					var read = function read() {
+						var result = void 0;
+
+						if (data.context) {
+							result = data.read.call(data.context);
+						} else {
+							result = data.read();
+						}
+
+						if (data.write && result !== false) {
+							var write = void 0;
+
+							if (data.context) {
+								write = data.write.bind(data.context);
+							} else {
+								write = data.write;
+							}
+
+							self.writes.push(write);
+							self.schedule();
+						}
+					};
+
+					self.reads.push(read);
+					self.schedule();
+				} else if (data.write) {
+					var write = void 0;
+
+					if (data.context) {
+						write = data.write.bind(data.context, data.shared);
+					} else {
+						write = data.write;
+					}
+
+					self.writes.push(write);
+					self.schedule();
+				}
+
+				return data;
 			}
 		}]);
 
-		return General;
+		return Batcher;
 	}();
+
+	var Batcher$1 = new Batcher();
+
+	/*
+ 	console.log('read ', Oxe.batcher.tr);
+ 	console.log('write ', Oxe.batcher.tw);
+ 	console.log('position ', Oxe.batcher.tp);
+ 	Oxe.batcher.tr = 0;
+ 	Oxe.batcher.tw = 0;
+ 	Oxe.batcher.tp = 0;
+ */
+
+	function TextAttributeUnrender(binder) {
+		return {
+			write: function write() {
+				binder.element.innerText = '';
+			}
+		};
+	}
+
+	var Unrender$1 = {
+		alt: function alt(opt) {
+			Batcher$1.write(function () {
+				opt.element.alt = '';
+			});
+		},
+		each: function each(opt) {
+			Batcher$1.write(function () {
+				var element = void 0;
+
+				while (element = opt.element.lastElementChild) {
+					opt.element.removeChild(element);
+				}
+			});
+		},
+		href: function href(opt) {
+			Batcher$1.write(function () {
+				opt.element.href = '';
+			});
+		},
+		class: function _class(opt) {
+			Batcher$1.write(function () {
+				var className = opt.names.slice(1).join('-');
+				opt.element.classList.remove(className);
+			});
+		},
+		html: function html(opt) {
+			Batcher$1.write(function () {
+				var element = void 0;
+
+				while (element = opt.element.lastElementChild) {
+					opt.element.removeChild(element);
+				}
+			});
+		},
+		on: function on(opt) {
+			opt.element.removeEventListener(opt.names[1], opt.cache, false);
+		},
+		css: function css(opt) {
+			Batcher$1.write(function () {
+				opt.element.style.cssText = '';
+			});
+		},
+		required: function required(opt) {
+			Batcher$1.write(function () {
+				opt.element.required = false;
+			});
+		},
+		src: function src(opt) {
+			Batcher$1.write(function () {
+				opt.element.src = '';
+			});
+		},
+
+
+		text: TextAttributeUnrender,
+
+		value: function value(opt) {
+			Batcher$1.write(function () {
+				var i, l, query, element, elements;
+
+				if (opt.element.nodeName === 'SELECT') {
+
+					elements = opt.element.options;
+
+					for (i = 0, l = elements.length; i < l; i++) {
+						element = elements[i];
+						element.selected = false;
+					}
+				} else if (opt.element.type === 'radio') {
+
+					query = 'input[type="radio"][o-value="' + opt.path + '"]';
+					elements = opt.element.parentNode.querySelectorAll(query);
+
+					for (i = 0, l = elements.length; i < l; i++) {
+						element = elements[i];
+
+						if (i === 0) {
+							element.checked = true;
+						} else {
+							element.checked = false;
+						}
+					}
+				} else if (opt.element.type === 'checkbox') {
+
+					opt.element.checked = false;
+					opt.element.value = false;
+				} else {
+					opt.element.value = '';
+				}
+			});
+		},
+		default: function _default(binder) {
+
+			if (binder.type in this) {
+				var unrender = this[binder.type](binder);
+
+				if (unrender) {
+					unrender.context = unrender.context || {};
+					Batcher$1.batch(unrender);
+				}
+			} else {
+				var data = void 0;
+
+				Batcher$1.batch({
+					read: function read() {
+						data = Model.get(binder.keys);
+
+						if (binder.element[binder.type] === data) {
+							return;
+						}
+
+						data = Binder.piper(binder, data);
+					},
+					write: function write() {
+						binder.element[binder.type] = data;
+					}
+				});
+			}
+		}
+	};
 
 	var Utility = {
 
-		PATH: /\s*\|.*/,
-		PREFIX: /(data-)?o-/,
+		PREFIX: /data-o-|o-/,
 		ROOT: /^(https?:)?\/?\//,
-		TYPE: /(data-)?o-|-.*$/g,
-		SPLIT_MODIFIERS: /\s|\s?,\s?/,
 
-		binderNormalize: function binderNormalize(data) {
-			return !data ? '' : data.replace(/\s+$/, '').replace(/^\s+/, '').replace(/\.{2,}/g, '.').replace(/\|{2,}/g, '|').replace(/\,{2,}/g, ',').replace(/\s{2,}/g, ' ').replace(/\s?\|\s?/, '|');
-		},
-		binderName: function binderName(data) {
-			return data.replace(this.PREFIX, '');
-		},
-		binderType: function binderType(data) {
-			return data.replace(this.TYPE, '');
-		},
+		DOT: /\.+/,
+		PIPE: /\s?\|\s?/,
+		PIPES: /\s?,\s?|\s+/,
+		VARIABLE_START: '(\\|*\\,*\\s*)',
+		VARIABLE_END: '([^a-zA-z]|$)',
+
 		binderNames: function binderNames(data) {
-			return data.replace(this.PREFIX, '').split('-');
+			data = data.split(this.PREFIX)[1];
+			return data ? data.split('-') : [];
 		},
 		binderValues: function binderValues(data) {
-			data = this.binderNormalize(data);
-			var index = data.indexOf('|');
-			return index === -1 ? data.split('.') : data.slice(0, index).split('.');
+			data = data.split(this.PIPE)[0];
+			return data ? data.split('.') : [];
 		},
-		binderModifiers: function binderModifiers(data) {
-			data = this.binderNormalize(data);
-			var index = data.indexOf('|');
-			return index === -1 ? [] : data.slice(index + 1).split(this.SPLIT_MODIFIERS);
-		},
-		binderPath: function binderPath(data) {
-			return this.binderNormalize(data).replace(this.PATH, '');
+		binderPipes: function binderPipes(data) {
+			data = data.split(this.PIPE)[1];
+			return data ? data.split(this.PIPES) : [];
 		},
 		ensureElement: function ensureElement(data) {
 			data.query = data.query || '';
@@ -501,27 +780,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			}
 
-			var _iteratorNormalCompletion4 = true;
-			var _didIteratorError4 = false;
-			var _iteratorError4 = undefined;
+			var _iteratorNormalCompletion = true;
+			var _didIteratorError = false;
+			var _iteratorError = undefined;
 
 			try {
-				for (var _iterator4 = data.attributes[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-					var attribute = _step4.value;
+				for (var _iterator = data.attributes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+					var attribute = _step.value;
 
 					element.setAttribute(attribute.name, attribute.value);
 				}
 			} catch (err) {
-				_didIteratorError4 = true;
-				_iteratorError4 = err;
+				_didIteratorError = true;
+				_iteratorError = err;
 			} finally {
 				try {
-					if (!_iteratorNormalCompletion4 && _iterator4.return) {
-						_iterator4.return();
+					if (!_iteratorNormalCompletion && _iterator.return) {
+						_iterator.return();
 					}
 				} finally {
-					if (_didIteratorError4) {
-						throw _iteratorError4;
+					if (_didIteratorError) {
+						throw _iteratorError;
 					}
 				}
 			}
@@ -532,106 +811,62 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var elements = form.querySelectorAll('[o-value]');
 			var data = {};
 
-			var _iteratorNormalCompletion5 = true;
-			var _didIteratorError5 = false;
-			var _iteratorError5 = undefined;
+			for (var i = 0, l = elements.length; i < l; i++) {
+				var element = elements[i];
 
-			try {
-				for (var _iterator5 = elements[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-					var element = _step5.value;
+				if (element.nodeName === 'OPTION') continue;
 
-					if (element.nodeName === 'OPTION') continue;
+				var value = element.getAttribute('o-value');
 
-					var path = element.getAttribute('o-value');
+				if (!value) continue;
 
-					if (!path) continue;
+				var values = this.binderValues(value);
 
-					path = path.replace(/\s*\|.*/, '');
-					var name = path.split('.').slice(-1);
-
-					data[name] = this.getByPath(model, path);
-				}
-			} catch (err) {
-				_didIteratorError5 = true;
-				_iteratorError5 = err;
-			} finally {
-				try {
-					if (!_iteratorNormalCompletion5 && _iterator5.return) {
-						_iterator5.return();
-					}
-				} finally {
-					if (_didIteratorError5) {
-						throw _iteratorError5;
-					}
-				}
+				data[values[0]] = this.getByPath(model, values);
 			}
 
 			return data;
 		},
+		formReset: function formReset(form, model) {
+			var elements = form.querySelectorAll('[o-value]');
+
+			for (var i = 0, l = elements.length; i < l; i++) {
+				var element = elements[i];
+
+				if (element.nodeName === 'OPTION') continue;
+
+				var value = element.getAttribute('o-value');
+
+				if (!value) continue;
+
+				var values = this.binderValues(value);
+
+				this.setByPath(model, values, '');
+			}
+		},
 		walker: function walker(node, callback) {
 			callback(node);
+			// node = node.firstElementChild;
 			node = node.firstChild;
 			while (node) {
 				this.walker(node, callback);
+				// node = node.nextElementSibling;
 				node = node.nextSibling;
 			}
 		},
 		replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
 			var self = this;
-			var iindex = '$index';
-			var vindex = '$' + variable;
-			// const pattern = new RegExp('\\$index|\\$' + variable, 'ig');
+			var pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
 
 			self.walker(element, function (node) {
 				if (node.nodeType === 3) {
-					if (node.nodeValue === vindex || node.nodeValue === iindex) {
+					if (node.nodeValue === '$' + variable || node.nodeValue === '$index') {
 						node.nodeValue = key;
 					}
 				} else if (node.nodeType === 1) {
 					for (var i = 0, l = node.attributes.length; i < l; i++) {
-						var attribute = node.attributes[i];
-
-						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-
-							// attribute.value = attribute.value.replace(pattern, key);
-							// if (value === variable || value.indexOf(variable) === 0) {
-							// attribute.value = path + '.' + key + attribute.value.slice(variable.length);
-							// }
-
-							var value = attribute.value;
-							var length = value.length;
-							var last = length - 1;
-							var result = [];
-
-							var item = '';
-
-							for (var index = 0; index < length; index++) {
-								var char = value[index];
-
-								if (char === '$' && value.slice(index, iindex.length) === iindex) {
-									item += key;
-									index = index + iindex.length - 1;
-								} else if (char === '$' && value.slice(index, vindex.length) === vindex) {
-									item += key;
-									index = index + vindex.length - 1;
-								} else {
-									item += char;
-								}
-
-								if (char === ' ' || char === '|' || char === ',' || index === last) {
-
-									if (item.indexOf(variable) === 0) {
-										var tail = item.slice(variable.length);
-										result.push(path + '.' + key + tail);
-									} else {
-										result.push(item);
-									}
-
-									item = '';
-								}
-							}
-
-							attribute.value = result.join('');
+						var attribute = node.attributes[i];if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
+							attribute.value = attribute.value.replace(pattern, '$1' + path + '.' + key + '$2');
 						}
 					}
 				}
@@ -733,186 +968,928 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	};
 
-	var Events = function () {
-		function Events() {
-			_classCallCheck(this, Events);
+	var Methods = function () {
+		function Methods() {
+			_classCallCheck(this, Methods);
 
-			this.events = {};
+			this.data = {};
 		}
 
-		_createClass(Events, [{
-			key: 'on',
-			value: function on(name, method) {
-
-				if (!(name in this.events)) {
-					this.events[name] = [];
-				}
-
-				this.events[name].push(method);
+		_createClass(Methods, [{
+			key: 'get',
+			value: function get(path) {
+				return Utility.getByPath(this.data, path);
 			}
 		}, {
-			key: 'off',
-			value: function off(name, method) {
-
-				if (name in this.events) {
-
-					var index = this.events[name].indexOf(method);
-
-					if (index !== -1) {
-						this.events[name].splice(index, 1);
-					}
-				}
-			}
-		}, {
-			key: 'emit',
-			value: function emit(name) {
-
-				if (name in this.events) {
-
-					var methods = this.events[name];
-					var args = Array.prototype.slice.call(arguments, 1);
-
-					for (var i = 0, l = methods.length; i < l; i++) {
-						methods[i].apply(this, args);
-					}
-				}
+			key: 'set',
+			value: function set(path, data) {
+				return Utility.setByPath(this.data, path, data);
 			}
 		}]);
 
-		return Events;
+		return Methods;
 	}();
 
-	var Batcher = function (_Events) {
-		_inherits(Batcher, _Events);
+	var Methods$1 = new Methods();
 
-		function Batcher(options) {
-			_classCallCheck(this, Batcher);
+	function Class(binder) {
+		var data = void 0,
+		    name = void 0;
 
-			var _this = _possibleConstructorReturn(this, (Batcher.__proto__ || Object.getPrototypeOf(Batcher)).call(this));
-
-			_this.reads = [];
-			_this.writes = [];
-			_this.fps = 1000 / 60;
-			_this.pending = false;
-
-			_this.setup(options);
-			return _this;
-		}
-
-		_createClass(Batcher, [{
-			key: 'setup',
-			value: function setup(options) {
-				options = options || {};
-				options.fps = options.fps === undefined || options.fps === null ? this.fps : options.fps;
+		return {
+			write: function write() {
+				data = Model$2.get(binder.keys);
+				data = Binder$2.piper(binder, data);
+				name = binder.names.slice(1).join('-');
+				binder.element.classList.toggle(name, data);
 			}
+		};
+	}
 
-			// adds a task to the read batch
+	function Css(binder) {
+		var data = void 0;
 
-		}, {
-			key: 'read',
-			value: function read(method, context) {
-				var task = context ? method.bind(context) : method;
-				this.reads.push(task);
-				this.schedule();
-				return task;
-			}
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
 
-			// adds a task to the write batch
+				if (binder.element.style.cssText === data) return false;
 
-		}, {
-			key: 'write',
-			value: function write(method, context) {
-				var task = context ? method.bind(context) : method;
-				this.writes.push(task);
-				this.schedule();
-				return task;
-			}
-		}, {
-			key: 'tick',
-			value: function tick(callback) {
-				window.requestAnimationFrame(callback);
-			}
-
-			// schedules a new read/write batch if one is not pending
-
-		}, {
-			key: 'schedule',
-			value: function schedule() {
-				if (!this.pending) {
-					this.pending = true;
-					this.tick(this.flush.bind(this));
-				}
-			}
-		}, {
-			key: 'flush',
-			value: function flush(time) {
-				var count;
-
-				try {
-					count = this.runReads(this.reads, time);
-					this.runWrites(this.writes, count);
-				} catch (e) {
-					if (this.events.error && this.events.error.length) {
-						this.emit('error', e);
-					} else {
-						throw e;
-					}
+				if (binder.names.length > 1) {
+					data = binder.names.slice(1).join('-') + ': ' + data + ';';
 				}
 
-				this.pending = false;
+				data = Binder$2.piper(binder, data);
 
-				if (this.reads.length || this.writes.length) {
-					this.schedule();
-				}
+				if (binder.element.style.cssText === data) return false;
+			},
+			write: function write() {
+				binder.element.style.cssText = data;
 			}
-		}, {
-			key: 'runWrites',
-			value: function runWrites(tasks, count) {
-				var task;
+		};
+	}
 
-				while (task = tasks.shift()) {
+	function Default(binder) {
+		var render = void 0;
+		var data = void 0;
 
-					task();
+		if (binder.type in this) {
+			render = this[binder.type](binder);
+		} else {
+			render = {
+				read: function read() {
+					data = Model$2.get(binder.keys);
 
-					if (count && tasks.length === count) {
+					if (binder.element[binder.type] === data) {
 						return;
 					}
+
+					data = Binder$2.piper(binder, data);
+				},
+				write: function write() {
+					binder.element[binder.type] = data;
 				}
+			};
+		}
+
+		Batcher$1.batch(render);
+	}
+
+	function Disable(binder) {
+		var data = void 0;
+
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
+
+				if (binder.element.disabled === data) return false;
+
+				data = Binder$2.piper(binder, data);
+
+				if (binder.element.disabled === data) return false;
+			},
+			write: function write() {
+				binder.element.disabled = data;
 			}
-		}, {
-			key: 'runReads',
-			value: function runReads(tasks, time) {
-				var task;
+		};
+	}
 
-				while (task = tasks.shift()) {
+	function Each(binder) {
+		var self = this;
 
-					task();
+		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
-					if (this.fps && performance.now() - time > this.fps) {
-						return tasks.length;
+		return {
+			write: function write() {
+				var key = void 0,
+				    keys = void 0,
+				    data = void 0,
+				    length = void 0;
+
+				data = Model$2.get(binder.keys);
+
+				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
+
+				data = Binder$2.piper(binder, data);
+
+				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
+
+				if (data.constructor === Array) {
+					length = data.length;
+				}
+
+				if (data.constructor === Object) {
+					keys = Object.keys(data);
+					length = keys.length;
+				}
+
+				if (binder.element.children.length > length) {
+					binder.element.removeChild(binder.element.lastElementChild);
+				} else if (binder.element.children.length < length) {
+					var clone = binder.cache.cloneNode(true);
+
+					if (data.constructor === Array) key = binder.element.children.length;
+					if (data.constructor === Object) key = keys[binder.element.children.length];
+
+					Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
+					Binder$2.bind(clone, binder.container);
+					binder.element.appendChild(clone);
+
+					/*
+     	check if select element with o-value
+     	perform a re-render of the o-value
+     	becuase of o-each is async
+     */
+					if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value'] || binder.element.attributes['data-o-value']) {
+						var name = binder.element.attributes['o-value'] || binder.element.attributes['data-o-value'];
+						var value = binder.element.attributes['o-value'].value || binder.element.attributes['data-o-value'].value;
+						var _keys = [binder.scope].concat(value.split('|')[0].split('.'));
+						self.value({
+							keys: _keys,
+							name: name,
+							value: value,
+							scope: binder.scope,
+							element: binder.element,
+							container: binder.container
+						});
 					}
 				}
+			}
+		};
+	}
+
+	function Enable(binder) {
+		var data = void 0;
+
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
+
+				if (binder.element.disabled === !data) return false;
+
+				data = Binder$2.piper(binder, data);
+
+				if (binder.element.disabled === !data) return false;
+			},
+			write: function write() {
+				binder.element.disabled = !data;
+			}
+		};
+	}
+
+	function Hide(binder) {
+		var data = void 0;
+
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
+
+				if (binder.element.hidden === data) return false;
+
+				data = Binder$2.piper(binder, data);
+
+				if (binder.element.hidden === data) return false;
+			},
+			write: function write() {
+				binder.element.hidden = data;
+			}
+		};
+	}
+
+	function Html(binder) {
+		var data = void 0;
+
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
+
+				if (binder.element.innerHTML === data) return false;
+
+				data = Binder$2.piper(binder, data);
+
+				if (binder.element.innerHTML === data) return false;
+			},
+			write: function write() {
+				binder.element.innerHTML = data;
+			}
+		};
+	}
+
+	function On(binder) {
+		var data = void 0;
+
+		return {
+			write: function write() {
+				data = Methods$1.get(binder.keys);
+
+				if (typeof data !== 'function') {
+					console.warn('Oxe - attribute o-on="' + binder.keys.join('.') + '" invalid type function required');
+					return false;
+				}
+
+				if (!binder.cache) {
+					binder.cache = function (e) {
+						var parameters = [e];
+
+						for (var i = 0, l = binder.pipes.length; i < l; i++) {
+							var keys = binder.pipes[i].split('.');
+							keys.unshift(binder.scope);
+							var parameter = Model$2.get(keys);
+							parameters.push(parameter);
+						}
+
+						Promise.resolve().then(data.bind(binder.container).apply(null, parameters)).catch(console.error);
+					};
+				}
+
+				binder.element.removeEventListener(binder.names[1], binder.cache);
+				binder.element.addEventListener(binder.names[1], binder.cache);
+			}
+		};
+	}
+
+	function Read(binder) {
+		var data = void 0;
+
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
+
+				if (binder.element.readOnly === data) {
+					return false;
+				}
+
+				data = Binder$2.piper(binder, data);
+			},
+			write: function write() {
+				binder.element.readOnly = data;
+			}
+		};
+	}
+
+	function Required(binder) {
+		var data = void 0;
+
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
+
+				if (binder.element.required === data) {
+					return false;
+				}
+
+				data = Binder$2.piper(binder, data);
+			},
+			write: function write() {
+				binder.element.required = data;
+			}
+		};
+	}
+
+	function Show(binder) {
+		var data = void 0;
+
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
+
+				if (!data === binder.element.hidden) {
+					return false;
+				}
+
+				data = Binder$2.piper(binder, data);
+			},
+			write: function write() {
+				binder.element.hidden = !data;
+			}
+		};
+	}
+
+	function Text(binder) {
+		var data = void 0;
+
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
+
+				if (data === undefined) {
+					Model$2.set(binder.keys, '');
+					return false;
+				} else if (data === null) {
+					return false;
+				} else if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
+					data = JSON.stringify(data);
+				} else if (data && typeof data !== 'string') {
+					data = String(data);
+				}
+
+				data = Binder$2.piper(binder, data);
+			},
+			write: function write() {
+				binder.element.innerText = data;
+			}
+		};
+	}
+
+	function Value(binder) {
+		var data = void 0,
+		    multiple = void 0;
+
+		var type = binder.element.type;
+		var name = binder.element.nodeName;
+
+		if (name === 'SELECT') {
+			var elements = void 0;
+
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
+					elements = binder.element.options;
+					multiple = binder.element.multiple;
+
+					if (multiple && data.constructor !== Array) {
+						throw new Error('Oxe - invalid multiple select value type ' + binder.keys.join('.') + ' array required');
+					}
+				},
+				write: function write() {
+					var selected = false;
+
+					// NOTE might need to handle disable
+					for (var i = 0; i < elements.length; i++) {
+						var element = elements[i];
+						var value = data && data.constructor === Array ? data[i] : data;
+
+						if (value && element.value === value) {
+							selected = true;
+							element.value = value;
+							element.setAttribute('selected', '');
+						} else {
+							element.value = false;
+							element.removeAttribute('selected');
+						}
+					}
+
+					if (elements.length && !multiple && !selected) {
+						var _value2 = data && data.constructor === Array ? data[0] : data;
+
+						elements[0].setAttribute('selected', '');
+
+						if (_value2 !== (elements[0].value || '')) ;
+					}
+
+					// if (binder.element.options.length && !binder.element.multiple && !selected) {
+					// 	const value = data && data.constructor === Array ? data[0] : data;
+					//
+					// 	binder.element.options[0].setAttribute('selected', '');
+					//
+					// 	if (value !== (binder.element.options[0].value || '')) {
+					// 		Model.set(binder.keys, binder.element.options[0].value || '');
+					// 	}
+					//
+					// }
+				}
+			};
+		} else if (type === 'radio') {
+			var _elements = void 0;
+
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
+
+					if (data === undefined) {
+						Model$2.set(binder.keys, 0);
+						return false;
+					}
+
+					_elements = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
+				},
+				write: function write() {
+					var checked = false;
+
+					for (var i = 0, l = _elements.length; i < l; i++) {
+						var element = _elements[i];
+
+						if (i === data) {
+							checked = true;
+							element.checked = true;
+						} else {
+							element.checked = false;
+						}
+					}
+
+					if (!checked) {
+						_elements[0].checked = true;
+						Model$2.set(binder.keys, 0);
+					}
+				}
+			};
+		} else if (type === 'file') {
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
+
+					if (data === undefined) {
+						Model$2.set(binder.keys, []);
+						return false;
+					}
+
+					if (!data || data.constructor !== Array) {
+						console.warn('Oxe - file attribute invalid type');
+						return false;
+					}
+				},
+				write: function write() {
+					for (var i = 0, l = data.length; i < l; i++) {
+						if (data[i] !== binder.element.files[i]) {
+							if (data[i]) {
+								binder.element.files[i] = data[i];
+							} else {
+								console.warn('Oxe - file remove not implemented');
+							}
+						}
+					}
+				}
+			};
+		} else if (type === 'checkbox') {
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
+
+					if (typeof data !== 'boolean') {
+						Model$2.set(binder.keys, false);
+						return false;
+					}
+
+					if (data === binder.element.checked) {
+						return false;
+					}
+				},
+				write: function write() {
+					binder.element.checked = data;
+				}
+			};
+		} else {
+			return {
+				read: function read() {
+					data = Model$2.get(binder.keys);
+
+					if (data === undefined) {
+						Model$2.set(binder.keys, '');
+						return false;
+					}
+
+					if (data === binder.element.value) {
+						return false;
+					}
+				},
+				write: function write() {
+					binder.element.value = data;
+				}
+			};
+		}
+	}
+
+	function Write(binder) {
+		var data = void 0;
+
+		return {
+			read: function read() {
+				data = Model$2.get(binder.keys);
+
+				if (!data === binder.element.readOnly) {
+					return false;
+				}
+
+				data = Binder$2.piper(binder, data);
+			},
+			write: function write() {
+				binder.element.readOnly = !data;
+			}
+		};
+	}
+
+	var Render = {
+		class: Class,
+		css: Css,
+		default: Default,
+		disable: Disable,
+		each: Each,
+		enable: Enable,
+		hide: Hide,
+		html: Html,
+		on: On,
+		read: Read,
+		required: Required,
+		show: Show,
+		text: Text,
+		value: Value,
+		write: Write
+	};
+
+	var Binder$1 = function () {
+		function Binder$1() {
+			_classCallCheck(this, Binder$1);
+
+			this.data = {};
+			this.elements = new Map();
+		}
+
+		_createClass(Binder$1, [{
+			key: 'create',
+			value: function create(data) {
+				var binder = {};
+
+				if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
+				if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
+				if (data.scope === undefined) throw new Error('Oxe.binder.create - missing scope');
+				if (data.element === undefined) throw new Error('Oxe.binder.create - missing element');
+				if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
+
+				binder.name = data.name;
+				binder.value = data.value;
+				binder.scope = data.scope;
+				binder.element = data.element;
+				binder.container = data.container;
+
+				binder.names = data.names || Utility.binderNames(data.name);
+				binder.pipes = data.pipes || Utility.binderPipes(data.value);
+				binder.values = data.values || Utility.binderValues(data.value);
+
+				binder.context = {};
+				binder.path = binder.values.join('.');
+				binder.type = binder.type || binder.names[0];
+				binder.keys = [binder.scope].concat(binder.values);
+
+				return binder;
+			}
+		}, {
+			key: 'get',
+			value: function get(data) {
+				var binder = void 0;
+
+				if (typeof data === 'string') {
+					binder = {};
+					binder.scope = data.split('.').slice(0, 1).join('.');
+					binder.path = data.split('.').slice(1).join('.');
+				} else {
+					binder = data;
+				}
+
+				if (!(binder.scope in this.data)) {
+					return null;
+				}
+
+				if (!(binder.path in this.data[binder.scope])) {
+					return null;
+				}
+
+				var items = this.data[binder.scope][binder.path];
+
+				for (var i = 0, l = items.length; i < l; i++) {
+					var item = items[i];
+
+					if (item.element === binder.element && item.name === binder.name) {
+						return item;
+					}
+				}
+
+				return null;
+			}
+		}, {
+			key: 'add',
+			value: function add(binder) {
+
+				if (!this.elements.has(binder.element)) {
+					this.elements.set(binder.element, new Map());
+				}
+
+				if (!this.elements.get(binder.element).has(binder.names[0])) {
+					this.elements.get(binder.element).set(binder.names[0], binder);
+				} else {
+					throw new Error('Oxe - duplicate attribute ' + binder.names[0]);
+				}
+
+				if (!(binder.scope in this.data)) {
+					this.data[binder.scope] = {};
+				}
+
+				if (!(binder.path in this.data[binder.scope])) {
+					this.data[binder.scope][binder.path] = [];
+				}
+
+				this.data[binder.scope][binder.path].push(binder);
 			}
 		}, {
 			key: 'remove',
-			value: function remove(tasks, task) {
-				var index = tasks.indexOf(task);
-				return !!~index && !!tasks.splice(index, 1);
+			value: function remove(binder) {
+
+				if (this.elements.has(binder.element)) {
+
+					if (this.elements.get(binder.element).has(binder.names[0])) {
+						this.elements.get(binder.element).remove(binder.names[0]);
+					}
+
+					if (this.elements.get(binder.elements).length === 0) {
+						this.elements.remove(binder.elements);
+					}
+				}
+
+				if (!(binder.scope in this.data)) {
+					return;
+				}
+
+				if (!(binder.path in this.data[binder.scope])) {
+					return;
+				}
+
+				var items = this.data[binder.scope][binder.path];
+
+				for (var i = 0, l = items.length; i < l; i++) {
+
+					if (items[i].element === binder.element) {
+						return items.splice(i, 1);
+					}
+				}
 			}
 		}, {
-			key: 'clear',
-			value: function clear(task) {
-				return this.remove(this.reads, task) || this.remove(this.writes, task);
+			key: 'each',
+			value: function each(path, callback) {
+				var paths = typeof path === 'string' ? path.split('.') : path;
+				var scope = paths[0];
+
+				var binderPaths = this.data[scope];
+				if (!binderPaths) return;
+				var relativePath = paths.slice(1).join('.');
+
+				for (var binderPath in binderPaths) {
+
+					if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
+						var binders = binderPaths[binderPath];
+
+						for (var c = 0, t = binders.length; c < t; c++) {
+							callback(binders[c]);
+						}
+					}
+				}
+			}
+		}, {
+			key: 'piper',
+			value: function piper(binder, data) {
+
+				if (!binder.pipes.length) {
+					return data;
+				}
+
+				var methods = Methods$1.get(binder.scope);
+
+				if (!methods) {
+					return data;
+				}
+
+				for (var i = 0, l = binder.pipes.length; i < l; i++) {
+					var method = binder.pipes[i];
+
+					if (method in methods) {
+						data = methods[method].call(binder.container, data);
+					} else {
+						throw new Error('Oxe - pipe method ' + method + ' not found in scope ' + binder.scope);
+					}
+				}
+
+				return data;
+			}
+		}, {
+			key: 'checkChildren',
+			value: function checkChildren(element) {
+
+				if (element.nodeName === '#document-fragment') {
+					return true;
+				}
+
+				if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
+					return false;
+				}
+
+				for (var i = 0, l = element.attributes.length; i < l; i++) {
+					var attribute = element.attributes[i];
+
+					if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+		}, {
+			key: 'eachElement',
+			value: function eachElement(element, container, scope, callback) {
+
+				if (element.nodeName !== 'O-ROUTER' && element.nodeName !== 'TEMPLATE' && element.nodeName !== '#document-fragment' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
+					callback.call(this, element);
+				}
+
+				if (this.checkChildren(element)) {
+
+					for (var i = 0, l = element.children.length; i < l; i++) {
+						var child = element.children[i];
+						this.eachElement(child, container, scope, callback);
+					}
+				}
+			}
+		}, {
+			key: 'eachAttribute',
+			value: function eachAttribute(element, callback) {
+
+				for (var i = 0, l = element.attributes.length; i < l; i++) {
+					var attribute = element.attributes[i];
+
+					if ((attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype' && attribute.name !== 'data-o-reset' && attribute.name !== 'data-o-action' && attribute.name !== 'data-o-method' && attribute.name !== 'data-o-enctype') {
+						callback.call(this, attribute);
+					}
+				}
+			}
+		}, {
+			key: 'unbind',
+			value: function unbind(element, container) {
+				container = container || element;
+
+				var scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
+
+				if (!scope) throw new Error('Oxe - bind requires container element scope attribute');
+
+				this.eachElement(element, container, scope, function (child) {
+					this.eachAttribute(child, function (attribute) {
+
+						var binder = this.get({
+							scope: scope,
+							element: child,
+							container: container,
+							name: attribute.name,
+							value: attribute.value
+						});
+
+						this.remove(binder);
+						Unrender.default(binder);
+					});
+				});
+			}
+		}, {
+			key: 'bind',
+			value: function bind(element, container) {
+				container = container || element;
+
+				var scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
+
+				if (!scope) throw new Error('Oxe - bind requires container element scope attribute');
+
+				this.eachElement(element, container, scope, function (child) {
+					this.eachAttribute(child, function (attribute) {
+
+						var binder = this.create({
+							scope: scope,
+							element: child,
+							container: container,
+							name: attribute.name,
+							value: attribute.value
+						});
+
+						this.add(binder);
+						Render.default(binder);
+					});
+				});
 			}
 		}]);
 
-		return Batcher;
-	}(Events);
+		return Binder$1;
+	}();
+
+	var Binder$2 = new Binder$1();
+
+	var Model$1 = function () {
+		function Model$1() {
+			_classCallCheck(this, Model$1);
+
+			this.GET = 2;
+			this.SET = 3;
+			this.REMOVE = 4;
+			this.ran = false;
+			this.data = Observer.create({}, this.listener.bind(this));
+		}
+
+		_createClass(Model$1, [{
+			key: 'traverse',
+			value: function traverse(type, keys, value) {
+				var result = void 0;
+
+				if (typeof keys === 'string') {
+					keys = keys.split('.');
+				}
+
+				var data = this.data;
+				var key = keys[keys.length - 1];
+
+				for (var i = 0, l = keys.length - 1; i < l; i++) {
+
+					if (!(keys[i] in data)) {
+
+						if (type === this.GET || type === this.REMOVE) {
+							return undefined;
+						} else if (type === this.SET) {
+							data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
+						}
+					}
+
+					data = data[keys[i]];
+				}
+
+				if (type === this.SET) {
+					result = data.$set(key, value);
+				} else if (type === this.GET) {
+					result = data[key];
+				} else if (type === this.REMOVE) {
+					result = data[key];
+					data.$remove(key);
+				}
+
+				return result;
+			}
+		}, {
+			key: 'get',
+			value: function get(keys) {
+				return this.traverse(this.GET, keys);
+			}
+		}, {
+			key: 'remove',
+			value: function remove(keys) {
+				return this.traverse(this.REMOVE, keys);
+			}
+		}, {
+			key: 'set',
+			value: function set(keys, value) {
+				return this.traverse(this.SET, keys, value);
+			}
+		}, {
+			key: 'listener',
+			value: function listener(data, path, type) {
+				var method = data === undefined ? Unrender$1 : Render;
+
+				if (type === 'length') {
+					var scope = path.split('.').slice(0, 1).join('.');
+					var part = path.split('.').slice(1).join('.');
+
+					if (!(scope in Binder$2.data)) return;
+					if (!(part in Binder$2.data[scope])) return;
+					if (!(0 in Binder$2.data[scope][part])) return;
+
+					var binder = Binder$2.data[scope][part][0];
+
+					method.default(binder);
+				} else {
+					Binder$2.each(path, function (binder) {
+						method.default(binder);
+					});
+				}
+			}
+		}]);
+
+		return Model$1;
+	}();
+
+	var Model$2 = new Model$1();
+
+	function Change(e) {
+
+		if (e.target.hasAttribute('o-value')) {
+			Update(e.target, 'value').catch(console.error);
+		}
+	}
 
 	var Fetcher = function () {
-		function Fetcher(options) {
+		function Fetcher() {
 			_classCallCheck(this, Fetcher);
 
+			this.head = null;
+			this.method = 'get';
 			this.mime = {
 				xml: 'text/xml; charset=utf-8',
 				html: 'text/html; charset=utf-8',
@@ -920,24 +1897,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				json: 'application/json; charset=utf-8',
 				js: 'application/javascript; charset=utf-8'
 			};
-
-			this.setup(options);
 		}
 
 		_createClass(Fetcher, [{
 			key: 'setup',
 			value: function setup(options) {
 				options = options || {};
-
-				this.head = options.head || null;
-				this.method = options.method || 'get';
-
+				this.head = options.head || this.head;
+				this.method = options.method || this.method;
 				this.request = options.request;
 				this.response = options.response;
 				this.acceptType = options.acceptType;
+				this.credentials = options.credentials;
 				this.contentType = options.contentType;
 				this.responseType = options.responseType;
-				this.credentials = options.credentials;
 			}
 		}, {
 			key: 'serialize',
@@ -954,53 +1927,53 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'fetch',
 			value: _async(function (options) {
-				var _this2 = this;
+				var _this = this;
 
 				var data = Object.assign({}, options);
 
 				if (!data.url) throw new Error('Oxe.fetcher - requires url option');
 				if (!data.method) throw new Error('Oxe.fetcher - requires method option');
 
-				if (!data.head && _this2.head) data.head = _this2.head;
-				if (typeof data.method === 'string') data.method = data.method.toUpperCase() || _this2.method;
+				if (!data.head && _this.head) data.head = _this.head;
+				if (typeof data.method === 'string') data.method = data.method.toUpperCase() || _this.method;
 
-				if (!data.acceptType && _this2.acceptType) data.acceptType = _this2.acceptType;
-				if (!data.contentType && _this2.contentType) data.contentType = _this2.contentType;
-				if (!data.responseType && _this2.responseType) data.responseType = _this2.responseType;
+				if (!data.acceptType && _this.acceptType) data.acceptType = _this.acceptType;
+				if (!data.contentType && _this.contentType) data.contentType = _this.contentType;
+				if (!data.responseType && _this.responseType) data.responseType = _this.responseType;
 
 				// omit, same-origin, or include
-				if (!data.credentials && _this2.credentials) data.credentials = _this2.credentials;
+				if (!data.credentials && _this.credentials) data.credentials = _this.credentials;
 
 				// cors, no-cors, or same-origin
-				if (!data.mode && _this2.mode) data.mode = _this2.mode;
+				if (!data.mode && _this.mode) data.mode = _this.mode;
 
 				// default, no-store, reload, no-cache, force-cache, or only-if-cached
-				if (!data.cache && _this2.cache) data.cahce = _this2.cache;
+				if (!data.cache && _this.cache) data.cahce = _this.cache;
 
 				// follow, error, or manual
-				if (!data.redirect && _this2.redirect) data.redirect = _this2.redirect;
+				if (!data.redirect && _this.redirect) data.redirect = _this.redirect;
 
 				// no-referrer, client, or a URL
-				if (!data.referrer && _this2.referrer) data.referrer = _this2.referrer;
+				if (!data.referrer && _this.referrer) data.referrer = _this.referrer;
 
 				// no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
-				if (!data.referrerPolicy && _this2.referrerPolicy) data.referrerPolicy = _this2.referrerPolicy;
+				if (!data.referrerPolicy && _this.referrerPolicy) data.referrerPolicy = _this.referrerPolicy;
 
-				if (!data.signal && _this2.signal) data.signal = _this2.signal;
-				if (!data.integrity && _this2.integrity) data.integrity = _this2.integrity;
-				if (!data.keepAlive && _this2.keepAlive) data.keepAlive = _this2.keepAlive;
+				if (!data.signal && _this.signal) data.signal = _this.signal;
+				if (!data.integrity && _this.integrity) data.integrity = _this.integrity;
+				if (!data.keepAlive && _this.keepAlive) data.keepAlive = _this.keepAlive;
 
 				if (data.contentType) {
 					data.head = data.head || {};
 					switch (data.contentType) {
 						case 'js':
-							data.head['Content-Type'] = _this2.mime.js;break;
+							data.head['Content-Type'] = _this.mime.js;break;
 						case 'xml':
-							data.head['Content-Type'] = _this2.mime.xml;break;
+							data.head['Content-Type'] = _this.mime.xml;break;
 						case 'html':
-							data.head['Content-Type'] = _this2.mime.html;break;
+							data.head['Content-Type'] = _this.mime.html;break;
 						case 'json':
-							data.head['Content-Type'] = _this2.mime.json;break;
+							data.head['Content-Type'] = _this.mime.json;break;
 						default:
 							data.head['Content-Type'] = data.contentType;
 					}
@@ -1010,13 +1983,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					data.head = data.head || {};
 					switch (data.acceptType) {
 						case 'js':
-							data.head['Accept'] = _this2.mime.js;break;
+							data.head['Accept'] = _this.mime.js;break;
 						case 'xml':
-							data.head['Accept'] = _this2.mime.xml;break;
+							data.head['Accept'] = _this.mime.xml;break;
 						case 'html':
-							data.head['Accept'] = _this2.mime.html;break;
+							data.head['Accept'] = _this.mime.html;break;
 						case 'json':
-							data.head['Accept'] = _this2.mime.json;break;
+							data.head['Accept'] = _this.mime.json;break;
 						default:
 							data.head['Accept'] = data.acceptType;
 					}
@@ -1037,8 +2010,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							if (data.method === 'GET') {
 								var _temp = data.url + '?';
 
-								return _await(_this2.serialize(data.body), function (_this2$serialize) {
-									data.url = _temp + _this2$serialize;
+								return _await(_this.serialize(data.body), function (_this$serialize) {
+									data.url = _temp + _this$serialize;
 								});
 							} else if (data.contentType === 'json') {
 								data.body = JSON.stringify(data.body);
@@ -1048,9 +2021,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}, function () {
 					var _exit = false;
 					return _invoke(function () {
-						if (typeof _this2.request === 'function') {
+						if (typeof _this.request === 'function') {
 							var copy = Object.assign({}, data);
-							return _await(_this2.request(copy), function (result) {
+							return _await(_this.request(copy), function (result) {
 
 								if (result === false) {
 									_exit = true;
@@ -1089,9 +2062,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							}, function () {
 								var _exit2 = false;
 								return _invoke(function () {
-									if (_this2.response) {
+									if (_this.response) {
 										var copy = Object.assign({}, data);
-										return _await(_this2.response(copy), function (result) {
+										return _await(_this.response(copy), function (result) {
 
 											if (result === false) {
 												_exit2 = true;
@@ -1114,481 +2087,158 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'post',
 			value: _async(function (data) {
-				var _this3 = this;
+				var _this2 = this;
 
 				data.method = 'post';
-				return _this3.fetch(data);
+				return _this2.fetch(data);
 			})
 		}, {
 			key: 'get',
 			value: _async(function (data) {
-				var _this4 = this;
+				var _this3 = this;
 
 				data.method = 'get';
-				return _this4.fetch(data);
+				return _this3.fetch(data);
 			})
 		}, {
 			key: 'put',
 			value: _async(function (data) {
-				var _this5 = this;
+				var _this4 = this;
 
 				data.method = 'put';
-				return _this5.fetch(data);
+				return _this4.fetch(data);
 			})
 		}, {
 			key: 'head',
 			value: _async(function (data) {
-				var _this6 = this;
+				var _this5 = this;
 
 				data.method = 'head';
-				return _this6.fetch(data);
+				return _this5.fetch(data);
 			})
 		}, {
 			key: 'patch',
 			value: _async(function (data) {
-				var _this7 = this;
+				var _this6 = this;
 
 				data.method = 'patch';
-				return _this7.fetch(data);
+				return _this6.fetch(data);
 			})
 		}, {
 			key: 'delete',
 			value: _async(function (data) {
-				var _this8 = this;
+				var _this7 = this;
 
 				data.method = 'delete';
-				return _this8.fetch(data);
+				return _this7.fetch(data);
 			})
 		}, {
 			key: 'options',
 			value: _async(function (data) {
-				var _this9 = this;
+				var _this8 = this;
 
 				data.method = 'options';
-				return _this9.fetch(data);
+				return _this8.fetch(data);
 			})
 		}, {
 			key: 'connect',
 			value: _async(function (data) {
-				var _this10 = this;
+				var _this9 = this;
 
 				data.method = 'connect';
-				return _this10.fetch(data);
+				return _this9.fetch(data);
 			})
 		}]);
 
 		return Fetcher;
 	}();
 
-	var Router = function (_Events2) {
-		_inherits(Router, _Events2);
+	var Fetcher$1 = new Fetcher();
 
-		function Router() {
-			_classCallCheck(this, Router);
-
-			var _this11 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
-
-			_this11.data = [];
-			_this11.location = {};
-
-			_this11.ran = false;
-
-			_this11.element = null;
-			_this11.contain = false;
-			_this11.compiled = false;
-
-			document.addEventListener('click', _this11.clickListener.bind(_this11), true);
-			window.addEventListener('popstate', _this11.stateListener.bind(_this11), true);
-			return _this11;
+	function Input(e) {
+		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
+			Update(e.target, 'value').catch(console.error);
 		}
+	}
 
-		_createClass(Router, [{
-			key: 'setup',
-			value: function setup(options) {
-				options = options || {};
+	function Reset(e) {
+		var element = e.target;
+		var reset = element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset');
 
-				this.after = options.after === undefined ? this.after : options.after;
-				this.before = options.before === undefined ? this.before : options.before;
-				this.element = options.element === undefined ? this.element : options.element;
-				this.contain = options.contain === undefined ? this.contain : options.contain;
-				this.external = options.external === undefined ? this.external : options.external;
-				// this.validate = options.validate === undefined ? this.validate : options.validate;
+		if (!reset) return;else e.preventDefault();
 
-				if (options.routes) {
-					this.add(options.routes);
+		var binder = Binder$2.elements.get(element).get('submit');
+		var elements = element.querySelectorAll('[o-value]');
+		var model = Model$2.get(binder.scope);
+
+		Utility.formReset(element, model);
+	}
+
+	var Path = {
+		extension: function extension(data) {
+			var position = data.lastIndexOf('.');
+			return position > 0 ? data.slice(position + 1) : '';
+		},
+		join: function join() {
+			return Array.prototype.join.call(arguments, '/').replace(/\/{2,}/g, '/').replace(/^(https?:\/)/, '$1/');
+		},
+		base: function base(href) {
+			var base = window.document.querySelector('base');
+
+			if (href) {
+
+				if (base) {
+					base.href = href;
+				} else {
+					base = window.document.createElement('base');
+					base.href = href;
+					window.document.head.insertBefore(base, window.document.head.firstElementChild);
 				}
+			}
 
-				this.route(window.location.href, { replace: true });
+			return base ? base.href : window.location.origin + window.location.pathname;
+		},
+		resolve: function resolve(path, base) {
+			var result = [];
+
+			path = path.replace(window.location.origin, '');
+
+			if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('//') === 0) {
+				return path;
 			}
-		}, {
-			key: 'scroll',
-			value: function scroll(x, y) {
-				window.scroll(x, y);
+
+			if (path.charAt(0) !== '/') {
+				base = base || this.base();
+				path = base + '/' + path;
+				path = path.replace(window.location.origin, '');
 			}
-		}, {
-			key: 'back',
-			value: function back() {
-				window.history.back();
-			}
-		}, {
-			key: 'forward',
-			value: function forward() {
-				window.history.forward();
-			}
-		}, {
-			key: 'redirect',
-			value: function redirect(path) {
-				window.location.href = path;
-			}
-		}, {
-			key: 'add',
-			value: function add(data) {
-				if (!data) {
-					throw new Error('Oxe.router.add - requires data parameter');
-				} else if (data.constructor === Object) {
-					if (!data.path) throw new Error('Oxe.router.add - route path required');
-					if (!data.component) throw new Error('Oxe.router.add - route component required');
-					this.data.push(data);
-				} else if (data.constructor === Array) {
-					for (var i = 0, l = data.length; i < l; i++) {
-						this.add(data[i]);
+
+			path = path.replace(/\/{2,}/, '/');
+			path = path.replace(/^\//, '');
+			path = path.replace(/\/$/, '');
+
+			var paths = path.split('/');
+
+			for (var i = 0, l = paths.length; i < l; i++) {
+
+				if (paths[i] === '.' || paths[i] === '') {
+					continue;
+				} else if (paths[i] === '..') {
+
+					if (i > 0) {
+						result.splice(i - 1, 1);
 					}
+				} else {
+					result.push(paths[i]);
 				}
 			}
-		}, {
-			key: 'remove',
-			value: function remove(path) {
-				for (var i = 0, l = this.data.length; i < l; i++) {
-					if (path === this.data[i].path) {
-						this.data.splice(i, 1);
-					}
-				}
-			}
-		}, {
-			key: 'get',
-			value: function get(path) {
-				for (var i = 0, l = this.data.length; i < l; i++) {
-					var route = this.data[i];
-					if (path === route.path) {
-						return route;
-					}
-				}
-			}
-		}, {
-			key: 'find',
-			value: function find(path) {
-				for (var i = 0, l = this.data.length; i < l; i++) {
-					var route = this.data[i];
-					if (this.isPath(route.path, path)) {
-						return route;
-					}
-				}
-			}
-		}, {
-			key: 'filter',
-			value: function filter(path) {
-				var result = [];
 
-				for (var i = 0, l = this.data.length; i < l; i++) {
-					var route = this.data[i];
-					if (this.isPath(route.path, path)) {
-						result.push(route);
-					}
-				}
-
-				return result;
-			}
-		}, {
-			key: 'isPath',
-			value: function isPath(routePath, userPath) {
-
-				if (routePath.slice(0, 1) !== '/') {
-					routePath = Path.resolve(routePath);
-				}
-
-				if (!userPath) {
-					return false;
-				} else if (userPath.constructor.name === 'String') {
-					return new RegExp('^' + routePath.replace(/{\*}/g, '(?:.*)').replace(/{(\w+)}/g, '([^\/]+)') + '(\/)?$').test(userPath || '/');
-				} else if (userPath.constructor.name === 'RegExp') {
-					return userPath.test(routePath);
-				}
-			}
-		}, {
-			key: 'toParameterObject',
-			value: function toParameterObject(routePath, userPath) {
-				var result = {};
-
-				if (!routePath || !userPath || routePath === '/' || userPath === '/') return result;
-
-				var brackets = /{|}/g;
-				var pattern = /{(\w+)}/;
-				var userPaths = userPath.split('/');
-				var routePaths = routePath.split('/');
-
-				for (var i = 0, l = routePaths.length; i < l; i++) {
-
-					if (pattern.test(routePaths[i])) {
-						var name = routePaths[i].replace(brackets, '');
-						result[name] = userPaths[i];
-					}
-				}
-
-				return result;
-			}
-		}, {
-			key: 'toQueryString',
-			value: function toQueryString(data) {
-				var result = '?';
-
-				for (var key in data) {
-					var value = data[key];
-					result += key + '=' + value + '&';
-				}
-
-				if (result.slice(-1) === '&') {
-					result = result.slice(0, -1);
-				}
-
-				return result;
-			}
-		}, {
-			key: 'toQueryObject',
-			value: function toQueryObject(path) {
-				var result = {};
-
-				if (path.indexOf('?') === 0) path = path.slice(1);
-				var queries = path.split('&');
-
-				for (var i = 0, l = queries.length; i < l; i++) {
-					var query = queries[i].split('=');
-
-					if (query[0] && query[1]) {
-						result[query[0]] = query[1];
-					}
-				}
-
-				return result;
-			}
-		}, {
-			key: 'toLocationObject',
-			value: function toLocationObject() {
-				return {
-					port: window.location.port || '',
-					host: window.location.host || '',
-					hash: window.location.hash || '',
-					href: window.location.href || '',
-					origin: window.location.origin || '',
-					search: window.location.search || '',
-					pathname: window.location.pathname || '',
-					hostname: window.location.hostname || '',
-					protocol: window.location.protocol || '',
-					username: window.location.username || '',
-					password: window.location.password || ''
-				};
-			}
-
-			// validate () {
-			//
-			// }
-
-		}, {
-			key: 'render',
-			value: function render(route) {
-				Global.utility.ready(function () {
-
-					if (route.title) {
-						document.title = route.title;
-					}
-
-					if (route.description) {
-						Global.utility.ensureElement({
-							name: 'meta',
-							scope: document.head,
-							position: 'afterbegin',
-							query: '[name="description"]',
-							attributes: [{ name: 'name', value: 'description' }, { name: 'content', value: route.description }]
-						});
-					}
-
-					if (route.keywords) {
-						Global.utility.ensureElement({
-							name: 'meta',
-							scope: document.head,
-							position: 'afterbegin',
-							query: '[name="keywords"]',
-							attributes: [{ name: 'name', value: 'keywords' }, { name: 'content', value: route.keywords }]
-						});
-					}
-
-					if (!this.element) {
-						this.element = this.element || 'o-router';
-
-						if (typeof this.element === 'string') {
-							this.element = document.body.querySelector(this.element);
-						}
-
-						if (!this.element) {
-							throw new Error('Oxe.router.render - missing o-router element');
-						}
-					}
-
-					if (!route.element) {
-
-						if (route.load) {
-							Global.loader.load(route.load);
-						}
-
-						if (!route.component) {
-							throw new Error('Oxe.router.render - missing route component');
-						} else if (route.component.constructor.name === 'String') {
-							route.element = document.createElement(route.component);
-						} else if (route.component.constructor.name === 'Object') {
-
-							Global.component.define(route.component);
-
-							if (this.compiled) {
-								route.element = this.element.firstChild;
-							} else {
-								route.element = document.createElement(route.component.name);
-							}
-						}
-					}
-
-					if (!this.compiled) {
-
-						while (this.element.firstChild) {
-							this.element.removeChild(this.element.firstChild);
-						}
-
-						this.element.appendChild(route.element);
-					}
-
-					this.scroll(0, 0);
-					this.emit('routed');
-				}.bind(this));
-			}
-		}, {
-			key: 'route',
-			value: function (_route) {
-				function route(_x, _x2) {
-					return _route.apply(this, arguments);
-				}
-
-				route.toString = function () {
-					return _route.toString();
-				};
-
-				return route;
-			}(function (path, options) {
-				options = options || {};
-
-				if (options.query) {
-					path += this.toQueryString(options.query);
-				}
-
-				// todo might need to be moved to the end
-				if (!this.compiled) {
-					window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
-				}
-
-				var location = this.toLocationObject();
-
-				location.route = this.find(location.pathname);
-
-				if (!location.route) {
-					throw new Error('Oxe.router.route - route not found');
-				}
-
-				location.title = location.route.title || '';
-				location.query = this.toQueryObject(location.search);
-				location.parameters = this.toParameterObject(location.route.path, location.pathname);
-
-				// if (this.auth || location.route.auth && typeof this.validate === 'function') {
-				// 	const data = this.validate(location);
-				// 	if (!data.valid) return this.route(data.path);
-				// }
-
-				if (typeof this.before === 'function') {
-					var result = this.before(location);
-					if (result === false) return;
-				}
-
-				if (location.route.handler) {
-					return route.handler(location.route);
-				}
-
-				if (location.route.redirect) {
-					return this.redirect(location.route.redirect);
-				}
-
-				this.location = location;
-				this.emit('routing');
-				this.render(location.route);
-			})
-		}, {
-			key: 'stateListener',
-			value: function stateListener(e) {
-				var path = e && e.state ? e.state.path : window.location.href;
-				this.route(path, { replace: true });
-			}
-		}, {
-			key: 'clickListener',
-			value: function clickListener(e) {
-
-				// if shadow dom use
-				var target = e.path ? e.path[0] : e.target;
-				var parent = target.parentNode;
-
-				if (this.contain) {
-
-					while (parent) {
-
-						if (parent.nodeName === 'O-ROUTER') {
-							break;
-						} else {
-							parent = parent.parentNode;
-						}
-					}
-
-					if (parent.nodeName !== 'O-ROUTER') {
-						return;
-					}
-				}
-
-				if (e.metaKey || e.ctrlKey || e.shiftKey) {
-					return;
-				}
-
-				// ensure target is anchor tag
-				while (target && 'A' !== target.nodeName) {
-					target = target.parentNode;
-				}
-
-				if (!target || 'A' !== target.nodeName) {
-					return;
-				}
-
-				// check non acceptables
-				if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return;
-
-				// if external is true then default action
-				if (this.external && (this.external.constructor.name === 'RegExp' && this.external.test(target.href) || this.external.constructor.name === 'Function' && this.external(target.href) || this.external.constructor.name === 'String' && this.external === target.href)) return;
-
-				if (this.location.href !== target.href) {
-					this.route(target.href);
-				}
-
-				if (!this.compiled) {
-					e.preventDefault();
-				}
-			}
-		}]);
-
-		return Router;
-	}(Events);
+			return '/' + result.join('/');
+		}
+	};
 
 	// FIXME import export in strings cause error
+	// FIXME double backtick in template strings or regex could possibly causes issues
 
 	var Transformer = {
 
@@ -1596,28 +2246,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
   	templates
   */
 
-		_innerHandler: function _innerHandler(char, index, string) {
+		innerHandler: function innerHandler(char, index, string) {
 			if (string[index - 1] === '\\') return;
 			if (char === '\'') return '\\\'';
 			if (char === '\"') return '\\"';
 			if (char === '\t') return '\\t';
 			if (char === '\n') return '\\n';
 		},
-		_updateString: function _updateString(value, index, string) {
+		updateString: function updateString(value, index, string) {
 			return string.slice(0, index) + value + string.slice(index + 1);
 		},
-		_updateIndex: function _updateIndex(value, index) {
+		updateIndex: function updateIndex(value, index) {
 			return index + value.length - 1;
 		},
 		template: function template(data) {
-			// NOTE: double backtick in strings or regex could possibly causes issues
 
 			var first = data.indexOf('`');
 			var second = data.indexOf('`', first + 1);
 
 			if (first === -1 || second === -1) return data;
 
-			var value;
+			var value = void 0;
 			var ends = 0;
 			var starts = 0;
 			var string = data;
@@ -1632,20 +2281,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						ends++;
 						value = '\'';
 						isInner = false;
-						string = this._updateString(value, index, string);
-						index = this._updateIndex(value, index);
+						string = this.updateString(value, index, string);
+						index = this.updateIndex(value, index);
 					} else {
 						starts++;
 						value = '\'';
 						isInner = true;
-						string = this._updateString(value, index, string);
-						index = this._updateIndex(value, index);
+						string = this.updateString(value, index, string);
+						index = this.updateIndex(value, index);
 					}
 				} else if (isInner) {
 
-					if (value = this._innerHandler(char, index, string)) {
-						string = this._updateString(value, index, string);
-						index = this._updateIndex(value, index);
+					if (value = this.innerHandler(char, index, string)) {
+						string = this.updateString(value, index, string);
+						index = this.updateIndex(value, index);
 					}
 				}
 			}
@@ -1734,50 +2383,95 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				return text.replace(exps[0].raw, 'return ');
 			}
 
-			var i, l;
-
 			text = 'var $EXPORT = {};\n' + text;
 			text = text + '\nreturn $EXPORT;\n';
 
-			for (i = 0, l = exps.length; i < l; i++) {
+			for (var i = 0, l = exps.length; i < l; i++) {
 				text = text.replace(exps[i].raw, '$EXPORT.');
 			}
 
 			return text;
 		},
 		ast: function ast(data) {
-			var ast = {};
+			var result = {};
 
-			ast.url = data.url;
-			ast.raw = data.text;
-			ast.cooked = data.text;
-			ast.base = ast.url.slice(0, ast.url.lastIndexOf('/') + 1);
+			result.url = data.url;
+			result.raw = data.text;
+			result.cooked = data.text;
+			result.base = result.url.slice(0, result.url.lastIndexOf('/') + 1);
 
-			ast.imports = this.getImports(ast.raw, ast.base);
-			ast.exports = this.getExports(ast.raw);
+			result.imports = this.getImports(result.raw, result.base);
+			result.exports = this.getExports(result.raw);
 
-			ast.cooked = this.replaceImports(ast.cooked, ast.imports);
-			ast.cooked = this.replaceExports(ast.cooked, ast.exports);
+			result.cooked = this.replaceImports(result.cooked, result.imports);
+			result.cooked = this.replaceExports(result.cooked, result.exports);
 
-			return ast;
+			return result;
 		}
 	};
 
-	var Loader = function (_Events3) {
-		_inherits(Loader, _Events3);
+	var Events = function () {
+		function Events() {
+			_classCallCheck(this, Events);
+
+			this.events = {};
+		}
+
+		_createClass(Events, [{
+			key: 'on',
+			value: function on(name, method) {
+
+				if (!(name in this.events)) {
+					this.events[name] = [];
+				}
+
+				this.events[name].push(method);
+			}
+		}, {
+			key: 'off',
+			value: function off(name, method) {
+
+				if (name in this.events) {
+
+					var index = this.events[name].indexOf(method);
+
+					if (index !== -1) {
+						this.events[name].splice(index, 1);
+					}
+				}
+			}
+		}, {
+			key: 'emit',
+			value: function emit(name) {
+
+				if (name in this.events) {
+
+					var methods = this.events[name];
+					var args = Array.prototype.slice.call(arguments, 1);
+
+					for (var i = 0, l = methods.length; i < l; i++) {
+						methods[i].apply(this, args);
+					}
+				}
+			}
+		}]);
+
+		return Events;
+	}();
+
+	var Loader = function (_Events) {
+		_inherits(Loader, _Events);
 
 		function Loader() {
 			_classCallCheck(this, Loader);
 
-			var _this12 = _possibleConstructorReturn(this, (Loader.__proto__ || Object.getPrototypeOf(Loader)).call(this));
+			var _this10 = _possibleConstructorReturn(this, (Loader.__proto__ || Object.getPrototypeOf(Loader)).call(this));
 
-			_this12.data = {};
-			_this12.ran = false;
-			_this12.methods = {};
-			_this12.transformers = {};
-
-			document.addEventListener('load', _this12.listener.bind(_this12), true);
-			return _this12;
+			_this10.data = {};
+			_this10.ran = false;
+			_this10.methods = {};
+			_this10.transformers = {};
+			return _this10;
 		}
 
 		_createClass(Loader, [{
@@ -1987,1326 +2681,828 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					this.fetch(data);
 				}
 			}
-		}, {
-			key: 'listener',
-			value: function listener(e) {
-				var element = e.target;
-
-				if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
-					return;
-				}
-
-				var path = Path.resolve(element.src || element.href);
-				var load = this.data[path];
-
-				this.ready(load);
-			}
 		}]);
 
 		return Loader;
 	}(Events);
 
+	var Loader$1 = new Loader();
+
 	/*
  	https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/
  */
 
-	var Unrender = {
-		alt: function alt(opt) {
-			Global.batcher.write(function () {
-				opt.element.alt = '';
-			});
-		},
-		each: function each(opt) {
-			Global.batcher.write(function () {
-				var element;
-
-				while (element = opt.element.lastElementChild) {
-					opt.element.removeChild(element);
-				}
-			});
-		},
-		href: function href(opt) {
-			Global.batcher.write(function () {
-				opt.element.href = '';
-			});
-		},
-		class: function _class(opt) {
-			Global.batcher.write(function () {
-				var className = opt.names.slice(1).join('-');
-				opt.element.classList.remove(className);
-			});
-		},
-		html: function html(opt) {
-			Global.batcher.write(function () {
-				var element;
-
-				while (element = opt.element.lastElementChild) {
-					opt.element.removeChild(element);
-				}
-			});
-		},
-		on: function on(opt) {
-			opt.element.removeEventListener(opt.names[1], opt.cache, false);
-		},
-		css: function css(opt) {
-			Global.batcher.write(function () {
-				opt.element.style.cssText = '';
-			});
-		},
-		required: function required(opt) {
-			Global.batcher.write(function () {
-				opt.element.required = false;
-			});
-		},
-		src: function src(opt) {
-			Global.batcher.write(function () {
-				opt.element.src = '';
-			});
-		},
-		text: function text(opt) {
-			Global.batcher.write(function () {
-				opt.element.innerText = '';
-			});
-		},
-		value: function value(opt) {
-			Global.batcher.write(function () {
-				var i, l, query, element, elements;
-
-				if (opt.element.nodeName === 'SELECT') {
-
-					elements = opt.element.options;
-
-					for (i = 0, l = elements.length; i < l; i++) {
-						element = elements[i];
-						element.selected = false;
-					}
-				} else if (opt.element.type === 'radio') {
-
-					query = 'input[type="radio"][o-value="' + opt.path + '"]';
-					elements = opt.element.parentNode.querySelectorAll(query);
-
-					for (i = 0, l = elements.length; i < l; i++) {
-						element = elements[i];
-
-						if (i === 0) {
-							element.checked = true;
-						} else {
-							element.checked = false;
-						}
-					}
-				} else if (opt.element.type === 'checkbox') {
-
-					opt.element.checked = false;
-					opt.element.value = false;
-				} else {
-					opt.element.value = '';
-				}
-			});
-		},
-		default: function _default(opt) {}
-	};
-
-	// TODO dynamic for list dont handle selected
-
-	var Render = {
-		required: function required(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element.required === data) {
-					return;
-				}
-
-				data = Global.utility.binderModifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.required = data;
-				});
-			});
-		},
-		disable: function disable(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element.disabled === data) {
-					return;
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.disabled = data;
-				});
-			});
-		},
-		enable: function enable(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element.disabled === !data) {
-					return;
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.disabled = !data;
-				});
-			});
-		},
-		hide: function hide(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element.hidden === data) {
-					return;
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.hidden = data;
-				});
-			});
-		},
-		show: function show(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element.hidden === !data) {
-					return;
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.hidden = !data;
-				});
-			});
-		},
-		read: function read(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element.readOnly === data) {
-					return;
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.readOnly = data;
-				});
-			});
-		},
-		write: function write(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element.readOnly === !data) {
-					return;
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.readOnly = !data;
-				});
-			});
-		},
-		html: function html(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element.innerHTML === data) {
-					return;
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.innerHTML = data;
-				});
-			});
-		},
-		class: function _class(opt) {
-			Global.batcher.write(function () {
-				var data = Global.model.get(opt.keys);
-				var name = opt.names.slice(1).join('-');
-				data = Global.binder.modifyData(opt, data);
-				opt.element.classList.toggle(name, data);
-			});
-		},
-		on: function on(opt) {
-			Global.batcher.write(function () {
-				var data = Global.utility.getByPath(Global.methods.data, opt.scope + '.' + opt.path);
-
-				if (typeof data !== 'function') return;
-
-				if (opt.cache) {
-					opt.element.removeEventListener(opt.names[1], opt.cache);
-				} else {
-					opt.cache = function (e) {
-						return Promise.resolve().then(function () {
-							var parameters = [e];
-
-							for (var i = 0, l = opt.modifiers.length; i < l; i++) {
-								var keys = opt.modifiers[i].split('.');
-								keys.unshift(opt.scope);
-								var parameter = Oxe.model.get(keys);
-								parameters.push(parameter);
-							}
-
-							return data.apply(opt.container, parameters);
-						}).catch(console.error);
-					};
-				}
-
-				opt.element.addEventListener(opt.names[1], opt.cache);
-			});
-		},
-		css: function css(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element.style.cssText === data) {
-					return;
-				}
-
-				if (opt.names.length > 1) {
-					data = opt.names.slice(1).join('-') + ': ' + data + ';';
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.style.cssText = data;
-				});
-			});
-		},
-		text: function text(opt) {
-			Global.batcher.read(function () {
-				var data = void 0;
-
-				data = Global.model.get(opt.keys);
-				data = data === undefined || data === null ? '' : data;
-
-				if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
-					data = JSON.stringify(data);
-				} else if (data && typeof data !== 'string') {
-					data = String(data);
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element.innerText = data;
-				});
-			});
-		},
-		each: function each(opt) {
-			var self = this;
-
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-				var isArray = data ? data.constructor === Array : false;
-				var isObject = data ? data.constructor === Object : false;
-
-				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') {
-					return;
-				} else if (isArray && opt.element.children.length === data.length) {
-					return;
-				} else if (isObject && opt.element.children.length === Object.keys(data).length) {
-					return;
-				}
-
-				if (!opt.cache) {
-					opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-
-					if (isObject) {
-						data = Object.keys(data);
-					}
-
-					while (opt.element.children.length !== data.length) {
-
-						if (opt.element.children.length > data.length) {
-							opt.element.removeChild(opt.element.children[opt.element.children.length - 1]);
-						} else if (opt.element.children.length < data.length) {
-							var key = void 0;
-							var clone = opt.cache.cloneNode(true);
-
-							if (isArray) {
-								key = opt.element.children.length;
-							} else if (isObject) {
-								key = data[opt.element.children.length];
-							}
-
-							Global.utility.replaceEachVariable(clone, opt.names[1], opt.path, key);
-							Global.binder.bind(clone, opt.container);
-
-							opt.element.appendChild(clone);
-						}
-					}
-
-					/*
-     	check if select element with o-value
-     	perform a re-render of the o-value
-     	becuase of o-each is async
-     */
-					if (opt.element.nodeName === 'SELECT' && opt.element.attributes['o-value'] || opt.element.attributes['data-o-value']) {
-						var name = opt.element.attributes['o-value'] || opt.element.attributes['data-o-value'];
-						var value = opt.element.attributes['o-value'].value || opt.element.attributes['data-o-value'].value;
-						var keys = [opt.scope].concat(value.split('|')[0].split('.'));
-
-						self.value({
-							setup: true,
-							keys: keys,
-							name: name,
-							value: value,
-							container: opt.scope,
-							element: opt.element
-						});
-					}
-				});
-			});
-		},
-		value: function value(opt) {
-			Global.batcher.read(function () {
-
-				var type = opt.element.type;
-				var name = opt.element.nodeName;
-				var attribute = void 0,
-				    query = void 0,
-				    multiple = void 0;
-				var i = void 0,
-				    l = void 0,
-				    data = void 0,
-				    element = void 0,
-				    elements = void 0;
-
-				if (opt.setup) {
-					opt.setup = false;
-
-					data = Global.model.get(opt.keys);
-
-					if (name === 'SELECT') {
-						elements = opt.element.options;
-						multiple = opt.element.multiple;
-						data = data === undefined ? multiple ? [] : '' : data;
-
-						for (var _i = 0, _l = elements.length; _i < _l; _i++) {
-							if (!elements[_i].disabled) {
-								if (elements[_i].selected) {
-									if (multiple) {
-										data.push(elements[_i].value || elements[_i].innerText || '');
-									} else {
-										data = elements[_i].value || elements[_i].innerText || '';
-										break;
-									}
-								} else if (_i === _l - 1 && !multiple) {
-									data = elements[0].value || elements[0].innerText || '';
-								}
-							}
-						}
-					} else if (type === 'radio') {
-						data = data === undefined ? 0 : data;
-						query = 'input[type="radio"][o-value="' + opt.value + '"]';
-						elements = opt.container.querySelectorAll(query);
-
-						for (i = 0, l = elements.length; i < l; i++) {
-							element = elements[i];
-							if (i === data) {
-								element.checked = true;
-							} else {
-								element.checked = false;
-							}
-						}
-					} else if (type === 'file') {
-						data = data === undefined ? [] : data;
-
-						for (i = 0, l = data.length; i < l; i++) {
-							opt.element.files[i] = data[i];
-						}
-					} else if (type === 'checkbox') {
-						attribute = 'checked';
-						data = data === undefined ? false : data;
-					} else {
-						attribute = 'value';
-						data = data === undefined ? '' : data;
-					}
-
-					if (attribute) {
-						opt.element[attribute] = data;
-					}
-				} else {
-
-					if (name === 'SELECT') {
-						data = opt.element.multiple ? [] : '';
-
-						var _iteratorNormalCompletion6 = true;
-						var _didIteratorError6 = false;
-						var _iteratorError6 = undefined;
-
-						try {
-							for (var _iterator6 = opt.element.options[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-								var _element = _step6.value;
-
-								if (_element.selected) {
-									if (opt.element.multiple) {
-										data.push(_element.value || _element.innerText);
-									} else {
-										data = _element.value || _element.innerText;
-										break;
-									}
-								}
-							}
-						} catch (err) {
-							_didIteratorError6 = true;
-							_iteratorError6 = err;
-						} finally {
-							try {
-								if (!_iteratorNormalCompletion6 && _iterator6.return) {
-									_iterator6.return();
-								}
-							} finally {
-								if (_didIteratorError6) {
-									throw _iteratorError6;
-								}
-							}
-						}
-					} else if (type === 'radio') {
-						query = 'input[type="radio"][o-value="' + opt.value + '"]';
-						elements = opt.container.querySelectorAll(query);
-
-						for (i = 0, l = elements.length; i < l; i++) {
-							element = elements[i];
-							if (opt.element === element) {
-								data = i;
-								element.checked = true;
-							} else {
-								element.checked = false;
-							}
-						}
-					} else if (type === 'file') {
-						data = data || [];
-						for (i = 0, l = opt.element.files.length; i < l; i++) {
-							data[i] = opt.element.files[i];
-						}
-					} else if (type === 'checkbox') {
-						data = opt.element.checked;
-					} else {
-						data = opt.element.value;
-					}
-				}
-
-				if (data !== undefined) {
-					Global.model.set(opt.keys, data);
-				}
-			});
-		},
-		default: function _default(opt) {
-			Global.batcher.read(function () {
-				var data = Global.model.get(opt.keys);
-
-				if (opt.element[opt.type] === data) {
-					return;
-				}
-
-				data = Global.binder.modifyData(opt, data);
-
-				Global.batcher.write(function () {
-					opt.element[opt.type] = data;
-				});
-			});
-		}
-	};
-
-	var Binder = function () {
-		function Binder() {
-			_classCallCheck(this, Binder);
+	var Component = function () {
+		function Component() {
+			_classCallCheck(this, Component);
 
 			this.data = {};
-			this.values = [];
-			this.submits = [];
+			this.compiled = false;
 		}
 
-		_createClass(Binder, [{
-			key: 'set',
-			value: function set(opt) {
-				opt = opt || {};
+		_createClass(Component, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
 
-				if (opt.name === undefined) throw new Error('Oxe.binder.set - missing name');
-				if (opt.value === undefined) throw new Error('Oxe.binder.set - missing value');
-				if (opt.element === undefined) throw new Error('Oxe.binder.set - missing element');
-				if (opt.container === undefined) throw new Error('Oxe.binder.set - missing container');
-
-				opt.scope = opt.scope || opt.container.getAttribute('o-scope');
-				// opt.value = opt.value || opt.element.getAttribute(opt.name);
-				opt.path = opt.path || Global.utility.binderPath(opt.value);
-
-				opt.type = opt.type || Global.utility.binderType(opt.name);
-				opt.names = opt.names || Global.utility.binderNames(opt.name);
-				opt.values = opt.values || Global.utility.binderValues(opt.value);
-				opt.modifiers = opt.modifiers || Global.utility.binderModifiers(opt.value);
-
-				opt.keys = opt.keys || [opt.scope].concat(opt.values);
-
-				if (opt.name === 'o-value' || opt.name === 'data-o-value') {
-					opt.setup = true;
-				}
-
-				// if (opt.name.indexOf('o-each') === 0 || opt.name.indexOf('data-o-each') === 0) {
-				// 	opt.cache = opt.element.removeChild(opt.element.firstElementChild);
-				// }
-
-				return opt;
-			}
-		}, {
-			key: 'get',
-			value: function get(opt) {
-				var items;
-
-				if (opt.name === 'o-value') {
-					items = this.values;
-				} else if (opt.name === 'o-submit') {
-					items = this.submits;
-				} else {
-
-					if (!(opt.scope in this.data)) {
-						return null;
-					}
-
-					if (!(opt.path in this.data[opt.scope])) {
-						return null;
-					}
-
-					items = this.data[opt.scope][opt.path];
-				}
-
-				var _iteratorNormalCompletion7 = true;
-				var _didIteratorError7 = false;
-				var _iteratorError7 = undefined;
-
-				try {
-					for (var _iterator7 = items[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-						var item = _step7.value;
-
-						if (item.element === opt.element && item.name === opt.name) {
-							return item;
-						}
-					}
-				} catch (err) {
-					_didIteratorError7 = true;
-					_iteratorError7 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion7 && _iterator7.return) {
-							_iterator7.return();
-						}
-					} finally {
-						if (_didIteratorError7) {
-							throw _iteratorError7;
-						}
-					}
-				}
-
-				return null;
-			}
-		}, {
-			key: 'add',
-			value: function add(opt) {
-				var items;
-
-				if (opt.name === 'o-value') {
-					items = this.values;
-				} else if (opt.name === 'o-submit') {
-					items = this.submits;
-				} else {
-
-					if (!(opt.scope in this.data)) {
-						this.data[opt.scope] = {};
-					}
-
-					if (!(opt.path in this.data[opt.scope])) {
-						this.data[opt.scope][opt.path] = [];
-					}
-
-					items = this.data[opt.scope][opt.path];
-				}
-
-				items.push(opt);
-			}
-		}, {
-			key: 'remove',
-			value: function remove(opt) {
-				var items;
-
-				if (opt.name === 'o-value') {
-					items = this.values;
-				} else if (opt.name === 'o-submit') {
-					items = this.submits;
-				} else {
-					if (!(opt.scope in this.data)) {
-						return;
-					}
-
-					if (!(opt.path in this.data[opt.scope])) {
-						return;
-					}
-
-					items = this.data[opt.scope][opt.path];
-				}
-
-				for (var i = 0, l = items.length; i < l; i++) {
-					if (items[i].element === opt.element) {
-						return items.splice(i, 1);
+				if (options.components && options.components.length) {
+					for (var i = 0, l = options.components.length; i < l; i++) {
+						this.define(options.components[i]);
 					}
 				}
 			}
 		}, {
-			key: 'each',
-			value: function each(path, callback) {
-				var scope, paths;
+			key: 'renderSlot',
+			value: function renderSlot(target, source) {
+				var targetSlots = target.querySelectorAll('slot[name]');
 
-				var paths = path.split('.');
-				var scope = paths[0];
-				var binderPaths = this.data[scope];
-				var relativePath = paths.slice(1).join('.');
+				for (var i = 0, l = targetSlots.length; i < l; i++) {
+					var targetSlot = targetSlots[i];
+					var name = targetSlot.getAttribute('name');
+					var sourceSlot = source.querySelector('[slot="' + name + '"]');
 
-				for (var binderPath in binderPaths) {
-					if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
-						var binders = binderPaths[binderPath];
-						for (var i = 0, l = binders.length; i < l; i++) {
-							var binder = binders[i];
-							callback(binder);
-						}
+					if (sourceSlot) {
+						targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
+					} else {
+						targetSlot.parentNode.removeChild(targetSlot);
 					}
+				}
+
+				var defaultSlot = target.querySelector('slot:not([name])');
+
+				if (defaultSlot && source.children.length) {
+
+					while (source.firstChild) {
+						defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
+					}
+				}
+
+				if (defaultSlot) {
+					defaultSlot.parentNode.removeChild(defaultSlot);
 				}
 			}
+
+			// renderTemplate (template) {
+			// 	const fragment = document.createDocumentFragment();
+			//
+			// 	if (template) {
+			//
+			// 		if (typeof template === 'string') {
+			// 			const temporary = document.createElement('div');
+			//
+			// 			temporary.innerHTML = template;
+			//
+			// 			while (temporary.firstChild) {
+			// 				fragment.appendChild(temporary.firstChild);
+			// 			}
+			//
+			// 		} else {
+			// 			fragment.appendChild(template);
+			// 		}
+			//
+			// 	}
+			//
+			// 	return fragment;
+			// }
+
 		}, {
-			key: 'unrender',
-			value: function unrender(opt) {
-				if (opt.type in Unrender) {
-					Unrender[opt.type](opt);
+			key: 'renderStyle',
+			value: function renderStyle(style, scope) {
+
+				if (!style) return '';
+
+				if (window.CSS && window.CSS.supports) {
+
+					if (!window.CSS.supports('(--t: black)')) {
+						var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+
+						for (var i = 0, l = matches.length; i < l; i++) {
+							var match = matches[i];
+							var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+							var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
+							style = style.replace(rule[0], '');
+							style = style.replace(pattern, rule[2]);
+						}
+					}
+
+					if (!window.CSS.supports(':scope')) {
+						style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
+					}
+
+					if (!window.CSS.supports(':host')) {
+						style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
+					}
 				}
+
+				return '<style>' + style + '</style>';
 			}
 		}, {
-			key: 'render',
-			value: function render(opt) {
-				if (opt.type in Render) {
-					Render[opt.type](opt);
-				} else {
-					Render.default(opt);
-				}
-			}
-		}, {
-			key: 'modifyData',
-			value: function modifyData(opt, data) {
+			key: 'created',
+			value: function created(element, options) {
+				var self = this;
+				var scope = options.name + '-' + options.count++;
 
-				if (!opt.modifiers.length) {
-					return data;
-				}
-
-				if (!Global.methods.data[opt.scope]) {
-					return data;
-				}
-
-				var _iteratorNormalCompletion8 = true;
-				var _didIteratorError8 = false;
-				var _iteratorError8 = undefined;
-
-				try {
-					for (var _iterator8 = opt.modifiers[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-						var modifier = _step8.value;
-
-						var scope = Global.methods.data[opt.scope];
-
-						if (scope) {
-							data = scope[modifier].call(opt.container, data);
-						}
+				Object.defineProperties(element, {
+					scope: {
+						value: scope,
+						enumerable: true
+					},
+					status: {
+						value: 'created',
+						enumerable: true
 					}
-				} catch (err) {
-					_didIteratorError8 = true;
-					_iteratorError8 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion8 && _iterator8.return) {
-							_iterator8.return();
-						}
-					} finally {
-						if (_didIteratorError8) {
-							throw _iteratorError8;
-						}
-					}
-				}
-
-				return data;
-			}
-		}, {
-			key: 'skipChildren',
-			value: function skipChildren(element) {
-
-				if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
-					return true;
-				}
-
-				var _iteratorNormalCompletion9 = true;
-				var _didIteratorError9 = false;
-				var _iteratorError9 = undefined;
-
-				try {
-					for (var _iterator9 = element.attributes[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-						var attribute = _step9.value;
-
-						if (attribute.name.indexOf('o-each') === 0 || attribute.name.indexOf('data-o-each') === 0) {
-							return true;
-						}
-					}
-				} catch (err) {
-					_didIteratorError9 = true;
-					_iteratorError9 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion9 && _iterator9.return) {
-							_iterator9.return();
-						}
-					} finally {
-						if (_didIteratorError9) {
-							throw _iteratorError9;
-						}
-					}
-				}
-
-				return false;
-			}
-		}, {
-			key: 'eachElement',
-			value: function eachElement(element, scope, callback) {
-				var sid = scope.getAttribute('o-scope') || scope.getAttribute('data-o-scope');
-				var eid = element.getAttribute('o-scope') || element.getAttribute('data-o-scope');
-				var idCheck = eid ? eid === sid : true;
-
-				if (element.nodeName !== 'O-ROUTER' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
-					callback.call(this, element);
-				}
-
-				if (idCheck && this.skipChildren(element) === false) {
-					var _iteratorNormalCompletion10 = true;
-					var _didIteratorError10 = false;
-					var _iteratorError10 = undefined;
-
-					try {
-						for (var _iterator10 = element.children[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-							var child = _step10.value;
-
-							this.eachElement(child, scope, callback);
-						}
-					} catch (err) {
-						_didIteratorError10 = true;
-						_iteratorError10 = err;
-					} finally {
-						try {
-							if (!_iteratorNormalCompletion10 && _iterator10.return) {
-								_iterator10.return();
-							}
-						} finally {
-							if (_didIteratorError10) {
-								throw _iteratorError10;
-							}
-						}
-					}
-				}
-			}
-		}, {
-			key: 'eachAttribute',
-			value: function eachAttribute(element, callback) {
-				var _iteratorNormalCompletion11 = true;
-				var _didIteratorError11 = false;
-				var _iteratorError11 = undefined;
-
-				try {
-					for (var _iterator11 = element.attributes[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-						var attribute = _step11.value;
-
-						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-							callback.call(this, attribute);
-						}
-					}
-				} catch (err) {
-					_didIteratorError11 = true;
-					_iteratorError11 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion11 && _iterator11.return) {
-							_iterator11.return();
-						}
-					} finally {
-						if (_didIteratorError11) {
-							throw _iteratorError11;
-						}
-					}
-				}
-			}
-		}, {
-			key: 'unbind',
-			value: function unbind(element, scope) {
-				scope = scope || element;
-
-				this.eachElement(element, scope, function (child) {
-					this.eachAttribute(child, function (attribute) {
-
-						var binder = this.get({
-							element: child,
-							container: scope,
-							name: attribute.name,
-							value: attribute.value,
-							scope: scope.getAttribute('o-scope'),
-							path: Global.utility.binderPath(attribute.value)
-						});
-
-						this.remove(binder);
-						this.unrender(binder);
-					});
 				});
+
+				element.setAttribute('o-scope', scope);
+
+				Model$2.set(scope, options.model);
+				Methods$1.set(scope, options.methods);
+
+				if (!self.compiled || self.compiled && element.parentNode.nodeName !== 'O-ROUTER') {
+					var template = document.createElement('template');
+					var style = self.renderStyle(options.style, scope);
+
+					if (typeof options.template === 'string') {
+						template.innerHTML = style + options.template;
+					} else {
+						template.innerHTML = style;
+						template.appendChild(options.template);
+					}
+
+					var clone = document.importNode(template.content, true);
+
+					Binder$2.bind(clone, element);
+
+					if (options.shadow && 'attachShadow' in document.body) {
+						// const clone = document.importNode(template.content, true);
+						element.attachShadow({ mode: 'open' }).appendChild(clone);
+					} else if (options.shadow && 'createShadowRoot' in document.body) {
+						// const clone = document.importNode(template.content, true);
+						element.createShadowRoot().appendChild(clone);
+					} else {
+						self.renderSlot(template.content, element);
+						// const clone = document.importNode(template.content, true);
+						// Binder.bind(clone, element);
+						element.appendChild(clone);
+					}
+				}
+
+				// Binder.bind(element);
+
+				if (options.created) {
+					options.created.call(element);
+				}
 			}
 		}, {
-			key: 'bind',
-			value: function bind(element, scope) {
-				scope = scope || element;
+			key: 'attached',
+			value: function attached(element, options) {
+				if (options.attached) {
+					options.attached.call(element);
+				}
+			}
+		}, {
+			key: 'detached',
+			value: function detached(element, options) {
+				if (options.detached) {
+					options.detached.call(element);
+				}
+			}
+		}, {
+			key: 'define',
+			value: function define(options) {
+				var self = this;
 
-				this.eachElement(element, scope, function (child) {
-					this.eachAttribute(child, function (attribute) {
+				if (!options.name) {
+					throw new Error('Oxe.component.define - requires name');
+				}
 
-						var binder = this.set({
-							element: child,
-							container: scope,
-							name: attribute.name,
-							value: attribute.value
-						});
+				if (options.name in self.data) {
+					throw new Error('Oxe.component.define - component defined');
+				}
 
-						this.add(binder);
-						this.render(binder);
-					});
+				self.data[options.name] = options;
+
+				options.count = 0;
+				options.compiled = false;
+				options.style = options.style || '';
+				options.model = options.model || {};
+				options.methods = options.methods || {};
+				options.shadow = options.shadow || false;
+				options.template = options.template || '';
+				options.properties = options.properties || {};
+
+				options.properties.status = {
+					enumerable: true,
+					configurable: true,
+					value: 'define'
+				};
+
+				options.properties.model = {
+					enumerable: true,
+					configurable: true,
+					get: function get() {
+						return Model$2.get(this.scope);
+					},
+					set: function set(data) {
+						data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
+						return Model$2.set(this.scope, data);
+					}
+				};
+
+				options.properties.methods = {
+					enumerable: true,
+					get: function get() {
+						return Methods$1.get(this.scope);
+					}
+				};
+
+				options.proto = Object.create(HTMLElement.prototype, options.properties);
+
+				options.proto.attributeChangedCallback = options.attributed;
+
+				options.proto.createdCallback = function () {
+					self.created(this, options);
+				};
+
+				options.proto.attachedCallback = function () {
+					self.attached(this, options);
+				};
+
+				options.proto.detachedCallback = function () {
+					self.detached(this, options);
+				};
+
+				return document.registerElement(options.name, {
+					prototype: options.proto
 				});
 			}
 		}]);
 
-		return Binder;
+		return Component;
 	}();
 
-	/*
- 	TODO:
- 		sort reverse
- 		test array methods
- 		figure out a way to not update removed items
- */
+	var Component$1 = new Component();
 
-	var Observer = {
-		splice: function splice() {
-			var startIndex = arguments[0];
-			var deleteCount = arguments[1];
-			var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
+	var Router = function (_Events2) {
+		_inherits(Router, _Events2);
 
-			if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
-				return [];
-			}
+		function Router() {
+			_classCallCheck(this, Router);
 
-			// handle negative startIndex
-			if (startIndex < 0) {
-				startIndex = this.length + startIndex;
-				startIndex = startIndex > 0 ? startIndex : 0;
-			} else {
-				startIndex = startIndex < this.length ? startIndex : this.length;
-			}
+			var _this11 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
 
-			// handle negative deleteCount
-			if (deleteCount < 0) {
-				deleteCount = 0;
-			} else if (deleteCount > this.length - startIndex) {
-				deleteCount = this.length - startIndex;
-			}
-
-			var totalCount = this.$meta.length;
-			var key = void 0,
-			    index = void 0,
-			    value = void 0,
-			    updateCount = void 0;
-			var argumentIndex = 2;
-			var argumentsCount = arguments.length - argumentIndex;
-			var result = this.slice(startIndex, deleteCount);
-
-			updateCount = totalCount - 1 - startIndex;
-
-			if (updateCount > 0) {
-				index = startIndex;
-				while (updateCount--) {
-					key = index++;
-
-					if (argumentsCount && argumentIndex < argumentsCount) {
-						value = arguments[argumentIndex++];
-					} else {
-						value = this.$meta[index];
-					}
-
-					this.$meta[key] = Observer.create(value, this.$meta.listener, this.$meta.path + key);
-					this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
-				}
-			}
-
-			if (addCount > 0) {
-				while (addCount--) {
-					key = this.length;
-					this.$meta[key] = Observer.create(arguments[argumentIndex++], this.$meta.listener, this.$meta.path + key);
-					Observer.defineProperty(this, key);
-					this.$meta.listener(this.length, this.$meta.path.slice(0, -1), 'length');
-					this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
-				}
-			}
-
-			if (deleteCount > 0) {
-				while (deleteCount--) {
-					this.$meta.length--;
-					this.length--;
-					key = this.length;
-					this.$meta.listener(key, this.$meta.path.slice(0, -1), 'length');
-					this.$meta.listener(undefined, this.$meta.path + key, key);
-				}
-			}
-
-			return result;
-		},
-		arrayProperties: function arrayProperties() {
-			var self = this;
-
-			return {
-				push: {
-					value: function value() {
-						if (!arguments.length) return this.length;
-
-						for (var i = 0, l = arguments.length; i < l; i++) {
-							self.splice.call(this, this.length, 0, arguments[i]);
-						}
-
-						return this.length;
-					}
-				},
-				unshift: {
-					value: function value() {
-						if (!arguments.length) return this.length;
-
-						for (var i = 0, l = arguments.length; i < l; i++) {
-							self.splice.call(this, 0, 0, arguments[i]);
-						}
-
-						return this.length;
-					}
-				},
-				pop: {
-					value: function value() {
-						if (!this.length) return;
-						return self.splice.call(this, this.length - 1, 1);
-					}
-				},
-				shift: {
-					value: function value() {
-						if (!this.length) return;
-						return self.splice.call(this, 0, 1);
-					}
-				},
-				splice: {
-					value: self.splice
-				}
-			};
-		},
-		objectProperties: function objectProperties() {
-			var self = this;
-
-			return {
-				$get: {
-					value: function value(key) {
-						return this[key];
-					}
-				},
-				$set: {
-					value: function value(key, _value) {
-						// if (key !== undefined && value !== undefined) {
-						if (_value !== this[key]) {
-							var result = self.create(_value, this.$meta.listener, this.$meta.path + key);
-
-							this.$meta[key] = result;
-							self.defineProperty(this, key);
-
-							this.$meta.listener(result, this.$meta.path + key, key);
-
-							return result;
-						}
-						// } else {
-
-						// if (!key || key.constructor !== this.constructor) {
-						// 	return this;
-						// } else if (key.constructor === Array) {
-						// 	for (let value of key) {
-						// 		this.$set(name, value);
-						// 	}
-						// } else if (key.constructor === Object) {
-						// 	for (let name in key) {
-						// 		this.$set(name, key[name]);
-						// 	}
-						// }
-						//
-						// return this;
-						// }
-					}
-				},
-				$remove: {
-					value: function value(key) {
-						if (key in this) {
-							if (this.constructor === Array) {
-								return self.splice.call(this, key, 1);
-							} else {
-								var result = this[key];
-								delete this.$meta[key];
-								delete this[key];
-								this.$meta.listener(undefined, this.$meta.path + key, key);
-								return result;
-							}
-						}
-					}
-				}
-			};
-		},
-		property: function property(key) {
-			var self = this;
-
-			return {
-				enumerable: true,
-				configurable: true,
-				get: function get() {
-					return this.$meta[key];
-				},
-				set: function set(value) {
-					if (value !== this.$meta[key]) {
-
-						this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
-
-						this.$meta.listener(this[key], this.$meta.path + key, key, this);
-					}
-				}
-			};
-		},
-		defineProperty: function defineProperty(data, key) {
-			return Object.defineProperty(data, key, this.property(key));
-		},
-		create: function create(source, listener, path) {
-			var self = this;
-
-			if (!source || source.constructor !== Object && source.constructor !== Array) {
-				return source;
-			}
-
-			path = path ? path + '.' : '';
-
-			var key = void 0,
-			    length = void 0;
-			var type = source.constructor;
-			var target = source.constructor();
-			var properties = source.constructor();
-
-			properties.$meta = {
-				value: source.constructor()
-			};
-
-			properties.$meta.value.path = path;
-			properties.$meta.value.listener = listener;
-
-			if (type === Array) {
-
-				for (key = 0, length = source.length; key < length; key++) {
-					properties.$meta.value[key] = self.create(source[key], listener, path + key);
-					properties[key] = self.property(key);
-				}
-
-				var arrayProperties = self.arrayProperties();
-
-				for (key in arrayProperties) {
-					properties[key] = arrayProperties[key];
-				}
-			}
-
-			if (type === Object) {
-
-				for (key in source) {
-					properties.$meta.value[key] = self.create(source[key], listener, path + key);
-					properties[key] = self.property(key);
-				}
-			}
-
-			var objectProperties = self.objectProperties();
-
-			for (key in objectProperties) {
-				properties[key] = objectProperties[key];
-			}
-
-			return Object.defineProperties(target, properties);
-		}
-	};
-
-	var Model = function (_Events4) {
-		_inherits(Model, _Events4);
-
-		function Model() {
-			_classCallCheck(this, Model);
-
-			var _this13 = _possibleConstructorReturn(this, (Model.__proto__ || Object.getPrototypeOf(Model)).call(this));
-
-			_this13.GET = 2;
-			_this13.SET = 3;
-			_this13.REMOVE = 4;
-			_this13.ran = false;
-
-			_this13.data = Observer.create({}, _this13.listener);
-			return _this13;
+			_this11.data = [];
+			_this11.location = {};
+			_this11.ran = false;
+			_this11.element = null;
+			_this11.contain = false;
+			_this11.compiled = false;
+			return _this11;
 		}
 
-		_createClass(Model, [{
-			key: 'traverse',
-			value: function traverse(type, keys, value) {
+		_createClass(Router, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
 
-				if (typeof keys === 'string') {
-					keys = [keys];
+				this.after = options.after === undefined ? this.after : options.after;
+				this.before = options.before === undefined ? this.before : options.before;
+				this.element = options.element === undefined ? this.element : options.element;
+				this.contain = options.contain === undefined ? this.contain : options.contain;
+				this.external = options.external === undefined ? this.external : options.external;
+				// this.validate = options.validate === undefined ? this.validate : options.validate;
+
+				if (options.routes) {
+					this.add(options.routes);
 				}
 
-				var data = this.data;
-				var result;
-				var key = keys[keys.length - 1];
-
-				for (var i = 0, l = keys.length - 1; i < l; i++) {
-
-					if (!(keys[i] in data)) {
-
-						if (type === this.GET || type === this.REMOVE) {
-							return undefined;
-						} else if (type === this.SET) {
-							data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
-						}
+				this.route(window.location.href, { replace: true });
+			}
+		}, {
+			key: 'scroll',
+			value: function scroll(x, y) {
+				window.scroll(x, y);
+			}
+		}, {
+			key: 'back',
+			value: function back() {
+				window.history.back();
+			}
+		}, {
+			key: 'forward',
+			value: function forward() {
+				window.history.forward();
+			}
+		}, {
+			key: 'redirect',
+			value: function redirect(path) {
+				window.location.href = path;
+			}
+		}, {
+			key: 'add',
+			value: function add(data) {
+				if (!data) {
+					throw new Error('Oxe.router.add - requires data parameter');
+				} else if (data.constructor === Object) {
+					if (!data.path) throw new Error('Oxe.router.add - route path required');
+					if (!data.component) throw new Error('Oxe.router.add - route component required');
+					this.data.push(data);
+				} else if (data.constructor === Array) {
+					for (var i = 0, l = data.length; i < l; i++) {
+						this.add(data[i]);
 					}
-
-					data = data[keys[i]];
 				}
+			}
+		}, {
+			key: 'remove',
+			value: function remove(path) {
+				for (var i = 0, l = this.data.length; i < l; i++) {
+					if (path === this.data[i].path) {
+						this.data.splice(i, 1);
+					}
+				}
+			}
+		}, {
+			key: 'get',
+			value: function get(path) {
+				for (var i = 0, l = this.data.length; i < l; i++) {
+					var route = this.data[i];
+					if (path === route.path) {
+						return route;
+					}
+				}
+			}
+		}, {
+			key: 'find',
+			value: function find(path) {
+				for (var i = 0, l = this.data.length; i < l; i++) {
+					var route = this.data[i];
+					if (this.isPath(route.path, path)) {
+						return route;
+					}
+				}
+			}
+		}, {
+			key: 'filter',
+			value: function filter(path) {
+				var result = [];
 
-				if (type === this.SET) {
-					result = data.$set(key, value);
-				} else if (type === this.GET) {
-					result = data[key];
-				} else if (type === this.REMOVE) {
-					result = data[key];
-					data.$remove(key);
+				for (var i = 0, l = this.data.length; i < l; i++) {
+					var route = this.data[i];
+					if (this.isPath(route.path, path)) {
+						result.push(route);
+					}
 				}
 
 				return result;
 			}
 		}, {
-			key: 'get',
-			value: function get(keys) {
-				return this.traverse(this.GET, keys);
+			key: 'isPath',
+			value: function isPath(routePath, userPath) {
+
+				if (routePath.slice(0, 1) !== '/') {
+					routePath = Path.resolve(routePath);
+				}
+
+				if (!userPath) {
+					return false;
+				} else if (userPath.constructor.name === 'String') {
+					return new RegExp('^' + routePath.replace(/{\*}/g, '(?:.*)').replace(/{(\w+)}/g, '([^\/]+)') + '(\/)?$').test(userPath || '/');
+				} else if (userPath.constructor.name === 'RegExp') {
+					return userPath.test(routePath);
+				}
 			}
 		}, {
-			key: 'remove',
-			value: function remove(keys) {
-				return this.traverse(this.REMOVE, keys);
+			key: 'toParameterObject',
+			value: function toParameterObject(routePath, userPath) {
+				var result = {};
+
+				if (!routePath || !userPath || routePath === '/' || userPath === '/') return result;
+
+				var brackets = /{|}/g;
+				var pattern = /{(\w+)}/;
+				var userPaths = userPath.split('/');
+				var routePaths = routePath.split('/');
+
+				for (var i = 0, l = routePaths.length; i < l; i++) {
+
+					if (pattern.test(routePaths[i])) {
+						var name = routePaths[i].replace(brackets, '');
+						result[name] = userPaths[i];
+					}
+				}
+
+				return result;
 			}
 		}, {
-			key: 'set',
-			value: function set(keys, value) {
-				return this.traverse(this.SET, keys, value);
+			key: 'toQueryString',
+			value: function toQueryString(data) {
+				var result = '?';
+
+				for (var key in data) {
+					var value = data[key];
+					result += key + '=' + value + '&';
+				}
+
+				if (result.slice(-1) === '&') {
+					result = result.slice(0, -1);
+				}
+
+				return result;
 			}
 		}, {
-			key: 'listener',
-			value: function listener(data, path) {
-				var type = data === undefined ? 'unrender' : 'render';
-				Global.binder.each(path, function (binder) {
-					Global.binder[type](binder);
-				});
+			key: 'toQueryObject',
+			value: function toQueryObject(path) {
+				var result = {};
+
+				if (path.indexOf('?') === 0) path = path.slice(1);
+				var queries = path.split('&');
+
+				for (var i = 0, l = queries.length; i < l; i++) {
+					var query = queries[i].split('=');
+
+					if (query[0] && query[1]) {
+						result[query[0]] = query[1];
+					}
+				}
+
+				return result;
+			}
+		}, {
+			key: 'toLocationObject',
+			value: function toLocationObject() {
+				return {
+					port: window.location.port || '',
+					host: window.location.host || '',
+					hash: window.location.hash || '',
+					href: window.location.href || '',
+					origin: window.location.origin || '',
+					search: window.location.search || '',
+					pathname: window.location.pathname || '',
+					hostname: window.location.hostname || '',
+					protocol: window.location.protocol || '',
+					username: window.location.username || '',
+					password: window.location.password || ''
+				};
+			}
+
+			// validate () {
+			//
+			// }
+
+		}, {
+			key: 'render',
+			value: function render(route) {
+				Utility.ready(function () {
+
+					if (route.title) {
+						document.title = route.title;
+					}
+
+					if (route.description) {
+						Utility.ensureElement({
+							name: 'meta',
+							scope: document.head,
+							position: 'afterbegin',
+							query: '[name="description"]',
+							attributes: [{ name: 'name', value: 'description' }, { name: 'content', value: route.description }]
+						});
+					}
+
+					if (route.keywords) {
+						Utility.ensureElement({
+							name: 'meta',
+							scope: document.head,
+							position: 'afterbegin',
+							query: '[name="keywords"]',
+							attributes: [{ name: 'name', value: 'keywords' }, { name: 'content', value: route.keywords }]
+						});
+					}
+
+					if (!this.element) {
+						this.element = this.element || 'o-router';
+
+						if (typeof this.element === 'string') {
+							this.element = document.body.querySelector(this.element);
+						}
+
+						if (!this.element) {
+							throw new Error('Oxe.router.render - missing o-router element');
+						}
+					}
+
+					if (!route.element) {
+
+						if (route.load) {
+							Loader$1.load(route.load);
+						}
+
+						if (!route.component) {
+							throw new Error('Oxe.router.render - missing route component');
+						} else if (route.component.constructor.name === 'String') {
+							route.element = document.createElement(route.component);
+						} else if (route.component.constructor.name === 'Object') {
+
+							Component$1.define(route.component);
+
+							if (this.compiled) {
+								route.element = this.element.firstChild;
+							} else {
+								route.element = document.createElement(route.component.name);
+							}
+						}
+					}
+
+					if (!this.compiled) {
+
+						while (this.element.firstChild) {
+							this.element.removeChild(this.element.firstChild);
+						}
+
+						this.element.appendChild(route.element);
+					}
+
+					this.scroll(0, 0);
+					this.emit('routed');
+				}.bind(this));
+			}
+		}, {
+			key: 'route',
+			value: function (_route) {
+				function route(_x, _x2) {
+					return _route.apply(this, arguments);
+				}
+
+				route.toString = function () {
+					return _route.toString();
+				};
+
+				return route;
+			}(function (path, options) {
+				options = options || {};
+
+				if (options.query) {
+					path += this.toQueryString(options.query);
+				}
+
+				// todo might need to be moved to the end
+				if (!this.compiled) {
+					window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
+				}
+
+				var location = this.toLocationObject();
+
+				location.route = this.find(location.pathname);
+
+				if (!location.route) {
+					throw new Error('Oxe.router.route - route not found');
+				}
+
+				location.title = location.route.title || '';
+				location.query = this.toQueryObject(location.search);
+				location.parameters = this.toParameterObject(location.route.path, location.pathname);
+
+				// if (this.auth || location.route.auth && typeof this.validate === 'function') {
+				// 	const data = this.validate(location);
+				// 	if (!data.valid) return this.route(data.path);
+				// }
+
+				if (typeof this.before === 'function') {
+					var result = this.before(location);
+					if (result === false) return;
+				}
+
+				if (location.route.handler) {
+					return route.handler(location.route);
+				}
+
+				if (location.route.redirect) {
+					return this.redirect(location.route.redirect);
+				}
+
+				this.location = location;
+				this.emit('routing');
+				this.render(location.route);
+			})
+		}]);
+
+		return Router;
+	}(Events);
+
+	var Router$1 = new Router();
+
+	function Click(e) {
+
+		// ignore canceled events, modified clicks, and right clicks
+		if (e.button !== 0) return;
+		if (e.defaultPrevented) return;
+		if (e.target.nodeName === 'INPUT') return;
+		if (e.target.nodeName === 'BUTTON') return;
+		if (e.target.nodeName === 'SELECT') return;
+		if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+
+		// if shadow dom use
+		var target = e.path ? e.path[0] : e.target;
+		var parent = target.parentNode;
+
+		if (Router$1.contain) {
+
+			while (parent) {
+
+				if (parent.nodeName === 'O-ROUTER') {
+					break;
+				} else {
+					parent = parent.parentNode;
+				}
+			}
+
+			if (parent.nodeName !== 'O-ROUTER') {
+				return;
+			}
+		}
+
+		// ensure target is anchor tag
+		while (target && 'A' !== target.nodeName) {
+			target = target.parentNode;
+		}
+
+		if (!target || 'A' !== target.nodeName) {
+			return;
+		}
+
+		// check non-acceptables
+		if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return;
+
+		// if external is true then default action
+		if (Router$1.external && (Router$1.external.constructor.name === 'RegExp' && Router$1.external.test(target.href) || Router$1.external.constructor.name === 'Function' && Router$1.external(target.href) || Router$1.external.constructor.name === 'String' && Router$1.external === target.href)) return;
+
+		if (Router$1.location.href !== target.href) {
+			Router$1.route(target.href);
+		}
+
+		if (!Router$1.compiled) {
+			e.preventDefault();
+		}
+	}
+
+	function State(e) {
+
+		var path = e && e.state ? e.state.path : window.location.href;
+
+		Router$1.route(path, { replace: true });
+	}
+
+	function Load(e) {
+		var element = e.target;
+
+		if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
+			return;
+		}
+
+		var path = Path.resolve(element.src || element.href);
+		var load = this.data[path];
+
+		Loader$1.ready(load);
+	}
+
+	var General = function () {
+		function General() {
+			_classCallCheck(this, General);
+
+			this.compiled = false;
+		}
+
+		_createClass(General, [{
+			key: 'setup',
+			value: function setup(options) {
+				options = options || {};
+
+				if (options.base) {
+					Path.base(options.base);
+				}
 			}
 		}]);
 
-		return Model;
-	}(Events);
+		return General;
+	}();
 
-	var Global = {
-		compiled: false
-	};
+	var General$1 = new General();
 
-	Object.defineProperties(Global, {
-		window: {
-			enumerable: true,
-			get: function get() {
-				return window;
-			}
-		},
-		document: {
-			enumerable: true,
-			get: function get() {
-				return window.document;
-			}
-		},
-		body: {
-			enumerable: true,
-			get: function get() {
-				return window.document.body;
-			}
-		},
-		head: {
-			enumerable: true,
-			get: function get() {
-				return window.document.head;
-			}
-		},
-		location: {
-			enumerable: true,
-			get: function get() {
-				return this.router.location;
-			}
-		},
-		currentScript: {
-			enumerable: true,
-			get: function get() {
-				return window.document._currentScript || window.document.currentScript;
-			}
-		},
-		ownerDocument: {
-			enumerable: true,
-			get: function get() {
-				return (window.document._currentScript || window.document.currentScript).ownerDocument;
-			}
-		},
-		global: {
-			enumerable: true,
-			value: {}
-		},
-		methods: {
-			enumerable: true,
-			value: {
-				data: {}
-			}
-		},
-		utility: {
-			enumerable: true,
-			value: Utility
-		},
-		setup: {
-			enumerable: true,
-			value: function value(data) {
+	// OPTIMIZE wait until polyfill are ready then allow setup
 
-				if (this._setup) {
+	var eStyle = document.createElement('style');
+	var tStyle = document.createTextNode('\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition 150ms ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n');
+
+	eStyle.setAttribute('type', 'text/css');
+	eStyle.appendChild(tStyle);
+	document.head.appendChild(eStyle);
+
+	var oSetup = document.querySelector('script[o-setup]');
+
+	if (oSetup) {
+
+		var currentCount = 0;
+		var requiredCount = 0;
+
+		var loaded = function loaded() {
+			if (currentCount !== requiredCount) return;
+
+			document.addEventListener('load', Load, true);
+			document.addEventListener('input', Input, true);
+			document.addEventListener('reset', Reset, true);
+			document.addEventListener('click', Click, true);
+			document.addEventListener('submit', Submit, true);
+			document.addEventListener('change', Change, true);
+			window.addEventListener('popstate', State, true);
+
+			var args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
+			var meta = document.querySelector('meta[name="oxe"]');
+
+			if (meta && meta.hasAttribute('compiled')) {
+				args[1] = 'null';
+				args[2] = 'script';
+				Router$1.compiled = true;
+				General$1.compiled = true;
+				Component$1.compiled = true;
+			}
+
+			if (!args[0]) {
+				throw new Error('Oxe - o-setup attribute requires a url');
+			}
+
+			if (args.length > 1) {
+				Loader$1.load({
+					url: args[0],
+					method: args[2],
+					transformer: args[1]
+				});
+			} else {
+				var _index = document.createElement('script');
+
+				_index.setAttribute('src', args[0]);
+				_index.setAttribute('async', 'true');
+				_index.setAttribute('type', 'module');
+
+				document.head.appendChild(_index);
+			}
+
+			document.registerElement('o-router', {
+				prototype: Object.create(HTMLElement.prototype)
+			});
+		};
+
+		var loader = function loader(url, callback) {
+			var polly = document.createElement('script');
+
+			polly.setAttribute('async', 'true');
+			polly.setAttribute('src', url);
+			polly.addEventListener('load', function () {
+				currentCount++;
+				callback();
+			}, true);
+
+			document.head.appendChild(polly);
+		};
+
+		var features = [];
+		var isNotFetch = !('fetch' in window);
+		var isNotAssign = !('assign' in Object);
+		var isNotPromise = !('Promise' in window);
+		var isNotCustomElement = !('registerElement' in document) || !('content' in document.createElement('template'));
+
+		if (isNotFetch) features.push('fetch');
+		if (isNotPromise) features.push('Promise');
+		if (isNotAssign) features.push('Object.assign');
+
+		if (isNotPromise || isNotFetch || isNotAssign) {
+			requiredCount++;
+			loader('https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','), loaded);
+		}
+
+		if (isNotCustomElement) {
+			requiredCount++;
+			loader('https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js', loaded);
+		}
+
+		loaded();
+	}
+
+	var Oxe = function () {
+		function Oxe() {
+			_classCallCheck(this, Oxe);
+
+			this.compiled = true;
+		}
+
+		_createClass(Oxe, [{
+			key: 'setup',
+			value: _async(function (data) {
+				var _this12 = this;
+
+				if (_this12._setup) {
 					return;
 				} else {
-					this._setup = true;
+					_this12._setup = true;
 				}
 
 				data = data || {};
@@ -3316,296 +3512,130 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (data.general) {
-					this.general.setup(data.general);
+					_this12.general.setup(data.general);
 				}
 
 				if (data.fetcher) {
-					this.fetcher.setup(data.fetcher);
+					_this12.fetcher.setup(data.fetcher);
 				}
 
 				if (data.loader) {
-					this.loader.setup(data.loader);
+					_this12.loader.setup(data.loader);
 				}
 
 				if (data.component) {
-					this.component.setup(data.component);
+					_this12.component.setup(data.component);
 				}
 
 				if (data.router) {
-					this.router.setup(data.router);
+					_this12.router.setup(data.router);
 				}
 
 				if (data.listener && data.listener.after) {
 					data.listener.after();
 				}
+			})
+		}, {
+			key: 'window',
+			get: function get() {
+				return window;
 			}
-		}
-	});
-
-	Object.defineProperty(Global, 'general', {
-		enumerable: true,
-		value: new General()
-	});
-
-	Object.defineProperty(Global, 'batcher', {
-		enumerable: true,
-		value: new Batcher()
-	});
-
-	Object.defineProperty(Global, 'loader', {
-		enumerable: true,
-		value: new Loader()
-	});
-
-	Object.defineProperty(Global, 'binder', {
-		enumerable: true,
-		value: new Binder()
-	});
-
-	Object.defineProperty(Global, 'fetcher', {
-		enumerable: true,
-		value: new Fetcher()
-	});
-
-	Object.defineProperty(Global, 'component', {
-		enumerable: true,
-		value: new Component()
-	});
-
-	Object.defineProperty(Global, 'router', {
-		enumerable: true,
-		value: new Router()
-	});
-
-	Object.defineProperty(Global, 'model', {
-		enumerable: true,
-		value: new Model()
-	});
-
-	function Wraper(action, complete) {
-
-		if (action && action.constructor.name === 'AsyncFunction') {
-
-			return Promise.resolve().then(function () {
-				return action();
-			}).then(function (data) {
-				if (complete) {
-					return complete(data);
-				}
-			}).catch(console.error);
-		} else {
-			var result = action();
-
-			if (result && result.constructor.name === 'Promise') {
-
-				return Promise.resolve().then(function () {
-					return result;
-				}).then(function (data) {
-					if (complete) {
-						return complete(data);
-					}
-				}).catch(console.error);
-			} else {
-				if (complete) {
-					return complete(result);
-				}
+		}, {
+			key: 'document',
+			get: function get() {
+				return window.document;
 			}
-		}
-	}
-
-	var eStyle = document.createElement('style');
-	var tStyle = document.createTextNode(' \
-	o-router, o-router > :first-child { \
-		display: block; \
-	} \
-	o-router, [o-scope] { \
-		animation: o-transition 150ms ease-in-out; \
-	} \
-	@keyframes o-transition { \
-		0% { opacity: 0; } \
-		100% { opacity: 1; } \
-	} \
-');
-
-	eStyle.setAttribute('type', 'text/css');
-	eStyle.appendChild(tStyle);
-
-	document.head.appendChild(eStyle);
-
-	var currentCount = 0;
-	var requiredCount = 0;
-	var loadedCalled = false;
-
-	var loaded = function loaded() {
-		if (loadedCalled) return;
-		if (currentCount !== requiredCount) return;
-
-		loadedCalled = true;
-
-		document.addEventListener('reset', function resetListener(e) {
-			var element = e.target;
-			var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-			var binder = Global.binder.get({
-				name: 'o-submit',
-				element: element
-			});
-
-			var scope = binder.scope;
-
-			if (submit) {
-				var elements = element.querySelectorAll('[o-value]');
-				var i = elements.length;
-
-				while (i--) {
-					var path = elements[i].getAttribute('o-value');
-					var keys = [scope].concat(path.split('.'));
-
-					Global.model.set(keys, '');
-
-					Global.binder.unrender({
-						name: 'o-value',
-						element: elements[i]
-					}, 'view');
-				}
+		}, {
+			key: 'body',
+			get: function get() {
+				return window.document.body;
 			}
-		}, true);
-
-		document.addEventListener('submit', function submitListener(e) {
-			var element = e.target;
-			var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-			if (!submit) return;
-
-			e.preventDefault();
-
-			var binder = Global.binder.get({
-				name: 'o-submit',
-				element: element
-			});
-
-			var sScope = binder.scope;
-			var eScope = binder.container;
-			var model = Global.model.data[sScope];
-
-			var data = Global.utility.formData(element, model);
-			var method = Global.utility.getByPath(eScope.methods, submit);
-
-			var done = function done(options) {
-				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
-					var auth = element.getAttribute('o-auth') || element.getAttribute('data-o-auth');
-					var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-					var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-					var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
-
-					options.url = options.url || action;
-					options.method = options.method || method;
-					options.auth = options.auth === undefined || options.auth === null ? auth : options.auth;
-					options.contentType = options.contentType === undefined || options.contentType === null ? enctype : options.contentType;
-
-					Global.fetcher.fetch(options);
-				}
-
-				if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset')) {
-					element.reset();
-				}
-			};
-
-			Wraper(method.bind(eScope, data, e), done);
-		}, true);
-
-		document.addEventListener('input', function (e) {
-			if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
-
-				var binder = Global.binder.get({
-					name: 'o-value',
-					element: e.target
-				});
-
-				Global.binder.render(binder);
+		}, {
+			key: 'head',
+			get: function get() {
+				return window.document.head;
 			}
-		}, true);
-
-		document.addEventListener('change', function (e) {
-			if (e.target.hasAttribute('o-value')) {
-
-				var binder = Global.binder.get({
-					name: 'o-value',
-					element: e.target
-				});
-
-				Global.binder.render(binder);
+		}, {
+			key: 'location',
+			get: function get() {
+				return this.router.location;
 			}
-		}, true);
-
-		var element = document.querySelector('script[o-setup]');
-
-		if (element) {
-
-			var args = element.getAttribute('o-setup').split(/\s*,\s*/);
-			var meta = document.querySelector('meta[name="oxe"]');
-
-			if (meta && meta.hasAttribute('compiled')) {
-				args[1] = 'null';
-				args[2] = 'script';
-				Global.compiled = true;
-				Global.router.compiled = true;
-				Global.component.compiled = true;
+		}, {
+			key: 'currentScript',
+			get: function get() {
+				return window.document._currentScript || window.document.currentScript;
 			}
-
-			if (!args[0]) {
-				throw new Error('Oxe - o-setup attribute requires a url');
+		}, {
+			key: 'ownerDocument',
+			get: function get() {
+				return (window.document._currentScript || window.document.currentScript).ownerDocument;
 			}
-
-			if (args.length > 1) {
-				Global.loader.load({
-					url: args[0],
-					method: args[2],
-					transformer: args[1]
-				});
-			} else {
-				var index = document.createElement('script');
-				index.setAttribute('src', args[0]);
-				index.setAttribute('async', 'true');
-				index.setAttribute('type', 'module');
-				element.insertAdjacentElement('afterend', index);
+		}, {
+			key: 'global',
+			get: function get() {
+				return {};
 			}
-		}
+		}, {
+			key: 'render',
+			get: function get() {
+				return Render;
+			}
+		}, {
+			key: 'methods',
+			get: function get() {
+				return Methods$1;
+			}
+		}, {
+			key: 'utility',
+			get: function get() {
+				return Utility;
+			}
+		}, {
+			key: 'general',
+			get: function get() {
+				return General$1;
+			}
+		}, {
+			key: 'batcher',
+			get: function get() {
+				return Batcher$1;
+			}
+		}, {
+			key: 'loader',
+			get: function get() {
+				return Loader$1;
+			}
+		}, {
+			key: 'binder',
+			get: function get() {
+				return Binder$2;
+			}
+		}, {
+			key: 'fetcher',
+			get: function get() {
+				return Fetcher$1;
+			}
+		}, {
+			key: 'component',
+			get: function get() {
+				return Component$1;
+			}
+		}, {
+			key: 'router',
+			get: function get() {
+				return Router$1;
+			}
+		}, {
+			key: 'model',
+			get: function get() {
+				return Model$2;
+			}
+		}]);
 
-		document.registerElement('o-router', {
-			prototype: Object.create(HTMLElement.prototype)
-		});
-	};
+		return Oxe;
+	}();
 
-	var loader = function loader(condition, url) {
-		if (condition) {
-			requiredCount++;
-			var polly = document.createElement('script');
-			polly.setAttribute('async', 'true');
-			polly.setAttribute('src', url);
-			polly.addEventListener('load', function () {
-				currentCount++;
-				loaded();
-			}, true);
-			document.head.appendChild(polly);
-		} else {
-			loaded();
-		}
-	};
+	var index = new Oxe();
 
-	var features = [];
-
-	var isNotFetch = !('fetch' in window);
-	var isNotAssign = !('assign' in Object);
-	var isNotPromise = !('Promise' in window);
-
-	if (isNotFetch) features.push('fetch');
-	if (isNotPromise) features.push('Promise');
-	if (isNotAssign) features.push('Object.assign');
-
-	loader(isNotPromise || isNotFetch || isNotAssign, 'https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','));
-
-	loader(!('registerElement' in document) || !('content' in document.createElement('template')), 'https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js');
-
-	return Global;
+	return index;
 });

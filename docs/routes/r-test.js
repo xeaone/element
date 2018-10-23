@@ -73,18 +73,18 @@ export default {
 						reset: true,
 						url: '/foo',
 						method: 'get',
-						handler: function () {
-							console.log(arguments);
+						handler: function (result) {
+							console.log(result);
 						}
 					}
 				}
 			},
 			fetch: function () {
-				return Promise.resolve().then(function () {
-					return Oxe.fetcher.get({
-						url: 'https://jsonplaceholder.typicode.com/todos/1'
-					});
-				}).then(console.log).catch(console.error);
+				const options = { url: 'https://jsonplaceholder.typicode.com/todos/1' };
+				return Promise.resolve()
+					.then(Oxe.fetcher.get.bind(null, options))
+					.then(console.log)
+					.catch(console.error);
 			}
 		},
 		properties: {
@@ -118,13 +118,13 @@ export default {
 							} else {
 								self.model.items.pop();
 							}
-						}, 6);
+						}, 90);
 
 					} else {
 						self.model.items.push({ it: { val: self.model.items.length } });
 					}
 
-				}, 6);
+				}, 90);
 			}, 3000);
 
 			Say('r-test created');
@@ -206,7 +206,7 @@ export default {
 		<input type="text" o-value="items.0.it.val">
 		<div o-each-item="items">
 			<span>
-				<span data-o-index="$index">$item</span>
+				<span>$item</span>
 				<span o-on-click="foo | item" o-text="item.it.val"></span>
 				<span>,</span>
 			</span>
@@ -235,16 +235,18 @@ export default {
 
 		<ul>
 			<li>
-				<a href="test/">test</a>
+				<a href="./test">test</a>
 			</li>
 			<li>
-				<a href="js">js</a>
+				<a href="./js">
+					<strong>js</strong>
+				</a>
 			</li>
 			<li>
-				<a href="js?name=ferret&color=purple#hash">js?name=ferret&amp;color=purple#hash</a>
+				<a href="./js?name=ferret&color=purple#hash">js?name=ferret&amp;color=purple#hash</a>
 			</li>
 			<li>
-				<a href="js/?name=ferret&color=purple#hash">js/?name=ferret&amp;color=purple#hash</a>
+				<a href="./js/?name=ferret&color=purple#hash">js/?name=ferret&amp;color=purple#hash</a>
 			</li>
 			<li>
 				<a href="https://google.com/">google</a>
@@ -259,7 +261,7 @@ export default {
 		<br>
 		<br>
 
-		<button o-on-click="fetch | text">Fetch</button>
+		<button o-on-click="fetch">Fetch</button>
 		<br>
 		<br>
 
