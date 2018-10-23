@@ -216,15 +216,22 @@ class Binder {
 	eachElement (element, container, scope, callback) {
 
 		if (
+			element.nodeName !== '#document-fragment'
+			&& (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope'))
+		) {
+			return;
+		}
+
+		if (
 			element.nodeName !== 'O-ROUTER'
 			&& element.nodeName !== 'TEMPLATE'
 			&& element.nodeName !== '#document-fragment'
-			&& !element.hasAttribute('o-scope')
+			// && !element.hasAttribute('o-scope')
 			&& !element.hasAttribute('o-setup')
 			&& !element.hasAttribute('o-router')
 			&& !element.hasAttribute('o-compiled')
 			&& !element.hasAttribute('o-external')
-			&& !element.hasAttribute('data-o-scope')
+			// && !element.hasAttribute('data-o-scope')
 			&& !element.hasAttribute('data-o-setup')
 			&& !element.hasAttribute('data-o-router')
 			&& !element.hasAttribute('data-o-compiled')
@@ -293,12 +300,10 @@ class Binder {
 		});
 	}
 
-	bind (element, container) {
-		container = container || element;
+	bind (element, container, scope) {
 
-		const scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
-
-		if (!scope) throw new Error('Oxe - bind requires container element scope attribute');
+		if (!scope) throw new Error('Oxe - bind requires scope argument');
+		if (!container) throw new Error('Oxe - bind requires container argument');
 
 		this.eachElement(element, container, scope, function (child) {
 			this.eachAttribute(child, function (attribute) {

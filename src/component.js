@@ -140,7 +140,7 @@ class Component {
 
 			const clone = document.importNode(template.content, true);
 
-			Binder.bind(clone, element);
+			Binder.bind(clone, element, scope);
 
 			if (options.shadow && 'attachShadow' in document.body) {
 				element.attachShadow({ mode: 'open' }).appendChild(clone);

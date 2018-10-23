@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.15.4
+	Version: 3.15.5
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1072,7 +1072,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (data.constructor === Object) key = keys[binder.element.children.length];
 
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
-					Binder$2.bind(clone, binder.container);
+					Binder$2.bind(clone, binder.container, binder.scope);
 					binder.element.appendChild(clone);
 				}
 
@@ -1647,7 +1647,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'eachElement',
 			value: function eachElement(element, container, scope, callback) {
 
-				if (element.nodeName !== 'O-ROUTER' && element.nodeName !== 'TEMPLATE' && element.nodeName !== '#document-fragment' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
+				if (element.nodeName !== '#document-fragment' && (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope'))) {
+					return;
+				}
+
+				if (element.nodeName !== 'O-ROUTER' && element.nodeName !== 'TEMPLATE' && element.nodeName !== '#document-fragment'
+				// && !element.hasAttribute('o-scope')
+				&& !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external')
+				// && !element.hasAttribute('data-o-scope')
+				&& !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
 					callback.call(this, element);
 				}
 
@@ -1698,12 +1706,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'bind',
-			value: function bind(element, container) {
-				container = container || element;
+			value: function bind(element, container, scope) {
 
-				var scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
-
-				if (!scope) throw new Error('Oxe - bind requires container element scope attribute');
+				if (!scope) throw new Error('Oxe - bind requires scope argument');
+				if (!container) throw new Error('Oxe - bind requires container argument');
 
 				this.eachElement(element, container, scope, function (child) {
 					this.eachAttribute(child, function (attribute) {
@@ -2815,7 +2821,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					var clone = document.importNode(template.content, true);
 
-					Binder$2.bind(clone, element);
+					Binder$2.bind(clone, element, scope);
 
 					if (options.shadow && 'attachShadow' in document.body) {
 						element.attachShadow({ mode: 'open' }).appendChild(clone);

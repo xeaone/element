@@ -38,7 +38,7 @@ export default function (binder) {
 				if (data.constructor === Object) key = keys[binder.element.children.length];
 
 				Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
-				Binder.bind(clone, binder.container);
+				Binder.bind(clone, binder.container, binder.scope);
 				binder.element.appendChild(clone);
 			}
 
