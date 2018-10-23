@@ -9,7 +9,7 @@ export default function (e) {
 	}
 
 	const path = Path.resolve(element.src || element.href);
-	const load = this.data[path];
+	const load = Loader.data[path];
 
 	Loader.ready(load);
 }

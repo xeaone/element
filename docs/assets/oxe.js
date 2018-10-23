@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.15.5
+	Version: 3.15.6
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -3344,7 +3344,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 
 		var path = Path.resolve(element.src || element.href);
-		var load = this.data[path];
+		var load = Loader$1.data[path];
 
 		Loader$1.ready(load);
 	}
