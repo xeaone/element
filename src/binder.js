@@ -216,8 +216,11 @@ class Binder {
 	eachElement (element, container, scope, callback) {
 
 		if (
-			element.nodeName !== '#document-fragment'
-			&& (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope'))
+			element.attributes &&
+			(
+				(element.attributes['o-scope'] && element.attributes['o-scope'].value !== scope) ||
+				(element.attributes['data-o-scope'] && element.attributes['data-o-scope'].value !== scope)
+			)
 		) {
 			return;
 		}
@@ -226,13 +229,13 @@ class Binder {
 			element.nodeName !== 'O-ROUTER'
 			&& element.nodeName !== 'TEMPLATE'
 			&& element.nodeName !== '#document-fragment'
-			// && !element.hasAttribute('o-scope')
+			&& !element.hasAttribute('o-scope')
 			&& !element.hasAttribute('o-setup')
 			&& !element.hasAttribute('o-router')
 			&& !element.hasAttribute('o-compiled')
 			&& !element.hasAttribute('o-external')
-			// && !element.hasAttribute('data-o-scope')
 			&& !element.hasAttribute('data-o-setup')
+			&& !element.hasAttribute('data-o-scope')
 			&& !element.hasAttribute('data-o-router')
 			&& !element.hasAttribute('data-o-compiled')
 			&& !element.hasAttribute('data-o-external')
@@ -303,6 +306,7 @@ class Binder {
 	bind (element, container, scope) {
 
 		if (!scope) throw new Error('Oxe - bind requires scope argument');
+		if (!element) throw new Error('Oxe - bind requires element argument');
 		if (!container) throw new Error('Oxe - bind requires container argument');
 
 		this.eachElement(element, container, scope, function (child) {

@@ -15,10 +15,7 @@ import Router from './router.js';
 import Loader from './loader.js';
 import Binder from './binder.js';
 import Model from './model.js';
-
 import Render from './render.js';
-
-// OPTIMIZE wait until polyfill are ready then allow setup
 
 const eStyle = document.createElement('style');
 const tStyle = document.createTextNode(`
@@ -131,7 +128,6 @@ class Oxe {
 
 	constructor () {
 		this.g = {};
-		this.compiled = true;
 	}
 
 	get global () {

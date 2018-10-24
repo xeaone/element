@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.15.6
+	Version: 3.15.7
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1647,15 +1647,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'eachElement',
 			value: function eachElement(element, container, scope, callback) {
 
-				if (element.nodeName !== '#document-fragment' && (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope'))) {
+				if (element.attributes && (element.attributes['o-scope'] && element.attributes['o-scope'].value !== scope || element.attributes['data-o-scope'] && element.attributes['data-o-scope'].value !== scope)) {
 					return;
 				}
 
-				if (element.nodeName !== 'O-ROUTER' && element.nodeName !== 'TEMPLATE' && element.nodeName !== '#document-fragment'
-				// && !element.hasAttribute('o-scope')
-				&& !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external')
-				// && !element.hasAttribute('data-o-scope')
-				&& !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
+				if (element.nodeName !== 'O-ROUTER' && element.nodeName !== 'TEMPLATE' && element.nodeName !== '#document-fragment' && !element.hasAttribute('o-scope') && !element.hasAttribute('o-setup') && !element.hasAttribute('o-router') && !element.hasAttribute('o-compiled') && !element.hasAttribute('o-external') && !element.hasAttribute('data-o-setup') && !element.hasAttribute('data-o-scope') && !element.hasAttribute('data-o-router') && !element.hasAttribute('data-o-compiled') && !element.hasAttribute('data-o-external')) {
 					callback.call(this, element);
 				}
 
@@ -1709,6 +1705,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function bind(element, container, scope) {
 
 				if (!scope) throw new Error('Oxe - bind requires scope argument');
+				if (!element) throw new Error('Oxe - bind requires element argument');
 				if (!container) throw new Error('Oxe - bind requires container argument');
 
 				this.eachElement(element, container, scope, function (child) {
@@ -2808,7 +2805,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				Model$2.set(scope, options.model);
 				Methods$1.set(scope, options.methods);
 
-				if (!self.compiled || self.compiled && element.parentNode.nodeName !== 'O-ROUTER') {
+				if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
+					Binder$2.bind(element, element, scope);
+				} else {
 					var template = document.createElement('template');
 					var style = self.renderStyle(options.style, scope);
 
@@ -3372,8 +3371,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var General$1 = new General();
 
-	// OPTIMIZE wait until polyfill are ready then allow setup
-
 	var eStyle = document.createElement('style');
 	var tStyle = document.createTextNode('\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition 150ms ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n');
 
@@ -3476,7 +3473,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_classCallCheck(this, Oxe);
 
 			this.g = {};
-			this.compiled = true;
 		}
 
 		_createClass(Oxe, [{

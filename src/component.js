@@ -127,7 +127,9 @@ class Component {
 		Model.set(scope, options.model);
 		Methods.set(scope, options.methods);
 
-		if (!self.compiled || (self.compiled && element.parentNode.nodeName !== 'O-ROUTER')) {
+		if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
+			Binder.bind(element, element, scope);
+		} else {
 			const template = document.createElement('template');
 			const style = self.renderStyle(options.style, scope);
 
@@ -150,7 +152,6 @@ class Component {
 				self.renderSlot(clone, element);
 				element.appendChild(clone);
 			}
-
 		}
 
 		if (options.created) {
