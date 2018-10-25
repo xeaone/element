@@ -41,10 +41,6 @@ document.addEventListener('submit', Submit, true);
 document.addEventListener('change', Change, true);
 window.addEventListener('popstate', State, true);
 
-document.registerElement('o-router', {
-	prototype: Object.create(HTMLElement.prototype)
-});
-
 const oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
@@ -86,6 +82,10 @@ if (oSetup) {
 			document.head.appendChild(index);
 		}
 
+		document.registerElement('o-router', {
+			prototype: Object.create(HTMLElement.prototype)
+		});
+
 	};
 
 	const loader = function (url, callback) {
@@ -122,6 +122,10 @@ if (oSetup) {
 	}
 
 	loaded();
+} else {
+	document.registerElement('o-router', {
+		prototype: Object.create(HTMLElement.prototype)
+	});
 }
 
 class Oxe {

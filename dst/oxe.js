@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.15.7
+	Version: 3.15.8
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -3386,10 +3386,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	document.addEventListener('change', Change, true);
 	window.addEventListener('popstate', State, true);
 
-	document.registerElement('o-router', {
-		prototype: Object.create(HTMLElement.prototype)
-	});
-
 	var oSetup = document.querySelector('script[o-setup]');
 
 	if (oSetup) {
@@ -3430,6 +3426,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				document.head.appendChild(_index);
 			}
+
+			document.registerElement('o-router', {
+				prototype: Object.create(HTMLElement.prototype)
+			});
 		};
 
 		var loader = function loader(url, callback) {
@@ -3466,6 +3466,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 
 		loaded();
+	} else {
+		document.registerElement('o-router', {
+			prototype: Object.create(HTMLElement.prototype)
+		});
 	}
 
 	var Oxe = function () {
