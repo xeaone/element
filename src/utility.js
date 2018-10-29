@@ -66,7 +66,7 @@ export default {
 
 			const values = this.binderValues(value);
 
-			data[values[0]] = this.getByPath(model, values);
+			data[values[values.length-1]] = this.getByPath(model, values);
 		}
 
 		return data;

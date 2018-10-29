@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.15.8
+	Version: 3.15.9
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -21,12 +21,12 @@ function _awaitIgnored(value, direct) {
 		return Promise.resolve(value).then(_empty);
 	}
 }function _invoke(body, then) {
-	var result = body();
-	if (result && result.then) {
+	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
-	var result = body();if (result && result.then) {
+	var result = body();
+	if (result && result.then) {
 		return result.then(_empty);
 	}
 }function _empty() {}function _await(value, then, direct) {
@@ -782,7 +782,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				var values = this.binderValues(value);
 
-				data[values[0]] = this.getByPath(model, values);
+				data[values[values.length - 1]] = this.getByPath(model, values);
 			}
 
 			return data;
@@ -825,7 +825,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				} else if (node.nodeType === 1) {
 					for (var i = 0, l = node.attributes.length; i < l; i++) {
-						var attribute = node.attributes[i];if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
+						var attribute = node.attributes[i];
+						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 							attribute.value = attribute.value.replace(pattern, '$1' + path + '.' + key + '$2');
 						}
 					}
