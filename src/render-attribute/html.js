@@ -7,12 +7,20 @@ export default function (binder) {
 	return {
 		read () {
 			data = Model.get(binder.keys);
-
-			if (binder.element.innerHTML === data) return false;
-
 			data = Binder.piper(binder, data);
 
-			if (binder.element.innerHTML === data) return false;
+			if (data === undefined || data === null) {
+				Model.set(binder.keys, '');
+				return false;
+			} else if (typeof data === 'object') {
+				data = JSON.stringify(data);
+			} else if (typeof data !== 'string') {
+				data = String(data);
+			}
+
+			if (data === binder.element.innerHTML) {
+				return false;
+			}
 
 		},
 		write () {

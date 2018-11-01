@@ -7,12 +7,8 @@ export default function (binder) {
 	return {
 		read () {
 			data = Model.get(binder.keys);
-
-			if (binder.element.required === data) {
-				return false;
-			}
-
 			data = Binder.piper(binder, data);
+			if (data === binder.element.required) return false;
 		},
 		write () {
 			binder.element.required = data;

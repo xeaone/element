@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 3.15.9
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -25,8 +15,7 @@ function _awaitIgnored(value, direct) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
-	var result = body();
-	if (result && result.then) {
+	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
 }function _empty() {}function _await(value, then, direct) {
@@ -79,7 +68,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		if (!element) throw new Error('Oxe - requires element argument');
 		if (!attribute) throw new Error('Oxe - requires attribute argument');
 
-		var binder = Binder$2.elements.get(element).get(attribute);
+		var binder = Binder$1.elements.get(element).get(attribute);
 
 		var read = function read() {
 			var type = binder.element.type;
@@ -141,17 +130,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 
 			if (data !== undefined) {
-				var original = Model$2.get(binder.keys);
+				var original = Model$1.get(binder.keys);
 
 				if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' && data.constructor === original.constructor) {
 					for (var key in data) {
 						if (data[key] !== original[key]) {
-							Model$2.set(binder.keys, data);
+							Model$1.set(binder.keys, data);
 							break;
 						}
 					}
 				} else if (original !== data) {
-					Model$2.set(binder.keys, data);
+					Model$1.set(binder.keys, data);
 				}
 			}
 		};
@@ -408,6 +397,23 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	};
 
+	function Class(binder) {
+		return {
+			write: function write() {
+				var className = binder.names.slice(1).join('-');
+				binder.element.classList.remove(className);
+			}
+		};
+	}
+
+	function Css(binder) {
+		return {
+			write: function write() {
+				binder.element.style.cssText = '';
+			}
+		};
+	}
+
 	var Batcher = function () {
 		function Batcher() {
 			_classCallCheck(this, Batcher);
@@ -569,7 +575,108 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  	Oxe.batcher.tp = 0;
  */
 
-	function TextAttributeUnrender(binder) {
+	function Default(binder) {
+		var unrender = void 0;
+
+		if (binder.type in this) {
+			unrender = this[binder.type](binder);
+		} else {
+			unrender = {
+				read: function read() {
+					if (binder.element[binder.type] === '') {
+						return false;
+					}
+				},
+				write: function write() {
+					binder.element[binder.type] = '';
+				}
+			};
+		}
+
+		Batcher$1.batch(unrender);
+	}
+
+	function Disable(binder) {
+		return {
+			write: function write() {
+				binder.element.disabled = false;
+			}
+		};
+	}
+
+	function Each(binder) {
+		return {
+			write: function write() {
+				var element = void 0;
+
+				while (element = binder.element.lastElementChild) {
+					binder.element.removeChild(element);
+				}
+			}
+		};
+	}
+
+	function Enable(binder) {
+		return {
+			write: function write() {
+				binder.element.disabled = true;
+			}
+		};
+	}
+
+	function Hide(binder) {
+		return {
+			write: function write() {
+				binder.element.hidden = false;
+			}
+		};
+	}
+
+	function Html(binder) {
+		return {
+			write: function write() {
+				var element = void 0;
+
+				while (element = binder.element.lastElementChild) {
+					binder.element.removeChild(element);
+				}
+			}
+		};
+	}
+
+	function On(binder) {
+		return {
+			write: function write() {
+				binder.element.removeEventListener(binder.names[1], binder.cache, false);
+			}
+		};
+	}
+
+	function Read(binder) {
+		return {
+			write: function write() {
+				binder.element.readOnly = false;
+			}
+		};
+	}
+
+	function Required(binder) {
+		return {
+			write: function write() {
+				binder.element.required = false;
+			}
+		};
+	}
+
+	function Show(binder) {
+		return {
+			write: function write() {
+				binder.element.hidden = true;
+			}
+		};
+	}
+
+	function Text(binder) {
 		return {
 			write: function write() {
 				binder.element.innerText = '';
@@ -577,79 +684,23 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	var Unrender$1 = {
-		alt: function alt(opt) {
-			Batcher$1.write(function () {
-				opt.element.alt = '';
-			});
-		},
-		each: function each(opt) {
-			Batcher$1.write(function () {
-				var element = void 0;
-
-				while (element = opt.element.lastElementChild) {
-					opt.element.removeChild(element);
-				}
-			});
-		},
-		href: function href(opt) {
-			Batcher$1.write(function () {
-				opt.element.href = '';
-			});
-		},
-		class: function _class(opt) {
-			Batcher$1.write(function () {
-				var className = opt.names.slice(1).join('-');
-				opt.element.classList.remove(className);
-			});
-		},
-		html: function html(opt) {
-			Batcher$1.write(function () {
-				var element = void 0;
-
-				while (element = opt.element.lastElementChild) {
-					opt.element.removeChild(element);
-				}
-			});
-		},
-		on: function on(opt) {
-			opt.element.removeEventListener(opt.names[1], opt.cache, false);
-		},
-		css: function css(opt) {
-			Batcher$1.write(function () {
-				opt.element.style.cssText = '';
-			});
-		},
-		required: function required(opt) {
-			Batcher$1.write(function () {
-				opt.element.required = false;
-			});
-		},
-		src: function src(opt) {
-			Batcher$1.write(function () {
-				opt.element.src = '';
-			});
-		},
-
-
-		text: TextAttributeUnrender,
-
-		value: function value(opt) {
-			Batcher$1.write(function () {
+	function Value(binder) {
+		return {
+			write: function write() {
 				var i, l, query, element, elements;
 
-				if (opt.element.nodeName === 'SELECT') {
+				if (binder.element.nodeName === 'SELECT') {
 
-					elements = opt.element.options;
+					elements = binder.element.options;
 
 					for (i = 0, l = elements.length; i < l; i++) {
 						element = elements[i];
 						element.selected = false;
 					}
-				} else if (opt.element.type === 'radio') {
+				} else if (binder.element.type === 'radio') {
 
-					query = 'input[type="radio"][o-value="' + opt.path + '"]';
-					elements = opt.element.parentNode.querySelectorAll(query);
+					query = 'input[type="radio"][o-value="' + binder.path + '"]';
+					elements = binder.element.parentNode.querySelectorAll(query);
 
 					for (i = 0, l = elements.length; i < l; i++) {
 						element = elements[i];
@@ -660,43 +711,42 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							element.checked = false;
 						}
 					}
-				} else if (opt.element.type === 'checkbox') {
+				} else if (binder.element.type === 'checkbox') {
 
-					opt.element.checked = false;
-					opt.element.value = false;
+					binder.element.checked = false;
+					binder.element.value = false;
 				} else {
-					opt.element.value = '';
+					binder.element.value = '';
 				}
-			});
-		},
-		default: function _default(binder) {
-
-			if (binder.type in this) {
-				var unrender = this[binder.type](binder);
-
-				if (unrender) {
-					unrender.context = unrender.context || {};
-					Batcher$1.batch(unrender);
-				}
-			} else {
-				var data = void 0;
-
-				Batcher$1.batch({
-					read: function read() {
-						data = Model.get(binder.keys);
-
-						if (binder.element[binder.type] === data) {
-							return;
-						}
-
-						data = Binder.piper(binder, data);
-					},
-					write: function write() {
-						binder.element[binder.type] = data;
-					}
-				});
 			}
-		}
+		};
+	}
+
+	function Write(binder) {
+
+		return {
+			write: function write() {
+				binder.element.readOnly = true;
+			}
+		};
+	}
+
+	var Unrender$1 = {
+		class: Class,
+		css: Css,
+		default: Default,
+		disable: Disable,
+		each: Each,
+		enable: Enable,
+		hide: Hide,
+		html: Html,
+		on: On,
+		read: Read,
+		required: Required,
+		show: Show,
+		text: Text,
+		value: Value,
+		write: Write
 	};
 
 	var Utility = {
@@ -953,36 +1003,35 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Methods$1 = new Methods();
 
-	function Class(binder) {
+	function Class$1(binder) {
 		var data = void 0,
 		    name = void 0;
 
 		return {
 			write: function write() {
-				data = Model$2.get(binder.keys);
-				data = Binder$2.piper(binder, data);
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
 				name = binder.names.slice(1).join('-');
 				binder.element.classList.toggle(name, data);
 			}
 		};
 	}
 
-	function Css(binder) {
+	function Css$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
-
-				if (binder.element.style.cssText === data) return false;
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
 
 				if (binder.names.length > 1) {
 					data = binder.names.slice(1).join('-') + ': ' + data + ';';
 				}
 
-				data = Binder$2.piper(binder, data);
-
-				if (binder.element.style.cssText === data) return false;
+				if (data === binder.element.style.cssText) {
+					return false;
+				}
 			},
 			write: function write() {
 				binder.element.style.cssText = data;
@@ -990,7 +1039,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Default(binder) {
+	function Default$1(binder) {
 		var render = void 0;
 		var data = void 0;
 
@@ -999,13 +1048,21 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		} else {
 			render = {
 				read: function read() {
-					data = Model$2.get(binder.keys);
+					data = Model$1.get(binder.keys);
+					data = Binder$1.piper(binder, data);
 
-					if (binder.element[binder.type] === data) {
-						return;
+					if (data === undefined || data === null) {
+						Model$1.set(binder.keys, '');
+						return false;
+					} else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
+						data = JSON.stringify(data);
+					} else if (typeof data !== 'string') {
+						data = String(data);
 					}
 
-					data = Binder$2.piper(binder, data);
+					if (data === binder.element[binder.type]) {
+						return false;
+					}
 				},
 				write: function write() {
 					binder.element[binder.type] = data;
@@ -1016,18 +1073,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		Batcher$1.batch(render);
 	}
 
-	function Disable(binder) {
+	function Disable$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
-
-				if (binder.element.disabled === data) return false;
-
-				data = Binder$2.piper(binder, data);
-
-				if (binder.element.disabled === data) return false;
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
+				if (data === binder.element.disabled) return false;
 			},
 			write: function write() {
 				binder.element.disabled = data;
@@ -1035,7 +1088,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Each(binder) {
+	function Each$1(binder) {
 		var self = this;
 
 		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
@@ -1047,11 +1100,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				    data = void 0,
 				    length = void 0;
 
-				data = Model$2.get(binder.keys);
+				data = Model$1.get(binder.keys);
 
 				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
 
-				data = Binder$2.piper(binder, data);
+				data = Binder$1.piper(binder, data);
 
 				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
 
@@ -1073,7 +1126,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (data.constructor === Object) key = keys[binder.element.children.length];
 
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
-					Binder$2.bind(clone, binder.container, binder.scope);
+					Binder$1.bind(clone, binder.container, binder.scope);
 					binder.element.appendChild(clone);
 				}
 
@@ -1084,18 +1137,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Enable(binder) {
+	function Enable$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
-
-				if (binder.element.disabled === !data) return false;
-
-				data = Binder$2.piper(binder, data);
-
-				if (binder.element.disabled === !data) return false;
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
+				if (!data === binder.element.disabled) return false;
 			},
 			write: function write() {
 				binder.element.disabled = !data;
@@ -1103,18 +1152,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Hide(binder) {
+	function Hide$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
-
-				if (binder.element.hidden === data) return false;
-
-				data = Binder$2.piper(binder, data);
-
-				if (binder.element.hidden === data) return false;
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
+				if (data === binder.element.hidden) return false;
 			},
 			write: function write() {
 				binder.element.hidden = data;
@@ -1122,18 +1167,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Html(binder) {
+	function Html$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
 
-				if (binder.element.innerHTML === data) return false;
+				if (data === undefined || data === null) {
+					Model$1.set(binder.keys, '');
+					return false;
+				} else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
+					data = JSON.stringify(data);
+				} else if (typeof data !== 'string') {
+					data = String(data);
+				}
 
-				data = Binder$2.piper(binder, data);
-
-				if (binder.element.innerHTML === data) return false;
+				if (data === binder.element.innerHTML) {
+					return false;
+				}
 			},
 			write: function write() {
 				binder.element.innerHTML = data;
@@ -1141,7 +1194,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function On(binder) {
+	function On$1(binder) {
 		var data = void 0;
 
 		return {
@@ -1160,7 +1213,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						for (var i = 0, l = binder.pipes.length; i < l; i++) {
 							var keys = binder.pipes[i].split('.');
 							keys.unshift(binder.scope);
-							var parameter = Model$2.get(keys);
+							var parameter = Model$1.get(keys);
 							parameters.push(parameter);
 						}
 
@@ -1174,18 +1227,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Read(binder) {
+	function Read$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
-
-				if (binder.element.readOnly === data) {
-					return false;
-				}
-
-				data = Binder$2.piper(binder, data);
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
+				if (data === binder.element.readOnly) return false;
 			},
 			write: function write() {
 				binder.element.readOnly = data;
@@ -1193,18 +1242,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Required(binder) {
+	function Required$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
-
-				if (binder.element.required === data) {
-					return false;
-				}
-
-				data = Binder$2.piper(binder, data);
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
+				if (data === binder.element.required) return false;
 			},
 			write: function write() {
 				binder.element.required = data;
@@ -1212,18 +1257,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Show(binder) {
+	function Show$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
-
-				if (!data === binder.element.hidden) {
-					return false;
-				}
-
-				data = Binder$2.piper(binder, data);
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
+				if (!data === binder.element.hidden) return false;
 			},
 			write: function write() {
 				binder.element.hidden = !data;
@@ -1231,25 +1272,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Text(binder) {
+	function Text$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
 
-				if (data === undefined) {
-					Model$2.set(binder.keys, '');
+				if (data === undefined || data === null) {
+					Model$1.set(binder.keys, '');
 					return false;
-				} else if (data === null) {
-					return false;
-				} else if (data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
+				} else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
 					data = JSON.stringify(data);
-				} else if (data && typeof data !== 'string') {
+				} else if (typeof data !== 'string') {
 					data = String(data);
 				}
 
-				data = Binder$2.piper(binder, data);
+				if (data === binder.element.innerText) {
+					return false;
+				}
 			},
 			write: function write() {
 				binder.element.innerText = data;
@@ -1257,7 +1299,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	function Value(binder) {
+	function Value$1(binder) {
 		var self = this;
 		var type = binder.element.type;
 		var name = binder.element.nodeName;
@@ -1270,7 +1312,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			return {
 				read: function read() {
-					data = Model$2.get(binder.keys);
+					data = Model$1.get(binder.keys);
 					elements = binder.element.options;
 					multiple = binder.element.multiple;
 
@@ -1302,7 +1344,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (elements.length && !selected) {
 						elements[index].setAttribute('selected', '');
 						if (data !== (elements[index].value || '')) {
-							Model$2.set(binder.keys, elements[index].value || '');
+							Model$1.set(binder.keys, elements[index].value || '');
 						}
 					}
 				}
@@ -1312,10 +1354,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			return {
 				read: function read() {
-					data = Model$2.get(binder.keys);
+					data = Model$1.get(binder.keys);
 
 					if (data === undefined) {
-						Model$2.set(binder.keys, 0);
+						Model$1.set(binder.keys, 0);
 						return false;
 					}
 
@@ -1337,17 +1379,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					if (!checked) {
 						_elements[0].checked = true;
-						Model$2.set(binder.keys, 0);
+						Model$1.set(binder.keys, 0);
 					}
 				}
 			};
 		} else if (type === 'file') {
 			return {
 				read: function read() {
-					data = Model$2.get(binder.keys);
+					data = Model$1.get(binder.keys);
 
 					if (data === undefined) {
-						Model$2.set(binder.keys, []);
+						Model$1.set(binder.keys, []);
 						return false;
 					}
 
@@ -1371,10 +1413,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		} else if (type === 'checkbox') {
 			return {
 				read: function read() {
-					data = Model$2.get(binder.keys);
+					data = Model$1.get(binder.keys);
 
 					if (typeof data !== 'boolean') {
-						Model$2.set(binder.keys, false);
+						Model$1.set(binder.keys, false);
 						return false;
 					}
 
@@ -1389,16 +1431,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		} else {
 			return {
 				read: function read() {
-					data = Model$2.get(binder.keys);
+					data = Model$1.get(binder.keys);
 
 					if (name === 'OPTION' && binder.element.selected) {
 						var parent = binder.element.parentElement;
-						var select = Binder$2.elements.get(parent).get('value');
+						var select = Binder$1.elements.get(parent).get('value');
 						self.default(select);
 					}
 
 					if (data === undefined) {
-						Model$2.set(binder.keys, '');
+						Model$1.set(binder.keys, '');
 						return false;
 					}
 
@@ -1413,18 +1455,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	}
 
-	function Write(binder) {
+	function Write$1(binder) {
 		var data = void 0;
 
 		return {
 			read: function read() {
-				data = Model$2.get(binder.keys);
-
-				if (!data === binder.element.readOnly) {
-					return false;
-				}
-
-				data = Binder$2.piper(binder, data);
+				data = Model$1.get(binder.keys);
+				data = Binder$1.piper(binder, data);
+				if (!data === binder.element.readOnly) return false;
 			},
 			write: function write() {
 				binder.element.readOnly = !data;
@@ -1433,32 +1471,32 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}
 
 	var Render = {
-		class: Class,
-		css: Css,
-		default: Default,
-		disable: Disable,
-		each: Each,
-		enable: Enable,
-		hide: Hide,
-		html: Html,
-		on: On,
-		read: Read,
-		required: Required,
-		show: Show,
-		text: Text,
-		value: Value,
-		write: Write
+		class: Class$1,
+		css: Css$1,
+		default: Default$1,
+		disable: Disable$1,
+		each: Each$1,
+		enable: Enable$1,
+		hide: Hide$1,
+		html: Html$1,
+		on: On$1,
+		read: Read$1,
+		required: Required$1,
+		show: Show$1,
+		text: Text$1,
+		value: Value$1,
+		write: Write$1
 	};
 
-	var Binder$1 = function () {
-		function Binder$1() {
-			_classCallCheck(this, Binder$1);
+	var Binder = function () {
+		function Binder() {
+			_classCallCheck(this, Binder);
 
 			this.data = {};
 			this.elements = new Map();
 		}
 
-		_createClass(Binder$1, [{
+		_createClass(Binder, [{
 			key: 'create',
 			value: function create(data) {
 				var binder = {};
@@ -1596,6 +1634,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 			}
+
+			// make async
+
 		}, {
 			key: 'piper',
 			value: function piper(binder, data) {
@@ -1727,14 +1768,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}]);
 
-		return Binder$1;
+		return Binder;
 	}();
 
-	var Binder$2 = new Binder$1();
+	var Binder$1 = new Binder();
 
-	var Model$1 = function () {
-		function Model$1() {
-			_classCallCheck(this, Model$1);
+	var Model = function () {
+		function Model() {
+			_classCallCheck(this, Model);
 
 			this.GET = 2;
 			this.SET = 3;
@@ -1743,7 +1784,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			this.data = Observer.create({}, this.listener.bind(this));
 		}
 
-		_createClass(Model$1, [{
+		_createClass(Model, [{
 			key: 'traverse',
 			value: function traverse(type, keys, value) {
 				var result = void 0;
@@ -1804,25 +1845,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					var scope = path.split('.').slice(0, 1).join('.');
 					var part = path.split('.').slice(1).join('.');
 
-					if (!(scope in Binder$2.data)) return;
-					if (!(part in Binder$2.data[scope])) return;
-					if (!(0 in Binder$2.data[scope][part])) return;
+					if (!(scope in Binder$1.data)) return;
+					if (!(part in Binder$1.data[scope])) return;
+					if (!(0 in Binder$1.data[scope][part])) return;
 
-					var binder = Binder$2.data[scope][part][0];
+					var binder = Binder$1.data[scope][part][0];
 
 					method.default(binder);
 				} else {
-					Binder$2.each(path, function (binder) {
+					Binder$1.each(path, function (binder) {
 						method.default(binder);
 					});
 				}
 			}
 		}]);
 
-		return Model$1;
+		return Model;
 	}();
 
-	var Model$2 = new Model$1();
+	var Model$1 = new Model();
 
 	function Change(e) {
 
@@ -2108,9 +2149,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		if (!submit) return;else e.preventDefault();
 
-		var binder = Binder$2.elements.get(element).get('submit');
+		var binder = Binder$1.elements.get(element).get('submit');
 		var method = Methods$1.get(binder.keys);
-		var model = Model$2.get(binder.scope);
+		var model = Model$1.get(binder.scope);
 
 		var data = Utility.formData(element, model);
 
@@ -2155,9 +2196,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		if (!reset) return;else e.preventDefault();
 
-		var binder = Binder$2.elements.get(element).get('submit');
+		var binder = Binder$1.elements.get(element).get('submit');
 		var elements = element.querySelectorAll('[o-value]');
-		var model = Model$2.get(binder.scope);
+		var model = Model$1.get(binder.scope);
 
 		Utility.formReset(element, model);
 	}
@@ -2803,11 +2844,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				element.setAttribute('o-scope', scope);
 
-				Model$2.set(scope, options.model);
+				Model$1.set(scope, options.model);
 				Methods$1.set(scope, options.methods);
 
 				if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
-					Binder$2.bind(element, element, scope);
+					Binder$1.bind(element, element, scope);
 				} else {
 					var template = document.createElement('template');
 					var style = self.renderStyle(options.style, scope);
@@ -2821,7 +2862,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					var clone = document.importNode(template.content, true);
 
-					Binder$2.bind(clone, element, scope);
+					Binder$1.bind(clone, element, scope);
 
 					if (options.shadow && 'attachShadow' in document.body) {
 						element.attachShadow({ mode: 'open' }).appendChild(clone);
@@ -2885,11 +2926,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					enumerable: true,
 					configurable: true,
 					get: function get() {
-						return Model$2.get(this.scope);
+						return Model$1.get(this.scope);
 					},
 					set: function set(data) {
 						data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
-						return Model$2.set(this.scope, data);
+						return Model$1.set(this.scope, data);
 					}
 				};
 
@@ -3594,7 +3635,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'binder',
 			get: function get() {
-				return Binder$2;
+				return Binder$1;
 			}
 		}, {
 			key: 'fetcher',
@@ -3614,7 +3655,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'model',
 			get: function get() {
-				return Model$2;
+				return Model$1;
 			}
 		}]);
 

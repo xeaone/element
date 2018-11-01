@@ -7,16 +7,16 @@ export default function (binder) {
 	return {
 		read () {
 			data = Model.get(binder.keys);
-
-			if (binder.element.style.cssText === data) return false;
+			data = Binder.piper(binder, data);
 
 			if (binder.names.length > 1) {
 				data = binder.names.slice(1).join('-') + ': ' +  data + ';';
 			}
 
-			data = Binder.piper(binder, data);
-			
-			if (binder.element.style.cssText === data) return false;
+			if (data === binder.element.style.cssText) {
+				return false;
+			}
+
 		},
 		write () {
 			binder.element.style.cssText = data;
