@@ -422,11 +422,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			this.writes = [];
 			this.time = 1000 / 30;
 			this.pending = false;
-			// this.mr = 0;
-			// this.mw = 0;
-			// this.tr = 0;
-			// this.tw = 0;
-			// this.tp = 0;
 		}
 
 		_createClass(Batcher, [{
@@ -446,60 +441,41 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'schedule',
 			value: function schedule() {
-				if (!this.pending) {
-					this.pending = true;
-					this.tick(this.flush.bind(this, null));
-				}
+				if (this.pending) return;
+				this.pending = true;
+				this.tick(this.flush.bind(this, null));
 			}
 		}, {
 			key: 'flush',
-			value: function flush(position, time) {
+			value: function flush(time) {
+				time = time || performance.now();
 
 				if (!this.reads.length && !this.writes.length) {
 					this.pending = false;
 					return;
 				}
 
-				var i = void 0;
+				var task = void 0;
 
-				if (position === null) {
+				while (task = this.reads.shift()) {
+					task();
 
-					for (i = 0; i < this.reads.length; i++) {
-						// this.tr++;
-						this.reads[i]();
-
-						// max read time
-						if (performance.now() - time > this.time) {
-							// this.mr++;
-							this.reads.splice(0, i + 1);
-							return this.tick(this.flush.bind(this, i + 1));
-						}
-					}
-
-					this.reads.splice(0, i + 1);
-				}
-
-				for (i = 0; i < this.writes.length; i++) {
-					// this.tw++;
-					this.writes[i]();
-
-					// position of max read time
-					if (i === position) {
-						// this.tp++;
-						this.writes.splice(0, i + 1);
-						return this.flush(null, time);
-					}
-
-					// max write time
 					if (performance.now() - time > this.time) {
-						// this.mw++;
-						this.writes.splice(0, i + 1);
-						return this.tick(this.flush.bind(this, i + 1));
+						this.tick(this.flush.bind(this, null));
+						return;
 					}
 				}
 
-				this.writes.splice(0, i + 1);
-				this.flush(null, time);
+				while (task = this.writes.shift()) {
+					task();
+
+					if (performance.now() - time > this.time) {
+						this.tick(this.flush.bind(this, null));
+						return;
+					}
+				}
+
+				this.flush(time);
 			}
 		}, {
 			key: 'remove',
@@ -1289,6 +1265,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					data = String(data);
 				}
 
+				// causes a weird recalculate and layout
 				if (data === binder.element.innerText) {
 					return false;
 				}

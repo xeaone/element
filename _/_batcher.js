@@ -5,7 +5,13 @@ class Batcher {
 		this.reads = [];
 		this.writes = [];
 		this.time = 1000/30;
+		// this.time = 150;
 		this.pending = false;
+		// this.mr = 0;
+		// this.mw = 0;
+		// this.tr = 0;
+		// this.tw = 0;
+		// this.tp = 0;
 	}
 
 	setup (options) {
@@ -19,12 +25,13 @@ class Batcher {
 
 	// schedules a new read/write batch if one is not pending
 	schedule () {
-		if (this.pending) return;
-		this.pending = true;
-		this.tick(this.flush.bind(this, null));
+		if (!this.pending) {
+			this.pending = true;
+			this.tick(this.flush.bind(this, null, null));
+		}
 	}
 
-	flush (time) {
+	flush (position, time) {
 		time = time || performance.now();
 
 		if (!this.reads.length && !this.writes.length) {
@@ -32,29 +39,52 @@ class Batcher {
 			return;
 		}
 
-		let task;
+		let i;
 
-		while (task = this.reads.shift()) {
-			task();
+		if (position === null) {
 
+			for (i = 0; i < this.reads.length; i++) {
+				// this.tr++;
+				this.reads[i]();
+
+				// max read time
+				if (performance.now() - time > this.time) {
+					// this.mr++;
+					this.reads.splice(0, i + 1);
+					this.tick(this.flush.bind(this, null, null));
+					// this.tick(this.flush.bind(this, i + 1, null));
+					return;
+				}
+			}
+
+			this.reads.splice(0, i + 1);
+		}
+
+		for (i = 0; i < this.writes.length; i++) {
+			// this.tw++;
+			this.writes[i]();
+
+			// position of max read time
+			if (i === position) {
+				// this.tp++;
+				this.writes.splice(0, i + 1);
+				this.flush(null, time);
+				return;
+			}
+
+			// max write time
 			if (performance.now() - time > this.time) {
-				this.tick(this.flush.bind(this, null));
+				// this.mw++;
+				this.writes.splice(0, i + 1);
+				this.tick(this.flush.bind(this, null, null));
+				// this.tick(this.flush.bind(this, i + 1, null));
 				return;
 			}
 
 		}
 
-		while (task = this.writes.shift()) {
-			task();
-
-			if (performance.now() - time > this.time) {
-				this.tick(this.flush.bind(this, null));
-				return;
-			}
-
-		}
-
-		this.flush(time);
+		this.writes.splice(0, i + 1);
+		this.flush(null, time);
 	}
 
 	remove (tasks, task) {

@@ -18,6 +18,7 @@ export default function (binder) {
 				data = String(data);
 			}
 
+			// causes a weird recalculate and layout
 			if (data === binder.element.innerText) {
 				return false;
 			}
