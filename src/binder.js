@@ -156,7 +156,8 @@ class Binder {
 		}
 
 	}
-
+	
+	// make async
 	piper (binder, data) {
 
 		if (!binder.pipes.length) {
