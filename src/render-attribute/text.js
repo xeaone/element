@@ -15,14 +15,12 @@ export default function (binder) {
 			} else if (typeof data === 'object') {
 				data = JSON.stringify(data);
 			} else if (typeof data !== 'string') {
-				data = String(data);
+				data = data.toString();
 			}
 
-			// causes a weird recalculate and layout
 			if (data === binder.element.innerText) {
 				return false;
 			}
-
 		},
 		write () {
 			binder.element.innerText = data;

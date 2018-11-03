@@ -130,7 +130,6 @@ export default function (binder) {
 				if (data === binder.element.checked) {
 					return false;
 				}
-
 			},
 			write () {
 				binder.element.checked = data;
@@ -139,7 +138,6 @@ export default function (binder) {
 	} else {
 		return {
 			read () {
-				data = Model.get(binder.keys);
 
 				if (name === 'OPTION' && binder.element.selected) {
 					const parent = binder.element.parentElement;
@@ -147,7 +145,9 @@ export default function (binder) {
 					self.default(select);
 				}
 
-				if (data === undefined) {
+				data = Model.get(binder.keys);
+
+				if (data === undefined || data === null) {
 					Model.set(binder.keys, '');
 					return false;
 				}

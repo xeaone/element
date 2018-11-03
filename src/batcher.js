@@ -27,11 +27,6 @@ class Batcher {
 	flush (time) {
 		time = time || performance.now();
 
-		if (!this.reads.length && !this.writes.length) {
-			this.pending = false;
-			return;
-		}
-
 		let task;
 
 		while (task = this.reads.shift()) {
@@ -54,7 +49,14 @@ class Batcher {
 
 		}
 
-		this.flush(time);
+		if (!this.reads.length && !this.writes.length) {
+			this.pending = false;
+		} else if (performance.now() - time > this.time) {
+			this.tick(this.flush.bind(this, null));
+		} else {
+			this.flush(time);
+		}
+
 	}
 
 	remove (tasks, task) {
@@ -69,10 +71,27 @@ class Batcher {
 	batch (data) {
 		const self = this;
 
+		// let read;
+		// let write;
+		//
+		// if (data.context) {
+		// 	read = data.read.bind(data.context, data.shared);
+		// 	write = data.write.bind(data.context, data.shared);
+		// } else {
+		// 	read = data.read;
+		// 	write = data.write;
+		// }
+		//
+		// if (read) self.reads.push(read);
+		// if (write) self.writes.push(write);
+		//
+		// self.schedule();
+
 		if (data.read) {
 
 			const read = function () {
 				let result;
+				let write;
 
 				if (data.context) {
 					result = data.read.call(data.context);
@@ -81,7 +100,6 @@ class Batcher {
 				}
 
 				if (data.write && result !== false) {
-					let write;
 
 					if (data.context) {
 						write = data.write.bind(data.context);
@@ -91,8 +109,8 @@ class Batcher {
 
 					self.writes.push(write);
 					self.schedule();
-				}
 
+				}
 			};
 
 			self.reads.push(read);

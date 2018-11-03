@@ -18,7 +18,8 @@ function _awaitIgnored(value, direct) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
-}function _empty() {}function _await(value, then, direct) {
+}
+function _empty() {}function _await(value, then, direct) {
 	if (direct) {
 		return then ? then(value) : value;
 	}value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -450,11 +451,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function flush(time) {
 				time = time || performance.now();
 
-				if (!this.reads.length && !this.writes.length) {
-					this.pending = false;
-					return;
-				}
-
 				var task = void 0;
 
 				while (task = this.reads.shift()) {
@@ -475,7 +471,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				this.flush(time);
+				if (!this.reads.length && !this.writes.length) {
+					this.pending = false;
+				} else if (performance.now() - time > this.time) {
+					this.tick(this.flush.bind(this, null));
+				} else {
+					this.flush(time);
+				}
 			}
 		}, {
 			key: 'remove',
@@ -493,10 +495,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function batch(data) {
 				var self = this;
 
+				// let read;
+				// let write;
+				//
+				// if (data.context) {
+				// 	read = data.read.bind(data.context, data.shared);
+				// 	write = data.write.bind(data.context, data.shared);
+				// } else {
+				// 	read = data.read;
+				// 	write = data.write;
+				// }
+				//
+				// if (read) self.reads.push(read);
+				// if (write) self.writes.push(write);
+				//
+				// self.schedule();
+
 				if (data.read) {
 
 					var read = function read() {
 						var result = void 0;
+						var write = void 0;
 
 						if (data.context) {
 							result = data.read.call(data.context);
@@ -505,7 +524,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 
 						if (data.write && result !== false) {
-							var write = void 0;
 
 							if (data.context) {
 								write = data.write.bind(data.context);
@@ -1017,11 +1035,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	function Default$1(binder) {
 		var render = void 0;
-		var data = void 0;
 
 		if (binder.type in this) {
 			render = this[binder.type](binder);
 		} else {
+			var data = void 0;
+
 			render = {
 				read: function read() {
 					data = Model$1.get(binder.keys);
@@ -1033,7 +1052,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					} else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
 						data = JSON.stringify(data);
 					} else if (typeof data !== 'string') {
-						data = String(data);
+						data = data.toString();
 					}
 
 					if (data === binder.element[binder.type]) {
@@ -1046,7 +1065,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			};
 		}
 
-		Batcher$1.batch(render);
+		if (render) {
+			Batcher$1.batch(render);
+		}
 	}
 
 	function Disable$1(binder) {
@@ -1065,49 +1086,46 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}
 
 	function Each$1(binder) {
-		var self = this;
 
+		if (binder.length === undefined) binder.length = 0;
 		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
+		var data = void 0,
+		    add = void 0,
+		    remove = void 0,
+		    fragment = void 0;
+
 		return {
-			write: function write() {
-				var key = void 0,
-				    keys = void 0,
-				    data = void 0,
-				    length = void 0;
-
+			read: function read() {
 				data = Model$1.get(binder.keys);
-
-				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
-
 				data = Binder$1.piper(binder, data);
 
-				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
+				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return false;
 
-				if (data.constructor === Array) {
-					length = data.length;
+				if (data.length === binder.length) {
+					return false;
+				} else if (binder.length > data.length) {
+					remove = binder.length - data.length;
+					binder.length = data.length;
+				} else if (binder.length < data.length) {
+					add = data.length - binder.length;
+					fragment = document.createDocumentFragment();
+
+					for (binder.length; binder.length < data.length; binder.length++) {
+						var clone = binder.cache.cloneNode(true);
+						Utility.replaceEachVariable(clone, binder.names[1], binder.path, binder.length);
+						Binder$1.bind(clone, binder.container, binder.scope);
+						fragment.appendChild(clone);
+					}
 				}
-
-				if (data.constructor === Object) {
-					keys = Object.keys(data);
-					length = keys.length;
-				}
-
-				if (binder.element.children.length > length) {
-					binder.element.removeChild(binder.element.lastElementChild);
-				} else if (binder.element.children.length < length) {
-					var clone = binder.cache.cloneNode(true);
-
-					if (data.constructor === Array) key = binder.element.children.length;
-					if (data.constructor === Object) key = keys[binder.element.children.length];
-
-					Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
-					Binder$1.bind(clone, binder.container, binder.scope);
-					binder.element.appendChild(clone);
-				}
-
-				if (binder.element.children.length !== data.length) {
-					self.default(binder);
+			},
+			write: function write() {
+				if (remove) {
+					while (remove--) {
+						binder.element.removeChild(binder.element.lastElementChild);
+					}
+				} else if (add) {
+					binder.element.appendChild(fragment);
 				}
 			}
 		};
@@ -1262,10 +1280,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				} else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
 					data = JSON.stringify(data);
 				} else if (typeof data !== 'string') {
-					data = String(data);
+					data = data.toString();
 				}
 
-				// causes a weird recalculate and layout
 				if (data === binder.element.innerText) {
 					return false;
 				}
@@ -1408,7 +1425,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		} else {
 			return {
 				read: function read() {
-					data = Model$1.get(binder.keys);
 
 					if (name === 'OPTION' && binder.element.selected) {
 						var parent = binder.element.parentElement;
@@ -1416,7 +1432,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						self.default(select);
 					}
 
-					if (data === undefined) {
+					data = Model$1.get(binder.keys);
+
+					if (data === undefined || data === null) {
 						Model$1.set(binder.keys, '');
 						return false;
 					}

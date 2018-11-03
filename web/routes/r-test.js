@@ -106,6 +106,14 @@ export default {
 
 			var total = self.add(1, 2, 3);
 
+			// self.model.items = [
+			// 	{ it: { val: 0 } },
+			// 	{ it: { val: 1 } },
+			// 	{ it: { val: 2 } },
+			// 	{ it: { val: 3 } },
+			// 	{ it: { val: 4 } },
+			// ];
+
 			setTimeout(function () {
 				var increaseInterval = setInterval(function () {
 

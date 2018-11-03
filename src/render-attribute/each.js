@@ -6,46 +6,45 @@ import Model from '../model.js';
 export default function (binder) {
 	const self = this;
 
+	if (binder.length === undefined) binder.length = 0;
 	if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
+	let data, add, remove, fragment;
+
 	return {
-		write () {
-			let key, keys, data, length;
-
+		read () {
 			data = Model.get(binder.keys);
-
-			if (!data || typeof data !== 'object') return;
-
 			data = Binder.piper(binder, data);
 
-			if (!data || typeof data !== 'object') return;
+			if (!data || typeof data !== 'object') return false;
 
-			if (data.constructor === Array) {
-				length = data.length;
+			if (data.length === binder.length) {
+				return false;
+			} else if (binder.length > data.length) {
+				remove = binder.length - data.length;
+				binder.length = data.length;
+			} else if (binder.length < data.length) {
+				add = data.length - binder.length;
+				fragment = document.createDocumentFragment();
+
+				for (binder.length; binder.length < data.length; binder.length++) {
+					const clone = binder.cache.cloneNode(true);
+					Utility.replaceEachVariable(clone, binder.names[1], binder.path, binder.length);
+					Binder.bind(clone, binder.container, binder.scope);
+					fragment.appendChild(clone);
+				}
+
 			}
 
-			if (data.constructor === Object) {
-				keys = Object.keys(data);
-				length = keys.length;
+		},
+		write () {
+			if (remove) {
+				while (remove--) {
+					binder.element.removeChild(binder.element.lastElementChild);
+				}
+			} else if (add) {
+				binder.element.appendChild(fragment);
 			}
-
-			if (binder.element.children.length > length) {
-				binder.element.removeChild(binder.element.lastElementChild);
-			} else if (binder.element.children.length < length) {
-				const clone = binder.cache.cloneNode(true);
-
-				if (data.constructor === Array) key = binder.element.children.length;
-				if (data.constructor === Object) key = keys[binder.element.children.length];
-
-				Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
-				Binder.bind(clone, binder.container, binder.scope);
-				binder.element.appendChild(clone);
-			}
-
-			if (binder.element.children.length !== data.length) {
-				self.default(binder);
-			}
-
 		}
 	};
 };
