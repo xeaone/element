@@ -192,9 +192,7 @@ const Observer = {
 			},
 			set: function (value) {
 				if (value !== this.$meta[key]) {
-
 					this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
-
 					this.$meta.listener(this[key], this.$meta.path + key, key, this);
 				}
 			}
@@ -215,9 +213,9 @@ const Observer = {
 		path = path ? path + '.' : '';
 
 		let key, length;
-		let type = source.constructor;
-		let target = source.constructor();
-		let properties = source.constructor();
+		const type = source.constructor;
+		const target = source.constructor();
+		const properties = source.constructor();
 
 		properties.$meta = {
 			value: source.constructor()
