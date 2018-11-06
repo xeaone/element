@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.15.11
+	Version: 3.15.12
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -21,8 +21,7 @@ function _awaitIgnored(value, direct) {
 		return Promise.resolve(value).then(_empty);
 	}
 }function _invoke(body, then) {
-	var result = body();
-	if (result && result.then) {
+	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
@@ -734,8 +733,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		css: Css,
 		default: Default,
 		disable: Disable,
+		disabled: Disable,
 		each: Each,
 		enable: Enable,
+		enabled: Enable,
 		hide: Hide,
 		html: Html,
 		on: On,
@@ -1480,8 +1481,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		css: Css$1,
 		default: Default$1,
 		disable: Disable$1,
+		disabled: Disable$1,
 		each: Each$1,
 		enable: Enable$1,
+		enabled: Enable$1,
 		hide: Hide$1,
 		html: Html$1,
 		on: On$1,
