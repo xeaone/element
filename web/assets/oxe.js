@@ -1,3 +1,13 @@
+/*
+	Name: oxe
+	Version: 3.15.11
+	License: MPL-2.0
+	Author: Alexander Elias
+	Email: alex.steven.elis@gmail.com
+	This Source Code Form is subject to the terms of the Mozilla Public
+	License, v. 2.0. If a copy of the MPL was not distributed with this
+	file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -11,7 +21,8 @@ function _awaitIgnored(value, direct) {
 		return Promise.resolve(value).then(_empty);
 	}
 }function _invoke(body, then) {
-	var result = body();if (result && result.then) {
+	var result = body();
+	if (result && result.then) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
@@ -288,7 +299,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				},
 				$set: {
 					value: function value(key, _value) {
-						// if (key !== undefined && value !== undefined) {
 						if (_value !== this[key]) {
 							var result = self.create(_value, this.$meta.listener, this.$meta.path + key);
 
@@ -299,22 +309,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 							return result;
 						}
-						// } else {
-
-						// if (!key || key.constructor !== this.constructor) {
-						// 	return this;
-						// } else if (key.constructor === Array) {
-						// 	for () {
-						// 		this.$set(name, value);
-						// 	}
-						// } else if (key.constructor === Object) {
-						// 	for (let name in key) {
-						// 		this.$set(name, key[name]);
-						// 	}
-						// }
-						//
-						// return this;
-						// }
 					}
 				},
 				$remove: {
@@ -1098,7 +1092,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	function Each$1(binder) {
 		var self = this;
 
-		// if (binder.length === undefined) binder.length = 0;
 		if (!binder.fragment) binder.fragment = document.createDocumentFragment();
 		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
@@ -1115,36 +1108,33 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				var length = binder.fragment.children.length + binder.element.children.length;
 
-				// console.log('data: ', data.length);
-				// console.log('fragment+element: ', length);
-
 				if (length === data.length) {
 					return false;
 				} else if (length > data.length) {
 					remove = true;
+					length--;
 				} else if (length < data.length) {
 					var clone = binder.cache.cloneNode(true);
 
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, length);
 					Binder$1.bind(clone, binder.container, binder.scope);
 					binder.fragment.appendChild(clone);
+					length++;
 
-					if (length + 1 === data.length) {
+					if (length === data.length) {
 						add = true;
-					} else if (length + 1 < data.length) {
-						self.default(binder);
-						return false;
 					}
+				}
+
+				if (length < data.length) {
+					self.default(binder);
+					return false;
 				}
 			},
 			write: function write() {
-				// console.log('each write');
-
 				if (remove) {
-					// console.log('each write remove');
 					binder.element.removeChild(binder.element.lastElementChild);
 				} else if (add) {
-					// console.log('each write add');
 					binder.element.appendChild(binder.fragment);
 				}
 			}

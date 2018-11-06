@@ -4,7 +4,7 @@ var oLoop = {
 	model: {
 		items: [],
 		// message: '',
-		count: 6000
+		count: 1000
 	},
 	methods: {
 		loop: function () {

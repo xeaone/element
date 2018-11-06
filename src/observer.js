@@ -151,33 +151,16 @@ const Observer = {
 			},
 			$set: {
 				value: function (key, value) {
-					// if (key !== undefined && value !== undefined) {
-						if (value !== this[key]) {
-							let result = self.create(value, this.$meta.listener, this.$meta.path + key);
+					if (value !== this[key]) {
+						let result = self.create(value, this.$meta.listener, this.$meta.path + key);
 
-							this.$meta[key] = result;
-							self.defineProperty(this, key);
+						this.$meta[key] = result;
+						self.defineProperty(this, key);
 
-							this.$meta.listener(result, this.$meta.path + key, key);
+						this.$meta.listener(result, this.$meta.path + key, key);
 
-							return result;
-						}
-					// } else {
-
-						// if (!key || key.constructor !== this.constructor) {
-						// 	return this;
-						// } else if (key.constructor === Array) {
-						// 	for () {
-						// 		this.$set(name, value);
-						// 	}
-						// } else if (key.constructor === Object) {
-						// 	for (let name in key) {
-						// 		this.$set(name, key[name]);
-						// 	}
-						// }
-						//
-						// return this;
-					// }
+						return result;
+					}
 				}
 			},
 			$remove: {

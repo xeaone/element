@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.15.10
+	Version: 3.15.11
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -21,7 +21,8 @@ function _awaitIgnored(value, direct) {
 		return Promise.resolve(value).then(_empty);
 	}
 }function _invoke(body, then) {
-	var result = body();if (result && result.then) {
+	var result = body();
+	if (result && result.then) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
@@ -45,8 +46,7 @@ function _awaitIgnored(value, direct) {
 				};
 			};
 		}
-	} catch (e) {}
-	return function (f) {
+	} catch (e) {}return function (f) {
 		// Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
 		return function () {
 			var args = [];for (var i = 0; i < arguments.length; i++) {
@@ -160,6 +160,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Observer = {
 		splice: function splice() {
+			var self = this;
+
 			var startIndex = arguments[0];
 			var deleteCount = arguments[1];
 			var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
@@ -170,64 +172,76 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			// handle negative startIndex
 			if (startIndex < 0) {
-				startIndex = this.length + startIndex;
+				startIndex = self.length + startIndex;
 				startIndex = startIndex > 0 ? startIndex : 0;
 			} else {
-				startIndex = startIndex < this.length ? startIndex : this.length;
+				startIndex = startIndex < self.length ? startIndex : self.length;
 			}
 
 			// handle negative deleteCount
 			if (deleteCount < 0) {
 				deleteCount = 0;
-			} else if (deleteCount > this.length - startIndex) {
-				deleteCount = this.length - startIndex;
+			} else if (deleteCount > self.length - startIndex) {
+				deleteCount = self.length - startIndex;
 			}
 
-			var totalCount = this.$meta.length;
+			var totalCount = self.$meta.length;
 			var key = void 0,
 			    index = void 0,
 			    value = void 0,
 			    updateCount = void 0;
 			var argumentIndex = 2;
 			var argumentsCount = arguments.length - argumentIndex;
-			var result = this.slice(startIndex, deleteCount);
+			var result = self.slice(startIndex, deleteCount);
 
 			updateCount = totalCount - 1 - startIndex;
 
+			var promises = [];
+
 			if (updateCount > 0) {
 				index = startIndex;
+
 				while (updateCount--) {
 					key = index++;
 
 					if (argumentsCount && argumentIndex < argumentsCount) {
 						value = arguments[argumentIndex++];
 					} else {
-						value = this.$meta[index];
+						value = self.$meta[index];
 					}
 
-					this.$meta[key] = Observer.create(value, this.$meta.listener, this.$meta.path + key);
-					this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
+					self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
+					promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
 				}
 			}
 
 			if (addCount > 0) {
+
+				promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
+
 				while (addCount--) {
-					key = this.length;
-					this.$meta[key] = Observer.create(arguments[argumentIndex++], this.$meta.listener, this.$meta.path + key);
-					Observer.defineProperty(this, key);this.$meta.listener(this.length, this.$meta.path.slice(0, -1), 'length');
-					this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
+					key = self.length;
+					self.$meta[key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + key);
+					Observer.defineProperty(self, key);
+					promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
 				}
 			}
 
 			if (deleteCount > 0) {
+
+				promises.push(self.$meta.listener.bind(null, self.length - deleteCount, self.$meta.path.slice(0, -1), 'length'));
+
 				while (deleteCount--) {
-					this.$meta.length--;
-					this.length--;
-					key = this.length;
-					this.$meta.listener(key, this.$meta.path.slice(0, -1), 'length');
-					this.$meta.listener(undefined, this.$meta.path + key, key);
+					self.$meta.length--;
+					self.length--;
+					key = self.length;
+					promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + key, key));
 				}
 			}
+
+			promises.reduce(function (promise, item) {
+				return promise.then(item);
+			}, Promise.resolve()).catch(console.error);
 
 			return result;
 		},
@@ -285,7 +299,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				},
 				$set: {
 					value: function value(key, _value) {
-						// if (key !== undefined && value !== undefined) {
 						if (_value !== this[key]) {
 							var result = self.create(_value, this.$meta.listener, this.$meta.path + key);
 
@@ -296,22 +309,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 							return result;
 						}
-						// } else {
-
-						// if (!key || key.constructor !== this.constructor) {
-						// 	return this;
-						// } else if (key.constructor === Array) {
-						// 	for () {
-						// 		this.$set(name, value);
-						// 	}
-						// } else if (key.constructor === Object) {
-						// 	for (let name in key) {
-						// 		this.$set(name, key[name]);
-						// 	}
-						// }
-						//
-						// return this;
-						// }
 					}
 				},
 				$remove: {
@@ -342,9 +339,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				},
 				set: function set(value) {
 					if (value !== this.$meta[key]) {
-
 						this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
-
 						this.$meta.listener(this[key], this.$meta.path + key, key, this);
 					}
 				}
@@ -460,11 +455,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function flush(time) {
 				time = time || performance.now();
 
-				if (!this.reads.length && !this.writes.length) {
-					this.pending = false;
-					return;
-				}
-
 				var task = void 0;
 
 				while (task = this.reads.shift()) {
@@ -485,7 +475,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				this.flush(time);
+				if (!this.reads.length && !this.writes.length) {
+					this.pending = false;
+				} else if (performance.now() - time > this.time) {
+					this.tick(this.flush.bind(this, null));
+				} else {
+					this.flush(time);
+				}
 			}
 		}, {
 			key: 'remove',
@@ -503,10 +499,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function batch(data) {
 				var self = this;
 
+				// let read;
+				// let write;
+				//
+				// if (data.context) {
+				// 	read = data.read.bind(data.context, data.shared);
+				// 	write = data.write.bind(data.context, data.shared);
+				// } else {
+				// 	read = data.read;
+				// 	write = data.write;
+				// }
+				//
+				// if (read) self.reads.push(read);
+				// if (write) self.writes.push(write);
+				//
+				// self.schedule();
+
 				if (data.read) {
 
 					var read = function read() {
 						var result = void 0;
+						var write = void 0;
 
 						if (data.context) {
 							result = data.read.call(data.context);
@@ -515,7 +528,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 
 						if (data.write && result !== false) {
-							var write = void 0;
 
 							if (data.context) {
 								write = data.write.bind(data.context);
@@ -1027,11 +1039,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	function Default$1(binder) {
 		var render = void 0;
-		var data = void 0;
 
 		if (binder.type in this) {
 			render = this[binder.type](binder);
 		} else {
+			var data = void 0;
+
 			render = {
 				read: function read() {
 					data = Model$1.get(binder.keys);
@@ -1043,7 +1056,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					} else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
 						data = JSON.stringify(data);
 					} else if (typeof data !== 'string') {
-						data = String(data);
+						data = data.toString();
 					}
 
 					if (data === binder.element[binder.type]) {
@@ -1056,7 +1069,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			};
 		}
 
-		Batcher$1.batch(render);
+		if (render) {
+			Batcher$1.batch(render);
+		}
 	}
 
 	function Disable$1(binder) {
@@ -1077,47 +1092,50 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	function Each$1(binder) {
 		var self = this;
 
+		if (!binder.fragment) binder.fragment = document.createDocumentFragment();
 		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
+		var data = void 0,
+		    add = void 0,
+		    remove = void 0;
+
 		return {
-			write: function write() {
-				var key = void 0,
-				    keys = void 0,
-				    data = void 0,
-				    length = void 0;
-
+			read: function read() {
 				data = Model$1.get(binder.keys);
-
-				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
-
 				data = Binder$1.piper(binder, data);
 
-				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return;
+				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return false;
 
-				if (data.constructor === Array) {
-					length = data.length;
-				}
+				var length = binder.fragment.children.length + binder.element.children.length;
 
-				if (data.constructor === Object) {
-					keys = Object.keys(data);
-					length = keys.length;
-				}
-
-				if (binder.element.children.length > length) {
-					binder.element.removeChild(binder.element.lastElementChild);
-				} else if (binder.element.children.length < length) {
+				if (length === data.length) {
+					return false;
+				} else if (length > data.length) {
+					remove = true;
+					length--;
+				} else if (length < data.length) {
 					var clone = binder.cache.cloneNode(true);
 
-					if (data.constructor === Array) key = binder.element.children.length;
-					if (data.constructor === Object) key = keys[binder.element.children.length];
-
-					Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
+					Utility.replaceEachVariable(clone, binder.names[1], binder.path, length);
 					Binder$1.bind(clone, binder.container, binder.scope);
-					binder.element.appendChild(clone);
+					binder.fragment.appendChild(clone);
+					length++;
+
+					if (length === data.length) {
+						add = true;
+					}
 				}
 
-				if (binder.element.children.length !== data.length) {
+				if (length < data.length) {
 					self.default(binder);
+					return false;
+				}
+			},
+			write: function write() {
+				if (remove) {
+					binder.element.removeChild(binder.element.lastElementChild);
+				} else if (add) {
+					binder.element.appendChild(binder.fragment);
 				}
 			}
 		};
@@ -1272,10 +1290,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				} else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
 					data = JSON.stringify(data);
 				} else if (typeof data !== 'string') {
-					data = String(data);
+					data = data.toString();
 				}
 
-				// causes a weird recalculate and layout
 				if (data === binder.element.innerText) {
 					return false;
 				}
@@ -1418,7 +1435,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		} else {
 			return {
 				read: function read() {
-					data = Model$1.get(binder.keys);
 
 					if (name === 'OPTION' && binder.element.selected) {
 						var parent = binder.element.parentElement;
@@ -1426,7 +1442,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						self.default(select);
 					}
 
-					if (data === undefined) {
+					data = Model$1.get(binder.keys);
+
+					if (data === undefined || data === null) {
 						Model$1.set(binder.keys, '');
 						return false;
 					}
