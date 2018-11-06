@@ -18,8 +18,7 @@ function _awaitIgnored(value, direct) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
-}
-function _empty() {}function _await(value, then, direct) {
+}function _empty() {}function _await(value, then, direct) {
 	if (direct) {
 		return then ? then(value) : value;
 	}value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -36,8 +35,7 @@ function _empty() {}function _await(value, then, direct) {
 				};
 			};
 		}
-	} catch (e) {}
-	return function (f) {
+	} catch (e) {}return function (f) {
 		// Pre-ES5.1 JavaScript runtimes don't accept array-likes in Function.apply
 		return function () {
 			var args = [];for (var i = 0; i < arguments.length; i++) {
@@ -151,6 +149,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Observer = {
 		splice: function splice() {
+			var self = this;
+
 			var startIndex = arguments[0];
 			var deleteCount = arguments[1];
 			var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
@@ -161,64 +161,76 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			// handle negative startIndex
 			if (startIndex < 0) {
-				startIndex = this.length + startIndex;
+				startIndex = self.length + startIndex;
 				startIndex = startIndex > 0 ? startIndex : 0;
 			} else {
-				startIndex = startIndex < this.length ? startIndex : this.length;
+				startIndex = startIndex < self.length ? startIndex : self.length;
 			}
 
 			// handle negative deleteCount
 			if (deleteCount < 0) {
 				deleteCount = 0;
-			} else if (deleteCount > this.length - startIndex) {
-				deleteCount = this.length - startIndex;
+			} else if (deleteCount > self.length - startIndex) {
+				deleteCount = self.length - startIndex;
 			}
 
-			var totalCount = this.$meta.length;
+			var totalCount = self.$meta.length;
 			var key = void 0,
 			    index = void 0,
 			    value = void 0,
 			    updateCount = void 0;
 			var argumentIndex = 2;
 			var argumentsCount = arguments.length - argumentIndex;
-			var result = this.slice(startIndex, deleteCount);
+			var result = self.slice(startIndex, deleteCount);
 
 			updateCount = totalCount - 1 - startIndex;
 
+			var promises = [];
+
 			if (updateCount > 0) {
 				index = startIndex;
+
 				while (updateCount--) {
 					key = index++;
 
 					if (argumentsCount && argumentIndex < argumentsCount) {
 						value = arguments[argumentIndex++];
 					} else {
-						value = this.$meta[index];
+						value = self.$meta[index];
 					}
 
-					this.$meta[key] = Observer.create(value, this.$meta.listener, this.$meta.path + key);
-					this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
+					self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
+					promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
 				}
 			}
 
 			if (addCount > 0) {
+
+				promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
+
 				while (addCount--) {
-					key = this.length;
-					this.$meta[key] = Observer.create(arguments[argumentIndex++], this.$meta.listener, this.$meta.path + key);
-					Observer.defineProperty(this, key);this.$meta.listener(this.length, this.$meta.path.slice(0, -1), 'length');
-					this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
+					key = self.length;
+					self.$meta[key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + key);
+					Observer.defineProperty(self, key);
+					promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
 				}
 			}
 
 			if (deleteCount > 0) {
+
+				promises.push(self.$meta.listener.bind(null, self.length - deleteCount, self.$meta.path.slice(0, -1), 'length'));
+
 				while (deleteCount--) {
-					this.$meta.length--;
-					this.length--;
-					key = this.length;
-					this.$meta.listener(key, this.$meta.path.slice(0, -1), 'length');
-					this.$meta.listener(undefined, this.$meta.path + key, key);
+					self.$meta.length--;
+					self.length--;
+					key = self.length;
+					promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + key, key));
 				}
 			}
+
+			promises.reduce(function (promise, item) {
+				return promise.then(item);
+			}, Promise.resolve()).catch(console.error);
 
 			return result;
 		},
@@ -333,9 +345,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				},
 				set: function set(value) {
 					if (value !== this.$meta[key]) {
-
 						this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
-
 						this.$meta.listener(this[key], this.$meta.path + key, key, this);
 					}
 				}
@@ -1086,14 +1096,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}
 
 	function Each$1(binder) {
+		var self = this;
 
-		if (binder.length === undefined) binder.length = 0;
+		// if (binder.length === undefined) binder.length = 0;
+		if (!binder.fragment) binder.fragment = document.createDocumentFragment();
 		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
 		var data = void 0,
 		    add = void 0,
-		    remove = void 0,
-		    fragment = void 0;
+		    remove = void 0;
 
 		return {
 			read: function read() {
@@ -1102,30 +1113,39 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return false;
 
-				if (data.length === binder.length) {
-					return false;
-				} else if (binder.length > data.length) {
-					remove = binder.length - data.length;
-					binder.length = data.length;
-				} else if (binder.length < data.length) {
-					add = data.length - binder.length;
-					fragment = document.createDocumentFragment();
+				var length = binder.fragment.children.length + binder.element.children.length;
 
-					for (binder.length; binder.length < data.length; binder.length++) {
-						var clone = binder.cache.cloneNode(true);
-						Utility.replaceEachVariable(clone, binder.names[1], binder.path, binder.length);
-						Binder$1.bind(clone, binder.container, binder.scope);
-						fragment.appendChild(clone);
+				// console.log('data: ', data.length);
+				// console.log('fragment+element: ', length);
+
+				if (length === data.length) {
+					return false;
+				} else if (length > data.length) {
+					remove = true;
+				} else if (length < data.length) {
+					var clone = binder.cache.cloneNode(true);
+
+					Utility.replaceEachVariable(clone, binder.names[1], binder.path, length);
+					Binder$1.bind(clone, binder.container, binder.scope);
+					binder.fragment.appendChild(clone);
+
+					if (length + 1 === data.length) {
+						add = true;
+					} else if (length + 1 < data.length) {
+						self.default(binder);
+						return false;
 					}
 				}
 			},
 			write: function write() {
+				// console.log('each write');
+
 				if (remove) {
-					while (remove--) {
-						binder.element.removeChild(binder.element.lastElementChild);
-					}
+					// console.log('each write remove');
+					binder.element.removeChild(binder.element.lastElementChild);
 				} else if (add) {
-					binder.element.appendChild(fragment);
+					// console.log('each write add');
+					binder.element.appendChild(binder.fragment);
 				}
 			}
 		};

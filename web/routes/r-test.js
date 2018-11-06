@@ -106,38 +106,38 @@ export default {
 
 			var total = self.add(1, 2, 3);
 
-			// self.model.items = [
-			// 	{ it: { val: 0 } },
-			// 	{ it: { val: 1 } },
-			// 	{ it: { val: 2 } },
-			// 	{ it: { val: 3 } },
-			// 	{ it: { val: 4 } },
-			// ];
+			self.model.items = [
+				{ it: { val: 0 } },
+				{ it: { val: 1 } },
+				{ it: { val: 2 } },
+				{ it: { val: 3 } },
+				{ it: { val: 4 } },
+			];
 
-			setTimeout(function () {
-				var increaseInterval = setInterval(function () {
-
-					if (self.model.items.length === 10) {
-						clearInterval(increaseInterval);
-
-						var decreaseInterval = setInterval(function () {
-							if (self.model.items.length === 5) {
-								clearInterval(decreaseInterval);
-							} else {
-								self.model.items.pop();
-							}
-						}, 90);
-
-					} else {
-						self.model.items.push({ it: { val: self.model.items.length } });
-					}
-
-				}, 90);
-			}, 3000);
+			// setTimeout(function () {
+			// 	var increaseInterval = setInterval(function () {
+			//
+			// 		if (self.model.items.length === 10) {
+			// 			clearInterval(increaseInterval);
+			//
+			// 			var decreaseInterval = setInterval(function () {
+			// 				if (self.model.items.length === 5) {
+			// 					clearInterval(decreaseInterval);
+			// 				} else {
+			// 					self.model.items.pop();
+			// 				}
+			// 			}, 90);
+			//
+			// 		} else {
+			// 			self.model.items.push({ it: { val: self.model.items.length } });
+			// 		}
+			//
+			// 	}, 90);
+			// }, 3000);
 
 			Say('r-test created');
 
-			console.log(this.model.o);
+			// console.log(this.model.o);
 			// [
 			// 	{ n: 1, a: [ '1' ] },
 			// 	{ n: 2, a: [ '2' ] },

@@ -9,6 +9,8 @@
 const Observer = {
 
 	splice () {
+		const self = this;
+
 		let startIndex = arguments[0];
 		let deleteCount = arguments[1];
 		let addCount = arguments.length > 2 ? arguments.length - 2 : 0;
@@ -19,62 +21,77 @@ const Observer = {
 
 		// handle negative startIndex
 		if (startIndex < 0) {
-			startIndex = this.length + startIndex;
+			startIndex = self.length + startIndex;
 			startIndex = startIndex > 0 ? startIndex : 0;
 		} else {
-			startIndex = startIndex < this.length ? startIndex : this.length;
+			startIndex = startIndex < self.length ? startIndex : self.length;
 		}
 
 		// handle negative deleteCount
 		if (deleteCount < 0) {
 			deleteCount = 0;
-		} else if (deleteCount > (this.length - startIndex)) {
-			deleteCount = this.length - startIndex;
+		} else if (deleteCount > (self.length - startIndex)) {
+			deleteCount = self.length - startIndex;
 		}
 
-		let totalCount = this.$meta.length;
+		let totalCount = self.$meta.length;
 		let key, index, value, updateCount;
 		let argumentIndex = 2;
 		let argumentsCount = arguments.length - argumentIndex;
-		let result = this.slice(startIndex, deleteCount);
+		let result = self.slice(startIndex, deleteCount);
 
 		updateCount = (totalCount - 1) - startIndex;
 
+		const promises = [];
+
 		if (updateCount > 0) {
 			index = startIndex;
+
 			while (updateCount--) {
 				key = index++;
 
 				if (argumentsCount && argumentIndex < argumentsCount) {
 					value = arguments[argumentIndex++];
 				} else {
-					value = this.$meta[index];
+					value = self.$meta[index];
 				}
 
-				this.$meta[key] = Observer.create(value, this.$meta.listener, this.$meta.path + key);
-				this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
+				self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
+				promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
 			}
+
 		}
 
 		if (addCount > 0) {
+
+			promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
+
 			while (addCount--) {
-				key = this.length;
-				this.$meta[key] = Observer.create(arguments[argumentIndex++], this.$meta.listener, this.$meta.path + key);
-				Observer.defineProperty(this, key);
-				this.$meta.listener(this.length, this.$meta.path.slice(0, -1), 'length');
-				this.$meta.listener(this.$meta[key], this.$meta.path + key, key);
+				key = self.length;
+				self.$meta[key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + key);
+				Observer.defineProperty(self, key);
+				promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
+
 			}
+
 		}
 
 		if (deleteCount > 0) {
+
+			promises.push(self.$meta.listener.bind(null, self.length - deleteCount, self.$meta.path.slice(0, -1), 'length'));
+
 			while (deleteCount--) {
-				this.$meta.length--;
-				this.length--;
-				key = this.length;
-				this.$meta.listener(key, this.$meta.path.slice(0, -1), 'length');
-				this.$meta.listener(undefined, this.$meta.path + key, key);
+				self.$meta.length--;
+				self.length--;
+				key = self.length;
+				promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + key, key));
 			}
+
 		}
+
+		promises.reduce(function (promise, item) {
+			return promise.then(item);
+		}, Promise.resolve()).catch(console.error);
 
 		return result;
 	},
