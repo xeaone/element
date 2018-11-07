@@ -258,7 +258,7 @@ class Router extends Events {
 					throw new Error('Oxe.router.render - missing route component');
 				} else if (route.component.constructor === String) {
 					route.element = document.createElement(route.component);
-				} else if (route.component.constructor === Object') {
+				} else if (route.component.constructor === Object) {
 
 					Component.define(route.component);
 
