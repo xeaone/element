@@ -213,28 +213,23 @@ class Binder {
 	}
 
 	eachElement (element, callback) {
-		let elements = element.querySelectorAll('*');
 
-		for (let i = 0, l = elements.length; i < l; i++) {
-			let e = elements[i];
+		if (
+			element.nodeName !== 'SLOT'
+			&& element.nodeName !== 'O-ROUTER'
+			&& element.nodeName !== 'TEMPLATE'
+			&& element.nodeName !== '#document-fragment'
+		) {
+			callback.call(this, element);
+		}
 
-			if (
-				e.nodeName !== 'SLOT'
-				&& e.nodeName !== 'O-ROUTER'
-				&& e.nodeName !== 'TEMPLATE'
-				&& e.nodeName !== '#document-fragment'
-				// && !e.hasAttribute('o-setup')
-				// && !e.hasAttribute('o-router')
-				// && !e.hasAttribute('o-compiled')
-				// && !e.hasAttribute('o-external')
-			) {
-				callback.call(this, e);
+		if (!this.skipChildren(element)) {
+			element = element.firstElementChild;
+
+			while (element) {
+			    this.eachElement(element, callback);
+			    element = element.nextElementSibling;
 			}
-
-			if (this.skipChildren(e)) {
-				i = i + e.children.length;
-			}
-
 		}
 
 	}
@@ -243,18 +238,17 @@ class Binder {
 		let attributes = element.attributes;
 
 		for (let i = 0, l = attributes.length; i < l; i++) {
-			let a = attributes[i];
+			let attribute = attributes[i];
 
 			if (
-				a.name.indexOf('o-') === 0
-				&& a.name !== 'o-scope'
-				&& a.name !== 'o-reset'
-				// && a.name !== 'o-status'
-				&& a.name !== 'o-action'
-				&& a.name !== 'o-method'
-				&& a.name !== 'o-enctype'
+				attribute.name.indexOf('o-') === 0
+				&& attribute.name !== 'o-scope'
+				&& attribute.name !== 'o-reset'
+				&& attribute.name !== 'o-action'
+				&& attribute.name !== 'o-method'
+				&& attribute.name !== 'o-enctype'
 			) {
-				callback.call(this, a);
+				callback.call(this, attribute);
 			}
 
 		}

@@ -5,7 +5,7 @@ import Model from '../model.js';
 
 export default function (binder) {
 
-	if (!binder.element.children.length) {
+	if (!binder.cache && !binder.element.children.length) {
 		return;
 	}
 
@@ -34,7 +34,7 @@ export default function (binder) {
 				remove = true;
 				length--;
 			} else if (length < data.length) {
-				let clone = binder.cache.cloneNode(true);
+				let clone = document.importNode(binder.cache, true);
 
 				Utility.replaceEachVariable(clone, binder.names[1], binder.path, length);
 				Binder.bind(clone, binder.container, binder.scope);
