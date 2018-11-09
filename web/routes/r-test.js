@@ -7,13 +7,14 @@ export default {
 	component: {
 		name: 'r-test',
 		model: {
+			menuItemOne: 'Item One',
 			submit: 'hello world',
 			empty: {},
 			blank: '',
 			numRadio: 0,
 			showHide: true,
 			isChecked: true,
-			text: 'Hello from model',
+			text: 'text from test',
 			loopy: { doopy: 'soopy' },
 			items: [
 				{ it: { val: 0 } },
@@ -174,8 +175,11 @@ export default {
 		<br>
 
 		<c-menu>
-			<li slot="one">Item One</li>
+			<li slot="one" o-text="menuItemOne"></li>
 			<li slot="two">Item Two</li>
+			<c-foo>
+				<div slot="sub" o-text="text"></div>
+			</c-foo>
 		</c-menu>
 		<br>
 		<br>

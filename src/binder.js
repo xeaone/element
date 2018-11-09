@@ -79,7 +79,8 @@ class Binder {
 		if (!this.elements.get(binder.element).has(binder.names[0])) {
 			this.elements.get(binder.element).set(binder.names[0], binder);
 		} else {
-			throw new Error(`Oxe - duplicate attribute ${binder.names[0]}`);
+			return false;
+			// throw new Error(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
 		}
 
 		if (!(binder.scope in this.data)) {
@@ -156,7 +157,7 @@ class Binder {
 		}
 
 	}
-	
+
 	// make async
 	piper (binder, data) {
 
@@ -184,10 +185,10 @@ class Binder {
 		return data;
 	}
 
-	checkChildren (element) {
+	skipChildren (element) {
 
 		if (element.nodeName === '#document-fragment') {
-			return true;
+			return false;
 		}
 
 		if (
@@ -196,59 +197,43 @@ class Binder {
 			&& element.nodeName === 'OBJECT'
 			&& element.nodeName === 'IFRAME'
 		) {
-			return false;
+			return true;
 		}
 
-		for (let i = 0, l = element.attributes.length; i < l; i++) {
-			const attribute = element.attributes[i];
+		for (var i = 0, l = element.attributes.length; i < l; i++) {
+			var attribute = element.attributes[i];
 
-			if (
-				attribute.name.indexOf('o-each') === 0 ||
-				attribute.name.indexOf('data-o-each') === 0
-			) {
-				return false;
+			if (attribute.name.indexOf('o-each') === 0) {
+				return true;
 			}
 
 		}
 
-		return true;
+		return false;
 	}
 
-	eachElement (element, container, scope, callback) {
+	// eachElement (elements, callback) {
+	eachElement (element, callback) {
+		var elements = element.querySelectorAll('*');
 
-		if (
-			element.attributes &&
-			(
-				(element.attributes['o-scope'] && element.attributes['o-scope'].value !== scope) ||
-				(element.attributes['data-o-scope'] && element.attributes['data-o-scope'].value !== scope)
-			)
-		) {
-			return;
-		}
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var e = elements[i];
 
-		if (
-			element.nodeName !== 'O-ROUTER'
-			&& element.nodeName !== 'TEMPLATE'
-			&& element.nodeName !== '#document-fragment'
-			&& !element.hasAttribute('o-scope')
-			&& !element.hasAttribute('o-setup')
-			&& !element.hasAttribute('o-router')
-			&& !element.hasAttribute('o-compiled')
-			&& !element.hasAttribute('o-external')
-			&& !element.hasAttribute('data-o-setup')
-			&& !element.hasAttribute('data-o-scope')
-			&& !element.hasAttribute('data-o-router')
-			&& !element.hasAttribute('data-o-compiled')
-			&& !element.hasAttribute('data-o-external')
-		) {
-			callback.call(this, element);
-		}
+			if (
+				e.nodeName !== 'SLOT'
+				&& e.nodeName !== 'O-ROUTER'
+				&& e.nodeName !== 'TEMPLATE'
+				&& e.nodeName !== '#document-fragment'
+				// && !e.hasAttribute('o-setup')
+				// && !e.hasAttribute('o-router')
+				// && !e.hasAttribute('o-compiled')
+				// && !e.hasAttribute('o-external')
+			) {
+				callback.call(this, e);
+			}
 
-		if (this.checkChildren(element)) {
-
-			for (let i = 0, l = element.children.length; i < l; i++) {
-				const child = element.children[i];
-				this.eachElement(child, container, scope, callback);
+			if (this.skipChildren(e)) {
+				i = i + e.children.length;
 			}
 
 		}
@@ -256,40 +241,37 @@ class Binder {
 	}
 
 	eachAttribute (element, callback) {
+		var attributes = element.attributes;
 
-		for (let i = 0, l = element.attributes.length; i < l; i++) {
-			const attribute = element.attributes[i];
+		for (var i = 0, l = attributes.length; i < l; i++) {
+			var a = attributes[i];
 
 			if (
-				(attribute.name.indexOf('o-') === 0
-				|| attribute.name.indexOf('data-o-') === 0)
-				&& attribute.name !== 'o-reset'
-				&& attribute.name !== 'o-action'
-				&& attribute.name !== 'o-method'
-				&& attribute.name !== 'o-enctype'
-				&& attribute.name !== 'data-o-reset'
-				&& attribute.name !== 'data-o-action'
-				&& attribute.name !== 'data-o-method'
-				&& attribute.name !== 'data-o-enctype'
+				a.name.indexOf('o-') === 0
+				&& a.name !== 'o-scope'
+				&& a.name !== 'o-reset'
+				// && a.name !== 'o-status'
+				&& a.name !== 'o-action'
+				&& a.name !== 'o-method'
+				&& a.name !== 'o-enctype'
 			) {
-				callback.call(this, attribute);
+				callback.call(this, a);
 			}
 
 		}
 
 	}
 
-	unbind (element, container) {
-		container = container || element;
+	unbind (element, container, scope) {
 
-		const scope = container.getAttribute('o-scope') || container.getAttribute('data-o-scope');
+		if (!scope) throw new Error('Oxe - unbind requires scope argument');
+		if (!element) throw new Error('Oxe - unbind requires element argument');
+		if (!container) throw new Error('Oxe - unbind requires container argument');
 
-		if (!scope) throw new Error('Oxe - bind requires container element scope attribute');
-
-		this.eachElement(element, container, scope, function (child) {
+		this.eachElement(element, function (child) {
 			this.eachAttribute(child, function (attribute) {
 
-				const binder = this.get({
+				var binder = this.get({
 					scope: scope,
 					element: child,
 					container: container,
@@ -299,7 +281,6 @@ class Binder {
 
 				this.remove(binder);
 				Unrender.default(binder);
-
 			});
 		});
 	}
@@ -310,10 +291,10 @@ class Binder {
 		if (!element) throw new Error('Oxe - bind requires element argument');
 		if (!container) throw new Error('Oxe - bind requires container argument');
 
-		this.eachElement(element, container, scope, function (child) {
+		this.eachElement(element, function (child) {
 			this.eachAttribute(child, function (attribute) {
 
-				const binder = this.create({
+				var binder = this.create({
 					scope: scope,
 					element: child,
 					container: container,
@@ -321,8 +302,12 @@ class Binder {
 					value: attribute.value
 				});
 
-				this.add(binder);
-				Render.default(binder);
+				var result = this.add(binder);
+
+				if (result !== false) {
+					Render.default(binder);
+				}
+
 			});
 		});
 	}

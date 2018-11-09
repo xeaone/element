@@ -13,14 +13,14 @@ class Component {
 		options = options || {};
 
 		if (options.components && options.components.length) {
-			for (let i = 0, l = options.components.length; i < l; i++) {
+			for (var i = 0, l = options.components.length; i < l; i++) {
 				this.define(options.components[i]);
 			}
 		}
 
 	}
 
-	renderSlot (target, source) {
+	renderSlot (target, source, scope) {
 		const targetSlots = target.querySelectorAll('slot[name]');
 
 		for (let i = 0, l = targetSlots.length; i < l; i++) {
@@ -38,15 +38,17 @@ class Component {
 
 		const defaultSlot = target.querySelector('slot:not([name])');
 
-		if (defaultSlot && source.children.length) {
+		if (defaultSlot) {
 
-			while (source.firstChild) {
-				defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
+			if (source.children.length) {
+				defaultSlot.parentNode.setAttribute('slot', 'default');
+
+				while (source.firstChild) {
+					defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
+				}
+
 			}
 
-		}
-
-		if (defaultSlot) {
 			defaultSlot.parentNode.removeChild(defaultSlot);
 		}
 
@@ -115,14 +117,11 @@ class Component {
 			scope: {
 				value: scope,
 				enumerable: true
-			},
-			status: {
-				value: 'created',
-				enumerable: true
 			}
 		});
 
 		element.setAttribute('o-scope', scope);
+		// element.setAttribute('o-status', 'created');
 
 		Model.set(scope, options.model);
 		Methods.set(scope, options.methods);
@@ -140,14 +139,18 @@ class Component {
 				template.appendChild(options.template);
 			}
 
-			const clone = document.importNode(template.content, true);
+			// element.templateContent = template.content;
 
+			const clone = document.importNode(template.content, true);
+			// Binder.bind(clone.querySelectorAll('*'), element, scope);
 			Binder.bind(clone, element, scope);
 
-			if (options.shadow && 'attachShadow' in document.body) {
-				element.attachShadow({ mode: 'open' }).appendChild(clone);
-			} else if (options.shadow && 'createShadowRoot' in document.body) {
-				element.createShadowRoot().appendChild(clone);
+			if (options.shadow) {
+				if ('attachShadow' in document.body) {
+					element.attachShadow({ mode: 'open' }).appendChild(clone);
+				} else if ('createShadowRoot' in document.body) {
+					element.createShadowRoot().appendChild(clone);
+				}
 			} else {
 				self.renderSlot(clone, element);
 				element.appendChild(clone);
@@ -161,6 +164,30 @@ class Component {
 	}
 
 	attached (element, options) {
+
+		// if (element.getAttribute('o-status') === 'created') {
+		// 	const clone = document.importNode(element.templateContent, true);
+		//
+		// 	Binder.bind(clone, element, element.scope);
+		//
+		// 	if (options.shadow) {
+		// 		if ('attachShadow' in document.body) {
+		// 			element.attachShadow({ mode: 'open' }).appendChild(clone);
+		// 		} else if ('createShadowRoot' in document.body) {
+		// 			element.createShadowRoot().appendChild(clone);
+		// 		}
+		// 	} else {
+		// 		this.renderSlot(clone, element);
+		// 		element.appendChild(clone);
+		// 	}
+		//
+		// 	if (options.created) {
+		// 		options.created.call(element);
+		// 	}
+		//
+		// 	element.setAttribute('o-status', 'attached');
+		// }
+
 		if (options.attached) {
 			options.attached.call(element);
 		}
@@ -194,14 +221,9 @@ class Component {
 		options.template = options.template || '';
 		options.properties = options.properties || {};
 
-		options.properties.status = {
-			enumerable: true,
-			configurable: true,
-			value: 'define'
-		};
-
 		options.properties.model = {
 			enumerable: true,
+			// might not want configurable
 			configurable: true,
 			get: function () {
 				return Model.get(this.scope);

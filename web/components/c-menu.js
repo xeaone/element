@@ -1,6 +1,9 @@
 
 export default {
 	name: 'c-menu',
+	model: {
+		text: 'text from menu'
+	},
 	created: function () {
 		console.log('created c-menu');
 	},
@@ -18,6 +21,9 @@ export default {
 	`,
 	template: `
 		<ul>
+			<c-foo>
+				<div slot="sub" o-text="text"></div>
+			</c-foo>
 			<slot name="one"></slot>
 			<slot name="two"></slot>
 			<slot></slot>
