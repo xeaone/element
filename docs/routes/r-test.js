@@ -100,7 +100,7 @@ export default {
 				}
 			}
 		},
-		created: function () {
+		created: async function () {
 			var self = this;
 
 			window.self = self;

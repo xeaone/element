@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.16.0
+	Version: 3.16.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1095,12 +1095,21 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	}
 
 	function Each$1(binder) {
-		var self = this;
 
-		if (!binder.fragment) binder.fragment = document.createDocumentFragment();
-		if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
+		if (!binder.cache && !binder.element.children.length) {
+			return;
+		}
 
-		var data = void 0,
+		if (!binder.fragment) {
+			binder.fragment = document.createDocumentFragment();
+		}
+
+		if (!binder.cache) {
+			binder.cache = binder.element.removeChild(binder.element.firstElementChild);
+		}
+
+		var self = this,
+		    data = void 0,
 		    add = void 0,
 		    remove = void 0;
 
@@ -1119,7 +1128,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					remove = true;
 					length--;
 				} else if (length < data.length) {
-					var clone = binder.cache.cloneNode(true);
+					var clone = document.importNode(binder.cache, true);
 
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, length);
 					Binder$1.bind(clone, binder.container, binder.scope);
@@ -1701,22 +1710,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'eachElement',
 			value: function eachElement(element, callback) {
-				var elements = element.querySelectorAll('*');
 
-				for (var i = 0, l = elements.length; i < l; i++) {
-					var e = elements[i];
+				if (element.nodeName !== 'SLOT' && element.nodeName !== 'O-ROUTER' && element.nodeName !== 'TEMPLATE' && element.nodeName !== '#document-fragment') {
+					callback.call(this, element);
+				}
 
-					if (e.nodeName !== 'SLOT' && e.nodeName !== 'O-ROUTER' && e.nodeName !== 'TEMPLATE' && e.nodeName !== '#document-fragment'
-					// && !e.hasAttribute('o-setup')
-					// && !e.hasAttribute('o-router')
-					// && !e.hasAttribute('o-compiled')
-					// && !e.hasAttribute('o-external')
-					) {
-							callback.call(this, e);
-						}
+				if (!this.skipChildren(element)) {
+					element = element.firstElementChild;
 
-					if (this.skipChildren(e)) {
-						i = i + e.children.length;
+					while (element) {
+						this.eachElement(element, callback);
+						element = element.nextElementSibling;
 					}
 				}
 			}
@@ -1726,12 +1730,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var attributes = element.attributes;
 
 				for (var i = 0, l = attributes.length; i < l; i++) {
-					var a = attributes[i];
+					var attribute = attributes[i];
 
-					if (a.name.indexOf('o-') === 0 && a.name !== 'o-scope' && a.name !== 'o-reset'
-					// && a.name !== 'o-status'
-					&& a.name !== 'o-action' && a.name !== 'o-method' && a.name !== 'o-enctype') {
-						callback.call(this, a);
+					if (attribute.name.indexOf('o-') === 0 && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype') {
+						callback.call(this, attribute);
 					}
 				}
 			}
