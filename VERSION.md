@@ -1,4 +1,7 @@
 
+### 3.16.0
+- fixed slot scope issues
+
 ### 3.14.1
 - fixed default select item for the o-each
 - input, select, options, check radio dont allow | pipe modification
