@@ -1,10 +1,12 @@
 
 export default {
 	name: 'c-foo',
-	created: function () {
-		console.log('c-foo');
+	// shadow: true,
+	model: {
+		text: 'text from foo'
 	},
 	template: `
-		<div>bar</div>
+		<div o-text="text"></div>
+		<slot name="sub"></slot>
 	`
 }
