@@ -4,12 +4,20 @@ import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
-	let self = this;
 
-	if (!binder.fragment) binder.fragment = document.createDocumentFragment();
-	if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
+	if (!binder.element.children.length) {
+		return;
+	}
 
-	let data, add, remove;
+	if (!binder.fragment) {
+		binder.fragment = document.createDocumentFragment();
+	}
+
+	if (!binder.cache) {
+		binder.cache = binder.element.removeChild(binder.element.firstElementChild);
+	}
+
+	let self = this, data, add, remove;
 
 	return {
 		read () {
