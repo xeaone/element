@@ -6,14 +6,14 @@
 		figure out a way to not update removed items
 */
 
-const Observer = {
+var Observer = {
 
 	splice () {
-		const self = this;
+		var self = this;
 
-		let startIndex = arguments[0];
-		let deleteCount = arguments[1];
-		let addCount = arguments.length > 2 ? arguments.length - 2 : 0;
+		var startIndex = arguments[0];
+		var deleteCount = arguments[1];
+		var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
 
 		if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
 			return [];
@@ -34,15 +34,15 @@ const Observer = {
 			deleteCount = self.length - startIndex;
 		}
 
-		let totalCount = self.$meta.length;
-		let key, index, value, updateCount;
-		let argumentIndex = 2;
-		let argumentsCount = arguments.length - argumentIndex;
-		let result = self.slice(startIndex, deleteCount);
+		var totalCount = self.$meta.length;
+		var key, index, value, updateCount;
+		var argumentIndex = 2;
+		var argumentsCount = arguments.length - argumentIndex;
+		var result = self.slice(startIndex, deleteCount);
 
 		updateCount = (totalCount - 1) - startIndex;
 
-		const promises = [];
+		var promises = [];
 
 		if (updateCount > 0) {
 			index = startIndex;
@@ -97,14 +97,14 @@ const Observer = {
 	},
 
 	arrayProperties () {
-		let self = this;
+		var self = this;
 
 		return {
 			push: {
 				value: function () {
 					if (!arguments.length) return this.length;
 
-					for (let i = 0, l = arguments.length; i < l; i++) {
+					for (var i = 0, l = arguments.length; i < l; i++) {
 						self.splice.call(this, this.length, 0, arguments[i]);
 					}
 
@@ -115,7 +115,7 @@ const Observer = {
 				value: function () {
 					if (!arguments.length) return this.length;
 
-					for (let i = 0, l = arguments.length; i < l; i++) {
+					for (var i = 0, l = arguments.length; i < l; i++) {
 						self.splice.call(this, 0, 0, arguments[i]);
 					}
 
@@ -141,7 +141,7 @@ const Observer = {
 	},
 
 	objectProperties () {
-		let self = this;
+		var self = this;
 
 		return {
 			$get: {
@@ -152,7 +152,7 @@ const Observer = {
 			$set: {
 				value: function (key, value) {
 					if (value !== this[key]) {
-						let result = self.create(value, this.$meta.listener, this.$meta.path + key);
+						var result = self.create(value, this.$meta.listener, this.$meta.path + key);
 
 						this.$meta[key] = result;
 						self.defineProperty(this, key);
@@ -169,7 +169,7 @@ const Observer = {
 						if (this.constructor === Array) {
 							return self.splice.call(this, key, 1);
 						} else {
-							let result = this[key];
+							var result = this[key];
 							delete this.$meta[key];
 							delete this[key];
 							this.$meta.listener(undefined, this.$meta.path + key, key);
@@ -182,7 +182,7 @@ const Observer = {
 	},
 
 	property (key) {
-		let self = this;
+		var self = this;
 
 		return {
 			enumerable: true,
@@ -204,7 +204,7 @@ const Observer = {
 	},
 
 	create (source, listener, path) {
-		let self = this;
+		var self = this;
 
 		if (!source || source.constructor !== Object && source.constructor !== Array) {
 			return source;
@@ -212,10 +212,10 @@ const Observer = {
 
 		path = path ? path + '.' : '';
 
-		let key, length;
-		const type = source.constructor;
-		const target = source.constructor();
-		const properties = source.constructor();
+		var key, length;
+		var type = source.constructor;
+		var target = source.constructor();
+		var properties = source.constructor();
 
 		properties.$meta = {
 			value: source.constructor()
@@ -231,7 +231,7 @@ const Observer = {
 				properties[key] = self.property(key);
 			}
 
-			let arrayProperties = self.arrayProperties();
+			var arrayProperties = self.arrayProperties();
 
 			for (key in arrayProperties) {
 				properties[key] = arrayProperties[key];
@@ -248,7 +248,7 @@ const Observer = {
 
 		}
 
-		let objectProperties = self.objectProperties();
+		var objectProperties = self.objectProperties();
 
 		for (key in objectProperties) {
 			properties[key] = objectProperties[key];

@@ -5,32 +5,32 @@ import Fetcher from '../fetcher.js';
 import Methods from '../methods.js';
 
 export default function (e) {
-	const element = e.target;
-	const submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+	var element = e.target;
+	var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
 
 	if (!submit) return;
 	else e.preventDefault();
 
-	const binder = Binder.elements.get(element).get('submit');
-	const method = Methods.get(binder.keys);
-	const model = Model.get(binder.scope);
+	var binder = Binder.elements.get(element).get('submit');
+	var method = Methods.get(binder.keys);
+	var model = Model.get(binder.scope);
 
-	const data = Utility.formData(element, model);
+	var data = Utility.formData(element, model);
 
 	Promise.resolve().then(async function () {
 		
-		const options = await method.call(binder.container, data, e);
+		var options = await method.call(binder.container, data, e);
 
 		if (typeof options === 'object') {
-			const action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-			const method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-			const enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
+			var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
+			var method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
+			var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
 
 			options.url = options.url || action;
 			options.method = options.method || method;
 			options.contentType = options.contentType || enctype;
 
-			const result = await Fetcher.fetch(options);
+			var result = await Fetcher.fetch(options);
 
 			if (options.handler) {
 				await options.handler(result);

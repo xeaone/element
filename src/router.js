@@ -299,7 +299,7 @@ class Router extends Events {
 			window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
 		}
 
-		const location = this.toLocationObject();
+		var location = this.toLocationObject();
 
 		location.route = this.find(location.pathname);
 
@@ -312,12 +312,12 @@ class Router extends Events {
 		location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
 		// if (this.auth || location.route.auth && typeof this.validate === 'function') {
-		// 	const data = this.validate(location);
+		// 	var data = this.validate(location);
 		// 	if (!data.valid) return this.route(data.path);
 		// }
 
 		if (typeof this.before === 'function') {
-			const result = this.before(location);
+			var result = this.before(location);
 			if (result === false) return;
 		}
 

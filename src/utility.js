@@ -52,19 +52,19 @@ export default {
 	},
 
 	formData (form, model) {
-		const elements = form.querySelectorAll('[o-value]');
-		const data = {};
+		var elements = form.querySelectorAll('[o-value]');
+		var data = {};
 
-		for (let i = 0, l = elements.length; i < l; i++) {
-			const element = elements[i];
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
 
 			if (element.nodeName === 'OPTION') continue;
 
-			const value = element.getAttribute('o-value');
+			var value = element.getAttribute('o-value');
 
 			if (!value) continue;
 
-			const values = this.binderValues(value);
+			var values = this.binderValues(value);
 
 			data[values[values.length-1]] = this.getByPath(model, values);
 		}
@@ -73,18 +73,18 @@ export default {
 	},
 
 	formReset (form, model) {
-		const elements = form.querySelectorAll('[o-value]');
+		var elements = form.querySelectorAll('[o-value]');
 
-		for (let i = 0, l = elements.length; i < l; i++) {
-			const element = elements[i];
+		for (var i = 0, l = elements.length; i < l; i++) {
+			var element = elements[i];
 
 			if (element.nodeName === 'OPTION') continue;
 
-			const value = element.getAttribute('o-value');
+			var value = element.getAttribute('o-value');
 
 			if (!value) continue;
 
-			const values = this.binderValues(value);
+			var values = this.binderValues(value);
 
 			this.setByPath(model, values, '');
 		}
@@ -103,8 +103,8 @@ export default {
 	},
 
 	replaceEachVariable (element, variable, path, key) {
-		const self = this;
-		const pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
+		var self = this;
+		var pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
 
 		self.walker(element, function (node) {
 			if (node.nodeType === 3) {
@@ -112,8 +112,8 @@ export default {
 					node.nodeValue = key;
 				}
 			} else if (node.nodeType === 1) {
-				for (let i = 0, l = node.attributes.length; i < l; i++) {
-					const attribute = node.attributes[i];
+				for (var i = 0, l = node.attributes.length; i < l; i++) {
+					var attribute = node.attributes[i];
 					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 						attribute.value = attribute.value.replace(pattern, `$1${path}.${key}$2`);
 					}
@@ -147,11 +147,11 @@ export default {
 	},
 
 	setByPath (data, path, value) {
-		const keys = typeof path === 'string' ? path.split('.') : path;
-		const last = keys.length - 1;
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
 
-		for (let i = 0; i < last; i++) {
-			const key = keys[i];
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
 
 			if (!(key in data)) {
 
@@ -170,11 +170,11 @@ export default {
 	},
 
 	getByPath (data, path) {
-		const keys = typeof path === 'string' ? path.split('.') : path;
-		const last = keys.length - 1;
+		var keys = typeof path === 'string' ? path.split('.') : path;
+		var last = keys.length - 1;
 
-		for (let i = 0; i < last; i++) {
-			const key = keys[i];
+		for (var i = 0; i < last; i++) {
+			var key = keys[i];
 
 			if (!(key in data)) {
 				return undefined;

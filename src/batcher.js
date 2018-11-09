@@ -27,7 +27,7 @@ class Batcher {
 	flush (time) {
 		time = time || performance.now();
 
-		let task;
+		var task;
 
 		while (task = this.reads.shift()) {
 			task();
@@ -60,7 +60,7 @@ class Batcher {
 	}
 
 	remove (tasks, task) {
-		const index = tasks.indexOf(task);
+		var index = tasks.indexOf(task);
 		return !!~index && !!tasks.splice(index, 1);
 	}
 
@@ -69,10 +69,10 @@ class Batcher {
 	}
 
 	batch (data) {
-		const self = this;
+		var self = this;
 
-		// let read;
-		// let write;
+		// var read;
+		// var write;
 		//
 		// if (data.context) {
 		// 	read = data.read.bind(data.context, data.shared);
@@ -89,9 +89,9 @@ class Batcher {
 
 		if (data.read) {
 
-			const read = function () {
-				let result;
-				let write;
+			var read = function () {
+				var result;
+				var write;
 
 				if (data.context) {
 					result = data.read.call(data.context);
@@ -116,7 +116,7 @@ class Batcher {
 			self.reads.push(read);
 			self.schedule();
 		} else if (data.write) {
-			let write;
+			var write;
 
 			if (data.context) {
 				write = data.write.bind(data.context, data.shared);

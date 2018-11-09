@@ -14,16 +14,16 @@ class Model {
 	}
 
 	traverse (type, keys, value) {
-		let result;
+		var result;
 
 		if (typeof keys === 'string') {
 			keys = keys.split('.');
 		}
 
-		let data = this.data;
-		let key = keys[keys.length-1];
+		var data = this.data;
+		var key = keys[keys.length-1];
 
-		for (let i = 0, l = keys.length-1; i < l; i++) {
+		for (var i = 0, l = keys.length-1; i < l; i++) {
 
 			if (!(keys[i] in data)) {
 
@@ -63,17 +63,17 @@ class Model {
 	}
 
 	listener (data, path, type) {
-		const method = data === undefined ? Unrender : Render;
+		var method = data === undefined ? Unrender : Render;
 
 		if (type === 'length') {
-			const scope = path.split('.').slice(0, 1).join('.');
-			const part = path.split('.').slice(1).join('.');
+			var scope = path.split('.').slice(0, 1).join('.');
+			var part = path.split('.').slice(1).join('.');
 
 			if (!(scope in Binder.data)) return;
 			if (!(part in Binder.data[scope])) return;
 			if (!(0 in Binder.data[scope][part])) return;
 
-			const binder = Binder.data[scope][part][0];
+			var binder = Binder.data[scope][part][0];
 
 			method.default(binder);
 		} else {

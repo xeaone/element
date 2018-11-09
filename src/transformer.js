@@ -27,16 +27,16 @@ export default {
 
 	template (data) {
 
-		let first = data.indexOf('`');
-		let second = data.indexOf('`', first+1);
+		var first = data.indexOf('`');
+		var second = data.indexOf('`', first+1);
 
 		if (first === -1 || second === -1) return data;
 
-		let value;
-		let ends = 0;
-		let starts = 0;
-		let string = data;
-		let isInner = false;
+		var value;
+		var ends = 0;
+		var starts = 0;
+		var string = data;
+		var isInner = false;
 
 		for (var index = 0; index < string.length; index++) {
 			var char = string[index];
@@ -91,11 +91,11 @@ export default {
 	},
 
 	getImports (text, base) {
-		const result = [];
-		const imps = text.match(this.patterns.imps) || [];
+		var result = [];
+		var imps = text.match(this.patterns.imps) || [];
 
-		for (let i = 0, l = imps.length; i < l; i++) {
-		 	const imp = imps[i].match(this.patterns.imp);
+		for (var i = 0, l = imps.length; i < l; i++) {
+		 	var imp = imps[i].match(this.patterns.imp);
 
 			result[i] = {
 				raw: imp[0],
@@ -114,11 +114,11 @@ export default {
 	},
 
 	getExports (text) {
-		const result = [];
-		const exps = text.match(this.patterns.exps) || [];
+		var result = [];
+		var exps = text.match(this.patterns.exps) || [];
 
-		for (let i = 0, l = exps.length; i < l; i++) {
-			const exp = exps[i];
+		for (var i = 0, l = exps.length; i < l; i++) {
+			var exp = exps[i];
 
 			result[i] = {
 				raw: exp,
@@ -136,10 +136,10 @@ export default {
 			return text;
 		}
 
-		for (let i = 0, l = imps.length; i < l; i++) {
-			const imp = imps[i];
+		for (var i = 0, l = imps.length; i < l; i++) {
+			var imp = imps[i];
 
-			const pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.data[\'' + imp.url + '\'].result';
+			var pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.data[\'' + imp.url + '\'].result';
 
 			text = text.replace(imp.raw, pattern);
 		}
@@ -160,7 +160,7 @@ export default {
 		text = 'var $EXPORT = {};\n' + text;
 		text = text + '\nreturn $EXPORT;\n';
 
-		for (let i = 0, l = exps.length; i < l; i++) {
+		for (var i = 0, l = exps.length; i < l; i++) {
 			text = text.replace(exps[i].raw, '$EXPORT.');
 		}
 
@@ -168,7 +168,7 @@ export default {
 	},
 
 	ast (data) {
-		const result = {};
+		var result = {};
 
 		result.url = data.url;
 		result.raw = data.text;

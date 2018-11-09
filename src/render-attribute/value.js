@@ -2,14 +2,14 @@ import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
-	const self = this;
-	const type = binder.element.type;
-	const name = binder.element.nodeName;
+	var self = this;
+	var type = binder.element.type;
+	var name = binder.element.nodeName;
 
-	let data, multiple;
+	var data, multiple;
 
 	if (name === 'SELECT') {
-		let elements;
+		var elements;
 
 		return {
 			read () {
@@ -25,12 +25,12 @@ export default function (binder) {
 
 			},
 			write () {
-				let index = 0;
-				let selected = false;
+				var index = 0;
+				var selected = false;
 
 				// NOTE might need to handle disable
-				for (let i = 0, l = elements.length; i < l; i++) {
-					const element = elements[i];
+				for (var i = 0, l = elements.length; i < l; i++) {
+					var element = elements[i];
 
 					if (element.value === data) {
 						selected = true;
@@ -53,7 +53,7 @@ export default function (binder) {
 			}
 		};
 	} else if (type === 'radio') {
-		let elements;
+		var elements;
 
 		return {
 			read () {
@@ -69,10 +69,10 @@ export default function (binder) {
 				);
 			},
 			write () {
-				let checked = false;
+				var checked = false;
 
-				for (let i = 0, l = elements.length; i < l; i++) {
-					const element = elements[i];
+				for (var i = 0, l = elements.length; i < l; i++) {
+					var element = elements[i];
 
 					if (i === data) {
 						checked = true;
@@ -106,7 +106,7 @@ export default function (binder) {
 				}
 			},
 			write () {
-				for (let i = 0, l = data.length; i < l; i++) {
+				for (var i = 0, l = data.length; i < l; i++) {
 					if (data[i] !== binder.element.files[i]) {
 						if (data[i]) {
 							binder.element.files[i] = data[i];
@@ -140,8 +140,8 @@ export default function (binder) {
 			read () {
 
 				if (name === 'OPTION' && binder.element.selected) {
-					const parent = binder.element.parentElement;
-					const select = Binder.elements.get(parent).get('value');
+					var parent = binder.element.parentElement;
+					var select = Binder.elements.get(parent).get('value');
 					self.default(select);
 				}
 

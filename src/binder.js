@@ -38,7 +38,7 @@ class Binder {
 	}
 
 	get (data) {
-		let binder;
+		var binder;
 
 		if (typeof data === 'string') {
 			binder = {};
@@ -58,7 +58,7 @@ class Binder {
 
 		var items = this.data[binder.scope][binder.path];
 
-		for (let i = 0, l = items.length; i < l; i++) {
+		for (var i = 0, l = items.length; i < l; i++) {
 			var item = items[i];
 
 			if (item.element === binder.element && item.name === binder.name) {
@@ -148,7 +148,7 @@ class Binder {
 			) {
 				var binders = binderPaths[binderPath];
 
-				for (let c = 0, t = binders.length; c < t; c++) {
+				for (var c = 0, t = binders.length; c < t; c++) {
 					callback(binders[c]);
 				}
 
@@ -171,7 +171,7 @@ class Binder {
 			return data;
 		}
 
-		for (let i = 0, l = binder.pipes.length; i < l; i++) {
+		for (var i = 0, l = binder.pipes.length; i < l; i++) {
 			var method = binder.pipes[i];
 
 			if (method in methods) {

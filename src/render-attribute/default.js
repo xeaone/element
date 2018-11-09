@@ -3,12 +3,12 @@ import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
-	let render;
+	var render;
 
 	if (binder.type in this) {
 		render = this[binder.type](binder);
 	} else {
-		let data;
+		var data;
 
 		render = {
 			read () {

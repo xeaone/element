@@ -21,12 +21,12 @@ class Component {
 	}
 
 	renderSlot (target, source, scope) {
-		const targetSlots = target.querySelectorAll('slot[name]');
+		var targetSlots = target.querySelectorAll('slot[name]');
 
-		for (let i = 0, l = targetSlots.length; i < l; i++) {
-			const targetSlot = targetSlots[i];
-			const name = targetSlot.getAttribute('name');
-			const sourceSlot = source.querySelector('[slot="'+ name + '"]');
+		for (var i = 0, l = targetSlots.length; i < l; i++) {
+			var targetSlot = targetSlots[i];
+			var name = targetSlot.getAttribute('name');
+			var sourceSlot = source.querySelector('[slot="'+ name + '"]');
 
 			if (sourceSlot) {
 				targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
@@ -36,7 +36,7 @@ class Component {
 
 		}
 
-		const defaultSlot = target.querySelector('slot:not([name])');
+		var defaultSlot = target.querySelector('slot:not([name])');
 
 		if (defaultSlot) {
 
@@ -55,12 +55,12 @@ class Component {
 	}
 
 	// renderTemplate (template) {
-	// 	const fragment = document.createDocumentFragment();
+	// 	var fragment = document.createDocumentFragment();
 	//
 	// 	if (template) {
 	//
 	// 		if (typeof template === 'string') {
-	// 			const temporary = document.createElement('div');
+	// 			var temporary = document.createElement('div');
 	//
 	// 			temporary.innerHTML = template;
 	//
@@ -84,12 +84,12 @@ class Component {
 		if (window.CSS && window.CSS.supports) {
 
 			if (!window.CSS.supports('(--t: black)')) {
-				const matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+				var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-				for (let i = 0, l = matches.length; i < l; i++) {
-					const match = matches[i];
-					const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-					const pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+				for (var i = 0, l = matches.length; i < l; i++) {
+					var match = matches[i];
+					var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+					var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
 					style = style.replace(rule[0], '');
 					style = style.replace(pattern, rule[2]);
 				}
@@ -110,8 +110,8 @@ class Component {
 	}
 
 	created (element, options) {
-		const self = this;
-		const scope = options.name + '-' + options.count++;
+		var self = this;
+		var scope = options.name + '-' + options.count++;
 
 		Object.defineProperties(element, {
 			scope: {
@@ -129,8 +129,8 @@ class Component {
 		if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
 			Binder.bind(element, element, scope);
 		} else {
-			const template = document.createElement('template');
-			const style = self.renderStyle(options.style, scope);
+			var template = document.createElement('template');
+			var style = self.renderStyle(options.style, scope);
 
 			if (typeof options.template === 'string') {
 				template.innerHTML = style + options.template;
@@ -140,8 +140,7 @@ class Component {
 			}
 
 			// element.templateContent = template.content;
-
-			const clone = document.importNode(template.content, true);
+			var clone = document.importNode(template.content, true);
 			// Binder.bind(clone.querySelectorAll('*'), element, scope);
 			Binder.bind(clone, element, scope);
 
@@ -164,30 +163,6 @@ class Component {
 	}
 
 	attached (element, options) {
-
-		// if (element.getAttribute('o-status') === 'created') {
-		// 	const clone = document.importNode(element.templateContent, true);
-		//
-		// 	Binder.bind(clone, element, element.scope);
-		//
-		// 	if (options.shadow) {
-		// 		if ('attachShadow' in document.body) {
-		// 			element.attachShadow({ mode: 'open' }).appendChild(clone);
-		// 		} else if ('createShadowRoot' in document.body) {
-		// 			element.createShadowRoot().appendChild(clone);
-		// 		}
-		// 	} else {
-		// 		this.renderSlot(clone, element);
-		// 		element.appendChild(clone);
-		// 	}
-		//
-		// 	if (options.created) {
-		// 		options.created.call(element);
-		// 	}
-		//
-		// 	element.setAttribute('o-status', 'attached');
-		// }
-
 		if (options.attached) {
 			options.attached.call(element);
 		}
@@ -200,7 +175,7 @@ class Component {
 	}
 
 	define (options) {
-		const self = this;
+		var self = this;
 
 		if (!options.name) {
 			throw new Error('Oxe.component.define - requires name');
