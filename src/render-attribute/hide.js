@@ -2,7 +2,7 @@ import Model from '../model.js';
 import Binder from '../binder.js';
 
 export default function (binder) {
-	var data;
+	let data;
 
 	return {
 		read () {

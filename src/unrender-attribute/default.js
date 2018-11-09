@@ -1,7 +1,7 @@
 import Batcher from '../batcher.js';
 
 export default function (binder) {
-	var unrender;
+	let unrender;
 
 	if (binder.type in this) {
 		unrender = this[binder.type](binder);

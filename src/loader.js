@@ -19,7 +19,7 @@ class Loader extends Events {
 		this.transformers = options.transformers || this.transformers;
 
 		if (options.loads) {
-			var load;
+			let load;
 			while (load = options.loads.shift()) {
 				this.load(load);
 			}
@@ -28,14 +28,14 @@ class Loader extends Events {
 	}
 
 	execute (data) {
-		var text = '\'use strict\';\n\n' + (data.ast ? data.ast.cooked : data.text);
-		var code = new Function('$LOADER', 'window', text);
+		let text = '\'use strict\';\n\n' + (data.ast ? data.ast.cooked : data.text);
+		let code = new Function('$LOADER', 'window', text);
 		data.result = code(this, window);
 	}
 
 	ready (data) {
 		if (data && data.listener && data.listener.length) {
-			var listener;
+			let listener;
 			while (listener = data.listener.shift()) {
 				listener(data);
 			}
@@ -43,8 +43,8 @@ class Loader extends Events {
 	}
 
 	fetch (data) {
-		var self = this;
-		var fetch = new XMLHttpRequest();
+		let self = this;
+		let fetch = new XMLHttpRequest();
 
 		fetch.onreadystatechange = function () {
 
@@ -93,10 +93,10 @@ class Loader extends Events {
 
 		if (data.ast && data.ast.imports.length) {
 
-			var count = 0;
-			var total = data.ast.imports.length;
+			let count = 0;
+			let total = data.ast.imports.length;
 
-			var listener = function () {
+			let listener = function () {
 				count++;
 
 				if (count === total) {
@@ -105,7 +105,7 @@ class Loader extends Events {
 
 			};
 
-			for (var i = 0; i < total; i++) {
+			for (let i = 0; i < total; i++) {
 				this.load({
 					listener: listener,
 					method: data.method,
@@ -121,11 +121,11 @@ class Loader extends Events {
 	}
 
 	attach (data) {
-		var element = document.createElement(data.tag);
+		let element = document.createElement(data.tag);
 
 		data.attributes['o-load'] = 'true';
 
-		for (var name in data.attributes) {
+		for (let name in data.attributes) {
 			element.setAttribute(name, data.attributes[name]);
 		}
 
@@ -187,7 +187,7 @@ class Loader extends Events {
 		data.url = Path.resolve(data.url);
 
 		if (data.url in this.data) {
-			var load = this.data[data.url];
+			let load = this.data[data.url];
 
 			if (load.listener.length) {
 

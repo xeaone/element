@@ -4,12 +4,12 @@ import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
-	var self = this;
+	let self = this;
 
 	if (!binder.fragment) binder.fragment = document.createDocumentFragment();
 	if (!binder.cache) binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 
-	var data, add, remove;
+	let data, add, remove;
 
 	return {
 		read () {
@@ -18,7 +18,7 @@ export default function (binder) {
 
 			if (!data || typeof data !== 'object') return false;
 
-			var length = binder.fragment.children.length + binder.element.children.length;
+			let length = binder.fragment.children.length + binder.element.children.length;
 
 			if (length === data.length) {
 				return false;
@@ -26,7 +26,7 @@ export default function (binder) {
 				remove = true;
 				length--;
 			} else if (length < data.length) {
-				var clone = binder.cache.cloneNode(true);
+				let clone = binder.cache.cloneNode(true);
 
 				Utility.replaceEachVariable(clone, binder.names[1], binder.path, length);
 				Binder.bind(clone, binder.container, binder.scope);

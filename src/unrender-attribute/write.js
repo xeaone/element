@@ -1,6 +1,6 @@
 
 export default function (binder) {
-	var data;
+	let data;
 
 	return {
 		write () {

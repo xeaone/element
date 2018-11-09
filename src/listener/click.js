@@ -11,8 +11,8 @@ export default function (e) {
 	if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
 
 	// if shadow dom use
-	var target = e.path ? e.path[0] : e.target;
-	var parent = target.parentNode;
+	let target = e.path ? e.path[0] : e.target;
+	let parent = target.parentNode;
 
 	if (Router.contain) {
 

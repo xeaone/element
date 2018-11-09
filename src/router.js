@@ -57,14 +57,14 @@ class Router extends Events {
 			if (!data.component) throw new Error('Oxe.router.add - route component required');
 			this.data.push(data);
 		} else if (data.constructor === Array) {
-			for (var i = 0, l = data.length; i < l; i++) {
+			for (let i = 0, l = data.length; i < l; i++) {
 				this.add(data[i]);
 			}
 		}
 	}
 
 	remove (path) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
+		for (let i = 0, l = this.data.length; i < l; i++) {
 			if (path === this.data[i].path) {
 				this.data.splice(i, 1);
 			}
@@ -72,8 +72,8 @@ class Router extends Events {
 	}
 
 	get (path) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
-			var route = this.data[i];
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			let route = this.data[i];
 			if (path === route.path) {
 				return route;
 			}
@@ -81,8 +81,8 @@ class Router extends Events {
 	}
 
 	find (path) {
-		for (var i = 0, l = this.data.length; i < l; i++) {
-			var route = this.data[i];
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			let route = this.data[i];
 			if (this.isPath(route.path, path)) {
 				return route;
 			}
@@ -90,10 +90,10 @@ class Router extends Events {
 	}
 
 	filter (path) {
-		var result = [];
+		let result = [];
 
-		for (var i = 0, l = this.data.length; i < l; i++) {
-			var route = this.data[i];
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			let route = this.data[i];
 			if (this.isPath(route.path, path)) {
 				result.push(route);
 			}
@@ -123,7 +123,7 @@ class Router extends Events {
 	}
 
 	toParameterObject (routePath, userPath) {
-		var result = {};
+		let result = {};
 
 		if (
 			!routePath
@@ -132,15 +132,15 @@ class Router extends Events {
 			|| userPath === '/'
 		) return result;
 
-		var brackets = /{|}/g;
-		var pattern = /{(\w+)}/;
-		var userPaths = userPath.split('/');
-		var routePaths = routePath.split('/');
+		let brackets = /{|}/g;
+		let pattern = /{(\w+)}/;
+		let userPaths = userPath.split('/');
+		let routePaths = routePath.split('/');
 
-		for (var i = 0, l = routePaths.length; i < l; i++) {
+		for (let i = 0, l = routePaths.length; i < l; i++) {
 
 			if (pattern.test(routePaths[i])) {
-				var name = routePaths[i].replace(brackets, '');
+				let name = routePaths[i].replace(brackets, '');
 				result[name] = userPaths[i];
 			}
 
@@ -150,10 +150,10 @@ class Router extends Events {
 	}
 
 	toQueryString (data) {
-		var result = '?';
+		let result = '?';
 
-		for (var key in data) {
-			var value = data[key];
+		for (let key in data) {
+			let value = data[key];
 			result += key + '=' + value + '&';
 		}
 
@@ -165,13 +165,13 @@ class Router extends Events {
 	}
 
 	toQueryObject (path) {
-		var result = {};
+		let result = {};
 
 		if (path.indexOf('?') === 0) path = path.slice(1);
-		var queries = path.split('&');
+		let queries = path.split('&');
 
-		for (var i = 0, l = queries.length; i < l; i++) {
-			var query = queries[i].split('=');
+		for (let i = 0, l = queries.length; i < l; i++) {
+			let query = queries[i].split('=');
 
 			if (query[0] && query[1]) {
 				result[query[0]] = query[1];
@@ -299,7 +299,7 @@ class Router extends Events {
 			window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
 		}
 
-		var location = this.toLocationObject();
+		let location = this.toLocationObject();
 
 		location.route = this.find(location.pathname);
 
@@ -312,12 +312,12 @@ class Router extends Events {
 		location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
 		// if (this.auth || location.route.auth && typeof this.validate === 'function') {
-		// 	var data = this.validate(location);
+		// 	let data = this.validate(location);
 		// 	if (!data.valid) return this.route(data.path);
 		// }
 
 		if (typeof this.before === 'function') {
-			var result = this.before(location);
+			let result = this.before(location);
 			if (result === false) return;
 		}
 

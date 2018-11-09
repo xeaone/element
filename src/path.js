@@ -2,7 +2,7 @@
 export default {
 
 	extension (data) {
-		var position = data.lastIndexOf('.');
+		let position = data.lastIndexOf('.');
 		return position > 0 ? data.slice(position + 1) : '';
 	},
 
@@ -14,7 +14,7 @@ export default {
 	},
 
 	base (href) {
-		var base = window.document.querySelector('base');
+		let base = window.document.querySelector('base');
 
 		if (href) {
 
@@ -32,7 +32,7 @@ export default {
 	},
 
 	resolve (path, base) {
-		var result = [];
+		let result = [];
 
 		path = path.replace(window.location.origin, '');
 
@@ -50,9 +50,9 @@ export default {
 		path = path.replace(/^\//, '');
 		path = path.replace(/\/$/, '');
 
-		var paths = path.split('/');
+		let paths = path.split('/');
 
-		for (var i = 0, l = paths.length; i < l; i++) {
+		for (let i = 0, l = paths.length; i < l; i++) {
 
 			if (paths[i] === '.' || paths[i] === '') {
 				continue;

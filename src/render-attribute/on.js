@@ -3,7 +3,7 @@ import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
-	var data;
+	let data;
 
 	return {
 		write () {
@@ -16,12 +16,12 @@ export default function (binder) {
 
 			if (!binder.cache) {
 				binder.cache = function (e) {
-					var parameters = [e];
+					let parameters = [e];
 
-					for (var i = 0, l = binder.pipes.length; i < l; i++) {
-						var keys = binder.pipes[i].split('.');
+					for (let i = 0, l = binder.pipes.length; i < l; i++) {
+						let keys = binder.pipes[i].split('.');
 						keys.unshift(binder.scope);
-						var parameter = Model.get(keys);
+						let parameter = Model.get(keys);
 						parameters.push(parameter);
 					}
 

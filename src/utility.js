@@ -29,7 +29,7 @@ export default {
 		data.query = data.query || '';
 		data.scope = data.scope || document.body;
 
-		var element = data.scope.querySelector(`${data.name}${data.query}`);
+		let element = data.scope.querySelector(`${data.name}${data.query}`);
 
 		if (!element) {
 			element = document.createElement(data.name);
@@ -44,7 +44,7 @@ export default {
 
 		}
 
-		for (var attribute of data.attributes) {
+		for (let attribute of data.attributes) {
 			element.setAttribute(attribute.name, attribute.value);
 		}
 
@@ -52,19 +52,19 @@ export default {
 	},
 
 	formData (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
-		var data = {};
+		let elements = form.querySelectorAll('[o-value]');
+		let data = {};
 
-		for (var i = 0, l = elements.length; i < l; i++) {
-			var element = elements[i];
+		for (let i = 0, l = elements.length; i < l; i++) {
+			let element = elements[i];
 
 			if (element.nodeName === 'OPTION') continue;
 
-			var value = element.getAttribute('o-value');
+			let value = element.getAttribute('o-value');
 
 			if (!value) continue;
 
-			var values = this.binderValues(value);
+			let values = this.binderValues(value);
 
 			data[values[values.length-1]] = this.getByPath(model, values);
 		}
@@ -73,18 +73,18 @@ export default {
 	},
 
 	formReset (form, model) {
-		var elements = form.querySelectorAll('[o-value]');
+		let elements = form.querySelectorAll('[o-value]');
 
-		for (var i = 0, l = elements.length; i < l; i++) {
-			var element = elements[i];
+		for (let i = 0, l = elements.length; i < l; i++) {
+			let element = elements[i];
 
 			if (element.nodeName === 'OPTION') continue;
 
-			var value = element.getAttribute('o-value');
+			let value = element.getAttribute('o-value');
 
 			if (!value) continue;
 
-			var values = this.binderValues(value);
+			let values = this.binderValues(value);
 
 			this.setByPath(model, values, '');
 		}
@@ -103,8 +103,8 @@ export default {
 	},
 
 	replaceEachVariable (element, variable, path, key) {
-		var self = this;
-		var pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
+		let self = this;
+		let pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
 
 		self.walker(element, function (node) {
 			if (node.nodeType === 3) {
@@ -112,8 +112,8 @@ export default {
 					node.nodeValue = key;
 				}
 			} else if (node.nodeType === 1) {
-				for (var i = 0, l = node.attributes.length; i < l; i++) {
-					var attribute = node.attributes[i];
+				for (let i = 0, l = node.attributes.length; i < l; i++) {
+					let attribute = node.attributes[i];
 					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
 						attribute.value = attribute.value.replace(pattern, `$1${path}.${key}$2`);
 					}
@@ -123,11 +123,11 @@ export default {
 	},
 
 	traverse (data, path, callback) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
+		let keys = typeof path === 'string' ? path.split('.') : path;
+		let last = keys.length - 1;
 
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
+		for (let i = 0; i < last; i++) {
+			let key = keys[i];
 
 			if (!(key in data)) {
 				if (typeof callback === 'function') {
@@ -147,11 +147,11 @@ export default {
 	},
 
 	setByPath (data, path, value) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
+		let keys = typeof path === 'string' ? path.split('.') : path;
+		let last = keys.length - 1;
 
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
+		for (let i = 0; i < last; i++) {
+			let key = keys[i];
 
 			if (!(key in data)) {
 
@@ -170,11 +170,11 @@ export default {
 	},
 
 	getByPath (data, path) {
-		var keys = typeof path === 'string' ? path.split('.') : path;
-		var last = keys.length - 1;
+		let keys = typeof path === 'string' ? path.split('.') : path;
+		let last = keys.length - 1;
 
-		for (var i = 0; i < last; i++) {
-			var key = keys[i];
+		for (let i = 0; i < last; i++) {
+			let key = keys[i];
 
 			if (!(key in data)) {
 				return undefined;

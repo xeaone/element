@@ -11,7 +11,7 @@ class Binder {
 	}
 
 	create (data) {
-		var binder = {};
+		let binder = {};
 
 		if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
 		if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
@@ -38,7 +38,7 @@ class Binder {
 	}
 
 	get (data) {
-		var binder;
+		let binder;
 
 		if (typeof data === 'string') {
 			binder = {};
@@ -56,10 +56,10 @@ class Binder {
 			return null;
 		}
 
-		var items = this.data[binder.scope][binder.path];
+		let items = this.data[binder.scope][binder.path];
 
-		for (var i = 0, l = items.length; i < l; i++) {
-			var item = items[i];
+		for (let i = 0, l = items.length; i < l; i++) {
+			let item = items[i];
 
 			if (item.element === binder.element && item.name === binder.name) {
 				return item;
@@ -116,9 +116,9 @@ class Binder {
 			return;
 		}
 
-		var items = this.data[binder.scope][binder.path];
+		let items = this.data[binder.scope][binder.path];
 
-		for (var i = 0, l = items.length; i < l; i++) {
+		for (let i = 0, l = items.length; i < l; i++) {
 
 			if (items[i].element === binder.element) {
 				return items.splice(i, 1);
@@ -129,14 +129,14 @@ class Binder {
 	}
 
 	each (path, callback) {
-		var paths = typeof path === 'string' ? path.split('.') : path;
-		var scope = paths[0];
+		let paths = typeof path === 'string' ? path.split('.') : path;
+		let scope = paths[0];
 
-		var binderPaths = this.data[scope];
+		let binderPaths = this.data[scope];
 		if (!binderPaths) return;
-		var relativePath = paths.slice(1).join('.');
+		let relativePath = paths.slice(1).join('.');
 
-		for (var binderPath in binderPaths) {
+		for (let binderPath in binderPaths) {
 
 			if (
 				relativePath === '' ||
@@ -146,9 +146,9 @@ class Binder {
 					binderPath.charAt(relativePath.length) === '.'
 				)
 			) {
-				var binders = binderPaths[binderPath];
+				let binders = binderPaths[binderPath];
 
-				for (var c = 0, t = binders.length; c < t; c++) {
+				for (let c = 0, t = binders.length; c < t; c++) {
 					callback(binders[c]);
 				}
 
@@ -165,14 +165,14 @@ class Binder {
 			return data;
 		}
 
-		var methods = Methods.get(binder.scope);
+		let methods = Methods.get(binder.scope);
 
 		if (!methods) {
 			return data;
 		}
 
-		for (var i = 0, l = binder.pipes.length; i < l; i++) {
-			var method = binder.pipes[i];
+		for (let i = 0, l = binder.pipes.length; i < l; i++) {
+			let method = binder.pipes[i];
 
 			if (method in methods) {
 				data = methods[method].call(binder.container, data);
@@ -200,8 +200,8 @@ class Binder {
 			return true;
 		}
 
-		for (var i = 0, l = element.attributes.length; i < l; i++) {
-			var attribute = element.attributes[i];
+		for (let i = 0, l = element.attributes.length; i < l; i++) {
+			let attribute = element.attributes[i];
 
 			if (attribute.name.indexOf('o-each') === 0) {
 				return true;
@@ -213,10 +213,10 @@ class Binder {
 	}
 
 	eachElement (element, callback) {
-		var elements = element.querySelectorAll('*');
+		let elements = element.querySelectorAll('*');
 
-		for (var i = 0, l = elements.length; i < l; i++) {
-			var e = elements[i];
+		for (let i = 0, l = elements.length; i < l; i++) {
+			let e = elements[i];
 
 			if (
 				e.nodeName !== 'SLOT'
@@ -240,10 +240,10 @@ class Binder {
 	}
 
 	eachAttribute (element, callback) {
-		var attributes = element.attributes;
+		let attributes = element.attributes;
 
-		for (var i = 0, l = attributes.length; i < l; i++) {
-			var a = attributes[i];
+		for (let i = 0, l = attributes.length; i < l; i++) {
+			let a = attributes[i];
 
 			if (
 				a.name.indexOf('o-') === 0
@@ -270,7 +270,7 @@ class Binder {
 		this.eachElement(element, function (child) {
 			this.eachAttribute(child, function (attribute) {
 
-				var binder = this.get({
+				let binder = this.get({
 					scope: scope,
 					element: child,
 					container: container,
@@ -293,7 +293,7 @@ class Binder {
 		this.eachElement(element, function (child) {
 			this.eachAttribute(child, function (attribute) {
 
-				var binder = this.create({
+				let binder = this.create({
 					scope: scope,
 					element: child,
 					container: container,
@@ -301,7 +301,7 @@ class Binder {
 					value: attribute.value
 				});
 
-				var result = this.add(binder);
+				let result = this.add(binder);
 
 				if (result !== false) {
 					Render.default(binder);

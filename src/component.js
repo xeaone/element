@@ -13,7 +13,7 @@ class Component {
 		options = options || {};
 
 		if (options.components && options.components.length) {
-			for (var i = 0, l = options.components.length; i < l; i++) {
+			for (let i = 0, l = options.components.length; i < l; i++) {
 				this.define(options.components[i]);
 			}
 		}
@@ -21,12 +21,12 @@ class Component {
 	}
 
 	renderSlot (target, source, scope) {
-		var targetSlots = target.querySelectorAll('slot[name]');
+		let targetSlots = target.querySelectorAll('slot[name]');
 
-		for (var i = 0, l = targetSlots.length; i < l; i++) {
-			var targetSlot = targetSlots[i];
-			var name = targetSlot.getAttribute('name');
-			var sourceSlot = source.querySelector('[slot="'+ name + '"]');
+		for (let i = 0, l = targetSlots.length; i < l; i++) {
+			let targetSlot = targetSlots[i];
+			let name = targetSlot.getAttribute('name');
+			let sourceSlot = source.querySelector('[slot="'+ name + '"]');
 
 			if (sourceSlot) {
 				targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
@@ -36,7 +36,7 @@ class Component {
 
 		}
 
-		var defaultSlot = target.querySelector('slot:not([name])');
+		let defaultSlot = target.querySelector('slot:not([name])');
 
 		if (defaultSlot) {
 
@@ -55,12 +55,12 @@ class Component {
 	}
 
 	// renderTemplate (template) {
-	// 	var fragment = document.createDocumentFragment();
+	// 	let fragment = document.createDocumentFragment();
 	//
 	// 	if (template) {
 	//
 	// 		if (typeof template === 'string') {
-	// 			var temporary = document.createElement('div');
+	// 			let temporary = document.createElement('div');
 	//
 	// 			temporary.innerHTML = template;
 	//
@@ -84,12 +84,12 @@ class Component {
 		if (window.CSS && window.CSS.supports) {
 
 			if (!window.CSS.supports('(--t: black)')) {
-				var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+				let matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-				for (var i = 0, l = matches.length; i < l; i++) {
-					var match = matches[i];
-					var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-					var pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+				for (let i = 0, l = matches.length; i < l; i++) {
+					let match = matches[i];
+					let rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+					let pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
 					style = style.replace(rule[0], '');
 					style = style.replace(pattern, rule[2]);
 				}
@@ -110,8 +110,8 @@ class Component {
 	}
 
 	created (element, options) {
-		var self = this;
-		var scope = options.name + '-' + options.count++;
+		let self = this;
+		let scope = options.name + '-' + options.count++;
 
 		Object.defineProperties(element, {
 			scope: {
@@ -129,8 +129,8 @@ class Component {
 		if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
 			Binder.bind(element, element, scope);
 		} else {
-			var template = document.createElement('template');
-			var style = self.renderStyle(options.style, scope);
+			let template = document.createElement('template');
+			let style = self.renderStyle(options.style, scope);
 
 			if (typeof options.template === 'string') {
 				template.innerHTML = style + options.template;
@@ -140,7 +140,7 @@ class Component {
 			}
 
 			// element.templateContent = template.content;
-			var clone = document.importNode(template.content, true);
+			let clone = document.importNode(template.content, true);
 			// Binder.bind(clone.querySelectorAll('*'), element, scope);
 			Binder.bind(clone, element, scope);
 
@@ -175,7 +175,7 @@ class Component {
 	}
 
 	define (options) {
-		var self = this;
+		let self = this;
 
 		if (!options.name) {
 			throw new Error('Oxe.component.define - requires name');

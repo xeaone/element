@@ -674,7 +674,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	function Value(binder) {
 		return {
 			write: function write() {
-				var i, l, query, element, elements;
+				var i = void 0,
+				    l = void 0,
+				    query = void 0,
+				    element = void 0,
+				    elements = void 0;
 
 				if (binder.element.nodeName === 'SELECT') {
 
@@ -1684,9 +1688,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				return false;
 			}
-
-			// eachElement (elements, callback) {
-
 		}, {
 			key: 'eachElement',
 			value: function eachElement(element, callback) {
@@ -2310,29 +2311,29 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var string = data;
 			var isInner = false;
 
-			for (var index = 0; index < string.length; index++) {
-				var char = string[index];
+			for (var _index = 0; _index < string.length; _index++) {
+				var char = string[_index];
 
-				if (char === '`' && string[index - 1] !== '\\') {
+				if (char === '`' && string[_index - 1] !== '\\') {
 
 					if (isInner) {
 						ends++;
 						value = '\'';
 						isInner = false;
-						string = this.updateString(value, index, string);
-						index = this.updateIndex(value, index);
+						string = this.updateString(value, _index, string);
+						_index = this.updateIndex(value, _index);
 					} else {
 						starts++;
 						value = '\'';
 						isInner = true;
-						string = this.updateString(value, index, string);
-						index = this.updateIndex(value, index);
+						string = this.updateString(value, _index, string);
+						_index = this.updateIndex(value, _index);
 					}
 				} else if (isInner) {
 
-					if (value = this.innerHandler(char, index, string)) {
-						string = this.updateString(value, index, string);
-						index = this.updateIndex(value, index);
+					if (value = this.innerHandler(char, _index, string)) {
+						string = this.updateString(value, _index, string);
+						_index = this.updateIndex(value, _index);
 					}
 				}
 			}
@@ -2471,10 +2472,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (name in this.events) {
 
-					var index = this.events[name].indexOf(method);
+					var _index2 = this.events[name].indexOf(method);
 
-					if (index !== -1) {
-						this.events[name].splice(index, 1);
+					if (_index2 !== -1) {
+						this.events[name].splice(_index2, 1);
 					}
 				}
 			}
@@ -2485,10 +2486,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (name in this.events) {
 
 					var methods = this.events[name];
-					var args = Array.prototype.slice.call(arguments, 1);
+					var _args = Array.prototype.slice.call(arguments, 1);
 
 					for (var i = 0, l = methods.length; i < l; i++) {
-						methods[i].apply(this, args);
+						methods[i].apply(this, _args);
 					}
 				}
 			}
@@ -2521,7 +2522,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				this.transformers = options.transformers || this.transformers;
 
 				if (options.loads) {
-					var load;
+					var load = void 0;
 					while (load = options.loads.shift()) {
 						this.load(load);
 					}
@@ -2538,7 +2539,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'ready',
 			value: function ready(data) {
 				if (data && data.listener && data.listener.length) {
-					var listener;
+					var listener = void 0;
 					while (listener = data.listener.shift()) {
 						listener(data);
 					}
@@ -2783,12 +2784,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 
 			// renderTemplate (template) {
-			// 	const fragment = document.createDocumentFragment();
+			// 	let fragment = document.createDocumentFragment();
 			//
 			// 	if (template) {
 			//
 			// 		if (typeof template === 'string') {
-			// 			const temporary = document.createElement('div');
+			// 			let temporary = document.createElement('div');
 			//
 			// 			temporary.innerHTML = template;
 			//
@@ -2869,7 +2870,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 
 					// element.templateContent = template.content;
-
 					var clone = document.importNode(template.content, true);
 					// Binder.bind(clone.querySelectorAll('*'), element, scope);
 					Binder$1.bind(clone, element, scope);
@@ -2893,30 +2893,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'attached',
 			value: function attached(element, options) {
-
-				// if (element.getAttribute('o-status') === 'created') {
-				// 	const clone = document.importNode(element.templateContent, true);
-				//
-				// 	Binder.bind(clone, element, element.scope);
-				//
-				// 	if (options.shadow) {
-				// 		if ('attachShadow' in document.body) {
-				// 			element.attachShadow({ mode: 'open' }).appendChild(clone);
-				// 		} else if ('createShadowRoot' in document.body) {
-				// 			element.createShadowRoot().appendChild(clone);
-				// 		}
-				// 	} else {
-				// 		this.renderSlot(clone, element);
-				// 		element.appendChild(clone);
-				// 	}
-				//
-				// 	if (options.created) {
-				// 		options.created.call(element);
-				// 	}
-				//
-				// 	element.setAttribute('o-status', 'attached');
-				// }
-
 				if (options.attached) {
 					options.attached.call(element);
 				}
@@ -3082,9 +3058,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'get',
 			value: function get(path) {
 				for (var i = 0, l = this.data.length; i < l; i++) {
-					var route = this.data[i];
-					if (path === route.path) {
-						return route;
+					var _route2 = this.data[i];
+					if (path === _route2.path) {
+						return _route2;
 					}
 				}
 			}
@@ -3092,9 +3068,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'find',
 			value: function find(path) {
 				for (var i = 0, l = this.data.length; i < l; i++) {
-					var route = this.data[i];
-					if (this.isPath(route.path, path)) {
-						return route;
+					var _route3 = this.data[i];
+					if (this.isPath(_route3.path, path)) {
+						return _route3;
 					}
 				}
 			}
@@ -3104,9 +3080,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var result = [];
 
 				for (var i = 0, l = this.data.length; i < l; i++) {
-					var route = this.data[i];
-					if (this.isPath(route.path, path)) {
-						result.push(route);
+					var _route4 = this.data[i];
+					if (this.isPath(_route4.path, path)) {
+						result.push(_route4);
 					}
 				}
 
@@ -3319,7 +3295,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
 				// if (this.auth || location.route.auth && typeof this.validate === 'function') {
-				// 	const data = this.validate(location);
+				// 	let data = this.validate(location);
 				// 	if (!data.valid) return this.route(data.path);
 				// }
 
@@ -3491,13 +3467,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					transformer: args[1]
 				});
 			} else {
-				var _index = document.createElement('script');
+				var _index3 = document.createElement('script');
 
-				_index.setAttribute('src', args[0]);
-				_index.setAttribute('async', 'true');
-				_index.setAttribute('type', 'module');
+				_index3.setAttribute('src', args[0]);
+				_index3.setAttribute('async', 'true');
+				_index3.setAttribute('type', 'module');
 
-				document.head.appendChild(_index);
+				document.head.appendChild(_index3);
 			}
 
 			document.registerElement('o-router', {

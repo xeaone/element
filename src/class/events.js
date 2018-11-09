@@ -18,7 +18,7 @@ export default class Events {
 
 		if (name in this.events) {
 
-			var index = this.events[name].indexOf(method);
+			let index = this.events[name].indexOf(method);
 
 			if (index !== -1) {
 				this.events[name].splice(index, 1);
@@ -32,10 +32,10 @@ export default class Events {
 
 		if (name in this.events) {
 
-			var methods = this.events[name];
-			var args = Array.prototype.slice.call(arguments, 1);
+			let methods = this.events[name];
+			let args = Array.prototype.slice.call(arguments, 1);
 
-			for (var i = 0, l = methods.length; i < l; i++) {
+			for (let i = 0, l = methods.length; i < l; i++) {
 				methods[i].apply(this, args);
 			}
 

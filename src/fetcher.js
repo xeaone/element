@@ -26,9 +26,9 @@ class Fetcher {
 	}
 
 	async serialize (data) {
-		var query = '';
+		let query = '';
 
-		for (var name in data) {
+		for (let name in data) {
 			query = query.length > 0 ? query + '&' : query;
 			query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
 		}
@@ -37,7 +37,7 @@ class Fetcher {
 	}
 
 	async fetch (options) {
-		var data = Object.assign({}, options);
+		let data = Object.assign({}, options);
 
 		if (!data.url) throw new Error('Oxe.fetcher - requires url option');
 		if (!data.method) throw new Error('Oxe.fetcher - requires method option');
@@ -95,7 +95,7 @@ class Fetcher {
 
 		// IDEA for auth tokens
 		// if (data.head) {
-		// 	for (var name in data.head) {
+		// 	for (let name in data.head) {
 		// 		if (typeof data.head[name] === 'function') {
 		// 			data.head[name] = await data.head[name]();
 		// 		}
@@ -113,8 +113,8 @@ class Fetcher {
 		}
 
 		if (typeof this.request === 'function') {
-			var copy = Object.assign({}, data);
-			var result = await this.request(copy);
+			let copy = Object.assign({}, data);
+			let result = await this.request(copy);
 
 			if (result === false) {
 				return data;
@@ -126,14 +126,14 @@ class Fetcher {
 
 		}
 
-		var fetchOptions = Object.assign({}, data);
+		let fetchOptions = Object.assign({}, data);
 
 		if (fetchOptions.head) {
 			fetchOptions.headers = fetchOptions.head;
 			delete fetchOptions.head;
 		}
 
-		var fetched = await window.fetch(data.url, fetchOptions);
+		let fetched = await window.fetch(data.url, fetchOptions);
 
 		data.code = fetched.status;
 		data.message = fetched.statusText;
@@ -147,8 +147,8 @@ class Fetcher {
 		}
 
 		if (this.response) {
-			var copy = Object.assign({}, data);
-			var result = await this.response(copy);
+			let copy = Object.assign({}, data);
+			let result = await this.response(copy);
 
 			if (result === false) {
 				return data;

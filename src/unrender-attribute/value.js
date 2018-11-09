@@ -2,7 +2,7 @@
 export default function (binder) {
 	return {
 		write () {
-			var i , l, query, element, elements;
+			let i , l, query, element, elements;
 
 			if (binder.element.nodeName === 'SELECT') {
 

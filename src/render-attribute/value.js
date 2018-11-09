@@ -2,14 +2,14 @@ import Binder from '../binder.js';
 import Model from '../model.js';
 
 export default function (binder) {
-	var self = this;
-	var type = binder.element.type;
-	var name = binder.element.nodeName;
+	let self = this;
+	let type = binder.element.type;
+	let name = binder.element.nodeName;
 
-	var data, multiple;
+	let data, multiple;
 
 	if (name === 'SELECT') {
-		var elements;
+		let elements;
 
 		return {
 			read () {
@@ -25,12 +25,12 @@ export default function (binder) {
 
 			},
 			write () {
-				var index = 0;
-				var selected = false;
+				let index = 0;
+				let selected = false;
 
 				// NOTE might need to handle disable
-				for (var i = 0, l = elements.length; i < l; i++) {
-					var element = elements[i];
+				for (let i = 0, l = elements.length; i < l; i++) {
+					let element = elements[i];
 
 					if (element.value === data) {
 						selected = true;
@@ -53,7 +53,7 @@ export default function (binder) {
 			}
 		};
 	} else if (type === 'radio') {
-		var elements;
+		let elements;
 
 		return {
 			read () {
@@ -69,10 +69,10 @@ export default function (binder) {
 				);
 			},
 			write () {
-				var checked = false;
+				let checked = false;
 
-				for (var i = 0, l = elements.length; i < l; i++) {
-					var element = elements[i];
+				for (let i = 0, l = elements.length; i < l; i++) {
+					let element = elements[i];
 
 					if (i === data) {
 						checked = true;
@@ -106,7 +106,7 @@ export default function (binder) {
 				}
 			},
 			write () {
-				for (var i = 0, l = data.length; i < l; i++) {
+				for (let i = 0, l = data.length; i < l; i++) {
 					if (data[i] !== binder.element.files[i]) {
 						if (data[i]) {
 							binder.element.files[i] = data[i];
@@ -140,8 +140,8 @@ export default function (binder) {
 			read () {
 
 				if (name === 'OPTION' && binder.element.selected) {
-					var parent = binder.element.parentElement;
-					var select = Binder.elements.get(parent).get('value');
+					let parent = binder.element.parentElement;
+					let select = Binder.elements.get(parent).get('value');
 					self.default(select);
 				}
 

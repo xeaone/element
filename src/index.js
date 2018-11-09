@@ -17,8 +17,8 @@ import Binder from './binder.js';
 import Model from './model.js';
 import Render from './render.js';
 
-var eStyle = document.createElement('style');
-var tStyle = document.createTextNode(`
+let eStyle = document.createElement('style');
+let tStyle = document.createTextNode(`
 	o-router, o-router > :first-child {
 		display: block;
 		animation: o-transition 150ms ease-in-out;
@@ -41,18 +41,18 @@ document.addEventListener('submit', Submit, true);
 document.addEventListener('change', Change, true);
 window.addEventListener('popstate', State, true);
 
-var oSetup = document.querySelector('script[o-setup]');
+let oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
 
-	var currentCount = 0;
-	var requiredCount = 0;
+	let currentCount = 0;
+	let requiredCount = 0;
 
-	var loaded = function () {
+	let loaded = function () {
 		if (currentCount !== requiredCount) return;
 
-		var args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
-		var meta = document.querySelector('meta[name="oxe"]');
+		let args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
+		let meta = document.querySelector('meta[name="oxe"]');
 
 		if (meta && meta.hasAttribute('compiled')) {
 			args[1] = 'null';
@@ -73,7 +73,7 @@ if (oSetup) {
 				transformer: args[1]
 			});
 		} else {
-			var index = document.createElement('script');
+			let index = document.createElement('script');
 
 			index.setAttribute('src', args[0]);
 			index.setAttribute('async', 'true');
@@ -88,8 +88,8 @@ if (oSetup) {
 
 	};
 
-	var loader = function (url, callback) {
-		var polly = document.createElement('script');
+	let loader = function (url, callback) {
+		let polly = document.createElement('script');
 
 		polly.setAttribute('async', 'true');
 		polly.setAttribute('src', url);
@@ -101,11 +101,11 @@ if (oSetup) {
 		document.head.appendChild(polly);
 	};
 
-	var features = [];
-	var isNotFetch = !('fetch' in window);
-	var isNotAssign = !('assign' in Object);
-	var isNotPromise = !('Promise' in window);
-	var isNotCustomElement = !('registerElement' in document) || !('content' in document.createElement('template'));
+	let features = [];
+	let isNotFetch = !('fetch' in window);
+	let isNotAssign = !('assign' in Object);
+	let isNotPromise = !('Promise' in window);
+	let isNotCustomElement = !('registerElement' in document) || !('content' in document.createElement('template'));
 
 	if (isNotFetch) features.push('fetch');
 	if (isNotPromise) features.push('Promise');
