@@ -17,6 +17,8 @@ class Fetcher {
 		options = options || {};
 		this.head = options.head || this.head;
 		this.method = options.method || this.method;
+		this.path = options.path;
+		this.origin = options.origin;
 		this.request = options.request;
 		this.response = options.response;
 		this.acceptType = options.acceptType;
@@ -39,7 +41,16 @@ class Fetcher {
 	async fetch (options) {
 		let data = Object.assign({}, options);
 
-		if (!data.url) throw new Error('Oxe.fetcher - requires url option');
+		data.path = data.path || this.path;
+		data.origin = data.origin || this.origin;
+
+		if (data.path && typeof data.path === 'string' && data.path.charAt(0) === '/') data.path = data.path.slice(1);
+		if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length-1) === '/') data.origin = data.origin.slice(0, -1);
+		if (data.path && data.origin && !data.url) data.url = data.origin + '/' + data.path;
+
+		if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
+
+		// if (!data.url) throw new Error('Oxe.fetcher - requires url option');
 		if (!data.method) throw new Error('Oxe.fetcher - requires method option');
 
 		if (!data.head && this.head) data.head = this.head;
