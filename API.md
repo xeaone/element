@@ -160,6 +160,8 @@ Batches DOM reads and writes.
 ### Oxe.fetcher
 - `setup: Function`
 	- `options: Object` Accepts `window.fetch` options
+		- `path: String` The default path for the url options (requires origin)
+		- `origin: String` The default origin for url options
 		- `head: Object` (default: null) Http headers to be assigned to requests
 		- `acceptType: String`  Valid http `Accept-Type` value or a Oxe.fetcher.mime name
 		- `contentType: String` Valid http `Content-Type` value or a Oxe.fetcher.mime name
@@ -175,7 +177,9 @@ Batches DOM reads and writes.
 			- `data: Object` Argument to be sent as the response
 - `fetch: AsyncFunction` Accepts `window.fetch` options
 	- `options: Object`
-		- `url: String` Required absolute url
+		- `path: String` The path for the url options (requires origin)
+		- `origin: String` The origin for the url options
+		- `url: String` An absolute url or the combination of the origin and path
 		- `method: String` Required http method
 		- `body: Object` If method is GET than body is concatenated to the url as parameters
 		- `head: Object`
