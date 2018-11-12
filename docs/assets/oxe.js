@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.16.1
+	Version: 3.17.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1915,6 +1915,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options = options || {};
 				this.head = options.head || this.head;
 				this.method = options.method || this.method;
+				this.path = options.path;
+				this.origin = options.origin;
 				this.request = options.request;
 				this.response = options.response;
 				this.acceptType = options.acceptType;
@@ -1941,7 +1943,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				var data = Object.assign({}, options);
 
-				if (!data.url) throw new Error('Oxe.fetcher - requires url option');
+				data.path = data.path || _this.path;
+				data.origin = data.origin || _this.origin;
+
+				if (data.path && typeof data.path === 'string' && data.path.charAt(0) === '/') data.path = data.path.slice(1);
+				if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length - 1) === '/') data.origin = data.origin.slice(0, -1);
+				if (data.path && data.origin && !data.url) data.url = data.origin + '/' + data.path;
+
+				if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
+
+				// if (!data.url) throw new Error('Oxe.fetcher - requires url option');
 				if (!data.method) throw new Error('Oxe.fetcher - requires method option');
 
 				if (!data.head && _this.head) data.head = _this.head;
