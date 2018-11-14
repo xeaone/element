@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.17.0
+	Version: 3.17.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1138,6 +1138,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					if (length === data.length) {
 						add = true;
 					}
+
+					/*
+     	check if select element with o-value
+     	perform a re-render of the o-value
+     	becuase of o-each is async
+     */
+
+					if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value']) {
+						var name = binder.element.attributes['o-value'].name;
+						var value = binder.element.attributes['o-value'].value;
+						var select = Binder$1.create({
+							name: name,
+							value: value,
+							scope: binder.scope,
+							element: binder.element,
+							container: binder.container
+						});
+						self.default(select);
+					}
 				}
 
 				if (length < data.length) {
@@ -1331,14 +1350,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			return {
 				read: function read() {
 					data = Model$1.get(binder.keys);
+					data = Binder$1.piper(binder, data);
+
 					elements = binder.element.options;
 					multiple = binder.element.multiple;
 
-					if (multiple) return false;
+					if (multiple && data.constructor !== Array) {
+						throw new Error('Oxe - invalid multiple select value type ' + binder.keys.join('.') + ' array required');
+					}
 
-					// if (multiple && data.constructor !== Array) {
-					// 	throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
-					// }
+					if (multiple) return false;
 				},
 				write: function write() {
 					var index = 0;
@@ -1952,7 +1973,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
 
-				// if (!data.url) throw new Error('Oxe.fetcher - requires url option');
 				if (!data.method) throw new Error('Oxe.fetcher - requires method option');
 
 				if (!data.head && _this.head) data.head = _this.head;
