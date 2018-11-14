@@ -14,14 +14,16 @@ export default function (binder) {
 		return {
 			read () {
 				data = Model.get(binder.keys);
+				data = Binder.piper(binder, data);
+
 				elements = binder.element.options;
 				multiple = binder.element.multiple;
 
-				if (multiple) return false;
+				if (multiple && data.constructor !== Array) {
+					throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
+				}
 
-				// if (multiple && data.constructor !== Array) {
-				// 	throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
-				// }
+				if (multiple) return false;
 
 			},
 			write () {
