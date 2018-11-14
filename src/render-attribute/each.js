@@ -44,6 +44,26 @@ export default function (binder) {
 				if (length === data.length) {
 					add = true;
 				}
+
+				/*
+					check if select element with o-value
+					perform a re-render of the o-value
+					becuase of o-each is async
+				*/
+
+				if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value']) {
+					var name = binder.element.attributes['o-value'].name;
+					var value = binder.element.attributes['o-value'].value;
+					var select = Binder.create({
+						name: name,
+						value: value,
+						scope: binder.scope,
+						element: binder.element,
+						container: binder.container
+					});
+					self.default(select);
+				}
+
 			}
 
 			if (length < data.length) {
