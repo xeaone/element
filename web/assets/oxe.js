@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 3.17.1
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -3037,22 +3027,24 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		_createClass(Router, [{
 			key: 'setup',
-			value: function setup(options) {
+			value: _async(function (options) {
+				var _this12 = this;
+
 				options = options || {};
 
-				this.after = options.after === undefined ? this.after : options.after;
-				this.before = options.before === undefined ? this.before : options.before;
-				this.element = options.element === undefined ? this.element : options.element;
-				this.contain = options.contain === undefined ? this.contain : options.contain;
-				this.external = options.external === undefined ? this.external : options.external;
+				_this12.after = options.after === undefined ? _this12.after : options.after;
+				_this12.before = options.before === undefined ? _this12.before : options.before;
+				_this12.element = options.element === undefined ? _this12.element : options.element;
+				_this12.contain = options.contain === undefined ? _this12.contain : options.contain;
+				_this12.external = options.external === undefined ? _this12.external : options.external;
 				// this.validate = options.validate === undefined ? this.validate : options.validate;
 
 				if (options.routes) {
-					this.add(options.routes);
+					_this12.add(options.routes);
 				}
 
-				this.route(window.location.href, { replace: true });
-			}
+				return _awaitIgnored(_this12.route(window.location.href, { replace: true }));
+			})
 		}, {
 			key: 'scroll',
 			value: function scroll(x, y) {
@@ -3337,11 +3329,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				location.query = this.toQueryObject(location.search);
 				location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
-				// if (this.auth || location.route.auth && typeof this.validate === 'function') {
-				// 	let data = this.validate(location);
-				// 	if (!data.valid) return this.route(data.path);
-				// }
-
 				if (typeof this.before === 'function') {
 					var result = this.before(location);
 					if (result === false) return;
@@ -3412,7 +3399,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		if (Router$1.external && (Router$1.external.constructor.name === 'RegExp' && Router$1.external.test(target.href) || Router$1.external.constructor.name === 'Function' && Router$1.external(target.href) || Router$1.external.constructor.name === 'String' && Router$1.external === target.href)) return;
 
 		if (Router$1.location.href !== target.href) {
-			Router$1.route(target.href);
+			Promise.resolve().then(function () {
+				return Router$1.route(target.href);
+			}).catch(console.error);
 		}
 
 		if (!Router$1.compiled) {
@@ -3424,7 +3413,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		var path = e && e.state ? e.state.path : window.location.href;
 
-		Router$1.route(path, { replace: true });
+		Promise.resolve().then(function () {
+			return Router$1.route(path, { replace: true });
+		}).catch(console.error);
 	}
 
 	function Load(e) {
@@ -3574,12 +3565,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		_createClass(Oxe, [{
 			key: 'setup',
 			value: _async(function (data) {
-				var _this12 = this;
+				var _this13 = this;
 
-				if (_this12._setup) {
+				if (_this13._setup) {
 					return;
 				} else {
-					_this12._setup = true;
+					_this13._setup = true;
 				}
 
 				data = data || {};
@@ -3589,28 +3580,30 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (data.general) {
-					_this12.general.setup(data.general);
+					_this13.general.setup(data.general);
 				}
 
 				if (data.fetcher) {
-					_this12.fetcher.setup(data.fetcher);
+					_this13.fetcher.setup(data.fetcher);
 				}
 
 				if (data.loader) {
-					_this12.loader.setup(data.loader);
+					_this13.loader.setup(data.loader);
 				}
 
 				if (data.component) {
-					_this12.component.setup(data.component);
+					_this13.component.setup(data.component);
 				}
 
-				if (data.router) {
-					_this12.router.setup(data.router);
-				}
-
-				if (data.listener && data.listener.after) {
-					data.listener.after();
-				}
+				return _invoke(function () {
+					if (data.router) {
+						return _awaitIgnored(_this13.router.setup(data.router));
+					}
+				}, function () {
+					if (data.listener && data.listener.after) {
+						data.listener.after();
+					}
+				});
 			})
 		}, {
 			key: 'global',

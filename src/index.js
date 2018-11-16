@@ -241,7 +241,7 @@ class Oxe {
 		}
 
 		if (data.router) {
-			this.router.setup(data.router);
+			await this.router.setup(data.router);
 		}
 
 		if (data.listener && data.listener.after) {

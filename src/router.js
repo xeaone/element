@@ -16,7 +16,7 @@ class Router extends Events {
 		this.compiled = false;
 	}
 
-	setup (options) {
+	async setup (options) {
 		options = options || {};
 
 		this.after = options.after === undefined ? this.after : options.after;
@@ -30,7 +30,7 @@ class Router extends Events {
 			this.add(options.routes);
 		}
 
-		this.route(window.location.href, { replace: true });
+		await this.route(window.location.href, { replace: true });
 	}
 
 	scroll (x, y) {
@@ -310,11 +310,6 @@ class Router extends Events {
 		location.title = location.route.title || '';
 		location.query = this.toQueryObject(location.search);
 		location.parameters = this.toParameterObject(location.route.path, location.pathname);
-
-		// if (this.auth || location.route.auth && typeof this.validate === 'function') {
-		// 	let data = this.validate(location);
-		// 	if (!data.valid) return this.route(data.path);
-		// }
 
 		if (typeof this.before === 'function') {
 			let result = this.before(location);

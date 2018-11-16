@@ -92,6 +92,8 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 	- `element: String, Element` (default: 'o-router') The element to render route changes
 	- `contain: Boolean` (default: false) Limits all href clicks to the 'o-router' element
 	- `external: String, RegExp, Function` Filters URL requests. If true or match Oxe.router will not handle request
+	- `before: AsyncFunction` Invoked before the routed
+		- `location: Object` Oxe.router.location argument for the upcoming route
 	- `routes: Array`
 		- `route: Object`
 			- `path: String` Any path starting with forward slash
@@ -102,7 +104,7 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 			- `handler: Function` Overrides the default render method
 			- `component: Object, String` An Oxe.component.define options object or a component name
 			- `load: Object, String` An Oxe.loader.load options object or a url
-- `setup: Function`
+- `setup: AsyncFunction`
 	- `options: Object` Accepts the above options
 - `location: Object` Similar to window.location
 	- `base: String` Base href or origin
@@ -135,7 +137,7 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 	- `path: String` Loose path matching the route path parameters are considered
 - `filter: Function`
 	- `path: String, RegExp` Loose path matching the route path parameters are considered or a RegExp.
-- `route: Function` Routes to the path
+- `route: AsyncFunction` Routes to the path
 	- `path: String` Path to navigate
 	- `options: Object`
 		- `replace: Boolean` (default: false) replace or push state

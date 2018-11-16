@@ -60,7 +60,9 @@ export default function (e) {
 	) return;
 
 	if (Router.location.href !== target.href) {
-		Router.route(target.href);
+		Promise.resolve().then(function () {
+			return Router.route(target.href);
+		}).catch(console.error);
 	}
 
 	if (!Router.compiled) {
