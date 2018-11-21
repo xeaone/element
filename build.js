@@ -10,31 +10,22 @@ const Fs = require('fs');
 const ReadFile = Util.promisify(Fs.readFile);
 const WriteFile = Util.promisify(Fs.writeFile);
 
-const name = Package.name;
-const email = Package.email;
-const author = Package.author;
-const license = Package.license;
-const version = Package.version;
-
 const header = `/*
-	Name: ${name}
-	Version: ${version}
-	License: ${license}
-	Author: ${author}
-	Email: ${email}
+	Name: ${Package.name}
+	Version: ${Package.version}
+	License: ${Package.license}
+	Author: ${Package.author}
+	Email: ${Package.email}
 	This Source Code Form is subject to the terms of the Mozilla Public
 	License, v. 2.0. If a copy of the MPL was not distributed with this
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 `;
 
-async function prepend (data, path) {
+const prepend = async function (data, path) {
 	const fileData = await ReadFile(path, 'utf8');
 	await WriteFile(path, data + fileData, 'utf8');
 }
-
-// const Path = require('path');
-// const Bundle = require('./bin/bundle');
 
 (async function () {
 
