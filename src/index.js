@@ -224,7 +224,7 @@ class Oxe {
 				event.preventDefault();
 				Promise.resolve()
 					.then(Reset.bind(null, event))
-					.then(data.listener.reset)
+					.then(data.listener.reset.bind(null, event))
 					.catch(console.error);
 			}
 		}, true);
@@ -234,7 +234,7 @@ class Oxe {
 				event.preventDefault();
 				Promise.resolve()
 					.then(Submit.bind(null, event))
-					.then(data.listener.submit)
+					.then(data.listener.submit.bind(null, event))
 					.catch(console.error);
 			}
 		}, true);

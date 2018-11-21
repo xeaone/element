@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.19.0
+	Version: 3.19.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -3581,14 +3581,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				document.addEventListener('reset', function (event) {
 					if (event.target.hasAttribute('o-reset')) {
 						event.preventDefault();
-						Promise.resolve().then(Reset.bind(null, event)).then(data.listener.reset).catch(console.error);
+						Promise.resolve().then(Reset.bind(null, event)).then(data.listener.reset.bind(null, event)).catch(console.error);
 					}
 				}, true);
 
 				document.addEventListener('submit', function (event) {
 					if (event.target.hasAttribute('o-submit')) {
 						event.preventDefault();
-						Promise.resolve().then(Submit.bind(null, event)).then(data.listener.submit).catch(console.error);
+						Promise.resolve().then(Submit.bind(null, event)).then(data.listener.submit.bind(null, event)).catch(console.error);
 					}
 				}, true);
 
