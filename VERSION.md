@@ -1,3 +1,5 @@
+### 3.19.0
+- event listeners are added only after Oxe.setup is invoked
 
 ### 3.16.0
 - fixed slot scope issues

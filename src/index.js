@@ -33,14 +33,6 @@ eStyle.setAttribute('type', 'text/css');
 eStyle.appendChild(tStyle);
 document.head.appendChild(eStyle);
 
-document.addEventListener('load', Load, true);
-document.addEventListener('input', Input, true);
-document.addEventListener('reset', Reset, true);
-document.addEventListener('click', Click, true);
-document.addEventListener('submit', Submit, true);
-document.addEventListener('change', Change, true);
-window.addEventListener('popstate', State, true);
-
 let oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
@@ -219,8 +211,35 @@ class Oxe {
 		}
 
 		data = data || {};
+		data.listener = data.listener || {};
 
-		if (data.listener && data.listener.before) {
+		document.addEventListener('load', Load, true);
+		document.addEventListener('input', Input, true);
+		document.addEventListener('click', Click, true);
+		document.addEventListener('change', Change, true);
+		window.addEventListener('popstate', State, true);
+
+		document.addEventListener('reset', function (event) {
+			if (event.target.hasAttribute('o-reset')) {
+				event.preventDefault();
+				Promise.resolve()
+					.then(Reset.bind(null, event))
+					.then(data.listener.reset)
+					.catch(console.error);
+			}
+		}, true);
+
+		document.addEventListener('submit', function (event) {
+			if (event.target.hasAttribute('o-submit')) {
+				event.preventDefault();
+				Promise.resolve()
+					.then(Submit.bind(null, event))
+					.then(data.listener.submit)
+					.catch(console.error);
+			}
+		}, true);
+
+		if (data.listener.before) {
 			await data.listener.before();
 		}
 
@@ -244,7 +263,7 @@ class Oxe {
 			await this.router.setup(data.router);
 		}
 
-		if (data.listener && data.listener.after) {
+		if (data.listener.after) {
 			await data.listener.after();
 		}
 

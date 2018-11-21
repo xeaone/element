@@ -4,48 +4,34 @@ import Utility from '../utility.js';
 import Fetcher from '../fetcher.js';
 import Methods from '../methods.js';
 
-export default function (e) {
-	let element = e.target;
-	let submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
+export default async function (event) {
+	var element = event.target;
+	var binder = Binder.elements.get(element).get('submit');
+	var method = Methods.get(binder.keys);
+	var model = Model.get(binder.scope);
+	var data = Utility.formData(element, model);
 
-	if (!submit) return;
-	else e.preventDefault();
+	var options = await method.call(binder.container, data, event);
 
-	let binder = Binder.elements.get(element).get('submit');
-	let method = Methods.get(binder.keys);
-	let model = Model.get(binder.scope);
+	if (typeof options === 'object') {
+		var action = element.getAttribute('o-action');
+		var method = element.getAttribute('o-method');
+		var enctype = element.getAttribute('o-enctype');
 
-	let data = Utility.formData(element, model);
+		options.url = options.url || action;
+		options.method = options.method || method;
+		options.contentType = options.contentType || enctype;
 
-	Promise.resolve().then(async function () {
-		
-		let options = await method.call(binder.container, data, e);
+		var result = await Fetcher.fetch(options);
 
-		if (typeof options === 'object') {
-			let action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-			let method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-			let enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
-
-			options.url = options.url || action;
-			options.method = options.method || method;
-			options.contentType = options.contentType || enctype;
-
-			let result = await Fetcher.fetch(options);
-
-			if (options.handler) {
-				await options.handler(result);
-			}
-
+		if (options.handler) {
+			await options.handler(result);
 		}
 
-		if (
-			typeof options === 'object' && options.reset
-			|| element.hasAttribute('o-reset')
-			|| element.hasAttribute('data-o-reset')
-		) {
-			element.reset();
-		}
+	}
 
-	}).catch(console.error);
+	if (element.hasAttribute('o-reset') || (typeof options === 'object' && options.reset)) {
+		element.reset();
+	}
 
 };

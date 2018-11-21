@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.18.0
+	Version: 3.19.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -12,15 +12,16 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 function _awaitIgnored(value, direct) {
 	if (!direct) {
 		return Promise.resolve(value).then(_empty);
 	}
-}function _invoke(body, then) {
+}
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
 	}return then(result);
@@ -71,6 +72,50 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  		test array methods
  		figure out a way to not update removed items
  */
+
+	var Reset = _async(function (event) {
+		var element = event.target;
+		var binder = Binder$1.elements.get(element).get('submit');
+		var model = Model$1.get(binder.scope);
+		Utility.formReset(element, model);
+	});
+
+	var Submit = _async(function (event) {
+		var method;
+
+		var element = event.target;
+		var binder = Binder$1.elements.get(element).get('submit');
+		var method = Methods$1.get(binder.keys);
+		var model = Model$1.get(binder.scope);
+		var data = Utility.formData(element, model);
+
+		return _await(method.call(binder.container, data, event), function (options) {
+			return _invoke(function () {
+				if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
+					var action = element.getAttribute('o-action');
+					method = element.getAttribute('o-method');
+
+					var enctype = element.getAttribute('o-enctype');
+
+					options.url = options.url || action;
+					options.method = options.method || method;
+					options.contentType = options.contentType || enctype;
+
+					return _await(Fetcher$1.fetch(options), function (result) {
+						return _invokeIgnored(function () {
+							if (options.handler) {
+								return _awaitIgnored(options.handler(result));
+							}
+						});
+					});
+				}
+			}, function () {
+				if (element.hasAttribute('o-reset') || (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset) {
+					element.reset();
+				}
+			});
+		});
+	});
 
 	var Update = _async(function (element, attribute) {
 
@@ -1908,10 +1953,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Model$1 = new Model();
 
-	function Change(e) {
-
-		if (e.target.hasAttribute('o-value')) {
-			Update(e.target, 'value').catch(console.error);
+	function Change(event) {
+		if (event.target.hasAttribute('o-value')) {
+			Promise.resolve().then(function () {
+				return Update(event.target, 'value');
+			}).catch(console.error);
 		}
 	}
 
@@ -2196,64 +2242,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Fetcher$1 = new Fetcher();
 
-	function Submit(e) {
-		var element = e.target;
-		var submit = element.getAttribute('o-submit') || element.getAttribute('data-o-submit');
-
-		if (!submit) return;else e.preventDefault();
-
-		var binder = Binder$1.elements.get(element).get('submit');
-		var method = Methods$1.get(binder.keys);
-		var model = Model$1.get(binder.scope);
-
-		var data = Utility.formData(element, model);
-
-		Promise.resolve().then(_async(function () {
-			return _await(method.call(binder.container, data, e), function (options) {
-				return _invoke(function () {
-					if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object') {
-						var action = element.getAttribute('o-action') || element.getAttribute('data-o-action');
-						var _method = element.getAttribute('o-method') || element.getAttribute('data-o-method');
-						var enctype = element.getAttribute('o-enctype') || element.getAttribute('data-o-enctype');
-
-						options.url = options.url || action;
-						options.method = options.method || _method;
-						options.contentType = options.contentType || enctype;
-
-						return _await(Fetcher$1.fetch(options), function (result) {
-							return _invokeIgnored(function () {
-								if (options.handler) {
-									return _awaitIgnored(options.handler(result));
-								}
-							});
-						});
-					}
-				}, function () {
-					if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' && options.reset || element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset')) {
-						element.reset();
-					}
-				});
-			});
-		})).catch(console.error);
-	}
-
-	function Input(e) {
-		if (e.target.type !== 'checkbox' && e.target.type !== 'radio' && e.target.type !== 'option' && e.target.nodeName !== 'SELECT' && e.target.hasAttribute('o-value')) {
-			Update(e.target, 'value').catch(console.error);
+	function Input(event) {
+		if (event.target.type !== 'checkbox' && event.target.type !== 'radio' && event.target.type !== 'option' && event.target.nodeName !== 'SELECT' && event.target.hasAttribute('o-value')) {
+			Promise.resolve().then(function () {
+				return Update(event.target, 'value');
+			}).catch(console.error);
 		}
-	}
-
-	function Reset(e) {
-		var element = e.target;
-		var reset = element.hasAttribute('o-reset') || element.hasAttribute('data-o-reset');
-
-		if (!reset) return;else e.preventDefault();
-
-		var binder = Binder$1.elements.get(element).get('submit');
-		var elements = element.querySelectorAll('[o-value]');
-		var model = Model$1.get(binder.scope);
-
-		Utility.formReset(element, model);
 	}
 
 	var Path = {
@@ -3419,9 +3413,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 	}
 
-	function State(e) {
+	function State(event) {
 
-		var path = e && e.state ? e.state.path : window.location.href;
+		var path = event && event.state ? event.state.path : window.location.href;
 
 		Promise.resolve().then(function () {
 			return Router$1.route(path, { replace: true });
@@ -3470,14 +3464,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	eStyle.setAttribute('type', 'text/css');
 	eStyle.appendChild(tStyle);
 	document.head.appendChild(eStyle);
-
-	document.addEventListener('load', Load, true);
-	document.addEventListener('input', Input, true);
-	document.addEventListener('reset', Reset, true);
-	document.addEventListener('click', Click, true);
-	document.addEventListener('submit', Submit, true);
-	document.addEventListener('change', Change, true);
-	window.addEventListener('popstate', State, true);
 
 	var oSetup = document.querySelector('script[o-setup]');
 
@@ -3584,35 +3570,61 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				data = data || {};
+				data.listener = data.listener || {};
 
-				if (data.listener && data.listener.before) {
-					data.listener.before();
-				}
+				document.addEventListener('load', Load, true);
+				document.addEventListener('input', Input, true);
+				document.addEventListener('click', Click, true);
+				document.addEventListener('change', Change, true);
+				window.addEventListener('popstate', State, true);
 
-				if (data.general) {
-					_this13.general.setup(data.general);
-				}
+				document.addEventListener('reset', function (event) {
+					if (event.target.hasAttribute('o-reset')) {
+						event.preventDefault();
+						Promise.resolve().then(Reset.bind(null, event)).then(data.listener.reset).catch(console.error);
+					}
+				}, true);
 
-				if (data.fetcher) {
-					_this13.fetcher.setup(data.fetcher);
-				}
-
-				if (data.loader) {
-					_this13.loader.setup(data.loader);
-				}
-
-				if (data.component) {
-					_this13.component.setup(data.component);
-				}
+				document.addEventListener('submit', function (event) {
+					if (event.target.hasAttribute('o-submit')) {
+						event.preventDefault();
+						Promise.resolve().then(Submit.bind(null, event)).then(data.listener.submit).catch(console.error);
+					}
+				}, true);
 
 				return _invoke(function () {
-					if (data.router) {
-						return _awaitIgnored(_this13.router.setup(data.router));
+					if (data.listener.before) {
+						return _awaitIgnored(data.listener.before());
 					}
 				}, function () {
-					if (data.listener && data.listener.after) {
-						data.listener.after();
+
+					if (data.general) {
+						_this13.general.setup(data.general);
 					}
+
+					if (data.fetcher) {
+						_this13.fetcher.setup(data.fetcher);
+					}
+
+					if (data.loader) {
+						_this13.loader.setup(data.loader);
+					}
+
+					if (data.component) {
+						_this13.component.setup(data.component);
+					}
+
+					return _invoke(function () {
+						if (data.router) {
+							return _awaitIgnored(_this13.router.setup(data.router));
+						}
+					}, function () {
+						return _invokeIgnored(function () {
+							if (data.listener.after) {
+								return _awaitIgnored(data.listener.after());
+							}
+						});
+					});
 				});
 			})
 		}, {

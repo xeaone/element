@@ -25,7 +25,7 @@ const header = `/*
 const prepend = async function (data, path) {
 	const fileData = await ReadFile(path, 'utf8');
 	await WriteFile(path, data + fileData, 'utf8');
-}
+};
 
 (async function () {
 

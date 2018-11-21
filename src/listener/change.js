@@ -1,9 +1,9 @@
 import Update from '../update.js';
 
-export default function (e) {
-
-	if (e.target.hasAttribute('o-value')) {
-		Update(e.target, 'value').catch(console.error);
+export default function (event) {
+	if (event.target.hasAttribute('o-value')) {
+		Promise.resolve().then(function () {
+			return Update(event.target, 'value');
+		}).catch(console.error);
 	}
-
-}
+};

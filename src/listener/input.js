@@ -1,13 +1,15 @@
 import Update from '../update.js';
 
-export default function (e) {
+export default function (event) {
 	if (
-		e.target.type !== 'checkbox'
-		&& e.target.type !== 'radio'
-		&& e.target.type !== 'option'
-		&& e.target.nodeName !== 'SELECT'
-		&& e.target.hasAttribute('o-value')
+		event.target.type !== 'checkbox'
+		&& event.target.type !== 'radio'
+		&& event.target.type !== 'option'
+		&& event.target.nodeName !== 'SELECT'
+		&& event.target.hasAttribute('o-value')
 	) {
-		Update(e.target, 'value').catch(console.error);
+		Promise.resolve().then(function () {
+			return Update(event.target, 'value');
+		}).catch(console.error);
 	}
-}
+};
