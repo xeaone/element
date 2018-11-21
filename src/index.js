@@ -221,7 +221,7 @@ class Oxe {
 		data = data || {};
 
 		if (data.listener && data.listener.before) {
-			data.listener.before();
+			await data.listener.before();
 		}
 
 		if (data.general) {
@@ -245,7 +245,7 @@ class Oxe {
 		}
 
 		if (data.listener && data.listener.after) {
-			data.listener.after();
+			await data.listener.after();
 		}
 
 	}
