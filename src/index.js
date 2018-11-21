@@ -222,10 +222,19 @@ class Oxe {
 		document.addEventListener('reset', function (event) {
 			if (event.target.hasAttribute('o-reset')) {
 				event.preventDefault();
-				var reset = typeof data.listener.reset === 'function' ? data.listener.reset.bind(null, event) : null;
+
+				var before;
+				var after;
+
+				if (data.listener.reset) {
+					before = typeof data.listener.reset.before === 'function' ? data.listener.reset.before.bind(null, event) : null;
+					after = typeof data.listener.reset.after === 'function' ? data.listener.reset.after.bind(null, event) : null;
+				}
+
 				Promise.resolve()
+					.then(before)
 					.then(Reset.bind(null, event))
-					.then(reset)
+					.then(after)
 					.catch(console.error);
 			}
 		}, true);
@@ -233,10 +242,19 @@ class Oxe {
 		document.addEventListener('submit', function (event) {
 			if (event.target.hasAttribute('o-submit')) {
 				event.preventDefault();
-				var submit = typeof data.listener.submit === 'function' ? data.listener.submit.bind(null, event) : null;
+
+				var before;
+				var after;
+
+				if (data.listener.submit) {
+					before = typeof data.listener.submit.before === 'function' ? data.listener.submit.before.bind(null, event) : null;
+					after = typeof data.listener.submit.after === 'function' ? data.listener.submit.after.bind(null, event) : null;
+				}
+
 				Promise.resolve()
+					.then(before)
 					.then(Submit.bind(null, event))
-					.then(submit)
+					.then(after)
 					.catch(console.error);
 			}
 		}, true);
