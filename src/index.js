@@ -222,9 +222,10 @@ class Oxe {
 		document.addEventListener('reset', function (event) {
 			if (event.target.hasAttribute('o-reset')) {
 				event.preventDefault();
+				var reset = typeof data.listener.reset === 'function' ? data.listener.reset.bind(null, event) : null;
 				Promise.resolve()
 					.then(Reset.bind(null, event))
-					.then(data.listener.reset.bind(null, event))
+					.then(reset)
 					.catch(console.error);
 			}
 		}, true);
@@ -232,9 +233,10 @@ class Oxe {
 		document.addEventListener('submit', function (event) {
 			if (event.target.hasAttribute('o-submit')) {
 				event.preventDefault();
+				var submit = typeof data.listener.submit === 'function' ? data.listener.submit.bind(null, event) : null;
 				Promise.resolve()
 					.then(Submit.bind(null, event))
-					.then(data.listener.submit.bind(null, event))
+					.then(submit)
 					.catch(console.error);
 			}
 		}, true);
