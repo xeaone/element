@@ -14,13 +14,13 @@ class Router extends Events {
 		this.mode = 'push';
 		this.element = null;
 		this.contain = false;
-		this.pattern = new RegExp([
-		    '^(https?:)//', // protocol
-		    '(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
-		    '(/{0,1}[^?#]*)', // pathname
-		    '(\\?[^#]*|)', // search
-		    '(#.*|)$' // hash
-		].join(''));
+		// this.pattern = new RegExp([
+		//     '^(https?:)//', // protocol
+		//     '(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
+		//     '(/{0,1}[^?#]*)', // pathname
+		//     '(\\?[^#]*|)', // search
+		//     '(#.*|)$' // hash
+		// ].join(''));
 	}
 
 	async setup (options) {
@@ -190,16 +190,17 @@ class Router extends Events {
 	}
 
 	toLocationObject (href) {
-		var match = href.match(this.pattern) || [];
+		var parser = document.createElement('a');
+		parser.href = href;
 		return {
-			href: href,
-			protocol: match[1],
-			host: match[2],
-			hostname: match[3],
-			port: match[4],
-			pathname: match[5],
-			search: match[6],
-			hash: match[7]
+			href: parser.href,
+			host: parser.host,
+			port: parser.port,
+			hash: parser.hash,
+			search: parser.search,
+			protocol: parser.protocol,
+			hostname: parser.hostname,
+			pathname: parser.pathname
 		};
 	}
 

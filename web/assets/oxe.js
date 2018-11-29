@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.20.0
+	Version: 3.20.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -3026,12 +3026,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_this11.mode = 'push';
 			_this11.element = null;
 			_this11.contain = false;
-			_this11.pattern = new RegExp(['^(https?:)//', // protocol
-			'(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
-			'(/{0,1}[^?#]*)', // pathname
-			'(\\?[^#]*|)', // search
-			'(#.*|)$' // hash
-			].join(''));
+			// this.pattern = new RegExp([
+			//     '^(https?:)//', // protocol
+			//     '(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
+			//     '(/{0,1}[^?#]*)', // pathname
+			//     '(\\?[^#]*|)', // search
+			//     '(#.*|)$' // hash
+			// ].join(''));
 			return _this11;
 		}
 
@@ -3208,16 +3209,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'toLocationObject',
 			value: function toLocationObject(href) {
-				var match = href.match(this.pattern) || [];
+				var parser = document.createElement('a');
+				parser.href = href;
 				return {
-					href: href,
-					protocol: match[1],
-					host: match[2],
-					hostname: match[3],
-					port: match[4],
-					pathname: match[5],
-					search: match[6],
-					hash: match[7]
+					href: parser.href,
+					host: parser.host,
+					port: parser.port,
+					hash: parser.hash,
+					search: parser.search,
+					protocol: parser.protocol,
+					hostname: parser.hostname,
+					pathname: parser.pathname
 				};
 			}
 		}, {
