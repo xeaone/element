@@ -212,10 +212,10 @@ export default {
 
 	ready (callback) {
 		if (callback) {
-			if (window.document.readyState !== 'interactive' && window.document.readyState !== 'complete') {
-				window.document.addEventListener('DOMContentLoaded', function _ () {
+			if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
+				document.addEventListener('DOMContentLoaded', function _ () {
 					callback();
-					window.document.removeEventListener('DOMContentLoaded', _);
+					document.removeEventListener('DOMContentLoaded', _);
 				}, true);
 			} else {
 				callback();
