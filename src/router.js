@@ -11,26 +11,33 @@ class Router extends Events {
 		this.data = [];
 		this.location = {};
 		this.ran = false;
+		this.mode = 'push';
 		this.element = null;
 		this.contain = false;
-		this.compiled = false;
+		this.pattern = new RegExp([
+		    '^(https?:)//', // protocol
+		    '(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
+		    '(/{0,1}[^?#]*)', // pathname
+		    '(\\?[^#]*|)', // search
+		    '(#.*|)$' // hash
+		].join(''));
 	}
 
 	async setup (options) {
 		options = options || {};
 
+		this.mode = options.mode === undefined ? this.mode : options.mode;
 		this.after = options.after === undefined ? this.after : options.after;
 		this.before = options.before === undefined ? this.before : options.before;
 		this.element = options.element === undefined ? this.element : options.element;
 		this.contain = options.contain === undefined ? this.contain : options.contain;
 		this.external = options.external === undefined ? this.external : options.external;
-		// this.validate = options.validate === undefined ? this.validate : options.validate;
 
 		if (options.routes) {
 			this.add(options.routes);
 		}
 
-		await this.route(window.location.href, { replace: true });
+		await this.route(window.location.href, { mode: 'replace' });
 	}
 
 	scroll (x, y) {
@@ -182,27 +189,25 @@ class Router extends Events {
 		return result;
 	}
 
-	toLocationObject () {
+	toLocationObject (href) {
+		var match = href.match(this.pattern) || [];
 		return {
-			port: window.location.port || '',
-			host: window.location.host || '',
-			hash: window.location.hash || '',
-			href: window.location.href || '',
-			origin: window.location.origin || '',
-			search: window.location.search || '',
-			pathname: window.location.pathname || '',
-			hostname: window.location.hostname || '',
-			protocol: window.location.protocol || '',
-			username: window.location.username || '',
-			password: window.location.password || ''
+			href: href,
+			protocol: match[1],
+			host: match[2],
+			hostname: match[3],
+			port: match[4],
+			pathname: match[5],
+			search: match[6],
+			hash: match[7]
 		};
 	}
 
-	// validate () {
-	//
-	// }
-
 	render (route) {
+		var self = this;
+
+		if (!route) throw new Error('Oxe.render - route argument required');
+
 		Utility.ready(function () {
 
 			if (route.title) {
@@ -235,14 +240,14 @@ class Router extends Events {
 				});
 			}
 
-			if (!this.element) {
-				this.element = this.element || 'o-router';
+			if (!self.element) {
+				self.element = self.element || 'o-router';
 
-				if (typeof this.element === 'string') {
-					this.element = document.body.querySelector(this.element);
+				if (typeof self.element === 'string') {
+					self.element = document.body.querySelector(self.element);
 				}
 
-				if (!this.element) {
+				if (!self.element) {
 					throw new Error('Oxe.router.render - missing o-router element');
 				}
 
@@ -262,8 +267,8 @@ class Router extends Events {
 
 					Component.define(route.component);
 
-					if (this.compiled) {
-						route.element = this.element.firstChild;
+					if (self.mode === 'compiled') {
+						route.element = self.element.firstChild;
 					} else {
 						route.element = document.createElement(route.component.name);
 					}
@@ -272,56 +277,59 @@ class Router extends Events {
 
 			}
 
-			if (!this.compiled) {
-
-				while (this.element.firstChild) {
-					this.element.removeChild(this.element.firstChild);
-				}
-
-				this.element.appendChild(route.element);
+			while (self.element.firstChild) {
+				self.element.removeChild(self.element.firstChild);
 			}
 
-			this.scroll(0, 0);
-			this.emit('routed');
+			self.element.appendChild(route.element);
 
-		}.bind(this));
+			self.scroll(0, 0);
+			self.emit('routed');
+
+			if (typeof self.after === 'function') {
+				Promise.resolve(self.after).catch(console.error);
+			}
+
+		});
 	}
 
-	route (path, options) {
+	async route (path, options) {
 		options = options || {};
+
+		var mode = options.mode || this.mode;
+		var location = this.toLocationObject(path);
+		var route = this.find(location.pathname);
+
+		if (!route) {
+			throw new Error('Oxe.router.route - route not found');
+		}
+
+		location.route = route;
+		location.title = location.route.title;
+		location.query = this.toQueryObject(location.search);
+		location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
 		if (options.query) {
 			path += this.toQueryString(options.query);
 		}
 
-		// todo might need to be moved to the end
-		if (!this.compiled) {
-			window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
-		}
-
-		let location = this.toLocationObject();
-
-		location.route = this.find(location.pathname);
-
-		if (!location.route) {
-			throw new Error('Oxe.router.route - route not found');
-		}
-
-		location.title = location.route.title || '';
-		location.query = this.toQueryObject(location.search);
-		location.parameters = this.toParameterObject(location.route.path, location.pathname);
-
 		if (typeof this.before === 'function') {
-			let result = this.before(location);
+			var result = await this.before(location);
 			if (result === false) return;
 		}
 
-		if (location.route.handler) {
-			return route.handler(location.route);
+		if (location.route && location.route.handler) {
+			return await location.route.handler(location);
 		}
 
-		if (location.route.redirect) {
+		if (location.route && location.route.redirect) {
 			return this.redirect(location.route.redirect);
+		}
+
+		if (mode === 'href' || mode === 'compiled') {
+			return window.location.assign(path);
+		} else {
+			window.history[mode + 'State']({ path: path }, '', path);
 		}
 
 		this.location = location;

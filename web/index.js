@@ -28,6 +28,7 @@ Oxe.setup({
 		]
 	},
 	router: {
+		// mode: 'href',
 		routes: [
 			rSelect,
 			rIndex,

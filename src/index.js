@@ -49,7 +49,7 @@ if (oSetup) {
 		if (meta && meta.hasAttribute('compiled')) {
 			args[1] = 'null';
 			args[2] = 'script';
-			Router.compiled = true;
+			Router.mode = 'compiled';
 			General.compiled = true;
 			Component.compiled = true;
 		}

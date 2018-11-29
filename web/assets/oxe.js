@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 3.19.3
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -1015,10 +1005,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		ready: function ready(callback) {
 			if (callback) {
-				if (window.document.readyState !== 'interactive' && window.document.readyState !== 'complete') {
-					window.document.addEventListener('DOMContentLoaded', function _() {
+				if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
+					document.addEventListener('DOMContentLoaded', function _() {
 						callback();
-						window.document.removeEventListener('DOMContentLoaded', _);
+						document.removeEventListener('DOMContentLoaded', _);
 					}, true);
 				} else {
 					callback();
@@ -3023,9 +3013,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			_this11.data = [];
 			_this11.location = {};
 			_this11.ran = false;
+			_this11.mode = 'push';
 			_this11.element = null;
 			_this11.contain = false;
-			_this11.compiled = false;
+			_this11.pattern = new RegExp(['^(https?:)//', // protocol
+			'(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
+			'(/{0,1}[^?#]*)', // pathname
+			'(\\?[^#]*|)', // search
+			'(#.*|)$' // hash
+			].join(''));
 			return _this11;
 		}
 
@@ -3036,18 +3032,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				options = options || {};
 
+				_this12.mode = options.mode === undefined ? _this12.mode : options.mode;
 				_this12.after = options.after === undefined ? _this12.after : options.after;
 				_this12.before = options.before === undefined ? _this12.before : options.before;
 				_this12.element = options.element === undefined ? _this12.element : options.element;
 				_this12.contain = options.contain === undefined ? _this12.contain : options.contain;
 				_this12.external = options.external === undefined ? _this12.external : options.external;
-				// this.validate = options.validate === undefined ? this.validate : options.validate;
 
 				if (options.routes) {
 					_this12.add(options.routes);
 				}
 
-				return _awaitIgnored(_this12.route(window.location.href, { replace: true }));
+				return _awaitIgnored(_this12.route(window.location.href, { mode: 'replace' }));
 			})
 		}, {
 			key: 'scroll',
@@ -3097,9 +3093,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'get',
 			value: function get(path) {
 				for (var i = 0, l = this.data.length; i < l; i++) {
-					var _route2 = this.data[i];
-					if (path === _route2.path) {
-						return _route2;
+					var route = this.data[i];
+					if (path === route.path) {
+						return route;
 					}
 				}
 			}
@@ -3107,9 +3103,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			key: 'find',
 			value: function find(path) {
 				for (var i = 0, l = this.data.length; i < l; i++) {
-					var _route3 = this.data[i];
-					if (this.isPath(_route3.path, path)) {
-						return _route3;
+					var route = this.data[i];
+					if (this.isPath(route.path, path)) {
+						return route;
 					}
 				}
 			}
@@ -3119,9 +3115,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var result = [];
 
 				for (var i = 0, l = this.data.length; i < l; i++) {
-					var _route4 = this.data[i];
-					if (this.isPath(_route4.path, path)) {
-						result.push(_route4);
+					var route = this.data[i];
+					if (this.isPath(route.path, path)) {
+						result.push(route);
 					}
 				}
 
@@ -3201,29 +3197,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'toLocationObject',
-			value: function toLocationObject() {
+			value: function toLocationObject(href) {
+				var match = href.match(this.pattern) || [];
 				return {
-					port: window.location.port || '',
-					host: window.location.host || '',
-					hash: window.location.hash || '',
-					href: window.location.href || '',
-					origin: window.location.origin || '',
-					search: window.location.search || '',
-					pathname: window.location.pathname || '',
-					hostname: window.location.hostname || '',
-					protocol: window.location.protocol || '',
-					username: window.location.username || '',
-					password: window.location.password || ''
+					href: href,
+					protocol: match[1],
+					host: match[2],
+					hostname: match[3],
+					port: match[4],
+					pathname: match[5],
+					search: match[6],
+					hash: match[7]
 				};
 			}
-
-			// validate () {
-			//
-			// }
-
 		}, {
 			key: 'render',
 			value: function render(route) {
+				var self = this;
+
+				if (!route) throw new Error('Oxe.render - route argument required');
+
 				Utility.ready(function () {
 
 					if (route.title) {
@@ -3250,14 +3243,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						});
 					}
 
-					if (!this.element) {
-						this.element = this.element || 'o-router';
+					if (!self.element) {
+						self.element = self.element || 'o-router';
 
-						if (typeof this.element === 'string') {
-							this.element = document.body.querySelector(this.element);
+						if (typeof self.element === 'string') {
+							self.element = document.body.querySelector(self.element);
 						}
 
-						if (!this.element) {
+						if (!self.element) {
 							throw new Error('Oxe.router.render - missing o-router element');
 						}
 					}
@@ -3276,79 +3269,88 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 							Component$1.define(route.component);
 
-							if (this.compiled) {
-								route.element = this.element.firstChild;
+							if (self.mode === 'compiled') {
+								route.element = self.element.firstChild;
 							} else {
 								route.element = document.createElement(route.component.name);
 							}
 						}
 					}
 
-					if (!this.compiled) {
-
-						while (this.element.firstChild) {
-							this.element.removeChild(this.element.firstChild);
-						}
-
-						this.element.appendChild(route.element);
+					while (self.element.firstChild) {
+						self.element.removeChild(self.element.firstChild);
 					}
 
-					this.scroll(0, 0);
-					this.emit('routed');
-				}.bind(this));
+					self.element.appendChild(route.element);
+
+					self.scroll(0, 0);
+					self.emit('routed');
+
+					if (typeof self.after === 'function') {
+						Promise.resolve(self.after).catch(console.error);
+					}
+				});
 			}
 		}, {
 			key: 'route',
-			value: function (_route) {
-				function route(_x, _x2) {
-					return _route.apply(this, arguments);
-				}
+			value: _async(function (path, options) {
+				var _this13 = this,
+				    _exit3 = false;
 
-				route.toString = function () {
-					return _route.toString();
-				};
-
-				return route;
-			}(function (path, options) {
 				options = options || {};
 
-				if (options.query) {
-					path += this.toQueryString(options.query);
-				}
+				var mode = options.mode || _this13.mode;
+				var location = _this13.toLocationObject(path);
+				var route = _this13.find(location.pathname);
 
-				// todo might need to be moved to the end
-				if (!this.compiled) {
-					window.history[options.replace ? 'replaceState' : 'pushState']({ path: path }, '', path);
-				}
-
-				var location = this.toLocationObject();
-
-				location.route = this.find(location.pathname);
-
-				if (!location.route) {
+				if (!route) {
 					throw new Error('Oxe.router.route - route not found');
 				}
 
-				location.title = location.route.title || '';
-				location.query = this.toQueryObject(location.search);
-				location.parameters = this.toParameterObject(location.route.path, location.pathname);
+				location.route = route;
+				location.title = location.route.title;
+				location.query = _this13.toQueryObject(location.search);
+				location.parameters = _this13.toParameterObject(location.route.path, location.pathname);
 
-				if (typeof this.before === 'function') {
-					var result = this.before(location);
-					if (result === false) return;
+				if (options.query) {
+					path += _this13.toQueryString(options.query);
 				}
 
-				if (location.route.handler) {
-					return route.handler(location.route);
-				}
+				return _invoke(function () {
+					if (typeof _this13.before === 'function') {
+						return _await(_this13.before(location), function (result) {
+							if (result === false) {
+								_exit3 = true;
+							}
+						});
+					}
+				}, function (_result3) {
+					var _exit4 = false;
+					if (_exit3) return _result3;
+					return _invoke(function () {
+						if (location.route && location.route.handler) {
+							_exit4 = true;
+							return _await(location.route.handler(location));
+						}
+					}, function (_result4) {
+						if (_exit4) return _result4;
 
-				if (location.route.redirect) {
-					return this.redirect(location.route.redirect);
-				}
 
-				this.location = location;
-				this.emit('routing');
-				this.render(location.route);
+						if (location.route && location.route.redirect) {
+							return _this13.redirect(location.route.redirect);
+						}
+
+						if (mode === 'href' || mode === 'compiled') {
+							return window.location.assign(path);
+						} else {
+							window.history[mode + 'State']({ path: path }, '', path);
+						}
+
+						_this13.location = location;
+						_this13.emit('routing');
+						_this13.render(location.route);
+					});
+				});
 			})
 		}]);
 
@@ -3357,18 +3359,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Router$1 = new Router();
 
-	function Click(e) {
+	function Click(event) {
 
 		// ignore canceled events, modified clicks, and right clicks
-		if (e.button !== 0) return;
-		if (e.defaultPrevented) return;
-		if (e.target.nodeName === 'INPUT') return;
-		if (e.target.nodeName === 'BUTTON') return;
-		if (e.target.nodeName === 'SELECT') return;
-		if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+		if (event.button !== 0 || event.defaultPrevented || event.target.nodeName === 'INPUT' || event.target.nodeName === 'BUTTON' || event.target.nodeName === 'SELECT' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+			return;
+		}
 
 		// if shadow dom use
-		var target = e.path ? e.path[0] : e.target;
+		var target = event.path ? event.path[0] : event.target;
 		var parent = target.parentNode;
 
 		if (Router$1.contain) {
@@ -3402,14 +3401,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		// if external is true then default action
 		if (Router$1.external && (Router$1.external.constructor.name === 'RegExp' && Router$1.external.test(target.href) || Router$1.external.constructor.name === 'Function' && Router$1.external(target.href) || Router$1.external.constructor.name === 'String' && Router$1.external === target.href)) return;
 
+		event.preventDefault();
+
 		if (Router$1.location.href !== target.href) {
 			Promise.resolve().then(function () {
 				return Router$1.route(target.href);
 			}).catch(console.error);
-		}
-
-		if (!Router$1.compiled) {
-			e.preventDefault();
 		}
 	}
 
@@ -3481,7 +3478,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			if (meta && meta.hasAttribute('compiled')) {
 				args[1] = 'null';
 				args[2] = 'script';
-				Router$1.compiled = true;
+				Router$1.mode = 'compiled';
 				General$1.compiled = true;
 				Component$1.compiled = true;
 			}
@@ -3561,12 +3558,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		_createClass(Oxe, [{
 			key: 'setup',
 			value: _async(function (data) {
-				var _this13 = this;
+				var _this14 = this;
 
-				if (_this13._setup) {
+				if (_this14._setup) {
 					return;
 				} else {
-					_this13._setup = true;
+					_this14._setup = true;
 				}
 
 				data = data || {};
@@ -3617,24 +3614,24 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}, function () {
 
 					if (data.general) {
-						_this13.general.setup(data.general);
+						_this14.general.setup(data.general);
 					}
 
 					if (data.fetcher) {
-						_this13.fetcher.setup(data.fetcher);
+						_this14.fetcher.setup(data.fetcher);
 					}
 
 					if (data.loader) {
-						_this13.loader.setup(data.loader);
+						_this14.loader.setup(data.loader);
 					}
 
 					if (data.component) {
-						_this13.component.setup(data.component);
+						_this14.component.setup(data.component);
 					}
 
 					return _invoke(function () {
 						if (data.router) {
-							return _awaitIgnored(_this13.router.setup(data.router));
+							return _awaitIgnored(_this14.router.setup(data.router));
 						}
 					}, function () {
 						return _invokeIgnored(function () {

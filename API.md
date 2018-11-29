@@ -88,6 +88,10 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 
 ### Oxe.router
 - `options: Object`
+	- `mode: String` (default: push) The href option uses `window.location.assign`
+		- href
+		- push
+		- replace
 	- `trailing: Boolean` (default: true) Trailing slash mode
 	- `element: String, Element` (default: 'o-router') The element to render route changes
 	- `contain: Boolean` (default: false) Limits all href clicks to the 'o-router' element
@@ -107,20 +111,21 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 - `setup: AsyncFunction`
 	- `options: Object` Accepts the above options
 - `location: Object` Similar to window.location
-	- `base: String` Base href or origin
-	- `hash: String`
+	<!-- - `base: String` Base href or origin -->
 	- `href: String`
 	- `host: String`
+	- `hash: String`
+	- `port: String`
 	- `title: String`
 	- `query: Object` Key value pairs of search/query
 	- `origin: String`
 	- `search: String`
-	- `basename: String` Base without the origin
+	<!-- - `basename: String` Base without the origin -->
 	- `hostname: String`
 	- `pathname: String` A pathname even when using hash urls
 	- `protocol: String`
-	- `username: String`
-	- `password: String`
+	<!-- - `username: String` -->
+	<!-- - `password: String` -->
 	- `parameters: Object` Key value pairs of the route dynamic route parameters
 - `render: Function` Will render a route object it is useful if your using route as a handler
 - `redirect: Function` Uses window.location.href which is treated like a 301 redirect for SEO
