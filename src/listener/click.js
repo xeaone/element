@@ -1,18 +1,22 @@
 import Router from '../router.js';
 
-export default function (e) {
+export default function (event) {
 
 	// ignore canceled events, modified clicks, and right clicks
-	if (e.button !== 0) return;
-	if (e.defaultPrevented) return;
-	if (e.target.nodeName === 'INPUT') return;
-	if (e.target.nodeName === 'BUTTON') return;
-	if (e.target.nodeName === 'SELECT') return;
-	if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+	if (
+		event.button !== 0 ||
+		event.defaultPrevented ||
+		event.target.nodeName === 'INPUT' ||
+		event.target.nodeName === 'BUTTON' ||
+		event.target.nodeName === 'SELECT' ||
+		event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+	) {
+		return;
+	}
 
 	// if shadow dom use
-	let target = e.path ? e.path[0] : e.target;
-	let parent = target.parentNode;
+	var target = event.path ? event.path[0] : event.target;
+	var parent = target.parentNode;
 
 	if (Router.contain) {
 
@@ -59,14 +63,12 @@ export default function (e) {
 		Router.external.constructor.name === 'String' && Router.external === target.href)
 	) return;
 
+	event.preventDefault();
+
 	if (Router.location.href !== target.href) {
 		Promise.resolve().then(function () {
 			return Router.route(target.href);
 		}).catch(console.error);
-	}
-
-	if (!Router.compiled) {
-		e.preventDefault();
 	}
 
 };
