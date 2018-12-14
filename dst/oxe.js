@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.20.1
+	Version: 3.20.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -24,7 +24,8 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
-	}return then(result);
+	}
+	return then(result);
 }function _invokeIgnored(body) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
@@ -805,8 +806,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		DOT: /\.+/,
 		PIPE: /\s?\|\s?/,
 		PIPES: /\s?,\s?|\s+/,
-		VARIABLE_START: '(\\|*\\,*\\s*)',
-		VARIABLE_END: '([^a-zA-z]|$)',
+		VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
+		VARIABLE_END: '(?:)',
+		// VARIABLE_END: '([^a-zA-z1-9]|$)',
 
 		binderNames: function binderNames(data) {
 			data = data.split(this.PREFIX)[1];
@@ -925,7 +927,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					for (var i = 0, l = node.attributes.length; i < l; i++) {
 						var attribute = node.attributes[i];
 						if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-							attribute.value = attribute.value.replace(pattern, '$1' + path + '.' + key + '$2');
+							attribute.value = attribute.value.replace(pattern, '$1' + path + '.' + key);
+							// attribute.value = attribute.value.replace(pattern, `$1${path}.${key}$2`);
 						}
 					}
 				}
@@ -3273,27 +3276,35 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 							Loader$1.load(route.load);
 						}
 
-						if (!route.component) {
-							throw new Error('Oxe.router.render - missing route component');
-						} else if (route.component.constructor === String) {
+						if (route.component.constructor === String) {
 							route.element = document.createElement(route.component);
-						} else if (route.component.constructor === Object) {
+						}
+
+						if (route.component.constructor === Object) {
 
 							Component$1.define(route.component);
 
 							if (self.mode === 'compiled') {
-								route.element = self.element.firstChild;
+								// if (route.component.name.toLowerCase() === self.element.firstElementChild.nodeName.toLowerCase()) {
+								route.element = self.element.firstElementChild;
 							} else {
 								route.element = document.createElement(route.component.name);
 							}
 						}
 					}
 
-					while (self.element.firstChild) {
-						self.element.removeChild(self.element.firstChild);
+					if (!route.component && !route.element) {
+						throw new Error('Oxe.router.render - missing route component and');
 					}
 
-					self.element.appendChild(route.element);
+					if (route.element !== self.element.firstElementChild) {
+
+						while (self.element.firstChild) {
+							self.element.removeChild(self.element.firstChild);
+						}
+
+						self.element.appendChild(route.element);
+					}
 
 					self.scroll(0, 0);
 					self.emit('routed');
