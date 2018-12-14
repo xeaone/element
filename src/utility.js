@@ -7,8 +7,9 @@ export default {
 	DOT: /\.+/,
 	PIPE: /\s?\|\s?/,
 	PIPES: /\s?,\s?|\s+/,
-	VARIABLE_START: '(\\|*\\,*\\s*)',
-	VARIABLE_END: '([^a-zA-z]|$)',
+	VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
+	VARIABLE_END: '(?:)',
+	// VARIABLE_END: '([^a-zA-z1-9]|$)',
 
 	binderNames (data) {
 		data = data.split(this.PREFIX)[1];
@@ -115,7 +116,8 @@ export default {
 				for (let i = 0, l = node.attributes.length; i < l; i++) {
 					let attribute = node.attributes[i];
 					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
-						attribute.value = attribute.value.replace(pattern, `$1${path}.${key}$2`);
+						attribute.value = attribute.value.replace(pattern, `$1${path}.${key}`);
+						// attribute.value = attribute.value.replace(pattern, `$1${path}.${key}$2`);
 					}
 				}
 			}

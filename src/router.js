@@ -260,16 +260,17 @@ class Router extends Events {
 					Loader.load(route.load);
 				}
 
-				if (!route.component) {
-					throw new Error('Oxe.router.render - missing route component');
-				} else if (route.component.constructor === String) {
+				if (route.component.constructor === String) {
 					route.element = document.createElement(route.component);
-				} else if (route.component.constructor === Object) {
+				}
+
+				if (route.component.constructor === Object) {
 
 					Component.define(route.component);
 
 					if (self.mode === 'compiled') {
-						route.element = self.element.firstChild;
+					// if (route.component.name.toLowerCase() === self.element.firstElementChild.nodeName.toLowerCase()) {
+						route.element = self.element.firstElementChild;
 					} else {
 						route.element = document.createElement(route.component.name);
 					}
@@ -278,11 +279,19 @@ class Router extends Events {
 
 			}
 
-			while (self.element.firstChild) {
-				self.element.removeChild(self.element.firstChild);
+			if (!route.component && !route.element) {
+				throw new Error('Oxe.router.render - missing route component and');
 			}
 
-			self.element.appendChild(route.element);
+			if (route.element !== self.element.firstElementChild) {
+
+				while (self.element.firstChild) {
+					self.element.removeChild(self.element.firstChild);
+				}
+
+				self.element.appendChild(route.element);
+
+			}
 
 			self.scroll(0, 0);
 			self.emit('routed');
