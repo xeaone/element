@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.20.2
+	Version: 3.20.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1168,22 +1168,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (!data || (typeof data === 'undefined' ? 'undefined' : _typeof(data)) !== 'object') return false;
 
-				var length = binder.fragment.children.length + binder.element.children.length;
+				var isArray = data.constructor === Array;
+				var keys = isArray ? [] : Object.keys(data);
+				var dataLength = isArray ? data.length : keys.length;
+				var elementLength = binder.fragment.children.length + binder.element.children.length;
 
-				if (length === data.length) {
+				if (elementLength === dataLength) {
 					return false;
-				} else if (length > data.length) {
+				} else if (elementLength > dataLength) {
 					remove = true;
-					length--;
-				} else if (length < data.length) {
+					elementLength--;
+				} else if (elementLength < dataLength) {
 					var clone = document.importNode(binder.cache, true);
+					var variable = isArray ? elementLength : keys[elementLength];
 
-					Utility.replaceEachVariable(clone, binder.names[1], binder.path, length);
+					Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
 					Binder$1.bind(clone, binder.container, binder.scope);
 					binder.fragment.appendChild(clone);
-					length++;
+					elementLength++;
 
-					if (length === data.length) {
+					if (elementLength === dataLength) {
 						add = true;
 					}
 
@@ -1207,7 +1211,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					}
 				}
 
-				if (length < data.length) {
+				if (elementLength < dataLength) {
 					self.default(binder);
 					return false;
 				}

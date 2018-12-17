@@ -26,22 +26,26 @@ export default function (binder) {
 
 			if (!data || typeof data !== 'object') return false;
 
-			let length = binder.fragment.children.length + binder.element.children.length;
+			let isArray = data.constructor === Array;
+			let keys = isArray ? [] : Object.keys(data);
+			let dataLength = isArray ? data.length : keys.length;
+			let elementLength = binder.fragment.children.length + binder.element.children.length;
 
-			if (length === data.length) {
+			if (elementLength === dataLength) {
 				return false;
-			} else if (length > data.length) {
+			} else if (elementLength > dataLength) {
 				remove = true;
-				length--;
-			} else if (length < data.length) {
+				elementLength--;
+			} else if (elementLength < dataLength) {
 				let clone = document.importNode(binder.cache, true);
+				let variable = isArray ? elementLength : keys[elementLength];
 
-				Utility.replaceEachVariable(clone, binder.names[1], binder.path, length);
+				Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
 				Binder.bind(clone, binder.container, binder.scope);
 				binder.fragment.appendChild(clone);
-				length++;
+				elementLength++;
 
-				if (length === data.length) {
+				if (elementLength === dataLength) {
 					add = true;
 				}
 
@@ -66,7 +70,7 @@ export default function (binder) {
 
 			}
 
-			if (length < data.length) {
+			if (elementLength < dataLength) {
 				self.default(binder);
 				return false;
 			}
