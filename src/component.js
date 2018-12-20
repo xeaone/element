@@ -109,26 +109,20 @@ class Component {
 		return '<style>' + style + '</style>';
 	}
 
-	created (element, options) {
+	render (element, options) {
 		let self = this;
-		let scope = options.name + '-' + options.count++;
 
-		Object.defineProperties(element, {
-			scope: {
-				value: scope,
-				enumerable: true
-			}
-		});
+		element.setAttribute('o-scope', self.scope);
 
-		element.setAttribute('o-scope', scope);
-		// element.setAttribute('o-status', 'created');
-
-		Model.set(scope, options.model);
-		Methods.set(scope, options.methods);
+		Model.set(self.scope, options.model);
+		Methods.set(self.scope, options.methods);
 
 		if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
+
 			Binder.bind(element, element, scope);
+
 		} else {
+
 			let template = document.createElement('template');
 			let style = self.renderStyle(options.style, scope);
 
@@ -154,36 +148,16 @@ class Component {
 				self.renderSlot(clone, element);
 				element.appendChild(clone);
 			}
+
 		}
 
-		if (options.created) {
-			options.created.call(element);
-		}
-
-	}
-
-	attached (element, options) {
-		if (options.attached) {
-			options.attached.call(element);
-		}
-	}
-
-	detached (element, options) {
-		if (options.detached) {
-			options.detached.call(element);
-		}
 	}
 
 	define (options) {
 		let self = this;
 
-		if (!options.name) {
-			throw new Error('Oxe.component.define - requires name');
-		}
-
-		if (options.name in self.data) {
-			throw new Error('Oxe.component.define - component defined');
-		}
+		if (!options.name) throw new Error('Oxe.component.define - requires name');
+		if (options.name in self.data) throw new Error('Oxe.component.define - component defined');
 
 		self.data[options.name] = options;
 
@@ -196,46 +170,78 @@ class Component {
 		options.template = options.template || '';
 		options.properties = options.properties || {};
 
-		options.properties.model = {
-			enumerable: true,
-			// might not want configurable
-			configurable: true,
-			get: function () {
-				return Model.get(this.scope);
-			},
-			set: function (data) {
-				data = data && typeof data === 'object' ? data : {};
-				return Model.set(this.scope, data);
+		options.construct = function () {
+			// let instance = Object.create(options.construct.prototype);
+			// HTMLElement.apply(instance);
+
+			let instance = Reflect.construct(HTMLElement, [], options.construct);
+
+			options.properties.scope = {
+				enumerable: true,
+				value: options.name + '-' + options.count++
+			};
+
+			options.properties.model = {
+				enumerable: true,
+				// might not want configurable
+				configurable: true,
+				get: function () {
+					console.log(this.scope);
+					return Model.get(this.scope);
+				},
+				set: function (data) {
+					console.log(this.scope);
+					data = data && typeof data === 'object' ? data : {};
+					return Model.set(this.scope, data);
+				}
+			};
+
+			options.properties.methods = {
+				enumerable: true,
+				get: function () {
+					return Methods.get(this.scope);
+				}
+			};
+
+			self.render(instance, options);
+
+			if (options.created) {
+				options.created.call(instance);
 			}
+
+			return instance;
 		};
 
-		options.properties.methods = {
-			enumerable: true,
-			get: function () {
-				return Methods.get(this.scope);
+		options.construct.prototype.attributeChangedCallback = function () {
+			if (options.attributed) options.attributed.apply(this, arguments);
+		};
+
+		options.construct.prototype.adoptedCallback = function () {
+			if (options.adopted) options.adopted.call(this);
+		};
+
+		options.construct.prototype.connectedCallback = function () {
+			if (options.attached) {
+				options.attached.call(this);
+				console.warn('Oxe.component.define - attached callback deprecated please use connected');
 			}
+
+			if (options.connected) options.connected.call(this);
 		};
 
-		options.proto = Object.create(HTMLElement.prototype, options.properties);
+		options.construct.prototype.disconnectedCallback = function () {
+			if (options.detached) {
+				options.detached.call(this);
+				console.warn('Oxe.component.define - detached callback deprecated please use disconnected');
+			}
 
-		options.proto.attributeChangedCallback = options.attributed;
-
-		options.proto.createdCallback = function () {
-			self.created(this, options);
+			if (options.disconnected) options.disconnected.call(this);
 		};
 
-		options.proto.attachedCallback = function () {
-			self.attached(this, options);
-		};
+		Object.setPrototypeOf(options.construct.prototype, HTMLElement.prototype);
+		Object.setPrototypeOf(options.construct, HTMLElement);
 
-		options.proto.detachedCallback = function () {
-			self.detached(this, options);
-		};
-
-		return document.registerElement(options.name, {
-			prototype: options.proto
-		});
-
+		return window.customElements.define(options.name, options.construct);
 	}
 
 }

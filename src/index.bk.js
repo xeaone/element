@@ -37,11 +37,11 @@ let oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
 
-	// let currentCount = 0;
-	// let requiredCount = 0;
+	let currentCount = 0;
+	let requiredCount = 0;
 
 	let loaded = function () {
-		// if (currentCount !== requiredCount) return;
+		if (currentCount !== requiredCount) return;
 
 		let args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
 		let meta = document.querySelector('meta[name="oxe"]');
@@ -74,15 +74,10 @@ if (oSetup) {
 			document.head.appendChild(index);
 		}
 
-		// document.registerElement('o-router', {
-		// 	prototype: Object.create(HTMLElement.prototype)
-		// });
+		document.registerElement('o-router', {
+			prototype: Object.create(HTMLElement.prototype)
+		});
 
-		let oRouter = function () {return Reflect.construct(HTMLElement, [], oRouter);};
-		Object.setPrototypeOf(oRouter.prototype, HTMLElement.prototype);
-		Object.setPrototypeOf(oRouter, HTMLElement);
-
-		window.customElements.define('o-router', oRouter);
 	};
 
 	let loader = function (url, callback) {
@@ -91,44 +86,38 @@ if (oSetup) {
 		polly.setAttribute('async', 'true');
 		polly.setAttribute('src', url);
 		polly.addEventListener('load', function () {
-			// currentCount++;
+			currentCount++;
 			callback();
 		}, true);
 
 		document.head.appendChild(polly);
 	};
 
-	// let features = [];
-	// let isNotFetch = !('fetch' in window);
-	// let isNotAssign = !('assign' in Object);
-	// let isNotPromise = !('Promise' in window);
-	// let isNotCustomElement = !('registerElement' in document) || !('content' in document.createElement('template'));
-	//
-	// if (isNotFetch) features.push('fetch');
-	// if (isNotPromise) features.push('Promise');
-	// if (isNotAssign) features.push('Object.assign');
-	//
-	// if (isNotPromise || isNotFetch || isNotAssign) {
-	// 	requiredCount++;
-	// 	loader('https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','), loaded);
-	// }
-	//
-	// if (isNotCustomElement) {
-	// 	requiredCount++;
-	// 	loader('https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js', loaded);
-	// }
+	let features = [];
+	let isNotFetch = !('fetch' in window);
+	let isNotAssign = !('assign' in Object);
+	let isNotPromise = !('Promise' in window);
+	let isNotCustomElement = !('registerElement' in document) || !('content' in document.createElement('template'));
 
-	// loader('./assets/polly.js', function () {
-		// WebComponents.waitFor(function () {
-		// 	return loaded();
-		// });
-	// });
+	if (isNotFetch) features.push('fetch');
+	if (isNotPromise) features.push('Promise');
+	if (isNotAssign) features.push('Object.assign');
+
+	if (isNotPromise || isNotFetch || isNotAssign) {
+		requiredCount++;
+		loader('https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','), loaded);
+	}
+
+	if (isNotCustomElement) {
+		requiredCount++;
+		loader('https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js', loaded);
+	}
 
 	loaded();
 } else {
-	// document.registerElement('o-router', {
-	// 	prototype: Object.create(HTMLElement.prototype)
-	// });
+	document.registerElement('o-router', {
+		prototype: Object.create(HTMLElement.prototype)
+	});
 }
 
 class Oxe {

@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 3.20.3
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -1937,14 +1927,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var method = data === undefined ? Unrender$1 : Render;
 
 				if (type === 'length') {
-					var scope = path.split('.').slice(0, 1).join('.');
+					var _scope = path.split('.').slice(0, 1).join('.');
 					var part = path.split('.').slice(1).join('.');
 
-					if (!(scope in Binder$1.data)) return;
-					if (!(part in Binder$1.data[scope])) return;
-					if (!(0 in Binder$1.data[scope][part])) return;
+					if (!(_scope in Binder$1.data)) return;
+					if (!(part in Binder$1.data[_scope])) return;
+					if (!(0 in Binder$1.data[_scope][part])) return;
 
-					var binder = Binder$1.data[scope][part][0];
+					var binder = Binder$1.data[_scope][part][0];
 
 					method.default(binder);
 				} else {
@@ -2882,27 +2872,20 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				return '<style>' + style + '</style>';
 			}
 		}, {
-			key: 'created',
-			value: function created(element, options) {
+			key: 'render',
+			value: function render(element, options) {
 				var self = this;
-				var scope = options.name + '-' + options.count++;
 
-				Object.defineProperties(element, {
-					scope: {
-						value: scope,
-						enumerable: true
-					}
-				});
+				element.setAttribute('o-scope', self.scope);
 
-				element.setAttribute('o-scope', scope);
-				// element.setAttribute('o-status', 'created');
-
-				Model$1.set(scope, options.model);
-				Methods$1.set(scope, options.methods);
+				Model$1.set(self.scope, options.model);
+				Methods$1.set(self.scope, options.methods);
 
 				if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
+
 					Binder$1.bind(element, element, scope);
 				} else {
+
 					var template = document.createElement('template');
 					var style = self.renderStyle(options.style, scope);
 
@@ -2929,37 +2912,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						element.appendChild(clone);
 					}
 				}
-
-				if (options.created) {
-					options.created.call(element);
-				}
-			}
-		}, {
-			key: 'attached',
-			value: function attached(element, options) {
-				if (options.attached) {
-					options.attached.call(element);
-				}
-			}
-		}, {
-			key: 'detached',
-			value: function detached(element, options) {
-				if (options.detached) {
-					options.detached.call(element);
-				}
 			}
 		}, {
 			key: 'define',
 			value: function define(options) {
 				var self = this;
 
-				if (!options.name) {
-					throw new Error('Oxe.component.define - requires name');
-				}
-
-				if (options.name in self.data) {
-					throw new Error('Oxe.component.define - component defined');
-				}
+				if (!options.name) throw new Error('Oxe.component.define - requires name');
+				if (options.name in self.data) throw new Error('Oxe.component.define - component defined');
 
 				self.data[options.name] = options;
 
@@ -2972,45 +2932,80 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options.template = options.template || '';
 				options.properties = options.properties || {};
 
-				options.properties.model = {
-					enumerable: true,
-					// might not want configurable
-					configurable: true,
-					get: function get() {
-						return Model$1.get(this.scope);
-					},
-					set: function set(data) {
-						data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
-						return Model$1.set(this.scope, data);
+				options.construct = function () {
+					// let instance = Object.create(options.construct.prototype);
+					// HTMLElement.apply(instance);
+
+					options.properties.scope = {
+						enumerable: true,
+						value: options.name + '-' + options.count++
+					};
+
+					options.properties.model = {
+						enumerable: true,
+						// might not want configurable
+						configurable: true,
+						get: function get() {
+							console.log(this.scope);
+							return Model$1.get(this.scope);
+						},
+						set: function set(data) {
+							console.log(this.scope);
+							data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
+							return Model$1.set(this.scope, data);
+						}
+					};
+
+					options.properties.methods = {
+						enumerable: true,
+						get: function get() {
+							return Methods$1.get(this.scope);
+						}
+					};
+
+					Object.defineProperties(this, options.properties);
+
+					var instance = Reflect.construct(HTMLElement, [], options.construct);
+
+					self.render(instance, options);
+
+					if (options.created) {
+						options.created.call(instance);
 					}
+
+					return instance;
 				};
 
-				options.properties.methods = {
-					enumerable: true,
-					get: function get() {
-						return Methods$1.get(this.scope);
+				options.construct.prototype.attributeChangedCallback = function () {
+					if (options.attributed) options.attributed.apply(this, arguments);
+				};
+
+				options.construct.prototype.adoptedCallback = function () {
+					if (options.adopted) options.adopted.call(this);
+				};
+
+				options.construct.prototype.connectedCallback = function () {
+					if (options.attached) {
+						options.attached.call(this);
+						console.warn('Oxe.component.define - attached callback deprecated please use connected');
 					}
+
+					if (options.connected) options.connected.call(this);
 				};
 
-				options.proto = Object.create(HTMLElement.prototype, options.properties);
+				options.construct.prototype.disconnectedCallback = function () {
+					if (options.detached) {
+						options.detached.call(this);
+						console.warn('Oxe.component.define - detached callback deprecated please use disconnected');
+					}
 
-				options.proto.attributeChangedCallback = options.attributed;
-
-				options.proto.createdCallback = function () {
-					self.created(this, options);
+					if (options.disconnected) options.disconnected.call(this);
 				};
 
-				options.proto.attachedCallback = function () {
-					self.attached(this, options);
-				};
+				Object.setPrototypeOf(options.construct.prototype, HTMLElement.prototype);
+				Object.setPrototypeOf(options.construct, HTMLElement);
 
-				options.proto.detachedCallback = function () {
-					self.detached(this, options);
-				};
-
-				return document.registerElement(options.name, {
-					prototype: options.proto
-				});
+				return window.customElements.define(options.name, options.construct);
 			}
 		}]);
 
@@ -3493,11 +3488,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	if (oSetup) {
 
-		var currentCount = 0;
-		var requiredCount = 0;
+		// let currentCount = 0;
+		// let requiredCount = 0;
 
 		var loaded = function loaded() {
-			if (currentCount !== requiredCount) return;
+			// if (currentCount !== requiredCount) return;
 
 			var args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
 			var meta = document.querySelector('meta[name="oxe"]');
@@ -3530,49 +3525,46 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				document.head.appendChild(_index3);
 			}
 
-			document.registerElement('o-router', {
-				prototype: Object.create(HTMLElement.prototype)
-			});
+			// document.registerElement('o-router', {
+			// 	prototype: Object.create(HTMLElement.prototype)
+			// });
+
+			var oRouter = function oRouter() {
+				return Reflect.construct(HTMLElement, [], oRouter);
+			};
+			Object.setPrototypeOf(oRouter.prototype, HTMLElement.prototype);
+			Object.setPrototypeOf(oRouter, HTMLElement);
+
+			window.customElements.define('o-router', oRouter);
 		};
 
-		var loader = function loader(url, callback) {
-			var polly = document.createElement('script');
+		// let features = [];
+		// let isNotFetch = !('fetch' in window);
+		// let isNotAssign = !('assign' in Object);
+		// let isNotPromise = !('Promise' in window);
+		// let isNotCustomElement = !('registerElement' in document) || !('content' in document.createElement('template'));
+		//
+		// if (isNotFetch) features.push('fetch');
+		// if (isNotPromise) features.push('Promise');
+		// if (isNotAssign) features.push('Object.assign');
+		//
+		// if (isNotPromise || isNotFetch || isNotAssign) {
+		// 	requiredCount++;
+		// 	loader('https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','), loaded);
+		// }
+		//
+		// if (isNotCustomElement) {
+		// 	requiredCount++;
+		// 	loader('https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js', loaded);
+		// }
 
-			polly.setAttribute('async', 'true');
-			polly.setAttribute('src', url);
-			polly.addEventListener('load', function () {
-				currentCount++;
-				callback();
-			}, true);
-
-			document.head.appendChild(polly);
-		};
-
-		var features = [];
-		var isNotFetch = !('fetch' in window);
-		var isNotAssign = !('assign' in Object);
-		var isNotPromise = !('Promise' in window);
-		var isNotCustomElement = !('registerElement' in document) || !('content' in document.createElement('template'));
-
-		if (isNotFetch) features.push('fetch');
-		if (isNotPromise) features.push('Promise');
-		if (isNotAssign) features.push('Object.assign');
-
-		if (isNotPromise || isNotFetch || isNotAssign) {
-			requiredCount++;
-			loader('https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','), loaded);
-		}
-
-		if (isNotCustomElement) {
-			requiredCount++;
-			loader('https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js', loaded);
-		}
+		// loader('./assets/polly.js', function () {
+		// WebComponents.waitFor(function () {
+		// 	return loaded();
+		// });
+		// });
 
 		loaded();
-	} else {
-		document.registerElement('o-router', {
-			prototype: Object.create(HTMLElement.prototype)
-		});
 	}
 
 	var Oxe = function () {
