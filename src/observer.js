@@ -146,20 +146,15 @@ let Observer = {
 		return {
 			$get: {
 				value: function (key) {
-					return this[key];
+					return this.$meta[key];
 				}
 			},
 			$set: {
 				value: function (key, value) {
-					if (value !== this[key]) {
-						let result = self.create(value, this.$meta.listener, this.$meta.path + key);
-
-						this.$meta[key] = result;
+					if (value !== this.$meta[key]) {
 						self.defineProperty(this, key);
-
-						this.$meta.listener(result, this.$meta.path + key, key);
-
-						return result;
+						this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
+						this.$meta.listener(this[key], this.$meta.path + key, key, this);
 					}
 				}
 			},
