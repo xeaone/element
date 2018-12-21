@@ -112,16 +112,6 @@ class Fetcher {
 		// 	}
 		// }
 
-		if (data.body) {
-
-			if (data.method === 'GET') {
-				data.url = data.url + '?' + await this.serialize(data.body);
-			} else if (data.contentType === 'json') {
-				data.body = JSON.stringify(data.body);
-			}
-
-		}
-
 		if (typeof this.request === 'function') {
 			let copy = Object.assign({}, data);
 			let result = await this.request(copy);
@@ -132,6 +122,16 @@ class Fetcher {
 
 			if (typeof result === 'object') {
 				Object.assign(data, result);
+			}
+
+		}
+
+		if (data.body) {
+
+			if (data.method === 'GET') {
+				data.url = data.url + '?' + await this.serialize(data.body);
+			} else if (data.contentType === 'json') {
+				data.body = JSON.stringify(data.body);
 			}
 
 		}
