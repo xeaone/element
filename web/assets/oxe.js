@@ -14,8 +14,7 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
-	}
-	return then(result);
+	}return then(result);
 }function _invokeIgnored(body) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
@@ -329,20 +328,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			return {
 				$get: {
 					value: function value(key) {
-						return this[key];
+						return this.$meta[key];
 					}
 				},
 				$set: {
 					value: function value(key, _value) {
-						if (_value !== this[key]) {
-							var result = self.create(_value, this.$meta.listener, this.$meta.path + key);
-
-							this.$meta[key] = result;
+						if (_value !== this.$meta[key]) {
 							self.defineProperty(this, key);
-
-							this.$meta.listener(result, this.$meta.path + key, key);
-
-							return result;
+							this.$meta[key] = self.create(_value, this.$meta.listener, this.$meta.path + key);
+							this.$meta.listener(this[key], this.$meta.path + key, key, this);
 						}
 					}
 				},
@@ -1927,14 +1921,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var method = data === undefined ? Unrender$1 : Render;
 
 				if (type === 'length') {
-					var _scope = path.split('.').slice(0, 1).join('.');
+					var scope = path.split('.').slice(0, 1).join('.');
 					var part = path.split('.').slice(1).join('.');
 
-					if (!(_scope in Binder$1.data)) return;
-					if (!(part in Binder$1.data[_scope])) return;
-					if (!(0 in Binder$1.data[_scope][part])) return;
+					if (!(scope in Binder$1.data)) return;
+					if (!(part in Binder$1.data[scope])) return;
+					if (!(0 in Binder$1.data[scope][part])) return;
 
-					var binder = Binder$1.data[_scope][part][0];
+					var binder = Binder$1.data[scope][part][0];
 
 					method.default(binder);
 				} else {
@@ -2003,7 +1997,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'fetch',
 			value: _async(function (options) {
-				var _this = this;
+				var _this = this,
+				    _exit = false;
 
 				var data = Object.assign({}, options);
 
@@ -2089,39 +2084,36 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				// }
 
 				return _invoke(function () {
-					if (data.body) {
-						return _invokeIgnored(function () {
-							if (data.method === 'GET') {
-								var _temp = data.url + '?';
+					if (typeof _this.request === 'function') {
+						var copy = Object.assign({}, data);
+						return _await(_this.request(copy), function (result) {
 
-								return _await(_this.serialize(data.body), function (_this$serialize) {
-									data.url = _temp + _this$serialize;
-								});
-							} else if (data.contentType === 'json') {
-								data.body = JSON.stringify(data.body);
+							if (result === false) {
+								_exit = true;
+								return data;
+							}
+
+							if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
+								Object.assign(data, result);
 							}
 						});
 					}
-				}, function () {
-					var _exit = false;
-					return _invoke(function () {
-						if (typeof _this.request === 'function') {
-							var copy = Object.assign({}, data);
-							return _await(_this.request(copy), function (result) {
+				}, function (_result) {
+					return _exit ? _result : _invoke(function () {
+						if (data.body) {
+							return _invokeIgnored(function () {
+								if (data.method === 'GET') {
+									var _temp = data.url + '?';
 
-								if (result === false) {
-									_exit = true;
-									return data;
-								}
-
-								if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
-									Object.assign(data, result);
+									return _await(_this.serialize(data.body), function (_this$serialize) {
+										data.url = _temp + _this$serialize;
+									});
+								} else if (data.contentType === 'json') {
+									data.body = JSON.stringify(data.body);
 								}
 							});
 						}
-					}, function (_result) {
-						if (_exit) return _result;
-
+					}, function () {
 
 						var fetchOptions = Object.assign({}, data);
 
@@ -2779,6 +2771,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options = options || {};
 
 				if (options.components && options.components.length) {
+
 					for (var i = 0, l = options.components.length; i < l; i++) {
 						this.define(options.components[i]);
 					}
@@ -2790,6 +2783,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var targetSlots = target.querySelectorAll('slot[name]');
 
 				for (var i = 0, l = targetSlots.length; i < l; i++) {
+
 					var targetSlot = targetSlots[i];
 					var name = targetSlot.getAttribute('name');
 					var sourceSlot = source.querySelector('[slot="' + name + '"]');
@@ -2876,18 +2870,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			value: function render(element, options) {
 				var self = this;
 
-				element.setAttribute('o-scope', self.scope);
-
-				Model$1.set(self.scope, options.model);
-				Methods$1.set(self.scope, options.methods);
+				element.setAttribute('o-scope', element.scope);
 
 				if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
 
-					Binder$1.bind(element, element, scope);
+					Binder$1.bind(element, element, element.scope);
 				} else {
 
 					var template = document.createElement('template');
-					var style = self.renderStyle(options.style, scope);
+					var style = self.renderStyle(options.style, element.scope);
 
 					if (typeof options.template === 'string') {
 						template.innerHTML = style + options.template;
@@ -2896,10 +2887,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						template.appendChild(options.template);
 					}
 
-					// element.templateContent = template.content;
 					var clone = document.importNode(template.content, true);
-					// Binder.bind(clone.querySelectorAll('*'), element, scope);
-					Binder$1.bind(clone, element, scope);
+
+					Binder$1.bind(clone, element, element.scope);
 
 					if (options.shadow) {
 						if ('attachShadow' in document.body) {
@@ -2919,7 +2909,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var self = this;
 
 				if (!options.name) throw new Error('Oxe.component.define - requires name');
-				if (options.name in self.data) throw new Error('Oxe.component.define - component defined');
+				if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
 
 				self.data[options.name] = options;
 
@@ -2933,8 +2923,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options.properties = options.properties || {};
 
 				options.construct = function () {
-					// let instance = Object.create(options.construct.prototype);
-					// HTMLElement.apply(instance);
+					var instance = HTMLElement.apply(this, arguments);
+
+					options.properties.created = {
+						value: false,
+						enumerable: true,
+						configurable: true
+					};
 
 					options.properties.scope = {
 						enumerable: true,
@@ -2943,14 +2938,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					options.properties.model = {
 						enumerable: true,
-						// might not want configurable
-						configurable: true,
 						get: function get() {
-							console.log(this.scope);
 							return Model$1.get(this.scope);
 						},
 						set: function set(data) {
-							console.log(this.scope);
 							data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
 							return Model$1.set(this.scope, data);
 						}
@@ -2963,15 +2954,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 					};
 
-					Object.defineProperties(this, options.properties);
-
-					var instance = Reflect.construct(HTMLElement, [], options.construct);
-
-					self.render(instance, options);
-
-					if (options.created) {
-						options.created.call(instance);
-					}
+					Object.defineProperties(instance, options.properties);
+					Model$1.set(instance.scope, options.model);
+					Methods$1.set(instance.scope, options.methods);
 
 					return instance;
 				};
@@ -2985,27 +2970,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				};
 
 				options.construct.prototype.connectedCallback = function () {
-					if (options.attached) {
-						options.attached.call(this);
-						console.warn('Oxe.component.define - attached callback deprecated please use connected');
+
+					if (!this.created) {
+
+						self.render(this, options);
+
+						Object.defineProperty(this, 'created', {
+							value: true,
+							enumerable: true,
+							configurable: false
+						});
+
+						if (options.created) {
+							options.created.call(this);
+						}
 					}
 
-					if (options.connected) options.connected.call(this);
+					if (options.attached) {
+						options.attached.call(this);
+					}
 				};
 
 				options.construct.prototype.disconnectedCallback = function () {
 					if (options.detached) {
 						options.detached.call(this);
-						console.warn('Oxe.component.define - detached callback deprecated please use disconnected');
 					}
-
-					if (options.disconnected) options.disconnected.call(this);
 				};
 
 				Object.setPrototypeOf(options.construct.prototype, HTMLElement.prototype);
 				Object.setPrototypeOf(options.construct, HTMLElement);
 
-				return window.customElements.define(options.name, options.construct);
+				window.customElements.define(options.name, options.construct);
 			}
 		}]);
 
@@ -3487,84 +3482,45 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	var oSetup = document.querySelector('script[o-setup]');
 
 	if (oSetup) {
+		var _args2 = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
+		var meta = document.querySelector('meta[name="oxe"]');
 
-		// let currentCount = 0;
-		// let requiredCount = 0;
+		if (meta && meta.hasAttribute('compiled')) {
+			_args2[1] = 'null';
+			_args2[2] = 'script';
+			Router$1.mode = 'compiled';
+			General$1.compiled = true;
+			Component$1.compiled = true;
+		}
 
-		var loaded = function loaded() {
-			// if (currentCount !== requiredCount) return;
+		if (!_args2[0]) {
+			throw new Error('Oxe - script attribute o-setup requires url');
+		}
 
-			var args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
-			var meta = document.querySelector('meta[name="oxe"]');
+		if (_args2.length > 1) {
+			Loader$1.load({
+				url: _args2[0],
+				method: _args2[2],
+				transformer: _args2[1]
+			});
+		} else {
+			var _index3 = document.createElement('script');
 
-			if (meta && meta.hasAttribute('compiled')) {
-				args[1] = 'null';
-				args[2] = 'script';
-				Router$1.mode = 'compiled';
-				General$1.compiled = true;
-				Component$1.compiled = true;
-			}
+			_index3.setAttribute('src', _args2[0]);
+			_index3.setAttribute('async', 'true');
+			_index3.setAttribute('type', 'module');
 
-			if (!args[0]) {
-				throw new Error('Oxe - o-setup attribute requires a url');
-			}
+			document.head.appendChild(_index3);
+		}
 
-			if (args.length > 1) {
-				Loader$1.load({
-					url: args[0],
-					method: args[2],
-					transformer: args[1]
-				});
-			} else {
-				var _index3 = document.createElement('script');
-
-				_index3.setAttribute('src', args[0]);
-				_index3.setAttribute('async', 'true');
-				_index3.setAttribute('type', 'module');
-
-				document.head.appendChild(_index3);
-			}
-
-			// document.registerElement('o-router', {
-			// 	prototype: Object.create(HTMLElement.prototype)
-			// });
-
-			var oRouter = function oRouter() {
-				return Reflect.construct(HTMLElement, [], oRouter);
-			};
-			Object.setPrototypeOf(oRouter.prototype, HTMLElement.prototype);
-			Object.setPrototypeOf(oRouter, HTMLElement);
-
-			window.customElements.define('o-router', oRouter);
+		var ORouter = function ORouter() {
+			return HTMLElement.apply(this, arguments);
 		};
 
-		// let features = [];
-		// let isNotFetch = !('fetch' in window);
-		// let isNotAssign = !('assign' in Object);
-		// let isNotPromise = !('Promise' in window);
-		// let isNotCustomElement = !('registerElement' in document) || !('content' in document.createElement('template'));
-		//
-		// if (isNotFetch) features.push('fetch');
-		// if (isNotPromise) features.push('Promise');
-		// if (isNotAssign) features.push('Object.assign');
-		//
-		// if (isNotPromise || isNotFetch || isNotAssign) {
-		// 	requiredCount++;
-		// 	loader('https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','), loaded);
-		// }
-		//
-		// if (isNotCustomElement) {
-		// 	requiredCount++;
-		// 	loader('https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js', loaded);
-		// }
+		Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+		Object.setPrototypeOf(ORouter, HTMLElement);
 
-		// loader('./assets/polly.js', function () {
-		// WebComponents.waitFor(function () {
-		// 	return loaded();
-		// });
-		// });
-
-		loaded();
+		window.customElements.define('o-router', ORouter);
 	}
 
 	var Oxe = function () {

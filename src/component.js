@@ -13,9 +13,11 @@ class Component {
 		options = options || {};
 
 		if (options.components && options.components.length) {
+
 			for (let i = 0, l = options.components.length; i < l; i++) {
 				this.define(options.components[i]);
 			}
+
 		}
 
 	}
@@ -24,6 +26,7 @@ class Component {
 		let targetSlots = target.querySelectorAll('slot[name]');
 
 		for (let i = 0, l = targetSlots.length; i < l; i++) {
+
 			let targetSlot = targetSlots[i];
 			let name = targetSlot.getAttribute('name');
 			let sourceSlot = source.querySelector('[slot="'+ name + '"]');
@@ -112,19 +115,16 @@ class Component {
 	render (element, options) {
 		let self = this;
 
-		element.setAttribute('o-scope', self.scope);
-
-		Model.set(self.scope, options.model);
-		Methods.set(self.scope, options.methods);
+		element.setAttribute('o-scope', element.scope);
 
 		if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
 
-			Binder.bind(element, element, scope);
+			Binder.bind(element, element, element.scope);
 
 		} else {
 
 			let template = document.createElement('template');
-			let style = self.renderStyle(options.style, scope);
+			let style = self.renderStyle(options.style, element.scope);
 
 			if (typeof options.template === 'string') {
 				template.innerHTML = style + options.template;
@@ -133,10 +133,9 @@ class Component {
 				template.appendChild(options.template);
 			}
 
-			// element.templateContent = template.content;
 			let clone = document.importNode(template.content, true);
-			// Binder.bind(clone.querySelectorAll('*'), element, scope);
-			Binder.bind(clone, element, scope);
+
+			Binder.bind(clone, element, element.scope);
 
 			if (options.shadow) {
 				if ('attachShadow' in document.body) {
@@ -157,7 +156,7 @@ class Component {
 		let self = this;
 
 		if (!options.name) throw new Error('Oxe.component.define - requires name');
-		if (options.name in self.data) throw new Error('Oxe.component.define - component defined');
+		if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
 
 		self.data[options.name] = options;
 
@@ -171,10 +170,13 @@ class Component {
 		options.properties = options.properties || {};
 
 		options.construct = function () {
-			// let instance = Object.create(options.construct.prototype);
-			// HTMLElement.apply(instance);
+			let instance = HTMLElement.apply(this, arguments);
 
-			let instance = Reflect.construct(HTMLElement, [], options.construct);
+			options.properties.created = {
+				value: false,
+				enumerable: true,
+				configurable: true
+			};
 
 			options.properties.scope = {
 				enumerable: true,
@@ -183,14 +185,10 @@ class Component {
 
 			options.properties.model = {
 				enumerable: true,
-				// might not want configurable
-				configurable: true,
 				get: function () {
-					console.log(this.scope);
 					return Model.get(this.scope);
 				},
 				set: function (data) {
-					console.log(this.scope);
 					data = data && typeof data === 'object' ? data : {};
 					return Model.set(this.scope, data);
 				}
@@ -203,11 +201,9 @@ class Component {
 				}
 			};
 
-			self.render(instance, options);
-
-			if (options.created) {
-				options.created.call(instance);
-			}
+			Object.defineProperties(instance, options.properties);
+			Model.set(instance.scope, options.model);
+			Methods.set(instance.scope, options.methods);
 
 			return instance;
 		};
@@ -221,27 +217,38 @@ class Component {
 		};
 
 		options.construct.prototype.connectedCallback = function () {
-			if (options.attached) {
-				options.attached.call(this);
-				console.warn('Oxe.component.define - attached callback deprecated please use connected');
+
+			if (!this.created) {
+
+				self.render(this, options);
+
+				Object.defineProperty(this, 'created', {
+					value: true,
+					enumerable: true,
+					configurable: false
+				});
+
+				if (options.created) {
+					options.created.call(this);
+				}
+
 			}
 
-			if (options.connected) options.connected.call(this);
+			if (options.attached) {
+				options.attached.call(this);
+			}
 		};
 
 		options.construct.prototype.disconnectedCallback = function () {
 			if (options.detached) {
 				options.detached.call(this);
-				console.warn('Oxe.component.define - detached callback deprecated please use disconnected');
 			}
-
-			if (options.disconnected) options.disconnected.call(this);
 		};
 
 		Object.setPrototypeOf(options.construct.prototype, HTMLElement.prototype);
 		Object.setPrototypeOf(options.construct, HTMLElement);
 
-		return window.customElements.define(options.name, options.construct);
+		window.customElements.define(options.name, options.construct);
 	}
 
 }
