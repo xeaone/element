@@ -14,8 +14,36 @@ import Methods from './methods.js'
 import Router from './router.js';
 import Loader from './loader.js';
 import Binder from './binder.js';
-import Model from './model.js';
 import Render from './render.js';
+import Model from './model.js';
+
+// custom elements with es5 classes: start
+
+if (!window.Reflect || !window.Reflect.construct) {
+	window.Reflect = window.Reflect || {};
+	window.Reflect.construct = function (parent, args, child) {
+		var target = child === undefined ? parent : child;
+		var prototype = target.prototype || Object.prototype;
+		var copy = Object.create(prototype);
+		return Function.prototype.apply.call(parent, copy, args) || copy;
+	};
+}
+
+// if (
+// 	!(window.Reflect === undefined ||
+// 	window.customElements === undefined ||
+// 	window.customElements.hasOwnProperty('polyfillWrapFlushCallback'))
+// ) {
+// 	let htmlelement = HTMLElement;
+// 	window.HTMLElement = function HTMLElement () {
+// 		return Reflect.construct(htmlelement, [], this.constructor);
+// 	};
+// 	HTMLElement.prototype = htmlelement.prototype;
+// 	HTMLElement.prototype.constructor = HTMLElement;
+// 	Object.setPrototypeOf(HTMLElement, htmlelement);
+// }
+
+// custom elements with es5 classes: end
 
 let eStyle = document.createElement('style');
 let tStyle = document.createTextNode(`
@@ -68,7 +96,7 @@ if (oSetup) {
 	}
 
 	let ORouter = function () {
-		return HTMLElement.apply(this, arguments);
+		return window.Reflect.construct(HTMLElement, [], this.constructor);
 	};
 
 	Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);

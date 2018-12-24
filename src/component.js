@@ -170,7 +170,7 @@ class Component {
 		options.properties = options.properties || {};
 
 		options.construct = function () {
-			let instance = HTMLElement.apply(this, arguments);
+			let instance = window.Reflect.construct(HTMLElement, [], this.constructor);
 
 			options.properties.created = {
 				value: false,

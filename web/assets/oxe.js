@@ -2923,7 +2923,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options.properties = options.properties || {};
 
 				options.construct = function () {
-					var instance = HTMLElement.apply(this, arguments);
+					var instance = window.Reflect.construct(HTMLElement, [], this.constructor);
 
 					options.properties.created = {
 						value: false,
@@ -3472,6 +3472,34 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var General$1 = new General();
 
+	// custom elements with es5 classes: start
+
+	if (!window.Reflect || !window.Reflect.construct) {
+		window.Reflect = window.Reflect || {};
+		window.Reflect.construct = function (parent, args, child) {
+			var target = child === undefined ? parent : child;
+			var prototype = target.prototype || Object.prototype;
+			var copy = Object.create(prototype);
+			return Function.prototype.apply.call(parent, copy, args) || copy;
+		};
+	}
+
+	// if (
+	// 	!(window.Reflect === undefined ||
+	// 	window.customElements === undefined ||
+	// 	window.customElements.hasOwnProperty('polyfillWrapFlushCallback'))
+	// ) {
+	// 	let htmlelement = HTMLElement;
+	// 	window.HTMLElement = function HTMLElement () {
+	// 		return Reflect.construct(htmlelement, [], this.constructor);
+	// 	};
+	// 	HTMLElement.prototype = htmlelement.prototype;
+	// 	HTMLElement.prototype.constructor = HTMLElement;
+	// 	Object.setPrototypeOf(HTMLElement, htmlelement);
+	// }
+
+	// custom elements with es5 classes: end
+
 	var eStyle = document.createElement('style');
 	var tStyle = document.createTextNode('\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition 150ms ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n');
 
@@ -3514,7 +3542,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 
 		var ORouter = function ORouter() {
-			return HTMLElement.apply(this, arguments);
+			return window.Reflect.construct(HTMLElement, [], this.constructor);
 		};
 
 		Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
