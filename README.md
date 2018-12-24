@@ -10,12 +10,22 @@ Api documentation can be found at [API.md](https://github.com/AlexanderElias/oxe
 Breaking version changes can be found at [VERSION.md](https://github.com/AlexanderElias/oxe/blob/master/VERSION.md).
 
 ### Features
-- Small size
+- Small
 - Front end routing
 - Optional module loading
-- In browser ES6/ESM module rewrites
-- In browser Template string rewrites
-- Automatic conditional pollyfills [web components v0](https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js) [fetch, Promise, Object.assign](https://cdn.polyfill.io/v2/polyfill.min.js?features=fetch,Promise,Object.assign)
+- Optional in browser ES6/ESM module rewrites
+- Optional in browser Template string rewrites
+
+### Polyfill
+- [poly.min.js](https://github.com/AlexanderElias/oxe/blob/master/dst/poly.min.js) includes everything need except shadow poly code.
+	- customElements
+	- URL, Promise, fetch
+	- HTMLTemplateElement
+	- Event, CustomEvent, MouseEvent constructors and Object.assign, Array.from
+- [poly.shadow.min.js](https://github.com/AlexanderElias/oxe/blob/master/dst/poly.shadow.min.js) includes everything.
+	- Promise, fetch
+	- Webcomponentsjs
+
 
 ### Support
 - IE10~
@@ -31,9 +41,8 @@ Live examples [alexanderelias.github.io/oxe/](https://alexanderelias.github.io/o
 
 ### Install
 - `npm i oxe --save`
+- Script `dst/poly.min.js`
 - UMD `dst/oxe.min.js`
-- UMD with Web Component Pollyfill `dst/oxe.polly.min.js`
-- Web Component Pollyfill `dst/webcomponents-lite.min.js`
 
 ## Example
 ```js
@@ -95,7 +104,8 @@ Oxe.setup({
 <head>
 
 	<base href="/">
-	<script src="./oxe.min.js" o-setup="./index.js, es, fetch" async></script>
+	<script src="./poly.min.js" defer></script>
+	<script src="./oxe.min.js" o-setup="./index.js, es, fetch" defer></script>
 
 </head>
 <body>

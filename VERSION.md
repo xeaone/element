@@ -1,3 +1,8 @@
+### 4.0.0
+- polyfill script added to dst
+- no longer automatically includes polyfills
+- changed internal api from document.registerElement to customElements.define
+
 ### 3.19.0
 - event listeners are added only after Oxe.setup is invoked
 
