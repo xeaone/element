@@ -15,7 +15,7 @@ export default {
 			showHide: true,
 			isChecked: true,
 			text: 'text from test',
-			loopy: { doopy: 'soopy' },
+			loopy: { doopy: 'soopy', ra: 'ra' },
 			items: [
 				{ it: { val: 0 } },
 				{ it: { val: 1 } },
@@ -115,6 +115,13 @@ export default {
 			// 	{ it: { val: 4 } },
 			// ];
 
+			// overwrite model object
+			setTimeout(function () {
+				console.log(JSON.stringify(self.model.loopy));
+				self.model.loopy = { doopy: 'changey' };
+				console.log(JSON.stringify(self.model.loopy));
+			}, 3000);
+
 			setTimeout(function () {
 				var increaseInterval = setInterval(function () {
 
@@ -159,6 +166,14 @@ export default {
 		<strong o-text="nah">nah</strong>
 		<strong o-show="isshow">isshow</strong>
 		<strong o-hide="ishide">ishide</strong>
+		<br>
+		<br>
+
+		<div o-each-k="loopy">
+			<div o-text="k"></div>
+		</div>
+		<br>
+		<br>
 
 		<form o-submit="s0" o-reset>
 			<div o-text="loopy.doopy"></div>

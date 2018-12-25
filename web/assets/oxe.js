@@ -1,3 +1,13 @@
+/*
+	Name: oxe
+	Version: 4.0.0
+	License: MPL-2.0
+	Author: Alexander Elias
+	Email: alex.steven.elis@gmail.com
+	This Source Code Form is subject to the terms of the Mozilla Public
+	License, v. 2.0. If a copy of the MPL was not distributed with this
+	file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -19,7 +29,10 @@ function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
-}function _empty() {}function _await(value, then, direct) {
+}
+
+function _empty() {}
+function _await(value, then, direct) {
 	if (direct) {
 		return then ? then(value) : value;
 	}value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -923,9 +936,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var last = keys.length - 1;
 
 			for (var i = 0; i < last; i++) {
-				var key = keys[i];
-
-				if (!(key in data)) {
+				var key = keys[i];if (!(key in data)) {
 					if (typeof callback === 'function') {
 						callback(data, key, i, keys);
 					} else {
