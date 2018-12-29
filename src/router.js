@@ -34,7 +34,8 @@ class Router extends Events {
 		this.external = options.external === undefined ? this.external : options.external;
 
 		if (options.routes) {
-			this.add(options.routes);
+			// this.add(options.routes);
+			await this.add(options.routes);
 		}
 
 		await this.route(window.location.href, { mode: 'replace' });
@@ -56,23 +57,41 @@ class Router extends Events {
 		window.location.href = path;
 	}
 
-	add (data) {
+	async add (data) {
+		let self = this;
+
 		if (!data) {
 			throw new Error('Oxe.router.add - requires data parameter');
+		} else if (data.constructor === String) {
+			let route = await Loader.load(data);
+			this.data.push(route);
+			// this.data.push({ path: data, load: data });
 		} else if (data.constructor === Object) {
 			if (!data.path) throw new Error('Oxe.router.add - route path required');
-			if (!data.component) throw new Error('Oxe.router.add - route component required');
+			// if (!data.component) throw new Error('Oxe.router.add - route component required');
 			this.data.push(data);
 		} else if (data.constructor === Array) {
+			// return Promise.all(data.map(function (route) {
+			// 	if (data.constructor === String) {
+			// 		return Loader.load(data);
+			// 	} else {
+			// 		return route;
+			// 	}
+			// })).then(function (routes) {
+			// 	routes.forEach(function (route) {
+			// 		self.data.push(route);
+			// 	});
+			// });
 			for (let i = 0, l = data.length; i < l; i++) {
-				this.add(data[i]);
+				await this.add(data[i]);
 			}
 		}
 	}
 
 	remove (path) {
 		for (let i = 0, l = this.data.length; i < l; i++) {
-			if (path === this.data[i].path) {
+			let route = this.data[i];
+			if (route.path === path) {
 				this.data.splice(i, 1);
 			}
 		}
@@ -81,17 +100,24 @@ class Router extends Events {
 	get (path) {
 		for (let i = 0, l = this.data.length; i < l; i++) {
 			let route = this.data[i];
-			if (path === route.path) {
+			if (route.path === path) {
 				return route;
 			}
 		}
 	}
 
-	find (path) {
+	async find (path) {
 		for (let i = 0, l = this.data.length; i < l; i++) {
 			let route = this.data[i];
 			if (this.isPath(route.path, path)) {
-				return route;
+				// if (route.load) {
+				// 	let routePath = this.data[i];
+				// 	this.data[i] = await Loader.load(route.load);
+				// 	this.data[i].path = routePath;
+				// 	return this.data[i];
+				// } else {
+					return route;
+				// }
 			}
 		}
 	}
@@ -256,9 +282,9 @@ class Router extends Events {
 
 			if (!route.element) {
 
-				if (route.load) {
-					Loader.load(route.load);
-				}
+				// if (route.load) {
+				// 	Loader.load(route.load);
+				// }
 
 				if (route.component.constructor === String) {
 					route.element = document.createElement(route.component);
@@ -308,7 +334,7 @@ class Router extends Events {
 
 		var mode = options.mode || this.mode;
 		var location = this.toLocationObject(path);
-		var route = this.find(location.pathname);
+		var route = await this.find(location.pathname);
 
 		if (!route) {
 			throw new Error('Oxe.router.route - route not found');
