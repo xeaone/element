@@ -86,9 +86,6 @@ export default {
 	path: './',
 	component: {
 		name: 'r-index',
-		attached: function () {
-			Prism.highlightAll();
-		},
 		created: function () {
 			Say('r-home created');
 		},
