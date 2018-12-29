@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 3.20.3
+	Version: 4.0.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -24,13 +24,15 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(then);
-	}
-	return then(result);
+	}return then(result);
 }function _invokeIgnored(body) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
-}function _empty() {}function _await(value, then, direct) {
+}
+
+function _empty() {}
+function _await(value, then, direct) {
 	if (direct) {
 		return then ? then(value) : value;
 	}value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -339,20 +341,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			return {
 				$get: {
 					value: function value(key) {
-						return this[key];
+						return this.$meta[key];
 					}
 				},
 				$set: {
 					value: function value(key, _value) {
-						if (_value !== this[key]) {
-							var result = self.create(_value, this.$meta.listener, this.$meta.path + key);
-
-							this.$meta[key] = result;
+						if (_value !== this.$meta[key]) {
 							self.defineProperty(this, key);
-
-							this.$meta.listener(result, this.$meta.path + key, key);
-
-							return result;
+							this.$meta[key] = self.create(_value, this.$meta.listener, this.$meta.path + key);
+							this.$meta.listener(this[key], this.$meta.path + key, key, this);
 						}
 					}
 				},
@@ -939,9 +936,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var last = keys.length - 1;
 
 			for (var i = 0; i < last; i++) {
-				var key = keys[i];
-
-				if (!(key in data)) {
+				var key = keys[i];if (!(key in data)) {
 					if (typeof callback === 'function') {
 						callback(data, key, i, keys);
 					} else {
@@ -2013,7 +2008,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'fetch',
 			value: _async(function (options) {
-				var _this = this;
+				var _this = this,
+				    _exit = false;
 
 				var data = Object.assign({}, options);
 
@@ -2099,39 +2095,36 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				// }
 
 				return _invoke(function () {
-					if (data.body) {
-						return _invokeIgnored(function () {
-							if (data.method === 'GET') {
-								var _temp = data.url + '?';
+					if (typeof _this.request === 'function') {
+						var copy = Object.assign({}, data);
+						return _await(_this.request(copy), function (result) {
 
-								return _await(_this.serialize(data.body), function (_this$serialize) {
-									data.url = _temp + _this$serialize;
-								});
-							} else if (data.contentType === 'json') {
-								data.body = JSON.stringify(data.body);
+							if (result === false) {
+								_exit = true;
+								return data;
+							}
+
+							if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
+								Object.assign(data, result);
 							}
 						});
 					}
-				}, function () {
-					var _exit = false;
-					return _invoke(function () {
-						if (typeof _this.request === 'function') {
-							var copy = Object.assign({}, data);
-							return _await(_this.request(copy), function (result) {
+				}, function (_result) {
+					return _exit ? _result : _invoke(function () {
+						if (data.body) {
+							return _invokeIgnored(function () {
+								if (data.method === 'GET') {
+									var _temp = data.url + '?';
 
-								if (result === false) {
-									_exit = true;
-									return data;
-								}
-
-								if ((typeof result === 'undefined' ? 'undefined' : _typeof(result)) === 'object') {
-									Object.assign(data, result);
+									return _await(_this.serialize(data.body), function (_this$serialize) {
+										data.url = _temp + _this$serialize;
+									});
+								} else if (data.contentType === 'json') {
+									data.body = JSON.stringify(data.body);
 								}
 							});
 						}
-					}, function (_result) {
-						if (_exit) return _result;
-
+					}, function () {
 
 						var fetchOptions = Object.assign({}, data);
 
@@ -2789,6 +2782,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options = options || {};
 
 				if (options.components && options.components.length) {
+
 					for (var i = 0, l = options.components.length; i < l; i++) {
 						this.define(options.components[i]);
 					}
@@ -2800,6 +2794,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var targetSlots = target.querySelectorAll('slot[name]');
 
 				for (var i = 0, l = targetSlots.length; i < l; i++) {
+
 					var targetSlot = targetSlots[i];
 					var name = targetSlot.getAttribute('name');
 					var sourceSlot = source.querySelector('[slot="' + name + '"]');
@@ -2882,29 +2877,19 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				return '<style>' + style + '</style>';
 			}
 		}, {
-			key: 'created',
-			value: function created(element, options) {
+			key: 'render',
+			value: function render(element, options) {
 				var self = this;
-				var scope = options.name + '-' + options.count++;
 
-				Object.defineProperties(element, {
-					scope: {
-						value: scope,
-						enumerable: true
-					}
-				});
-
-				element.setAttribute('o-scope', scope);
-				// element.setAttribute('o-status', 'created');
-
-				Model$1.set(scope, options.model);
-				Methods$1.set(scope, options.methods);
+				element.setAttribute('o-scope', element.scope);
 
 				if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
-					Binder$1.bind(element, element, scope);
+
+					Binder$1.bind(element, element, element.scope);
 				} else {
+
 					var template = document.createElement('template');
-					var style = self.renderStyle(options.style, scope);
+					var style = self.renderStyle(options.style, element.scope);
 
 					if (typeof options.template === 'string') {
 						template.innerHTML = style + options.template;
@@ -2913,10 +2898,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						template.appendChild(options.template);
 					}
 
-					// element.templateContent = template.content;
 					var clone = document.importNode(template.content, true);
-					// Binder.bind(clone.querySelectorAll('*'), element, scope);
-					Binder$1.bind(clone, element, scope);
+
+					Binder$1.bind(clone, element, element.scope);
 
 					if (options.shadow) {
 						if ('attachShadow' in document.body) {
@@ -2929,37 +2913,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						element.appendChild(clone);
 					}
 				}
-
-				if (options.created) {
-					options.created.call(element);
-				}
-			}
-		}, {
-			key: 'attached',
-			value: function attached(element, options) {
-				if (options.attached) {
-					options.attached.call(element);
-				}
-			}
-		}, {
-			key: 'detached',
-			value: function detached(element, options) {
-				if (options.detached) {
-					options.detached.call(element);
-				}
 			}
 		}, {
 			key: 'define',
 			value: function define(options) {
 				var self = this;
 
-				if (!options.name) {
-					throw new Error('Oxe.component.define - requires name');
-				}
-
-				if (options.name in self.data) {
-					throw new Error('Oxe.component.define - component defined');
-				}
+				if (!options.name) throw new Error('Oxe.component.define - requires name');
+				if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
 
 				self.data[options.name] = options;
 
@@ -2972,45 +2933,85 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				options.template = options.template || '';
 				options.properties = options.properties || {};
 
-				options.properties.model = {
-					enumerable: true,
-					// might not want configurable
-					configurable: true,
-					get: function get() {
-						return Model$1.get(this.scope);
-					},
-					set: function set(data) {
-						data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
-						return Model$1.set(this.scope, data);
+				options.construct = function () {
+					var instance = window.Reflect.construct(HTMLElement, [], this.constructor);
+
+					options.properties.created = {
+						value: false,
+						enumerable: true,
+						configurable: true
+					};
+
+					options.properties.scope = {
+						enumerable: true,
+						value: options.name + '-' + options.count++
+					};
+
+					options.properties.model = {
+						enumerable: true,
+						get: function get() {
+							return Model$1.get(this.scope);
+						},
+						set: function set(data) {
+							data = data && (typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object' ? data : {};
+							return Model$1.set(this.scope, data);
+						}
+					};
+
+					options.properties.methods = {
+						enumerable: true,
+						get: function get() {
+							return Methods$1.get(this.scope);
+						}
+					};
+
+					Object.defineProperties(instance, options.properties);
+					Model$1.set(instance.scope, options.model);
+					Methods$1.set(instance.scope, options.methods);
+
+					return instance;
+				};
+
+				options.construct.prototype.attributeChangedCallback = function () {
+					if (options.attributed) options.attributed.apply(this, arguments);
+				};
+
+				options.construct.prototype.adoptedCallback = function () {
+					if (options.adopted) options.adopted.call(this);
+				};
+
+				options.construct.prototype.connectedCallback = function () {
+
+					if (!this.created) {
+
+						self.render(this, options);
+
+						Object.defineProperty(this, 'created', {
+							value: true,
+							enumerable: true,
+							configurable: false
+						});
+
+						if (options.created) {
+							options.created.call(this);
+						}
+					}
+
+					if (options.attached) {
+						options.attached.call(this);
 					}
 				};
 
-				options.properties.methods = {
-					enumerable: true,
-					get: function get() {
-						return Methods$1.get(this.scope);
+				options.construct.prototype.disconnectedCallback = function () {
+					if (options.detached) {
+						options.detached.call(this);
 					}
 				};
 
-				options.proto = Object.create(HTMLElement.prototype, options.properties);
+				Object.setPrototypeOf(options.construct.prototype, HTMLElement.prototype);
+				Object.setPrototypeOf(options.construct, HTMLElement);
 
-				options.proto.attributeChangedCallback = options.attributed;
-
-				options.proto.createdCallback = function () {
-					self.created(this, options);
-				};
-
-				options.proto.attachedCallback = function () {
-					self.attached(this, options);
-				};
-
-				options.proto.detachedCallback = function () {
-					self.detached(this, options);
-				};
-
-				return document.registerElement(options.name, {
-					prototype: options.proto
-				});
+				window.customElements.define(options.name, options.construct);
 			}
 		}]);
 
@@ -3482,6 +3483,34 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var General$1 = new General();
 
+	// custom elements with es5 classes: start
+
+	if (!window.Reflect || !window.Reflect.construct) {
+		window.Reflect = window.Reflect || {};
+		window.Reflect.construct = function (parent, args, child) {
+			var target = child === undefined ? parent : child;
+			var prototype = target.prototype || Object.prototype;
+			var copy = Object.create(prototype);
+			return Function.prototype.apply.call(parent, copy, args) || copy;
+		};
+	}
+
+	// if (
+	// 	!(window.Reflect === undefined ||
+	// 	window.customElements === undefined ||
+	// 	window.customElements.hasOwnProperty('polyfillWrapFlushCallback'))
+	// ) {
+	// 	let htmlelement = HTMLElement;
+	// 	window.HTMLElement = function HTMLElement () {
+	// 		return Reflect.construct(htmlelement, [], this.constructor);
+	// 	};
+	// 	HTMLElement.prototype = htmlelement.prototype;
+	// 	HTMLElement.prototype.constructor = HTMLElement;
+	// 	Object.setPrototypeOf(HTMLElement, htmlelement);
+	// }
+
+	// custom elements with es5 classes: end
+
 	var eStyle = document.createElement('style');
 	var tStyle = document.createTextNode('\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition 150ms ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n');
 
@@ -3492,87 +3521,45 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	var oSetup = document.querySelector('script[o-setup]');
 
 	if (oSetup) {
+		var _args2 = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
+		var meta = document.querySelector('meta[name="oxe"]');
 
-		var currentCount = 0;
-		var requiredCount = 0;
+		if (meta && meta.hasAttribute('compiled')) {
+			_args2[1] = 'null';
+			_args2[2] = 'script';
+			Router$1.mode = 'compiled';
+			General$1.compiled = true;
+			Component$1.compiled = true;
+		}
 
-		var loaded = function loaded() {
-			if (currentCount !== requiredCount) return;
+		if (!_args2[0]) {
+			throw new Error('Oxe - script attribute o-setup requires url');
+		}
 
-			var args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
-			var meta = document.querySelector('meta[name="oxe"]');
-
-			if (meta && meta.hasAttribute('compiled')) {
-				args[1] = 'null';
-				args[2] = 'script';
-				Router$1.mode = 'compiled';
-				General$1.compiled = true;
-				Component$1.compiled = true;
-			}
-
-			if (!args[0]) {
-				throw new Error('Oxe - o-setup attribute requires a url');
-			}
-
-			if (args.length > 1) {
-				Loader$1.load({
-					url: args[0],
-					method: args[2],
-					transformer: args[1]
-				});
-			} else {
-				var _index3 = document.createElement('script');
-
-				_index3.setAttribute('src', args[0]);
-				_index3.setAttribute('async', 'true');
-				_index3.setAttribute('type', 'module');
-
-				document.head.appendChild(_index3);
-			}
-
-			document.registerElement('o-router', {
-				prototype: Object.create(HTMLElement.prototype)
+		if (_args2.length > 1) {
+			Loader$1.load({
+				url: _args2[0],
+				method: _args2[2],
+				transformer: _args2[1]
 			});
-		};
+		} else {
+			var _index3 = document.createElement('script');
 
-		var loader = function loader(url, callback) {
-			var polly = document.createElement('script');
+			_index3.setAttribute('src', _args2[0]);
+			_index3.setAttribute('async', 'true');
+			_index3.setAttribute('type', 'module');
 
-			polly.setAttribute('async', 'true');
-			polly.setAttribute('src', url);
-			polly.addEventListener('load', function () {
-				currentCount++;
-				callback();
-			}, true);
-
-			document.head.appendChild(polly);
-		};
-
-		var features = [];
-		var isNotFetch = !('fetch' in window);
-		var isNotAssign = !('assign' in Object);
-		var isNotPromise = !('Promise' in window);
-		var isNotCustomElement = !('registerElement' in document) || !('content' in document.createElement('template'));
-
-		if (isNotFetch) features.push('fetch');
-		if (isNotPromise) features.push('Promise');
-		if (isNotAssign) features.push('Object.assign');
-
-		if (isNotPromise || isNotFetch || isNotAssign) {
-			requiredCount++;
-			loader('https://cdn.polyfill.io/v2/polyfill.min.js?features=' + features.join(','), loaded);
+			document.head.appendChild(_index3);
 		}
 
-		if (isNotCustomElement) {
-			requiredCount++;
-			loader('https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.7.2/document-register-element.js', loaded);
-		}
+		var ORouter = function ORouter() {
+			return window.Reflect.construct(HTMLElement, [], this.constructor);
+		};
 
-		loaded();
-	} else {
-		document.registerElement('o-router', {
-			prototype: Object.create(HTMLElement.prototype)
-		});
+		Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+		Object.setPrototypeOf(ORouter, HTMLElement);
+
+		window.customElements.define('o-router', ORouter);
 	}
 
 	var Oxe = function () {
