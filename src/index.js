@@ -5,7 +5,6 @@ import Reset from './listener/reset.js';
 import Click from './listener/click.js';
 import State from './listener/state.js';
 import Component from './component.js';
-import Load from './listener/load.js';
 import General from './general.js';
 import Utility from './utility.js';
 import Batcher from './batcher.js';
@@ -80,11 +79,13 @@ if (oSetup) {
 	}
 
 	if (args.length > 1) {
-		Loader.load({
-			url: args[0],
-			method: args[2],
-			transformer: args[1]
-		});
+		Promise.resolve().then(function () {
+			return Loader.load({
+				url: args[0],
+				method: args[2],
+				transformer: args[1]
+			});
+		}).catch(console.error);
 	} else {
 		let index = document.createElement('script');
 
@@ -198,7 +199,6 @@ class Oxe {
 		data = data || {};
 		data.listener = data.listener || {};
 
-		document.addEventListener('load', Load, true);
 		document.addEventListener('input', Input, true);
 		document.addEventListener('click', Click, true);
 		document.addEventListener('change', Change, true);
@@ -257,11 +257,11 @@ class Oxe {
 		}
 
 		if (data.loader) {
-			this.loader.setup(data.loader);
+			await this.loader.setup(data.loader);
 		}
 
 		if (data.component) {
-			this.component.setup(data.component);
+			await this.component.setup(data.component);
 		}
 
 		if (data.router) {

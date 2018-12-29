@@ -12,76 +12,30 @@ class Loader extends Events {
 		this.transformers = {};
 	}
 
-	setup (options) {
+	async setup (options) {
+		let self = this;
+
 		options = options || {};
 
-		this.methods = options.methods || this.methods;
-		this.transformers = options.transformers || this.transformers;
+		self.methods = options.methods || self.methods;
+		self.transformers = options.transformers || self.transformers;
 
 		if (options.loads) {
-			let load;
-			while (load = options.loads.shift()) {
-				this.load(load);
-			}
+			return Promise.all(options.loads.map(function (load) {
+				return self.load(load);
+			}));
 		}
 
 	}
 
-	execute (data) {
+	async execute (data) {
 		let text = '\'use strict\';\n\n' + (data.ast ? data.ast.cooked : data.text);
 		let code = new Function('$LOADER', 'window', text);
 		data.result = code(this, window);
 	}
 
-	ready (data) {
-		if (data && data.listener && data.listener.length) {
-			let listener;
-			while (listener = data.listener.shift()) {
-				listener(data);
-			}
-		}
-	}
-
-	fetch (data) {
+	async transform (data) {
 		let self = this;
-		let fetch = new XMLHttpRequest();
-
-		fetch.onreadystatechange = function () {
-
-			if (fetch.readyState === 4) {
-
-				if (fetch.status >= 200 && fetch.status < 300 || fetch.status == 304) {
-					data.text = fetch.responseText;
-
-					if (data.extension === 'js') {
-
-						if (data.transformer) {
-							self.transform(data, function () {
-								self.execute(data);
-								self.ready(data);
-							});
-						} else {
-							self.execute(data);
-							self.ready(data);
-						}
-
-					} else {
-						self.ready(data);
-					}
-
-				} else {
-					throw new Error(fetch.responseText);
-				}
-
-			}
-
-		};
-
-		fetch.open('GET', data.url);
-		fetch.send();
-	}
-
-	transform (data, callback) {
 
 		if (data.transformer === 'es' || data.transformer === 'est') {
 			data.text = Transformer.template(data.text);
@@ -92,80 +46,84 @@ class Loader extends Events {
 		}
 
 		if (data.ast && data.ast.imports.length) {
-
-			let count = 0;
-			let total = data.ast.imports.length;
-
-			let listener = function () {
-				count++;
-
-				if (count === total) {
-					callback();
-				}
-
-			};
-
-			for (let i = 0; i < total; i++) {
-				this.load({
-					listener: listener,
+			return Promise.all(data.ast.imports.map(function (imp) {
+				return self.load({
+					url: imp.url,
 					method: data.method,
-					url: data.ast.imports[i].url,
 					transformer: data.transformer
 				});
+			}));
+		}
+
+	}
+
+	async fetch (data) {
+		let result = await window.fetch(data.url);
+
+		if (result.status >= 200 && result.status < 300 || result.status == 304) {
+			data.text = await result.text();
+		} else {
+			throw new Error(result.statusText);
+		}
+
+	}
+
+	async attach (data) {
+		return new Promise(function (resolve, reject) {
+			let element = document.createElement(data.tag);
+
+			for (let name in data.attributes) {
+				element.setAttribute(name, data.attributes[name]);
 			}
 
-		} else {
-			callback();
-		}
+			element.onload = resolve;
+			element.onerror = reject;
 
+			document.head.appendChild(element);
+		});
 	}
 
-	attach (data) {
-		let element = document.createElement(data.tag);
+	async js (data) {
 
-		data.attributes['o-load'] = 'true';
-
-		for (let name in data.attributes) {
-			element.setAttribute(name, data.attributes[name]);
-		}
-
-		document.head.appendChild(element);
-	}
-
-	js (data) {
 		if (
 			data.method === 'fetch'
 			|| data.transformer === 'es'
 			|| data.transformer === 'est'
 			|| data.transformer === 'esm'
 		) {
-			this.fetch(data);
-		} else if (data.method === 'script') {
-			this.attach({
+			await this.fetch(data);
+
+			if (data.transformer) {
+				await this.transform(data);
+			}
+
+			return await this.execute(data);
+		}
+
+		if (data.method === 'script') {
+			return await this.attach({
 				tag: 'script',
 				attributes: {
-					type: 'text/javascript',
 					src: data.url,
-					async: 'true',
-				}
-			});
-		} else {
-			this.attach({
-				tag: 'script',
-				attributes: {
-					type: 'module',
-					src: data.url,
-					async: 'true',
+					type: 'text/javascript'
 				}
 			});
 		}
+
+		await this.attach({
+			tag: 'script',
+			attributes: {
+				src: data.url,
+				type: 'module'
+			}
+		});
 	}
 
-	css (data) {
+	async css (data) {
 		if (data.method === 'fetch') {
-			this.fetch(data);
+			await this.fetch(data);
 		} else {
-			this.attach({
+			await this.attach({
 				tag: 'link',
 				attributes: {
 					href: data.url,
@@ -176,53 +134,36 @@ class Loader extends Events {
 		}
 	}
 
-	load (data, listener) {
+	async load (data) {
 
 		if (typeof data === 'string') {
 			data = { url: data };
-		} else {
-			listener = data.listener;
 		}
 
 		data.url = Path.resolve(data.url);
 
 		if (data.url in this.data) {
-			let load = this.data[data.url];
-
-			if (load.listener.length) {
-
-				if (listener) {
-					load.listener.push(listener);
-				}
-
-			} else {
-
-				if (listener) {
-					load.listener.push(listener);
-				}
-
-				this.ready(load);
-			}
-
-			return;
+			await this.data[data.url].promise();
+			return this.data[data.url].result;
 		}
 
 		this.data[data.url] = data;
 
 		data.extension = data.extension || Path.extension(data.url);
-
-		data.listener = listener ? [listener] : [];
 		data.method = data.method || this.methods[data.extension];
 		data.transformer = data.transformer || this.transformers[data.extension];
 
 		if (data.extension === 'js') {
-			this.js(data);
+			data.promise = this.js.bind(this, data);
 		} else if (data.extension === 'css') {
-			this.css(data);
+			data.promise = this.css.bind(this, data);
 		} else {
-			this.fetch(data);
+			data.promise = this.fetch.bind(this, data);
 		}
 
+		await data.promise();
+
+		return data.result;
 	}
 
 }
