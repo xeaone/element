@@ -2,7 +2,114 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-function _awaitIgnored(value, direct) {
+function _continueIgnored(value) {
+	if (value && value.then) {
+		return value.then(_empty);
+	}
+}function _for(test, update, body) {
+	var stage;for (;;) {
+		var shouldContinue = test();if (_isSettledPact(shouldContinue)) {
+			shouldContinue = shouldContinue.__value;
+		}if (!shouldContinue) {
+			return result;
+		}if (shouldContinue.then) {
+			stage = 0;break;
+		}var result = body();if (result && result.then) {
+			if (_isSettledPact(result)) {
+				result = result.__state;
+			} else {
+				stage = 1;break;
+			}
+		}
+		if (update) {
+			var updateValue = update();if (updateValue && updateValue.then && !_isSettledPact(updateValue)) {
+				stage = 2;break;
+			}
+		}
+	}
+	var pact = new _Pact();
+	var reject = _settle.bind(null, pact, 2);(stage === 0 ? shouldContinue.then(_resumeAfterTest) : stage === 1 ? result.then(_resumeAfterBody) : updateValue.then(_resumeAfterUpdate)).then(void 0, reject);return pact;function _resumeAfterBody(value) {
+		result = value;do {
+			if (update) {
+				updateValue = update();if (updateValue && updateValue.then && !_isSettledPact(updateValue)) {
+					updateValue.then(_resumeAfterUpdate).then(void 0, reject);return;
+				}
+			}shouldContinue = test();if (!shouldContinue || _isSettledPact(shouldContinue) && !shouldContinue.__value) {
+				_settle(pact, 1, result);return;
+			}if (shouldContinue.then) {
+				shouldContinue.then(_resumeAfterTest).then(void 0, reject);return;
+			}result = body();if (_isSettledPact(result)) {
+				result = result.__value;
+			}
+		} while (!result || !result.then);result.then(_resumeAfterBody).then(void 0, reject);
+	}function _resumeAfterTest(shouldContinue) {
+		if (shouldContinue) {
+			result = body();if (result && result.then) {
+				result.then(_resumeAfterBody).then(void 0, reject);
+			} else {
+				_resumeAfterBody(result);
+			}
+		} else {
+			_settle(pact, 1, result);
+		}
+	}function _resumeAfterUpdate() {
+		if (shouldContinue = test()) {
+			if (shouldContinue.then) {
+				shouldContinue.then(_resumeAfterTest).then(void 0, reject);
+			} else {
+				_resumeAfterTest(shouldContinue);
+			}
+		} else {
+			_settle(pact, 1, result);
+		}
+	}
+}function _isSettledPact(thenable) {
+	return thenable instanceof _Pact && thenable.__state === 1;
+}var _Pact = function () {
+	function _Pact() {}_Pact.prototype.then = function (onFulfilled, onRejected) {
+		var state = this.__state;if (state) {
+			var callback = state == 1 ? onFulfilled : onRejected;if (callback) {
+				var _result12 = new _Pact();try {
+					_settle(_result12, 1, callback(this.__value));
+				} catch (e) {
+					_settle(_result12, 2, e);
+				}return _result12;
+			} else {
+				return this;
+			}
+		}var result = new _Pact();
+
+		this.__observer = function (_this) {
+			try {
+				var value = _this.__value;if (_this.__state == 1) {
+					_settle(result, 1, onFulfilled ? onFulfilled(value) : value);
+				} else if (onRejected) {
+					_settle(result, 1, onRejected(value));
+				} else {
+					_settle(result, 2, value);
+				}
+			} catch (e) {
+				_settle(result, 2, e);
+			}
+		};return result;
+	};return _Pact;
+}();function _settle(pact, state, value) {
+	if (!pact.__state) {
+		if (value instanceof _Pact) {
+			if (value.__state) {
+				if (state === 1) {
+					state = value.__state;
+				}value = value.__value;
+			} else {
+				value.__observer = _settle.bind(null, pact, state);return;
+			}
+		}if (value && value.then) {
+			value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));return;
+		}pact.__state = state;pact.__value = value;var observer = pact.__observer;if (observer) {
+			observer(pact);
+		}
+	}
+}function _awaitIgnored(value, direct) {
 	if (!direct) {
 		return Promise.resolve(value).then(_empty);
 	}
@@ -128,8 +235,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = multiple ? [] : '';
 
-				for (var i = 0, l = elements.length; i < l; i++) {
-					var _element = elements[i];
+				for (var _i8 = 0, _l8 = elements.length; _i8 < _l8; _i8++) {
+					var _element = elements[_i8];
 					// NOTE might need to handle disable
 
 					if (_element.selected) {
@@ -151,11 +258,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var query = 'input[type="radio"][o-value="' + binder.value + '"]';
 				var _elements2 = binder.container.querySelectorAll(query);
 
-				for (var _i = 0, _l = _elements2.length; _i < _l; _i++) {
-					var _element2 = _elements2[_i];
+				for (var _i9 = 0, _l9 = _elements2.length; _i9 < _l9; _i9++) {
+					var _element2 = _elements2[_i9];
 
 					if (binder.element === _element2) {
-						data = _i;
+						data = _i9;
 					}
 				}
 			} else if (type === 'file') {
@@ -163,8 +270,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = data || [];
 
-				for (var _i2 = 0, _l2 = files.length; _i2 < _l2; _i2++) {
-					var file = files[_i2];
+				for (var _i10 = 0, _l10 = files.length; _i10 < _l10; _i10++) {
+					var file = files[_i10];
 					data.push(file);
 				}
 			} else if (type === 'checkbox') {
@@ -194,13 +301,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Observer = {
 		splice: function splice() {
-			var self = this;
-
-			var startIndex = arguments[0];
+			var self = this;var startIndex = arguments[0];
 			var deleteCount = arguments[1];
-			var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
-
-			if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
+			var addCount = arguments.length > 2 ? arguments.length - 2 : 0;if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
 				return [];
 			}
 
@@ -603,9 +706,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  */
 
 	function Default(binder) {
-		var unrender = void 0;
-
-		if (binder.type in this) {
+		var unrender = void 0;if (binder.type in this) {
 			unrender = this[binder.type](binder);
 		} else {
 			unrender = {
@@ -2541,75 +2642,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 		_createClass(Loader, [{
 			key: 'setup',
-			value: function setup(options) {
+			value: _async(function (options) {
+				var _this11 = this;
+
+				var self = _this11;
+
 				options = options || {};
 
-				this.methods = options.methods || this.methods;
-				this.transformers = options.transformers || this.transformers;
+				self.methods = options.methods || self.methods;
+				self.transformers = options.transformers || self.transformers;
 
 				if (options.loads) {
-					var load = void 0;
-					while (load = options.loads.shift()) {
-						this.load(load);
-					}
+					return Promise.all(options.loads.map(function (load) {
+						return self.load(load);
+					}));
 				}
-			}
+			})
 		}, {
 			key: 'execute',
-			value: function execute(data) {
+			value: _async(function (data) {
+				var _this12 = this;
+
 				var text = '\'use strict\';\n\n' + (data.ast ? data.ast.cooked : data.text);
 				var code = new Function('$LOADER', 'window', text);
-				data.result = code(this, window);
-			}
-		}, {
-			key: 'ready',
-			value: function ready(data) {
-				if (data && data.listener && data.listener.length) {
-					var listener = void 0;
-					while (listener = data.listener.shift()) {
-						listener(data);
-					}
-				}
-			}
-		}, {
-			key: 'fetch',
-			value: function fetch(data) {
-				var self = this;
-				var fetch = new XMLHttpRequest();
-
-				fetch.onreadystatechange = function () {
-
-					if (fetch.readyState === 4) {
-
-						if (fetch.status >= 200 && fetch.status < 300 || fetch.status == 304) {
-							data.text = fetch.responseText;
-
-							if (data.extension === 'js') {
-
-								if (data.transformer) {
-									self.transform(data, function () {
-										self.execute(data);
-										self.ready(data);
-									});
-								} else {
-									self.execute(data);
-									self.ready(data);
-								}
-							} else {
-								self.ready(data);
-							}
-						} else {
-							throw new Error(fetch.responseText);
-						}
-					}
-				};
-
-				fetch.open('GET', data.url);
-				fetch.send();
-			}
+				data.result = code(_this12, window);
+			})
 		}, {
 			key: 'transform',
-			value: function transform(data, callback) {
+			value: _async(function (data) {
+				var _this13 = this;
+
+				var self = _this13;
 
 				if (data.transformer === 'es' || data.transformer === 'est') {
 					data.text = Transformer.template(data.text);
@@ -2620,132 +2683,153 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 
 				if (data.ast && data.ast.imports.length) {
-
-					var count = 0;
-					var total = data.ast.imports.length;
-
-					var listener = function listener() {
-						count++;
-
-						if (count === total) {
-							callback();
-						}
-					};
-
-					for (var i = 0; i < total; i++) {
-						this.load({
-							listener: listener,
+					return Promise.all(data.ast.imports.map(function (imp) {
+						return self.load({
+							url: imp.url,
 							method: data.method,
-							url: data.ast.imports[i].url,
 							transformer: data.transformer
 						});
-					}
-				} else {
-					callback();
+					}));
 				}
-			}
+			})
+		}, {
+			key: 'fetch',
+			value: _async(function (data) {
+				return _await(window.fetch(data.url), function (result) {
+					return function () {
+						if (result.status >= 200 && result.status < 300 || result.status == 304) {
+							return _await(result.text(), function (_result$text) {
+								data.text = _result$text;
+							});
+						} else {
+							throw new Error(result.statusText);
+						}
+					}();
+				});
+			})
 		}, {
 			key: 'attach',
-			value: function attach(data) {
-				var element = document.createElement(data.tag);
+			value: _async(function (data) {
+				return new Promise(function (resolve, reject) {
+					var element = document.createElement(data.tag);
 
-				data.attributes['o-load'] = 'true';
+					for (var name in data.attributes) {
+						element.setAttribute(name, data.attributes[name]);
+					}
 
-				for (var name in data.attributes) {
-					element.setAttribute(name, data.attributes[name]);
-				}
+					element.onload = resolve;
+					element.onerror = reject;
 
-				document.head.appendChild(element);
-			}
+					document.head.appendChild(element);
+				});
+			})
 		}, {
 			key: 'js',
-			value: function js(data) {
-				if (data.method === 'fetch' || data.transformer === 'es' || data.transformer === 'est' || data.transformer === 'esm') {
-					this.fetch(data);
-				} else if (data.method === 'script') {
-					this.attach({
-						tag: 'script',
-						attributes: {
-							type: 'text/javascript',
-							src: data.url,
-							async: 'true'
+			value: _async(function (data) {
+				var _this14 = this,
+				    _exit3 = false;
+
+				return _invoke(function () {
+					if (data.method === 'fetch' || data.transformer === 'es' || data.transformer === 'est' || data.transformer === 'esm') {
+						return _await(_this14.fetch(data), function () {
+							return _invoke(function () {
+								if (data.transformer) {
+									return _awaitIgnored(_this14.transform(data));
+								}
+							}, function () {
+								_exit3 = true;
+								return _await(_this14.execute(data));
+							});
+						});
+					}
+				}, function (_result4) {
+					var _exit4 = false;
+					if (_exit3) return _result4;
+					return _invoke(function () {
+						if (data.method === 'script') {
+							_exit4 = true;
+							return _await(_this14.attach({
+								tag: 'script',
+								attributes: {
+									src: data.url,
+									type: 'text/javascript'
+								}
+							}));
 						}
+					}, function (_result5) {
+						return _exit4 ? _result5 : _awaitIgnored(_this14.attach({
+							tag: 'script',
+							attributes: {
+								src: data.url,
+								type: 'module'
+							}
+						}));
 					});
-				} else {
-					this.attach({
-						tag: 'script',
-						attributes: {
-							type: 'module',
-							src: data.url,
-							async: 'true'
-						}
-					});
-				}
-			}
+				});
+			})
 		}, {
 			key: 'css',
-			value: function css(data) {
-				if (data.method === 'fetch') {
-					this.fetch(data);
-				} else {
-					this.attach({
-						tag: 'link',
-						attributes: {
-							href: data.url,
-							type: 'text/css',
-							rel: 'stylesheet'
-						}
-					});
-				}
-			}
+			value: _async(function (data) {
+				var _this15 = this;
+
+				return _invokeIgnored(function () {
+					if (data.method === 'fetch') {
+						return _awaitIgnored(_this15.fetch(data));
+					} else {
+						return _awaitIgnored(_this15.attach({
+							tag: 'link',
+							attributes: {
+								href: data.url,
+								type: 'text/css',
+								rel: 'stylesheet'
+							}
+						}));
+					}
+				});
+			})
 		}, {
 			key: 'load',
-			value: function load(data, listener) {
+			value: _async(function (data) {
+				var _this16 = this,
+				    _exit5 = false;
 
 				if (typeof data === 'string') {
 					data = { url: data };
-				} else {
-					listener = data.listener;
 				}
 
 				data.url = Path.resolve(data.url);
 
-				if (data.url in this.data) {
-					var load = this.data[data.url];
+				return _invoke(function () {
+					if (data.url in _this16.data) {
+						return _await(_this16.data[data.url].promise(), function () {
+							_exit5 = true;
+							return _this16.data[data.url].result;
+						});
+					}
+				}, function (_result6) {
+					if (_exit5) return _result6;
 
-					if (load.listener.length) {
 
-						if (listener) {
-							load.listener.push(listener);
-						}
+					_this16.data[data.url] = data;
+
+					data.extension = data.extension || Path.extension(data.url);
+					data.method = data.method || _this16.methods[data.extension];
+					data.transformer = data.transformer || _this16.transformers[data.extension];
+
+					if (data.extension === 'js') {
+						data.promise = _this16.js.bind(_this16, data);
+					} else if (data.extension === 'css') {
+						data.promise = _this16.css.bind(_this16, data);
 					} else {
-
-						if (listener) {
-							load.listener.push(listener);
-						}
-
-						this.ready(load);
+						data.promise = _this16.fetch.bind(_this16, data);
 					}
 
-					return;
-				}
+					return _await(data.promise(), function () {
 
-				this.data[data.url] = data;
-
-				data.extension = data.extension || Path.extension(data.url);
-
-				data.listener = listener ? [listener] : [];
-				data.method = data.method || this.methods[data.extension];
-				data.transformer = data.transformer || this.transformers[data.extension];
-
-				if (data.extension === 'js') {
-					this.js(data);
-				} else if (data.extension === 'css') {
-					this.css(data);
-				} else {
-					this.fetch(data);
-				}
-			}
+						return data.result;
+					});
+				});
+			})
 		}]);
 
 		return Loader;
@@ -3015,14 +3099,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		function Router() {
 			_classCallCheck(this, Router);
 
-			var _this11 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
+			var _this17 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
 
-			_this11.data = [];
-			_this11.location = {};
-			_this11.ran = false;
-			_this11.mode = 'push';
-			_this11.element = null;
-			_this11.contain = false;
+			_this17.data = [];
+			_this17.location = {};
+			_this17.ran = false;
+			_this17.mode = 'push';
+			_this17.element = null;
+			_this17.contain = false;
 			// this.pattern = new RegExp([
 			//     '^(https?:)//', // protocol
 			//     '(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
@@ -3030,28 +3114,31 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			//     '(\\?[^#]*|)', // search
 			//     '(#.*|)$' // hash
 			// ].join(''));
-			return _this11;
+			return _this17;
 		}
 
 		_createClass(Router, [{
 			key: 'setup',
 			value: _async(function (options) {
-				var _this12 = this;
+				var _this18 = this;
 
 				options = options || {};
 
-				_this12.mode = options.mode === undefined ? _this12.mode : options.mode;
-				_this12.after = options.after === undefined ? _this12.after : options.after;
-				_this12.before = options.before === undefined ? _this12.before : options.before;
-				_this12.element = options.element === undefined ? _this12.element : options.element;
-				_this12.contain = options.contain === undefined ? _this12.contain : options.contain;
-				_this12.external = options.external === undefined ? _this12.external : options.external;
+				_this18.mode = options.mode === undefined ? _this18.mode : options.mode;
+				_this18.after = options.after === undefined ? _this18.after : options.after;
+				_this18.before = options.before === undefined ? _this18.before : options.before;
+				_this18.element = options.element === undefined ? _this18.element : options.element;
+				_this18.contain = options.contain === undefined ? _this18.contain : options.contain;
+				_this18.external = options.external === undefined ? _this18.external : options.external;
 
-				if (options.routes) {
-					_this12.add(options.routes);
-				}
-
-				return _awaitIgnored(_this12.route(window.location.href, { mode: 'replace' }));
+				return _invoke(function () {
+					if (options.routes) {
+						// this.add(options.routes);
+						return _awaitIgnored(_this18.add(options.routes));
+					}
+				}, function () {
+					return _awaitIgnored(_this18.route(window.location.href, { mode: 'replace' }));
+				});
 			})
 		}, {
 			key: 'scroll',
@@ -3075,55 +3162,97 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			}
 		}, {
 			key: 'add',
-			value: function add(data) {
-				if (!data) {
-					throw new Error('Oxe.router.add - requires data parameter');
-				} else if (data.constructor === Object) {
-					if (!data.path) throw new Error('Oxe.router.add - route path required');
-					if (!data.component) throw new Error('Oxe.router.add - route component required');
-					this.data.push(data);
-				} else if (data.constructor === Array) {
-					for (var i = 0, l = data.length; i < l; i++) {
-						this.add(data[i]);
-					}
-				}
-			}
+			value: _async(function (data) {
+				var _this19 = this;
+
+				return function () {
+					if (!data) {
+						throw new Error('Oxe.router.add - requires data parameter');
+					} else return function () {
+							if (data.constructor === String) {
+								// this.data.push({ path: data, load: data });
+								return _await(Loader$1.load(data), function (route) {
+									_this19.data.push(route);
+								});
+							} else return function () {
+									if (data.constructor === Object) {
+										if (!data.path) throw new Error('Oxe.router.add - route path required');
+										// if (!data.component) throw new Error('Oxe.router.add - route component required');
+										_this19.data.push(data);
+									} else return _invokeIgnored(function () {
+											if (data.constructor === Array) {
+												var _i = 0,
+												    _l = data.length;
+												// return Promise.all(data.map(function (route) {
+												// 	if (data.constructor === String) {
+												// 		return Loader.load(data);
+												// 	} else {
+												// 		return route;
+												// 	}
+												// })).then(function (routes) {
+												// 	routes.forEach(function (route) {
+												// 		self.data.push(route);
+												// 	});
+												// });
+												return _continueIgnored(_for(function () {
+													return _i < _l;
+												}, function () {
+													return _i++;
+												}, function () {
+													return _awaitIgnored(_this19.add(data[_i]));
+												}));
+											}
+										});
+								}();
+						}();
+				}();
+			})
 		}, {
 			key: 'remove',
 			value: function remove(path) {
-				for (var i = 0, l = this.data.length; i < l; i++) {
-					if (path === this.data[i].path) {
-						this.data.splice(i, 1);
+				for (var _i2 = 0, _l2 = this.data.length; _i2 < _l2; _i2++) {
+					var route = this.data[_i2];
+					if (route.path === path) {
+						this.data.splice(_i2, 1);
 					}
 				}
 			}
 		}, {
 			key: 'get',
 			value: function get(path) {
-				for (var i = 0, l = this.data.length; i < l; i++) {
-					var route = this.data[i];
-					if (path === route.path) {
+				for (var _i3 = 0, _l3 = this.data.length; _i3 < _l3; _i3++) {
+					var route = this.data[_i3];
+					if (route.path === path) {
 						return route;
 					}
 				}
 			}
 		}, {
 			key: 'find',
-			value: function find(path) {
-				for (var i = 0, l = this.data.length; i < l; i++) {
-					var route = this.data[i];
-					if (this.isPath(route.path, path)) {
+			value: _async(function (path) {
+				var _this20 = this;
+
+				for (var _i4 = 0, _l4 = _this20.data.length; _i4 < _l4; _i4++) {
+					var route = _this20.data[_i4];
+					if (_this20.isPath(route.path, path)) {
+						// if (route.load) {
+						// 	let routePath = this.data[i];
+						// 	this.data[i] = await Loader.load(route.load);
+						// 	this.data[i].path = routePath;
+						// 	return this.data[i];
+						// } else {
 						return route;
+						// }
 					}
 				}
-			}
+			})
 		}, {
 			key: 'filter',
 			value: function filter(path) {
 				var result = [];
 
-				for (var i = 0, l = this.data.length; i < l; i++) {
-					var route = this.data[i];
+				for (var _i5 = 0, _l5 = this.data.length; _i5 < _l5; _i5++) {
+					var route = this.data[_i5];
 					if (this.isPath(route.path, path)) {
 						result.push(route);
 					}
@@ -3159,11 +3288,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var userPaths = userPath.split('/');
 				var routePaths = routePath.split('/');
 
-				for (var i = 0, l = routePaths.length; i < l; i++) {
+				for (var _i6 = 0, _l6 = routePaths.length; _i6 < _l6; _i6++) {
 
-					if (pattern.test(routePaths[i])) {
-						var name = routePaths[i].replace(brackets, '');
-						result[name] = userPaths[i];
+					if (pattern.test(routePaths[_i6])) {
+						var name = routePaths[_i6].replace(brackets, '');
+						result[name] = userPaths[_i6];
 					}
 				}
 
@@ -3193,8 +3322,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (path.indexOf('?') === 0) path = path.slice(1);
 				var queries = path.split('&');
 
-				for (var i = 0, l = queries.length; i < l; i++) {
-					var query = queries[i].split('=');
+				for (var _i7 = 0, _l7 = queries.length; _i7 < _l7; _i7++) {
+					var query = queries[_i7].split('=');
 
 					if (query[0] && query[1]) {
 						result[query[0]] = query[1];
@@ -3266,9 +3395,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 					if (!route.element) {
 
-						if (route.load) {
-							Loader$1.load(route.load);
-						}
+						// if (route.load) {
+						// 	Loader.load(route.load);
+						// }
 
 						if (route.component.constructor === String) {
 							route.element = document.createElement(route.component);
@@ -3311,61 +3440,63 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'route',
 			value: _async(function (path, options) {
-				var _this13 = this,
-				    _exit3 = false;
+				var _this21 = this;
 
 				options = options || {};
 
-				var mode = options.mode || _this13.mode;
-				var location = _this13.toLocationObject(path);
-				var route = _this13.find(location.pathname);
+				var mode = options.mode || _this21.mode;
+				var location = _this21.toLocationObject(path);
+				return _await(_this21.find(location.pathname), function (route) {
+					var _exit6 = false;
 
-				if (!route) {
-					throw new Error('Oxe.router.route - route not found');
-				}
 
-				location.route = route;
-				location.title = location.route.title;
-				location.query = _this13.toQueryObject(location.search);
-				location.parameters = _this13.toParameterObject(location.route.path, location.pathname);
-
-				if (options.query) {
-					path += _this13.toQueryString(options.query);
-				}
-
-				return _invoke(function () {
-					if (typeof _this13.before === 'function') {
-						return _await(_this13.before(location), function (result) {
-							if (result === false) {
-								_exit3 = true;
-							}
-						});
+					if (!route) {
+						throw new Error('Oxe.router.route - route not found');
 					}
-				}, function (_result3) {
-					var _exit4 = false;
-					if (_exit3) return _result3;
+
+					location.route = route;
+					location.title = location.route.title;
+					location.query = _this21.toQueryObject(location.search);
+					location.parameters = _this21.toParameterObject(location.route.path, location.pathname);
+
+					if (options.query) {
+						path += _this21.toQueryString(options.query);
+					}
+
 					return _invoke(function () {
-						if (location.route && location.route.handler) {
-							_exit4 = true;
-							return _await(location.route.handler(location));
+						if (typeof _this21.before === 'function') {
+							return _await(_this21.before(location), function (result) {
+								if (result === false) {
+									_exit6 = true;
+								}
+							});
 						}
-					}, function (_result4) {
-						if (_exit4) return _result4;
+					}, function (_result10) {
+						var _exit7 = false;
+						if (_exit6) return _result10;
+						return _invoke(function () {
+							if (location.route && location.route.handler) {
+								_exit7 = true;
+								return _await(location.route.handler(location));
+							}
+						}, function (_result11) {
+							if (_exit7) return _result11;
 
 
-						if (location.route && location.route.redirect) {
-							return _this13.redirect(location.route.redirect);
-						}
+							if (location.route && location.route.redirect) {
+								return _this21.redirect(location.route.redirect);
+							}
 
-						if (mode === 'href' || mode === 'compiled') {
-							return window.location.assign(path);
-						} else {
-							window.history[mode + 'State']({ path: path }, '', path);
-						}
+							if (mode === 'href' || mode === 'compiled') {
+								return window.location.assign(path);
+							} else {
+								window.history[mode + 'State']({ path: path }, '', path);
+							}
 
-						_this13.location = location;
-						_this13.emit('routing');
-						_this13.render(location.route);
+							_this21.location = location;
+							_this21.emit('routing');
+							_this21.render(location.route);
+						});
 					});
 				});
 			})
@@ -3434,19 +3565,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		Promise.resolve().then(function () {
 			return Router$1.route(path, { replace: true });
 		}).catch(console.error);
-	}
-
-	function Load(e) {
-		var element = e.target;
-
-		if (element.nodeType !== 1 || !element.hasAttribute('o-load')) {
-			return;
-		}
-
-		var path = Path.resolve(element.src || element.href);
-		var load = Loader$1.data[path];
-
-		Loader$1.ready(load);
 	}
 
 	var General = function () {
@@ -3526,11 +3644,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 
 		if (_args2.length > 1) {
-			Loader$1.load({
-				url: _args2[0],
-				method: _args2[2],
-				transformer: _args2[1]
-			});
+			Promise.resolve().then(function () {
+				return Loader$1.load({
+					url: _args2[0],
+					method: _args2[2],
+					transformer: _args2[1]
+				});
+			}).catch(console.error);
 		} else {
 			var _index3 = document.createElement('script');
 
@@ -3561,18 +3681,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		_createClass(Oxe, [{
 			key: 'setup',
 			value: _async(function (data) {
-				var _this14 = this;
+				var _this22 = this;
 
-				if (_this14._setup) {
+				if (_this22._setup) {
 					return;
 				} else {
-					_this14._setup = true;
+					_this22._setup = true;
 				}
 
 				data = data || {};
 				data.listener = data.listener || {};
 
-				document.addEventListener('load', Load, true);
 				document.addEventListener('input', Input, true);
 				document.addEventListener('click', Click, true);
 				document.addEventListener('change', Change, true);
@@ -3617,30 +3736,34 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}, function () {
 
 					if (data.general) {
-						_this14.general.setup(data.general);
+						_this22.general.setup(data.general);
 					}
 
 					if (data.fetcher) {
-						_this14.fetcher.setup(data.fetcher);
-					}
-
-					if (data.loader) {
-						_this14.loader.setup(data.loader);
-					}
-
-					if (data.component) {
-						_this14.component.setup(data.component);
+						_this22.fetcher.setup(data.fetcher);
 					}
 
 					return _invoke(function () {
-						if (data.router) {
-							return _awaitIgnored(_this14.router.setup(data.router));
+						if (data.loader) {
+							return _awaitIgnored(_this22.loader.setup(data.loader));
 						}
 					}, function () {
-						return _invokeIgnored(function () {
-							if (data.listener.after) {
-								return _awaitIgnored(data.listener.after());
+						return _invoke(function () {
+							if (data.component) {
+								return _awaitIgnored(_this22.component.setup(data.component));
 							}
+						}, function () {
+							return _invoke(function () {
+								if (data.router) {
+									return _awaitIgnored(_this22.router.setup(data.router));
+								}
+							}, function () {
+								return _invokeIgnored(function () {
+									if (data.listener.after) {
+										return _awaitIgnored(data.listener.after());
+									}
+								});
+							});
 						});
 					});
 				});
