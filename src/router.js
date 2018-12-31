@@ -8,12 +8,14 @@ class Router extends Events {
 
 	constructor () {
 		super();
+		
 		this.data = [];
 		this.location = {};
 		this.ran = false;
 		this.mode = 'push';
 		this.element = null;
 		this.contain = false;
+
 		// this.pattern = new RegExp([
 		//     '^(https?:)//', // protocol
 		//     '(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
