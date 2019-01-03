@@ -55,8 +55,14 @@ if (!window.Reflect || !window.Reflect.construct) {
 // }
 // custom elements with es5 classes: end
 
-// webcomponents template might need this event
-// document.addEventListener('DOMContentLoaded', function () {});
+let ORouter = function ORouter () {
+	return window.Reflect.construct(HTMLElement, [], this.constructor);
+};
+
+Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+Object.setPrototypeOf(ORouter, HTMLElement);
+
+window.customElements.define('o-router', ORouter);
 
 let oSetup = document.querySelector('script[o-setup]');
 
@@ -77,27 +83,19 @@ if (oSetup) {
 	}
 
 	if (args.length > 1) {
-		Promise.resolve().then(function () {
-			return Loader.load({
-				url: args[0],
-				method: args[2],
-				transformer: args[1]
-			});
+		Loader.load({
+			url: args[0],
+			method: args[2],
+			transformer: args[1]
 		}).catch(console.error);
 	} else {
 		let index = document.createElement('script');
-
 		index.setAttribute('src', args[0]);
 		index.setAttribute('async', 'true');
 		index.setAttribute('type', 'module');
-
 		document.head.appendChild(index);
 	}
 
-	let ORouter = function () { return window.Reflect.construct(HTMLElement, [], this.constructor); };
-	Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-	Object.setPrototypeOf(ORouter, HTMLElement);
-	window.customElements.define('o-router', ORouter);
 }
 
 class Oxe {
