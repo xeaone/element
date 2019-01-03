@@ -12,15 +12,15 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/AlexanderElias/oxe.git"
+		"url": "git+https://github.com/vokeio/oxe.git"
 	},
 	"author": "Alexander Elias",
 	"email": "alex.steven.elis@gmail.com",
 	"license": "MPL-2.0",
 	"bugs": {
-		"url": "https://github.com/AlexanderElias/oxe/issues"
+		"url": "https://github.com/vokeio/oxe/issues"
 	},
-	"homepage": "https://github.com/AlexanderElias/oxe#readme",
+	"homepage": "https://github.com/vokeio/oxe#readme",
 	"keywords": [
 		"web",
 		"component",

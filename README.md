@@ -1,13 +1,13 @@
 
 # Oxe
 A mighty tiny web components framework/library.
-Command line interface moved to [oxe-cli](https://github.com/AlexanderElias/oxe-cli).
+Command line interface moved to [oxe-cli](https://github.com/vokeio/oxe-cli).
 
 ### API
-Api documentation can be found at [API.md](https://github.com/AlexanderElias/oxe/blob/master/API.md).
+Api documentation can be found at [API.md](https://github.com/vokeio/oxe/blob/master/API.md).
 
 ### VERSION
-Breaking version changes can be found at [VERSION.md](https://github.com/AlexanderElias/oxe/blob/master/VERSION.md).
+Breaking version changes can be found at [VERSION.md](https://github.com/vokeio/oxe/blob/master/VERSION.md).
 
 ### Features
 - Small
@@ -17,12 +17,12 @@ Breaking version changes can be found at [VERSION.md](https://github.com/Alexand
 - Optional in browser Template string rewrites
 
 ### Polyfill
-- [poly.min.js](https://github.com/AlexanderElias/oxe/blob/master/dst/poly.min.js) includes everything need except shadow poly code.
+- [poly.min.js](https://github.com/vokeio/oxe/blob/master/dst/poly.min.js) includes everything need except shadow poly code.
 	- customElements
 	- URL, Promise, fetch
 	- HTMLTemplateElement
 	- Event, CustomEvent, MouseEvent constructors and Object.assign, Array.from
-- [poly.shadow.min.js](https://github.com/AlexanderElias/oxe/blob/master/dst/poly.shadow.min.js) includes everything.
+- [poly.shadow.min.js](https://github.com/vokeio/oxe/blob/master/dst/poly.shadow.min.js) includes everything.
 	- Promise, fetch
 	- Webcomponentsjs
 
@@ -123,7 +123,7 @@ Oxe.setup({
 ```
 
 ## Authors
-[AlexanderElias](https://github.com/AlexanderElias)
+[vokeio](https://github.com/vokeio)
 
 ## License
 [Why You Should Choose MPL-2.0](http://veldstra.org/2016/12/09/you-should-choose-mpl2-for-your-opensource-project.html)
