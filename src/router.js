@@ -8,7 +8,7 @@ class Router extends Events {
 
 	constructor () {
 		super();
-		
+
 		this.data = [];
 		this.location = {};
 		this.ran = false;
@@ -36,7 +36,6 @@ class Router extends Events {
 		this.external = options.external === undefined ? this.external : options.external;
 
 		if (options.routes) {
-			// this.add(options.routes);
 			await this.add(options.routes);
 		}
 
@@ -138,21 +137,32 @@ class Router extends Events {
 	}
 
 	isPath (routePath, userPath) {
+		userPath = userPath || '/';
 
 		if (routePath.slice(0, 1) !== '/') {
 			routePath = Path.resolve(routePath);
 		}
 
-		if (!userPath) {
-			return false;
-		} else if (userPath.constructor.name === 'String') {
-			return new RegExp(
-				'^' + routePath
-				.replace(/{\*}/g, '(?:.*)')
-				.replace(/{(\w+)}/g, '([^\/]+)')
-				+ '(\/)?$'
-			).test(userPath || '/');
-		} else if (userPath.constructor.name === 'RegExp') {
+		if (userPath.constructor === String) {
+			var userParts = userPath.split('/');
+			var routeParts = routePath.split('/');
+
+			for (let i = 0, l = routeParts.length; i < l; i++) {
+				if (routeParts[i].indexOf('{') === 0 && routeParts[i].indexOf('}') === routeParts[i].length-1) {
+					continue
+				} else if (routeParts[i] !== userParts[i]) {
+					return false;
+				}
+			}
+
+			return true;
+			// return new RegExp(
+			// 	'^' + routePath
+			// 	.replace(/{\*}/g, '(?:.*)')
+			// 	.replace(/{(\w+)}/g, '([^\/]+)')
+			// 	+ '(\/)?$'
+			// ).test(userPath || '/');
+		} else if (userPath.constructor === RegExp) {
 			return userPath.test(routePath);
 		}
 	}
@@ -228,7 +238,7 @@ class Router extends Events {
 			search: parser.search,
 			protocol: parser.protocol,
 			hostname: parser.hostname,
-			pathname: parser.pathname
+			pathname: parser.pathname[0] === '/' ? parser.pathname : '/' + parser.pathname
 		};
 	}
 
