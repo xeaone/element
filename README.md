@@ -37,7 +37,7 @@ Breaking version changes can be found at [VERSION.md](https://github.com/vokeio/
 - Chrome Android
 
 ### Overview
-Live examples [alexanderelias.github.io/oxe/](https://alexanderelias.github.io/oxe/).
+Live examples [vokeio.github.io/oxe/](https://vokeio.github.io/oxe/).
 
 ### Install
 - `npm i oxe --save`
