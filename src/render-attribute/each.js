@@ -37,7 +37,8 @@ export default function (binder) {
 				remove = true;
 				elementLength--;
 			} else if (elementLength < dataLength) {
-				let clone = document.importNode(binder.cache, true);
+				// let clone = document.importNode(binder.cache, true);
+				let clone = binder.cache.cloneNode(true);
 				let variable = isArray ? elementLength : keys[elementLength];
 
 				Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
