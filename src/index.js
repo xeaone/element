@@ -64,7 +64,7 @@ let oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
 	// webcomponents template might need this event
-	// document.addEventListener('DOMContentLoaded', function () {
+	document.addEventListener('DOMContentLoaded', function () {
 		let args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
 		let meta = document.querySelector('meta[name="oxe"]');
 
@@ -106,7 +106,7 @@ if (oSetup) {
 		Object.setPrototypeOf(ORouter, HTMLElement);
 
 		window.customElements.define('o-router', ORouter);
-	// });
+	});
 }
 
 class Oxe {
