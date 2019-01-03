@@ -14,7 +14,10 @@ export default {
 		if (char === '\'') return '\\\'';
 		if (char === '\"') return '\\"';
 		if (char === '\t') return '\\t';
+		if (char === '\r') return '\\r';
 		if (char === '\n') return '\\n';
+		if (char === '\w') return '\\w';
+		if (char === '\b') return '\\b';
 	},
 
 	updateString (value, index, string) {
