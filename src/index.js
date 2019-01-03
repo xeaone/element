@@ -63,47 +63,50 @@ document.head.appendChild(eStyle);
 let oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
-	let args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
-	let meta = document.querySelector('meta[name="oxe"]');
+	// webcomponents template might need this event
+	// document.addEventListener('DOMContentLoaded', function () {
+		let args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
+		let meta = document.querySelector('meta[name="oxe"]');
 
-	if (meta && meta.hasAttribute('compiled')) {
-		args[1] = 'null';
-		args[2] = 'script';
-		Router.mode = 'compiled';
-		General.compiled = true;
-		Component.compiled = true;
-	}
+		if (meta && meta.hasAttribute('compiled')) {
+			args[1] = 'null';
+			args[2] = 'script';
+			Router.mode = 'compiled';
+			General.compiled = true;
+			Component.compiled = true;
+		}
 
-	if (!args[0]) {
-		throw new Error('Oxe - script attribute o-setup requires url');
-	}
+		if (!args[0]) {
+			throw new Error('Oxe - script attribute o-setup requires url');
+		}
 
-	if (args.length > 1) {
-		Promise.resolve().then(function () {
-			return Loader.load({
-				url: args[0],
-				method: args[2],
-				transformer: args[1]
-			});
-		}).catch(console.error);
-	} else {
-		let index = document.createElement('script');
+		if (args.length > 1) {
+			Promise.resolve().then(function () {
+				return Loader.load({
+					url: args[0],
+					method: args[2],
+					transformer: args[1]
+				});
+			}).catch(console.error);
+		} else {
+			let index = document.createElement('script');
 
-		index.setAttribute('src', args[0]);
-		index.setAttribute('async', 'true');
-		index.setAttribute('type', 'module');
+			index.setAttribute('src', args[0]);
+			index.setAttribute('async', 'true');
+			index.setAttribute('type', 'module');
 
-		document.head.appendChild(index);
-	}
+			document.head.appendChild(index);
+		}
 
-	let ORouter = function () {
-		return window.Reflect.construct(HTMLElement, [], this.constructor);
-	};
+		let ORouter = function () {
+			return window.Reflect.construct(HTMLElement, [], this.constructor);
+		};
 
-	Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-	Object.setPrototypeOf(ORouter, HTMLElement);
+		Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+		Object.setPrototypeOf(ORouter, HTMLElement);
 
-	window.customElements.define('o-router', ORouter);
+		window.customElements.define('o-router', ORouter);
+	// });
 }
 
 class Oxe {
