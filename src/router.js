@@ -8,132 +8,13 @@ class Router extends Events {
 
 	constructor () {
 		super();
-
 		this.data = [];
-		this.location = {};
 		this.ran = false;
+		this.location = {};
 		this.mode = 'push';
 		this.element = null;
 		this.contain = false;
-
-		// this.pattern = new RegExp([
-		//     '^(https?:)//', // protocol
-		//     '(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
-		//     '(/{0,1}[^?#]*)', // pathname
-		//     '(\\?[^#]*|)', // search
-		//     '(#.*|)$' // hash
-		// ].join(''));
-	}
-
-	async setup (options) {
-		options = options || {};
-
-		this.mode = options.mode === undefined ? this.mode : options.mode;
-		this.after = options.after === undefined ? this.after : options.after;
-		this.before = options.before === undefined ? this.before : options.before;
-		this.element = options.element === undefined ? this.element : options.element;
-		this.contain = options.contain === undefined ? this.contain : options.contain;
-		this.external = options.external === undefined ? this.external : options.external;
-
-		if (options.routes) {
-			await this.add(options.routes);
-		}
-
-		await this.route(window.location.href, { mode: 'replace' });
-	}
-
-	scroll (x, y) {
-		window.scroll(x, y);
-	}
-
-	back () {
-		window.history.back();
-	}
-
-	forward () {
-		window.history.forward();
-	}
-
-	redirect (path) {
-		window.location.href = path;
-	}
-
-	async add (data) {
-		let self = this;
-
-		if (!data) {
-			throw new Error('Oxe.router.add - requires data parameter');
-		} else if (data.constructor === String) {
-			let route = await Loader.load(data);
-			this.data.push(route);
-			// this.data.push({ path: data, load: data });
-		} else if (data.constructor === Object) {
-			if (!data.path) throw new Error('Oxe.router.add - route path required');
-			// if (!data.component) throw new Error('Oxe.router.add - route component required');
-			this.data.push(data);
-		} else if (data.constructor === Array) {
-			// return Promise.all(data.map(function (route) {
-			// 	if (data.constructor === String) {
-			// 		return Loader.load(data);
-			// 	} else {
-			// 		return route;
-			// 	}
-			// })).then(function (routes) {
-			// 	routes.forEach(function (route) {
-			// 		self.data.push(route);
-			// 	});
-			// });
-			for (let i = 0, l = data.length; i < l; i++) {
-				await this.add(data[i]);
-			}
-		}
-	}
-
-	remove (path) {
-		for (let i = 0, l = this.data.length; i < l; i++) {
-			let route = this.data[i];
-			if (route.path === path) {
-				this.data.splice(i, 1);
-			}
-		}
-	}
-
-	get (path) {
-		for (let i = 0, l = this.data.length; i < l; i++) {
-			let route = this.data[i];
-			if (route.path === path) {
-				return route;
-			}
-		}
-	}
-
-	async find (path) {
-		for (let i = 0, l = this.data.length; i < l; i++) {
-			let route = this.data[i];
-			if (this.isPath(route.path, path)) {
-				// if (route.load) {
-				// 	let routePath = this.data[i];
-				// 	this.data[i] = await Loader.load(route.load);
-				// 	this.data[i].path = routePath;
-				// 	return this.data[i];
-				// } else {
-					return route;
-				// }
-			}
-		}
-	}
-
-	filter (path) {
-		let result = [];
-
-		for (let i = 0, l = this.data.length; i < l; i++) {
-			let route = this.data[i];
-			if (this.isPath(route.path, path)) {
-				result.push(route);
-			}
-		}
-
-		return result;
+		this.parser = document.createElement('a');
 	}
 
 	isPath (routePath, userPath) {
@@ -156,15 +37,12 @@ class Router extends Events {
 			}
 
 			return true;
-			// return new RegExp(
-			// 	'^' + routePath
-			// 	.replace(/{\*}/g, '(?:.*)')
-			// 	.replace(/{(\w+)}/g, '([^\/]+)')
-			// 	+ '(\/)?$'
-			// ).test(userPath || '/');
-		} else if (userPath.constructor === RegExp) {
+		}
+
+		if (userPath.constructor === RegExp) {
 			return userPath.test(routePath);
 		}
+
 	}
 
 	toParameterObject (routePath, userPath) {
@@ -228,128 +106,235 @@ class Router extends Events {
 	}
 
 	toLocationObject (href) {
-		var parser = document.createElement('a');
-		parser.href = href;
+		this.parser.href = href;
 		return {
-			href: parser.href,
-			host: parser.host,
-			port: parser.port,
-			hash: parser.hash,
-			search: parser.search,
-			protocol: parser.protocol,
-			hostname: parser.hostname,
-			pathname: parser.pathname[0] === '/' ? parser.pathname : '/' + parser.pathname
+			href: this.parser.href,
+			host: this.parser.host,
+			port: this.parser.port,
+			hash: this.parser.hash,
+			search: this.parser.search,
+			protocol: this.parser.protocol,
+			hostname: this.parser.hostname,
+			pathname: this.parser.pathname[0] === '/' ? this.parser.pathname : '/' + this.parser.pathname
 		};
 	}
 
-	render (route) {
-		var self = this;
+	async setup (options) {
+		options = options || {};
 
-		if (!route) throw new Error('Oxe.render - route argument required');
+		this.mode = options.mode === undefined ? this.mode : options.mode;
+		this.after = options.after === undefined ? this.after : options.after;
+		this.before = options.before === undefined ? this.before : options.before;
+		this.change = options.change === undefined ? this.change : options.change;
+		this.element = options.element === undefined ? this.element : options.element;
+		this.contain = options.contain === undefined ? this.contain : options.contain;
+		this.external = options.external === undefined ? this.external : options.external;
 
-		Utility.ready(function () {
+		if (options.routes) {
+			await this.add(options.routes);
+		}
 
-			if (route.title) {
-				document.title = route.title;
+		await this.route(window.location.href, { mode: 'replace' });
+	}
+
+	scroll (x, y) {
+		window.scroll(x, y);
+	}
+
+	back () {
+		window.history.back();
+	}
+
+	forward () {
+		window.history.forward();
+	}
+
+	redirect (path) {
+		window.location.href = path;
+	}
+
+	remove (path) {
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			let route = this.data[i];
+			if (route.path === path) {
+				this.data.splice(i, 1);
 			}
+		}
+	}
 
-			if (route.description) {
-				Utility.ensureElement({
-					name: 'meta',
-					scope: document.head,
-					position: 'afterbegin',
-					query: '[name="description"]',
-					attributes: [
-						{ name: 'name', value: 'description' },
-						{ name: 'content', value: route.description }
-					]
-				});
+	get (path) {
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			let route = this.data[i];
+			if (route.path === path) {
+				return route;
 			}
+		}
+	}
 
-			if (route.keywords) {
-				Utility.ensureElement({
-					name: 'meta',
-					scope: document.head,
-					position: 'afterbegin',
-					query: '[name="keywords"]',
-					attributes: [
-						{ name: 'name', value: 'keywords' },
-						{ name: 'content', value: route.keywords }
-					]
-				});
+	filter (path) {
+		let result = [];
+
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			let route = this.data[i];
+			if (this.isPath(route.path, path)) {
+				result.push(route);
 			}
+		}
 
-			if (!self.element) {
-				self.element = self.element || 'o-router';
+		return result;
+	}
 
-				if (typeof self.element === 'string') {
-					self.element = document.body.querySelector(self.element);
-				}
+	async add (data) {
+		let self = this;
 
-				if (!self.element) {
-					throw new Error('Oxe.router.render - missing o-router element');
-				}
-
+		if (!data) {
+			throw new Error('Oxe.router.add - requires data parameter');
+		} else if (data.constructor === String) {
+			let route = await Loader.load(data);
+			this.data.push(route);
+			// this.data.push({ path: data, load: data });
+		} else if (data.constructor === Object) {
+			if (!data.path) throw new Error('Oxe.router.add - route path required');
+			// if (!data.component) throw new Error('Oxe.router.add - route component required');
+			this.data.push(data);
+		} else if (data.constructor === Array) {
+			// return Promise.all(data.map(function (route) {
+			// 	if (data.constructor === String) {
+			// 		return Loader.load(data);
+			// 	} else {
+			// 		return route;
+			// 	}
+			// })).then(function (routes) {
+			// 	routes.forEach(function (route) {
+			// 		self.data.push(route);
+			// 	});
+			// });
+			for (let i = 0, l = data.length; i < l; i++) {
+				await this.add(data[i]);
 			}
+		}
+	}
 
-			if (!route.element) {
-
+	async find (path) {
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			let route = this.data[i];
+			if (this.isPath(route.path, path)) {
 				// if (route.load) {
-				// 	Loader.load(route.load);
+				// 	let routePath = this.data[i];
+				// 	this.data[i] = await Loader.load(route.load);
+				// 	this.data[i].path = routePath;
+				// 	return this.data[i];
+				// } else {
+					return route;
 				// }
+			}
+		}
+	}
 
-				if (route.component.constructor === String) {
-					route.element = document.createElement(route.component);
+	async render (route) {
+
+		if (!route) {
+			throw new Error('Oxe.render - route argument required');
+		}
+
+		if (route.title) {
+			document.title = route.title;
+		}
+
+		if (route.description) {
+			Utility.ensureElement({
+				name: 'meta',
+				scope: document.head,
+				position: 'afterbegin',
+				query: '[name="description"]',
+				attributes: [
+					{ name: 'name', value: 'description' },
+					{ name: 'content', value: route.description }
+				]
+			});
+		}
+
+		if (route.keywords) {
+			Utility.ensureElement({
+				name: 'meta',
+				scope: document.head,
+				position: 'afterbegin',
+				query: '[name="keywords"]',
+				attributes: [
+					{ name: 'name', value: 'keywords' },
+					{ name: 'content', value: route.keywords }
+				]
+			});
+		}
+
+		if (!this.element) {
+			this.element = this.element || 'o-router';
+
+			if (typeof this.element === 'string') {
+				this.element = document.body.querySelector(this.element);
+			}
+
+			if (!this.element) {
+				throw new Error('Oxe.router.render - missing o-router element');
+			}
+
+		}
+
+		if (!route.element) {
+
+			// if (route.load) {
+			// 	Loader.load(route.load);
+			// }
+
+			if (route.component.constructor === String) {
+				route.element = document.createElement(route.component);
+			}
+
+			if (route.component.constructor === Object) {
+
+				Component.define(route.component);
+
+				if (this.mode === 'compiled') {
+				// if (route.component.name.toLowerCase() === this.element.firstElementChild.nodeName.toLowerCase()) {
+					route.element = this.element.firstElementChild;
+				} else {
+					route.element = document.createElement(route.component.name);
 				}
 
-				if (route.component.constructor === Object) {
-
-					Component.define(route.component);
-
-					if (self.mode === 'compiled') {
-					// if (route.component.name.toLowerCase() === self.element.firstElementChild.nodeName.toLowerCase()) {
-						route.element = self.element.firstElementChild;
-					} else {
-						route.element = document.createElement(route.component.name);
-					}
-
-				}
-
 			}
 
-			if (!route.component && !route.element) {
-				throw new Error('Oxe.router.render - missing route component and');
+		}
+
+		if (!route.component && !route.element) {
+			throw new Error('Oxe.router.render - missing route component and');
+		}
+
+		if (route.element !== this.element.firstElementChild) {
+
+			while (this.element.firstChild) {
+				this.element.removeChild(this.element.firstChild);
 			}
 
-			if (route.element !== self.element.firstElementChild) {
+			this.element.appendChild(route.element);
 
-				while (self.element.firstChild) {
-					self.element.removeChild(self.element.firstChild);
-				}
+		}
 
-				self.element.appendChild(route.element);
-
-			}
-
-			self.scroll(0, 0);
-			self.emit('routed');
-
-			if (typeof self.after === 'function') {
-				Promise.resolve(self.after).catch(console.error);
-			}
-
-		});
+		this.scroll(0, 0);
 	}
 
 	async route (path, options) {
 		options = options || {};
 
-		var mode = options.mode || this.mode;
-		var location = this.toLocationObject(path);
-		var route = await this.find(location.pathname);
+		if (options.query) {
+			path += this.toQueryString(options.query);
+		}
+
+		const mode = options.mode || this.mode;
+		const location = this.toLocationObject(path);
+		const route = await this.find(location.pathname);
 
 		if (!route) {
-			throw new Error('Oxe.router.route - route not found');
+			throw new Error(`Oxe.router.route - missing route ${location.pathname}`);
 		}
 
 		location.route = route;
@@ -357,32 +342,43 @@ class Router extends Events {
 		location.query = this.toQueryObject(location.search);
 		location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
-		if (options.query) {
-			path += this.toQueryString(options.query);
-		}
-
-		if (typeof this.before === 'function') {
-			var result = await this.before(location);
-			if (result === false) return;
-		}
-
-		if (location.route && location.route.handler) {
-			return await location.route.handler(location);
-		}
+		// if (location.route && location.route.handler) {
+		// 	return await location.route.handler(location);
+		// }
 
 		if (location.route && location.route.redirect) {
 			return this.redirect(location.route.redirect);
 		}
 
-		if (mode === 'href' || mode === 'compiled') {
-			return window.location.assign(path);
+		if (typeof this.change === 'function') {
+			const result = await this.change(location);
+			this.location = Object.assign(location, result || {});
 		} else {
-			window.history[mode + 'State']({ path: path }, '', path);
+			this.location = location;
 		}
 
-		this.location = location;
-		this.emit('routing');
-		this.render(location.route);
+		this.emit('route:before');
+
+		if (typeof this.before === 'function') {
+			await this.before();
+		}
+
+		path = location.pathname + location.search + location.hash;
+
+		if (mode === 'href' || mode === 'compiled') {
+			return window.location.assign(path);
+		}
+
+		window.history[mode + 'State']({ path: path }, '', path);
+
+		await this.render(this.location.route);
+
+		if (typeof this.after === 'function') {
+			await this.after();
+		}
+
+		this.emit('route:after');
+
 	}
 
 }
