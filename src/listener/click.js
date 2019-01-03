@@ -58,9 +58,9 @@ export default function (event) {
 
 	// if external is true then default action
 	if (Router.external &&
-		(Router.external.constructor.name === 'RegExp' && Router.external.test(target.href) ||
-		Router.external.constructor.name === 'Function' && Router.external(target.href) ||
-		Router.external.constructor.name === 'String' && Router.external === target.href)
+		(Router.external.constructor === RegExp && Router.external.test(target.href) ||
+		Router.external.constructor === Function && Router.external(target.href) ||
+		Router.external.constructor === String && Router.external === target.href)
 	) return;
 
 	event.preventDefault();
