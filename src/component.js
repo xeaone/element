@@ -132,8 +132,9 @@ class Component {
 				template.innerHTML = style;
 				template.appendChild(options.template);
 			}
-
-			let clone = document.importNode(template.content, true);
+			
+			// let clone = document.importNode(template, true);
+			let clone = template.content.cloneNode(true);
 
 			Binder.bind(clone, element, element.scope);
 
