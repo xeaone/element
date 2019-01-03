@@ -57,11 +57,11 @@ export default {
 			if (paths[i] === '.' || paths[i] === '') {
 				continue;
 			} else if (paths[i] === '..') {
-				
+
 				if (i > 0) {
 					result.splice(i - 1, 1);
 				}
-				
+
 			} else {
 				result.push(paths[i]);
 			}
