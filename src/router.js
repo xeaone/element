@@ -14,21 +14,34 @@ class Router extends Events {
 		this.mode = 'push';
 		this.element = null;
 		this.contain = false;
+		this.folder = './routes';
 		this.parser = document.createElement('a');
 	}
 
 	isPath (routePath, userPath) {
 		userPath = userPath || '/';
 
+		if (routePath === 'index' || routePath === '/index') {
+			routePath = '/';
+		}
+
+		if (userPath === 'index' || userPath === '/index') {
+			userPath = '/';
+		}
+
 		if (routePath.slice(0, 1) !== '/') {
 			routePath = Path.resolve(routePath);
 		}
 
 		if (userPath.constructor === String) {
-			var userParts = userPath.split('/');
-			var routeParts = routePath.split('/');
+			// console.log(userPath);
+			// console.log(routePath);
+			const userParts = userPath.split('/');
+			const routeParts = routePath.split('/');
 
 			for (let i = 0, l = routeParts.length; i < l; i++) {
+				// console.log(routeParts[i]);
+				// console.log(userParts[i]);
 				if (routeParts[i].indexOf('{') === 0 && routeParts[i].indexOf('}') === routeParts[i].length-1) {
 					continue
 				} else if (routeParts[i] !== userParts[i]) {
@@ -119,24 +132,6 @@ class Router extends Events {
 		};
 	}
 
-	async setup (options) {
-		options = options || {};
-
-		this.mode = options.mode === undefined ? this.mode : options.mode;
-		this.after = options.after === undefined ? this.after : options.after;
-		this.before = options.before === undefined ? this.before : options.before;
-		this.change = options.change === undefined ? this.change : options.change;
-		this.element = options.element === undefined ? this.element : options.element;
-		this.contain = options.contain === undefined ? this.contain : options.contain;
-		this.external = options.external === undefined ? this.external : options.external;
-
-		if (options.routes) {
-			await this.add(options.routes);
-		}
-
-		await this.route(window.location.href, { mode: 'replace' });
-	}
-
 	scroll (x, y) {
 		window.scroll(x, y);
 	}
@@ -153,80 +148,98 @@ class Router extends Events {
 		window.location.href = path;
 	}
 
-	remove (path) {
-		for (let i = 0, l = this.data.length; i < l; i++) {
-			let route = this.data[i];
-			if (route.path === path) {
-				this.data.splice(i, 1);
-			}
+	async setup (options) {
+		options = options || {};
+
+		this.mode = options.mode === undefined ? this.mode : options.mode;
+		this.after = options.after === undefined ? this.after : options.after;
+		this.folder = options.folder === undefined ? this.folder : options.folder;
+		this.before = options.before === undefined ? this.before : options.before;
+		this.change = options.change === undefined ? this.change : options.change;
+		this.element = options.element === undefined ? this.element : options.element;
+		this.contain = options.contain === undefined ? this.contain : options.contain;
+		this.external = options.external === undefined ? this.external : options.external;
+
+		if (!this.element || typeof this.element === 'string') {
+			this.element = document.body.querySelector(this.element || 'o-router');
 		}
+
+		if (!this.element) {
+			throw new Error('Oxe.router.render - missing o-router element');
+		}
+
+		await this.add(options.routes);
+		await this.route(window.location.href, { mode: 'replace' });
 	}
 
-	get (path) {
-		for (let i = 0, l = this.data.length; i < l; i++) {
-			let route = this.data[i];
-			if (route.path === path) {
-				return route;
-			}
-		}
-	}
+	async load (route) {
 
-	filter (path) {
-		let result = [];
-
-		for (let i = 0, l = this.data.length; i < l; i++) {
-			let route = this.data[i];
-			if (this.isPath(route.path, path)) {
-				result.push(route);
-			}
+		if (route.load) {
+			const load = await Loader.load(route.load);
+			route = Object.assign({}, load, route);
 		}
 
-		return result;
+		if (route.component) {
+			route.component.route = route;
+		}
+
+		return route;
 	}
 
 	async add (data) {
-		let self = this;
-
 		if (!data) {
-			throw new Error('Oxe.router.add - requires data parameter');
+			return;
 		} else if (data.constructor === String) {
-			let route = await Loader.load(data);
-			this.data.push(route);
-			// this.data.push({ path: data, load: data });
+			// if relative might need to add base
+			// need to clean .js and /
+			let load = data;
+			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {
 			if (!data.path) throw new Error('Oxe.router.add - route path required');
-			// if (!data.component) throw new Error('Oxe.router.add - route component required');
+			// if (!data.load && !data.component) throw new Error('Oxe.router.add - route.load or route.component required');
 			this.data.push(data);
 		} else if (data.constructor === Array) {
-			// return Promise.all(data.map(function (route) {
-			// 	if (data.constructor === String) {
-			// 		return Loader.load(data);
-			// 	} else {
-			// 		return route;
-			// 	}
-			// })).then(function (routes) {
-			// 	routes.forEach(function (route) {
-			// 		self.data.push(route);
-			// 	});
-			// });
 			for (let i = 0, l = data.length; i < l; i++) {
 				await this.add(data[i]);
 			}
 		}
 	}
 
+	async remove (path) {
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			if (this.data[i].path === path) {
+				this.data.splice(i, 1);
+			}
+		}
+	}
+
+	async get (path) {
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			if (this.data[i].path === path) {
+				this.data[i] = await this.load(this.data[i]);
+				return this.data[i];
+			}
+		}
+	}
+
+	// async filter (path) {
+	// 	const result = [];
+	//
+	// 	for (let i = 0, l = this.data.length; i < l; i++) {
+	// 		if (this.isPath(this.data[i].path, path)) {
+	// 			this.data[i] = await this.load(this.data[i]);
+	// 			result.push(this.data[i]);
+	// 		}
+	// 	}
+	//
+	// 	return result;
+	// }
+
 	async find (path) {
 		for (let i = 0, l = this.data.length; i < l; i++) {
-			let route = this.data[i];
-			if (this.isPath(route.path, path)) {
-				// if (route.load) {
-				// 	let routePath = this.data[i];
-				// 	this.data[i] = await Loader.load(route.load);
-				// 	this.data[i].path = routePath;
-				// 	return this.data[i];
-				// } else {
-					return route;
-				// }
+			if (this.isPath(this.data[i].path, path)) {
+				this.data[i] = await this.load(this.data[i]);
+				return this.data[i];
 			}
 		}
 	}
@@ -234,7 +247,11 @@ class Router extends Events {
 	async render (route) {
 
 		if (!route) {
-			throw new Error('Oxe.render - route argument required');
+			throw new Error('Oxe.render - route argument required. Missing object option.');
+		}
+
+		if (!route.component && !route.element) {
+			throw new Error('Oxe.render - route property required. Missing component or element option.');
 		}
 
 		if (route.title) {
@@ -267,31 +284,10 @@ class Router extends Events {
 			});
 		}
 
-		if (!this.element) {
-			this.element = this.element || 'o-router';
-
-			if (typeof this.element === 'string') {
-				this.element = document.body.querySelector(this.element);
-			}
-
-			if (!this.element) {
-				throw new Error('Oxe.router.render - missing o-router element');
-			}
-
-		}
-
 		if (!route.element) {
-
-			// if (route.load) {
-			// 	Loader.load(route.load);
-			// }
-
 			if (route.component.constructor === String) {
 				route.element = document.createElement(route.component);
-			}
-
-			if (route.component.constructor === Object) {
-
+			} else if (route.component.constructor === Object) {
 				Component.define(route.component);
 
 				if (this.mode === 'compiled') {
@@ -300,13 +296,7 @@ class Router extends Events {
 				} else {
 					route.element = document.createElement(route.component.name);
 				}
-
 			}
-
-		}
-
-		if (!route.component && !route.element) {
-			throw new Error('Oxe.router.render - missing route component and');
 		}
 
 		if (route.element !== this.element.firstElementChild) {
@@ -316,7 +306,6 @@ class Router extends Events {
 			}
 
 			this.element.appendChild(route.element);
-
 		}
 
 		this.scroll(0, 0);
@@ -350,18 +339,14 @@ class Router extends Events {
 			return this.redirect(location.route.redirect);
 		}
 
-		if (typeof this.change === 'function') {
-			const result = await this.change(location);
+		if (typeof this.before === 'function') {
+			const result = await this.before(location);
 			this.location = Object.assign(location, result || {});
 		} else {
 			this.location = location;
 		}
 
 		this.emit('route:before');
-
-		if (typeof this.before === 'function') {
-			await this.before();
-		}
 
 		path = location.pathname + location.search + location.hash;
 

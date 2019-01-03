@@ -20,12 +20,15 @@ function _continueIgnored(value) {
 			} else {
 				stage = 1;break;
 			}
-		}if (update) {
+		}
+		if (update) {
 			var updateValue = update();if (updateValue && updateValue.then && !_isSettledPact(updateValue)) {
 				stage = 2;break;
 			}
 		}
-	}var pact = new _Pact();var reject = _settle.bind(null, pact, 2);(stage === 0 ? shouldContinue.then(_resumeAfterTest) : stage === 1 ? result.then(_resumeAfterBody) : updateValue.then(_resumeAfterUpdate)).then(void 0, reject);return pact;function _resumeAfterBody(value) {
+	}
+	var pact = new _Pact();
+	var reject = _settle.bind(null, pact, 2);(stage === 0 ? shouldContinue.then(_resumeAfterTest) : stage === 1 ? result.then(_resumeAfterBody) : updateValue.then(_resumeAfterUpdate)).then(void 0, reject);return pact;function _resumeAfterBody(value) {
 		result = value;do {
 			if (update) {
 				updateValue = update();if (updateValue && updateValue.then && !_isSettledPact(updateValue)) {
@@ -35,9 +38,7 @@ function _continueIgnored(value) {
 				_settle(pact, 1, result);return;
 			}if (shouldContinue.then) {
 				shouldContinue.then(_resumeAfterTest).then(void 0, reject);return;
-			}
-
-			result = body();if (_isSettledPact(result)) {
+			}result = body();if (_isSettledPact(result)) {
 				result = result.__value;
 			}
 		} while (!result || !result.then);result.then(_resumeAfterBody).then(void 0, reject);
@@ -68,15 +69,17 @@ function _continueIgnored(value) {
 	function _Pact() {}_Pact.prototype.then = function (onFulfilled, onRejected) {
 		var state = this.__state;if (state) {
 			var callback = state == 1 ? onFulfilled : onRejected;if (callback) {
-				var _result12 = new _Pact();try {
-					_settle(_result12, 1, callback(this.__value));
+				var _result14 = new _Pact();try {
+					_settle(_result14, 1, callback(this.__value));
 				} catch (e) {
-					_settle(_result12, 2, e);
-				}return _result12;
+					_settle(_result14, 2, e);
+				}return _result14;
 			} else {
 				return this;
 			}
-		}var result = new _Pact();this.__observer = function (_this) {
+		}var result = new _Pact();
+
+		this.__observer = function (_this) {
 			try {
 				var value = _this.__value;if (_this.__state == 1) {
 					_settle(result, 1, onFulfilled ? onFulfilled(value) : value);
@@ -100,11 +103,8 @@ function _continueIgnored(value) {
 			} else {
 				value.__observer = _settle.bind(null, pact, state);return;
 			}
-		}
-		if (value && value.then) {
-			value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));
-
-			return;
+		}if (value && value.then) {
+			value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));return;
 		}pact.__state = state;pact.__value = value;var observer = pact.__observer;if (observer) {
 			observer(pact);
 		}
@@ -126,10 +126,7 @@ function _invoke(body, then) {
 	var result = body();if (result && result.then) {
 		return result.then(_empty);
 	}
-}
-
-function _empty() {}
-function _await(value, then, direct) {
+}function _empty() {}function _await(value, then, direct) {
 	if (direct) {
 		return then ? then(value) : value;
 	}value = Promise.resolve(value);return then ? value.then(then) : value;
@@ -238,8 +235,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = multiple ? [] : '';
 
-				for (var _i8 = 0, _l8 = elements.length; _i8 < _l8; _i8++) {
-					var _element = elements[_i8];
+				for (var _i3 = 0, _l3 = elements.length; _i3 < _l3; _i3++) {
+					var _element = elements[_i3];
 					// NOTE might need to handle disable
 
 					if (_element.selected) {
@@ -261,11 +258,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var query = 'input[type="radio"][o-value="' + binder.value + '"]';
 				var _elements2 = binder.container.querySelectorAll(query);
 
-				for (var _i9 = 0, _l9 = _elements2.length; _i9 < _l9; _i9++) {
-					var _element2 = _elements2[_i9];
+				for (var _i4 = 0, _l4 = _elements2.length; _i4 < _l4; _i4++) {
+					var _element2 = _elements2[_i4];
 
 					if (binder.element === _element2) {
-						data = _i9;
+						data = _i4;
 					}
 				}
 			} else if (type === 'file') {
@@ -273,8 +270,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				data = data || [];
 
-				for (var _i10 = 0, _l10 = files.length; _i10 < _l10; _i10++) {
-					var file = files[_i10];
+				for (var _i5 = 0, _l5 = files.length; _i5 < _l5; _i5++) {
+					var file = files[_i5];
 					data.push(file);
 				}
 			} else if (type === 'checkbox') {
@@ -304,12 +301,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Observer = {
 		splice: function splice() {
-			var self = this;
-
-			var startIndex = arguments[0];
-			var deleteCount = arguments[1];var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
-
-			if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
+			var self = this;var startIndex = arguments[0];
+			var deleteCount = arguments[1];
+			var addCount = arguments.length > 2 ? arguments.length - 2 : 0;if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
 				return [];
 			}
 
@@ -334,9 +328,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			    value = void 0,
 			    updateCount = void 0;
 			var argumentIndex = 2;
-			var argumentsCount = arguments.length - argumentIndex;var result = self.slice(startIndex, deleteCount);
+			var argumentsCount = arguments.length - argumentIndex;
+			var result = self.slice(startIndex, deleteCount);
 
-			updateCount = totalCount - 1 - startIndex;var promises = [];
+			updateCount = totalCount - 1 - startIndex;
+
+			var promises = [];
 
 			if (updateCount > 0) {
 				index = startIndex;
@@ -663,6 +660,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 
 						if (data.write && result !== false) {
+
 							if (data.context) {
 								write = data.write.bind(data.context);
 							} else {
@@ -708,9 +706,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  */
 
 	function Default(binder) {
-		var unrender = void 0;
-
-		if (binder.type in this) {
+		var unrender = void 0;if (binder.type in this) {
 			unrender = this[binder.type](binder);
 		} else {
 			unrender = {
@@ -1028,7 +1024,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var last = keys.length - 1;
 
 			for (var i = 0; i < last; i++) {
-				var key = keys[i];if (!(key in data)) {
+				var key = keys[i];
+
+				if (!(key in data)) {
 					if (typeof callback === 'function') {
 						callback(data, key, i, keys);
 					} else {
@@ -1266,7 +1264,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					remove = true;
 					elementLength--;
 				} else if (elementLength < dataLength) {
-					var clone = document.importNode(binder.cache, true);
+					// let clone = document.importNode(binder.cache, true);
+					var clone = binder.cache.cloneNode(true);
 					var variable = isArray ? elementLength : keys[elementLength];
 
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
@@ -3108,178 +3107,53 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			var _this17 = _possibleConstructorReturn(this, (Router.__proto__ || Object.getPrototypeOf(Router)).call(this));
 
 			_this17.data = [];
-			_this17.location = {};
 			_this17.ran = false;
+			_this17.location = {};
 			_this17.mode = 'push';
 			_this17.element = null;
 			_this17.contain = false;
-
-			// this.pattern = new RegExp([
-			//     '^(https?:)//', // protocol
-			//     '(([^:/?#]*)(?::([0-9]+))?)', // host, hostname, port
-			//     '(/{0,1}[^?#]*)', // pathname
-			//     '(\\?[^#]*|)', // search
-			//     '(#.*|)$' // hash
-			// ].join(''));
+			_this17.folder = './routes';
+			_this17.parser = document.createElement('a');
 			return _this17;
 		}
 
 		_createClass(Router, [{
-			key: 'setup',
-			value: _async(function (options) {
-				var _this18 = this;
-
-				options = options || {};
-
-				_this18.mode = options.mode === undefined ? _this18.mode : options.mode;
-				_this18.after = options.after === undefined ? _this18.after : options.after;
-				_this18.before = options.before === undefined ? _this18.before : options.before;
-				_this18.element = options.element === undefined ? _this18.element : options.element;
-				_this18.contain = options.contain === undefined ? _this18.contain : options.contain;
-				_this18.external = options.external === undefined ? _this18.external : options.external;
-
-				return _invoke(function () {
-					if (options.routes) {
-						// this.add(options.routes);
-						return _awaitIgnored(_this18.add(options.routes));
-					}
-				}, function () {
-					return _awaitIgnored(_this18.route(window.location.href, { mode: 'replace' }));
-				});
-			})
-		}, {
-			key: 'scroll',
-			value: function scroll(x, y) {
-				window.scroll(x, y);
-			}
-		}, {
-			key: 'back',
-			value: function back() {
-				window.history.back();
-			}
-		}, {
-			key: 'forward',
-			value: function forward() {
-				window.history.forward();
-			}
-		}, {
-			key: 'redirect',
-			value: function redirect(path) {
-				window.location.href = path;
-			}
-		}, {
-			key: 'add',
-			value: _async(function (data) {
-				var _this19 = this;
-
-				return function () {
-					if (!data) {
-						throw new Error('Oxe.router.add - requires data parameter');
-					} else return function () {
-							if (data.constructor === String) {
-								// this.data.push({ path: data, load: data });
-								return _await(Loader$1.load(data), function (route) {
-									_this19.data.push(route);
-								});
-							} else return function () {
-									if (data.constructor === Object) {
-										if (!data.path) throw new Error('Oxe.router.add - route path required');
-										// if (!data.component) throw new Error('Oxe.router.add - route component required');
-										_this19.data.push(data);
-									} else return _invokeIgnored(function () {
-											if (data.constructor === Array) {
-												var _i = 0,
-												    _l = data.length;
-												// return Promise.all(data.map(function (route) {
-												// 	if (data.constructor === String) {
-												// 		return Loader.load(data);
-												// 	} else {
-												// 		return route;
-												// 	}
-												// })).then(function (routes) {
-												// 	routes.forEach(function (route) {
-												// 		self.data.push(route);
-												// 	});
-												// });
-												return _continueIgnored(_for(function () {
-													return _i < _l;
-												}, function () {
-													return _i++;
-												}, function () {
-													return _awaitIgnored(_this19.add(data[_i]));
-												}));
-											}
-										});
-								}();
-						}();
-				}();
-			})
-		}, {
-			key: 'remove',
-			value: function remove(path) {
-				for (var _i2 = 0, _l2 = this.data.length; _i2 < _l2; _i2++) {
-					var route = this.data[_i2];
-					if (route.path === path) {
-						this.data.splice(_i2, 1);
-					}
-				}
-			}
-		}, {
-			key: 'get',
-			value: function get(path) {
-				for (var _i3 = 0, _l3 = this.data.length; _i3 < _l3; _i3++) {
-					var route = this.data[_i3];
-					if (route.path === path) {
-						return route;
-					}
-				}
-			}
-		}, {
-			key: 'find',
-			value: _async(function (path) {
-				var _this20 = this;
-
-				for (var _i4 = 0, _l4 = _this20.data.length; _i4 < _l4; _i4++) {
-					var route = _this20.data[_i4];
-					if (_this20.isPath(route.path, path)) {
-						// if (route.load) {
-						// 	let routePath = this.data[i];
-						// 	this.data[i] = await Loader.load(route.load);
-						// 	this.data[i].path = routePath;
-						// 	return this.data[i];
-						// } else {
-						return route;
-						// }
-					}
-				}
-			})
-		}, {
-			key: 'filter',
-			value: function filter(path) {
-				var result = [];
-
-				for (var _i5 = 0, _l5 = this.data.length; _i5 < _l5; _i5++) {
-					var route = this.data[_i5];
-					if (this.isPath(route.path, path)) {
-						result.push(route);
-					}
-				}
-
-				return result;
-			}
-		}, {
 			key: 'isPath',
 			value: function isPath(routePath, userPath) {
+				userPath = userPath || '/';
+
+				if (routePath === 'index' || routePath === '/index') {
+					routePath = '/';
+				}
+
+				if (userPath === 'index' || userPath === '/index') {
+					userPath = '/';
+				}
 
 				if (routePath.slice(0, 1) !== '/') {
 					routePath = Path.resolve(routePath);
 				}
 
-				if (!userPath) {
-					return false;
-				} else if (userPath.constructor.name === 'String') {
-					return new RegExp('^' + routePath.replace(/{\*}/g, '(?:.*)').replace(/{(\w+)}/g, '([^\/]+)') + '(\/)?$').test(userPath || '/');
-				} else if (userPath.constructor.name === 'RegExp') {
+				if (userPath.constructor === String) {
+					// console.log(userPath);
+					// console.log(routePath);
+					var userParts = userPath.split('/');
+					var routeParts = routePath.split('/');
+
+					for (var i = 0, l = routeParts.length; i < l; i++) {
+						// console.log(routeParts[i]);
+						// console.log(userParts[i]);
+						if (routeParts[i].indexOf('{') === 0 && routeParts[i].indexOf('}') === routeParts[i].length - 1) {
+							continue;
+						} else if (routeParts[i] !== userParts[i]) {
+							return false;
+						}
+					}
+
+					return true;
+				}
+
+				if (userPath.constructor === RegExp) {
 					return userPath.test(routePath);
 				}
 			}
@@ -3295,11 +3169,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var userPaths = userPath.split('/');
 				var routePaths = routePath.split('/');
 
-				for (var _i6 = 0, _l6 = routePaths.length; _i6 < _l6; _i6++) {
+				for (var i = 0, l = routePaths.length; i < l; i++) {
 
-					if (pattern.test(routePaths[_i6])) {
-						var name = routePaths[_i6].replace(brackets, '');
-						result[name] = userPaths[_i6];
+					if (pattern.test(routePaths[i])) {
+						var name = routePaths[i].replace(brackets, '');
+						result[name] = userPaths[i];
 					}
 				}
 
@@ -3329,8 +3203,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (path.indexOf('?') === 0) path = path.slice(1);
 				var queries = path.split('&');
 
-				for (var _i7 = 0, _l7 = queries.length; _i7 < _l7; _i7++) {
-					var query = queries[_i7].split('=');
+				for (var i = 0, l = queries.length; i < l; i++) {
+					var query = queries[i].split('=');
 
 					if (query[0] && query[1]) {
 						result[query[0]] = query[1];
@@ -3342,167 +3216,310 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'toLocationObject',
 			value: function toLocationObject(href) {
-				var parser = document.createElement('a');
-				parser.href = href;
+				this.parser.href = href;
 				return {
-					href: parser.href,
-					host: parser.host,
-					port: parser.port,
-					hash: parser.hash,
-					search: parser.search,
-					protocol: parser.protocol,
-					hostname: parser.hostname,
-					pathname: parser.pathname
+					href: this.parser.href,
+					host: this.parser.host,
+					port: this.parser.port,
+					hash: this.parser.hash,
+					search: this.parser.search,
+					protocol: this.parser.protocol,
+					hostname: this.parser.hostname,
+					pathname: this.parser.pathname[0] === '/' ? this.parser.pathname : '/' + this.parser.pathname
 				};
 			}
 		}, {
-			key: 'render',
-			value: function render(route) {
-				var self = this;
-
-				if (!route) throw new Error('Oxe.render - route argument required');
-
-				Utility.ready(function () {
-
-					if (route.title) {
-						document.title = route.title;
-					}
-
-					if (route.description) {
-						Utility.ensureElement({
-							name: 'meta',
-							scope: document.head,
-							position: 'afterbegin',
-							query: '[name="description"]',
-							attributes: [{ name: 'name', value: 'description' }, { name: 'content', value: route.description }]
-						});
-					}
-
-					if (route.keywords) {
-						Utility.ensureElement({
-							name: 'meta',
-							scope: document.head,
-							position: 'afterbegin',
-							query: '[name="keywords"]',
-							attributes: [{ name: 'name', value: 'keywords' }, { name: 'content', value: route.keywords }]
-						});
-					}
-
-					if (!self.element) {
-						self.element = self.element || 'o-router';
-
-						if (typeof self.element === 'string') {
-							self.element = document.body.querySelector(self.element);
-						}
-
-						if (!self.element) {
-							throw new Error('Oxe.router.render - missing o-router element');
-						}
-					}
-
-					if (!route.element) {
-
-						// if (route.load) {
-						// 	Loader.load(route.load);
-						// }
-
-						if (route.component.constructor === String) {
-							route.element = document.createElement(route.component);
-						}
-
-						if (route.component.constructor === Object) {
-
-							Component$1.define(route.component);
-
-							if (self.mode === 'compiled') {
-								// if (route.component.name.toLowerCase() === self.element.firstElementChild.nodeName.toLowerCase()) {
-								route.element = self.element.firstElementChild;
-							} else {
-								route.element = document.createElement(route.component.name);
-							}
-						}
-					}
-
-					if (!route.component && !route.element) {
-						throw new Error('Oxe.router.render - missing route component and');
-					}
-
-					if (route.element !== self.element.firstElementChild) {
-
-						while (self.element.firstChild) {
-							self.element.removeChild(self.element.firstChild);
-						}
-
-						self.element.appendChild(route.element);
-					}
-
-					self.scroll(0, 0);
-					self.emit('routed');
-
-					if (typeof self.after === 'function') {
-						Promise.resolve(self.after).catch(console.error);
-					}
-				});
+			key: 'scroll',
+			value: function scroll(x, y) {
+				window.scroll(x, y);
 			}
 		}, {
-			key: 'route',
-			value: _async(function (path, options) {
-				var _this21 = this;
+			key: 'back',
+			value: function back() {
+				window.history.back();
+			}
+		}, {
+			key: 'forward',
+			value: function forward() {
+				window.history.forward();
+			}
+		}, {
+			key: 'redirect',
+			value: function redirect(path) {
+				window.location.href = path;
+			}
+		}, {
+			key: 'setup',
+			value: _async(function (options) {
+				var _this18 = this;
 
 				options = options || {};
 
-				var mode = options.mode || _this21.mode;
-				var location = _this21.toLocationObject(path);
-				return _await(_this21.find(location.pathname), function (route) {
-					var _exit6 = false;
+				_this18.mode = options.mode === undefined ? _this18.mode : options.mode;
+				_this18.after = options.after === undefined ? _this18.after : options.after;
+				_this18.folder = options.folder === undefined ? _this18.folder : options.folder;
+				_this18.before = options.before === undefined ? _this18.before : options.before;
+				_this18.change = options.change === undefined ? _this18.change : options.change;
+				_this18.element = options.element === undefined ? _this18.element : options.element;
+				_this18.contain = options.contain === undefined ? _this18.contain : options.contain;
+				_this18.external = options.external === undefined ? _this18.external : options.external;
 
+				if (!_this18.element || typeof _this18.element === 'string') {
+					_this18.element = document.body.querySelector(_this18.element || 'o-router');
+				}
+
+				if (!_this18.element) {
+					throw new Error('Oxe.router.render - missing o-router element');
+				}
+
+				return _await(_this18.add(options.routes), function () {
+					return _awaitIgnored(_this18.route(window.location.href, { mode: 'replace' }));
+				});
+			})
+		}, {
+			key: 'load',
+			value: _async(function (route) {
+				return _invoke(function () {
+					if (route.load) {
+						return _await(Loader$1.load(route.load), function (load) {
+							route = Object.assign({}, load, route);
+						});
+					}
+				}, function () {
+
+					if (route.component) {
+						route.component.route = route;
+					}
+
+					return route;
+				});
+			})
+		}, {
+			key: 'add',
+			value: _async(function (data) {
+				var _this19 = this;
+
+				return function () {
+					if (!data) {
+						return;
+					} else return function () {
+							if (data.constructor === String) {
+								// if relative might need to add base
+								// need to clean .js and /
+								var load = data;
+								_this19.data.push({ path: data, load: _this19.folder + '/' + load + '.js' });
+							} else return function () {
+									if (data.constructor === Object) {
+										if (!data.path) throw new Error('Oxe.router.add - route path required');
+										// if (!data.load && !data.component) throw new Error('Oxe.router.add - route.load or route.component required');
+										_this19.data.push(data);
+									} else return _invokeIgnored(function () {
+											if (data.constructor === Array) {
+												var _i = 0,
+												    _l = data.length;return _continueIgnored(_for(function () {
+													return _i < _l;
+												}, function () {
+													return _i++;
+												}, function () {
+													return _awaitIgnored(_this19.add(data[_i]));
+												}));
+											}
+										});
+								}();
+						}();
+				}();
+			})
+		}, {
+			key: 'remove',
+			value: _async(function (path) {
+				var _this20 = this;
+
+				for (var _i2 = 0, _l2 = _this20.data.length; _i2 < _l2; _i2++) {
+					if (_this20.data[_i2].path === path) {
+						_this20.data.splice(_i2, 1);
+					}
+				}
+			})
+		}, {
+			key: 'get',
+			value: _async(function (path) {
+				var _this21 = this,
+				    _exit6 = false;
+
+				var i = 0,
+				    l = _this21.data.length;return _for(function () {
+					return !_exit6 && i < l;
+				}, function () {
+					return i++;
+				}, function () {
+					return function () {
+						if (_this21.data[i].path === path) {
+							return _await(_this21.load(_this21.data[i]), function (_this21$load) {
+								_this21.data[i] = _this21$load;
+								_exit6 = true;
+								return _this21.data[i];
+							});
+						}
+					}();
+				});
+			})
+
+			// async filter (path) {
+			// 	const result = [];
+			//
+			// 	for (let i = 0, l = this.data.length; i < l; i++) {
+			// 		if (this.isPath(this.data[i].path, path)) {
+			// 			this.data[i] = await this.load(this.data[i]);
+			// 			result.push(this.data[i]);
+			// 		}
+			// 	}
+			//
+			// 	return result;
+			// }
+
+		}, {
+			key: 'find',
+			value: _async(function (path) {
+				var _this22 = this,
+				    _exit7 = false;
+
+				var i = 0,
+				    l = _this22.data.length;return _for(function () {
+					return !_exit7 && i < l;
+				}, function () {
+					return i++;
+				}, function () {
+					return function () {
+						if (_this22.isPath(_this22.data[i].path, path)) {
+							return _await(_this22.load(_this22.data[i]), function (_this22$load) {
+								_this22.data[i] = _this22$load;
+								_exit7 = true;
+								return _this22.data[i];
+							});
+						}
+					}();
+				});
+			})
+		}, {
+			key: 'render',
+			value: _async(function (route) {
+				var _this23 = this;
+
+				if (!route) {
+					throw new Error('Oxe.render - route argument required. Missing object option.');
+				}
+
+				if (!route.component && !route.element) {
+					throw new Error('Oxe.render - route property required. Missing component or element option.');
+				}
+
+				if (route.title) {
+					document.title = route.title;
+				}
+
+				if (route.description) {
+					Utility.ensureElement({
+						name: 'meta',
+						scope: document.head,
+						position: 'afterbegin',
+						query: '[name="description"]',
+						attributes: [{ name: 'name', value: 'description' }, { name: 'content', value: route.description }]
+					});
+				}
+
+				if (route.keywords) {
+					Utility.ensureElement({
+						name: 'meta',
+						scope: document.head,
+						position: 'afterbegin',
+						query: '[name="keywords"]',
+						attributes: [{ name: 'name', value: 'keywords' }, { name: 'content', value: route.keywords }]
+					});
+				}
+
+				if (!route.element) {
+					if (route.component.constructor === String) {
+						route.element = document.createElement(route.component);
+					} else if (route.component.constructor === Object) {
+						Component$1.define(route.component);
+
+						if (_this23.mode === 'compiled') {
+							// if (route.component.name.toLowerCase() === this.element.firstElementChild.nodeName.toLowerCase()) {
+							route.element = _this23.element.firstElementChild;
+						} else {
+							route.element = document.createElement(route.component.name);
+						}
+					}
+				}
+
+				if (route.element !== _this23.element.firstElementChild) {
+
+					while (_this23.element.firstChild) {
+						_this23.element.removeChild(_this23.element.firstChild);
+					}
+
+					_this23.element.appendChild(route.element);
+				}
+
+				_this23.scroll(0, 0);
+			})
+		}, {
+			key: 'route',
+			value: _async(function (path, options) {
+				var _this24 = this;
+
+				options = options || {};
+
+				if (options.query) {
+					path += _this24.toQueryString(options.query);
+				}
+
+				var mode = options.mode || _this24.mode;
+				var location = _this24.toLocationObject(path);
+				return _await(_this24.find(location.pathname), function (route) {
 
 					if (!route) {
-						throw new Error('Oxe.router.route - route not found');
+						throw new Error('Oxe.router.route - missing route ' + location.pathname);
 					}
 
 					location.route = route;
 					location.title = location.route.title;
-					location.query = _this21.toQueryObject(location.search);
-					location.parameters = _this21.toParameterObject(location.route.path, location.pathname);
+					location.query = _this24.toQueryObject(location.search);
+					location.parameters = _this24.toParameterObject(location.route.path, location.pathname);
 
-					if (options.query) {
-						path += _this21.toQueryString(options.query);
-					}
+					// if (location.route && location.route.handler) {
+					// 	return await location.route.handler(location);
+					// }
 
-					return _invoke(function () {
-						if (typeof _this21.before === 'function') {
-							return _await(_this21.before(location), function (result) {
-								if (result === false) {
-									_exit6 = true;
-								}
+					return location.route && location.route.redirect ? _this24.redirect(location.route.redirect) : _invoke(function () {
+						if (typeof _this24.before === 'function') {
+							return _await(_this24.before(location), function (result) {
+								_this24.location = Object.assign(location, result || {});
 							});
+						} else {
+							_this24.location = location;
 						}
-					}, function (_result10) {
-						var _exit7 = false;
-						if (_exit6) return _result10;
-						return _invoke(function () {
-							if (location.route && location.route.handler) {
-								_exit7 = true;
-								return _await(location.route.handler(location));
-							}
-						}, function (_result11) {
-							if (_exit7) return _result11;
+					}, function () {
 
+						_this24.emit('route:before');
 
-							if (location.route && location.route.redirect) {
-								return _this21.redirect(location.route.redirect);
-							}
+						path = location.pathname + location.search + location.hash;
 
-							if (mode === 'href' || mode === 'compiled') {
-								return window.location.assign(path);
-							} else {
-								window.history[mode + 'State']({ path: path }, '', path);
-							}
+						if (mode === 'href' || mode === 'compiled') {
+							return window.location.assign(path);
+						}
 
-							_this21.location = location;
-							_this21.emit('routing');
-							_this21.render(location.route);
+						window.history[mode + 'State']({ path: path }, '', path);
+
+						return _await(_this24.render(_this24.location.route), function () {
+							return _invoke(function () {
+								if (typeof _this24.after === 'function') {
+									return _awaitIgnored(_this24.after());
+								}
+							}, function () {
+
+								_this24.emit('route:after');
+							});
 						});
 					});
 				});
@@ -3554,7 +3571,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return;
 
 		// if external is true then default action
-		if (Router$1.external && (Router$1.external.constructor.name === 'RegExp' && Router$1.external.test(target.href) || Router$1.external.constructor.name === 'Function' && Router$1.external(target.href) || Router$1.external.constructor.name === 'String' && Router$1.external === target.href)) return;
+		if (Router$1.external && (Router$1.external.constructor === RegExp && Router$1.external.test(target.href) || Router$1.external.constructor === Function && Router$1.external(target.href) || Router$1.external.constructor === String && Router$1.external === target.href)) return;
 
 		event.preventDefault();
 
@@ -3597,8 +3614,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var General$1 = new General();
 
-	// custom elements with es5 classes: start
+	var eStyle = document.createElement('style');
+	var tStyle = document.createTextNode('\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition 150ms ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n');
 
+	eStyle.setAttribute('type', 'text/css');
+	eStyle.appendChild(tStyle);
+	document.head.appendChild(eStyle);
+
+	// custom elements with es5 classes: start
 	if (!window.Reflect || !window.Reflect.construct) {
 		window.Reflect = window.Reflect || {};
 		window.Reflect.construct = function (parent, args, child) {
@@ -3608,35 +3631,31 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			return Function.prototype.apply.call(parent, copy, args) || copy;
 		};
 	}
-
 	// if (
 	// 	!(window.Reflect === undefined ||
 	// 	window.customElements === undefined ||
 	// 	window.customElements.hasOwnProperty('polyfillWrapFlushCallback'))
 	// ) {
 	// 	let htmlelement = HTMLElement;
-	// 	window.HTMLElement = function HTMLElement () {
-	// 		return Reflect.construct(htmlelement, [], this.constructor);
-	// 	};
+	// 	window.HTMLElement = function HTMLElement () { return Reflect.construct(htmlelement, [], this.constructor); };
 	// 	HTMLElement.prototype = htmlelement.prototype;
 	// 	HTMLElement.prototype.constructor = HTMLElement;
 	// 	Object.setPrototypeOf(HTMLElement, htmlelement);
 	// }
-
 	// custom elements with es5 classes: end
 
-	var eStyle = document.createElement('style');
-	var tStyle = document.createTextNode('\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition 150ms ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n');
+	var ORouter = function ORouter() {
+		return window.Reflect.construct(HTMLElement, [], this.constructor);
+	};
 
-	eStyle.setAttribute('type', 'text/css');
-	eStyle.appendChild(tStyle);
-	document.head.appendChild(eStyle);
+	Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+	Object.setPrototypeOf(ORouter, HTMLElement);
+
+	window.customElements.define('o-router', ORouter);
 
 	var oSetup = document.querySelector('script[o-setup]');
 
 	if (oSetup) {
-		// webcomponents template might need this event
-		// document.addEventListener('DOMContentLoaded', function () {
 		var _args2 = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
 		var meta = document.querySelector('meta[name="oxe"]');
 
@@ -3653,32 +3672,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}
 
 		if (_args2.length > 1) {
-			Promise.resolve().then(function () {
-				return Loader$1.load({
-					url: _args2[0],
-					method: _args2[2],
-					transformer: _args2[1]
-				});
+			Loader$1.load({
+				url: _args2[0],
+				method: _args2[2],
+				transformer: _args2[1]
 			}).catch(console.error);
 		} else {
 			var _index3 = document.createElement('script');
-
 			_index3.setAttribute('src', _args2[0]);
 			_index3.setAttribute('async', 'true');
 			_index3.setAttribute('type', 'module');
-
 			document.head.appendChild(_index3);
 		}
-
-		var ORouter = function ORouter() {
-			return window.Reflect.construct(HTMLElement, [], this.constructor);
-		};
-
-		Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-		Object.setPrototypeOf(ORouter, HTMLElement);
-
-		window.customElements.define('o-router', ORouter);
-		// });
 	}
 
 	var Oxe = function () {
@@ -3691,12 +3696,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		_createClass(Oxe, [{
 			key: 'setup',
 			value: _async(function (data) {
-				var _this22 = this;
+				var _this25 = this;
 
-				if (_this22._setup) {
+				if (_this25._setup) {
 					return;
 				} else {
-					_this22._setup = true;
+					_this25._setup = true;
 				}
 
 				data = data || {};
@@ -3746,26 +3751,26 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}, function () {
 
 					if (data.general) {
-						_this22.general.setup(data.general);
+						_this25.general.setup(data.general);
 					}
 
 					if (data.fetcher) {
-						_this22.fetcher.setup(data.fetcher);
+						_this25.fetcher.setup(data.fetcher);
 					}
 
 					return _invoke(function () {
 						if (data.loader) {
-							return _awaitIgnored(_this22.loader.setup(data.loader));
+							return _awaitIgnored(_this25.loader.setup(data.loader));
 						}
 					}, function () {
 						return _invoke(function () {
 							if (data.component) {
-								return _awaitIgnored(_this22.component.setup(data.component));
+								return _awaitIgnored(_this25.component.setup(data.component));
 							}
 						}, function () {
 							return _invoke(function () {
 								if (data.router) {
-									return _awaitIgnored(_this22.router.setup(data.router));
+									return _awaitIgnored(_this25.router.setup(data.router));
 								}
 							}, function () {
 								return _invokeIgnored(function () {
