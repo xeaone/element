@@ -16,34 +16,6 @@ import Binder from './binder.js';
 import Render from './render.js';
 import Model from './model.js';
 
-// custom elements with es5 classes: start
-
-if (!window.Reflect || !window.Reflect.construct) {
-	window.Reflect = window.Reflect || {};
-	window.Reflect.construct = function (parent, args, child) {
-		var target = child === undefined ? parent : child;
-		var prototype = target.prototype || Object.prototype;
-		var copy = Object.create(prototype);
-		return Function.prototype.apply.call(parent, copy, args) || copy;
-	};
-}
-
-// if (
-// 	!(window.Reflect === undefined ||
-// 	window.customElements === undefined ||
-// 	window.customElements.hasOwnProperty('polyfillWrapFlushCallback'))
-// ) {
-// 	let htmlelement = HTMLElement;
-// 	window.HTMLElement = function HTMLElement () {
-// 		return Reflect.construct(htmlelement, [], this.constructor);
-// 	};
-// 	HTMLElement.prototype = htmlelement.prototype;
-// 	HTMLElement.prototype.constructor = HTMLElement;
-// 	Object.setPrototypeOf(HTMLElement, htmlelement);
-// }
-
-// custom elements with es5 classes: end
-
 let eStyle = document.createElement('style');
 let tStyle = document.createTextNode(`
 	o-router, o-router > :first-child {
@@ -60,53 +32,72 @@ eStyle.setAttribute('type', 'text/css');
 eStyle.appendChild(tStyle);
 document.head.appendChild(eStyle);
 
+// custom elements with es5 classes: start
+if (!window.Reflect || !window.Reflect.construct) {
+	window.Reflect = window.Reflect || {};
+	window.Reflect.construct = function (parent, args, child) {
+		var target = child === undefined ? parent : child;
+		var prototype = target.prototype || Object.prototype;
+		var copy = Object.create(prototype);
+		return Function.prototype.apply.call(parent, copy, args) || copy;
+	};
+}
+// if (
+// 	!(window.Reflect === undefined ||
+// 	window.customElements === undefined ||
+// 	window.customElements.hasOwnProperty('polyfillWrapFlushCallback'))
+// ) {
+// 	let htmlelement = HTMLElement;
+// 	window.HTMLElement = function HTMLElement () { return Reflect.construct(htmlelement, [], this.constructor); };
+// 	HTMLElement.prototype = htmlelement.prototype;
+// 	HTMLElement.prototype.constructor = HTMLElement;
+// 	Object.setPrototypeOf(HTMLElement, htmlelement);
+// }
+// custom elements with es5 classes: end
+
+// webcomponents template might need this event
+// document.addEventListener('DOMContentLoaded', function () {});
+
 let oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
-	// webcomponents template might need this event
-	document.addEventListener('DOMContentLoaded', function () {
-		let args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
-		let meta = document.querySelector('meta[name="oxe"]');
+	let args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
+	let meta = document.querySelector('meta[name="oxe"]');
 
-		if (meta && meta.hasAttribute('compiled')) {
-			args[1] = 'null';
-			args[2] = 'script';
-			Router.mode = 'compiled';
-			General.compiled = true;
-			Component.compiled = true;
-		}
+	if (meta && meta.hasAttribute('compiled')) {
+		args[1] = 'null';
+		args[2] = 'script';
+		Router.mode = 'compiled';
+		General.compiled = true;
+		Component.compiled = true;
+	}
 
-		if (!args[0]) {
-			throw new Error('Oxe - script attribute o-setup requires url');
-		}
+	if (!args[0]) {
+		throw new Error('Oxe - script attribute o-setup requires url');
+	}
 
-		if (args.length > 1) {
-			Promise.resolve().then(function () {
-				return Loader.load({
-					url: args[0],
-					method: args[2],
-					transformer: args[1]
-				});
-			}).catch(console.error);
-		} else {
-			let index = document.createElement('script');
+	if (args.length > 1) {
+		Promise.resolve().then(function () {
+			return Loader.load({
+				url: args[0],
+				method: args[2],
+				transformer: args[1]
+			});
+		}).catch(console.error);
+	} else {
+		let index = document.createElement('script');
 
-			index.setAttribute('src', args[0]);
-			index.setAttribute('async', 'true');
-			index.setAttribute('type', 'module');
+		index.setAttribute('src', args[0]);
+		index.setAttribute('async', 'true');
+		index.setAttribute('type', 'module');
 
-			document.head.appendChild(index);
-		}
+		document.head.appendChild(index);
+	}
 
-		let ORouter = function () {
-			return window.Reflect.construct(HTMLElement, [], this.constructor);
-		};
-
-		Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-		Object.setPrototypeOf(ORouter, HTMLElement);
-
-		window.customElements.define('o-router', ORouter);
-	});
+	let ORouter = function () { return window.Reflect.construct(HTMLElement, [], this.constructor); };
+	Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+	Object.setPrototypeOf(ORouter, HTMLElement);
+	window.customElements.define('o-router', ORouter);
 }
 
 class Oxe {
