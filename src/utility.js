@@ -45,7 +45,8 @@ export default {
 
 		}
 
-		for (let attribute of data.attributes) {
+		for (let i = 0, l = data.attributes.length; i < l; i++) {
+			let attribute = data.attributes[i];
 			element.setAttribute(attribute.name, attribute.value);
 		}
 
