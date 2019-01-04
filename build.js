@@ -1,14 +1,20 @@
 
-const Cp = require('child_process');
-const Mp = Cp.execSync('npm root -g').toString().trim();
-const Muleify = require(`${Mp}/muleify`);
-
+const Rollup = require('rollup');
 const Package = require('./package');
+const Babel = require('@babel/core');
+// const Babel = require('rollup-plugin-babel');
+// const BabelMinify = require('babel-preset-minify');
+
 const Util = require('util');
 const Fs = require('fs');
 
 const ReadFile = Util.promisify(Fs.readFile);
 const WriteFile = Util.promisify(Fs.writeFile);
+
+// const Prepend = async function (data, path) {
+// 	const fileData = await ReadFile(path, 'utf8');
+// 	await WriteFile(path, data + fileData, 'utf8');
+// };
 
 const header = `/*
 	Name: ${Package.name}
@@ -22,31 +28,108 @@ const header = `/*
 */
 `;
 
-const prepend = async function (data, path) {
-	const fileData = await ReadFile(path, 'utf8');
-	await WriteFile(path, data + fileData, 'utf8');
-};
-
 (async function () {
 
-	const options = { bundle: true, transpile: true };
+	const bundled = await Rollup.rollup({ input: 'src/index.js' });
 
-	// options.name = 'Oxe';
-	// options.input = Path.resolve('src/index.js');
-	// options.output = Path.resolve('web/assets/oxe.js');
-	// await Bundle(options);
+	const generated = await bundled.generate({
+		name: 'Oxe',
+		indent: '\t',
+		format: 'iife',
+		treeshake: true
+	});
 
-	await Muleify.pack('src/index.js', 'web/assets/oxe.js', options);
-	await prepend(header, 'web/assets/oxe.js');
+	const code = generated.output[0].code;
 
-	await Muleify.pack('src/index.js', 'dst/oxe.js', options);
-	await prepend(header, 'dst/oxe.js');
+	const options = {
+		comments: false,
+		sourceMaps: false,
+		// exclude: [
+		// 	'@babel/plugin-proposal-async-generator-functions'
+		// ],
+		plugins: [
+			['module:fast-async', {
+				compiler: {
+					promises: true,
+					generators: false
+				}
+			}]
+        ],
+		presets: [
+			[
+				'@babel/preset-env',
+				{
+					modules: 'umd',
+					// useBuiltIns: false,
+					targets: { ie: '11' }
+				}
+			]
+		]
+	};
 
-	options.minify = true;
+	const dev = Babel.transform(code, options);
 
-	await Muleify.pack('src/index.js', 'dst/oxe.min.js', options);
-	await prepend(header, 'dst/oxe.min.js');
+	options.minified = true;
 
-}()).catch(function (error) {
-	console.error(error);
-});
+	const dst = Babel.transform(code, options);
+
+	await Promise.all([
+		await WriteFile('dst/oxe.js', header + dev.code),
+		await WriteFile('dst/oxe.min.js', header + dst.code),
+		await WriteFile('web/assets/oxe.js', header + dev.code)
+	]);
+
+	// const babel = {
+	// 	comments: false,
+	// 	sourceMaps: false,
+	// 	// externalHelpers: true,
+	// 	// externalHelpers: false,
+	// 	plugins: [
+	// 		'module:fast-async'
+	// 		// BabelAsyncToPromises
+	// 	],
+	// 	presets: [
+	// 		[
+	// 			'@babel/preset-env',
+	// 			{
+	// 				targets: { ie: '11' }
+	// 			}
+	// 		]
+	// 	]
+	// };
+	//
+	// const write = {
+	// 	name: 'Oxe',
+	// 	format: 'iife',
+	// 	banner: header,
+	// 	treeshake: true
+	// };
+	//
+	//
+	// const dev = Rollup.rollup({
+	// 	input: 'src/index.js',
+	// 	plugins: [
+	// 		Babel(Object.assign({}, babel))
+	// 	]
+	// }).then(function (bundle) {
+	// 	return Promise.all([
+	// 		bundle.write(Object.assign({}, write, { indent: '\t', file: 'dst/oxe.js' })),
+	// 		bundle.write(Object.assign({}, write, { indent: '\t', file: 'web/assets/oxe.js' }))
+	// 	]);
+	// });
+
+	// babel.presets.push(BabelMinify);
+	//
+	// const dst = Rollup.rollup({
+	// 	input: 'src/index.js',
+	// 	plugins: [
+	// 		// Babel(Object.assign({}, babel, { minified: true })),
+	// 		Babel(babel)
+	// 	]
+	// }).then(function (bundle) {
+	// 	return bundle.write(Object.assign({}, write, { compact: true, file: 'dst/oxe.min.js' }));
+	// });
+	//
+	// await Promise.all([dev, dst]);
+
+}()).catch(console.error);
