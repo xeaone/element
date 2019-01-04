@@ -44,9 +44,6 @@ const header = `/*
 	const options = {
 		comments: false,
 		sourceMaps: false,
-		// exclude: [
-		// 	'@babel/plugin-proposal-async-generator-functions'
-		// ],
 		plugins: [
 			['module:fast-async', {
 				compiler: {
@@ -60,8 +57,13 @@ const header = `/*
 				'@babel/preset-env',
 				{
 					modules: 'umd',
-					// useBuiltIns: false,
-					targets: { ie: '11' }
+					// useBuiltIns: 'entry',
+					targets: { ie: '11' },
+					// exclude: [
+						// '@babel/plugin-transform-runtime',
+						// '@babel/plugin-transform-regenerator',
+						// '@babel/plugin-proposal-async-generator-functions'
+					// ]
 				}
 			]
 		]
