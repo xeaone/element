@@ -119,17 +119,22 @@ class Router extends Events {
 	}
 
 	toLocationObject (href) {
+		const location = {};
+
 		this.parser.href = href;
-		return {
-			href: this.parser.href,
-			host: this.parser.host,
-			port: this.parser.port,
-			hash: this.parser.hash,
-			search: this.parser.search,
-			protocol: this.parser.protocol,
-			hostname: this.parser.hostname,
-			pathname: this.parser.pathname[0] === '/' ? this.parser.pathname : '/' + this.parser.pathname
-		};
+
+		location.href = this.parser.href;
+		location.host = this.parser.host;
+		location.port = this.parser.port;
+		location.hash = this.parser.hash;
+		location.search = this.parser.search;
+		location.protocol = this.parser.protocol;
+		location.hostname = this.parser.hostname;
+		location.pathname = this.parser.pathname[0] === '/' ? this.parser.pathname : '/' + this.parser.pathname;
+
+		location.path = location.pathname + location.search + location.hash;
+
+		return location;
 	}
 
 	scroll (x, y) {
@@ -331,38 +336,35 @@ class Router extends Events {
 		location.query = this.toQueryObject(location.search);
 		location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
-		// if (location.route && location.route.handler) {
-		// 	return await location.route.handler(location);
-		// }
+		if (location.route && location.route.handler) {
+			return await location.route.handler(location);
+		}
 
 		if (location.route && location.route.redirect) {
 			return this.redirect(location.route.redirect);
 		}
 
 		if (typeof this.before === 'function') {
-			const result = await this.before(location);
-			this.location = Object.assign(location, result || {});
-		} else {
-			this.location = location;
+			await this.before(location);
 		}
 
-		this.emit('route:before');
-
-		path = location.pathname + location.search + location.hash;
+		this.emit('route:before', location);
 
 		if (mode === 'href' || mode === 'compiled') {
-			return window.location.assign(path);
+			return window.location.assign(location.path);
 		}
 
-		window.history[mode + 'State']({ path: path }, '', path);
+		window.history[mode + 'State']({ path: location.path }, '', location.path);
 
-		await this.render(this.location.route);
+		this.location = location;
+
+		await this.render(location.route);
 
 		if (typeof this.after === 'function') {
-			await this.after();
+			await this.after(location);
 		}
 
-		this.emit('route:after');
+		this.emit('route:after', location);
 
 	}
 

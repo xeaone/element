@@ -69,11 +69,11 @@ function _continueIgnored(value) {
 	function _Pact() {}_Pact.prototype.then = function (onFulfilled, onRejected) {
 		var state = this.__state;if (state) {
 			var callback = state == 1 ? onFulfilled : onRejected;if (callback) {
-				var _result14 = new _Pact();try {
-					_settle(_result14, 1, callback(this.__value));
+				var _result15 = new _Pact();try {
+					_settle(_result15, 1, callback(this.__value));
 				} catch (e) {
-					_settle(_result14, 2, e);
-				}return _result14;
+					_settle(_result15, 2, e);
+				}return _result15;
 			} else {
 				return this;
 			}
@@ -3216,17 +3216,22 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		}, {
 			key: 'toLocationObject',
 			value: function toLocationObject(href) {
+				var location = {};
+
 				this.parser.href = href;
-				return {
-					href: this.parser.href,
-					host: this.parser.host,
-					port: this.parser.port,
-					hash: this.parser.hash,
-					search: this.parser.search,
-					protocol: this.parser.protocol,
-					hostname: this.parser.hostname,
-					pathname: this.parser.pathname[0] === '/' ? this.parser.pathname : '/' + this.parser.pathname
-				};
+
+				location.href = this.parser.href;
+				location.host = this.parser.host;
+				location.port = this.parser.port;
+				location.hash = this.parser.hash;
+				location.search = this.parser.search;
+				location.protocol = this.parser.protocol;
+				location.hostname = this.parser.hostname;
+				location.pathname = this.parser.pathname[0] === '/' ? this.parser.pathname : '/' + this.parser.pathname;
+
+				location.path = location.pathname + location.search + location.hash;
+
+				return location;
 			}
 		}, {
 			key: 'scroll',
@@ -3477,6 +3482,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var mode = options.mode || _this24.mode;
 				var location = _this24.toLocationObject(path);
 				return _await(_this24.find(location.pathname), function (route) {
+					var _exit8 = false;
+
 
 					if (!route) {
 						throw new Error('Oxe.router.route - missing route ' + location.pathname);
@@ -3487,38 +3494,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					location.query = _this24.toQueryObject(location.search);
 					location.parameters = _this24.toParameterObject(location.route.path, location.pathname);
 
-					// if (location.route && location.route.handler) {
-					// 	return await location.route.handler(location);
-					// }
+					return _invoke(function () {
+						if (location.route && location.route.handler) {
+							_exit8 = true;
+							return _await(location.route.handler(location));
+						}
+					}, function (_result14) {
+						return _exit8 ? _result14 : location.route && location.route.redirect ? _this24.redirect(location.route.redirect) : _invoke(function () {
+							if (typeof _this24.before === 'function') {
+								return _awaitIgnored(_this24.before(location));
+							}
+						}, function () {
 
-					return location.route && location.route.redirect ? _this24.redirect(location.route.redirect) : _invoke(function () {
-						if (typeof _this24.before === 'function') {
-							return _await(_this24.before(location), function (result) {
-								_this24.location = Object.assign(location, result || {});
-							});
-						} else {
+							_this24.emit('route:before', location);
+
+							if (mode === 'href' || mode === 'compiled') {
+								return window.location.assign(location.path);
+							}
+
+							window.history[mode + 'State']({ path: location.path }, '', location.path);
+
 							_this24.location = location;
-						}
-					}, function () {
 
-						_this24.emit('route:before');
+							return _await(_this24.render(location.route), function () {
+								return _invoke(function () {
+									if (typeof _this24.after === 'function') {
+										return _awaitIgnored(_this24.after(location));
+									}
+								}, function () {
 
-						path = location.pathname + location.search + location.hash;
-
-						if (mode === 'href' || mode === 'compiled') {
-							return window.location.assign(path);
-						}
-
-						window.history[mode + 'State']({ path: path }, '', path);
-
-						return _await(_this24.render(_this24.location.route), function () {
-							return _invoke(function () {
-								if (typeof _this24.after === 'function') {
-									return _awaitIgnored(_this24.after());
-								}
-							}, function () {
-
-								_this24.emit('route:after');
+									_this24.emit('route:after', location);
+								});
 							});
 						});
 					});
@@ -3587,7 +3593,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		var path = event && event.state ? event.state.path : window.location.href;
 
 		Promise.resolve().then(function () {
-			return Router$1.route(path, { replace: true });
+			return Router$1.route(path, { mode: 'replace' });
 		}).catch(console.error);
 	}
 
