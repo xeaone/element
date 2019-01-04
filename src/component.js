@@ -84,32 +84,28 @@ class Component {
 
 		if (!style) return '';
 
-		if (window.CSS && window.CSS.supports) {
+		if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
+			let matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-			if (!window.CSS.supports('(--t: black)')) {
-				let matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
-
-				for (let i = 0, l = matches.length; i < l; i++) {
-					let match = matches[i];
-					let rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-					let pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
-					style = style.replace(rule[0], '');
-					style = style.replace(pattern, rule[2]);
-				}
-
-			}
-
-			if (!window.CSS.supports(':scope')) {
-				style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
-			}
-
-			if (!window.CSS.supports(':host')) {
-				style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
+			for (let i = 0, l = matches.length; i < l; i++) {
+				let match = matches[i];
+				let rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+				let pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+				style = style.replace(rule[0], '');
+				style = style.replace(pattern, rule[2]);
 			}
 
 		}
 
-		return '<style>' + style + '</style>';
+		if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':scope')) {
+			style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
+		}
+
+		if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':host')) {
+			style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
+		}
+
+		return '<style type="text/css">' + style + '</style>';
 	}
 
 	render (element, options) {
@@ -132,9 +128,9 @@ class Component {
 				template.innerHTML = style;
 				template.appendChild(options.template);
 			}
-			
-			// let clone = document.importNode(template, true);
-			let clone = template.content.cloneNode(true);
+
+			let clone = document.importNode(template.content, true);
+			// let clone = template.content.cloneNode(true);
 
 			Binder.bind(clone, element, element.scope);
 
