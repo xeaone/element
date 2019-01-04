@@ -20,15 +20,12 @@ function _continueIgnored(value) {
 			} else {
 				stage = 1;break;
 			}
-		}
-		if (update) {
+		}if (update) {
 			var updateValue = update();if (updateValue && updateValue.then && !_isSettledPact(updateValue)) {
 				stage = 2;break;
 			}
 		}
-	}
-	var pact = new _Pact();
-	var reject = _settle.bind(null, pact, 2);(stage === 0 ? shouldContinue.then(_resumeAfterTest) : stage === 1 ? result.then(_resumeAfterBody) : updateValue.then(_resumeAfterUpdate)).then(void 0, reject);return pact;function _resumeAfterBody(value) {
+	}var pact = new _Pact();var reject = _settle.bind(null, pact, 2);(stage === 0 ? shouldContinue.then(_resumeAfterTest) : stage === 1 ? result.then(_resumeAfterBody) : updateValue.then(_resumeAfterUpdate)).then(void 0, reject);return pact;function _resumeAfterBody(value) {
 		result = value;do {
 			if (update) {
 				updateValue = update();if (updateValue && updateValue.then && !_isSettledPact(updateValue)) {
@@ -38,7 +35,9 @@ function _continueIgnored(value) {
 				_settle(pact, 1, result);return;
 			}if (shouldContinue.then) {
 				shouldContinue.then(_resumeAfterTest).then(void 0, reject);return;
-			}result = body();if (_isSettledPact(result)) {
+			}
+
+			result = body();if (_isSettledPact(result)) {
 				result = result.__value;
 			}
 		} while (!result || !result.then);result.then(_resumeAfterBody).then(void 0, reject);
@@ -77,9 +76,7 @@ function _continueIgnored(value) {
 			} else {
 				return this;
 			}
-		}var result = new _Pact();
-
-		this.__observer = function (_this) {
+		}var result = new _Pact();this.__observer = function (_this) {
 			try {
 				var value = _this.__value;if (_this.__state == 1) {
 					_settle(result, 1, onFulfilled ? onFulfilled(value) : value);
@@ -103,8 +100,11 @@ function _continueIgnored(value) {
 			} else {
 				value.__observer = _settle.bind(null, pact, state);return;
 			}
-		}if (value && value.then) {
-			value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));return;
+		}
+		if (value && value.then) {
+			value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));
+
+			return;
 		}pact.__state = state;pact.__value = value;var observer = pact.__observer;if (observer) {
 			observer(pact);
 		}
@@ -123,7 +123,9 @@ function _invoke(body, then) {
 		return result.then(then);
 	}return then(result);
 }function _invokeIgnored(body) {
-	var result = body();if (result && result.then) {
+	var result = body();
+
+	if (result && result.then) {
 		return result.then(_empty);
 	}
 }function _empty() {}function _await(value, then, direct) {
@@ -301,9 +303,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 	var Observer = {
 		splice: function splice() {
-			var self = this;var startIndex = arguments[0];
-			var deleteCount = arguments[1];
-			var addCount = arguments.length > 2 ? arguments.length - 2 : 0;if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
+			var self = this;
+
+			var startIndex = arguments[0];
+			var deleteCount = arguments[1];var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
+
+			if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
 				return [];
 			}
 
@@ -328,12 +333,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			    value = void 0,
 			    updateCount = void 0;
 			var argumentIndex = 2;
-			var argumentsCount = arguments.length - argumentIndex;
-			var result = self.slice(startIndex, deleteCount);
+			var argumentsCount = arguments.length - argumentIndex;var result = self.slice(startIndex, deleteCount);
 
-			updateCount = totalCount - 1 - startIndex;
-
-			var promises = [];
+			updateCount = totalCount - 1 - startIndex;var promises = [];
 
 			if (updateCount > 0) {
 				index = startIndex;
@@ -660,7 +662,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						}
 
 						if (data.write && result !== false) {
-
 							if (data.context) {
 								write = data.write.bind(data.context);
 							} else {
@@ -706,7 +707,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  */
 
 	function Default(binder) {
-		var unrender = void 0;if (binder.type in this) {
+		var unrender = void 0;
+
+		if (binder.type in this) {
 			unrender = this[binder.type](binder);
 		} else {
 			unrender = {
@@ -925,29 +928,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				}
 			}
 
-			var _iteratorNormalCompletion = true;
-			var _didIteratorError = false;
-			var _iteratorError = undefined;
-
-			try {
-				for (var _iterator = data.attributes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-					var attribute = _step.value;
-
-					element.setAttribute(attribute.name, attribute.value);
-				}
-			} catch (err) {
-				_didIteratorError = true;
-				_iteratorError = err;
-			} finally {
-				try {
-					if (!_iteratorNormalCompletion && _iterator.return) {
-						_iterator.return();
-					}
-				} finally {
-					if (_didIteratorError) {
-						throw _iteratorError;
-					}
-				}
+			for (var i = 0, l = data.attributes.length; i < l; i++) {
+				var attribute = data.attributes[i];
+				element.setAttribute(attribute.name, attribute.value);
 			}
 
 			return element;
@@ -984,9 +967,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (!value) continue;
 
-				var values = this.binderValues(value);
-
-				this.setByPath(model, values, '');
+				var values = this.binderValues(value);this.setByPath(model, values, '');
 			}
 		},
 		walker: function walker(node, callback) {
@@ -1264,8 +1245,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					remove = true;
 					elementLength--;
 				} else if (elementLength < dataLength) {
-					// let clone = document.importNode(binder.cache, true);
-					var clone = binder.cache.cloneNode(true);
+					var clone = document.importNode(binder.cache, true);
+					// let clone = binder.cache.cloneNode(true);
 					var variable = isArray ? elementLength : keys[elementLength];
 
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
@@ -2928,30 +2909,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 				if (!style) return '';
 
-				if (window.CSS && window.CSS.supports) {
+				if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
+					var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-					if (!window.CSS.supports('(--t: black)')) {
-						var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
-
-						for (var i = 0, l = matches.length; i < l; i++) {
-							var match = matches[i];
-							var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-							var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
-							style = style.replace(rule[0], '');
-							style = style.replace(pattern, rule[2]);
-						}
-					}
-
-					if (!window.CSS.supports(':scope')) {
-						style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
-					}
-
-					if (!window.CSS.supports(':host')) {
-						style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
+					for (var i = 0, l = matches.length; i < l; i++) {
+						var match = matches[i];
+						var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+						var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
+						style = style.replace(rule[0], '');
+						style = style.replace(pattern, rule[2]);
 					}
 				}
 
-				return '<style>' + style + '</style>';
+				if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':scope')) {
+					style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
+				}
+
+				if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':host')) {
+					style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
+				}
+
+				return '<style type="text/css">' + style + '</style>';
 			}
 		}, {
 			key: 'render',
@@ -2975,8 +2953,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						template.appendChild(options.template);
 					}
 
-					// let clone = document.importNode(template, true);
-					var clone = template.content.cloneNode(true);
+					var clone = document.importNode(template.content, true);
+					// let clone = template.content.cloneNode(true);
 
 					Binder$1.bind(clone, element, element.scope);
 
