@@ -31,6 +31,7 @@ Oxe.setup({
 			'select',
 			'test',
 			'js',
+			'input',
 			r404
 		]
 	}
