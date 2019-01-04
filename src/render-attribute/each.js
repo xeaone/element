@@ -3,6 +3,16 @@ import Utility from '../utility.js';
 import Binder from '../binder.js';
 import Model from '../model.js';
 
+const children = function (data) {
+	var i = 0, node, nodes = data.childNodes, children = [];
+	while (node = nodes[i++]) {
+		if (node.nodeType === 1) {
+			children.push(node);
+		}
+	}
+	return children;
+};
+
 export default function (binder) {
 
 	if (!binder.cache && !binder.element.children.length) {
@@ -29,7 +39,7 @@ export default function (binder) {
 			let isArray = data.constructor === Array;
 			let keys = isArray ? [] : Object.keys(data);
 			let dataLength = isArray ? data.length : keys.length;
-			let elementLength = binder.fragment.children.length + binder.element.children.length;
+			let elementLength = children(binder.fragment).length + binder.element.children.length;
 
 			if (elementLength === dataLength) {
 				return false;
@@ -37,7 +47,6 @@ export default function (binder) {
 				remove = true;
 				elementLength--;
 			} else if (elementLength < dataLength) {
-				// let clone = document.importNode(binder.cache, true);
 				let clone = binder.cache.cloneNode(true);
 				let variable = isArray ? elementLength : keys[elementLength];
 
