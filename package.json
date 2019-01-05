@@ -48,11 +48,10 @@
 		"src": "src"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.2.2",
-		"@babel/preset-env": "^7.2.3",
-		"fast-async": "^6.3.8",
 		"rollup": "^1.0.1",
-		"rollup-plugin-babel": "^4.2.0"
+		"fast-async": "^6.3.8",
+		"@babel/core": "^7.2.2",
+		"@babel/preset-env": "^7.2.3"
 	},
 	"dependencies": {}
 }

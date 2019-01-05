@@ -5,6 +5,7 @@ import Fetcher from '../fetcher.js';
 import Methods from '../methods.js';
 
 export default async function (event) {
+
 	var element = event.target;
 	var binder = Binder.elements.get(element).get('submit');
 	var method = Methods.get(binder.keys);
@@ -14,13 +15,13 @@ export default async function (event) {
 	var options = await method.call(binder.container, data, event);
 
 	if (typeof options === 'object') {
-		var action = element.getAttribute('o-action');
-		var method = element.getAttribute('o-method');
-		var enctype = element.getAttribute('o-enctype');
+		var oaction = element.getAttribute('o-action');
+		var omethod = element.getAttribute('o-method');
+		var oenctype = element.getAttribute('o-enctype');
 
-		options.url = options.url || action;
-		options.method = options.method || method;
-		options.contentType = options.contentType || enctype;
+		options.url = options.url || oaction;
+		options.method = options.method || omethod;
+		options.contentType = options.contentType || oenctype;
 
 		var result = await Fetcher.fetch(options);
 

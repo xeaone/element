@@ -9,7 +9,7 @@ class Component {
 		this.compiled = false;
 	}
 
-	setup (options) {
+	async setup (options) {
 		options = options || {};
 
 		if (options.components && options.components.length) {
