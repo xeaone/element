@@ -2,12 +2,10 @@ import Methods from './methods.js';
 import Binder from './binder.js';
 import Model from './model.js';
 
-class Component {
+export default {
 
-	constructor () {
-		this.data = {};
-		this.compiled = false;
-	}
+	data: {},
+	compiled: false,
 
 	async setup (options) {
 		options = options || {};
@@ -20,7 +18,7 @@ class Component {
 
 		}
 
-	}
+	},
 
 	renderSlot (target, source, scope) {
 		let targetSlots = target.querySelectorAll('slot[name]');
@@ -55,7 +53,7 @@ class Component {
 			defaultSlot.parentNode.removeChild(defaultSlot);
 		}
 
-	}
+	},
 
 	// renderTemplate (template) {
 	// 	let fragment = document.createDocumentFragment();
@@ -106,7 +104,7 @@ class Component {
 		}
 
 		return '<style type="text/css">' + style + '</style>';
-	}
+	},
 
 	render (element, options) {
 		let self = this;
@@ -147,7 +145,7 @@ class Component {
 
 		}
 
-	}
+	},
 
 	define (options) {
 		let self = this;
@@ -248,6 +246,4 @@ class Component {
 		window.customElements.define(options.name, options.construct);
 	}
 
-}
-
-export default new Component();
+};

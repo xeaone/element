@@ -98,87 +98,85 @@ if (oSetup) {
 
 }
 
-class Oxe {
+export default {
 
-	constructor () {
-		this.g = {};
-	}
+	_global: {},
 
 	get global () {
-		return this.g;
-	}
+		return this._global;
+	},
 
 	get window () {
 		return window;
-	}
+	},
 
 	get document () {
 		return window.document;
-	}
+	},
 
 	get body () {
 		return window.document.body;
-	}
+	},
 
 	get head () {
 		return window.document.head;
-	}
+	},
 
 	get location () {
 		return this.router.location;
-	}
+	},
 
 	get currentScript () {
 		return (window.document._currentScript || window.document.currentScript);
-	}
+	},
 
 	get ownerDocument () {
 		return (window.document._currentScript || window.document.currentScript).ownerDocument;
-	}
+	},
 
 	get render () {
 		return 	Render;
-	}
+	},
 
 	get methods () {
 		return 	Methods;
-	}
+	},
 
 	get utility () {
 		return Utility;
-	}
+	},
 
 	get general () {
 		return General;
-	}
+	},
 
 	get batcher () {
 		return Batcher;
-	}
+	},
 
 	get loader () {
 		return Loader;
-	}
+	},
 
 	get binder () {
 		return Binder;
-	}
+	},
 
 	get fetcher () {
 		return Fetcher;
-	}
+	},
 
 	get component () {
 		return Component;
-	}
+	},
 
 	get router () {
 		return Router;
-	}
+	},
 
 	get model () {
 		return Model;
-	}
+	},
 
 	async setup (data) {
 
@@ -245,7 +243,7 @@ class Oxe {
 		}
 
 		if (data.fetcher) {
-			this.fetcher.setup(data.fetcher);
+			await this.fetcher.setup(data.fetcher);
 		}
 
 		if (data.loader) {
@@ -266,6 +264,4 @@ class Oxe {
 
 	}
 
-}
-
-export default new Oxe();
+};

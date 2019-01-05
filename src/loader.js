@@ -1,16 +1,12 @@
 import Transformer from './transformer.js';
-import Events from './class/events.js';
 import Path from './path.js';
 
-class Loader extends Events {
+export default {
 
-	constructor () {
-		super();
-		this.data = {};
-		this.ran = false;
-		this.methods = {};
-		this.transformers = {};
-	}
+	data: {},
+	ran: false,
+	methods: {},
+	transformers: {},
 
 	async setup (options) {
 		let self = this;
@@ -26,13 +22,13 @@ class Loader extends Events {
 			}));
 		}
 
-	}
+	},
 
 	async execute (data) {
 		let text = '\'use strict\';\n\n' + (data.ast ? data.ast.cooked : data.text);
 		let code = new Function('$LOADER', 'window', text);
 		data.result = code(this, window);
-	}
+	},
 
 	async transform (data) {
 		let self = this;
@@ -55,7 +51,7 @@ class Loader extends Events {
 			}));
 		}
 
-	}
+	},
 
 	async fetch (data) {
 		let result = await window.fetch(data.url);
@@ -66,7 +62,7 @@ class Loader extends Events {
 			throw new Error(result.statusText);
 		}
 
-	}
+	},
 
 	async attach (data) {
 		return new Promise(function (resolve, reject) {
@@ -81,7 +77,7 @@ class Loader extends Events {
 
 			document.head.appendChild(element);
 		});
-	}
+	},
 
 	async js (data) {
 
@@ -117,7 +113,7 @@ class Loader extends Events {
 				type: 'module'
 			}
 		});
-	}
+	},
 
 	async css (data) {
 		if (data.method === 'fetch') {
@@ -132,7 +128,7 @@ class Loader extends Events {
 				}
 			});
 		}
-	}
+	},
 
 	async load (data) {
 
@@ -166,9 +162,7 @@ class Loader extends Events {
 		return data.result;
 	}
 
-}
-
-export default new Loader();
+};
 
 /*
 	https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/

@@ -3,12 +3,10 @@ import Utility from './utility.js';
 import Render from './render.js';
 import Model from './model.js';
 
-class Binder {
+export default {
 
-	constructor () {
-		this.data = {};
-		this.elements = new Map();
-	}
+	data: {},
+	elements: new Map(),
 
 	create (data) {
 		let binder = {};
@@ -35,7 +33,7 @@ class Binder {
 		binder.keys = [binder.scope].concat(binder.values);
 
 		return binder;
-	}
+	},
 
 	get (data) {
 		let binder;
@@ -68,7 +66,7 @@ class Binder {
 		}
 
 		return null;
-	}
+	},
 
 	add (binder) {
 
@@ -92,7 +90,7 @@ class Binder {
 		}
 
 		this.data[binder.scope][binder.path].push(binder);
-	}
+	},
 
 	remove (binder) {
 
@@ -126,7 +124,7 @@ class Binder {
 
 		}
 
-	}
+	},
 
 	each (path, callback) {
 		let paths = typeof path === 'string' ? path.split('.') : path;
@@ -156,7 +154,7 @@ class Binder {
 
 		}
 
-	}
+	},
 
 	// make async
 	piper (binder, data) {
@@ -183,7 +181,7 @@ class Binder {
 		}
 
 		return data;
-	}
+	},
 
 	skipChildren (element) {
 
@@ -210,7 +208,7 @@ class Binder {
 		}
 
 		return false;
-	}
+	},
 
 	eachElement (element, callback) {
 
@@ -232,7 +230,7 @@ class Binder {
 			}
 		}
 
-	}
+	},
 
 	eachAttribute (element, callback) {
 		let attributes = element.attributes;
@@ -253,7 +251,7 @@ class Binder {
 
 		}
 
-	}
+	},
 
 	unbind (element, container, scope) {
 
@@ -276,7 +274,7 @@ class Binder {
 				Unrender.default(binder);
 			});
 		});
-	}
+	},
 
 	bind (element, container, scope) {
 
@@ -305,6 +303,4 @@ class Binder {
 		});
 	}
 
-}
-
-export default new Binder();
+};

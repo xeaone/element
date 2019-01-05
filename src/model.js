@@ -3,15 +3,35 @@ import Unrender from './unrender.js';
 import Binder from './binder.js';
 import Render from './render.js';
 
-class Model {
+const listener = function (data, path, type) {
+	let method = data === undefined ? Unrender : Render;
 
-	constructor () {
-		this.GET = 2;
-		this.SET = 3;
-		this.REMOVE = 4;
-		this.ran = false;
-		this.data = Observer.create({}, this.listener.bind(this));
+	if (type === 'length') {
+		let scope = path.split('.').slice(0, 1).join('.');
+		let part = path.split('.').slice(1).join('.');
+
+		if (!(scope in Binder.data)) return;
+		if (!(part in Binder.data[scope])) return;
+		if (!(0 in Binder.data[scope][part])) return;
+
+		let binder = Binder.data[scope][part][0];
+
+		method.default(binder);
+	} else {
+		Binder.each(path, function (binder) {
+			method.default(binder);
+		});
 	}
+
+};
+
+export default {
+
+	GET: 2,
+	SET: 3,
+	REMOVE: 4,
+	ran: false,
+	data: Observer.create({}, listener),
 
 	traverse (type, keys, value) {
 		let result;
@@ -48,42 +68,18 @@ class Model {
 		}
 
 		return result;
-	}
+	},
 
 	get (keys) {
 		return this.traverse(this.GET, keys);
-	}
+	},
 
 	remove (keys) {
 		return this.traverse(this.REMOVE, keys);
-	}
+	},
 
 	set (keys, value) {
 		return this.traverse(this.SET, keys, value);
 	}
 
-	listener (data, path, type) {
-		let method = data === undefined ? Unrender : Render;
-
-		if (type === 'length') {
-			let scope = path.split('.').slice(0, 1).join('.');
-			let part = path.split('.').slice(1).join('.');
-
-			if (!(scope in Binder.data)) return;
-			if (!(part in Binder.data[scope])) return;
-			if (!(0 in Binder.data[scope][part])) return;
-
-			let binder = Binder.data[scope][part][0];
-
-			method.default(binder);
-		} else {
-			Binder.each(path, function (binder) {
-				method.default(binder);
-			});
-		}
-
-	}
-
-}
-
-export default new Model();
+};

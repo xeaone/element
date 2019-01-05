@@ -1,28 +1,26 @@
 
-class Batcher {
+export default {
 
-	constructor () {
-		this.reads = [];
-		this.writes = [];
-		this.time = 1000/30;
-		this.pending = false;
-	}
+	reads: [],
+	writes: [],
+	time: 1000/30,
+	pending: false,
 
 	setup (options) {
 		options = options || {};
 		this.time = options.time || this.time;
-	}
+	},
 
 	tick (callback) {
 		return window.requestAnimationFrame(callback);
-	}
+	},
 
 	// schedules a new read/write batch if one is not pending
 	schedule () {
 		if (this.pending) return;
 		this.pending = true;
 		this.tick(this.flush.bind(this, null));
-	}
+	},
 
 	flush (time) {
 		time = time || performance.now();
@@ -57,16 +55,16 @@ class Batcher {
 			this.flush(time);
 		}
 
-	}
+	},
 
 	remove (tasks, task) {
 		let index = tasks.indexOf(task);
 		return !!~index && !!tasks.splice(index, 1);
-	}
+	},
 
 	clear (task) {
 		return this.remove(this.reads, task) || this.remove(this.writes, task);
-	}
+	},
 
 	batch (data) {
 		let self = this;
@@ -131,9 +129,7 @@ class Batcher {
 		return data;
 	}
 
-}
-
-export default new Batcher();
+};
 
 /*
 	console.log('read ', Oxe.batcher.tr);

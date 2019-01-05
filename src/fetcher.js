@@ -1,19 +1,17 @@
 
-class Fetcher {
+export default {
 
-	constructor () {
-		this.head = null;
-		this.method = 'get';
-		this.mime = {
-			xml: 'text/xml; charset=utf-8',
-			html: 'text/html; charset=utf-8',
-			text: 'text/plain; charset=utf-8',
-			json: 'application/json; charset=utf-8',
-			js: 'application/javascript; charset=utf-8'
-		};
-	}
+	head: null,
+	method: 'get',
+	mime: {
+		xml: 'text/xml; charset=utf-8',
+		html: 'text/html; charset=utf-8',
+		text: 'text/plain; charset=utf-8',
+		json: 'application/json; charset=utf-8',
+		js: 'application/javascript; charset=utf-8'
+	},
 
-	setup (options) {
+	async setup (options) {
 		options = options || {};
 		this.head = options.head || this.head;
 		this.method = options.method || this.method;
@@ -25,7 +23,7 @@ class Fetcher {
 		this.credentials = options.credentials;
 		this.contentType = options.contentType;
 		this.responseType = options.responseType;
-	}
+	},
 
 	async serialize (data) {
 		let query = '';
@@ -36,7 +34,7 @@ class Fetcher {
 		}
 
 		return query;
-	}
+	},
 
 	async fetch (options) {
 		let data = Object.assign({}, options);
@@ -171,48 +169,46 @@ class Fetcher {
 		}
 
 		return data;
-	}
+	},
 
 	async post (data) {
 		data.method = 'post';
 		return this.fetch(data);
-	}
+	},
 
 	async get (data) {
 		data.method = 'get';
 		return this.fetch(data);
-	}
+	},
 
 	async put (data) {
 		data.method = 'put';
 		return this.fetch(data);
-	}
+	},
 
 	async head (data) {
 		data.method = 'head';
 		return this.fetch(data);
-	}
+	},
 
 	async patch (data) {
 		data.method = 'patch';
 		return this.fetch(data);
-	}
+	},
 
 	async delete (data) {
 		data.method = 'delete';
 		return this.fetch(data);
-	}
+	},
 
 	async options (data) {
 		data.method = 'options';
 		return this.fetch(data);
-	}
+	},
 
 	async connect (data) {
 		data.method = 'connect';
 		return this.fetch(data);
 	}
 
-}
-
-export default new Fetcher();
+};

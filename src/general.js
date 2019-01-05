@@ -1,10 +1,8 @@
 import Path from './path.js';
 
-class General {
+export default {
 
-	constructor () {
-		this.compiled = false;
-	}
+	compiled: false,
 
 	setup (options) {
 		options = options || {};
@@ -15,6 +13,4 @@ class General {
 
 	}
 
-}
-
-export default new General();
+};

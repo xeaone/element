@@ -1,22 +1,25 @@
 import Path from './path.js';
 import Loader from './loader.js';
+// import Events from './events.js';
 import Utility from './utility.js';
 import Component from './component.js';
-import Events from './class/events.js';
 
-class Router extends Events {
+// const events = new Events();
 
-	constructor () {
-		super();
-		this.data = [];
-		this.ran = false;
-		this.location = {};
-		this.mode = 'push';
-		this.element = null;
-		this.contain = false;
-		this.folder = './routes';
-		this.parser = document.createElement('a');
-	}
+export default {
+
+	// on: events.on,
+	// off: events.off,
+	// emit: events.emit,
+
+	data: [],
+	ran: false,
+	location: {},
+	mode: 'push',
+	element: null,
+	contain: false,
+	folder: './routes',
+	parser: document.createElement('a'),
 
 	isPath (routePath, userPath) {
 		userPath = userPath || '/';
@@ -56,7 +59,7 @@ class Router extends Events {
 			return userPath.test(routePath);
 		}
 
-	}
+	},
 
 	toParameterObject (routePath, userPath) {
 		let result = {};
@@ -83,7 +86,7 @@ class Router extends Events {
 		}
 
 		return result;
-	}
+	},
 
 	toQueryString (data) {
 		let result = '?';
@@ -98,7 +101,7 @@ class Router extends Events {
 		}
 
 		return result;
-	}
+	},
 
 	toQueryObject (path) {
 		let result = {};
@@ -116,7 +119,7 @@ class Router extends Events {
 		}
 
 		return result;
-	}
+	},
 
 	toLocationObject (href) {
 		const location = {};
@@ -135,23 +138,23 @@ class Router extends Events {
 		location.path = location.pathname + location.search + location.hash;
 
 		return location;
-	}
+	},
 
 	scroll (x, y) {
 		window.scroll(x, y);
-	}
+	},
 
 	back () {
 		window.history.back();
-	}
+	},
 
 	forward () {
 		window.history.forward();
-	}
+	},
 
 	redirect (path) {
 		window.location.href = path;
-	}
+	},
 
 	async setup (options) {
 		options = options || {};
@@ -175,7 +178,7 @@ class Router extends Events {
 
 		await this.add(options.routes);
 		await this.route(window.location.href, { mode: 'replace' });
-	}
+	},
 
 	async load (route) {
 
@@ -189,7 +192,7 @@ class Router extends Events {
 		}
 
 		return route;
-	}
+	},
 
 	async add (data) {
 		if (!data) {
@@ -208,7 +211,7 @@ class Router extends Events {
 				await this.add(data[i]);
 			}
 		}
-	}
+	},
 
 	async remove (path) {
 		for (let i = 0, l = this.data.length; i < l; i++) {
@@ -216,7 +219,7 @@ class Router extends Events {
 				this.data.splice(i, 1);
 			}
 		}
-	}
+	},
 
 	async get (path) {
 		for (let i = 0, l = this.data.length; i < l; i++) {
@@ -225,7 +228,7 @@ class Router extends Events {
 				return this.data[i];
 			}
 		}
-	}
+	},
 
 	// async filter (path) {
 	// 	const result = [];
@@ -247,7 +250,7 @@ class Router extends Events {
 				return this.data[i];
 			}
 		}
-	}
+	},
 
 	async render (route) {
 
@@ -314,7 +317,7 @@ class Router extends Events {
 		}
 
 		this.scroll(0, 0);
-	}
+	},
 
 	async route (path, options) {
 		options = options || {};
@@ -348,7 +351,7 @@ class Router extends Events {
 			await this.before(location);
 		}
 
-		this.emit('route:before', location);
+		// this.emit('route:before', location);
 
 		if (mode === 'href' || mode === 'compiled') {
 			return window.location.assign(location.path);
@@ -364,10 +367,8 @@ class Router extends Events {
 			await this.after(location);
 		}
 
-		this.emit('route:after', location);
+		// this.emit('route:after', location);
 
-	}
+	},
 
-}
-
-export default new Router();
+};
