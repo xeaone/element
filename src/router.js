@@ -14,8 +14,6 @@ export default {
 
 	data: [],
 	ran: false,
-	// base: true,
-	// trailing: false,
 	location: {},
 	mode: 'push',
 	element: null,
@@ -177,8 +175,6 @@ export default {
 			// replace index with root
 			data = data.replace(/index\/*$/, '');
 			if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = `./${data}`;
-
-			// console.log('add: ', data);
 
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {

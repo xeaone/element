@@ -1,14 +1,12 @@
 {
 	"name": "oxe",
-	"version": "4.0.0",
+	"version": "4.0.2",
 	"description": "A mighty tiny web components framework/library",
 	"main": "dst/oxe.min.js",
 	"scripts": {
 		"b": "node build.js",
-		"t": "muleify -ssw ./web",
-		"bd": "rm -r ./docs/* && muleify -p ./web ./docs",
-		"ba": "npm run b && npm run bd",
-		"p": "npm run b && npm run ba && git add . && git commit -m 'index route path fixed' && git push"
+		"p": "node publish.js",
+		"t": "muleify -ssw ./web"
 	},
 	"repository": {
 		"type": "git",
