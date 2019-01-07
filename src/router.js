@@ -37,21 +37,28 @@ export default {
 		if (userPath.constructor === String) {
 			const userParts = userPath.split('/');
 			const routeParts = routePath.split('/');
+			const compareParts = [];
 
 			for (let i = 0, l = routeParts.length; i < l; i++) {
-				console.log(routeParts[i]);
-
 				if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(0, -1) === '}') {
-					continue
-				}
-
-				if (routeParts[i] !== userParts[i]) {
+					if (routeParts[i].indexOf('*') !== -1) {
+						return true;
+					} else {
+						compareParts.push(userParts[i]);
+					}
+				} else if (routeParts[i] !== userParts[i]) {
 					return false;
+				} else {
+					compareParts.push(routeParts[i]);
 				}
-
 			}
 
-			return true;
+			if (compareParts.join('/') === userParts.join('/')) {
+				return true;
+			} else {
+				return false;
+			}
+
 		}
 
 		if (userPath.constructor === RegExp) {
@@ -156,6 +163,32 @@ export default {
 		window.location.href = path;
 	},
 
+	add (data) {
+		if (!data) {
+			return;
+		} else if (data.constructor === String) {
+			// if relative might need to add base
+			// need to clean .js and /
+			let load = data;
+
+			// replace index with root
+			data = data.replace(/index\/*$/, '');
+			if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = `./${data}`;
+
+			console.log('add: ', data);
+
+			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
+		} else if (data.constructor === Object) {
+			if (!data.path) throw new Error('Oxe.router.add - route path required');
+			// if (!data.load && !data.component) throw new Error('Oxe.router.add - route.load or route.component required');
+			this.data.push(data);
+		} else if (data.constructor === Array) {
+			for (let i = 0, l = data.length; i < l; i++) {
+				this.add(data[i]);
+			}
+		}
+	},
+
 	async setup (options) {
 		options = options || {};
 
@@ -177,7 +210,7 @@ export default {
 			throw new Error('Oxe.router.render - missing o-router element');
 		}
 
-		await this.add(options.routes);
+		this.add(options.routes);
 		await this.route(window.location.href, { mode: 'replace' });
 	},
 
@@ -193,32 +226,6 @@ export default {
 		}
 
 		return route;
-	},
-
-	async add (data) {
-		if (!data) {
-			return;
-		} else if (data.constructor === String) {
-			// if relative might need to add base
-			// need to clean .js and /
-			let load = data;
-
-			// replace index with root
-			data = data.replace(/index\/*$/, '');
-			if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = `./${data}`;
-
-			console.log('add: ', data);
-
-			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
-		} else if (data.constructor === Object) {
-			if (!data.path) throw new Error('Oxe.router.add - route path required');
-			// if (!data.load && !data.component) throw new Error('Oxe.router.add - route.load or route.component required');
-			this.data.push(data);
-		} else if (data.constructor === Array) {
-			for (let i = 0, l = data.length; i < l; i++) {
-				await this.add(data[i]);
-			}
-		}
 	},
 
 	async remove (path) {
