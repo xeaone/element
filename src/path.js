@@ -32,7 +32,6 @@ export default {
 	},
 
 	resolve (path, base) {
-		let result = [];
 
 		path = path.replace(window.location.origin, '');
 
@@ -42,17 +41,16 @@ export default {
 
 		if (path.charAt(0) !== '/') {
 			base = base || this.base();
-			console.log(base);
-			path = path.replace(/^\.\//, '');
 			path = `${base}/${path}`;
 			path = path.replace(window.location.origin, '');
-			console.log(path);
 		}
 
 		path = path.replace(/\/{2,}/, '/');
+		path = path.replace(/\.\//, '');
 		path = path.replace(/^\//, '');
 		path = path.replace(/\/$/, '');
 
+		let result = [];
 		let paths = path.split('/');
 
 		for (let i = 0, l = paths.length; i < l; i++) {

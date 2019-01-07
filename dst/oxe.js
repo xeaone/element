@@ -2007,7 +2007,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return base ? base.href : window.location.origin + window.location.pathname;
     },
     resolve: function resolve(path, base) {
-      var result = [];
       path = path.replace(window.location.origin, '');
 
       if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('//') === 0) {
@@ -2016,16 +2015,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (path.charAt(0) !== '/') {
         base = base || this.base();
-        console.log(base);
-        path = path.replace(/^\.\//, '');
         path = "".concat(base, "/").concat(path);
         path = path.replace(window.location.origin, '');
-        console.log(path);
       }
 
       path = path.replace(/\/{2,}/, '/');
+      path = path.replace(/\.\//, '');
       path = path.replace(/^\//, '');
       path = path.replace(/\/$/, '');
+      var result = [];
       var paths = path.split('/');
 
       for (var i = 0, l = paths.length; i < l; i++) {
@@ -2684,8 +2682,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         routePath = Path.resolve(routePath);
       }
 
-      console.log(routePath);
-      console.log(userPath);
+      console.log('userPath: ', userPath);
+      console.log('routePath: ', routePath);
 
       if (userPath.constructor === String) {
         var userParts = userPath.split('/');
@@ -2856,6 +2854,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             load = data;
             data = data.replace(/index\/*$/, '');
             if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = "./".concat(data);
+            console.log('add: ', data);
             this.data.push({
               path: data,
               load: this.folder + '/' + load + '.js'

@@ -32,8 +32,8 @@ export default {
 			routePath = Path.resolve(routePath);
 		}
 
-		console.log(routePath);
-		console.log(userPath);
+		console.log('userPath: ', userPath);
+		console.log('routePath: ', routePath);
 
 		if (userPath.constructor === String) {
 			const userParts = userPath.split('/');
@@ -205,6 +205,8 @@ export default {
 			// replace index with root
 			data = data.replace(/index\/*$/, '');
 			if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = `./${data}`;
+
+			console.log('add: ', data);
 
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {
