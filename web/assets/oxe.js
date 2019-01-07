@@ -2020,7 +2020,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       path = path.replace(/\/{2,}/, '/');
-      path = path.replace(/\.\//, '');
       path = path.replace(/^\//, '');
       path = path.replace(/\/$/, '');
       var result = [];
