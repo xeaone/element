@@ -158,7 +158,6 @@ export default {
 		}
 
 		await Promise.resolve(data.promise());
-
 		return data.result;
 	}
 
