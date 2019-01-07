@@ -10,6 +10,7 @@ import On from './unrender-attribute/on.js';
 import Read from './unrender-attribute/read.js';
 import Required from './unrender-attribute/required.js';
 import Show from './unrender-attribute/show.js';
+import Style from './unrender-attribute/style.js';
 import Text from './unrender-attribute/text.js';
 import Value from './unrender-attribute/value.js';
 import Write from './unrender-attribute/write.js';
@@ -29,6 +30,7 @@ export default {
 	read: Read,
 	required: Required,
 	show: Show,
+	style: Style,
 	text: Text,
 	value: Value,
 	write: Write

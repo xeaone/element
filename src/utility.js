@@ -1,7 +1,7 @@
 
 export default {
 
-	PREFIX: /data-o-|o-/,
+	PREFIX: /o-/,
 	ROOT: /^(https?:)?\/?\//,
 
 	DOT: /\.+/,
@@ -9,7 +9,6 @@ export default {
 	PIPES: /\s?,\s?|\s+/,
 	VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
 	VARIABLE_END: '(?:)',
-	// VARIABLE_END: '([^a-zA-z1-9]|$)',
 
 	binderNames (data) {
 		data = data.split(this.PREFIX)[1];
@@ -116,9 +115,8 @@ export default {
 			} else if (node.nodeType === 1) {
 				for (let i = 0, l = node.attributes.length; i < l; i++) {
 					let attribute = node.attributes[i];
-					if (attribute.name.indexOf('o-') === 0 || attribute.name.indexOf('data-o-') === 0) {
+					if (attribute.name.indexOf('o-') === 0) {
 						attribute.value = attribute.value.replace(pattern, `$1${path}.${key}`);
-						// attribute.value = attribute.value.replace(pattern, `$1${path}.${key}$2`);
 					}
 				}
 			}
@@ -188,13 +186,7 @@ export default {
 		}
 
 		return data[keys[last]];
-	},
-
-	joinDot () {
-		return Array.prototype.join
-			.call(arguments, '.')
-			.replace(/\.{2,}/g, '.');
-	},
+	}
 
 	// getScope (element) {
 	//
@@ -202,7 +194,7 @@ export default {
 	// 		return;
 	// 	}
 	//
-	// 	if (element.hasAttribute('o-scope') || element.hasAttribute('data-o-scope')) {
+	// 	if (element.hasAttribute('o-scope')) {
 	// 		return element;
 	// 	}
 	//
@@ -211,19 +203,6 @@ export default {
 	// 	}
 	//
 	// 	// console.warn('Oxe.utility - could not find container scope');
-	// },
-
-	ready (callback) {
-		if (callback) {
-			if (document.readyState !== 'interactive' && document.readyState !== 'complete') {
-				document.addEventListener('DOMContentLoaded', function _ () {
-					callback();
-					document.removeEventListener('DOMContentLoaded', _);
-				}, true);
-			} else {
-				callback();
-			}
-		}
-	}
+	// }
 
 }

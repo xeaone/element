@@ -10,6 +10,7 @@ import On from './render-attribute/on.js';
 import Read from './render-attribute/read.js';
 import Required from './render-attribute/required.js';
 import Show from './render-attribute/show.js';
+import Style from './render-attribute/style.js';
 import Text from './render-attribute/text.js';
 import Value from './render-attribute/value.js';
 import Write from './render-attribute/write.js';
@@ -29,6 +30,7 @@ export default {
 	read: Read,
 	required: Required,
 	show: Show,
+	style: Style,
 	text: Text,
 	value: Value,
 	write: Write

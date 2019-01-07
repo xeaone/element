@@ -66,9 +66,7 @@ export default function (event) {
 	event.preventDefault();
 
 	if (Router.location.href !== target.href) {
-		Promise.resolve().then(function () {
-			return Router.route(target.href);
-		}).catch(console.error);
+		Router.route(target.href).catch(console.error);
 	}
 
 };

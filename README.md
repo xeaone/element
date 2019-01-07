@@ -1,7 +1,7 @@
 
 # Oxe
 A mighty tiny web components framework/library.
-Command line interface moved to [oxe-cli](https://github.com/vokeio/oxe-cli).
+<!-- Command line interface moved to [oxe-cli](https://github.com/vokeio/oxe-cli). -->
 
 ### API
 Api documentation can be found at [API.md](https://github.com/vokeio/oxe/blob/master/API.md).
@@ -10,8 +10,9 @@ Api documentation can be found at [API.md](https://github.com/vokeio/oxe/blob/ma
 Breaking version changes can be found at [VERSION.md](https://github.com/vokeio/oxe/blob/master/VERSION.md).
 
 ### Features
-- Small
+- Small size
 - Front end routing
+- Configuration based
 - Optional module loading
 - Optional in browser ES6/ESM module rewrites
 - Optional in browser Template string rewrites
@@ -19,12 +20,14 @@ Breaking version changes can be found at [VERSION.md](https://github.com/vokeio/
 ### Polyfill
 - [poly.min.js](https://github.com/vokeio/oxe/blob/master/dst/poly.min.js) includes everything need except shadow poly code.
 	- customElements
+	- DocumentFragment
 	- URL, Promise, fetch
 	- HTMLTemplateElement
 	- Event, CustomEvent, MouseEvent constructors and Object.assign, Array.from
 - [poly.shadow.min.js](https://github.com/vokeio/oxe/blob/master/dst/poly.shadow.min.js) includes everything.
-	- Promise, fetch
 	- Webcomponentsjs
+	- DocumentFragment
+	- URL, Promise, fetch
 
 
 ### Support
@@ -92,7 +95,8 @@ Oxe.setup({
 	},
 	router: {
 		routes: [
-			Home
+			Home,
+			'error' // dynamically loads and resolves to /routes/error.js
 		]
 	}
 });

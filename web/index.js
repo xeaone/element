@@ -36,10 +36,11 @@ Oxe.setup({
 	router: {
 		routes: [
 			'index',
-			'select',
-			'test',
 			'js',
+			'test',
+			'select',
 			'input',
+			'style',
 			r404
 		]
 	}

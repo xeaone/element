@@ -83,11 +83,10 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 	- `load: Object, String`
 		- `url: String` Path to file resources
 		- `type: String` If not defined uses the default type
-- `on: EventEmitter`
-	- `setup`
 
 ### Oxe.router
 - `options: Object`
+	- `folder: String` (default: '/routes') resolves the route is provided a string
 	- `mode: String` (default: push) The href option uses `window.location.assign`
 		- href
 		- push
@@ -99,7 +98,8 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 	- `before: AsyncFunction` Invoked before the routed
 		- `location: Object` Oxe.router.location argument for the upcoming route
 	- `routes: Array`
-		- `route: Object`
+		- `route: Object, String` Dynamically loads the string based on the Oxe.router.folder and appends .js
+			- `load: String` Dynamically loads the content and assigns it to the route object
 			- `path: String` Any path starting with forward slash
 				- `parameters: String` Paths can have parameters `/account/{user}` or catchalls `{\*}`
 			- `title: String` Sets the page title
@@ -107,7 +107,6 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 			- `description: String` Sets the page description
 			- `handler: Function` Overrides the default render method
 			- `component: Object, String` An Oxe.component.define options object or a component name
-			- `load: Object, String` An Oxe.loader.load options object or a url
 - `setup: AsyncFunction`
 	- `options: Object` Accepts the above options
 - `location: Object` Similar to window.location
