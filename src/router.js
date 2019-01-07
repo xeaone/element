@@ -22,15 +22,15 @@ export default {
 	parser: document.createElement('a'),
 
 	isPath (routePath, userPath) {
-		userPath = userPath || '/';
-
-		if (routePath === 'index' || routePath === '/index') {
-			routePath = '/';
-		}
-
-		if (userPath === 'index' || userPath === '/index') {
-			userPath = '/';
-		}
+		// userPath = userPath || '/';
+		//
+		// if (routePath === 'index' || routePath === '/index') {
+		// 	routePath = '/';
+		// }
+		//
+		// if (userPath === 'index' || userPath === '/index') {
+		// 	userPath = '/';
+		// }
 
 		if (routePath.slice(0, 1) !== '/') {
 			routePath = Path.resolve(routePath);
@@ -197,6 +197,16 @@ export default {
 			// if relative might need to add base
 			// need to clean .js and /
 			let load = data;
+
+			let parts = data.split('/');
+			for (let i = 0, l = parts.length; i < l; i++) {
+				if (parts[i] === 'index') {
+					parts.splice(i, 1);
+				}
+			}
+			data = parts.join('/');
+			if (data === '') data = '/';
+
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {
 			if (!data.path) throw new Error('Oxe.router.add - route path required');
