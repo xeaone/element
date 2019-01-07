@@ -2673,6 +2673,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     folder: './routes',
     parser: document.createElement('a'),
     isPath: function isPath(routePath, userPath) {
+      console.log(routePath);
+      console.log(userPath);
+
       if (routePath.slice(0, 1) !== '/') {
         routePath = Path.resolve(routePath);
       }
@@ -2844,9 +2847,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             parts = data.split('/');
 
             for (i = 0, l = parts.length; i < l; i++) {
-              if (parts[i] === 'index') {
-                parts.splice(i, 1);
-              }
+              if (parts[i] === 'index') parts.splice(i, 1);
             }
 
             data = parts.join('/');

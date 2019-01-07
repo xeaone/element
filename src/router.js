@@ -32,6 +32,9 @@ export default {
 		// 	userPath = '/';
 		// }
 
+		console.log(routePath);
+		console.log(userPath);
+
 		if (routePath.slice(0, 1) !== '/') {
 			routePath = Path.resolve(routePath);
 		}
@@ -198,11 +201,10 @@ export default {
 			// need to clean .js and /
 			let load = data;
 
+			// replace index with root
 			let parts = data.split('/');
 			for (let i = 0, l = parts.length; i < l; i++) {
-				if (parts[i] === 'index') {
-					parts.splice(i, 1);
-				}
+				if (parts[i] === 'index') parts.splice(i, 1);
 			}
 			data = parts.join('/');
 			if (data === '') data = '/';
