@@ -18,12 +18,13 @@ const Exec = Util.promisify(ChildProcess.exec);
 
 	for (const command of commands) {
 
-		const { error, stdout, stderr } = await Exec(command);
+		const { stdout, stderr } = await Exec(command);
 
-		if (error) console.error(error);
 		if (stdout) console.log(stdout);
 		if (stderr) console.warn(stderr);
 
 	}
 
-}()).catch(console.error);
+}()).catch(function (error) {
+	console.error(error.message);
+});
