@@ -3443,6 +3443,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return Model;
     },
 
+    get path() {
+      return Path;
+    },
+
     setup: function setup(data) {
       return new Promise(function ($return, $error) {
         if (this._setup) {

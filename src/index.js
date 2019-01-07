@@ -15,6 +15,7 @@ import Loader from './loader.js';
 import Binder from './binder.js';
 import Render from './render.js';
 import Model from './model.js';
+import Path from './path.js';
 
 let eStyle = document.createElement('style');
 let tStyle = document.createTextNode(`
@@ -176,6 +177,10 @@ export default {
 
 	get model () {
 		return Model;
+	},
+
+	get path () {
+		return Path;
 	},
 
 	async setup (data) {
