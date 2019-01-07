@@ -31,8 +31,8 @@ export default {
 			routePath = Path.resolve(routePath);
 		}
 
-		console.log('userPath: ', userPath);
-		console.log('routePath: ', routePath);
+		// console.log('userPath: ', userPath);
+		// console.log('routePath: ', routePath);
 
 		if (userPath.constructor === String) {
 			const userParts = userPath.split('/');
@@ -40,7 +40,7 @@ export default {
 			const compareParts = [];
 
 			for (let i = 0, l = routeParts.length; i < l; i++) {
-				if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(0, -1) === '}') {
+				if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(-1) === '}') {
 					if (routeParts[i].indexOf('*') !== -1) {
 						return true;
 					} else {
@@ -52,6 +52,8 @@ export default {
 					compareParts.push(routeParts[i]);
 				}
 			}
+
+			console.log(compareParts.join('/'));
 
 			if (compareParts.join('/') === userParts.join('/')) {
 				return true;
@@ -175,7 +177,7 @@ export default {
 			data = data.replace(/index\/*$/, '');
 			if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = `./${data}`;
 
-			console.log('add: ', data);
+			// console.log('add: ', data);
 
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {

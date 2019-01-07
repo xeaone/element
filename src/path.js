@@ -46,7 +46,6 @@ export default {
 		}
 
 		path = path.replace(/\/{2,}/, '/');
-		// path = path.replace(/\.\//, '');
 		path = path.replace(/^\//, '');
 		path = path.replace(/\/$/, '');
 

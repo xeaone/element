@@ -2680,16 +2680,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         routePath = Path.resolve(routePath);
       }
 
-      console.log('userPath: ', userPath);
-      console.log('routePath: ', routePath);
-
       if (userPath.constructor === String) {
         var userParts = userPath.split('/');
         var routeParts = routePath.split('/');
         var compareParts = [];
 
         for (var i = 0, l = routeParts.length; i < l; i++) {
-          if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(0, -1) === '}') {
+          if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(-1) === '}') {
             if (routeParts[i].indexOf('*') !== -1) {
               return true;
             } else {
@@ -2701,6 +2698,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             compareParts.push(routeParts[i]);
           }
         }
+
+        console.log(compareParts.join('/'));
 
         if (compareParts.join('/') === userParts.join('/')) {
           return true;
@@ -2793,7 +2792,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var load = data;
         data = data.replace(/index\/*$/, '');
         if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = "./".concat(data);
-        console.log('add: ', data);
         this.data.push({
           path: data,
           load: this.folder + '/' + load + '.js'
