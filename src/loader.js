@@ -53,17 +53,6 @@ export default {
 
 	},
 
-	async fetch (data) {
-		let result = await window.fetch(data.url);
-
-		if (result.status >= 200 && result.status < 300 || result.status == 304) {
-			data.text = await result.text();
-		} else {
-			throw new Error(result.statusText);
-		}
-
-	},
-
 	async attach (data) {
 		return new Promise(function (resolve, reject) {
 			let element = document.createElement(data.tag);
@@ -77,6 +66,17 @@ export default {
 
 			document.head.appendChild(element);
 		});
+	},
+
+	async fetch (data) {
+		let result = await window.fetch(data.url);
+
+		if (result.status >= 200 && result.status < 300 || result.status == 304) {
+			data.text = await result.text();
+		} else {
+			throw new Error(result.statusText);
+		}
+
 	},
 
 	async js (data) {
@@ -93,11 +93,11 @@ export default {
 				await this.transform(data);
 			}
 
-			return await this.execute(data);
+			return this.execute(data);
 		}
 
 		if (data.method === 'script') {
-			return await this.attach({
+			return this.attach({
 				tag: 'script',
 				attributes: {
 					src: data.url,
@@ -139,7 +139,7 @@ export default {
 		data.url = Path.resolve(data.url);
 
 		if (data.url in this.data) {
-			await this.data[data.url].promise();
+			await Promise.resolve(this.data[data.url].promise());
 			return this.data[data.url].result;
 		}
 
@@ -150,14 +150,14 @@ export default {
 		data.transformer = data.transformer || this.transformers[data.extension];
 
 		if (data.extension === 'js') {
-			data.promise = this.js.bind(this, data);
+			data.promise = this.js(data);
 		} else if (data.extension === 'css') {
-			data.promise = this.css.bind(this, data);
+			data.promise = this.css(data);
 		} else {
-			data.promise = this.fetch.bind(this, data);
+			data.promise = this.fetch(data);
 		}
 
-		await data.promise();
+		await Promise.resolve(data.promise());
 
 		return data.result;
 	}
