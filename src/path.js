@@ -42,7 +42,8 @@ export default {
 
 		if (path.charAt(0) !== '/') {
 			base = base || this.base();
-			path = base + '/' + path;
+			path = path.replace(/^\.\//, '');
+			path = `${base}/${path}`;
 			path = path.replace(window.location.origin, '');
 		}
 

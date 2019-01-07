@@ -2016,7 +2016,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (path.charAt(0) !== '/') {
         base = base || this.base();
-        path = base + '/' + path;
+        path = path.replace(/^\.\//, '');
+        path = "".concat(base, "/").concat(path);
         path = path.replace(window.location.origin, '');
       }
 
@@ -2680,9 +2681,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (routePath.slice(0, 1) !== '/') {
         routePath = Path.resolve(routePath);
       }
-
-      console.log(userPath);
-      console.log(routePath);
 
       if (userPath.constructor === String) {
         var userParts = userPath.split('/');
