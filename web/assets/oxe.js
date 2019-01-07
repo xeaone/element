@@ -2666,12 +2666,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     emit: events.emit.bind(events),
     data: [],
     ran: false,
+    trailing: false,
     location: {},
     mode: 'push',
     element: null,
     contain: false,
     folder: './routes',
-    isPath: function isPath(routePath, userPath) {
+    compare: function compare(routePath, userPath) {
       if (userPath.slice(0, 1) !== '/') {
         userPath = Path.resolve(userPath);
       }
@@ -2680,36 +2681,36 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         routePath = Path.resolve(routePath);
       }
 
-      if (userPath.constructor === String) {
-        var userParts = userPath.split('/');
-        var routeParts = routePath.split('/');
-        var compareParts = [];
+      var userParts = userPath.split('/');
+      var routeParts = routePath.split('/');
+      var compareParts = [];
 
-        for (var i = 0, l = routeParts.length; i < l; i++) {
-          if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(-1) === '}') {
-            if (routeParts[i].indexOf('*') !== -1) {
-              return true;
-            } else {
-              compareParts.push(userParts[i]);
-            }
-          } else if (routeParts[i] !== userParts[i]) {
-            return false;
+      if (userParts.length > 1 && userParts.slice(-1) === '') {
+        userParts.pop();
+      }
+
+      if (routeParts.length > 1 && routeParts.slice(-1) === '') {
+        routeParts.pop();
+      }
+
+      for (var i = 0, l = routeParts.length; i < l; i++) {
+        if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(-1) === '}') {
+          if (routeParts[i].indexOf('*') !== -1) {
+            return true;
           } else {
-            compareParts.push(routeParts[i]);
+            compareParts.push(userParts[i]);
           }
-        }
-
-        console.log(compareParts.join('/'));
-
-        if (compareParts.join('/') === userParts.join('/')) {
-          return true;
-        } else {
+        } else if (routeParts[i] !== userParts[i]) {
           return false;
+        } else {
+          compareParts.push(routeParts[i]);
         }
       }
 
-      if (userPath.constructor === RegExp) {
-        return userPath.test(routePath);
+      if (compareParts.join('/') === userParts.join('/')) {
+        return true;
+      } else {
+        return false;
       }
     },
     toParameterObject: function toParameterObject(routePath, userPath) {
@@ -2937,7 +2938,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         function $Loop_18() {
           if (i < l) {
-            if (this.isPath(this.data[i].path, path)) {
+            if (this.compare(this.data[i].path, path)) {
               return Promise.resolve(this.load(this.data[i])).then(function ($await_55) {
                 try {
                   this.data[i] = $await_55;
@@ -2989,7 +2990,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         function $Loop_21() {
           if (i < l) {
-            if (this.isPath(this.data[i].path, path)) {
+            if (this.compare(this.data[i].path, path)) {
               return Promise.resolve(this.load(this.data[i])).then(function ($await_56) {
                 try {
                   this.data[i] = $await_56;

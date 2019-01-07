@@ -15,13 +15,14 @@ export default {
 	data: [],
 	ran: false,
 	// base: true,
+	trailing: false,
 	location: {},
 	mode: 'push',
 	element: null,
 	contain: false,
 	folder: './routes',
 
-	isPath (routePath, userPath) {
+	compare (routePath, userPath) {
 
 		if (userPath.slice(0, 1) !== '/') {
 			userPath = Path.resolve(userPath);
@@ -31,40 +32,40 @@ export default {
 			routePath = Path.resolve(routePath);
 		}
 
-		// console.log('userPath: ', userPath);
-		// console.log('routePath: ', routePath);
+		const userParts = userPath.split('/');
+		const routeParts = routePath.split('/');
+		const compareParts = [];
 
-		if (userPath.constructor === String) {
-			const userParts = userPath.split('/');
-			const routeParts = routePath.split('/');
-			const compareParts = [];
+		if (userParts.length > 1 && userParts.slice(-1) === '') {
+			userParts.pop();
+		}
 
-			for (let i = 0, l = routeParts.length; i < l; i++) {
-				if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(-1) === '}') {
-					if (routeParts[i].indexOf('*') !== -1) {
-						return true;
-					} else {
-						compareParts.push(userParts[i]);
-					}
-				} else if (routeParts[i] !== userParts[i]) {
-					return false;
+		if (routeParts.length > 1 && routeParts.slice(-1) === '') {
+			routeParts.pop();
+		}
+
+		for (let i = 0, l = routeParts.length; i < l; i++) {
+
+			if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(-1) === '}') {
+
+				if (routeParts[i].indexOf('*') !== -1) {
+					return true;
 				} else {
-					compareParts.push(routeParts[i]);
+					compareParts.push(userParts[i]);
 				}
-			}
 
-			console.log(compareParts.join('/'));
-
-			if (compareParts.join('/') === userParts.join('/')) {
-				return true;
-			} else {
+			} else if (routeParts[i] !== userParts[i]) {
 				return false;
+			} else {
+				compareParts.push(routeParts[i]);
 			}
 
 		}
 
-		if (userPath.constructor === RegExp) {
-			return userPath.test(routePath);
+		if (compareParts.join('/') === userParts.join('/')) {
+			return true;
+		} else {
+			return false;
 		}
 
 	},
@@ -251,7 +252,7 @@ export default {
 		const result = [];
 
 		for (let i = 0, l = this.data.length; i < l; i++) {
-			if (this.isPath(this.data[i].path, path)) {
+			if (this.compare(this.data[i].path, path)) {
 				this.data[i] = await this.load(this.data[i]);
 				result.push(this.data[i]);
 			}
@@ -262,7 +263,7 @@ export default {
 
 	async find (path) {
 		for (let i = 0, l = this.data.length; i < l; i++) {
-			if (this.isPath(this.data[i].path, path)) {
+			if (this.compare(this.data[i].path, path)) {
 				this.data[i] = await this.load(this.data[i]);
 				return this.data[i];
 			}
