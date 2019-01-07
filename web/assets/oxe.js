@@ -2666,7 +2666,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     emit: events.emit.bind(events),
     data: [],
     ran: false,
-    trailing: false,
     location: {},
     mode: 'push',
     element: null,
@@ -2685,11 +2684,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var routeParts = routePath.split('/');
       var compareParts = [];
 
-      if (userParts.length > 1 && userParts.slice(-1) === '') {
+      if (userParts.length > 1 && userParts[userParts.length - 1] === '') {
         userParts.pop();
       }
 
-      if (routeParts.length > 1 && routeParts.slice(-1) === '') {
+      if (routeParts.length > 1 && routeParts[routeParts.length - 1] === '') {
         routeParts.pop();
       }
 

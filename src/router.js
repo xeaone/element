@@ -15,7 +15,7 @@ export default {
 	data: [],
 	ran: false,
 	// base: true,
-	trailing: false,
+	// trailing: false,
 	location: {},
 	mode: 'push',
 	element: null,
@@ -36,11 +36,11 @@ export default {
 		const routeParts = routePath.split('/');
 		const compareParts = [];
 
-		if (userParts.length > 1 && userParts.slice(-1) === '') {
+		if (userParts.length > 1 && userParts[userParts.length-1] === '') {
 			userParts.pop();
 		}
 
-		if (routeParts.length > 1 && routeParts.slice(-1) === '') {
+		if (routeParts.length > 1 && routeParts[routeParts.length-1] === '') {
 			routeParts.pop();
 		}
 
