@@ -226,18 +226,18 @@ export default {
 		}
 	},
 
-	// async filter (path) {
-	// 	const result = [];
-	//
-	// 	for (let i = 0, l = this.data.length; i < l; i++) {
-	// 		if (this.isPath(this.data[i].path, path)) {
-	// 			this.data[i] = await this.load(this.data[i]);
-	// 			result.push(this.data[i]);
-	// 		}
-	// 	}
-	//
-	// 	return result;
-	// }
+	async filter (path) {
+		const result = [];
+
+		for (let i = 0, l = this.data.length; i < l; i++) {
+			if (this.isPath(this.data[i].path, path)) {
+				this.data[i] = await this.load(this.data[i]);
+				result.push(this.data[i]);
+			}
+		}
+
+		return result;
+	},
 
 	async find (path) {
 		for (let i = 0, l = this.data.length; i < l; i++) {
