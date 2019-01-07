@@ -1,16 +1,16 @@
 import Path from './path.js';
 import Loader from './loader.js';
-// import Events from './events.js';
+import Events from './events.js';
 import Utility from './utility.js';
 import Component from './component.js';
 
-// const events = new Events();
+const events = new Events();
 
 export default {
 
-	// on: events.on,
-	// off: events.off,
-	// emit: events.emit,
+	on: events.on.bind(events),
+	off: events.off.bind(events),
+	emit: events.emit.bind(events),
 
 	data: [],
 	ran: false,
@@ -351,7 +351,7 @@ export default {
 			await this.before(location);
 		}
 
-		// this.emit('route:before', location);
+		this.emit('route:before', location);
 
 		if (mode === 'href' || mode === 'compiled') {
 			return window.location.assign(location.path);
@@ -367,8 +367,8 @@ export default {
 			await this.after(location);
 		}
 
-		// this.emit('route:after', location);
+		this.emit('route:after', location);
 
-	},
+	}
 
 };
