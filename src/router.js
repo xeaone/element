@@ -22,18 +22,10 @@ export default {
 	parser: document.createElement('a'),
 
 	isPath (routePath, userPath) {
-		// userPath = userPath || '/';
-		//
-		// if (routePath === 'index' || routePath === '/index') {
-		// 	routePath = '/';
-		// }
-		//
-		// if (userPath === 'index' || userPath === '/index') {
-		// 	userPath = '/';
-		// }
 
-		console.log(routePath);
-		console.log(userPath);
+		if (userPath.slice(0, 1) !== '/') {
+			userPath = Path.resolve(userPath);
+		}
 
 		if (routePath.slice(0, 1) !== '/') {
 			routePath = Path.resolve(routePath);
@@ -44,11 +36,15 @@ export default {
 			const routeParts = routePath.split('/');
 
 			for (let i = 0, l = routeParts.length; i < l; i++) {
-				if (routeParts[i].indexOf('{') === 0 && routeParts[i].indexOf('}') === routeParts[i].length-1) {
+
+				if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(0, -1) === '}') {
 					continue
-				} else if (routeParts[i] !== userParts[i]) {
+				}
+
+				if (routeParts[i] !== userParts[i]) {
 					return false;
 				}
+
 			}
 
 			return true;

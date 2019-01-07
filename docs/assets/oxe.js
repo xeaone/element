@@ -2673,8 +2673,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     folder: './routes',
     parser: document.createElement('a'),
     isPath: function isPath(routePath, userPath) {
-      console.log(routePath);
-      console.log(userPath);
+      if (userPath.slice(0, 1) !== '/') {
+        userPath = Path.resolve(userPath);
+      }
 
       if (routePath.slice(0, 1) !== '/') {
         routePath = Path.resolve(routePath);
@@ -2685,9 +2686,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var routeParts = routePath.split('/');
 
         for (var i = 0, l = routeParts.length; i < l; i++) {
-          if (routeParts[i].indexOf('{') === 0 && routeParts[i].indexOf('}') === routeParts[i].length - 1) {
+          if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(0, -1) === '}') {
             continue;
-          } else if (routeParts[i] !== userParts[i]) {
+          }
+
+          if (routeParts[i] !== userParts[i]) {
             return false;
           }
         }
