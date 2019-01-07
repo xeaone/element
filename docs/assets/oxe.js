@@ -2016,9 +2016,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (path.charAt(0) !== '/') {
         base = base || this.base();
+        console.log(base);
         path = path.replace(/^\.\//, '');
         path = "".concat(base, "/").concat(path);
         path = path.replace(window.location.origin, '');
+        console.log(path);
       }
 
       path = path.replace(/\/{2,}/, '/');

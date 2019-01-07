@@ -42,9 +42,11 @@ export default {
 
 		if (path.charAt(0) !== '/') {
 			base = base || this.base();
+			console.log(base);
 			path = path.replace(/^\.\//, '');
 			path = `${base}/${path}`;
 			path = path.replace(window.location.origin, '');
+			console.log(path);
 		}
 
 		path = path.replace(/\/{2,}/, '/');
