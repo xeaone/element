@@ -37,14 +37,10 @@ export default {
 		}
 
 		if (userPath.constructor === String) {
-			// console.log(userPath);
-			// console.log(routePath);
 			const userParts = userPath.split('/');
 			const routeParts = routePath.split('/');
 
 			for (let i = 0, l = routeParts.length; i < l; i++) {
-				// console.log(routeParts[i]);
-				// console.log(userParts[i]);
 				if (routeParts[i].indexOf('{') === 0 && routeParts[i].indexOf('}') === routeParts[i].length-1) {
 					continue
 				} else if (routeParts[i] !== userParts[i]) {
