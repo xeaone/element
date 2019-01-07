@@ -6,7 +6,6 @@
 	"scripts": {
 		"b": "node build.js",
 		"t": "muleify -ssw ./web",
-		"w": "muleify -pwbt ./src/index.js ./web/assets/oxe.js --path ./src",
 		"bd": "rm -r ./docs/* && muleify -p ./web ./docs",
 		"ba": "npm run b && npm run bd"
 	},
