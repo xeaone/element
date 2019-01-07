@@ -203,17 +203,8 @@ export default {
 			let load = data;
 
 			// replace index with root
-			// let parts = data.split('/');
-			// for (let i = 0, l = parts.length; i < l; i++) {
-			// 	if (parts[i] === 'index') parts.splice(i, 1);
-			// }
-			// data = parts.join('/');
-			// if (data === '') data = './';
-
-			data = data.replace(/\/*index\/*/, '');
-			data = data || './';
-			console.log(data);
-			// data = Path.resolve(data);
+			data = data.replace(/index\/*$/, '');
+			if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = `./${data}`;
 
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {

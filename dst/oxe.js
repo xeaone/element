@@ -2851,9 +2851,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         } else {
           if (data.constructor === String) {
             load = data;
-            data = data.replace(/\/*index\/*/, '');
-            data = data || './';
-            console.log(data);
+            data = data.replace(/index\/*$/, '');
+            if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = "./".concat(data);
             this.data.push({
               path: data,
               load: this.folder + '/' + load + '.js'
