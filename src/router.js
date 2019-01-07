@@ -32,6 +32,9 @@ export default {
 			routePath = Path.resolve(routePath);
 		}
 
+		console.log(routePath);
+		console.log(userPath);
+
 		if (userPath.constructor === String) {
 			const userParts = userPath.split('/');
 			const routeParts = routePath.split('/');

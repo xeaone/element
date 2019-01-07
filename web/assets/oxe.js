@@ -2682,6 +2682,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         routePath = Path.resolve(routePath);
       }
 
+      console.log(routePath);
+      console.log(userPath);
+
       if (userPath.constructor === String) {
         var userParts = userPath.split('/');
         var routeParts = routePath.split('/');
