@@ -2780,6 +2780,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
+        this.base = options.base === undefined ? this.base : options.base;
         this.mode = options.mode === undefined ? this.mode : options.mode;
         this.after = options.after === undefined ? this.after : options.after;
         this.folder = options.folder === undefined ? this.folder : options.folder;
@@ -2857,7 +2858,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             }
 
             data = parts.join('/');
-            if (data === '') data = '/';
+            if (data === '') data = './';
             this.data.push({
               path: data,
               load: this.folder + '/' + load + '.js'

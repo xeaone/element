@@ -14,6 +14,7 @@ export default {
 
 	data: [],
 	ran: false,
+	// base: true,
 	location: {},
 	mode: 'push',
 	element: null,
@@ -157,6 +158,7 @@ export default {
 	async setup (options) {
 		options = options || {};
 
+		this.base = options.base === undefined ? this.base : options.base;
 		this.mode = options.mode === undefined ? this.mode : options.mode;
 		this.after = options.after === undefined ? this.after : options.after;
 		this.folder = options.folder === undefined ? this.folder : options.folder;
@@ -206,7 +208,7 @@ export default {
 				if (parts[i] === 'index') parts.splice(i, 1);
 			}
 			data = parts.join('/');
-			if (data === '') data = '/';
+			if (data === '') data = './';
 
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {
