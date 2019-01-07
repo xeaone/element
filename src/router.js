@@ -20,7 +20,6 @@ export default {
 	element: null,
 	contain: false,
 	folder: './routes',
-	parser: document.createElement('a'),
 
 	isPath (routePath, userPath) {
 
@@ -40,6 +39,7 @@ export default {
 			const routeParts = routePath.split('/');
 
 			for (let i = 0, l = routeParts.length; i < l; i++) {
+				console.log(routeParts[i]);
 
 				if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(0, -1) === '}') {
 					continue
@@ -122,17 +122,18 @@ export default {
 
 	toLocationObject (href) {
 		const location = {};
+		const parser = document.createElement('a');
 
-		this.parser.href = href;
+		parser.href = href;
 
-		location.href = this.parser.href;
-		location.host = this.parser.host;
-		location.port = this.parser.port;
-		location.hash = this.parser.hash;
-		location.search = this.parser.search;
-		location.protocol = this.parser.protocol;
-		location.hostname = this.parser.hostname;
-		location.pathname = this.parser.pathname[0] === '/' ? this.parser.pathname : '/' + this.parser.pathname;
+		location.href = parser.href;
+		location.host = parser.host;
+		location.port = parser.port;
+		location.hash = parser.hash;
+		location.search = parser.search;
+		location.protocol = parser.protocol;
+		location.hostname = parser.hostname;
+		location.pathname = parser.pathname[0] === '/' ? parser.pathname : '/' + parser.pathname;
 
 		location.path = location.pathname + location.search + location.hash;
 

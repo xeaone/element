@@ -2671,7 +2671,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     element: null,
     contain: false,
     folder: './routes',
-    parser: document.createElement('a'),
     isPath: function isPath(routePath, userPath) {
       if (userPath.slice(0, 1) !== '/') {
         userPath = Path.resolve(userPath);
@@ -2689,6 +2688,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var routeParts = routePath.split('/');
 
         for (var i = 0, l = routeParts.length; i < l; i++) {
+          console.log(routeParts[i]);
+
           if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(0, -1) === '}') {
             continue;
           }
@@ -2753,15 +2754,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     toLocationObject: function toLocationObject(href) {
       var location = {};
-      this.parser.href = href;
-      location.href = this.parser.href;
-      location.host = this.parser.host;
-      location.port = this.parser.port;
-      location.hash = this.parser.hash;
-      location.search = this.parser.search;
-      location.protocol = this.parser.protocol;
-      location.hostname = this.parser.hostname;
-      location.pathname = this.parser.pathname[0] === '/' ? this.parser.pathname : '/' + this.parser.pathname;
+      var parser = document.createElement('a');
+      parser.href = href;
+      location.href = parser.href;
+      location.host = parser.host;
+      location.port = parser.port;
+      location.hash = parser.hash;
+      location.search = parser.search;
+      location.protocol = parser.protocol;
+      location.hostname = parser.hostname;
+      location.pathname = parser.pathname[0] === '/' ? parser.pathname : '/' + parser.pathname;
       location.path = location.pathname + location.search + location.hash;
       return location;
     },
