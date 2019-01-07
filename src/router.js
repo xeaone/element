@@ -203,13 +203,17 @@ export default {
 			let load = data;
 
 			// replace index with root
-			let parts = data.split('/');
-			for (let i = 0, l = parts.length; i < l; i++) {
-				if (parts[i] === 'index') parts.splice(i, 1);
-			}
-			data = parts.join('/');
-			if (data === '') data = './';
+			// let parts = data.split('/');
+			// for (let i = 0, l = parts.length; i < l; i++) {
+			// 	if (parts[i] === 'index') parts.splice(i, 1);
+			// }
+			// data = parts.join('/');
+			// if (data === '') data = './';
 
+			data = data.replace(/\/*index\/*/, '');
+			data = data || './';
+			data = Path.resolve(data);
+			
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {
 			if (!data.path) throw new Error('Oxe.router.add - route path required');

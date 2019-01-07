@@ -2844,21 +2844,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     add: function add(data) {
       return new Promise(function ($return, $error) {
-        var load, parts, i, l, _i3, _l3;
+        var load, i, l;
 
         if (!data) {
           return $return();
         } else {
           if (data.constructor === String) {
             load = data;
-            parts = data.split('/');
-
-            for (i = 0, l = parts.length; i < l; i++) {
-              if (parts[i] === 'index') parts.splice(i, 1);
-            }
-
-            data = parts.join('/');
-            if (data === '') data = './';
+            data = data.replace(/\/*index\/*/, '');
+            data = data || './';
+            data = Path.resolve(data);
             this.data.push({
               path: data,
               load: this.folder + '/' + load + '.js'
@@ -2871,17 +2866,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               return $If_17.call(this);
             } else {
               if (data.constructor === Array) {
-                _i3 = 0, _l3 = data.length;
+                i = 0, l = data.length;
                 var $Loop_19_trampoline;
 
                 function $Loop_19_step() {
-                  _i3++;
+                  i++;
                   return $Loop_19;
                 }
 
                 function $Loop_19() {
-                  if (_i3 < _l3) {
-                    return Promise.resolve(this.add(data[_i3])).then(function ($await_61) {
+                  if (i < l) {
+                    return Promise.resolve(this.add(data[i])).then(function ($await_61) {
                       try {
                         return $Loop_19_step;
                       } catch ($boundEx) {
