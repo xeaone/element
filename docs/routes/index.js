@@ -49,7 +49,8 @@ var indexjs = Escape(`
 		},
 		router: {
 			routes: [
-				Home
+				Home,
+				'error' // dynamically loads and resolves to /routes/error.js
 			]
 		}
 	});
@@ -86,9 +87,6 @@ export default {
 	path: './',
 	component: {
 		name: 'r-index',
-		attached: function () {
-			Prism.highlightAll();
-		},
 		created: function () {
 			Say('r-home created');
 		},
@@ -96,17 +94,16 @@ export default {
 			<h2>Overview</h2>
 
 			<strong>Synopsis</strong>
-			<p>
-				A small but mighty web components framework/library.
-			</p>
+			<p>A mighty tiny web components framework/library.</p>
 
 			<strong>Features</strong>
 			<ul>
 				<li>Small size</li>
 				<li>Front end routing</li>
+				<li>Configuration based</li>
 				<li>Optional module loading</li>
-				<li>In browser ES6/ESM module rewrites</li>
-				<li>In browser Template string rewrites</li>
+				<li>Optional in browser ES6/ESM module rewrites</li>
+				<li>Optional in browser Template string rewrites</li>
 			</ul>
 
 			<strong>Support</strong>
@@ -120,22 +117,36 @@ export default {
 				<li>Chrome Android</li>
 			</ul>
 
-			<strong>Note</strong>
-			<p>
-			Loader uses <i>XHR </i> and <i>new Function</i> to load on-demand and execute modules. If your worried about security please read the linked articles. In summary the articles support not using new Function/eval to process client input. Therefore if the modules imported are local (Loader enforces this) and contains no malicious code then the safety concern is eliminated.
-				<div>Resources</div>
-				<ul>
-					<li><a href="http://2ality.com/2014/01/eval.html" target="_blank" re="noopener">http://2ality.com/2014/01/eval.html</a></li>
-					<li><a href="https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/" target="_blank" re="noopener">https://www.nczonline.net/blog/2013/06/25/eval-isnt-evil-just-misunderstood/</a></li>
-				</ul>
-			</p>
+			<strong>Polyfill</strong>
+			<ul>
+				<li>
+					<p>
+						<a hregf="https://github.com/vokeio/oxe/blob/master/dst/poly.min.js">poly.min.js</a> includes everything need except shadow poly code.
+					</p>
+					<ul>
+						<li>customElements</li>
+						<li>DocumentFragment</li>
+						<li>URL, Promise, fetch</li>
+						<li>HTMLTemplateElement</li>
+						<li>Event, CustomEvent, MouseEvent constructors and Object.assign, Array.from</li>
+					</ul>
+				</li>
+				<li>
+					<p>
+						<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.shadow.min.js">poly.shadow.min.js</a> includes everything.
+					</p>
+					<ul>
+						<li>Webcomponentsjs</li>
+						<li>DocumentFragment</li>
+						<li>URL, Promise, fetch</li>
+					</ul>
+				</li>
+			</ul>
 
 			<strong>Install</strong>
 			<ul>
 				<li><i>npm install oxe --save</i></li>
 				<li>UMD <i>"dst/oxe.min.js"</i></li>
-				<li>UMD with Web Component Pollyfill <i>"dst/oxe.polly.min.js"</i></li>
-				<li>Web Component Pollyfill <i>"dst/webcomponents-lite.min.js"</i></li>
 			</ul>
 
 			<h2>Example</h2>
