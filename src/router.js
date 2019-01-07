@@ -179,7 +179,7 @@ export default {
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {
 			if (!data.path) throw new Error('Oxe.router.add - route path required');
-			// if (!data.load && !data.component) throw new Error('Oxe.router.add - route.load or route.component required');
+			if (!data.load && !data.component) throw new Error('Oxe.router.add -  route.component or route.load required');
 			this.data.push(data);
 		} else if (data.constructor === Array) {
 			for (let i = 0, l = data.length; i < l; i++) {
@@ -354,15 +354,15 @@ export default {
 		location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
 		if (location.route && location.route.handler) {
-			return await location.route.handler(location);
+			return Promise.resolve(location.route.handler(location));
 		}
 
 		if (location.route && location.route.redirect) {
-			return this.redirect(location.route.redirect);
+			return Promise.resolve(this.redirect(location.route.redirect));
 		}
 
 		if (typeof this.before === 'function') {
-			await this.before(location);
+			await Promise.resolve(this.before(location));
 		}
 
 		this.emit('route:before', location);
@@ -378,11 +378,10 @@ export default {
 		await this.render(location.route);
 
 		if (typeof this.after === 'function') {
-			await this.after(location);
+			await Promise.resolve(this.after(location));
 		}
 
 		this.emit('route:after', location);
-
 	}
 
 };
