@@ -212,8 +212,9 @@ export default {
 
 			data = data.replace(/\/*index\/*/, '');
 			data = data || './';
-			data = Path.resolve(data);
-			
+			console.log(data);
+			// data = Path.resolve(data);
+
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {
 			if (!data.path) throw new Error('Oxe.router.add - route path required');

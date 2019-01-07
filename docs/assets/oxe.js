@@ -2853,7 +2853,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             load = data;
             data = data.replace(/\/*index\/*/, '');
             data = data || './';
-            data = Path.resolve(data);
+            console.log(data);
             this.data.push({
               path: data,
               load: this.folder + '/' + load + '.js'
