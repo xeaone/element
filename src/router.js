@@ -354,15 +354,15 @@ export default {
 		location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
 		if (location.route && location.route.handler) {
-			return Promise.resolve(location.route.handler(location));
+			return await location.route.handler(location);
 		}
 
 		if (location.route && location.route.redirect) {
-			return Promise.resolve(this.redirect(location.route.redirect));
+			return await this.redirect(location.route.redirect);
 		}
 
 		if (typeof this.before === 'function') {
-			await Promise.resolve(this.before(location));
+			await this.before(location);
 		}
 
 		this.emit('route:before', location);
@@ -378,7 +378,7 @@ export default {
 		await this.render(location.route);
 
 		if (typeof this.after === 'function') {
-			await Promise.resolve(this.after(location));
+			await this.after(location);
 		}
 
 		this.emit('route:after', location);

@@ -3,8 +3,7 @@ import Router from '../router.js';
 export default function (event) {
 
 	const path = event && event.state ? event.state.path : window.location.href;
-
-	Promise.resolve().then(function () {
-		return Router.route(path, { mode: 'replace' });
-	}).catch(console.error);
+	const route = Router.route(path, { mode: 'replace' });
+	
+	Promise.resolve(route).catch(console.error);
 };

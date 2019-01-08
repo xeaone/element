@@ -139,7 +139,7 @@ export default {
 		data.url = Path.resolve(data.url);
 
 		if (data.url in this.data) {
-			await Promise.resolve(this.data[data.url].promise());
+			await this.data[data.url].promise;
 			return this.data[data.url].result;
 		}
 
@@ -157,7 +157,7 @@ export default {
 			data.promise = this.fetch(data);
 		}
 
-		await Promise.resolve(data.promise());
+		await data.promise;
 		return data.result;
 	}
 
