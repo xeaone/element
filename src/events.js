@@ -1,9 +1,7 @@
 
-export default class Events {
+export default {
 
-	constructor () {
-		this.events = {};
-	}
+	events: {},
 
 	on (name, method) {
 
@@ -12,7 +10,7 @@ export default class Events {
 		}
 
 		this.events[name].push(method);
-	}
+	},
 
 	off (name, method) {
 
@@ -26,7 +24,7 @@ export default class Events {
 
 		}
 
-	}
+	},
 
 	emit (name) {
 
@@ -43,4 +41,4 @@ export default class Events {
 
 	}
 
-}
+};

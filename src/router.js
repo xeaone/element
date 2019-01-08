@@ -4,7 +4,7 @@ import Events from './events.js';
 import Utility from './utility.js';
 import Component from './component.js';
 
-const events = new Events();
+const events = Object.create(Events);
 
 export default {
 
