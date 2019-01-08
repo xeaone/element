@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.0.3
+	Version: 4.0.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1749,9 +1749,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (typeof this.request === 'function') {
           copy = Object.assign({}, data);
-          return Promise.resolve(this.request(copy)).then(function ($await_33) {
+          return Promise.resolve(this.request(copy)).then(function ($await_31) {
             try {
-              result = $await_33;
+              result = $await_31;
 
               if (result === false) {
                 return $return(data);
@@ -1771,9 +1771,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         function $If_1() {
           if (data.body) {
             if (data.method === 'GET') {
-              return Promise.resolve(this.serialize(data.body)).then(function ($await_34) {
+              return Promise.resolve(this.serialize(data.body)).then(function ($await_32) {
                 try {
-                  data.url = data.url + '?' + $await_34;
+                  data.url = data.url + '?' + $await_32;
                   return $If_5.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -1800,9 +1800,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               delete fetchOptions.head;
             }
 
-            return Promise.resolve(window.fetch(data.url, fetchOptions)).then(function ($await_35) {
+            return Promise.resolve(window.fetch(data.url, fetchOptions)).then(function ($await_33) {
               try {
-                fetched = $await_35;
+                fetched = $await_33;
                 data.code = fetched.status;
                 data.message = fetched.statusText;
 
@@ -1810,9 +1810,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   data.body = fetched.body;
                   return $If_3.call(this);
                 } else {
-                  return Promise.resolve(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType]()).then(function ($await_36) {
+                  return Promise.resolve(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType]()).then(function ($await_34) {
                     try {
-                      data.body = $await_36;
+                      data.body = $await_34;
                       return $If_3.call(this);
                     } catch ($boundEx) {
                       return $error($boundEx);
@@ -1823,9 +1823,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 function $If_3() {
                   if (this.response) {
                     _copy = Object.assign({}, data);
-                    return Promise.resolve(this.response(_copy)).then(function ($await_37) {
+                    return Promise.resolve(this.response(_copy)).then(function ($await_35) {
                       try {
-                        _result = $await_37;
+                        _result = $await_35;
 
                         if (_result === false) {
                           return $return(data);
@@ -1913,9 +1913,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       method = Methods.get(binder.keys);
       model = Model.get(binder.scope);
       data = Utility.formData(element, model);
-      return Promise.resolve(method.call(binder.container, data, event)).then(function ($await_38) {
+      return Promise.resolve(method.call(binder.container, data, event)).then(function ($await_36) {
         try {
-          options = $await_38;
+          options = $await_36;
 
           if (_typeof(options) === 'object') {
             oaction = element.getAttribute('o-action');
@@ -1924,12 +1924,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             options.url = options.url || oaction;
             options.method = options.method || omethod;
             options.contentType = options.contentType || oenctype;
-            return Promise.resolve(Fetcher.fetch(options)).then(function ($await_39) {
+            return Promise.resolve(Fetcher.fetch(options)).then(function ($await_37) {
               try {
-                result = $await_39;
+                result = $await_37;
 
                 if (options.handler) {
-                  return Promise.resolve(options.handler(result)).then(function ($await_40) {
+                  return Promise.resolve(options.handler(result)).then(function ($await_38) {
                     try {
                       return $If_7.call(this);
                     } catch ($boundEx) {
@@ -2237,17 +2237,32 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return $return();
       }.bind(this));
     },
+    attach: function attach(data) {
+      return new Promise(function ($return, $error) {
+        return $return(new Promise(function (resolve, reject) {
+          var element = document.createElement(data.tag);
+
+          for (var name in data.attributes) {
+            element.setAttribute(name, data.attributes[name]);
+          }
+
+          element.onload = resolve;
+          element.onerror = reject;
+          document.head.appendChild(element);
+        }));
+      });
+    },
     fetch: function fetch(data) {
       return new Promise(function ($return, $error) {
         var result;
-        return Promise.resolve(window.fetch(data.url)).then(function ($await_41) {
+        return Promise.resolve(window.fetch(data.url)).then(function ($await_39) {
           try {
-            result = $await_41;
+            result = $await_39;
 
             if (result.status >= 200 && result.status < 300 || result.status == 304) {
-              return Promise.resolve(result.text()).then(function ($await_42) {
+              return Promise.resolve(result.text()).then(function ($await_40) {
                 try {
-                  data.text = $await_42;
+                  data.text = $await_40;
                   return $If_8.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -2268,41 +2283,26 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }.bind(this), $error);
       });
     },
-    attach: function attach(data) {
-      return new Promise(function ($return, $error) {
-        return $return(new Promise(function (resolve, reject) {
-          var element = document.createElement(data.tag);
-
-          for (var name in data.attributes) {
-            element.setAttribute(name, data.attributes[name]);
-          }
-
-          element.onload = resolve;
-          element.onerror = reject;
-          document.head.appendChild(element);
-        }));
-      });
-    },
     js: function js(data) {
       return new Promise(function ($return, $error) {
         if (data.method === 'fetch' || data.transformer === 'es' || data.transformer === 'est' || data.transformer === 'esm') {
-          return Promise.resolve(this.fetch(data)).then(function ($await_43) {
+          return Promise.resolve(this.fetch(data)).then(function ($await_41) {
             try {
               if (data.transformer) {
-                return Promise.resolve(this.transform(data)).then(function ($await_44) {
+                return Promise.resolve(this.transform(data)).then(function ($await_42) {
                   try {
-                    return $If_11.call(this);
+                    return $If_10.call(this);
                   } catch ($boundEx) {
                     return $error($boundEx);
                   }
                 }.bind(this), $error);
               }
 
-              function $If_11() {
-                return Promise.resolve(this.execute(data)).then($return, $error);
+              function $If_10() {
+                return $return(this.execute(data));
               }
 
-              return $If_11.call(this);
+              return $If_10.call(this);
             } catch ($boundEx) {
               return $error($boundEx);
             }
@@ -2310,29 +2310,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         if (data.method === 'script') {
-          return Promise.resolve(this.attach({
+          return $return(this.attach({
             tag: 'script',
             attributes: {
               src: data.url,
               type: 'text/javascript'
             }
-          })).then($return, $error);
-        }
-
-        function $If_10() {
-          return Promise.resolve(this.attach({
-            tag: 'script',
-            attributes: {
-              src: data.url,
-              type: 'module'
-            }
-          })).then(function ($await_47) {
-            try {
-              return $return();
-            } catch ($boundEx) {
-              return $error($boundEx);
-            }
-          }, $error);
+          }));
         }
 
         return Promise.resolve(this.attach({
@@ -2341,7 +2325,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             src: data.url,
             type: 'module'
           }
-        })).then(function ($await_47) {
+        })).then(function ($await_43) {
           try {
             return $return();
           } catch ($boundEx) {
@@ -2353,9 +2337,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     css: function css(data) {
       return new Promise(function ($return, $error) {
         if (data.method === 'fetch') {
-          return Promise.resolve(this.fetch(data)).then(function ($await_48) {
+          return Promise.resolve(this.fetch(data)).then(function ($await_44) {
             try {
-              return $If_12.call(this);
+              return $If_11.call(this);
             } catch ($boundEx) {
               return $error($boundEx);
             }
@@ -2368,16 +2352,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               type: 'text/css',
               rel: 'stylesheet'
             }
-          })).then(function ($await_49) {
+          })).then(function ($await_45) {
             try {
-              return $If_12.call(this);
+              return $If_11.call(this);
             } catch ($boundEx) {
               return $error($boundEx);
             }
           }.bind(this), $error);
         }
 
-        function $If_12() {
+        function $If_11() {
           return $return();
         }
       }.bind(this));
@@ -2393,7 +2377,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         data.url = Path.resolve(data.url);
 
         if (data.url in this.data) {
-          return Promise.resolve(this.data[data.url].promise()).then(function ($await_50) {
+          return Promise.resolve(Promise.resolve(this.data[data.url].promise())).then(function ($await_46) {
             try {
               return $return(this.data[data.url].result);
             } catch ($boundEx) {
@@ -2408,14 +2392,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         data.transformer = data.transformer || this.transformers[data.extension];
 
         if (data.extension === 'js') {
-          data.promise = this.js.bind(this, data);
+          data.promise = this.js(data);
         } else if (data.extension === 'css') {
-          data.promise = this.css.bind(this, data);
+          data.promise = this.css(data);
         } else {
-          data.promise = this.fetch.bind(this, data);
+          data.promise = this.fetch(data);
         }
 
-        return Promise.resolve(data.promise()).then(function ($await_51) {
+        return Promise.resolve(Promise.resolve(data.promise())).then(function ($await_47) {
           try {
             return $return(data.result);
           } catch ($boundEx) {
@@ -2798,6 +2782,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         });
       } else if (data.constructor === Object) {
         if (!data.path) throw new Error('Oxe.router.add - route path required');
+        if (!data.load && !data.component) throw new Error('Oxe.router.add -  route.component or route.load required');
         this.data.push(data);
       } else if (data.constructor === Array) {
         for (var i = 0, l = data.length; i < l; i++) {
@@ -2829,7 +2814,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.add(options.routes);
         return Promise.resolve(this.route(window.location.href, {
           mode: 'replace'
-        })).then(function ($await_52) {
+        })).then(function ($await_48) {
           try {
             return $return();
           } catch ($boundEx) {
@@ -2843,18 +2828,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var load;
 
         if (route.load) {
-          return Promise.resolve(Loader.load(route.load)).then(function ($await_53) {
+          return Promise.resolve(Loader.load(route.load)).then(function ($await_49) {
             try {
-              load = $await_53;
+              load = $await_49;
               route = Object.assign({}, load, route);
-              return $If_14.call(this);
+              return $If_13.call(this);
             } catch ($boundEx) {
               return $error($boundEx);
             }
           }.bind(this), $error);
         }
 
-        function $If_14() {
+        function $If_13() {
           if (route.component) {
             route.component.route = route;
           }
@@ -2862,7 +2847,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           return $return(route);
         }
 
-        return $If_14.call(this);
+        return $If_13.call(this);
       });
     },
     remove: function remove(path) {
@@ -2880,19 +2865,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return new Promise(function ($return, $error) {
         var i, l;
         i = 0, l = this.data.length;
-        var $Loop_15_trampoline;
+        var $Loop_14_trampoline;
 
-        function $Loop_15_step() {
+        function $Loop_14_step() {
           i++;
-          return $Loop_15;
+          return $Loop_14;
         }
 
-        function $Loop_15() {
+        function $Loop_14() {
           if (i < l) {
             if (this.data[i].path === path) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_54) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_50) {
                 try {
-                  this.data[i] = $await_54;
+                  this.data[i] = $await_50;
                   return $return(this.data[i]);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -2900,25 +2885,25 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               }.bind(this), $error);
             }
 
-            return $Loop_15_step;
+            return $Loop_14_step;
           } else return [1];
         }
 
-        return ($Loop_15_trampoline = function (q) {
+        return ($Loop_14_trampoline = function (q) {
           while (q) {
-            if (q.then) return void q.then($Loop_15_trampoline, $error);
+            if (q.then) return void q.then($Loop_14_trampoline, $error);
 
             try {
               if (q.pop) {
-                if (q.length) return q.pop() ? $Loop_15_exit.call(this) : q;else q = $Loop_15_step;
+                if (q.length) return q.pop() ? $Loop_14_exit.call(this) : q;else q = $Loop_14_step;
               } else q = q.call(this);
             } catch (_exception) {
               return $error(_exception);
             }
           }
-        }.bind(this))($Loop_15);
+        }.bind(this))($Loop_14);
 
-        function $Loop_15_exit() {
+        function $Loop_14_exit() {
           return $return();
         }
       }.bind(this));
@@ -2928,50 +2913,50 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var result, i, l;
         result = [];
         i = 0, l = this.data.length;
-        var $Loop_18_trampoline;
+        var $Loop_17_trampoline;
 
-        function $Loop_18_step() {
+        function $Loop_17_step() {
           i++;
-          return $Loop_18;
+          return $Loop_17;
         }
 
-        function $Loop_18() {
+        function $Loop_17() {
           if (i < l) {
             if (this.compare(this.data[i].path, path)) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_55) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_51) {
                 try {
-                  this.data[i] = $await_55;
+                  this.data[i] = $await_51;
                   result.push(this.data[i]);
-                  return $If_20.call(this);
+                  return $If_19.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            function $If_20() {
-              return $Loop_18_step;
+            function $If_19() {
+              return $Loop_17_step;
             }
 
-            return $If_20.call(this);
+            return $If_19.call(this);
           } else return [1];
         }
 
-        return ($Loop_18_trampoline = function (q) {
+        return ($Loop_17_trampoline = function (q) {
           while (q) {
-            if (q.then) return void q.then($Loop_18_trampoline, $error);
+            if (q.then) return void q.then($Loop_17_trampoline, $error);
 
             try {
               if (q.pop) {
-                if (q.length) return q.pop() ? $Loop_18_exit.call(this) : q;else q = $Loop_18_step;
+                if (q.length) return q.pop() ? $Loop_17_exit.call(this) : q;else q = $Loop_17_step;
               } else q = q.call(this);
             } catch (_exception) {
               return $error(_exception);
             }
           }
-        }.bind(this))($Loop_18);
+        }.bind(this))($Loop_17);
 
-        function $Loop_18_exit() {
+        function $Loop_17_exit() {
           return $return(result);
         }
       }.bind(this));
@@ -2980,19 +2965,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return new Promise(function ($return, $error) {
         var i, l;
         i = 0, l = this.data.length;
-        var $Loop_21_trampoline;
+        var $Loop_20_trampoline;
 
-        function $Loop_21_step() {
+        function $Loop_20_step() {
           i++;
-          return $Loop_21;
+          return $Loop_20;
         }
 
-        function $Loop_21() {
+        function $Loop_20() {
           if (i < l) {
             if (this.compare(this.data[i].path, path)) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_56) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_52) {
                 try {
-                  this.data[i] = $await_56;
+                  this.data[i] = $await_52;
                   return $return(this.data[i]);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -3000,25 +2985,25 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               }.bind(this), $error);
             }
 
-            return $Loop_21_step;
+            return $Loop_20_step;
           } else return [1];
         }
 
-        return ($Loop_21_trampoline = function (q) {
+        return ($Loop_20_trampoline = function (q) {
           while (q) {
-            if (q.then) return void q.then($Loop_21_trampoline, $error);
+            if (q.then) return void q.then($Loop_20_trampoline, $error);
 
             try {
               if (q.pop) {
-                if (q.length) return q.pop() ? $Loop_21_exit.call(this) : q;else q = $Loop_21_step;
+                if (q.length) return q.pop() ? $Loop_20_exit.call(this) : q;else q = $Loop_20_step;
               } else q = q.call(this);
             } catch (_exception) {
               return $error(_exception);
             }
           }
-        }.bind(this))($Loop_21);
+        }.bind(this))($Loop_20);
 
-        function $Loop_21_exit() {
+        function $Loop_20_exit() {
           return $return();
         }
       }.bind(this));
@@ -3106,9 +3091,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         mode = options.mode || this.mode;
         location = this.toLocationObject(path);
-        return Promise.resolve(this.find(location.pathname)).then(function ($await_57) {
+        return Promise.resolve(this.find(location.pathname)).then(function ($await_53) {
           try {
-            route = $await_57;
+            route = $await_53;
 
             if (!route) {
               return $error(new Error("Oxe.router.route - missing route ".concat(location.pathname)));
@@ -3120,24 +3105,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             location.parameters = this.toParameterObject(location.route.path, location.pathname);
 
             if (location.route && location.route.handler) {
-              return Promise.resolve(location.route.handler(location)).then($return, $error);
+              return $return(Promise.resolve(location.route.handler(location)));
             }
 
             if (location.route && location.route.redirect) {
-              return $return(this.redirect(location.route.redirect));
+              return $return(Promise.resolve(this.redirect(location.route.redirect)));
             }
 
             if (typeof this.before === 'function') {
-              return Promise.resolve(this.before(location)).then(function ($await_59) {
+              return Promise.resolve(Promise.resolve(this.before(location))).then(function ($await_54) {
                 try {
-                  return $If_25.call(this);
+                  return $If_23.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            function $If_25() {
+            function $If_23() {
               this.emit('route:before', location);
 
               if (mode === 'href' || mode === 'compiled') {
@@ -3148,31 +3133,31 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 path: location.path
               }, '', location.path);
               this.location = location;
-              return Promise.resolve(this.render(location.route)).then(function ($await_60) {
+              return Promise.resolve(this.render(location.route)).then(function ($await_55) {
                 try {
                   if (typeof this.after === 'function') {
-                    return Promise.resolve(this.after(location)).then(function ($await_61) {
+                    return Promise.resolve(Promise.resolve(this.after(location))).then(function ($await_56) {
                       try {
-                        return $If_26.call(this);
+                        return $If_24.call(this);
                       } catch ($boundEx) {
                         return $error($boundEx);
                       }
                     }.bind(this), $error);
                   }
 
-                  function $If_26() {
+                  function $If_24() {
                     this.emit('route:after', location);
                     return $return();
                   }
 
-                  return $If_26.call(this);
+                  return $If_24.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            return $If_25.call(this);
+            return $If_23.call(this);
           } catch ($boundEx) {
             return $error($boundEx);
           }
@@ -3427,94 +3412,94 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }, true);
 
         if (data.listener.before) {
-          return Promise.resolve(data.listener.before()).then(function ($await_62) {
+          return Promise.resolve(data.listener.before()).then(function ($await_57) {
             try {
-              return $If_27.call(this);
+              return $If_25.call(this);
             } catch ($boundEx) {
               return $error($boundEx);
             }
           }.bind(this), $error);
         }
 
-        function $If_27() {
+        function $If_25() {
           if (data.general) {
             this.general.setup(data.general);
           }
 
           if (data.fetcher) {
-            return Promise.resolve(this.fetcher.setup(data.fetcher)).then(function ($await_63) {
+            return Promise.resolve(this.fetcher.setup(data.fetcher)).then(function ($await_58) {
               try {
-                return $If_28.call(this);
+                return $If_26.call(this);
               } catch ($boundEx) {
                 return $error($boundEx);
               }
             }.bind(this), $error);
           }
 
-          function $If_28() {
+          function $If_26() {
             if (data.loader) {
-              return Promise.resolve(this.loader.setup(data.loader)).then(function ($await_64) {
+              return Promise.resolve(this.loader.setup(data.loader)).then(function ($await_59) {
                 try {
-                  return $If_29.call(this);
+                  return $If_27.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            function $If_29() {
+            function $If_27() {
               if (data.component) {
-                return Promise.resolve(this.component.setup(data.component)).then(function ($await_65) {
+                return Promise.resolve(this.component.setup(data.component)).then(function ($await_60) {
                   try {
-                    return $If_30.call(this);
+                    return $If_28.call(this);
                   } catch ($boundEx) {
                     return $error($boundEx);
                   }
                 }.bind(this), $error);
               }
 
-              function $If_30() {
+              function $If_28() {
                 if (data.router) {
-                  return Promise.resolve(this.router.setup(data.router)).then(function ($await_66) {
+                  return Promise.resolve(this.router.setup(data.router)).then(function ($await_61) {
                     try {
-                      return $If_31.call(this);
+                      return $If_29.call(this);
                     } catch ($boundEx) {
                       return $error($boundEx);
                     }
                   }.bind(this), $error);
                 }
 
-                function $If_31() {
+                function $If_29() {
                   if (data.listener.after) {
-                    return Promise.resolve(data.listener.after()).then(function ($await_67) {
+                    return Promise.resolve(data.listener.after()).then(function ($await_62) {
                       try {
-                        return $If_32.call(this);
+                        return $If_30.call(this);
                       } catch ($boundEx) {
                         return $error($boundEx);
                       }
                     }.bind(this), $error);
                   }
 
-                  function $If_32() {
+                  function $If_30() {
                     return $return();
                   }
 
-                  return $If_32.call(this);
+                  return $If_30.call(this);
                 }
 
-                return $If_31.call(this);
+                return $If_29.call(this);
               }
 
-              return $If_30.call(this);
+              return $If_28.call(this);
             }
 
-            return $If_29.call(this);
+            return $If_27.call(this);
           }
 
-          return $If_28.call(this);
+          return $If_26.call(this);
         }
 
-        return $If_27.call(this);
+        return $If_25.call(this);
       }.bind(this));
     }
   };
