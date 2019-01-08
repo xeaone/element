@@ -4,6 +4,7 @@
 	"description": "A mighty tiny web components framework/library",
 	"main": "dst/oxe.min.js",
 	"scripts": {
+		"w": "node watch.js",
 		"b": "node build.js",
 		"p": "node publish.js",
 		"t": "muleify -ssw ./web"
