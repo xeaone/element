@@ -36,11 +36,9 @@ var indexjs = Escape(`
 
 	Oxe.setup({
 		loader: {
-			transformers: {
+			type: {
+				css: 'attach',
 				js: 'es', // enables ES6 module and template string re-writes
-			},
-			methods: {
-				js: 'fetch'
 			},
 			loads: [
 				'./index.css',
@@ -65,7 +63,7 @@ var indexhtml = Escape(`
 
 		<base href="/">
 		<script src="./poly.min.js" defer></script>
-		<script src="./oxe.min.js" o-setup="./index.js, es, fetch" defer></script>
+		<script src="./oxe.min.js" o-setup="./index.js, es" defer></script>
 
 	</head>
 	<body>

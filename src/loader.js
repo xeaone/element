@@ -4,17 +4,15 @@ import Path from './path.js';
 export default {
 
 	data: {},
-	ran: false,
-	methods: {},
-	transformers: {},
+	type: {
+		js: 'attach',
+		css: 'attach'
+	},
 
 	async setup (options) {
 		let self = this;
 
 		options = options || {};
-
-		self.methods = options.methods || self.methods;
-		self.transformers = options.transformers || self.transformers;
 
 		if (options.loads) {
 			return Promise.all(options.loads.map(function (load) {
@@ -31,23 +29,19 @@ export default {
 	},
 
 	async transform (data) {
-		let self = this;
+		const self = this;
 
-		if (data.transformer === 'es' || data.transformer === 'est') {
+		if (data.type === 'es' || data.type=== 'est') {
 			data.text = Transformer.template(data.text);
 		}
 
-		if (data.transformer === 'es' || data.transformer === 'esm') {
+		if (data.type === 'es' || data.type === 'esm') {
 			data.ast = Transformer.ast(data);
 		}
 
 		if (data.ast && data.ast.imports.length) {
 			return Promise.all(data.ast.imports.map(function (imp) {
-				return self.load({
-					url: imp.url,
-					method: data.method,
-					transformer: data.transformer
-				});
+				return self.load({ url: imp.url, type: data.type });
 			}));
 		}
 
@@ -57,12 +51,12 @@ export default {
 		return new Promise(function (resolve, reject) {
 			let element = document.createElement(data.tag);
 
+			element.onload = resolve;
+			element.onerror = reject;
+
 			for (let name in data.attributes) {
 				element.setAttribute(name, data.attributes[name]);
 			}
-
-			element.onload = resolve;
-			element.onerror = reject;
 
 			document.head.appendChild(element);
 		});
@@ -80,43 +74,35 @@ export default {
 	},
 
 	async js (data) {
-
-		if (
-			data.method === 'fetch'
-			|| data.transformer === 'es'
-			|| data.transformer === 'est'
-			|| data.transformer === 'esm'
-		) {
+		if (data.type === 'es' || data.type === 'est' || data.type === 'esm' || data.type === 'fetch') {
 			await this.fetch(data);
 
-			if (data.transformer) {
+			if (data.type === 'es' || data.type === 'est' || data.type === 'esm') {
 				await this.transform(data);
 			}
 
-			return this.execute(data);
-		}
-
-		if (data.method === 'script') {
-			return this.attach({
+			await this.execute(data);
+		} else if (data.type === 'script') {
+			await this.attach({
 				tag: 'script',
 				attributes: {
 					src: data.url,
 					type: 'text/javascript'
 				}
 			});
+		} else {
+			await this.attach({
+				tag: 'script',
+				attributes: {
+					src: data.url,
+					type: 'module'
+				}
+			});
 		}
-
-		await this.attach({
-			tag: 'script',
-			attributes: {
-				src: data.url,
-				type: 'module'
-			}
-		});
 	},
 
 	async css (data) {
-		if (data.method === 'fetch') {
+		if (data.type === 'fetch') {
 			await this.fetch(data);
 		} else {
 			await this.attach({
@@ -146,8 +132,7 @@ export default {
 		this.data[data.url] = data;
 
 		data.extension = data.extension || Path.extension(data.url);
-		data.method = data.method || this.methods[data.extension];
-		data.transformer = data.transformer || this.transformers[data.extension];
+		data.type = data.type || this.type[data.extension];
 
 		if (data.extension === 'js') {
 			data.promise = this.js(data);
@@ -158,6 +143,7 @@ export default {
 		}
 
 		await data.promise;
+
 		return data.result;
 	}
 

@@ -164,27 +164,50 @@ export default {
 		window.location.href = path;
 	},
 
-	add (data) {
+	async add (data) {
 		if (!data) {
 			return;
 		} else if (data.constructor === String) {
 			// if relative might need to add base
 			// need to clean .js and /
-			let load = data;
 
 			// replace index with root
-			data = data.replace(/index\/*$/, '');
-			if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') data = `./${data}`;
+			if (data.slice(-3) === '.js') {
+				data = data.slice(0, -3);
+			}
+
+			let load = data;
+
+			if (data.slice(-5) === 'index') {
+				data = data.slice(0, -5);
+			}
+
+			if (data.slice(-6) === 'index/') {
+				data = data.slice(0, -6);
+			}
+
+			if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') {
+				data = `./${data}`;
+			}
 
 			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
 		} else if (data.constructor === Object) {
-			if (!data.path) throw new Error('Oxe.router.add - route path required');
-			if (!data.load && !data.component) throw new Error('Oxe.router.add -  route.component or route.load required');
+
+			if (!data.path) {
+				throw new Error('Oxe.router.add - route path required');
+			}
+
+			if (!data.load && !data.component) {
+				throw new Error('Oxe.router.add -  route.component or route.load required');
+			}
+
 			this.data.push(data);
 		} else if (data.constructor === Array) {
+
 			for (let i = 0, l = data.length; i < l; i++) {
-				this.add(data[i]);
+				await this.add(data[i]);
 			}
+
 		}
 	},
 
@@ -209,7 +232,7 @@ export default {
 			throw new Error('Oxe.router.render - missing o-router element');
 		}
 
-		this.add(options.routes);
+		await this.add(options.routes);
 		await this.route(window.location.href, { mode: 'replace' });
 	},
 

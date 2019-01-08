@@ -60,13 +60,11 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 - Method type of fetch will use XHR and new Function.
 
 - `options: Object`
-	- `transformers: Objcet`
+	- `type: Objcet`
 		- `js: String`
 			- `es` Enables ES6 module and template string re-writes
 			- `esm` Enables ES6 module re-writes uses (Note: only supporting default export/import)
 			- `est` Enables ES6 template string re-writes uses (Note: Any backtick will be re-writen)
-	- `methods: Objcet`
-		- `js: String`
 			- `fetch` Fetches the content and executes
 			- `script` Appends to header as a standard script tag
 			- `attach` Appends to header as a module script tag  **default**
@@ -82,7 +80,7 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 - `load: Function`
 	- `load: Object, String`
 		- `url: String` Path to file resources
-		- `type: String` If not defined uses the default type
+		- `type: String` If not defined uses the default type based from extension
 
 ### Oxe.router
 - `options: Object`

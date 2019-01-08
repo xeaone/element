@@ -17,8 +17,8 @@ import Render from './render.js';
 import Model from './model.js';
 import Path from './path.js';
 
-let eStyle = document.createElement('style');
-let tStyle = document.createTextNode(`
+const eStyle = document.createElement('style');
+const tStyle = document.createTextNode(`
 	o-router, o-router > :first-child {
 		display: block;
 		animation: o-transition 150ms ease-in-out;
@@ -56,7 +56,7 @@ if (!window.Reflect || !window.Reflect.construct) {
 // }
 // custom elements with es5 classes: end
 
-let ORouter = function ORouter () {
+const ORouter = function ORouter () {
 	return window.Reflect.construct(HTMLElement, [], this.constructor);
 };
 
@@ -65,15 +65,13 @@ Object.setPrototypeOf(ORouter, HTMLElement);
 
 window.customElements.define('o-router', ORouter);
 
-let oSetup = document.querySelector('script[o-setup]');
+const oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
-	let args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
-	let meta = document.querySelector('meta[name="oxe"]');
+	const args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
+	const meta = document.querySelector('meta[name="oxe"]');
 
 	if (meta && meta.hasAttribute('compiled')) {
-		args[1] = 'null';
-		args[2] = 'script';
 		Router.mode = 'compiled';
 		General.compiled = true;
 		Component.compiled = true;
@@ -84,16 +82,16 @@ if (oSetup) {
 	}
 
 	if (args.length > 1) {
-		Loader.load({
-			url: args[0],
-			method: args[2],
-			transformer: args[1]
-		}).catch(console.error);
+		Loader.type.js = args[1];
+		const load = Loader.load({ url: args[0] });
+		Promise.resolve(load).catch(console.error);
 	} else {
-		let index = document.createElement('script');
+		const index = document.createElement('script');
+
 		index.setAttribute('src', args[0]);
 		index.setAttribute('async', 'true');
 		index.setAttribute('type', 'module');
+
 		document.head.appendChild(index);
 	}
 
@@ -203,8 +201,8 @@ export default {
 			if (event.target.hasAttribute('o-reset')) {
 				event.preventDefault();
 
-				var before;
-				var after;
+				let before;
+				let after;
 
 				if (data.listener.reset) {
 					before = typeof data.listener.reset.before === 'function' ? data.listener.reset.before.bind(null, event) : null;
@@ -223,8 +221,8 @@ export default {
 			if (event.target.hasAttribute('o-submit')) {
 				event.preventDefault();
 
-				var before;
-				var after;
+				let before;
+				let after;
 
 				if (data.listener.submit) {
 					before = typeof data.listener.submit.before === 'function' ? data.listener.submit.before.bind(null, event) : null;
