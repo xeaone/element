@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.0.6
+	Version: 4.0.7
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2911,7 +2911,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     load: function load(route) {
       return new Promise(function ($return, $error) {
         var type, load;
-        type = Loader.type.js !== 'es' || Loader.type.js !== 'est' || Loader.type.js !== 'esm' ? 'fetch' : Loader.type.js;
+        type = Loader.type.js;
+
+        if (Loader.type.js !== 'es' && Loader.type.js !== 'est' && Loader.type.js !== 'esm') {
+          type = 'fetch';
+        }
 
         if (route.load) {
           return Promise.resolve(Loader.load({
