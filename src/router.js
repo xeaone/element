@@ -168,10 +168,7 @@ export default {
 		if (!data) {
 			return;
 		} else if (data.constructor === String) {
-			// if relative might need to add base
-			// need to clean .js and /
 
-			// replace index with root
 			if (data.slice(-3) === '.js') {
 				data = data.slice(0, -3);
 			}
