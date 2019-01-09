@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 4.0.6
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -2911,7 +2901,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     load: function load(route) {
       return new Promise(function ($return, $error) {
         var type, load;
-        type = Loader.type.js !== 'es' || Loader.type.js !== 'est' || Loader.type.js !== 'esm' ? 'fetch' : Loader.type.js;
+        type = Loader.type.js;
+
+        if (Loader.type.js !== 'es' && Loader.type.js !== 'est' && Loader.type.js !== 'esm') {
+          type = 'fetch';
+        }
 
         if (route.load) {
           return Promise.resolve(Loader.load({

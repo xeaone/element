@@ -234,18 +234,25 @@ export default {
 	},
 
 	async load (route) {
-		const type = Loader.type.js !== 'es' ||
-			Loader.type.js !== 'est' ||
-			Loader.type.js !== 'esm' ?
-			'fetch' : Loader.type.js;
+		let type = Loader.type.js;
+
+		if (Loader.type.js !== 'es' && Loader.type.js !== 'est' && Loader.type.js !== 'esm') {
+			type = 'fetch';
+		}
 
 		if (route.load) {
-			const load = await Loader.load({ type: type, url: route.load });
+			const load = await Loader.load({
+				type: type,
+				url: route.load
+			});
 			route = Object.assign({}, load, route);
 		}
 
 		if (typeof route.component === 'string') {
-			route.component = await Loader.load({ type: type, url: route.load });
+			route.component = await Loader.load({
+				type: type,
+				url: route.load
+			});
 		}
 
 		return route;
