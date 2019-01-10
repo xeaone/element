@@ -18,6 +18,7 @@ export default {
 	mode: 'push',
 	element: null,
 	contain: false,
+	compiled: false,
 	folder: './routes',
 
 	compare (routePath, userPath) {
@@ -343,7 +344,7 @@ export default {
 			} else if (route.component.constructor === Object) {
 				Component.define(route.component);
 
-				if (this.mode === 'compiled') {
+				if (this.compiled) {
 				// if (route.component.name.toLowerCase() === this.element.firstElementChild.nodeName.toLowerCase()) {
 					route.element = this.element.firstElementChild;
 				} else {
@@ -398,7 +399,7 @@ export default {
 
 		this.emit('route:before', location);
 
-		if (mode === 'href' || mode === 'compiled') {
+		if (mode === 'href' || this.compiled) {
 			return window.location.assign(location.path);
 		}
 

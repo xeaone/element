@@ -72,8 +72,7 @@ if (oSetup) {
 	const meta = document.querySelector('meta[name="oxe"]');
 
 	if (meta && meta.hasAttribute('compiled')) {
-		Router.mode = 'compiled';
-		General.compiled = true;
+		Router.compiled = true;
 		Component.compiled = true;
 	}
 
