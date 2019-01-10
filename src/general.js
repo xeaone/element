@@ -2,8 +2,6 @@ import Path from './path.js';
 
 export default {
 
-	compiled: false,
-
 	setup (options) {
 		options = options || {};
 
