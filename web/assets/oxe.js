@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.0.7
+	Version: 4.0.8
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2647,6 +2647,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     mode: 'push',
     element: null,
     contain: false,
+    compiled: false,
     folder: './routes',
     compare: function compare(routePath, userPath) {
       if (userPath.slice(0, 1) !== '/') {
@@ -2914,7 +2915,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         type = Loader.type.js;
 
         if (Loader.type.js !== 'es' && Loader.type.js !== 'est' && Loader.type.js !== 'esm') {
-          type = 'fetch';
+          type = 'esm';
         }
 
         if (route.load) {
@@ -3167,7 +3168,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           } else if (route.component.constructor === Object) {
             Component.define(route.component);
 
-            if (this.mode === 'compiled') {
+            if (this.compiled) {
               route.element = this.element.firstElementChild;
             } else {
               route.element = document.createElement(route.component.name);
@@ -3233,7 +3234,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               function $If_33() {
                 this.emit('route:before', location);
 
-                if (mode === 'href' || mode === 'compiled') {
+                if (mode === 'href' || this.compiled) {
                   return $return(window.location.assign(location.path));
                 }
 
@@ -3281,7 +3282,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             function $If_33() {
               this.emit('route:before', location);
 
-              if (mode === 'href' || mode === 'compiled') {
+              if (mode === 'href' || this.compiled) {
                 return $return(window.location.assign(location.path));
               }
 
@@ -3370,7 +3371,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   var General = {
-    compiled: false,
     setup: function setup(options) {
       options = options || {};
 
@@ -3410,8 +3410,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     var meta = document.querySelector('meta[name="oxe"]');
 
     if (meta && meta.hasAttribute('compiled')) {
-      Router.mode = 'compiled';
-      General.compiled = true;
+      Router.compiled = true;
       Component.compiled = true;
     }
 
