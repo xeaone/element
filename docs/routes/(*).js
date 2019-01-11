@@ -1,9 +1,9 @@
 
 export default {
-	title: '404',
-	path: './{*}',
+	title: 'Error',
+	path: './(*)',
 	component: {
-		name: 'r-404',
+		name: 'r-error',
 		template: `
 			<h1>404</h1>
 			<h2>This page does not exists</h2>

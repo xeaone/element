@@ -45,7 +45,7 @@ export default {
 
 		for (let i = 0, l = routeParts.length; i < l; i++) {
 
-			if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(-1) === '}') {
+			if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
 
 				if (routeParts[i].indexOf('*') !== -1) {
 					return true;
@@ -79,8 +79,8 @@ export default {
 			|| userPath === '/'
 		) return result;
 
-		let brackets = /{|}/g;
-		let pattern = /{(\w+)}/;
+		let brackets = /\(|\)/g;
+		let pattern = /\((\w+)\)/;
 		let userPaths = userPath.split('/');
 		let routePaths = routePath.split('/');
 

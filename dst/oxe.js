@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.0.8
+	Version: 4.1.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2671,7 +2671,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       for (var i = 0, l = routeParts.length; i < l; i++) {
-        if (routeParts[i].slice(0, 1) === '{' && routeParts[i].slice(-1) === '}') {
+        if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
           if (routeParts[i].indexOf('*') !== -1) {
             return true;
           } else {
@@ -2693,8 +2693,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     toParameterObject: function toParameterObject(routePath, userPath) {
       var result = {};
       if (!routePath || !userPath || routePath === '/' || userPath === '/') return result;
-      var brackets = /{|}/g;
-      var pattern = /{(\w+)}/;
+      var brackets = /\(|\)/g;
+      var pattern = /\((\w+)\)/;
       var userPaths = userPath.split('/');
       var routePaths = routePath.split('/');
 

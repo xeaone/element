@@ -1,3 +1,6 @@
+### 4.1.0
+- changed route parameters symbols to () from {}
+
 ### 4.0.0
 - polyfill script added to dst
 - no longer automatically includes polyfills

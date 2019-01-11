@@ -110,7 +110,7 @@ o-router > :first-child {
 	margin: auto;
 	max-width: 900px;
 }
-r-404 {
+r-error {
 	text-align: center;
 	align-items: center;
 	align-content: center;
