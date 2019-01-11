@@ -238,7 +238,7 @@ export default {
 		let type = Loader.type.js;
 
 		if (Loader.type.js !== 'es' && Loader.type.js !== 'est' && Loader.type.js !== 'esm') {
-			type = 'fetch';
+			type = 'esm';
 		}
 
 		if (route.load) {
