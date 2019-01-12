@@ -32,10 +32,9 @@ export default {
 	},
 
 	resolve (path, base) {
-
 		path = path.replace(window.location.origin, '');
 
-		if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('//') === 0) {
+		if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('file://') === 0 || path.indexOf('//') === 0) {
 			return path;
 		}
 
