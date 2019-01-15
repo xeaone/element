@@ -238,6 +238,8 @@ export default {
 			await data.listener.before();
 		}
 
+		if (data.path) {
+			await this.path.setup(data.path);
 		}
 
 		if (data.fetcher) {
