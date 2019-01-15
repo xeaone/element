@@ -2,7 +2,7 @@ var title = 'Input';
 
 export default {
 	title: title,
-	path: './input',
+	path: '/input',
 	component: {
 		name: 'r-input',
 		model: {

@@ -2,7 +2,7 @@ var title = 'Style';
 
 export default {
 	title: title,
-	path: './style',
+	path: '/style',
 	component: {
 		name: 'r-style',
 		model: {

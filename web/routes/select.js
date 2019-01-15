@@ -2,7 +2,7 @@ var title = 'Select';
 
 export default {
 	title: title,
-	path: './select',
+	path: '/select',
 	component: {
 		name: 'r-select',
 		model: {

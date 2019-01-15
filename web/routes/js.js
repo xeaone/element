@@ -1,7 +1,7 @@
 
 export default {
 	title: 'JS',
-	path: './js',
+	path: '/js',
 	component: {
 		name: 'r-js',
 		model: {
