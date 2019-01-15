@@ -81,7 +81,10 @@ if (oSetup) {
 
 	if (args.length > 1) {
 		Loader.type.js = args[1];
-		const load = Loader.load({ url: args[0] });
+
+		const url = Path.resolve(Path.base, args[0]);
+		const load = Loader.load({ url });
+
 		Promise.resolve(load).catch(console.error);
 	} else {
 		const index = document.createElement('script');

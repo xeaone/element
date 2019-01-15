@@ -98,12 +98,12 @@ export default {
 		let imps = text.match(this.patterns.imps) || [];
 
 		for (let i = 0, l = imps.length; i < l; i++) {
-		 	let imp = imps[i].match(this.patterns.imp);
-
+		 	const imp = imps[i].match(this.patterns.imp);
+			
 			result[i] = {
 				raw: imp[0],
 				name: imp[1],
-				url: Path.resolve(imp[2], base),
+				url: Path.resolve(base, imp[2]),
 				extension: Path.extension(imp[2])
 			};
 

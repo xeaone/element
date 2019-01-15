@@ -23,13 +23,8 @@ export default {
 
 	compare (routePath, userPath) {
 
-		if (userPath.slice(0, 1) !== '/') {
-			userPath = Path.resolve(userPath);
-		}
-
-		if (routePath.slice(0, 1) !== '/') {
-			routePath = Path.resolve(routePath);
-		}
+		userPath = Path.resolve(userPath);
+		routePath = Path.resolve(routePath);
 
 		const userParts = userPath.split('/');
 		const routeParts = routePath.split('/');
@@ -146,6 +141,8 @@ export default {
 
 		location.path = location.pathname + location.search + location.hash;
 
+		// might need to check how base should work
+
 		  // var base = document.querySelector('base');
 		  //
 		  // location.pathname = parser.pathname;
@@ -181,26 +178,34 @@ export default {
 		if (!data) {
 			return;
 		} else if (data.constructor === String) {
+			let path = data;
 
-			if (data.slice(-3) === '.js') {
-				data = data.slice(0, -3);
+			if (path.slice(-3) === '.js') {
+				path = path.slice(0, -3);
 			}
 
-			let load = data;
+			let load = path;
 
-			if (data.slice(-5) === 'index') {
-				data = data.slice(0, -5);
+			if (path.slice(-5) === 'index') {
+				path = path.slice(0, -5);
 			}
 
-			if (data.slice(-6) === 'index/') {
-				data = data.slice(0, -6);
+			if (path.slice(-6) === 'index/') {
+				path = path.slice(0, -6);
 			}
 
-			if (data.slice(0, 1) !== '/' && data.slice(0, 2) !== './') {
-				data = `./${data}`;
+			if (path.slice(0, 2) === './') {
+				path = path.slice(2);
 			}
 
-			this.data.push({ path: data, load: this.folder + '/' + load + '.js' });
+			if (path.slice(0, 1) !== '/') {
+				path = '/' + path;
+			}
+
+			load = load + '.js';
+			load = Path.join(this.folder, load);
+
+			this.data.push({ path, load });
 		} else if (data.constructor === Object) {
 
 			if (!data.path) {
