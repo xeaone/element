@@ -98,12 +98,13 @@ if (oSetup) {
 
 }
 
+let GLOBAL = {};
+let SETUP = false;
+
 export default {
 
-	_global: {},
-
 	get global () {
-		return this._global;
+		return GLOBAL;
 	},
 
 	get window () {
@@ -180,11 +181,8 @@ export default {
 
 	async setup (data) {
 
-		if (this._setup) {
-			return;
-		} else {
-			this._setup = true;
-		}
+		if (SETUP) return;
+		else SETUP = true;
 
 		data = data || {};
 		data.listener = data.listener || {};
