@@ -107,10 +107,6 @@ export default {
 				extension: Path.extension(imp[2])
 			};
 
-			if (!result[i].extension) {
-				result[i].url = result[i].url + '.js';
-			}
-
 		}
 
 		return result;
