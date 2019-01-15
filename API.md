@@ -20,16 +20,20 @@ The recommend entry or setup method.
 	- `listener: Object`
 		- `before: Function`
 		- `after: Function`
-	- `general: Object`
-		- `base: String` Sets or and creates a base tag
+	- `path: Object` Oxe.path options
 	- `loader: Object` Oxe.loader options
 	- `keeper: Object` Oxe.keeper options
 	- `router: Object` Oxe.router options
 	- `batcher: Object` Oxe.batcher options
 	- `fetcher: Object` Oxe.fetcher options
 
+### Oxe.path
+- `setup: AsyncFunction`
+	- `options: Object`
+		- `base: String` Sets or and creates a base tag
+
 ### Oxe.component
-- `setup: Function`
+- `setup: AsyncFunction`
 	- `options: Object`
 		- `components: Array`
 			- `component: Object` A component definition.
@@ -57,7 +61,7 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 	- `export default`
 - Commented and string or template string import/export might have issues
 - Template string re-writes may not handle nested backtick/template string correctly
-- Method type of fetch will use XHR and new Function.
+- Method type of fetch will use fetch or XHR and new Function.
 
 - `options: Object`
 	- `type: Objcet`

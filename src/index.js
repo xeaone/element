@@ -5,7 +5,6 @@ import Reset from './listener/reset.js';
 import Click from './listener/click.js';
 import State from './listener/state.js';
 import Component from './component.js';
-import General from './general.js';
 import Utility from './utility.js';
 import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
@@ -144,10 +143,6 @@ export default {
 		return Utility;
 	},
 
-	get general () {
-		return General;
-	},
-
 	get batcher () {
 		return Batcher;
 	},
@@ -240,8 +235,6 @@ export default {
 			await data.listener.before();
 		}
 
-		if (data.general) {
-			this.general.setup(data.general);
 		}
 
 		if (data.fetcher) {
