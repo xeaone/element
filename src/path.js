@@ -38,13 +38,8 @@ export default {
 			throw new Error('Oxe.path.clean - argument required');
 		}
 
-		const base = this.base;
 		const origin = window.location.origin;
 		const protocol = window.location.protocol + '//';
-
-		if (data.slice(0, base.length) === base) {
-			data = data.slice(base.length);
-		}
 
 		if (data.slice(0, origin.length) === origin) {
 			data = data.slice(origin.length);
@@ -104,7 +99,7 @@ export default {
 
 		for (let i = 0, l = arguments.length; i < l; i++) {
 			if (arguments[i]) {
-				result.push(this.clean(arguments[i]));
+				result.push(this.normalize(arguments[i]));
 			}
 		}
 

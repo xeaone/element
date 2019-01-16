@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.3.0
+	Version: 4.4.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2012,13 +2012,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         throw new Error('Oxe.path.clean - argument required');
       }
 
-      var base = this.base;
       var origin = window.location.origin;
       var protocol = window.location.protocol + '//';
-
-      if (data.slice(0, base.length) === base) {
-        data = data.slice(base.length);
-      }
 
       if (data.slice(0, origin.length) === origin) {
         data = data.slice(origin.length);
@@ -2074,7 +2069,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       for (var i = 0, l = arguments.length; i < l; i++) {
         if (arguments[i]) {
-          result.push(this.clean(arguments[i]));
+          result.push(this.normalize(arguments[i]));
         }
       }
 
@@ -2719,6 +2714,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     compiled: false,
     folder: './routes',
     compare: function compare(routePath, userPath) {
+      if (userPath.slice(0, Path.base.length) === Path.base) {
+        userPath = userPath.slice(Path.base.length);
+      }
+
+      if (routePath.slice(0, Path.base.length) === Path.base) {
+        routePath = routePath.slice(Path.base.length);
+      }
+
       userPath = Path.join(Path.base, userPath);
       routePath = Path.join(Path.base, routePath);
       var userParts = userPath.split('/');

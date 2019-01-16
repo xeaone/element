@@ -23,6 +23,14 @@ export default {
 
 	compare (routePath, userPath) {
 
+		if (userPath.slice(0, Path.base.length) === Path.base) {
+			userPath = userPath.slice(Path.base.length);
+		}
+
+		if (routePath.slice(0, Path.base.length) === Path.base) {
+			routePath = routePath.slice(Path.base.length);
+		}
+
 		userPath = Path.join(Path.base, userPath);
 		routePath = Path.join(Path.base, routePath);
 
