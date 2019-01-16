@@ -22,17 +22,13 @@ export default {
 	folder: './routes',
 
 	compare (routePath, userPath) {
+		const base = Path.normalize(Path.base);
 
-		if (userPath.slice(0, Path.base.length) === Path.base) {
-			userPath = userPath.slice(Path.base.length);
-		}
+		userPath = Path.normalize(userPath);
+		routePath = Path.normalize(routePath);
 
-		if (routePath.slice(0, Path.base.length) === Path.base) {
-			routePath = routePath.slice(Path.base.length);
-		}
-
-		userPath = Path.join(Path.base, userPath);
-		routePath = Path.join(Path.base, routePath);
+		userPath = Path.join(base, userPath);
+		routePath = Path.join(base, routePath);
 
 		const userParts = userPath.split('/');
 		const routeParts = routePath.split('/');
@@ -399,6 +395,9 @@ export default {
 
 		const mode = options.mode || this.mode;
 		const location = this.toLocationObject(path);
+
+
+
 		const route = await this.find(location.pathname);
 
 		if (!route) {

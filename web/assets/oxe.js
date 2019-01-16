@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.4.0
+	Version: 4.5.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2714,16 +2714,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     compiled: false,
     folder: './routes',
     compare: function compare(routePath, userPath) {
-      if (userPath.slice(0, Path.base.length) === Path.base) {
-        userPath = userPath.slice(Path.base.length);
-      }
-
-      if (routePath.slice(0, Path.base.length) === Path.base) {
-        routePath = routePath.slice(Path.base.length);
-      }
-
-      userPath = Path.join(Path.base, userPath);
-      routePath = Path.join(Path.base, routePath);
+      var base = Path.normalize(Path.base);
+      userPath = Path.normalize(userPath);
+      routePath = Path.normalize(routePath);
+      userPath = Path.join(base, userPath);
+      routePath = Path.join(base, routePath);
       var userParts = userPath.split('/');
       var routeParts = routePath.split('/');
       var compareParts = [];
