@@ -40,8 +40,8 @@ export default {
 		}
 
 		if (data.ast && data.ast.imports.length) {
-			return Promise.all(data.ast.imports.map(function (imp) {
-				return self.load({ url: imp.url, type: data.type });
+			return Promise.all(data.ast.imports.map(function (module) {
+				return self.load({ url: module.url, type: data.type });
 			}));
 		}
 
