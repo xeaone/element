@@ -23,8 +23,8 @@ export default {
 
 	compare (routePath, userPath) {
 
-		userPath = Path.resolve(userPath);
-		routePath = Path.resolve(routePath);
+		userPath = Path.join(Path.base, userPath);
+		routePath = Path.join(Path.base, routePath);
 
 		const userParts = userPath.split('/');
 		const routeParts = routePath.split('/');

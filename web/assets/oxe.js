@@ -2066,8 +2066,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return this.normalize(result.join('/'));
     },
     resolve: function resolve() {
-      console.log(arguments);
-
       if (!arguments.length) {
         throw new Error('Oxe.path.resolve - argument required');
       }
@@ -2084,14 +2082,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
 
-      console.log(result);
-
       if (result[0][0] !== '/') {
         var base = this.base || window.location.pathname ? window.location.pathname : '/';
         result.unshift(this.base);
       }
 
-      console.log(result);
       return this.normalize(result.join('/'));
     }
   };
@@ -2709,10 +2704,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     compiled: false,
     folder: './routes',
     compare: function compare(routePath, userPath) {
-      console.log(userPath);
-      console.log(routePath);
-      userPath = Path.resolve(userPath);
-      routePath = Path.resolve(routePath);
+      userPath = Path.join(Path.base, userPath);
+      routePath = Path.join(Path.base, routePath);
       var userParts = userPath.split('/');
       var routeParts = routePath.split('/');
       var compareParts = [];
@@ -2847,7 +2840,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             }
 
             if (path.slice(0, 1) !== '/') {
-              path = Path.join('/', path);
+              path = '/' + path;
             }
 
             load = load + '.js';

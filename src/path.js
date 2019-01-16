@@ -107,7 +107,6 @@ export default {
 	},
 
 	resolve () {
-		console.log(arguments);
 
 		if (!arguments.length) {
 			throw new Error('Oxe.path.resolve - argument required');
@@ -119,8 +118,8 @@ export default {
 		let i = arguments.length;
 
 		while (argument = arguments[--i]) {
+
 			result.unshift(this.clean(argument));
-			// result.unshift(this.normalize(argument));
 
 			if (argument[0] === '/') {
 				break;
@@ -128,40 +127,10 @@ export default {
 
 		}
 
-		// let path = result.join('/');
-
-		// console.log('Path.resolve.in:', result.join('/'));
-
-		// path = path.replace(window.location.hash, '');
-		// path = path.replace(window.location.search, '');
-		// path = path.replace(window.location.origin, '');
-		// path = path.replace(window.location.protocol, '');
-
-		// if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0 || path.indexOf('file://') === 0 || path.indexOf('//') === 0) {
-		// 	return path;
-		// }
-
-		// base = base || this.base || '';
-
-		console.log(result);
-
 		if (result[0][0] !== '/') {
-			// let base = this.base || '';
-			// base = base || this.base || '';
-			let base = this.base || window.location.pathname ? window.location.pathname : '/';
-			// path = `${base}/${path}`;
+			const base = this.base || window.location.pathname ? window.location.pathname : '/';
 			result.unshift(this.base);
 		}
-
-		console.log(result);
-
-		// path = `${base}/${path}`;
-		// path = path.replace(window.location.origin, '');
-		// path = path.replace(window.location.protocol, '');
-		// path = path.replace(/^\//, '');
-		// path = path.replace(/\/$/, '');
-
-		// console.log('Path.resolve.out:', this.normalize(result.join('/')));
 
 		return this.normalize(result.join('/'));
 	}
