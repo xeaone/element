@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.2.0
+	Version: 4.3.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2012,8 +2012,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         throw new Error('Oxe.path.clean - argument required');
       }
 
+      var base = this.base;
       var origin = window.location.origin;
       var protocol = window.location.protocol + '//';
+
+      if (data.slice(0, base.length) === base) {
+        data = data.slice(base.length);
+      }
 
       if (data.slice(0, origin.length) === origin) {
         data = data.slice(origin.length);
