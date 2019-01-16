@@ -1,3 +1,6 @@
+### 4.2.0
+- bug fixed import and path
+
 ### 4.1.0
 - changed route parameters symbols to () from {}
 

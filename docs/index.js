@@ -1,4 +1,4 @@
-import cMenu from './components/c-menu.js';
+import cMenu from '/components/c-menu.js';
 import cFoo from './components/c-foo.js';
 
 Oxe.router.on('route:before', function () {

@@ -1,7 +1,7 @@
 
 export default {
 	title: 'Error',
-	path: './(*)',
+	path: '/(*)',
 	component: {
 		name: 'r-error',
 		template: `

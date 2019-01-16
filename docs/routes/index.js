@@ -32,7 +32,7 @@ var home = Escape(`
 var indexjs = Escape(`
 	// index.js
 
-	import Home from './home.js';
+	imp Home from './home.js';
 
 	Oxe.setup({
 		loader: {
@@ -82,7 +82,7 @@ var indexhtml = Escape(`
 
 export default {
 	title: 'Oxe',
-	path: './',
+	path: '/',
 	component: {
 		name: 'r-index',
 		created: function () {
