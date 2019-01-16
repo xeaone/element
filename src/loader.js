@@ -23,7 +23,7 @@ export default {
 	},
 
 	async execute (data) {
-		let text = '\'use strict\';\n\n' + (data.ast ? data.ast.cooked : data.text);
+		let text = '\'use strict\';\n' + (data.ast ? data.ast.cooked : data.text);
 		let code = new Function('$LOADER', 'window', text);
 		data.result = code(this, window);
 	},
