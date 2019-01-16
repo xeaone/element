@@ -67,6 +67,8 @@ export default {
 
 		if (result.status >= 200 && result.status < 300 || result.status == 304) {
 			data.text = await result.text();
+		} else if (result.status == 404) {
+			throw new Error(`Oxe.loader.fetch - not found ${data.url}`);
 		} else {
 			throw new Error(result.statusText);
 		}
