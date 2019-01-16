@@ -27,8 +27,13 @@ export default {
 		userPath = Path.normalize(userPath);
 		routePath = Path.normalize(routePath);
 
-		userPath = Path.join(base, userPath);
-		routePath = Path.join(base, routePath);
+		if (userPath.slice(0, base.length) !== base) {
+			userPath = Path.join(base, userPath);
+		}
+
+		if (routePath.slice(0, base.length) !== base) {
+			routePath = Path.join(base, routePath);
+		}
 
 		const userParts = userPath.split('/');
 		const routeParts = routePath.split('/');
