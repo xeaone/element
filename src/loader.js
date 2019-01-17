@@ -10,7 +10,7 @@ export default {
 	},
 
 	async setup (options) {
-		let self = this;
+		const self = this;
 
 		options = options || {};
 
@@ -23,52 +23,58 @@ export default {
 	},
 
 	async execute (data) {
-		let text = '\'use strict\';\n' + (data.ast ? data.ast.cooked : data.text);
-		let code = new Function('$LOADER', 'window', text);
-		data.result = code(this, window);
+		const code = '\'use strict\';\n' + data;
+		const method = new Function('$LOADER', 'window', code);
+		return method(this, window);
 	},
 
-	async transform (data) {
-		const self = this;
-
-		if (data.type === 'es' || data.type=== 'est') {
-			data.text = Transformer.template(data.text);
-		}
-
-		if (data.type === 'es' || data.type === 'esm') {
-			data.ast = Transformer.ast(data);
-		}
-
-		if (data.ast && data.ast.imports.length) {
-			return Promise.all(data.ast.imports.map(function (module) {
-				return self.load({ url: module.url, type: data.type });
-			}));
-		}
-
-	},
-
-	async attach (data) {
+	async attach (name, attributes) {
 		return new Promise(function (resolve, reject) {
-			let element = document.createElement(data.tag);
+			const element = document.createElement(name);
 
 			element.onload = resolve;
 			element.onerror = reject;
 
-			for (let name in data.attributes) {
-				element.setAttribute(name, data.attributes[name]);
+			for (const key in attributes) {
+				element.setAttribute(key, attributes[key]);
 			}
 
 			document.head.appendChild(element);
 		});
 	},
 
-	async fetch (data) {
-		let result = await window.fetch(data.url);
+	async transform (code, type, url) {
+		const self = this;
+		const ast = {};
+
+		if (type === 'es' || type=== 'est') {
+			ast.raw = Transformer.template(code);
+		}
+
+		if (type === 'es' || type === 'esm') {
+			ast = Transformer.ast(ast.raw, url);
+
+			if (ast.imports.length) {
+
+				const imports = ast.imports.map(function (module) {
+					return self.load({ url: module.url, type });
+				});
+
+				await Promise.all(imports);
+			}
+
+		}
+
+		return ast;
+	},
+
+	async fetch (path) {
+		const result = await window.fetch(path);
 
 		if (result.status >= 200 && result.status < 300 || result.status == 304) {
-			data.text = await result.text();
+			return result.text();
 		} else if (result.status == 404) {
-			throw new Error(`Oxe.loader.fetch - not found ${data.url}`);
+			throw new Error(`Oxe.loader.fetch - not found ${path}`);
 		} else {
 			throw new Error(result.statusText);
 		}
@@ -77,48 +83,30 @@ export default {
 
 	async js (data) {
 		if (data.type === 'es' || data.type === 'est' || data.type === 'esm' || data.type === 'fetch') {
-			await this.fetch(data);
+			data.text = await this.fetch(data.url);
 
 			if (data.type === 'es' || data.type === 'est' || data.type === 'esm') {
-				await this.transform(data);
+				data.ast = await this.transform(data.text, data.type, data.url);
 			}
 
-			await this.execute(data);
+			return this.execute(data.ast ? data.ast.cooked : data.text);
 		} else if (data.type === 'script') {
-			await this.attach({
-				tag: 'script',
-				attributes: {
-					src: data.url,
-					type: 'text/javascript'
-				}
-			});
+			return this.attach('script', { src: data.url, type: 'text/javascript' });
 		} else {
-			await this.attach({
-				tag: 'script',
-				attributes: {
-					src: data.url,
-					type: 'module'
-				}
-			});
+			return this.attach('script', { src: data.url, type: 'module' });
 		}
 	},
 
 	async css (data) {
 		if (data.type === 'fetch') {
-			await this.fetch(data);
+			data.text = await this.fetch(data);
 		} else {
-			await this.attach({
-				tag: 'link',
-				attributes: {
-					href: data.url,
-					type: 'text/css',
-					rel: 'stylesheet'
-				}
-			});
+			await this.attach('link', { href: data.url, type: 'text/css', rel: 'stylesheet' });
 		}
 	},
 
 	async load (data) {
+		let result;
 
 		if (typeof data === 'string') {
 			data = { url: data };
@@ -127,7 +115,14 @@ export default {
 		data.url = Path.resolve(data.url);
 
 		if (data.url in this.data) {
-			await this.data[data.url].promise;
+			result = await this.data[data.url].promise;
+
+			if (result.default) {
+				this.data[data.url].result = result.default;
+			} else {
+				this.data[data.url].result = result;
+			}
+
 			return this.data[data.url].result;
 		}
 
@@ -137,14 +132,24 @@ export default {
 		data.type = data.type || this.type[data.extension];
 
 		if (data.extension === 'js') {
-			data.promise = this.js(data);
+			// if (data.type === 'import' && window.import) {
+				// data.promise = import(data.url);
+			// } else {
+          		data.promise = this.js(data);
+			// }
 		} else if (data.extension === 'css') {
 			data.promise = this.css(data);
 		} else {
-			data.promise = this.fetch(data);
+			data.promise = this.fetch(data.url);
 		}
 
-		await data.promise;
+		result = await data.promise;
+
+		if (result.default) {
+			data.result = result.default;
+		} else {
+			data.result = result;
+		}
 
 		return data.result;
 	}

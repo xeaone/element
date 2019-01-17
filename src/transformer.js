@@ -99,7 +99,7 @@ export default {
 
 		for (let i = 0, l = imps.length; i < l; i++) {
 		 	const imp = imps[i].match(this.patterns.imp);
-			
+
 			result[i] = {
 				raw: imp[0],
 				name: imp[1],
@@ -166,12 +166,12 @@ export default {
 		return text;
 	},
 
-	ast (data) {
-		let result = {};
+	ast (code, url) {
+		const result = {};
 
-		result.url = data.url;
-		result.raw = data.text;
-		result.cooked = data.text;
+		result.url = url;
+		result.raw = code;
+		result.cooked = code;
 		result.base = result.url.slice(0, result.url.lastIndexOf('/') + 1);
 
 		result.imports = this.getImports(result.raw, result.base);
