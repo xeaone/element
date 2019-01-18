@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.7.0
+	Version: 4.7.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2149,26 +2149,43 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
   var Loader = {
     data: {},
-    type: '',
+    type: 'esm',
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
+        var self = this;
         options = options || options;
         this.type = options.type || this.type;
+
+        if (options.loads) {
+          return $return(Promise.all(options.loads.map(function (load) {
+            return self.load(load);
+          })));
+        }
+
         return $return();
       }.bind(this));
     },
-    load: function load(url, type) {
+    load: function load() {
+      var $args = arguments;
       return new Promise(function ($return, $error) {
-        var data, code;
-        type = type || this.type;
+        var url, type, data, code;
+
+        if (_typeof($args[0]) === 'object') {
+          url = $args[0]['url'];
+          type = $args[0]['type'];
+        } else {
+          url = $args[0];
+          type = $args[1] || this.type;
+        }
+
+        if (!url) {
+          return $error(new Error('Oxe.loader.load - url argument required'));
+        }
+
         url = Path.normalize(url);
 
         if (url in this.data) {
           return $return(this.data[url]);
-        }
-
-        if (!url) {
-          return $error(new Error('import url argument required'));
         }
 
         return Promise.resolve(window.fetch(url)).then(function ($await_44) {
@@ -2176,7 +2193,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             data = $await_44;
 
             if (data.status == 404) {
-              return $error(new Error('import not found ' + url));
+              return $error(new Error('Oxe.loader.load - not found ' + url));
             }
 
             if (data.status < 200 || data.status > 300 && data.status != 304) {

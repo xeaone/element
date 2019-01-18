@@ -23,7 +23,7 @@ export default {
 
 	},
 
-	async load (data) {
+	async load () {
 		let url, type;
 
 		if (typeof arguments[0] === 'object') {
