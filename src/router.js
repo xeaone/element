@@ -71,11 +71,11 @@ export default {
 			routePath = Path.join(base, routePath);
 		}
 
-		if (compareParts(routePath.split('/'), userPath.split('/'))) {
+		if (this.compareParts(routePath.split('/'), userPath.split('/'))) {
 			return true;
 		}
 
-		if (compareParts(routePath.split('-'), userPath.split('-'))) {
+		if (this.compareParts(routePath.split('-'), userPath.split('-'))) {
 			return true;
 		}
 
