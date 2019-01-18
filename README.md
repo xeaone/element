@@ -13,9 +13,9 @@ Breaking version changes can be found at [VERSION.md](https://github.com/vokeio/
 - Small size
 - Front end routing
 - Configuration based
-- Optional module loading
-- Optional in browser ES6/ESM module rewrites
-- Optional in browser Template string rewrites
+- Dynamic import polyfill
+- Template string polyfill
+- In browser Template and Import/Export rewrites
 
 ### Polyfill
 - [poly.min.js](https://github.com/vokeio/oxe/blob/master/dst/poly.min.js) includes everything need except shadow poly code.
@@ -78,18 +78,12 @@ export default {
 ```js
 // index.js
 
+import './elements/e-menu.js';
 import Home from './home.js';
 
 Oxe.setup({
 	loader: {
-		type: {
-			css: 'attach',
-			js: 'es', // enables ES6 module and template string re-writes
-		},
-		loads: [
-			'./index.css',
-			'./elements/e-menu.js'
-		]
+		type: 'es' // required to rewrite import exports
 	},
 	router: {
 		routes: [
@@ -97,7 +91,7 @@ Oxe.setup({
 			'error' // dynamically loads and resolves to /routes/error.js
 		]
 	}
-});
+}).catch(console.error);
 ```
 ```html
 <!-- index.html -->
@@ -124,7 +118,7 @@ Oxe.setup({
 </html>
 ```
 
-## Authors
+## Author
 [vokeio](https://github.com/vokeio)
 
 ## License
