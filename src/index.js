@@ -9,6 +9,7 @@ import Utility from './utility.js';
 import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
 import Methods from './methods.js'
+import Loader from './loader.js';
 import Router from './router.js';
 import Binder from './binder.js';
 import Render from './render.js';
@@ -66,7 +67,7 @@ window.customElements.define('o-router', ORouter);
 const oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
-	const args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
+	const options = oSetup.getAttribute('o-setup').split(/\s+|\s*,+\s*/);
 	const meta = document.querySelector('meta[name="oxe"]');
 
 	if (meta && meta.hasAttribute('compiled')) {
@@ -74,23 +75,12 @@ if (oSetup) {
 		Component.compiled = true;
 	}
 
-	if (!args[0]) {
-		throw new Error('Oxe - script attribute o-setup requires url');
+	if (!options[0]) {
+		throw new Error('Oxe - script attribute o-setup requires path');
 	}
 
-	if (args.length > 1) {
-		const url = Path.resolve(Path.base, args[0]);
-		window.import(url).catch(console.error);
-	} else {
-		const index = document.createElement('script');
-
-		index.setAttribute('src', args[0]);
-		index.setAttribute('async', 'true');
-		index.setAttribute('type', 'module');
-
-		document.head.appendChild(index);
-	}
-
+	Loader.type = options[1] || 'esm';
+	Loader.load(options[0]).catch(console.error);
 }
 
 let GLOBAL = {};
@@ -166,6 +156,10 @@ export default {
 		return Model;
 	},
 
+	get loader () {
+		return Loader;
+	},
+
 	get path () {
 		return Path;
 	},
@@ -233,6 +227,10 @@ export default {
 
 		if (data.fetcher) {
 			await this.fetcher.setup(data.fetcher);
+		}
+
+		if (data.loader) {
+			await this.loader.setup(data.loader);
 		}
 
 		if (data.component) {

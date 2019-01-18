@@ -1,5 +1,5 @@
 import Path from './path.js';
-// import Loader from './loader.js';
+import Loader from './loader.js';
 import Events from './events.js';
 import Utility from './utility.js';
 import Component from './component.js';
@@ -269,30 +269,15 @@ export default {
 	},
 
 	async load (route) {
-		// let type = Loader.type.js;
-		//
-		// if (Loader.type.js !== 'es' && Loader.type.js !== 'est' && Loader.type.js !== 'esm') {
-		// 	type = 'esm';
-		// }
 
 		if (route.load) {
-			// const load = await Loader.load({
-			// 	type: type,
-			// 	url: route.load
-			// });
-			const load = await window.import(route.load);
+			const load = await Loader.load(route.load);
 			route = Object.assign({}, load.default, route);
 		}
 
 		if (typeof route.component === 'string') {
-			route.load = route.component;
-			const load = await window.import(route.load);
-			console.log(load);
+			const load = await Loader.load(route.load);
 			route.component = load.default;
-			// route.component = await Loader.load({
-			// 	type: type,
-			// 	url: route.load
-			// });
 		}
 
 		return route;

@@ -1,50 +1,42 @@
 import Path from './path.js';
 
-// FIXME import export in strings cause error
-// FIXME double backtick in template strings or regex could possibly causes issues
-
 export default {
-
 	/*
 		templates
 	*/
-
-	innerHandler (char, index, string) {
+	innerHandler: function (character, index, string) {
 		if (string[index-1] === '\\') return;
-		if (char === '\'') return '\\\'';
-		if (char === '\"') return '\\"';
-		if (char === '\t') return '\\t';
-		if (char === '\r') return '\\r';
-		if (char === '\n') return '\\n';
-		if (char === '\w') return '\\w';
-		if (char === '\b') return '\\b';
+		if (character === '\'') return '\\\'';
+		if (character === '\"') return '\\"';
+		if (character === '\t') return '\\t';
+		if (character === '\r') return '\\r';
+		if (character === '\n') return '\\n';
+		if (character === '\w') return '\\w';
+		if (character === '\b') return '\\b';
 	},
-
-	updateString (value, index, string) {
+	updateString: function (value, index, string) {
 		return string.slice(0, index) + value + string.slice(index+1);
 	},
-
-	updateIndex (value, index) {
+	updateIndex: function (value, index) {
 		return index + value.length-1;
 	},
+	template: function (data) {
 
-	template (data) {
-
-		let first = data.indexOf('`');
-		let second = data.indexOf('`', first+1);
+		var first = data.indexOf('`');
+		var second = data.indexOf('`', first+1);
 
 		if (first === -1 || second === -1) return data;
 
-		let value;
-		let ends = 0;
-		let starts = 0;
-		let string = data;
-		let isInner = false;
+		var value;
+		var ends = 0;
+		var starts = 0;
+		var string = data;
+		var isInner = false;
 
-		for (let index = 0; index < string.length; index++) {
-			let char = string[index];
+		for (var index = 0; index < string.length; index++) {
+			var character = string[index];
 
-			if (char === '`' && string[index-1] !== '\\') {
+			if (character === '`' && string[index-1] !== '\\') {
 
 				if (isInner) {
 					ends++;
@@ -62,7 +54,7 @@ export default {
 
 			} else if (isInner) {
 
-				if (value = this.innerHandler(char, index, string)) {
+				if (value = this.innerHandler(character, index, string)) {
 					string = this.updateString(value, index, string);
 					index = this.updateIndex(value, index);
 				}
@@ -76,111 +68,51 @@ export default {
 		if (starts === ends) {
 			return string;
 		} else {
-			throw new Error('Oxe - Transformer missing backtick');
+			throw new Error('import transformer missing backtick');
 		}
 
 	},
-
 	/*
 		modules
 	*/
+	exp: /export\s+default\s*(var|let|const)?/,
+	imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|");?\n?/g,
+	imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|");?\n?/,
+	module: function (code, url) {
 
-	patterns: {
-		// lines: /(.*(?:;|\n))/g,
-		// line: /(.*\s*{.*\s*.*\s*}.*)|((?:\/\*|`|'|").*\s*.*\s*(?:"|'|`|\*\/))|(.*(?:;|\n))/g,
-		exps: /export\s+(?:default|var|let|const)?\s+/g,
-		imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|")/g,
-		imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|")/
-	},
+		var base = url.slice(0, url.lastIndexOf('/') + 1);
+		var before = 'return Promise.all([\n';
+		var after = ']).then(function ($MODULES) {\n';
 
-	getImports (text, base) {
-		let result = [];
-		let imps = text.match(this.patterns.imps) || [];
+		var imps = code.match(this.imps) || [];
 
-		for (let i = 0, l = imps.length; i < l; i++) {
-		 	const imp = imps[i].match(this.patterns.imp);
+		for (var i = 0, l = imps.length; i < l; i++) {
+		 	var imp = imps[i].match(this.imp);
 
-			result[i] = {
-				raw: imp[0],
-				name: imp[1],
-				url: Path.resolve(base, imp[2]),
-				extension: Path.extension(imp[2])
-			};
+			var rawImport = imp[0];
+			var nameImport = imp[1];
+			var pathImport = imp[2];
 
+			if (pathImport.slice(0, 1) !== '/') {
+				pathImport = Path.normalize(base + '/' + pathImport);
+			} else {
+				pathImport = Path.normalize(pathImport);
+			}
+
+			before = before + '\t$LOADER.load("' + pathImport + '"),\n';
+			after = after + 'var ' + nameImport + ' = $MODULES[' + i + '].default;\n';
+
+			code = code.replace(rawImport, '');
 		}
 
-		return result;
-	},
-
-	getExports (text) {
-		let result = [];
-		let exps = text.match(this.patterns.exps) || [];
-
-		for (let i = 0, l = exps.length; i < l; i++) {
-			let exp = exps[i];
-
-			result[i] = {
-				raw: exp,
-				default: exp.indexOf('default') !== -1,
-			};
-
+		if (this.exp.test(code)) {
+			code = code.replace(this.exp, 'var $DEFAULT = ');
+			code = code + '\n\nreturn { default: $DEFAULT };\n';
 		}
 
-		return result;
-	},
+		code = '"use strict";\n' + before + after + code + '});';
 
-	replaceImports (text, imps) {
-
-		if (!imps.length) {
-			return text;
-		}
-
-		for (let i = 0, l = imps.length; i < l; i++) {
-			let imp = imps[i];
-
-			let pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.data[\'' + imp.url + '\'].result';
-
-			text = text.replace(imp.raw, pattern);
-		}
-
-		return text;
-	},
-
-	replaceExports (text, exps) {
-
-		if (!exps.length) {
-			return text;
-		}
-
-		if (exps.length === 1) {
-			return text.replace(exps[0].raw, 'return ');
-		}
-
-		text = 'var $EXPORT = {};\n' + text;
-		text = text + '\nreturn $EXPORT;\n';
-
-		for (let i = 0, l = exps.length; i < l; i++) {
-			text = text.replace(exps[i].raw, '$EXPORT.');
-		}
-
-		return text;
-	},
-
-	ast (code, url) {
-		const result = {};
-
-		result.url = url;
-		result.raw = code;
-		result.cooked = code;
-		result.base = result.url.slice(0, result.url.lastIndexOf('/') + 1);
-
-		result.imports = this.getImports(result.raw, result.base);
-		result.exports = this.getExports(result.raw);
-
-		result.cooked = this.replaceImports(result.cooked, result.imports);
-		result.cooked = this.replaceExports(result.cooked, result.exports);
-
-		return result;
+		return code;
 	}
 
-}
+};
