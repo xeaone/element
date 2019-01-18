@@ -61,29 +61,22 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 	- `export default`
 - Commented and string or template string import/export might have issues
 - Template string re-writes may not handle nested backtick/template string correctly
-- Method type of fetch will use fetch or XHR and new Function.
+- Uses fetch or XHR and new Function until dynamic imports are supported.
 
 - `options: Object`
-	- `type: Objcet`
-		- `js: String`
-			- `es` Enables ES6 module and template string re-writes
-			- `esm` Enables ES6 module re-writes uses (Note: only supporting default export/import)
-			- `est` Enables ES6 template string re-writes uses (Note: Any backtick will be re-writen)
-			- `fetch` Fetches the content and executes
-			- `script` Appends to header as a standard script tag
-			- `attach` Appends to header as a module script tag  **default**
-		- `css: String`
-			- `fetch` Fetches the content
-			- `attach` Appends to header as a link tag **default**
+	- `type: String`
+		- `es` Enables ES6 module and template string re-writes
+		- `est` Enables ES6 template string re-writes uses
+		- `esm` Enables ES6 module re-writes uses (Note: only supporting default export/import)
 	- `loads: Array` Adds load objects or strings such as non route components
 		- `load: Object, String`
-			- `url: String` Path to file resources
+			- `url: String` **Required** Path to file resources
 			- `type: String` If not defined uses the default type
 - `setup: Function`
 	- `options: Object` Accepts the above options
 - `load: Function`
 	- `load: Object, String`
-		- `url: String` Path to file resources
+		- `url: String` **Required** Path to file resources
 		- `type: String` If not defined uses the default type based from extension
 
 ### Oxe.router

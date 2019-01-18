@@ -7,15 +7,36 @@ import Path from './path.js';
 export default {
 
 	data: {},
-	type: '',
+	type: 'esm',
 
 	async setup (options) {
+		const self = this;
+
 		options = options || options;
 		this.type = options.type || this.type;
+
+		if (options.loads) {
+			return Promise.all(options.loads.map(function (load) {
+				return self.load(load);
+			}));
+		}
+
 	},
 
-	async load (url, type) {
-		type = type || this.type;
+	async load (data) {
+		let url, type;
+
+		if (typeof arguments[0] === 'object') {
+			url = arguments[0]['url'];
+			type = arguments[0]['type'];
+		} else {
+			url = arguments[0];
+			type = arguments[1] || this.type;
+		}
+
+		if (!url) {
+			throw new Error('Oxe.loader.load - url argument required');
+		}
 
 		url = Path.normalize(url);
 
@@ -23,14 +44,10 @@ export default {
 			return this.data[url];
 		}
 
-		if (!url) {
-			throw new Error('import url argument required');
-		}
-
 		const data = await window.fetch(url);
 
 		if (data.status == 404) {
-			throw new Error('import not found ' + url);
+			throw new Error('Oxe.loader.load - not found ' + url);
 		}
 
 		if (data.status < 200 || data.status > 300 && data.status != 304) {
