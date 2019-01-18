@@ -83,16 +83,15 @@ export default {
 			|| userPath === '/'
 		) return result;
 
-		let brackets = /\(|\)/g;
-		let pattern = /\((\w+)\)/;
-		let userPaths = userPath.split('/');
-		let routePaths = routePath.split('/');
+		const userParts = userPath.split(/\/|-/);
+		const routeParts = routePath.split(/\/|-/);
 
-		for (let i = 0, l = routePaths.length; i < l; i++) {
+		for (let i = 0, l = routeParts.length; i < l; i++) {
+			let part = routeParts[i];
 
-			if (pattern.test(routePaths[i])) {
-				let name = routePaths[i].replace(brackets, '');
-				result[name] = userPaths[i];
+			if (part.slice(0, 1) === '(' && part.slice(-1) === ')') {
+				const name = part.slice(1, part.length-1);
+				result[name] = userParts[i];
 			}
 
 		}
