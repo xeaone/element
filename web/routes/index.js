@@ -32,7 +32,7 @@ var home = Escape(`
 var indexjs = Escape(`
 	// index.js
 
-	imp Home from './home.js';
+	imprt Home from './home.js';
 
 	Oxe.setup({
 		loader: {

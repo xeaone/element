@@ -18,14 +18,6 @@ Oxe.setup({
 			console.log(arguments);
 		}
 	},
-	loader: {
-		methods: {
-			js: 'fetch'
-		},
-		transformers: {
-			js: 'es'
-		}
-	},
 	component: {
 		components: [
 			cFoo,
