@@ -21,8 +21,11 @@ export default {
 	compiled: false,
 	folder: './routes',
 
-	compareParts (routeParts, userParts) {
+	compareParts (routePath, userPath, split) {
 		const compareParts = [];
+
+		const routeParts = routePath.split(split);
+		const userParts = userPath.split(split);
 
 		if (userParts.length > 1 && userParts[userParts.length-1] === '') {
 			userParts.pop();
@@ -50,7 +53,7 @@ export default {
 
 		}
 
-		if (compareParts.join('/') === userParts.join('/')) {
+		if (compareParts.join(split) === userParts.join(split)) {
 			return true;
 		} else {
 			return false;
@@ -71,11 +74,11 @@ export default {
 			routePath = Path.join(base, routePath);
 		}
 
-		if (this.compareParts(routePath.split('/'), userPath.split('/'))) {
+		if (this.compareParts(routePath, userPath, '/')) {
 			return true;
 		}
 
-		if (this.compareParts(routePath.split('-'), userPath.split('-'))) {
+		if (this.compareParts(routePath, userPath, '-')) {
 			return true;
 		}
 
