@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.7.2
+	Version: 4.7.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1621,7 +1621,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Change(event) {
     if (event.target.hasAttribute('o-value')) {
       var update = Update(event.target, 'value');
-      Promise.resolve(update).catch(console.error);
     }
   }
 
@@ -1961,7 +1960,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Input(event) {
     if (event.target.type !== 'checkbox' && event.target.type !== 'radio' && event.target.type !== 'option' && event.target.nodeName !== 'SELECT' && event.target.hasAttribute('o-value')) {
       var update = Update(event.target, 'value');
-      Promise.resolve(update).catch(console.error);
     }
   }
 
@@ -3187,7 +3185,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     var route = Router.route(path, {
       mode: 'replace'
     });
-    Promise.resolve(route).catch(console.error);
   }
 
   var eStyle = document.createElement('style');
@@ -3230,7 +3227,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     Loader.type = options[1] || 'esm';
-    Loader.load(options[0]).catch(console.error);
+    Promise.resolve(Loader.load(options[0]));
   }
 
   var GLOBAL = {};
@@ -3332,7 +3329,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               after = typeof data.listener.reset.after === 'function' ? data.listener.reset.after.bind(null, event) : null;
             }
 
-            Promise.resolve().then(before).then(Reset.bind(null, event)).then(after).catch(console.error);
+            Promise.resolve().then(before).then(Reset.bind(null, event)).then(after);
           }
         }, true);
         document.addEventListener('submit', function (event) {
@@ -3346,7 +3343,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               after = typeof data.listener.submit.after === 'function' ? data.listener.submit.after.bind(null, event) : null;
             }
 
-            Promise.resolve().then(before).then(Submit.bind(null, event)).then(after).catch(console.error);
+            Promise.resolve().then(before).then(Submit.bind(null, event)).then(after);
           }
         }, true);
 

@@ -80,7 +80,7 @@ if (oSetup) {
 	}
 
 	Loader.type = options[1] || 'esm';
-	Loader.load(options[0]).catch(console.error);
+	Promise.resolve(Loader.load(options[0]));
 }
 
 let GLOBAL = {};
@@ -192,8 +192,7 @@ export default {
 				Promise.resolve()
 					.then(before)
 					.then(Reset.bind(null, event))
-					.then(after)
-					.catch(console.error);
+					.then(after);
 			}
 		}, true);
 
@@ -212,8 +211,7 @@ export default {
 				Promise.resolve()
 					.then(before)
 					.then(Submit.bind(null, event))
-					.then(after)
-					.catch(console.error);
+					.then(after);
 			}
 		}, true);
 

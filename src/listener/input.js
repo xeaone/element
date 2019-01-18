@@ -9,6 +9,6 @@ export default function (event) {
 		&& event.target.hasAttribute('o-value')
 	) {
 		const update = Update(event.target, 'value');
-		Promise.resolve(update).catch(console.error);
+		Promise.resolve(update);
 	}
 };
