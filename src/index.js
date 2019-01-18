@@ -10,7 +10,6 @@ import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
 import Methods from './methods.js'
 import Router from './router.js';
-import Loader from './loader.js';
 import Binder from './binder.js';
 import Render from './render.js';
 import Model from './model.js';
@@ -80,12 +79,8 @@ if (oSetup) {
 	}
 
 	if (args.length > 1) {
-		Loader.type.js = args[1];
-
 		const url = Path.resolve(Path.base, args[0]);
-		const load = Loader.load({ url });
-
-		Promise.resolve(load).catch(console.error);
+		window.import(url).catch(console.error);
 	} else {
 		const index = document.createElement('script');
 
@@ -149,10 +144,6 @@ export default {
 
 	get batcher () {
 		return Batcher;
-	},
-
-	get loader () {
-		return Loader;
 	},
 
 	get binder () {
@@ -242,10 +233,6 @@ export default {
 
 		if (data.fetcher) {
 			await this.fetcher.setup(data.fetcher);
-		}
-
-		if (data.loader) {
-			await this.loader.setup(data.loader);
 		}
 
 		if (data.component) {
