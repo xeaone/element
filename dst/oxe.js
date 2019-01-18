@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.7.1
+	Version: 4.7.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2456,8 +2456,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     contain: false,
     compiled: false,
     folder: './routes',
-    compareParts: function compareParts(routeParts, userParts) {
+    compareParts: function compareParts(routePath, userPath, split) {
       var compareParts = [];
+      var routeParts = routePath.split(split);
+      var userParts = userPath.split(split);
 
       if (userParts.length > 1 && userParts[userParts.length - 1] === '') {
         userParts.pop();
@@ -2481,7 +2483,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
 
-      if (compareParts.join('/') === userParts.join('/')) {
+      if (compareParts.join(split) === userParts.join(split)) {
         return true;
       } else {
         return false;
@@ -2500,11 +2502,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         routePath = Path.join(base, routePath);
       }
 
-      if (this.compareParts(routePath.split('/'), userPath.split('/'))) {
+      if (this.compareParts(routePath, userPath, '/')) {
         return true;
       }
 
-      if (this.compareParts(routePath.split('-'), userPath.split('-'))) {
+      if (this.compareParts(routePath, userPath, '-')) {
         return true;
       }
 
