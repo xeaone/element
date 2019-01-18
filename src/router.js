@@ -21,22 +21,7 @@ export default {
 	compiled: false,
 	folder: './routes',
 
-	compare (routePath, userPath) {
-		const base = Path.normalize(Path.base);
-
-		userPath = Path.normalize(userPath);
-		routePath = Path.normalize(routePath);
-
-		if (userPath.slice(0, base.length) !== base) {
-			userPath = Path.join(base, userPath);
-		}
-
-		if (routePath.slice(0, base.length) !== base) {
-			routePath = Path.join(base, routePath);
-		}
-
-		const userParts = userPath.split('/');
-		const routeParts = routePath.split('/');
+	compareParts (routeParts, userParts) {
 		const compareParts = [];
 
 		if (userParts.length > 1 && userParts[userParts.length-1] === '') {
@@ -70,7 +55,31 @@ export default {
 		} else {
 			return false;
 		}
+	},
 
+	compare (routePath, userPath) {
+		const base = Path.normalize(Path.base);
+
+		userPath = Path.normalize(userPath);
+		routePath = Path.normalize(routePath);
+
+		if (userPath.slice(0, base.length) !== base) {
+			userPath = Path.join(base, userPath);
+		}
+
+		if (routePath.slice(0, base.length) !== base) {
+			routePath = Path.join(base, routePath);
+		}
+
+		if (compareParts(routePath.split('/'), userPath.split('/'))) {
+			return true;
+		}
+
+		if (compareParts(routePath.split('-'), userPath.split('-'))) {
+			return true;
+		}
+
+		return false;
 	},
 
 	toParameterObject (routePath, userPath) {

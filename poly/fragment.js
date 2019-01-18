@@ -1,7 +1,8 @@
-(function (constructor) {
 
-	if (!('firstElementChild' in constructor.prototype)) {
-		Object.defineProperty(constructor.prototype, 'firstElementChild', {
+(function (window) { 'use strict';
+
+	if (!('firstElementChild' in window.DocumentFragment.prototype)) {
+		Object.defineProperty(window.DocumentFragment.prototype, 'firstElementChild', {
 			get: function() {
 				var node, nodes = this.childNodes, i = 0;
 				while (node = nodes[i++]) {
@@ -14,8 +15,8 @@
 		});
 	}
 
-	if (!('children' in constructor.prototype)) {
-		Object.defineProperty(constructor.prototype, 'children', {
+	if (!('children' in window.DocumentFragment.prototype)) {
+		Object.defineProperty(window.DocumentFragment.prototype, 'children', {
 			get: function() {
 				var i = 0, node, nodes = this.childNodes, children = [];
 				while (node = nodes[i++]) {
@@ -28,8 +29,8 @@
 	  });
 	}
 
-	if (!('lastElementChild' in constructor.prototype)) {
-		Object.defineProperty(constructor.prototype, 'lastElementChild', {
+	if (!('lastElementChild' in window.DocumentFragment.prototype)) {
+		Object.defineProperty(window.DocumentFragment.prototype, 'lastElementChild', {
 			get: function() {
 				var node, nodes = this.childNodes, i = nodes.length - 1;
 				while (node = nodes[i--]) {
@@ -42,8 +43,8 @@
 		});
 	}
 
-	if (!('childElementCount' in constructor.prototype)) {
-		Object.defineProperty(constructor.prototype, 'childElementCount', {
+	if (!('childElementCount' in window.DocumentFragment.prototype)) {
+		Object.defineProperty(window.DocumentFragment.prototype, 'childElementCount', {
 			get: function() {
 				var i = 0, count = 0, node, nodes = this.childNodes;
 				while (node = nodes[i++]) {
@@ -54,4 +55,4 @@
 		});
 	}
 
-})(window.DocumentFragment);
+})(window);

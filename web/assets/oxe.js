@@ -2321,9 +2321,21 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     contain: false,
     compiled: false,
     folder: './routes',
-    replacePathParts: function replacePathParts(userPath, routePath, split) {
-      var userParts = userPath.split(split);
-      var routeParts = routePath.split(split);
+    compare: function compare(routePath, userPath) {
+      var base = Path.normalize(Path.base);
+      userPath = Path.normalize(userPath);
+      routePath = Path.normalize(routePath);
+
+      if (userPath.slice(0, base.length) !== base) {
+        userPath = Path.join(base, userPath);
+      }
+
+      if (routePath.slice(0, base.length) !== base) {
+        routePath = Path.join(base, routePath);
+      }
+
+      var userParts = userPath.split('/');
+      var routeParts = routePath.split('/');
       var compareParts = [];
 
       if (userParts.length > 1 && userParts[userParts.length - 1] === '') {
@@ -2347,27 +2359,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           compareParts.push(routeParts[i]);
         }
       }
-
-      return {
-        user: userParts,
-        route: routeParts,
-        compare: compareParts
-      };
-    },
-    compare: function compare(routePath, userPath) {
-      var base = Path.normalize(Path.base);
-      userPath = Path.normalize(userPath);
-      routePath = Path.normalize(routePath);
-
-      if (userPath.slice(0, base.length) !== base) {
-        userPath = Path.join(base, userPath);
-      }
-
-      if (routePath.slice(0, base.length) !== base) {
-        routePath = Path.join(base, routePath);
-      }
-
-      this.replacePathParts();
 
       if (compareParts.join('/') === userParts.join('/')) {
         return true;
