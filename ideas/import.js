@@ -6,10 +6,6 @@
 		backtick in template strings or regex could possibly causes issues
 	*/
 
-	if ('import' in window) {
-		return;
-	}
-
 	var modules = {};
 
 	var Normalize = function (data) {
@@ -35,23 +31,23 @@
 		/*
 			templates
 		*/
-		innerHandler (char, index, string) {
+		innerHandler: function (character, index, string) {
 			if (string[index-1] === '\\') return;
-			if (char === '\'') return '\\\'';
-			if (char === '\"') return '\\"';
-			if (char === '\t') return '\\t';
-			if (char === '\r') return '\\r';
-			if (char === '\n') return '\\n';
-			if (char === '\w') return '\\w';
-			if (char === '\b') return '\\b';
+			if (character === '\'') return '\\\'';
+			if (character === '\"') return '\\"';
+			if (character === '\t') return '\\t';
+			if (character === '\r') return '\\r';
+			if (character === '\n') return '\\n';
+			if (character === '\w') return '\\w';
+			if (character === '\b') return '\\b';
 		},
-		updateString (value, index, string) {
+		updateString: function (value, index, string) {
 			return string.slice(0, index) + value + string.slice(index+1);
 		},
-		updateIndex (value, index) {
+		updateIndex: function (value, index) {
 			return index + value.length-1;
 		},
-		template (data) {
+		template: function (data) {
 
 			var first = data.indexOf('`');
 			var second = data.indexOf('`', first+1);
@@ -65,9 +61,9 @@
 			var isInner = false;
 
 			for (var index = 0; index < string.length; index++) {
-				var char = string[index];
+				var character = string[index];
 
-				if (char === '`' && string[index-1] !== '\\') {
+				if (character === '`' && string[index-1] !== '\\') {
 
 					if (isInner) {
 						ends++;
@@ -109,7 +105,7 @@
 		exp: /export\s+default\s*(var|let|const)?/,
 		imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|");?\n?/g,
 		imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|");?\n?/,
-		module (code, url) {
+		module: function (code, url) {
 
 			var base = url.slice(0, url.lastIndexOf('/') + 1);
 			var before = 'return Promise.all([\n';
