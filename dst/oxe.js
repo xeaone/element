@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.6.0
+	Version: 4.7.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1742,9 +1742,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (typeof this.request === 'function') {
           copy = Object.assign({}, data);
-          return Promise.resolve(this.request(copy)).then(function ($await_42) {
+          return Promise.resolve(this.request(copy)).then(function ($await_36) {
             try {
-              result = $await_42;
+              result = $await_36;
 
               if (result === false) {
                 return $return(data);
@@ -1764,9 +1764,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         function $If_1() {
           if (data.body) {
             if (data.method === 'GET') {
-              return Promise.resolve(this.serialize(data.body)).then(function ($await_43) {
+              return Promise.resolve(this.serialize(data.body)).then(function ($await_37) {
                 try {
-                  data.url = data.url + '?' + $await_43;
+                  data.url = data.url + '?' + $await_37;
                   return $If_5.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -1793,9 +1793,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               delete fetchOptions.head;
             }
 
-            return Promise.resolve(window.fetch(data.url, fetchOptions)).then(function ($await_44) {
+            return Promise.resolve(window.fetch(data.url, fetchOptions)).then(function ($await_38) {
               try {
-                fetched = $await_44;
+                fetched = $await_38;
                 data.code = fetched.status;
                 data.message = fetched.statusText;
 
@@ -1803,9 +1803,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   data.body = fetched.body;
                   return $If_3.call(this);
                 } else {
-                  return Promise.resolve(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType]()).then(function ($await_45) {
+                  return Promise.resolve(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType]()).then(function ($await_39) {
                     try {
-                      data.body = $await_45;
+                      data.body = $await_39;
                       return $If_3.call(this);
                     } catch ($boundEx) {
                       return $error($boundEx);
@@ -1816,9 +1816,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 function $If_3() {
                   if (this.response) {
                     _copy = Object.assign({}, data);
-                    return Promise.resolve(this.response(_copy)).then(function ($await_46) {
+                    return Promise.resolve(this.response(_copy)).then(function ($await_40) {
                       try {
-                        _result = $await_46;
+                        _result = $await_40;
 
                         if (_result === false) {
                           return $return(data);
@@ -1906,9 +1906,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       method = Methods.get(binder.keys);
       model = Model.get(binder.scope);
       data = Utility.formData(element, model);
-      return Promise.resolve(method.call(binder.container, data, event)).then(function ($await_47) {
+      return Promise.resolve(method.call(binder.container, data, event)).then(function ($await_41) {
         try {
-          options = $await_47;
+          options = $await_41;
 
           if (_typeof(options) === 'object') {
             oaction = element.getAttribute('o-action');
@@ -1917,12 +1917,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             options.url = options.url || oaction;
             options.method = options.method || omethod;
             options.contentType = options.contentType || oenctype;
-            return Promise.resolve(Fetcher.fetch(options)).then(function ($await_48) {
+            return Promise.resolve(Fetcher.fetch(options)).then(function ($await_42) {
               try {
-                result = $await_48;
+                result = $await_42;
 
                 if (options.handler) {
-                  return Promise.resolve(options.handler(result)).then(function ($await_49) {
+                  return Promise.resolve(options.handler(result)).then(function ($await_43) {
                     try {
                       return $If_7.call(this);
                     } catch ($boundEx) {
@@ -2008,11 +2008,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return position > 0 ? data.slice(position + 1) : '';
     },
     clean: function clean(data) {
-      if (!data) {
-        throw new Error('Oxe.path.clean - argument required');
-      }
-
       var origin = window.location.origin;
+      var hash = window.location.hash.length;
+      var search = window.location.search.length;
       var protocol = window.location.protocol + '//';
 
       if (data.slice(0, origin.length) === origin) {
@@ -2023,42 +2021,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         data = data.slice(protocol.length);
       }
 
-      if (data.slice(-window.location.hash.length) === window.location.hash) {
-        data = data.slice(0, -window.location.hash.length);
+      if (data.slice(-hash) === hash) {
+        data = data.slice(0, -hash.length);
       }
 
-      if (data.slice(-window.location.search.length) === window.location.search) {
-        data = data.slice(0, -window.location.search.length);
+      if (data.slice(-search.length) === search) {
+        data = data.slice(0, -search.length);
       }
 
       return data || '/';
     },
     normalize: function normalize(data) {
-      if (!data) {
-        throw new Error('Oxe.path.normalize - argument required');
-      }
-
-      var flag = false;
-      var result = [];
-      var parts = this.clean(data).split(/\/+/);
-
-      for (var i = 0, l = parts.length; i < l; i++) {
-        if (parts[i] === '.') {
-          continue;
-        } else if (parts[i] === '') {
-          if (i === 0) {
-            flag = true;
-          }
-        } else if (parts[i] === '..') {
-          if (i > 0) {
-            result.pop();
-          }
-        } else {
-          result.push(parts[i]);
-        }
-      }
-
-      return (flag ? '/' : '') + result.join('/');
+      var parser = window.document.createElement('a');
+      data = this.clean(data);
+      data = data.replace(/\/+/g, '/');
+      parser.href = data;
+      return parser.pathname ? parser.pathname : '/';
     },
     join: function join() {
       if (!arguments.length) {
@@ -2068,48 +2046,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var result = [];
 
       for (var i = 0, l = arguments.length; i < l; i++) {
-        if (arguments[i]) {
-          result.push(this.normalize(arguments[i]));
-        }
-      }
-
-      return this.normalize(result.join('/'));
-    },
-    resolve: function resolve() {
-      if (!arguments.length) {
-        throw new Error('Oxe.path.resolve - argument required');
-      }
-
-      var result = [];
-      var argument;
-      var i = arguments.length;
-
-      while (argument = arguments[--i]) {
-        result.unshift(this.clean(argument));
-
-        if (argument[0] === '/') {
-          break;
-        }
-      }
-
-      if (result[0][0] !== '/') {
-        var base = this.base || window.location.pathname ? window.location.pathname : '/';
-        result.unshift(this.base);
+        result.push(arguments[i]);
       }
 
       return this.normalize(result.join('/'));
     }
   };
   var Transformer = {
-    innerHandler: function innerHandler(char, index, string) {
+    innerHandler: function innerHandler(character, index, string) {
       if (string[index - 1] === '\\') return;
-      if (char === '\'') return '\\\'';
-      if (char === '\"') return '\\"';
-      if (char === '\t') return '\\t';
-      if (char === '\r') return '\\r';
-      if (char === '\n') return '\\n';
-      if (char === '\w') return '\\w';
-      if (char === '\b') return '\\b';
+      if (character === '\'') return '\\\'';
+      if (character === '\"') return '\\"';
+      if (character === '\t') return '\\t';
+      if (character === '\r') return '\\r';
+      if (character === '\n') return '\\n';
+      if (character === '\w') return '\\w';
+      if (character === '\b') return '\\b';
     },
     updateString: function updateString(value, index, string) {
       return string.slice(0, index) + value + string.slice(index + 1);
@@ -2127,27 +2079,27 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var string = data;
       var isInner = false;
 
-      for (var _index = 0; _index < string.length; _index++) {
-        var char = string[_index];
+      for (var index = 0; index < string.length; index++) {
+        var character = string[index];
 
-        if (char === '`' && string[_index - 1] !== '\\') {
+        if (character === '`' && string[index - 1] !== '\\') {
           if (isInner) {
             ends++;
             value = '\'';
             isInner = false;
-            string = this.updateString(value, _index, string);
-            _index = this.updateIndex(value, _index);
+            string = this.updateString(value, index, string);
+            index = this.updateIndex(value, index);
           } else {
             starts++;
             value = '\'';
             isInner = true;
-            string = this.updateString(value, _index, string);
-            _index = this.updateIndex(value, _index);
+            string = this.updateString(value, index, string);
+            index = this.updateIndex(value, index);
           }
         } else if (isInner) {
-          if (value = this.innerHandler(char, _index, string)) {
-            string = this.updateString(value, _index, string);
-            _index = this.updateIndex(value, _index);
+          if (value = this.innerHandler(character, index, string)) {
+            string = this.updateString(value, index, string);
+            index = this.updateIndex(value, index);
           }
         }
       }
@@ -2157,328 +2109,102 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (starts === ends) {
         return string;
       } else {
-        throw new Error('Oxe - Transformer missing backtick');
+        throw new Error('import transformer missing backtick');
       }
     },
-    patterns: {
-      exps: /export\s+(?:default|var|let|const)?\s+/g,
-      imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|")/g,
-      imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|")/
-    },
-    getImports: function getImports(text, base) {
-      var result = [];
-      var imps = text.match(this.patterns.imps) || [];
+    exp: /export\s+default\s*(var|let|const)?/,
+    imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|");?\n?/g,
+    imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|");?\n?/,
+    module: function module(code, url) {
+      var before = 'return Promise.all([\n';
+      var after = ']).then(function ($MODULES) {\n';
+      var parentImport = url.slice(0, url.lastIndexOf('/') + 1);
+      var imps = code.match(this.imps) || [];
 
       for (var i = 0, l = imps.length; i < l; i++) {
-        var imp = imps[i].match(this.patterns.imp);
-        result[i] = {
-          raw: imp[0],
-          name: imp[1],
-          url: Path.resolve(base, imp[2]),
-          extension: Path.extension(imp[2])
-        };
+        var imp = imps[i].match(this.imp);
+        var rawImport = imp[0];
+        var nameImport = imp[1];
+        var pathImport = imp[2];
+
+        if (pathImport.slice(0, 1) !== '/') {
+          pathImport = Path.normalize(parentImport + '/' + pathImport);
+        } else {
+          pathImport = Path.normalize(pathImport);
+        }
+
+        before = before + '\t$LOADER.load("' + pathImport + '"),\n';
+        after = after + 'var ' + nameImport + ' = $MODULES[' + i + '].default;\n';
+        code = code.replace(rawImport, '');
       }
 
-      return result;
-    },
-    getExports: function getExports(text) {
-      var result = [];
-      var exps = text.match(this.patterns.exps) || [];
-
-      for (var i = 0, l = exps.length; i < l; i++) {
-        var exp = exps[i];
-        result[i] = {
-          raw: exp,
-          default: exp.indexOf('default') !== -1
-        };
+      if (this.exp.test(code)) {
+        code = code.replace(this.exp, 'var $DEFAULT = ');
+        code = code + '\n\nreturn { default: $DEFAULT };\n';
       }
 
-      return result;
-    },
-    replaceImports: function replaceImports(text, imps) {
-      if (!imps.length) {
-        return text;
-      }
-
-      for (var i = 0, l = imps.length; i < l; i++) {
-        var imp = imps[i];
-        var pattern = (imp.name ? 'var ' + imp.name + ' = ' : '') + '$LOADER.data[\'' + imp.url + '\'].result';
-        text = text.replace(imp.raw, pattern);
-      }
-
-      return text;
-    },
-    replaceExports: function replaceExports(text, exps) {
-      if (!exps.length) {
-        return text;
-      }
-
-      if (exps.length === 1) {
-        return text.replace(exps[0].raw, 'return ');
-      }
-
-      text = 'var $EXPORT = {};\n' + text;
-      text = text + '\nreturn $EXPORT;\n';
-
-      for (var i = 0, l = exps.length; i < l; i++) {
-        text = text.replace(exps[i].raw, '$EXPORT.');
-      }
-
-      return text;
-    },
-    ast: function ast(data) {
-      var result = {};
-      result.url = data.url;
-      result.raw = data.text;
-      result.cooked = data.text;
-      result.base = result.url.slice(0, result.url.lastIndexOf('/') + 1);
-      result.imports = this.getImports(result.raw, result.base);
-      result.exports = this.getExports(result.raw);
-      result.cooked = this.replaceImports(result.cooked, result.imports);
-      result.cooked = this.replaceExports(result.cooked, result.exports);
-      return result;
+      code = '"use strict";\n' + before + after + code + '});';
+      return code;
     }
   };
   var Loader = {
     data: {},
-    type: {
-      js: 'attach',
-      css: 'attach'
-    },
+    type: '',
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
-        var self = this;
-        options = options || {};
-
-        if (options.loads) {
-          return $return(Promise.all(options.loads.map(function (load) {
-            return self.load(load);
-          })));
-        }
-
+        options = options || options;
+        this.type = options.type || this.type;
         return $return();
       }.bind(this));
     },
-    execute: function execute(data) {
+    load: function load(url, type) {
       return new Promise(function ($return, $error) {
-        var text = '\'use strict\';\n\n' + (data.ast ? data.ast.cooked : data.text);
-        var code = new Function('$LOADER', 'window', text);
-        data.result = code(this, window);
-        return $return();
-      }.bind(this));
-    },
-    transform: function transform(data) {
-      return new Promise(function ($return, $error) {
-        var self = this;
+        var data, code;
+        type = type || this.type;
+        url = Path.normalize(url);
 
-        if (data.type === 'es' || data.type === 'est') {
-          data.text = Transformer.template(data.text);
+        if (url in this.data) {
+          return $return(this.data[url]);
         }
 
-        if (data.type === 'es' || data.type === 'esm') {
-          data.ast = Transformer.ast(data);
+        if (!url) {
+          return $error(new Error('import url argument required'));
         }
 
-        if (data.ast && data.ast.imports.length) {
-          return $return(Promise.all(data.ast.imports.map(function (imp) {
-            return self.load({
-              url: imp.url,
-              type: data.type
-            });
-          })));
-        }
-
-        return $return();
-      }.bind(this));
-    },
-    attach: function attach(data) {
-      return new Promise(function ($return, $error) {
-        return $return(new Promise(function (resolve, reject) {
-          var element = document.createElement(data.tag);
-          element.onload = resolve;
-          element.onerror = reject;
-
-          for (var name in data.attributes) {
-            element.setAttribute(name, data.attributes[name]);
-          }
-
-          document.head.appendChild(element);
-        }));
-      });
-    },
-    fetch: function fetch(data) {
-      return new Promise(function ($return, $error) {
-        var result;
-        return Promise.resolve(window.fetch(data.url)).then(function ($await_50) {
+        return Promise.resolve(window.fetch(url)).then(function ($await_44) {
           try {
-            result = $await_50;
+            data = $await_44;
 
-            if (result.status >= 200 && result.status < 300 || result.status == 304) {
-              return Promise.resolve(result.text()).then(function ($await_51) {
-                try {
-                  data.text = $await_51;
-                  return $If_8.call(this);
-                } catch ($boundEx) {
-                  return $error($boundEx);
+            if (data.status == 404) {
+              return $error(new Error('import not found ' + url));
+            }
+
+            if (data.status < 200 || data.status > 300 && data.status != 304) {
+              return $error(new Error(data.statusText));
+            }
+
+            return Promise.resolve(data.text()).then(function ($await_45) {
+              try {
+                code = $await_45;
+
+                if (type === 'es' || type === 'est') {
+                  code = Transformer.template(code);
                 }
-              }.bind(this), $error);
-            } else {
-              return $error(new Error(result.statusText));
-            }
 
-            function $If_8() {
-              return $return();
-            }
+                if (type === 'es' || type === 'esm') {
+                  code = Transformer.module(code, url);
+                }
 
-            return $If_8.call(this);
+                code = new Function('window', '$LOADER', code);
+                return $return(this.data[url] = code(window, this));
+              } catch ($boundEx) {
+                return $error($boundEx);
+              }
+            }.bind(this), $error);
           } catch ($boundEx) {
             return $error($boundEx);
           }
         }.bind(this), $error);
-      });
-    },
-    js: function js(data) {
-      return new Promise(function ($return, $error) {
-        if (data.type === 'es' || data.type === 'est' || data.type === 'esm' || data.type === 'fetch') {
-          return Promise.resolve(this.fetch(data)).then(function ($await_52) {
-            try {
-              if (data.type === 'es' || data.type === 'est' || data.type === 'esm') {
-                return Promise.resolve(this.transform(data)).then(function ($await_53) {
-                  try {
-                    return $If_10.call(this);
-                  } catch ($boundEx) {
-                    return $error($boundEx);
-                  }
-                }.bind(this), $error);
-              }
-
-              function $If_10() {
-                return Promise.resolve(this.execute(data)).then(function ($await_54) {
-                  try {
-                    return $If_9.call(this);
-                  } catch ($boundEx) {
-                    return $error($boundEx);
-                  }
-                }.bind(this), $error);
-              }
-
-              return $If_10.call(this);
-            } catch ($boundEx) {
-              return $error($boundEx);
-            }
-          }.bind(this), $error);
-        } else {
-          if (data.type === 'script') {
-            return Promise.resolve(this.attach({
-              tag: 'script',
-              attributes: {
-                src: data.url,
-                type: 'text/javascript'
-              }
-            })).then(function ($await_55) {
-              try {
-                return $If_11.call(this);
-              } catch ($boundEx) {
-                return $error($boundEx);
-              }
-            }.bind(this), $error);
-          } else {
-            return Promise.resolve(this.attach({
-              tag: 'script',
-              attributes: {
-                src: data.url,
-                type: 'module'
-              }
-            })).then(function ($await_56) {
-              try {
-                return $If_11.call(this);
-              } catch ($boundEx) {
-                return $error($boundEx);
-              }
-            }.bind(this), $error);
-          }
-
-          function $If_11() {
-            return $If_9.call(this);
-          }
-        }
-
-        function $If_9() {
-          return $return();
-        }
-      }.bind(this));
-    },
-    css: function css(data) {
-      return new Promise(function ($return, $error) {
-        if (data.type === 'fetch') {
-          return Promise.resolve(this.fetch(data)).then(function ($await_57) {
-            try {
-              return $If_12.call(this);
-            } catch ($boundEx) {
-              return $error($boundEx);
-            }
-          }.bind(this), $error);
-        } else {
-          return Promise.resolve(this.attach({
-            tag: 'link',
-            attributes: {
-              href: data.url,
-              type: 'text/css',
-              rel: 'stylesheet'
-            }
-          })).then(function ($await_58) {
-            try {
-              return $If_12.call(this);
-            } catch ($boundEx) {
-              return $error($boundEx);
-            }
-          }.bind(this), $error);
-        }
-
-        function $If_12() {
-          return $return();
-        }
-      }.bind(this));
-    },
-    load: function load(data) {
-      return new Promise(function ($return, $error) {
-        if (typeof data === 'string') {
-          data = {
-            url: data
-          };
-        }
-
-        data.url = Path.resolve(data.url);
-
-        if (data.url in this.data) {
-          return Promise.resolve(this.data[data.url].promise).then(function ($await_59) {
-            try {
-              return $return(this.data[data.url].result);
-            } catch ($boundEx) {
-              return $error($boundEx);
-            }
-          }.bind(this), $error);
-        }
-
-        this.data[data.url] = data;
-        data.extension = data.extension || Path.extension(data.url);
-        data.type = data.type || this.type[data.extension];
-
-        if (data.extension === 'js') {
-          data.promise = this.js(data);
-        } else if (data.extension === 'css') {
-          data.promise = this.css(data);
-        } else {
-          data.promise = this.fetch(data);
-        }
-
-        return Promise.resolve(data.promise).then(function ($await_60) {
-          try {
-            return $return(data.result);
-          } catch ($boundEx) {
-            return $error($boundEx);
-          }
-        }, $error);
       }.bind(this));
     }
   };
@@ -2493,10 +2219,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     off: function off(name, method) {
       if (name in this.events) {
-        var _index2 = this.events[name].indexOf(method);
+        var _index = this.events[name].indexOf(method);
 
-        if (_index2 !== -1) {
-          this.events[name].splice(_index2, 1);
+        if (_index !== -1) {
+          this.events[name].splice(_index, 1);
         }
       }
     },
@@ -2713,21 +2439,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     contain: false,
     compiled: false,
     folder: './routes',
-    compare: function compare(routePath, userPath) {
-      var base = Path.normalize(Path.base);
-      userPath = Path.normalize(userPath);
-      routePath = Path.normalize(routePath);
-
-      if (userPath.slice(0, base.length) !== base) {
-        userPath = Path.join(base, userPath);
-      }
-
-      if (routePath.slice(0, base.length) !== base) {
-        routePath = Path.join(base, routePath);
-      }
-
-      var userParts = userPath.split('/');
-      var routeParts = routePath.split('/');
+    compareParts: function compareParts(routeParts, userParts) {
       var compareParts = [];
 
       if (userParts.length > 1 && userParts[userParts.length - 1] === '') {
@@ -2758,18 +2470,41 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return false;
       }
     },
+    compare: function compare(routePath, userPath) {
+      var base = Path.normalize(Path.base);
+      userPath = Path.normalize(userPath);
+      routePath = Path.normalize(routePath);
+
+      if (userPath.slice(0, base.length) !== base) {
+        userPath = Path.join(base, userPath);
+      }
+
+      if (routePath.slice(0, base.length) !== base) {
+        routePath = Path.join(base, routePath);
+      }
+
+      if (this.compareParts(routePath.split('/'), userPath.split('/'))) {
+        return true;
+      }
+
+      if (this.compareParts(routePath.split('-'), userPath.split('-'))) {
+        return true;
+      }
+
+      return false;
+    },
     toParameterObject: function toParameterObject(routePath, userPath) {
       var result = {};
       if (!routePath || !userPath || routePath === '/' || userPath === '/') return result;
-      var brackets = /\(|\)/g;
-      var pattern = /\((\w+)\)/;
-      var userPaths = userPath.split('/');
-      var routePaths = routePath.split('/');
+      var userParts = userPath.split(/\/|-/);
+      var routeParts = routePath.split(/\/|-/);
 
-      for (var i = 0, l = routePaths.length; i < l; i++) {
-        if (pattern.test(routePaths[i])) {
-          var name = routePaths[i].replace(brackets, '');
-          result[name] = userPaths[i];
+      for (var i = 0, l = routeParts.length; i < l; i++) {
+        var part = routeParts[i];
+
+        if (part.slice(0, 1) === '(' && part.slice(-1) === ')') {
+          var name = part.slice(1, part.length - 1);
+          result[name] = userParts[i];
         }
       }
 
@@ -2869,7 +2604,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               path: path,
               load: load
             });
-            return $If_15.call(this);
+            return $If_9.call(this);
           } else {
             if (data.constructor === Object) {
               if (!data.path) {
@@ -2881,22 +2616,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               }
 
               this.data.push(data);
-              return $If_16.call(this);
+              return $If_10.call(this);
             } else {
               if (data.constructor === Array) {
                 i = 0, l = data.length;
-                var $Loop_18_trampoline;
+                var $Loop_12_trampoline;
 
-                function $Loop_18_step() {
+                function $Loop_12_step() {
                   i++;
-                  return $Loop_18;
+                  return $Loop_12;
                 }
 
-                function $Loop_18() {
+                function $Loop_12() {
                   if (i < l) {
-                    return Promise.resolve(this.add(data[i])).then(function ($await_61) {
+                    return Promise.resolve(this.add(data[i])).then(function ($await_46) {
                       try {
-                        return $Loop_18_step;
+                        return $Loop_12_step;
                       } catch ($boundEx) {
                         return $error($boundEx);
                       }
@@ -2904,47 +2639,47 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   } else return [1];
                 }
 
-                return ($Loop_18_trampoline = function (q) {
+                return ($Loop_12_trampoline = function (q) {
                   while (q) {
-                    if (q.then) return void q.then($Loop_18_trampoline, $error);
+                    if (q.then) return void q.then($Loop_12_trampoline, $error);
 
                     try {
                       if (q.pop) {
-                        if (q.length) return q.pop() ? $Loop_18_exit.call(this) : q;else q = $Loop_18_step;
+                        if (q.length) return q.pop() ? $Loop_12_exit.call(this) : q;else q = $Loop_12_step;
                       } else q = q.call(this);
                     } catch (_exception) {
                       return $error(_exception);
                     }
                   }
-                }.bind(this))($Loop_18);
+                }.bind(this))($Loop_12);
 
-                function $Loop_18_exit() {
-                  return $If_17.call(this);
+                function $Loop_12_exit() {
+                  return $If_11.call(this);
                 }
               }
 
-              function $If_17() {
-                return $If_16.call(this);
+              function $If_11() {
+                return $If_10.call(this);
               }
 
-              return $If_17.call(this);
+              return $If_11.call(this);
             }
 
-            function $If_16() {
-              return $If_15.call(this);
+            function $If_10() {
+              return $If_9.call(this);
             }
           }
 
-          function $If_15() {
-            return $If_14.call(this);
+          function $If_9() {
+            return $If_8.call(this);
           }
         }
 
-        function $If_14() {
+        function $If_8() {
           return $return();
         }
 
-        return $If_14.call(this);
+        return $If_8.call(this);
       }.bind(this));
     },
     setup: function setup(options) {
@@ -2968,11 +2703,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           return $error(new Error('Oxe.router.render - missing o-router element'));
         }
 
-        return Promise.resolve(this.add(options.routes)).then(function ($await_62) {
+        return Promise.resolve(this.add(options.routes)).then(function ($await_47) {
           try {
             return Promise.resolve(this.route(window.location.href, {
               mode: 'replace'
-            })).then(function ($await_63) {
+            })).then(function ($await_48) {
               try {
                 return $return();
               } catch ($boundEx) {
@@ -2987,51 +2722,41 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     load: function load(route) {
       return new Promise(function ($return, $error) {
-        var type, load;
-        type = Loader.type.js;
-
-        if (Loader.type.js !== 'es' && Loader.type.js !== 'est' && Loader.type.js !== 'esm') {
-          type = 'esm';
-        }
+        var load, _load;
 
         if (route.load) {
-          return Promise.resolve(Loader.load({
-            type: type,
-            url: route.load
-          })).then(function ($await_64) {
+          return Promise.resolve(Loader.load(route.load)).then(function ($await_49) {
             try {
-              load = $await_64;
-              route = Object.assign({}, load, route);
-              return $If_20.call(this);
+              load = $await_49;
+              route = Object.assign({}, load.default, route);
+              return $If_14.call(this);
             } catch ($boundEx) {
               return $error($boundEx);
             }
           }.bind(this), $error);
         }
 
-        function $If_20() {
+        function $If_14() {
           if (typeof route.component === 'string') {
-            return Promise.resolve(Loader.load({
-              type: type,
-              url: route.load
-            })).then(function ($await_65) {
+            return Promise.resolve(Loader.load(route.load)).then(function ($await_50) {
               try {
-                route.component = $await_65;
-                return $If_21.call(this);
+                _load = $await_50;
+                route.component = _load.default;
+                return $If_15.call(this);
               } catch ($boundEx) {
                 return $error($boundEx);
               }
             }.bind(this), $error);
           }
 
-          function $If_21() {
+          function $If_15() {
             return $return(route);
           }
 
-          return $If_21.call(this);
+          return $If_15.call(this);
         }
 
-        return $If_20.call(this);
+        return $If_14.call(this);
       });
     },
     remove: function remove(path) {
@@ -3049,6 +2774,106 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return new Promise(function ($return, $error) {
         var i, l;
         i = 0, l = this.data.length;
+        var $Loop_16_trampoline;
+
+        function $Loop_16_step() {
+          i++;
+          return $Loop_16;
+        }
+
+        function $Loop_16() {
+          if (i < l) {
+            if (this.data[i].path === path) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_51) {
+                try {
+                  this.data[i] = $await_51;
+                  return $return(this.data[i]);
+                } catch ($boundEx) {
+                  return $error($boundEx);
+                }
+              }.bind(this), $error);
+            }
+
+            return $Loop_16_step;
+          } else return [1];
+        }
+
+        return ($Loop_16_trampoline = function (q) {
+          while (q) {
+            if (q.then) return void q.then($Loop_16_trampoline, $error);
+
+            try {
+              if (q.pop) {
+                if (q.length) return q.pop() ? $Loop_16_exit.call(this) : q;else q = $Loop_16_step;
+              } else q = q.call(this);
+            } catch (_exception) {
+              return $error(_exception);
+            }
+          }
+        }.bind(this))($Loop_16);
+
+        function $Loop_16_exit() {
+          return $return();
+        }
+      }.bind(this));
+    },
+    filter: function filter(path) {
+      return new Promise(function ($return, $error) {
+        var result, i, l;
+        result = [];
+        i = 0, l = this.data.length;
+        var $Loop_19_trampoline;
+
+        function $Loop_19_step() {
+          i++;
+          return $Loop_19;
+        }
+
+        function $Loop_19() {
+          if (i < l) {
+            if (this.compare(this.data[i].path, path)) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_52) {
+                try {
+                  this.data[i] = $await_52;
+                  result.push(this.data[i]);
+                  return $If_21.call(this);
+                } catch ($boundEx) {
+                  return $error($boundEx);
+                }
+              }.bind(this), $error);
+            }
+
+            function $If_21() {
+              return $Loop_19_step;
+            }
+
+            return $If_21.call(this);
+          } else return [1];
+        }
+
+        return ($Loop_19_trampoline = function (q) {
+          while (q) {
+            if (q.then) return void q.then($Loop_19_trampoline, $error);
+
+            try {
+              if (q.pop) {
+                if (q.length) return q.pop() ? $Loop_19_exit.call(this) : q;else q = $Loop_19_step;
+              } else q = q.call(this);
+            } catch (_exception) {
+              return $error(_exception);
+            }
+          }
+        }.bind(this))($Loop_19);
+
+        function $Loop_19_exit() {
+          return $return(result);
+        }
+      }.bind(this));
+    },
+    find: function find(path) {
+      return new Promise(function ($return, $error) {
+        var i, l;
+        i = 0, l = this.data.length;
         var $Loop_22_trampoline;
 
         function $Loop_22_step() {
@@ -3058,10 +2883,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         function $Loop_22() {
           if (i < l) {
-            if (this.data[i].path === path) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_66) {
+            if (this.compare(this.data[i].path, path)) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_53) {
                 try {
-                  this.data[i] = $await_66;
+                  this.data[i] = $await_53;
                   return $return(this.data[i]);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -3088,106 +2913,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }.bind(this))($Loop_22);
 
         function $Loop_22_exit() {
-          return $return();
-        }
-      }.bind(this));
-    },
-    filter: function filter(path) {
-      return new Promise(function ($return, $error) {
-        var result, i, l;
-        result = [];
-        i = 0, l = this.data.length;
-        var $Loop_25_trampoline;
-
-        function $Loop_25_step() {
-          i++;
-          return $Loop_25;
-        }
-
-        function $Loop_25() {
-          if (i < l) {
-            if (this.compare(this.data[i].path, path)) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_67) {
-                try {
-                  this.data[i] = $await_67;
-                  result.push(this.data[i]);
-                  return $If_27.call(this);
-                } catch ($boundEx) {
-                  return $error($boundEx);
-                }
-              }.bind(this), $error);
-            }
-
-            function $If_27() {
-              return $Loop_25_step;
-            }
-
-            return $If_27.call(this);
-          } else return [1];
-        }
-
-        return ($Loop_25_trampoline = function (q) {
-          while (q) {
-            if (q.then) return void q.then($Loop_25_trampoline, $error);
-
-            try {
-              if (q.pop) {
-                if (q.length) return q.pop() ? $Loop_25_exit.call(this) : q;else q = $Loop_25_step;
-              } else q = q.call(this);
-            } catch (_exception) {
-              return $error(_exception);
-            }
-          }
-        }.bind(this))($Loop_25);
-
-        function $Loop_25_exit() {
-          return $return(result);
-        }
-      }.bind(this));
-    },
-    find: function find(path) {
-      return new Promise(function ($return, $error) {
-        var i, l;
-        i = 0, l = this.data.length;
-        var $Loop_28_trampoline;
-
-        function $Loop_28_step() {
-          i++;
-          return $Loop_28;
-        }
-
-        function $Loop_28() {
-          if (i < l) {
-            if (this.compare(this.data[i].path, path)) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_68) {
-                try {
-                  this.data[i] = $await_68;
-                  return $return(this.data[i]);
-                } catch ($boundEx) {
-                  return $error($boundEx);
-                }
-              }.bind(this), $error);
-            }
-
-            return $Loop_28_step;
-          } else return [1];
-        }
-
-        return ($Loop_28_trampoline = function (q) {
-          while (q) {
-            if (q.then) return void q.then($Loop_28_trampoline, $error);
-
-            try {
-              if (q.pop) {
-                if (q.length) return q.pop() ? $Loop_28_exit.call(this) : q;else q = $Loop_28_step;
-              } else q = q.call(this);
-            } catch (_exception) {
-              return $error(_exception);
-            }
-          }
-        }.bind(this))($Loop_28);
-
-        function $Loop_28_exit() {
           return $return();
         }
       }.bind(this));
@@ -3275,9 +3000,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         mode = options.mode || this.mode;
         location = this.toLocationObject(path);
-        return Promise.resolve(this.find(location.pathname)).then(function ($await_69) {
+        return Promise.resolve(this.find(location.pathname)).then(function ($await_54) {
           try {
-            route = $await_69;
+            route = $await_54;
 
             if (!route) {
               return $error(new Error("Oxe.router.route - missing route ".concat(location.pathname)));
@@ -3296,18 +3021,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               return Promise.resolve(this.redirect(location.route.redirect)).then($return, $error);
             }
 
-            function $If_32() {
+            function $If_26() {
               if (typeof this.before === 'function') {
-                return Promise.resolve(this.before(location)).then(function ($await_72) {
+                return Promise.resolve(this.before(location)).then(function ($await_57) {
                   try {
-                    return $If_33.call(this);
+                    return $If_27.call(this);
                   } catch ($boundEx) {
                     return $error($boundEx);
                   }
                 }.bind(this), $error);
               }
 
-              function $If_33() {
+              function $If_27() {
                 this.emit('route:before', location);
 
                 if (mode === 'href' || this.compiled) {
@@ -3318,44 +3043,44 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   path: location.path
                 }, '', location.path);
                 this.location = location;
-                return Promise.resolve(this.render(location.route)).then(function ($await_73) {
+                return Promise.resolve(this.render(location.route)).then(function ($await_58) {
                   try {
                     if (typeof this.after === 'function') {
-                      return Promise.resolve(this.after(location)).then(function ($await_74) {
+                      return Promise.resolve(this.after(location)).then(function ($await_59) {
                         try {
-                          return $If_34.call(this);
+                          return $If_28.call(this);
                         } catch ($boundEx) {
                           return $error($boundEx);
                         }
                       }.bind(this), $error);
                     }
 
-                    function $If_34() {
+                    function $If_28() {
                       this.emit('route:after', location);
                       return $return();
                     }
 
-                    return $If_34.call(this);
+                    return $If_28.call(this);
                   } catch ($boundEx) {
                     return $error($boundEx);
                   }
                 }.bind(this), $error);
               }
 
-              return $If_33.call(this);
+              return $If_27.call(this);
             }
 
             if (typeof this.before === 'function') {
-              return Promise.resolve(this.before(location)).then(function ($await_72) {
+              return Promise.resolve(this.before(location)).then(function ($await_57) {
                 try {
-                  return $If_33.call(this);
+                  return $If_27.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            function $If_33() {
+            function $If_27() {
               this.emit('route:before', location);
 
               if (mode === 'href' || this.compiled) {
@@ -3366,31 +3091,31 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 path: location.path
               }, '', location.path);
               this.location = location;
-              return Promise.resolve(this.render(location.route)).then(function ($await_73) {
+              return Promise.resolve(this.render(location.route)).then(function ($await_58) {
                 try {
                   if (typeof this.after === 'function') {
-                    return Promise.resolve(this.after(location)).then(function ($await_74) {
+                    return Promise.resolve(this.after(location)).then(function ($await_59) {
                       try {
-                        return $If_34.call(this);
+                        return $If_28.call(this);
                       } catch ($boundEx) {
                         return $error($boundEx);
                       }
                     }.bind(this), $error);
                   }
 
-                  function $If_34() {
+                  function $If_28() {
                     this.emit('route:after', location);
                     return $return();
                   }
 
-                  return $If_34.call(this);
+                  return $If_28.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            return $If_33.call(this);
+            return $If_27.call(this);
           } catch ($boundEx) {
             return $error($boundEx);
           }
@@ -3473,7 +3198,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   var oSetup = document.querySelector('script[o-setup]');
 
   if (oSetup) {
-    var args = oSetup.getAttribute('o-setup').split(/\s*,\s*/);
+    var options = oSetup.getAttribute('o-setup').split(/\s+|\s*,+\s*/);
     var meta = document.querySelector('meta[name="oxe"]');
 
     if (meta && meta.hasAttribute('compiled')) {
@@ -3481,28 +3206,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       Component.compiled = true;
     }
 
-    if (!args[0]) {
-      throw new Error('Oxe - script attribute o-setup requires url');
+    if (!options[0]) {
+      throw new Error('Oxe - script attribute o-setup requires path');
     }
 
-    if (args.length > 1) {
-      Loader.type.js = args[1];
-      var url = Path.resolve(Path.base, args[0]);
-      var load = Loader.load({
-        url: url
-      });
-      Promise.resolve(load).catch(console.error);
-    } else {
-      var _index3 = document.createElement('script');
-
-      _index3.setAttribute('src', args[0]);
-
-      _index3.setAttribute('async', 'true');
-
-      _index3.setAttribute('type', 'module');
-
-      document.head.appendChild(_index3);
-    }
+    Loader.type = options[1] || 'esm';
+    Loader.load(options[0]).catch(console.error);
   }
 
   var GLOBAL = {};
@@ -3556,10 +3265,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return Batcher;
     },
 
-    get loader() {
-      return Loader;
-    },
-
     get binder() {
       return Binder;
     },
@@ -3578,6 +3283,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     get model() {
       return Model;
+    },
+
+    get loader() {
+      return Loader;
     },
 
     get path() {
@@ -3623,104 +3332,104 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }, true);
 
         if (data.listener.before) {
-          return Promise.resolve(data.listener.before()).then(function ($await_75) {
+          return Promise.resolve(data.listener.before()).then(function ($await_60) {
             try {
-              return $If_35.call(this);
+              return $If_29.call(this);
             } catch ($boundEx) {
               return $error($boundEx);
             }
           }.bind(this), $error);
         }
 
-        function $If_35() {
+        function $If_29() {
           if (data.path) {
-            return Promise.resolve(this.path.setup(data.path)).then(function ($await_76) {
+            return Promise.resolve(this.path.setup(data.path)).then(function ($await_61) {
               try {
-                return $If_36.call(this);
+                return $If_30.call(this);
               } catch ($boundEx) {
                 return $error($boundEx);
               }
             }.bind(this), $error);
           }
 
-          function $If_36() {
+          function $If_30() {
             if (data.fetcher) {
-              return Promise.resolve(this.fetcher.setup(data.fetcher)).then(function ($await_77) {
+              return Promise.resolve(this.fetcher.setup(data.fetcher)).then(function ($await_62) {
                 try {
-                  return $If_37.call(this);
+                  return $If_31.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            function $If_37() {
+            function $If_31() {
               if (data.loader) {
-                return Promise.resolve(this.loader.setup(data.loader)).then(function ($await_78) {
+                return Promise.resolve(this.loader.setup(data.loader)).then(function ($await_63) {
                   try {
-                    return $If_38.call(this);
+                    return $If_32.call(this);
                   } catch ($boundEx) {
                     return $error($boundEx);
                   }
                 }.bind(this), $error);
               }
 
-              function $If_38() {
+              function $If_32() {
                 if (data.component) {
-                  return Promise.resolve(this.component.setup(data.component)).then(function ($await_79) {
+                  return Promise.resolve(this.component.setup(data.component)).then(function ($await_64) {
                     try {
-                      return $If_39.call(this);
+                      return $If_33.call(this);
                     } catch ($boundEx) {
                       return $error($boundEx);
                     }
                   }.bind(this), $error);
                 }
 
-                function $If_39() {
+                function $If_33() {
                   if (data.router) {
-                    return Promise.resolve(this.router.setup(data.router)).then(function ($await_80) {
+                    return Promise.resolve(this.router.setup(data.router)).then(function ($await_65) {
                       try {
-                        return $If_40.call(this);
+                        return $If_34.call(this);
                       } catch ($boundEx) {
                         return $error($boundEx);
                       }
                     }.bind(this), $error);
                   }
 
-                  function $If_40() {
+                  function $If_34() {
                     if (data.listener.after) {
-                      return Promise.resolve(data.listener.after()).then(function ($await_81) {
+                      return Promise.resolve(data.listener.after()).then(function ($await_66) {
                         try {
-                          return $If_41.call(this);
+                          return $If_35.call(this);
                         } catch ($boundEx) {
                           return $error($boundEx);
                         }
                       }.bind(this), $error);
                     }
 
-                    function $If_41() {
+                    function $If_35() {
                       return $return();
                     }
 
-                    return $If_41.call(this);
+                    return $If_35.call(this);
                   }
 
-                  return $If_40.call(this);
+                  return $If_34.call(this);
                 }
 
-                return $If_39.call(this);
+                return $If_33.call(this);
               }
 
-              return $If_38.call(this);
+              return $If_32.call(this);
             }
 
-            return $If_37.call(this);
+            return $If_31.call(this);
           }
 
-          return $If_36.call(this);
+          return $If_30.call(this);
         }
 
-        return $If_35.call(this);
+        return $If_29.call(this);
       }.bind(this));
     }
   };

@@ -10,20 +10,15 @@ Oxe.router.on('route:after', function () {
 });
 
 Oxe.setup({
+	loader: {
+		type: 'es'
+	},
 	fetcher: {
 		request: function () {
 			console.log(arguments);
 		},
 		response: function () {
 			console.log(arguments);
-		}
-	},
-	loader: {
-		methods: {
-			js: 'fetch'
-		},
-		transformers: {
-			js: 'es'
 		}
 	},
 	component: {

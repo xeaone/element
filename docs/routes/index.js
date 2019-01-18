@@ -32,18 +32,12 @@ var home = Escape(`
 var indexjs = Escape(`
 	// index.js
 
-	imp Home from './home.js';
+	imprt './elements/e-menu.js';
+	imprt Home from './home.js';
 
 	Oxe.setup({
 		loader: {
-			type: {
-				css: 'attach',
-				js: 'es', // enables ES6 module and template string re-writes
-			},
-			loads: [
-				'./index.css',
-				'./elements/e-menu.js'
-			]
+			type: 'es' // required to rewrite import exports
 		},
 		router: {
 			routes: [
@@ -51,8 +45,7 @@ var indexjs = Escape(`
 				'error' // dynamically loads and resolves to /routes/error.js
 			]
 		}
-	});
-
+	}).catch(console.error);
 `);
 
 var indexhtml = Escape(`
