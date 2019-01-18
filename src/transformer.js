@@ -80,9 +80,9 @@ export default {
 	imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|");?\n?/,
 	module: function (code, url) {
 
-		var base = url.slice(0, url.lastIndexOf('/') + 1);
 		var before = 'return Promise.all([\n';
 		var after = ']).then(function ($MODULES) {\n';
+		var parentImport = url.slice(0, url.lastIndexOf('/') + 1);
 
 		var imps = code.match(this.imps) || [];
 
@@ -94,7 +94,7 @@ export default {
 			var pathImport = imp[2];
 
 			if (pathImport.slice(0, 1) !== '/') {
-				pathImport = Path.normalize(base + '/' + pathImport);
+				pathImport = Path.normalize(parentImport + '/' + pathImport);
 			} else {
 				pathImport = Path.normalize(pathImport);
 			}
