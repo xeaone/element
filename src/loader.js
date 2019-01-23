@@ -66,9 +66,9 @@ export default {
 			code = Transformer.module(code, url);
 		}
 
-		code = new Function('window', '$LOADER', code);
+		code = new Function('window', 'document', '$LOADER', code);
 
-		return this.data[url] = code(window, this);
+		return this.data[url] = code(window, window.document, this);
 	}
 
 };
