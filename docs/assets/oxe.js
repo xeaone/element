@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.8.0
+	Version: 4.8.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2210,8 +2210,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   code = Transformer.module(code, url);
                 }
 
-                code = new Function('window', '$LOADER', code);
-                return $return(this.data[url] = code(window, this));
+                code = new Function('window', 'document', '$LOADER', code);
+                return $return(this.data[url] = code(window, window.document, this));
               } catch ($boundEx) {
                 return $error($boundEx);
               }
