@@ -39,8 +39,12 @@ export default {
 
 			if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
 
-				if (routeParts[i].indexOf('*') !== -1) {
+				if (routeParts[i] === '(*)') {
 					return true;
+				} else if (routeParts[i].indexOf('*') !== -1) {
+					if (userParts[i]) {
+						compareParts.push(userParts[i]);
+					}
 				} else {
 					compareParts.push(userParts[i]);
 				}
@@ -102,7 +106,7 @@ export default {
 			let part = routeParts[i];
 
 			if (part.slice(0, 1) === '(' && part.slice(-1) === ')') {
-				const name = part.slice(1, part.length-1);
+				const name = part.slice(1, part.length-1).replace('*', '');
 				result[name] = userParts[i];
 			}
 
