@@ -1,12 +1,11 @@
 
-let BASE = window.PATH_BASE || null;
+let BASE;
 
 export default {
 
 	get base () {
-		if (BASE) return BASE;
-		const base = window.document.querySelector('base');
-		if (base) return base.href;
+		if (!BASE) BASE = window.document.querySelector('base');
+		if (BASE) return BASE.href;
 		return window.location.origin + (window.location.pathname ? window.location.pathname : '/');
 	},
 
@@ -14,15 +13,14 @@ export default {
 		option = option || {};
 
 		if (option.base) {
-			let base = window.document.querySelector('base');
+			BASE = window.document.querySelector('base');
 
-			if (!base) {
-				base = window.document.createElement('base');
-				window.document.head.insertBefore(base, window.document.head.firstElementChild);
+			if (!BASE) {
+				BASE = window.document.createElement('base');
+				window.document.head.insertBefore(BASE, window.document.head.firstElementChild);
 			}
 
-			base.href = option.base;
-			BASE = BASE || base.href;
+			BASE.href = option.base;
 		}
 
 	},
