@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.9.1
+	Version: 4.9.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1973,12 +1973,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     });
   }
 
-  var BASE = window.PATH_BASE || null;
+  var BASE;
   var Path = {
     get base() {
-      if (BASE) return BASE;
-      var base = window.document.querySelector('base');
-      if (base) return base.href;
+      if (!BASE) BASE = window.document.querySelector('base');
+      if (BASE) return BASE.href;
       return window.location.origin + (window.location.pathname ? window.location.pathname : '/');
     },
 
@@ -1987,15 +1986,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         option = option || {};
 
         if (option.base) {
-          var base = window.document.querySelector('base');
+          BASE = window.document.querySelector('base');
 
-          if (!base) {
-            base = window.document.createElement('base');
-            window.document.head.insertBefore(base, window.document.head.firstElementChild);
+          if (!BASE) {
+            BASE = window.document.createElement('base');
+            window.document.head.insertBefore(BASE, window.document.head.firstElementChild);
           }
 
-          base.href = option.base;
-          BASE = BASE || base.href;
+          BASE.href = option.base;
         }
 
         return $return();
