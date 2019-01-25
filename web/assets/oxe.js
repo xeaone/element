@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.9.0
+	Version: 4.9.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2743,11 +2743,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     load: function load(route) {
       return new Promise(function ($return, $error) {
-        var path, load, _path, _load;
+        var load, _load;
 
         if (route.load) {
-          path = Path.join(Path.base, route.load);
-          return Promise.resolve(Loader.load(path)).then(function ($await_49) {
+          return Promise.resolve(Loader.load(route.load)).then(function ($await_49) {
             try {
               load = $await_49;
               route = Object.assign({}, load.default, route);
@@ -2761,8 +2760,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         function $If_14() {
           if (typeof route.component === 'string') {
             route.load = route.component;
-            _path = Path.join(Path.base, route.load);
-            return Promise.resolve(Loader.load(_path)).then(function ($await_50) {
+            return Promise.resolve(Loader.load(route.load)).then(function ($await_50) {
               try {
                 _load = $await_50;
                 route.component = _load.default;
