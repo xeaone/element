@@ -278,15 +278,15 @@ export default {
 	async load (route) {
 
 		if (route.load) {
-			const path = Path.join(Path.base, route.load);
-			const load = await Loader.load(path);
+			// const path = Path.join(Path.base, route.load);
+			const load = await Loader.load(route.load);
 			route = Object.assign({}, load.default, route);
 		}
 
 		if (typeof route.component === 'string') {
 			route.load = route.component;
-			const path = Path.join(Path.base, route.load);
-			const load = await Loader.load(path);
+			// const path = Path.join(Path.base, route.load);
+			const load = await Loader.load(route.load);
 			route.component = load.default;
 		}
 
