@@ -172,41 +172,49 @@ export default {
 	},
 
 	async post (data) {
+		data = typeof data === 'string' ? { url: data } : data;
 		data.method = 'post';
 		return this.fetch(data);
 	},
 
 	async get (data) {
+		data = typeof data === 'string' ? { url: data } : data;
 		data.method = 'get';
 		return this.fetch(data);
 	},
 
 	async put (data) {
+		data = typeof data === 'string' ? { url: data } : data;
 		data.method = 'put';
 		return this.fetch(data);
 	},
 
 	async head (data) {
+		data = typeof data === 'string' ? { url: data } : data;
 		data.method = 'head';
 		return this.fetch(data);
 	},
 
 	async patch (data) {
+		data = typeof data === 'string' ? { url: data } : data;
 		data.method = 'patch';
 		return this.fetch(data);
 	},
 
 	async delete (data) {
+		data = typeof data === 'string' ? { url: data } : data;
 		data.method = 'delete';
 		return this.fetch(data);
 	},
 
 	async options (data) {
+		data = typeof data === 'string' ? { url: data } : data;
 		data.method = 'options';
 		return this.fetch(data);
 	},
 
 	async connect (data) {
+		data = typeof data === 'string' ? { url: data } : data;
 		data.method = 'connect';
 		return this.fetch(data);
 	}

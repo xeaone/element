@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.9.2
+	Version: 4.10.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -1854,44 +1854,68 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     post: function post(data) {
       return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
         data.method = 'post';
         return $return(this.fetch(data));
       }.bind(this));
     },
     get: function get(data) {
       return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
         data.method = 'get';
         return $return(this.fetch(data));
       }.bind(this));
     },
     put: function put(data) {
       return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
         data.method = 'put';
         return $return(this.fetch(data));
       }.bind(this));
     }
   }, _defineProperty(_Fetcher, "head", function head(data) {
     return new Promise(function ($return, $error) {
+      data = typeof data === 'string' ? {
+        url: data
+      } : data;
       data.method = 'head';
       return $return(this.fetch(data));
     }.bind(this));
   }), _defineProperty(_Fetcher, "patch", function patch(data) {
     return new Promise(function ($return, $error) {
+      data = typeof data === 'string' ? {
+        url: data
+      } : data;
       data.method = 'patch';
       return $return(this.fetch(data));
     }.bind(this));
   }), _defineProperty(_Fetcher, "delete", function _delete(data) {
     return new Promise(function ($return, $error) {
+      data = typeof data === 'string' ? {
+        url: data
+      } : data;
       data.method = 'delete';
       return $return(this.fetch(data));
     }.bind(this));
   }), _defineProperty(_Fetcher, "options", function options(data) {
     return new Promise(function ($return, $error) {
+      data = typeof data === 'string' ? {
+        url: data
+      } : data;
       data.method = 'options';
       return $return(this.fetch(data));
     }.bind(this));
   }), _defineProperty(_Fetcher, "connect", function connect(data) {
     return new Promise(function ($return, $error) {
+      data = typeof data === 'string' ? {
+        url: data
+      } : data;
       data.method = 'connect';
       return $return(this.fetch(data));
     }.bind(this));
