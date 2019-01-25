@@ -39,8 +39,6 @@ export default {
 		}
 
 		url = Path.normalize(url);
-		// needed for the cli
-		// url = Path.join(Path.base, url);
 
 		if (url in this.data) {
 			return this.data[url];
