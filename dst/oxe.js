@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.10.0
+	Version: 4.10.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -3009,26 +3009,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (!route.element) {
           if (route.component.constructor === String) {
-            route.element = document.createElement(route.component);
+            route.element = window.document.createElement(route.component);
           } else if (route.component.constructor === Object) {
             Component.define(route.component);
 
             if (this.compiled) {
               route.element = this.element.firstElementChild;
             } else {
-              route.element = document.createElement(route.component.name);
+              route.element = window.document.createElement(route.component.name);
             }
           }
         }
 
-        if (route.element !== this.element.firstElementChild) {
-          while (this.element.firstChild) {
-            this.element.removeChild(this.element.firstChild);
-          }
-
-          this.element.appendChild(route.element);
+        while (this.element.firstChild) {
+          this.element.removeChild(this.element.firstChild);
         }
 
+        this.element.appendChild(route.element);
         this.scroll(0, 0);
         return $return();
       }.bind(this));

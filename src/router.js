@@ -372,28 +372,23 @@ export default {
 
 		if (!route.element) {
 			if (route.component.constructor === String) {
-				route.element = document.createElement(route.component);
+				route.element = window.document.createElement(route.component);
 			} else if (route.component.constructor === Object) {
 				Component.define(route.component);
 
 				if (this.compiled) {
-				// if (route.component.name.toLowerCase() === this.element.firstElementChild.nodeName.toLowerCase()) {
 					route.element = this.element.firstElementChild;
 				} else {
-					route.element = document.createElement(route.component.name);
+					route.element = window.document.createElement(route.component.name);
 				}
 			}
 		}
 
-		if (route.element !== this.element.firstElementChild) {
-
-			while (this.element.firstChild) {
-				this.element.removeChild(this.element.firstChild);
-			}
-
-			this.element.appendChild(route.element);
+		while (this.element.firstChild) {
+			this.element.removeChild(this.element.firstChild);
 		}
 
+		this.element.appendChild(route.element);
 		this.scroll(0, 0);
 	},
 
