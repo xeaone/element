@@ -378,6 +378,8 @@ export default {
 
 				if (this.compiled) {
 					route.element = this.element.firstElementChild;
+					this.scroll(0, 0);
+					return;
 				} else {
 					route.element = window.document.createElement(route.component.name);
 				}
