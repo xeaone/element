@@ -31,9 +31,9 @@ export default {
 	},
 
 	clean (data) {
+		const hash = window.location.hash;
+		const search = window.location.search;
 		const origin = window.location.origin;
-		const hash = window.location.hash.length;
-		const search = window.location.search.length;
 		const protocol = window.location.protocol + '//';
 
 		if (data.slice(0, origin.length) === origin) {
@@ -44,7 +44,7 @@ export default {
 			data = data.slice(protocol.length);
 		}
 
-		if (data.slice(-hash) === hash) {
+		if (data.slice(-hash.length) === hash) {
 			data = data.slice(0, -hash.length);
 		}
 
