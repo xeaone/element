@@ -55,7 +55,6 @@ export default {
 		return data || '/';
 	},
 
-
 	normalize (data) {
 		const parser = window.document.createElement('a');
 
