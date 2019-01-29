@@ -80,6 +80,8 @@ if (oSetup) {
 	}
 
 	Loader.type = options[1] || 'esm';
+
+	// might need to wait for export
 	Promise.resolve(Loader.load(options[0]));
 }
 
