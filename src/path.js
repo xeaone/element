@@ -63,7 +63,14 @@ export default {
 
 		parser.href = data;
 
-		return parser.pathname ? parser.pathname : '/';
+		data = parser.pathname;
+		data = data ? data : '/';
+
+		if (data !== '/' && data.slice(-1) === '/') {
+			data = data.slice(0, -1);
+		}
+
+		return data;
 	},
 
 	// normalize (data) {
