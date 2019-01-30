@@ -8,16 +8,39 @@ var oLoop = {
 	},
 	methods: {
 		loop: function () {
-			// this.model.message = 'push started';
-
 			console.time('push');
+
 			var time = performance.now();
+
 			for (var i = 0; i < this.model.count; i++) {
 				this.model.items.push({ number: this.model.items.length });
 			}
-			console.timeEnd('push')
 
-			// this.model.message = 'push ended ' + (performance.now() - time) + 'ms';
+			console.timeEnd('push')
+		},
+		over: function () {
+			const self = this;
+
+			console.log(self.model.items);
+			console.log(self.model.items.length);
+			console.time('over');
+
+			var time = performance.now();
+			var items = [];
+
+			for (var i = 0; i < 10; i++) {
+				items.push({ number: i });
+			}
+
+			self.model.items = items;
+
+			console.timeEnd('over')
+			console.log(self.model.items);
+			console.log(self.model.items.length);
+
+			setTimeout(function () {
+				console.log(self.model.items.length);
+			}, 3000);
 		}
 	},
 	template: `
@@ -29,6 +52,10 @@ var oLoop = {
 			<input o-value="count" type="number">
 			<input type="submit" value="Loop">
 		</form>
+
+		<!--
+		<button o-on-click="over">Over</button>
+		-->
 
 		<div o-each-item="items">
 			<div class="box">

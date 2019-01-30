@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.10.1
+	Version: 4.11.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2028,9 +2028,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return position > 0 ? data.slice(position + 1) : '';
     },
     clean: function clean(data) {
+      var hash = window.location.hash;
+      var search = window.location.search;
       var origin = window.location.origin;
-      var hash = window.location.hash.length;
-      var search = window.location.search.length;
       var protocol = window.location.protocol + '//';
 
       if (data.slice(0, origin.length) === origin) {
@@ -2041,7 +2041,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         data = data.slice(protocol.length);
       }
 
-      if (data.slice(-hash) === hash) {
+      if (data.slice(-hash.length) === hash) {
         data = data.slice(0, -hash.length);
       }
 
@@ -2056,7 +2056,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       data = this.clean(data);
       data = data.replace(/\/+/g, '/');
       parser.href = data;
-      return parser.pathname ? parser.pathname : '/';
+      data = parser.pathname;
+      data = data ? data : '/';
+
+      if (data !== '/' && data.slice(-1) === '/') {
+        data = data.slice(0, -1);
+      }
+
+      return data;
     },
     join: function join() {
       if (!arguments.length) {
@@ -3015,6 +3022,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
             if (this.compiled) {
               route.element = this.element.firstElementChild;
+              this.scroll(0, 0);
+              return $return();
             } else {
               route.element = window.document.createElement(route.component.name);
             }
