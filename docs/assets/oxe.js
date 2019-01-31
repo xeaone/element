@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.11.0
+	Version: 4.11.1
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2391,7 +2391,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
       self.data[options.name] = options;
       options.count = 0;
-      options.compiled = false;
+      options.compiled = self.compiled;
       options.style = options.style || '';
       options.model = options.model || {};
       options.methods = options.methods || {};
@@ -3250,7 +3250,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     var options = oSetup.getAttribute('o-setup').split(/\s+|\s*,+\s*/);
     var meta = document.querySelector('meta[name="oxe"]');
 
-    if (meta && meta.hasAttribute('compiled')) {
+    if (meta && meta.getAttribute('content') === 'compiled') {
       Router.compiled = true;
       Component.compiled = true;
     }
