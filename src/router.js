@@ -428,12 +428,13 @@ export default {
 
 		this.emit('route:before', location);
 
-		if (options.setup) {
-			return;
-		}
-
 		if (mode === 'href' || this.compiled) {
-			return window.location.assign(location.path);
+
+			if (!options.setup) {
+				window.location.assign(location.path);
+			}
+			
+			return;
 		}
 
 		window.history[mode + 'State']({ path: location.path }, '', location.path);

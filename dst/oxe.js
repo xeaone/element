@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.11.2
+	Version: 4.11.3
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -3085,12 +3085,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               function $If_27() {
                 this.emit('route:before', location);
 
-                if (options.setup) {
-                  return $return();
-                }
-
                 if (mode === 'href' || this.compiled) {
-                  return $return(window.location.assign(location.path));
+                  if (!options.setup) {
+                    window.location.assign(location.path);
+                  }
+
+                  return $return();
                 }
 
                 window.history[mode + 'State']({
@@ -3137,12 +3137,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             function $If_27() {
               this.emit('route:before', location);
 
-              if (options.setup) {
-                return $return();
-              }
-
               if (mode === 'href' || this.compiled) {
-                return $return(window.location.assign(location.path));
+                if (!options.setup) {
+                  window.location.assign(location.path);
+                }
+
+                return $return();
               }
 
               window.history[mode + 'State']({
