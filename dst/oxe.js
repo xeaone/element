@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.11.1
+	Version: 4.11.2
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2391,7 +2391,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
       self.data[options.name] = options;
       options.count = 0;
-      options.compiled = self.compiled;
       options.style = options.style || '';
       options.model = options.model || {};
       options.methods = options.methods || {};
@@ -2756,7 +2755,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return Promise.resolve(this.add(options.routes)).then(function ($await_47) {
           try {
             return Promise.resolve(this.route(window.location.href, {
-              mode: 'replace'
+              mode: 'replace',
+              setup: true
             })).then(function ($await_48) {
               try {
                 return $return();
@@ -3085,6 +3085,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               function $If_27() {
                 this.emit('route:before', location);
 
+                if (options.setup) {
+                  return $return();
+                }
+
                 if (mode === 'href' || this.compiled) {
                   return $return(window.location.assign(location.path));
                 }
@@ -3132,6 +3136,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
             function $If_27() {
               this.emit('route:before', location);
+
+              if (options.setup) {
+                return $return();
+              }
 
               if (mode === 'href' || this.compiled) {
                 return $return(window.location.assign(location.path));
