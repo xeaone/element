@@ -70,7 +70,7 @@ if (oSetup) {
 	const options = oSetup.getAttribute('o-setup').split(/\s+|\s*,+\s*/);
 	const meta = document.querySelector('meta[name="oxe"]');
 
-	if (meta && meta.hasAttribute('compiled')) {
+	if (meta && meta.getAttribute('content') === 'compiled') {
 		Router.compiled = true;
 		Component.compiled = true;
 	}
