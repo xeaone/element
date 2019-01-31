@@ -272,7 +272,7 @@ export default {
 		}
 
 		await this.add(options.routes);
-		await this.route(window.location.href, { mode: 'replace' });
+		await this.route(window.location.href, { mode: 'replace', setup: true });
 	},
 
 	async load (route) {
@@ -427,6 +427,10 @@ export default {
 		}
 
 		this.emit('route:before', location);
+
+		if (options.setup) {
+			return;
+		}
 
 		if (mode === 'href' || this.compiled) {
 			return window.location.assign(location.path);

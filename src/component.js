@@ -156,7 +156,6 @@ export default {
 		self.data[options.name] = options;
 
 		options.count = 0;
-		options.compiled = self.compiled;
 		options.style = options.style || '';
 		options.model = options.model || {};
 		options.methods = options.methods || {};
