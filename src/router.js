@@ -429,12 +429,9 @@ export default {
 		this.emit('route:before', location);
 
 		if (mode === 'href' || this.compiled) {
-
 			if (!options.setup) {
-				window.location.assign(location.path);
+				return window.location.assign(location.path);
 			}
-			
-			return;
 		}
 
 		window.history[mode + 'State']({ path: location.path }, '', location.path);

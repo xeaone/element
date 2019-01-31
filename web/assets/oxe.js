@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.11.3
+	Version: 4.11.4
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -3087,10 +3087,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
                 if (mode === 'href' || this.compiled) {
                   if (!options.setup) {
-                    window.location.assign(location.path);
+                    return $return(window.location.assign(location.path));
                   }
-
-                  return $return();
                 }
 
                 window.history[mode + 'State']({
@@ -3139,10 +3137,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
               if (mode === 'href' || this.compiled) {
                 if (!options.setup) {
-                  window.location.assign(location.path);
+                  return $return(window.location.assign(location.path));
                 }
-
-                return $return();
               }
 
               window.history[mode + 'State']({
