@@ -104,12 +104,14 @@ export default {
 	},
 
 	replaceEachVariable (element, variable, path, key) {
-		let self = this;
-		let pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'g');
+		variable = variable.toLowerCase();
 
-		self.walker(element, function (node) {
+		let pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'ig');
+
+		this.walker(element, function (node) {
 			if (node.nodeType === 3) {
-				if (node.nodeValue === `$${variable}` || node.nodeValue === '$index') {
+				value = node.nodeValue.toLowerCase();
+				if (value === `$${variable}` || value === '$index') {
 					node.nodeValue = key;
 				}
 			} else if (node.nodeType === 1) {
