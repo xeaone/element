@@ -9,7 +9,7 @@
 let Observer = {
 
 	splice () {
-		let self = this;
+		const self = this;
 
 		let startIndex = arguments[0];
 		let deleteCount = arguments[1];
@@ -97,7 +97,7 @@ let Observer = {
 	},
 
 	arrayProperties () {
-		let self = this;
+		const self = this;
 
 		return {
 			push: {
@@ -141,7 +141,7 @@ let Observer = {
 	},
 
 	objectProperties () {
-		let self = this;
+		const self = this;
 
 		return {
 			$get: {
@@ -177,7 +177,7 @@ let Observer = {
 	},
 
 	property (key) {
-		let self = this;
+		const self = this;
 
 		return {
 			enumerable: true,
@@ -199,7 +199,7 @@ let Observer = {
 	},
 
 	create (source, listener, path) {
-		let self = this;
+		const self = this;
 
 		if (!source || source.constructor !== Object && source.constructor !== Array) {
 			return source;
