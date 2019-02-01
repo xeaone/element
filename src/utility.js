@@ -110,7 +110,7 @@ export default {
 
 		this.walker(element, function (node) {
 			if (node.nodeType === 3) {
-				value = node.nodeValue.toLowerCase();
+				let value = node.nodeValue.toLowerCase();
 				if (value === `$${variable}` || value === '$index') {
 					node.nodeValue = key;
 				}
