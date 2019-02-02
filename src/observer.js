@@ -68,8 +68,12 @@ let Observer = {
 
 			while (addCount--) {
 				key = self.length;
+
+				if (key in this === false) {
+					Object.defineProperty(this, key, Observer.descriptor(key));
+				}
+
 				self.$meta[key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + key);
-				Observer.defineProperty(self, key);
 				promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
 
 			}
@@ -152,9 +156,13 @@ let Observer = {
 			$set: {
 				value: function (key, value) {
 					if (value !== this.$meta[key]) {
-						self.defineProperty(this, key);
+
+						if (key in this === false) {
+							Object.defineProperty(this, key, self.descriptor(key));
+						}
+
 						this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
-						this.$meta.listener(this[key], this.$meta.path + key, key, this);
+						this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
 					}
 				}
 			},
@@ -176,7 +184,7 @@ let Observer = {
 		};
 	},
 
-	property (key) {
+	descriptor (key) {
 		const self = this;
 
 		return {
@@ -187,16 +195,43 @@ let Observer = {
 			},
 			set: function (value) {
 				if (value !== this.$meta[key]) {
+					// self.destroy(this[key], value);
 					this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
-					this.$meta.listener(this[key], this.$meta.path + key, key, this);
+					this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
 				}
 			}
 		};
 	},
 
-	defineProperty (data, key) {
-		return Object.defineProperty(data, key, this.property(key));
-	},
+	// destroy (target, source) {
+	//
+	// 	if (!target || target.constructor !== Object && target.constructor !== Array) {
+	// 		return;
+	// 	}
+	//
+	// 	const type = target.constructor;
+	//
+	// 	if (type === Array) {
+	// 		const data = source && source.constructor === Array ? source : [];
+	//
+	// 		while (target.length > data.length) {
+	// 			console.log(target.length - 1);
+	// 			// target.$remove(target.length - 1);
+	// 			target.pop();
+	// 		}
+	//
+	// 	} else if (type === Object) {
+	// 		const data = source && source.constructor === Object ? source : {};
+	//
+	// 		for (const key in target) {
+	// 			if (key in data === false) {
+	// 				target.$remove(key);
+	// 			}
+	// 		}
+	//
+	// 	}
+	//
+	// },
 
 	create (source, listener, path) {
 		const self = this;
@@ -207,49 +242,39 @@ let Observer = {
 
 		path = path ? path + '.' : '';
 
-		let key, length;
-		let type = source.constructor;
-		let target = source.constructor();
-		let properties = source.constructor();
+		const type = source.constructor;
+		const target = source.constructor();
+		const descriptors = {};
 
-		properties.$meta = {
+		descriptors.$meta = {
 			value: source.constructor()
 		};
 
-		properties.$meta.value.path = path;
-		properties.$meta.value.listener = listener;
+		descriptors.$meta.value.path = path;
+		descriptors.$meta.value.listener = listener;
 
 		if (type === Array) {
-
-			for (key = 0, length = source.length; key < length; key++) {
-				properties.$meta.value[key] = self.create(source[key], listener, path + key);
-				properties[key] = self.property(key);
+			for (let key = 0, length = source.length; key < length; key++) {
+				descriptors.$meta.value[key] = this.create(source[key], listener, path + key);
+				descriptors[key] = this.descriptor(key);
 			}
-
-			let arrayProperties = self.arrayProperties();
-
-			for (key in arrayProperties) {
-				properties[key] = arrayProperties[key];
-			}
-
 		}
 
 		if (type === Object) {
-
-			for (key in source) {
-				properties.$meta.value[key] = self.create(source[key], listener, path + key);
-				properties[key] = self.property(key);
+			for (let key in source) {
+				descriptors.$meta.value[key] = this.create(source[key], listener, path + key);
+				descriptors[key] = this.descriptor(key);
 			}
-
 		}
 
-		let objectProperties = self.objectProperties();
+		Object.defineProperties(target, descriptors);
+		Object.defineProperties(target, this.objectProperties(source, listener, path));
 
-		for (key in objectProperties) {
-			properties[key] = objectProperties[key];
+		if (type === Array) {
+			Object.defineProperties(target, this.arrayProperties(source, listener, path));
 		}
 
-		return Object.defineProperties(target, properties);
+		return target;
 	}
 
 };
