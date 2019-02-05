@@ -10,7 +10,6 @@ export default function (binder) {
 			data = Binder.piper(binder, data);
 
 			if (data === undefined || data === null) {
-				Model.set(binder.keys, '');
 				return false;
 			} else if (typeof data === 'object') {
 				data = JSON.stringify(data);

@@ -150,7 +150,6 @@ export default function (binder) {
 				data = Model.get(binder.keys);
 
 				if (data === undefined || data === null) {
-					Model.set(binder.keys, '');
 					return false;
 				}
 
