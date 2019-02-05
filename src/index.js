@@ -20,7 +20,7 @@ const eStyle = document.createElement('style');
 const tStyle = document.createTextNode(`
 	o-router, o-router > :first-child {
 		display: block;
-		animation: o-transition 150ms ease-in-out;
+		animation: o-transition var(--o-transition) ease-in-out;
 	}
 	@keyframes o-transition {
 		0% { opacity: 0; }
