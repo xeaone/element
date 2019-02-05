@@ -12,20 +12,36 @@ const WriteFile = Util.promisify(Fs.writeFile);
 const Watcher = async function (data, listener) {
 	const paths = await ReadFolder(data);
 
+	let busy = false;
+
 	for (const path of paths) {
 		const item = Path.resolve(Path.join(data, path));
+
+		const callback = function (type, name) {
+			if (busy === false) {
+				Promise.resolve().then(function () {
+					busy = true;
+				}).then(function () {
+					return listener(type, name);
+				}).then(function () {
+					busy = false;
+				}).catch(console.error);
+			}
+		};
+
 		if (item.includes('.')) {
-			Fs.watch(item, function (type, name) {
-				listener(type, name).catch(console.error);
-			});
+			Fs.watch(item, callback);
 		} else {
 			await Watcher(item, listener);
 		}
+
 	}
 
 };
 
 const compile = async function () {
+	console.log('\nWatch Compile Start\n');
+
 	const bundled = await Rollup.rollup({ input: 'src/index.js' });
 
 	const generated = await bundled.generate({
@@ -65,11 +81,10 @@ const compile = async function () {
 
 	await WriteFile('web/assets/oxe.js', dev.code);
 
-	console.log('\nWatch Compile Ended');
+	console.log('\nWatch Compile End\n');
 };
 
 (async function () {
-	console.log('Watch Compile Started\n');
 
 	await compile();
 
