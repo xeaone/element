@@ -30,7 +30,6 @@ export default {
 	GET: 2,
 	SET: 3,
 	REMOVE: 4,
-	ran: false,
 	data: Observer.create({}, listener),
 
 	traverse (type, keys, value) {
