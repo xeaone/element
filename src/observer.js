@@ -97,9 +97,11 @@ const Observer = {
 
 		}
 
-		promises.reduce(function (promise, item) {
-			return promise.then(item);
-		}, Promise.resolve()).catch(console.error);
+		Promise.resolve().then(function () {
+			promises.reduce(function (promise, item) {
+				return promise.then(item);
+			}, Promise.resolve());
+		}).catch(console.error);
 
 		return result;
 	},
