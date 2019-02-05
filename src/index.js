@@ -221,6 +221,12 @@ export default {
 			await data.listener.before();
 		}
 
+		if (data.style) {
+			if ('transition' in data.style) {
+				window.document.documentElement.style.setProperty('--o-transition', `${data.style.transition}ms`);
+			}
+		}
+
 		if (data.path) {
 			await this.path.setup(data.path);
 		}
