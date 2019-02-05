@@ -23,6 +23,34 @@ export default {
 
 	},
 
+	async fetch (url, type) {
+		const data = await window.fetch(url);
+
+		if (data.status == 404) {
+			throw new Error('Oxe.loader.load - not found ' + url);
+		}
+
+		if (data.status < 200 || data.status > 300 && data.status != 304) {
+			throw new Error(data.statusText);
+		}
+
+		let code = await data.text();
+
+		if (type === 'es' || type === 'est') {
+			code = Transformer.template(code);
+		}
+
+		if (type === 'es' || type === 'esm') {
+			code = Transformer.module(code, url);
+		}
+
+		code = new Function('window', 'document', '$LOADER', code);
+
+		this.data[url] = code(window, window.document, this);
+
+		return this.data[url];
+	},
+
 	async load () {
 		let url, type;
 
@@ -40,35 +68,11 @@ export default {
 
 		url = Path.normalize(url);
 
-		if (url in this.data) {
-			return this.data[url];
+		if (url in this.data === false) {
+			this.data[url] = this.fetch(url, type);
 		}
 
-		const data = await window.fetch(url);
-
-		if (data.status == 404) {
-			throw new Error('Oxe.loader.load - not found ' + url);
-		}
-
-		if (data.status < 200 || data.status > 300 && data.status != 304) {
-			throw new Error(data.statusText);
-		}
-
-		let code;
-
-		code = await data.text();
-
-		if (type === 'es' || type === 'est') {
-			code = Transformer.template(code);
-		}
-
-		if (type === 'es' || type === 'esm') {
-			code = Transformer.module(code, url);
-		}
-
-		code = new Function('window', 'document', '$LOADER', code);
-
-		return this.data[url] = code(window, window.document, this);
+		return this.data[url];
 	}
 
 };
