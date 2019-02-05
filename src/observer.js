@@ -35,20 +35,22 @@ const Observer = {
 		}
 
 		let totalCount = self.$meta.length;
-		let key, index, value, updateCount;
 		let argumentIndex = 2;
 		let argumentsCount = arguments.length - argumentIndex;
-		let result = self.slice(startIndex, deleteCount);
+		const result = self.slice(startIndex, deleteCount);
 
-		updateCount = (totalCount - 1) - startIndex;
+		let updateCount = (totalCount - 1) - startIndex;
 
-		let promises = [];
+		const promises = [];
 
 		if (updateCount > 0) {
-			index = startIndex;
+			// console.log('update');
+
+			let value;
+			const index = startIndex;
 
 			while (updateCount--) {
-				key = index++;
+				const key = index++;
 
 				if (argumentsCount && argumentIndex < argumentsCount) {
 					value = arguments[argumentIndex++];
@@ -63,11 +65,12 @@ const Observer = {
 		}
 
 		if (addCount > 0) {
+			// console.log('add');
 
 			promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
 
 			while (addCount--) {
-				key = self.length;
+				const key = self.length;
 
 				if (key in this === false) {
 					Object.defineProperty(this, key, Observer.descriptor(key));
@@ -81,13 +84,14 @@ const Observer = {
 		}
 
 		if (deleteCount > 0) {
+			// console.log('delete');
 
 			promises.push(self.$meta.listener.bind(null, self.length - deleteCount, self.$meta.path.slice(0, -1), 'length'));
 
 			while (deleteCount--) {
 				self.$meta.length--;
 				self.length--;
-				key = self.length;
+				const key = self.length;
 				promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + key, key));
 			}
 
