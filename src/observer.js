@@ -135,13 +135,15 @@ const Observer = {
 			pop: {
 				value: function () {
 					if (!this.length) return;
-					return self.splice.call(this, this.length-1, 1);
+					const result = self.splice.call(this, this.length-1, 1);
+					return result[0];
 				}
 			},
 			shift: {
 				value: function () {
 					if (!this.length) return;
-					return self.splice.call(this, 0, 1);
+					const result = self.splice.call(this, 0, 1);
+					return result[0];
 				}
 			},
 			splice: {
