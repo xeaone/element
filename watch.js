@@ -69,7 +69,7 @@ const compile = async function () {
 };
 
 (async function () {
-	console.log('\nWatch Compile Started');
+	console.log('Watch Compile Started\n');
 
 	await compile();
 
