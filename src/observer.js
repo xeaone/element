@@ -44,10 +44,8 @@ const Observer = {
 		const promises = [];
 
 		if (updateCount > 0) {
-			// console.log('update');
-
 			let value;
-			const index = startIndex;
+			let index = startIndex;
 
 			while (updateCount--) {
 				const key = index++;
