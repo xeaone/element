@@ -63,8 +63,6 @@ const Observer = {
 		}
 
 		if (addCount > 0) {
-			// console.log('add');
-
 			promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
 
 			while (addCount--) {
@@ -82,8 +80,6 @@ const Observer = {
 		}
 
 		if (deleteCount > 0) {
-			// console.log('delete');
-
 			promises.push(self.$meta.listener.bind(null, self.length - deleteCount, self.$meta.path.slice(0, -1), 'length'));
 
 			while (deleteCount--) {
