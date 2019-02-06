@@ -182,10 +182,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         },
         set: function set(value) {
           if (value !== this.$meta[key]) {
-            if (key in this === false) {
-              Object.defineProperty(this, key, self.descriptor(key));
-            }
-
             this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
             this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
           }
@@ -702,6 +698,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
+  var TIME = 15;
+
   function Each$1(binder) {
     if (!binder.cache && !binder.element.children.length) {
       return;
@@ -728,48 +726,56 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var keys = isArray ? [] : Object.keys(data);
         var dataLength = isArray ? data.length : keys.length;
         var elementLength = binder.fragment.children.length + binder.element.children.length;
+        var time = window.performance.now();
 
         if (elementLength === dataLength) {
           return false;
         } else if (elementLength > dataLength) {
-          remove = true;
-          elementLength--;
+          remove = elementLength - dataLength;
+
+          while (binder.fragment.children.length && remove--) {
+            binder.fragment.removeChild(binder.fragment.lastElementChild);
+            if (performance.now() - time > TIME) return;
+          }
         } else if (elementLength < dataLength) {
-          var clone = document.importNode(binder.cache, true);
-          var variable = isArray ? elementLength : keys[elementLength];
-          Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
-          Binder.bind(clone, binder.container, binder.scope);
-          binder.fragment.appendChild(clone);
-          elementLength++;
+          add = dataLength - elementLength;
 
-          if (elementLength === dataLength) {
-            add = true;
+          while (elementLength < dataLength) {
+            var clone = document.importNode(binder.cache, true);
+            var variable = isArray ? elementLength : keys[elementLength];
+            Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
+            Binder.bind(clone, binder.container, binder.scope);
+            binder.fragment.appendChild(clone);
+            elementLength++;
+            if (performance.now() - time > TIME) return;
           }
-
-          if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value']) {
-            var name = binder.element.attributes['o-value'].name;
-            var value = binder.element.attributes['o-value'].value;
-            var select = Binder.create({
-              name: name,
-              value: value,
-              scope: binder.scope,
-              element: binder.element,
-              container: binder.container
-            });
-            self.default(select);
-          }
-        }
-
-        if (elementLength < dataLength) {
-          self.default(binder);
-          return false;
         }
       },
       write: function write() {
         if (remove) {
-          binder.element.removeChild(binder.element.lastElementChild);
+          var time = window.performance.now();
+
+          while (binder.element.children.length && remove--) {
+            binder.element.removeChild(binder.element.lastElementChild);
+            if (performance.now() - time > TIME) break;
+          }
         } else if (add) {
           binder.element.appendChild(binder.fragment);
+        }
+
+        if (binder.element.children.length !== data.length) {
+          self.default(binder);
+        } else if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value']) {
+          var name = binder.element.attributes['o-value'].name;
+          var value = binder.element.attributes['o-value'].value;
+          var select = Binder.create({
+            name: name,
+            value: value,
+            scope: binder.scope,
+            element: binder.element,
+            container: binder.container
+          });
+          self.default(select);
         }
       }
     };
