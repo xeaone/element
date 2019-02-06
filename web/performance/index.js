@@ -3,8 +3,11 @@ var oLoop = {
 	name: 'o-loop',
 	model: {
 		items: [],
-		// message: '',
+		message: '',
 		count: 1000
+	},
+	created: function () {
+		console.log(this.model);
 	},
 	methods: {
 		loop: function () {
@@ -16,7 +19,7 @@ var oLoop = {
 				this.model.items.push({ number: this.model.items.length });
 			}
 
-			console.timeEnd('push')
+			console.timeEnd('push');
 		},
 		over: function () {
 			const self = this;
@@ -53,9 +56,7 @@ var oLoop = {
 			<input type="submit" value="Loop">
 		</form>
 
-		<!--
 		<button o-on-click="over">Over</button>
-		-->
 
 		<div o-each-item="items">
 			<div class="box">
@@ -63,6 +64,9 @@ var oLoop = {
 				<input type="text" o-value="item.number">
 			</div>
 		</div>
+
+		<!--
+		-->
 	`,
 };
 

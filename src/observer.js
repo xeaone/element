@@ -163,6 +163,7 @@ const Observer = {
 							Object.defineProperty(this, key, self.descriptor(key));
 						}
 
+						// self.destroy(this.$meta[key], value);
 						this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
 						this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
 					}
@@ -197,7 +198,12 @@ const Observer = {
 			},
 			set: function (value) {
 				if (value !== this.$meta[key]) {
-					// self.destroy(this[key], value);
+
+					if (key in this === false) {
+						Object.defineProperty(this, key, self.descriptor(key));
+					}
+
+					// self.destroy(this.$meta[key], value);
 					this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
 					this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
 				}
@@ -205,36 +211,44 @@ const Observer = {
 		};
 	},
 
-	// destroy (target, source) {
+	// destroy (source, target) {
+	// 	console.log('destroy');
 	//
-	// 	if (!target || target.constructor !== Object && target.constructor !== Array) {
+	// 	if (!source || source.constructor !== Object && source.constructor !== Array) {
 	// 		return;
 	// 	}
 	//
-	// 	const type = target.constructor;
+	// 	const type = source.constructor;
 	//
 	// 	if (type === Array) {
-	// 		const data = source && source.constructor === Array ? source : [];
+	// 		const data = target && target.constructor === Array ? target : [];
+	// 		if (source.length <= data.length) return;
 	//
-	// 		while (target.length > data.length) {
-	// 			console.log(target.length - 1);
+	// 		console.log(data.length);
+	// 		console.log(source.length - data.length);
+	//
+	// 		source.splice(data.length, source.length - data.length);
+	//
+	// 		// while (source.length > data.length) {
+	// 			// console.log(target.length - 1);
 	// 			// target.$remove(target.length - 1);
-	// 			target.pop();
-	// 		}
+	// 			// source.pop();
+	// 		// }
 	//
 	// 	} else if (type === Object) {
-	// 		const data = source && source.constructor === Object ? source : {};
-	//
-	// 		for (const key in target) {
-	// 			if (key in data === false) {
-	// 				target.$remove(key);
-	// 			}
-	// 		}
+	// 		// const data = source && source.constructor === Object ? source : {};
+	// 		//
+	// 		// for (const key in target) {
+	// 		// 	if (key in data === false) {
+	// 		// 		target.$remove(key);
+	// 		// 	}
+	// 		// }
 	//
 	// 	}
 	//
 	// },
 
+	// i think we need an update not just a create
 	create (source, listener, path) {
 		const self = this;
 
