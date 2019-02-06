@@ -163,7 +163,6 @@ const Observer = {
 							Object.defineProperty(this, key, self.descriptor(key));
 						}
 
-						// self.destroy(this.$meta[key], value);
 						this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
 						this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
 					}
