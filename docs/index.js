@@ -10,6 +10,9 @@ Oxe.router.on('route:after', function () {
 });
 
 Oxe.setup({
+	// style: {
+		// transition: 300
+	// },
 	loader: {
 		type: 'es'
 	},
