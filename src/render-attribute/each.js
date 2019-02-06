@@ -3,6 +3,8 @@ import Utility from '../utility.js';
 import Binder from '../binder.js';
 import Model from '../model.js';
 
+const TIME = 15;
+
 export default function (binder) {
 
 	if (!binder.cache && !binder.element.children.length) {
@@ -31,58 +33,66 @@ export default function (binder) {
 			let dataLength = isArray ? data.length : keys.length;
 			let elementLength = binder.fragment.children.length + binder.element.children.length;
 
+			const time = window.performance.now();
+
 			if (elementLength === dataLength) {
 				return false;
 			} else if (elementLength > dataLength) {
-				remove = true;
-				elementLength--;
+				remove = elementLength - dataLength;
+
+				while (binder.fragment.children.length && remove--) {
+					binder.fragment.removeChild(binder.fragment.lastElementChild);
+					if (performance.now() - time > TIME) return;
+				}
+
 			} else if (elementLength < dataLength) {
-				let clone = document.importNode(binder.cache, true);
-				// let clone = binder.cache.cloneNode(true);
-				let variable = isArray ? elementLength : keys[elementLength];
+				add = dataLength - elementLength;
 
-				Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
-				Binder.bind(clone, binder.container, binder.scope);
-				binder.fragment.appendChild(clone);
-				elementLength++;
+				while (elementLength < dataLength) {
 
-				if (elementLength === dataLength) {
-					add = true;
+					const clone = document.importNode(binder.cache, true);
+					const variable = isArray ? elementLength : keys[elementLength];
+					Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
+					Binder.bind(clone, binder.container, binder.scope);
+					binder.fragment.appendChild(clone);
+					elementLength++;
+
+					if (performance.now() - time > TIME) return;
 				}
 
-				/*
-					check if select element with o-value
-					perform a re-render of the o-value
-					becuase of o-each is async
-				*/
-
-				if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value']) {
-					var name = binder.element.attributes['o-value'].name;
-					var value = binder.element.attributes['o-value'].value;
-					var select = Binder.create({
-						name: name,
-						value: value,
-						scope: binder.scope,
-						element: binder.element,
-						container: binder.container
-					});
-					self.default(select);
-				}
-
-			}
-
-			if (elementLength < dataLength) {
-				self.default(binder);
-				return false;
 			}
 
 		},
 		write () {
 			if (remove) {
-				binder.element.removeChild(binder.element.lastElementChild);
+				const time = window.performance.now();
+				while (binder.element.children.length && remove--) {
+					binder.element.removeChild(binder.element.lastElementChild);
+					if (performance.now() - time > TIME) break;
+				}
 			} else if (add) {
 				binder.element.appendChild(binder.fragment);
 			}
+
+			if (binder.element.children.length !== data.length) {
+				self.default(binder);
+			} else if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value']) {
+				/*
+					perform a re-render of the o-value becuase of o-each is async
+				*/
+				const name = binder.element.attributes['o-value'].name;
+				const value = binder.element.attributes['o-value'].value;
+				const select = Binder.create({
+					name: name,
+					value: value,
+					scope: binder.scope,
+					element: binder.element,
+					container: binder.container
+				});
+				
+				self.default(select);
+			}
+
 		}
 	};
 };
