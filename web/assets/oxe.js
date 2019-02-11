@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.12.0
+	Version: 4.13.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -509,7 +509,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var value = element.getAttribute('o-value');
         if (!value) continue;
         var values = this.binderValues(value);
-        data[values[values.length - 1]] = this.getByPath(model, values);
+
+        if (data[values[values.length - 1]]) {
+          if (_typeof(data[values[values.length - 1]]) !== 'object') {
+            data[values[values.length - 1]] = [data[values[values.length - 1]]];
+          }
+
+          data[values[values.length - 1]].push(this.getByPath(model, values));
+        } else {
+          data[values[values.length - 1]] = this.getByPath(model, values);
+        }
       }
 
       return data;
