@@ -58,16 +58,24 @@ export default {
 
 		for (let i = 0, l = elements.length; i < l; i++) {
 			let element = elements[i];
-
 			if (element.nodeName === 'OPTION') continue;
 
 			let value = element.getAttribute('o-value');
-
 			if (!value) continue;
 
 			let values = this.binderValues(value);
 
-			data[values[values.length-1]] = this.getByPath(model, values);
+			if (data[values[values.length-1]]) {
+
+				if (typeof data[values[values.length-1]] !== 'object') {
+					data[values[values.length-1]] = [data[values[values.length-1]]];
+				}
+
+				data[values[values.length-1]].push(this.getByPath(model, values));
+			} else {
+				data[values[values.length-1]] = this.getByPath(model, values);
+			}
+
 		}
 
 		return data;
