@@ -51,12 +51,10 @@ export default {
 
 		}
 
-		let defaultSlot = target.querySelector('slot:not([name])');
-
 		if (defaultSlot) {
 
 			if (source.children.length) {
-				defaultSlot.parentNode.setAttribute('slot', 'default');
+				// defaultSlot.parentNode.setAttribute('slot', 'default');
 
 				while (source.firstChild) {
 					defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
