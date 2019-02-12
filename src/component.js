@@ -5,15 +5,27 @@ import Model from './model.js';
 export default {
 
 	data: {},
+	// lazy: true,
 	compiled: false,
 
 	async setup (options) {
+		const self = this;
+
 		options = options || {};
 
 		if (options.components && options.components.length) {
 
 			for (let i = 0, l = options.components.length; i < l; i++) {
-				this.define(options.components[i]);
+				const component = options.components[i];
+
+				if (typeof component === 'string') {
+					Loader.load(component).then(function (load) {
+						self.define(load.default);
+					}).catch(console.error);
+				} else {
+					self.define(component);
+				}
+
 			}
 
 		}

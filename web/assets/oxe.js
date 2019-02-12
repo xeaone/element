@@ -1,6 +1,6 @@
 /*
 	Name: oxe
-	Version: 4.13.0
+	Version: 4.14.0
 	License: MPL-2.0
 	Author: Alexander Elias
 	Email: alex.steven.elis@gmail.com
@@ -2190,7 +2190,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return code;
     }
   };
-  var Loader = {
+  var Loader$1 = {
     data: {},
     type: 'esm',
     setup: function setup(options) {
@@ -2309,11 +2309,20 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     compiled: false,
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
+        var self = this;
         options = options || {};
 
         if (options.components && options.components.length) {
           for (var i = 0, l = options.components.length; i < l; i++) {
-            this.define(options.components[i]);
+            var component = options.components[i];
+
+            if (typeof component === 'string') {
+              Loader.load(component).then(function (load) {
+                self.define(load.default);
+              }).catch(console.error);
+            } else {
+              self.define(component);
+            }
           }
         }
 
@@ -2798,7 +2807,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var load, _load;
 
         if (route.load) {
-          return Promise.resolve(Loader.load(route.load)).then(function ($await_49) {
+          return Promise.resolve(Loader$1.load(route.load)).then(function ($await_49) {
             try {
               load = $await_49;
               route = Object.assign({}, load.default, route);
@@ -2812,7 +2821,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         function $If_14() {
           if (typeof route.component === 'string') {
             route.load = route.component;
-            return Promise.resolve(Loader.load(route.load)).then(function ($await_50) {
+            return Promise.resolve(Loader$1.load(route.load)).then(function ($await_50) {
               try {
                 _load = $await_50;
                 route.component = _load.default;
@@ -3286,8 +3295,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       throw new Error('Oxe - script attribute o-setup requires path');
     }
 
-    Loader.type = options[1] || 'esm';
-    Promise.resolve(Loader.load(options[0]));
+    Loader$1.type = options[1] || 'esm';
+    Promise.resolve(Loader$1.load(options[0]));
   }
 
   var GLOBAL = {};
@@ -3362,7 +3371,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
 
     get loader() {
-      return Loader;
+      return Loader$1;
     },
 
     get path() {
