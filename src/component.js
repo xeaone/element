@@ -1,4 +1,5 @@
 import Methods from './methods.js';
+import Loader from './loader.js';
 import Binder from './binder.js';
 import Model from './model.js';
 
