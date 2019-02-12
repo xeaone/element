@@ -34,13 +34,14 @@ export default {
 	},
 
 	renderSlot (target, source, scope) {
-		let targetSlots = target.querySelectorAll('slot[name]');
+		const targetSlots = target.querySelectorAll('slot[name]');
+		const defaultSlot = target.querySelector('slot:not([name])');
 
 		for (let i = 0, l = targetSlots.length; i < l; i++) {
 
-			let targetSlot = targetSlots[i];
-			let name = targetSlot.getAttribute('name');
-			let sourceSlot = source.querySelector('[slot="'+ name + '"]');
+			const targetSlot = targetSlots[i];
+			const name = targetSlot.getAttribute('name');
+			const sourceSlot = source.querySelector('[slot="'+ name + '"]');
 
 			if (sourceSlot) {
 				targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
