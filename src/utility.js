@@ -58,7 +58,8 @@ export default {
 
 		for (let i = 0, l = elements.length; i < l; i++) {
 			let element = elements[i];
-			if (element.nodeName === 'OPTION') continue;
+			// if (element.nodeName === 'OPTION') continue;
+			if (element.nodeName.indexOf('OPTION') !== -1) continue;
 
 			let value = element.getAttribute('o-value');
 			if (!value) continue;

@@ -8,7 +8,8 @@ export default function (binder) {
 
 	let data, multiple;
 
-	if (name === 'SELECT') {
+	// if (name === 'SELECT') {
+	if (name.indexOf('SELECT') !== -1) {
 		let elements;
 
 		return {
@@ -16,7 +17,7 @@ export default function (binder) {
 				data = Model.get(binder.keys);
 				data = Binder.piper(binder, data);
 
-				elements = binder.element.options;
+				elements = binder.element.options || binder.element.children;
 				multiple = binder.element.multiple;
 
 				if (multiple && data.constructor !== Array) {
@@ -141,7 +142,8 @@ export default function (binder) {
 		return {
 			read () {
 
-				if (name === 'OPTION' && binder.element.selected) {
+				// if (name === 'OPTION' && binder.element.selected) {
+				if (name.indexOf('OPTION') !== -1 && binder.element.selected) {
 					let parent = binder.element.parentElement;
 					let select = Binder.elements.get(parent).get('value');
 					self.default(select);
