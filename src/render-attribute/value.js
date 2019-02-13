@@ -18,7 +18,7 @@ export default function (binder) {
 				data = Binder.piper(binder, data);
 
 				elements = binder.element.options || binder.element.children;
-				multiple = binder.element.multiple;
+				multiple = binder.element.hasAttribute('multiple');
 
 				if (multiple && data.constructor !== Array) {
 					throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
@@ -34,7 +34,6 @@ export default function (binder) {
 				// NOTE might need to handle disable
 				for (let i = 0, l = elements.length; i < l; i++) {
 					let element = elements[i];
-
 					if (element.value === data) {
 						selected = true;
 						element.setAttribute('selected', '');
