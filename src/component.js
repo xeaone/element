@@ -160,7 +160,7 @@ export default {
 	},
 
 	define (options) {
-		let self = this;
+		const self = this;
 
 		if (!options.name) throw new Error('Oxe.component.define - requires name');
 		if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
