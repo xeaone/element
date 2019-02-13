@@ -113,7 +113,7 @@ export default {
 			style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
 		}
 
-		return '<style type="text/css">' + style + '</style>';
+		return '<style>' + style + '</style>';
 	},
 
 	render (element, options) {
