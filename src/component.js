@@ -22,11 +22,6 @@ export default {
 				if (typeof component === 'string') {
 					const load = await Loader.load(component);
 					component = load.default;
-					// Loader.load(component).then(function (load) {
-					// 	self.define(load.default);
-					// }).catch(console.error);
-				// } else {
-					// self.define(component);
 				}
 
 				self.define(component);
