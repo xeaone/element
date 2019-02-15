@@ -1,3 +1,4 @@
+import oSelect from './components/o-select.js';
 import cMenu from './components/c-menu.js';
 import cFoo from './components/c-foo.js';
 
@@ -27,7 +28,8 @@ Oxe.setup({
 	component: {
 		components: [
 			cFoo,
-			cMenu
+			cMenu,
+			oSelect
 		]
 	},
 	router: {

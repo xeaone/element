@@ -1,3 +1,5 @@
+import Model from './model.js';
+import Binder from './binder.js';
 
 export default {
 
@@ -9,6 +11,44 @@ export default {
 	PIPES: /\s?,\s?|\s+/,
 	VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
 	VARIABLE_END: '(?:)',
+
+	value (element) {
+		if (element.hasAttribute('o-value')) {
+			const binder = Binder.elements.get(element).get('value');
+			let value = Model.get(binder.keys);
+			return Binder.piper(binder, value);
+		} else {
+			return element.value;
+		}
+	},
+
+	selected (element) {
+		if (typeof element.selected === 'boolean') {
+			return 	element.selected;
+		} else {
+			switch (element.getAttribute('selected')) {
+				case undefined: return false;
+				case 'true': return true;
+				case null: return false;
+				case '': return true;
+				default: return false
+			}
+		}
+	},
+
+	multiple (element) {
+		if (typeof element.multiple === 'boolean') {
+			return 	element.multiple;
+		} else {
+			switch (element.getAttribute('multiple')) {
+				case undefined: return false;
+				case 'true': return true;
+				case null: return false;
+				case '': return true;
+				default: return false
+			}
+		}
+	},
 
 	binderNames (data) {
 		data = data.split(this.PREFIX)[1];

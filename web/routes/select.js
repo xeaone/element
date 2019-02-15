@@ -17,13 +17,18 @@ export default {
 				'alex',
 				'dave'
 			],
+			friends: [
+				{ name: 'dave', age: 2 },
+				{ name: 'sam', age: 40 }
+			],
 			result: {
 				fruit: '',
 				name: '',
-				cars: []
+				cars: [],
+				friends: []
 			}
 		},
-		template: `
+		template: /*html*/`
 
 			<h2 o-text="title"></h2>
 
@@ -49,6 +54,15 @@ export default {
 			<select o-value="result.name" o-each-name="names">
 				<option o-value="name" o-text="name"></option>
 			</select>
+
+			<hr>
+
+			<div o-text="result.friends"></div>
+			<o-select o-value="result.friends" o-each-friend="friends" multiple>
+				<o-option o-value="friend">
+					<div o-text="friend.name"></div>
+				</o-option>
+			</o-select>
 
 		`
 	}

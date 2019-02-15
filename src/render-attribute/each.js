@@ -76,21 +76,11 @@ export default function (binder) {
 
 			if (binder.element.children.length !== data.length) {
 				self.default(binder);
-			} else if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value']) {
+			} else if (binder.element.nodeName.indexOf('SELECT') !== -1 && binder.element.attributes['o-value']) {
 				/*
 					perform a re-render of the o-value becuase of o-each is async
 				*/
-				const name = binder.element.attributes['o-value'].name;
-				const value = binder.element.attributes['o-value'].value;
-				const select = Binder.create({
-					name: name,
-					value: value,
-					scope: binder.scope,
-					element: binder.element,
-					container: binder.container
-				});
-				
-				self.default(select);
+				self.default(Binder.elements.get(binder.element).get('value'));
 			}
 
 		}

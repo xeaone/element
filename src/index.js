@@ -5,6 +5,7 @@ import Reset from './listener/reset.js';
 import Click from './listener/click.js';
 import State from './listener/state.js';
 import Component from './component.js';
+import Mutation from './mutation.js';
 import Utility from './utility.js';
 import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
@@ -166,6 +167,10 @@ export default {
 		return Path;
 	},
 
+	get mutation () {
+		return Mutation;
+	},
+
 	async setup (data) {
 
 		if (SETUP) return;
@@ -226,6 +231,8 @@ export default {
 				window.document.documentElement.style.setProperty('--o-transition', `${data.style.transition}ms`);
 			}
 		}
+
+		await this.mutation.setup(data.mutation);
 
 		if (data.path) {
 			await this.path.setup(data.path);
