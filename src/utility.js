@@ -93,18 +93,19 @@ export default {
 	},
 
 	formData (form, model) {
-		let elements = form.querySelectorAll('[o-value]');
-		let data = {};
+		const elements = form.querySelectorAll('[o-value]');
+		const data = {};
 
 		for (let i = 0, l = elements.length; i < l; i++) {
-			let element = elements[i];
+			const element = elements[i];
 			// if (element.nodeName === 'OPTION') continue;
 			if (element.nodeName.indexOf('OPTION') !== -1) continue;
 
-			let value = element.getAttribute('o-value');
+			const value = element.getAttribute('o-value');
+
 			if (!value) continue;
 
-			let values = this.binderValues(value);
+			const values = this.binderValues(value);
 
 			if (data[values[values.length-1]]) {
 
@@ -123,18 +124,18 @@ export default {
 	},
 
 	formReset (form, model) {
-		let elements = form.querySelectorAll('[o-value]');
+		const elements = form.querySelectorAll('[o-value]');
 
 		for (let i = 0, l = elements.length; i < l; i++) {
-			let element = elements[i];
+			const element = elements[i];
 
 			if (element.nodeName === 'OPTION') continue;
 
-			let value = element.getAttribute('o-value');
+			const value = element.getAttribute('o-value');
 
 			if (!value) continue;
 
-			let values = this.binderValues(value);
+			const values = this.binderValues(value);
 
 			this.setByPath(model, values, '');
 		}
@@ -143,11 +144,9 @@ export default {
 
 	walker (node, callback) {
 		callback(node);
-		// node = node.firstElementChild;
 		node = node.firstChild;
 		while (node) {
 		    this.walker(node, callback);
-		    // node = node.nextElementSibling;
 		    node = node.nextSibling;
 		}
 	},
@@ -174,36 +173,36 @@ export default {
 		});
 	},
 
-	traverse (data, path, callback) {
-		let keys = typeof path === 'string' ? path.split('.') : path;
-		let last = keys.length - 1;
-
-		for (let i = 0; i < last; i++) {
-			let key = keys[i];
-
-			if (!(key in data)) {
-				if (typeof callback === 'function') {
-					callback(data, key, i, keys);
-				} else {
-					return undefined;
-				}
-			}
-
-			data = data[key];
-		}
-
-		return {
-			data: data,
-			key: keys[last]
-		}
-	},
+	// traverse (data, path, callback) {
+	// 	let keys = typeof path === 'string' ? path.split('.') : path;
+	// 	let last = keys.length - 1;
+	//
+	// 	for (let i = 0; i < last; i++) {
+	// 		let key = keys[i];
+	//
+	// 		if (!(key in data)) {
+	// 			if (typeof callback === 'function') {
+	// 				callback(data, key, i, keys);
+	// 			} else {
+	// 				return undefined;
+	// 			}
+	// 		}
+	//
+	// 		data = data[key];
+	// 	}
+	//
+	// 	return {
+	// 		data: data,
+	// 		key: keys[last]
+	// 	}
+	// },
 
 	setByPath (data, path, value) {
-		let keys = typeof path === 'string' ? path.split('.') : path;
-		let last = keys.length - 1;
+		const keys = typeof path === 'string' ? path.split('.') : path;
+		const last = keys.length - 1;
 
 		for (let i = 0; i < last; i++) {
-			let key = keys[i];
+			const key = keys[i];
 
 			if (!(key in data)) {
 
@@ -222,8 +221,8 @@ export default {
 	},
 
 	getByPath (data, path) {
-		let keys = typeof path === 'string' ? path.split('.') : path;
-		let last = keys.length - 1;
+		const keys = typeof path === 'string' ? path.split('.') : path;
+		const last = keys.length - 1;
 
 		for (let i = 0; i < last; i++) {
 			let key = keys[i];
