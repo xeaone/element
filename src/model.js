@@ -4,17 +4,17 @@ import Binder from './binder.js';
 import Render from './render.js';
 
 const listener = function (data, path, type) {
-	let method = data === undefined ? Unrender : Render;
+	const method = data === undefined ? Unrender : Render;
 
 	if (type === 'length') {
-		let scope = path.split('.').slice(0, 1).join('.');
-		let part = path.split('.').slice(1).join('.');
+		const scope = path.split('.').slice(0, 1).join('.');
+		const part = path.split('.').slice(1).join('.');
 
 		if (!(scope in Binder.data)) return;
 		if (!(part in Binder.data[scope])) return;
 		if (!(0 in Binder.data[scope][part])) return;
 
-		let binder = Binder.data[scope][part][0];
+		const binder = Binder.data[scope][part][0];
 
 		method.default(binder);
 	} else {
