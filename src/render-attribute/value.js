@@ -106,33 +106,7 @@ export default function (binder) {
 
 			}
 		};
-	} else if (type === 'file') {
-		return {
-			read () {
-				data = Model.get(binder.keys);
 
-				if (data === undefined) {
-					Model.set(binder.keys, []);
-					return false;
-				}
-
-				if (!data || data.constructor !== Array) {
-					console.warn('Oxe - file attribute invalid type');
-					return false;
-				}
-			},
-			write () {
-				for (let i = 0, l = data.length; i < l; i++) {
-					if (data[i] !== binder.element.files[i]) {
-						if (data[i]) {
-							binder.element.files[i] = data[i];
-						} else {
-							console.warn('Oxe - file remove not implemented');
-						}
-					}
-				}
-			}
-		};
 	} else if (type === 'checkbox') {
 		return {
 			read () {

@@ -55,16 +55,6 @@ export default async function (element, attribute) {
 
 			}
 
-		} else if (type === 'file') {
-			const files = binder.element.files;
-
-			data = [];
-
-			for (let i = 0, l = files.length; i < l; i++) {
-				const file = files[i];
-				data.push(file);
-			}
-
 		} else if (type === 'checkbox') {
 			data = binder.element.checked;
 		} else {
