@@ -17,7 +17,7 @@ export default async function (element, attribute) {
 
 		let data;
 
-		if (name.indexOf('SELECT') !== -1) {
+		if (name.indexOf('SELECT') === 6) {
 			const elements = binder.element.options || binder.element.children;
 			const multiple = Utility.multiple(binder.element);
 
