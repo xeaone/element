@@ -13,18 +13,115 @@ export default {
 	VARIABLE_END: '(?:)',
 
 	value (element) {
-		if (element.hasAttribute('o-value')) {
+		if (element.hasAttribute('o-model')) {
 			const binder = Binder.elements.get(element).get('value');
-			let value = Model.get(binder.keys);
+			const value = Model.get(binder.keys);
 			return Binder.piper(binder, value);
 		} else {
-			return element.value;
+			const type = this.type(element);
+
+			if (element.nodeName.indexOf('INPUT') === 5 && type === 'radio' || type === 'checkbox') {
+				const name = this.name(element);
+				const query = 'input[type="' + type + '"][name="' + name + '"]';
+				const elements = this.form(element).querySelectorAll(query);
+				const multiple = type === 'checkbox';
+
+				let result =  type === 'checkbox' ? [] : undefined;
+
+				for (let i = 0, l = elements.length; i < l; i++) {
+					const element = elements[i];
+					const checked = this.checked(element);
+
+					if (!checked) continue;
+
+					if (multiple) {
+						result.push(this.value(element))
+					} else {
+						result = this.value(element);
+						break;
+					}
+
+				}
+
+				return result;
+			} else if (
+				element.nodeName.indexOf('INPUT') === 5 ||
+				element.nodeName.indexOf('OPTION') === 6 ||
+				element.nodeName.indexOf('TEXTAREA') === 8
+			) {
+				return element.value;
+			} else if (element.nodeName.indexOf('SELECT') === 6) {
+				const multiple = this.multiple(element);
+				const options = element.options;
+				let result = multiple ? [] : undefined;
+
+				for (let i = 0, l = options.length; i < l; i++) {
+					const option = options[i];
+					const selected = this.selected(option);
+
+					if (!selected) continue;
+
+					const value = this.value(option);
+
+					if (multiple) {
+						result.push(value);
+					} else {
+						result = this.value(option);
+						break;
+					}
+
+				}
+
+				return result;
+			}
+		}
+	},
+
+	form (element) {
+		if (element.form) {
+			return element.form;
+		} else {
+			while (element = element.parentElement) {
+				if (element.nodeName.indexOf('FORM') === 5) {
+					return element;
+				}
+			}
+		}
+	},
+
+	type (element) {
+		if (typeof element.type === 'string') {
+			return element.type;
+		} else {
+			return element.getAttribute('type');
+		}
+	},
+
+	name (element) {
+		if (typeof element.name === 'string') {
+			return element.name;
+		} else {
+			return element.getAttribute('name');
+		}
+	},
+
+	checked (element) {
+		if (typeof element.checked === 'boolean') {
+			return element.checked;
+		} else {
+			switch (element.getAttribute('checked')) {
+				case undefined: return false;
+				case 'true': return true;
+				case null: return false;
+				case '': return true;
+				default: return false
+			}
 		}
 	},
 
 	selected (element) {
 		if (typeof element.selected === 'boolean') {
-			return 	element.selected;
+			return element.selected;
 		} else {
 			switch (element.getAttribute('selected')) {
 				case undefined: return false;
@@ -93,29 +190,28 @@ export default {
 	},
 
 	formData (form, model) {
-		const elements = form.querySelectorAll('[o-value]');
+		const elements = form.querySelectorAll('[o-value], select[name] , input[name], textarea[name]');
 		const data = {};
 
 		for (let i = 0, l = elements.length; i < l; i++) {
 			const element = elements[i];
+
 			// if (element.nodeName === 'OPTION') continue;
 			if (element.nodeName.indexOf('OPTION') !== -1) continue;
 
 			const value = element.getAttribute('o-value');
-
-			if (!value) continue;
-
 			const values = this.binderValues(value);
+			const name = element.getAttribute('name') || values.slice(-1)[0];
 
-			if (data[values[values.length-1]]) {
+			if (data[name]) {
 
-				if (typeof data[values[values.length-1]] !== 'object') {
-					data[values[values.length-1]] = [data[values[values.length-1]]];
+				if (typeof data[name] !== 'object') {
+					data[name] = [data[name]];
 				}
 
-				data[values[values.length-1]].push(this.getByPath(model, values));
+				data[name].push(this.getByPath(model, values));
 			} else {
-				data[values[values.length-1]] = this.getByPath(model, values);
+				data[name] = this.getByPath(model, values);
 			}
 
 		}
