@@ -1,5 +1,5 @@
-import Model from './model.js';
-import Binder from './binder.js';
+// import Model from './model.js';
+// import Binder from './binder.js';
 
 export default {
 
@@ -13,20 +13,20 @@ export default {
 	VARIABLE_END: '(?:)',
 
 	value (element) {
-		if (element.hasAttribute('o-model')) {
-			const binder = Binder.elements.get(element).get('value');
-			const value = Model.get(binder.keys);
-			return Binder.piper(binder, value);
-		} else {
+		// if (element.hasAttribute('o-value')) {
+		// 	const binder = Binder.elements.get(element).get('value');
+		// 	const value = Model.get(binder.keys);
+		// 	return Binder.piper(binder, value);
+		// } else {
 			const type = this.type(element);
 
-			if (element.nodeName.indexOf('INPUT') === 5 && type === 'radio' || type === 'checkbox') {
+			if (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 && type === 'radio' || type === 'checkbox') {
 				const name = this.name(element);
 				const query = 'input[type="' + type + '"][name="' + name + '"]';
 				const elements = this.form(element).querySelectorAll(query);
-				const multiple = type === 'checkbox';
+				const multiple = elements.length > 1;
 
-				let result =  type === 'checkbox' ? [] : undefined;
+				let result =  multiple ? [] : undefined;
 
 				for (let i = 0, l = elements.length; i < l; i++) {
 					const element = elements[i];
@@ -45,12 +45,12 @@ export default {
 
 				return result;
 			} else if (
-				element.nodeName.indexOf('INPUT') === 5 ||
-				element.nodeName.indexOf('OPTION') === 6 ||
-				element.nodeName.indexOf('TEXTAREA') === 8
+				element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 ||
+				element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 ||
+				element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1
 			) {
 				return element.value;
-			} else if (element.nodeName.indexOf('SELECT') === 6) {
+			} else if (element.nodeName === 'SELECT' || element.nodeName.indexOf('-SELECT') !== -1) {
 				const multiple = this.multiple(element);
 				const options = element.options;
 				let result = multiple ? [] : undefined;
@@ -74,7 +74,7 @@ export default {
 
 				return result;
 			}
-		}
+		// }
 	},
 
 	form (element) {
@@ -82,7 +82,7 @@ export default {
 			return element.form;
 		} else {
 			while (element = element.parentElement) {
-				if (element.nodeName.indexOf('FORM') === 5) {
+				if (element.nodeName === 'FORM' || element.nodeName.indexOf('-FORM') !== -1) {
 					return element;
 				}
 			}

@@ -98,7 +98,10 @@ export default {
 				target.setAttribute('selected', '');
 			}
 
-			var binder = Oxe.binder.elements.get(self).get('value');
+			// var binder = Oxe.binder.elements.get(self).get('value');
+			// Oxe.render.default(binder);
+
+			const value = Oxe.utility.value(self);
 			Oxe.render.default(binder);
 
 		});

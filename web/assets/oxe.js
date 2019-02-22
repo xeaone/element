@@ -454,12 +454,100 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
     VARIABLE_END: '(?:)',
     value: function value(element) {
-      if (element.hasAttribute('o-value')) {
-        var binder = Binder.elements.get(element).get('value');
-        var value = Model.get(binder.keys);
-        return Binder.piper(binder, value);
-      } else {
+      var type = this.type(element);
+
+      if (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 && type === 'radio' || type === 'checkbox') {
+        var name = this.name(element);
+        var query = 'input[type="' + type + '"][name="' + name + '"]';
+        var elements = this.form(element).querySelectorAll(query);
+        var multiple = elements.length > 1;
+        var result = multiple ? [] : undefined;
+
+        for (var i = 0, l = elements.length; i < l; i++) {
+          var _element = elements[i];
+          var checked = this.checked(_element);
+          if (!checked) continue;
+
+          if (multiple) {
+            result.push(this.value(_element));
+          } else {
+            result = this.value(_element);
+            break;
+          }
+        }
+
+        return result;
+      } else if (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 || element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 || element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1) {
         return element.value;
+      } else if (element.nodeName === 'SELECT' || element.nodeName.indexOf('-SELECT') !== -1) {
+        var _multiple = this.multiple(element);
+
+        var options = element.options;
+
+        var _result = _multiple ? [] : undefined;
+
+        for (var _i = 0, _l = options.length; _i < _l; _i++) {
+          var option = options[_i];
+          var selected = this.selected(option);
+          if (!selected) continue;
+          var value = this.value(option);
+
+          if (_multiple) {
+            _result.push(value);
+          } else {
+            _result = this.value(option);
+            break;
+          }
+        }
+
+        return _result;
+      }
+    },
+    form: function form(element) {
+      if (element.form) {
+        return element.form;
+      } else {
+        while (element = element.parentElement) {
+          if (element.nodeName === 'FORM' || element.nodeName.indexOf('-FORM') !== -1) {
+            return element;
+          }
+        }
+      }
+    },
+    type: function type(element) {
+      if (typeof element.type === 'string') {
+        return element.type;
+      } else {
+        return element.getAttribute('type');
+      }
+    },
+    name: function name(element) {
+      if (typeof element.name === 'string') {
+        return element.name;
+      } else {
+        return element.getAttribute('name');
+      }
+    },
+    checked: function checked(element) {
+      if (typeof element.checked === 'boolean') {
+        return element.checked;
+      } else {
+        switch (element.getAttribute('checked')) {
+          case undefined:
+            return false;
+
+          case 'true':
+            return true;
+
+          case null:
+            return false;
+
+          case '':
+            return true;
+
+          default:
+            return false;
+        }
       }
     },
     selected: function selected(element) {
@@ -543,24 +631,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return element;
     },
     formData: function formData(form, model) {
-      var elements = form.querySelectorAll('[o-value]');
+      var elements = form.querySelectorAll('[o-value], select[name] , input[name], textarea[name]');
       var data = {};
 
       for (var i = 0, l = elements.length; i < l; i++) {
         var element = elements[i];
         if (element.nodeName.indexOf('OPTION') !== -1) continue;
         var value = element.getAttribute('o-value');
-        if (!value) continue;
         var values = this.binderValues(value);
+        var name = element.getAttribute('name') || values.slice(-1)[0];
 
-        if (data[values[values.length - 1]]) {
-          if (_typeof(data[values[values.length - 1]]) !== 'object') {
-            data[values[values.length - 1]] = [data[values[values.length - 1]]];
+        if (data[name]) {
+          if (_typeof(data[name]) !== 'object') {
+            data[name] = [data[name]];
           }
 
-          data[values[values.length - 1]].push(this.getByPath(model, values));
+          data[name].push(this.getByPath(model, values));
         } else {
-          data[values[values.length - 1]] = this.getByPath(model, values);
+          data[name] = this.getByPath(model, values);
         }
       }
 
@@ -607,29 +695,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         }
       });
-    },
-    traverse: function traverse(data, path, callback) {
-      var keys = typeof path === 'string' ? path.split('.') : path;
-      var last = keys.length - 1;
-
-      for (var i = 0; i < last; i++) {
-        var key = keys[i];
-
-        if (!(key in data)) {
-          if (typeof callback === 'function') {
-            callback(data, key, i, keys);
-          } else {
-            return undefined;
-          }
-        }
-
-        data = data[key];
-      }
-
-      return {
-        data: data,
-        key: keys[last]
-      };
     },
     setByPath: function setByPath(data, path, value) {
       var keys = typeof path === 'string' ? path.split('.') : path;
@@ -1017,13 +1082,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     var name = binder.element.nodeName;
     var data;
 
-    if (name.indexOf('SELECT') !== -1) {
+    if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
       var elements, multiple;
       return {
         read: function read() {
           data = Model.get(binder.keys);
           data = Binder.piper(binder, data);
-          elements = binder.element.options || binder.element.children;
+          elements = binder.element.options;
           multiple = Utility.multiple(binder.element);
 
           if (multiple && data.constructor !== Array) {
@@ -1032,11 +1097,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         },
         write: function write() {
           var selected = false;
-
-          if (multiple) {
-            var original = Model.get(binder.keys);
-            original.splice(0, original.length);
-          }
 
           for (var i = 0, l = elements.length; i < l; i++) {
             var element = elements[i];
@@ -1103,33 +1163,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         }
       };
-    } else if (type === 'file') {
-      return {
-        read: function read() {
-          data = Model.get(binder.keys);
-
-          if (data === undefined) {
-            Model.set(binder.keys, []);
-            return false;
-          }
-
-          if (!data || data.constructor !== Array) {
-            console.warn('Oxe - file attribute invalid type');
-            return false;
-          }
-        },
-        write: function write() {
-          for (var i = 0, l = data.length; i < l; i++) {
-            if (data[i] !== binder.element.files[i]) {
-              if (data[i]) {
-                binder.element.files[i] = data[i];
-              } else {
-                console.warn('Oxe - file remove not implemented');
-              }
-            }
-          }
-        }
-      };
     } else if (type === 'checkbox') {
       return {
         read: function read() {
@@ -1152,9 +1185,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return {
         read: function read() {
           if (name.indexOf('OPTION') !== -1 && binder.element.selected) {
-            var parent = binder.element.parentElement;
+            var parent = binder.element.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.element.parentElement : binder.element.parentElement.parentElement;
             var select = Binder.elements.get(parent).get('value');
-            self.default(select);
+
+            if (select) {
+              self.default(select);
+            }
           }
 
           data = Model.get(binder.keys);
@@ -1603,61 +1639,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var read = function read() {
         var type = binder.element.type;
         var name = binder.element.nodeName;
-        var data;
-
-        if (name.indexOf('SELECT') !== -1) {
-          var elements = binder.element.options || binder.element.children;
-          var multiple = Utility.multiple(binder.element);
-          data = multiple ? [] : undefined;
-
-          for (var i = 0, l = elements.length; i < l; i++) {
-            var _element = elements[i];
-
-            if (Utility.selected(_element)) {
-              if (multiple) {
-                data.push(Utility.value(_element));
-              } else {
-                data = Utility.value(_element);
-                break;
-              }
-            }
-          }
-        } else if (type === 'radio') {
-          var query = 'input[type="radio"][o-value="' + binder.value + '"]';
-
-          var _elements2 = binder.container.querySelectorAll(query);
-
-          for (var _i = 0, _l = _elements2.length; _i < _l; _i++) {
-            var _element2 = _elements2[_i];
-
-            if (binder.element === _element2) {
-              data = _i;
-            }
-          }
-        } else if (type === 'file') {
-          var files = binder.element.files;
-          data = [];
-
-          for (var _i2 = 0, _l2 = files.length; _i2 < _l2; _i2++) {
-            var file = files[_i2];
-            data.push(file);
-          }
-        } else if (type === 'checkbox') {
-          data = binder.element.checked;
-        } else {
-          data = binder.element.value;
-        }
+        var data = Utility.value(binder.element);
+        console.log(data);
 
         if (data !== undefined) {
           var original = Model.get(binder.keys);
 
           if (data && _typeof(data) === 'object' && data.constructor === original.constructor) {
-            for (var key in data) {
-              if (data[key] !== original[key]) {
-                Model.set(binder.keys, data);
-                break;
-              }
-            }
+            Model.set(binder.keys, data);
           } else if (original !== data) {
             Model.set(binder.keys, data);
           }
@@ -1717,7 +1706,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     fetch: function fetch(options) {
       return new Promise(function ($return, $error) {
-        var data, copy, result, fetchOptions, fetched, _copy, _result;
+        var data, copy, result, fetchOptions, fetched, _copy, _result2;
 
         data = Object.assign({}, options);
         data.path = data.path || this.path;
@@ -1870,14 +1859,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                     _copy = Object.assign({}, data);
                     return Promise.resolve(this.response(_copy)).then(function ($await_44) {
                       try {
-                        _result = $await_44;
+                        _result2 = $await_44;
 
-                        if (_result === false) {
+                        if (_result2 === false) {
                           return $return(data);
                         }
 
-                        if (_typeof(_result) === 'object') {
-                          Object.assign(data, _result);
+                        if (_typeof(_result2) === 'object') {
+                          Object.assign(data, _result2);
                         }
 
                         return $If_4.call(this);

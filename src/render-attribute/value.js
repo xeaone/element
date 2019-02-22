@@ -9,7 +9,7 @@ export default function (binder) {
 
 	let data;
 
-	if (name.indexOf('SELECT') !== -1) {
+	if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
 		let elements, multiple;
 
 		return {
@@ -17,7 +17,7 @@ export default function (binder) {
 				data = Model.get(binder.keys);
 				data = Binder.piper(binder, data);
 
-				elements = binder.element.options || binder.element.children;
+				elements = binder.element.options;
 				multiple = Utility.multiple(binder.element);
 
 				if (multiple && data.constructor !== Array) {
@@ -27,12 +27,6 @@ export default function (binder) {
 			},
 			write () {
 				let selected = false;
-
-				if (multiple) {
-					var original = Model.get(binder.keys);
-					// original.length = 0;
-					original.splice(0, original.length);
-				}
 
 				// NOTE might need to handle disable
 				for (let i = 0, l = elements.length; i < l; i++) {
@@ -131,9 +125,11 @@ export default function (binder) {
 
 				// if (name === 'OPTION' && binder.element.selected) {
 				if (name.indexOf('OPTION') !== -1 && binder.element.selected) {
-					let parent = binder.element.parentElement;
-					let select = Binder.elements.get(parent).get('value');
-					self.default(select);
+					const parent = binder.element.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.element.parentElement :  binder.element.parentElement.parentElement;
+					const select = Binder.elements.get(parent).get('value');
+					if (select) {
+						self.default(select);
+					}
 				}
 
 				data = Model.get(binder.keys);
