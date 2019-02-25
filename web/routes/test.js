@@ -7,6 +7,7 @@ export default {
 	component: {
 		name: 'r-test',
 		model: {
+			title: 'Test',
 			menuItemOne: 'Item One',
 			submit: 'hello world',
 			empty: {},
@@ -154,12 +155,19 @@ export default {
 
 			// this.model.empty.$set({ boo: 'ha'});
 		},
-		template: `
+		template: /*html*/`
 		<style>
 			[o-each-item] {
 				min-height: 150px;
 			}
 		</style>
+		<br>
+		<br>
+
+		<div>
+			<span o-text="title"></span>
+		</div>
+
 		<br>
 		<br>
 
