@@ -53,7 +53,7 @@ export default function (binder) {
 					const clone = document.importNode(binder.cache, true);
 					const variable = isArray ? elementLength : keys[elementLength];
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
-					Binder.bind(clone, binder.container, binder.scope);
+					// Binder.bind(clone, binder.container, binder.scope);
 					binder.fragment.appendChild(clone);
 					elementLength++;
 

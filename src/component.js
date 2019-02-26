@@ -115,32 +115,25 @@ export default {
 
 		return '<style>' + style + '</style>';
 	},
-
+	
 	render (element, options) {
 		let self = this;
 
 		element.setAttribute('o-scope', element.scope);
 
 		if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
-
-			Binder.bind(element, element, element.scope);
-
+			// Binder.bind(element, element, element.scope);
 		} else {
 
-			let template = document.createElement('template');
-			let style = self.renderStyle(options.style, element.scope);
+			const container = document.createElement('template');
+			const style = self.renderStyle(options.style, element.scope);
+			const template = options.template;
 
-			if (typeof options.template === 'string') {
-				template.innerHTML = style + options.template;
-			} else {
-				template.innerHTML = style;
-				template.appendChild(options.template);
-			}
+			container.innerHTML = style + template;
 
-			let clone = document.importNode(template.content, true);
-			// let clone = template.content.cloneNode(true);
+			const clone = document.importNode(container.content, true);
 
-			Binder.bind(clone, element, element.scope);
+			// Binder.bind(clone, element, element.scope);
 
 			if (options.shadow) {
 				if ('attachShadow' in document.body) {
@@ -174,7 +167,7 @@ export default {
 		options.properties = options.properties || {};
 
 		options.construct = function () {
-			let instance = window.Reflect.construct(HTMLElement, [], this.constructor);
+			const instance = window.Reflect.construct(HTMLElement, [], this.constructor);
 
 			options.properties.created = {
 				value: false,

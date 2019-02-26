@@ -20,10 +20,14 @@ export default {
 		// } else {
 			const type = this.type(element);
 
-			if (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 && type === 'radio' || type === 'checkbox') {
+			if (
+				(type === 'radio' || type === 'checkbox') &&
+				(element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)
+			) {
 				const name = this.name(element);
 				const query = 'input[type="' + type + '"][name="' + name + '"]';
-				const elements = this.form(element).querySelectorAll(query);
+				const form = this.form(element);
+				const elements = form ? this.form(element).querySelectorAll(query) : [ element ];
 				const multiple = elements.length > 1;
 
 				let result =  multiple ? [] : undefined;
@@ -332,23 +336,23 @@ export default {
 		}
 
 		return data[keys[last]];
-	}
+	},
 
-	// getScope (element) {
-	//
-	// 	if (!element) {
-	// 		return;
-	// 	}
-	//
-	// 	if (element.hasAttribute('o-scope')) {
-	// 		return element;
-	// 	}
-	//
-	// 	if (element.parentNode) {
-	// 		return this.getScope(element.parentNode);
-	// 	}
-	//
-	// 	// console.warn('Oxe.utility - could not find container scope');
-	// }
+	getScope (element) {
+
+		// if (!element) {
+		// 	return;
+		// }
+
+		if (element.nodeType === 1 && (element.scope || 'o-scope' in element.attributes)) {
+			return element;
+		}
+
+		if (element.parentElement) {
+			return this.getScope(element.parentElement);
+		}
+
+		console.warn('Oxe.utility.getScope - scope not found');
+	}
 
 }

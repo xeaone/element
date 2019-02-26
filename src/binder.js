@@ -77,8 +77,9 @@ export default {
 		if (!this.elements.get(binder.element).has(binder.names[0])) {
 			this.elements.get(binder.element).set(binder.names[0], binder);
 		} else {
-			return false;
+			console.warn(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
 			// throw new Error(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
+			return false;
 		}
 
 		if (!(binder.scope in this.data)) {
@@ -182,60 +183,148 @@ export default {
 
 	},
 
-	skipChildren (element) {
+	// skipChildren (element) {
+	//
+	// 	if (element.nodeName === '#document-fragment') {
+	// 		return false;
+	// 	}
+	//
+	// 	if (
+	// 		element.nodeName === 'STYLE'
+	// 		&& element.nodeName === 'SCRIPT'
+	// 		&& element.nodeName === 'OBJECT'
+	// 		&& element.nodeName === 'IFRAME'
+	// 	) {
+	// 		return true;
+	// 	}
+	//
+	// 	for (let i = 0, l = element.attributes.length; i < l; i++) {
+	// 		let attribute = element.attributes[i];
+	//
+	// 		if (attribute.name.indexOf('o-each') === 0) {
+	// 			return true;
+	// 		}
+	//
+	// 	}
+	//
+	// 	return false;
+	// },
 
-		if (element.nodeName === '#document-fragment') {
-			return false;
-		}
+	// eachElement (element, callback) {
+	//
+	// 	if (
+	// 		element.nodeName !== 'SLOT'
+	// 		&& element.nodeName !== 'O-ROUTER'
+	// 		&& element.nodeName !== 'TEMPLATE'
+	// 		&& element.nodeName !== '#document-fragment'
+	// 	) {
+	// 		callback.call(this, element);
+	// 	}
+	//
+	// 	if (!this.skipChildren(element)) {
+	// 		element = element.firstElementChild;
+	//
+	// 		while (element) {
+	// 		    this.eachElement(element, callback);
+	// 		    element = element.nextElementSibling;
+	// 		}
+	// 	}
+	//
+	// },
+	//
+	// eachAttribute (element, callback) {
+	// 	let attributes = element.attributes;
+	//
+	// 	for (let i = 0, l = attributes.length; i < l; i++) {
+	// 		let attribute = attributes[i];
+	//
+	// 		if (
+	// 			attribute.name.indexOf('o-') === 0
+	// 			&& attribute.name !== 'o-scope'
+	// 			&& attribute.name !== 'o-reset'
+	// 			&& attribute.name !== 'o-action'
+	// 			&& attribute.name !== 'o-method'
+	// 			&& attribute.name !== 'o-enctype'
+	// 		) {
+	// 			callback.call(this, attribute);
+	// 		}
+	//
+	// 	}
+	//
+	// },
+
+	// unbind (element, container, scope) {
+	//
+	// 	if (!scope) throw new Error('Oxe - unbind requires scope argument');
+	// 	if (!element) throw new Error('Oxe - unbind requires element argument');
+	// 	if (!container) throw new Error('Oxe - unbind requires container argument');
+	//
+	// 	this.eachElement(element, function (child) {
+	// 		this.eachAttribute(child, function (attribute) {
+	//
+	// 			let binder = this.get({
+	// 				scope: scope,
+	// 				element: child,
+	// 				container: container,
+	// 				name: attribute.name,
+	// 				value: attribute.value
+	// 			});
+	//
+	// 			this.remove(binder);
+	//
+	// 			Unrender.default(binder);
+	// 		});
+	// 	});
+	// },
+	//
+	// bind (element, container, scope) {
+	//
+	// 	if (!scope) throw new Error('Oxe - bind requires scope argument');
+	// 	if (!element) throw new Error('Oxe - bind requires element argument');
+	// 	if (!container) throw new Error('Oxe - bind requires container argument');
+	//
+	// 	this.eachElement(element, function (child) {
+	// 		this.eachAttribute(child, function (attribute) {
+	//
+	// 			let binder = this.create({
+	// 				scope: scope,
+	// 				element: child,
+	// 				container: container,
+	// 				name: attribute.name,
+	// 				value: attribute.value
+	// 			});
+	//
+	// 			let result = this.add(binder);
+	//
+	// 			if (result !== false) {
+	// 				Render.default(binder);
+	// 			}
+	//
+	// 		});
+	// 	});
+	// },
+
+	b (element, type) {
+
+		if (!type) throw new Error('Oxe.binder.bind - type argument required');
+		if (!element) throw new Error('Oxe.binder.bind - element argument required');
 
 		if (
-			element.nodeName === 'STYLE'
-			&& element.nodeName === 'SCRIPT'
-			&& element.nodeName === 'OBJECT'
-			&& element.nodeName === 'IFRAME'
+			!element ||
+			element.nodeName === 'SLOT' ||
+			element.nodeName === 'O-ROUTER' ||
+			element.nodeName === 'TEMPLATE' ||
+			element.nodeName === '#document-fragment'
 		) {
-			return true;
+			return;
 		}
 
-		for (let i = 0, l = element.attributes.length; i < l; i++) {
-			let attribute = element.attributes[i];
-
-			if (attribute.name.indexOf('o-each') === 0) {
-				return true;
-			}
-
-		}
-
-		return false;
-	},
-
-	eachElement (element, callback) {
-
-		if (
-			element.nodeName !== 'SLOT'
-			&& element.nodeName !== 'O-ROUTER'
-			&& element.nodeName !== 'TEMPLATE'
-			&& element.nodeName !== '#document-fragment'
-		) {
-			callback.call(this, element);
-		}
-
-		if (!this.skipChildren(element)) {
-			element = element.firstElementChild;
-
-			while (element) {
-			    this.eachElement(element, callback);
-			    element = element.nextElementSibling;
-			}
-		}
-
-	},
-
-	eachAttribute (element, callback) {
-		let attributes = element.attributes;
+		const container = Utility.getScope(element);
+		const scope = container.scope;
+		const attributes = element.attributes;
 
 		for (let i = 0, l = attributes.length; i < l; i++) {
-			let attribute = attributes[i];
+			const attribute = attributes[i];
 
 			if (
 				attribute.name.indexOf('o-') === 0
@@ -245,62 +334,32 @@ export default {
 				&& attribute.name !== 'o-method'
 				&& attribute.name !== 'o-enctype'
 			) {
-				callback.call(this, attribute);
+
+				const binder = this.create({
+					scope: scope,
+					element: element,
+					container: container,
+					name: attribute.name,
+					value: attribute.value
+				});
+
+				const result = this[type](binder);
+
+				switch (type) {
+					case 'add':
+						if (result !== false) {
+							Render.default(binder);
+						}
+					break;
+					case 'remove':
+						Unrender.default(binder);
+					break;
+				}
+
 			}
 
 		}
 
-	},
-
-	unbind (element, container, scope) {
-
-		if (!scope) throw new Error('Oxe - unbind requires scope argument');
-		if (!element) throw new Error('Oxe - unbind requires element argument');
-		if (!container) throw new Error('Oxe - unbind requires container argument');
-
-		this.eachElement(element, function (child) {
-			this.eachAttribute(child, function (attribute) {
-
-				let binder = this.get({
-					scope: scope,
-					element: child,
-					container: container,
-					name: attribute.name,
-					value: attribute.value
-				});
-
-				this.remove(binder);
-
-				Unrender.default(binder);
-			});
-		});
-	},
-
-	bind (element, container, scope) {
-
-		if (!scope) throw new Error('Oxe - bind requires scope argument');
-		if (!element) throw new Error('Oxe - bind requires element argument');
-		if (!container) throw new Error('Oxe - bind requires container argument');
-
-		this.eachElement(element, function (child) {
-			this.eachAttribute(child, function (attribute) {
-
-				let binder = this.create({
-					scope: scope,
-					element: child,
-					container: container,
-					name: attribute.name,
-					value: attribute.value
-				});
-
-				let result = this.add(binder);
-
-				if (result !== false) {
-					Render.default(binder);
-				}
-
-			});
-		});
 	}
 
 };

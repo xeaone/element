@@ -456,10 +456,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     value: function value(element) {
       var type = this.type(element);
 
-      if (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 && type === 'radio' || type === 'checkbox') {
+      if ((type === 'radio' || type === 'checkbox') && (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)) {
         var name = this.name(element);
         var query = 'input[type="' + type + '"][name="' + name + '"]';
-        var elements = this.form(element).querySelectorAll(query);
+        var form = this.form(element);
+        var elements = form ? this.form(element).querySelectorAll(query) : [element];
         var multiple = elements.length > 1;
         var result = multiple ? [] : undefined;
 
@@ -731,6 +732,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       return data[keys[last]];
+    },
+    getScope: function getScope(element) {
+      if (element.nodeType === 1 && (element.scope || 'o-scope' in element.attributes)) {
+        return element;
+      }
+
+      if (element.parentElement) {
+        return this.getScope(element.parentElement);
+      }
+
+      console.warn('Oxe.utility.getScope - scope not found');
     }
   };
   var Methods = {
@@ -871,7 +883,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             var clone = document.importNode(binder.cache, true);
             var variable = isArray ? elementLength : keys[elementLength];
             Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
-            Binder.bind(clone, binder.container, binder.scope);
             binder.fragment.appendChild(clone);
             elementLength++;
             if (performance.now() - time > TIME) return;
@@ -1307,6 +1318,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (!this.elements.get(binder.element).has(binder.names[0])) {
         this.elements.get(binder.element).set(binder.names[0], binder);
       } else {
+        console.warn("Oxe - duplicate attribute ".concat(binder.scope, " ").concat(binder.names[0], " ").concat(binder.value));
         return false;
       }
 
@@ -1387,88 +1399,45 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
     },
-    skipChildren: function skipChildren(element) {
-      if (element.nodeName === '#document-fragment') {
-        return false;
+    b: function b(element, type) {
+      if (!type) throw new Error('Oxe.binder.bind - type argument required');
+      if (!element) throw new Error('Oxe.binder.bind - element argument required');
+
+      if (!element || element.nodeName === 'SLOT' || element.nodeName === 'O-ROUTER' || element.nodeName === 'TEMPLATE' || element.nodeName === '#document-fragment') {
+        return;
       }
 
-      if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
-        return true;
-      }
-
-      for (var i = 0, l = element.attributes.length; i < l; i++) {
-        var attribute = element.attributes[i];
-
-        if (attribute.name.indexOf('o-each') === 0) {
-          return true;
-        }
-      }
-
-      return false;
-    },
-    eachElement: function eachElement(element, callback) {
-      if (element.nodeName !== 'SLOT' && element.nodeName !== 'O-ROUTER' && element.nodeName !== 'TEMPLATE' && element.nodeName !== '#document-fragment') {
-        callback.call(this, element);
-      }
-
-      if (!this.skipChildren(element)) {
-        element = element.firstElementChild;
-
-        while (element) {
-          this.eachElement(element, callback);
-          element = element.nextElementSibling;
-        }
-      }
-    },
-    eachAttribute: function eachAttribute(element, callback) {
+      var container = Utility.getScope(element);
+      var scope = container.scope;
       var attributes = element.attributes;
 
       for (var i = 0, l = attributes.length; i < l; i++) {
         var attribute = attributes[i];
 
         if (attribute.name.indexOf('o-') === 0 && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype') {
-          callback.call(this, attribute);
-        }
-      }
-    },
-    unbind: function unbind(element, container, scope) {
-      if (!scope) throw new Error('Oxe - unbind requires scope argument');
-      if (!element) throw new Error('Oxe - unbind requires element argument');
-      if (!container) throw new Error('Oxe - unbind requires container argument');
-      this.eachElement(element, function (child) {
-        this.eachAttribute(child, function (attribute) {
-          var binder = this.get({
-            scope: scope,
-            element: child,
-            container: container,
-            name: attribute.name,
-            value: attribute.value
-          });
-          this.remove(binder);
-          Unrender.default(binder);
-        });
-      });
-    },
-    bind: function bind(element, container, scope) {
-      if (!scope) throw new Error('Oxe - bind requires scope argument');
-      if (!element) throw new Error('Oxe - bind requires element argument');
-      if (!container) throw new Error('Oxe - bind requires container argument');
-      this.eachElement(element, function (child) {
-        this.eachAttribute(child, function (attribute) {
           var binder = this.create({
             scope: scope,
-            element: child,
+            element: element,
             container: container,
             name: attribute.name,
             value: attribute.value
           });
-          var result = this.add(binder);
+          var result = this[type](binder);
 
-          if (result !== false) {
-            Render.default(binder);
+          switch (type) {
+            case 'add':
+              if (result !== false) {
+                Render.default(binder);
+              }
+
+              break;
+
+            case 'remove':
+              Unrender.default(binder);
+              break;
           }
-        });
-      });
+        }
+      }
     }
   };
 
@@ -2453,22 +2422,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     render: function render(element, options) {
       var self = this;
       element.setAttribute('o-scope', element.scope);
-
-      if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
-        Binder.bind(element, element, element.scope);
-      } else {
-        var template = document.createElement('template');
+      if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') ;else {
+        var container = document.createElement('template');
         var style = self.renderStyle(options.style, element.scope);
-
-        if (typeof options.template === 'string') {
-          template.innerHTML = style + options.template;
-        } else {
-          template.innerHTML = style;
-          template.appendChild(options.template);
-        }
-
-        var clone = document.importNode(template.content, true);
-        Binder.bind(clone, element, element.scope);
+        var template = options.template;
+        container.innerHTML = style + template;
+        var clone = document.importNode(container.content, true);
 
         if (options.shadow) {
           if ('attachShadow' in document.body) {
@@ -3328,28 +3287,45 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     on: events$1.on.bind(events$1),
     off: events$1.off.bind(events$1),
     emit: events$1.emit.bind(events$1),
+    observer: null,
     target: document.body,
+    binder: function binder(nodes, type) {
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+        var nodeType = node.nodeType;
+
+        if (nodeType === 1) {
+          Binder.b(node, type);
+          this.binder(node.children, type);
+        }
+      }
+    },
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         var self = this;
         options = options || {};
-        var mutation = new MutationObserver(function (mutations) {
-          for (var i = 0, l = mutations.length; i < l; i++) {
-            var _events = mutations[i];
+        self.observer = new MutationObserver(function (records) {
+          for (var i = 0, l = records.length; i < l; i++) {
+            var record = records[i];
+            console.log(record);
 
-            switch (_events.type) {
+            switch (record.type) {
               case 'childList':
-                if (_events.addedNodes) self.emit('add', _events);
-                if (_events.removedNodes) self.emit('remove', _events);
+                self.binder(record.addedNodes, 'add');
+                self.binder(record.addedNodes, 'remove');
+                break;
+
+              case 'attributes':
+                var target = record.target;
+                var attribute = target.attributes[record.attributeName];
                 break;
             }
           }
         });
-        mutation.observe(self.target, {
+        this.observer.observe(self.target, {
           subtree: true,
           childList: true,
-          attributes: false,
-          characterData: false
+          attributes: true
         });
         return $return();
       }.bind(this));
