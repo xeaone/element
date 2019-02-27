@@ -250,6 +250,10 @@ export default {
 			await this.component.setup(data.component);
 		}
 
+		// if (data.binder) {
+		// 	await this.binder.setup(data.binder);
+		// }
+
 		if (data.router) {
 			await this.router.setup(data.router);
 		}

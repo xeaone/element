@@ -1,6 +1,5 @@
 import Methods from './methods.js';
 import Loader from './loader.js';
-import Binder from './binder.js';
 import Model from './model.js';
 
 export default {
@@ -115,37 +114,33 @@ export default {
 
 		return '<style>' + style + '</style>';
 	},
-	
+
 	render (element, options) {
-		let self = this;
+		const self = this;
 
 		element.setAttribute('o-scope', element.scope);
 
 		if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
-			// Binder.bind(element, element, element.scope);
-		} else {
+			return;
+		}
 
-			const container = document.createElement('template');
-			const style = self.renderStyle(options.style, element.scope);
-			const template = options.template;
+		const container = document.createElement('template');
+		const style = self.renderStyle(options.style, element.scope);
+		const template = options.template;
 
-			container.innerHTML = style + template;
+		container.innerHTML = style + template;
 
-			const clone = document.importNode(container.content, true);
+		const clone = document.importNode(container.content, true);
 
-			// Binder.bind(clone, element, element.scope);
-
-			if (options.shadow) {
-				if ('attachShadow' in document.body) {
-					element.attachShadow({ mode: 'open' }).appendChild(clone);
-				} else if ('createShadowRoot' in document.body) {
-					element.createShadowRoot().appendChild(clone);
-				}
-			} else {
-				self.renderSlot(clone, element);
-				element.appendChild(clone);
+		if (options.shadow) {
+			if ('attachShadow' in document.body) {
+				element.attachShadow({ mode: 'open' }).appendChild(clone);
+			} else if ('createShadowRoot' in document.body) {
+				element.createShadowRoot().appendChild(clone);
 			}
-
+		} else {
+			self.renderSlot(clone, element);
+			element.appendChild(clone);
 		}
 
 	},

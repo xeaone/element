@@ -10,7 +10,7 @@ const listener = function (data, path, type) {
 		const scope = path.split('.').slice(0, 1).join('.');
 		const part = path.split('.').slice(1).join('.');
 
-		if (!(scope in Binder.data)) return;
+		if (!(scope in Binder.data)) return console.warn('Oxe.model.listener - path missing scope');
 		if (!(part in Binder.data[scope])) return;
 		if (!(0 in Binder.data[scope][part])) return;
 

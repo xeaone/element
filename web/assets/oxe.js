@@ -734,6 +734,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return data[keys[last]];
     },
     getScope: function getScope(element) {
+      console.log(element);
+
       if (element.nodeType === 1 && (element.scope || 'o-scope' in element.attributes)) {
         return element;
       }
@@ -1258,6 +1260,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   var Binder = {
     data: {},
     elements: new Map(),
+    setup: function setup(options) {
+      return new Promise(function ($return, $error) {
+        options = options || {};
+        return $return();
+      });
+    },
     create: function create(data) {
       var binder = {};
       if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
@@ -1399,7 +1407,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
     },
-    b: function b(element, type) {
+    b: function b(element, container, scope, type) {
       if (!type) throw new Error('Oxe.binder.bind - type argument required');
       if (!element) throw new Error('Oxe.binder.bind - element argument required');
 
@@ -1407,8 +1415,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return;
       }
 
-      var container = Utility.getScope(element);
-      var scope = container.scope;
       var attributes = element.attributes;
 
       for (var i = 0, l = attributes.length; i < l; i++) {
@@ -1538,7 +1544,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     if (type === 'length') {
       var scope = path.split('.').slice(0, 1).join('.');
       var part = path.split('.').slice(1).join('.');
-      if (!(scope in Binder.data)) return;
+      if (!(scope in Binder.data)) return console.warn('Oxe.model.listener - path missing scope');
       if (!(part in Binder.data[scope])) return;
       if (!(0 in Binder.data[scope][part])) return;
       var binder = Binder.data[scope][part][0];
@@ -2422,25 +2428,28 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     render: function render(element, options) {
       var self = this;
       element.setAttribute('o-scope', element.scope);
-      if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') ;else {
-        var container = document.createElement('template');
-        var style = self.renderStyle(options.style, element.scope);
-        var template = options.template;
-        container.innerHTML = style + template;
-        var clone = document.importNode(container.content, true);
 
-        if (options.shadow) {
-          if ('attachShadow' in document.body) {
-            element.attachShadow({
-              mode: 'open'
-            }).appendChild(clone);
-          } else if ('createShadowRoot' in document.body) {
-            element.createShadowRoot().appendChild(clone);
-          }
-        } else {
-          self.renderSlot(clone, element);
-          element.appendChild(clone);
+      if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
+        return;
+      }
+
+      var container = document.createElement('template');
+      var style = self.renderStyle(options.style, element.scope);
+      var template = options.template;
+      container.innerHTML = style + template;
+      var clone = document.importNode(container.content, true);
+
+      if (options.shadow) {
+        if ('attachShadow' in document.body) {
+          element.attachShadow({
+            mode: 'open'
+          }).appendChild(clone);
+        } else if ('createShadowRoot' in document.body) {
+          element.createShadowRoot().appendChild(clone);
         }
+      } else {
+        self.renderSlot(clone, element);
+        element.appendChild(clone);
       }
     },
     define: function define(options) {
@@ -3282,21 +3291,40 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     });
   }
 
-  var events$1 = Object.create(Events);
   var Mutation = {
-    on: events$1.on.bind(events$1),
-    off: events$1.off.bind(events$1),
-    emit: events$1.emit.bind(events$1),
     observer: null,
     target: document.body,
-    binder: function binder(nodes, type) {
+    binder: function binder(nodes, target, type) {
+      var container = Utility.getScope(target);
+      var scope = container.scope;
+
       for (var i = 0, l = nodes.length; i < l; i++) {
         var node = nodes[i];
         var nodeType = node.nodeType;
 
         if (nodeType === 1) {
-          Binder.b(node, type);
-          this.binder(node.children, type);
+          if (node.parentElement !== target) {
+            var parent = node.parentElement;
+
+            while (parent) {
+              if (parent.nodeType === 1 && (parent.scope || 'o-scope' in parent.attributes)) {
+                container = parent;
+                scope = container.scope;
+                break;
+              } else {
+                parent = parent.parentElement;
+
+                if (!parent) {
+                  container = target;
+                  scope = container.scope;
+                  break;
+                }
+              }
+            }
+          }
+
+          Binder.b(node, container, scope, type);
+          this.binder(node.children, target, type);
         }
       }
     },
@@ -3311,8 +3339,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
             switch (record.type) {
               case 'childList':
-                self.binder(record.addedNodes, 'add');
-                self.binder(record.addedNodes, 'remove');
+                self.binder(record.addedNodes, record.target, 'add');
+                self.binder(record.removedNodes, record.target, 'remove');
                 break;
 
               case 'attributes':

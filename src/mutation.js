@@ -1,25 +1,49 @@
-import Events from './events.js';
+// import Events from './events.js';
 import Binder from './binder.js';
+import Utility from './utility.js';
 
-const events = Object.create(Events);
+// const events = Object.create(Events);
 
 export default {
 
-	on: events.on.bind(events),
-	off: events.off.bind(events),
-	emit: events.emit.bind(events),
+	// on: events.on.bind(events),
+	// off: events.off.bind(events),
+	// emit: events.emit.bind(events),
 
 	observer: null,
 	target: document.body,
 
-	binder (nodes, type) {
+	binder (nodes, target, type) {
+
+		let container = Utility.getScope(target);
+		let scope = container.scope;
+
 		for (let i = 0, l = nodes.length; i <l; i++) {
 			const node = nodes[i];
 			const nodeType = node.nodeType;
 
 			if (nodeType === 1) {
-				Binder.b(node, type);
-				this.binder(node.children, type);
+
+				if (node.parentElement !== target) {
+					let parent = node.parentElement;
+					while (parent) {
+						if (parent.nodeType === 1 && (parent.scope || 'o-scope' in parent.attributes)) {
+							container = parent;
+							scope = container.scope;
+							break;
+						} else {
+							parent = parent.parentElement;
+							if (!parent) {
+								container = target;
+								scope = container.scope;
+								break;
+							}
+						}
+					}
+				}
+
+				Binder.b(node, container, scope, type);
+				this.binder(node.children, target, type);
 			}
 
 		}
@@ -36,8 +60,8 @@ export default {
 				console.log(record);
 				switch (record.type) {
 					case 'childList':
-						self.binder(record.addedNodes, 'add');
-						self.binder(record.addedNodes, 'remove');
+						self.binder(record.addedNodes, record.target, 'add');
+						self.binder(record.removedNodes, record.target, 'remove');
 						// if (record.addedNodes) self.emit('node:add', record);
 						// if (record.removedNodes) self.emit('node:remove', record);
 					break;

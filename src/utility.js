@@ -1,5 +1,3 @@
-// import Model from './model.js';
-// import Binder from './binder.js';
 
 export default {
 
@@ -13,72 +11,66 @@ export default {
 	VARIABLE_END: '(?:)',
 
 	value (element) {
-		// if (element.hasAttribute('o-value')) {
-		// 	const binder = Binder.elements.get(element).get('value');
-		// 	const value = Model.get(binder.keys);
-		// 	return Binder.piper(binder, value);
-		// } else {
-			const type = this.type(element);
+		const type = this.type(element);
 
-			if (
-				(type === 'radio' || type === 'checkbox') &&
-				(element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)
-			) {
-				const name = this.name(element);
-				const query = 'input[type="' + type + '"][name="' + name + '"]';
-				const form = this.form(element);
-				const elements = form ? this.form(element).querySelectorAll(query) : [ element ];
-				const multiple = elements.length > 1;
+		if (
+			(type === 'radio' || type === 'checkbox') &&
+			(element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)
+		) {
+			const name = this.name(element);
+			const query = 'input[type="' + type + '"][name="' + name + '"]';
+			const form = this.form(element);
+			const elements = form ? this.form(element).querySelectorAll(query) : [ element ];
+			const multiple = elements.length > 1;
 
-				let result =  multiple ? [] : undefined;
+			let result =  multiple ? [] : undefined;
 
-				for (let i = 0, l = elements.length; i < l; i++) {
-					const element = elements[i];
-					const checked = this.checked(element);
+			for (let i = 0, l = elements.length; i < l; i++) {
+				const element = elements[i];
+				const checked = this.checked(element);
 
-					if (!checked) continue;
+				if (!checked) continue;
 
-					if (multiple) {
-						result.push(this.value(element))
-					} else {
-						result = this.value(element);
-						break;
-					}
-
+				if (multiple) {
+					result.push(this.value(element))
+				} else {
+					result = this.value(element);
+					break;
 				}
 
-				return result;
-			} else if (
-				element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 ||
-				element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 ||
-				element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1
-			) {
-				return element.value;
-			} else if (element.nodeName === 'SELECT' || element.nodeName.indexOf('-SELECT') !== -1) {
-				const multiple = this.multiple(element);
-				const options = element.options;
-				let result = multiple ? [] : undefined;
-
-				for (let i = 0, l = options.length; i < l; i++) {
-					const option = options[i];
-					const selected = this.selected(option);
-
-					if (!selected) continue;
-
-					const value = this.value(option);
-
-					if (multiple) {
-						result.push(value);
-					} else {
-						result = this.value(option);
-						break;
-					}
-
-				}
-
-				return result;
 			}
-		// }
+
+			return result;
+		} else if (
+			element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 ||
+			element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 ||
+			element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1
+		) {
+			return element.value;
+		} else if (element.nodeName === 'SELECT' || element.nodeName.indexOf('-SELECT') !== -1) {
+			const multiple = this.multiple(element);
+			const options = element.options;
+			let result = multiple ? [] : undefined;
+
+			for (let i = 0, l = options.length; i < l; i++) {
+				const option = options[i];
+				const selected = this.selected(option);
+
+				if (!selected) continue;
+
+				const value = this.value(option);
+
+				if (multiple) {
+					result.push(value);
+				} else {
+					result = this.value(option);
+					break;
+				}
+
+			}
+
+			return result;
+		}
 	},
 
 	form (element) {
@@ -340,9 +332,7 @@ export default {
 
 	getScope (element) {
 
-		// if (!element) {
-		// 	return;
-		// }
+		console.log(element);
 
 		if (element.nodeType === 1 && (element.scope || 'o-scope' in element.attributes)) {
 			return element;

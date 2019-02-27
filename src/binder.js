@@ -8,6 +8,10 @@ export default {
 	data: {},
 	elements: new Map(),
 
+	async setup (options) {
+		options = options || {};
+	},
+
 	create (data) {
 		let binder = {};
 
@@ -304,7 +308,7 @@ export default {
 	// 	});
 	// },
 
-	b (element, type) {
+	b (element, container, scope, type) {
 
 		if (!type) throw new Error('Oxe.binder.bind - type argument required');
 		if (!element) throw new Error('Oxe.binder.bind - element argument required');
@@ -319,8 +323,8 @@ export default {
 			return;
 		}
 
-		const container = Utility.getScope(element);
-		const scope = container.scope;
+		// const container = Utility.getScope(element);
+		// const scope = container.scope;
 		const attributes = element.attributes;
 
 		for (let i = 0, l = attributes.length; i < l; i++) {
