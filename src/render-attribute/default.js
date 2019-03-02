@@ -1,19 +1,13 @@
 import Batcher from '../batcher.js';
-import Binder from '../binder.js';
-import Model from '../model.js';
 
-export default function (binder) {
+export default function (binder, data) {
 	let render;
 
 	if (binder.type in this) {
-		render = this[binder.type](binder);
+		render = this[binder.type](binder, data);
 	} else {
-		let data;
-
 		render = {
 			read () {
-				data = Model.get(binder.keys);
-				data = Binder.piper(binder, data);
 
 				if (data === undefined || data === null) {
 					return false;
@@ -26,6 +20,7 @@ export default function (binder) {
 				if (data === binder.element[binder.type]) {
 					return false;
 				}
+
 			},
 			write () {
 				binder.element[binder.type] = data;

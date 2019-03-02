@@ -12,7 +12,7 @@ export default {
 	async setup (options) {
 		const self = this;
 
-		options = options || options;
+		options = options || {};
 		this.type = options.type || this.type;
 
 		if (options.loads) {

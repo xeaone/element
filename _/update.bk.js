@@ -1,5 +1,5 @@
 import Model from './model.js';
-import Binder from './binder.js';
+import View from './view.js';
 import Batcher from './batcher.js';
 import Utility from './utility.js';
 
@@ -9,7 +9,7 @@ export default async function (element, attribute) {
 	if (!element) throw new Error('Oxe - requires element argument');
 	if (!attribute) throw new Error('Oxe - requires attribute argument');
 
-	const binder = Binder.elements.get(element).get(attribute);
+	const binder = View.elements.get(element).get(attribute);
 
 	const read = function () {
 		const type = binder.element.type;

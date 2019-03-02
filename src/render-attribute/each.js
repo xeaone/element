@@ -1,11 +1,11 @@
-import Batcher from '../batcher.js';
+// import Batcher from '../batcher.js';
 import Utility from '../utility.js';
-import Binder from '../binder.js';
-import Model from '../model.js';
+// import View from '../view.js';
+// import Model from '../model.js';
 
 const TIME = 15;
 
-export default function (binder) {
+export default function (binder, data) {
 
 	if (!binder.cache && !binder.element.children.length) {
 		return;
@@ -19,12 +19,10 @@ export default function (binder) {
 		binder.cache = binder.element.removeChild(binder.element.firstElementChild);
 	}
 
-	let self = this, data, add, remove;
+	let self = this, add, remove;
 
 	return {
 		read () {
-			data = Model.get(binder.keys);
-			data = Binder.piper(binder, data);
 
 			if (!data || typeof data !== 'object') return false;
 
@@ -53,7 +51,7 @@ export default function (binder) {
 					const clone = document.importNode(binder.cache, true);
 					const variable = isArray ? elementLength : keys[elementLength];
 					Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
-					// Binder.bind(clone, binder.container, binder.scope);
+					// View.bind(clone, binder.container, binder.scope);
 					binder.fragment.appendChild(clone);
 					elementLength++;
 
@@ -80,7 +78,7 @@ export default function (binder) {
 				/*
 					perform a re-render of the o-value becuase of o-each is async
 				*/
-				self.default(Binder.elements.get(binder.element).get('value'));
+				// self.default(View.elements.get(binder.element).get('value'));
 			}
 
 		}

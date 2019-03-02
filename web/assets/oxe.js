@@ -59,7 +59,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       if (addCount > 0) {
-        promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
+        var position = promises.length;
 
         while (addCount--) {
           var _key = self.length;
@@ -71,6 +71,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
           promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
         }
+
+        promises.splice(position, 0, self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
       }
 
       if (deleteCount > 0) {
@@ -227,224 +229,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return target;
     }
   };
-
-  function Class(binder) {
-    return {
-      write: function write() {
-        var className = binder.names.slice(1).join('-');
-        binder.element.classList.remove(className);
-      }
-    };
-  }
-
-  function Css(binder) {
-    return {
-      write: function write() {
-        binder.element.style.cssText = '';
-      }
-    };
-  }
-
-  var Batcher = {
-    reads: [],
-    writes: [],
-    time: 1000 / 30,
-    pending: false,
-    setup: function setup(options) {
-      options = options || {};
-      this.time = options.time || this.time;
-    },
-    tick: function tick(callback) {
-      return window.requestAnimationFrame(callback);
-    },
-    schedule: function schedule() {
-      if (this.pending) return;
-      this.pending = true;
-      this.tick(this.flush.bind(this, null));
-    },
-    flush: function flush(time) {
-      time = time || performance.now();
-      var task;
-
-      while (task = this.reads.shift()) {
-        task();
-
-        if (performance.now() - time > this.time) {
-          this.tick(this.flush.bind(this, null));
-          return;
-        }
-      }
-
-      while (task = this.writes.shift()) {
-        task();
-
-        if (performance.now() - time > this.time) {
-          this.tick(this.flush.bind(this, null));
-          return;
-        }
-      }
-
-      if (!this.reads.length && !this.writes.length) {
-        this.pending = false;
-      } else if (performance.now() - time > this.time) {
-        this.tick(this.flush.bind(this, null));
-      } else {
-        this.flush(time);
-      }
-    },
-    remove: function remove(tasks, task) {
-      var index = tasks.indexOf(task);
-      return !!~index && !!tasks.splice(index, 1);
-    },
-    clear: function clear(task) {
-      return this.remove(this.reads, task) || this.remove(this.writes, task);
-    },
-    batch: function batch(data) {
-      var self = this;
-
-      if (data.read) {
-        var read = function read() {
-          var result;
-          var write;
-
-          if (data.context) {
-            result = data.read.call(data.context);
-          } else {
-            result = data.read();
-          }
-
-          if (data.write && result !== false) {
-            if (data.context) {
-              write = data.write.bind(data.context);
-            } else {
-              write = data.write;
-            }
-
-            self.writes.push(write);
-            self.schedule();
-          }
-        };
-
-        self.reads.push(read);
-        self.schedule();
-      } else if (data.write) {
-        var write;
-
-        if (data.context) {
-          write = data.write.bind(data.context, data.shared);
-        } else {
-          write = data.write;
-        }
-
-        self.writes.push(write);
-        self.schedule();
-      }
-
-      return data;
-    }
-  };
-
-  function Default(binder) {
-    var unrender;
-
-    if (binder.type in this) {
-      unrender = this[binder.type](binder);
-    } else {
-      unrender = {
-        read: function read() {
-          if (binder.element[binder.type] === '') {
-            return false;
-          }
-        },
-        write: function write() {
-          binder.element[binder.type] = '';
-        }
-      };
-    }
-
-    Batcher.batch(unrender);
-  }
-
-  function Disable(binder) {
-    return {
-      write: function write() {
-        binder.element.disabled = false;
-      }
-    };
-  }
-
-  function Each(binder) {
-    return {
-      write: function write() {
-        var element;
-
-        while (element = binder.element.lastElementChild) {
-          binder.element.removeChild(element);
-        }
-      }
-    };
-  }
-
-  function Enable(binder) {
-    return {
-      write: function write() {
-        binder.element.disabled = true;
-      }
-    };
-  }
-
-  function Hide(binder) {
-    return {
-      write: function write() {
-        binder.element.hidden = false;
-      }
-    };
-  }
-
-  function Html(binder) {
-    return {
-      write: function write() {
-        var element;
-
-        while (element = binder.element.lastElementChild) {
-          binder.element.removeChild(element);
-        }
-      }
-    };
-  }
-
-  function On(binder) {
-    return {
-      write: function write() {
-        binder.element.removeEventListener(binder.names[1], binder.cache, false);
-      }
-    };
-  }
-
-  function Read(binder) {
-    return {
-      write: function write() {
-        binder.element.readOnly = false;
-      }
-    };
-  }
-
-  function Required(binder) {
-    return {
-      write: function write() {
-        binder.element.required = false;
-      }
-    };
-  }
-
-  function Show(binder) {
-    return {
-      write: function write() {
-        binder.element.hidden = true;
-      }
-    };
-  }
-
   var Utility = {
     PREFIX: /o-/,
     ROOT: /^(https?:)?\/?\//,
@@ -757,25 +541,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   };
 
-  function Class$1(binder) {
-    var data, name;
+  function Class(binder, data) {
     return {
       write: function write() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        name = binder.names.slice(1).join('-');
+        var name = binder.names.slice(1).join('-');
         binder.element.classList.toggle(name, data);
       }
     };
   }
 
-  function Css$1(binder) {
-    var data;
+  function Css(binder, data) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-
         if (binder.names.length > 1) {
           data = binder.names.slice(1).join('-') + ': ' + data + ';';
         }
@@ -790,18 +567,113 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Default$1(binder) {
+  var Batcher = {
+    reads: [],
+    writes: [],
+    time: 1000 / 30,
+    pending: false,
+    setup: function setup(options) {
+      options = options || {};
+      this.time = options.time || this.time;
+    },
+    tick: function tick(callback) {
+      return window.requestAnimationFrame(callback);
+    },
+    schedule: function schedule() {
+      if (this.pending) return;
+      this.pending = true;
+      this.tick(this.flush.bind(this, null));
+    },
+    flush: function flush(time) {
+      time = time || performance.now();
+      var task;
+
+      while (task = this.reads.shift()) {
+        task();
+
+        if (performance.now() - time > this.time) {
+          this.tick(this.flush.bind(this, null));
+          return;
+        }
+      }
+
+      while (task = this.writes.shift()) {
+        task();
+
+        if (performance.now() - time > this.time) {
+          this.tick(this.flush.bind(this, null));
+          return;
+        }
+      }
+
+      if (!this.reads.length && !this.writes.length) {
+        this.pending = false;
+      } else if (performance.now() - time > this.time) {
+        this.tick(this.flush.bind(this, null));
+      } else {
+        this.flush(time);
+      }
+    },
+    remove: function remove(tasks, task) {
+      var index = tasks.indexOf(task);
+      return !!~index && !!tasks.splice(index, 1);
+    },
+    clear: function clear(task) {
+      return this.remove(this.reads, task) || this.remove(this.writes, task);
+    },
+    batch: function batch(data) {
+      var self = this;
+
+      if (data.read) {
+        var read = function read() {
+          var result;
+          var write;
+
+          if (data.context) {
+            result = data.read.call(data.context);
+          } else {
+            result = data.read();
+          }
+
+          if (data.write && result !== false) {
+            if (data.context) {
+              write = data.write.bind(data.context);
+            } else {
+              write = data.write;
+            }
+
+            self.writes.push(write);
+            self.schedule();
+          }
+        };
+
+        self.reads.push(read);
+        self.schedule();
+      } else if (data.write) {
+        var write;
+
+        if (data.context) {
+          write = data.write.bind(data.context, data.shared);
+        } else {
+          write = data.write;
+        }
+
+        self.writes.push(write);
+        self.schedule();
+      }
+
+      return data;
+    }
+  };
+
+  function Default(binder, data) {
     var render;
 
     if (binder.type in this) {
-      render = this[binder.type](binder);
+      render = this[binder.type](binder, data);
     } else {
-      var data;
       render = {
         read: function read() {
-          data = Model.get(binder.keys);
-          data = Binder.piper(binder, data);
-
           if (data === undefined || data === null) {
             return false;
           } else if (_typeof(data) === 'object') {
@@ -825,12 +697,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   }
 
-  function Disable$1(binder) {
-    var data;
+  function Disable(binder, data) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
         if (data === binder.element.disabled) return false;
       },
       write: function write() {
@@ -841,7 +710,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   var TIME = 15;
 
-  function Each$1(binder) {
+  function Each(binder, data) {
     if (!binder.cache && !binder.element.children.length) {
       return;
     }
@@ -855,13 +724,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     var self = this,
-        data,
         add,
         remove;
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
         if (!data || _typeof(data) !== 'object') return false;
         var isArray = data.constructor === Array;
         var keys = isArray ? [] : Object.keys(data);
@@ -905,19 +771,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (binder.element.children.length !== data.length) {
           self.default(binder);
-        } else if (binder.element.nodeName.indexOf('SELECT') !== -1 && binder.element.attributes['o-value']) {
-          self.default(Binder.elements.get(binder.element).get('value'));
-        }
+        } else if (binder.element.nodeName.indexOf('SELECT') !== -1 && binder.element.attributes['o-value']) ;
       }
     };
   }
 
-  function Enable$1(binder) {
-    var data;
+  function Enable(binder, data) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
         if (!data === binder.element.disabled) return false;
       },
       write: function write() {
@@ -926,12 +787,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Hide$1(binder) {
-    var data;
+  function Hide(binder, data) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
         if (data === binder.element.hidden) return false;
       },
       write: function write() {
@@ -940,13 +798,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Html$1(binder) {
-    var data;
+  function Html(binder, data) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-
         if (data === undefined || data === null) {
           return false;
         } else if (_typeof(data) === 'object') {
@@ -965,12 +819,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function On$1(binder) {
-    var data;
+  function On(binder, data) {
     return {
       write: function write() {
-        data = Methods.get(binder.keys);
-
         if (typeof data !== 'function') {
           console.warn("Oxe - attribute o-on=\"".concat(binder.keys.join('.'), "\" invalid type function required"));
           return false;
@@ -997,12 +848,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Read$1(binder) {
-    var data;
+  function Read(binder, data) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
         if (data === binder.element.readOnly) return false;
       },
       write: function write() {
@@ -1011,12 +859,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Required$1(binder) {
-    var data;
+  function Required(binder, data) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
         if (data === binder.element.required) return false;
       },
       write: function write() {
@@ -1025,12 +870,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Show$1(binder) {
-    var data;
+  function Show(binder, data) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
         if (!data === binder.element.hidden) return false;
       },
       write: function write() {
@@ -1039,16 +881,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Style(binder) {
-    var data;
+  function Style(binder, data) {
     return {
-      read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-      },
       write: function write() {
         if (!data) {
-          return;
+          binder.element.style = '';
         } else if (data.constructor === Object) {
           for (var name in data) {
             var value = data[name];
@@ -1064,13 +901,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Text(binder) {
-    var data;
+  function Text(binder, data) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-
         if (data === undefined || data === null) {
           return false;
         } else if (_typeof(data) === 'object') {
@@ -1089,182 +922,65 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Value(binder) {
-    var self = this;
-    var type = binder.element.type;
-    var name = binder.element.nodeName;
-    var data;
-
-    if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-      var elements, multiple;
-      return {
-        read: function read() {
-          data = Model.get(binder.keys);
-          data = Binder.piper(binder, data);
-          elements = binder.element.options;
-          multiple = Utility.multiple(binder.element);
-
-          if (multiple && data.constructor !== Array) {
-            throw new Error("Oxe - invalid multiple select value type ".concat(binder.keys.join('.'), " array required"));
-          }
-        },
-        write: function write() {
-          var selected = false;
-
-          for (var i = 0, l = elements.length; i < l; i++) {
-            var element = elements[i];
-            var value = Utility.value(element);
-
-            if (multiple) {
-              if (data.indexOf(value) !== -1) {
-                selected = true;
-                element.selected = true;
-                element.setAttribute('selected', '');
-              } else if (Utility.selected(element)) {
-                Model.get(binder.keys).push(value);
-              } else {
-                element.selected = false;
-                element.removeAttribute('selected');
-              }
-            } else {
-              if (data === value) {
-                selected = true;
-                element.selected = true;
-                element.setAttribute('selected', '');
-              } else if (!selected && Utility.selected(element)) {
-                selected = true;
-                Model.set(binder.keys, value);
-              } else {
-                element.selected = false;
-                element.removeAttribute('selected');
-              }
-            }
-          }
-        }
-      };
-    } else if (type === 'radio') {
-      var _elements;
-
-      return {
-        read: function read() {
-          data = Model.get(binder.keys);
-
-          if (data === undefined) {
-            Model.set(binder.keys, 0);
-            return false;
-          }
-
-          _elements = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
-        },
-        write: function write() {
-          var checked = false;
-
-          for (var i = 0, l = _elements.length; i < l; i++) {
-            var element = _elements[i];
-
-            if (i === data) {
-              checked = true;
-              element.checked = true;
-            } else {
-              element.checked = false;
-            }
-          }
-
-          if (!checked) {
-            _elements[0].checked = true;
-            Model.set(binder.keys, 0);
-          }
-        }
-      };
-    } else if (type === 'checkbox') {
-      return {
-        read: function read() {
-          data = Model.get(binder.keys);
-
-          if (typeof data !== 'boolean') {
-            Model.set(binder.keys, false);
-            return false;
-          }
-
-          if (data === binder.element.checked) {
-            return false;
-          }
-        },
-        write: function write() {
-          binder.element.checked = data;
-        }
-      };
-    } else {
-      return {
-        read: function read() {
-          if (name.indexOf('OPTION') !== -1 && binder.element.selected) {
-            var parent = binder.element.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.element.parentElement : binder.element.parentElement.parentElement;
-            var select = Binder.elements.get(parent).get('value');
-
-            if (select) {
-              self.default(select);
-            }
-          }
-
-          data = Model.get(binder.keys);
-
-          if (data === undefined || data === null) {
-            return false;
-          }
-
-          if (data === binder.element.value) {
-            return false;
-          }
-        },
-        write: function write() {
-          binder.element.value = data;
-        }
-      };
+  function Piper(binder, data) {
+    if (!binder.pipes.length) {
+      return data;
     }
-  }
 
-  function Write(binder) {
-    var data;
-    return {
-      read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        if (!data === binder.element.readOnly) return false;
-      },
-      write: function write() {
-        binder.element.readOnly = !data;
+    var methods = Methods.get(binder.scope);
+
+    if (!methods) {
+      return data;
+    }
+
+    for (var i = 0, l = binder.pipes.length; i < l; i++) {
+      var method = binder.pipes[i];
+
+      if (method in methods) {
+        data = methods[method].call(binder.container, data);
+      } else {
+        throw new Error("Oxe.piper.pipe - method ".concat(method, " not found in scope ").concat(binder.scope));
       }
-    };
+    }
+
+    return data;
   }
 
-  var Render = {
-    class: Class$1,
-    css: Css$1,
-    default: Default$1,
-    disable: Disable$1,
-    disabled: Disable$1,
-    each: Each$1,
-    enable: Enable$1,
-    enabled: Enable$1,
-    hide: Hide$1,
-    html: Html$1,
-    on: On$1,
-    read: Read$1,
-    required: Required$1,
-    show: Show$1,
-    style: Style,
-    text: Text,
-    value: Value,
-    write: Write
-  };
-  var Binder = {
+  var View = {
     data: {},
+    observer: null,
     elements: new Map(),
+    target: document.body,
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
+        var self = this;
         options = options || {};
+        self.target = options.target || document.body;
+        self.observer = new MutationObserver(function (records) {
+          for (var i = 0, l = records.length; i < l; i++) {
+            var record = records[i];
+            console.log(record);
+
+            switch (record.type) {
+              case 'childList':
+                self.eachElement(record.addedNodes, record.target, 'add');
+                self.eachElement(record.removedNodes, record.target, 'remove');
+                break;
+
+              case 'attributes':
+                var target = record.target;
+                var attribute = target.attributes[record.attributeName];
+                break;
+            }
+          }
+        });
+        self.observer.observe(self.target, {
+          subtree: true,
+          childList: true,
+          attributes: true
+        });
         return $return();
-      });
+      }.bind(this));
     },
     create: function create(data) {
       var binder = {};
@@ -1367,47 +1083,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
     },
-    piper: function piper(binder, data) {
-      if (!binder.pipes.length) {
-        return data;
-      }
-
-      var methods = Methods.get(binder.scope);
-
-      if (!methods) {
-        return data;
-      }
-
-      for (var i = 0, l = binder.pipes.length; i < l; i++) {
-        var method = binder.pipes[i];
-
-        if (method in methods) {
-          data = methods[method].call(binder.container, data);
-        } else {
-          throw new Error("Oxe - pipe method ".concat(method, " not found in scope ").concat(binder.scope));
-        }
-      }
-
-      return data;
-    },
-    each: function each(path, callback) {
-      var paths = typeof path === 'string' ? path.split('.') : path;
-      var scope = paths[0];
-      var binderPaths = this.data[scope];
-      if (!binderPaths) return;
-      var relativePath = paths.slice(1).join('.');
-
-      for (var binderPath in binderPaths) {
-        if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
-          var binders = binderPaths[binderPath];
-
-          for (var c = 0, t = binders.length; c < t; c++) {
-            callback(binders[c]);
-          }
-        }
-      }
-    },
-    b: function b(element, container, scope, type) {
+    oneElement: function oneElement(element, container, scope, type) {
       if (!type) throw new Error('Oxe.binder.bind - type argument required');
       if (!element) throw new Error('Oxe.binder.bind - element argument required');
 
@@ -1430,94 +1106,194 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           });
           var result = this[type](binder);
 
-          switch (type) {
-            case 'add':
-              if (result !== false) {
-                Render.default(binder);
-              }
+          if (result !== false) {
+            var data = void 0;
 
-              break;
+            if (binder.type === 'on') {
+              data = Methods.get(binder.keys);
+            } else {
+              data = Model.get(binder.keys);
+              data = Piper(binder, data);
+            }
 
-            case 'remove':
-              Unrender.default(binder);
-              break;
+            Render.default(binder, data);
           }
         }
+      }
+    },
+    eachElement: function eachElement(nodes, target, type) {
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+        var nodeType = node.nodeType;
+        if (nodeType !== 1) continue;
+        var container = void 0,
+            scope = void 0;
+        var parent = node.parentElement;
+
+        while (parent) {
+          if (parent.scope || 'o-scope' in parent.attributes) {
+            container = parent;
+            scope = container.scope;
+            break;
+          } else if (!parent.parentElement && type === 'remove') {
+            parent = target;
+          } else {
+            parent = parent.parentElement;
+          }
+        }
+
+        this.oneElement(node, container, scope, type);
+        this.eachElement(node.children, target, type);
       }
     }
   };
 
-  function Style$1(binder) {
+  function Value(binder) {
+    var self = this;
+    var type = binder.element.type;
+    var name = binder.element.nodeName;
     var data;
-    return {
-      read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-      },
-      write: function write() {
-        if (!data) {
-          return;
-        } else if (data.constructor === Object) {
-          for (var name in data) {
-            delete binder.element.style[name];
+
+    if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
+      var elements, multiple;
+      return {
+        read: function read() {
+          data = Model.get(binder.keys);
+          data = Piper.pipe(binder, data);
+          elements = binder.element.options;
+          multiple = Utility.multiple(binder.element);
+
+          if (multiple && data.constructor !== Array) {
+            throw new Error("Oxe - invalid multiple select value type ".concat(binder.keys.join('.'), " array required"));
+          }
+        },
+        write: function write() {
+          var selected = false;
+
+          for (var i = 0, l = elements.length; i < l; i++) {
+            var element = elements[i];
+            var value = Utility.value(element);
+
+            if (multiple) {
+              if (data.indexOf(value) !== -1) {
+                selected = true;
+                element.selected = true;
+                element.setAttribute('selected', '');
+              } else if (Utility.selected(element)) {
+                Model.get(binder.keys).push(value);
+              } else {
+                element.selected = false;
+                element.removeAttribute('selected');
+              }
+            } else {
+              if (data === value) {
+                selected = true;
+                element.selected = true;
+                element.setAttribute('selected', '');
+              } else if (!selected && Utility.selected(element)) {
+                selected = true;
+                Model.set(binder.keys, value);
+              } else {
+                element.selected = false;
+                element.removeAttribute('selected');
+              }
+            }
           }
         }
-      }
-    };
-  }
+      };
+    } else if (type === 'radio') {
+      var _elements;
 
-  function Text$1(binder) {
-    return {
-      write: function write() {
-        binder.element.innerText = '';
-      }
-    };
-  }
+      return {
+        read: function read() {
+          data = Model.get(binder.keys);
 
-  function Value$1(binder) {
-    return {
-      write: function write() {
-        var i, l, query, element, elements;
-
-        if (binder.element.nodeName === 'SELECT') {
-          elements = binder.element.options;
-
-          for (i = 0, l = elements.length; i < l; i++) {
-            element = elements[i];
-            element.selected = false;
+          if (data === undefined) {
+            Model.set(binder.keys, 0);
+            return false;
           }
-        } else if (binder.element.type === 'radio') {
-          query = 'input[type="radio"][o-value="' + binder.path + '"]';
-          elements = binder.element.parentNode.querySelectorAll(query);
 
-          for (i = 0, l = elements.length; i < l; i++) {
-            element = elements[i];
+          _elements = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
+        },
+        write: function write() {
+          var checked = false;
 
-            if (i === 0) {
+          for (var i = 0, l = _elements.length; i < l; i++) {
+            var element = _elements[i];
+
+            if (i === data) {
+              checked = true;
               element.checked = true;
             } else {
               element.checked = false;
             }
           }
-        } else if (binder.element.type === 'checkbox') {
-          binder.element.checked = false;
-          binder.element.value = false;
-        } else {
-          binder.element.value = '';
+
+          if (!checked) {
+            _elements[0].checked = true;
+            Model.set(binder.keys, 0);
+          }
         }
-      }
-    };
+      };
+    } else if (type === 'checkbox') {
+      return {
+        read: function read() {
+          data = Model.get(binder.keys);
+
+          if (typeof data !== 'boolean') {
+            Model.set(binder.keys, false);
+            return false;
+          }
+
+          if (data === binder.element.checked) {
+            return false;
+          }
+        },
+        write: function write() {
+          binder.element.checked = data;
+        }
+      };
+    } else {
+      return {
+        read: function read() {
+          if (name.indexOf('OPTION') !== -1 && binder.element.selected) {
+            var parent = binder.element.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.element.parentElement : binder.element.parentElement.parentElement;
+            var select = View.elements.get(parent).get('value');
+
+            if (select) {
+              self.default(select);
+            }
+          }
+
+          data = Model.get(binder.keys);
+
+          if (data === undefined || data === null) {
+            return false;
+          }
+
+          if (data === binder.element.value) {
+            return false;
+          }
+        },
+        write: function write() {
+          binder.element.value = data;
+        }
+      };
+    }
   }
 
-  function Write$1(binder) {
+  function Write(binder, data) {
     return {
+      read: function read() {
+        if (!data === binder.element.readOnly) return false;
+      },
       write: function write() {
-        binder.element.readOnly = true;
+        binder.element.readOnly = !data;
       }
     };
   }
 
-  var Unrender = {
+  var Render = {
     class: Class,
     css: Css,
     default: Default,
@@ -1532,35 +1308,26 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     read: Read,
     required: Required,
     show: Show,
-    style: Style$1,
-    text: Text$1,
-    value: Value$1,
-    write: Write$1
+    style: Style,
+    text: Text,
+    value: Value,
+    write: Write
   };
-
-  var listener = function listener(data, path, type) {
-    var method = data === undefined ? Unrender : Render;
-
-    if (type === 'length') {
-      var scope = path.split('.').slice(0, 1).join('.');
-      var part = path.split('.').slice(1).join('.');
-      if (!(scope in Binder.data)) return console.warn('Oxe.model.listener - path missing scope');
-      if (!(part in Binder.data[scope])) return;
-      if (!(0 in Binder.data[scope][part])) return;
-      var binder = Binder.data[scope][part][0];
-      method.default(binder);
-    } else {
-      Binder.each(path, function (binder) {
-        method.default(binder);
-      });
-    }
-  };
-
   var Model = {
     GET: 2,
     SET: 3,
     REMOVE: 4,
-    data: Observer.create({}, listener),
+    data: null,
+    tasks: [],
+    target: {},
+    setup: function setup(options) {
+      return new Promise(function ($return, $error) {
+        options = options || {};
+        this.target = options.target || this.target;
+        this.data = Observer.create(this.target, this.listener);
+        return $return();
+      }.bind(this));
+    },
     traverse: function traverse(type, keys, value) {
       var result;
 
@@ -1602,6 +1369,34 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     set: function set(keys, value) {
       return this.traverse(this.SET, keys, value);
+    },
+    listener: function listener(data, path, type) {
+      var paths = path.split('.');
+      var part = paths.slice(1).join('.');
+      var scope = paths.slice(0, 1).join('.');
+      if (scope in View.data === false) return console.warn("Oxe.model.listener - scope not found: ".concat(scope));
+
+      if (type === 'length') {
+        if (!(part in View.data[scope])) return;
+        if (!(0 in View.data[scope][part])) return;
+        var binder = View.data[scope][part][0];
+        console.log(part);
+        console.log(data);
+        Render.default(binder, data);
+      } else {
+        var binderPaths = View.data[scope];
+
+        for (var binderPath in binderPaths) {
+          if (part === '' || binderPath.indexOf(part) === 0 && (binderPath === part || binderPath.charAt(part.length) === '.')) {
+            var binders = binderPaths[binderPath];
+
+            for (var i = 0, l = binders.length; i < l; i++) {
+              data = Piper(binders[i], data);
+              Render.default(binders[i], data);
+            }
+          }
+        }
+      }
     }
   };
 
@@ -1609,13 +1404,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return new Promise(function ($return, $error) {
       if (!element) return $error(new Error('Oxe - requires element argument'));
       if (!attribute) return $error(new Error('Oxe - requires attribute argument'));
-      var binder = Binder.elements.get(element).get(attribute);
+      var binder = View.elements.get(element).get(attribute);
 
       var read = function read() {
         var type = binder.element.type;
         var name = binder.element.nodeName;
         var data = Utility.value(binder.element);
-        console.log(data);
 
         if (data !== undefined) {
           var original = Model.get(binder.keys);
@@ -1942,7 +1736,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return new Promise(function ($return, $error) {
       var element, binder, method, model, data, options, oaction, omethod, oenctype, result;
       element = event.target;
-      binder = Binder.elements.get(element).get('submit');
+      binder = View.elements.get(element).get('submit');
       method = Methods.get(binder.keys);
       model = Model.get(binder.scope);
       data = Utility.formData(element, model);
@@ -2007,7 +1801,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Reset(event) {
     return new Promise(function ($return, $error) {
       var element = event.target;
-      var binder = Binder.elements.get(element).get('submit');
+      var binder = View.elements.get(element).get('submit');
       var model = Model.get(binder.scope);
       Utility.formReset(element, model);
       return $return();
@@ -2197,7 +1991,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         var self = this;
-        options = options || options;
+        options = options || {};
         this.type = options.type || this.type;
 
         if (options.loads) {
@@ -2314,7 +2108,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         self = this;
         options = options || {};
 
-        if (options.components && options.components.length) {
+        if (options.components) {
           i = 0, l = options.components.length;
           var $Loop_9_trampoline;
 
@@ -2549,6 +2343,42 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     contain: false,
     compiled: false,
     folder: './routes',
+    setup: function setup(options) {
+      return new Promise(function ($return, $error) {
+        options = options || {};
+        this.base = options.base === undefined ? this.base : options.base;
+        this.mode = options.mode === undefined ? this.mode : options.mode;
+        this.after = options.after === undefined ? this.after : options.after;
+        this.folder = options.folder === undefined ? this.folder : options.folder;
+        this.before = options.before === undefined ? this.before : options.before;
+        this.change = options.change === undefined ? this.change : options.change;
+        this.element = options.element === undefined ? this.element : options.element;
+        this.contain = options.contain === undefined ? this.contain : options.contain;
+        this.external = options.external === undefined ? this.external : options.external;
+
+        if (!this.element || typeof this.element === 'string') {
+          this.element = document.body.querySelector(this.element || 'o-router');
+        }
+
+        if (!this.element) return $error(new Error('Oxe.router.render - missing o-router element'));
+        return Promise.resolve(this.add(options.routes)).then(function ($await_51) {
+          try {
+            return Promise.resolve(this.route(window.location.href, {
+              mode: 'replace',
+              setup: true
+            })).then(function ($await_52) {
+              try {
+                return $return();
+              } catch ($boundEx) {
+                return $error($boundEx);
+              }
+            }, $error);
+          } catch ($boundEx) {
+            return $error($boundEx);
+          }
+        }.bind(this), $error);
+      }.bind(this));
+    },
     compareParts: function compareParts(routePath, userPath, split) {
       var compareParts = [];
       var routeParts = routePath.split(split);
@@ -2745,7 +2575,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
                 function $Loop_16() {
                   if (i < l) {
-                    return Promise.resolve(this.add(data[i])).then(function ($await_51) {
+                    return Promise.resolve(this.add(data[i])).then(function ($await_53) {
                       try {
                         return $Loop_16_step;
                       } catch ($boundEx) {
@@ -2796,45 +2626,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         return $If_12.call(this);
-      }.bind(this));
-    },
-    setup: function setup(options) {
-      return new Promise(function ($return, $error) {
-        options = options || {};
-        this.base = options.base === undefined ? this.base : options.base;
-        this.mode = options.mode === undefined ? this.mode : options.mode;
-        this.after = options.after === undefined ? this.after : options.after;
-        this.folder = options.folder === undefined ? this.folder : options.folder;
-        this.before = options.before === undefined ? this.before : options.before;
-        this.change = options.change === undefined ? this.change : options.change;
-        this.element = options.element === undefined ? this.element : options.element;
-        this.contain = options.contain === undefined ? this.contain : options.contain;
-        this.external = options.external === undefined ? this.external : options.external;
-
-        if (!this.element || typeof this.element === 'string') {
-          this.element = document.body.querySelector(this.element || 'o-router');
-        }
-
-        if (!this.element) {
-          return $error(new Error('Oxe.router.render - missing o-router element'));
-        }
-
-        return Promise.resolve(this.add(options.routes)).then(function ($await_52) {
-          try {
-            return Promise.resolve(this.route(window.location.href, {
-              mode: 'replace',
-              setup: true
-            })).then(function ($await_53) {
-              try {
-                return $return();
-              } catch ($boundEx) {
-                return $error($boundEx);
-              }
-            }, $error);
-          } catch ($boundEx) {
-            return $error($boundEx);
-          }
-        }.bind(this), $error);
       }.bind(this));
     },
     load: function load(route) {
@@ -3291,74 +3082,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     });
   }
 
-  var Mutation = {
-    observer: null,
-    target: document.body,
-    binder: function binder(nodes, target, type) {
-      var container = Utility.getScope(target);
-      var scope = container.scope;
-
-      for (var i = 0, l = nodes.length; i < l; i++) {
-        var node = nodes[i];
-        var nodeType = node.nodeType;
-
-        if (nodeType === 1) {
-          if (node.parentElement !== target) {
-            var parent = node.parentElement;
-
-            while (parent) {
-              if (parent.nodeType === 1 && (parent.scope || 'o-scope' in parent.attributes)) {
-                container = parent;
-                scope = container.scope;
-                break;
-              } else {
-                parent = parent.parentElement;
-
-                if (!parent) {
-                  container = target;
-                  scope = container.scope;
-                  break;
-                }
-              }
-            }
-          }
-
-          Binder.b(node, container, scope, type);
-          this.binder(node.children, target, type);
-        }
-      }
-    },
-    setup: function setup(options) {
-      return new Promise(function ($return, $error) {
-        var self = this;
-        options = options || {};
-        self.observer = new MutationObserver(function (records) {
-          for (var i = 0, l = records.length; i < l; i++) {
-            var record = records[i];
-            console.log(record);
-
-            switch (record.type) {
-              case 'childList':
-                self.binder(record.addedNodes, record.target, 'add');
-                self.binder(record.removedNodes, record.target, 'remove');
-                break;
-
-              case 'attributes':
-                var target = record.target;
-                var attribute = target.attributes[record.attributeName];
-                break;
-            }
-          }
-        });
-        this.observer.observe(self.target, {
-          subtree: true,
-          childList: true,
-          attributes: true
-        });
-        return $return();
-      }.bind(this));
-    }
-  };
   var eStyle = document.createElement('style');
   var tStyle = document.createTextNode("\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition var(--o-transition) ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n");
   eStyle.setAttribute('type', 'text/css');
@@ -3453,8 +3176,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return Batcher;
     },
 
-    get binder() {
-      return Binder;
+    get view() {
+      return View;
     },
 
     get fetcher() {
@@ -3481,159 +3204,161 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return Path;
     },
 
-    get mutation() {
-      return Mutation;
-    },
-
     setup: function setup(data) {
       return new Promise(function ($return, $error) {
         if (SETUP) return $return();else SETUP = true;
         data = data || {};
         data.listener = data.listener || {};
-        document.addEventListener('input', Input, true);
-        document.addEventListener('click', Click, true);
-        document.addEventListener('change', Change, true);
-        window.addEventListener('popstate', State, true);
-        document.addEventListener('reset', function (event) {
-          if (event.target.hasAttribute('o-reset')) {
-            event.preventDefault();
-            var before;
-            var after;
+        return Promise.resolve(this.model.setup(data.model)).then(function ($await_65) {
+          try {
+            return Promise.resolve(this.view.setup(data.view)).then(function ($await_66) {
+              try {
+                document.addEventListener('input', Input, true);
+                document.addEventListener('click', Click, true);
+                document.addEventListener('change', Change, true);
+                window.addEventListener('popstate', State, true);
+                document.addEventListener('reset', function (event) {
+                  if (event.target.hasAttribute('o-reset')) {
+                    event.preventDefault();
+                    var before;
+                    var after;
 
-            if (data.listener.reset) {
-              before = typeof data.listener.reset.before === 'function' ? data.listener.reset.before.bind(null, event) : null;
-              after = typeof data.listener.reset.after === 'function' ? data.listener.reset.after.bind(null, event) : null;
-            }
+                    if (data.listener.reset) {
+                      before = typeof data.listener.reset.before === 'function' ? data.listener.reset.before.bind(null, event) : null;
+                      after = typeof data.listener.reset.after === 'function' ? data.listener.reset.after.bind(null, event) : null;
+                    }
 
-            Promise.resolve().then(before).then(Reset.bind(null, event)).then(after);
-          }
-        }, true);
-        document.addEventListener('submit', function (event) {
-          if (event.target.hasAttribute('o-submit')) {
-            event.preventDefault();
-            var before;
-            var after;
-
-            if (data.listener.submit) {
-              before = typeof data.listener.submit.before === 'function' ? data.listener.submit.before.bind(null, event) : null;
-              after = typeof data.listener.submit.after === 'function' ? data.listener.submit.after.bind(null, event) : null;
-            }
-
-            Promise.resolve().then(before).then(Submit.bind(null, event)).then(after);
-          }
-        }, true);
-
-        if (data.listener.before) {
-          return Promise.resolve(data.listener.before()).then(function ($await_65) {
-            try {
-              return $If_33.call(this);
-            } catch ($boundEx) {
-              return $error($boundEx);
-            }
-          }.bind(this), $error);
-        }
-
-        function $If_33() {
-          if (data.style) {
-            if ('transition' in data.style) {
-              window.document.documentElement.style.setProperty('--o-transition', "".concat(data.style.transition, "ms"));
-            }
-          }
-
-          return Promise.resolve(this.mutation.setup(data.mutation)).then(function ($await_66) {
-            try {
-              if (data.path) {
-                return Promise.resolve(this.path.setup(data.path)).then(function ($await_67) {
-                  try {
-                    return $If_34.call(this);
-                  } catch ($boundEx) {
-                    return $error($boundEx);
+                    Promise.resolve().then(before).then(Reset.bind(null, event)).then(after);
                   }
-                }.bind(this), $error);
-              }
+                }, true);
+                document.addEventListener('submit', function (event) {
+                  if (event.target.hasAttribute('o-submit')) {
+                    event.preventDefault();
+                    var before;
+                    var after;
 
-              function $If_34() {
-                if (data.fetcher) {
-                  return Promise.resolve(this.fetcher.setup(data.fetcher)).then(function ($await_68) {
+                    if (data.listener.submit) {
+                      before = typeof data.listener.submit.before === 'function' ? data.listener.submit.before.bind(null, event) : null;
+                      after = typeof data.listener.submit.after === 'function' ? data.listener.submit.after.bind(null, event) : null;
+                    }
+
+                    Promise.resolve().then(before).then(Submit.bind(null, event)).then(after);
+                  }
+                }, true);
+
+                if (data.listener.before) {
+                  return Promise.resolve(data.listener.before()).then(function ($await_67) {
                     try {
-                      return $If_35.call(this);
+                      return $If_33.call(this);
                     } catch ($boundEx) {
                       return $error($boundEx);
                     }
                   }.bind(this), $error);
                 }
 
-                function $If_35() {
-                  if (data.loader) {
-                    return Promise.resolve(this.loader.setup(data.loader)).then(function ($await_69) {
+                function $If_33() {
+                  if (data.style) {
+                    if ('transition' in data.style) {
+                      window.document.documentElement.style.setProperty('--o-transition', "".concat(data.style.transition, "ms"));
+                    }
+                  }
+
+                  if (data.path) {
+                    return Promise.resolve(this.path.setup(data.path)).then(function ($await_68) {
                       try {
-                        return $If_36.call(this);
+                        return $If_34.call(this);
                       } catch ($boundEx) {
                         return $error($boundEx);
                       }
                     }.bind(this), $error);
                   }
 
-                  function $If_36() {
-                    if (data.component) {
-                      return Promise.resolve(this.component.setup(data.component)).then(function ($await_70) {
+                  function $If_34() {
+                    if (data.fetcher) {
+                      return Promise.resolve(this.fetcher.setup(data.fetcher)).then(function ($await_69) {
                         try {
-                          return $If_37.call(this);
+                          return $If_35.call(this);
                         } catch ($boundEx) {
                           return $error($boundEx);
                         }
                       }.bind(this), $error);
                     }
 
-                    function $If_37() {
-                      if (data.router) {
-                        return Promise.resolve(this.router.setup(data.router)).then(function ($await_71) {
+                    function $If_35() {
+                      if (data.loader) {
+                        return Promise.resolve(this.loader.setup(data.loader)).then(function ($await_70) {
                           try {
-                            return $If_38.call(this);
+                            return $If_36.call(this);
                           } catch ($boundEx) {
                             return $error($boundEx);
                           }
                         }.bind(this), $error);
                       }
 
-                      function $If_38() {
-                        if (data.listener.after) {
-                          return Promise.resolve(data.listener.after()).then(function ($await_72) {
+                      function $If_36() {
+                        if (data.component) {
+                          return Promise.resolve(this.component.setup(data.component)).then(function ($await_71) {
                             try {
-                              return $If_39.call(this);
+                              return $If_37.call(this);
                             } catch ($boundEx) {
                               return $error($boundEx);
                             }
                           }.bind(this), $error);
                         }
 
-                        function $If_39() {
-                          return $return();
+                        function $If_37() {
+                          if (data.router) {
+                            return Promise.resolve(this.router.setup(data.router)).then(function ($await_72) {
+                              try {
+                                return $If_38.call(this);
+                              } catch ($boundEx) {
+                                return $error($boundEx);
+                              }
+                            }.bind(this), $error);
+                          }
+
+                          function $If_38() {
+                            if (data.listener.after) {
+                              return Promise.resolve(data.listener.after()).then(function ($await_73) {
+                                try {
+                                  return $If_39.call(this);
+                                } catch ($boundEx) {
+                                  return $error($boundEx);
+                                }
+                              }.bind(this), $error);
+                            }
+
+                            function $If_39() {
+                              return $return();
+                            }
+
+                            return $If_39.call(this);
+                          }
+
+                          return $If_38.call(this);
                         }
 
-                        return $If_39.call(this);
+                        return $If_37.call(this);
                       }
 
-                      return $If_38.call(this);
+                      return $If_36.call(this);
                     }
 
-                    return $If_37.call(this);
+                    return $If_35.call(this);
                   }
 
-                  return $If_36.call(this);
+                  return $If_34.call(this);
                 }
 
-                return $If_35.call(this);
+                return $If_33.call(this);
+              } catch ($boundEx) {
+                return $error($boundEx);
               }
-
-              return $If_34.call(this);
-            } catch ($boundEx) {
-              return $error($boundEx);
-            }
-          }.bind(this), $error);
-        }
-
-        return $If_33.call(this);
+            }.bind(this), $error);
+          } catch ($boundEx) {
+            return $error($boundEx);
+          }
+        }.bind(this), $error);
       }.bind(this));
     }
   };

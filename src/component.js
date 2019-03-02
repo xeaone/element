@@ -13,7 +13,7 @@ export default {
 
 		options = options || {};
 
-		if (options.components && options.components.length) {
+		if (options.components) {
 
 			for (let i = 0, l = options.components.length; i < l; i++) {
 				const component = options.components[i];

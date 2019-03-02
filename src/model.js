@@ -1,36 +1,23 @@
 import Observer from './observer.js';
-import Unrender from './unrender.js';
-import Binder from './binder.js';
+import Methods from './methods.js';
 import Render from './render.js';
-
-const listener = function (data, path, type) {
-	const method = data === undefined ? Unrender : Render;
-
-	if (type === 'length') {
-		const scope = path.split('.').slice(0, 1).join('.');
-		const part = path.split('.').slice(1).join('.');
-
-		if (!(scope in Binder.data)) return console.warn('Oxe.model.listener - path missing scope');
-		if (!(part in Binder.data[scope])) return;
-		if (!(0 in Binder.data[scope][part])) return;
-
-		const binder = Binder.data[scope][part][0];
-
-		method.default(binder);
-	} else {
-		Binder.each(path, function (binder) {
-			method.default(binder);
-		});
-	}
-
-};
+import Piper from './piper.js';
+import View from './view.js';
 
 export default {
 
 	GET: 2,
 	SET: 3,
 	REMOVE: 4,
-	data: Observer.create({}, listener),
+	data: null,
+	tasks: [],
+	target: {},
+
+	async setup (options) {
+		options = options || {};
+		this.target = options.target || this.target;
+		this.data = Observer.create(this.target, this.listener);
+	},
 
 	traverse (type, keys, value) {
 		let result;
@@ -79,6 +66,51 @@ export default {
 
 	set (keys, value) {
 		return this.traverse(this.SET, keys, value);
+	},
+
+	listener (data, path, type) {
+
+		const paths = path.split('.');
+		const part = paths.slice(1).join('.');
+		const scope = paths.slice(0, 1).join('.');
+
+		if (scope in View.data === false) return console.warn(`Oxe.model.listener - scope not found: ${scope}`);
+		// if (part in View.data[scope] === false) return console.warn(`Oxe.model.listener - path not found: ${part}`);
+		// if (0 in View.data[scope][part] === false) return console.warn('Oxe.model.listener - data not found');
+
+		if (type === 'length') {
+
+			if (!(part in View.data[scope])) return;
+			if (!(0 in View.data[scope][part])) return;
+
+			const binder = View.data[scope][part][0];
+
+			// data = Piper(binder, data);
+			console.log(part);
+			console.log(data);
+			Render.default(binder, data);
+		} else {
+			const binderPaths = View.data[scope];
+
+			for (let binderPath in binderPaths) {
+				if (
+					part === '' ||
+					binderPath.indexOf(part) === 0 &&
+					(
+						binderPath === part ||
+						binderPath.charAt(part.length) === '.'
+					)
+				) {
+					const binders = binderPaths[binderPath];
+					for (let i = 0, l = binders.length; i < l; i++) {
+						data = Piper(binders[i], data);
+						Render.default(binders[i], data);
+					}
+				}
+			}
+
+		}
+
 	}
 
 };

@@ -63,7 +63,8 @@ const Observer = {
 		}
 
 		if (addCount > 0) {
-			promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
+			// promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
+			const position = promises.length;
 
 			while (addCount--) {
 				const key = self.length;
@@ -77,6 +78,7 @@ const Observer = {
 
 			}
 
+			promises.splice(position, 0, self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
 		}
 
 		if (deleteCount > 0) {
@@ -203,7 +205,7 @@ const Observer = {
 			}
 		};
 	},
-	
+
 	create (source, listener, path) {
 		const self = this;
 

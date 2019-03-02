@@ -1,13 +1,7 @@
-import Binder from '../binder.js';
-import Model from '../model.js';
 
-export default function (binder) {
-	let data;
-
+export default function (binder, data) {
 	return {
 		read () {
-			data = Model.get(binder.keys);
-			data = Binder.piper(binder, data);
 
 			if (data === undefined || data === null) {
 				return false;

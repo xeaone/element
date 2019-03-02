@@ -1,13 +1,8 @@
-import Methods from '../methods.js';
-import Binder from '../binder.js';
 import Model from '../model.js';
 
-export default function (binder) {
-	let data;
-
+export default function (binder, data) {
 	return {
 		write () {
-			data = Methods.get(binder.keys);
 
 			if (typeof data !== 'function') {
 				console.warn(`Oxe - attribute o-on="${binder.keys.join('.')}" invalid type function required`);

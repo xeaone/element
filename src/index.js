@@ -5,16 +5,15 @@ import Reset from './listener/reset.js';
 import Click from './listener/click.js';
 import State from './listener/state.js';
 import Component from './component.js';
-import Mutation from './mutation.js';
 import Utility from './utility.js';
 import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
 import Methods from './methods.js'
 import Loader from './loader.js';
 import Router from './router.js';
-import Binder from './binder.js';
 import Render from './render.js';
 import Model from './model.js';
+import View from './view.js';
 import Path from './path.js';
 
 const eStyle = document.createElement('style');
@@ -139,8 +138,8 @@ export default {
 		return Batcher;
 	},
 
-	get binder () {
-		return Binder;
+	get view () {
+		return View;
 	},
 
 	get fetcher () {
@@ -167,10 +166,6 @@ export default {
 		return Path;
 	},
 
-	get mutation () {
-		return Mutation;
-	},
-
 	async setup (data) {
 
 		if (SETUP) return;
@@ -178,6 +173,9 @@ export default {
 
 		data = data || {};
 		data.listener = data.listener || {};
+
+		await this.model.setup(data.model);
+		await this.view.setup(data.view);
 
 		document.addEventListener('input', Input, true);
 		document.addEventListener('click', Click, true);
@@ -232,8 +230,6 @@ export default {
 			}
 		}
 
-		await this.mutation.setup(data.mutation);
-
 		if (data.path) {
 			await this.path.setup(data.path);
 		}
@@ -249,10 +245,6 @@ export default {
 		if (data.component) {
 			await this.component.setup(data.component);
 		}
-
-		// if (data.binder) {
-		// 	await this.binder.setup(data.binder);
-		// }
 
 		if (data.router) {
 			await this.router.setup(data.router);

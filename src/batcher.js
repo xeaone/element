@@ -58,7 +58,7 @@ export default {
 	},
 
 	remove (tasks, task) {
-		let index = tasks.indexOf(task);
+		const index = tasks.indexOf(task);
 		return !!~index && !!tasks.splice(index, 1);
 	},
 
@@ -67,7 +67,7 @@ export default {
 	},
 
 	batch (data) {
-		let self = this;
+		const self = this;
 
 		// let read;
 		// let write;

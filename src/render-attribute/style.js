@@ -1,23 +1,14 @@
-import Binder from '../binder.js';
-import Model from '../model.js';
 
-export default function (binder) {
-	let data;
-
+export default function (binder, data) {
 	return {
-		read () {
-			data = Model.get(binder.keys);
-			data = Binder.piper(binder, data);
-			// 
+		// read () {
 			// if (binder.cache) {
-			//
 			// }
-			//
 			// binder.cache = data;
-		},
+		// },
 		write () {
 			if (!data) {
-				return;
+				binder.element.style = '';
 			} else if (data.constructor === Object) {
 				for (const name in data) {
 					const value = data[name];

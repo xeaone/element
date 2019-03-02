@@ -1,5 +1,5 @@
 import Model from '../model.js';
-import Binder from '../binder.js';
+import View from '../view.js';
 import Utility from '../utility.js';
 import Fetcher from '../fetcher.js';
 import Methods from '../methods.js';
@@ -7,7 +7,7 @@ import Methods from '../methods.js';
 export default async function (event) {
 
 	var element = event.target;
-	var binder = Binder.elements.get(element).get('submit');
+	var binder = View.elements.get(element).get('submit');
 	var method = Methods.get(binder.keys);
 	var model = Model.get(binder.scope);
 	var data = Utility.formData(element, model);

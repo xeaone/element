@@ -21,6 +21,29 @@ export default {
 	compiled: false,
 	folder: './routes',
 
+	async setup (options) {
+		options = options || {};
+
+		this.base = options.base === undefined ? this.base : options.base;
+		this.mode = options.mode === undefined ? this.mode : options.mode;
+		this.after = options.after === undefined ? this.after : options.after;
+		this.folder = options.folder === undefined ? this.folder : options.folder;
+		this.before = options.before === undefined ? this.before : options.before;
+		this.change = options.change === undefined ? this.change : options.change;
+		this.element = options.element === undefined ? this.element : options.element;
+		this.contain = options.contain === undefined ? this.contain : options.contain;
+		this.external = options.external === undefined ? this.external : options.external;
+
+		if (!this.element || typeof this.element === 'string') {
+			this.element = document.body.querySelector(this.element || 'o-router');
+		}
+
+		if (!this.element) throw new Error('Oxe.router.render - missing o-router element');
+
+		await this.add(options.routes);
+		await this.route(window.location.href, { mode: 'replace', setup: true });
+	},
+
 	compareParts (routePath, userPath, split) {
 		const compareParts = [];
 
@@ -248,31 +271,6 @@ export default {
 			}
 
 		}
-	},
-
-	async setup (options) {
-		options = options || {};
-
-		this.base = options.base === undefined ? this.base : options.base;
-		this.mode = options.mode === undefined ? this.mode : options.mode;
-		this.after = options.after === undefined ? this.after : options.after;
-		this.folder = options.folder === undefined ? this.folder : options.folder;
-		this.before = options.before === undefined ? this.before : options.before;
-		this.change = options.change === undefined ? this.change : options.change;
-		this.element = options.element === undefined ? this.element : options.element;
-		this.contain = options.contain === undefined ? this.contain : options.contain;
-		this.external = options.external === undefined ? this.external : options.external;
-
-		if (!this.element || typeof this.element === 'string') {
-			this.element = document.body.querySelector(this.element || 'o-router');
-		}
-
-		if (!this.element) {
-			throw new Error('Oxe.router.render - missing o-router element');
-		}
-
-		await this.add(options.routes);
-		await this.route(window.location.href, { mode: 'replace', setup: true });
 	},
 
 	async load (route) {
