@@ -85,6 +85,7 @@ export default {
 			Render.default(binders[i], data);
 		}
 
+		// if (type !== 'length' && typeof data === 'object') {
 		if (typeof data === 'object') {
 			const binderPaths = View.data[scope];
 			for (let binderPath in binderPaths) {
@@ -97,9 +98,6 @@ export default {
 				}
 			}
 		}
-
-		// if (type === 'length') {
-		// }
 
 	}
 
