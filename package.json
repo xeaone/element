@@ -7,7 +7,7 @@
 		"w": "node watch.js",
 		"b": "node build.js",
 		"p": "node publish.js",
-		"t": "muleify -ssw ./web"
+		"s": "muleify -ssw ./web"
 	},
 	"repository": {
 		"type": "git",
