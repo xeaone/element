@@ -16,7 +16,7 @@ export default {
 	async setup (options) {
 		options = options || {};
 		this.target = options.target || this.target;
-		this.data = Observer.create(this.target, this.listener);
+		this.data = Observer.create(this.target, this.listener.bind(this));
 	},
 
 	traverse (type, keys, value) {
@@ -74,42 +74,32 @@ export default {
 		const part = paths.slice(1).join('.');
 		const scope = paths.slice(0, 1).join('.');
 
-		if (scope in View.data === false) return console.warn(`Oxe.model.listener - scope not found: ${scope}`);
-		// if (part in View.data[scope] === false) return console.warn(`Oxe.model.listener - path not found: ${part}`);
-		// if (0 in View.data[scope][part] === false) return console.warn('Oxe.model.listener - data not found');
+		if (scope in View.data === false) return //console.warn(`Oxe.model.listener - scope not found: ${scope}`);
+		if (part in View.data[scope] === false) return //console.warn(`Oxe.model.listener - path not found: ${part}`);
+		if (0 in View.data[scope][part] === false) return //console.warn('Oxe.model.listener - data not found');
 
-		if (type === 'length') {
+		const binders = View.data[scope][part];
 
-			if (!(part in View.data[scope])) return;
-			if (!(0 in View.data[scope][part])) return;
+		for (let i = 0, l = binders.length; i < l; i++) {
+			data = Piper(binders[i], data);
+			Render.default(binders[i], data);
+		}
 
-			const binder = View.data[scope][part][0];
-
-			// data = Piper(binder, data);
-			console.log(part);
-			console.log(data);
-			Render.default(binder, data);
-		} else {
+		if (typeof data === 'object') {
 			const binderPaths = View.data[scope];
-
 			for (let binderPath in binderPaths) {
-				if (
-					part === '' ||
-					binderPath.indexOf(part) === 0 &&
-					(
-						binderPath === part ||
-						binderPath.charAt(part.length) === '.'
-					)
-				) {
+				if (part === '' || binderPath.indexOf(part + '.') === 0) {
 					const binders = binderPaths[binderPath];
 					for (let i = 0, l = binders.length; i < l; i++) {
-						data = Piper(binders[i], data);
-						Render.default(binders[i], data);
+						const d = Piper(binders[i], this.get(scope+'.'+binderPath));
+						Render.default(binders[i], d);
 					}
 				}
 			}
-
 		}
+
+		// if (type === 'length') {
+		// }
 
 	}
 

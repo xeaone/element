@@ -12,34 +12,12 @@ export default {
 	target: document.body,
 
 	async setup (options) {
-		const self = this;
-
 		options = options || {};
 
-		self.target = options.target || document.body;
+		this.target = options.target || document.body;
+		this.observer = new MutationObserver(this.listener.bind(this));
 
-		self.observer = new MutationObserver(function (records) {
-			for (let i = 0, l = records.length; i < l; i++) {
-				const record = records[i];
-				console.log(record);
-				switch (record.type) {
-					case 'childList':
-						self.eachElement(record.addedNodes, record.target, 'add');
-						self.eachElement(record.removedNodes, record.target, 'remove');
-					break;
-					case 'attributes':
-						const target = record.target;
-						const attribute = target.attributes[record.attributeName];
-						// if (attribute) self.emit('attribute:add', attribute, record);
-						// else self.emit('attribute:remove', attribute, record);
-					break;
-					// case 'characterData':
-					// break;
-				}
-			}
-		});
-
-		self.observer.observe(self.target, {
+		this.observer.observe(this.target, {
 			subtree: true,
 			childList: true,
 			// attributeFilter: [],
@@ -119,10 +97,10 @@ export default {
 
 		if (!this.elements.get(binder.element).has(binder.names[0])) {
 			this.elements.get(binder.element).set(binder.names[0], binder);
-		} else {
-			console.warn(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
+		// } else {
+			// console.warn(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
 			// throw new Error(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
-			return false;
+			// return false;
 		}
 
 		if (!(binder.scope in this.data)) {
@@ -141,11 +119,11 @@ export default {
 		if (this.elements.has(binder.element)) {
 
 			if (this.elements.get(binder.element).has(binder.names[0])) {
-				this.elements.get(binder.element).remove(binder.names[0]);
+				this.elements.get(binder.element).delete(binder.names[0]);
 			}
 
-			if (this.elements.get(binder.elements).length === 0) {
-				this.elements.remove(binder.elements);
+			if (!this.elements.get(binder.element).size) {
+				this.elements.delete(binder.element);
 			}
 
 		}
@@ -171,6 +149,7 @@ export default {
 	},
 
 	oneElement (element, container, scope, type) {
+		// console.log(element);
 
 		if (!type) throw new Error('Oxe.binder.bind - type argument required');
 		if (!element) throw new Error('Oxe.binder.bind - element argument required');
@@ -184,6 +163,10 @@ export default {
 		) {
 			return;
 		}
+
+		// if (element.) {
+		//
+		// }
 
 		const attributes = element.attributes;
 
@@ -254,6 +237,27 @@ export default {
 			this.oneElement(node, container, scope, type);
 			this.eachElement(node.children, target, type);
 
+		}
+	},
+
+	listener (records) {
+		for (let i = 0, l = records.length; i < l; i++) {
+			const record = records[i];
+			// console.log(record);
+			switch (record.type) {
+				case 'childList':
+					this.eachElement(record.addedNodes, record.target, 'add');
+					this.eachElement(record.removedNodes, record.target, 'remove');
+				break;
+				case 'attributes':
+					const target = record.target;
+					const attribute = target.attributes[record.attributeName];
+					// if (attribute) self.emit('attribute:add', attribute, record);
+					// else self.emit('attribute:remove', attribute, record);
+				break;
+				// case 'characterData':
+				// break;
+			}
 		}
 	}
 

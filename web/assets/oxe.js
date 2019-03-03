@@ -953,28 +953,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     target: document.body,
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
-        var self = this;
         options = options || {};
-        self.target = options.target || document.body;
-        self.observer = new MutationObserver(function (records) {
-          for (var i = 0, l = records.length; i < l; i++) {
-            var record = records[i];
-            console.log(record);
-
-            switch (record.type) {
-              case 'childList':
-                self.eachElement(record.addedNodes, record.target, 'add');
-                self.eachElement(record.removedNodes, record.target, 'remove');
-                break;
-
-              case 'attributes':
-                var target = record.target;
-                var attribute = target.attributes[record.attributeName];
-                break;
-            }
-          }
-        });
-        self.observer.observe(self.target, {
+        this.target = options.target || document.body;
+        this.observer = new MutationObserver(this.listener.bind(this));
+        this.observer.observe(this.target, {
           subtree: true,
           childList: true,
           attributes: true
@@ -1041,9 +1023,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (!this.elements.get(binder.element).has(binder.names[0])) {
         this.elements.get(binder.element).set(binder.names[0], binder);
-      } else {
-        console.warn("Oxe - duplicate attribute ".concat(binder.scope, " ").concat(binder.names[0], " ").concat(binder.value));
-        return false;
       }
 
       if (!(binder.scope in this.data)) {
@@ -1059,11 +1038,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     remove: function remove(binder) {
       if (this.elements.has(binder.element)) {
         if (this.elements.get(binder.element).has(binder.names[0])) {
-          this.elements.get(binder.element).remove(binder.names[0]);
+          this.elements.get(binder.element).delete(binder.names[0]);
         }
 
-        if (this.elements.get(binder.elements).length === 0) {
-          this.elements.remove(binder.elements);
+        if (!this.elements.get(binder.element).size) {
+          this.elements.delete(binder.element);
         }
       }
 
@@ -1144,6 +1123,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         this.oneElement(node, container, scope, type);
         this.eachElement(node.children, target, type);
+      }
+    },
+    listener: function listener(records) {
+      for (var i = 0, l = records.length; i < l; i++) {
+        var record = records[i];
+
+        switch (record.type) {
+          case 'childList':
+            this.eachElement(record.addedNodes, record.target, 'add');
+            this.eachElement(record.removedNodes, record.target, 'remove');
+            break;
+
+          case 'attributes':
+            var target = record.target;
+            var attribute = target.attributes[record.attributeName];
+            break;
+        }
       }
     }
   };
@@ -1324,7 +1320,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return new Promise(function ($return, $error) {
         options = options || {};
         this.target = options.target || this.target;
-        this.data = Observer.create(this.target, this.listener);
+        this.data = Observer.create(this.target, this.listener.bind(this));
         return $return();
       }.bind(this));
     },
@@ -1374,25 +1370,26 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var paths = path.split('.');
       var part = paths.slice(1).join('.');
       var scope = paths.slice(0, 1).join('.');
-      if (scope in View.data === false) return console.warn("Oxe.model.listener - scope not found: ".concat(scope));
+      if (scope in View.data === false) return;
+      if (part in View.data[scope] === false) return;
+      if (0 in View.data[scope][part] === false) return;
+      var binders = View.data[scope][part];
 
-      if (type === 'length') {
-        if (!(part in View.data[scope])) return;
-        if (!(0 in View.data[scope][part])) return;
-        var binder = View.data[scope][part][0];
-        console.log(part);
-        console.log(data);
-        Render.default(binder, data);
-      } else {
+      for (var i = 0, l = binders.length; i < l; i++) {
+        data = Piper(binders[i], data);
+        Render.default(binders[i], data);
+      }
+
+      if (_typeof(data) === 'object') {
         var binderPaths = View.data[scope];
 
         for (var binderPath in binderPaths) {
-          if (part === '' || binderPath.indexOf(part) === 0 && (binderPath === part || binderPath.charAt(part.length) === '.')) {
-            var binders = binderPaths[binderPath];
+          if (part === '' || binderPath.indexOf(part + '.') === 0) {
+            var _binders = binderPaths[binderPath];
 
-            for (var i = 0, l = binders.length; i < l; i++) {
-              data = Piper(binders[i], data);
-              Render.default(binders[i], data);
+            for (var _i2 = 0, _l2 = _binders.length; _i2 < _l2; _i2++) {
+              var d = Piper(_binders[_i2], this.get(scope + '.' + binderPath));
+              Render.default(_binders[_i2], d);
             }
           }
         }
