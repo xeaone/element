@@ -85,8 +85,10 @@ export default {
 			Render.default(binders[i], data);
 		}
 
-		// if (type !== 'length' && typeof data === 'object') {
-		if (typeof data === 'object') {
+		// console.log(data.length);
+
+		if (type !== 'length' && typeof data === 'object') {
+		// if (typeof data === 'object') {
 			const binderPaths = View.data[scope];
 			for (let binderPath in binderPaths) {
 				if (part === '' || binderPath.indexOf(part + '.') === 0) {
