@@ -8,4 +8,4 @@ export default function (binder, data) {
 			binder.element.required = data;
 		}
 	};
-}
+};

@@ -183,8 +183,6 @@ export default {
 				&& attribute.name !== 'o-method'
 				&& attribute.name !== 'o-enctype'
 			) {
-				// cloudflare charge
-
 				// if (attribute.name.indexOf('o-each') === 0) {
 				// 	contexts[attribute.name.toLowerCase()] = node;
 				// }
@@ -204,40 +202,35 @@ export default {
 				// 	}
 				// }
 
-				switch (type) {
-					case 'remove':
-						this.remove(Binder.unbind(node, attribute, container));
-						break;
-					case 'add':
-						this.add(Binder.bind(node, attribute, container));
-						break;
+				let data;
+
+				const binder = Binder.create({
+					element: node,
+					container: container,
+					name: attribute.name,
+					value: attribute.value,
+					scope: container.scope
+				});
+
+				if (type === 'remove') {
+					data = undefined;
+					Binder.remove(binder);
+					// this.remove(Binder.unbind(node, attribute, container));
+				} else if (type === 'add') {
+
+					if (binder.type === 'on') {
+						data = Methods.get(binder.keys);
+					} else {
+						data = Model.get(binder.keys);
+						data = Piper(binder, data);
+					}
+
+					Binder.add(binder);
+					// this.add(Binder.bind(node, attribute, container));
 				}
 
-				// const binder = Binder.create({
-				// 	element: node,
-				// 	container: container,
-				// 	name: attribute.name,
-				// 	value: attribute.value,
-				// 	scope: container.scope
-				// });
-				//
-				// const result = Binder[type](binder);
-				//
-				// if (result !== false) {
-				// 	let data;
-				//
-				// 	if (binder.type === 'on') {
-				// 		data = Methods.get(binder.keys);
-				// 	} else {
-				// 		data = Model.get(binder.keys);
-				// 		data = Piper(binder, data);
-				// 	}
-				//
-				// 	Binder.render(binder, data);
-				// }
-
+				Binder.render(binder, data);
 			}
-
 		}
 
 	},
