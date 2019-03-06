@@ -1,6 +1,7 @@
 import Observer from './observer.js';
 import Methods from './methods.js';
-import Render from './render.js';
+// import Render from './render.js';
+import Binder from './binder.js';
 import Piper from './piper.js';
 import View from './view.js';
 
@@ -74,28 +75,29 @@ export default {
 		const part = paths.slice(1).join('.');
 		const scope = paths.slice(0, 1).join('.');
 
-		if (scope in View.data === false) return //console.warn(`Oxe.model.listener - scope not found: ${scope}`);
-		if (part in View.data[scope] === false) return //console.warn(`Oxe.model.listener - path not found: ${part}`);
-		if (0 in View.data[scope][part] === false) return //console.warn('Oxe.model.listener - data not found');
+		if (scope in Binder.data === false) return //console.warn(`Oxe.model.listener - scope not found: ${scope}`);
+		if (part in Binder.data[scope] === false) return //console.warn(`Oxe.model.listener - path not found: ${part}`);
+		if (0 in Binder.data[scope][part] === false) return //console.warn('Oxe.model.listener - data not found');
 
-		const binders = View.data[scope][part];
+		const binders = Binder.data[scope][part];
 
 		for (let i = 0, l = binders.length; i < l; i++) {
 			data = Piper(binders[i], data);
-			Render.default(binders[i], data);
+			Binder.render(binders[i], data);
 		}
 
 		// console.log(data.length);
 
-		if (type !== 'length' && typeof data === 'object') {
 		// if (typeof data === 'object') {
-			const binderPaths = View.data[scope];
+		if (type !== 'length' && typeof data === 'object') {
+			const binderPaths = Binder.data[scope];
 			for (let binderPath in binderPaths) {
 				if (part === '' || binderPath.indexOf(part + '.') === 0) {
 					const binders = binderPaths[binderPath];
 					for (let i = 0, l = binders.length; i < l; i++) {
 						const d = Piper(binders[i], this.get(scope+'.'+binderPath));
-						Render.default(binders[i], d);
+						// Render.default(binders[i], d);
+						Binder.render(binders[i], d);
 					}
 				}
 			}

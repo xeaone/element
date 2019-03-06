@@ -11,7 +11,8 @@ import Fetcher from './fetcher.js';
 import Methods from './methods.js'
 import Loader from './loader.js';
 import Router from './router.js';
-import Render from './render.js';
+// import Render from './render.js';
+import Binder from './binder.js';
 import Model from './model.js';
 import View from './view.js';
 import Path from './path.js';
@@ -122,8 +123,12 @@ export default {
 		return (window.document._currentScript || window.document.currentScript).ownerDocument;
 	},
 
-	get render () {
-		return 	Render;
+	// get render () {
+	// 	return 	Render;
+	// },
+
+	get binder () {
+		return 	Binder;
 	},
 
 	get methods () {

@@ -246,17 +246,19 @@ export default {
 	replaceEachVariable (element, variable, path, key) {
 		variable = variable.toLowerCase();
 
-		let pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'ig');
+		const pattern = new RegExp(`${this.VARIABLE_START}\\$${variable}${this.VARIABLE_END}`, 'ig');
 
 		this.walker(element, function (node) {
 			if (node.nodeType === 3) {
-				let value = node.nodeValue.toLowerCase();
-				if (value === `$${variable}` || value === '$index') {
+				const value = node.nodeValue.toLowerCase();
+				if (value === `$${variable}`) {
+					node.nodeValue = `${path}.${key}`;
+				} else if (value === `$${variable}-key` || value === `$${variable}-index`) {
 					node.nodeValue = key;
 				}
 			} else if (node.nodeType === 1) {
 				for (let i = 0, l = node.attributes.length; i < l; i++) {
-					let attribute = node.attributes[i];
+					const attribute = node.attributes[i];
 					if (attribute.name.indexOf('o-') === 0) {
 						attribute.value = attribute.value.replace(pattern, `$1${path}.${key}`);
 					}
@@ -328,21 +330,6 @@ export default {
 		}
 
 		return data[keys[last]];
-	},
-
-	getScope (element) {
-
-		console.log(element);
-
-		if (element.nodeType === 1 && (element.scope || 'o-scope' in element.attributes)) {
-			return element;
-		}
-
-		if (element.parentElement) {
-			return this.getScope(element.parentElement);
-		}
-
-		console.warn('Oxe.utility.getScope - scope not found');
 	}
 
 }

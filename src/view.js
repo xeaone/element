@@ -1,6 +1,7 @@
 import Utility from './utility.js';
 import Methods from './methods.js';
-import Render from './render.js';
+// import Render from './render.js';
+import Binder from './binder.js';
 import Piper from './piper.js';
 import Model from './model.js';
 
@@ -21,7 +22,7 @@ export default {
 			subtree: true,
 			childList: true,
 			// attributeFilter: [],
-			attributes: true,
+			// attributes: true,
 			// attributeOldValue: true,
 			// characterData: true,
 			// characterDataOldValue: true
@@ -48,6 +49,7 @@ export default {
 		binder.pipes = data.pipes || Utility.binderPipes(data.value);
 		binder.values = data.values || Utility.binderValues(data.value);
 
+		binder.cache = {};
 		binder.context = {};
 		binder.path = binder.values.join('.');
 		binder.type = binder.type || binder.names[0];
@@ -103,15 +105,15 @@ export default {
 			// return false;
 		}
 
-		if (!(binder.scope in this.data)) {
-			this.data[binder.scope] = {};
-		}
-
-		if (!(binder.path in this.data[binder.scope])) {
-			this.data[binder.scope][binder.path] = [];
-		}
-
-		this.data[binder.scope][binder.path].push(binder);
+		// if (!(binder.scope in this.data)) {
+		// 	this.data[binder.scope] = {};
+		// }
+		//
+		// if (!(binder.path in this.data[binder.scope])) {
+		// 	this.data[binder.scope][binder.path] = [];
+		// }
+		//
+		// this.data[binder.scope][binder.path].push(binder);
 	},
 
 	remove (binder) {
@@ -128,47 +130,47 @@ export default {
 
 		}
 
-		if (!(binder.scope in this.data)) {
-			return;
-		}
-
-		if (!(binder.path in this.data[binder.scope])) {
-			return;
-		}
-
-		let items = this.data[binder.scope][binder.path];
-
-		for (let i = 0, l = items.length; i < l; i++) {
-
-			if (items[i].element === binder.element) {
-				return items.splice(i, 1);
-			}
-
-		}
+		// if (!(binder.scope in this.data)) {
+		// 	return;
+		// }
+		//
+		// if (!(binder.path in this.data[binder.scope])) {
+		// 	return;
+		// }
+		//
+		// let items = this.data[binder.scope][binder.path];
+		//
+		// for (let i = 0, l = items.length; i < l; i++) {
+		//
+		// 	if (items[i].element === binder.element) {
+		// 		return items.splice(i, 1);
+		// 	}
+		//
+		// }
 
 	},
 
-	oneElement (element, container, scope, type) {
-		// console.log(element);
+	node (node, target, type, container) {
 
 		if (!type) throw new Error('Oxe.binder.bind - type argument required');
-		if (!element) throw new Error('Oxe.binder.bind - element argument required');
+		if (!node) throw new Error('Oxe.binder.bind - node argument required');
 
 		if (
-			!element ||
-			element.nodeName === 'SLOT' ||
-			element.nodeName === 'O-ROUTER' ||
-			element.nodeName === 'TEMPLATE' ||
-			element.nodeName === '#document-fragment'
+			node.nodeName === 'SLOT' ||
+			node.nodeName === 'TEMPLATE' ||
+			node.nodeName === 'O-ROUTER' ||
+			node.nodeType === Node.TEXT_NODE ||
+			node.nodeType === Node.DOCUMENT_NODE ||
+			node.nodeType === Node.DOCUMENT_FRAGMENT_NODE
 		) {
 			return;
 		}
 
-		// if (element.) {
-		//
+		// if (node.nodeType === Node.TEXT_NODE) {
+		// 	return this.rewrite(node);
 		// }
 
-		const attributes = element.attributes;
+		const attributes = node.attributes;
 
 		for (let i = 0, l = attributes.length; i < l; i++) {
 			const attribute = attributes[i];
@@ -181,29 +183,58 @@ export default {
 				&& attribute.name !== 'o-method'
 				&& attribute.name !== 'o-enctype'
 			) {
+				// cloudflare charge
 
-				const binder = this.create({
-					scope: scope,
-					element: element,
-					container: container,
-					name: attribute.name,
-					value: attribute.value
-				});
+				// if (attribute.name.indexOf('o-each') === 0) {
+				// 	contexts[attribute.name.toLowerCase()] = node;
+				// }
+				//
+				// if (attribute.value.indexOf('$') !== -1) {
+				// 	const variable = attribute.value.split('.')[0].replace('$', '').toLowerCase();
+				// 	const contextNode = contexts['o-each-' + variable];
+				// 	if (contextNode) {
+				// 		const binder = this.elements.get(contextNode).get('each');
+				// 		if (binder.cache.keys) {
+				// 			const key = binder.cache.keys[contextNode.children.length-1];
+				// 			console.log(key);
+				// 			const contextAttribute = contextNode.attributes['o-each-' + variable];
+				// 			const pattern = new RegExp('(^|(\\|+|\\,+|\\s))' + variable + '(?:)', 'ig');
+				// 			attribute.value = attribute.value.replace(pattern, `$1${contextAttribute.value}.${key}`);
+				// 		}
+				// 	}
+				// }
 
-				const result = this[type](binder);
-
-				if (result !== false) {
-					let data;
-
-					if (binder.type === 'on') {
-						data = Methods.get(binder.keys);
-					} else {
-						data = Model.get(binder.keys);
-						data = Piper(binder, data);
-					}
-
-					Render.default(binder, data);
+				switch (type) {
+					case 'remove':
+						this.remove(Binder.unbind(node, attribute, container));
+						break;
+					case 'add':
+						this.add(Binder.bind(node, attribute, container));
+						break;
 				}
+
+				// const binder = Binder.create({
+				// 	element: node,
+				// 	container: container,
+				// 	name: attribute.name,
+				// 	value: attribute.value,
+				// 	scope: container.scope
+				// });
+				//
+				// const result = Binder[type](binder);
+				//
+				// if (result !== false) {
+				// 	let data;
+				//
+				// 	if (binder.type === 'on') {
+				// 		data = Methods.get(binder.keys);
+				// 	} else {
+				// 		data = Model.get(binder.keys);
+				// 		data = Piper(binder, data);
+				// 	}
+				//
+				// 	Binder.render(binder, data);
+				// }
 
 			}
 
@@ -211,50 +242,42 @@ export default {
 
 	},
 
-	eachElement (nodes, target, type) {
+	nodes (nodes, target, type, container) {
 		for (let i = 0, l = nodes.length; i <l; i++) {
 			const node = nodes[i];
-			const nodeType = node.nodeType;
 
-			if (nodeType !== 1) continue;
+			if (node.nodeType !== 1) continue;
 
-			let count = 0;
-			let container, scope;
-			let parent = node.parentElement
+			const childContainer = node.scope || 'o-scope' in node.attributes ? node : container;
 
-			while (parent) {
-				if (parent.scope || 'o-scope' in parent.attributes) {
-					container = parent;
-					scope = container.scope;
-					break;
-				} else if (!parent.parentElement && type === 'remove') {
-					parent = target;
-				} else {
-					parent = parent.parentElement;
-				}
-			}
-
-			this.oneElement(node, container, scope, type);
-			this.eachElement(node.children, target, type);
-
+			this.node(node, target, type, container);
+			this.nodes(node.childNodes, target, type, childContainer);
 		}
 	},
 
 	listener (records) {
 		for (let i = 0, l = records.length; i < l; i++) {
 			const record = records[i];
-			// console.log(record);
 			switch (record.type) {
 				case 'childList':
-					this.eachElement(record.addedNodes, record.target, 'add');
-					this.eachElement(record.removedNodes, record.target, 'remove');
+					let container;
+					let parent = record.target;
+
+					while (parent) {
+						if (parent.scope || 'o-scope' in parent.attributes) {
+							container = parent;
+							break;
+						} else {
+							parent = parent.parentElement;
+						}
+					}
+
+					this.nodes(record.addedNodes, record.target, 'add', container);
+					this.nodes(record.removedNodes, record.target, 'remove', container);
 				break;
-				case 'attributes':
-					const target = record.target;
-					const attribute = target.attributes[record.attributeName];
-					// if (attribute) self.emit('attribute:add', attribute, record);
-					// else self.emit('attribute:remove', attribute, record);
-				break;
+				// case 'attributes':
+					// console.log(record);
+				// break;
 				// case 'characterData':
 				// break;
 			}

@@ -30,7 +30,7 @@ var oLoop = {
 
 			this.model.items = items;
 
-			console.timeEnd('overwrite')
+			console.timeEnd('overwrite');
 		}
 	},
 	template: /*html*/`
@@ -49,8 +49,8 @@ var oLoop = {
 
 		<div o-each-item="items">
 			<div class="box">
-				<div o-text="item.number"></div>
-				<input type="text" o-value="item.number">
+				<div o-text="$item.number"></div>
+				<input type="text" o-value="$item.number">
 			</div>
 		</div>
 

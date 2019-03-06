@@ -3,44 +3,44 @@ import Utility from '../utility.js';
 // import View from '../view.js';
 // import Model from '../model.js';
 
-const TIME = 15;
+// const TIME = 15;
 
 export default function (binder, data) {
 
-	if (!binder.cache && !binder.element.children.length) {
+	if (!binder.cache.template && !binder.element.children.length) {
 		return;
 	}
 
-	if (!binder.fragment) {
-		binder.fragment = document.createDocumentFragment();
+	if (!binder.cache.fragment) {
+		binder.cache.fragment = document.createDocumentFragment();
 	}
 
-	if (!binder.cache) {
-		binder.cache = binder.element.removeChild(binder.element.firstElementChild);
+	if (!binder.cache.template) {
+		binder.cache.template = binder.element.removeChild(binder.element.firstElementChild);
 	}
 
-	let self = this, add, remove;
+	let add, remove;
+	const self = this;
 
 	return {
 		read () {
 
-			if (!data || typeof data !== 'object') return false;
+			if (!data || typeof data !== 'object') data = [];
 
-			let isArray = data.constructor === Array;
-			let keys = isArray ? [] : Object.keys(data);
-			let dataLength = isArray ? data.length : keys.length;
-			let elementLength = binder.fragment.children.length + binder.element.children.length;
+			const keys = Object.keys(data);
+			let dataLength = keys.length;
+			let elementLength = binder.cache.fragment.children.length + binder.element.children.length;
 
-			const time = window.performance.now();
+			// const time = window.performance.now();
 
 			if (elementLength === dataLength) {
 				return false;
 			} else if (elementLength > dataLength) {
 				remove = elementLength - dataLength;
 
-				while (binder.fragment.children.length && remove--) {
-					binder.fragment.removeChild(binder.fragment.lastElementChild);
-					if (performance.now() - time > TIME) return;
+				while (binder.cache.fragment.children.length && remove--) {
+					binder.cache.fragment.removeChild(binder.cache.fragment.lastElementChild);
+					// if (performance.now() - time > TIME) return;
 				}
 
 			} else if (elementLength < dataLength) {
@@ -48,37 +48,35 @@ export default function (binder, data) {
 
 				while (elementLength < dataLength) {
 
-					const clone = document.importNode(binder.cache, true);
-					const variable = isArray ? elementLength : keys[elementLength];
-					Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
-					// View.bind(clone, binder.container, binder.scope);
-					binder.fragment.appendChild(clone);
+					const clone = document.importNode(binder.cache.template, true);
+					const variable = keys[elementLength];
+					Utility.replaceEachVariable(clone, binder.names[1], binder.path, keys[elementLength]);
+					binder.cache.fragment.appendChild(clone);
 					elementLength++;
 
-					if (performance.now() - time > TIME) return;
+					// if (performance.now() - time > TIME) return;
 				}
 
 			}
 
 		},
 		write () {
+
 			if (remove) {
-				const time = window.performance.now();
+				// const time = window.performance.now();
 				while (binder.element.children.length && remove--) {
 					binder.element.removeChild(binder.element.lastElementChild);
-					if (performance.now() - time > TIME) break;
+					// if (performance.now() - time > TIME) break;
 				}
 			} else if (add) {
-				binder.element.appendChild(binder.fragment);
+				binder.element.appendChild(binder.cache.fragment);
 			}
 
+			// console.log(data.length);
+			// console.log(binder.element.children.length);
+
 			if (binder.element.children.length !== data.length) {
-				self.default(binder);
-			} else if (binder.element.nodeName.indexOf('SELECT') !== -1 && binder.element.attributes['o-value']) {
-				/*
-					perform a re-render of the o-value becuase of o-each is async
-				*/
-				// self.default(View.elements.get(binder.element).get('value'));
+				self.default(binder, data);
 			}
 
 		}

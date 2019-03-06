@@ -2,21 +2,21 @@ import Model from '../model.js';
 
 export default function (binder, data) {
 	return {
-		write () {
+		read () {
 
 			if (typeof data !== 'function') {
-				console.warn(`Oxe - attribute o-on="${binder.keys.join('.')}" invalid type function required`);
+				console.warn(`Oxe - binder o-on="${binder.keys.join('.')}" invalid type function required`);
 				return false;
 			}
 
-			if (!binder.cache) {
-				binder.cache = function (e) {
-					let parameters = [e];
+			if (!binder.cache.method) {
+				binder.cache.method = function (e) {
+					const parameters = [e];
 
 					for (let i = 0, l = binder.pipes.length; i < l; i++) {
-						let keys = binder.pipes[i].split('.');
+						const keys = binder.pipes[i].split('.');
 						keys.unshift(binder.scope);
-						let parameter = Model.get(keys);
+						const parameter = Model.get(keys);
 						parameters.push(parameter);
 					}
 
@@ -24,8 +24,10 @@ export default function (binder, data) {
 				};
 			}
 
-			binder.element.removeEventListener(binder.names[1], binder.cache);
-			binder.element.addEventListener(binder.names[1], binder.cache);
+		},
+		write () {
+			binder.element.removeEventListener(binder.names[1], binder.cache.method);
+			binder.element.addEventListener(binder.names[1], binder.cache.method);
 		}
 	};
 };
