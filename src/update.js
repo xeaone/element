@@ -8,7 +8,7 @@ export default async function (element, attribute) {
 	if (!element) throw new Error('Oxe - requires element argument');
 	if (!attribute) throw new Error('Oxe - requires attribute argument');
 
-	const binder = View.elements.get(element).get(attribute);
+	const binder = View.get(element, attribute);
 
 	const read = function () {
 		const type = binder.element.type;

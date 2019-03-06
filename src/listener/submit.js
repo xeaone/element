@@ -7,7 +7,7 @@ import Methods from '../methods.js';
 export default async function (event) {
 
 	var element = event.target;
-	var binder = View.elements.get(element).get('submit');
+	var binder = View.get(element, 'submit');
 	var method = Methods.get(binder.keys);
 	var model = Model.get(binder.scope);
 	var data = Utility.formData(element, model);

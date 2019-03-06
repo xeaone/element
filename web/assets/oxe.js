@@ -807,6 +807,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
+  function Require(binder, data) {
+    return {
+      read: function read() {
+        if (data === binder.element.required) return false;
+      },
+      write: function write() {
+        binder.element.required = data;
+      }
+    };
+  }
+
   function Show(binder, data) {
     return {
       read: function read() {
@@ -884,16 +895,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   var View = {
-    data: {},
-    observer: null,
-    elements: new Map(),
+    data: new Map(),
     target: document.body,
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
         this.target = options.target || document.body;
-        this.observer = new MutationObserver(this.listener.bind(this));
-        this.observer.observe(this.target, {
+        var observer = new MutationObserver(this.listener.bind(this));
+        observer.observe(this.target, {
           subtree: true,
           childList: true
         });
@@ -922,54 +931,33 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       binder.keys = [binder.scope].concat(binder.values);
       return binder;
     },
-    get: function get(data) {
-      var binder;
+    get: function get() {
+      var data = this.data;
 
-      if (typeof data === 'string') {
-        binder = {};
-        binder.scope = data.split('.').slice(0, 1).join('.');
-        binder.path = data.split('.').slice(1).join('.');
-      } else {
-        binder = data;
+      for (var i = 0, l = arguments.length; i < l; i++) {
+        data = data.get(arguments[i]);
+        if (!data) throw new Error('Oxe.binder - argument not found');
       }
 
-      if (!(binder.scope in this.data)) {
-        return null;
-      }
-
-      if (!(binder.path in this.data[binder.scope])) {
-        return null;
-      }
-
-      var items = this.data[binder.scope][binder.path];
-
-      for (var i = 0, l = items.length; i < l; i++) {
-        var item = items[i];
-
-        if (item.element === binder.element && item.name === binder.name) {
-          return item;
-        }
-      }
-
-      return null;
+      return data;
     },
     add: function add(binder) {
-      if (!this.elements.has(binder.element)) {
-        this.elements.set(binder.element, new Map());
+      if (!this.data.has(binder.element)) {
+        this.data.set(binder.element, new Map());
       }
 
-      if (!this.elements.get(binder.element).has(binder.names[0])) {
-        this.elements.get(binder.element).set(binder.names[0], binder);
+      if (!this.data.get(binder.element).has(binder.names[0])) {
+        this.data.get(binder.element).set(binder.names[0], binder);
       }
     },
     remove: function remove(binder) {
-      if (this.elements.has(binder.element)) {
-        if (this.elements.get(binder.element).has(binder.names[0])) {
-          this.elements.get(binder.element).delete(binder.names[0]);
+      if (this.data.has(binder.element)) {
+        if (this.data.get(binder.element).has(binder.names[0])) {
+          this.data.get(binder.element).delete(binder.names[0]);
         }
 
-        if (!this.elements.get(binder.element).size) {
-          this.elements.delete(binder.element);
+        if (!this.data.get(binder.element).size) {
+          this.data.delete(binder.element);
         }
       }
     },
@@ -979,6 +967,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (_node.nodeName === 'SLOT' || _node.nodeName === 'TEMPLATE' || _node.nodeName === 'O-ROUTER' || _node.nodeType === Node.TEXT_NODE || _node.nodeType === Node.DOCUMENT_NODE || _node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
         return;
+      }
+
+      if (!this.data.has(_node)) {
+        this.data.set(_node, new Map());
       }
 
       var attributes = _node.attributes;
@@ -995,6 +987,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             value: attribute.value,
             scope: container.scope
           });
+          this.data.get(_node).set(binder.names[0], binder);
 
           if (type === 'remove') {
             data = undefined;
@@ -1049,18 +1042,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   };
 
-  function Value(binder) {
+  function Value(binder, data) {
     var self = this;
     var type = binder.element.type;
     var name = binder.element.nodeName;
-    var data;
 
     if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
       var elements, multiple;
       return {
         read: function read() {
-          data = Model.get(binder.keys);
-          data = Piper.pipe(binder, data);
           elements = binder.element.options;
           multiple = Utility.multiple(binder.element);
 
@@ -1107,8 +1097,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       return {
         read: function read() {
-          data = Model.get(binder.keys);
-
           if (data === undefined) {
             Model.set(binder.keys, 0);
             return false;
@@ -1139,8 +1127,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     } else if (type === 'checkbox') {
       return {
         read: function read() {
-          data = Model.get(binder.keys);
-
           if (typeof data !== 'boolean') {
             Model.set(binder.keys, false);
             return false;
@@ -1159,7 +1145,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         read: function read() {
           if (name.indexOf('OPTION') !== -1 && binder.element.selected) {
             var parent = binder.element.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.element.parentElement : binder.element.parentElement.parentElement;
-            var select = View.elements.get(parent).get('value');
+            var select = View.get(parent, 'value');
 
             if (select) {
               self.default(select);
@@ -1484,7 +1470,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return new Promise(function ($return, $error) {
       if (!element) return $error(new Error('Oxe - requires element argument'));
       if (!attribute) return $error(new Error('Oxe - requires attribute argument'));
-      var binder = View.elements.get(element).get(attribute);
+      var binder = View.get(element, attribute);
 
       var read = function read() {
         var type = binder.element.type;
@@ -1816,7 +1802,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return new Promise(function ($return, $error) {
       var element, binder, method, model, data, options, oaction, omethod, oenctype, result;
       element = event.target;
-      binder = View.elements.get(element).get('submit');
+      binder = View.get(element, 'submit');
       method = Methods.get(binder.keys);
       model = Model.get(binder.scope);
       data = Utility.formData(element, model);
@@ -1881,7 +1867,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Reset(event) {
     return new Promise(function ($return, $error) {
       var element = event.target;
-      var binder = View.elements.get(element).get('submit');
+      var binder = View.get(element, 'submit');
       var model = Model.get(binder.scope);
       Utility.formReset(element, model);
       return $return();

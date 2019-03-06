@@ -3,20 +3,18 @@ import Piper from '../piper.js';
 import Model from '../model.js';
 import View from '../view.js';
 
-export default function (binder) {
+export default function (binder, data) {
 	let self = this;
 	let type = binder.element.type;
 	let name = binder.element.nodeName;
 
-	let data;
+	// let data;
 
 	if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
 		let elements, multiple;
 
 		return {
 			read () {
-				data = Model.get(binder.keys);
-				data = Piper.pipe(binder, data);
 
 				elements = binder.element.options;
 				multiple = Utility.multiple(binder.element);
@@ -68,7 +66,6 @@ export default function (binder) {
 
 		return {
 			read () {
-				data = Model.get(binder.keys);
 
 				if (data === undefined) {
 					Model.set(binder.keys, 0);
@@ -105,7 +102,6 @@ export default function (binder) {
 	} else if (type === 'checkbox') {
 		return {
 			read () {
-				data = Model.get(binder.keys);
 
 				if (typeof data !== 'boolean') {
 					Model.set(binder.keys, false);
@@ -127,7 +123,7 @@ export default function (binder) {
 				// if (name === 'OPTION' && binder.element.selected) {
 				if (name.indexOf('OPTION') !== -1 && binder.element.selected) {
 					const parent = binder.element.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.element.parentElement :  binder.element.parentElement.parentElement;
-					const select = View.elements.get(parent).get('value');
+					const select = View.get(parent, 'value');
 					if (select) {
 						self.default(select);
 					}

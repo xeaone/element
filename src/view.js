@@ -7,18 +7,17 @@ import Model from './model.js';
 
 export default {
 
-	data: {},
-	observer: null,
-	elements: new Map(),
+	data: new Map(),
 	target: document.body,
 
 	async setup (options) {
 		options = options || {};
 
 		this.target = options.target || document.body;
-		this.observer = new MutationObserver(this.listener.bind(this));
 
-		this.observer.observe(this.target, {
+		const observer = new MutationObserver(this.listener.bind(this));
+
+		observer.observe(this.target, {
 			subtree: true,
 			childList: true,
 			// attributeFilter: [],
@@ -58,96 +57,43 @@ export default {
 		return binder;
 	},
 
-	get (data) {
-		let binder;
-
-		if (typeof data === 'string') {
-			binder = {};
-			binder.scope = data.split('.').slice(0, 1).join('.');
-			binder.path = data.split('.').slice(1).join('.');
-		} else {
-			binder = data;
+	get () {
+		let data = this.data;
+		for (let i = 0, l = arguments.length; i < l; i++) {
+			data = data.get(arguments[i]);
+			if (!data) throw new Error('Oxe.binder - argument not found');
 		}
-
-		if (!(binder.scope in this.data)) {
-			return null;
-		}
-
-		if (!(binder.path in this.data[binder.scope])) {
-			return null;
-		}
-
-		let items = this.data[binder.scope][binder.path];
-
-		for (let i = 0, l = items.length; i < l; i++) {
-			let item = items[i];
-
-			if (item.element === binder.element && item.name === binder.name) {
-				return item;
-			}
-
-		}
-
-		return null;
+		return data;
 	},
 
 	add (binder) {
 
-		if (!this.elements.has(binder.element)) {
-			this.elements.set(binder.element, new Map());
+		if (!this.data.has(binder.element)) {
+			this.data.set(binder.element, new Map());
 		}
 
-		if (!this.elements.get(binder.element).has(binder.names[0])) {
-			this.elements.get(binder.element).set(binder.names[0], binder);
+		if (!this.data.get(binder.element).has(binder.names[0])) {
+			this.data.get(binder.element).set(binder.names[0], binder);
 		// } else {
 			// console.warn(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
 			// throw new Error(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
 			// return false;
 		}
 
-		// if (!(binder.scope in this.data)) {
-		// 	this.data[binder.scope] = {};
-		// }
-		//
-		// if (!(binder.path in this.data[binder.scope])) {
-		// 	this.data[binder.scope][binder.path] = [];
-		// }
-		//
-		// this.data[binder.scope][binder.path].push(binder);
 	},
 
 	remove (binder) {
+		if (this.data.has(binder.element)) {
 
-		if (this.elements.has(binder.element)) {
-
-			if (this.elements.get(binder.element).has(binder.names[0])) {
-				this.elements.get(binder.element).delete(binder.names[0]);
+			if (this.data.get(binder.element).has(binder.names[0])) {
+				this.data.get(binder.element).delete(binder.names[0]);
 			}
 
-			if (!this.elements.get(binder.element).size) {
-				this.elements.delete(binder.element);
+			if (!this.data.get(binder.element).size) {
+				this.data.delete(binder.element);
 			}
 
 		}
-
-		// if (!(binder.scope in this.data)) {
-		// 	return;
-		// }
-		//
-		// if (!(binder.path in this.data[binder.scope])) {
-		// 	return;
-		// }
-		//
-		// let items = this.data[binder.scope][binder.path];
-		//
-		// for (let i = 0, l = items.length; i < l; i++) {
-		//
-		// 	if (items[i].element === binder.element) {
-		// 		return items.splice(i, 1);
-		// 	}
-		//
-		// }
-
 	},
 
 	node (node, target, type, container) {
@@ -170,6 +116,10 @@ export default {
 		// 	return this.rewrite(node);
 		// }
 
+		if (!this.data.has(node)) {
+			this.data.set(node, new Map());
+		}
+
 		const attributes = node.attributes;
 
 		for (let i = 0, l = attributes.length; i < l; i++) {
@@ -191,7 +141,7 @@ export default {
 				// 	const variable = attribute.value.split('.')[0].replace('$', '').toLowerCase();
 				// 	const contextNode = contexts['o-each-' + variable];
 				// 	if (contextNode) {
-				// 		const binder = this.elements.get(contextNode).get('each');
+				// 		const binder = this.data.get(contextNode).get('each');
 				// 		if (binder.cache.keys) {
 				// 			const key = binder.cache.keys[contextNode.children.length-1];
 				// 			console.log(key);
@@ -211,6 +161,8 @@ export default {
 					value: attribute.value,
 					scope: container.scope
 				});
+
+				this.data.get(node).set(binder.names[0], binder);
 
 				if (type === 'remove') {
 					data = undefined;
