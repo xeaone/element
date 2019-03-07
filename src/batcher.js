@@ -68,6 +68,7 @@ export default {
 
 	batch (data) {
 		const self = this;
+		if (!data) return;
 
 		// let read;
 		// let write;
@@ -125,8 +126,6 @@ export default {
 			self.writes.push(write);
 			self.schedule();
 		}
-
-		return data;
 	}
 
 };
