@@ -1,6 +1,5 @@
 import Observer from './observer.js';
 import Methods from './methods.js';
-// import Render from './render.js';
 import Binder from './binder.js';
 import Piper from './piper.js';
 import View from './view.js';
@@ -86,8 +85,6 @@ export default {
 			Binder.render(binders[i], data);
 		}
 
-		// console.log(data.length);
-
 		// if (typeof data === 'object') {
 		if (type !== 'length' && typeof data === 'object') {
 			const binderPaths = Binder.data[scope];
@@ -96,7 +93,6 @@ export default {
 					const binders = binderPaths[binderPath];
 					for (let i = 0, l = binders.length; i < l; i++) {
 						const d = Piper(binders[i], this.get(scope+'.'+binderPath));
-						// Render.default(binders[i], d);
 						Binder.render(binders[i], d);
 					}
 				}
