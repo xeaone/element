@@ -5,19 +5,19 @@ import View from '../view.js';
 
 export default function (binder, data) {
 	let self = this;
-	let type = binder.element.type;
-	let name = binder.element.nodeName;
+	let type = binder.target.type;
+	let name = binder.target.nodeName;
 
 	// let data;
 
 	if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-		let elements, multiple;
+		let nodes, multiple;
 
 		return {
 			read () {
 
-				elements = binder.element.options;
-				multiple = Utility.multiple(binder.element);
+				nodes = binder.target.options;
+				multiple = Utility.multiple(binder.target);
 
 				if (multiple && data.constructor !== Array) {
 					throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
@@ -28,32 +28,32 @@ export default function (binder, data) {
 				let selected = false;
 
 				// NOTE might need to handle disable
-				for (let i = 0, l = elements.length; i < l; i++) {
-					const element = elements[i];
-					const value = Utility.value(element);
+				for (let i = 0, l = nodes.length; i < l; i++) {
+					const node = nodes[i];
+					const value = Utility.value(node);
 
 					if (multiple) {
 						if (data.indexOf(value) !== -1) {
 							selected = true;
-							element.selected = true;
-							element.setAttribute('selected', '');
-						} else if (Utility.selected(element)) {
+							node.selected = true;
+							node.setAttribute('selected', '');
+						} else if (Utility.selected(node)) {
 							Model.get(binder.keys).push(value);
 						} else {
-							element.selected = false;
-							element.removeAttribute('selected');
+							node.selected = false;
+							node.removeAttribute('selected');
 						}
 					} else {
 						if (data === value) {
 							selected = true;
-							element.selected = true;
-							element.setAttribute('selected', '');
-						} else if (!selected && Utility.selected(element)) {
+							node.selected = true;
+							node.setAttribute('selected', '');
+						} else if (!selected && Utility.selected(node)) {
 							selected = true;
 							Model.set(binder.keys, value);
 						} else {
-							element.selected = false;
-							element.removeAttribute('selected');
+							node.selected = false;
+							node.removeAttribute('selected');
 						}
 					}
 
@@ -62,7 +62,7 @@ export default function (binder, data) {
 			}
 		};
 	} else if (type === 'radio') {
-		let elements;
+		let nodes;
 
 		return {
 			read () {
@@ -72,27 +72,27 @@ export default function (binder, data) {
 					return false;
 				}
 
-				elements = binder.container.querySelectorAll(
+				nodes = binder.container.querySelectorAll(
 					'input[type="radio"][o-value="' + binder.value + '"]'
 				);
 			},
 			write () {
 				let checked = false;
 
-				for (let i = 0, l = elements.length; i < l; i++) {
-					let element = elements[i];
+				for (let i = 0, l = nodes.length; i < l; i++) {
+					let node = nodes[i];
 
 					if (i === data) {
 						checked = true;
-						element.checked = true;
+						node.checked = true;
 					} else {
-						element.checked = false;
+						node.checked = false;
 					}
 
 				}
 
 				if (!checked) {
-					elements[0].checked = true;
+					nodes[0].checked = true;
 					Model.set(binder.keys, 0);
 				}
 
@@ -108,21 +108,21 @@ export default function (binder, data) {
 					return false;
 				}
 
-				if (data === binder.element.checked) {
+				if (data === binder.target.checked) {
 					return false;
 				}
 			},
 			write () {
-				binder.element.checked = data;
+				binder.target.checked = data;
 			}
 		};
 	} else {
 		return {
 			read () {
 
-				// if (name === 'OPTION' && binder.element.selected) {
-				if (name.indexOf('OPTION') !== -1 && binder.element.selected) {
-					const parent = binder.element.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.element.parentElement :  binder.element.parentElement.parentElement;
+				// if (name === 'OPTION' && binder.target.selected) {
+				if (name.indexOf('OPTION') !== -1 && binder.target.selected) {
+					const parent = binder.target.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.target.parentElement :  binder.target.parentElement.parentElement;
 					const select = View.get(parent, 'value');
 					if (select) {
 						self.default(select);
@@ -135,13 +135,13 @@ export default function (binder, data) {
 					return false;
 				}
 
-				if (data === binder.element.value) {
+				if (data === binder.target.value) {
 					return false;
 				}
 
 			},
 			write () {
-				binder.element.value = data;
+				binder.target.value = data;
 			}
 		};
 	}

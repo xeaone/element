@@ -3,8 +3,8 @@ import Model from '../model.js';
 import View from '../view.js';
 
 export default async function (event) {
-	var element = event.target;
-	var binder = View.get(element, 'submit');
-	var model = Model.get(binder.scope);
-	Utility.formReset(element, model);
+	let node = event.target;
+	let binder = View.get(node, 'submit');
+	let model = Model.get(binder.scope);
+	Utility.formReset(node, model);
 };

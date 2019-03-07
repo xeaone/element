@@ -1,22 +1,19 @@
-// import Batcher from '../batcher.js';
 import Utility from '../utility.js';
-// import View from '../view.js';
-// import Model from '../model.js';
 
 // const TIME = 15;
 
 export default function (binder, data) {
 
-	if (!binder.cache.template && !binder.element.children.length) {
+	if (!binder.meta.template && !binder.target.children.length) {
 		return;
 	}
 
-	if (!binder.cache.fragment) {
-		binder.cache.fragment = document.createDocumentFragment();
+	if (!binder.meta.fragment) {
+		binder.meta.fragment = document.createDocumentFragment();
 	}
 
-	if (!binder.cache.template) {
-		binder.cache.template = binder.element.removeChild(binder.element.firstElementChild);
+	if (!binder.meta.template) {
+		binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
 	}
 
 	let add, remove;
@@ -29,30 +26,30 @@ export default function (binder, data) {
 
 			const keys = Object.keys(data);
 			let dataLength = keys.length;
-			let elementLength = binder.cache.fragment.children.length + binder.element.children.length;
+			let nodeLength = binder.meta.fragment.children.length + binder.target.children.length;
 
 			// const time = window.performance.now();
 
-			if (elementLength === dataLength) {
+			if (nodeLength === dataLength) {
 				return false;
-			} else if (elementLength > dataLength) {
-				remove = elementLength - dataLength;
+			} else if (nodeLength > dataLength) {
+				remove = nodeLength - dataLength;
 
-				while (binder.cache.fragment.children.length && remove--) {
-					binder.cache.fragment.removeChild(binder.cache.fragment.lastElementChild);
+				while (binder.meta.fragment.children.length && remove--) {
+					binder.meta.fragment.removeChild(binder.meta.fragment.lastElementChild);
 					// if (performance.now() - time > TIME) return;
 				}
 
-			} else if (elementLength < dataLength) {
-				add = dataLength - elementLength;
+			} else if (nodeLength < dataLength) {
+				add = dataLength - nodeLength;
 
-				while (elementLength < dataLength) {
+				while (nodeLength < dataLength) {
 
-					const clone = document.importNode(binder.cache.template, true);
-					const variable = keys[elementLength];
-					Utility.replaceEachVariable(clone, binder.names[1], binder.path, keys[elementLength]);
-					binder.cache.fragment.appendChild(clone);
-					elementLength++;
+					const clone = document.importNode(binder.meta.template, true);
+					const variable = keys[nodeLength];
+					Utility.replaceEachVariable(clone, binder.names[1], binder.path, keys[nodeLength]);
+					binder.meta.fragment.appendChild(clone);
+					nodeLength++;
 
 					// if (performance.now() - time > TIME) return;
 				}
@@ -64,18 +61,18 @@ export default function (binder, data) {
 
 			if (remove) {
 				// const time = window.performance.now();
-				while (binder.element.children.length && remove--) {
-					binder.element.removeChild(binder.element.lastElementChild);
+				while (binder.target.children.length && remove--) {
+					binder.target.removeChild(binder.target.lastElementChild);
 					// if (performance.now() - time > TIME) break;
 				}
 			} else if (add) {
-				binder.element.appendChild(binder.cache.fragment);
+				binder.target.appendChild(binder.meta.fragment);
 			}
 
 			// console.log(data.length);
-			// console.log(binder.element.children.length);
+			// console.log(binder.target.children.length);
 
-			if (binder.element.children.length !== data.length) {
+			if (binder.target.children.length !== data.length) {
 				self.default(binder, data);
 			}
 

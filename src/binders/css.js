@@ -7,13 +7,13 @@ export default function (binder, data) {
 				data = binder.names.slice(1).join('-') + ': ' +  data + ';';
 			}
 
-			if (data === binder.element.style.cssText) {
+			if (data === binder.target.style.cssText) {
 				return false;
 			}
 
 		},
 		write () {
-			binder.element.style.cssText = data;
+			binder.target.style.cssText = data;
 		}
 	};
 };

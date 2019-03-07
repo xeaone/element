@@ -6,24 +6,24 @@ import Methods from '../methods.js';
 
 export default async function (event) {
 
-	var element = event.target;
-	var binder = View.get(element, 'submit');
-	var method = Methods.get(binder.keys);
-	var model = Model.get(binder.scope);
-	var data = Utility.formData(element, model);
+	let node = event.target;
+	let binder = View.get(node, 'submit');
+	let method = Methods.get(binder.keys);
+	let model = Model.get(binder.scope);
+	let data = Utility.formData(node, model);
 
-	var options = await method.call(binder.container, data, event);
+	let options = await method.call(binder.container, data, event);
 
 	if (typeof options === 'object') {
-		var oaction = element.getAttribute('o-action');
-		var omethod = element.getAttribute('o-method');
-		var oenctype = element.getAttribute('o-enctype');
+		let oaction = node.getAttribute('o-action');
+		let omethod = node.getAttribute('o-method');
+		let oenctype = node.getAttribute('o-enctype');
 
 		options.url = options.url || oaction;
 		options.method = options.method || omethod;
 		options.contentType = options.contentType || oenctype;
 
-		var result = await Fetcher.fetch(options);
+		let result = await Fetcher.fetch(options);
 
 		if (options.handler) {
 			await options.handler(result);
@@ -31,8 +31,8 @@ export default async function (event) {
 
 	}
 
-	if (element.hasAttribute('o-reset') || (typeof options === 'object' && options.reset)) {
-		element.reset();
+	if (node.hasAttribute('o-reset') || (typeof options === 'object' && options.reset)) {
+		node.reset();
 	}
 
 };

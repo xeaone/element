@@ -8,14 +8,14 @@ export default function (binder, data) {
 		// },
 		write () {
 			if (!data) {
-				binder.element.style = '';
+				binder.target.style = '';
 			} else if (data.constructor === Object) {
 				for (const name in data) {
 					const value = data[name];
 					if (value === null || value === undefined) {
-						delete binder.element.style[name];
+						delete binder.target.style[name];
 					} else {
-						binder.element.style[name] = value;
+						binder.target.style[name] = value;
 					}
 				}
 			}

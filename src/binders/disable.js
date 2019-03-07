@@ -2,10 +2,10 @@
 export default function (binder, data) {
 	return {
 		read () {
-			if (data === binder.element.disabled) return false;
+			if (data === binder.target.disabled) return false;
 		},
 		write () {
-			binder.element.disabled = data;
+			binder.target.disabled = data;
 		}
 	};
 };

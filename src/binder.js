@@ -2,6 +2,7 @@ import Utility from './utility.js';
 import Batcher from './batcher.js';
 import Class from './binders/class.js';
 import Css from './binders/css.js';
+import Default from './binders/default.js';
 import Disable from './binders/disable.js';
 import Each from './binders/each.js';
 import Enable from './binders/enable.js';
@@ -16,100 +17,86 @@ import Text from './binders/text.js';
 import Value from './binders/value.js';
 import Write from './binders/write.js';
 
+const Data = {};
+
+const Binders = {
+	get class () { return Class; },
+	get css () { return Css; },
+	get default () { return Default; },
+	get disable () { return Disable; },
+	get disabled () { return Disable; },
+	get each () { return Each; },
+	get enable () { return Enable; },
+	get enabled () { return Enable; },
+	get hide () { return Hide; },
+	get hidden () { return Hide; },
+	get html () { return Html; },
+	get on () { return On; },
+	get read () { return Read; },
+	get require () { return Require; },
+	get required () { return Require; },
+	get show () { return Show; },
+	get showed () { return Show; },
+	get style () { return Style; },
+	get text () { return Text; },
+	get value () { return Value; },
+	get write () { return Write; }
+};
+
 export default {
 
-	data: {},
-	binders: {
-		get class () {
-			return Class;
-		},
-		get css () {
-			return Css;
-		},
-		get disable () {
-			return Disable;
-		},
-		get disabled () {
-			return Disable;
-		},
-		get each () {
-			return Each;
-		},
-		get enable () {
-			return Enable;
-		},
-		get enabled () {
-			return Enable;
-		},
-		get hide () {
-			return Hide;
-		},
-		get hidden () {
-			return Hide;
-		},
-		get html () {
-			return Html;
-		},
-		get on () {
-			return On;
-		},
-		get read () {
-			return Read;
-		},
-		get require () {
-			return Require;
-		},
-		get required () {
-			return Require;
-		},
-		// required: Required,
-		get show () {
-			return Show;
-		},
-		get style () {
-			return Style;
-		},
-		get text () {
-			return Text;
-		},
-		get value () {
-			return Value;
-		},
-		get write () {
-			return Write;
-		}
-	},
+	get data () { return Data; },
+	get binders () { return Binders; },
 
 	async setup (options) {
 		options = options || {};
+
+		if (options.binders) {
+			for (let i = 0, l = options.binders.length; i < l; i++) {
+				const binder = options.binders[i];
+				this.binders[binder.name] = binder;
+			}
+		}
+
 	},
 
 	create (data) {
-		const binder = {};
 
 		if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
 		if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
-		if (data.scope === undefined) throw new Error('Oxe.binder.create - missing scope');
-		if (data.element === undefined) throw new Error('Oxe.binder.create - missing element');
+		if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
 		if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
 
-		binder.name = data.name;
-		binder.value = data.value;
-		binder.scope = data.scope;
-		binder.element = data.element;
-		binder.container = data.container;
+		const scope = data.container.scope;
+		const names = data.names || Utility.binderNames(data.name);
+		const pipes = data.pipes || Utility.binderPipes(data.value);
+		const values = data.values || Utility.binderValues(data.value);
 
-		binder.names = data.names || Utility.binderNames(data.name);
-		binder.pipes = data.pipes || Utility.binderPipes(data.value);
-		binder.values = data.values || Utility.binderValues(data.value);
+		const type = names[0];
+		const path = values.join('.');
+		const keys = [scope].concat(values);
 
-		binder.cache = {};
-		binder.context = {};
-		binder.path = binder.values.join('.');
-		binder.type = binder.type || binder.names[0];
-		binder.keys = [binder.scope].concat(binder.values);
+		const meta = {};
+		const context = {};
 
-		return binder;
+		return {
+			get type () { return type; },
+			get path () { return path; },
+			get scope () { return scope; },
+
+			get name () { return data.name; },
+			get value () { return data.value; },
+			get target () { return data.target; },
+			get container () { return data.container; },
+
+			get keys () { return keys; },
+			get names () { return names; },
+			get pipes () { return pipes; },
+			get values () { return values; },
+
+			get meta () { return meta; },
+			get context () { return context; }
+		};
 	},
 
 	get (data) {
@@ -136,7 +123,7 @@ export default {
 		for (let i = 0, l = items.length; i < l; i++) {
 			let item = items[i];
 
-			if (item.element === binder.element && item.name === binder.name) {
+			if (item.target === binder.target && item.name === binder.name) {
 				return item;
 			}
 
@@ -172,7 +159,7 @@ export default {
 
 		for (let i = 0, l = items.length; i < l; i++) {
 
-			if (items[i].element === binder.element) {
+			if (items[i].targetargett === binder.target) {
 				return items.splice(i, 1);
 			}
 
@@ -181,36 +168,10 @@ export default {
 	},
 
 	render (binder, data) {
-		let render;
+		const type = binder.type in this.binders ? binder.type : 'default';
+		const render = this.binders[type](binder, data);
 
-		if (binder.type in this.binders) {
-			render = this.binders[binder.type](binder, data);
-		} else {
-			render = {
-				read () {
-
-					if (data === undefined || data === null) {
-						return false;
-					} else if (typeof data === 'object') {
-						data = JSON.stringify(data);
-					} else if (typeof data !== 'string') {
-						data = data.toString();
-					}
-
-					if (data === binder.element[binder.type]) {
-						return false;
-					}
-
-				},
-				write () {
-					binder.element[binder.type] = data;
-				}
-			};
-		}
-
-		if (render) {
-			Batcher.batch(render);
-		}
+		Batcher.batch(render);
 	}
 
 };

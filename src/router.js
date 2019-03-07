@@ -16,7 +16,7 @@ export default {
 	ran: false,
 	location: {},
 	mode: 'push',
-	element: null,
+	target: null,
 	contain: false,
 	compiled: false,
 	folder: './routes',
@@ -30,15 +30,15 @@ export default {
 		this.folder = options.folder === undefined ? this.folder : options.folder;
 		this.before = options.before === undefined ? this.before : options.before;
 		this.change = options.change === undefined ? this.change : options.change;
-		this.element = options.element === undefined ? this.element : options.element;
+		this.target = options.target === undefined ? this.target : options.target;
 		this.contain = options.contain === undefined ? this.contain : options.contain;
 		this.external = options.external === undefined ? this.external : options.external;
 
-		if (!this.element || typeof this.element === 'string') {
-			this.element = document.body.querySelector(this.element || 'o-router');
+		if (!this.target || typeof this.target === 'string') {
+			this.target = document.body.querySelector(this.target || 'o-router');
 		}
 
-		if (!this.element) throw new Error('Oxe.router.render - missing o-router element');
+		if (!this.target) throw new Error('Oxe.router.setup - target option required');
 
 		await this.add(options.routes);
 		await this.route(window.location.href, { mode: 'replace', setup: true });
@@ -334,8 +334,8 @@ export default {
 			throw new Error('Oxe.render - route argument required. Missing object option.');
 		}
 
-		if (!route.component && !route.element) {
-			throw new Error('Oxe.render - route property required. Missing component or element option.');
+		if (!route.component && !route.target) {
+			throw new Error('Oxe.render - route property required. Missing component or target option.');
 		}
 
 		if (route.title) {
@@ -368,27 +368,27 @@ export default {
 			});
 		}
 
-		if (!route.element) {
+		if (!route.target) {
 			if (route.component.constructor === String) {
-				route.element = window.document.createElement(route.component);
+				route.target = window.document.createElement(route.component);
 			} else if (route.component.constructor === Object) {
 				Component.define(route.component);
 
 				if (this.compiled) {
-					route.element = this.element.firstElementChild;
+					route.target = this.target.firstElementChild;
 					this.scroll(0, 0);
 					return;
 				} else {
-					route.element = window.document.createElement(route.component.name);
+					route.target = window.document.createElement(route.component.name);
 				}
 			}
 		}
 
-		while (this.element.firstChild) {
-			this.element.removeChild(this.element.firstChild);
+		while (this.target.firstChild) {
+			this.target.removeChild(this.target.firstChild);
 		}
 
-		this.element.appendChild(route.element);
+		this.target.appendChild(route.target);
 		this.scroll(0, 0);
 	},
 

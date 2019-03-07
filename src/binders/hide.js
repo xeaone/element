@@ -2,10 +2,10 @@
 export default function (binder, data) {
 	return {
 		read () {
-			if (data === binder.element.hidden) return false;
+			if (data === binder.target.hidden) return false;
 		},
 		write () {
-			binder.element.hidden = data;
+			binder.target.hidden = data;
 		}
 
 	};

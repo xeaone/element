@@ -8,16 +8,16 @@ export default function (binder, data) {
 			} else if (typeof data === 'object') {
 				data = JSON.stringify(data);
 			} else if (typeof data !== 'string') {
-				data = String(data);
+				data = data.toString();
 			}
 
-			if (data === binder.target.innerHTML) {
+			if (data === binder.target[binder.type]) {
 				return false;
 			}
 
 		},
 		write () {
-			binder.target.innerHTML = data;
+			binder.target[binder.type] = data;
 		}
-	};
+	}
 };

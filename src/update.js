@@ -3,35 +3,35 @@ import View from './view.js';
 import Batcher from './batcher.js';
 import Utility from './utility.js';
 
-export default async function (element, attribute) {
+export default async function (node, attribute) {
 
-	if (!element) throw new Error('Oxe - requires element argument');
-	if (!attribute) throw new Error('Oxe - requires attribute argument');
+	if (!node) throw new Error('Oxe.update - requires node argument');
+	if (!attribute) throw new Error('Oxe.update - requires attribute argument');
 
-	const binder = View.get(element, attribute);
+	const binder = View.get(node, attribute);
 
 	const read = function () {
-		const type = binder.element.type;
-	 	const name = binder.element.nodeName;
+		const type = binder.target.type;
+	 	const name = binder.target.nodeName;
 
-		let data = Utility.value(binder.element);
+		let data = Utility.value(binder.target);
 		// console.log(data);
 
 		// if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-		// 	const elements = binder.element.options;
-		// 	const multiple = Utility.multiple(binder.element);
+		// 	const nodes = binder.target.options;
+		// 	const multiple = Utility.multiple(binder.target);
 		//
 		// 	data = multiple ? [] : undefined;
 		//
-		// 	for (let i = 0, l = elements.length; i < l; i++) {
-		// 		const element = elements[i];
+		// 	for (let i = 0, l = nodes.length; i < l; i++) {
+		// 		const node = nodes[i];
 		//
-		// 		if (Utility.selected(element)) {
+		// 		if (Utility.selected(node)) {
 		//
 		// 			if (multiple) {
-		// 				data.push(Utility.value(element));
+		// 				data.push(Utility.value(node));
 		// 			} else {
-		// 				data = Utility.value(element);
+		// 				data = Utility.value(node);
 		// 				break;
 		// 			}
 		//
@@ -41,21 +41,21 @@ export default async function (element, attribute) {
 		//
 		// } else if (type === 'radio') {
 		// 	const query = 'input[type="radio"][o-value="' + binder.value + '"]';
-		// 	const elements = binder.container.querySelectorAll(query);
+		// 	const nodes = binder.container.querySelectorAll(query);
 		//
-		// 	for (let i = 0, l = elements.length; i < l; i++) {
-		// 		const element = elements[i];
+		// 	for (let i = 0, l = nodes.length; i < l; i++) {
+		// 		const node = nodes[i];
 		//
-		// 		if (binder.element === element) {
+		// 		if (binder.target === node) {
 		// 			data = i;
 		// 		}
 		//
 		// 	}
 		//
 		// } else if (type === 'checkbox') {
-		// 	data = binder.element.checked;
+		// 	data = binder.target.checked;
 		// } else {
-		// 	data = binder.element.value;
+		// 	data = binder.target.value;
 		// }
 
 		if (data !== undefined) {

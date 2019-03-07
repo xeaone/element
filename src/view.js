@@ -29,34 +29,6 @@ export default {
 
 	},
 
-	create (data) {
-		let binder = {};
-
-		if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
-		if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
-		if (data.scope === undefined) throw new Error('Oxe.binder.create - missing scope');
-		if (data.element === undefined) throw new Error('Oxe.binder.create - missing element');
-		if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
-
-		binder.name = data.name;
-		binder.value = data.value;
-		binder.scope = data.scope;
-		binder.element = data.element;
-		binder.container = data.container;
-
-		binder.names = data.names || Utility.binderNames(data.name);
-		binder.pipes = data.pipes || Utility.binderPipes(data.value);
-		binder.values = data.values || Utility.binderValues(data.value);
-
-		binder.cache = {};
-		binder.context = {};
-		binder.path = binder.values.join('.');
-		binder.type = binder.type || binder.names[0];
-		binder.keys = [binder.scope].concat(binder.values);
-
-		return binder;
-	},
-
 	get () {
 		let data = this.data;
 		for (let i = 0, l = arguments.length; i < l; i++) {
@@ -68,12 +40,12 @@ export default {
 
 	add (binder) {
 
-		if (!this.data.has(binder.element)) {
-			this.data.set(binder.element, new Map());
+		if (!this.data.has(binder.target)) {
+			this.data.set(binder.target, new Map());
 		}
 
-		if (!this.data.get(binder.element).has(binder.names[0])) {
-			this.data.get(binder.element).set(binder.names[0], binder);
+		if (!this.data.get(binder.target).has(binder.names[0])) {
+			this.data.get(binder.target).set(binder.names[0], binder);
 		// } else {
 			// console.warn(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
 			// throw new Error(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
@@ -83,14 +55,14 @@ export default {
 	},
 
 	remove (binder) {
-		if (this.data.has(binder.element)) {
+		if (this.data.has(binder.target)) {
 
-			if (this.data.get(binder.element).has(binder.names[0])) {
-				this.data.get(binder.element).delete(binder.names[0]);
+			if (this.data.get(binder.target).has(binder.names[0])) {
+				this.data.get(binder.target).delete(binder.names[0]);
 			}
 
-			if (!this.data.get(binder.element).size) {
-				this.data.delete(binder.element);
+			if (!this.data.get(binder.target).size) {
+				this.data.delete(binder.target);
 			}
 
 		}
@@ -155,7 +127,7 @@ export default {
 				let data;
 
 				const binder = Binder.create({
-					element: node,
+					target: node,
 					container: container,
 					name: attribute.name,
 					value: attribute.value,

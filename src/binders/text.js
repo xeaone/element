@@ -11,13 +11,13 @@ export default function (binder, data) {
 				data = data.toString();
 			}
 
-			if (data === binder.element.innerText) {
+			if (data === binder.target.innerText) {
 				return false;
 			}
-			
+
 		},
 		write () {
-			binder.element.innerText = data;
+			binder.target.innerText = data;
 		}
 	};
 };

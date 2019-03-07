@@ -585,6 +585,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     batch: function batch(data) {
       var self = this;
+      if (!data) return;
 
       if (data.read) {
         var read = function read() {
@@ -623,8 +624,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         self.writes.push(write);
         self.schedule();
       }
-
-      return data;
     }
   };
 
@@ -632,7 +631,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return {
       write: function write() {
         var name = binder.names.slice(1).join('-');
-        binder.element.classList.toggle(name, data);
+        binder.target.classList.toggle(name, data);
       }
     };
   }
@@ -644,38 +643,57 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           data = binder.names.slice(1).join('-') + ': ' + data + ';';
         }
 
-        if (data === binder.element.style.cssText) {
+        if (data === binder.target.style.cssText) {
           return false;
         }
       },
       write: function write() {
-        binder.element.style.cssText = data;
+        binder.target.style.cssText = data;
       }
     };
   }
 
+  var Default = {
+    read: function read() {
+      if (data === undefined || data === null) {
+        return false;
+      } else if ((typeof data === "undefined" ? "undefined" : _typeof(data)) === 'object') {
+        data = JSON.stringify(data);
+      } else if (typeof data !== 'string') {
+        data = data.toString();
+      }
+
+      if (data === binder.target[binder.type]) {
+        return false;
+      }
+    },
+    write: function write() {
+      binder.target[binder.type] = data;
+    }
+  };
+
   function Disable(binder, data) {
     return {
       read: function read() {
-        if (data === binder.element.disabled) return false;
+        if (data === binder.target.disabled) return false;
       },
       write: function write() {
-        binder.element.disabled = data;
+        binder.target.disabled = data;
       }
     };
   }
 
   function Each(binder, data) {
-    if (!binder.cache.template && !binder.element.children.length) {
+    if (!binder.meta.template && !binder.target.children.length) {
       return;
     }
 
-    if (!binder.cache.fragment) {
-      binder.cache.fragment = document.createDocumentFragment();
+    if (!binder.meta.fragment) {
+      binder.meta.fragment = document.createDocumentFragment();
     }
 
-    if (!binder.cache.template) {
-      binder.cache.template = binder.element.removeChild(binder.element.firstElementChild);
+    if (!binder.meta.template) {
+      binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
     }
 
     var add, remove;
@@ -685,38 +703,38 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         if (!data || _typeof(data) !== 'object') data = [];
         var keys = Object.keys(data);
         var dataLength = keys.length;
-        var elementLength = binder.cache.fragment.children.length + binder.element.children.length;
+        var nodeLength = binder.meta.fragment.children.length + binder.target.children.length;
 
-        if (elementLength === dataLength) {
+        if (nodeLength === dataLength) {
           return false;
-        } else if (elementLength > dataLength) {
-          remove = elementLength - dataLength;
+        } else if (nodeLength > dataLength) {
+          remove = nodeLength - dataLength;
 
-          while (binder.cache.fragment.children.length && remove--) {
-            binder.cache.fragment.removeChild(binder.cache.fragment.lastElementChild);
+          while (binder.meta.fragment.children.length && remove--) {
+            binder.meta.fragment.removeChild(binder.meta.fragment.lastElementChild);
           }
-        } else if (elementLength < dataLength) {
-          add = dataLength - elementLength;
+        } else if (nodeLength < dataLength) {
+          add = dataLength - nodeLength;
 
-          while (elementLength < dataLength) {
-            var clone = document.importNode(binder.cache.template, true);
-            var variable = keys[elementLength];
-            Utility.replaceEachVariable(clone, binder.names[1], binder.path, keys[elementLength]);
-            binder.cache.fragment.appendChild(clone);
-            elementLength++;
+          while (nodeLength < dataLength) {
+            var clone = document.importNode(binder.meta.template, true);
+            var variable = keys[nodeLength];
+            Utility.replaceEachVariable(clone, binder.names[1], binder.path, keys[nodeLength]);
+            binder.meta.fragment.appendChild(clone);
+            nodeLength++;
           }
         }
       },
       write: function write() {
         if (remove) {
-          while (binder.element.children.length && remove--) {
-            binder.element.removeChild(binder.element.lastElementChild);
+          while (binder.target.children.length && remove--) {
+            binder.target.removeChild(binder.target.lastElementChild);
           }
         } else if (add) {
-          binder.element.appendChild(binder.cache.fragment);
+          binder.target.appendChild(binder.meta.fragment);
         }
 
-        if (binder.element.children.length !== data.length) {
+        if (binder.target.children.length !== data.length) {
           self.default(binder, data);
         }
       }
@@ -726,10 +744,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Enable(binder, data) {
     return {
       read: function read() {
-        if (!data === binder.element.disabled) return false;
+        if (!data === binder.target.disabled) return false;
       },
       write: function write() {
-        binder.element.disabled = !data;
+        binder.target.disabled = !data;
       }
     };
   }
@@ -737,10 +755,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Hide(binder, data) {
     return {
       read: function read() {
-        if (data === binder.element.hidden) return false;
+        if (data === binder.target.hidden) return false;
       },
       write: function write() {
-        binder.element.hidden = data;
+        binder.target.hidden = data;
       }
     };
   }
@@ -756,12 +774,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           data = String(data);
         }
 
-        if (data === binder.element.innerHTML) {
+        if (data === binder.target.innerHTML) {
           return false;
         }
       },
       write: function write() {
-        binder.element.innerHTML = data;
+        binder.target.innerHTML = data;
       }
     };
   }
@@ -774,8 +792,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           return false;
         }
 
-        if (!binder.cache.method) {
-          binder.cache.method = function (e) {
+        if (!binder.meta.method) {
+          binder.meta.method = function (e) {
             var parameters = [e];
 
             for (var i = 0, l = binder.pipes.length; i < l; i++) {
@@ -790,8 +808,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       },
       write: function write() {
-        binder.element.removeEventListener(binder.names[1], binder.cache.method);
-        binder.element.addEventListener(binder.names[1], binder.cache.method);
+        binder.target.removeEventListener(binder.names[1], binder.meta.method);
+        binder.target.addEventListener(binder.names[1], binder.meta.method);
       }
     };
   }
@@ -799,10 +817,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Read(binder, data) {
     return {
       read: function read() {
-        if (data === binder.element.readOnly) return false;
+        if (data === binder.target.readOnly) return false;
       },
       write: function write() {
-        binder.element.readOnly = data;
+        binder.target.readOnly = data;
       }
     };
   }
@@ -810,10 +828,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Require(binder, data) {
     return {
       read: function read() {
-        if (data === binder.element.required) return false;
+        if (data === binder.target.required) return false;
       },
       write: function write() {
-        binder.element.required = data;
+        binder.target.required = data;
       }
     };
   }
@@ -821,10 +839,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Show(binder, data) {
     return {
       read: function read() {
-        if (!data === binder.element.hidden) return false;
+        if (!data === binder.target.hidden) return false;
       },
       write: function write() {
-        binder.element.hidden = !data;
+        binder.target.hidden = !data;
       }
     };
   }
@@ -833,15 +851,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return {
       write: function write() {
         if (!data) {
-          binder.element.style = '';
+          binder.target.style = '';
         } else if (data.constructor === Object) {
           for (var name in data) {
             var value = data[name];
 
             if (value === null || value === undefined) {
-              delete binder.element.style[name];
+              delete binder.target.style[name];
             } else {
-              binder.element.style[name] = value;
+              binder.target.style[name] = value;
             }
           }
         }
@@ -860,12 +878,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           data = data.toString();
         }
 
-        if (data === binder.element.innerText) {
+        if (data === binder.target.innerText) {
           return false;
         }
       },
       write: function write() {
-        binder.element.innerText = data;
+        binder.target.innerText = data;
       }
     };
   }
@@ -909,28 +927,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return $return();
       }.bind(this));
     },
-    create: function create(data) {
-      var binder = {};
-      if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
-      if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
-      if (data.scope === undefined) throw new Error('Oxe.binder.create - missing scope');
-      if (data.element === undefined) throw new Error('Oxe.binder.create - missing element');
-      if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
-      binder.name = data.name;
-      binder.value = data.value;
-      binder.scope = data.scope;
-      binder.element = data.element;
-      binder.container = data.container;
-      binder.names = data.names || Utility.binderNames(data.name);
-      binder.pipes = data.pipes || Utility.binderPipes(data.value);
-      binder.values = data.values || Utility.binderValues(data.value);
-      binder.cache = {};
-      binder.context = {};
-      binder.path = binder.values.join('.');
-      binder.type = binder.type || binder.names[0];
-      binder.keys = [binder.scope].concat(binder.values);
-      return binder;
-    },
     get: function get() {
       var data = this.data;
 
@@ -942,22 +938,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return data;
     },
     add: function add(binder) {
-      if (!this.data.has(binder.element)) {
-        this.data.set(binder.element, new Map());
+      if (!this.data.has(binder.target)) {
+        this.data.set(binder.target, new Map());
       }
 
-      if (!this.data.get(binder.element).has(binder.names[0])) {
-        this.data.get(binder.element).set(binder.names[0], binder);
+      if (!this.data.get(binder.target).has(binder.names[0])) {
+        this.data.get(binder.target).set(binder.names[0], binder);
       }
     },
     remove: function remove(binder) {
-      if (this.data.has(binder.element)) {
-        if (this.data.get(binder.element).has(binder.names[0])) {
-          this.data.get(binder.element).delete(binder.names[0]);
+      if (this.data.has(binder.target)) {
+        if (this.data.get(binder.target).has(binder.names[0])) {
+          this.data.get(binder.target).delete(binder.names[0]);
         }
 
-        if (!this.data.get(binder.element).size) {
-          this.data.delete(binder.element);
+        if (!this.data.get(binder.target).size) {
+          this.data.delete(binder.target);
         }
       }
     },
@@ -979,31 +975,33 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var attribute = attributes[i];
 
         if (attribute.name.indexOf('o-') === 0 && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype') {
-          var data = void 0;
-          var binder = Binder.create({
-            element: _node,
+          var _data = void 0;
+
+          var _binder = Binder.create({
+            target: _node,
             container: container,
             name: attribute.name,
             value: attribute.value,
             scope: container.scope
           });
-          this.data.get(_node).set(binder.names[0], binder);
+
+          this.data.get(_node).set(_binder.names[0], _binder);
 
           if (type === 'remove') {
-            data = undefined;
-            Binder.remove(binder);
+            _data = undefined;
+            Binder.remove(_binder);
           } else if (type === 'add') {
-            if (binder.type === 'on') {
-              data = Methods.get(binder.keys);
+            if (_binder.type === 'on') {
+              _data = Methods.get(_binder.keys);
             } else {
-              data = Model.get(binder.keys);
-              data = Piper(binder, data);
+              _data = Model.get(_binder.keys);
+              _data = Piper(_binder, _data);
             }
 
-            Binder.add(binder);
+            Binder.add(_binder);
           }
 
-          Binder.render(binder, data);
+          Binder.render(_binder, _data);
         }
       }
     },
@@ -1044,15 +1042,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   function Value(binder, data) {
     var self = this;
-    var type = binder.element.type;
-    var name = binder.element.nodeName;
+    var type = binder.target.type;
+    var name = binder.target.nodeName;
 
     if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-      var elements, multiple;
+      var nodes, multiple;
       return {
         read: function read() {
-          elements = binder.element.options;
-          multiple = Utility.multiple(binder.element);
+          nodes = binder.target.options;
+          multiple = Utility.multiple(binder.target);
 
           if (multiple && data.constructor !== Array) {
             throw new Error("Oxe - invalid multiple select value type ".concat(binder.keys.join('.'), " array required"));
@@ -1061,39 +1059,39 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         write: function write() {
           var selected = false;
 
-          for (var i = 0, l = elements.length; i < l; i++) {
-            var element = elements[i];
-            var value = Utility.value(element);
+          for (var i = 0, l = nodes.length; i < l; i++) {
+            var node = nodes[i];
+            var value = Utility.value(node);
 
             if (multiple) {
               if (data.indexOf(value) !== -1) {
                 selected = true;
-                element.selected = true;
-                element.setAttribute('selected', '');
-              } else if (Utility.selected(element)) {
+                node.selected = true;
+                node.setAttribute('selected', '');
+              } else if (Utility.selected(node)) {
                 Model.get(binder.keys).push(value);
               } else {
-                element.selected = false;
-                element.removeAttribute('selected');
+                node.selected = false;
+                node.removeAttribute('selected');
               }
             } else {
               if (data === value) {
                 selected = true;
-                element.selected = true;
-                element.setAttribute('selected', '');
-              } else if (!selected && Utility.selected(element)) {
+                node.selected = true;
+                node.setAttribute('selected', '');
+              } else if (!selected && Utility.selected(node)) {
                 selected = true;
                 Model.set(binder.keys, value);
               } else {
-                element.selected = false;
-                element.removeAttribute('selected');
+                node.selected = false;
+                node.removeAttribute('selected');
               }
             }
           }
         }
       };
     } else if (type === 'radio') {
-      var _elements;
+      var _nodes2;
 
       return {
         read: function read() {
@@ -1102,24 +1100,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             return false;
           }
 
-          _elements = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
+          _nodes2 = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
         },
         write: function write() {
           var checked = false;
 
-          for (var i = 0, l = _elements.length; i < l; i++) {
-            var element = _elements[i];
+          for (var i = 0, l = _nodes2.length; i < l; i++) {
+            var node = _nodes2[i];
 
             if (i === data) {
               checked = true;
-              element.checked = true;
+              node.checked = true;
             } else {
-              element.checked = false;
+              node.checked = false;
             }
           }
 
           if (!checked) {
-            _elements[0].checked = true;
+            _nodes2[0].checked = true;
             Model.set(binder.keys, 0);
           }
         }
@@ -1132,19 +1130,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             return false;
           }
 
-          if (data === binder.element.checked) {
+          if (data === binder.target.checked) {
             return false;
           }
         },
         write: function write() {
-          binder.element.checked = data;
+          binder.target.checked = data;
         }
       };
     } else {
       return {
         read: function read() {
-          if (name.indexOf('OPTION') !== -1 && binder.element.selected) {
-            var parent = binder.element.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.element.parentElement : binder.element.parentElement.parentElement;
+          if (name.indexOf('OPTION') !== -1 && binder.target.selected) {
+            var parent = binder.target.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.target.parentElement : binder.target.parentElement.parentElement;
             var select = View.get(parent, 'value');
 
             if (select) {
@@ -1158,12 +1156,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             return false;
           }
 
-          if (data === binder.element.value) {
+          if (data === binder.target.value) {
             return false;
           }
         },
         write: function write() {
-          binder.element.value = data;
+          binder.target.value = data;
         }
       };
     }
@@ -1172,121 +1170,192 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Write(binder, data) {
     return {
       read: function read() {
-        if (!data === binder.element.readOnly) return false;
+        if (!data === binder.target.readOnly) return false;
       },
       write: function write() {
-        binder.element.readOnly = !data;
+        binder.target.readOnly = !data;
       }
     };
   }
 
-  var Binder = {
-    data: {},
-    binders: {
-      get class() {
-        return Class;
-      },
-
-      get css() {
-        return Css;
-      },
-
-      get disable() {
-        return Disable;
-      },
-
-      get disabled() {
-        return Disable;
-      },
-
-      get each() {
-        return Each;
-      },
-
-      get enable() {
-        return Enable;
-      },
-
-      get enabled() {
-        return Enable;
-      },
-
-      get hide() {
-        return Hide;
-      },
-
-      get hidden() {
-        return Hide;
-      },
-
-      get html() {
-        return Html;
-      },
-
-      get on() {
-        return On;
-      },
-
-      get read() {
-        return Read;
-      },
-
-      get require() {
-        return Require;
-      },
-
-      get required() {
-        return Require;
-      },
-
-      get show() {
-        return Show;
-      },
-
-      get style() {
-        return Style;
-      },
-
-      get text() {
-        return Text;
-      },
-
-      get value() {
-        return Value;
-      },
-
-      get write() {
-        return Write;
-      }
-
+  var Data = {};
+  var Binders = {
+    get class() {
+      return Class;
     },
+
+    get css() {
+      return Css;
+    },
+
+    get default() {
+      return Default;
+    },
+
+    get disable() {
+      return Disable;
+    },
+
+    get disabled() {
+      return Disable;
+    },
+
+    get each() {
+      return Each;
+    },
+
+    get enable() {
+      return Enable;
+    },
+
+    get enabled() {
+      return Enable;
+    },
+
+    get hide() {
+      return Hide;
+    },
+
+    get hidden() {
+      return Hide;
+    },
+
+    get html() {
+      return Html;
+    },
+
+    get on() {
+      return On;
+    },
+
+    get read() {
+      return Read;
+    },
+
+    get require() {
+      return Require;
+    },
+
+    get required() {
+      return Require;
+    },
+
+    get show() {
+      return Show;
+    },
+
+    get showed() {
+      return Show;
+    },
+
+    get style() {
+      return Style;
+    },
+
+    get text() {
+      return Text;
+    },
+
+    get value() {
+      return Value;
+    },
+
+    get write() {
+      return Write;
+    }
+
+  };
+  var Binder = {
+    get data() {
+      return Data;
+    },
+
+    get binders() {
+      return Binders;
+    },
+
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
+
+        if (options.binders) {
+          for (var i = 0, l = options.binders.length; i < l; i++) {
+            var _binder2 = options.binders[i];
+            this.binders[_binder2.name] = _binder2;
+          }
+        }
+
         return $return();
-      });
+      }.bind(this));
     },
     create: function create(data) {
-      var binder = {};
       if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
       if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
-      if (data.scope === undefined) throw new Error('Oxe.binder.create - missing scope');
-      if (data.element === undefined) throw new Error('Oxe.binder.create - missing element');
+      if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
       if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
-      binder.name = data.name;
-      binder.value = data.value;
-      binder.scope = data.scope;
-      binder.element = data.element;
-      binder.container = data.container;
-      binder.names = data.names || Utility.binderNames(data.name);
-      binder.pipes = data.pipes || Utility.binderPipes(data.value);
-      binder.values = data.values || Utility.binderValues(data.value);
-      binder.cache = {};
-      binder.context = {};
-      binder.path = binder.values.join('.');
-      binder.type = binder.type || binder.names[0];
-      binder.keys = [binder.scope].concat(binder.values);
-      return binder;
+      var scope = data.container.scope;
+      var names = data.names || Utility.binderNames(data.name);
+      var pipes = data.pipes || Utility.binderPipes(data.value);
+      var values = data.values || Utility.binderValues(data.value);
+      var type = names[0];
+      var path = values.join('.');
+      var keys = [scope].concat(values);
+      var meta = {};
+      var context = {};
+      return {
+        get type() {
+          return type;
+        },
+
+        get path() {
+          return path;
+        },
+
+        get scope() {
+          return scope;
+        },
+
+        get name() {
+          return data.name;
+        },
+
+        get value() {
+          return data.value;
+        },
+
+        get target() {
+          return data.target;
+        },
+
+        get container() {
+          return data.container;
+        },
+
+        get keys() {
+          return keys;
+        },
+
+        get names() {
+          return names;
+        },
+
+        get pipes() {
+          return pipes;
+        },
+
+        get values() {
+          return values;
+        },
+
+        get meta() {
+          return meta;
+        },
+
+        get context() {
+          return context;
+        }
+
+      };
     },
     get: function get(data) {
       var binder;
@@ -1312,7 +1381,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       for (var i = 0, l = items.length; i < l; i++) {
         var item = items[i];
 
-        if (item.element === binder.element && item.name === binder.name) {
+        if (item.target === binder.target && item.name === binder.name) {
           return item;
         }
       }
@@ -1342,40 +1411,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var items = this.data[binder.scope][binder.path];
 
       for (var i = 0, l = items.length; i < l; i++) {
-        if (items[i].element === binder.element) {
+        if (items[i].targetargett === binder.target) {
           return items.splice(i, 1);
         }
       }
     },
     render: function render(binder, data) {
-      var render;
-
-      if (binder.type in this.binders) {
-        render = this.binders[binder.type](binder, data);
-      } else {
-        render = {
-          read: function read() {
-            if (data === undefined || data === null) {
-              return false;
-            } else if (_typeof(data) === 'object') {
-              data = JSON.stringify(data);
-            } else if (typeof data !== 'string') {
-              data = data.toString();
-            }
-
-            if (data === binder.element[binder.type]) {
-              return false;
-            }
-          },
-          write: function write() {
-            binder.element[binder.type] = data;
-          }
-        };
-      }
-
-      if (render) {
-        Batcher.batch(render);
-      }
+      var type = binder.type in this.binders ? binder.type : 'default';
+      var render = this.binders[type](binder, data);
+      Batcher.batch(render);
     }
   };
   var Model = {
@@ -1466,16 +1510,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   };
 
-  function Update(element, attribute) {
+  function Update(node, attribute) {
     return new Promise(function ($return, $error) {
-      if (!element) return $error(new Error('Oxe - requires element argument'));
-      if (!attribute) return $error(new Error('Oxe - requires attribute argument'));
-      var binder = View.get(element, attribute);
+      if (!node) return $error(new Error('Oxe.update - requires node argument'));
+      if (!attribute) return $error(new Error('Oxe.update - requires attribute argument'));
+      var binder = View.get(node, attribute);
 
       var read = function read() {
-        var type = binder.element.type;
-        var name = binder.element.nodeName;
-        var data = Utility.value(binder.element);
+        var type = binder.target.type;
+        var name = binder.target.nodeName;
+        var data = Utility.value(binder.target);
 
         if (data !== undefined) {
           var original = Model.get(binder.keys);
@@ -1800,20 +1844,20 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   function Submit(event) {
     return new Promise(function ($return, $error) {
-      var element, binder, method, model, data, options, oaction, omethod, oenctype, result;
-      element = event.target;
-      binder = View.get(element, 'submit');
+      var node, binder, method, model, data, options, oaction, omethod, oenctype, result;
+      node = event.target;
+      binder = View.get(node, 'submit');
       method = Methods.get(binder.keys);
       model = Model.get(binder.scope);
-      data = Utility.formData(element, model);
+      data = Utility.formData(node, model);
       return Promise.resolve(method.call(binder.container, data, event)).then(function ($await_45) {
         try {
           options = $await_45;
 
           if (_typeof(options) === 'object') {
-            oaction = element.getAttribute('o-action');
-            omethod = element.getAttribute('o-method');
-            oenctype = element.getAttribute('o-enctype');
+            oaction = node.getAttribute('o-action');
+            omethod = node.getAttribute('o-method');
+            oenctype = node.getAttribute('o-enctype');
             options.url = options.url || oaction;
             options.method = options.method || omethod;
             options.contentType = options.contentType || oenctype;
@@ -1843,8 +1887,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
 
           function $If_6() {
-            if (element.hasAttribute('o-reset') || _typeof(options) === 'object' && options.reset) {
-              element.reset();
+            if (node.hasAttribute('o-reset') || _typeof(options) === 'object' && options.reset) {
+              node.reset();
             }
 
             return $return();
@@ -1866,10 +1910,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   function Reset(event) {
     return new Promise(function ($return, $error) {
-      var element = event.target;
-      var binder = View.get(element, 'submit');
+      var node = event.target;
+      var binder = View.get(node, 'submit');
       var model = Model.get(binder.scope);
-      Utility.formReset(element, model);
+      Utility.formReset(node, model);
       return $return();
     });
   }
@@ -2405,7 +2449,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     ran: false,
     location: {},
     mode: 'push',
-    element: null,
+    target: null,
     contain: false,
     compiled: false,
     folder: './routes',
@@ -2418,15 +2462,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.folder = options.folder === undefined ? this.folder : options.folder;
         this.before = options.before === undefined ? this.before : options.before;
         this.change = options.change === undefined ? this.change : options.change;
-        this.element = options.element === undefined ? this.element : options.element;
+        this.target = options.target === undefined ? this.target : options.target;
         this.contain = options.contain === undefined ? this.contain : options.contain;
         this.external = options.external === undefined ? this.external : options.external;
 
-        if (!this.element || typeof this.element === 'string') {
-          this.element = document.body.querySelector(this.element || 'o-router');
+        if (!this.target || typeof this.target === 'string') {
+          this.target = document.body.querySelector(this.target || 'o-router');
         }
 
-        if (!this.element) return $error(new Error('Oxe.router.render - missing o-router element'));
+        if (!this.target) return $error(new Error('Oxe.router.setup - target option required'));
         return Promise.resolve(this.add(options.routes)).then(function ($await_51) {
           try {
             return Promise.resolve(this.route(window.location.href, {
@@ -2898,8 +2942,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           return $error(new Error('Oxe.render - route argument required. Missing object option.'));
         }
 
-        if (!route.component && !route.element) {
-          return $error(new Error('Oxe.render - route property required. Missing component or element option.'));
+        if (!route.component && !route.target) {
+          return $error(new Error('Oxe.render - route property required. Missing component or target option.'));
         }
 
         if (route.title) {
@@ -2938,27 +2982,27 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           });
         }
 
-        if (!route.element) {
+        if (!route.target) {
           if (route.component.constructor === String) {
-            route.element = window.document.createElement(route.component);
+            route.target = window.document.createElement(route.component);
           } else if (route.component.constructor === Object) {
             Component.define(route.component);
 
             if (this.compiled) {
-              route.element = this.element.firstElementChild;
+              route.target = this.target.firstElementChild;
               this.scroll(0, 0);
               return $return();
             } else {
-              route.element = window.document.createElement(route.component.name);
+              route.target = window.document.createElement(route.component.name);
             }
           }
         }
 
-        while (this.element.firstChild) {
-          this.element.removeChild(this.element.firstChild);
+        while (this.target.firstChild) {
+          this.target.removeChild(this.target.firstChild);
         }
 
-        this.element.appendChild(route.element);
+        this.target.appendChild(route.target);
         this.scroll(0, 0);
         return $return();
       }.bind(this));

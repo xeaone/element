@@ -9,8 +9,8 @@ export default function (binder, data) {
 				return false;
 			}
 
-			if (!binder.cache.method) {
-				binder.cache.method = function (e) {
+			if (!binder.meta.method) {
+				binder.meta.method = function (e) {
 					const parameters = [e];
 
 					for (let i = 0, l = binder.pipes.length; i < l; i++) {
@@ -26,8 +26,8 @@ export default function (binder, data) {
 
 		},
 		write () {
-			binder.element.removeEventListener(binder.names[1], binder.cache.method);
-			binder.element.addEventListener(binder.names[1], binder.cache.method);
+			binder.target.removeEventListener(binder.names[1], binder.meta.method);
+			binder.target.addEventListener(binder.names[1], binder.meta.method);
 		}
 	};
 };
