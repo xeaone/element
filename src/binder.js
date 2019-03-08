@@ -95,7 +95,11 @@ export default {
 			get values () { return values; },
 
 			get meta () { return meta; },
-			get context () { return context; }
+			get context () { return context; },
+
+
+			get data () { return Utility.getByPath(data.container.model, values); },
+			set data (value) { return Utility.setByPath(data.container.model, values, value); },
 		};
 	},
 
