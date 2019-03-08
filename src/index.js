@@ -18,6 +18,9 @@ import Path from './path.js';
 
 const eStyle = document.createElement('style');
 const tStyle = document.createTextNode(`
+	*[hidden] {
+		display: none !important;
+	}
 	o-router, o-router > :first-child {
 		display: block;
 		animation: o-transition var(--o-transition) ease-in-out;
