@@ -74,9 +74,9 @@ export default {
 		const part = paths.slice(1).join('.');
 		const scope = paths.slice(0, 1).join('.');
 
-		if (scope in Binder.data === false) return console.warn(`Oxe.model.listener - scope not found: ${scope}`);
-		if (part in Binder.data[scope] === false) return console.warn(`Oxe.model.listener - path not found: ${part}`);
-		if (0 in Binder.data[scope][part] === false) return console.warn('Oxe.model.listener - data not found');
+		if (scope in Binder.data === false) return;// console.warn(`Oxe.model.listener - scope not found: ${scope}`);
+		if (part in Binder.data[scope] === false) return;// console.warn(`Oxe.model.listener - path not found: ${part}`);
+		if (0 in Binder.data[scope][part] === false) return;// console.warn('Oxe.model.listener - data not found');
 
 		const binders = Binder.data[scope][part];
 

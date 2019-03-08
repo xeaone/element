@@ -235,8 +235,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     DOT: /\.+/,
     PIPE: /\s?\|\s?/,
     PIPES: /\s?,\s?|\s+/,
-    VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
-    VARIABLE_END: '(?:)',
     value: function value(element) {
       var type = this.type(element);
 
@@ -460,24 +458,20 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         node = node.nextSibling;
       }
     },
-    replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
-      variable = variable.toLowerCase();
-      var pattern = new RegExp("".concat(this.VARIABLE_START, "\\$").concat(variable).concat(this.VARIABLE_END), 'ig');
-      this.walker(element, function (node) {
+    replaceEachVariable: function replaceEachVariable(target, variable, path, key) {
+      var keyPattern = new RegExp("{{\\$".concat(variable, "-(key|index)}}"), 'gi');
+      var pathPattern = new RegExp("\\$".concat(variable, "($|,|\\s+|\\||\\.)"), 'gi');
+      this.walker(target, function (node) {
         if (node.nodeType === 3) {
-          var value = node.nodeValue.toLowerCase();
-
-          if (value === "$".concat(variable)) {
-            node.nodeValue = "".concat(path, ".").concat(key);
-          } else if (value === "$".concat(variable, "-key") || value === "$".concat(variable, "-index")) {
-            node.nodeValue = key;
-          }
+          node.nodeValue = node.nodeValue.replace(keyPattern, "".concat(key));
+          node.nodeValue = node.nodeValue.replace(pathPattern, "".concat(path, ".").concat(key, "$1"));
         } else if (node.nodeType === 1) {
           for (var i = 0, l = node.attributes.length; i < l; i++) {
             var attribute = node.attributes[i];
 
             if (attribute.name.indexOf('o-') === 0) {
-              attribute.value = attribute.value.replace(pattern, "$1".concat(path, ".").concat(key));
+              attribute.value = attribute.value.replace(keyPattern, "".concat(key));
+              attribute.value = attribute.value.replace(pathPattern, "".concat(path, ".").concat(key, "$1"));
             }
           }
         }
@@ -702,8 +696,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
           while (nodeLength < dataLength) {
             var clone = document.importNode(binder.meta.template, true);
-            var variable = keys[nodeLength];
-            Utility.replaceEachVariable(clone, binder.names[1], binder.path, keys[nodeLength]);
+            var key = keys[nodeLength];
             binder.meta.fragment.appendChild(clone);
             nodeLength++;
           }
@@ -896,9 +889,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return data;
   }
 
+  var PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
+  var KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
   var View = {
     data: new Map(),
     target: document.body,
+    keyPattern: new RegExp(KeyPattern, 'i'),
+    keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
+    pathPattern: new RegExp(PathPattern, 'i'),
+    pathPatternGlobal: new RegExp(PathPattern, 'ig'),
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
@@ -941,11 +940,54 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
     },
+    each: function each(node, variable) {
+      var child = node;
+      var parent = node.parentElement;
+
+      while (parent) {
+        if ("o-each-".concat(variable) in parent.attributes) {
+          var binder = this.data.get(parent).get('each');
+          var _index2 = 0;
+          var previous = child;
+
+          while (previous = previous.previousElementSibling) {
+            _index2++;
+          }
+
+          var key = Object.keys(binder.data)[_index2];
+
+          return {
+            key: key,
+            child: child,
+            parent: parent,
+            path: binder.path
+          };
+        } else {
+          child = parent;
+          parent = parent.parentElement;
+        }
+      }
+    },
     node: function node(_node, target, type, container) {
       if (!type) throw new Error('Oxe.binder.bind - type argument required');
       if (!_node) throw new Error('Oxe.binder.bind - node argument required');
 
-      if (_node.nodeName === 'SLOT' || _node.nodeName === 'TEMPLATE' || _node.nodeName === 'O-ROUTER' || _node.nodeType === Node.TEXT_NODE || _node.nodeType === Node.DOCUMENT_NODE || _node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+      if (_node.nodeName === 'SLOT' || _node.nodeName === 'TEMPLATE' || _node.nodeName === 'O-ROUTER' || _node.nodeType === Node.DOCUMENT_NODE || _node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        return;
+      }
+
+      if (_node.nodeType === Node.TEXT_NODE) {
+        var match = _node.nodeValue.match(this.keyPattern);
+
+        if (match) {
+          var variable = match[2].toLowerCase();
+          var each = this.each(_node, variable);
+
+          if (each) {
+            _node.nodeValue = _node.nodeValue.replace(this.keyPatternGlobal, "".concat(each.key));
+          }
+        }
+
         return;
       }
 
@@ -959,6 +1001,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var attribute = attributes[i];
 
         if (attribute.name.indexOf('o-') === 0 && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype') {
+          var _match = attribute.value.match(this.pathPattern);
+
+          if (_match) {
+            var _variable = _match[2].toLowerCase();
+
+            var _each = this.each(_node, _variable);
+
+            if (_each) {
+              attribute.value = attribute.value.replace(this.keyPatternGlobal, "".concat(_each.key));
+              attribute.value = attribute.value.replace(this.pathPatternGlobal, "".concat(_each.path, ".").concat(_each.key, "$3"));
+            }
+          }
+
           var data = void 0;
           var binder = Binder.create({
             target: _node,
@@ -990,8 +1045,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     nodes: function nodes(_nodes, target, type, container) {
       for (var i = 0, l = _nodes.length; i < l; i++) {
         var node = _nodes[i];
-        if (node.nodeType !== 1) continue;
-        var childContainer = node.scope || 'o-scope' in node.attributes ? node : container;
+        var childContainer = node.nodeType === 1 && (node.scope || 'o-scope' in node.attributes) ? node : container;
         this.node(node, target, type, container);
         this.nodes(node.childNodes, target, type, childContainer);
       }
@@ -1042,8 +1096,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           for (var i = 0, l = this.nodes.length; i < l; i++) {
             var node = this.nodes[i];
             var value = Utility.value(node);
-            console.log(node);
-            console.log(data);
 
             if (this.multiple) {
               if (Utility.selected(node) && data === undefined || data === null || data === '' || data.length === 0) {
@@ -1467,9 +1519,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var paths = path.split('.');
       var part = paths.slice(1).join('.');
       var scope = paths.slice(0, 1).join('.');
-      if (scope in Binder.data === false) return console.warn("Oxe.model.listener - scope not found: ".concat(scope));
-      if (part in Binder.data[scope] === false) return console.warn("Oxe.model.listener - path not found: ".concat(part));
-      if (0 in Binder.data[scope][part] === false) return console.warn('Oxe.model.listener - data not found');
+      if (scope in Binder.data === false) return;
+      if (part in Binder.data[scope] === false) return;
+      if (0 in Binder.data[scope][part] === false) return;
       var binders = Binder.data[scope][part];
 
       for (var i = 0, l = binders.length; i < l; i++) {
@@ -1504,29 +1556,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var type = binder.target.type;
         var name = binder.target.nodeName;
         var data = Utility.value(binder.target);
-        console.log(data);
-
-        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-          var nodes = binder.target.options;
-          var multiple = Utility.multiple(binder.target);
-          data = multiple ? [] : undefined;
-
-          for (var i = 0, l = nodes.length; i < l; i++) {
-            var _node2 = nodes[i];
-
-            if (Utility.selected(_node2)) {
-              if (multiple) {
-                data.push(Utility.value(_node2));
-              } else {
-                data = Utility.value(_node2);
-                break;
-              }
-            }
-          }
-        } else {
-          data = binder.target.value;
+        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) ;else {
+          binder.data = binder.target.value || '';
         }
-
         if (data && _typeof(data) === 'object' && data.constructor === binder.data.constructor) ;else if (binder.data !== data) ;
       };
 
@@ -2189,10 +2221,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     off: function off(name, method) {
       if (name in this.events) {
-        var _index2 = this.events[name].indexOf(method);
+        var _index3 = this.events[name].indexOf(method);
 
-        if (_index2 !== -1) {
-          this.events[name].splice(_index2, 1);
+        if (_index3 !== -1) {
+          this.events[name].splice(_index3, 1);
         }
       }
     },

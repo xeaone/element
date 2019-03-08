@@ -1,14 +1,22 @@
 import Utility from './utility.js';
 import Methods from './methods.js';
-// import Render from './render.js';
 import Binder from './binder.js';
 import Piper from './piper.js';
 import Model from './model.js';
+
+const PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
+const KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
 
 export default {
 
 	data: new Map(),
 	target: document.body,
+
+	keyPattern: new RegExp(KeyPattern, 'i'),
+	keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
+
+	pathPattern: new RegExp(PathPattern, 'i'),
+	pathPatternGlobal: new RegExp(PathPattern, 'ig'),
 
 	async setup (options) {
 		options = options || {};
@@ -68,6 +76,29 @@ export default {
 		}
 	},
 
+	each (node, variable) {
+		let child = node;
+		let parent = node.parentElement;
+		while (parent) {
+			if (`o-each-${variable}` in parent.attributes) {
+				const binder = this.data.get(parent).get('each');
+				let index = 0;
+				let previous = child;
+				while (previous = previous.previousElementSibling) index++;
+				const key = Object.keys(binder.data)[index];
+				return {
+					key: key,
+					child: child,
+					parent: parent,
+					path: binder.path,
+				};
+			} else {
+				child = parent;
+				parent = parent.parentElement;
+			}
+		}
+	},
+
 	node (node, target, type, container) {
 
 		if (!type) throw new Error('Oxe.binder.bind - type argument required');
@@ -77,16 +108,25 @@ export default {
 			node.nodeName === 'SLOT' ||
 			node.nodeName === 'TEMPLATE' ||
 			node.nodeName === 'O-ROUTER' ||
-			node.nodeType === Node.TEXT_NODE ||
+			// node.nodeType === Node.TEXT_NODE ||
 			node.nodeType === Node.DOCUMENT_NODE ||
 			node.nodeType === Node.DOCUMENT_FRAGMENT_NODE
 		) {
 			return;
 		}
 
-		// if (node.nodeType === Node.TEXT_NODE) {
-		// 	return this.rewrite(node);
-		// }
+		// rewrite dynamic text keys or indexs
+		if (node.nodeType === Node.TEXT_NODE) {
+			const match = node.nodeValue.match(this.keyPattern);
+			if (match) {
+				const variable = match[2].toLowerCase();
+				const each = this.each(node, variable);
+				if (each) {
+					node.nodeValue = node.nodeValue.replace(this.keyPatternGlobal, `${each.key}`);
+				}
+			}
+			return;
+		}
 
 		if (!this.data.has(node)) {
 			this.data.set(node, new Map());
@@ -105,24 +145,18 @@ export default {
 				&& attribute.name !== 'o-method'
 				&& attribute.name !== 'o-enctype'
 			) {
-				// if (attribute.name.indexOf('o-each') === 0) {
-				// 	contexts[attribute.name.toLowerCase()] = node;
-				// }
-				//
-				// if (attribute.value.indexOf('$') !== -1) {
-				// 	const variable = attribute.value.split('.')[0].replace('$', '').toLowerCase();
-				// 	const contextNode = contexts['o-each-' + variable];
-				// 	if (contextNode) {
-				// 		const binder = this.data.get(contextNode).get('each');
-				// 		if (binder.cache.keys) {
-				// 			const key = binder.cache.keys[contextNode.children.length-1];
-				// 			console.log(key);
-				// 			const contextAttribute = contextNode.attributes['o-each-' + variable];
-				// 			const pattern = new RegExp('(^|(\\|+|\\,+|\\s))' + variable + '(?:)', 'ig');
-				// 			attribute.value = attribute.value.replace(pattern, `$1${contextAttribute.value}.${key}`);
-				// 		}
-				// 	}
-				// }
+
+
+				// rewrite dynamic binder paths
+				const match = attribute.value.match(this.pathPattern);
+				if (match) {
+					const variable = match[2].toLowerCase();
+					const each = this.each(node, variable);
+					if (each) {
+						attribute.value = attribute.value.replace(this.keyPatternGlobal, `${each.key}`);
+						attribute.value = attribute.value.replace(this.pathPatternGlobal, `${each.path}.${each.key}$3`);
+					}
+				}
 
 				let data;
 
@@ -139,7 +173,6 @@ export default {
 				if (type === 'remove') {
 					data = undefined;
 					Binder.remove(binder);
-					// this.remove(Binder.unbind(node, attribute, container));
 				} else if (type === 'add') {
 
 					if (binder.type === 'on') {
@@ -150,7 +183,6 @@ export default {
 					}
 
 					Binder.add(binder);
-					// this.add(Binder.bind(node, attribute, container));
 				}
 
 				Binder.render(binder, data);
@@ -163,9 +195,13 @@ export default {
 		for (let i = 0, l = nodes.length; i <l; i++) {
 			const node = nodes[i];
 
-			if (node.nodeType !== 1) continue;
+			// filter out white space nodes
+			// if (node.nodeType === 1 && /^\s+$/g.test(node.nodeValue)) {
+			// 	console.log(node);
+			// 	continue;
+			// }
 
-			const childContainer = node.scope || 'o-scope' in node.attributes ? node : container;
+			const childContainer = node.nodeType === 1 && (node.scope || 'o-scope' in node.attributes) ? node : container;
 
 			this.node(node, target, type, container);
 			this.nodes(node.childNodes, target, type, childContainer);

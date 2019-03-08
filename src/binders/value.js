@@ -28,8 +28,8 @@ export default function (binder, data) {
 					const node = this.nodes[i];
 					const value = Utility.value(node);
 
-					console.log(node);
-					console.log(data);
+					// console.log(node);
+					// console.log(data);
 
 					if (this.multiple) {
 						if (

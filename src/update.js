@@ -15,30 +15,30 @@ export default async function (node, attribute) {
 	 	const name = binder.target.nodeName;
 
 		let data = Utility.value(binder.target);
-		console.log(data);
+		// console.log(data);
 
 		if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-			const nodes = binder.target.options;
-			const multiple = Utility.multiple(binder.target);
-
-			data = multiple ? [] : undefined;
-
-			for (let i = 0, l = nodes.length; i < l; i++) {
-				const node = nodes[i];
-				// console.log(node);
-
-				if (Utility.selected(node)) {
-
-					if (multiple) {
-						data.push(Utility.value(node));
-					} else {
-						data = Utility.value(node);
-						break;
-					}
-
-				}
-
-			}
+			// const nodes = binder.target.options;
+			// const multiple = Utility.multiple(binder.target);
+			//
+			// data = multiple ? [] : undefined;
+			//
+			// for (let i = 0, l = nodes.length; i < l; i++) {
+			// 	const node = nodes[i];
+			// 	// console.log(node);
+			//
+			// 	if (Utility.selected(node)) {
+			//
+			// 		if (multiple) {
+			// 			data.push(Utility.value(node));
+			// 		} else {
+			// 			data = Utility.value(node);
+			// 			break;
+			// 		}
+			//
+			// 	}
+			//
+			// }
 
 		// } else if (type === 'radio') {
 			// const query = 'input[type="radio"][o-value="' + binder.value + '"]';
@@ -56,7 +56,7 @@ export default async function (node, attribute) {
 		// } else if (type === 'checkbox') {
 			// data = binder.target.checked;
 		} else {
-			data = binder.target.value;
+			binder.data = binder.target.value || '';
 		}
 
 		// if (data !== undefined) {
@@ -75,7 +75,6 @@ export default async function (node, attribute) {
 				// }
 			} else if (binder.data !== data) {
 				// binder.data = data;
-				// Model.set(binder.keys, data);
 			}
 
 		// }

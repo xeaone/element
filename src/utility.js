@@ -7,8 +7,8 @@ export default {
 	DOT: /\.+/,
 	PIPE: /\s?\|\s?/,
 	PIPES: /\s?,\s?|\s+/,
-	VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
-	VARIABLE_END: '(?:)',
+	// VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
+	// VARIABLE_END: '(?:)',
 
 	value (element) {
 		const type = this.type(element);
@@ -243,24 +243,20 @@ export default {
 		}
 	},
 
-	replaceEachVariable (element, variable, path, key) {
-		variable = variable.toLowerCase();
+	replaceEachVariable (target, variable, path, key) {
+		const keyPattern = new RegExp(`{{\\$${variable}-(key|index)}}`, 'gi');
+		const pathPattern = new RegExp(`\\$${variable}($|,|\\s+|\\||\\.)`, 'gi');
 
-		const pattern = new RegExp(`${this.VARIABLE_START}\\$${variable}${this.VARIABLE_END}`, 'ig');
-
-		this.walker(element, function (node) {
+		this.walker(target, function (node) {
 			if (node.nodeType === 3) {
-				const value = node.nodeValue.toLowerCase();
-				if (value === `$${variable}`) {
-					node.nodeValue = `${path}.${key}`;
-				} else if (value === `$${variable}-key` || value === `$${variable}-index`) {
-					node.nodeValue = key;
-				}
+				node.nodeValue = node.nodeValue.replace(keyPattern, `${key}`);
+				node.nodeValue = node.nodeValue.replace(pathPattern, `${path}.${key}$1`);
 			} else if (node.nodeType === 1) {
 				for (let i = 0, l = node.attributes.length; i < l; i++) {
 					const attribute = node.attributes[i];
 					if (attribute.name.indexOf('o-') === 0) {
-						attribute.value = attribute.value.replace(pattern, `$1${path}.${key}`);
+						attribute.value = attribute.value.replace(keyPattern, `${key}`);
+						attribute.value = attribute.value.replace(pathPattern, `${path}.${key}$1`);
 					}
 				}
 			}

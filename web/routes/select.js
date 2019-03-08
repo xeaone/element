@@ -56,22 +56,24 @@ export default {
 
 			<div o-text="result.cars"></div>
 			<select o-value="result.cars" o-each-car="cars" multiple>
-				<option o-value="car" o-text="car"></option>
+				<option o-value="$car" o-text="$car"></option>
 			</select>
 
 			<hr>
 
 			<div o-text="result.name"></div>
 			<select o-value="result.name" o-each-name="names">
-				<option o-value="name" o-text="name"></option>
+				<option o-value="$name" o-text="$name"></option>
 			</select>
 
 			<hr>
 
 			<div o-text="result.friends"></div>
 			<o-select o-value="result.friends" o-each-friend="friends" multiple>
-				<o-option o-value="friend">
-					<div o-text="friend.name"></div>
+				<o-option o-value="$friend">
+					<div>{{$friend-key}}</div>
+					<div>{{$friend-index}}</div>
+					<div o-text="$friend.name"></div>
 				</o-option>
 			</o-select>
 

@@ -46,8 +46,8 @@ export default function (binder, data) {
 				while (nodeLength < dataLength) {
 
 					const clone = document.importNode(binder.meta.template, true);
-					const variable = keys[nodeLength];
-					Utility.replaceEachVariable(clone, binder.names[1], binder.path, keys[nodeLength]);
+					const key = keys[nodeLength];
+					// Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
 					binder.meta.fragment.appendChild(clone);
 					nodeLength++;
 
