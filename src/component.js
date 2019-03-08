@@ -181,8 +181,7 @@ export default {
 					return Model.get(this.scope);
 				},
 				set: function (data) {
-					data = data && typeof data === 'object' ? data : {};
-					return Model.set(this.scope, data);
+					return Model.set(this.scope, data && typeof data === 'object' ? data : {});
 				}
 			};
 
