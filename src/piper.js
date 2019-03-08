@@ -1,4 +1,3 @@
-import Methods from './methods.js';
 
 export default function (binder, data) {
 
@@ -6,7 +5,7 @@ export default function (binder, data) {
 		return data;
 	}
 
-	const methods = Methods.get(binder.scope);
+	const methods = binder.container.methods;
 
 	if (!methods) {
 		return data;
