@@ -1,25 +1,21 @@
 import Utility from '../utility.js';
 import Piper from '../piper.js';
-import Model from '../model.js';
+// import Model from '../model.js';
 import View from '../view.js';
 
 export default function (binder, data) {
-	let self = this;
-	let type = binder.target.type;
-	let name = binder.target.nodeName;
-
-	// let data;
+	const self = this;
+	const type = binder.target.type;
+	const name = binder.target.nodeName;
 
 	if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-		let nodes, multiple;
-
 		return {
 			read () {
 
-				nodes = binder.target.options;
-				multiple = Utility.multiple(binder.target);
+				this.nodes = binder.target.options;
+				this.multiple = Utility.multiple(binder.target);
 
-				if (multiple && data.constructor !== Array) {
+				if (this.multiple && data.constructor !== Array) {
 					throw new Error(`Oxe - invalid multiple select value type ${binder.keys.join('.')} array required`);
 				}
 
@@ -28,59 +24,73 @@ export default function (binder, data) {
 				let selected = false;
 
 				// NOTE might need to handle disable
-				for (let i = 0, l = nodes.length; i < l; i++) {
-					const node = nodes[i];
+				for (let i = 0, l = this.nodes.length; i < l; i++) {
+					const node = this.nodes[i];
 					const value = Utility.value(node);
 
-					if (multiple) {
-						if (data.indexOf(value) !== -1) {
-							selected = true;
+					console.log(node);
+					console.log(data);
+
+					if (this.multiple) {
+						if (
+							Utility.selected(node) &&
+							data === undefined || data === null || data === '' || data.length === 0
+						) {
+							if (value !== undefined && value !== null && value !== '') {
+								binder.data.push(value);
+							}
+						} else if (data.indexOf(value) !== -1) {
 							node.selected = true;
 							node.setAttribute('selected', '');
-						} else if (Utility.selected(node)) {
-							Model.get(binder.keys).push(value);
 						} else {
 							node.selected = false;
 							node.removeAttribute('selected');
 						}
 					} else {
-						if (data === value) {
+						//  || node.disabled || node.hasAttribute('disabled')
+
+						if (selected) {
+							node.selected = false;
+							node.removeAttribute('selected');
+							continue;
+						}
+
+						if (
+							Utility.selected(node) &&
+							data === undefined || data === null || data === ''
+						) {
+							selected = true;
+							binder.data = value;
+						} else if (data === value) {
 							selected = true;
 							node.selected = true;
 							node.setAttribute('selected', '');
-						} else if (!selected && Utility.selected(node)) {
-							selected = true;
-							Model.set(binder.keys, value);
-						} else {
-							node.selected = false;
-							node.removeAttribute('selected');
 						}
+
 					}
 
 				}
-
 			}
 		};
 	} else if (type === 'radio') {
-		let nodes;
-
 		return {
 			read () {
 
 				if (data === undefined) {
-					Model.set(binder.keys, 0);
+					// Model.set(binder.keys, 0);
+					binder.data = 0;
 					return false;
 				}
 
-				nodes = binder.container.querySelectorAll(
+				this.nodes = binder.container.querySelectorAll(
 					'input[type="radio"][o-value="' + binder.value + '"]'
 				);
 			},
 			write () {
 				let checked = false;
 
-				for (let i = 0, l = nodes.length; i < l; i++) {
-					let node = nodes[i];
+				for (let i = 0, l = this.nodes.length; i < l; i++) {
+					let node = this.nodes[i];
 
 					if (i === data) {
 						checked = true;
@@ -92,8 +102,9 @@ export default function (binder, data) {
 				}
 
 				if (!checked) {
-					nodes[0].checked = true;
-					Model.set(binder.keys, 0);
+					this.nodes[0].checked = true;
+					// Model.set(binder.keys, 0);
+					binder.data = 0;
 				}
 
 			}
@@ -104,7 +115,8 @@ export default function (binder, data) {
 			read () {
 
 				if (typeof data !== 'boolean') {
-					Model.set(binder.keys, false);
+					// Model.set(binder.keys, false);
+					binder.data = false;
 					return false;
 				}
 
@@ -120,20 +132,23 @@ export default function (binder, data) {
 		return {
 			read () {
 
-				// if (name === 'OPTION' && binder.target.selected) {
-				if (name.indexOf('OPTION') !== -1 && binder.target.selected) {
-					const parent = binder.target.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.target.parentElement :  binder.target.parentElement.parentElement;
-					const select = View.get(parent, 'value');
-					if (select) {
-						self.default(select);
-					}
+				// && binder.target.selected
+				if (name === 'OPTION' || name.indexOf('-OPTION') !== -1) {
+					const parent = binder.target.parentElement;
+					if (!parent) return false;
+				 	const select = parent.nodeName === 'SELECT' || parent.nodeName.indexOf('-SELECT') !== -1 ? parent : parent.parentElement;
+					const b = View.get(parent, 'value');
+					// console.log(b);
+					// if (select) {
+					// 	self.default(select);
+					// }
 				}
 
-				data = Model.get(binder.keys);
+				// data = Model.get(binder.keys);
 
-				if (data === undefined || data === null) {
-					return false;
-				}
+				// if (data === undefined || data === null) {
+				// 	return false;
+				// }
 
 				if (data === binder.target.value) {
 					return false;
@@ -141,7 +156,7 @@ export default function (binder, data) {
 
 			},
 			write () {
-				binder.target.value = data;
+				binder.target.value = data === undefined || data === null ? '' : data;
 			}
 		};
 	}

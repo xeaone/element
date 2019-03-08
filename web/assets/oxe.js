@@ -586,25 +586,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     batch: function batch(data) {
       var self = this;
       if (!data) return;
+      data.context = data.context || {};
 
       if (data.read) {
         var read = function read() {
-          var result;
-          var write;
-
-          if (data.context) {
-            result = data.read.call(data.context);
-          } else {
-            result = data.read();
-          }
+          var result = data.read.call(data.context);
 
           if (data.write && result !== false) {
-            if (data.context) {
-              write = data.write.bind(data.context);
-            } else {
-              write = data.write;
-            }
-
+            var write = data.write.bind(data.context);
             self.writes.push(write);
             self.schedule();
           }
@@ -613,14 +602,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         self.reads.push(read);
         self.schedule();
       } else if (data.write) {
-        var write;
-
-        if (data.context) {
-          write = data.write.bind(data.context, data.shared);
-        } else {
-          write = data.write;
-        }
-
+        var write = data.write.bind(data.context);
         self.writes.push(write);
         self.schedule();
       }
@@ -653,24 +635,26 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  var Default = {
-    read: function read() {
-      if (data === undefined || data === null) {
-        return false;
-      } else if ((typeof data === "undefined" ? "undefined" : _typeof(data)) === 'object') {
-        data = JSON.stringify(data);
-      } else if (typeof data !== 'string') {
-        data = data.toString();
-      }
+  function Default(binder, data) {
+    return {
+      read: function read() {
+        if (data === undefined || data === null) {
+          return false;
+        } else if (_typeof(data) === 'object') {
+          data = JSON.stringify(data);
+        } else if (typeof data !== 'string') {
+          data = data.toString();
+        }
 
-      if (data === binder.target[binder.type]) {
-        return false;
+        if (data === binder.target[binder.type]) {
+          return false;
+        }
+      },
+      write: function write() {
+        binder.target[binder.type] = data;
       }
-    },
-    write: function write() {
-      binder.target[binder.type] = data;
-    }
-  };
+    };
+  }
 
   function Disable(binder, data) {
     return {
@@ -893,7 +877,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return data;
     }
 
-    var methods = Methods.get(binder.scope);
+    var methods = binder.container.methods;
 
     if (!methods) {
       return data;
@@ -975,33 +959,31 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var attribute = attributes[i];
 
         if (attribute.name.indexOf('o-') === 0 && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype') {
-          var _data = void 0;
-
-          var _binder = Binder.create({
+          var data = void 0;
+          var binder = Binder.create({
             target: _node,
             container: container,
             name: attribute.name,
             value: attribute.value,
             scope: container.scope
           });
-
-          this.data.get(_node).set(_binder.names[0], _binder);
+          this.data.get(_node).set(binder.names[0], binder);
 
           if (type === 'remove') {
-            _data = undefined;
-            Binder.remove(_binder);
+            data = undefined;
+            Binder.remove(binder);
           } else if (type === 'add') {
-            if (_binder.type === 'on') {
-              _data = Methods.get(_binder.keys);
+            if (binder.type === 'on') {
+              data = Methods.get(binder.keys);
             } else {
-              _data = Model.get(_binder.keys);
-              _data = Piper(_binder, _data);
+              data = Model.get(binder.keys);
+              data = Piper(binder, data);
             }
 
-            Binder.add(_binder);
+            Binder.add(binder);
           }
 
-          Binder.render(_binder, _data);
+          Binder.render(binder, data);
         }
       }
     },
@@ -1041,72 +1023,74 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
 
   function Value(binder, data) {
-    var self = this;
     var type = binder.target.type;
     var name = binder.target.nodeName;
 
     if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-      var nodes, multiple;
       return {
         read: function read() {
-          nodes = binder.target.options;
-          multiple = Utility.multiple(binder.target);
+          this.nodes = binder.target.options;
+          this.multiple = Utility.multiple(binder.target);
 
-          if (multiple && data.constructor !== Array) {
+          if (this.multiple && data.constructor !== Array) {
             throw new Error("Oxe - invalid multiple select value type ".concat(binder.keys.join('.'), " array required"));
           }
         },
         write: function write() {
           var selected = false;
 
-          for (var i = 0, l = nodes.length; i < l; i++) {
-            var node = nodes[i];
+          for (var i = 0, l = this.nodes.length; i < l; i++) {
+            var node = this.nodes[i];
             var value = Utility.value(node);
+            console.log(node);
+            console.log(data);
 
-            if (multiple) {
-              if (data.indexOf(value) !== -1) {
-                selected = true;
+            if (this.multiple) {
+              if (Utility.selected(node) && data === undefined || data === null || data === '' || data.length === 0) {
+                if (value !== undefined && value !== null && value !== '') {
+                  binder.data.push(value);
+                }
+              } else if (data.indexOf(value) !== -1) {
                 node.selected = true;
                 node.setAttribute('selected', '');
-              } else if (Utility.selected(node)) {
-                Model.get(binder.keys).push(value);
               } else {
                 node.selected = false;
                 node.removeAttribute('selected');
               }
             } else {
-              if (data === value) {
+              if (selected) {
+                node.selected = false;
+                node.removeAttribute('selected');
+                continue;
+              }
+
+              if (Utility.selected(node) && data === undefined || data === null || data === '') {
+                selected = true;
+                binder.data = value;
+              } else if (data === value) {
                 selected = true;
                 node.selected = true;
                 node.setAttribute('selected', '');
-              } else if (!selected && Utility.selected(node)) {
-                selected = true;
-                Model.set(binder.keys, value);
-              } else {
-                node.selected = false;
-                node.removeAttribute('selected');
               }
             }
           }
         }
       };
     } else if (type === 'radio') {
-      var _nodes2;
-
       return {
         read: function read() {
           if (data === undefined) {
-            Model.set(binder.keys, 0);
+            binder.data = 0;
             return false;
           }
 
-          _nodes2 = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
+          this.nodes = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
         },
         write: function write() {
           var checked = false;
 
-          for (var i = 0, l = _nodes2.length; i < l; i++) {
-            var node = _nodes2[i];
+          for (var i = 0, l = this.nodes.length; i < l; i++) {
+            var node = this.nodes[i];
 
             if (i === data) {
               checked = true;
@@ -1117,8 +1101,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
 
           if (!checked) {
-            _nodes2[0].checked = true;
-            Model.set(binder.keys, 0);
+            this.nodes[0].checked = true;
+            binder.data = 0;
           }
         }
       };
@@ -1126,7 +1110,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return {
         read: function read() {
           if (typeof data !== 'boolean') {
-            Model.set(binder.keys, false);
+            binder.data = false;
             return false;
           }
 
@@ -1141,19 +1125,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     } else {
       return {
         read: function read() {
-          if (name.indexOf('OPTION') !== -1 && binder.target.selected) {
-            var parent = binder.target.parentElement.nodeName.indexOf('SELECT') !== -1 ? binder.target.parentElement : binder.target.parentElement.parentElement;
-            var select = View.get(parent, 'value');
-
-            if (select) {
-              self.default(select);
-            }
-          }
-
-          data = Model.get(binder.keys);
-
-          if (data === undefined || data === null) {
-            return false;
+          if (name === 'OPTION' || name.indexOf('-OPTION') !== -1) {
+            var parent = binder.target.parentElement;
+            if (!parent) return false;
+            var select = parent.nodeName === 'SELECT' || parent.nodeName.indexOf('-SELECT') !== -1 ? parent : parent.parentElement;
+            var b = View.get(parent, 'value');
           }
 
           if (data === binder.target.value) {
@@ -1161,7 +1137,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         },
         write: function write() {
-          binder.target.value = data;
+          binder.target.value = data === undefined || data === null ? '' : data;
         }
       };
     }
@@ -1280,8 +1256,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (options.binders) {
           for (var i = 0, l = options.binders.length; i < l; i++) {
-            var _binder2 = options.binders[i];
-            this.binders[_binder2.name] = _binder2;
+            var binder = options.binders[i];
+            this.binders[binder.name] = binder;
           }
         }
 
@@ -1353,6 +1329,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         get context() {
           return context;
+        },
+
+        get data() {
+          return Utility.getByPath(data.container.model, values);
+        },
+
+        set data(value) {
+          return Utility.setByPath(data.container.model, values, value);
         }
 
       };
@@ -1483,9 +1467,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var paths = path.split('.');
       var part = paths.slice(1).join('.');
       var scope = paths.slice(0, 1).join('.');
-      if (scope in Binder.data === false) return;
-      if (part in Binder.data[scope] === false) return;
-      if (0 in Binder.data[scope][part] === false) return;
+      if (scope in Binder.data === false) return console.warn("Oxe.model.listener - scope not found: ".concat(scope));
+      if (part in Binder.data[scope] === false) return console.warn("Oxe.model.listener - path not found: ".concat(part));
+      if (0 in Binder.data[scope][part] === false) return console.warn('Oxe.model.listener - data not found');
       var binders = Binder.data[scope][part];
 
       for (var i = 0, l = binders.length; i < l; i++) {
@@ -1520,16 +1504,30 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var type = binder.target.type;
         var name = binder.target.nodeName;
         var data = Utility.value(binder.target);
+        console.log(data);
 
-        if (data !== undefined) {
-          var original = Model.get(binder.keys);
+        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
+          var nodes = binder.target.options;
+          var multiple = Utility.multiple(binder.target);
+          data = multiple ? [] : undefined;
 
-          if (data && _typeof(data) === 'object' && data.constructor === original.constructor) {
-            Model.set(binder.keys, data);
-          } else if (original !== data) {
-            Model.set(binder.keys, data);
+          for (var i = 0, l = nodes.length; i < l; i++) {
+            var _node2 = nodes[i];
+
+            if (Utility.selected(_node2)) {
+              if (multiple) {
+                data.push(Utility.value(_node2));
+              } else {
+                data = Utility.value(_node2);
+                break;
+              }
+            }
           }
+        } else {
+          data = binder.target.value;
         }
+
+        if (data && _typeof(data) === 'object' && data.constructor === binder.data.constructor) ;else if (binder.data !== data) ;
       };
 
       Batcher.batch({
@@ -2386,8 +2384,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             return Model.get(this.scope);
           },
           set: function set(data) {
-            data = data && _typeof(data) === 'object' ? data : {};
-            return Model.set(this.scope, data);
+            return Model.set(this.scope, data && _typeof(data) === 'object' ? data : {});
           }
         };
         options.properties.methods = {
@@ -3193,7 +3190,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   var eStyle = document.createElement('style');
-  var tStyle = document.createTextNode("\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition var(--o-transition) ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n");
+  var tStyle = document.createTextNode("\n\t*[hidden] {\n\t\tdisplay: none !important;\n\t}\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition var(--o-transition) ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n");
   eStyle.setAttribute('type', 'text/css');
   eStyle.appendChild(tStyle);
   document.head.appendChild(eStyle);

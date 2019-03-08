@@ -7,6 +7,8 @@ export default {
 		name: 'r-select',
 		model: {
 			title: title,
+			stateOne: 'AZ',
+			stateTwo: 'FL',
 			cars: [
 				'Audi',
 				'Saab',
@@ -22,7 +24,8 @@ export default {
 				{ name: 'sam', age: 40 }
 			],
 			result: {
-				fruit: '',
+				state: '',
+				fruit: 'peach',
 				name: '',
 				cars: [],
 				friends: []
@@ -39,6 +42,14 @@ export default {
 				<option value="apple">apple</option>
 				<option value="pear">pear</option>
 				<option value="peach" selected>peach</option>
+			</select>
+
+			<hr>
+
+			<div o-text="result.state"></div>
+			<select o-value="result.state">
+				<option o-value="stateOne" o-text="stateOne"></option>
+				<option o-value="stateTwo" o-text="stateTwo"></option>
 			</select>
 
 			<hr>
