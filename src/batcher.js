@@ -68,8 +68,11 @@ export default {
 
 	batch (data) {
 		const self = this;
+
 		if (!data) return;
 
+		data.context = data.context || {};
+		
 		// let read;
 		// let write;
 		//
@@ -88,40 +91,22 @@ export default {
 
 		if (data.read) {
 
-			let read = function () {
-				let result;
-				let write;
-
-				if (data.context) {
-					result = data.read.call(data.context);
-				} else {
-					result = data.read();
-				}
+			const read = function () {
+				const result = data.read.call(data.context);
 
 				if (data.write && result !== false) {
-
-					if (data.context) {
-						write = data.write.bind(data.context);
-					} else {
-						write = data.write;
-					}
+					const write = data.write.bind(data.context);
 
 					self.writes.push(write);
 					self.schedule();
-
 				}
+
 			};
 
 			self.reads.push(read);
 			self.schedule();
 		} else if (data.write) {
-			let write;
-
-			if (data.context) {
-				write = data.write.bind(data.context, data.shared);
-			} else {
-				write = data.write;
-			}
+			const write = data.write.bind(data.context);
 
 			self.writes.push(write);
 			self.schedule();
