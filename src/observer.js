@@ -62,10 +62,11 @@ const Observer = {
 
 		}
 
+		let oldLength = self.length;
+
 		if (addCount > 0) {
 			// promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
-			const position = promises.length;
-
+			// const position = promises.length;
 			while (addCount--) {
 				const key = self.length;
 
@@ -77,20 +78,22 @@ const Observer = {
 				promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
 
 			}
-
-			promises.splice(position, 0, self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+			// promises.splice(position, 0, self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
 		}
 
 		if (deleteCount > 0) {
-			promises.push(self.$meta.listener.bind(null, self.length - deleteCount, self.$meta.path.slice(0, -1), 'length'));
-
+			// promises.push(self.$meta.listener.bind(null, self.length - deleteCount, self.$meta.path.slice(0, -1), 'length'));
 			while (deleteCount--) {
 				self.$meta.length--;
 				self.length--;
 				const key = self.length;
 				promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + key, key));
 			}
+		}
 
+		if (self.length !== oldLength) {
+			promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+			// promises.push(self.$meta.listener.bind(null, self.length, self.$meta.path.slice(0, -1), 'length'));
 		}
 
 		Promise.resolve().then(function () {

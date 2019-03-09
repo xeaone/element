@@ -1,8 +1,8 @@
 import Observer from './observer.js';
-import Methods from './methods.js';
 import Binder from './binder.js';
 import Piper from './piper.js';
-import View from './view.js';
+// import Methods from './methods.js';
+// import View from './view.js';
 
 export default {
 

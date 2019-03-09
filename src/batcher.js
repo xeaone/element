@@ -4,6 +4,7 @@ export default {
 	reads: [],
 	writes: [],
 	time: 1000/30,
+	// time: 1000/60,
 	pending: false,
 
 	setup (options) {
@@ -12,7 +13,8 @@ export default {
 	},
 
 	tick (callback) {
-		return window.requestAnimationFrame(callback);
+		window.cancelAnimationFrame(this.frame);
+		this.frame = window.requestAnimationFrame(callback);
 	},
 
 	// schedules a new read/write batch if one is not pending
@@ -31,6 +33,7 @@ export default {
 			task();
 
 			if (performance.now() - time > this.time) {
+				console.log('max read');
 				this.tick(this.flush.bind(this, null));
 				return;
 			}
@@ -41,6 +44,7 @@ export default {
 			task();
 
 			if (performance.now() - time > this.time) {
+				console.log('max write');
 				this.tick(this.flush.bind(this, null));
 				return;
 			}
@@ -50,6 +54,7 @@ export default {
 		if (!this.reads.length && !this.writes.length) {
 			this.pending = false;
 		} else if (performance.now() - time > this.time) {
+			console.log('max end');
 			this.tick(this.flush.bind(this, null));
 		} else {
 			this.flush(time);
@@ -72,7 +77,7 @@ export default {
 		if (!data) return;
 
 		data.context = data.context || {};
-		
+
 		// let read;
 		// let write;
 		//

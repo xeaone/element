@@ -1,4 +1,5 @@
 import Utility from './utility.js';
+
 import Batcher from './batcher.js';
 import Class from './binders/class.js';
 import Css from './binders/css.js';
@@ -17,9 +18,9 @@ import Text from './binders/text.js';
 import Value from './binders/value.js';
 import Write from './binders/write.js';
 
-const Data = {};
+const DATA = {};
 
-const Binders = {
+const BINDERS = {
 	get class () { return Class; },
 	get css () { return Css; },
 	get default () { return Default; },
@@ -45,8 +46,8 @@ const Binders = {
 
 export default {
 
-	get data () { return Data; },
-	get binders () { return Binders; },
+	get data () { return DATA; },
+	get binders () { return BINDERS; },
 
 	async setup (options) {
 		options = options || {};
@@ -58,6 +59,21 @@ export default {
 			}
 		}
 
+	},
+
+	names (data) {
+		data = data.split(this.PREFIX)[1];
+		return data ? data.split('-') : [];
+	},
+
+	values (data) {
+		data = data.split(this.PIPE)[0];
+		return data ? data.split('.') : [];
+	},
+
+	pipes (data) {
+		data = data.split(this.PIPE)[1];
+		return data ? data.split(this.PIPES) : [];
 	},
 
 	create (data) {
@@ -159,14 +175,16 @@ export default {
 			return;
 		}
 
-		let items = this.data[binder.scope][binder.path];
+		const binders = this.data[binder.scope][binder.path];
 
-		for (let i = 0, l = items.length; i < l; i++) {
-
-			if (items[i].targetargett === binder.target) {
-				return items.splice(i, 1);
+		for (let i = 0; i < binders.length; i++) {
+			if (binders[i].target === binder.target) {
+				binders.splice(i, 1);
 			}
+		}
 
+		if (binder.path in this.data[binder.scope] && !this.data[binder.scope][binder.path].length) {
+			delete this.data[binder.scope][binder.path];
 		}
 
 	},

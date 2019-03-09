@@ -11,6 +11,7 @@ export default {
 
 	data: new Map(),
 	target: document.body,
+	whitespacePattern: /^\s+$/g,
 
 	keyPattern: new RegExp(KeyPattern, 'i'),
 	keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
@@ -39,10 +40,13 @@ export default {
 
 	get () {
 		let data = this.data;
+
 		for (let i = 0, l = arguments.length; i < l; i++) {
 			data = data.get(arguments[i]);
-			if (!data) throw new Error('Oxe.binder - argument not found');
+			// console.warn(`Oxe.view.get - argument ${arguments[i]} not found`);
+			if (!data) return null;
 		}
+
 		return data;
 	},
 
@@ -55,25 +59,27 @@ export default {
 		if (!this.data.get(binder.target).has(binder.names[0])) {
 			this.data.get(binder.target).set(binder.names[0], binder);
 		// } else {
-			// console.warn(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
-			// throw new Error(`Oxe - duplicate attribute ${binder.scope} ${binder.names[0]} ${binder.value}`);
-			// return false;
+			// console.warn(`Oxe.view.add - binder o-scope="${binder.scope}" ${binder.name}="${binder.value}" exists`);
 		}
 
 	},
 
 	remove (binder) {
-		if (this.data.has(binder.target)) {
 
-			if (this.data.get(binder.target).has(binder.names[0])) {
-				this.data.get(binder.target).delete(binder.names[0]);
-			}
+		if (!this.data.has(binder.target)) {
+			// console.warn(`Oxe.view.remove - binder o-scope="${binder.scope}" ${binder.name}="${binder.value}" not exist`);
+			return;
+		}
+
+		if (this.data.get(binder.target).has(binder.names[0])) {
+			this.data.get(binder.target).delete(binder.names[0]);
 
 			if (!this.data.get(binder.target).size) {
 				this.data.delete(binder.target);
 			}
 
 		}
+
 	},
 
 	each (node, variable) {
@@ -128,10 +134,6 @@ export default {
 			return;
 		}
 
-		if (!this.data.has(node)) {
-			this.data.set(node, new Map());
-		}
-
 		const attributes = node.attributes;
 
 		for (let i = 0, l = attributes.length; i < l; i++) {
@@ -145,7 +147,6 @@ export default {
 				&& attribute.name !== 'o-method'
 				&& attribute.name !== 'o-enctype'
 			) {
-
 
 				// rewrite dynamic binder paths
 				const match = attribute.value.match(this.pathPattern);
@@ -168,12 +169,14 @@ export default {
 					scope: container.scope
 				});
 
-				this.data.get(node).set(binder.names[0], binder);
+				// this.data.get(node).set(binder.names[0], binder);
 
 				if (type === 'remove') {
+					this.remove(binder);
 					data = undefined;
 					Binder.remove(binder);
 				} else if (type === 'add') {
+					this.add(binder);
 
 					if (binder.type === 'on') {
 						data = Methods.get(binder.keys);
@@ -196,10 +199,9 @@ export default {
 			const node = nodes[i];
 
 			// filter out white space nodes
-			// if (node.nodeType === 1 && /^\s+$/g.test(node.nodeValue)) {
-			// 	console.log(node);
-			// 	continue;
-			// }
+			if (node.nodeType === 3 && this.whitespacePattern.test(node.nodeValue)) {
+				continue;
+			}
 
 			const childContainer = node.nodeType === 1 && (node.scope || 'o-scope' in node.attributes) ? node : container;
 

@@ -126,11 +126,11 @@ export default {
 			setTimeout(function () {
 				var increaseInterval = setInterval(function () {
 
-					if (self.model.items.length === 10) {
+					if (self.model.items.length === 6) {
 						clearInterval(increaseInterval);
 
 						var decreaseInterval = setInterval(function () {
-							if (self.model.items.length === 5) {
+							if (self.model.items.length === 3) {
 								clearInterval(decreaseInterval);
 							} else {
 								self.model.items.pop();
@@ -139,6 +139,7 @@ export default {
 
 					} else {
 						self.model.items.push({ it: { val: self.model.items.length } });
+						console.log(self.model.items);
 					}
 
 				}, 90);
@@ -241,8 +242,8 @@ export default {
 		<input type="text" o-value="items.0.it.val">
 		<div o-each-item="items">
 			<span>
-				<span>$item</span>
-				<span o-on-click="foo | item" o-text="item.it.val"></span>
+				<span>{{$item}}</span>
+				<span o-on-click="foo | $item" o-text="$item.it.val"></span>
 				<span>,</span>
 			</span>
 		</div>

@@ -58,9 +58,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
 
-      if (addCount > 0) {
-        var position = promises.length;
+      var oldLength = self.length;
 
+      if (addCount > 0) {
         while (addCount--) {
           var _key = self.length;
 
@@ -71,19 +71,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
           promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
         }
-
-        promises.splice(position, 0, self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
       }
 
       if (deleteCount > 0) {
-        promises.push(self.$meta.listener.bind(null, self.length - deleteCount, self.$meta.path.slice(0, -1), 'length'));
-
         while (deleteCount--) {
           self.$meta.length--;
           self.length--;
           var _key2 = self.length;
           promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
         }
+      }
+
+      if (self.length !== oldLength) {
+        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
       }
 
       Promise.resolve().then(function () {
@@ -231,8 +231,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
   var Utility = {
     PREFIX: /o-/,
-    ROOT: /^(https?:)?\/?\//,
-    DOT: /\.+/,
     PIPE: /\s?\|\s?/,
     PIPES: /\s?,\s?|\s+/,
     value: function value(element) {
@@ -514,15 +512,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return data[keys[last]];
     }
   };
-  var Methods = {
-    data: {},
-    get: function get(path) {
-      return Utility.getByPath(this.data, path);
-    },
-    set: function set(path, data) {
-      return Utility.setByPath(this.data, path, data);
-    }
-  };
   var Batcher = {
     reads: [],
     writes: [],
@@ -533,7 +522,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       this.time = options.time || this.time;
     },
     tick: function tick(callback) {
-      return window.requestAnimationFrame(callback);
+      window.cancelAnimationFrame(this.frame);
+      this.frame = window.requestAnimationFrame(callback);
     },
     schedule: function schedule() {
       if (this.pending) return;
@@ -548,6 +538,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         task();
 
         if (performance.now() - time > this.time) {
+          console.log('max read');
           this.tick(this.flush.bind(this, null));
           return;
         }
@@ -557,6 +548,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         task();
 
         if (performance.now() - time > this.time) {
+          console.log('max write');
           this.tick(this.flush.bind(this, null));
           return;
         }
@@ -565,6 +557,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (!this.reads.length && !this.writes.length) {
         this.pending = false;
       } else if (performance.now() - time > this.time) {
+        console.log('max end');
         this.tick(this.flush.bind(this, null));
       } else {
         this.flush(time);
@@ -662,57 +655,36 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Each(binder, data) {
+    if (data.length === undefined) {
+      return;
+    }
+
     if (!binder.meta.template && !binder.target.children.length) {
       return;
     }
 
-    if (!binder.meta.fragment) {
-      binder.meta.fragment = document.createDocumentFragment();
-    }
-
     if (!binder.meta.template) {
+      binder.meta.length = 0;
       binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
     }
 
-    var add, remove;
     var self = this;
     return {
       read: function read() {
-        if (!data || _typeof(data) !== 'object') data = [];
-        var keys = Object.keys(data);
-        var dataLength = keys.length;
-        var nodeLength = binder.meta.fragment.children.length + binder.target.children.length;
-
-        if (nodeLength === dataLength) {
-          return false;
-        } else if (nodeLength > dataLength) {
-          remove = nodeLength - dataLength;
-
-          while (binder.meta.fragment.children.length && remove--) {
-            binder.meta.fragment.removeChild(binder.meta.fragment.lastElementChild);
-          }
-        } else if (nodeLength < dataLength) {
-          add = dataLength - nodeLength;
-
-          while (nodeLength < dataLength) {
-            var clone = document.importNode(binder.meta.template, true);
-            var key = keys[nodeLength];
-            binder.meta.fragment.appendChild(clone);
-            nodeLength++;
-          }
-        }
+        this.currentLength = binder.target.children.length;
+        this.targetLength = _typeof(data) === 'object' ? data.length : 0;
       },
       write: function write() {
-        if (remove) {
-          while (binder.target.children.length && remove--) {
-            binder.target.removeChild(binder.target.lastElementChild);
-          }
-        } else if (add) {
-          binder.target.appendChild(binder.meta.fragment);
+        if (this.currentLength === this.targetLength) {
+          return false;
+        } else if (this.currentLength > this.targetLength) {
+          binder.target.removeChild(binder.target.lastElementChild);
+        } else if (this.currentLength < this.targetLength) {
+          binder.target.appendChild(document.importNode(binder.meta.template, true));
         }
 
-        if (binder.target.children.length !== data.length) {
-          self.default(binder, data);
+        if (this.currentLength !== this.targetLength) {
+          Batcher.batch(self.each(binder, data));
         }
       }
     };
@@ -889,11 +861,21 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return data;
   }
 
+  var Methods = {
+    data: {},
+    get: function get(path) {
+      return Utility.getByPath(this.data, path);
+    },
+    set: function set(path, data) {
+      return Utility.setByPath(this.data, path, data);
+    }
+  };
   var PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
   var KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
   var View = {
     data: new Map(),
     target: document.body,
+    whitespacePattern: /^\s+$/g,
     keyPattern: new RegExp(KeyPattern, 'i'),
     keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
     pathPattern: new RegExp(PathPattern, 'i'),
@@ -915,7 +897,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       for (var i = 0, l = arguments.length; i < l; i++) {
         data = data.get(arguments[i]);
-        if (!data) throw new Error('Oxe.binder - argument not found');
+        if (!data) return null;
       }
 
       return data;
@@ -930,10 +912,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
     },
     remove: function remove(binder) {
-      if (this.data.has(binder.target)) {
-        if (this.data.get(binder.target).has(binder.names[0])) {
-          this.data.get(binder.target).delete(binder.names[0]);
-        }
+      if (!this.data.has(binder.target)) {
+        return;
+      }
+
+      if (this.data.get(binder.target).has(binder.names[0])) {
+        this.data.get(binder.target).delete(binder.names[0]);
 
         if (!this.data.get(binder.target).size) {
           this.data.delete(binder.target);
@@ -991,10 +975,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return;
       }
 
-      if (!this.data.has(_node)) {
-        this.data.set(_node, new Map());
-      }
-
       var attributes = _node.attributes;
 
       for (var i = 0, l = attributes.length; i < l; i++) {
@@ -1022,12 +1002,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             value: attribute.value,
             scope: container.scope
           });
-          this.data.get(_node).set(binder.names[0], binder);
 
           if (type === 'remove') {
+            this.remove(binder);
             data = undefined;
             Binder.remove(binder);
           } else if (type === 'add') {
+            this.add(binder);
+
             if (binder.type === 'on') {
               data = Methods.get(binder.keys);
             } else {
@@ -1045,6 +1027,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     nodes: function nodes(_nodes, target, type, container) {
       for (var i = 0, l = _nodes.length; i < l; i++) {
         var node = _nodes[i];
+
+        if (node.nodeType === 3 && this.whitespacePattern.test(node.nodeValue)) {
+          continue;
+        }
+
         var childContainer = node.nodeType === 1 && (node.scope || 'o-scope' in node.attributes) ? node : container;
         this.node(node, target, type, container);
         this.nodes(node.childNodes, target, type, childContainer);
@@ -1206,8 +1193,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  var Data = {};
-  var Binders = {
+  var DATA = {};
+  var BINDERS = {
     get class() {
       return Class;
     },
@@ -1295,11 +1282,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
   var Binder = {
     get data() {
-      return Data;
+      return DATA;
     },
 
     get binders() {
-      return Binders;
+      return BINDERS;
     },
 
     setup: function setup(options) {
@@ -1315,6 +1302,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         return $return();
       }.bind(this));
+    },
+    names: function names(data) {
+      data = data.split(this.PREFIX)[1];
+      return data ? data.split('-') : [];
+    },
+    values: function values(data) {
+      data = data.split(this.PIPE)[0];
+      return data ? data.split('.') : [];
+    },
+    pipes: function pipes(data) {
+      data = data.split(this.PIPE)[1];
+      return data ? data.split(this.PIPES) : [];
     },
     create: function create(data) {
       if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
@@ -1444,12 +1443,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return;
       }
 
-      var items = this.data[binder.scope][binder.path];
+      var binders = this.data[binder.scope][binder.path];
 
-      for (var i = 0, l = items.length; i < l; i++) {
-        if (items[i].targetargett === binder.target) {
-          return items.splice(i, 1);
+      for (var i = 0; i < binders.length; i++) {
+        if (binders[i].target === binder.target) {
+          binders.splice(i, 1);
         }
+      }
+
+      if (binder.path in this.data[binder.scope] && !this.data[binder.scope][binder.path].length) {
+        delete this.data[binder.scope][binder.path];
       }
     },
     render: function render(binder, data) {

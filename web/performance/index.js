@@ -35,7 +35,7 @@ var oLoop = {
 	},
 	template: /*html*/`
 
-		<h3><span o-text="count"></span> Inputs two way binded</h3>
+		<h3><span o-text="count" o-text="count"></span> Inputs two way binded</h3>
 		<h3><span o-text="count"></span> Text one way binded</h3>
 
 		<form o-submit="push">

@@ -2,11 +2,9 @@
 export default {
 
 	PREFIX: /o-/,
-	ROOT: /^(https?:)?\/?\//,
-
-	DOT: /\.+/,
 	PIPE: /\s?\|\s?/,
 	PIPES: /\s?,\s?|\s+/,
+
 	// VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
 	// VARIABLE_END: '(?:)',
 
@@ -142,7 +140,7 @@ export default {
 			}
 		}
 	},
-
+	
 	binderNames (data) {
 		data = data.split(this.PREFIX)[1];
 		return data ? data.split('-') : [];
