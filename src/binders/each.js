@@ -6,6 +6,7 @@ import Batcher from '../batcher.js';
 export default function (binder, data) {
 
 	if (data.length === undefined) {
+		console.log('data.length undefined');
 		return;
 	}
 
@@ -23,8 +24,11 @@ export default function (binder, data) {
 	// 	binder.meta.fragment = document.createDocumentFragment();
 	// }
 
-	if (!binder.meta.template) {
+	if (binder.meta.length === undefined) {
 		binder.meta.length = 0;
+	}
+
+	if (!binder.meta.template) {
 		binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
 	}
 
@@ -33,8 +37,19 @@ export default function (binder, data) {
 	return {
 		read () {
 			// need to account for Objet
-			this.currentLength = binder.target.children.length;
+			// this.currentLength = binder.target.children.length;
+			this.currentLength = binder.meta.length;
 			this.targetLength = typeof data === 'object' ? data.length : 0;
+
+			if (this.currentLength === this.targetLength) {
+				return false;
+			} else if (this.currentLength > this.targetLength) {
+				binder.meta.length--;
+				this.currentLength--;
+			} else if (this.currentLength < this.targetLength) {
+				binder.meta.length++;
+				this.currentLength++;
+			}
 
 			// if (currentLength === targetLength) {
 			// 	return false;
