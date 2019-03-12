@@ -2,6 +2,8 @@ import Methods from './methods.js';
 import Loader from './loader.js';
 import Model from './model.js';
 
+import Binder from './binder.js';
+
 export default {
 
 	data: {},
@@ -28,6 +30,98 @@ export default {
 
 		}
 
+	},
+
+	node (node, target, type, container) {
+
+		if (!type) throw new Error('Oxe.binder.bind - type argument required');
+		if (!node) throw new Error('Oxe.binder.bind - node argument required');
+
+		if (
+			node.nodeName === 'SLOT' ||
+			node.nodeName === 'TEMPLATE' ||
+			node.nodeName === 'O-ROUTER' ||
+			// node.nodeType === Node.TEXT_NODE ||
+			// node.nodeType === Node.DOCUMENT_NODE ||
+			// node.nodeType === Node.DOCUMENT_FRAGMENT_NODE
+		) {
+			return;
+		}
+
+		const attributes = node.attributes;
+
+		for (let i = 0, l = attributes.length; i < l; i++) {
+			const attribute = attributes[i];
+
+			if (attribute.value.indexOf('$') === 0) continue;
+
+			if (
+				attribute.name.indexOf('o-') === 0
+				&& attribute.name !== 'o-scope'
+				&& attribute.name !== 'o-reset'
+				&& attribute.name !== 'o-action'
+				&& attribute.name !== 'o-method'
+				&& attribute.name !== 'o-enctype'
+			) {
+
+				let data;
+				let pointer;
+
+				const binder = Binder.create({
+					target: node,
+					container: container,
+					name: attribute.name,
+					value: attribute.value,
+					scope: container.scope
+				});
+
+				if (type === 'remove') {
+					// this.remove(binder);
+					pointer = Binder.get(binder);
+					Binder.remove(binder);
+					data = undefined;
+				} else if (type === 'add') {
+					Binder.add(binder);
+
+					pointer = Binder.get(binder);
+
+					if (pointer.type === 'on') {
+						data = Methods.get(pointer.keys);
+					} else {
+						data = Model.get(pointer.keys);
+						data = Piper(pointer, data);
+					}
+
+					// this.add(binder);
+				}
+
+				Binder.render(pointer, data);
+			}
+		}
+
+	},
+
+	nodes (nodes, target, type, container) {
+		for (let i = 0, l = nodes.length; i <l; i++) {
+			const node = nodes[i];
+
+			// if (
+			// 	node.nodeType === Node.TEXT_NODE ||
+			// 	node.nodeType === Node.DOCUMENT_NODE ||
+			// 	node.nodeType === Node.DOCUMENT_FRAGMENT_NODE
+			// ) {
+			// 	continue;
+			// }
+
+			if (node.nodeType !== Node.ELEMENT_NODE) {
+				continue;
+			}
+
+			const childContainer = node.scope || 'o-scope' in node.attributes ? node : container;
+
+			this.node(node, target, type, container);
+			this.nodes(node.childNodes, target, type, childContainer);
+		}
 	},
 
 	renderSlot (target, source, scope) {
@@ -124,13 +218,14 @@ export default {
 			return;
 		}
 
-		const container = document.createElement('template');
+		const template = document.createElement('template');
 		const style = self.renderStyle(options.style, element.scope);
-		const template = options.template;
 
-		container.innerHTML = style + template;
+		template.innerHTML = style + options.template;
 
-		const clone = document.importNode(container.content, true);
+		const clone = document.importNode(template.content, true);
+
+		View.nodes(clone);
 
 		if (options.shadow) {
 			if ('attachShadow' in document.body) {

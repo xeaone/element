@@ -1,9 +1,21 @@
 
+
+const PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
+const KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
+
 export default {
 
 	PREFIX: /o-/,
 	PIPE: /\s?\|\s?/,
 	PIPES: /\s?,\s?|\s+/,
+
+	whitespacePattern: /^\s+$/g,
+
+	keyPattern: new RegExp(KeyPattern, 'i'),
+	keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
+
+	pathPattern: new RegExp(PathPattern, 'i'),
+	pathPatternGlobal: new RegExp(PathPattern, 'ig'),
 
 	// VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
 	// VARIABLE_END: '(?:)',
@@ -140,7 +152,7 @@ export default {
 			}
 		}
 	},
-	
+
 	binderNames (data) {
 		data = data.split(this.PREFIX)[1];
 		return data ? data.split('-') : [];
@@ -241,24 +253,40 @@ export default {
 		}
 	},
 
-	replaceEachVariable (target, variable, path, key) {
-		const keyPattern = new RegExp(`{{\\$${variable}-(key|index)}}`, 'gi');
-		const pathPattern = new RegExp(`\\$${variable}($|,|\\s+|\\||\\.)`, 'gi');
+	rewrite (target, variable, path, key) {
 
-		this.walker(target, function (node) {
-			if (node.nodeType === 3) {
-				node.nodeValue = node.nodeValue.replace(keyPattern, `${key}`);
-				node.nodeValue = node.nodeValue.replace(pathPattern, `${path}.${key}$1`);
-			} else if (node.nodeType === 1) {
-				for (let i = 0, l = node.attributes.length; i < l; i++) {
-					const attribute = node.attributes[i];
-					if (attribute.name.indexOf('o-') === 0) {
-						attribute.value = attribute.value.replace(keyPattern, `${key}`);
-						attribute.value = attribute.value.replace(pathPattern, `${path}.${key}$1`);
-					}
-				}
+
+		if (target.nodeType === 3) {
+			target.nodeValue = target.nodeValue.replace(this.keyPatternGlobal, `${key}`);
+		} else if (target.nodeType === 1) {
+			for (let i = 0, l = target.attributes.length; i < l; i++) {
+				const attribute = target.attributes[i];
+				attribute.value = attribute.value.replace(this.keyPatternGlobal, `${key}`);
+				attribute.value = attribute.value.replace(this.pathPatternGlobal, `${path}.${key}$3`);
 			}
-		});
+		}
+
+		let node = target.firstChild;
+
+		while (node) {
+		    this.rewrite(node, variable, path, key);
+		    node = node.nextSibling;
+		}
+
+		// this.walker(target, function (node) {
+		// 	if (node.nodeType === 3) {
+		// 		node.nodeValue = node.nodeValue.replace(this.keyPatternGlobal, `${key}`);
+		// 	} else if (node.nodeType === 1) {
+		// 		for (let i = 0, l = node.attributes.length; i < l; i++) {
+		// 			const attribute = node.attributes[i];
+		// 			// if (attribute.value.match(this.pathPattern)) {
+		// 			// if (attribute.name.indexOf('o-') === 0) {
+		// 				attribute.value = attribute.value.replace(this.keyPatternGlobal, `${key}`);
+		// 				attribute.value = attribute.value.replace(this.pathPatternGlobal, `${path}.${key}$3`);
+		// 			// }
+		// 		}
+		// 	}
+		// });
 	},
 
 	// traverse (data, path, callback) {

@@ -62,7 +62,13 @@ const Observer = {
 
 		}
 
-		let oldLength = self.length;
+		const length = self.length + addCount - deleteCount;
+
+		if (self.length !== length) {
+			promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+		}
+
+		// let oldLength = self.length;
 
 		if (addCount > 0) {
 			// promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
@@ -91,10 +97,10 @@ const Observer = {
 			}
 		}
 
-		if (self.length !== oldLength) {
-			promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
-			// promises.push(self.$meta.listener.bind(null, self.length, self.$meta.path.slice(0, -1), 'length'));
-		}
+		// if (self.length !== oldLength) {
+		// 	promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+		// 	// promises.push(self.$meta.listener.bind(null, self.length, self.$meta.path.slice(0, -1), 'length'));
+		// }
 
 		Promise.resolve().then(function () {
 			promises.reduce(function (promise, item) {

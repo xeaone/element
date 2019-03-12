@@ -40,6 +40,7 @@ Oxe.setup({
 			'select',
 			'input',
 			'style',
+			'each',
 			'(*)'
 		]
 	}

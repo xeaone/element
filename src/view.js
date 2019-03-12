@@ -4,106 +4,106 @@ import Binder from './binder.js';
 import Piper from './piper.js';
 import Model from './model.js';
 
-const PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
-const KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
+// const PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
+// const KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
 
 export default {
 
-	data: new Map(),
+	// data: new Map(),
 	target: document.body,
 	whitespacePattern: /^\s+$/g,
 
-	keyPattern: new RegExp(KeyPattern, 'i'),
-	keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
-
-	pathPattern: new RegExp(PathPattern, 'i'),
-	pathPatternGlobal: new RegExp(PathPattern, 'ig'),
+	// keyPattern: new RegExp(KeyPattern, 'i'),
+	// keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
+	//
+	// pathPattern: new RegExp(PathPattern, 'i'),
+	// pathPatternGlobal: new RegExp(PathPattern, 'ig'),
 
 	async setup (options) {
 		options = options || {};
 
 		this.target = options.target || document.body;
 
-		const observer = new MutationObserver(this.listener.bind(this));
-
-		observer.observe(this.target, {
-			subtree: true,
-			childList: true,
-			// attributeFilter: [],
-			// attributes: true,
-			// attributeOldValue: true,
-			// characterData: true,
-			// characterDataOldValue: true
-		});
-
-	},
-
-	get () {
-		let data = this.data;
-
-		for (let i = 0, l = arguments.length; i < l; i++) {
-			data = data.get(arguments[i]);
-			// console.warn(`Oxe.view.get - argument ${arguments[i]} not found`);
-			if (!data) return null;
-		}
-
-		return data;
-	},
-
-	add (binder) {
-
-		if (!this.data.has(binder.target)) {
-			this.data.set(binder.target, new Map());
-		}
-
-		if (!this.data.get(binder.target).has(binder.names[0])) {
-			this.data.get(binder.target).set(binder.names[0], binder);
-		// } else {
-			// console.warn(`Oxe.view.add - binder o-scope="${binder.scope}" ${binder.name}="${binder.value}" exists`);
-		}
+		// const observer = new MutationObserver(this.listener.bind(this));
+		//
+		// observer.observe(this.target, {
+		// 	subtree: true,
+		// 	childList: true,
+		// 	// attributeFilter: [],
+		// 	// attributes: true,
+		// 	// attributeOldValue: true,
+		// 	// characterData: true,
+		// 	// characterDataOldValue: true
+		// });
 
 	},
 
-	remove (binder) {
+	// get () {
+	// 	let data = this.data;
+	//
+	// 	for (let i = 0, l = arguments.length; i < l; i++) {
+	// 		data = data.get(arguments[i]);
+	// 		// console.warn(`Oxe.view.get - argument ${arguments[i]} not found`);
+	// 		if (!data) return null;
+	// 	}
+	//
+	// 	return data;
+	// },
+	//
+	// add (binder) {
+	//
+	// 	if (!this.data.has(binder.target)) {
+	// 		this.data.set(binder.target, new Map());
+	// 	}
+	//
+	// 	if (!this.data.get(binder.target).has(binder.names[0])) {
+	// 		this.data.get(binder.target).set(binder.names[0], binder);
+	// 	// } else {
+	// 		// console.warn(`Oxe.view.add - binder o-scope="${binder.scope}" ${binder.name}="${binder.value}" exists`);
+	// 	}
+	//
+	// },
+	//
+	// remove (binder) {
+	//
+	// 	if (!this.data.has(binder.target)) {
+	// 		// console.warn(`Oxe.view.remove - binder o-scope="${binder.scope}" ${binder.name}="${binder.value}" not exist`);
+	// 		return;
+	// 	}
+	//
+	// 	if (this.data.get(binder.target).has(binder.names[0])) {
+	// 		this.data.get(binder.target).delete(binder.names[0]);
+	//
+	// 		if (!this.data.get(binder.target).size) {
+	// 			this.data.delete(binder.target);
+	// 		}
+	//
+	// 	}
+	//
+	// },
 
-		if (!this.data.has(binder.target)) {
-			// console.warn(`Oxe.view.remove - binder o-scope="${binder.scope}" ${binder.name}="${binder.value}" not exist`);
-			return;
-		}
-
-		if (this.data.get(binder.target).has(binder.names[0])) {
-			this.data.get(binder.target).delete(binder.names[0]);
-
-			if (!this.data.get(binder.target).size) {
-				this.data.delete(binder.target);
-			}
-
-		}
-
-	},
-
-	each (node, variable) {
-		let child = node;
-		let parent = node.parentElement;
-		while (parent) {
-			if (`o-each-${variable}` in parent.attributes) {
-				const binder = this.data.get(parent).get('each');
-				let index = 0;
-				let previous = child;
-				while (previous = previous.previousElementSibling) index++;
-				const key = Object.keys(binder.data)[index];
-				return {
-					key: key,
-					child: child,
-					parent: parent,
-					path: binder.path,
-				};
-			} else {
-				child = parent;
-				parent = parent.parentElement;
-			}
-		}
-	},
+	// each (node, variable) {
+	// 	let child = node;
+	// 	let parent = node.parentElement;
+	// 	while (parent) {
+	// 		if (`o-each-${variable}` in parent.attributes) {
+	// 			const binder = this.data.get(parent).get('each');
+	// 			let index = 0;
+	// 			let previous = child;
+	// 			while (previous = previous.previousElementSibling) index++;
+	// 			const key = Object.keys(binder.data)[index];
+	// 			return {
+	// 				key: key,
+	// 				child: child,
+	// 				parent: parent,
+	// 				path: binder.path,
+	// 			};
+	// 		} else {
+	// 			child = parent;
+	// 			parent = parent.parentElement;
+	// 		}
+	// 	}
+	// },
 
 	node (node, target, type, container) {
 
@@ -123,14 +123,14 @@ export default {
 
 		// rewrite dynamic text keys or indexs
 		if (node.nodeType === Node.TEXT_NODE) {
-			const match = node.nodeValue.match(this.keyPattern);
-			if (match) {
-				const variable = match[2].toLowerCase();
-				const each = this.each(node, variable);
-				if (each) {
-					node.nodeValue = node.nodeValue.replace(this.keyPatternGlobal, `${each.key}`);
-				}
-			}
+			// const match = node.nodeValue.match(this.keyPattern);
+			// if (match) {
+			// 	const variable = match[2].toLowerCase();
+			// 	const each = this.each(node, variable);
+			// 	if (each) {
+			// 		node.nodeValue = node.nodeValue.replace(this.keyPatternGlobal, `${each.key}`);
+			// 	}
+			// }
 			return;
 		}
 
@@ -138,6 +138,8 @@ export default {
 
 		for (let i = 0, l = attributes.length; i < l; i++) {
 			const attribute = attributes[i];
+
+			if (attribute.value.indexOf('$') === 0) continue;
 
 			if (
 				attribute.name.indexOf('o-') === 0
@@ -149,17 +151,18 @@ export default {
 			) {
 
 				// rewrite dynamic binder paths
-				const match = attribute.value.match(this.pathPattern);
-				if (match) {
-					const variable = match[2].toLowerCase();
-					const each = this.each(node, variable);
-					if (each) {
-						attribute.value = attribute.value.replace(this.keyPatternGlobal, `${each.key}`);
-						attribute.value = attribute.value.replace(this.pathPatternGlobal, `${each.path}.${each.key}$3`);
-					}
-				}
+				// const match = attribute.value.match(this.pathPattern);
+				// if (match) {
+				// 	const variable = match[2].toLowerCase();
+				// 	const each = this.each(node, variable);
+				// 	if (each) {
+				// 		attribute.value = attribute.value.replace(this.keyPatternGlobal, `${each.key}`);
+				// 		attribute.value = attribute.value.replace(this.pathPatternGlobal, `${each.path}.${each.key}$3`);
+				// 	}
+				// }
 
 				let data;
+				let pointer;
 
 				const binder = Binder.create({
 					target: node,
@@ -172,23 +175,26 @@ export default {
 				// this.data.get(node).set(binder.names[0], binder);
 
 				if (type === 'remove') {
-					this.remove(binder);
-					data = undefined;
+					// this.remove(binder);
+					pointer = Binder.get(binder);
 					Binder.remove(binder);
+					data = undefined;
 				} else if (type === 'add') {
-					this.add(binder);
+					Binder.add(binder);
 
-					if (binder.type === 'on') {
-						data = Methods.get(binder.keys);
+					pointer = Binder.get(binder);
+
+					if (pointer.type === 'on') {
+						data = Methods.get(pointer.keys);
 					} else {
-						data = Model.get(binder.keys);
-						data = Piper(binder, data);
+						data = Model.get(pointer.keys);
+						data = Piper(pointer, data);
 					}
 
-					Binder.add(binder);
+					// this.add(binder);
 				}
 
-				Binder.render(binder, data);
+				Binder.render(pointer, data);
 			}
 		}
 
@@ -206,6 +212,11 @@ export default {
 			const childContainer = node.nodeType === 1 && (node.scope || 'o-scope' in node.attributes) ? node : container;
 
 			this.node(node, target, type, container);
+
+			// if (node.scope && node.created) {
+			// 	continue;
+			// }
+
 			this.nodes(node.childNodes, target, type, childContainer);
 		}
 	},
@@ -231,7 +242,6 @@ export default {
 					this.nodes(record.removedNodes, record.target, 'remove', container);
 				break;
 				// case 'attributes':
-					// console.log(record);
 				// break;
 				// case 'characterData':
 				// break;

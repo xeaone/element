@@ -78,18 +78,18 @@ export default {
 		if (part in Binder.data[scope] === false) return;// console.warn(`Oxe.model.listener - path not found: ${part}`);
 		if (0 in Binder.data[scope][part] === false) return;// console.warn('Oxe.model.listener - data not found');
 
-		const binders = Binder.data[scope][part];
+		// const binders = Binder.data[scope][part];
+		//
+		// for (let i = 0, l = binders.length; i < l; i++) {
+		// 	data = Piper(binders[i], data);
+		// 	Binder.render(binders[i], data);
+		// }
 
-		for (let i = 0, l = binders.length; i < l; i++) {
-			data = Piper(binders[i], data);
-			Binder.render(binders[i], data);
-		}
-
-		// if (typeof data === 'object') {
-		if (type !== 'length' && typeof data === 'object') {
+		// if (type !== 'length' && typeof data === 'object') {
 			const binderPaths = Binder.data[scope];
 			for (let binderPath in binderPaths) {
-				if (part === '' || binderPath.indexOf(part + '.') === 0) {
+				if (part === '' || binderPath === part || binderPath.indexOf(part + '.') === 0) {
+				// if (part === '' || binderPath.indexOf(part + '.') === 0) {
 					const binders = binderPaths[binderPath];
 					for (let i = 0, l = binders.length; i < l; i++) {
 						const d = Piper(binders[i], this.get(scope+'.'+binderPath));
@@ -97,7 +97,7 @@ export default {
 					}
 				}
 			}
-		}
+		// }
 
 	}
 

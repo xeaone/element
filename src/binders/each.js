@@ -5,8 +5,8 @@ import Batcher from '../batcher.js';
 
 export default function (binder, data) {
 
-	if (data.length === undefined) {
-		console.log('data.length undefined');
+	if (data === undefined) {
+		console.log('data undefined');
 		return;
 	}
 
@@ -14,13 +14,7 @@ export default function (binder, data) {
 		return;
 	}
 
-	// if (binder.meta.busy) {
-	// 	return;
-	// } else {
-	// 	binder.meta.busy = true;
-	// }
-
-	// if (!binder.meta.fragment) {
+	// if (binder.meta.fragment === undefined) {
 	// 	binder.meta.fragment = document.createDocumentFragment();
 	// }
 
@@ -28,7 +22,9 @@ export default function (binder, data) {
 		binder.meta.length = 0;
 	}
 
-	if (!binder.meta.template) {
+	if (binder.meta.template === undefined) {
+		console.log('\nremoveChild\n\n');
+		console.log(binder.meta.template);
 		binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
 	}
 
@@ -36,107 +32,54 @@ export default function (binder, data) {
 
 	return {
 		read () {
+			console.log('READ');
+
 			// need to account for Objet
-			// this.currentLength = binder.target.children.length;
+			this.keys = Object.keys(data);
 			this.currentLength = binder.meta.length;
-			this.targetLength = typeof data === 'object' ? data.length : 0;
+			this.targetLength = Array.isArray(data) ? data.length : this.keys.length;
 
 			if (this.currentLength === this.targetLength) {
+				console.log('READ: length same');
 				return false;
 			} else if (this.currentLength > this.targetLength) {
-				binder.meta.length--;
-				this.currentLength--;
+				this.type = 'remove';
+				this.count = this.currentLength - this.targetLength;
+				binder.meta.length = binder.meta.length - this.count;
 			} else if (this.currentLength < this.targetLength) {
-				binder.meta.length++;
-				this.currentLength++;
+				this.type = 'add';
+				this.count = this.targetLength - this.currentLength;
+				binder.meta.length = binder.meta.length + this.count;
 			}
-
-			// if (currentLength === targetLength) {
-			// 	return false;
-			// } else if (currentLength > targetLength) {
-			// 	// binder.meta.length--;
-			// 	this.remove = binder.target.lastElementChild;
-			// } else if (currentLength < targetLength) {
-			// 	// binder.meta.length++;
-			// 	this.add = document.importNode(binder.meta.template, true);
-			// }
-
-			// let dataLength = this.keys.length;
-			// // let nodeLength = binder.meta.fragment.children.length + binder.target.children.length;
-			// const nodeLength = function () {
-			// 	return binder.meta.fragment.children.length + binder.target.children.length;
-			// };
-			//
-			// // const time = window.performance.now();
-			//
-			// if (nodeLength === dataLength) {
-			// 	return false;
-			// } else if (nodeLength > dataLength) {
-			// 	this.remove = nodeLength - dataLength;
-			//
-			// 	while (binder.meta.fragment.children.length && this.remove--) {
-			// 		binder.meta.fragment.removeChild(binder.meta.fragment.lastElementChild);
-			// 		// if (performance.now() - time > TIME) return;
-			// 	}
-			//
-			// } else if (nodeLength < dataLength) {
-			// 	this.add = dataLength - nodeLength;
-			//
-			// 	while (nodeLength < dataLength) {
-			//
-			// 		const clone = document.importNode(binder.meta.template, true);
-			// 		const key = this.keys[nodeLength];
-			// 		// Utility.replaceEachVariable(clone, binder.names[1], binder.path, key);
-			// 		binder.meta.fragment.appendChild(clone);
-			// 		nodeLength++;
-			//
-			// 		// if (performance.now() - time > TIME) return;
-			// 	}
-			//
-			// }
 
 		},
 		write () {
+			console.log('WRITE');
 
 			if (this.currentLength === this.targetLength) {
+				console.log('WRITE: length same');
 				return false;
 			} else if (this.currentLength > this.targetLength) {
-				// while (binder.target.children.length > targetLength) {
-					binder.target.removeChild(binder.target.lastElementChild);
+				// while (this.count--) {
+				// 	binder.target.removeChild(binder.target.lastElementChild);
 				// }
 			} else if (this.currentLength < this.targetLength) {
-				// while (binder.target.children.length < targetLength) {
-					binder.target.appendChild(document.importNode(binder.meta.template, true));
-				// }
+				while (this.count--) {
+
+					const node = document.importNode(binder.meta.template, true);
+
+					console.log(node);
+					console.log('type',this.type);
+					console.log('this.currentLength',this.currentLength);
+					console.log('binder.meta.length',binder.meta.length);
+					console.log('binder.target.children.length',binder.target.children.length);
+
+					// Utility.rewrite(node, binder.names[1], binder.path, this.keys[binder.target.children.length]);
+					Utility.rewrite(node, binder.names[1], binder.path, this.keys[this.currentLength++]);
+
+					binder.target.appendChild(node);
+				}
 			}
-
-			if (this.currentLength !== this.targetLength) {
-				Batcher.batch(self.each(binder, data));
-			}
-
-			// if (this.remove) {
-			// 	console.log(this.remove);
-			// 	if (binder.target.lastElementChild === this.remove) {
-			// 		binder.target.removeChild(this.remove);
-			// 	}
-			// } else if (this.add) {
-			// 	console.log(this.add);
-			// 	binder.target.appendChild(this.add);
-			// }
-
-			// binder.meta.busy = false;
-
-			// if (binder.target.children.length !== data.length) {
-			// if (this.currentLength !== this.targetLength) {
-			// 	Batcher.batch(self.each(binder, data));
-			// }
-
-			// console.log(data.length);
-			// console.log(binder.target.children.length);
-
-			// if (binder.target.children.length !== data.length) {
-			// 	self.default(binder, data);
-			// }
 
 		}
 	};

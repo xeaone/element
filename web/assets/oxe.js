@@ -58,7 +58,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
 
-      var oldLength = self.length;
+      var length = self.length + addCount - deleteCount;
+
+      if (self.length !== length) {
+        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+      }
 
       if (addCount > 0) {
         while (addCount--) {
@@ -80,10 +84,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           var _key2 = self.length;
           promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
         }
-      }
-
-      if (self.length !== oldLength) {
-        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
       }
 
       Promise.resolve().then(function () {
@@ -229,10 +229,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return target;
     }
   };
+  var PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
+  var KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
   var Utility = {
     PREFIX: /o-/,
     PIPE: /\s?\|\s?/,
     PIPES: /\s?,\s?|\s+/,
+    whitespacePattern: /^\s+$/g,
+    keyPattern: new RegExp(KeyPattern, 'i'),
+    keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
+    pathPattern: new RegExp(PathPattern, 'i'),
+    pathPatternGlobal: new RegExp(PathPattern, 'ig'),
     value: function value(element) {
       var type = this.type(element);
 
@@ -456,24 +463,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         node = node.nextSibling;
       }
     },
-    replaceEachVariable: function replaceEachVariable(target, variable, path, key) {
-      var keyPattern = new RegExp("{{\\$".concat(variable, "-(key|index)}}"), 'gi');
-      var pathPattern = new RegExp("\\$".concat(variable, "($|,|\\s+|\\||\\.)"), 'gi');
-      this.walker(target, function (node) {
-        if (node.nodeType === 3) {
-          node.nodeValue = node.nodeValue.replace(keyPattern, "".concat(key));
-          node.nodeValue = node.nodeValue.replace(pathPattern, "".concat(path, ".").concat(key, "$1"));
-        } else if (node.nodeType === 1) {
-          for (var i = 0, l = node.attributes.length; i < l; i++) {
-            var attribute = node.attributes[i];
-
-            if (attribute.name.indexOf('o-') === 0) {
-              attribute.value = attribute.value.replace(keyPattern, "".concat(key));
-              attribute.value = attribute.value.replace(pathPattern, "".concat(path, ".").concat(key, "$1"));
-            }
-          }
+    rewrite: function rewrite(target, variable, path, key) {
+      if (target.nodeType === 3) {
+        target.nodeValue = target.nodeValue.replace(this.keyPatternGlobal, "".concat(key));
+      } else if (target.nodeType === 1) {
+        for (var i = 0, l = target.attributes.length; i < l; i++) {
+          var attribute = target.attributes[i];
+          attribute.value = attribute.value.replace(this.keyPatternGlobal, "".concat(key));
+          attribute.value = attribute.value.replace(this.pathPatternGlobal, "".concat(path, ".").concat(key, "$3"));
         }
-      });
+      }
+
+      var node = target.firstChild;
+
+      while (node) {
+        this.rewrite(node, variable, path, key);
+        node = node.nextSibling;
+      }
     },
     setByPath: function setByPath(data, path, value) {
       var keys = typeof path === 'string' ? path.split('.') : path;
@@ -655,7 +661,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Each(binder, data) {
-    if (data.length === undefined) {
+    if (data === undefined) {
+      console.log('data undefined');
       return;
     }
 
@@ -663,28 +670,53 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return;
     }
 
-    if (!binder.meta.template) {
+    if (binder.meta.length === undefined) {
       binder.meta.length = 0;
+    }
+
+    if (binder.meta.template === undefined) {
+      console.log('\nremoveChild\n\n');
+      console.log(binder.meta.template);
       binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
     }
 
-    var self = this;
     return {
       read: function read() {
-        this.currentLength = binder.target.children.length;
-        this.targetLength = _typeof(data) === 'object' ? data.length : 0;
-      },
-      write: function write() {
+        console.log('READ');
+        this.keys = Object.keys(data);
+        this.currentLength = binder.meta.length;
+        this.targetLength = Array.isArray(data) ? data.length : this.keys.length;
+
         if (this.currentLength === this.targetLength) {
+          console.log('READ: length same');
           return false;
         } else if (this.currentLength > this.targetLength) {
-          binder.target.removeChild(binder.target.lastElementChild);
+          this.type = 'remove';
+          this.count = this.currentLength - this.targetLength;
+          binder.meta.length = binder.meta.length - this.count;
         } else if (this.currentLength < this.targetLength) {
-          binder.target.appendChild(document.importNode(binder.meta.template, true));
+          this.type = 'add';
+          this.count = this.targetLength - this.currentLength;
+          binder.meta.length = binder.meta.length + this.count;
         }
+      },
+      write: function write() {
+        console.log('WRITE');
 
-        if (this.currentLength !== this.targetLength) {
-          Batcher.batch(self.each(binder, data));
+        if (this.currentLength === this.targetLength) {
+          console.log('WRITE: length same');
+          return false;
+        } else if (this.currentLength > this.targetLength) ;else if (this.currentLength < this.targetLength) {
+          while (this.count--) {
+            var node = document.importNode(binder.meta.template, true);
+            console.log(node);
+            console.log('type', this.type);
+            console.log('this.currentLength', this.currentLength);
+            console.log('binder.meta.length', binder.meta.length);
+            console.log('binder.target.children.length', binder.target.children.length);
+            Utility.rewrite(node, binder.names[1], binder.path, this.keys[this.currentLength++]);
+            binder.target.appendChild(node);
+          }
         }
       }
     };
@@ -837,7 +869,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Piper(binder, data) {
+  function Piper$1(binder, data) {
     if (!binder.pipes.length) {
       return data;
     }
@@ -870,87 +902,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return Utility.setByPath(this.data, path, data);
     }
   };
-  var PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
-  var KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
-  var View = {
-    data: new Map(),
+  var View$1 = {
     target: document.body,
     whitespacePattern: /^\s+$/g,
-    keyPattern: new RegExp(KeyPattern, 'i'),
-    keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
-    pathPattern: new RegExp(PathPattern, 'i'),
-    pathPatternGlobal: new RegExp(PathPattern, 'ig'),
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
         this.target = options.target || document.body;
-        var observer = new MutationObserver(this.listener.bind(this));
-        observer.observe(this.target, {
-          subtree: true,
-          childList: true
-        });
         return $return();
       }.bind(this));
-    },
-    get: function get() {
-      var data = this.data;
-
-      for (var i = 0, l = arguments.length; i < l; i++) {
-        data = data.get(arguments[i]);
-        if (!data) return null;
-      }
-
-      return data;
-    },
-    add: function add(binder) {
-      if (!this.data.has(binder.target)) {
-        this.data.set(binder.target, new Map());
-      }
-
-      if (!this.data.get(binder.target).has(binder.names[0])) {
-        this.data.get(binder.target).set(binder.names[0], binder);
-      }
-    },
-    remove: function remove(binder) {
-      if (!this.data.has(binder.target)) {
-        return;
-      }
-
-      if (this.data.get(binder.target).has(binder.names[0])) {
-        this.data.get(binder.target).delete(binder.names[0]);
-
-        if (!this.data.get(binder.target).size) {
-          this.data.delete(binder.target);
-        }
-      }
-    },
-    each: function each(node, variable) {
-      var child = node;
-      var parent = node.parentElement;
-
-      while (parent) {
-        if ("o-each-".concat(variable) in parent.attributes) {
-          var binder = this.data.get(parent).get('each');
-          var _index2 = 0;
-          var previous = child;
-
-          while (previous = previous.previousElementSibling) {
-            _index2++;
-          }
-
-          var key = Object.keys(binder.data)[_index2];
-
-          return {
-            key: key,
-            child: child,
-            parent: parent,
-            path: binder.path
-          };
-        } else {
-          child = parent;
-          parent = parent.parentElement;
-        }
-      }
     },
     node: function node(_node, target, type, container) {
       if (!type) throw new Error('Oxe.binder.bind - type argument required');
@@ -961,17 +921,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       if (_node.nodeType === Node.TEXT_NODE) {
-        var match = _node.nodeValue.match(this.keyPattern);
-
-        if (match) {
-          var variable = match[2].toLowerCase();
-          var each = this.each(_node, variable);
-
-          if (each) {
-            _node.nodeValue = _node.nodeValue.replace(this.keyPatternGlobal, "".concat(each.key));
-          }
-        }
-
         return;
       }
 
@@ -979,23 +928,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       for (var i = 0, l = attributes.length; i < l; i++) {
         var attribute = attributes[i];
+        if (attribute.value.indexOf('$') === 0) continue;
 
         if (attribute.name.indexOf('o-') === 0 && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype') {
-          var _match = attribute.value.match(this.pathPattern);
-
-          if (_match) {
-            var _variable = _match[2].toLowerCase();
-
-            var _each = this.each(_node, _variable);
-
-            if (_each) {
-              attribute.value = attribute.value.replace(this.keyPatternGlobal, "".concat(_each.key));
-              attribute.value = attribute.value.replace(this.pathPatternGlobal, "".concat(_each.path, ".").concat(_each.key, "$3"));
-            }
-          }
-
           var data = void 0;
-          var binder = Binder.create({
+          var pointer = void 0;
+          var binder = Binder$1.create({
             target: _node,
             container: container,
             name: attribute.name,
@@ -1004,23 +942,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           });
 
           if (type === 'remove') {
-            this.remove(binder);
+            pointer = Binder$1.get(binder);
+            Binder$1.remove(binder);
             data = undefined;
-            Binder.remove(binder);
           } else if (type === 'add') {
-            this.add(binder);
+            Binder$1.add(binder);
+            pointer = Binder$1.get(binder);
 
-            if (binder.type === 'on') {
-              data = Methods.get(binder.keys);
+            if (pointer.type === 'on') {
+              data = Methods.get(pointer.keys);
             } else {
-              data = Model.get(binder.keys);
-              data = Piper(binder, data);
+              data = Model.get(pointer.keys);
+              data = Piper$1(pointer, data);
             }
-
-            Binder.add(binder);
           }
 
-          Binder.render(binder, data);
+          Binder$1.render(pointer, data);
         }
       }
     },
@@ -1168,7 +1105,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             var parent = binder.target.parentElement;
             if (!parent) return false;
             var select = parent.nodeName === 'SELECT' || parent.nodeName.indexOf('-SELECT') !== -1 ? parent : parent.parentElement;
-            var b = View.get(parent, 'value');
+            var b = View$1.get(parent, 'value');
           }
 
           if (data === binder.target.value) {
@@ -1280,7 +1217,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
   };
-  var Binder = {
+  var Binder$1 = {
     get data() {
       return DATA;
     },
@@ -1522,27 +1459,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var paths = path.split('.');
       var part = paths.slice(1).join('.');
       var scope = paths.slice(0, 1).join('.');
-      if (scope in Binder.data === false) return;
-      if (part in Binder.data[scope] === false) return;
-      if (0 in Binder.data[scope][part] === false) return;
-      var binders = Binder.data[scope][part];
+      if (scope in Binder$1.data === false) return;
+      if (part in Binder$1.data[scope] === false) return;
+      if (0 in Binder$1.data[scope][part] === false) return;
+      var binderPaths = Binder$1.data[scope];
 
-      for (var i = 0, l = binders.length; i < l; i++) {
-        data = Piper(binders[i], data);
-        Binder.render(binders[i], data);
-      }
+      for (var binderPath in binderPaths) {
+        if (part === '' || binderPath === part || binderPath.indexOf(part + '.') === 0) {
+          var binders = binderPaths[binderPath];
 
-      if (type !== 'length' && _typeof(data) === 'object') {
-        var binderPaths = Binder.data[scope];
-
-        for (var binderPath in binderPaths) {
-          if (part === '' || binderPath.indexOf(part + '.') === 0) {
-            var _binders = binderPaths[binderPath];
-
-            for (var _i2 = 0, _l2 = _binders.length; _i2 < _l2; _i2++) {
-              var d = Piper(_binders[_i2], this.get(scope + '.' + binderPath));
-              Binder.render(_binders[_i2], d);
-            }
+          for (var i = 0, l = binders.length; i < l; i++) {
+            var d = Piper$1(binders[i], this.get(scope + '.' + binderPath));
+            Binder$1.render(binders[i], d);
           }
         }
       }
@@ -1553,7 +1481,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return new Promise(function ($return, $error) {
       if (!node) return $error(new Error('Oxe.update - requires node argument'));
       if (!attribute) return $error(new Error('Oxe.update - requires attribute argument'));
-      var binder = View.get(node, attribute);
+      var binder = View$1.get(node, attribute);
 
       var read = function read() {
         var type = binder.target.type;
@@ -1879,7 +1807,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return new Promise(function ($return, $error) {
       var node, binder, method, model, data, options, oaction, omethod, oenctype, result;
       node = event.target;
-      binder = View.get(node, 'submit');
+      binder = View$1.get(node, 'submit');
       method = Methods.get(binder.keys);
       model = Model.get(binder.scope);
       data = Utility.formData(node, model);
@@ -1944,7 +1872,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Reset(event) {
     return new Promise(function ($return, $error) {
       var node = event.target;
-      var binder = View.get(node, 'submit');
+      var binder = View$1.get(node, 'submit');
       var model = Model.get(binder.scope);
       Utility.formReset(node, model);
       return $return();
@@ -2224,10 +2152,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     off: function off(name, method) {
       if (name in this.events) {
-        var _index3 = this.events[name].indexOf(method);
+        var _index2 = this.events[name].indexOf(method);
 
-        if (_index3 !== -1) {
-          this.events[name].splice(_index3, 1);
+        if (_index2 !== -1) {
+          this.events[name].splice(_index2, 1);
         }
       }
     },
@@ -2311,6 +2239,59 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return $If_8.call(this);
       }.bind(this));
     },
+    node: function node(_node2, target, type, container) {
+      if (!type) throw new Error('Oxe.binder.bind - type argument required');
+      if (!_node2) throw new Error('Oxe.binder.bind - node argument required');
+
+      if (_node2.nodeName === 'SLOT' || _node2.nodeName === 'TEMPLATE' || _node2.nodeName === 'O-ROUTER' || _node2.nodeType === Node.TEXT_NODE || _node2.nodeType === Node.DOCUMENT_NODE || _node2.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        return;
+      }
+
+      var attributes = _node2.attributes;
+
+      for (var i = 0, l = attributes.length; i < l; i++) {
+        var attribute = attributes[i];
+        if (attribute.value.indexOf('$') === 0) continue;
+
+        if (attribute.name.indexOf('o-') === 0 && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype') {
+          var data = void 0;
+          var pointer = void 0;
+          var binder = Binder.create({
+            target: _node2,
+            container: container,
+            name: attribute.name,
+            value: attribute.value,
+            scope: container.scope
+          });
+
+          if (type === 'remove') {
+            pointer = Binder.get(binder);
+            Binder.remove(binder);
+            data = undefined;
+          } else if (type === 'add') {
+            Binder.add(binder);
+            pointer = Binder.get(binder);
+
+            if (pointer.type === 'on') {
+              data = Methods.get(pointer.keys);
+            } else {
+              data = Model.get(pointer.keys);
+              data = Piper(pointer, data);
+            }
+          }
+
+          Binder.render(pointer, data);
+        }
+      }
+    },
+    nodes: function nodes(_nodes2, target, type, container) {
+      for (var i = 0, l = _nodes2.length; i < l; i++) {
+        var node = _nodes2[i];
+        var childContainer = node.nodeType === 1 && (node.scope || 'o-scope' in node.attributes) ? node : container;
+        this.node(node, target, type, container);
+        this.nodes(node.childNodes, target, type, childContainer);
+      }
+    },
     renderSlot: function renderSlot(target, source, scope) {
       var targetSlots = target.querySelectorAll('slot[name]');
       var defaultSlot = target.querySelector('slot:not([name])');
@@ -2370,11 +2351,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return;
       }
 
-      var container = document.createElement('template');
+      var template = document.createElement('template');
       var style = self.renderStyle(options.style, element.scope);
-      var template = options.template;
-      container.innerHTML = style + template;
-      var clone = document.importNode(container.content, true);
+      template.innerHTML = style + options.template;
+      var clone = document.importNode(template.content, true);
+      View.nodes(clone);
 
       if (options.shadow) {
         if ('attachShadow' in document.body) {
@@ -3315,7 +3296,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
 
     get view() {
-      return View;
+      return View$1;
     },
 
     get fetcher() {
@@ -3331,7 +3312,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
 
     get binder() {
-      return Binder;
+      return Binder$1;
     },
 
     get model() {
