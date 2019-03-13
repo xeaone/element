@@ -1,5 +1,6 @@
 import Utility from './utility.js';
-import Collection from './collection.js';
+// import Collection from './collection.js';
+import Data from './data.js';
 
 import Batcher from './batcher.js';
 import Class from './binders/class.js';
@@ -21,7 +22,7 @@ import Write from './binders/write.js';
 
 // const DATA = {};
 // const DATA = new Map();
-const DATA = new Collection();
+// const DATA = new Collection();
 
 const BINDERS = {
 	get class () { return Class; },
@@ -49,7 +50,7 @@ const BINDERS = {
 
 export default {
 
-	get data () { return DATA; },
+	// get data () { return DATA; },
 	get binders () { return BINDERS; },
 
 	async setup (options) {

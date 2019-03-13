@@ -3,7 +3,8 @@ import Loader from './loader.js';
 import Binder from './binder.js';
 import Model from './model.js';
 import Piper from './piper.js';
-import View from './view.js';
+import Data from './data.js';
+// import View from './view.js';
 
 export default {
 
@@ -55,24 +56,29 @@ export default {
 				continue
 			}
 
-			let data;
-
-			const binder = Binder.create({
-				target: node,
-				container: container,
-				name: attribute.name,
-				value: attribute.value,
-				scope: container.scope
-			});
+			// let data;
 
 			if (type === 'remove') {
-				View.remove(binder);
-				Binder.remove(binder);
-				data = undefined;
+				Data.remove(node, attribute.name);
+				// View.remove(binder);
+				// Binder.remove(binder);
+				// data = undefined;
 			} else {
-				View.add(binder);
-				Binder.add(binder);
 
+				const binder = Binder.create({
+					target: node,
+					container: container,
+					name: attribute.name,
+					value: attribute.value,
+					scope: container.scope
+				});
+
+				Data.add(binder);
+				// View.add(binder);
+				// Binder.add(binder);
+
+				let data;
+				
 				if (binder.type === 'on') {
 					data = Methods.get(binder.keys);
 				} else {
@@ -80,9 +86,9 @@ export default {
 					data = Piper(binder, data);
 				}
 
+				Binder.render(binder, data);
 			}
 
-			Binder.render(binder, data);
 		}
 	},
 

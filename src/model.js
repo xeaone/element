@@ -1,6 +1,7 @@
 import Observer from './observer.js';
 import Binder from './binder.js';
 import Piper from './piper.js';
+import Data from './data.js';
 // import Methods from './methods.js';
 // import View from './view.js';
 
@@ -74,9 +75,20 @@ export default {
 		const part = paths.slice(1).join('.');
 		const scope = paths.slice(0, 1).join('.');
 
-		if (scope in Binder.data === false) return;// console.warn(`Oxe.model.listener - scope not found: ${scope}`);
-		if (part in Binder.data[scope] === false) return;// console.warn(`Oxe.model.listener - path not found: ${part}`);
-		if (0 in Binder.data[scope][part] === false) return;// console.warn('Oxe.model.listener - data not found');
+		const ids = Data.path.get(path);
+
+		if (!ids || !ids.length) return;
+
+		for (let i = 0, l = ids.length; i < l; i++) {
+			const id = ids[i];
+			const binder = Data.binder.get(id);
+			const piped = Piper(binder, data);
+			Binder.render(binder, piped);
+		}
+
+		// if (scope in Binder.data === false) return;// console.warn(`Oxe.model.listener - scope not found: ${scope}`);
+		// if (part in Binder.data[scope] === false) return;// console.warn(`Oxe.model.listener - path not found: ${part}`);
+		// if (0 in Binder.data[scope][part] === false) return;// console.warn('Oxe.model.listener - data not found');
 
 		// const binders = Binder.data[scope][part];
 		//
@@ -86,17 +98,19 @@ export default {
 		// }
 
 		// if (type !== 'length' && typeof data === 'object') {
-			const binderPaths = Binder.data[scope];
-			for (let binderPath in binderPaths) {
-				if (part === '' || binderPath === part || binderPath.indexOf(part + '.') === 0) {
-				// if (part === '' || binderPath.indexOf(part + '.') === 0) {
-					const binders = binderPaths[binderPath];
-					for (let i = 0, l = binders.length; i < l; i++) {
-						const d = Piper(binders[i], this.get(scope+'.'+binderPath));
-						Binder.render(binders[i], d);
-					}
-				}
-			}
+
+			// const binderPaths = Binder.data[scope];
+			// for (let binderPath in binderPaths) {
+			// 	if (part === '' || binderPath === part || binderPath.indexOf(part + '.') === 0) {
+			// 	// if (part === '' || binderPath.indexOf(part + '.') === 0) {
+			// 		const binders = binderPaths[binderPath];
+			// 		for (let i = 0, l = binders.length; i < l; i++) {
+			// 			const d = Piper(binders[i], this.get(scope+'.'+binderPath));
+			// 			Binder.render(binders[i], d);
+			// 		}
+			// 	}
+			// }
+
 		// }
 
 	}
