@@ -1,5 +1,4 @@
 
-
 const PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
 const KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
 
@@ -9,16 +8,13 @@ export default {
 	PIPE: /\s?\|\s?/,
 	PIPES: /\s?,\s?|\s+/,
 
-	whitespacePattern: /^\s+$/g,
+	// whitespacePattern: /^\s+$/g,
 
 	keyPattern: new RegExp(KeyPattern, 'i'),
 	keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
 
 	pathPattern: new RegExp(PathPattern, 'i'),
 	pathPatternGlobal: new RegExp(PathPattern, 'ig'),
-
-	// VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
-	// VARIABLE_END: '(?:)',
 
 	value (element) {
 		const type = this.type(element);
@@ -244,17 +240,16 @@ export default {
 
 	},
 
-	walker (node, callback) {
-		callback(node);
-		node = node.firstChild;
-		while (node) {
-		    this.walker(node, callback);
-		    node = node.nextSibling;
-		}
-	},
+	// walker (node, callback) {
+	// 	callback(node);
+	// 	node = node.firstChild;
+	// 	while (node) {
+	// 	    this.walker(node, callback);
+	// 	    node = node.nextSibling;
+	// 	}
+	// },
 
 	rewrite (target, variable, path, key) {
-
 
 		if (target.nodeType === 3) {
 			target.nodeValue = target.nodeValue.replace(this.keyPatternGlobal, `${key}`);
@@ -273,20 +268,6 @@ export default {
 		    node = node.nextSibling;
 		}
 
-		// this.walker(target, function (node) {
-		// 	if (node.nodeType === 3) {
-		// 		node.nodeValue = node.nodeValue.replace(this.keyPatternGlobal, `${key}`);
-		// 	} else if (node.nodeType === 1) {
-		// 		for (let i = 0, l = node.attributes.length; i < l; i++) {
-		// 			const attribute = node.attributes[i];
-		// 			// if (attribute.value.match(this.pathPattern)) {
-		// 			// if (attribute.name.indexOf('o-') === 0) {
-		// 				attribute.value = attribute.value.replace(this.keyPatternGlobal, `${key}`);
-		// 				attribute.value = attribute.value.replace(this.pathPatternGlobal, `${path}.${key}$3`);
-		// 			// }
-		// 		}
-		// 	}
-		// });
 	},
 
 	// traverse (data, path, callback) {
@@ -354,4 +335,4 @@ export default {
 		return data[keys[last]];
 	}
 
-}
+};

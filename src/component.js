@@ -1,13 +1,13 @@
 import Methods from './methods.js';
 import Loader from './loader.js';
-import Model from './model.js';
-
 import Binder from './binder.js';
+import Model from './model.js';
+import Piper from './piper.js';
+import View from './view.js';
 
 export default {
 
 	data: {},
-	// lazy: true,
 	compiled: false,
 
 	async setup (options) {
@@ -32,19 +32,9 @@ export default {
 
 	},
 
-	node (node, target, type, container) {
+	bind (node, container, type) {
 
-		if (!type) throw new Error('Oxe.binder.bind - type argument required');
-		if (!node) throw new Error('Oxe.binder.bind - node argument required');
-
-		if (
-			node.nodeName === 'SLOT' ||
-			node.nodeName === 'TEMPLATE' ||
-			node.nodeName === 'O-ROUTER' ||
-			// node.nodeType === Node.TEXT_NODE ||
-			// node.nodeType === Node.DOCUMENT_NODE ||
-			// node.nodeType === Node.DOCUMENT_FRAGMENT_NODE
-		) {
+		if (node.nodeType !== Node.ELEMENT_NODE) {
 			return;
 		}
 
@@ -53,78 +43,70 @@ export default {
 		for (let i = 0, l = attributes.length; i < l; i++) {
 			const attribute = attributes[i];
 
-			if (attribute.value.indexOf('$') === 0) continue;
-
 			if (
-				attribute.name.indexOf('o-') === 0
-				&& attribute.name !== 'o-scope'
-				&& attribute.name !== 'o-reset'
-				&& attribute.name !== 'o-action'
-				&& attribute.name !== 'o-method'
-				&& attribute.name !== 'o-enctype'
+				attribute.name.indexOf('o-') !== 0 ||
+				attribute.name === 'o-scope' ||
+				attribute.name === 'o-reset' ||
+				attribute.name === 'o-action' ||
+				attribute.name === 'o-method' ||
+				attribute.name === 'o-enctype'
+				// attribute.value.indexOf('$') === 0
 			) {
+				continue
+			}
 
-				let data;
-				let pointer;
+			let data;
 
-				const binder = Binder.create({
-					target: node,
-					container: container,
-					name: attribute.name,
-					value: attribute.value,
-					scope: container.scope
-				});
+			const binder = Binder.create({
+				target: node,
+				container: container,
+				name: attribute.name,
+				value: attribute.value,
+				scope: container.scope
+			});
 
-				if (type === 'remove') {
-					// this.remove(binder);
-					pointer = Binder.get(binder);
-					Binder.remove(binder);
-					data = undefined;
-				} else if (type === 'add') {
-					Binder.add(binder);
+			if (type === 'remove') {
+				View.remove(binder);
+				Binder.remove(binder);
+				data = undefined;
+			} else {
+				View.add(binder);
+				Binder.add(binder);
 
-					pointer = Binder.get(binder);
-
-					if (pointer.type === 'on') {
-						data = Methods.get(pointer.keys);
-					} else {
-						data = Model.get(pointer.keys);
-						data = Piper(pointer, data);
-					}
-
-					// this.add(binder);
+				if (binder.type === 'on') {
+					data = Methods.get(binder.keys);
+				} else {
+					data = Model.get(binder.keys);
+					data = Piper(binder, data);
 				}
 
-				Binder.render(pointer, data);
 			}
-		}
 
+			Binder.render(binder, data);
+		}
 	},
 
-	nodes (nodes, target, type, container) {
+	binds (nodes, container, type) {
 		for (let i = 0, l = nodes.length; i <l; i++) {
 			const node = nodes[i];
 
-			// if (
-			// 	node.nodeType === Node.TEXT_NODE ||
-			// 	node.nodeType === Node.DOCUMENT_NODE ||
-			// 	node.nodeType === Node.DOCUMENT_FRAGMENT_NODE
-			// ) {
-			// 	continue;
-			// }
-
-			if (node.nodeType !== Node.ELEMENT_NODE) {
+			if (
+				node.nodeName === 'TEMPLATE' ||
+				node.nodeName === 'O-ROUTER' ||
+				node.nodeName === 'OBJECT' ||
+				node.nodeName === 'SCRIPT' ||
+				node.nodeName === 'STYLE' ||
+				node.nodeName === 'SLOT'
+			) {
 				continue;
 			}
 
-			const childContainer = node.scope || 'o-scope' in node.attributes ? node : container;
-
-			this.node(node, target, type, container);
-			this.nodes(node.childNodes, target, type, childContainer);
+			this.bind(node, container, type);
+			this.binds(node.children, container, type);
 		}
 	},
 
-	renderSlot (target, source, scope) {
+	slot (target, source, scope) {
 		const targetSlots = target.querySelectorAll('slot[name]');
 		const defaultSlot = target.querySelector('slot:not([name])');
 
@@ -158,30 +140,22 @@ export default {
 
 	},
 
-	// renderTemplate (template) {
-	// 	let fragment = document.createDocumentFragment();
-	//
-	// 	if (template) {
-	//
-	// 		if (typeof template === 'string') {
-	// 			let temporary = document.createElement('div');
-	//
-	// 			temporary.innerHTML = template;
-	//
-	// 			while (temporary.firstChild) {
-	// 				fragment.appendChild(temporary.firstChild);
-	// 			}
-	//
-	// 		} else {
-	// 			fragment.appendChild(template);
-	// 		}
-	//
-	// 	}
-	//
-	// 	return fragment;
-	// }
+	fragment (template, container) {
+		const fragment = document.createDocumentFragment();
+		const parser = document.createElement('div');
 
-	renderStyle (style, scope) {
+		parser.innerHTML = template;
+
+		while (parser.firstElementChild) {
+			this.bind(parser.firstElementChild, container);
+			this.binds(parser.firstElementChild.children, container);
+			fragment.appendChild(parser.firstElementChild);
+		}
+
+		return fragment;
+	},
+
+	style (style, scope) {
 
 		if (!style) return '';
 
@@ -210,32 +184,30 @@ export default {
 	},
 
 	render (element, options) {
-		const self = this;
 
 		element.setAttribute('o-scope', element.scope);
 
-		if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
+		if (this.compiled && element.parentElement.nodeName === 'O-ROUTER') {
 			return;
 		}
 
-		const template = document.createElement('template');
-		const style = self.renderStyle(options.style, element.scope);
+		const style = this.style(options.style, element.scope);
+		const template = style + options.template;
+		const fragment = this.fragment(template, element);
 
-		template.innerHTML = style + options.template;
-
-		const clone = document.importNode(template.content, true);
-
-		View.nodes(clone);
+		// const template = document.createElement('template');
+		// const clone = document.importNode(fragment, true);
+		// this.binds(clone.children, element);
 
 		if (options.shadow) {
 			if ('attachShadow' in document.body) {
-				element.attachShadow({ mode: 'open' }).appendChild(clone);
+				element.attachShadow({ mode: 'open' }).appendChild(fragment);
 			} else if ('createShadowRoot' in document.body) {
-				element.createShadowRoot().appendChild(clone);
+				element.createShadowRoot().appendChild(fragment);
 			}
 		} else {
-			self.renderSlot(clone, element);
-			element.appendChild(clone);
+			this.slot(fragment, element);
+			element.appendChild(fragment);
 		}
 
 	},

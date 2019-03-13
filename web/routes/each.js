@@ -7,9 +7,7 @@ export default {
 		model: {
 			title: 'Each',
 			items: [
-				{ it: { val: 0 } },
-				{ it: { val: 1 } },
-				{ it: { val: 2 } }
+				{ it: { val: 0 } }, { it: { val: 1 } }
 			]
 		},
 		created: function () {
@@ -18,36 +16,22 @@ export default {
 			setTimeout(function () {
 				var increaseInterval = setInterval(function () {
 
-					if (self.model.items.length === 5) {
-						console.log('\nPUSH: end\n\n');
+					if (self.model.items.length === 20) {
 						clearInterval(increaseInterval);
 
-						// var decreaseInterval = setInterval(function () {
-						// 	if (self.model.items.length === 3) {
-						// 		console.log('\nPOP: end\n\n');
-						// 		clearInterval(decreaseInterval);
-						// 	} else {
-						//
-						// 		if (self.model.items.length === 6) {
-						// 			console.log('\nPOP: start\n\n');
-						// 		}
-						//
-						// 		self.model.items.pop();
-						// 		console.log('POP',self.model.items.length);
-						// 	}
-						// }, 1000);
+						var decreaseInterval = setInterval(function () {
+							if (self.model.items.length === 10) {
+								clearInterval(decreaseInterval);
+							} else {
+								self.model.items.pop();
+							}
+						}, 50);
 
 					} else {
-
-						if (self.model.items.length === 3) {
-							console.log('\nPUSH: start\n\n');
-						}
-
 						self.model.items.push({ it: { val: self.model.items.length } });
-						console.log('PUSH',self.model.items.length);
 					}
 
-				}, 1000);
+				}, 50);
 			}, 3000);
 
 		},

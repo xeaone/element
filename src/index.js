@@ -178,8 +178,8 @@ export default {
 		data.listener = data.listener || {};
 
 		await this.binder.setup(data.binder);
-		await this.model.setup(data.model);
 		await this.view.setup(data.view);
+		await this.model.setup(data.model);
 
 		document.addEventListener('input', Input, true);
 		document.addEventListener('click', Click, true);

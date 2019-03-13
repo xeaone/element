@@ -10,8 +10,8 @@ export default function (binder, data) {
 			}
 
 			if (!binder.meta.method) {
-				binder.meta.method = function (e) {
-					const parameters = [e];
+				binder.meta.method = function (events) {
+					const parameters = [events];
 
 					for (let i = 0, l = binder.pipes.length; i < l; i++) {
 						const keys = binder.pipes[i].split('.');

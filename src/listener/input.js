@@ -8,7 +8,7 @@ export default function (event) {
 		&& event.target.nodeName !== 'SELECT'
 		&& event.target.hasAttribute('o-value')
 	) {
-		const update = Update(event.target, 'value');
+		const update = Update(event.target, 'o-value');
 		Promise.resolve(update);
 	}
 };

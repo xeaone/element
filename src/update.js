@@ -15,7 +15,6 @@ export default async function (node, attribute) {
 	 	const name = binder.target.nodeName;
 
 		let data = Utility.value(binder.target);
-		// console.log(data);
 
 		if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
 			// const nodes = binder.target.options;

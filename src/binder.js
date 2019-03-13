@@ -1,4 +1,5 @@
 import Utility from './utility.js';
+import Store from './store.js';
 
 import Batcher from './batcher.js';
 import Class from './binders/class.js';
@@ -18,7 +19,9 @@ import Text from './binders/text.js';
 import Value from './binders/value.js';
 import Write from './binders/write.js';
 
-const DATA = {};
+// const DATA = {};
+// const DATA = new Map();
+const DATA = new Store();
 
 const BINDERS = {
 	get class () { return Class; },
@@ -91,6 +94,7 @@ export default {
 		const type = names[0];
 		const path = values.join('.');
 		const keys = [scope].concat(values);
+		const absolute = [scope].concat(values);
 
 		const meta = {};
 		const context = {};
@@ -113,79 +117,77 @@ export default {
 			get meta () { return meta; },
 			get context () { return context; },
 
+			// get data () {
+			// 	const source = this.type === 'on' ? this.container.methods : this.container.model;
+			// 	const data = Utility.getByPath(source, this.values);
+			// 	return Piper(this, data);
+			// },
+
 			get data () { return Utility.getByPath(data.container.model, values); },
 			set data (value) { return Utility.setByPath(data.container.model, values, value); },
 		};
 	},
 
-	get (data) {
-		let binder;
-
-		if (typeof data === 'string') {
-			binder = {};
-			binder.scope = data.split('.').slice(0, 1).join('.');
-			binder.path = data.split('.').slice(1).join('.');
-		} else {
-			binder = data;
-		}
-
-		if (!(binder.scope in this.data)) {
-			return null;
-		}
-
-		if (!(binder.path in this.data[binder.scope])) {
-			return null;
-		}
-
-		let items = this.data[binder.scope][binder.path];
-
-		for (let i = 0, l = items.length; i < l; i++) {
-			let item = items[i];
-
-			if (item.target === binder.target && item.name === binder.name) {
-				return item;
-			}
-
-		}
-
-		return null;
-	},
+	// get (scope, path, target, name) {
+	// 	// let binder;
+	//
+	// 	if (!(scope in this.data)) {
+	// 		return null;
+	// 	}
+	//
+	// 	if (!(path in this.data[scope])) {
+	// 		return null;
+	// 	}
+	//
+	// 	const binder = this.data[scope][path];
+	//
+	// 	for (let i = 0, l = binders.length; i < l; i++) {
+	// 		const binder = binder[i];
+	//
+	// 		if (binder.target === target && binder.name === name) {
+	// 			return binder;
+	// 		}
+	//
+	// 	}
+	//
+	// 	return null;
+	// },
 
 	add (binder) {
-
-		if (!(binder.scope in this.data)) {
-			this.data[binder.scope] = {};
-		}
-
-		if (!(binder.path in this.data[binder.scope])) {
-			this.data[binder.scope][binder.path] = [];
-		}
-
-		this.data[binder.scope][binder.path].push(binder);
+		this.data.set(path, binder);
+		// if (!(binder.scope in this.data)) {
+		// 	this.data[binder.scope] = {};
+		// }
+		//
+		// if (!(binder.path in this.data[binder.scope])) {
+		// 	this.data[binder.scope][binder.path] = [];
+		// }
+		//
+		// this.data[binder.scope][binder.path].push(binder);
 	},
 
-	remove (binder) {
-
-		if (!(binder.scope in this.data)) {
-			return;
-		}
-
-		if (!(binder.path in this.data[binder.scope])) {
-			return;
-		}
-
-		const binders = this.data[binder.scope][binder.path];
-
-		for (let i = 0; i < binders.length; i++) {
-			if (binders[i].target === binder.target) {
-				binders.splice(i, 1);
-			}
-		}
-
-		if (binder.path in this.data[binder.scope] && !this.data[binder.scope][binder.path].length) {
-			delete this.data[binder.scope][binder.path];
-		}
-
+	remove (path) {
+		this.data.delete(path);
+	// remove (binder) {
+		// if (!(binder.scope in this.data)) {
+		// 	return;
+		// }
+		//
+		// if (!(binder.path in this.data[binder.scope])) {
+		// 	return;
+		// }
+		//
+		// const binders = this.data[binder.scope][binder.path];
+		//
+		// for (let i = 0; i < binders.length; i++) {
+		// 	if (binders[i].target === binder.target) {
+		// 		binders.splice(i, 1);
+		// 	}
+		// }
+		//
+		// if (binder.path in this.data[binder.scope] && !this.data[binder.scope][binder.path].length) {
+		// 	delete this.data[binder.scope][binder.path];
+		// }
 	},
 
 	render (binder, data) {

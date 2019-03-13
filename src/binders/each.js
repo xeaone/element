@@ -1,7 +1,5 @@
-import Utility from '../utility.js';
-import Batcher from '../batcher.js';
-
-// const TIME = 15;
+import EachRemove from '../each-remove.js';
+import EachAdd from '../each-add.js';
 
 export default function (binder, data) {
 
@@ -24,7 +22,6 @@ export default function (binder, data) {
 
 	if (binder.meta.template === undefined) {
 		console.log('\nremoveChild\n\n');
-		console.log(binder.meta.template);
 		binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
 	}
 
@@ -32,7 +29,6 @@ export default function (binder, data) {
 
 	return {
 		read () {
-			console.log('READ');
 
 			// need to account for Objet
 			this.keys = Object.keys(data);
@@ -40,7 +36,6 @@ export default function (binder, data) {
 			this.targetLength = Array.isArray(data) ? data.length : this.keys.length;
 
 			if (this.currentLength === this.targetLength) {
-				console.log('READ: length same');
 				return false;
 			} else if (this.currentLength > this.targetLength) {
 				this.type = 'remove';
@@ -54,29 +49,26 @@ export default function (binder, data) {
 
 		},
 		write () {
-			console.log('WRITE');
 
 			if (this.currentLength === this.targetLength) {
-				console.log('WRITE: length same');
 				return false;
 			} else if (this.currentLength > this.targetLength) {
-				// while (this.count--) {
-				// 	binder.target.removeChild(binder.target.lastElementChild);
-				// }
+				while (this.count--) {
+					const node = binder.target.lastElementChild;
+					binder.target.removeChild(node);
+					EachRemove(node, binder.names[1], binder.path, this.keys[this.currentLength++], binder.container);
+				}
 			} else if (this.currentLength < this.targetLength) {
 				while (this.count--) {
-
 					const node = document.importNode(binder.meta.template, true);
 
-					console.log(node);
-					console.log('type',this.type);
-					console.log('this.currentLength',this.currentLength);
-					console.log('binder.meta.length',binder.meta.length);
-					console.log('binder.target.children.length',binder.target.children.length);
-
-					// Utility.rewrite(node, binder.names[1], binder.path, this.keys[binder.target.children.length]);
-					Utility.rewrite(node, binder.names[1], binder.path, this.keys[this.currentLength++]);
-
+					// console.log(node);
+					// console.log('type',this.type);
+					// console.log('this.currentLength',this.currentLength);
+					// console.log('binder.meta.length',binder.meta.length);
+					// console.log('binder.target.children.length',binder.target.children.length);
+					// Utility.rewrite(node, binder.names[1], binder.path, this.keys[this.currentLength++]);
+					EachAdd(node, binder.names[1], binder.path, this.keys[this.currentLength++], binder.container);
 					binder.target.appendChild(node);
 				}
 			}
