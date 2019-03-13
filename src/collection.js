@@ -1,5 +1,5 @@
 
-export default class Store {
+export default class Collection {
 
 	constructor () {
 		Object.defineProperties(this, {

@@ -1,5 +1,5 @@
 import Utility from './utility.js';
-import Store from './store.js';
+import Collection from './collection.js';
 
 import Batcher from './batcher.js';
 import Class from './binders/class.js';
@@ -21,7 +21,7 @@ import Write from './binders/write.js';
 
 // const DATA = {};
 // const DATA = new Map();
-const DATA = new Store();
+const DATA = new Collection();
 
 const BINDERS = {
 	get class () { return Class; },
