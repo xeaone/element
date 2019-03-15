@@ -1,10 +1,8 @@
-
+const Fs = require('fs');
+const Util = require('util');
 const Rollup = require('rollup');
 const Package = require('./package');
 const Babel = require('@babel/core');
-
-const Util = require('util');
-const Fs = require('fs');
 
 const ReadFile = Util.promisify(Fs.readFile);
 const WriteFile = Util.promisify(Fs.writeFile);
@@ -47,7 +45,6 @@ const header = `/*
 		presets: [
 			['@babel/preset-env', {
 				modules: false,
-				// useBuiltIns: 'usage',
 				targets: { ie: '11' },
 				exclude: [
 					'transform-regenerator',

@@ -1,4 +1,4 @@
-import View from '../view.js';
+import Data from '../data.js';
 import Model from '../model.js';
 import Utility from '../utility.js';
 import Fetcher from '../fetcher.js';
@@ -6,8 +6,14 @@ import Methods from '../methods.js';
 
 export default async function (event) {
 
-	let node = event.target;
-	let binder = View.get(node, 'o-submit');
+	const node = event.target;
+
+	const binders = Data.query('target', node, {
+		includes: { name: 'o-submit' }
+	});
+
+	const binder = binders[0];
+
 	let method = Methods.get(binder.keys);
 	let model = Model.get(binder.scope);
 	let data = Utility.formData(node, model);

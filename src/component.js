@@ -3,8 +3,7 @@ import Loader from './loader.js';
 import Binder from './binder.js';
 import Model from './model.js';
 import Piper from './piper.js';
-import Data from './data.js';
-// import View from './view.js';
+// import Data from './data.js';
 
 export default {
 
@@ -56,10 +55,8 @@ export default {
 				continue
 			}
 
-			// let data;
-
 			if (type === 'remove') {
-				Data.remove(node, attribute.name);
+				// Data.remove(node, attribute.name);
 				// View.remove(binder);
 				// Binder.remove(binder);
 				// data = undefined;
@@ -73,12 +70,10 @@ export default {
 					scope: container.scope
 				});
 
-				Data.add(binder);
-				// View.add(binder);
-				// Binder.add(binder);
+				Binder.add(binder);
 
 				let data;
-				
+
 				if (binder.type === 'on') {
 					data = Methods.get(binder.keys);
 				} else {

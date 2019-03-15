@@ -15,6 +15,7 @@ import Binder from './binder.js';
 import Model from './model.js';
 import View from './view.js';
 import Path from './path.js';
+import Data from './data.js';
 
 const eStyle = document.createElement('style');
 const tStyle = document.createTextNode(`
@@ -169,17 +170,25 @@ export default {
 		return Path;
 	},
 
-	async setup (data) {
+	get data () {
+		return Data;
+	},
+
+	async setup (options) {
 
 		if (SETUP) return;
 		else SETUP = true;
 
-		data = data || {};
-		data.listener = data.listener || {};
+		options = options || {};
+		options.listener = options.listener || {};
 
-		await this.binder.setup(data.binder);
-		await this.view.setup(data.view);
-		await this.model.setup(data.model);
+		await this.data.setup({
+			tags: [ 'target', 'location' ]
+		});
+
+		await this.binder.setup(options.binder);
+		await this.view.setup(options.view);
+		await this.model.setup(options.model);
 
 		document.addEventListener('input', Input, true);
 		document.addEventListener('click', Click, true);
@@ -193,9 +202,9 @@ export default {
 				let before;
 				let after;
 
-				if (data.listener.reset) {
-					before = typeof data.listener.reset.before === 'function' ? data.listener.reset.before.bind(null, event) : null;
-					after = typeof data.listener.reset.after === 'function' ? data.listener.reset.after.bind(null, event) : null;
+				if (options.listener.reset) {
+					before = typeof options.listener.reset.before === 'function' ? options.listener.reset.before.bind(null, event) : null;
+					after = typeof options.listener.reset.after === 'function' ? options.listener.reset.after.bind(null, event) : null;
 				}
 
 				Promise.resolve()
@@ -212,9 +221,9 @@ export default {
 				let before;
 				let after;
 
-				if (data.listener.submit) {
-					before = typeof data.listener.submit.before === 'function' ? data.listener.submit.before.bind(null, event) : null;
-					after = typeof data.listener.submit.after === 'function' ? data.listener.submit.after.bind(null, event) : null;
+				if (options.listener.submit) {
+					before = typeof options.listener.submit.before === 'function' ? options.listener.submit.before.bind(null, event) : null;
+					after = typeof options.listener.submit.after === 'function' ? options.listener.submit.after.bind(null, event) : null;
 				}
 
 				Promise.resolve()
@@ -224,38 +233,38 @@ export default {
 			}
 		}, true);
 
-		if (data.listener.before) {
-			await data.listener.before();
+		if (options.listener.before) {
+			await options.listener.before();
 		}
 
-		if (data.style) {
-			if ('transition' in data.style) {
-				window.document.documentElement.style.setProperty('--o-transition', `${data.style.transition}ms`);
+		if (options.style) {
+			if ('transition' in options.style) {
+				window.document.documentElement.style.setProperty('--o-transition', `${options.style.transition}ms`);
 			}
 		}
 
-		if (data.path) {
-			await this.path.setup(data.path);
+		if (options.path) {
+			await this.path.setup(options.path);
 		}
 
-		if (data.fetcher) {
-			await this.fetcher.setup(data.fetcher);
+		if (options.fetcher) {
+			await this.fetcher.setup(options.fetcher);
 		}
 
-		if (data.loader) {
-			await this.loader.setup(data.loader);
+		if (options.loader) {
+			await this.loader.setup(options.loader);
 		}
 
-		if (data.component) {
-			await this.component.setup(data.component);
+		if (options.component) {
+			await this.component.setup(options.component);
 		}
 
-		if (data.router) {
-			await this.router.setup(data.router);
+		if (options.router) {
+			await this.router.setup(options.router);
 		}
 
-		if (data.listener.after) {
-			await data.listener.after();
+		if (options.listener.after) {
+			await options.listener.after();
 		}
 
 	}

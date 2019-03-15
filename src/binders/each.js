@@ -61,13 +61,6 @@ export default function (binder, data) {
 			} else if (this.currentLength < this.targetLength) {
 				while (this.count--) {
 					const node = document.importNode(binder.meta.template, true);
-
-					// console.log(node);
-					// console.log('type',this.type);
-					// console.log('this.currentLength',this.currentLength);
-					// console.log('binder.meta.length',binder.meta.length);
-					// console.log('binder.target.children.length',binder.target.children.length);
-					// Utility.rewrite(node, binder.names[1], binder.path, this.keys[this.currentLength++]);
 					EachAdd(node, binder.names[1], binder.path, this.keys[this.currentLength++], binder.container);
 					binder.target.appendChild(node);
 				}

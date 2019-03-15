@@ -75,13 +75,12 @@ export default {
 		const part = paths.slice(1).join('.');
 		const scope = paths.slice(0, 1).join('.');
 
-		const ids = Data.path.get(path);
+		const binders = Binder.get('location', path);
 
-		if (!ids || !ids.length) return;
+		if (!binders || !binders.length) return;
 
-		for (let i = 0, l = ids.length; i < l; i++) {
-			const id = ids[i];
-			const binder = Data.binder.get(id);
+		for (let i = 0, l = binders.length; i < l; i++) {
+			const binder = binders[i];
 			const piped = Piper(binder, data);
 			Binder.render(binder, piped);
 		}

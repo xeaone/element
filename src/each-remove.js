@@ -2,6 +2,7 @@ import Binder from './binder.js';
 import Piper from './piper.js';
 import Model from './model.js';
 import View from './view.js';
+import Data from './data.js';
 
 export default function EachRemove (node, variable, path, key, container) {
 
@@ -29,7 +30,7 @@ export default function EachRemove (node, variable, path, key, container) {
 			// 	scope: container.scope
 			// });
 
-			View.data.delete(node);
+			Data.remove(node);
 			// Binder.remove(binder);
 		}
 	}

@@ -1,38 +1,51 @@
 
-let ID = 0;
+let POINTER = 0;
 const tag = new Map();
 const table = new Map();
 
-// export default {
-const d = {
+// const d = {
+export default {
 
 	get tag () { return tag; },
 	get table () { return table; },
 
-	setup (options) {
+	async setup (options) {
 		options = options || {};
 
 		this.tags = options.tags || [];
+		this.pointer = options.pointer || '$pointer';
 
 		for (let i = 0, l = this.tags.length; i < l; i++) {
 			const tag = this.tags[i];
-
 			if (tag.indexOf('$') === 0) {
 				throw new Error ('reserved internal tag $');
+			} else {
+				this.tag.set(tag, new Map());
 			}
-
-			this.tag.set(tag, new Map());
 		}
 
-		this.tag.set('$id', new Map());
-
+		this.tag.set('$location', new Map());
 	},
 
 	add (data) {
-		const id = ID++;
+		let pointer;
+
+		if (this.pointer === '$pointer') {
+			pointer = POINTER++;
+			Object.defineProperty(data, '$pointer', { value: pointer });
+		} else if (this.pointer in data === false) {
+			throw new Error('Oxe.data.add - data argument requires pointer');
+		} else {
+			pointer = data[this.pointer];
+		}
+
 		const tags = this.tags;
 
-		this.table.set(id, data);
+		if (this.table.has(pointer)) {
+			throw new Error('Oxe.data.add - pointer property exists');
+		}
+
+		this.table.set(pointer, data);
 
 		for (let i = 0, l = tags.length; i < l; i++) {
 			const tag = tags[i];
@@ -42,30 +55,28 @@ const d = {
 				const key = data[tag];
 
 				if (this.tag.get(tag).has(key)) {
-					const length = this.tag.get(tag).get(key).push(id);
+					const length = this.tag.get(tag).get(key).push(pointer);
 					index = length - 1;
 				} else {
 					index = 0;
-					this.tag.get(tag).set(key, [id]);
+					this.tag.get(tag).set(key, [pointer]);
 				}
 
-				if (this.tag.get('$id').has(id)) {
-					this.tag.get('$id').get(id).push([tag, key, index]);
+				if (this.tag.get('$location').has(pointer)) {
+					this.tag.get('$location').get(pointer).push([tag, key, index]);
 				} else {
-					this.tag.get('$id').set(id, [[tag, key, index]]);
+					this.tag.get('$location').set(pointer, [[tag, key, index]]);
 				}
 
 			}
+
 		}
-
 	},
 
-	get (id) {
-		return this.table.get(id);
-	},
-
-	query (tag, key) {
+	query (tag, key, option) {
 		const result = [];
+
+		option = option || {};
 
 		if (!this.tag.has(tag)) {
 			return result;
@@ -79,65 +90,82 @@ const d = {
 			return this.tag.get(tag).get(key);
 		}
 
-		const ids = this.tag.get(tag).get(key);
+		const pointers = this.tag.get(tag).get(key);
 
-		for (let i = 0, l = ids.length; i < l; i++) {
-			const id = ids[i];
-			result.push(this.table.get(id));
+		for (let i = 0, l = pointers.length; i < l; i++) {
+			const pointer = pointers[i];
+			const data = this.table.get(pointer);
+
+			if (option.includes) {
+				let includes = true;
+
+				for (const name in option.includes) {
+					if (data[name] !== option.includes[name]) {
+						includes = false;
+						break;
+					}
+				}
+
+				if (includes === true) {
+					result.push(data);
+				}
+
+			} else {
+				result.push(data);
+			}
 		}
 
 		return result;
 	},
 
-	remove (id) {
-		const tags = this.tags;
+	remove (pointer) {
 
-		this.table.delete(id);
+		if (!this.table.has(pointer)) return;
 
-		for (let i = 0, l = tags.length; i < l; i++) {
-			const tag = tags[i];
+		this.table.delete(pointer);
 
-			// if (tag in data) {
-			const key = data[tag];
-			if (this.tag.get(tag).has(key)) {
-				this.tag.get(tag).get(key).push(id);
-			} else {
-				this.tag.get(tag).set(key, [id]);
-			}
-			// }
-		}
+		if (!this.tag.get('$location').has(pointer)) return;
 
+		const locations = this.tag.get('$location').get(pointer);
 
-
-		const data = this.table.get(id);
-
-		for (let i = 0, l = tags.length; i < l; i++) {
-			const tag = tags[i];
+		for (let i = 0, l = locations.length; i < l; i++) {
+			const location = locations[i];
+			const tag = location[0];
+			const key = location[1];
+			const index = location[2];
 
 			if (this.tag.has(tag)) {
-				const index = this.tag.get(tag).indexOf(id);
-
-				if (index !== -1) {
-					this.tag.get(tag).splice(index, 1);
+				if (this.tag.get(tag).has(key)) {
+					if (this.tag.get(tag).get(key)[index]) {
+						this.tag.get(tag).get(key).splice(index, 1);
+					}
 				}
 			}
 		}
 
+	},
+
+	get (pointer) {
+		return this.table.get(pointer);
 	}
 
 };
 
-const one = { name: 1, foo: 'bar' };
-const two = { name: 1, cow: 'moo' };
-
-d.setup({ tags: ['name', 'foo'] });
-d.add(one);
-d.add(two);
-
-var r1 = d.query('foo', 'bar');
-var r2 = d.query('name', 1);
-var r3 = d.query('$id', 1);
-
-console.log(r1);
-console.log(r2);
-console.log(r3);
+// d.setup({
+// 	pointer: 'pointer',
+// 	tags: ['type']
+// });
+//
+// d.add({ pointer: 1, type: 'monkey' });
+// d.add({ pointer: 2, type: 'monkey' });
+// d.add({ pointer: 'three', type: 'dog' });
+// d.add({ pointer: 4, type: 'cat' });
+//
+// console.log('query: type monkey', d.query('type', 'monkey'));
+// console.log('query: $location 4', d.query('$location', 4));
+//
+// console.log('get: three', d.get('three'));
+//
+// d.remove('three');
+//
+// console.log('get: three', d.get('three'));

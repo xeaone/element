@@ -1,5 +1,5 @@
+import Data from './data.js';
 import Model from './model.js';
-import View from './view.js';
 import Batcher from './batcher.js';
 import Utility from './utility.js';
 
@@ -8,7 +8,11 @@ export default async function (node, attribute) {
 	if (!node) throw new Error('Oxe.update - requires node argument');
 	if (!attribute) throw new Error('Oxe.update - requires attribute argument');
 
-	const binder = View.get(node, attribute);
+	const binders = Data.query('target', node, {
+		includes: { name: attribute }
+	});
+
+	const binder = binders[0];
 
 	const read = function () {
 		const type = binder.target.type;
