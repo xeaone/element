@@ -1,13 +1,12 @@
-import Binder from './binder.js';
-import Piper from './piper.js';
-import Model from './model.js';
+// import Binder from './binder.js';
 import View from './view.js';
-import Data from './data.js';
 
-export default function EachRemove (node, variable, path, key, container) {
+// export default function EachRemove (node, variable, path, key, container) {
+export default function EachRemove (node) {
 
-	if (node.nodeType === 3) {
-	} else if (node.nodeType === 1) {
+	// if (node.nodeType === 3) {
+	// } else
+	if (node.nodeType === 1) {
 		for (let i = 0, l = node.attributes.length; i < l; i++) {
 			const attribute = node.attributes[i];
 
@@ -21,24 +20,17 @@ export default function EachRemove (node, variable, path, key, container) {
 			) {
 				continue
 			}
-			//
-			// const binder = Binder.create({
-			// 	target: node,
-			// 	container: container,
-			// 	name: attribute.name,
-			// 	value: attribute.value,
-			// 	scope: container.scope
-			// });
 
-			Data.remove(node);
-			// Binder.remove(binder);
+			View.remove(node);
+
+			break;
 		}
 	}
 
 	let child = node.firstChild;
 
 	while (child) {
-	    EachRemove(child, variable, path, key, container);
+	    EachRemove(child);
 	    child = child.nextSibling;
 	}
 

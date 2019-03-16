@@ -248,27 +248,27 @@ export default {
 	// 	    node = node.nextSibling;
 	// 	}
 	// },
-
-	rewrite (target, variable, path, key) {
-
-		if (target.nodeType === 3) {
-			target.nodeValue = target.nodeValue.replace(this.keyPatternGlobal, `${key}`);
-		} else if (target.nodeType === 1) {
-			for (let i = 0, l = target.attributes.length; i < l; i++) {
-				const attribute = target.attributes[i];
-				attribute.value = attribute.value.replace(this.keyPatternGlobal, `${key}`);
-				attribute.value = attribute.value.replace(this.pathPatternGlobal, `${path}.${key}$3`);
-			}
-		}
-
-		let node = target.firstChild;
-
-		while (node) {
-		    this.rewrite(node, variable, path, key);
-		    node = node.nextSibling;
-		}
-
-	},
+	
+	// rewrite (target, variable, path, key) {
+	//
+	// 	if (target.nodeType === 3) {
+	// 		target.nodeValue = target.nodeValue.replace(this.keyPatternGlobal, `${key}`);
+	// 	} else if (target.nodeType === 1) {
+	// 		for (let i = 0, l = target.attributes.length; i < l; i++) {
+	// 			const attribute = target.attributes[i];
+	// 			attribute.value = attribute.value.replace(this.keyPatternGlobal, `${key}`);
+	// 			attribute.value = attribute.value.replace(this.pathPatternGlobal, `${path}.${key}$3`);
+	// 		}
+	// 	}
+	//
+	// 	let node = target.firstChild;
+	//
+	// 	while (node) {
+	// 	    this.rewrite(node, variable, path, key);
+	// 	    node = node.nextSibling;
+	// 	}
+	//
+	// },
 
 	// traverse (data, path, callback) {
 	// 	let keys = typeof path === 'string' ? path.split('.') : path;

@@ -1,9 +1,7 @@
 import Methods from './methods.js';
 import Loader from './loader.js';
-import Binder from './binder.js';
 import Model from './model.js';
-import Piper from './piper.js';
-// import Data from './data.js';
+import View from './view.js';
 
 export default {
 
@@ -30,81 +28,6 @@ export default {
 
 		}
 
-	},
-
-	bind (node, container, type) {
-
-		if (node.nodeType !== Node.ELEMENT_NODE) {
-			return;
-		}
-
-		const attributes = node.attributes;
-
-		for (let i = 0, l = attributes.length; i < l; i++) {
-			const attribute = attributes[i];
-
-			if (
-				attribute.name.indexOf('o-') !== 0 ||
-				attribute.name === 'o-scope' ||
-				attribute.name === 'o-reset' ||
-				attribute.name === 'o-action' ||
-				attribute.name === 'o-method' ||
-				attribute.name === 'o-enctype'
-				// attribute.value.indexOf('$') === 0
-			) {
-				continue
-			}
-
-			if (type === 'remove') {
-				// Data.remove(node, attribute.name);
-				// View.remove(binder);
-				// Binder.remove(binder);
-				// data = undefined;
-			} else {
-
-				const binder = Binder.create({
-					target: node,
-					container: container,
-					name: attribute.name,
-					value: attribute.value,
-					scope: container.scope
-				});
-
-				Binder.add(binder);
-
-				let data;
-
-				if (binder.type === 'on') {
-					data = Methods.get(binder.keys);
-				} else {
-					data = Model.get(binder.keys);
-					data = Piper(binder, data);
-				}
-
-				Binder.render(binder, data);
-			}
-
-		}
-	},
-
-	binds (nodes, container, type) {
-		for (let i = 0, l = nodes.length; i <l; i++) {
-			const node = nodes[i];
-
-			if (
-				node.nodeName === 'TEMPLATE' ||
-				node.nodeName === 'O-ROUTER' ||
-				node.nodeName === 'OBJECT' ||
-				node.nodeName === 'SCRIPT' ||
-				node.nodeName === 'STYLE' ||
-				node.nodeName === 'SLOT'
-			) {
-				continue;
-			}
-
-			this.bind(node, container, type);
-			this.binds(node.children, container, type);
-		}
 	},
 
 	slot (target, source, scope) {
@@ -148,8 +71,8 @@ export default {
 		parser.innerHTML = template;
 
 		while (parser.firstElementChild) {
-			this.bind(parser.firstElementChild, container);
-			this.binds(parser.firstElementChild.children, container);
+			View.addContainerNode(parser.firstElementChild, container);
+			View.addContainerNodes(parser.firstElementChild.children, container);
 			fragment.appendChild(parser.firstElementChild);
 		}
 

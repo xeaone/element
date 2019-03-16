@@ -1,6 +1,4 @@
 import Utility from './utility.js';
-// import Collection from './collection.js';
-import Data from './data.js';
 
 import Batcher from './batcher.js';
 import Class from './binders/class.js';
@@ -19,13 +17,6 @@ import Style from './binders/style.js';
 import Text from './binders/text.js';
 import Value from './binders/value.js';
 import Write from './binders/write.js';
-
-const POINTER = 0;
-const DATA = new Map();
-
-DATA.set('node', new Map());
-DATA.set('location', new Map());
-DATA.set('pointer', new Map());
 
 const BINDERS = {
 	get class () { return Class; },
@@ -53,7 +44,6 @@ const BINDERS = {
 
 export default {
 
-	get data () { return DATA; },
 	get binders () { return BINDERS; },
 
 	async setup (options) {
@@ -68,20 +58,20 @@ export default {
 
 	},
 
-	names (data) {
-		data = data.split(this.PREFIX)[1];
-		return data ? data.split('-') : [];
-	},
-
-	values (data) {
-		data = data.split(this.PIPE)[0];
-		return data ? data.split('.') : [];
-	},
-
-	pipes (data) {
-		data = data.split(this.PIPE)[1];
-		return data ? data.split(this.PIPES) : [];
-	},
+	// names (data) {
+	// 	data = data.split(this.PREFIX)[1];
+	// 	return data ? data.split('-') : [];
+	// },
+	//
+	// values (data) {
+	// 	data = data.split(this.PIPE)[0];
+	// 	return data ? data.split('.') : [];
+	// },
+	//
+	// pipes (data) {
+	// 	data = data.split(this.PIPE)[1];
+	// 	return data ? data.split(this.PIPES) : [];
+	// },
 
 	create (data) {
 
@@ -102,10 +92,10 @@ export default {
 
 		const meta = {};
 		const context = {};
-		const pointer = POINTER++;
+		// const pointer = POINTER++;
 
 		return {
-			get pointer () { return pointer; },
+			// get pointer () { return pointer; },
 			get location () { return location; },
 
 			get type () { return type; },
@@ -134,45 +124,6 @@ export default {
 			get data () { return Utility.getByPath(data.container.model, values); },
 			set data (value) { return Utility.setByPath(data.container.model, values, value); },
 		};
-	},
-
-	get (type, data) {
-		if (type === 'location') {
-			return this.data.get('location').get(data);
-		}
-	},
-
-	remove () {
-	},
-
-	add (binder) {
-		this.data.get('pointer').set(binder.pointer, binder);
-
-		if (this.data.get('location').has(binder.location)) {
-			this.data.get('location').get(binder.location).push(binder.pointer);
-		} else {
-			this.data.get('location').set(binder.location, [binder.pointer]);
-		}
-
-		if (!this.data.get('attribute').has(binder.name)) {
-			this.data.get('attribute').set(binder.name, new Map());
-		}
-
-		this.data.get('attribute').get(binder.name).set(binder.target, binder.pointer);
-
-		if (!this.data.get('remove').has(binder.target)) {
-			this.data.get('remove').set(binder.target, new Map());
-		}
-
-		this.data.get('remove').get(binder.target).set(binder.pointer, [
-				// push all data things to remove
-		]);
-
-		// if (!this.data.get('location').has(binder.location)) {
-		// 	this.data.get('location').set(binder.location, new Map());
-		// }
-
-		// this.data.get('location').get(binder.location).set(binder.target, binder.pointer);
 	},
 
 	render (binder, data) {

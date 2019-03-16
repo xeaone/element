@@ -5,17 +5,16 @@ import Reset from './listener/reset.js';
 import Click from './listener/click.js';
 import State from './listener/state.js';
 import Component from './component.js';
-import Utility from './utility.js';
 import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
-import Methods from './methods.js'
+import Methods from './methods.js';
+import Utility from './utility.js';
+import Binder from './binder.js';
 import Loader from './loader.js';
 import Router from './router.js';
-import Binder from './binder.js';
 import Model from './model.js';
-import View from './view.js';
 import Path from './path.js';
-import Data from './data.js';
+import View from './view.js';
 
 const eStyle = document.createElement('style');
 const tStyle = document.createTextNode(`
@@ -89,90 +88,31 @@ if (oSetup) {
 	Promise.resolve(Loader.load(options[0]));
 }
 
-let GLOBAL = {};
 let SETUP = false;
+const GLOBAL = {};
 
 export default {
 
-	get global () {
-		return GLOBAL;
-	},
+	get global () { return GLOBAL; },
+	get window () { return window; },
+	get document () { return window.document; },
+	get body () { return window.document.body; },
+	get head () { return window.document.head; },
+	get location () { return this.router.location; },
+	get currentScript () { return (window.document._currentScript || window.document.currentScript); },
+	get ownerDocument () { return (window.document._currentScript || window.document.currentScript).ownerDocument; },
 
-	get window () {
-		return window;
-	},
-
-	get document () {
-		return window.document;
-	},
-
-	get body () {
-		return window.document.body;
-	},
-
-	get head () {
-		return window.document.head;
-	},
-
-	get location () {
-		return this.router.location;
-	},
-
-	get currentScript () {
-		return (window.document._currentScript || window.document.currentScript);
-	},
-
-	get ownerDocument () {
-		return (window.document._currentScript || window.document.currentScript).ownerDocument;
-	},
-
-	get methods () {
-		return 	Methods;
-	},
-
-	get utility () {
-		return Utility;
-	},
-
-	get batcher () {
-		return Batcher;
-	},
-
-	get view () {
-		return View;
-	},
-
-	get fetcher () {
-		return Fetcher;
-	},
-
-	get component () {
-		return Component;
-	},
-
-	get router () {
-		return Router;
-	},
-
-	get binder () {
-		return Binder;
-	},
-
-	get model () {
-		return Model;
-	},
-
-	get loader () {
-		return Loader;
-	},
-
-	get path () {
-		return Path;
-	},
-
-	get data () {
-		return Data;
-	},
+	get component () { return Component; },
+	get batcher () { return Batcher; },
+	get fetcher () { return Fetcher; },
+	get methods () { return Methods; },
+	get utility () { return Utility; },
+	get binder () { return Binder; },
+	get loader () { return Loader; },
+	get router () { return Router; },
+	get model () { return Model; },
+	get path () { return Path; },
+	get view () { return View; },
 
 	async setup (options) {
 
@@ -182,12 +122,9 @@ export default {
 		options = options || {};
 		options.listener = options.listener || {};
 
-		await this.data.setup({
-			tags: [ 'target', 'location' ]
-		});
-
-		await this.binder.setup(options.binder);
 		await this.view.setup(options.view);
+		await this.binder.setup(options.binder);
+		// await this.view.setup(options.view);
 		await this.model.setup(options.model);
 
 		document.addEventListener('input', Input, true);

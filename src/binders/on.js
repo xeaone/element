@@ -1,4 +1,4 @@
-import Model from '../model.js';
+import Utility from '../utility.js';
 
 export default function (binder, data) {
 	return {
@@ -9,14 +9,15 @@ export default function (binder, data) {
 				return false;
 			}
 
-			if (!binder.meta.method) {
+			if (binder.meta.method) {
+				binder.target.removeEventListener(binder.names[1], binder.meta.method);
+			} else {
 				binder.meta.method = function (events) {
 					const parameters = [events];
 
 					for (let i = 0, l = binder.pipes.length; i < l; i++) {
 						const keys = binder.pipes[i].split('.');
-						keys.unshift(binder.scope);
-						const parameter = Model.get(keys);
+						const parameter = Utility.getByPath(binder.container.model, keys);
 						parameters.push(parameter);
 					}
 
@@ -24,10 +25,13 @@ export default function (binder, data) {
 				};
 			}
 
-		},
-		write () {
-			binder.target.removeEventListener(binder.names[1], binder.meta.method);
 			binder.target.addEventListener(binder.names[1], binder.meta.method);
-		}
+
+			return false;
+		},
+		// write () {
+		// 	binder.target.removeEventListener(binder.names[1], binder.meta.method);
+		// 	binder.target.addEventListener(binder.names[1], binder.meta.method);
+		// }
 	};
 };

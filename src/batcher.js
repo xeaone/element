@@ -33,7 +33,7 @@ export default {
 			task();
 
 			if (performance.now() - time > this.time) {
-				console.log('max read');
+				// console.log('max read');
 				this.tick(this.flush.bind(this, null));
 				return;
 			}
@@ -44,7 +44,7 @@ export default {
 			task();
 
 			if (performance.now() - time > this.time) {
-				console.log('max write');
+				// console.log('max write');
 				this.tick(this.flush.bind(this, null));
 				return;
 			}
@@ -54,7 +54,7 @@ export default {
 		if (!this.reads.length && !this.writes.length) {
 			this.pending = false;
 		} else if (performance.now() - time > this.time) {
-			console.log('max end');
+			// console.log('max end');
 			this.tick(this.flush.bind(this, null));
 		} else {
 			this.flush(time);

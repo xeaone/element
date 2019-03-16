@@ -1,8 +1,7 @@
-import Methods from './methods.js';
+import Utility from './utility.js';
 import Binder from './binder.js';
 import Piper from './piper.js';
-import Model from './model.js';
-import Data from './data.js';
+import View from './view.js';
 
 const PathPattern = new RegExp('(\\$)(\\w+)($|,|\\s+|\\.|\\|)', 'ig');
 const KeyPattern = new RegExp('({{\\$)(\\w+)((-(key|index))?}})', 'ig');
@@ -37,14 +36,14 @@ export default function EachAdd (node, variable, path, key, container) {
 				scope: container.scope
 			});
 
-			Data.add(binder);
+			View.add(binder);
 
 			let data;
 
 			if (binder.type === 'on') {
-				data = Methods.get(binder.keys);
+				data = Utility.getByPath(container.methods, binder.values);
 			} else {
-				data = Model.get(binder.keys);
+				data = Utility.getByPath(container.model, binder.values);
 				data = Piper(binder, data);
 			}
 
