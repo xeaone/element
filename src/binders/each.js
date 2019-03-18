@@ -3,6 +3,7 @@
 import View from '../view.js';
 
 const AddContextNode = function (node, context) {
+	if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) return;
 	View.context.set(node, context);
 	AddContextNodes(node.childNodes, context);
 };

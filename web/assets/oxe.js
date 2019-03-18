@@ -744,17 +744,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       for (var i = 0, l = _nodes.length; i < l; i++) {
         var node = _nodes[i];
 
-        if (node.nodeType === Node.TEXT_NODE) {
+        if (node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.ELEMENT_NODE) {
           continue;
         }
 
-        if (!node.children) continue;
-        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.nodeType === Node.TEXT_NODE) {
+          if (!/\S/.test(node.nodeValue)) continue;
+          var context = this.context.get(node);
 
-        if (!container) {
-          container = this.container.get(node);
+          if (context) {
+            node.nodeValue = node.nodeValue.replace(KeyPattern$1, context.key);
+          }
+
+          continue;
         }
 
+        container = container || this.container.get(node);
         var attributes = node.attributes;
 
         for (var _i2 = 0, _l2 = attributes.length; _i2 < _l2; _i2++) {
@@ -764,14 +769,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               continue;
             }
 
-          var context = this.context.get(node);
+          var _context = this.context.get(node);
 
-          if (context) {
-            container = context.binder.container;
-            console.log(context);
-            console.log(container);
-            attribute.value = attribute.value.replace(KeyPattern$1, "".concat(context.key));
-            attribute.value = attribute.value.replace(PathPattern$1, "".concat(context.path, ".").concat(context.key, "$3"));
+          if (_context) {
+            container = _context.binder.container;
+            attribute.value = attribute.value.replace(KeyPattern$1, "".concat(_context.key));
+            attribute.value = attribute.value.replace(PathPattern$1, "".concat(_context.path, ".").concat(_context.key, "$3"));
           }
 
           var binder = Binder.create({
@@ -795,7 +798,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         if (node.scope) container = undefined;
-        this.nodes(type, node.children, target, container);
+        this.nodes(type, node.childNodes, target, container);
       }
     },
     getAttribute: function getAttribute(node, name) {
@@ -826,6 +829,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
 
   var AddContextNode = function AddContextNode(node, context) {
+    if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) return;
     View.context.set(node, context);
     AddContextNodes(node.childNodes, context);
   };

@@ -9,9 +9,7 @@ const CONTAINER = new Map();
 
 const PathPattern = new RegExp('(\\$)(\\w+)($|,|\\s+|\\.|\\|)', 'ig');
 const KeyPattern = new RegExp('({{\\$)(\\w+)((-(key|index))?}})', 'ig');
-// const VariablePattern = new RegExp('({{\\$)(\\w+)((-(key|index))?}})');
-// const KeyStartPattern = '({{\\$)(';
-// const KeyEndPattern = ')((-(key|index))?}})';
+// const KeyPattern = new RegExp('({{\\$)(\\w+)((-(key|index))}})', 'ig');
 
 export default {
 
@@ -110,35 +108,33 @@ export default {
 		for (let i = 0, l = nodes.length; i < l; i++) {
 			const node = nodes[i];
 
-			if (node.nodeType === Node.TEXT_NODE) {
-				// const context = this.context.get(node);
+			if (
+				node.nodeType !== Node.TEXT_NODE &&
+				node.nodeType !== Node.ELEMENT_NODE
+			) {
+				continue;
+			}
 
-				// if (context) {
-					// console.log(context);
-					// node.nodeValue = node.nodeValue.replace(KeyPattern, context.key);
-				// }
+			if (node.nodeType === Node.TEXT_NODE) {
+
+				if (!/\S/.test(node.nodeValue)) continue;
+
+				const context = this.context.get(node);
+
+				if (context) {
+					node.nodeValue = node.nodeValue.replace(KeyPattern, context.key);
+					// node.nodeValue = node.nodeValue.replace(PathPattern, `${context.path}.${context.key}$3`);
+				}
 
 				continue;
 			}
 
-			if (!node.children) continue;
-			if (node.nodeType !== Node.ELEMENT_NODE) return;
+			// if (node.nodeType !== Node.ELEMENT_NODE) return;
 
-			if (!container) {
-				container = this.container.get(node);
-			}
-
-			// if (!container) {
-			// 	console.log(node);
-			// 	continue;
-			// }
+			// if (!container) {}
+			container = container || this.container.get(node);
 
 			const attributes = node.attributes;
-
-			// if ('o-context' in attributes) {
-			// 	const parts = attributes['o-context'].split(' ');
-			// 	contexts[parts[2]] = { key: parts[0], path: parts[1], scope: parts[2] };
-			// }
 
 			for (let i = 0, l = attributes.length; i < l; i++) {
 				const attribute = attributes[i];
@@ -159,8 +155,8 @@ export default {
 
 				if (context) {
 					container = context.binder.container;
-					console.log(context);
-					console.log(container);
+					// console.log(context);
+					// console.log(container);
 					attribute.value = attribute.value.replace(KeyPattern, `${context.key}`);
 					attribute.value = attribute.value.replace(PathPattern, `${context.path}.${context.key}$3`);
 				}
@@ -189,7 +185,7 @@ export default {
 
 			if (node.scope) container = undefined;
 
-			this.nodes(type, node.children, target, container);
+			this.nodes(type, node.childNodes, target, container);
 		}
 	},
 
