@@ -1,19 +1,22 @@
 import Piper from './piper.js';
 import Binder from './binder.js';
 import Utility from './utility.js';
-import EachAdd from './each-add.js';
+// import EachAdd from './each-add.js';
 
 const DATA = new Map();
-const EACH = new Map();
+const CONTEXT = new Map();
 const CONTAINER = new Map();
 
 const PathPattern = new RegExp('(\\$)(\\w+)($|,|\\s+|\\.|\\|)', 'ig');
 const KeyPattern = new RegExp('({{\\$)(\\w+)((-(key|index))?}})', 'ig');
+// const VariablePattern = new RegExp('({{\\$)(\\w+)((-(key|index))?}})');
+// const KeyStartPattern = '({{\\$)(';
+// const KeyEndPattern = ')((-(key|index))?}})';
 
 export default {
 
 	get data () { return DATA; },
-	get each () { return EACH; },
+	get context () { return CONTEXT; },
 	get container () { return CONTAINER; },
 
 	target: document.body,
@@ -90,94 +93,52 @@ export default {
 
 	},
 
-	addContainerNode (type, node, container) {
+	addContainerNode (node, container) {
 		this.container.set(node, container);
 	},
 
-	addContainerNodes (type, nodes, container) {
+	addContainerNodes (nodes, container) {
 		for (let i = 0, l = nodes.length; i <l; i++) {
 			const node = nodes[i];
-			this.addContainerNode(type, node, container);
-			this.addContainerNodes(type, node.children, container);
+			this.addContainerNode(node, container);
+			this.addContainerNodes(node.children, container);
 		}
 	},
 
-	// node (type, node) {
-	//
-	// 	if (node.nodeType === 1) {
-	// 		for (let i = 0, l = node.attributes.length; i < l; i++) {
-	// 			const attribute = node.attributes[i];
-	//
-	// 			if (
-	// 				attribute.name.indexOf('o-') !== 0 ||
-	// 				attribute.name === 'o-scope' ||
-	// 				attribute.name === 'o-reset' ||
-	// 				attribute.name === 'o-action' ||
-	// 				attribute.name === 'o-method' ||
-	// 				attribute.name === 'o-enctype'
-	// 			) {
-	// 				continue
-	// 			}
-	//
-	// 			if (type === 'remove') {
-	// 				this.remove(node);
-	// 				break;
-	// 			}
-	//
-	// 		}
-	// 	}
-	//
-	// 	let child = node.firstChild;
-	//
-	// 	while (child) {
-	// 	    this.node(child);
-	// 	    child = child.nextSibling;
-	// 	}
-	// },
-
 	nodes (type, nodes, target, container) {
-
-		const eachAttribute = this.getAttribute(target, 'o-each');
-		const eachBinder = eachAttribute ? this.get('attribute', target, eachAttribute.name) : null;
-
-		// console.log(target);
-		// console.log(container);
-		// console.log(eachBinder);
-		// console.log(eachAttribute);
 
 		for (let i = 0, l = nodes.length; i < l; i++) {
 			const node = nodes[i];
 
-			// if (eachBinder) {
-			// 	console.log(node);
-			// 	console.log(eachBinder.meta.children.get(node));
-			// }
-
-			const eachMeta = eachBinder ? eachBinder.meta.children.get(node) : null;
-
 			if (node.nodeType === Node.TEXT_NODE) {
-				if (eachMeta) {
-					node.nodeValue = node.nodeValue.replace(KeyPattern, `${eachMeta.key}`);
-				}
+				// const context = this.context.get(node);
+
+				// if (context) {
+					// console.log(context);
+					// node.nodeValue = node.nodeValue.replace(KeyPattern, context.key);
+				// }
+
 				continue;
 			}
 
-			// if (!node.children) continue;
-			// if (node.nodeType !== Node.ELEMENT_NODE) return;
+			if (!node.children) continue;
+			if (node.nodeType !== Node.ELEMENT_NODE) return;
 
-			if (eachAttribute) {
-				container = this.each.get(node);
-			} else if (!container) {
+			if (!container) {
 				container = this.container.get(node);
 			}
 
 			// if (!container) {
 			// 	console.log(node);
-			// 	this.nodes(type, node.children, target, container)
 			// 	continue;
 			// }
 
 			const attributes = node.attributes;
+
+			// if ('o-context' in attributes) {
+			// 	const parts = attributes['o-context'].split(' ');
+			// 	contexts[parts[2]] = { key: parts[0], path: parts[1], scope: parts[2] };
+			// }
 
 			for (let i = 0, l = attributes.length; i < l; i++) {
 				const attribute = attributes[i];
@@ -189,15 +150,19 @@ export default {
 					attribute.name === 'o-action' ||
 					attribute.name === 'o-method' ||
 					attribute.name === 'o-enctype'
+					// attribute.name === 'o-context'
 				) {
 					continue
 				}
 
-				if (eachBinder) {
-					console.log(eachBinder.path);
-					// container = eachBinder.container;
-					attribute.value = attribute.value.replace(KeyPattern, `${eachMeta.key}`);
-					attribute.value = attribute.value.replace(PathPattern, `${eachBinder.path}.${eachMeta.key}$3`);
+				const context = this.context.get(node);
+
+				if (context) {
+					container = context.binder.container;
+					console.log(context);
+					console.log(container);
+					attribute.value = attribute.value.replace(KeyPattern, `${context.key}`);
+					attribute.value = attribute.value.replace(PathPattern, `${context.path}.${context.key}$3`);
 				}
 
 				const binder = Binder.create({
@@ -246,7 +211,7 @@ export default {
 			switch (record.type) {
 				case 'childList':
 
-					this.nodes('add', record.addedNodes, record.target);
+					this.nodes('add', record.addedNodes, record.target, {});
 
 					// let container;
 					// let parent = record.target;

@@ -629,14 +629,210 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  var AddEachNode = function AddEachNode(node, container) {
-    View.each.set(node, container);
-    AddEachNodes(node.children, container);
+  function Piper(binder, data) {
+    if (!binder.pipes.length) {
+      return data;
+    }
+
+    var methods = binder.container.methods;
+
+    if (!methods) {
+      return data;
+    }
+
+    for (var i = 0, l = binder.pipes.length; i < l; i++) {
+      var method = binder.pipes[i];
+
+      if (method in methods) {
+        data = methods[method].call(binder.container, data);
+      } else {
+        throw new Error("Oxe.piper.pipe - method ".concat(method, " not found in scope ").concat(binder.scope));
+      }
+    }
+
+    return data;
+  }
+
+  var DATA = new Map();
+  var CONTEXT = new Map();
+  var CONTAINER = new Map();
+  var PathPattern$1 = new RegExp('(\\$)(\\w+)($|,|\\s+|\\.|\\|)', 'ig');
+  var KeyPattern$1 = new RegExp('({{\\$)(\\w+)((-(key|index))?}})', 'ig');
+  var View = {
+    get data() {
+      return DATA;
+    },
+
+    get context() {
+      return CONTEXT;
+    },
+
+    get container() {
+      return CONTAINER;
+    },
+
+    target: document.body,
+    setup: function setup(options) {
+      return new Promise(function ($return, $error) {
+        options = options || {};
+        this.data.set('node', new Map());
+        this.data.set('location', new Map());
+        this.data.set('attribute', new Map());
+        this.target = options.target || document.body;
+        var observer = new MutationObserver(this.listener.bind(this));
+        observer.observe(this.target, {
+          subtree: true,
+          childList: true
+        });
+        return $return();
+      }.bind(this));
+    },
+    get: function get(type) {
+      var result = this.data.get(type);
+
+      for (var i = 1, l = arguments.length; i < l; i++) {
+        var argument = arguments[i];
+        result = result.get(argument);
+      }
+
+      return result;
+    },
+    remove: function remove(node) {
+      var binders = this.data.get('node').get(node);
+
+      for (var i = 0, l = binders.length; i < l; i++) {
+        var binder = binders[i];
+
+        var _index2 = this.data.get('location').get(binder.location).indexOf(binder);
+
+        this.data.get('location').get(binder.location).splice(_index2, 1);
+      }
+
+      this.data.get('node').delete(node);
+      this.data.get('attribute').delete(node);
+    },
+    add: function add(binder) {
+      if (this.data.get('location').has(binder.location)) {
+        this.data.get('location').get(binder.location).push(binder);
+      } else {
+        this.data.get('location').set(binder.location, [binder]);
+      }
+
+      if (this.data.get('node').has(binder.target)) {
+        this.data.get('node').get(binder.target).push(binder);
+      } else {
+        this.data.get('node').set(binder.target, [binder]);
+      }
+
+      if (!this.data.get('attribute').has(binder.target)) {
+        this.data.get('attribute').set(binder.target, new Map());
+      }
+
+      this.data.get('attribute').get(binder.target).set(binder.name, binder);
+    },
+    addContainerNode: function addContainerNode(node, container) {
+      this.container.set(node, container);
+    },
+    addContainerNodes: function addContainerNodes(nodes, container) {
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+        this.addContainerNode(node, container);
+        this.addContainerNodes(node.children, container);
+      }
+    },
+    nodes: function nodes(type, _nodes, target, container) {
+      for (var i = 0, l = _nodes.length; i < l; i++) {
+        var node = _nodes[i];
+
+        if (node.nodeType === Node.TEXT_NODE) {
+          continue;
+        }
+
+        if (!node.children) continue;
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+        if (!container) {
+          container = this.container.get(node);
+        }
+
+        var attributes = node.attributes;
+
+        for (var _i2 = 0, _l2 = attributes.length; _i2 < _l2; _i2++) {
+          var attribute = attributes[_i2];
+
+          if (attribute.name.indexOf('o-') !== 0 || attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype') {
+              continue;
+            }
+
+          var context = this.context.get(node);
+
+          if (context) {
+            container = context.binder.container;
+            console.log(context);
+            console.log(container);
+            attribute.value = attribute.value.replace(KeyPattern$1, "".concat(context.key));
+            attribute.value = attribute.value.replace(PathPattern$1, "".concat(context.path, ".").concat(context.key, "$3"));
+          }
+
+          var binder = Binder.create({
+            target: node,
+            container: container,
+            name: attribute.name,
+            value: attribute.value,
+            scope: container.scope
+          });
+          this.add(binder);
+          var data = void 0;
+
+          if (binder.type === 'on') {
+            data = Utility.getByPath(container.methods, binder.values);
+          } else {
+            data = Utility.getByPath(container.model, binder.values);
+            data = Piper(binder, data);
+          }
+
+          Binder.render(binder, data);
+        }
+
+        if (node.scope) container = undefined;
+        this.nodes(type, node.children, target, container);
+      }
+    },
+    getAttribute: function getAttribute(node, name) {
+      if ('attributes' in node === false) return null;
+      var attributes = node.attributes;
+
+      for (var i = 0, l = attributes.length; i < l; i++) {
+        var attribute = attributes[i];
+
+        if (attribute.name.indexOf(name) === 0) {
+          return attribute;
+        }
+      }
+
+      return null;
+    },
+    listener: function listener(records) {
+      for (var i = 0, l = records.length; i < l; i++) {
+        var record = records[i];
+
+        switch (record.type) {
+          case 'childList':
+            this.nodes('add', record.addedNodes, record.target, {});
+            break;
+        }
+      }
+    }
   };
 
-  var AddEachNodes = function AddEachNodes(nodes, container) {
+  var AddContextNode = function AddContextNode(node, context) {
+    View.context.set(node, context);
+    AddContextNodes(node.childNodes, context);
+  };
+
+  var AddContextNodes = function AddContextNodes(nodes, context) {
     for (var i = 0, l = nodes.length; i < l; i++) {
-      AddEachNode(nodes[i], container);
+      AddContextNode(nodes[i], context);
     }
   };
 
@@ -694,9 +890,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           while (this.count--) {
             var _node = document.importNode(binder.meta.template, true);
 
-            AddEachNode(_node, binder.container);
-            binder.meta.children.set(_node, {
-              index: this.currentLength,
+            AddContextNode(_node, {
+              binder: binder,
+              path: binder.path,
               key: this.keys[this.currentLength++]
             });
             binder.target.appendChild(_node);
@@ -853,205 +1049,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Piper(binder, data) {
-    if (!binder.pipes.length) {
-      return data;
-    }
-
-    var methods = binder.container.methods;
-
-    if (!methods) {
-      return data;
-    }
-
-    for (var i = 0, l = binder.pipes.length; i < l; i++) {
-      var method = binder.pipes[i];
-
-      if (method in methods) {
-        data = methods[method].call(binder.container, data);
-      } else {
-        throw new Error("Oxe.piper.pipe - method ".concat(method, " not found in scope ").concat(binder.scope));
-      }
-    }
-
-    return data;
-  }
-
-  var DATA = new Map();
-  var EACH = new Map();
-  var CONTAINER = new Map();
-  var PathPattern$1 = new RegExp('(\\$)(\\w+)($|,|\\s+|\\.|\\|)', 'ig');
-  var KeyPattern$1 = new RegExp('({{\\$)(\\w+)((-(key|index))?}})', 'ig');
-  var View$1 = {
-    get data() {
-      return DATA;
-    },
-
-    get each() {
-      return EACH;
-    },
-
-    get container() {
-      return CONTAINER;
-    },
-
-    target: document.body,
-    setup: function setup(options) {
-      return new Promise(function ($return, $error) {
-        options = options || {};
-        this.data.set('node', new Map());
-        this.data.set('location', new Map());
-        this.data.set('attribute', new Map());
-        this.target = options.target || document.body;
-        var observer = new MutationObserver(this.listener.bind(this));
-        observer.observe(this.target, {
-          subtree: true,
-          childList: true
-        });
-        return $return();
-      }.bind(this));
-    },
-    get: function get(type) {
-      var result = this.data.get(type);
-
-      for (var i = 1, l = arguments.length; i < l; i++) {
-        var argument = arguments[i];
-        result = result.get(argument);
-      }
-
-      return result;
-    },
-    remove: function remove(node) {
-      var binders = this.data.get('node').get(node);
-
-      for (var i = 0, l = binders.length; i < l; i++) {
-        var binder = binders[i];
-
-        var _index2 = this.data.get('location').get(binder.location).indexOf(binder);
-
-        this.data.get('location').get(binder.location).splice(_index2, 1);
-      }
-
-      this.data.get('node').delete(node);
-      this.data.get('attribute').delete(node);
-    },
-    add: function add(binder) {
-      if (this.data.get('location').has(binder.location)) {
-        this.data.get('location').get(binder.location).push(binder);
-      } else {
-        this.data.get('location').set(binder.location, [binder]);
-      }
-
-      if (this.data.get('node').has(binder.target)) {
-        this.data.get('node').get(binder.target).push(binder);
-      } else {
-        this.data.get('node').set(binder.target, [binder]);
-      }
-
-      if (!this.data.get('attribute').has(binder.target)) {
-        this.data.get('attribute').set(binder.target, new Map());
-      }
-
-      this.data.get('attribute').get(binder.target).set(binder.name, binder);
-    },
-    addContainerNode: function addContainerNode(type, node, container) {
-      this.container.set(node, container);
-    },
-    addContainerNodes: function addContainerNodes(type, nodes, container) {
-      for (var i = 0, l = nodes.length; i < l; i++) {
-        var node = nodes[i];
-        this.addContainerNode(type, node, container);
-        this.addContainerNodes(type, node.children, container);
-      }
-    },
-    nodes: function nodes(type, _nodes, target, container) {
-      var eachAttribute = this.getAttribute(target, 'o-each');
-      var eachBinder = eachAttribute ? this.get('attribute', target, eachAttribute.name) : null;
-
-      for (var i = 0, l = _nodes.length; i < l; i++) {
-        var node = _nodes[i];
-        var eachMeta = eachBinder ? eachBinder.meta.children.get(node) : null;
-
-        if (node.nodeType === Node.TEXT_NODE) {
-          if (eachMeta) {
-            node.nodeValue = node.nodeValue.replace(KeyPattern$1, "".concat(eachMeta.key));
-          }
-
-          continue;
-        }
-
-        if (eachAttribute) {
-          container = this.each.get(node);
-        } else if (!container) {
-          container = this.container.get(node);
-        }
-
-        var attributes = node.attributes;
-
-        for (var _i2 = 0, _l2 = attributes.length; _i2 < _l2; _i2++) {
-          var attribute = attributes[_i2];
-
-          if (attribute.name.indexOf('o-') !== 0 || attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype') {
-            continue;
-          }
-
-          if (eachBinder) {
-            console.log(eachBinder.path);
-            attribute.value = attribute.value.replace(KeyPattern$1, "".concat(eachMeta.key));
-            attribute.value = attribute.value.replace(PathPattern$1, "".concat(eachBinder.path, ".").concat(eachMeta.key, "$3"));
-          }
-
-          var binder = Binder.create({
-            target: node,
-            container: container,
-            name: attribute.name,
-            value: attribute.value,
-            scope: container.scope
-          });
-          this.add(binder);
-          var data = void 0;
-
-          if (binder.type === 'on') {
-            data = Utility.getByPath(container.methods, binder.values);
-          } else {
-            data = Utility.getByPath(container.model, binder.values);
-            data = Piper(binder, data);
-          }
-
-          Binder.render(binder, data);
-        }
-
-        if (node.scope) container = undefined;
-        this.nodes(type, node.children, target, container);
-      }
-    },
-    getAttribute: function getAttribute(node, name) {
-      if ('attributes' in node === false) return null;
-      var attributes = node.attributes;
-
-      for (var i = 0, l = attributes.length; i < l; i++) {
-        var attribute = attributes[i];
-
-        if (attribute.name.indexOf(name) === 0) {
-          return attribute;
-        }
-      }
-
-      return null;
-    },
-    listener: function listener(records) {
-      for (var i = 0, l = records.length; i < l; i++) {
-        var record = records[i];
-
-        switch (record.type) {
-          case 'childList':
-            this.nodes('add', record.addedNodes, record.target);
-            break;
-        }
-      }
-    }
-  };
-
   function Value(binder, data) {
     var type = binder.target.type;
     var name = binder.target.nodeName;
@@ -1157,7 +1154,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             var parent = binder.target.parentElement;
             if (!parent) return false;
             var select = parent.nodeName === 'SELECT' || parent.nodeName.indexOf('-SELECT') !== -1 ? parent : parent.parentElement;
-            var b = View$1.get(parent, 'value');
+            var b = View.get(parent, 'value');
           }
 
           if (data === binder.target.value) {
@@ -1436,7 +1433,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var paths = path.split('.');
       var part = paths.slice(1).join('.');
       var scope = paths.slice(0, 1).join('.');
-      var binders = View$1.get('location', path);
+      var binders = View.get('location', path);
       if (!binders || !binders.length) return;
 
       for (var i = 0, l = binders.length; i < l; i++) {
@@ -1451,7 +1448,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return new Promise(function ($return, $error) {
       if (!node) return $error(new Error('Oxe.update - requires node argument'));
       if (!attribute) return $error(new Error('Oxe.update - requires attribute argument'));
-      var binder = View$1.get('attribute', node, attribute);
+      var binder = View.get('attribute', node, attribute);
 
       var read = function read() {
         var type = binder.target.type;
@@ -1786,7 +1783,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return new Promise(function ($return, $error) {
       var node, binder, method, model, data, options, oaction, omethod, oenctype, result;
       node = event.target;
-      binder = View$1.get('attribute', node, 'o-submit');
+      binder = View.get('attribute', node, 'o-submit');
       method = Methods.get(binder.keys);
       model = Model.get(binder.scope);
       data = Utility.formData(node, model);
@@ -1851,7 +1848,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Reset(event) {
     return new Promise(function ($return, $error) {
       var node = event.target;
-      var binder = View$1.get(node, 'o-submit');
+      var binder = View.get(node, 'o-submit');
       var model = Model.get(binder.scope);
       Utility.formReset(node, model);
       return $return();
@@ -2250,8 +2247,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       parser.innerHTML = template;
 
       while (parser.firstElementChild) {
-        View$1.addContainerNode(parser.firstElementChild, container);
-        View$1.addContainerNodes(parser.firstElementChild.children, container);
+        View.addContainerNode(parser.firstElementChild, container);
+        View.addContainerNodes(parser.firstElementChild.children, container);
         fragment.appendChild(parser.firstElementChild);
       }
 
@@ -3260,7 +3257,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
 
     get view() {
-      return View$1;
+      return View;
     },
 
     setup: function setup(options) {

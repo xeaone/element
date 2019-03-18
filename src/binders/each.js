@@ -1,14 +1,15 @@
 // import EachRemove from '../each-remove.js';
 // import EachAdd from '../each-add.js';
+import View from '../view.js';
 
-const AddEachNode = function (node, container) {
-	View.each.set(node, container);
-	AddEachNodes(node.children, container);
+const AddContextNode = function (node, context) {
+	View.context.set(node, context);
+	AddContextNodes(node.childNodes, context);
 };
 
-const AddEachNodes = function (nodes, container) {
+const AddContextNodes = function (nodes, context) {
 	for (let i = 0, l = nodes.length; i <l; i++) {
-		AddEachNode(nodes[i], container);
+		AddContextNode(nodes[i], context);
 	}
 };
 
@@ -74,11 +75,18 @@ export default function (binder, data) {
 			} else if (this.currentLength < this.targetLength) {
 				while (this.count--) {
 					const node = document.importNode(binder.meta.template, true);
-					AddEachNode(node, binder.container);
-					binder.meta.children.set(node, {
-						index: this.currentLength,
+
+					// View.addContainerNode(node, binder.container);
+					// View.addContainerNodes(node, binder.container);
+					// node.setAttribute('o-context', `${this.keys[this.currentLength++]} ${binder.path} ${binder.names[1]}`);
+
+					AddContextNode(node, {
+						binder: binder,
+						path: binder.path,
+						// index: this.currentLength,
 						key: this.keys[this.currentLength++]
 					});
+
 					// EachAdd(node, binder.names[1], binder.path, this.keys[this.currentLength++], binder.container);
 					binder.target.appendChild(node);
 				}
