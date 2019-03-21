@@ -1,18 +1,4 @@
-// import EachRemove from '../each-remove.js';
-// import EachAdd from '../each-add.js';
 import View from '../view.js';
-
-const AddContextNode = function (node, context) {
-	if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) return;
-	View.context.set(node, context);
-	AddContextNodes(node.childNodes, context);
-};
-
-const AddContextNodes = function (nodes, context) {
-	for (let i = 0, l = nodes.length; i <l; i++) {
-		AddContextNode(nodes[i], context);
-	}
-};
 
 export default function (binder, data) {
 
@@ -25,20 +11,15 @@ export default function (binder, data) {
 		return;
 	}
 
-	// if (binder.meta.fragment === undefined) {
-	// 	binder.meta.fragment = document.createDocumentFragment();
-	// }
-
-	if (binder.meta.children === undefined) {
-		binder.meta.children = new Map();
-	}
-
 	if (binder.meta.length === undefined) {
 		binder.meta.length = 0;
 	}
 
+	// console.log(binder.meta);
+
 	if (binder.meta.template === undefined) {
-		console.log('\nremoveChild\n\n');
+		// console.log('\nremoveChild\n\n');
+		// console.log(binder.target.firstElementChild);
 		binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
 	}
 
@@ -70,25 +51,18 @@ export default function (binder, data) {
 				while (this.count--) {
 					const node = binder.target.lastElementChild;
 					binder.target.removeChild(node);
-					binder.meta.children.delete(node);
-					// EachRemove(node, binder.names[1], binder.path, this.keys[this.currentLength++], binder.container);
 				}
 			} else if (this.currentLength < this.targetLength) {
 				while (this.count--) {
 					const node = document.importNode(binder.meta.template, true);
 
-					// View.addContainerNode(node, binder.container);
-					// View.addContainerNodes(node, binder.container);
-					// node.setAttribute('o-context', `${this.keys[this.currentLength++]} ${binder.path} ${binder.names[1]}`);
-
-					AddContextNode(node, {
+					View.addContextNode(node, {
 						binder: binder,
 						path: binder.path,
-						// index: this.currentLength,
+						container: binder.container,
 						key: this.keys[this.currentLength++]
 					});
 
-					// EachAdd(node, binder.names[1], binder.path, this.keys[this.currentLength++], binder.container);
 					binder.target.appendChild(node);
 				}
 			}

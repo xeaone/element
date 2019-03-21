@@ -675,7 +675,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
-        this.data.set('node', new Map());
+        this.data.set('target', new Map());
         this.data.set('location', new Map());
         this.data.set('attribute', new Map());
         this.target = options.target || document.body;
@@ -718,10 +718,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.data.get('location').set(binder.location, [binder]);
       }
 
-      if (this.data.get('node').has(binder.target)) {
-        this.data.get('node').get(binder.target).push(binder);
+      if (this.data.get('target').has(binder.target)) {
+        this.data.get('target').get(binder.target).push(binder);
       } else {
-        this.data.get('node').set(binder.target, [binder]);
+        this.data.get('target').set(binder.target, [binder]);
       }
 
       if (!this.data.get('attribute').has(binder.target)) {
@@ -730,36 +730,47 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       this.data.get('attribute').get(binder.target).set(binder.name, binder);
     },
-    addContainerNode: function addContainerNode(node, container) {
-      this.container.set(node, container);
+    addContextNode: function addContextNode(node, context) {
+      if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) {
+        return;
+      }
+
+      this.context.set(node, context);
+
+      if (node.nodeType === Node.ELEMENT_NODE && this.hasAttribute(node, 'o-each')) {
+        return;
+      }
+
+      this.addContextNodes(node.childNodes, context);
     },
-    addContainerNodes: function addContainerNodes(nodes, container) {
+    addContextNodes: function addContextNodes(nodes, context) {
       for (var i = 0, l = nodes.length; i < l; i++) {
-        var node = nodes[i];
-        this.addContainerNode(node, container);
-        this.addContainerNodes(node.children, container);
+        this.addContextNode(nodes[i], context);
       }
     },
     nodes: function nodes(type, _nodes, target, container) {
       for (var i = 0, l = _nodes.length; i < l; i++) {
         var node = _nodes[i];
 
-        if (node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.ELEMENT_NODE) {
+        if (node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.ELEMENT_NODE || this.data.get('target').has(node)) {
           continue;
         }
 
         if (node.nodeType === Node.TEXT_NODE) {
-          if (!/\S/.test(node.nodeValue)) continue;
-          var context = this.context.get(node);
+          if (!/\S/.test(node.nodeValue)) {
+            continue;
+          }
 
-          if (context) {
-            node.nodeValue = node.nodeValue.replace(KeyPattern$1, context.key);
+          var _context = this.context.get(node);
+
+          if (_context && _context.key && _context.path) {
+            node.nodeValue = node.nodeValue.replace(KeyPattern$1, _context.key);
           }
 
           continue;
         }
 
-        container = container || this.container.get(node);
+        var context = this.context.get(node);
         var attributes = node.attributes;
 
         for (var _i2 = 0, _l2 = attributes.length; _i2 < _l2; _i2++) {
@@ -769,12 +780,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               continue;
             }
 
-          var _context = this.context.get(node);
-
-          if (_context) {
-            container = _context.binder.container;
-            attribute.value = attribute.value.replace(KeyPattern$1, "".concat(_context.key));
-            attribute.value = attribute.value.replace(PathPattern$1, "".concat(_context.path, ".").concat(_context.key, "$3"));
+          if (context && context.key && context.path) {
+            container = context.binder.container;
+            attribute.value = attribute.value.replace(KeyPattern$1, "".concat(context.key));
+            attribute.value = attribute.value.replace(PathPattern$1, "".concat(context.path, ".").concat(context.key, "$3"));
+          } else {
+            container = container || context;
           }
 
           var binder = Binder.create({
@@ -784,6 +795,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             value: attribute.value,
             scope: container.scope
           });
+
+          if (this.data.get('attribute').has(binder.target)) {
+            var b = this.data.get('attribute').get(binder.target).get(binder.name);
+
+            if (b) {
+              console.log(b);
+            }
+          }
+
           this.add(binder);
           var data = void 0;
 
@@ -801,7 +821,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.nodes(type, node.childNodes, target, container);
       }
     },
-    getAttribute: function getAttribute(node, name) {
+    hasAttribute: function hasAttribute(node, name) {
       if ('attributes' in node === false) return null;
       var attributes = node.attributes;
 
@@ -821,22 +841,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         switch (record.type) {
           case 'childList':
-            this.nodes('add', record.addedNodes, record.target, {});
+            this.nodes('add', record.addedNodes, record.target);
             break;
         }
       }
-    }
-  };
-
-  var AddContextNode = function AddContextNode(node, context) {
-    if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) return;
-    View.context.set(node, context);
-    AddContextNodes(node.childNodes, context);
-  };
-
-  var AddContextNodes = function AddContextNodes(nodes, context) {
-    for (var i = 0, l = nodes.length; i < l; i++) {
-      AddContextNode(nodes[i], context);
     }
   };
 
@@ -850,16 +858,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return;
     }
 
-    if (binder.meta.children === undefined) {
-      binder.meta.children = new Map();
-    }
-
     if (binder.meta.length === undefined) {
       binder.meta.length = 0;
     }
 
     if (binder.meta.template === undefined) {
-      console.log('\nremoveChild\n\n');
       binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
     }
 
@@ -888,15 +891,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           while (this.count--) {
             var node = binder.target.lastElementChild;
             binder.target.removeChild(node);
-            binder.meta.children.delete(node);
           }
         } else if (this.currentLength < this.targetLength) {
           while (this.count--) {
             var _node = document.importNode(binder.meta.template, true);
 
-            AddContextNode(_node, {
+            View.addContextNode(_node, {
               binder: binder,
               path: binder.path,
+              container: binder.container,
               key: this.keys[this.currentLength++]
             });
             binder.target.appendChild(_node);
@@ -2250,10 +2253,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var parser = document.createElement('div');
       parser.innerHTML = template;
 
-      while (parser.firstElementChild) {
-        View.addContainerNode(parser.firstElementChild, container);
-        View.addContainerNodes(parser.firstElementChild.children, container);
-        fragment.appendChild(parser.firstElementChild);
+      while (parser.firstChild) {
+        View.addContextNode(parser.firstChild, container);
+        fragment.appendChild(parser.firstChild);
       }
 
       return fragment;

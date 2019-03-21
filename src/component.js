@@ -70,10 +70,9 @@ export default {
 
 		parser.innerHTML = template;
 
-		while (parser.firstElementChild) {
-			View.addContainerNode(parser.firstElementChild, container);
-			View.addContainerNodes(parser.firstElementChild.children, container);
-			fragment.appendChild(parser.firstElementChild);
+		while (parser.firstChild) {
+			View.addContextNode(parser.firstChild, container);
+			fragment.appendChild(parser.firstChild);
 		}
 
 		return fragment;
