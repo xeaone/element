@@ -49,8 +49,10 @@ export default function (binder, data) {
 				return false;
 			} else if (this.currentLength > this.targetLength) {
 				while (this.count--) {
+					// View.removeContextNode
 					const node = binder.target.lastElementChild;
 					binder.target.removeChild(node);
+					View.removeContextNode(node);
 				}
 			} else if (this.currentLength < this.targetLength) {
 				while (this.count--) {

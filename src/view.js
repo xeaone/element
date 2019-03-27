@@ -5,17 +5,16 @@ import Utility from './utility.js';
 
 const DATA = new Map();
 const CONTEXT = new Map();
-const CONTAINER = new Map();
+// const CONTAINER = new Map();
 
 const PathPattern = new RegExp('(\\$)(\\w+)($|,|\\s+|\\.|\\|)', 'ig');
 const KeyPattern = new RegExp('({{\\$)(\\w+)((-(key|index))?}})', 'ig');
-// const KeyPattern = new RegExp('({{\\$)(\\w+)((-(key|index))}})', 'ig');
 
 export default {
 
 	get data () { return DATA; },
 	get context () { return CONTEXT; },
-	get container () { return CONTAINER; },
+	// get container () { return CONTAINER; },
 
 	target: document.body,
 	// whitespacePattern: /^\s+$/,
@@ -68,7 +67,6 @@ export default {
 	},
 
 	add (binder) {
-		// this.data.get('pointer').set(binder.pointer, binder);
 
 		if (this.data.get('location').has(binder.location)) {
 			this.data.get('location').get(binder.location).push(binder);
@@ -87,7 +85,23 @@ export default {
 		}
 
 		this.data.get('attribute').get(binder.target).set(binder.name, binder);
+	},
 
+	removeContextNode (node) {
+
+		if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) {
+			return;
+		}
+
+		this.context.delete(node);
+
+		this.removeContextNodes(node.childNodes);
+	},
+
+	removeContextNodes (nodes) {
+		for (let i = 0, l = nodes.length; i <l; i++) {
+			this.removeContextNode(nodes[i]);
+		}
 	},
 
 	addContextNode (node, context) {
@@ -98,7 +112,10 @@ export default {
 
 		this.context.set(node, context);
 
-		if (node.nodeType === Node.ELEMENT_NODE && this.hasAttribute(node, 'o-each')) {
+		if (
+			node.nodeType === Node.ELEMENT_NODE &&
+			(this.hasAttribute(node, 'o-each') || this.hasAttribute(node, 'o-html'))
+		) {
 			return;
 		}
 
@@ -111,7 +128,8 @@ export default {
 		}
 	},
 
-	nodes (type, nodes, target, container) {
+	// nodes (type, nodes, target, container) {
+	nodes (nodes, target, container) {
 		for (let i = 0, l = nodes.length; i < l; i++) {
 			const node = nodes[i];
 
@@ -204,7 +222,7 @@ export default {
 
 			if (node.scope) container = undefined;
 
-			this.nodes(type, node.childNodes, target, container);
+			this.nodes(node.childNodes, target, container);
 		}
 	},
 
@@ -233,7 +251,7 @@ export default {
 			switch (record.type) {
 				case 'childList':
 
-					this.nodes('add', record.addedNodes, record.target);
+					this.nodes(record.addedNodes, record.target);
 					// this.nodes('add', record.addedNodes, record.target, {});
 
 					// let container;

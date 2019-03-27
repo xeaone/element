@@ -655,7 +655,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   var DATA = new Map();
   var CONTEXT = new Map();
-  var CONTAINER = new Map();
   var PathPattern$1 = new RegExp('(\\$)(\\w+)($|,|\\s+|\\.|\\|)', 'ig');
   var KeyPattern$1 = new RegExp('({{\\$)(\\w+)((-(key|index))?}})', 'ig');
   var View = {
@@ -665,10 +664,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     get context() {
       return CONTEXT;
-    },
-
-    get container() {
-      return CONTAINER;
     },
 
     target: document.body,
@@ -730,6 +725,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       this.data.get('attribute').get(binder.target).set(binder.name, binder);
     },
+    removeContextNode: function removeContextNode(node) {
+      if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) {
+        return;
+      }
+
+      this.context.delete(node);
+      this.removeContextNodes(node.childNodes);
+    },
+    removeContextNodes: function removeContextNodes(nodes) {
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        this.removeContextNode(nodes[i]);
+      }
+    },
     addContextNode: function addContextNode(node, context) {
       if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) {
         return;
@@ -737,7 +745,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       this.context.set(node, context);
 
-      if (node.nodeType === Node.ELEMENT_NODE && this.hasAttribute(node, 'o-each')) {
+      if (node.nodeType === Node.ELEMENT_NODE && (this.hasAttribute(node, 'o-each') || this.hasAttribute(node, 'o-html'))) {
         return;
       }
 
@@ -748,7 +756,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.addContextNode(nodes[i], context);
       }
     },
-    nodes: function nodes(type, _nodes, target, container) {
+    nodes: function nodes(_nodes, target, container) {
       for (var i = 0, l = _nodes.length; i < l; i++) {
         var node = _nodes[i];
 
@@ -818,7 +826,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         if (node.scope) container = undefined;
-        this.nodes(type, node.childNodes, target, container);
+        this.nodes(node.childNodes, target, container);
       }
     },
     hasAttribute: function hasAttribute(node, name) {
@@ -841,7 +849,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         switch (record.type) {
           case 'childList':
-            this.nodes('add', record.addedNodes, record.target);
+            this.nodes(record.addedNodes, record.target);
             break;
         }
       }
@@ -891,6 +899,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           while (this.count--) {
             var node = binder.target.lastElementChild;
             binder.target.removeChild(node);
+            View.removeContextNode(node);
           }
         } else if (this.currentLength < this.targetLength) {
           while (this.count--) {
@@ -941,13 +950,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         } else if (typeof data !== 'string') {
           data = String(data);
         }
-
-        if (data === binder.target.innerHTML) {
-          return false;
-        }
       },
       write: function write() {
-        binder.target.innerHTML = data;
+        while (binder.target.firstChild) {
+          var node = binder.target.removeNode(binder.target.firstChild);
+          View.removeContextNode(node);
+        }
+
+        var fragment = document.createDocumentFragment();
+        var parser = document.createElement('div');
+        parser.innerHTML = data;
+
+        while (parser.firstChild) {
+          View.addContextNode(parser.firstChild, binder.container);
+          fragment.appendChild(parser.firstChild);
+        }
+
+        binder.target.appendChild(fragment);
       }
     };
   }

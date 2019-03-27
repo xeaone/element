@@ -1,3 +1,4 @@
+import View from '../view.js';
 
 export default function (binder, data) {
 	return {
@@ -11,13 +12,25 @@ export default function (binder, data) {
 				data = String(data);
 			}
 
-			if (data === binder.target.innerHTML) {
-				return false;
-			}
-
 		},
 		write () {
-			binder.target.innerHTML = data;
+
+			while (binder.target.firstChild) {
+				const node = binder.target.removeNode(binder.target.firstChild);
+				View.removeContextNode(node);
+			}
+
+			const fragment = document.createDocumentFragment();
+			const parser = document.createElement('div');
+
+			parser.innerHTML = data;
+
+			while (parser.firstChild) {
+				View.addContextNode(parser.firstChild, binder.container);
+				fragment.appendChild(parser.firstChild);
+			}
+
+			binder.target.appendChild(fragment);
 		}
 	};
 };

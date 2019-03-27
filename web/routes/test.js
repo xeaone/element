@@ -33,7 +33,7 @@ export default {
 				three: 3,
 			},
 			arrayChange: [1, 2],
-			html: '<h3 o-text="text"></h3>'
+			html: '<h3 o-text="title"></h3>'
 		},
 		methods: {
 			say: Say,
@@ -254,8 +254,8 @@ export default {
 
 		<div o-each-item="eo">
 			<span>
-				<span>$item</span>
-				<span o-text="item"></span>
+				<span>{{$item}}</span>
+				<span o-text="$item"></span>
 				<span>,</span>
 			</span>
 		</div>
