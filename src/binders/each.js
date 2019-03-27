@@ -49,23 +49,25 @@ export default function (binder, data) {
 				return false;
 			} else if (this.currentLength > this.targetLength) {
 				while (this.count--) {
-					// View.removeContextNode
-					const node = binder.target.lastElementChild;
-					binder.target.removeChild(node);
-					View.removeContextNode(node);
+					const element = binder.target.lastElementChild;
+					binder.target.removeChild(element);
+					View.removeContextNode(element);
 				}
 			} else if (this.currentLength < this.targetLength) {
 				while (this.count--) {
-					const node = document.importNode(binder.meta.template, true);
+					const element = document.importNode(binder.meta.template, true);
 
-					View.addContextNode(node, {
-						binder: binder,
-						path: binder.path,
+					View.addContextNode(element, {
+						meta: {
+							path: binder.path,
+							key: this.keys[this.currentLength++]
+						},
+						type: 'dynamic',
 						container: binder.container,
-						key: this.keys[this.currentLength++]
+						scope: binder.container.scope
 					});
 
-					binder.target.appendChild(node);
+					binder.target.appendChild(element);
 				}
 			}
 		}

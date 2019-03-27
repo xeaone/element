@@ -166,9 +166,8 @@ export default {
 		<br>
 
 		<div>
-			<span o-text="title"></span>
+			<h3 o-text="title"></h3>
 		</div>
-
 		<br>
 		<br>
 

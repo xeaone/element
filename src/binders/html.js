@@ -25,9 +25,12 @@ export default function (binder, data) {
 
 			parser.innerHTML = data;
 
-			while (parser.firstChild) {
-				View.addContextNode(parser.firstChild, binder.container);
-				fragment.appendChild(parser.firstChild);
+			while (parser.firstElementChild) {
+				View.addContextNode(parser.firstElementChild, {
+					container: binder.container,
+					scope: binder.container.scope
+				});
+				fragment.appendChild(parser.firstElementChild);
 			}
 
 			binder.target.appendChild(fragment);

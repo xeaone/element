@@ -122,8 +122,8 @@ export default {
 		options = options || {};
 		options.listener = options.listener || {};
 
-		await this.view.setup(options.view);
 		await this.binder.setup(options.binder);
+		await this.view.setup(options.view);
 		// await this.view.setup(options.view);
 		await this.model.setup(options.model);
 

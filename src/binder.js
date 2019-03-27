@@ -1,6 +1,7 @@
 import Utility from './utility.js';
-
 import Batcher from './batcher.js';
+
+import Dynamic from './binders/dynamic.js';
 import Class from './binders/class.js';
 import Css from './binders/css.js';
 import Default from './binders/default.js';
@@ -19,6 +20,7 @@ import Value from './binders/value.js';
 import Write from './binders/write.js';
 
 const BINDERS = {
+	get dynamic () { return Dynamic; },
 	get class () { return Class; },
 	get css () { return Css; },
 	get default () { return Default; },
@@ -90,8 +92,8 @@ export default {
 		const keys = [scope].concat(values);
 		const location = keys.join('.');
 
-		const meta = {};
 		const context = {};
+		const meta = data.meta || {};
 		// const pointer = POINTER++;
 
 		return {

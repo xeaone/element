@@ -13,8 +13,6 @@ const KeyPattern = new RegExp('({{\\$)(\\w+)((-(key|index))?}})', 'ig');
 export default {
 
 	get data () { return DATA; },
-	get context () { return CONTEXT; },
-	// get container () { return CONTAINER; },
 
 	target: document.body,
 	// whitespacePattern: /^\s+$/,
@@ -22,6 +20,7 @@ export default {
 	async setup (options) {
 		options = options || {};
 
+		this.data.set('context', new Map());
 		this.data.set('target', new Map());
 		this.data.set('location', new Map());
 		this.data.set('attribute', new Map());
@@ -93,7 +92,7 @@ export default {
 			return;
 		}
 
-		this.context.delete(node);
+		this.get('context').delete(node);
 
 		this.removeContextNodes(node.childNodes);
 	},
@@ -105,21 +104,23 @@ export default {
 	},
 
 	addContextNode (node, context) {
+		// if (node.nodeType === Node.TEXT_NODE && /{{\$.*}}/.test(node.nodeValue)) {
+		if (node.nodeType === Node.TEXT_NODE) {
+			console.log(/{{\$.*}}/.test(node.nodeValue));
+			console.log(node.nodeValue);
 
-		if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) {
-			return;
+			// this.data.get('context').set(node, Object.assign({ target: node }, context));
+
+		} else if (node.nodeType === Node.ELEMENT_NODE && this.hasAttribute(node, 'o-')) {
+
+			this.data.get('context').set(node, Object.assign({ target: node }, context));
+
+			if (this.hasAttribute(node, 'o-each') || this.hasAttribute(node, 'o-html')) {
+				return;
+			}
+
+			this.addContextNodes(node.childNodes, context);
 		}
-
-		this.context.set(node, context);
-
-		if (
-			node.nodeType === Node.ELEMENT_NODE &&
-			(this.hasAttribute(node, 'o-each') || this.hasAttribute(node, 'o-html'))
-		) {
-			return;
-		}
-
-		this.addContextNodes(node.childNodes, context);
 	},
 
 	addContextNodes (nodes, context) {
@@ -129,40 +130,41 @@ export default {
 	},
 
 	// nodes (type, nodes, target, container) {
-	nodes (nodes, target, container) {
+	nodes (nodes, target) {
 		for (let i = 0, l = nodes.length; i < l; i++) {
 			const node = nodes[i];
 
 			if (
-				(node.nodeType !== Node.TEXT_NODE &&
-				node.nodeType !== Node.ELEMENT_NODE) ||
-				this.data.get('target').has(node)
+				node.nodeType !== Node.TEXT_NODE &&
+				node.nodeType !== Node.ELEMENT_NODE
 			) {
 				continue;
 			}
 
 			if (node.nodeType === Node.TEXT_NODE) {
 
-				if (!/\S/.test(node.nodeValue)) {
-					continue;
-				}
+				console.log(/{{\$.*}}/.test(node.nodeValue));
+				console.log(node.nodeValue);
 
-				const context = this.context.get(node);
+				if (!/{{\$.*}}/.test(node.nodeValue)) continue;
 
-				if (context && context.key && context.path) {
-					node.nodeValue = node.nodeValue.replace(KeyPattern, context.key);
-					// node.nodeValue = node.nodeValue.replace(PathPattern, `${context.path}.${context.key}$3`);
+				const context = this.data.get('context').get(node);
+
+				if (context && context.type === 'dynamic') {
+					Binder.render(context);
 				}
 
 				continue;
 			}
 
-			// if (node.nodeType !== Node.ELEMENT_NODE) return;
-			// if (!container) {}
-			// container = container || this.container.get(node);
-			const context = this.context.get(node);
-			const attributes = node.attributes;
+			const context = this.data.get('context').get(node);
+			if (!context) continue;
 
+			if (context.type === 'dynamic') Binder.render(context);
+
+			const container = context.container;
+
+			const attributes = node.attributes;
 			for (let i = 0, l = attributes.length; i < l; i++) {
 				const attribute = attributes[i];
 
@@ -173,17 +175,8 @@ export default {
 					attribute.name === 'o-action' ||
 					attribute.name === 'o-method' ||
 					attribute.name === 'o-enctype'
-					// attribute.name === 'o-context'
 				) {
 					continue
-				}
-
-				if (context && context.key && context.path) {
-					container = context.binder.container;
-					attribute.value = attribute.value.replace(KeyPattern, `${context.key}`);
-					attribute.value = attribute.value.replace(PathPattern, `${context.path}.${context.key}$3`);
-				} else {
-					container = container || context;
 				}
 
 				const binder = Binder.create({
@@ -193,18 +186,6 @@ export default {
 					value: attribute.value,
 					scope: container.scope
 				});
-
-				if (this.data.get('attribute').has(binder.target)) {
-					const b = this.data.get('attribute').get(binder.target).get(binder.name);
-					if (b) {
-						console.log(b);
-					}
-				}
-
-				// if (attribute.name.indexOf('o-each') === 0) {
-					// console.log(binder);
-					// console.log(b === binder);
-				// }
 
 				this.add(binder);
 
@@ -220,22 +201,21 @@ export default {
 				Binder.render(binder, data);
 			}
 
-			if (node.scope) container = undefined;
-
-			this.nodes(node.childNodes, target, container);
+			// if (node.scope) container = undefined;
+			// this.nodes(node.childNodes, target, container);
+			this.nodes(node.childNodes, target);
 		}
 	},
 
 	hasAttribute (node, name) {
-		if ('attributes' in node === false) return null;
 		const attributes = node.attributes;
 		for (let i = 0, l = attributes.length; i < l; i++) {
 			const attribute = attributes[i];
 			if (attribute.name.indexOf(name) === 0) {
-				return attribute;
+				return true;
 			}
 		}
-		return null;
+		return false;
 	},
 
 	listener (records) {
