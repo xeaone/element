@@ -754,39 +754,40 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
     },
     addContextNode: function addContextNode(node, context) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        console.log(/{{\$.*}}/.test(node.nodeValue));
-        console.log(node.nodeValue);
-      } else if (node.nodeType === Node.ELEMENT_NODE && this.hasAttribute(node, 'o-')) {
+      if (node.nodeType === Node.TEXT_NODE && /{{\$.*}}/.test(node.nodeValue)) {
+        if (context.meta) {
+          console.log(node);
+        }
+
         this.data.get('context').set(node, Object.assign({
           target: node
         }, context));
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (this.hasAttribute(node, 'o-')) {
+          this.data.get('context').set(node, Object.assign({
+            target: node
+          }, context));
+        }
 
         if (this.hasAttribute(node, 'o-each') || this.hasAttribute(node, 'o-html')) {
           return;
         }
 
-        this.addContextNodes(node.childNodes, context);
+        for (var i = 0, l = node.childNodes.length; i < l; i++) {
+          this.addContextNode(node.childNodes[i], context);
+        }
       }
     },
-    addContextNodes: function addContextNodes(nodes, context) {
-      for (var i = 0, l = nodes.length; i < l; i++) {
-        this.addContextNode(nodes[i], context);
-      }
-    },
-    nodes: function nodes(_nodes, target) {
-      for (var i = 0, l = _nodes.length; i < l; i++) {
+    nodes: function nodes(_nodes) {
+      for (var i = 0; i < _nodes.length; i++) {
         var node = _nodes[i];
+        console.log(node);
 
         if (node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.ELEMENT_NODE) {
           continue;
         }
 
         if (node.nodeType === Node.TEXT_NODE) {
-          console.log(/{{\$.*}}/.test(node.nodeValue));
-          console.log(node.nodeValue);
-          if (!/{{\$.*}}/.test(node.nodeValue)) continue;
-
           var _context = this.data.get('context').get(node);
 
           if (_context && _context.type === 'dynamic') {
@@ -802,7 +803,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var container = context.container;
         var attributes = node.attributes;
 
-        for (var _i2 = 0, _l2 = attributes.length; _i2 < _l2; _i2++) {
+        for (var _i2 = 0, l = attributes.length; _i2 < l; _i2++) {
           var attribute = attributes[_i2];
 
           if (attribute.name.indexOf('o-') !== 0 || attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype') {
@@ -829,7 +830,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           Binder.render(binder, data);
         }
 
-        this.nodes(node.childNodes, target);
+        this.nodes(node.childNodes);
       }
     },
     hasAttribute: function hasAttribute(node, name) {
@@ -851,7 +852,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         switch (record.type) {
           case 'childList':
-            this.nodes(record.addedNodes, record.target);
+            this.nodes(record.addedNodes);
             break;
         }
       }

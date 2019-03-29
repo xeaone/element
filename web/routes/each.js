@@ -13,26 +13,26 @@ export default {
 		created: function () {
 			var self = this;
 
-			setTimeout(function () {
-				var increaseInterval = setInterval(function () {
-
-					if (self.model.items.length === 20) {
-						clearInterval(increaseInterval);
-
-						var decreaseInterval = setInterval(function () {
-							if (self.model.items.length === 10) {
-								clearInterval(decreaseInterval);
-							} else {
-								self.model.items.pop();
-							}
-						}, 50);
-
-					} else {
-						self.model.items.push({ it: { val: self.model.items.length } });
-					}
-
-				}, 50);
-			}, 3000);
+			// setTimeout(function () {
+			// 	var increaseInterval = setInterval(function () {
+			//
+			// 		if (self.model.items.length === 20) {
+			// 			clearInterval(increaseInterval);
+			//
+			// 			var decreaseInterval = setInterval(function () {
+			// 				if (self.model.items.length === 10) {
+			// 					clearInterval(decreaseInterval);
+			// 				} else {
+			// 					self.model.items.pop();
+			// 				}
+			// 			}, 50);
+			//
+			// 		} else {
+			// 			self.model.items.push({ it: { val: self.model.items.length } });
+			// 		}
+			//
+			// 	}, 50);
+			// }, 3000);
 
 		},
 		template: /*html*/`

@@ -104,35 +104,47 @@ export default {
 	},
 
 	addContextNode (node, context) {
-		// if (node.nodeType === Node.TEXT_NODE && /{{\$.*}}/.test(node.nodeValue)) {
-		if (node.nodeType === Node.TEXT_NODE) {
-			console.log(/{{\$.*}}/.test(node.nodeValue));
-			console.log(node.nodeValue);
 
-			// this.data.get('context').set(node, Object.assign({ target: node }, context));
+		if (node.nodeType === Node.TEXT_NODE && /{{\$.*}}/.test(node.nodeValue)) {
 
-		} else if (node.nodeType === Node.ELEMENT_NODE && this.hasAttribute(node, 'o-')) {
+			if (context.meta) {
+				console.log(node);
+			}
 
 			this.data.get('context').set(node, Object.assign({ target: node }, context));
 
-			if (this.hasAttribute(node, 'o-each') || this.hasAttribute(node, 'o-html')) {
+		} else if (node.nodeType === Node.ELEMENT_NODE) {
+
+			if (this.hasAttribute(node, 'o-')) {
+				this.data.get('context').set(node, Object.assign({ target: node }, context));
+			}
+
+			if (
+				// this.hasAttribute(node, 'o-scope') ||
+				this.hasAttribute(node, 'o-each') ||
+				this.hasAttribute(node, 'o-html')
+			) {
 				return;
 			}
 
-			this.addContextNodes(node.childNodes, context);
+			for (let i = 0, l = node.childNodes.length; i <l; i++) {
+				this.addContextNode(node.childNodes[i], context);
+			}
+
 		}
 	},
 
-	addContextNodes (nodes, context) {
-		for (let i = 0, l = nodes.length; i <l; i++) {
-			this.addContextNode(nodes[i], context);
-		}
-	},
+	// addContextNodes (nodes, context) {
+	// 	for (let i = 0, l = nodes.length; i <l; i++) {
+	// 		this.addContextNode(nodes[i], context);
+	// 	}
+	// },
 
-	// nodes (type, nodes, target, container) {
-	nodes (nodes, target) {
-		for (let i = 0, l = nodes.length; i < l; i++) {
+	nodes (nodes) {
+		// for (let i = 0, l = nodes.length; i < l; i++) {
+		for (let i = 0; i < nodes.length; i++) {
 			const node = nodes[i];
+			console.log(node);
 
 			if (
 				node.nodeType !== Node.TEXT_NODE &&
@@ -142,13 +154,10 @@ export default {
 			}
 
 			if (node.nodeType === Node.TEXT_NODE) {
-
-				console.log(/{{\$.*}}/.test(node.nodeValue));
-				console.log(node.nodeValue);
-
-				if (!/{{\$.*}}/.test(node.nodeValue)) continue;
-
+				// console.log(node.nodeValue);
+				// if (!/{{\$.*}}/.test(node.nodeValue)) continue;
 				const context = this.data.get('context').get(node);
+				// console.log(context);
 
 				if (context && context.type === 'dynamic') {
 					Binder.render(context);
@@ -158,8 +167,8 @@ export default {
 			}
 
 			const context = this.data.get('context').get(node);
-			if (!context) continue;
 
+			if (!context) continue;
 			if (context.type === 'dynamic') Binder.render(context);
 
 			const container = context.container;
@@ -201,9 +210,7 @@ export default {
 				Binder.render(binder, data);
 			}
 
-			// if (node.scope) container = undefined;
-			// this.nodes(node.childNodes, target, container);
-			this.nodes(node.childNodes, target);
+			this.nodes(node.childNodes);
 		}
 	},
 
@@ -219,35 +226,13 @@ export default {
 	},
 
 	listener (records) {
-		// console.log(records);
-		// const targets = [];
+		// records have same parent and children maybe filter
 		for (let i = 0, l = records.length; i < l; i++) {
 			const record = records[i];
-			// if (targets.indexOf(record.target) !== -1) {
-			// 	continue;
-			// } else {
-			//
-			// }
 			switch (record.type) {
 				case 'childList':
-
-					this.nodes(record.addedNodes, record.target);
-					// this.nodes('add', record.addedNodes, record.target, {});
-
-					// let container;
-					// let parent = record.target;
-					//
-					// while (parent) {
-					// 	if (parent.scope || 'o-scope' in parent.attributes) {
-					// 		container = parent;
-					// 		break;
-					// 	} else {
-					// 		parent = parent.parentElement;
-					// 	}
-					// }
-					//
-					// this.nodes(record.addedNodes, record.target, 'add', container);
-					// this.nodes(record.removedNodes, record.target, 'remove', container);
+					this.nodes(record.addedNodes);
+					// removedNodes not handled
 				break;
 				// case 'attributes':
 				// break;
