@@ -71,7 +71,7 @@ export default {
 		parser.innerHTML = template;
 
 		while (parser.firstElementChild) {
-			View.addContextNode(parser.firstElementChild, {
+			View.addContext(parser.firstElementChild, {
 				container: container,
 				scope: container.scope
 			});

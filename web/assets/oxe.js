@@ -570,27 +570,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return target;
     }
   };
-  var PathPattern$1 = new RegExp('(\\$)(\\w+)($|,|\\s+|\\.|\\|)', 'ig');
-  var KeyPattern$1 = new RegExp('({{\\$)(\\w+)((-(key|index))?}})', 'ig');
-
-  function Dynamic(binder) {
-    return {
-      write: function write() {
-        if (binder.target.nodeType === Node.TEXT_NODE) {
-          binder.target.nodeValue = binder.target.nodeValue.replace(KeyPattern$1, binder.meta.key);
-        } else if (binder.target.nodeType === Node.ELEMENT_NODE) {
-          console.log(binder);
-          var attributes = binder.target.attributes;
-
-          for (var i = 0, l = attributes.length; i < l; i++) {
-            var attribute = attributes[i];
-            attribute.value = attribute.value.replace(KeyPattern$1, "".concat(binder.meta.key));
-            attribute.value = attribute.value.replace(PathPattern$1, "".concat(binder.meta.path, ".").concat(binder.meta.key, "$3"));
-          }
-        }
-      }
-    };
-  }
 
   function Class(binder, data) {
     return {
@@ -681,6 +660,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
 
     target: document.body,
+    emptyPattern: /^\s+$/,
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
@@ -708,17 +688,26 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return result;
     },
     remove: function remove(node) {
-      var binders = this.data.get('node').get(node);
+      var binders = this.data.get('target').get(node);
+      if (!binders) return;
 
       for (var i = 0, l = binders.length; i < l; i++) {
         var binder = binders[i];
+        var locations = this.data.get('location').get(binder.location);
+        if (!locations) continue;
 
-        var _index2 = this.data.get('location').get(binder.location).indexOf(binder);
+        var _index2 = locations.indexOf(binder);
 
-        this.data.get('location').get(binder.location).splice(_index2, 1);
+        if (_index2 !== -1) {
+          locations.splice(_index2, 1);
+        }
+
+        if (locations.length === 0) {
+          this.data.get('location').delete(binder.location);
+        }
       }
 
-      this.data.get('node').delete(node);
+      this.data.get('target').delete(node);
       this.data.get('attribute').delete(node);
     },
     add: function add(binder) {
@@ -740,67 +729,104 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       this.data.get('attribute').get(binder.target).set(binder.name, binder);
     },
-    removeContextNode: function removeContextNode(node) {
-      if (node.nodeType === Node.TEXT_NODE && !/\S/.test(node.nodeValue)) {
-        return;
+    bind: function bind(node, attribute, container) {
+      var binder = Binder.create({
+        target: node,
+        container: container,
+        name: attribute.name,
+        value: attribute.value,
+        scope: container.scope
+      });
+      this.add(binder);
+      var data;
+
+      if (binder.type === 'on') {
+        data = Utility.getByPath(container.methods, binder.values);
+      } else {
+        data = Utility.getByPath(container.model, binder.values);
+        data = Piper(binder, data);
       }
 
+      Binder.render(binder, data);
+    },
+    removeContext: function removeContext(node) {
       this.get('context').delete(node);
-      this.removeContextNodes(node.childNodes);
-    },
-    removeContextNodes: function removeContextNodes(nodes) {
-      for (var i = 0, l = nodes.length; i < l; i++) {
-        this.removeContextNode(nodes[i]);
+
+      for (var i = 0; i < node.childNodes.length; i++) {
+        this.removeContext(node.childNodes[i]);
       }
     },
-    addContextNode: function addContextNode(node, context) {
-      if (node.nodeType === Node.TEXT_NODE && /{{\$.*}}/.test(node.nodeValue)) {
-        if (context.meta) {
-          console.log(node);
+    addContext: function addContext(node, context) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (node.textContent.indexOf('{{') === -1) return;
+        this.data.get('context').set(node, context);
+        var start = node.textContent.indexOf('{{');
+
+        if (start !== -1 && start !== 0) {
+          node = node.splitText(start);
         }
 
-        this.data.get('context').set(node, Object.assign({
-          target: node
-        }, context));
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        if (this.hasAttribute(node, 'o-')) {
-          this.data.get('context').set(node, Object.assign({
-            target: node
-          }, context));
+        var end = node.textContent.indexOf('}}');
+        var length = node.textContent.length;
+
+        if (end !== -1 && end !== length - 2) {
+          var split = node.splitText(end + 2);
+          this.addContext(node, context);
+          this.addContext(split, context);
         }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        this.data.get('context').set(node, context);
 
         if (this.hasAttribute(node, 'o-each') || this.hasAttribute(node, 'o-html')) {
           return;
         }
 
-        for (var i = 0, l = node.childNodes.length; i < l; i++) {
-          this.addContextNode(node.childNodes[i], context);
+        for (var i = 0; i < node.childNodes.length; i++) {
+          this.addContext(node.childNodes[i], context);
         }
       }
     },
-    nodes: function nodes(_nodes) {
-      for (var i = 0; i < _nodes.length; i++) {
-        var node = _nodes[i];
-        console.log(node);
-
-        if (node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.ELEMENT_NODE) {
-          continue;
-        }
-
-        if (node.nodeType === Node.TEXT_NODE) {
-          var _context = this.data.get('context').get(node);
-
-          if (_context && _context.type === 'dynamic') {
-            Binder.render(_context);
-          }
-
-          continue;
-        }
-
+    addNodes: function addNodes(nodes) {
+      for (var i = 0; i < nodes.length; i++) {
+        var node = nodes[i];
         var context = this.data.get('context').get(node);
         if (!context) continue;
-        if (context.type === 'dynamic') Binder.render(context);
-        var container = context.container;
+
+        if (node.nodeType === Node.TEXT_NODE) {
+          var text = node.textContent;
+          if (text.indexOf('{{') !== 0 && text.indexOf('}}') !== text.length - 2) continue;
+
+          if (text === "{{$".concat(context.variable, ".$key}}") || text === "{{$".concat(context.variable, ".$index}}")) {
+            Batcher.batch({
+              context: {
+                node: node,
+                key: context.key,
+                variable: context.variable
+              },
+              read: function read() {
+                this.text = this.node.textContent;
+              },
+              write: function write() {
+                this.node.textContent = this.key;
+              }
+            });
+          } else {
+            if (context.variable && context.path && context.key) {
+              var pattern = new RegExp("{{\\$".concat(context.variable, "(,|\\s+|\\.|\\|)?(.*)?}}"), 'ig');
+              text = text.replace(pattern, "".concat(context.path, ".").concat(context.key, "$1$2"));
+            } else {
+              text = text.slice(2, -2);
+            }
+
+            var value = Utility.binderValues(text).join('.');
+            this.bind(node, {
+              name: 'o-text',
+              value: value
+            }, context.container);
+          }
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) continue;
         var attributes = node.attributes;
 
         for (var _i2 = 0, l = attributes.length; _i2 < l; _i2++) {
@@ -810,27 +836,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             continue;
           }
 
-          var binder = Binder.create({
-            target: node,
-            container: container,
-            name: attribute.name,
-            value: attribute.value,
-            scope: container.scope
-          });
-          this.add(binder);
-          var data = void 0;
+          if (attribute.value.indexOf('$') !== -1) {
+            var _pattern = new RegExp("\\$".concat(context.variable, "(,|\\s+|\\.|\\|)?(.*)?$"), 'ig');
 
-          if (binder.type === 'on') {
-            data = Utility.getByPath(container.methods, binder.values);
-          } else {
-            data = Utility.getByPath(container.model, binder.values);
-            data = Piper(binder, data);
+            attribute.value = attribute.value.replace(_pattern, "".concat(context.path, ".").concat(context.key, "$1$2"));
           }
 
-          Binder.render(binder, data);
+          this.bind(node, attribute, context.container);
         }
 
-        this.nodes(node.childNodes);
+        this.addNodes(node.childNodes);
+      }
+    },
+    removeNodes: function removeNodes(nodes) {
+      for (var i = 0; i < nodes.length; i++) {
+        var node = nodes[i];
+        this.remove(node);
+        this.data.get('context').delete(node);
+        this.removeNodes(node.childNodes);
       }
     },
     hasAttribute: function hasAttribute(node, name) {
@@ -849,11 +872,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     listener: function listener(records) {
       for (var i = 0, l = records.length; i < l; i++) {
         var record = records[i];
+        this.addNodes(record.addedNodes);
 
-        switch (record.type) {
-          case 'childList':
-            this.nodes(record.addedNodes);
-            break;
+        if (record.target.nodeName !== 'O-ROUTER') {
+          this.removeNodes(record.removedNodes);
         }
       }
     }
@@ -902,18 +924,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           while (this.count--) {
             var element = binder.target.lastElementChild;
             binder.target.removeChild(element);
-            View.removeContextNode(element);
           }
         } else if (this.currentLength < this.targetLength) {
           while (this.count--) {
             var _element2 = document.importNode(binder.meta.template, true);
 
-            View.addContextNode(_element2, {
-              meta: {
-                path: binder.path,
-                key: this.keys[this.currentLength++]
-              },
-              type: 'dynamic',
+            View.addContext(_element2, {
+              path: binder.path,
+              variable: binder.names[1],
+              key: this.keys[this.currentLength++],
               container: binder.container,
               scope: binder.container.scope
             });
@@ -960,7 +979,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       write: function write() {
         while (binder.target.firstChild) {
           var node = binder.target.removeNode(binder.target.firstChild);
-          View.removeContextNode(node);
         }
 
         var fragment = document.createDocumentFragment();
@@ -968,7 +986,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         parser.innerHTML = data;
 
         while (parser.firstElementChild) {
-          View.addContextNode(parser.firstElementChild, {
+          View.addContext(parser.firstElementChild, {
             container: binder.container,
             scope: binder.container.scope
           });
@@ -1074,12 +1092,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           data = data.toString();
         }
 
-        if (data === binder.target.innerText) {
+        if (data === binder.target.textContent) {
           return false;
         }
       },
       write: function write() {
-        binder.target.innerText = data;
+        binder.target.textContent = data;
       }
     };
   }
@@ -1215,10 +1233,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   var BINDERS = {
-    get dynamic() {
-      return Dynamic;
-    },
-
     get class() {
       return Class;
     },
@@ -2286,7 +2300,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       parser.innerHTML = template;
 
       while (parser.firstElementChild) {
-        View.addContextNode(parser.firstElementChild, {
+        View.addContext(parser.firstElementChild, {
           container: container,
           scope: container.scope
         });

@@ -8,7 +8,13 @@ export default {
 			title: 'Each',
 			items: [
 				{ it: { val: 0 } }, { it: { val: 1 } }
-			]
+			],
+			props: {
+				keyOne: 'valueOne',
+				keyTwo: 'valueTwo',
+				keyThree: 'valueThree',
+				keyFour: 'valueFour'
+			}
 		},
 		created: function () {
 			var self = this;
@@ -38,6 +44,7 @@ export default {
 		template: /*html*/`
 
 			<h2 o-text="title"></h2>
+			<h2>{{title}}</h2>
 			<hr>
 
 			<div o-text="items.0.it.val"></div>
@@ -45,11 +52,28 @@ export default {
 			<input type="text" o-value="items.0.it.val">
 
 			<div o-each-item="items">
-				<span>
-					<span>{{$item}}</span>
+				<div>
+					<span>{{$item.it.val}}</span>
+					<span>Key: {{$item.$key}}</span>
+					<span>Index: {{$item.$index}}</span>
+					<span>Model: {{$item.it.val}} poop</span>
 					<span o-text="$item.it.val"></span>
 					<span>,</span>
-				</span>
+				</div>
+			</div>
+
+			<br>
+			<strong>Object</strong>
+			<br>
+			<br>
+			<div o-each-prop="props">
+				<div>
+					<span>Key: {{$prop.$key}}</span>
+					<span>Index: {{$prop.$index}}</span>
+					<span>Value: {{$prop}}</span>
+					<span o-text="$prop"></span>
+					<span>,</span>
+				</div>
 			</div>
 
 		`

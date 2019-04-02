@@ -248,7 +248,7 @@ export default {
 	// 	    node = node.nextSibling;
 	// 	}
 	// },
-	
+
 	// rewrite (target, variable, path, key) {
 	//
 	// 	if (target.nodeType === 3) {
