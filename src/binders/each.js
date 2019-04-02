@@ -51,13 +51,13 @@ export default function (binder, data) {
 				while (this.count--) {
 					const element = binder.target.lastElementChild;
 					binder.target.removeChild(element);
-					// View.removeContext(element);
+					View.remove(element);
 				}
 			} else if (this.currentLength < this.targetLength) {
 				while (this.count--) {
 					const element = document.importNode(binder.meta.template, true);
 
-					View.addContext(element, {
+					View.add(element, {
 						path: binder.path,
 						variable: binder.names[1],
 						key: this.keys[this.currentLength++],

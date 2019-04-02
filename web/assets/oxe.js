@@ -664,16 +664,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
-        this.data.set('context', new Map());
         this.data.set('target', new Map());
         this.data.set('location', new Map());
         this.data.set('attribute', new Map());
         this.target = options.target || document.body;
-        var observer = new MutationObserver(this.listener.bind(this));
-        observer.observe(this.target, {
-          subtree: true,
-          childList: true
-        });
         return $return();
       }.bind(this));
     },
@@ -687,7 +681,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       return result;
     },
-    remove: function remove(node) {
+    removeData: function removeData(node) {
       var binders = this.data.get('target').get(node);
       if (!binders) return;
 
@@ -710,7 +704,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       this.data.get('target').delete(node);
       this.data.get('attribute').delete(node);
     },
-    add: function add(binder) {
+    addData: function addData(binder) {
       if (this.data.get('location').has(binder.location)) {
         this.data.get('location').get(binder.location).push(binder);
       } else {
@@ -729,7 +723,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       this.data.get('attribute').get(binder.target).set(binder.name, binder);
     },
-    bind: function bind(node, attribute, container) {
+    render: function render(node, attribute, container) {
       var binder = Binder.create({
         target: node,
         container: container,
@@ -737,7 +731,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         value: attribute.value,
         scope: container.scope
       });
-      this.add(binder);
+      this.addData(binder);
       var data;
 
       if (binder.type === 'on') {
@@ -749,17 +743,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       Binder.render(binder, data);
     },
-    removeContext: function removeContext(node) {
+    remove: function remove(node) {
+      this.removeData(node);
       this.get('context').delete(node);
 
       for (var i = 0; i < node.childNodes.length; i++) {
-        this.removeContext(node.childNodes[i]);
+        this.remove(node.childNodes[i]);
       }
     },
-    addContext: function addContext(node, context) {
+    add: function add(node, context) {
       if (node.nodeType === Node.TEXT_NODE) {
         if (node.textContent.indexOf('{{') === -1) return;
-        this.data.get('context').set(node, context);
         var start = node.textContent.indexOf('{{');
 
         if (start !== -1 && start !== 0) {
@@ -771,68 +765,50 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (end !== -1 && end !== length - 2) {
           var split = node.splitText(end + 2);
-          this.addContext(node, context);
-          this.addContext(split, context);
+          this.add(split, context);
+        }
+
+        var text = node.textContent;
+
+        if (text === "{{$".concat(context.variable, ".$key}}") || text === "{{$".concat(context.variable, ".$index}}")) {
+          Batcher.batch({
+            context: {
+              node: node,
+              key: context.key,
+              variable: context.variable
+            },
+            read: function read() {
+              this.text = this.node.textContent;
+            },
+            write: function write() {
+              this.node.textContent = this.key;
+            }
+          });
+        } else {
+          if (context.variable && context.path && context.key) {
+            var pattern = new RegExp("{{\\$".concat(context.variable, "(,|\\s+|\\.|\\|)?(.*)?}}"), 'ig');
+            text = text.replace(pattern, "".concat(context.path, ".").concat(context.key, "$1$2"));
+          } else {
+            text = text.slice(2, -2);
+          }
+
+          this.render(node, {
+            name: 'o-text',
+            value: text
+          }, context.container);
         }
       } else if (node.nodeType === Node.ELEMENT_NODE) {
-        this.data.get('context').set(node, context);
-
-        if (this.hasAttribute(node, 'o-each') || this.hasAttribute(node, 'o-html')) {
-          return;
-        }
-
-        for (var i = 0; i < node.childNodes.length; i++) {
-          this.addContext(node.childNodes[i], context);
-        }
-      }
-    },
-    addNodes: function addNodes(nodes) {
-      for (var i = 0; i < nodes.length; i++) {
-        var node = nodes[i];
-        var context = this.data.get('context').get(node);
-        if (!context) continue;
-
-        if (node.nodeType === Node.TEXT_NODE) {
-          var text = node.textContent;
-          if (text.indexOf('{{') !== 0 && text.indexOf('}}') !== text.length - 2) continue;
-
-          if (text === "{{$".concat(context.variable, ".$key}}") || text === "{{$".concat(context.variable, ".$index}}")) {
-            Batcher.batch({
-              context: {
-                node: node,
-                key: context.key,
-                variable: context.variable
-              },
-              read: function read() {
-                this.text = this.node.textContent;
-              },
-              write: function write() {
-                this.node.textContent = this.key;
-              }
-            });
-          } else {
-            if (context.variable && context.path && context.key) {
-              var pattern = new RegExp("{{\\$".concat(context.variable, "(,|\\s+|\\.|\\|)?(.*)?}}"), 'ig');
-              text = text.replace(pattern, "".concat(context.path, ".").concat(context.key, "$1$2"));
-            } else {
-              text = text.slice(2, -2);
-            }
-
-            var value = Utility.binderValues(text).join('.');
-            this.bind(node, {
-              name: 'o-text',
-              value: value
-            }, context.container);
-          }
-        }
-
-        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+        var skipChildren = false;
         var attributes = node.attributes;
 
-        for (var _i2 = 0, l = attributes.length; _i2 < l; _i2++) {
-          var attribute = attributes[_i2];
+        for (var i = 0, l = attributes.length; i < l; i++) {
+          var attribute = attributes[i];
 
-          if (attribute.name.indexOf('o-') !== 0 || attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype') {
+          if (attribute.name === 'o-html' || attribute.name === 'o-scope' || attribute.name.indexOf('o-each') === 0) {
+            skipChildren = true;
+          }
+
+          if (attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype' || attribute.name.indexOf('o-') !== 0) {
             continue;
           }
 
@@ -842,40 +818,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             attribute.value = attribute.value.replace(_pattern, "".concat(context.path, ".").concat(context.key, "$1$2"));
           }
 
-          this.bind(node, attribute, context.container);
+          this.render(node, attribute, context.container);
         }
 
-        this.addNodes(node.childNodes);
-      }
-    },
-    removeNodes: function removeNodes(nodes) {
-      for (var i = 0; i < nodes.length; i++) {
-        var node = nodes[i];
-        this.remove(node);
-        this.data.get('context').delete(node);
-        this.removeNodes(node.childNodes);
-      }
-    },
-    hasAttribute: function hasAttribute(node, name) {
-      var attributes = node.attributes;
+        if (skipChildren) return;
 
-      for (var i = 0, l = attributes.length; i < l; i++) {
-        var attribute = attributes[i];
-
-        if (attribute.name.indexOf(name) === 0) {
-          return true;
-        }
-      }
-
-      return false;
-    },
-    listener: function listener(records) {
-      for (var i = 0, l = records.length; i < l; i++) {
-        var record = records[i];
-        this.addNodes(record.addedNodes);
-
-        if (record.target.nodeName !== 'O-ROUTER') {
-          this.removeNodes(record.removedNodes);
+        for (var _i2 = 0; _i2 < node.childNodes.length; _i2++) {
+          this.add(node.childNodes[_i2], context);
         }
       }
     }
@@ -924,12 +873,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           while (this.count--) {
             var element = binder.target.lastElementChild;
             binder.target.removeChild(element);
+            View.remove(element);
           }
         } else if (this.currentLength < this.targetLength) {
           while (this.count--) {
             var _element2 = document.importNode(binder.meta.template, true);
 
-            View.addContext(_element2, {
+            View.add(_element2, {
               path: binder.path,
               variable: binder.names[1],
               key: this.keys[this.currentLength++],
@@ -979,6 +929,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       write: function write() {
         while (binder.target.firstChild) {
           var node = binder.target.removeNode(binder.target.firstChild);
+          View.remove(node);
         }
 
         var fragment = document.createDocumentFragment();
@@ -986,7 +937,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         parser.innerHTML = data;
 
         while (parser.firstElementChild) {
-          View.addContext(parser.firstElementChild, {
+          View.add(parser.firstElementChild, {
             container: binder.container,
             scope: binder.container.scope
           });
@@ -2300,7 +2251,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       parser.innerHTML = template;
 
       while (parser.firstElementChild) {
-        View.addContext(parser.firstElementChild, {
+        View.add(parser.firstElementChild, {
           container: container,
           scope: container.scope
         });
