@@ -24,8 +24,8 @@ export default {
 				{ name: 'sam', age: 40 }
 			],
 			result: {
-				state: '',
-				fruit: 'peach',
+				state: 'FL',
+				fruit: '',
 				name: '',
 				cars: [],
 				friends: []
@@ -59,7 +59,7 @@ export default {
 				<option o-value="$car" o-text="$car"></option>
 			</select>
 
-			<hr>
+			<!-- <hr>
 
 			<div o-text="result.name"></div>
 			<select o-value="result.name" o-each-name="names">
@@ -75,7 +75,7 @@ export default {
 					<div>{{$friend-index}}</div>
 					<div o-text="$friend.name"></div>
 				</o-option>
-			</o-select>
+			</o-select> -->
 
 		`
 	}

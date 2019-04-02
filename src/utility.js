@@ -16,7 +16,11 @@ export default {
 	pathPattern: new RegExp(PathPattern, 'i'),
 	pathPatternGlobal: new RegExp(PathPattern, 'ig'),
 
-	value (element) {
+	value (element, model) {
+
+		if (!model) throw new Error('Utility.value - requires model argument');
+		if (!element) throw new Error('Utility.value - requires element argument');
+
 		const type = this.type(element);
 
 		if (
@@ -32,15 +36,16 @@ export default {
 			let result =  multiple ? [] : undefined;
 
 			for (let i = 0, l = elements.length; i < l; i++) {
-				const element = elements[i];
-				const checked = this.checked(element);
+				const child = elements[i];
+				const checked = this.checked(child);
 
 				if (!checked) continue;
+				const value = this.value(child, model);
 
 				if (multiple) {
-					result.push(this.value(element))
+					result.push(value)
 				} else {
-					result = this.value(element);
+					result = value;
 					break;
 				}
 
@@ -52,7 +57,14 @@ export default {
 			element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 ||
 			element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1
 		) {
-			return element.value;
+			const attribute = element.attributes['o-value'];
+			if (attribute) {
+				const values = this.binderValues(attribute.value);
+				const value = this.getByPath(model, values);
+				return value || element.value;
+			} else {
+				return element.value;
+			}
 		} else if (element.nodeName === 'SELECT' || element.nodeName.indexOf('-SELECT') !== -1) {
 			const multiple = this.multiple(element);
 			const options = element.options;
@@ -64,12 +76,12 @@ export default {
 
 				if (!selected) continue;
 
-				const value = this.value(option);
+				const value = this.value(option, model);
 
 				if (multiple) {
 					result.push(value);
 				} else {
-					result = this.value(option);
+					result = value;
 					break;
 				}
 

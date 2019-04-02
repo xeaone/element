@@ -13,71 +13,51 @@ export default async function (node, attribute) {
 	const read = function () {
 		const type = binder.target.type;
 	 	const name = binder.target.nodeName;
-
-		let data = Utility.value(binder.target);
+		// let data = Utility.value(binder.target, binder.container.model);
 
 		if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-			// const nodes = binder.target.options;
-			// const multiple = Utility.multiple(binder.target);
-			//
-			// data = multiple ? [] : undefined;
-			//
-			// for (let i = 0, l = nodes.length; i < l; i++) {
-			// 	const node = nodes[i];
-			// 	// console.log(node);
-			//
-			// 	if (Utility.selected(node)) {
-			//
-			// 		if (multiple) {
-			// 			data.push(Utility.value(node));
-			// 		} else {
-			// 			data = Utility.value(node);
-			// 			break;
-			// 		}
-			//
-			// 	}
-			//
-			// }
+			const nodes = binder.target.options;
+			const multiple = Utility.multiple(binder.target);
 
-		// } else if (type === 'radio') {
-			// const query = 'input[type="radio"][o-value="' + binder.value + '"]';
-			// const nodes = binder.container.querySelectorAll(query);
-			//
-			// for (let i = 0, l = nodes.length; i < l; i++) {
-			// 	const node = nodes[i];
-			//
-			// 	if (binder.target === node) {
-			// 		data = i;
-			// 	}
-			//
-			// }
+		 	let result = multiple ? [] : undefined;
 
-		// } else if (type === 'checkbox') {
-			// data = binder.target.checked;
+			for (let i = 0, l = nodes.length; i < l; i++) {
+				const node = nodes[i];
+
+				if (!Utility.selected(node)) continue;
+
+				const value = Utility.value(node, binder.container.model);
+
+				if (multiple) {
+					result.push(value);
+				} else {
+					result = value;
+					break;
+				}
+
+			}
+
+			binder.data = result;
+
+		} else if (type === 'radio') {
+			const query = 'input[type="radio"][o-value="' + binder.value + '"]';
+			const nodes = binder.container.querySelectorAll(query);
+
+			for (let i = 0, l = nodes.length; i < l; i++) {
+				const node = nodes[i];
+
+				if (binder.target === node) {
+					console.log(i);
+					// data = i;
+				}
+
+			}
+
+		} else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
+			binder.data = binder.target.checked || false;
 		} else {
 			binder.data = binder.target.value || '';
 		}
-
-		// if (data !== undefined) {
-
-			if (
-				data &&
-				typeof data === 'object' &&
-				data.constructor === binder.data.constructor
-			) {
-				// for (const key in data) {
-					// if (data[key] !== original[key]) {
-						// binder.data = data;
-						// Model.set(binder.keys, data);
-						// break;
-					// }
-				// }
-			} else if (binder.data !== data) {
-				// binder.data = data;
-			}
-
-		// }
-
 	};
 
 	Batcher.batch({ read });

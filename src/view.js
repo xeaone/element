@@ -116,7 +116,6 @@ export default {
 	remove (node) {
 
 		this.removeData(node);
-		this.get('context').delete(node);
 
 		for (let i = 0; i < node.childNodes.length; i++) {
 			this.remove(node.childNodes[i]);

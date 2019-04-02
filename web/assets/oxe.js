@@ -99,7 +99,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
     pathPattern: new RegExp(PathPattern, 'i'),
     pathPatternGlobal: new RegExp(PathPattern, 'ig'),
-    value: function value(element) {
+    value: function value(element, model) {
+      if (!model) throw new Error('Utility.value - requires model argument');
+      if (!element) throw new Error('Utility.value - requires element argument');
       var type = this.type(element);
 
       if ((type === 'radio' || type === 'checkbox') && (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)) {
@@ -111,21 +113,32 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var result = multiple ? [] : undefined;
 
         for (var i = 0, l = elements.length; i < l; i++) {
-          var _element = elements[i];
-          var checked = this.checked(_element);
+          var child = elements[i];
+          var checked = this.checked(child);
           if (!checked) continue;
+          var value = this.value(child, model);
 
           if (multiple) {
-            result.push(this.value(_element));
+            result.push(value);
           } else {
-            result = this.value(_element);
+            result = value;
             break;
           }
         }
 
         return result;
       } else if (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 || element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 || element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1) {
-        return element.value;
+        var attribute = element.attributes['o-value'];
+
+        if (attribute) {
+          var values = this.binderValues(attribute.value);
+
+          var _value = this.getByPath(model, values);
+
+          return _value || element.value;
+        } else {
+          return element.value;
+        }
       } else if (element.nodeName === 'SELECT' || element.nodeName.indexOf('-SELECT') !== -1) {
         var _multiple = this.multiple(element);
 
@@ -137,12 +150,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           var option = options[_i];
           var selected = this.selected(option);
           if (!selected) continue;
-          var value = this.value(option);
+
+          var _value2 = this.value(option, model);
 
           if (_multiple) {
-            _result.push(value);
+            _result.push(_value2);
           } else {
-            _result = this.value(option);
+            _result = _value2;
             break;
           }
         }
@@ -487,13 +501,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         },
         $set: {
-          value: function value(key, _value) {
-            if (_value !== this.$meta[key]) {
+          value: function value(key, _value3) {
+            if (_value3 !== this.$meta[key]) {
               if (key in this === false) {
                 Object.defineProperty(this, key, self.descriptor(key));
               }
 
-              this.$meta[key] = self.create(_value, this.$meta.listener, this.$meta.path + key);
+              this.$meta[key] = self.create(_value3, this.$meta.listener, this.$meta.path + key);
               this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
             }
           }
@@ -745,7 +759,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     remove: function remove(node) {
       this.removeData(node);
-      this.get('context').delete(node);
 
       for (var i = 0; i < node.childNodes.length; i++) {
         this.remove(node.childNodes[i]);
@@ -877,16 +890,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         } else if (this.currentLength < this.targetLength) {
           while (this.count--) {
-            var _element2 = document.importNode(binder.meta.template, true);
+            var _element = document.importNode(binder.meta.template, true);
 
-            View.add(_element2, {
+            View.add(_element, {
               path: binder.path,
               variable: binder.names[1],
               key: this.keys[this.currentLength++],
               container: binder.container,
               scope: binder.container.scope
             });
-            binder.target.appendChild(_element2);
+            binder.target.appendChild(_element);
           }
         }
       }
@@ -1064,7 +1077,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           this.multiple = Utility.multiple(binder.target);
 
           if (this.multiple && data.constructor !== Array) {
-            throw new Error("Oxe - invalid multiple select value type ".concat(binder.keys.join('.'), " array required"));
+            throw new Error("Oxe - invalid o-value ".concat(binder.keys.join('.'), " multiple select requires array"));
           }
         },
         write: function write() {
@@ -1072,13 +1085,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
           for (var i = 0, l = this.nodes.length; i < l; i++) {
             var node = this.nodes[i];
-            var value = Utility.value(node);
+            var value = Utility.value(node, binder.container.model);
 
             if (this.multiple) {
-              if (Utility.selected(node) && data === undefined || data === null || data === '' || data.length === 0) {
-                if (value !== undefined && value !== null && value !== '') {
-                  binder.data.push(value);
-                }
+              if (Utility.selected(node) && (value !== undefined || value !== null || value !== '') && (data === undefined || data === null || data === '' || data.length === 0)) {
+                binder.data.push(value);
               } else if (data.indexOf(value) !== -1) {
                 node.selected = true;
                 node.setAttribute('selected', '');
@@ -1090,16 +1101,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               if (selected) {
                 node.selected = false;
                 node.removeAttribute('selected');
-                continue;
-              }
-
-              if (Utility.selected(node) && data === undefined || data === null || data === '') {
+              } else if (Utility.selected(node) && (data === undefined || data === null || data === '') && (value !== undefined || value !== null || value !== '')) {
                 selected = true;
                 binder.data = value;
+                node.selected = true;
+                node.setAttribute('selected', '');
               } else if (data === value) {
                 selected = true;
                 node.selected = true;
                 node.setAttribute('selected', '');
+              } else {
+                node.selected = false;
+                node.removeAttribute('selected');
               }
             }
           }
@@ -1108,8 +1121,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     } else if (type === 'radio') {
       return {
         read: function read() {
-          if (data === undefined) {
-            binder.data = 0;
+          if (typeof data !== 'number') {
             return false;
           }
 
@@ -1124,42 +1136,40 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             if (i === data) {
               checked = true;
               node.checked = true;
+              node.setAttribute('checked', '');
             } else {
               node.checked = false;
+              node.removeAttribute('checked');
             }
           }
 
           if (!checked) {
             this.nodes[0].checked = true;
-            binder.data = 0;
+            this.nodes[0].setAttribute('checked', '');
           }
         }
       };
-    } else if (type === 'checkbox') {
+    } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
       return {
         read: function read() {
           if (typeof data !== 'boolean') {
-            binder.data = false;
-            return false;
-          }
-
-          if (data === binder.target.checked) {
             return false;
           }
         },
         write: function write() {
           binder.target.checked = data;
+
+          if (data) {
+            binder.target.setAttribute('checked', '');
+          } else {
+            binder.target.removeAttribute('checked');
+          }
         }
       };
     } else {
       return {
         read: function read() {
-          if (name === 'OPTION' || name.indexOf('-OPTION') !== -1) {
-            var parent = binder.target.parentElement;
-            if (!parent) return false;
-            var select = parent.nodeName === 'SELECT' || parent.nodeName.indexOf('-SELECT') !== -1 ? parent : parent.parentElement;
-            var b = View.get(parent, 'value');
-          }
+          if (name === 'OPTION' || name.indexOf('-OPTION') !== -1) ;
 
           if (data === binder.target.value) {
             return false;
@@ -1457,11 +1467,43 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var read = function read() {
         var type = binder.target.type;
         var name = binder.target.nodeName;
-        var data = Utility.value(binder.target);
-        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) ;else {
+
+        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
+          var nodes = binder.target.options;
+          var multiple = Utility.multiple(binder.target);
+          var result = multiple ? [] : undefined;
+
+          for (var i = 0, l = nodes.length; i < l; i++) {
+            var _node = nodes[i];
+            if (!Utility.selected(_node)) continue;
+            var value = Utility.value(_node, binder.container.model);
+
+            if (multiple) {
+              result.push(value);
+            } else {
+              result = value;
+              break;
+            }
+          }
+
+          binder.data = result;
+        } else if (type === 'radio') {
+          var query = 'input[type="radio"][o-value="' + binder.value + '"]';
+
+          var _nodes = binder.container.querySelectorAll(query);
+
+          for (var _i3 = 0, _l2 = _nodes.length; _i3 < _l2; _i3++) {
+            var _node2 = _nodes[_i3];
+
+            if (binder.target === _node2) {
+              console.log(_i3);
+            }
+          }
+        } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
+          binder.data = binder.target.checked || false;
+        } else {
           binder.data = binder.target.value || '';
         }
-        if (data && _typeof(data) === 'object' && data.constructor === binder.data.constructor) ;else if (binder.data !== data) ;
       };
 
       Batcher.batch({
