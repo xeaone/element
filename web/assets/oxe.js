@@ -255,6 +255,28 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
     },
+    disabled: function disabled(element) {
+      if (typeof element.disabled === 'boolean') {
+        return element.disabled;
+      } else {
+        switch (element.getAttribute('disabled')) {
+          case undefined:
+            return false;
+
+          case 'true':
+            return true;
+
+          case null:
+            return false;
+
+          case '':
+            return true;
+
+          default:
+            return false;
+        }
+      }
+    },
     binderNames: function binderNames(data) {
       data = data.split(this.PREFIX)[1];
       return data ? data.split('-') : [];
@@ -326,6 +348,49 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var values = this.binderValues(value);
         this.setByPath(model, values, '');
       }
+    },
+    includes: function includes(items, item) {
+      for (var i = 0, l = items.length; i < l; i++) {
+        if (this.compare(items[i], item)) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    compare: function compare(source, target) {
+      if (source === target) {
+        return true;
+      }
+
+      if (_typeof(source) !== _typeof(target)) {
+        return false;
+      }
+
+      if (source.constructor !== target.constructor) {
+        return false;
+      }
+
+      if (_typeof(source) !== 'object' || _typeof(target) !== 'object') {
+        return source === target;
+      }
+
+      var sourceKeys = Object.keys(source);
+      var targetKeys = Object.keys(target);
+
+      if (sourceKeys.length !== targetKeys.length) {
+        return false;
+      }
+
+      for (var i = 0, l = sourceKeys.length; i < l; i++) {
+        var name = sourceKeys[i];
+
+        if (!this.compare(source[name], target[name])) {
+          return false;
+        }
+      }
+
+      return true;
     },
     setByPath: function setByPath(data, path, value) {
       var keys = typeof path === 'string' ? path.split('.') : path;
@@ -1081,38 +1146,28 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         },
         write: function write() {
-          var selected = false;
-
           for (var i = 0, l = this.nodes.length; i < l; i++) {
             var node = this.nodes[i];
             var value = Utility.value(node, binder.container.model);
 
             if (this.multiple) {
-              if (Utility.selected(node) && (value !== undefined || value !== null || value !== '') && (data === undefined || data === null || data === '' || data.length === 0)) {
-                binder.data.push(value);
-              } else if (data.indexOf(value) !== -1) {
+              if (node.selected) {
+                if (!node.disabled && !Utility.includes(data, value)) {
+                  binder.data.push(value);
+                }
+              } else if (Utility.includes(data, value)) {
                 node.selected = true;
-                node.setAttribute('selected', '');
-              } else {
-                node.selected = false;
-                node.removeAttribute('selected');
               }
             } else {
-              if (selected) {
-                node.selected = false;
-                node.removeAttribute('selected');
-              } else if (Utility.selected(node) && (data === undefined || data === null || data === '') && (value !== undefined || value !== null || value !== '')) {
-                selected = true;
-                binder.data = value;
+              if (node.selected) {
+                if (!node.disabled && !Utility.compare(data, value)) {
+                  binder.data = value;
+                }
+
+                break;
+              } else if (Utility.compare(data, value)) {
                 node.selected = true;
-                node.setAttribute('selected', '');
-              } else if (data === value) {
-                selected = true;
-                node.selected = true;
-                node.setAttribute('selected', '');
-              } else {
-                node.selected = false;
-                node.removeAttribute('selected');
+                break;
               }
             }
           }
@@ -1169,8 +1224,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     } else {
       return {
         read: function read() {
-          if (name === 'OPTION' || name.indexOf('-OPTION') !== -1) ;
-
           if (data === binder.target.value) {
             return false;
           }
@@ -1460,6 +1513,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   function Update(node, attribute) {
     return new Promise(function ($return, $error) {
+      console.log('update');
       if (!node) return $error(new Error('Oxe.update - requires node argument'));
       if (!attribute) return $error(new Error('Oxe.update - requires attribute argument'));
       var binder = View.get('attribute', node, attribute);
@@ -1469,34 +1523,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var name = binder.target.nodeName;
 
         if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-          var nodes = binder.target.options;
-          var multiple = Utility.multiple(binder.target);
-          var result = multiple ? [] : undefined;
+          var value = Utility.value(binder.target, binder.container.model);
+          binder.data = value;
+        } else if (type === 'radio') {
+          var query = 'input[type="radio"][o-value="' + binder.value + '"]';
+          var nodes = binder.container.querySelectorAll(query);
 
           for (var i = 0, l = nodes.length; i < l; i++) {
             var _node = nodes[i];
-            if (!Utility.selected(_node)) continue;
-            var value = Utility.value(_node, binder.container.model);
 
-            if (multiple) {
-              result.push(value);
-            } else {
-              result = value;
-              break;
-            }
-          }
-
-          binder.data = result;
-        } else if (type === 'radio') {
-          var query = 'input[type="radio"][o-value="' + binder.value + '"]';
-
-          var _nodes = binder.container.querySelectorAll(query);
-
-          for (var _i3 = 0, _l2 = _nodes.length; _i3 < _l2; _i3++) {
-            var _node2 = _nodes[_i3];
-
-            if (binder.target === _node2) {
-              console.log(_i3);
+            if (binder.target === _node) {
+              console.log(i);
             }
           }
         } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
@@ -2363,6 +2400,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       options.shadow = options.shadow || false;
       options.template = options.template || '';
       options.properties = options.properties || {};
+      options.attributes = options.attributes || [];
 
       options.construct = function () {
         var instance = window.Reflect.construct(HTMLElement, [], this.constructor);
@@ -2395,6 +2433,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         Methods.set(instance.scope, options.methods);
         return instance;
       };
+
+      options.construct.observedAttributes = options.attributes;
 
       options.construct.prototype.attributeChangedCallback = function () {
         if (options.attributed) options.attributed.apply(this, arguments);

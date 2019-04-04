@@ -161,6 +161,20 @@ export default {
 		}
 	},
 
+	disabled (element) {
+		if (typeof element.disabled === 'boolean') {
+			return element.disabled;
+		} else {
+			switch (element.getAttribute('disabled')) {
+				case undefined: return false;
+				case 'true': return true;
+				case null: return false;
+				case '': return true;
+				default: return false
+			}
+		}
+	},
+
 	binderNames (data) {
 		data = data.split(this.PREFIX)[1];
 		return data ? data.split('-') : [];
@@ -305,6 +319,65 @@ export default {
 	// 		key: keys[last]
 	// 	}
 	// },
+
+	includes (items, item) {
+		for (let i = 0, l = items.length; i < l; i++) {
+			if (this.compare(items[i], item)) {
+				return true;
+			}
+		}
+		return false;
+	},
+
+	compare (source, target) {
+
+		if (source === target) {
+			return true;
+		}
+
+		if (typeof source !== typeof target) {
+			return false;
+		}
+
+		if (source.constructor !== target.constructor) {
+			return false;
+		}
+
+		if (typeof source !== 'object' || typeof target !== 'object') {
+			return source === target;
+		}
+
+		const sourceKeys = Object.keys(source);
+		const targetKeys = Object.keys(target);
+
+		if (sourceKeys.length !== targetKeys.length) {
+			return false;
+		}
+
+		for (let i = 0, l = sourceKeys.length; i < l; i++) {
+			const name = sourceKeys[i];
+
+			if (!this.compare(source[name], target[name])) {
+				return false;
+			}
+
+		}
+
+		return true;
+
+		// for (const name in source) {
+		//
+		// 	if (source.hasOwnProperty(name) !== target.hasOwnProperty(name)) {
+		// 		return false;
+		// 	}
+		//
+		// 	if (!this.compare(source[name], target[name])) {
+		// 		return false;
+		// 	}
+		//
+		// }
+
+	},
 
 	setByPath (data, path, value) {
 		const keys = typeof path === 'string' ? path.split('.') : path;

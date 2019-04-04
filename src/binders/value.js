@@ -4,6 +4,7 @@ import Model from '../model.js';
 import View from '../view.js';
 
 export default function (binder, data) {
+	// console.log('value');
 	const self = this;
 	const type = binder.target.type;
 	const name = binder.target.nodeName;
@@ -21,47 +22,31 @@ export default function (binder, data) {
 
 			},
 			write () {
-				let selected = false;
-
-				// NOTE might need to handle disable
 				for (let i = 0, l = this.nodes.length; i < l; i++) {
 					const node = this.nodes[i];
 					const value = Utility.value(node, binder.container.model);
 
 					if (this.multiple) {
-						if (
-							Utility.selected(node) &&
-							(value !== undefined || value !== null || value !== '') &&
-							(data === undefined || data === null || data === '' || data.length === 0)
-						) {
-							binder.data.push(value);
-						} else if (data.indexOf(value) !== -1) {
+						if (node.selected) {
+
+							if (!node.disabled && !Utility.includes(data, value)) {
+								binder.data.push(value);
+							}
+
+						} else if (Utility.includes(data, value)) {
 							node.selected = true;
-							node.setAttribute('selected', '');
-						} else {
-							node.selected = false;
-							node.removeAttribute('selected');
 						}
 					} else {
-						if (selected) {
-							node.selected = false;
-							node.removeAttribute('selected');
-						} else if (
-							Utility.selected(node) &&
-							(data === undefined || data === null || data === '') &&
-							(value !== undefined || value !== null || value !== '')
-						) {
-							selected = true;
-							binder.data = value;
+						if (node.selected) {
+
+							if (!node.disabled && !Utility.compare(data, value)) {
+								binder.data = value;
+							}
+
+							break;
+						} else if (Utility.compare(data, value)) {
 							node.selected = true;
-							node.setAttribute('selected', '');
-						} else if (data === value) {
-							selected = true;
-							node.selected = true;
-							node.setAttribute('selected', '');
-						} else {
-							node.selected = false;
-							node.removeAttribute('selected');
+							break;
 						}
 					}
 				}
@@ -137,7 +122,7 @@ export default function (binder, data) {
 			read () {
 
 				// && binder.target.selected
-				if (name === 'OPTION' || name.indexOf('-OPTION') !== -1) {
+				// if (name === 'OPTION' || name.indexOf('-OPTION') !== -1) {
 					// const parent = binder.target.parentElement;
 					// if (!parent) return false;
 				 	// const select = parent.nodeName === 'SELECT' || parent.nodeName.indexOf('-SELECT') !== -1 ? parent : parent.parentElement;
@@ -146,7 +131,7 @@ export default function (binder, data) {
 					// if (select) {
 					// 	self.default(select);
 					// }
-				}
+				// }
 
 				// data = Model.get(binder.keys);
 

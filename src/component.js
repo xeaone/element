@@ -153,6 +153,7 @@ export default {
 		options.shadow = options.shadow || false;
 		options.template = options.template || '';
 		options.properties = options.properties || {};
+		options.attributes = options.attributes || [];
 
 		options.construct = function () {
 			const instance = window.Reflect.construct(HTMLElement, [], this.constructor);
@@ -191,6 +192,8 @@ export default {
 
 			return instance;
 		};
+
+		options.construct.observedAttributes = options.attributes;
 
 		options.construct.prototype.attributeChangedCallback = function () {
 			if (options.attributed) options.attributed.apply(this, arguments);
