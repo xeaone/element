@@ -23,7 +23,15 @@ Oxe.component.define({
 				return this._selected;
 			},
 			set: function (data) {
-				return this._selected = data ? true : false;
+				this._selected = data ? true : false;
+
+				if (this._selected) {
+					this.setAttribute('selected', '');
+				} else {
+					this.removeAttribute('selected');
+				}
+
+				return this._selected;
 			}
 		},
 		disabled: {
