@@ -1,7 +1,7 @@
 import Observer from './observer.js';
+import Utility from './utility.js';
 import Binder from './binder.js';
 import Piper from './piper.js';
-// import View from './view.js';
 
 export default {
 
@@ -67,49 +67,46 @@ export default {
 		return this.traverse(this.SET, keys, value);
 	},
 
-	listener (data, path, type) {
+	listener (data, location, type) {
+		const self = this;
+		const parts = location.split('.');
+		const part = parts.slice(1).join('.');
+		const scope = parts.slice(0, 1).join('.');
 
-		const paths = path.split('.');
-		const part = paths.slice(1).join('.');
-		const scope = paths.slice(0, 1).join('.');
-
-		const binders = Binder.get('location', path);
-		// const binders = View.get('location', path);
-
-		if (!binders || !binders.length) return;
-
-		for (let i = 0, l = binders.length; i < l; i++) {
-			const binder = binders[i];
-			const piped = Piper(binder, data);
-			Binder.render(binder, piped);
-		}
+		// if (!binders || !binders.length) return;
+		//
+		// for (let i = 0, l = binders.length; i < l; i++) {
+		// 	const binder = binders[i];
+		// 	const piped = Piper(binder, data);
+		// 	Binder.render(binder, piped);
+		// }
 
 		// if (scope in Binder.data === false) return;// console.warn(`Oxe.model.listener - scope not found: ${scope}`);
 		// if (part in Binder.data[scope] === false) return;// console.warn(`Oxe.model.listener - path not found: ${part}`);
 		// if (0 in Binder.data[scope][part] === false) return;// console.warn('Oxe.model.listener - data not found');
 
-		// const binders = Binder.data[scope][part];
-		//
-		// for (let i = 0, l = binders.length; i < l; i++) {
-		// 	data = Piper(binders[i], data);
-		// 	Binder.render(binders[i], data);
+		// const paths = Binder._data[scope];
+		// for (const path in paths) {
+		// 	if (part === '' || path === part || path.indexOf(part + '.') === 0) {
+		// 		const binders = paths[path];
+		// 		for (let i = 0, l = binders.length; i < l; i++) {
+		// 			const binder = binders[i];
+		// 			const piped = Piper(binder, binder.data);
+		// 			Binder.render(binder, piped);
+		// 		}
+		// 	}
 		// }
 
-		// if (type !== 'length' && typeof data === 'object') {
-
-			// const binderPaths = Binder.data[scope];
-			// for (let binderPath in binderPaths) {
-			// 	if (part === '' || binderPath === part || binderPath.indexOf(part + '.') === 0) {
-			// 	// if (part === '' || binderPath.indexOf(part + '.') === 0) {
-			// 		const binders = binderPaths[binderPath];
-			// 		for (let i = 0, l = binders.length; i < l; i++) {
-			// 			const d = Piper(binders[i], this.get(scope+'.'+binderPath));
-			// 			Binder.render(binders[i], d);
-			// 		}
-			// 	}
-			// }
-
-		// }
+		const locations = Binder.data.get('location').get(scope);
+		if (!locations) return;
+		locations.forEach(function (binders, path) {
+			if (part === '' || path === part || path.indexOf(part + '.') === 0) {
+				binders.forEach(function (binder) {
+					const piped = Piper(binder, binder.data);
+					Binder.render(binder, piped);
+				});
+			}
+		});
 
 	}
 

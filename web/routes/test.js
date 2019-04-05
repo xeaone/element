@@ -120,6 +120,7 @@ export default {
 			setTimeout(function () {
 				console.log(JSON.stringify(self.model.loopy));
 				self.model.loopy = { doopy: 'changey' };
+				console.log(self.model.loopy);
 				console.log(JSON.stringify(self.model.loopy));
 			}, 3000);
 
@@ -174,12 +175,6 @@ export default {
 		<strong o-text="nah">nah</strong>
 		<strong o-show="isshow">isshow</strong>
 		<strong o-hide="ishide">ishide</strong>
-		<br>
-		<br>
-
-		<div o-each-k="loopy">
-			<div o-text="k"></div>
-		</div>
 		<br>
 		<br>
 

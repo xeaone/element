@@ -50,13 +50,16 @@ const BINDERS = {
 
 export default {
 
+	// _data: {},
+
 	get data () { return DATA; },
 	get binders () { return BINDERS; },
 
 	async setup (options) {
 		options = options || {};
 
-		this.data.set('target', new Map());
+		// this.data.set('target', new Map());
+		// this.data.set('location', new Map());
 		this.data.set('location', new Map());
 		this.data.set('attribute', new Map());
 
@@ -81,67 +84,65 @@ export default {
 	},
 
 	removeData (node) {
-		const binders = this.data.get('target').get(node);
 
-		if (!binders) return;
+		this.data.get('location').forEach(function (scopes) {
+			scopes.forEach(function (binders) {
+				binders.forEach(function (binder, index) {
+					if (binder.target === node) {
+						binders.splice(index, 1);
+					}
+				});
+			});
+		});
 
-		for (let i = 0, l = binders.length; i < l; i++) {
-			const binder = binders[i];
-			const locations = this.data.get('location').get(binder.location);
+		// for (let i = 0, l = binders.length; i < l; i++) {
+		// 	const binder = binders[i];
+		// 	const locations = this.data.get('location').get(binder.location);
+		//
+		// 	if (!locations) continue;
+		//
+		// 	const index = locations.indexOf(binder);
+		//
+		// 	if (index !== -1) {
+		// 		locations.splice(index, 1);
+		// 	}
+		//
+		// 	if (locations.length === 0) {
+		// 		this.data.get('location').delete(binder.location);
+		// 	}
+		//
+		// }
 
-			if (!locations) continue;
-
-			const index = locations.indexOf(binder);
-
-			if (index !== -1) {
-				locations.splice(index, 1);
-			}
-
-			if (locations.length === 0) {
-				this.data.get('location').delete(binder.location);
-			}
-
-		}
-
-		this.data.get('target').delete(node);
 		this.data.get('attribute').delete(node);
 	},
 
 	addData (binder) {
 
-		if (this.data.get('location').has(binder.location)) {
-			this.data.get('location').get(binder.location).push(binder);
-		} else {
-			this.data.get('location').set(binder.location, [binder]);
-		}
-
-		if (this.data.get('target').has(binder.target)) {
-			this.data.get('target').get(binder.target).push(binder);
-		} else {
-			this.data.get('target').set(binder.target, [binder]);
-		}
+		// if (binder.scope in this._data === false) {
+		// 	this._data[binder.scope] = {};
+		// }
+		//
+		// if (binder.path in this._data[binder.scope] === false) {
+		// 	this._data[binder.scope][binder.path] = [binder];
+		// } else {
+		// 	this._data[binder.scope][binder.path].push(binder);
+		// }
 
 		if (!this.data.get('attribute').has(binder.target)) {
 			this.data.get('attribute').set(binder.target, new Map());
 		}
 
-		this.data.get('attribute').get(binder.target).set(binder.name, binder);
-	},
+		if (!this.data.get('location').has(binder.scope)) {
+			this.data.get('location').set(binder.scope, new Map());
+		}
 
-	// names (data) {
-	// 	data = data.split(this.PREFIX)[1];
-	// 	return data ? data.split('-') : [];
-	// },
-	//
-	// values (data) {
-	// 	data = data.split(this.PIPE)[0];
-	// 	return data ? data.split('.') : [];
-	// },
-	//
-	// pipes (data) {
-	// 	data = data.split(this.PIPE)[1];
-	// 	return data ? data.split(this.PIPES) : [];
-	// },
+		if (!this.data.get('location').get(binder.scope).has(binder.path)) {
+			this.data.get('location').get(binder.scope).set(binder.path, []);
+		}
+
+		this.data.get('attribute').get(binder.target).set(binder.name, binder);
+		this.data.get('location').get(binder.scope).get(binder.path).push(binder);
+	},
 
 	create (data) {
 
@@ -162,10 +163,8 @@ export default {
 
 		const meta = data.meta || {};
 		const context = data.context || {};
-		// const pointer = POINTER++;
 
 		return {
-			// get pointer () { return pointer; },
 			get location () { return location; },
 
 			get type () { return type; },
@@ -176,6 +175,7 @@ export default {
 			get value () { return data.value; },
 			get target () { return data.target; },
 			get container () { return data.container; },
+			get model () { return data.container.model; },
 
 			get keys () { return keys; },
 			get names () { return names; },
@@ -197,6 +197,7 @@ export default {
 	},
 
 	render (binder, data) {
+
 		const type = binder.type in this.binders ? binder.type : 'default';
 		const render = this.binders[type](binder, data);
 

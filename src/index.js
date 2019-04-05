@@ -15,7 +15,6 @@ import Router from './router.js';
 import Model from './model.js';
 import Style from './style.js';
 import Path from './path.js';
-// import View from './view.js';
 
 // custom elements with es5 classes: start
 if (!window.Reflect || !window.Reflect.construct) {
@@ -86,7 +85,6 @@ export default {
 	get model () { return Model; },
 	get style () { return Style; },
 	get path () { return Path; },
-	// get view () { return View; },
 
 	async setup (options) {
 
@@ -98,8 +96,6 @@ export default {
 
 		await this.style.setup(options.style);
 		await this.binder.setup(options.binder);
-		// await this.view.setup(options.view);
-		// await this.view.setup(options.view);
 		await this.model.setup(options.model);
 
 		document.addEventListener('input', Input, true);

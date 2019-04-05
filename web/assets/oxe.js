@@ -1195,7 +1195,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
-        this.data.set('target', new Map());
         this.data.set('location', new Map());
         this.data.set('attribute', new Map());
 
@@ -1220,46 +1219,32 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return result;
     },
     removeData: function removeData(node) {
-      var binders = this.data.get('target').get(node);
-      if (!binders) return;
-
-      for (var i = 0, l = binders.length; i < l; i++) {
-        var binder = binders[i];
-        var locations = this.data.get('location').get(binder.location);
-        if (!locations) continue;
-
-        var _index2 = locations.indexOf(binder);
-
-        if (_index2 !== -1) {
-          locations.splice(_index2, 1);
-        }
-
-        if (locations.length === 0) {
-          this.data.get('location').delete(binder.location);
-        }
-      }
-
-      this.data.get('target').delete(node);
+      this.data.get('location').forEach(function (scopes) {
+        scopes.forEach(function (binders) {
+          binders.forEach(function (binder, index) {
+            if (binder.target === node) {
+              binders.splice(index, 1);
+            }
+          });
+        });
+      });
       this.data.get('attribute').delete(node);
     },
     addData: function addData(binder) {
-      if (this.data.get('location').has(binder.location)) {
-        this.data.get('location').get(binder.location).push(binder);
-      } else {
-        this.data.get('location').set(binder.location, [binder]);
-      }
-
-      if (this.data.get('target').has(binder.target)) {
-        this.data.get('target').get(binder.target).push(binder);
-      } else {
-        this.data.get('target').set(binder.target, [binder]);
-      }
-
       if (!this.data.get('attribute').has(binder.target)) {
         this.data.get('attribute').set(binder.target, new Map());
       }
 
+      if (!this.data.get('location').has(binder.scope)) {
+        this.data.get('location').set(binder.scope, new Map());
+      }
+
+      if (!this.data.get('location').get(binder.scope).has(binder.path)) {
+        this.data.get('location').get(binder.scope).set(binder.path, []);
+      }
+
       this.data.get('attribute').get(binder.target).set(binder.name, binder);
+      this.data.get('location').get(binder.scope).get(binder.path).push(binder);
     },
     create: function create(data) {
       if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
@@ -1307,6 +1292,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         get container() {
           return data.container;
+        },
+
+        get model() {
+          return data.container.model;
         },
 
         get keys() {
@@ -1515,18 +1504,20 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     set: function set(keys, value) {
       return this.traverse(this.SET, keys, value);
     },
-    listener: function listener(data, path, type) {
-      var paths = path.split('.');
-      var part = paths.slice(1).join('.');
-      var scope = paths.slice(0, 1).join('.');
-      var binders = Binder.get('location', path);
-      if (!binders || !binders.length) return;
-
-      for (var i = 0, l = binders.length; i < l; i++) {
-        var binder = binders[i];
-        var piped = Piper(binder, data);
-        Binder.render(binder, piped);
-      }
+    listener: function listener(data, location, type) {
+      var parts = location.split('.');
+      var part = parts.slice(1).join('.');
+      var scope = parts.slice(0, 1).join('.');
+      var locations = Binder.data.get('location').get(scope);
+      if (!locations) return;
+      locations.forEach(function (binders, path) {
+        if (part === '' || path === part || path.indexOf(part + '.') === 0) {
+          binders.forEach(function (binder) {
+            var piped = Piper(binder, binder.data);
+            Binder.render(binder, piped);
+          });
+        }
+      });
     }
   };
 
@@ -1949,9 +1940,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Reset(event) {
     return new Promise(function ($return, $error) {
       var node = event.target;
-      var binder = Binder.get(node, 'o-submit');
-      var model = Model.get(binder.scope);
-      Utility.formReset(node, model);
+      var binder = Binder.get('attribute', node, 'o-submit');
+      Utility.formReset(node, binder.model);
       return $return();
     });
   }
@@ -2229,10 +2219,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     off: function off(name, method) {
       if (name in this.events) {
-        var _index3 = this.events[name].indexOf(method);
+        var _index2 = this.events[name].indexOf(method);
 
-        if (_index3 !== -1) {
-          this.events[name].splice(_index3, 1);
+        if (_index2 !== -1) {
+          this.events[name].splice(_index2, 1);
         }
       }
     },
