@@ -15,25 +15,29 @@ import Router from './router.js';
 import Model from './model.js';
 import Path from './path.js';
 import View from './view.js';
+import Style from './style.js';
 
-const eStyle = document.createElement('style');
-const tStyle = document.createTextNode(`
-	*[hidden] {
-		display: none !important;
-	}
-	o-router, o-router > :first-child {
-		display: block;
-		animation: o-transition var(--o-transition) ease-in-out;
-	}
-	@keyframes o-transition {
-		0% { opacity: 0; }
-		100% { opacity: 1; }
-	}
-`);
-
-eStyle.setAttribute('type', 'text/css');
-eStyle.appendChild(tStyle);
-document.head.appendChild(eStyle);
+// const eStyle = document.createElement('style');
+// const tStyle = document.createTextNode(`
+// 	*[hidden] {
+// 		display: none !important;
+// 	}
+// 	o-router, o-router > :first-child {
+// 		display: block;
+// 		animation: o-transition var(--o-transition) ease-in-out;
+// 	}
+// 	@keyframes o-transition {
+// 		0% { opacity: 0; }
+// 		100% { opacity: 1; }
+// 	}
+// `);
+//
+// eStyle.setAttribute('title', 'oxe');
+// eStyle.setAttribute('type', 'text/css');
+// eStyle.appendChild(tStyle);
+// document.head.appendChild(eStyle);
+//
+// const Style = eStyle.sheet;
 
 // custom elements with es5 classes: start
 if (!window.Reflect || !window.Reflect.construct) {
@@ -102,6 +106,7 @@ export default {
 	get currentScript () { return (window.document._currentScript || window.document.currentScript); },
 	get ownerDocument () { return (window.document._currentScript || window.document.currentScript).ownerDocument; },
 
+	get style () { return Style; },
 	get component () { return Component; },
 	get batcher () { return Batcher; },
 	get fetcher () { return Fetcher; },
@@ -122,6 +127,7 @@ export default {
 		options = options || {};
 		options.listener = options.listener || {};
 
+		await this.style.setup(options.style);
 		await this.binder.setup(options.binder);
 		await this.view.setup(options.view);
 		// await this.view.setup(options.view);

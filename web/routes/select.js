@@ -19,16 +19,31 @@ export default {
 				'alex',
 				'dave'
 			],
+			groups: [
+				'one',
+				'two'
+			],
 			friends: [
 				{ name: 'dave', age: 2 },
 				{ name: 'sam', age: 40 }
 			],
+			plants: {
+				flowers: [
+					{ name: 'rose' },
+					{ name: 'tulip' }
+				],
+				trees: [
+					{ name: 'oak' },
+					{ name: 'aspen' }
+				]
+			},
 			result: {
 				state: 'FL',
 				fruit: '',
 				name: '',
 				cars: [],
-				friends: []
+				friends: [],
+				plants: []
 			}
 		},
 		template: /*html*/`
@@ -68,20 +83,44 @@ export default {
 
 			<hr> -->
 
+			<style>
+				o-optgroup::before {
+					font-weight: bold;
+				}
+				o-option {
+					margin-left: 1rem;
+				}
+			</style>
+
 			<div o-text="result.friends"></div>
-			<o-select o-value="result.friends" o-each-friend="friends" multiple>
-				<o-option o-value="$friend">
-					<div>{{$friend.$key}}</div>
-					<div>{{$friend.$index}}</div>
-					<div o-text="$friend.name"></div>
-				</o-option>
+			<br>
+			<o-select o-value="result.friends" o-each-group="groups" multiple>
+				<o-options o-label="$group" o-each-friend="friends">
+					<o-option o-value="$friend">
+						<div>{{$friend.$key}}</div>
+						<div>{{$friend.$index}}</div>
+						<div>{{$friend.name}}</div>
+						<div o-text="$friend.name"></div>
+					</o-option>
+				</o-options>
 			</o-select>
+
+			<br>
+			<hr>
+			<div o-text="result.plants"></div>
+			<br>
+			<o-select o-value="result.plants" o-each-plant="plants" multiple>
+				<o-optgroup o-label="$plant.$key" o-each-p="$plant">
+					<o-option o-value="$p">
+						<div>{{$p.$key}}</div>
+						<div>{{$p.$index}}</div>
+						<div>{{$p.name}}</div>
+						<div o-text="$p.name"></div>
+					</o-option>
+				</o-optgroup>
+			</o-select>
+
 
 		`
 	}
 }
-
-/*
-
-
-*/

@@ -4,7 +4,6 @@ import Model from './model.js';
 import View from './view.js';
 
 export default async function (node, attribute) {
-	console.log('update');
 
 	if (!node) throw new Error('Oxe.update - requires node argument');
 	if (!attribute) throw new Error('Oxe.update - requires attribute argument');

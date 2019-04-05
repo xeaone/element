@@ -2,6 +2,7 @@ import Methods from './methods.js';
 import Loader from './loader.js';
 import Model from './model.js';
 import View from './view.js';
+import Style from './style.js';
 
 export default {
 
@@ -106,7 +107,7 @@ export default {
 			style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
 		}
 
-		return '<style>' + style + '</style>';
+		Style.append(style);
 	},
 
 	render (element, options) {
@@ -117,9 +118,8 @@ export default {
 			return;
 		}
 
-		const style = this.style(options.style, element.scope);
-		const template = style + options.template;
-		const fragment = this.fragment(template, element);
+		this.style(options.style, element.scope);
+		const fragment = this.fragment(options.template, element);
 
 		// const template = document.createElement('template');
 		// const clone = document.importNode(fragment, true);

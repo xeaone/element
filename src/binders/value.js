@@ -4,7 +4,6 @@ import Model from '../model.js';
 import View from '../view.js';
 
 export default function (binder, data) {
-	// console.log('value');
 	const self = this;
 	const type = binder.target.type;
 	const name = binder.target.nodeName;
@@ -120,20 +119,6 @@ export default function (binder, data) {
 	} else {
 		return {
 			read () {
-
-				// && binder.target.selected
-				// if (name === 'OPTION' || name.indexOf('-OPTION') !== -1) {
-					// const parent = binder.target.parentElement;
-					// if (!parent) return false;
-				 	// const select = parent.nodeName === 'SELECT' || parent.nodeName.indexOf('-SELECT') !== -1 ? parent : parent.parentElement;
-					// const b = View.get(parent, 'value');
-					// console.log(b);
-					// if (select) {
-					// 	self.default(select);
-					// }
-				// }
-
-				// data = Model.get(binder.keys);
 
 				if (data === binder.target.value) {
 					return false;

@@ -1,7 +1,68 @@
 
 Oxe.component.define({
+	name: 'o-optgroup',
+	style: 'o-optgroup::before { content: attr(label) }',
+	template: '<slot></slot>',
+	attributes: ['disabled'],
+	properties: {
+		_disabled: {
+			writable: true,
+			value: false,
+		},
+		disabled: {
+			enumerable: true,
+			get: function () {
+				return this._disabled;
+			},
+			set: function (data) {
+				this._disabled = data ? true : false;
+
+				if (this._disabled) {
+					this.setAttribute('disabled', '');
+				} else {
+					this.removeAttribute('disabled');
+				}
+
+				return this._disabled;
+			}
+		}
+	},
+	attributed: function (name, _, value) {
+		this._disabled = value !== null && value !== 'false' ? true : false;
+	}
+});
+
+Oxe.component.define({
 	name: 'o-options',
-	template: '<slot></slot>'
+	style: 'o-options::before { content: attr(label) }',
+	template: '<slot></slot>',
+	attributes: ['disabled'],
+	properties: {
+		_disabled: {
+			writable: true,
+			value: false,
+		},
+		disabled: {
+			enumerable: true,
+			get: function () {
+				return this._disabled;
+			},
+			set: function (data) {
+				this._disabled = data ? true : false;
+
+				if (this._disabled) {
+					this.setAttribute('disabled', '');
+				} else {
+					this.removeAttribute('disabled');
+				}
+
+				return this._disabled;
+			}
+		}
+	},
+	attributed: function (name, _, value) {
+		this._disabled = value !== null && value !== 'false' ? true : false;
+	}
 });
 
 Oxe.component.define({
@@ -52,9 +113,6 @@ Oxe.component.define({
 			}
 		}
 	},
-	created: function () {
-		var self = this;
-	},
 	attributed: function (name, _, value) {
 		if (name === 'selected' || name === 'disabled') {
 			this['_'+name] = value !== null && value !== 'false' ? true : false;
@@ -94,6 +152,11 @@ export default {
 	created: function () {
 		var self = this;
 
+		var binder = Oxe.view.get('attribute', self, 'o-value');
+		var value = Oxe.utility.value(self, this.model);
+
+		binder.data = value;
+
 		self.addEventListener('click', function (e) {
 			var target = e.target;
 
@@ -102,6 +165,19 @@ export default {
 					if (target === self) {
 						return;
 					} else if (target.nodeName === 'O-OPTION') {
+						break;
+					}
+				}
+			}
+
+			let group = target;
+			while (group = group.parentElement) {
+				if (group === self) {
+					break;
+				} else if (group.nodeName === 'O-OPTIONS' || group.nodeName === 'O-OPTGROUP') {
+					if (group.disabled) {
+						return;
+					} else {
 						break;
 					}
 				}
@@ -118,18 +194,8 @@ export default {
 
 			var binder = Oxe.view.get('attribute', self, 'o-value');
 			var value = Oxe.utility.value(self, this.model);
-			binder.data = value;
 
-			// let data;
-			//
-			// if (binder.type === 'on') {
-			// 	data = Oxe.utility.getByPath(binder.container.methods, binder.values);
-			// } else {
-			// 	data = Oxe.utility.getByPath(binder.container.model, binder.values);
-			// 	// data = Piper(binder, data);
-			// }
-			//
-			// Oxe.binder.render(binder, data);
+			binder.data = value;
 		});
 
 	}

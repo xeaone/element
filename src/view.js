@@ -89,10 +89,11 @@ export default {
 		this.data.get('attribute').get(binder.target).set(binder.name, binder);
 	},
 
-	render (node, attribute, container) {
+	render (node, attribute, container, context) {
 
 		const binder = Binder.create({
 			target: node,
+			context: context,
 			container: container,
 			name: attribute.name,
 			value: attribute.value,
@@ -107,7 +108,7 @@ export default {
 			data = Utility.getByPath(container.methods, binder.values);
 		} else {
 			data = Utility.getByPath(container.model, binder.values);
-			data = Piper(binder, data);
+			data = data ? Piper(binder, data) : binder.value;
 		}
 
 		Binder.render(binder, data);
@@ -193,13 +194,19 @@ export default {
 					continue
 				}
 
-				if (attribute.value.indexOf('$') !== -1) {
-					// attribute.value = attribute.value.replace(, `${context.key}`);
-					const pattern = new RegExp(`\\$${context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
-					attribute.value = attribute.value.replace(pattern, `${context.path}.${context.key}$1$2`);
+				if (attribute.value.indexOf('$') !== -1 && context.variable && context.path && context.key) {
+					if (
+						attribute.value === `$${context.variable}.$key` ||
+						attribute.value === `$${context.variable}.$index`
+					) {
+						attribute.value = context.key;
+					} else {
+						const pattern = new RegExp(`\\$${context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
+						attribute.value = attribute.value.replace(pattern, `${context.path}.${context.key}$1$2`);
+					}
 				}
 
-				this.render(node, attribute, context.container);
+				this.render(node, attribute, context.container, context);
 			}
 
 			if (skipChildren) return;

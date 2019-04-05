@@ -17,6 +17,7 @@ import Style from './binders/style.js';
 import Text from './binders/text.js';
 import Value from './binders/value.js';
 import Write from './binders/write.js';
+import Label from './binders/label.js';
 
 const BINDERS = {
 	get class () { return Class; },
@@ -39,7 +40,8 @@ const BINDERS = {
 	get style () { return Style; },
 	get text () { return Text; },
 	get value () { return Value; },
-	get write () { return Write; }
+	get write () { return Write; },
+	get label () { return Label; }
 };
 
 export default {
@@ -90,8 +92,8 @@ export default {
 		const keys = [scope].concat(values);
 		const location = keys.join('.');
 
-		const context = {};
 		const meta = data.meta || {};
+		const context = data.context || {};
 		// const pointer = POINTER++;
 
 		return {
