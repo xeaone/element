@@ -222,7 +222,7 @@ export default {
 			data = Utility.getByPath(container.methods, binder.values);
 		} else {
 			data = Utility.getByPath(container.model, binder.values);
-			data = data ? Piper(binder, data) : binder.value;
+			data = data === null || data === undefined ? binder.value : Piper(binder, data);
 		}
 
 		this.render(binder, data);
