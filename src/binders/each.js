@@ -1,9 +1,9 @@
-import View from '../view.js';
+import Binder from '../binder.js';
+// import View from '../view.js';
 
 export default function (binder, data) {
 
 	if (data === undefined) {
-		console.log('data undefined');
 		return;
 	}
 
@@ -51,13 +51,15 @@ export default function (binder, data) {
 				while (this.count--) {
 					const element = binder.target.lastElementChild;
 					binder.target.removeChild(element);
-					View.remove(element);
+					Binder.remove(element);
+					// View.remove(element);
 				}
 			} else if (this.currentLength < this.targetLength) {
 				while (this.count--) {
 					const element = document.importNode(binder.meta.template, true);
 
-					View.add(element, {
+					Binder.add(element, {
+					// View.add(element, {
 						path: binder.path,
 						variable: binder.names[1],
 						key: this.keys[this.currentLength++],

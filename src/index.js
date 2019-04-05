@@ -13,31 +13,9 @@ import Binder from './binder.js';
 import Loader from './loader.js';
 import Router from './router.js';
 import Model from './model.js';
-import Path from './path.js';
-import View from './view.js';
 import Style from './style.js';
-
-// const eStyle = document.createElement('style');
-// const tStyle = document.createTextNode(`
-// 	*[hidden] {
-// 		display: none !important;
-// 	}
-// 	o-router, o-router > :first-child {
-// 		display: block;
-// 		animation: o-transition var(--o-transition) ease-in-out;
-// 	}
-// 	@keyframes o-transition {
-// 		0% { opacity: 0; }
-// 		100% { opacity: 1; }
-// 	}
-// `);
-//
-// eStyle.setAttribute('title', 'oxe');
-// eStyle.setAttribute('type', 'text/css');
-// eStyle.appendChild(tStyle);
-// document.head.appendChild(eStyle);
-//
-// const Style = eStyle.sheet;
+import Path from './path.js';
+// import View from './view.js';
 
 // custom elements with es5 classes: start
 if (!window.Reflect || !window.Reflect.construct) {
@@ -61,15 +39,6 @@ if (!window.Reflect || !window.Reflect.construct) {
 // 	Object.setPrototypeOf(HTMLElement, htmlelement);
 // }
 // custom elements with es5 classes: end
-
-const ORouter = function ORouter () {
-	return window.Reflect.construct(HTMLElement, [], this.constructor);
-};
-
-Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-Object.setPrototypeOf(ORouter, HTMLElement);
-
-window.customElements.define('o-router', ORouter);
 
 const oSetup = document.querySelector('script[o-setup]');
 
@@ -106,7 +75,6 @@ export default {
 	get currentScript () { return (window.document._currentScript || window.document.currentScript); },
 	get ownerDocument () { return (window.document._currentScript || window.document.currentScript).ownerDocument; },
 
-	get style () { return Style; },
 	get component () { return Component; },
 	get batcher () { return Batcher; },
 	get fetcher () { return Fetcher; },
@@ -116,8 +84,9 @@ export default {
 	get loader () { return Loader; },
 	get router () { return Router; },
 	get model () { return Model; },
+	get style () { return Style; },
 	get path () { return Path; },
-	get view () { return View; },
+	// get view () { return View; },
 
 	async setup (options) {
 
@@ -129,7 +98,7 @@ export default {
 
 		await this.style.setup(options.style);
 		await this.binder.setup(options.binder);
-		await this.view.setup(options.view);
+		// await this.view.setup(options.view);
 		// await this.view.setup(options.view);
 		await this.model.setup(options.model);
 

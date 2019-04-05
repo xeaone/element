@@ -9,8 +9,8 @@ export default {
 
 	get data () { return DATA; },
 
-	target: document.body,
-	emptyPattern: /^\s+$/,
+	// target: document.body,
+	// emptyPattern: /^\s+$/,
 
 	async setup (options) {
 		options = options || {};
@@ -19,7 +19,7 @@ export default {
 		this.data.set('location', new Map());
 		this.data.set('attribute', new Map());
 
-		this.target = options.target || document.body;
+		// this.target = options.target || document.body;
 
 		// const observer = new MutationObserver(this.listener.bind(this));
 		//

@@ -1,18 +1,25 @@
 
 const STYLE = document.createElement('style');
+const SHEET = STYLE.sheet;
+
 STYLE.setAttribute('title', 'oxe');
 STYLE.setAttribute('type', 'text/css');
 
 export default {
 
-	get sheet () { return STYLE.sheet; },
+	get style () { return STYLE; },
+	get sheet () { return SHEET; },
+
+	add (data) {
+		this.sheet.insertRule(data);
+	},
 
 	append (data) {
-		console.log(data);
-		STYLE.appendChild(document.createTextNode(data));
+		this.style.appendChild(document.createTextNode(data));
 	},
 
 	async setup () {
+		
 		this.append(`
 			*[hidden] {
 				display: none !important;
@@ -26,7 +33,8 @@ export default {
 				100% { opacity: 1; }
 			}
 		`);
-		document.head.appendChild(STYLE);
+
+		document.head.appendChild(this.style);
 	}
 
 };

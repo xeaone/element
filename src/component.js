@@ -1,8 +1,9 @@
 import Methods from './methods.js';
 import Loader from './loader.js';
 import Model from './model.js';
-import View from './view.js';
 import Style from './style.js';
+import Binder from './binder.js';
+// import View from './view.js';
 
 export default {
 
@@ -31,31 +32,52 @@ export default {
 
 	},
 
-	slot (target, source, scope) {
-		const targetSlots = target.querySelectorAll('slot[name]');
-		const defaultSlot = target.querySelector('slot:not([name])');
+	style (style, name) {
 
-		for (let i = 0, l = targetSlots.length; i < l; i++) {
+		if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
+			const matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
 
-			const targetSlot = targetSlots[i];
-			const name = targetSlot.getAttribute('name');
-			const sourceSlot = source.querySelector('[slot="'+ name + '"]');
+			for (let i = 0, l = matches.length; i < l; i++) {
+				const match = matches[i];
+				const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+				const pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+				style = style.replace(rule[0], '');
+				style = style.replace(pattern, rule[2]);
+			}
 
-			if (sourceSlot) {
-				targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
+		}
+
+		if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':host')) {
+			style = style.replace(/\:host/g, name);
+		}
+
+		return style;
+	},
+
+	slot (element, fragment) {
+		const fragmentSlots = fragment.querySelectorAll('slot[name]');
+		const defaultSlot = fragment.querySelector('slot:not([name])');
+
+		for (let i = 0, l = fragmentSlots.length; i < l; i++) {
+
+			const fragmentSlot = fragmentSlots[i];
+			const name = fragmentSlot.getAttribute('name');
+			const elementSlot = element.querySelector('[slot="'+ name + '"]');
+
+			if (elementSlot) {
+				fragmentSlot.parentNode.replaceChild(elementSlot, fragmentSlot);
 			} else {
-				targetSlot.parentNode.removeChild(targetSlot);
+				fragmentSlot.parentNode.removeChild(fragmentSlot);
 			}
 
 		}
 
 		if (defaultSlot) {
 
-			if (source.children.length) {
-				// defaultSlot.parentNode.setAttribute('slot', 'default');
+			if (element.children.length) {
 
-				while (source.firstChild) {
-					defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
+				while (element.firstChild) {
+					defaultSlot.parentNode.insertBefore(element.firstChild, defaultSlot);
 				}
 
 			}
@@ -65,65 +87,31 @@ export default {
 
 	},
 
-	fragment (template, container) {
+	fragment (element, options) {
 		const fragment = document.createDocumentFragment();
-		const parser = document.createElement('div');
+		const clone = options.clone.cloneNode(true);
 
-		parser.innerHTML = template;
+		while (clone.firstElementChild) {
 
-		while (parser.firstElementChild) {
-			View.add(parser.firstElementChild, {
-				container: container,
-				scope: container.scope
+			Binder.add(clone.firstElementChild, {
+				container: element,
+				scope: element.scope
 			});
-			fragment.appendChild(parser.firstElementChild);
+
+			fragment.appendChild(clone.firstElementChild);
+
 		}
 
 		return fragment;
 	},
 
-	style (style, scope) {
-
-		if (!style) return '';
-
-		if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
-			let matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
-
-			for (let i = 0, l = matches.length; i < l; i++) {
-				let match = matches[i];
-				let rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-				let pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
-				style = style.replace(rule[0], '');
-				style = style.replace(pattern, rule[2]);
-			}
-
-		}
-
-		if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':scope')) {
-			style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
-		}
-
-		if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':host')) {
-			style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
-		}
-
-		Style.append(style);
-	},
-
 	render (element, options) {
-
-		element.setAttribute('o-scope', element.scope);
 
 		if (this.compiled && element.parentElement.nodeName === 'O-ROUTER') {
 			return;
 		}
 
-		this.style(options.style, element.scope);
-		const fragment = this.fragment(options.template, element);
-
-		// const template = document.createElement('template');
-		// const clone = document.importNode(fragment, true);
-		// this.binds(clone.children, element);
+		const fragment = this.fragment(element, options);
 
 		if (options.shadow) {
 			if ('attachShadow' in document.body) {
@@ -132,7 +120,7 @@ export default {
 				element.createShadowRoot().appendChild(fragment);
 			}
 		} else {
-			this.slot(fragment, element);
+			this.slot(element, fragment);
 			element.appendChild(fragment);
 		}
 
@@ -142,6 +130,9 @@ export default {
 		const self = this;
 
 		if (!options.name) throw new Error('Oxe.component.define - requires name');
+
+		options.name = options.name.toLowerCase();
+
 		if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
 
 		self.data[options.name] = options;
@@ -154,6 +145,16 @@ export default {
 		options.template = options.template || '';
 		options.properties = options.properties || {};
 		options.attributes = options.attributes || [];
+
+		if (options.style) {
+			const style = this.style(options.style, options.name);
+			Style.append(style);
+		}
+
+		if (options.template) {
+			options.clone = document.createElement('div');
+			options.clone.innerHTML = options.template;
+		}
 
 		options.construct = function () {
 			const instance = window.Reflect.construct(HTMLElement, [], this.constructor);

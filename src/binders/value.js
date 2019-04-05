@@ -1,7 +1,6 @@
 import Utility from '../utility.js';
 import Piper from '../piper.js';
 import Model from '../model.js';
-import View from '../view.js';
 
 export default function (binder, data) {
 	const self = this;

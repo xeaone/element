@@ -1,7 +1,7 @@
 import Observer from './observer.js';
 import Binder from './binder.js';
 import Piper from './piper.js';
-import View from './view.js';
+// import View from './view.js';
 
 export default {
 
@@ -73,7 +73,8 @@ export default {
 		const part = paths.slice(1).join('.');
 		const scope = paths.slice(0, 1).join('.');
 
-		const binders = View.get('location', path);
+		const binders = Binder.get('location', path);
+		// const binders = View.get('location', path);
 
 		if (!binders || !binders.length) return;
 

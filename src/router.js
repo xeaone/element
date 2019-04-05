@@ -4,13 +4,18 @@ import Events from './events.js';
 import Utility from './utility.js';
 import Component from './component.js';
 
-const events = Object.create(Events);
+const Event = Object.create(Events);
+
+const ORouter = function ORouter () { return window.Reflect.construct(HTMLElement, [], this.constructor); };
+Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+Object.setPrototypeOf(ORouter, HTMLElement);
+window.customElements.define('o-router', ORouter);
 
 export default {
 
-	on: events.on.bind(events),
-	off: events.off.bind(events),
-	emit: events.emit.bind(events),
+	on: Event.on.bind(Event),
+	off: Event.off.bind(Event),
+	emit: Event.emit.bind(Event),
 
 	data: [],
 	ran: false,

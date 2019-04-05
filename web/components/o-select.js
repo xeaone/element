@@ -152,7 +152,8 @@ export default {
 	created: function () {
 		var self = this;
 
-		var binder = Oxe.view.get('attribute', self, 'o-value');
+		// var binder = Oxe.view.get('attribute', self, 'o-value');
+		var binder = Oxe.binder.get('attribute', self, 'o-value');
 		var value = Oxe.utility.value(self, this.model);
 
 		binder.data = value;
@@ -192,7 +193,8 @@ export default {
 
 			target.selected = !target.selected;
 
-			var binder = Oxe.view.get('attribute', self, 'o-value');
+			// var binder = Oxe.view.get('attribute', self, 'o-value');
+			var binder = Oxe.binder.get('attribute', self, 'o-value');
 			var value = Oxe.utility.value(self, this.model);
 
 			binder.data = value;
