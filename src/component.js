@@ -1,9 +1,8 @@
 import Methods from './methods.js';
+import Binder from './binder.js';
 import Loader from './loader.js';
 import Model from './model.js';
 import Style from './style.js';
-import Binder from './binder.js';
-// import View from './view.js';
 
 export default {
 
@@ -108,6 +107,10 @@ export default {
 	render (element, options) {
 
 		if (this.compiled && element.parentElement.nodeName === 'O-ROUTER') {
+			return;
+		}
+
+		if (!options.template) {
 			return;
 		}
 

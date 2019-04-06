@@ -73,14 +73,6 @@ export default {
 		const part = parts.slice(1).join('.');
 		const scope = parts.slice(0, 1).join('.');
 
-		// if (!binders || !binders.length) return;
-		//
-		// for (let i = 0, l = binders.length; i < l; i++) {
-		// 	const binder = binders[i];
-		// 	const piped = Piper(binder, data);
-		// 	Binder.render(binder, piped);
-		// }
-
 		// if (scope in Binder.data === false) return;// console.warn(`Oxe.model.listener - scope not found: ${scope}`);
 		// if (part in Binder.data[scope] === false) return;// console.warn(`Oxe.model.listener - path not found: ${part}`);
 		// if (0 in Binder.data[scope][part] === false) return;// console.warn('Oxe.model.listener - data not found');
@@ -97,13 +89,16 @@ export default {
 		// 	}
 		// }
 
-		const locations = Binder.data.get('location').get(scope);
-		if (!locations) return;
-		locations.forEach(function (binders, path) {
+		const scopes = Binder.get('location', scope);
+
+		if (!scopes) return;
+
+		scopes.forEach(function (binders, path) {
 			if (part === '' || path === part || path.indexOf(part + '.') === 0) {
 				binders.forEach(function (binder) {
-					const piped = Piper(binder, binder.data);
-					Binder.render(binder, piped);
+					// const piped = Piper(binder, binder.data);
+					// Binder.render(binder, piped);
+					Binder.render(binder);
 				});
 			}
 		});

@@ -1,8 +1,10 @@
 import Utility from './utility.js';
 
+const DATA = {};
+
 export default {
 
-	data: {},
+	get data () { return DATA; },
 
 	get (path) {
 		return Utility.getByPath(this.data, path);

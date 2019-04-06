@@ -1,7 +1,9 @@
 
+const EVENTS = {};
+
 export default {
 
-	events: {},
+	get events () { return EVENTS; },
 
 	on (name, method) {
 

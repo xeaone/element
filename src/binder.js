@@ -1,6 +1,5 @@
 import Utility from './utility.js';
 import Batcher from './batcher.js';
-
 import Piper from './piper.js';
 
 import Class from './binders/class.js';
@@ -58,8 +57,6 @@ export default {
 	async setup (options) {
 		options = options || {};
 
-		// this.data.set('target', new Map());
-		// this.data.set('location', new Map());
 		this.data.set('location', new Map());
 		this.data.set('attribute', new Map());
 
@@ -73,6 +70,9 @@ export default {
 	},
 
 	get (type) {
+
+		if (!type) throw new Error('Oxe.binder.get - type argument required');
+
 		let result = this.data.get(type);
 
 		for (let i = 1, l = arguments.length; i < l; i++) {
@@ -83,73 +83,23 @@ export default {
 		return result;
 	},
 
-	removeData (node) {
-
-		this.data.get('location').forEach(function (scopes) {
-			scopes.forEach(function (binders) {
-				binders.forEach(function (binder, index) {
-					if (binder.target === node) {
-						binders.splice(index, 1);
-					}
-				});
-			});
-		});
-
-		// for (let i = 0, l = binders.length; i < l; i++) {
-		// 	const binder = binders[i];
-		// 	const locations = this.data.get('location').get(binder.location);
-		//
-		// 	if (!locations) continue;
-		//
-		// 	const index = locations.indexOf(binder);
-		//
-		// 	if (index !== -1) {
-		// 		locations.splice(index, 1);
-		// 	}
-		//
-		// 	if (locations.length === 0) {
-		// 		this.data.get('location').delete(binder.location);
-		// 	}
-		//
-		// }
-
-		this.data.get('attribute').delete(node);
-	},
-
-	addData (binder) {
-
-		// if (binder.scope in this._data === false) {
-		// 	this._data[binder.scope] = {};
-		// }
-		//
-		// if (binder.path in this._data[binder.scope] === false) {
-		// 	this._data[binder.scope][binder.path] = [binder];
-		// } else {
-		// 	this._data[binder.scope][binder.path].push(binder);
-		// }
-
-		if (!this.data.get('attribute').has(binder.target)) {
-			this.data.get('attribute').set(binder.target, new Map());
-		}
-
-		if (!this.data.get('location').has(binder.scope)) {
-			this.data.get('location').set(binder.scope, new Map());
-		}
-
-		if (!this.data.get('location').get(binder.scope).has(binder.path)) {
-			this.data.get('location').get(binder.scope).set(binder.path, []);
-		}
-
-		this.data.get('attribute').get(binder.target).set(binder.name, binder);
-		this.data.get('location').get(binder.scope).get(binder.path).push(binder);
-	},
-
 	create (data) {
 
 		if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
 		if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
 		if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
 		if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
+
+		const originalValue = data.value;
+
+		if (data.value.slice(0, 2) === '{{' && data.value.slice(-2) === '}}') {
+			data.value = data.value.slice(2, -2);
+		}
+
+		if (data.value.indexOf('$') !== -1 && data.context && data.context.variable && data.context.path && data.context.key) {
+			const pattern = new RegExp(`\\$${data.context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
+			data.value = data.value.replace(pattern, `${data.context.path}.${data.context.key}$1$2`);
+		}
 
 		const scope = data.container.scope;
 		const names = data.names || Utility.binderNames(data.name);
@@ -176,6 +126,7 @@ export default {
 			get target () { return data.target; },
 			get container () { return data.container; },
 			get model () { return data.container.model; },
+			get methods () { return data.container.methods; },
 
 			get keys () { return keys; },
 			get names () { return names; },
@@ -185,54 +136,89 @@ export default {
 			get meta () { return meta; },
 			get context () { return context; },
 
-			// get data () {
-			// 	const source = this.type === 'on' ? this.container.methods : this.container.model;
-			// 	const data = Utility.getByPath(source, this.values);
-			// 	return Piper(this, data);
-			// },
+			get originalValue () { return originalValue; },
 
-			get data () { return Utility.getByPath(data.container.model, values); },
-			set data (value) { return Utility.setByPath(data.container.model, values, value); },
+			get data () {
+				const source = this.type === 'on' ? this.methods : this.model;
+				const data = Utility.getByPath(source, this.values);
+				return Piper(this, data);
+			},
+
+			set data (value) {
+				const source = this.type === 'on' ? this.methods : this.model;
+				return Utility.setByPath(source, values, value);
+			}
+
 		};
 	},
 
-	render (binder, data) {
+	render (binder) {
 
 		const type = binder.type in this.binders ? binder.type : 'default';
-		const render = this.binders[type](binder, data);
+		const render = this.binders[type](binder, binder.data);
 
 		Batcher.batch(render);
 	},
 
-	renderData (node, attribute, container, context) {
+	unbind (node) {
 
-		const binder = this.create({
-			target: node,
-			context: context,
-			container: container,
-			name: attribute.name,
-			value: attribute.value,
-			scope: container.scope
+		this.data.get('location').forEach(function (scopes) {
+			scopes.forEach(function (binders) {
+				binders.forEach(function (binder, index) {
+					if (binder.target === node) {
+						binders.splice(index, 1);
+					}
+				});
+			});
 		});
 
-		this.addData(binder);
+		this.data.get('attribute').delete(node);
+	},
 
-		let data;
+	bind (node, name, value, context) {
 
-		if (binder.type === 'on') {
-			data = Utility.getByPath(container.methods, binder.values);
-		} else {
-			data = Utility.getByPath(container.model, binder.values);
-			data = data === null || data === undefined ? binder.value : Piper(binder, data);
+		const binder = this.create({
+			name: name,
+			value: value,
+			target: node,
+			context: context,
+			container: context.container,
+			scope: context.container.scope
+		});
+
+		if (
+			binder.originalValue === `$${binder.context.variable}.$key` ||
+			binder.originalValue === `$${binder.context.variable}.$index` ||
+			binder.originalValue === `{{$${binder.context.variable}.$key}}` ||
+			binder.originalValue === `{{$${binder.context.variable}.$index}}`
+		) {
+			const type = binder.type in this.binders ? binder.type : 'default';
+			const render = this.binders[type](binder, binder.context.key);
+			return Batcher.batch(render);
 		}
 
-		this.render(binder, data);
+		if (!this.data.get('attribute').has(binder.target)) {
+			this.data.get('attribute').set(binder.target, new Map());
+		}
+
+		if (!this.data.get('location').has(binder.scope)) {
+			this.data.get('location').set(binder.scope, new Map());
+		}
+
+		if (!this.data.get('location').get(binder.scope).has(binder.path)) {
+			this.data.get('location').get(binder.scope).set(binder.path, []);
+		}
+
+		this.data.get('attribute').get(binder.target).set(binder.name, binder);
+		this.data.get('location').get(binder.scope).get(binder.path).push(binder);
+
+		this.render(binder);
 	},
 
 
 	remove (node) {
 
-		this.removeData(node);
+		this.unbind(node);
 
 		for (let i = 0; i < node.childNodes.length; i++) {
 			this.remove(node.childNodes[i]);
@@ -243,7 +229,9 @@ export default {
 	add (node, context) {
 		if (node.nodeType === Node.TEXT_NODE) {
 
-		 	if (node.textContent.indexOf('{{') === -1) return;
+		 	if (node.textContent.slice(0, 2) !== '{{' || node.textContent.slice(-2) !== '}}') {
+				return;
+			}
 
 			const start = node.textContent.indexOf('{{');
 			if (start !== -1 && start !== 0) {
@@ -257,32 +245,7 @@ export default {
 				this.add(split, context);
 			}
 
-			let text = node.textContent;
-
-			if (
-				text === `{{$${context.variable}.$key}}` ||
-				text === `{{$${context.variable}.$index}}`
-			) {
-				Batcher.batch({
-					context: {
-						node: node,
-						key: context.key,
-						variable: context.variable
-					},
-					read () { this.text = this.node.textContent; },
-					write () { this.node.textContent = this.key; }
-				});
-			} else {
-
-				if (context.variable && context.path && context.key) {
-					const pattern = new RegExp(`{{\\$${context.variable}(,|\\s+|\\.|\\|)?(.*)?}}`, 'ig');
-					text = text.replace(pattern, `${context.path}.${context.key}$1$2`);
-				} else {
-					text = text.slice(2, -2);
-				}
-
-				this.renderData(node, { name: 'o-text', value: text }, context.container);
-			}
+			this.bind(node, 'o-text', node.textContent, context);
 
 		} else if (node.nodeType === Node.ELEMENT_NODE) {
 			let skipChildren = false;
@@ -310,19 +273,7 @@ export default {
 					continue
 				}
 
-				if (attribute.value.indexOf('$') !== -1 && context.variable && context.path && context.key) {
-					if (
-						attribute.value === `$${context.variable}.$key` ||
-						attribute.value === `$${context.variable}.$index`
-					) {
-						attribute.value = context.key;
-					} else {
-						const pattern = new RegExp(`\\$${context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
-						attribute.value = attribute.value.replace(pattern, `${context.path}.${context.key}$1$2`);
-					}
-				}
-
-				this.renderData(node, attribute, context.container, context);
+				this.bind(node, attribute.name, attribute.value, context);
 			}
 
 			if (skipChildren) return;
@@ -332,6 +283,6 @@ export default {
 			}
 
 		}
-	},
+	}
 
 };

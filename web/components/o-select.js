@@ -1,7 +1,7 @@
 
 Oxe.component.define({
 	name: 'o-optgroup',
-	style: 'o-optgroup::before { content: attr(label) }',
+	style: 'o-optgroup { display: block; } o-optgroup::before { content: attr(label); }',
 	template: '<slot></slot>',
 	attributes: ['disabled'],
 	properties: {
@@ -34,7 +34,7 @@ Oxe.component.define({
 
 Oxe.component.define({
 	name: 'o-options',
-	style: 'o-options::before { content: attr(label) }',
+	style: 'o-options { display: block; } o-options::before { content: attr(label); }',
 	template: '<slot></slot>',
 	attributes: ['disabled'],
 	properties: {
@@ -68,6 +68,7 @@ Oxe.component.define({
 Oxe.component.define({
 	name: 'o-option',
 	template: '<slot></slot>',
+	style: 'o-option { display: block; }',
 	attributes: ['selected', 'disabled'],
 	properties: {
 		_disabled: {
@@ -123,6 +124,7 @@ Oxe.component.define({
 export default {
 	name: 'o-select',
 	template: '<slot></slot>',
+	style: 'o-select { display: block; }',
 	model: [],
 	properties: {
 		options: {

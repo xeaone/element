@@ -48,6 +48,15 @@ export default {
 		},
 		template: /*html*/`
 
+			<style>
+				o-optgroup::before, o-options::before {
+					font-weight: bold;
+				}
+				o-option {
+					margin-left: 1rem;
+				}
+			</style>
+
 			<h2 o-text="title"></h2>
 
 			<hr>
@@ -82,15 +91,6 @@ export default {
 			</select>
 
 			<hr> -->
-
-			<style>
-				o-optgroup::before {
-					font-weight: bold;
-				}
-				o-option {
-					margin-left: 1rem;
-				}
-			</style>
 
 			<div o-text="result.friends"></div>
 			<br>

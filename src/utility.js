@@ -1,6 +1,6 @@
 
-const PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
-const KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
+// const PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
+// const KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
 
 export default {
 
@@ -8,13 +8,11 @@ export default {
 	PIPE: /\s?\|\s?/,
 	PIPES: /\s?,\s?|\s+/,
 
-	// whitespacePattern: /^\s+$/g,
+	// keyPattern: new RegExp(KeyPattern, 'i'),
+	// keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
 
-	keyPattern: new RegExp(KeyPattern, 'i'),
-	keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
-
-	pathPattern: new RegExp(PathPattern, 'i'),
-	pathPatternGlobal: new RegExp(PathPattern, 'ig'),
+	// pathPattern: new RegExp(PathPattern, 'i'),
+	// pathPatternGlobal: new RegExp(PathPattern, 'ig'),
 
 	value (element, model) {
 
@@ -210,7 +208,7 @@ export default {
 		}
 
 		for (let i = 0, l = data.attributes.length; i < l; i++) {
-			let attribute = data.attributes[i];
+			const attribute = data.attributes[i];
 			element.setAttribute(attribute.name, attribute.value);
 		}
 
@@ -265,60 +263,6 @@ export default {
 		}
 
 	},
-
-	// walker (node, callback) {
-	// 	callback(node);
-	// 	node = node.firstChild;
-	// 	while (node) {
-	// 	    this.walker(node, callback);
-	// 	    node = node.nextSibling;
-	// 	}
-	// },
-
-	// rewrite (target, variable, path, key) {
-	//
-	// 	if (target.nodeType === 3) {
-	// 		target.nodeValue = target.nodeValue.replace(this.keyPatternGlobal, `${key}`);
-	// 	} else if (target.nodeType === 1) {
-	// 		for (let i = 0, l = target.attributes.length; i < l; i++) {
-	// 			const attribute = target.attributes[i];
-	// 			attribute.value = attribute.value.replace(this.keyPatternGlobal, `${key}`);
-	// 			attribute.value = attribute.value.replace(this.pathPatternGlobal, `${path}.${key}$3`);
-	// 		}
-	// 	}
-	//
-	// 	let node = target.firstChild;
-	//
-	// 	while (node) {
-	// 	    this.rewrite(node, variable, path, key);
-	// 	    node = node.nextSibling;
-	// 	}
-	//
-	// },
-
-	// traverse (data, path, callback) {
-	// 	let keys = typeof path === 'string' ? path.split('.') : path;
-	// 	let last = keys.length - 1;
-	//
-	// 	for (let i = 0; i < last; i++) {
-	// 		let key = keys[i];
-	//
-	// 		if (!(key in data)) {
-	// 			if (typeof callback === 'function') {
-	// 				callback(data, key, i, keys);
-	// 			} else {
-	// 				return undefined;
-	// 			}
-	// 		}
-	//
-	// 		data = data[key];
-	// 	}
-	//
-	// 	return {
-	// 		data: data,
-	// 		key: keys[last]
-	// 	}
-	// },
 
 	includes (items, item) {
 		for (let i = 0, l = items.length; i < l; i++) {
@@ -418,6 +362,15 @@ export default {
 		}
 
 		return data[keys[last]];
-	}
+	},
+
+	// walker (node, callback) {
+	// 	callback(node);
+	// 	node = node.firstChild;
+	// 	while (node) {
+	// 	    this.walker(node, callback);
+	// 	    node = node.nextSibling;
+	// 	}
+	// },
 
 };

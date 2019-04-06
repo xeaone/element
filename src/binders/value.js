@@ -1,6 +1,5 @@
 import Utility from '../utility.js';
 import Piper from '../piper.js';
-import Model from '../model.js';
 
 export default function (binder, data) {
 	const self = this;
@@ -56,7 +55,6 @@ export default function (binder, data) {
 
 				if (typeof data !== 'number') {
 					// data = 0;
-					// Model.set(binder.keys, data);
 					return false;
 				}
 
@@ -86,7 +84,6 @@ export default function (binder, data) {
 					this.nodes[0].checked = true;
 					this.nodes[0].setAttribute('checked', '');
 					// binder.data = 0;
-					// Model.set(binder.keys, 0);
 				}
 
 			}
@@ -98,7 +95,6 @@ export default function (binder, data) {
 
 				if (typeof data !== 'boolean') {
 					// data = false;
-					// Model.set(binder.keys, data);
 					return false;
 				}
 
