@@ -19,13 +19,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       this.time = options.time || this.time;
     },
     tick: function tick(callback) {
-      window.cancelAnimationFrame(this.frame);
-      this.frame = window.requestAnimationFrame(callback);
+      window.requestAnimationFrame(callback.bind(this, null));
     },
     schedule: function schedule() {
       if (this.pending) return;
       this.pending = true;
-      this.tick(this.flush.bind(this, null));
+      this.tick(this.flush);
     },
     flush: function flush(time) {
       time = time || performance.now();
@@ -33,26 +32,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       while (task = this.reads.shift()) {
         task();
-
-        if (performance.now() - time > this.time) {
-          this.tick(this.flush.bind(this, null));
-          return;
-        }
       }
 
       while (task = this.writes.shift()) {
         task();
-
-        if (performance.now() - time > this.time) {
-          this.tick(this.flush.bind(this, null));
-          return;
-        }
       }
 
-      if (!this.reads.length && !this.writes.length) {
+      if (this.reads.length === 0 && this.writes.length === 0) {
         this.pending = false;
       } else if (performance.now() - time > this.time) {
-        this.tick(this.flush.bind(this, null));
+        this.tick(this.flush);
       } else {
         this.flush(time);
       }
@@ -67,26 +56,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     batch: function batch(data) {
       var self = this;
       if (!data) return;
+      if (!data.read && !data.write) return;
       data.context = data.context || {};
 
-      if (data.read) {
-        var read = function read() {
-          var result = data.read.call(data.context);
+      var read = function read() {
+        if (data.read) {
+          data.read.call(data.context);
+        }
 
-          if (data.write && result !== false) {
-            var write = data.write.bind(data.context);
-            self.writes.push(write);
-            self.schedule();
-          }
-        };
+        if (data.write) {
+          var write = data.write.bind(data.context);
+          self.writes.push(write);
+          self.schedule();
+        }
+      };
 
-        self.reads.push(read);
-        self.schedule();
-      } else if (data.write) {
-        var write = data.write.bind(data.context);
-        self.writes.push(write);
-        self.schedule();
-      }
+      self.reads.push(read);
+      self.schedule();
     }
   };
   var Utility = {
@@ -453,6 +439,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var result = self.slice(startIndex, deleteCount);
       var updateCount = totalCount - 1 - startIndex;
       var promises = [];
+      var length = self.length + addCount - deleteCount;
+
+      if (self.length !== length) {
+        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+      }
 
       if (updateCount > 0) {
         var value;
@@ -472,12 +463,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
 
-      var length = self.length + addCount - deleteCount;
-
-      if (self.length !== length) {
-        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
-      }
-
       if (addCount > 0) {
         while (addCount--) {
           var _key = self.length;
@@ -487,7 +472,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
 
           self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
-          promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
         }
       }
 
@@ -496,7 +480,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           self.$meta.length--;
           self.length--;
           var _key2 = self.length;
-          promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
         }
       }
 
@@ -743,49 +726,59 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
     }
 
-    return {
+    var render = {
       read: function read() {
+        if (binder.meta.pending) {
+          return false;
+        } else {
+          binder.meta.pending = true;
+        }
+
         this.keys = Object.keys(data);
+        this.targetLength = this.keys.length;
         this.currentLength = binder.meta.length;
-        this.targetLength = Array.isArray(data) ? data.length : this.keys.length;
 
         if (this.currentLength === this.targetLength) {
           return false;
         } else if (this.currentLength > this.targetLength) {
-          this.type = 'remove';
           this.count = this.currentLength - this.targetLength;
           binder.meta.length = binder.meta.length - this.count;
         } else if (this.currentLength < this.targetLength) {
-          this.type = 'add';
           this.count = this.targetLength - this.currentLength;
           binder.meta.length = binder.meta.length + this.count;
         }
       },
       write: function write() {
         if (this.currentLength === this.targetLength) {
-          return false;
+          binder.meta.pending = false;
+          return;
         } else if (this.currentLength > this.targetLength) {
-          while (this.count--) {
-            var element = binder.target.lastElementChild;
-            binder.target.removeChild(element);
-            Binder.remove(element);
-          }
+          var element = binder.target.lastElementChild;
+          binder.target.removeChild(element);
+          Binder.remove(element);
+          this.currentLength--;
         } else if (this.currentLength < this.targetLength) {
-          while (this.count--) {
-            var _element = document.importNode(binder.meta.template, true);
+          var _element = document.importNode(binder.meta.template, true);
 
-            Binder.add(_element, {
-              path: binder.path,
-              variable: binder.names[1],
-              key: this.keys[this.currentLength++],
-              container: binder.container,
-              scope: binder.container.scope
-            });
-            binder.target.appendChild(_element);
-          }
+          Binder.add(_element, {
+            path: binder.path,
+            variable: binder.names[1],
+            key: this.keys[this.currentLength++],
+            container: binder.container,
+            scope: binder.container.scope
+          });
+          binder.target.appendChild(_element);
+        }
+
+        if (this.currentLength !== this.targetLength) {
+          delete render.read;
+          Batcher.batch(render);
+        } else {
+          binder.meta.pending = false;
         }
       }
     };
+    return render;
   }
 
   function Enable(binder, data) {
@@ -1485,10 +1478,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var parts = location.split('.');
       var part = parts.slice(1).join('.');
       var scope = parts.slice(0, 1).join('.');
-      var scopes = Binder.get('location', scope);
-      if (!scopes) return;
-      scopes.forEach(function (binders, path) {
-        if (part === '' || path === part || path.indexOf(part + '.') === 0) {
+      var paths = Binder.get('location', scope);
+      if (!paths) return;
+      paths.get(part).forEach(function (binder) {
+        Binder.render(binder);
+      });
+      if (type === 'length') return;
+      paths.forEach(function (binders, path) {
+        if (path.indexOf(part + '.') === 0) {
           binders.forEach(function (binder) {
             Binder.render(binder);
           });

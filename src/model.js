@@ -1,7 +1,7 @@
 import Observer from './observer.js';
-import Utility from './utility.js';
+// import Utility from './utility.js';
 import Binder from './binder.js';
-import Piper from './piper.js';
+// import Piper from './piper.js';
 
 export default {
 
@@ -89,12 +89,19 @@ export default {
 		// 	}
 		// }
 
-		const scopes = Binder.get('location', scope);
+		const paths = Binder.get('location', scope);
 
-		if (!scopes) return;
+		if (!paths) return;
 
-		scopes.forEach(function (binders, path) {
-			if (part === '' || path === part || path.indexOf(part + '.') === 0) {
+		paths.get(part).forEach(function (binder) {
+			Binder.render(binder);
+		});
+
+		if (type === 'length') return;
+
+		paths.forEach(function (binders, path) {
+			// if (part === '' || path === part || path.indexOf(part + '.') === 0) {
+			if (path.indexOf(part + '.') === 0) {
 				binders.forEach(function (binder) {
 					// const piped = Piper(binder, binder.data);
 					// Binder.render(binder, piped);

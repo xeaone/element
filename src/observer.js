@@ -43,6 +43,12 @@ const Observer = {
 
 		const promises = [];
 
+		const length = self.length + addCount - deleteCount;
+
+		if (self.length !== length) {
+			promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+		}
+
 		if (updateCount > 0) {
 			let value;
 			let index = startIndex;
@@ -62,12 +68,6 @@ const Observer = {
 
 		}
 
-		const length = self.length + addCount - deleteCount;
-
-		if (self.length !== length) {
-			promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
-		}
-
 		// let oldLength = self.length;
 
 		if (addCount > 0) {
@@ -81,7 +81,7 @@ const Observer = {
 				}
 
 				self.$meta[key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + key);
-				promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
+				// promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
 
 			}
 			// promises.splice(position, 0, self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
@@ -93,7 +93,7 @@ const Observer = {
 				self.$meta.length--;
 				self.length--;
 				const key = self.length;
-				promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + key, key));
+				// promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + key, key));
 			}
 		}
 

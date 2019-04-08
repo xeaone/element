@@ -1,5 +1,5 @@
 import Binder from '../binder.js';
-// import View from '../view.js';
+import Batcher from '../batcher.js';
 
 export default function (binder, data) {
 
@@ -15,61 +15,67 @@ export default function (binder, data) {
 		binder.meta.length = 0;
 	}
 
-	// console.log(binder.meta);
-
 	if (binder.meta.template === undefined) {
-		// console.log('\nremoveChild\n\n');
-		// console.log(binder.target.firstElementChild);
 		binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
 	}
 
-	const self = this;
-
-	return {
+	const render = {
 		read () {
+
+			if (binder.meta.pending) {
+				return false;
+			} else {
+				binder.meta.pending = true;
+			}
+
 			this.keys = Object.keys(data);
+			this.targetLength = this.keys.length;
 			this.currentLength = binder.meta.length;
-			this.targetLength = Array.isArray(data) ? data.length : this.keys.length;
 
 			if (this.currentLength === this.targetLength) {
 				return false;
 			} else if (this.currentLength > this.targetLength) {
-				this.type = 'remove';
 				this.count = this.currentLength - this.targetLength;
 				binder.meta.length = binder.meta.length - this.count;
 			} else if (this.currentLength < this.targetLength) {
-				this.type = 'add';
 				this.count = this.targetLength - this.currentLength;
 				binder.meta.length = binder.meta.length + this.count;
 			}
 
 		},
 		write () {
+
 			if (this.currentLength === this.targetLength) {
-				return false;
+				binder.meta.pending = false;
+				return;
 			} else if (this.currentLength > this.targetLength) {
-				while (this.count--) {
-					const element = binder.target.lastElementChild;
-					binder.target.removeChild(element);
-					Binder.remove(element);
-					// View.remove(element);
-				}
+				const element = binder.target.lastElementChild;
+				binder.target.removeChild(element);
+				Binder.remove(element);
+				this.currentLength--;
 			} else if (this.currentLength < this.targetLength) {
-				while (this.count--) {
-					const element = document.importNode(binder.meta.template, true);
+				const element = document.importNode(binder.meta.template, true);
 
-					Binder.add(element, {
-					// View.add(element, {
-						path: binder.path,
-						variable: binder.names[1],
-						key: this.keys[this.currentLength++],
-						container: binder.container,
-						scope: binder.container.scope
-					});
+				Binder.add(element, {
+					path: binder.path,
+					variable: binder.names[1],
+					key: this.keys[this.currentLength++],
+					container: binder.container,
+					scope: binder.container.scope
+				});
 
-					binder.target.appendChild(element);
-				}
+				binder.target.appendChild(element);
 			}
+
+			if (this.currentLength !== this.targetLength) {
+				delete render.read;
+				Batcher.batch(render);
+			} else {
+				binder.meta.pending = false;
+			}
+
 		}
 	};
+
+	return render;
 };
