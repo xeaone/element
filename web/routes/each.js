@@ -16,6 +16,11 @@ export default {
 				keyFour: 'valueFour'
 			}
 		},
+		methods: {
+			click: function () {
+				console.log(arguments);
+			}
+		},
 		created: function () {
 			var self = this;
 
@@ -67,7 +72,7 @@ export default {
 			<br>
 			<br>
 			<div o-each-prop="props">
-				<div>
+				<div o-on-click="click | $prop">
 					<span>Key: {{$prop.$key}}</span>
 					<span>Index: {{$prop.$index}}</span>
 					<span>Value: {{$prop}}</span>

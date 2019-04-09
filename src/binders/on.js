@@ -17,6 +17,7 @@ export default function (binder, data) {
 
 					for (let i = 0, l = binder.pipes.length; i < l; i++) {
 						const keys = binder.pipes[i].split('.');
+						console.log(keys);
 						const parameter = Utility.getByPath(binder.container.model, keys);
 						parameters.push(parameter);
 					}

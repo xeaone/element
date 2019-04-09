@@ -49,8 +49,6 @@ const BINDERS = {
 
 export default {
 
-	// _data: {},
-
 	get data () { return DATA; },
 	get binders () { return BINDERS; },
 
@@ -113,6 +111,7 @@ export default {
 
 		const meta = data.meta || {};
 		const context = data.context || {};
+		const source = type === 'on' ? data.container.methods : data.container.model;
 
 		return {
 			get location () { return location; },
@@ -139,13 +138,11 @@ export default {
 			get originalValue () { return originalValue; },
 
 			get data () {
-				const source = this.type === 'on' ? this.methods : this.model;
-				const data = Utility.getByPath(source, this.values);
+				const data = Utility.getByPath(source, values);
 				return Piper(this, data);
 			},
 
 			set data (value) {
-				const source = this.type === 'on' ? this.methods : this.model;
 				return Utility.setByPath(source, values, value);
 			}
 
@@ -229,7 +226,7 @@ export default {
 	add (node, context) {
 		if (node.nodeType === Node.TEXT_NODE) {
 
-		 	if (node.textContent.slice(0, 2) !== '{{' || node.textContent.slice(-2) !== '}}') {
+		 	if (node.textContent.indexOf('{{') === -1 || node.textContent.indexOf('}}') === -1) {
 				return;
 			}
 

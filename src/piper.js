@@ -1,6 +1,10 @@
 
 export default function (binder, data) {
 
+	if (binder.type === 'on') {
+		return data;
+	}
+
 	if (!binder.pipes.length) {
 		return data;
 	}

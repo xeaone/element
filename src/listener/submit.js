@@ -1,19 +1,17 @@
 import Utility from '../utility.js';
 import Fetcher from '../fetcher.js';
 import Methods from '../methods.js';
-import Model from '../model.js';
 import Binder from '../binder.js';
-// import View from '../view.js';
+import Model from '../model.js';
 
 export default async function (event) {
 
 	const node = event.target;
 
 	const binder = Binder.get('attribute', node, 'o-submit');
-	// const binder = View.get('attribute', node, 'o-submit');
 
-	let method = Methods.get(binder.keys);
 	let model = Model.get(binder.scope);
+	let method = Methods.get(binder.keys);
 	let data = Utility.formData(node, model);
 
 	let options = await method.call(binder.container, data, event);

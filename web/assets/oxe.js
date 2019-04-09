@@ -628,6 +628,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
 
   function Piper(binder, data) {
+    if (binder.type === 'on') {
+      return data;
+    }
+
     if (!binder.pipes.length) {
       return data;
     }
@@ -876,6 +880,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
             for (var i = 0, l = binder.pipes.length; i < l; i++) {
               var keys = binder.pipes[i].split('.');
+              console.log(keys);
               var parameter = Utility.getByPath(binder.container.model, keys);
               parameters.push(parameter);
             }
@@ -1232,6 +1237,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var location = keys.join('.');
       var meta = data.meta || {};
       var context = data.context || {};
+      var source = type === 'on' ? data.container.methods : data.container.model;
       return {
         get location() {
           return location;
@@ -1302,13 +1308,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         },
 
         get data() {
-          var source = this.type === 'on' ? this.methods : this.model;
-          var data = Utility.getByPath(source, this.values);
+          var data = Utility.getByPath(source, values);
           return Piper(this, data);
         },
 
         set data(value) {
-          var source = this.type === 'on' ? this.methods : this.model;
           return Utility.setByPath(source, values, value);
         }
 
@@ -1372,7 +1376,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     add: function add(node, context) {
       if (node.nodeType === Node.TEXT_NODE) {
-        if (node.textContent.slice(0, 2) !== '{{' || node.textContent.slice(-2) !== '}}') {
+        if (node.textContent.indexOf('{{') === -1 || node.textContent.indexOf('}}') === -1) {
           return;
         }
 
@@ -1480,12 +1484,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var scope = parts.slice(0, 1).join('.');
       var paths = Binder.get('location', scope);
       if (!paths) return;
-      paths.get(part).forEach(function (binder) {
-        Binder.render(binder);
-      });
-      if (type === 'length') return;
       paths.forEach(function (binders, path) {
-        if (path.indexOf(part + '.') === 0) {
+        if (path === part || path.indexOf(part + '.') === 0) {
           binders.forEach(function (binder) {
             Binder.render(binder);
           });
@@ -1850,11 +1850,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   function Submit(event) {
     return new Promise(function ($return, $error) {
-      var node, binder, method, model, data, options, oaction, omethod, oenctype, result;
+      var node, binder, model, method, data, options, oaction, omethod, oenctype, result;
       node = event.target;
       binder = Binder.get('attribute', node, 'o-submit');
-      method = Methods.get(binder.keys);
       model = Model.get(binder.scope);
+      method = Methods.get(binder.keys);
       data = Utility.formData(node, model);
       return Promise.resolve(method.call(binder.container, data, event)).then(function ($await_45) {
         try {
