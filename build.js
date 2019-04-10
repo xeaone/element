@@ -21,6 +21,10 @@ const header = `/*
 
 (async function () {
 
+	const output = process.argv.slice(2)[0];
+
+	if (!output) return console.error('build output path required');
+
 	const bundled = await Rollup.rollup({ input: 'src/index.js' });
 
 	const generated = await bundled.generate({
@@ -62,9 +66,9 @@ const header = `/*
 	const dst = Babel.transform(code, options);
 
 	await Promise.all([
-		await WriteFile('dst/oxe.js', header + dev.code),
-		await WriteFile('dst/oxe.min.js', header + dst.code),
-		await WriteFile('web/assets/oxe.js', header + dev.code)
+		await WriteFile(`./${output}/oxe.js`, header + dev.code),
+		await WriteFile(`./${output}/oxe.min.js`, header + dst.code),
+		await WriteFile('./web/assets/oxe.js', header + dev.code)
 	]);
 
 }()).catch(console.error);

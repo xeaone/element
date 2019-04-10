@@ -5,7 +5,8 @@
 	"main": "dst/oxe.min.js",
 	"scripts": {
 		"w": "node watch.js",
-		"b": "node build.js",
+		"b": "node build.js dst",
+		"d": "node build.js dev",
 		"p": "node publish.js",
 		"s": "muleify -ssw ./web"
 	},
