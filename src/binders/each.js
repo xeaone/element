@@ -7,7 +7,7 @@ export default function (binder) {
 		read () {
 			const data = binder.data || [];
 
-			if (binder.meta.pending === undefined) {
+			if (binder.meta.keys === undefined) {
 				binder.meta.keys = [];
 				binder.meta.pending = false;
 				binder.meta.targetLength = 0;
@@ -55,7 +55,8 @@ export default function (binder) {
 				binder.target.appendChild(element);
 			}
 
-			if (binder.meta.pending) {
+			// if (binder.meta.pending) {
+			if (binder.meta.pending && render.read) {
 				return;
 			} else {
 				binder.meta.pending = true;

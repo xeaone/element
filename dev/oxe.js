@@ -761,7 +761,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       read: function read() {
         var data = binder.data || [];
 
-        if (binder.meta.pending === undefined) {
+        if (binder.meta.keys === undefined) {
           binder.meta.keys = [];
           binder.meta.pending = false;
           binder.meta.targetLength = 0;
@@ -804,7 +804,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           binder.target.appendChild(_element);
         }
 
-        if (binder.meta.pending) {
+        if (binder.meta.pending && render.read) {
           return;
         } else {
           binder.meta.pending = true;
