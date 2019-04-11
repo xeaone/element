@@ -12,9 +12,9 @@ export default {
 		this.time = options.time || this.time;
 	},
 
-	tick (callback) {
-		window.requestAnimationFrame(callback.bind(this, null));
-		// window.requestAnimationFrame(callback);
+	tick (callback, data) {
+		data = data || {};
+		window.requestAnimationFrame(callback.bind(this, data));
 	},
 
 	// schedules a new read/write batch if one is not pending
@@ -24,37 +24,71 @@ export default {
 		this.tick(this.flush);
 	},
 
-	flush (time) {
-		time = time || performance.now();
+	flush (data) {
+		data.reads = data.reads || 0;
+		data.writes = data.writes || 0;
+		data.time = data.time || performance.now();
 
 		let task;
 
-		while (task = this.reads.shift()) {
-			task();
+		if (data.reads === 0) {
+			while (task = this.reads.shift()) {
 
-			// if ((performance.now() - time) > this.time) {
-			// 	this.tick(this.flush.bind(this, null));
-			// 	return;
-			// }
+				if (task) {
+					task();
+					data.reads++;
+				}
 
+				if (data.writes && data.writes === data.reads) {
+					data.writes = 0;
+					break;
+				}
+
+				if ((performance.now() - data.time) > this.time) {
+					data.writes = 0;
+					data.time = null;
+					return this.tick(this.flush, data);
+				}
+
+			}
 		}
 
-		while (task = this.writes.shift()) {
-			task();
+		if (data.writes === 0) {
+			while (task = this.writes.shift()) {
 
-			// if (performance.now() - time > this.time) {
-			// 	this.tick(this.flush.bind(this, null));
-			// 	return;
-			// }
+				if (task) {
+					task();
+					data.writes++;
+				}
 
+				if (data.reads && data.reads === data.writes) {
+					data.reads = 0;
+					break;
+				}
+
+				if ((performance.now() - data.time) > this.time) {
+					data.reads = 0;
+					data.time = null;
+					return this.tick(this.flush, data);
+				}
+
+			}
 		}
+
+		// while (task = this.reads.shift()) task();
+		// while (task = this.writes.shift()) task();
 
 		if (this.reads.length === 0 && this.writes.length === 0) {
 			this.pending = false;
-		} else if ((performance.now() - time) > this.time) {
-			this.tick(this.flush);
+		} else if ((performance.now() - data.time) > this.time) {
+			data.reads = 0;
+			data.writes = 0;
+			data.time = null;
+			this.tick(this.flush, data);
 		} else {
-			this.flush(time);
+			data.reads = 0;
+			data.writes = 0;
+			this.flush(data);
 		}
 
 	},
@@ -76,26 +110,34 @@ export default {
 
 		data.context = data.context || {};
 
-		const read = function () {
-			let result;
-
-			if (data.read) {
-				// result = data.read.call(data.context);
-				data.read.call(data.context);
-			}
-
-			// if (data.write && result !== false) {
-			if (data.write) {
-				const write = data.write.bind(data.context);
-
-				self.writes.push(write);
-				self.schedule();
-			}
-
-		};
+		const read = data.read ? data.read.bind(data.context) : null;
+		const write = data.write ? data.write.bind(data.context) : null;
 
 		self.reads.push(read);
+		self.writes.push(write);
+
 		self.schedule();
+
+		// const read = function () {
+		// 	let result;
+		//
+		// 	if (data.read) {
+		// 		result = data.read.call(data.context);
+		// 		// data.read.call(data.context);
+		// 	}
+		//
+		// 	// if (data.write && result !== false) {
+		// 	if (data.write) {
+		// 		const write = data.write.bind(data.context);
+		//
+		// 		self.writes.push(write);
+		// 		// self.schedule();
+		// 	}
+		//
+		// };
+		//
+		// self.reads.push(read);
+		// self.schedule();
 	}
 
 };

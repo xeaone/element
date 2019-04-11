@@ -91,18 +91,11 @@ export default {
 
 		if (!paths) return;
 
-		// paths.get(part).forEach(function (binder) {
-		// 	Binder.render(binder);
-		// });
-		//
-		// if (type === 'length') return;
-
 		paths.forEach(function (binders, path) {
-			if (path === part || path.indexOf(part + '.') === 0) {
+			if (path === part || (type !== 'length' && path.indexOf(part + '.') === 0)) {
+			// if (path === part) {
 			// if (path.indexOf(part + '.') === 0) {
 				binders.forEach(function (binder) {
-					// const piped = Piper(binder, binder.data);
-					// Binder.render(binder, piped);
 					Binder.render(binder);
 				});
 			}

@@ -16,7 +16,7 @@ export default function (event) {
 
 	// if shadow dom use
 	var target = event.path ? event.path[0] : event.target;
-	var parent = target.parentNode;
+	var parent = target.parentElement;
 
 	if (Router.contain) {
 
@@ -25,7 +25,7 @@ export default function (event) {
 			if (parent.nodeName === 'O-ROUTER') {
 				break;
 			} else {
-				parent = parent.parentNode;
+				parent = parent.parentElement;
 			}
 
 		}
@@ -36,9 +36,8 @@ export default function (event) {
 
 	}
 
-	// ensure target is anchor tag
 	while (target && 'A' !== target.nodeName) {
-		target = target.parentNode;
+		target = target.parentElement;
 	}
 
 	if (!target || 'A' !== target.nodeName) {

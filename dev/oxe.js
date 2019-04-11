@@ -28,32 +28,72 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       options = options || {};
       this.time = options.time || this.time;
     },
-    tick: function tick(callback) {
-      window.requestAnimationFrame(callback.bind(this, null));
+    tick: function tick(callback, data) {
+      data = data || {};
+      window.requestAnimationFrame(callback.bind(this, data));
     },
     schedule: function schedule() {
       if (this.pending) return;
       this.pending = true;
       this.tick(this.flush);
     },
-    flush: function flush(time) {
-      time = time || performance.now();
+    flush: function flush(data) {
+      data.reads = data.reads || 0;
+      data.writes = data.writes || 0;
+      data.time = data.time || performance.now();
       var task;
 
-      while (task = this.reads.shift()) {
-        task();
+      if (data.reads === 0) {
+        while (task = this.reads.shift()) {
+          if (task) {
+            task();
+            data.reads++;
+          }
+
+          if (data.writes && data.writes === data.reads) {
+            data.writes = 0;
+            break;
+          }
+
+          if (performance.now() - data.time > this.time) {
+            data.writes = 0;
+            data.time = null;
+            return this.tick(this.flush, data);
+          }
+        }
       }
 
-      while (task = this.writes.shift()) {
-        task();
+      if (data.writes === 0) {
+        while (task = this.writes.shift()) {
+          if (task) {
+            task();
+            data.writes++;
+          }
+
+          if (data.reads && data.reads === data.writes) {
+            data.reads = 0;
+            break;
+          }
+
+          if (performance.now() - data.time > this.time) {
+            data.reads = 0;
+            data.time = null;
+            return this.tick(this.flush, data);
+          }
+        }
       }
 
       if (this.reads.length === 0 && this.writes.length === 0) {
         this.pending = false;
-      } else if (performance.now() - time > this.time) {
-        this.tick(this.flush);
+      } else if (performance.now() - data.time > this.time) {
+        data.reads = 0;
+        data.writes = 0;
+        data.time = null;
+        this.tick(this.flush, data);
       } else {
-        this.flush(time);
+        data.reads = 0;
+        data.writes = 0;
+        this.flush(data);
       }
     },
     remove: function remove(tasks, task) {
@@ -68,20 +108,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (!data) return;
       if (!data.read && !data.write) return;
       data.context = data.context || {};
-
-      var read = function read() {
-        if (data.read) {
-          data.read.call(data.context);
-        }
-
-        if (data.write) {
-          var write = data.write.bind(data.context);
-          self.writes.push(write);
-          self.schedule();
-        }
-      };
-
+      var read = data.read ? data.read.bind(data.context) : null;
+      var write = data.write ? data.write.bind(data.context) : null;
       self.reads.push(read);
+      self.writes.push(write);
       self.schedule();
     }
   };
@@ -482,6 +512,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
 
           self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
+          promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
         }
       }
 
@@ -490,6 +521,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           self.$meta.length--;
           self.length--;
           var _key2 = self.length;
+          promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
         }
       }
 
@@ -723,73 +755,62 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Each(binder, data) {
-    if (data === undefined) {
-      return;
-    }
-
-    if (!binder.meta.template && !binder.target.children.length) {
-      return;
-    }
-
-    if (binder.meta.length === undefined) {
-      binder.meta.length = 0;
-    }
-
-    if (binder.meta.template === undefined) {
-      binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
-    }
-
+  function Each(binder) {
     var render = {
       read: function read() {
-        if (binder.meta.pending) {
-          return false;
-        } else {
-          binder.meta.pending = true;
+        var data = binder.data || [];
+
+        if (binder.meta.pending === undefined) {
+          binder.meta.keys = [];
+          binder.meta.pending = false;
+          binder.meta.targetLength = 0;
+          binder.meta.currentLength = 0;
+
+          if (binder.target.firstElementChild) {
+            binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
+          } else {
+            var element = document.createElement('div');
+            var text = document.createTextNode("{{$".concat(binder.names[1], "}}"));
+            element.appendChild(text);
+            binder.meta.template = element;
+          }
         }
 
-        this.keys = Object.keys(data);
-        this.targetLength = this.keys.length;
-        this.currentLength = binder.meta.length;
-
-        if (this.currentLength === this.targetLength) {
-          return false;
-        } else if (this.currentLength > this.targetLength) {
-          this.count = this.currentLength - this.targetLength;
-          binder.meta.length = binder.meta.length - this.count;
-        } else if (this.currentLength < this.targetLength) {
-          this.count = this.targetLength - this.currentLength;
-          binder.meta.length = binder.meta.length + this.count;
-        }
+        binder.meta.keys = Object.keys(data);
+        binder.meta.targetLength = binder.meta.keys.length;
       },
       write: function write() {
-        if (this.currentLength === this.targetLength) {
+        if (binder.meta.currentLength === binder.meta.targetLength) {
           binder.meta.pending = false;
           return;
-        } else if (this.currentLength > this.targetLength) {
+        }
+
+        if (binder.meta.currentLength > binder.meta.targetLength) {
           var element = binder.target.lastElementChild;
           binder.target.removeChild(element);
           Binder.remove(element);
-          this.currentLength--;
-        } else if (this.currentLength < this.targetLength) {
-          var _element = document.importNode(binder.meta.template, true);
+          binder.meta.currentLength--;
+        } else if (binder.meta.currentLength < binder.meta.targetLength) {
+          var _element = binder.meta.template.cloneNode(true);
 
           Binder.add(_element, {
             path: binder.path,
             variable: binder.names[1],
-            key: this.keys[this.currentLength++],
             container: binder.container,
-            scope: binder.container.scope
+            scope: binder.container.scope,
+            key: binder.meta.keys[binder.meta.currentLength++]
           });
           binder.target.appendChild(_element);
         }
 
-        if (this.currentLength !== this.targetLength) {
-          delete render.read;
-          Batcher.batch(render);
+        if (binder.meta.pending) {
+          return;
         } else {
-          binder.meta.pending = false;
+          binder.meta.pending = true;
         }
+
+        delete render.read;
+        Batcher.batch(render);
       }
     };
     return render;
@@ -813,6 +834,21 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       },
       write: function write() {
         binder.target.hidden = data;
+      }
+    };
+  }
+
+  function Href(binder) {
+    return {
+      read: function read() {
+        this.data = binder.data || '';
+
+        if (this.data === binder.target.href) {
+          return false;
+        }
+      },
+      write: function write() {
+        binder.target.href = this.data;
       }
     };
   }
@@ -1133,6 +1169,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     get hidden() {
       return Hide;
+    },
+
+    get href() {
+      return Href;
     },
 
     get html() {
@@ -1494,7 +1534,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var paths = Binder.get('location', scope);
       if (!paths) return;
       paths.forEach(function (binders, path) {
-        if (path === part || path.indexOf(part + '.') === 0) {
+        if (path === part || type !== 'length' && path.indexOf(part + '.') === 0) {
           binders.forEach(function (binder) {
             Binder.render(binder);
           });
@@ -3223,14 +3263,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     var target = event.path ? event.path[0] : event.target;
-    var parent = target.parentNode;
+    var parent = target.parentElement;
 
     if (Router.contain) {
       while (parent) {
         if (parent.nodeName === 'O-ROUTER') {
           break;
         } else {
-          parent = parent.parentNode;
+          parent = parent.parentElement;
         }
       }
 
@@ -3240,7 +3280,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     while (target && 'A' !== target.nodeName) {
-      target = target.parentNode;
+      target = target.parentElement;
     }
 
     if (!target || 'A' !== target.nodeName) {
@@ -3379,9 +3419,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         options.listener = options.listener || {};
         return Promise.resolve(this.style.setup(options.style)).then(function ($await_65) {
           try {
-            return Promise.resolve(this.binder.setup(options.binder)).then(function ($await_66) {
+            return Promise.resolve(this.model.setup(options.model)).then(function ($await_66) {
               try {
-                return Promise.resolve(this.model.setup(options.model)).then(function ($await_67) {
+                return Promise.resolve(this.binder.setup(options.binder)).then(function ($await_67) {
                   try {
                     document.addEventListener('input', Input, true);
                     document.addEventListener('click', Click, true);

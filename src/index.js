@@ -95,8 +95,8 @@ export default {
 		options.listener = options.listener || {};
 
 		await this.style.setup(options.style);
-		await this.binder.setup(options.binder);
 		await this.model.setup(options.model);
+		await this.binder.setup(options.binder);
 
 		document.addEventListener('input', Input, true);
 		document.addEventListener('click', Click, true);

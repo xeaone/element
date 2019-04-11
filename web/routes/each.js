@@ -69,8 +69,6 @@ export default {
 
 			<br>
 			<strong>Object</strong>
-			<br>
-			<br>
 			<div o-each-prop="props">
 				<div o-on-click="click | $prop">
 					<span>Key: {{$prop.$key}}</span>
@@ -80,6 +78,10 @@ export default {
 					<span>,</span>
 				</div>
 			</div>
+
+			<br>
+			<strong>No Child</strong>
+			<div o-each-prop="props"></div>
 
 		`
 	}

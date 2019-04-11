@@ -9,6 +9,7 @@ import Disable from './binders/disable.js';
 import Each from './binders/each.js';
 import Enable from './binders/enable.js';
 import Hide from './binders/hide.js';
+import Href from './binders/href.js';
 import Html from './binders/html.js';
 import Label from './binders/label.js';
 import On from './binders/on.js';
@@ -33,6 +34,7 @@ const BINDERS = {
 	get enabled () { return Enable; },
 	get hide () { return Hide; },
 	get hidden () { return Hide; },
+	get href () { return Href; },
 	get html () { return Html; },
 	get label () { return Label; },
 	get on () { return On; },
