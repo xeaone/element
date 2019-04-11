@@ -13,7 +13,7 @@ export default function (binder, data) {
 				this.nodes = binder.target.options;
 				this.multiple = Utility.multiple(binder.target);
 
-				if (this.multiple && data.constructor !== Array) {
+				if (this.multiple && (!data || data.constructor !== Array)) {
 					throw new Error(`Oxe - invalid o-value ${binder.keys.join('.')} multiple select requires array`);
 				}
 

@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 4.16.0
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -1024,7 +1014,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           this.nodes = binder.target.options;
           this.multiple = Utility.multiple(binder.target);
 
-          if (this.multiple && data.constructor !== Array) {
+          if (this.multiple && (!data || data.constructor !== Array)) {
             throw new Error("Oxe - invalid o-value ".concat(binder.keys.join('.'), " multiple select requires array"));
           }
         },
