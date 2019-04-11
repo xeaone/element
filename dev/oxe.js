@@ -756,6 +756,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Each(binder) {
+    var self = this;
     var render = {
       read: function read() {
         var data = binder.data || [];
@@ -788,12 +789,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         if (binder.meta.currentLength > binder.meta.targetLength) {
           var element = binder.target.lastElementChild;
           binder.target.removeChild(element);
-          Binder.remove(element);
+          self.remove(element);
           binder.meta.currentLength--;
         } else if (binder.meta.currentLength < binder.meta.targetLength) {
           var _element = binder.meta.template.cloneNode(true);
 
-          Binder.add(_element, {
+          self.add(_element, {
             path: binder.path,
             variable: binder.names[1],
             container: binder.container,
@@ -854,6 +855,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Html(binder, data) {
+    var self = this;
     return {
       read: function read() {
         if (data === undefined || data === null) {
@@ -867,7 +869,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       write: function write() {
         while (binder.target.firstChild) {
           var node = binder.target.removeNode(binder.target.firstChild);
-          Binder.remove(node);
+          self.remove(node);
         }
 
         var fragment = document.createDocumentFragment();
@@ -875,7 +877,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         parser.innerHTML = data;
 
         while (parser.firstElementChild) {
-          Binder.add(parser.firstElementChild, {
+          self.add(parser.firstElementChild, {
             container: binder.container,
             scope: binder.container.scope
           });
@@ -1024,7 +1026,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           this.nodes = binder.target.options;
           this.multiple = Utility.multiple(binder.target);
 
-          if (this.multiple && data.constructor !== Array) {
+          if (this.multiple && (!data || data.constructor !== Array)) {
             throw new Error("Oxe - invalid o-value ".concat(binder.keys.join('.'), " multiple select requires array"));
           }
         },
@@ -1131,98 +1133,29 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   var DATA = new Map();
   var BINDERS = {
-    get class() {
-      return Class;
-    },
-
-    get css() {
-      return Css;
-    },
-
-    get default() {
-      return Default;
-    },
-
-    get disable() {
-      return Disable;
-    },
-
-    get disabled() {
-      return Disable;
-    },
-
-    get each() {
-      return Each;
-    },
-
-    get enable() {
-      return Enable;
-    },
-
-    get enabled() {
-      return Enable;
-    },
-
-    get hide() {
-      return Hide;
-    },
-
-    get hidden() {
-      return Hide;
-    },
-
-    get href() {
-      return Href;
-    },
-
-    get html() {
-      return Html;
-    },
-
-    get label() {
-      return Label;
-    },
-
-    get on() {
-      return On;
-    },
-
-    get read() {
-      return Read;
-    },
-
-    get require() {
-      return Require;
-    },
-
-    get required() {
-      return Require;
-    },
-
-    get show() {
-      return Show;
-    },
-
-    get showed() {
-      return Show;
-    },
-
-    get style() {
-      return Style;
-    },
-
-    get text() {
-      return Text;
-    },
-
-    get value() {
-      return Value;
-    },
-
-    get write() {
-      return Write;
-    }
-
+    class: Class,
+    css: Css,
+    default: Default,
+    disable: Disable,
+    disabled: Disable,
+    each: Each,
+    enable: Enable,
+    enabled: Enable,
+    hide: Hide,
+    hidden: Hide,
+    href: Href,
+    html: Html,
+    label: Label,
+    on: On,
+    read: Read,
+    require: Require,
+    required: Require,
+    show: Show,
+    showed: Show,
+    style: Style,
+    text: Text,
+    value: Value,
+    write: Write
   };
   var Binder = {
     get data() {
@@ -1239,10 +1172,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.data.set('location', new Map());
         this.data.set('attribute', new Map());
 
+        for (var name in this.binders) {
+          this.binders[name] = this.binders[name].bind(this);
+        }
+
         if (options.binders) {
-          for (var i = 0, l = options.binders.length; i < l; i++) {
-            var binder = options.binders[i];
-            this.binders[binder.name] = binder;
+          for (var _name in options.binders) {
+            if (_name in this.binders === false) {
+              this.binders[_name] = options.binders[_name].bind(this);
+            }
           }
         }
 
