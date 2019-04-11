@@ -24,29 +24,29 @@ import Write from './binders/write.js';
 const DATA = new Map();
 
 const BINDERS = {
-	get class () { return Class; },
-	get css () { return Css; },
-	get default () { return Default; },
-	get disable () { return Disable; },
-	get disabled () { return Disable; },
-	get each () { return Each; },
-	get enable () { return Enable; },
-	get enabled () { return Enable; },
-	get hide () { return Hide; },
-	get hidden () { return Hide; },
-	get href () { return Href; },
-	get html () { return Html; },
-	get label () { return Label; },
-	get on () { return On; },
-	get read () { return Read; },
-	get require () { return Require; },
-	get required () { return Require; },
-	get show () { return Show; },
-	get showed () { return Show; },
-	get style () { return Style; },
-	get text () { return Text; },
-	get value () { return Value; },
-	get write () { return Write; }
+	class: Class,
+	css: Css,
+	default: Default,
+	disable: Disable,
+	disabled: Disable,
+	each: Each,
+	enable: Enable,
+	enabled: Enable,
+	hide: Hide,
+	hidden: Hide,
+	href: Href,
+	html: Html,
+	label: Label,
+	on: On,
+	read: Read,
+	require: Require,
+	required: Require,
+	show: Show,
+	showed: Show,
+	style: Style,
+	text: Text,
+	value: Value,
+	write: Write
 };
 
 export default {
@@ -60,10 +60,15 @@ export default {
 		this.data.set('location', new Map());
 		this.data.set('attribute', new Map());
 
+		for (const name in this.binders) {
+			this.binders[name] = this.binders[name].bind(this);
+		}
+
 		if (options.binders) {
-			for (let i = 0, l = options.binders.length; i < l; i++) {
-				const binder = options.binders[i];
-				this.binders[binder.name] = binder;
+			for (const name in options.binders) {
+				if (name in this.binders === false) {
+					this.binders[name] = options.binders[name].bind(this);
+				}
 			}
 		}
 

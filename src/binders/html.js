@@ -1,7 +1,6 @@
-// import View from '../view.js';
-import Binder from '../binder.js';
 
 export default function (binder, data) {
+	const self = this;
 	return {
 		read () {
 
@@ -18,8 +17,7 @@ export default function (binder, data) {
 
 			while (binder.target.firstChild) {
 				const node = binder.target.removeNode(binder.target.firstChild);
-				Binder.remove(node);
-				// View.remove(node);
+				self.remove(node);
 			}
 
 			const fragment = document.createDocumentFragment();
@@ -28,8 +26,7 @@ export default function (binder, data) {
 			parser.innerHTML = data;
 
 			while (parser.firstElementChild) {
-				Binder.add(parser.firstElementChild, {
-				// View.add(parser.firstElementChild, {
+				self.add(parser.firstElementChild, {
 					container: binder.container,
 					scope: binder.container.scope
 				});
