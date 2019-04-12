@@ -1,12 +1,13 @@
 import Utility from '../utility.js';
 
-export default function (binder, data) {
+export default function (binder) {
 	return {
-		read () {
+		read (context) {
+			context.data = binder.data;
 
-			if (typeof data !== 'function') {
+			if (typeof context.data !== 'function') {
 				console.warn(`Oxe - binder o-on="${binder.keys.join('.')}" invalid type function required`);
-				return false;
+				return;
 			}
 
 			if (binder.meta.method) {
@@ -21,17 +22,11 @@ export default function (binder, data) {
 						parameters.push(parameter);
 					}
 
-					Promise.resolve(data.bind(binder.container).apply(null, parameters)).catch(console.error);
+					Promise.resolve(context.data.bind(binder.container).apply(null, parameters)).catch(console.error);
 				};
 			}
 
 			binder.target.addEventListener(binder.names[1], binder.meta.method);
-
-			return false;
-		},
-		// write () {
-		// 	binder.target.removeEventListener(binder.names[1], binder.meta.method);
-		// 	binder.target.addEventListener(binder.names[1], binder.meta.method);
-		// }
+		}
 	};
 };

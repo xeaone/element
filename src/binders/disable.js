@@ -1,11 +1,12 @@
 
-export default function (binder, data) {
+export default function (binder) {
 	return {
 		read () {
-			if (data === binder.target.disabled) return false;
+			this.data = binder.data;
+			if (this.data === binder.target.disabled) return false;
 		},
 		write () {
-			binder.target.disabled = data;
+			binder.target.disabled = this.data;
 		}
 	};
 };

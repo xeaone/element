@@ -1,9 +1,9 @@
 
-export default function (binder, data) {
+export default function (binder) {
 	return {
 		write () {
-			let name = binder.names.slice(1).join('-');
-			binder.target.classList.toggle(name, data);
+			const name = binder.names.slice(1).join('-');
+			binder.target.classList.toggle(name, binder.data);
 		}
 	};
 };

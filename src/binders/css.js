@@ -1,19 +1,20 @@
 
-export default function (binder, data) {
+export default function (binder) {
 	return {
 		read () {
+			this.data = binder.data;
 
 			if (binder.names.length > 1) {
-				data = binder.names.slice(1).join('-') + ': ' +  data + ';';
+				this.data = binder.names.slice(1).join('-') + ': ' +  this.data + ';';
 			}
 
-			if (data === binder.target.style.cssText) {
+			if (this.data === binder.target.style.cssText) {
 				return false;
 			}
 
 		},
 		write () {
-			binder.target.style.cssText = data;
+			binder.target.style.cssText = this.data;
 		}
 	};
 };

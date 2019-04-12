@@ -5,7 +5,7 @@ export default function (binder) {
 
 	const render = {
 		read () {
-			const data = binder.data || [];
+			this.data = binder.data || [];
 
 			if (binder.meta.keys === undefined) {
 				binder.meta.keys = [];
@@ -24,8 +24,13 @@ export default function (binder) {
 
 			}
 
-			binder.meta.keys = Object.keys(data);
+			binder.meta.keys = Object.keys(this.data);
 			binder.meta.targetLength = binder.meta.keys.length;
+
+			if (binder.meta.currentLength === binder.meta.targetLength) {
+				return false;
+			}
+
 		},
 		write () {
 
@@ -40,7 +45,6 @@ export default function (binder) {
 				self.remove(element);
 				binder.meta.currentLength--;
 			} else if (binder.meta.currentLength < binder.meta.targetLength) {
-
 				// const element = document.importNode(binder.meta.template, true);
 				const element = binder.meta.template.cloneNode(true);
 
@@ -55,7 +59,6 @@ export default function (binder) {
 				binder.target.appendChild(element);
 			}
 
-			// if (binder.meta.pending) {
 			if (binder.meta.pending && render.read) {
 				return;
 			} else {
@@ -64,7 +67,6 @@ export default function (binder) {
 
 			delete render.read;
 			Batcher.batch(render);
-
 		}
 	};
 

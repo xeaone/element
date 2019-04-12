@@ -1,12 +1,12 @@
 
-export default function (binder, data) {
+export default function (binder) {
 	return {
 		read () {
-			if (data === binder.target.hidden) return false;
+			thsi.data = binder.data;
+			if (thsi.data === binder.target.hidden) return false;
 		},
 		write () {
-			binder.target.hidden = data;
+			binder.target.hidden = this.data;
 		}
-
 	};
 };

@@ -1,7 +1,7 @@
 import Utility from '../utility.js';
 import Piper from '../piper.js';
 
-export default function (binder, data) {
+export default function (binder) {
 	const self = this;
 	const type = binder.target.type;
 	const name = binder.target.nodeName;
@@ -9,11 +9,12 @@ export default function (binder, data) {
 	if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
 		return {
 			read () {
+				this.data = binder.data;
 
 				this.nodes = binder.target.options;
 				this.multiple = Utility.multiple(binder.target);
 
-				if (this.multiple && (!data || data.constructor !== Array)) {
+				if (this.multiple && (!this.data || this.data.constructor !== Array)) {
 					throw new Error(`Oxe - invalid o-value ${binder.keys.join('.')} multiple select requires array`);
 				}
 
@@ -26,22 +27,22 @@ export default function (binder, data) {
 					if (this.multiple) {
 						if (node.selected) {
 
-							if (!node.disabled && !Utility.includes(data, value)) {
+							if (!node.disabled && !Utility.includes(this.data, value)) {
 								binder.data.push(value);
 							}
 
-						} else if (Utility.includes(data, value)) {
+						} else if (Utility.includes(this.data, value)) {
 							node.selected = true;
 						}
 					} else {
 						if (node.selected) {
 
-							if (!node.disabled && !Utility.compare(data, value)) {
+							if (!node.disabled && !Utility.compare(this.data, value)) {
 								binder.data = value;
 							}
 
 							break;
-						} else if (Utility.compare(data, value)) {
+						} else if (Utility.compare(this.data, value)) {
 							node.selected = true;
 							break;
 						}
@@ -52,9 +53,10 @@ export default function (binder, data) {
 	} else if (type === 'radio') {
 		return {
 			read () {
+				this.data = binder.data;
 
-				if (typeof data !== 'number') {
-					// data = 0;
+				if (typeof this.data !== 'number') {
+					// this.data = 0;
 					return false;
 				}
 
@@ -69,7 +71,7 @@ export default function (binder, data) {
 				for (let i = 0, l = this.nodes.length; i < l; i++) {
 					const node = this.nodes[i];
 
-					if (i === data) {
+					if (i === this.data) {
 						checked = true;
 						node.checked = true;
 						node.setAttribute('checked', '');
@@ -92,18 +94,19 @@ export default function (binder, data) {
 	} else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
 		return {
 			read () {
+				this.data = binder.data;
 
-				if (typeof data !== 'boolean') {
-					// data = false;
+				if (typeof this.data !== 'boolean') {
+					// this.data = false;
 					return false;
 				}
 
 			},
 			write () {
 
-				binder.target.checked = data;
+				binder.target.checked = this.data;
 
-				if (data) {
+				if (this.data) {
 					binder.target.setAttribute('checked', '');
 				} else {
 					binder.target.removeAttribute('checked');
@@ -114,14 +117,15 @@ export default function (binder, data) {
 	} else {
 		return {
 			read () {
+				this.data = binder.data;
 
-				if (data === binder.target.value) {
+				if (this.data === binder.target.value) {
 					return false;
 				}
 
 			},
 			write () {
-				binder.target.value = data === undefined || data === null ? '' : data;
+				binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
 			}
 		};
 	}

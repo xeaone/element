@@ -159,7 +159,7 @@ export default {
 	render (binder) {
 
 		const type = binder.type in this.binders ? binder.type : 'default';
-		const render = this.binders[type](binder, binder.data);
+		const render = this.binders[type](binder);
 
 		Batcher.batch(render);
 	},

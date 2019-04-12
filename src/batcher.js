@@ -12,9 +12,8 @@ export default {
 		this.time = options.time || this.time;
 	},
 
-	tick (callback, data) {
-		data = data || {};
-		window.requestAnimationFrame(callback.bind(this, data));
+	tick (callback) {
+		window.requestAnimationFrame(callback.bind(this, null));
 	},
 
 	// schedules a new read/write batch if one is not pending
@@ -24,71 +23,91 @@ export default {
 		this.tick(this.flush);
 	},
 
-	flush (data) {
-		data.reads = data.reads || 0;
-		data.writes = data.writes || 0;
-		data.time = data.time || performance.now();
+	flush (time) {
+		time = time || performance.now();
 
 		let task;
 
-		if (data.reads === 0) {
-			while (task = this.reads.shift()) {
-
-				if (task) {
-					task();
-					data.reads++;
-				}
-
-				if (data.writes && data.writes === data.reads) {
-					data.writes = 0;
-					break;
-				}
-
-				if ((performance.now() - data.time) > this.time) {
-					data.writes = 0;
-					data.time = null;
-					return this.tick(this.flush, data);
-				}
-
-			}
-		}
-
-		if (data.writes === 0) {
-			while (task = this.writes.shift()) {
-
-				if (task) {
-					task();
-					data.writes++;
-				}
-
-				if (data.reads && data.reads === data.writes) {
-					data.reads = 0;
-					break;
-				}
-
-				if ((performance.now() - data.time) > this.time) {
-					data.reads = 0;
-					data.time = null;
-					return this.tick(this.flush, data);
-				}
-
-			}
-		}
+		// if (data.reads === 0) {
+		// 	while (task = this.reads.shift()) {
+		//
+		// 		if (task) {
+		// 			task();
+		// 			data.reads++;
+		// 		}
+		//
+		// 		if (data.writes && data.writes === data.reads) {
+		// 			data.writes = 0;
+		// 			break;
+		// 		}
+		//
+		// 		if ((performance.now() - data.time) > this.time) {
+		// 			data.writes = 0;
+		// 			data.time = null;
+		// 			return this.tick(this.flush, data);
+		// 			break;
+		// 		}
+		//
+		// 	}
+		// }
+		//
+		// if (data.writes === 0) {
+		// 	while (task = this.writes.shift()) {
+		//
+		// 		if (task) {
+		// 			task();
+		// 			data.writes++;
+		// 		}
+		//
+		// 		if (data.reads && data.reads === data.writes) {
+		// 			data.reads = 0;
+		// 			break;
+		// 		}
+		//
+		// 		if ((performance.now() - data.time) > this.time) {
+		// 			data.reads = 0;
+		// 			data.time = null;
+		// 			return this.tick(this.flush, data);
+		// 		}
+		//
+		// 	}
+		// }
 
 		// while (task = this.reads.shift()) task();
 		// while (task = this.writes.shift()) task();
 
+		if (this.writes.length === 0) {
+			while (task = this.reads.shift()) {
+
+				if (task) {
+					task();
+				}
+
+				if ((performance.now() - time) > this.time) {
+					return this.tick(this.flush);
+				}
+
+			}
+		}
+
+		while (task = this.writes.shift()) {
+
+			if (task) {
+				task();
+			}
+
+			if ((performance.now() - time) > this.time) {
+				return this.tick(this.flush);
+			}
+
+		}
+
 		if (this.reads.length === 0 && this.writes.length === 0) {
 			this.pending = false;
-		} else if ((performance.now() - data.time) > this.time) {
-			data.reads = 0;
-			data.writes = 0;
-			data.time = null;
-			this.tick(this.flush, data);
+		} else if ((performance.now() - time) > this.time) {
+			this.tick(this.flush);
 		} else {
-			data.reads = 0;
-			data.writes = 0;
-			this.flush(data);
+			this.flush(time);
 		}
 
 	},
@@ -110,43 +129,35 @@ export default {
 
 		data.context = data.context || {};
 
-		const read = data.read ? data.read.bind(data.context) : null;
-		const write = data.write ? data.write.bind(data.context) : null;
-
-		self.reads.push(read);
-		self.writes.push(write);
-
-		self.schedule();
-
-		// const read = function () {
-		// 	let result;
-		//
-		// 	if (data.read) {
-		// 		result = data.read.call(data.context);
-		// 		// data.read.call(data.context);
-		// 	}
-		//
-		// 	// if (data.write && result !== false) {
-		// 	if (data.write) {
-		// 		const write = data.write.bind(data.context);
-		//
-		// 		self.writes.push(write);
-		// 		// self.schedule();
-		// 	}
-		//
-		// };
+		// const read = data.read ? data.read.bind(null, data.context) : null;
+		// const write = data.write ? data.write.bind(null, data.context) : null;
 		//
 		// self.reads.push(read);
+		// self.writes.push(write);
+		//
 		// self.schedule();
+
+		const read = function () {
+			let result;
+
+			if (data.read) {
+				result = data.read.call(data.context, data.context);
+				// data.read.call(data.context);
+			}
+
+			if (data.write && result !== false) {
+			// if (data.write) {
+				const write = data.write.bind(data.context, data.context);
+
+				self.writes.push(write);
+			// } else {
+				// self.writes.push(null);
+			}
+
+		};
+
+		self.reads.push(read);
+		self.schedule();
 	}
 
 };
-
-/*
-	console.log('read ', Oxe.batcher.tr);
-	console.log('write ', Oxe.batcher.tw);
-	console.log('position ', Oxe.batcher.tp);
-	Oxe.batcher.tr = 0;
-	Oxe.batcher.tw = 0;
-	Oxe.batcher.tp = 0;
-*/

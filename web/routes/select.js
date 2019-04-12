@@ -112,8 +112,6 @@ export default {
 			<o-select o-value="result.plants" o-each-plant="plants" multiple>
 				<o-optgroup o-label="$plant.$key" o-each-p="$plant">
 					<o-option o-value="$p">
-						<div>{{$p.$key}}</div>
-						<div>{{$p.$index}}</div>
 						<div>{{$p.name}}</div>
 						<div o-text="$p.name"></div>
 					</o-option>

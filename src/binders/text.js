@@ -1,23 +1,24 @@
 
-export default function (binder, data) {
+export default function (binder) {
 	return {
 		read () {
+			this.data = binder.data;
 
-			if (data === undefined || data === null) {
-				return false;
-			} else if (typeof data === 'object') {
-				data = JSON.stringify(data);
-			} else if (typeof data !== 'string') {
-				data = data.toString();
+			if (this.data === undefined || this.data === null) {
+				this.data = '';
+			} else if (typeof this.data === 'object') {
+				this.data = JSON.stringify(this.data);
+			} else if (typeof this.data !== 'string') {
+				this.data = this.data.toString();
 			}
 
-			if (data === binder.target.textContent) {
+			if (this.data === binder.target.textContent) {
 				return false;
 			}
 
 		},
 		write () {
-			binder.target.textContent = data;
+			binder.target.textContent = this.data;
 		}
 	};
 };

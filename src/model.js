@@ -71,30 +71,16 @@ export default {
 		const part = parts.slice(1).join('.');
 		const scope = parts.slice(0, 1).join('.');
 
-		// if (scope in Binder.data === false) return;// console.warn(`Oxe.model.listener - scope not found: ${scope}`);
-		// if (part in Binder.data[scope] === false) return;// console.warn(`Oxe.model.listener - path not found: ${part}`);
-		// if (0 in Binder.data[scope][part] === false) return;// console.warn('Oxe.model.listener - data not found');
-
-		// const paths = Binder._data[scope];
-		// for (const path in paths) {
-		// 	if (part === '' || path === part || path.indexOf(part + '.') === 0) {
-		// 		const binders = paths[path];
-		// 		for (let i = 0, l = binders.length; i < l; i++) {
-		// 			const binder = binders[i];
-		// 			const piped = Piper(binder, binder.data);
-		// 			Binder.render(binder, piped);
-		// 		}
-		// 	}
-		// }
-
 		const paths = Binder.get('location', scope);
 
 		if (!paths) return;
 
 		paths.forEach(function (binders, path) {
-			if (path === part || (type !== 'length' && path.indexOf(part + '.') === 0)) {
-			// if (path === part) {
-			// if (path.indexOf(part + '.') === 0) {
+			if (
+				part === '' ||
+				path === part ||
+				(type !== 'length' && path.indexOf(part + '.') === 0)
+			) {
 				binders.forEach(function (binder) {
 					Binder.render(binder);
 				});
