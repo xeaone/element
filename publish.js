@@ -4,7 +4,7 @@ const ChildProcess = require('child_process');
 
 const Exec = Util.promisify(ChildProcess.exec);
 
-(async function() {
+(async function () {
 
 	const commands = [
 		'node build.js',
