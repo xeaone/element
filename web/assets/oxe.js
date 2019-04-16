@@ -828,8 +828,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Hide(binder) {
     return {
       read: function read() {
-        thsi.data = binder.data;
-        if (thsi.data === binder.target.hidden) return false;
+        this.data = binder.data;
+        if (this.data === binder.target.hidden) return false;
       },
       write: function write() {
         binder.target.hidden = this.data;
