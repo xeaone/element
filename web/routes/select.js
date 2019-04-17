@@ -1,52 +1,52 @@
 var title = 'Select';
 
 export default {
-	title: title,
-	path: '/select',
-	component: {
-		name: 'r-select',
-		model: {
-			title: title,
-			stateOne: 'AZ',
-			stateTwo: 'FL',
-			cars: [
-				'Audi',
-				'Saab',
-				'Volvo'
-			],
-			names: [
-				'jon',
-				'alex',
-				'dave'
-			],
-			groups: [
-				'one',
-				'two'
-			],
-			friends: [
-				{ name: 'dave', age: 2 },
-				{ name: 'sam', age: 40 }
-			],
-			plants: {
-				flowers: [
-					{ name: 'rose' },
-					{ name: 'tulip' }
-				],
-				trees: [
-					{ name: 'oak' },
-					{ name: 'aspen' }
-				]
-			},
-			result: {
-				state: 'FL',
-				fruit: '',
-				name: '',
-				cars: [],
-				friends: [],
-				plants: []
-			}
-		},
-		template: /*html*/`
+    title: title,
+    path: '/select',
+    component: {
+        name: 'r-select',
+        model: {
+            title: title,
+            stateOne: 'AZ',
+            stateTwo: 'FL',
+            cars: [
+                'Audi',
+                'Saab',
+                'Volvo'
+            ],
+            names: [
+                'jon',
+                'alex',
+                'dave'
+            ],
+            groups: [
+                'one',
+                'two'
+            ],
+            friends: [
+                { name: 'dave', age: 2 },
+                { name: 'sam', age: 40 }
+            ],
+            plants: {
+                flowers: [
+                    { name: 'rose' },
+                    { name: 'tulip' }
+                ],
+                trees: [
+                    { name: 'oak' },
+                    { name: 'aspen' }
+                ]
+            },
+            result: {
+                state: 'FL',
+                fruit: '',
+                name: '',
+                cars: [],
+                friends: [],
+                plants: []
+            }
+        },
+        template: /*html*/`
 
 			<style>
 				o-optgroup::before, o-options::before {
@@ -60,7 +60,6 @@ export default {
 			<h2 o-text="title"></h2>
 
 			<hr>
-
 			<div o-text="result.fruit"></div>
 			<select o-value="result.fruit">
 				<option value="apple">apple</option>
@@ -69,7 +68,6 @@ export default {
 			</select>
 
 			<hr>
-
 			<div o-text="result.state"></div>
 			<select o-value="result.state">
 				<option o-value="stateOne" o-text="stateOne"></option>
@@ -77,21 +75,19 @@ export default {
 			</select>
 
 			<hr>
-
 			<div o-text="result.cars"></div>
 			<select o-value="result.cars" o-each-car="cars" multiple>
 				<option o-value="$car" o-text="$car"></option>
 			</select>
 
 			<hr>
+			<div>{{result.name}}</div>
+			<o-select o-value="result.name" o-each-name="names">
+				<o-option o-value="$name">{{$name}}</o-option>
+			</o-select>
 
-			<!-- <div o-text="result.name"></div>
-			<select o-value="result.name" o-each-name="names">
-				<option o-value="$name" o-text="$name"></option>
-			</select>
-
-			<hr> -->
-
+			<br>
+			<hr>
 			<div o-text="result.friends"></div>
 			<br>
 			<o-select o-value="result.friends" o-each-group="groups" multiple>
@@ -120,5 +116,5 @@ export default {
 
 
 		`
-	}
-}
+    }
+};
