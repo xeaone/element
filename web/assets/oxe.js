@@ -436,225 +436,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return data[keys[last]];
     }
   };
-  var Observer = {
-    splice: function splice() {
-      var self = this;
-      var startIndex = arguments[0];
-      var deleteCount = arguments[1];
-      var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
-
-      if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
-        return [];
-      }
-
-      if (startIndex < 0) {
-        startIndex = self.length + startIndex;
-        startIndex = startIndex > 0 ? startIndex : 0;
-      } else {
-        startIndex = startIndex < self.length ? startIndex : self.length;
-      }
-
-      if (deleteCount < 0) {
-        deleteCount = 0;
-      } else if (deleteCount > self.length - startIndex) {
-        deleteCount = self.length - startIndex;
-      }
-
-      var totalCount = self.$meta.length;
-      var argumentIndex = 2;
-      var argumentsCount = arguments.length - argumentIndex;
-      var result = self.slice(startIndex, deleteCount);
-      var updateCount = totalCount - 1 - startIndex;
-      var promises = [];
-      var length = self.length + addCount - deleteCount;
-
-      if (self.length !== length) {
-        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
-      }
-
-      if (updateCount > 0) {
-        var value;
-        var _index = startIndex;
-
-        while (updateCount--) {
-          var key = _index++;
-
-          if (argumentsCount && argumentIndex < argumentsCount) {
-            value = arguments[argumentIndex++];
-          } else {
-            value = self.$meta[_index];
-          }
-
-          self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
-          promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
-        }
-      }
-
-      if (addCount > 0) {
-        while (addCount--) {
-          var _key = self.length;
-
-          if (_key in this === false) {
-            Object.defineProperty(this, _key, Observer.descriptor(_key));
-          }
-
-          self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
-          promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
-        }
-      }
-
-      if (deleteCount > 0) {
-        while (deleteCount--) {
-          self.$meta.length--;
-          self.length--;
-          var _key2 = self.length;
-          promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
-        }
-      }
-
-      Promise.resolve().then(function () {
-        promises.reduce(function (promise, item) {
-          return promise.then(item);
-        }, Promise.resolve());
-      }).catch(console.error);
-      return result;
-    },
-    arrayProperties: function arrayProperties() {
-      var self = this;
-      return {
-        push: {
-          value: function value() {
-            if (!arguments.length) return this.length;
-
-            for (var i = 0, l = arguments.length; i < l; i++) {
-              self.splice.call(this, this.length, 0, arguments[i]);
-            }
-
-            return this.length;
-          }
-        },
-        unshift: {
-          value: function value() {
-            if (!arguments.length) return this.length;
-
-            for (var i = 0, l = arguments.length; i < l; i++) {
-              self.splice.call(this, 0, 0, arguments[i]);
-            }
-
-            return this.length;
-          }
-        },
-        pop: {
-          value: function value() {
-            if (!this.length) return;
-            var result = self.splice.call(this, this.length - 1, 1);
-            return result[0];
-          }
-        },
-        shift: {
-          value: function value() {
-            if (!this.length) return;
-            var result = self.splice.call(this, 0, 1);
-            return result[0];
-          }
-        },
-        splice: {
-          value: self.splice
-        }
-      };
-    },
-    objectProperties: function objectProperties() {
-      var self = this;
-      return {
-        $get: {
-          value: function value(key) {
-            return this.$meta[key];
-          }
-        },
-        $set: {
-          value: function value(key, _value3) {
-            if (_value3 !== this.$meta[key]) {
-              if (key in this === false) {
-                Object.defineProperty(this, key, self.descriptor(key));
-              }
-
-              this.$meta[key] = self.create(_value3, this.$meta.listener, this.$meta.path + key);
-              this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
-            }
-          }
-        },
-        $remove: {
-          value: function value(key) {
-            if (key in this) {
-              if (this.constructor === Array) {
-                return self.splice.call(this, key, 1);
-              } else {
-                var result = this[key];
-                delete this.$meta[key];
-                delete this[key];
-                this.$meta.listener(undefined, this.$meta.path + key, key);
-                return result;
-              }
-            }
-          }
-        }
-      };
-    },
-    descriptor: function descriptor(key) {
-      var self = this;
-      return {
-        enumerable: true,
-        configurable: true,
-        get: function get() {
-          return this.$meta[key];
-        },
-        set: function set(value) {
-          if (value !== this.$meta[key]) {
-            this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
-            this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
-          }
-        }
-      };
-    },
-    create: function create(source, listener, path) {
-      if (!source || source.constructor !== Object && source.constructor !== Array) {
-        return source;
-      }
-
-      path = path ? path + '.' : '';
-      var type = source.constructor;
-      var target = source.constructor();
-      var descriptors = {};
-      descriptors.$meta = {
-        value: source.constructor()
-      };
-      descriptors.$meta.value.path = path;
-      descriptors.$meta.value.listener = listener;
-
-      if (type === Array) {
-        for (var key = 0, length = source.length; key < length; key++) {
-          descriptors.$meta.value[key] = this.create(source[key], listener, path + key);
-          descriptors[key] = this.descriptor(key);
-        }
-      }
-
-      if (type === Object) {
-        for (var _key3 in source) {
-          descriptors.$meta.value[_key3] = this.create(source[_key3], listener, path + _key3);
-          descriptors[_key3] = this.descriptor(_key3);
-        }
-      }
-
-      Object.defineProperties(target, descriptors);
-      Object.defineProperties(target, this.objectProperties(source, listener, path));
-
-      if (type === Array) {
-        Object.defineProperties(target, this.arrayProperties(source, listener, path));
-      }
-
-      return target;
-    }
-  };
 
   function Piper(binder, data) {
     if (binder.type === 'on') {
@@ -1059,7 +840,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 if (!node.disabled && !Utility.includes(this.data, value)) {
                   binder.data.push(value);
                 }
-              } else if (Utility.includes(this.data, value)) {
+              } else if (this.data !== undefined && Utility.includes(this.data, value)) {
                 node.selected = true;
               }
             } else {
@@ -1069,7 +850,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 }
 
                 break;
-              } else if (Utility.compare(this.data, value)) {
+              } else if (this.data !== undefined && Utility.compare(this.data, value)) {
                 node.selected = true;
                 break;
               }
@@ -1219,10 +1000,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     get: function get(type) {
       if (!type) throw new Error('Oxe.binder.get - type argument required');
       var result = this.data.get(type);
+      if (!result) return result;
 
       for (var i = 1, l = arguments.length; i < l; i++) {
         var argument = arguments[i];
         result = result.get(argument);
+        if (!result) return result;
       }
 
       return result;
@@ -1437,78 +1220,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
     }
   };
-  var Model = {
-    GET: 2,
-    SET: 3,
-    REMOVE: 4,
-    data: null,
-    tasks: [],
-    target: {},
-    setup: function setup(options) {
-      return new Promise(function ($return, $error) {
-        options = options || {};
-        this.target = options.target || this.target;
-        this.data = Observer.create(this.target, this.listener.bind(this));
-        return $return();
-      }.bind(this));
-    },
-    traverse: function traverse(type, keys, value) {
-      var result;
-
-      if (typeof keys === 'string') {
-        keys = keys.split('.');
-      }
-
-      var data = this.data;
-      var key = keys[keys.length - 1];
-
-      for (var i = 0, l = keys.length - 1; i < l; i++) {
-        if (!(keys[i] in data)) {
-          if (type === this.GET || type === this.REMOVE) {
-            return undefined;
-          } else if (type === this.SET) {
-            data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
-          }
-        }
-
-        data = data[keys[i]];
-      }
-
-      if (type === this.SET) {
-        result = data.$set(key, value);
-      } else if (type === this.GET) {
-        result = data[key];
-      } else if (type === this.REMOVE) {
-        result = data[key];
-        data.$remove(key);
-      }
-
-      return result;
-    },
-    get: function get(keys) {
-      return this.traverse(this.GET, keys);
-    },
-    remove: function remove(keys) {
-      return this.traverse(this.REMOVE, keys);
-    },
-    set: function set(keys, value) {
-      return this.traverse(this.SET, keys, value);
-    },
-    listener: function listener(data, location, type) {
-      var parts = location.split('.');
-      var part = parts.slice(1).join('.');
-      var scope = parts.slice(0, 1).join('.');
-      var paths = Binder.get('location', scope);
-      if (!paths) return;
-      paths.forEach(function (binders, path) {
-        if (part === '' || path === part || type !== 'length' && path.indexOf(part + '.') === 0) {
-          binders.forEach(function (binder) {
-            Binder.render(binder);
-          });
-        }
-      });
-    }
-  };
 
   function Update(node, attribute) {
     return new Promise(function ($return, $error) {
@@ -1528,10 +1239,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           var nodes = binder.container.querySelectorAll(query);
 
           for (var i = 0, l = nodes.length; i < l; i++) {
-            var _node = nodes[i];
-
-            if (binder.target === _node) {
-              console.log(i);
+            if (binder.target === nodes[i]) {
+              binder.data = i;
             }
           }
         } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
@@ -1861,6 +1570,297 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     set: function set(path, data) {
       return Utility.setByPath(this.data, path, data);
+    }
+  };
+  var Observer = {
+    splice: function splice() {
+      var self = this;
+      var startIndex = arguments[0];
+      var deleteCount = arguments[1];
+      var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
+
+      if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
+        return [];
+      }
+
+      if (startIndex < 0) {
+        startIndex = self.length + startIndex;
+        startIndex = startIndex > 0 ? startIndex : 0;
+      } else {
+        startIndex = startIndex < self.length ? startIndex : self.length;
+      }
+
+      if (deleteCount < 0) {
+        deleteCount = 0;
+      } else if (deleteCount > self.length - startIndex) {
+        deleteCount = self.length - startIndex;
+      }
+
+      var totalCount = self.$meta.length;
+      var argumentIndex = 2;
+      var argumentsCount = arguments.length - argumentIndex;
+      var result = self.slice(startIndex, deleteCount);
+      var updateCount = totalCount - 1 - startIndex;
+      var promises = [];
+      var length = self.length + addCount - deleteCount;
+
+      if (self.length !== length) {
+        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+      }
+
+      if (updateCount > 0) {
+        var value;
+        var _index = startIndex;
+
+        while (updateCount--) {
+          var key = _index++;
+
+          if (argumentsCount && argumentIndex < argumentsCount) {
+            value = arguments[argumentIndex++];
+          } else {
+            value = self.$meta[_index];
+          }
+
+          self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
+          promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
+        }
+      }
+
+      if (addCount > 0) {
+        while (addCount--) {
+          var _key = self.length;
+
+          if (_key in this === false) {
+            Object.defineProperty(this, _key, Observer.descriptor(_key));
+          }
+
+          self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
+          promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
+        }
+      }
+
+      if (deleteCount > 0) {
+        while (deleteCount--) {
+          self.$meta.length--;
+          self.length--;
+          var _key2 = self.length;
+          promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
+        }
+      }
+
+      Promise.resolve().then(function () {
+        promises.reduce(function (promise, item) {
+          return promise.then(item);
+        }, Promise.resolve());
+      }).catch(console.error);
+      return result;
+    },
+    arrayProperties: function arrayProperties() {
+      var self = this;
+      return {
+        push: {
+          value: function value() {
+            if (!arguments.length) return this.length;
+
+            for (var i = 0, l = arguments.length; i < l; i++) {
+              self.splice.call(this, this.length, 0, arguments[i]);
+            }
+
+            return this.length;
+          }
+        },
+        unshift: {
+          value: function value() {
+            if (!arguments.length) return this.length;
+
+            for (var i = 0, l = arguments.length; i < l; i++) {
+              self.splice.call(this, 0, 0, arguments[i]);
+            }
+
+            return this.length;
+          }
+        },
+        pop: {
+          value: function value() {
+            if (!this.length) return;
+            var result = self.splice.call(this, this.length - 1, 1);
+            return result[0];
+          }
+        },
+        shift: {
+          value: function value() {
+            if (!this.length) return;
+            var result = self.splice.call(this, 0, 1);
+            return result[0];
+          }
+        },
+        splice: {
+          value: self.splice
+        }
+      };
+    },
+    objectProperties: function objectProperties() {
+      var self = this;
+      return {
+        $get: {
+          value: function value(key) {
+            return this.$meta[key];
+          }
+        },
+        $set: {
+          value: function value(key, _value3) {
+            if (_value3 !== this.$meta[key]) {
+              if (key in this === false) {
+                Object.defineProperty(this, key, self.descriptor(key));
+              }
+
+              this.$meta[key] = self.create(_value3, this.$meta.listener, this.$meta.path + key);
+              this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
+            }
+          }
+        },
+        $remove: {
+          value: function value(key) {
+            if (key in this) {
+              if (this.constructor === Array) {
+                return self.splice.call(this, key, 1);
+              } else {
+                var result = this[key];
+                delete this.$meta[key];
+                delete this[key];
+                this.$meta.listener(undefined, this.$meta.path + key, key);
+                return result;
+              }
+            }
+          }
+        }
+      };
+    },
+    descriptor: function descriptor(key) {
+      var self = this;
+      return {
+        enumerable: true,
+        configurable: true,
+        get: function get() {
+          return this.$meta[key];
+        },
+        set: function set(value) {
+          if (value !== this.$meta[key]) {
+            this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
+            this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
+          }
+        }
+      };
+    },
+    create: function create(source, listener, path) {
+      if (!source || source.constructor !== Object && source.constructor !== Array) {
+        return source;
+      }
+
+      path = path ? path + '.' : '';
+      var type = source.constructor;
+      var target = source.constructor();
+      var descriptors = {};
+      descriptors.$meta = {
+        value: source.constructor()
+      };
+      descriptors.$meta.value.path = path;
+      descriptors.$meta.value.listener = listener;
+
+      if (type === Array) {
+        for (var key = 0, length = source.length; key < length; key++) {
+          descriptors.$meta.value[key] = this.create(source[key], listener, path + key);
+          descriptors[key] = this.descriptor(key);
+        }
+      }
+
+      if (type === Object) {
+        for (var _key3 in source) {
+          descriptors.$meta.value[_key3] = this.create(source[_key3], listener, path + _key3);
+          descriptors[_key3] = this.descriptor(_key3);
+        }
+      }
+
+      Object.defineProperties(target, descriptors);
+      Object.defineProperties(target, this.objectProperties(source, listener, path));
+
+      if (type === Array) {
+        Object.defineProperties(target, this.arrayProperties(source, listener, path));
+      }
+
+      return target;
+    }
+  };
+  var Model = {
+    GET: 2,
+    SET: 3,
+    REMOVE: 4,
+    data: null,
+    tasks: [],
+    target: {},
+    setup: function setup(options) {
+      return new Promise(function ($return, $error) {
+        options = options || {};
+        this.target = options.target || this.target;
+        this.data = Observer.create(this.target, this.listener.bind(this));
+        return $return();
+      }.bind(this));
+    },
+    traverse: function traverse(type, keys, value) {
+      var result;
+
+      if (typeof keys === 'string') {
+        keys = keys.split('.');
+      }
+
+      var data = this.data;
+      var key = keys[keys.length - 1];
+
+      for (var i = 0, l = keys.length - 1; i < l; i++) {
+        if (!(keys[i] in data)) {
+          if (type === this.GET || type === this.REMOVE) {
+            return undefined;
+          } else if (type === this.SET) {
+            data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
+          }
+        }
+
+        data = data[keys[i]];
+      }
+
+      if (type === this.SET) {
+        result = data.$set(key, value);
+      } else if (type === this.GET) {
+        result = data[key];
+      } else if (type === this.REMOVE) {
+        result = data[key];
+        data.$remove(key);
+      }
+
+      return result;
+    },
+    get: function get(keys) {
+      return this.traverse(this.GET, keys);
+    },
+    remove: function remove(keys) {
+      return this.traverse(this.REMOVE, keys);
+    },
+    set: function set(keys, value) {
+      return this.traverse(this.SET, keys, value);
+    },
+    listener: function listener(data, location, type) {
+      var parts = location.split('.');
+      var part = parts.slice(1).join('.');
+      var scope = parts.slice(0, 1).join('.');
+      var paths = Binder.get('location', scope);
+      if (!paths) return;
+      paths.forEach(function (binders, path) {
+        if (part === '' || path === part || type !== 'length' && path.indexOf(part + '.') === 0) {
+          binders.forEach(function (binder) {
+            Binder.render(binder);
+          });
+        }
+      });
     }
   };
 
