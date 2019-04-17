@@ -24,269 +24,272 @@ import Write from './binders/write.js';
 const DATA = new Map();
 
 const BINDERS = {
-	class: Class,
-	css: Css,
-	default: Default,
-	disable: Disable,
-	disabled: Disable,
-	each: Each,
-	enable: Enable,
-	enabled: Enable,
-	hide: Hide,
-	hidden: Hide,
-	href: Href,
-	html: Html,
-	label: Label,
-	on: On,
-	read: Read,
-	require: Require,
-	required: Require,
-	show: Show,
-	showed: Show,
-	style: Style,
-	text: Text,
-	value: Value,
-	write: Write
+    class: Class,
+    css: Css,
+    default: Default,
+    disable: Disable,
+    disabled: Disable,
+    each: Each,
+    enable: Enable,
+    enabled: Enable,
+    hide: Hide,
+    hidden: Hide,
+    href: Href,
+    html: Html,
+    label: Label,
+    on: On,
+    read: Read,
+    require: Require,
+    required: Require,
+    show: Show,
+    showed: Show,
+    style: Style,
+    text: Text,
+    value: Value,
+    write: Write
 };
 
 export default {
 
-	get data () { return DATA; },
-	get binders () { return BINDERS; },
+    get data () { return DATA; },
+    get binders () { return BINDERS; },
 
-	async setup (options) {
-		options = options || {};
+    async setup (options) {
+        options = options || {};
 
-		this.data.set('location', new Map());
-		this.data.set('attribute', new Map());
+        this.data.set('location', new Map());
+        this.data.set('attribute', new Map());
 
-		for (const name in this.binders) {
-			this.binders[name] = this.binders[name].bind(this);
-		}
+        for (const name in this.binders) {
+            this.binders[name] = this.binders[name].bind(this);
+        }
 
-		if (options.binders) {
-			for (const name in options.binders) {
-				if (name in this.binders === false) {
-					this.binders[name] = options.binders[name].bind(this);
-				}
-			}
-		}
+        if (options.binders) {
+            for (const name in options.binders) {
+                if (name in this.binders === false) {
+                    this.binders[name] = options.binders[name].bind(this);
+                }
+            }
+        }
 
-	},
+    },
 
-	get (type) {
+    get (type) {
 
-		if (!type) throw new Error('Oxe.binder.get - type argument required');
+        if (!type) throw new Error('Oxe.binder.get - type argument required');
 
-		let result = this.data.get(type);
+        let result = this.data.get(type);
 
-		for (let i = 1, l = arguments.length; i < l; i++) {
-			const argument = arguments[i];
-			result = result.get(argument);
-		}
+        if (!result) return result;
 
-		return result;
-	},
+        for (let i = 1, l = arguments.length; i < l; i++) {
+            const argument = arguments[i];
+            result = result.get(argument);
+            if (!result) return result;
+        }
 
-	create (data) {
+        return result;
+    },
 
-		if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
-		if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
-		if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
-		if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
+    create (data) {
 
-		const originalValue = data.value;
+        if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
+        if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
+        if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
+        if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
 
-		if (data.value.slice(0, 2) === '{{' && data.value.slice(-2) === '}}') {
-			data.value = data.value.slice(2, -2);
-		}
+        const originalValue = data.value;
 
-		if (data.value.indexOf('$') !== -1 && data.context && data.context.variable && data.context.path && data.context.key) {
-			const pattern = new RegExp(`\\$${data.context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
-			data.value = data.value.replace(pattern, `${data.context.path}.${data.context.key}$1$2`);
-		}
+        if (data.value.slice(0, 2) === '{{' && data.value.slice(-2) === '}}') {
+            data.value = data.value.slice(2, -2);
+        }
 
-		const scope = data.container.scope;
-		const names = data.names || Utility.binderNames(data.name);
-		const pipes = data.pipes || Utility.binderPipes(data.value);
-		const values = data.values || Utility.binderValues(data.value);
+        if (data.value.indexOf('$') !== -1 && data.context && data.context.variable && data.context.path && data.context.key) {
+            const pattern = new RegExp(`\\$${data.context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
+            data.value = data.value.replace(pattern, `${data.context.path}.${data.context.key}$1$2`);
+        }
 
-		const type = names[0];
-		const path = values.join('.');
-		const keys = [scope].concat(values);
-		const location = keys.join('.');
+        const scope = data.container.scope;
+        const names = data.names || Utility.binderNames(data.name);
+        const pipes = data.pipes || Utility.binderPipes(data.value);
+        const values = data.values || Utility.binderValues(data.value);
 
-		const meta = data.meta || {};
-		const context = data.context || {};
-		const source = type === 'on' ? data.container.methods : data.container.model;
+        const type = names[0];
+        const path = values.join('.');
+        const keys = [ scope ].concat(values);
+        const location = keys.join('.');
 
-		return {
-			get location () { return location; },
+        const meta = data.meta || {};
+        const context = data.context || {};
+        const source = type === 'on' ? data.container.methods : data.container.model;
 
-			get type () { return type; },
-			get path () { return path; },
-			get scope () { return scope; },
+        return {
+            get location () { return location; },
 
-			get name () { return data.name; },
-			get value () { return data.value; },
-			get target () { return data.target; },
-			get container () { return data.container; },
-			get model () { return data.container.model; },
-			get methods () { return data.container.methods; },
+            get type () { return type; },
+            get path () { return path; },
+            get scope () { return scope; },
 
-			get keys () { return keys; },
-			get names () { return names; },
-			get pipes () { return pipes; },
-			get values () { return values; },
+            get name () { return data.name; },
+            get value () { return data.value; },
+            get target () { return data.target; },
+            get container () { return data.container; },
+            get model () { return data.container.model; },
+            get methods () { return data.container.methods; },
 
-			get meta () { return meta; },
-			get context () { return context; },
+            get keys () { return keys; },
+            get names () { return names; },
+            get pipes () { return pipes; },
+            get values () { return values; },
 
-			get originalValue () { return originalValue; },
+            get meta () { return meta; },
+            get context () { return context; },
 
-			get data () {
-				const data = Utility.getByPath(source, values);
-				return Piper(this, data);
-			},
+            get originalValue () { return originalValue; },
 
-			set data (value) {
-				return Utility.setByPath(source, values, value);
-			}
+            get data () {
+                const data = Utility.getByPath(source, values);
+                return Piper(this, data);
+            },
 
-		};
-	},
+            set data (value) {
+                return Utility.setByPath(source, values, value);
+            }
 
-	render (binder) {
+        };
+    },
 
-		const type = binder.type in this.binders ? binder.type : 'default';
-		const render = this.binders[type](binder);
+    render (binder) {
 
-		Batcher.batch(render);
-	},
+        const type = binder.type in this.binders ? binder.type : 'default';
+        const render = this.binders[type](binder);
 
-	unbind (node) {
+        Batcher.batch(render);
+    },
 
-		this.data.get('location').forEach(function (scopes) {
-			scopes.forEach(function (binders) {
-				binders.forEach(function (binder, index) {
-					if (binder.target === node) {
-						binders.splice(index, 1);
-					}
-				});
-			});
-		});
+    unbind (node) {
 
-		this.data.get('attribute').delete(node);
-	},
+        this.data.get('location').forEach(function (scopes) {
+            scopes.forEach(function (binders) {
+                binders.forEach(function (binder, index) {
+                    if (binder.target === node) {
+                        binders.splice(index, 1);
+                    }
+                });
+            });
+        });
 
-	bind (node, name, value, context) {
+        this.data.get('attribute').delete(node);
+    },
 
-		const binder = this.create({
-			name: name,
-			value: value,
-			target: node,
-			context: context,
-			container: context.container,
-			scope: context.container.scope
-		});
+    bind (node, name, value, context) {
 
-		if (
-			binder.originalValue === `$${binder.context.variable}.$key` ||
+        const binder = this.create({
+            name: name,
+            value: value,
+            target: node,
+            context: context,
+            container: context.container,
+            scope: context.container.scope
+        });
+
+        if (
+            binder.originalValue === `$${binder.context.variable}.$key` ||
 			binder.originalValue === `$${binder.context.variable}.$index` ||
 			binder.originalValue === `{{$${binder.context.variable}.$key}}` ||
 			binder.originalValue === `{{$${binder.context.variable}.$index}}`
-		) {
-			const type = binder.type in this.binders ? binder.type : 'default';
-			const render = this.binders[type](binder, binder.context.key);
-			return Batcher.batch(render);
-		}
+        ) {
+            const type = binder.type in this.binders ? binder.type : 'default';
+            const render = this.binders[type](binder, binder.context.key);
+            return Batcher.batch(render);
+        }
 
-		if (!this.data.get('attribute').has(binder.target)) {
-			this.data.get('attribute').set(binder.target, new Map());
-		}
+        if (!this.data.get('attribute').has(binder.target)) {
+            this.data.get('attribute').set(binder.target, new Map());
+        }
 
-		if (!this.data.get('location').has(binder.scope)) {
-			this.data.get('location').set(binder.scope, new Map());
-		}
+        if (!this.data.get('location').has(binder.scope)) {
+            this.data.get('location').set(binder.scope, new Map());
+        }
 
-		if (!this.data.get('location').get(binder.scope).has(binder.path)) {
-			this.data.get('location').get(binder.scope).set(binder.path, []);
-		}
+        if (!this.data.get('location').get(binder.scope).has(binder.path)) {
+            this.data.get('location').get(binder.scope).set(binder.path, []);
+        }
 
-		this.data.get('attribute').get(binder.target).set(binder.name, binder);
-		this.data.get('location').get(binder.scope).get(binder.path).push(binder);
+        this.data.get('attribute').get(binder.target).set(binder.name, binder);
+        this.data.get('location').get(binder.scope).get(binder.path).push(binder);
 
-		this.render(binder);
-	},
+        this.render(binder);
+    },
 
 
-	remove (node) {
+    remove (node) {
 
-		this.unbind(node);
+        this.unbind(node);
 
-		for (let i = 0; i < node.childNodes.length; i++) {
-			this.remove(node.childNodes[i]);
-		}
+        for (let i = 0; i < node.childNodes.length; i++) {
+            this.remove(node.childNodes[i]);
+        }
 
-	},
+    },
 
-	add (node, context) {
-		if (node.nodeType === Node.TEXT_NODE) {
+    add (node, context) {
+        if (node.nodeType === Node.TEXT_NODE) {
 
-		 	if (node.textContent.indexOf('{{') === -1 || node.textContent.indexOf('}}') === -1) {
-				return;
-			}
+            if (node.textContent.indexOf('{{') === -1 || node.textContent.indexOf('}}') === -1) {
+                return;
+            }
 
-			const start = node.textContent.indexOf('{{');
-			if (start !== -1 && start !== 0) {
-				node = node.splitText(start);
-			}
+            const start = node.textContent.indexOf('{{');
+            if (start !== -1 && start !== 0) {
+                node = node.splitText(start);
+            }
 
-			const end = node.textContent.indexOf('}}');
-			const length = node.textContent.length;
-			if (end !== -1 && end !== length-2) {
-				const split = node.splitText(end+2);
-				this.add(split, context);
-			}
+            const end = node.textContent.indexOf('}}');
+            const length = node.textContent.length;
+            if (end !== -1 && end !== length - 2) {
+                const split = node.splitText(end + 2);
+                this.add(split, context);
+            }
 
-			this.bind(node, 'o-text', node.textContent, context);
+            this.bind(node, 'o-text', node.textContent, context);
 
-		} else if (node.nodeType === Node.ELEMENT_NODE) {
-			let skipChildren = false;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            let skipChildren = false;
 
-			const attributes = node.attributes;
-			for (let i = 0, l = attributes.length; i < l; i++) {
-				const attribute = attributes[i];
+            const attributes = node.attributes;
+            for (let i = 0, l = attributes.length; i < l; i++) {
+                const attribute = attributes[i];
 
-				if (
-					attribute.name === 'o-html' ||
+                if (
+                    attribute.name === 'o-html' ||
 					attribute.name === 'o-scope' ||
 					attribute.name.indexOf('o-each') === 0
-				) {
-					skipChildren = true;
-				}
+                ) {
+                    skipChildren = true;
+                }
 
-				if (
-					attribute.name === 'o-scope' ||
+                if (
+                    attribute.name === 'o-scope' ||
 					attribute.name === 'o-reset' ||
 					attribute.name === 'o-action' ||
 					attribute.name === 'o-method' ||
 					attribute.name === 'o-enctype' ||
 					attribute.name.indexOf('o-') !== 0
-				) {
-					continue
-				}
+                ) {
+                    continue;
+                }
 
-				this.bind(node, attribute.name, attribute.value, context);
-			}
+                this.bind(node, attribute.name, attribute.value, context);
+            }
 
-			if (skipChildren) return;
+            if (skipChildren) return;
 
-			for (let i = 0; i < node.childNodes.length; i++) {
-				this.add(node.childNodes[i], context);
-			}
+            for (let i = 0; i < node.childNodes.length; i++) {
+                this.add(node.childNodes[i], context);
+            }
 
-		}
-	}
+        }
+    }
 
 };
