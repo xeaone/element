@@ -28,40 +28,14 @@ Oxe.component.define({
         }
     },
     attributed: function (name, _, value) {
-        this._disabled = value !== null && value !== 'false' ? true : false;
-    }
-});
+        value = value !== null && value !== 'false' ? true : false;
+        this._disabled = value;
 
-Oxe.component.define({
-    name: 'o-options',
-    style: 'o-options { display: block; } o-options::before { content: attr(label); }',
-    template: '<slot></slot>',
-    attributes: [ 'disabled' ],
-    properties: {
-        _disabled: {
-            writable: true,
-            value: false
-        },
-        disabled: {
-            enumerable: true,
-            get: function () {
-                return this._disabled;
-            },
-            set: function (data) {
-                this._disabled = data ? true : false;
-
-                if (this._disabled) {
-                    this.setAttribute('disabled', '');
-                } else {
-                    this.removeAttribute('disabled');
-                }
-
-                return this._disabled;
-            }
+        if (name === 'disabled') {
+            var options = this.document.querySelectorAll('o-option');
+            options.forEach(function (option) { option.disabled = value; });
         }
-    },
-    attributed: function (name, _, value) {
-        this._disabled = value !== null && value !== 'false' ? true : false;
+
     }
 });
 
@@ -98,25 +72,22 @@ Oxe.component.define({
             },
             set: function (data) {
                 this._valueDefaultLocked = true;
-                this._value = data || '';
-                return this._value;
+                return this._value = data || '';
             }
         },
         selected: {
             enumerable: true,
             get: function () {
-                return this._selected;
+                if (this._selectedDefaultLocked) {
+                    return this._selected;
+                } else {
+                    var selected = this.getAttribute('selected');
+                    return selected !== null && selected !== 'false' ? true : false;
+                }
             },
             set: function (data) {
-                this._selected = data ? true : false;
-
-                if (this._selected) {
-                    this.setAttribute('selected', '');
-                } else {
-                    this.removeAttribute('selected');
-                }
-
-                return this._selected;
+                this._selectedDefaultLocked = true;
+                return this._selected = data ? true : false;
             }
         },
         disabled: {
@@ -196,7 +167,7 @@ export default {
                 }
             }
 
-            let group = target;
+            var group = target;
             while (group = group.parentElement) {
                 if (group === self) {
                     break;
