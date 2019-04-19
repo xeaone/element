@@ -69,8 +69,16 @@ Oxe.component.define({
     name: 'o-option',
     template: '<slot></slot>',
     style: 'o-option { display: block; }',
-    attributes: [ 'selected', 'disabled' ],
+    attributes: [ 'value', 'selected', 'disabled' ],
     properties: {
+        _valueDefaultLocked: {
+            writable: true,
+            value: false
+        },
+        _value: {
+            writable: true,
+            value: ''
+        },
         _disabled: {
             writable: true,
             value: false
@@ -78,6 +86,21 @@ Oxe.component.define({
         _selected: {
             writable: true,
             value: false
+        },
+        value: {
+            enumerable: true,
+            get: function () {
+                if (!this._value && !this._valueDefaultLocked) {
+                    return this.getAttribute('value') || '';
+                } else {
+                    return this._value;
+                }
+            },
+            set: function (data) {
+                this._valueDefaultLocked = true;
+                this._value = data || '';
+                return this._value;
+            }
         },
         selected: {
             enumerable: true,
@@ -115,7 +138,9 @@ Oxe.component.define({
         }
     },
     attributed: function (name, _, value) {
-        if (name === 'selected' || name === 'disabled') {
+        if (name === 'value') {
+            this._value = value || '';
+        } else if (name === 'selected' || name === 'disabled') {
             this['_' + name] = value !== null && value !== 'false' ? true : false;
         }
     }
