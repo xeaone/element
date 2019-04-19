@@ -3,39 +3,25 @@ Oxe.component.define({
     name: 'o-optgroup',
     style: 'o-optgroup { display: block; } o-optgroup::before { content: attr(label); }',
     template: '<slot></slot>',
-    attributes: [ 'disabled' ],
     properties: {
-        _disabled: {
-            writable: true,
-            value: false
-        },
         disabled: {
             enumerable: true,
             get: function () {
-                return this._disabled;
+                var disabled = this.getAttribute('disabled');
+                return disabled !== null && disabled !== 'false' ? true : false;
             },
             set: function (data) {
-                this._disabled = data ? true : false;
+                data = data ? true : false;
 
-                if (this._disabled) {
+                if (data) {
                     this.setAttribute('disabled', '');
                 } else {
                     this.removeAttribute('disabled');
                 }
 
-                return this._disabled;
+                return data;
             }
         }
-    },
-    attributed: function (name, _, value) {
-        value = value !== null && value !== 'false' ? true : false;
-        this._disabled = value;
-
-        if (name === 'disabled') {
-            var options = this.document.querySelectorAll('o-option');
-            options.forEach(function (option) { option.disabled = value; });
-        }
-
     }
 });
 
@@ -43,19 +29,19 @@ Oxe.component.define({
     name: 'o-option',
     template: '<slot></slot>',
     style: 'o-option { display: block; }',
-    attributes: [ 'value', 'selected', 'disabled' ],
+    attributes: [ 'value' ],
     properties: {
         _valueDefaultLocked: {
+            writable: true,
+            value: false
+        },
+        _selectedDefaultLocked: {
             writable: true,
             value: false
         },
         _value: {
             writable: true,
             value: ''
-        },
-        _disabled: {
-            writable: true,
-            value: false
         },
         _selected: {
             writable: true,
@@ -64,10 +50,11 @@ Oxe.component.define({
         value: {
             enumerable: true,
             get: function () {
-                if (!this._value && !this._valueDefaultLocked) {
-                    return this.getAttribute('value') || '';
+                if (this._valueDefaultLocked) {
+                    return this._value || this.textContent || '';
                 } else {
-                    return this._value;
+                    var value = this.getAttribute('value');
+                    return value || this._value || this.textContent || '';
                 }
             },
             set: function (data) {
@@ -93,26 +80,25 @@ Oxe.component.define({
         disabled: {
             enumerable: true,
             get: function () {
-                return this._disabled;
+                var disabled = this.getAttribute('disabled');
+                return disabled !== null && disabled !== 'false' ? true : false;
             },
             set: function (data) {
-                this._disabled = data ? true : false;
+                data = data ? true : false;
 
-                if (this._disabled) {
+                if (data) {
                     this.setAttribute('disabled', '');
                 } else {
                     this.removeAttribute('disabled');
                 }
 
-                return this._disabled;
+                return data;
             }
         }
     },
     attributed: function (name, _, value) {
-        if (name === 'value') {
-            this._value = value || '';
-        } else if (name === 'selected' || name === 'disabled') {
-            this['_' + name] = value !== null && value !== 'false' ? true : false;
+        switch (name) {
+        case 'value': this._value = value || ''; break;
         }
     }
 });
@@ -132,7 +118,8 @@ export default {
         multiple: {
             enumerable: true,
             get: function () {
-                return this.hasAttribute('multiple');
+                var multiple = this.getAttribute('multiple');
+                return multiple !== null && multiple !== 'false' ? true : false;
             },
             set: function (data) {
                 data = data ? true : false;
