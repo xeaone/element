@@ -1,6 +1,6 @@
 import Utility from '../utility.js';
 
-export default function (binder) {
+export default function (binder, caller) {
     const type = binder.target.type;
     const name = binder.target.nodeName;
 
@@ -8,8 +8,8 @@ export default function (binder) {
         return {
             read () {
                 this.data = binder.data;
-
-                this.nodes = binder.target.options;
+                this.model = binder.model;
+                this.options = binder.target.options;
                 this.multiple = Utility.multiple(binder.target);
 
                 if (this.multiple && (!this.data || this.data.constructor !== Array)) {
@@ -18,34 +18,42 @@ export default function (binder) {
 
             },
             write () {
-                for (let i = 0, l = this.nodes.length; i < l; i++) {
-                    const node = this.nodes[i];
-                    const value = Utility.value(node, binder.container.model);
+                for (let i = 0, l = this.options.length; i < l; i++) {
+
+                    const option = this.options[i];
+                    const selected = option.selected;
+                    const value = Utility.value(option, this.model);
+                    let index, match;
 
                     if (this.multiple) {
-                        if (node.selected) {
-
-                            if (!node.disabled && !Utility.includes(this.data, value)) {
-                                binder.data.push(value);
-                            }
-
-                        } else if (this.data !== undefined && Utility.includes(this.data, value)) {
-                            node.selected = true;
-                        }
+                        index = Utility.index(this.data, value);
+                        match = index !== -1;
                     } else {
-                        if (node.selected) {
+                        match = Utility.compare(this.data, value);
+                    }
 
-                            if (!node.disabled && !Utility.compare(this.data, value)) {
-                                binder.data = value;
+                    // !disabled &&
+
+                    if (selected && !match) {
+                        if (this.multiple) {
+                            binder.data.push(value);
+                        } else {
+                            binder.data = value;
+                        }
+                    } else if (!selected && match) {
+                        if (caller === 'view') {
+                            if (this.multiple) {
+                                binder.data.splice(index, 1);
+                            } else {
+                                binder.data = null;
                             }
-
-                            break;
-                        } else if (this.data !== undefined && Utility.compare(this.data, value)) {
-                            node.selected = true;
-                            break;
+                        } else {
+                            option.selected = true;
                         }
                     }
+
                 }
+
             }
         };
     } else if (type === 'radio') {
@@ -95,13 +103,11 @@ export default function (binder) {
                 this.data = binder.data;
 
                 if (typeof this.data !== 'boolean') {
-                    // this.data = false;
                     return false;
                 }
 
             },
             write () {
-
                 binder.target.checked = this.data;
 
                 if (this.data) {

@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 4.16.0
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -19,87 +9,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   var _Fetcher;
 
-  var Batcher = {
-    reads: [],
-    writes: [],
-    time: 1000 / 30,
-    pending: false,
-    setup: function setup(options) {
-      options = options || {};
-      this.time = options.time || this.time;
-    },
-    tick: function tick(callback) {
-      window.requestAnimationFrame(callback.bind(this, null));
-    },
-    schedule: function schedule() {
-      if (this.pending) return;
-      this.pending = true;
-      this.tick(this.flush);
-    },
-    flush: function flush(time) {
-      time = time || performance.now();
-      var task;
-
-      if (this.writes.length === 0) {
-        while (task = this.reads.shift()) {
-          if (task) {
-            task();
-          }
-
-          if (performance.now() - time > this.time) {
-            return this.tick(this.flush);
-          }
-        }
-      }
-
-      while (task = this.writes.shift()) {
-        if (task) {
-          task();
-        }
-
-        if (performance.now() - time > this.time) {
-          return this.tick(this.flush);
-        }
-      }
-
-      if (this.reads.length === 0 && this.writes.length === 0) {
-        this.pending = false;
-      } else if (performance.now() - time > this.time) {
-        this.tick(this.flush);
-      } else {
-        this.flush(time);
-      }
-    },
-    remove: function remove(tasks, task) {
-      var index = tasks.indexOf(task);
-      return !!~index && !!tasks.splice(index, 1);
-    },
-    clear: function clear(task) {
-      return this.remove(this.reads, task) || this.remove(this.writes, task);
-    },
-    batch: function batch(data) {
-      var self = this;
-      if (!data) return;
-      if (!data.read && !data.write) return;
-      data.context = data.context || {};
-
-      var read = function read() {
-        var result;
-
-        if (data.read) {
-          result = data.read.call(data.context, data.context);
-        }
-
-        if (data.write && result !== false) {
-          var write = data.write.bind(data.context, data.context);
-          self.writes.push(write);
-        }
-      };
-
-      self.reads.push(read);
-      self.schedule();
-    }
-  };
   var Utility = {
     PREFIX: /o-/,
     PIPE: /\s?\|\s?/,
@@ -153,16 +62,20 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         for (var _i = 0, _l = options.length; _i < _l; _i++) {
           var option = options[_i];
-          var selected = this.selected(option);
-          if (!selected) continue;
+          var selected = option.selected;
 
           var _value2 = this.value(option, model);
 
-          if (_multiple) {
-            _result.push(_value2);
-          } else {
-            _result = _value2;
-            break;
+          var match = this[_multiple ? 'includes' : 'compare'](this.data, _value2);
+
+          if (selected && !match) {
+            if (this.multiple) {
+              _result.push(_value2);
+            } else {
+              _result = _value2;
+            }
+          } else if (!selected && match) {
+            option.selected = true;
           }
         }
 
@@ -199,28 +112,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return element.checked;
       } else {
         switch (element.getAttribute('checked')) {
-          case undefined:
-            return false;
-
-          case 'true':
-            return true;
-
-          case null:
-            return false;
-
-          case '':
-            return true;
-
-          default:
-            return false;
-        }
-      }
-    },
-    selected: function selected(element) {
-      if (typeof element.selected === 'boolean') {
-        return element.selected;
-      } else {
-        switch (element.getAttribute('selected')) {
           case undefined:
             return false;
 
@@ -354,14 +245,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.setByPath(model, values, '');
       }
     },
-    includes: function includes(items, item) {
+    index: function index(items, item) {
       for (var i = 0, l = items.length; i < l; i++) {
         if (this.compare(items[i], item)) {
-          return true;
+          return i;
         }
       }
 
-      return false;
+      return -1;
     },
     compare: function compare(source, target) {
       if (source === target) {
@@ -434,6 +325,87 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       return data[keys[last]];
+    }
+  };
+  var Batcher = {
+    reads: [],
+    writes: [],
+    time: 1000 / 30,
+    pending: false,
+    setup: function setup(options) {
+      options = options || {};
+      this.time = options.time || this.time;
+    },
+    tick: function tick(callback) {
+      window.requestAnimationFrame(callback.bind(this, null));
+    },
+    schedule: function schedule() {
+      if (this.pending) return;
+      this.pending = true;
+      this.tick(this.flush);
+    },
+    flush: function flush(time) {
+      time = time || performance.now();
+      var task;
+
+      if (this.writes.length === 0) {
+        while (task = this.reads.shift()) {
+          if (task) {
+            task();
+          }
+
+          if (performance.now() - time > this.time) {
+            return this.tick(this.flush);
+          }
+        }
+      }
+
+      while (task = this.writes.shift()) {
+        if (task) {
+          task();
+        }
+
+        if (performance.now() - time > this.time) {
+          return this.tick(this.flush);
+        }
+      }
+
+      if (this.reads.length === 0 && this.writes.length === 0) {
+        this.pending = false;
+      } else if (performance.now() - time > this.time) {
+        this.tick(this.flush);
+      } else {
+        this.flush(time);
+      }
+    },
+    remove: function remove(tasks, task) {
+      var index = tasks.indexOf(task);
+      return !!~index && !!tasks.splice(index, 1);
+    },
+    clear: function clear(task) {
+      return this.remove(this.reads, task) || this.remove(this.writes, task);
+    },
+    batch: function batch(data) {
+      var self = this;
+      if (!data) return;
+      if (!data.read && !data.write) return;
+      data.context = data.context || {};
+
+      var read = function read() {
+        var result;
+
+        if (data.read) {
+          result = data.read.call(data.context, data.context);
+        }
+
+        if (data.write && result !== false) {
+          var write = data.write.bind(data.context, data.context);
+          self.writes.push(write);
+        }
+      };
+
+      self.reads.push(read);
+      self.schedule();
     }
   };
 
@@ -815,7 +787,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Value(binder) {
+  function Value(binder, caller) {
     var type = binder.target.type;
     var name = binder.target.nodeName;
 
@@ -823,7 +795,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return {
         read: function read() {
           this.data = binder.data;
-          this.nodes = binder.target.options;
+          this.model = binder.model;
+          this.options = binder.target.options;
           this.multiple = Utility.multiple(binder.target);
 
           if (this.multiple && (!this.data || this.data.constructor !== Array)) {
@@ -831,28 +804,36 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         },
         write: function write() {
-          for (var i = 0, l = this.nodes.length; i < l; i++) {
-            var node = this.nodes[i];
-            var value = Utility.value(node, binder.container.model);
+          for (var i = 0, l = this.options.length; i < l; i++) {
+            var option = this.options[i];
+            var selected = option.selected;
+            var value = Utility.value(option, this.model);
+
+            var _index = void 0,
+                match = void 0;
 
             if (this.multiple) {
-              if (node.selected) {
-                if (!node.disabled && !Utility.includes(this.data, value)) {
-                  binder.data.push(value);
-                }
-              } else if (this.data !== undefined && Utility.includes(this.data, value)) {
-                node.selected = true;
-              }
+              _index = Utility.index(this.data, value);
+              match = _index !== -1;
             } else {
-              if (node.selected) {
-                if (!node.disabled && !Utility.compare(this.data, value)) {
-                  binder.data = value;
-                }
+              match = Utility.compare(this.data, value);
+            }
 
-                break;
-              } else if (this.data !== undefined && Utility.compare(this.data, value)) {
-                node.selected = true;
-                break;
+            if (selected && !match) {
+              if (this.multiple) {
+                binder.data.push(value);
+              } else {
+                binder.data = value;
+              }
+            } else if (!selected && match) {
+              if (caller === 'view') {
+                if (this.multiple) {
+                  binder.data.splice(_index, 1);
+                } else {
+                  binder.data = null;
+                }
+              } else {
+                option.selected = true;
               }
             }
           }
@@ -1117,9 +1098,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       };
     },
-    render: function render(binder) {
+    render: function render(binder, caller) {
       var type = binder.type in this.binders ? binder.type : 'default';
-      var render = this.binders[type](binder);
+      var render = this.binders[type](binder, caller);
       Batcher.batch(render);
     },
     unbind: function unbind(node) {
@@ -1146,7 +1127,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (binder.originalValue === "$".concat(binder.context.variable, ".$key") || binder.originalValue === "$".concat(binder.context.variable, ".$index") || binder.originalValue === "{{$".concat(binder.context.variable, ".$key}}") || binder.originalValue === "{{$".concat(binder.context.variable, ".$index}}")) {
         var type = binder.type in this.binders ? binder.type : 'default';
-        var render = this.binders[type](binder, binder.context.key);
+        var render = this.binders[type](binder);
         return Batcher.batch(render);
       }
 
@@ -1205,11 +1186,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             skipChildren = true;
           }
 
-          if (attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype' || attribute.name.indexOf('o-') !== 0) {
+          if (attribute.name === 'o-value' || attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype' || attribute.name.indexOf('o-') !== 0) {
             continue;
           }
 
           this.bind(node, attribute.name, attribute.value, context);
+        }
+
+        if ('o-value' in attributes) {
+          this.bind(node, 'o-value', attributes['o-value'].value, context);
         }
 
         if (skipChildren) return;
@@ -1226,33 +1211,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (!node) return $error(new Error('Oxe.update - requires node argument'));
       if (!attribute) return $error(new Error('Oxe.update - requires attribute argument'));
       var binder = Binder.get('attribute', node, attribute);
-
-      var read = function read() {
-        var type = binder.target.type;
-        var name = binder.target.nodeName;
-
-        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-          var value = Utility.value(binder.target, binder.container.model);
-          binder.data = value;
-        } else if (type === 'radio') {
-          var query = 'input[type="radio"][o-value="' + binder.value + '"]';
-          var nodes = binder.container.querySelectorAll(query);
-
-          for (var i = 0, l = nodes.length; i < l; i++) {
-            if (binder.target === nodes[i]) {
-              binder.data = i;
-            }
-          }
-        } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
-          binder.data = binder.target.checked || false;
-        } else {
-          binder.data = binder.target.value || '';
-        }
-      };
-
-      Batcher.batch({
-        read: read
-      });
+      Binder.render(binder, 'view');
       return $return();
     });
   }
@@ -1610,15 +1569,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (updateCount > 0) {
         var value;
-        var _index = startIndex;
+        var _index2 = startIndex;
 
         while (updateCount--) {
-          var key = _index++;
+          var key = _index2++;
 
           if (argumentsCount && argumentIndex < argumentsCount) {
             value = arguments[argumentIndex++];
           } else {
-            value = self.$meta[_index];
+            value = self.$meta[_index2];
           }
 
           self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
@@ -2216,10 +2175,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     off: function off(name, method) {
       if (name in this.events) {
-        var _index2 = this.events[name].indexOf(method);
+        var _index3 = this.events[name].indexOf(method);
 
-        if (_index2 !== -1) {
-          this.events[name].splice(_index2, 1);
+        if (_index3 !== -1) {
+          this.events[name].splice(_index3, 1);
         }
       }
     },

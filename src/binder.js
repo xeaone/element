@@ -159,10 +159,10 @@ export default {
         };
     },
 
-    render (binder) {
+    render (binder, caller) {
 
         const type = binder.type in this.binders ? binder.type : 'default';
-        const render = this.binders[type](binder);
+        const render = this.binders[type](binder, caller);
 
         Batcher.batch(render);
     },
@@ -200,7 +200,8 @@ export default {
 			binder.originalValue === `{{$${binder.context.variable}.$index}}`
         ) {
             const type = binder.type in this.binders ? binder.type : 'default';
-            const render = this.binders[type](binder, binder.context.key);
+            const render = this.binders[type](binder);
+            // const render = this.binders[type](binder, binder.context.key);
             return Batcher.batch(render);
         }
 
@@ -270,6 +271,7 @@ export default {
                 }
 
                 if (
+                    attribute.name === 'o-value' ||
                     attribute.name === 'o-scope' ||
 					attribute.name === 'o-reset' ||
 					attribute.name === 'o-action' ||
@@ -281,6 +283,11 @@ export default {
                 }
 
                 this.bind(node, attribute.name, attribute.value, context);
+            }
+
+            // priorities o-each
+            if ('o-value' in attributes) {
+                this.bind(node, 'o-value', attributes['o-value'].value, context);
             }
 
             if (skipChildren) return;

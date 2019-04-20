@@ -70,17 +70,21 @@ export default {
 
             for (let i = 0, l = options.length; i < l; i++) {
                 const option = options[i];
-                const selected = this.selected(option);
-
-                if (!selected) continue;
-
+                const selected = option.selected;
                 const value = this.value(option, model);
+                const match = this[multiple ? 'includes' : 'compare'](this.data, value);
 
-                if (multiple) {
-                    result.push(value);
-                } else {
-                    result = value;
-                    break;
+                // !disabled &&
+                // this.data !== undefined &&
+
+                if (selected && !match) {
+                    if (this.multiple) {
+                        result.push(value);
+                    } else {
+                        result = value;
+                    }
+                } else if (!selected && match) {
+                    option.selected = true;
                 }
 
             }
@@ -131,19 +135,19 @@ export default {
         }
     },
 
-    selected (element) {
-        if (typeof element.selected === 'boolean') {
-            return element.selected;
-        } else {
-            switch (element.getAttribute('selected')) {
-            case undefined: return false;
-            case 'true': return true;
-            case null: return false;
-            case '': return true;
-            default: return false;
-            }
-        }
-    },
+    // selected (element) {
+    //     if (typeof element.selected === 'boolean') {
+    //         return element.selected;
+    //     } else {
+    //         switch (element.getAttribute('selected')) {
+    //         case undefined: return false;
+    //         case 'true': return true;
+    //         case null: return false;
+    //         case '': return true;
+    //         default: return false;
+    //         }
+    //     }
+    // },
 
     multiple (element) {
         if (typeof element.multiple === 'boolean') {
@@ -264,13 +268,15 @@ export default {
 
     },
 
-    includes (items, item) {
+    index (items, item) {
+
         for (let i = 0, l = items.length; i < l; i++) {
             if (this.compare(items[i], item)) {
-                return true;
+                return i;
             }
         }
-        return false;
+
+        return -1;
     },
 
     compare (source, target) {

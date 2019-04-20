@@ -1,6 +1,7 @@
-import Batcher from './batcher.js';
-import Utility from './utility.js';
+// import Batcher from './batcher.js';
+// import Utility from './utility.js';
 import Binder from './binder.js';
+// import Select from './select.js';
 
 export default async function (node, attribute) {
 
@@ -9,30 +10,20 @@ export default async function (node, attribute) {
 
     const binder = Binder.get('attribute', node, attribute);
 
-    const read = function () {
-        const type = binder.target.type;
-        const name = binder.target.nodeName;
+    // const read = function () {
 
-        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-            const value = Utility.value(binder.target, binder.container.model);
-            binder.data = value;
-        } else if (type === 'radio') {
-            const query = 'input[type="radio"][o-value="' + binder.value + '"]';
-            const nodes = binder.container.querySelectorAll(query);
+    // const value = Utility.value(binder.target, binder.container.model);
+    // binder.data = value;
 
-            for (let i = 0, l = nodes.length; i < l; i++) {
-                if (binder.target === nodes[i]) {
-                    binder.data = i;
-                }
+    // const type = binder.target.type;
+    // const name = binder.target.nodeName;
+    // if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
+    //     binder.data = binder.target.checked || false;
+    // }
+    // };
 
-            }
+    Binder.render(binder, 'view');
 
-        } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
-            binder.data = binder.target.checked || false;
-        } else {
-            binder.data = binder.target.value || '';
-        }
-    };
-
-    Batcher.batch({ read });
+    // Batcher.batch(ValueBinder);
+    // Batcher.batch({ read, write });
 }

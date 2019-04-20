@@ -107,8 +107,18 @@ export default {
     name: 'o-select',
     template: '<slot></slot>',
     style: 'o-select { display: block; }',
-    model: [],
+    // model: [],
     properties: {
+        update: {
+            enumerable: true,
+            value: function (element) {
+                if (element.hasAttribute('o-value')) {
+                    var binder = Oxe.binder.get('attribute', element, 'o-value');
+                    var value = Oxe.utility.value(element, this.model);
+                    binder.data = value;
+                }
+            }
+        },
         options: {
             enumerable: true,
             get: function () {
@@ -136,30 +146,29 @@ export default {
     },
     created: function () {
         var self = this;
-        var binder = Oxe.binder.get('attribute', self, 'o-value');
-        var value = Oxe.utility.value(self, this.model);
 
-        binder.data = value;
+        // self.update();
 
         self.addEventListener('click', function (e) {
-            var target = e.target;
+            var option = e.target;
 
-            if (target.nodeName !== 'O-OPTION') {
-                while (target = target.parentElement) {
-                    if (target === self) {
+            if (option.nodeName !== 'O-OPTION') {
+                while (option = option.parentElement) {
+                    if (option === self) {
                         return;
-                    } else if (target.nodeName === 'O-OPTION') {
+                    } else if (option.nodeName === 'O-OPTION') {
                         break;
                     }
                 }
             }
 
-            var group = target;
-            while (group = group.parentElement) {
-                if (group === self) {
+            var optgroup = option;
+
+            while (optgroup = optgroup.parentElement) {
+                if (optgroup === self) {
                     break;
-                } else if (group.nodeName === 'O-OPTIONS' || group.nodeName === 'O-OPTGROUP') {
-                    if (group.disabled) {
+                } else if (optgroup.nodeName === 'O-OPTGROUP') {
+                    if (optgroup.disabled) {
                         return;
                     } else {
                         break;
@@ -174,12 +183,13 @@ export default {
                 }
             }
 
-            target.selected = !target.selected;
+            option.selected = !option.selected;
 
+            // self.update();
             var binder = Oxe.binder.get('attribute', self, 'o-value');
-            var value = Oxe.utility.value(self, this.model);
-
-            binder.data = value;
+            Oxe.binder.render(binder, 'view');
+            // var value = Oxe.utility.value(binder.target, binder.container.model);
+            // binder.data = value;
         });
 
     }

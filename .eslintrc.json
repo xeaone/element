@@ -15,6 +15,7 @@
         "sourceType": "module"
     },
     "rules": {
+        "no-cond-assign": "off",
         "comma-dangle": [
             "error",
             "never"

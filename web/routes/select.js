@@ -91,14 +91,14 @@ export default {
 			<div o-text="result.friends"></div>
 			<br>
 			<o-select o-value="result.friends" o-each-group="groups" multiple>
-				<o-options o-label="$group" o-each-friend="friends">
-					<o-optgroup o-value="$friend">
+				<o-optgroup o-label="$group" o-each-friend="friends">
+					<o-option o-value="$friend">
 						<div>{{$friend.$key}}</div>
 						<div>{{$friend.$index}}</div>
 						<div>{{$friend.name}}</div>
 						<div o-text="$friend.name"></div>
-					</o-optgroup>
-				</o-options>
+					</o-option>
+				</o-optgroup>
 			</o-select>
 
 			<br>
