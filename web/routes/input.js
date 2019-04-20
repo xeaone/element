@@ -1,15 +1,15 @@
 var title = 'Input';
 
 export default {
-	title: title,
-	path: '/input',
-	component: {
-		name: 'r-input',
-		model: {
-			title: title,
-			text: 'Hello World'
-		},
-		template: `
+    title: title,
+    path: '/input',
+    component: {
+        name: 'r-input',
+        model: {
+            title: title,
+            text: 'Hello World'
+        },
+        template: `
 			<h2 o-text="title"></h2>
 			<hr>
 
@@ -17,5 +17,5 @@ export default {
 			<input o-value="text" />
 
 		`
-	}
-}
+    }
+};

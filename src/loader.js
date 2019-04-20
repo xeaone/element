@@ -6,73 +6,73 @@ import Path from './path.js';
 
 export default {
 
-	data: {},
-	type: 'esm',
+    data: {},
+    type: 'esm',
 
-	async setup (options) {
-		const self = this;
+    async setup (options) {
+        const self = this;
 
-		options = options || {};
-		this.type = options.type || this.type;
+        options = options || {};
+        this.type = options.type || this.type;
 
-		if (options.loads) {
-			return Promise.all(options.loads.map(function (load) {
-				return self.load(load);
-			}));
-		}
+        if (options.loads) {
+            return Promise.all(options.loads.map(function (load) {
+                return self.load(load);
+            }));
+        }
 
-	},
+    },
 
-	async fetch (url, type) {
-		const data = await window.fetch(url);
+    async fetch (url, type) {
+        const data = await window.fetch(url);
 
-		if (data.status == 404) {
-			throw new Error('Oxe.loader.load - not found ' + url);
-		}
+        if (data.status == 404) {
+            throw new Error('Oxe.loader.load - not found ' + url);
+        }
 
-		if (data.status < 200 || data.status > 300 && data.status != 304) {
-			throw new Error(data.statusText);
-		}
+        if (data.status < 200 || data.status > 300 && data.status != 304) {
+            throw new Error(data.statusText);
+        }
 
-		let code = await data.text();
+        let code = await data.text();
 
-		if (type === 'es' || type === 'est') {
-			code = Transformer.template(code);
-		}
+        if (type === 'es' || type === 'est') {
+            code = Transformer.template(code);
+        }
 
-		if (type === 'es' || type === 'esm') {
-			code = Transformer.module(code, url);
-		}
+        if (type === 'es' || type === 'esm') {
+            code = Transformer.module(code, url);
+        }
 
-		code = new Function('window', 'document', '$LOADER', code);
+        code = new Function('window', 'document', '$LOADER', code);
 
-		this.data[url] = code(window, window.document, this);
+        this.data[url] = code(window, window.document, this);
 
-		return this.data[url];
-	},
+        return this.data[url];
+    },
 
-	async load () {
-		let url, type;
+    async load () {
+        let url, type;
 
-		if (typeof arguments[0] === 'object') {
-			url = arguments[0]['url'];
-			type = arguments[0]['type'];
-		} else {
-			url = arguments[0];
-			type = arguments[1] || this.type;
-		}
+        if (typeof arguments[0] === 'object') {
+            url = arguments[0]['url'];
+            type = arguments[0]['type'];
+        } else {
+            url = arguments[0];
+            type = arguments[1] || this.type;
+        }
 
-		if (!url) {
-			throw new Error('Oxe.loader.load - url argument required');
-		}
+        if (!url) {
+            throw new Error('Oxe.loader.load - url argument required');
+        }
 
-		url = Path.normalize(url);
+        url = Path.normalize(url);
 
-		if (url in this.data === false) {
-			this.data[url] = this.fetch(url, type);
-		}
+        if (url in this.data === false) {
+            this.data[url] = this.fetch(url, type);
+        }
 
-		return this.data[url];
-	}
+        return this.data[url];
+    }
 
 };

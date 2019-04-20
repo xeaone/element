@@ -1,52 +1,51 @@
 
 export default {
-	title: 'Each',
-	path: '/each',
-	component: {
-		name: 'r-each',
-		model: {
-			title: 'Each',
-			items: [
-				{ it: { val: 0 } }, { it: { val: 1 } }
-			],
-			props: {
-				keyOne: 'valueOne',
-				keyTwo: 'valueTwo',
-				keyThree: 'valueThree',
-				keyFour: 'valueFour'
-			}
-		},
-		methods: {
-			click: function () {
-				console.log(arguments);
-			}
-		},
-		created: function () {
-			var self = this;
+    title: 'Each',
+    path: '/each',
+    component: {
+        name: 'r-each',
+        model: {
+            title: 'Each',
+            items: [
+                { it: { val: 0 } }, { it: { val: 1 } }
+            ],
+            props: {
+                keyOne: 'valueOne',
+                keyTwo: 'valueTwo',
+                keyThree: 'valueThree',
+                keyFour: 'valueFour'
+            }
+        },
+        methods: {
+            click: function () {
+                console.log(arguments);
+            }
+        },
+        created: function () {
 
-			// setTimeout(function () {
-			// 	var increaseInterval = setInterval(function () {
-			//
-			// 		if (self.model.items.length === 20) {
-			// 			clearInterval(increaseInterval);
-			//
-			// 			var decreaseInterval = setInterval(function () {
-			// 				if (self.model.items.length === 10) {
-			// 					clearInterval(decreaseInterval);
-			// 				} else {
-			// 					self.model.items.pop();
-			// 				}
-			// 			}, 50);
-			//
-			// 		} else {
-			// 			self.model.items.push({ it: { val: self.model.items.length } });
-			// 		}
-			//
-			// 	}, 50);
-			// }, 3000);
+            // setTimeout(function () {
+            // 	var increaseInterval = setInterval(function () {
+            //
+            // 		if (self.model.items.length === 20) {
+            // 			clearInterval(increaseInterval);
+            //
+            // 			var decreaseInterval = setInterval(function () {
+            // 				if (self.model.items.length === 10) {
+            // 					clearInterval(decreaseInterval);
+            // 				} else {
+            // 					self.model.items.pop();
+            // 				}
+            // 			}, 50);
+            //
+            // 		} else {
+            // 			self.model.items.push({ it: { val: self.model.items.length } });
+            // 		}
+            //
+            // 	}, 50);
+            // }, 3000);
 
-		},
-		template: /*html*/`
+        },
+        template: /*html*/`
 
 			<h2 o-text="title"></h2>
 			<h2>{{title}}</h2>
@@ -84,5 +83,5 @@ export default {
 			<div o-each-prop="props"></div>
 
 		`
-	}
+    }
 };

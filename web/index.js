@@ -11,37 +11,37 @@ import cFoo from './components/c-foo.js';
 // });
 
 Oxe.setup({
-	// style: {
-		// transition: 300
-	// },
-	loader: {
-		type: 'es'
-	},
-	fetcher: {
-		request: function () {
-			console.log(arguments);
-		},
-		response: function () {
-			console.log(arguments);
-		}
-	},
-	component: {
-		components: [
-			cFoo,
-			cMenu,
-			oSelect
-		]
-	},
-	router: {
-		routes: [
-			'index',
-			'js',
-			'test',
-			'select',
-			'input',
-			'style',
-			'each',
-			'(*)'
-		]
-	}
+    // style: {
+    // transition: 300
+    // },
+    loader: {
+        type: 'es'
+    },
+    fetcher: {
+        request: function () {
+            console.log(arguments);
+        },
+        response: function () {
+            console.log(arguments);
+        }
+    },
+    component: {
+        components: [
+            cFoo,
+            cMenu,
+            oSelect
+        ]
+    },
+    router: {
+        routes: [
+            'index',
+            'js',
+            'test',
+            'select',
+            'input',
+            'style',
+            'each',
+            '(*)'
+        ]
+    }
 }).catch(console.error);

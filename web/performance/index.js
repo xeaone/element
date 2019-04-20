@@ -1,39 +1,39 @@
 
 var oLoop = {
-	name: 'o-loop',
-	model: {
-		items: [],
-		message: '',
-		count: 1000
-	},
-	created: function () {
-		console.log(this.model);
-	},
-	methods: {
-		push: function () {
-			console.time('push');
+    name: 'o-loop',
+    model: {
+        items: [],
+        message: '',
+        count: 1000
+    },
+    created: function () {
+        console.log(this.model);
+    },
+    methods: {
+        push: function () {
+            console.time('push');
 
-			for (var i = 0; i < this.model.count; i++) {
-				this.model.items.push({ number: this.model.items.length });
-			}
+            for (var i = 0; i < this.model.count; i++) {
+                this.model.items.push({ number: this.model.items.length });
+            }
 
-			console.timeEnd('push');
-		},
-		overwrite: function () {
-			console.time('overwrite');
+            console.timeEnd('push');
+        },
+        overwrite: function () {
+            console.time('overwrite');
 
-			var items = [];
+            var items = [];
 
-			for (var i = 0; i < 10; i++) {
-				items.push({ number: i });
-			}
+            for (var i = 0; i < 10; i++) {
+                items.push({ number: i });
+            }
 
-			this.model.items = items;
+            this.model.items = items;
 
-			console.timeEnd('overwrite');
-		}
-	},
-	template: /*html*/`
+            console.timeEnd('overwrite');
+        }
+    },
+    template: /*html*/`
 
 		<h3><span o-text="count" o-text="count"></span> Inputs two way binded</h3>
 		<h3><span o-text="count"></span> Text one way binded</h3>
@@ -54,13 +54,13 @@ var oLoop = {
 			</div>
 		</div>
 
-	`,
+	`
 };
 
 Oxe.setup({
-	component: {
-		components: [
-			oLoop
-		]
-	}
+    component: {
+        components: [
+            oLoop
+        ]
+    }
 });

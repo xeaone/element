@@ -7,20 +7,20 @@ STYLE.setAttribute('type', 'text/css');
 
 export default {
 
-	get style () { return STYLE; },
-	get sheet () { return SHEET; },
+    get style () { return STYLE; },
+    get sheet () { return SHEET; },
 
-	add (data) {
-		this.sheet.insertRule(data);
-	},
+    add (data) {
+        this.sheet.insertRule(data);
+    },
 
-	append (data) {
-		this.style.appendChild(document.createTextNode(data));
-	},
+    append (data) {
+        this.style.appendChild(document.createTextNode(data));
+    },
 
-	async setup () {
-		
-		this.append(`
+    async setup () {
+
+        this.append(`
 			*[hidden] {
 				display: none !important;
 			}
@@ -34,7 +34,7 @@ export default {
 			}
 		`);
 
-		document.head.appendChild(this.style);
-	}
+        document.head.appendChild(this.style);
+    }
 
 };
