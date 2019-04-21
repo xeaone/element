@@ -1,18 +1,9 @@
 
-// const PathPattern = '(\\$)(\\w+)($|,|\\s+|\\.|\\|)';
-// const KeyPattern = '({{\\$)(\\w+)((-(key|index))?}})';
-
 export default {
 
     PREFIX: /o-/,
     PIPE: /\s?\|\s?/,
     PIPES: /\s?,\s?|\s+/,
-
-    // keyPattern: new RegExp(KeyPattern, 'i'),
-    // keyPatternGlobal: new RegExp(KeyPattern, 'ig'),
-
-    // pathPattern: new RegExp(PathPattern, 'i'),
-    // pathPatternGlobal: new RegExp(PathPattern, 'ig'),
 
     value (element, model) {
 
@@ -135,20 +126,6 @@ export default {
         }
     },
 
-    // selected (element) {
-    //     if (typeof element.selected === 'boolean') {
-    //         return element.selected;
-    //     } else {
-    //         switch (element.getAttribute('selected')) {
-    //         case undefined: return false;
-    //         case 'true': return true;
-    //         case null: return false;
-    //         case '': return true;
-    //         default: return false;
-    //         }
-    //     }
-    // },
-
     multiple (element) {
         if (typeof element.multiple === 'boolean') {
             return element.multiple;
@@ -219,55 +196,6 @@ export default {
         return element;
     },
 
-    formData (form, model) {
-        const elements = form.querySelectorAll('[o-value], select[name] , input[name], textarea[name]');
-        const data = {};
-
-        for (let i = 0, l = elements.length; i < l; i++) {
-            const element = elements[i];
-
-            // if (element.nodeName === 'OPTION') continue;
-            if (element.nodeName.indexOf('OPTION') !== -1) continue;
-
-            const value = element.getAttribute('o-value');
-            const values = this.binderValues(value);
-            const name = element.getAttribute('name') || values.slice(-1)[0];
-
-            if (data[name]) {
-
-                if (typeof data[name] !== 'object') {
-                    data[name] = [ data[name] ];
-                }
-
-                data[name].push(this.getByPath(model, values));
-            } else {
-                data[name] = this.getByPath(model, values);
-            }
-
-        }
-
-        return data;
-    },
-
-    formReset (form, model) {
-        const elements = form.querySelectorAll('[o-value]');
-
-        for (let i = 0, l = elements.length; i < l; i++) {
-            const element = elements[i];
-
-            if (element.nodeName === 'OPTION') continue;
-
-            const value = element.getAttribute('o-value');
-
-            if (!value) continue;
-
-            const values = this.binderValues(value);
-
-            this.setByPath(model, values, '');
-        }
-
-    },
-
     index (items, item) {
 
         for (let i = 0, l = items.length; i < l; i++) {
@@ -314,19 +242,6 @@ export default {
         }
 
         return true;
-
-        // for (const name in source) {
-        //
-        // 	if (source.hasOwnProperty(name) !== target.hasOwnProperty(name)) {
-        // 		return false;
-        // 	}
-        //
-        // 	if (!this.compare(source[name], target[name])) {
-        // 		return false;
-        // 	}
-        //
-        // }
-
     },
 
     setByPath (data, path, value) {

@@ -57,7 +57,7 @@ export default function (binder, caller) {
                 }
             }
         };
-    } else if (type === 'radio') {
+    } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) {
         return {
             read () {
                 this.data = binder.data;

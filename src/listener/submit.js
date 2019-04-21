@@ -1,31 +1,53 @@
-import Utility from '../utility.js';
 import Fetcher from '../fetcher.js';
 import Methods from '../methods.js';
 import Binder from '../binder.js';
-import Model from '../model.js';
 
 export default async function (event) {
 
-    const node = event.target;
+    const data = {};
+    const elements = event.target.querySelectorAll('[o-value], [value]:not(button), select[name], input[name], textarea[name]');
 
-    const binder = Binder.get('attribute', node, 'o-submit');
+    for (let i = 0, l = elements.length; i < l; i++) {
+        const element = elements[i];
 
-    let model = Model.get(binder.scope);
-    let method = Methods.get(binder.keys);
-    let data = Utility.formData(node, model);
+        if (
+            element.type === 'submit' ||
+            element.type === 'button' ||
+            element.nodeName === 'BUTTON' ||
+            element.nodeName === 'OPTION' ||
+            element.nodeName.indexOf('-BUTTON') !== -1 ||
+            element.nodeName.indexOf('-OPTION') !== -1
+        ) {
+            continue;
+        }
 
-    let options = await method.call(binder.container, data, event);
+        const binder = Binder.get('attribute', element, 'o-value');
+        const value = binder ? binder.data : element.value;
+
+        if (name in data) {
+
+            if (typeof data[name] !== 'object') {
+                data[name] = [ data[name] ];
+            }
+
+            data[name].push(value);
+        } else {
+            data[name] = value;
+        }
+
+    }
+
+    const submit = Binder.get('attribute', event.target, 'o-submit');
+    const method = Methods.get(submit.keys);
+    const options = await method.call(submit.container, data, event);
 
     if (typeof options === 'object') {
-        let oaction = node.getAttribute('o-action');
-        let omethod = node.getAttribute('o-method');
-        let oenctype = node.getAttribute('o-enctype');
 
-        options.url = options.url || oaction;
-        options.method = options.method || omethod;
-        options.contentType = options.contentType || oenctype;
+        options.url = options.url || event.target.getAttribute('o-action');
+        options.method = options.method || event.target.getAttribute('o-method');
+        options.contentType = options.contentType || event.target.getAttribute('o-enctype');
 
-        let result = await Fetcher.fetch(options);
+        const result = await Fetcher.fetch(options);
 
         if (options.handler) {
             await options.handler(result);
@@ -33,8 +55,8 @@ export default async function (event) {
 
     }
 
-    if (node.hasAttribute('o-reset') || (typeof options === 'object' && options.reset)) {
-        node.reset();
+    if (event.target.hasAttribute('o-reset') || (typeof options === 'object' && options.reset)) {
+        event.target.reset();
     }
 
 }
