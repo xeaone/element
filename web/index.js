@@ -41,7 +41,7 @@ Oxe.setup({
             'input',
             'style',
             'each',
-            '(*)'
+            '(~)'
         ]
     }
 }).catch(console.error);
