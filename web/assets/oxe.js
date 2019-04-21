@@ -816,6 +816,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             }
 
             if (selected && !match) {
+              console.log('selected && !match');
+
               if (this.multiple) {
                 binder.data.push(value);
               } else {
@@ -872,7 +874,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return {
         read: function read() {
           this.data = binder.data;
-          if (typeof this.data !== 'boolean') return false;
+
+          if (typeof this.data !== 'boolean') {
+            return false;
+          }
+
+          if (caller === 'view') {
+            binder.data = binder.target.checked || false;
+          }
         },
         write: function write() {
           binder.target.checked = this.data;
@@ -882,7 +891,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return {
         read: function read() {
           this.data = binder.data;
-          if (this.data === binder.target.value) return false;
+
+          if (this.data === binder.target.value) {
+            return false;
+          }
+
+          if (caller === 'view') {
+            binder.data = binder.target.value;
+            return false;
+          }
         },
         write: function write() {
           binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
@@ -1190,29 +1207,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   };
 
-  function Update(node, attribute) {
-    return new Promise(function ($return, $error) {
-      if (!node) return $error(new Error('Oxe.update - requires node argument'));
-      if (!attribute) return $error(new Error('Oxe.update - requires attribute argument'));
-      var binder = Binder.get('attribute', node, attribute);
-      var type = binder.target.type;
-      var name = binder.target.nodeName;
-
-      if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-        Binder.render(binder, 'view');
-      } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
-        binder.data = binder.target.checked || false;
-      } else {
-        binder.data = node.value;
-      }
-
-      return $return();
-    });
-  }
-
   function Change(event) {
-    if (event.target.hasAttribute('o-value')) {
-      var update = Update(event.target, 'o-value');
+    if ('attributes' in event.target && 'o-value' in event.target.attributes) {
+      var binder = Binder.get('attribute', event.target, 'o-value');
+      Binder.render(binder, 'view');
     }
   }
 
@@ -1874,8 +1872,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Input(event) {
-    if (event.target.type !== 'checkbox' && event.target.type !== 'radio' && event.target.type !== 'option' && event.target.nodeName !== 'SELECT' && event.target.hasAttribute('o-value')) {
-      var update = Update(event.target, 'o-value');
+    if (event.target.type !== 'radio' && event.target.type !== 'option' && event.target.type !== 'checkbox' && event.target.nodeName !== 'SELECT' && 'attributes' in event.target && 'o-value' in event.target.attributes) {
+      var binder = Binder.get('attribute', event.target, 'o-value');
+      Binder.render(binder, 'view');
     }
   }
 

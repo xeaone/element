@@ -1,8 +1,11 @@
-import Update from '../update.js';
+import Binder from '../binder.js';
 
 export default function (event) {
-    if (event.target.hasAttribute('o-value')) {
-        const update = Update(event.target, 'o-value');
-        Promise.resolve(update);
+    if (
+        'attributes' in event.target &&
+        'o-value' in event.target.attributes
+    ) {
+        const binder = Binder.get('attribute', event.target, 'o-value');
+        Binder.render(binder, 'view');
     }
 }

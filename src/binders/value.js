@@ -1,5 +1,6 @@
 import Utility from '../utility.js';
 
+// export default function (binder) {
 export default function (binder, caller) {
     const type = binder.target.type;
     const name = binder.target.nodeName;
@@ -35,6 +36,7 @@ export default function (binder, caller) {
                     // !disabled &&
 
                     if (selected && !match) {
+                        console.log('selected && !match');
                         if (this.multiple) {
                             binder.data.push(value);
                         } else {
@@ -53,7 +55,6 @@ export default function (binder, caller) {
                     }
 
                 }
-
             }
         };
     } else if (type === 'radio') {
@@ -101,7 +102,15 @@ export default function (binder, caller) {
         return {
             read () {
                 this.data = binder.data;
-                if (typeof this.data !== 'boolean') return false;
+
+                if (typeof this.data !== 'boolean') {
+                    return false;
+                }
+
+                if (caller === 'view') {
+                    binder.data = binder.target.checked || false;
+                }
+
             },
             write () {
                 binder.target.checked = this.data;
@@ -111,7 +120,16 @@ export default function (binder, caller) {
         return {
             read () {
                 this.data = binder.data;
-                if (this.data === binder.target.value) return false;
+
+                if (this.data === binder.target.value) {
+                    return false;
+                }
+
+                if (caller === 'view') {
+                    binder.data = binder.target.value;
+                    return false;
+                }
+
             },
             write () {
                 binder.target.value = this.data === undefined || this.data === null ? '' : this.data;

@@ -1,14 +1,15 @@
-import Update from '../update.js';
+import Binder from '../binder.js';
 
 export default function (event) {
     if (
-        event.target.type !== 'checkbox'
-		&& event.target.type !== 'radio'
-		&& event.target.type !== 'option'
-		&& event.target.nodeName !== 'SELECT'
-		&& event.target.hasAttribute('o-value')
+        event.target.type !== 'radio' &&
+		event.target.type !== 'option' &&
+        event.target.type !== 'checkbox' &&
+		event.target.nodeName !== 'SELECT' &&
+        'attributes' in event.target &&
+        'o-value' in event.target.attributes
     ) {
-        const update = Update(event.target, 'o-value');
-        Promise.resolve(update);
+        const binder = Binder.get('attribute', event.target, 'o-value');
+        Binder.render(binder, 'view');
     }
 }
