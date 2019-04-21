@@ -1,9 +1,8 @@
 import Binder from '../binder.js';
 
 export default async function (event) {
-    const node = event.target;
 
-    const elements = node.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+    const elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 
     for (let i = 0, l = elements.length; i < l; i++) {
         const element = elements[i];

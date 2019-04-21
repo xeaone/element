@@ -1489,7 +1489,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return new Promise(function ($return, $error) {
       var data, elements, i, l, element, binder, value, submit, method, options, result;
       data = {};
-      elements = event.target.querySelectorAll('[o-value], [value]:not(button), select[name], input[name], textarea[name]');
+      elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 
       for (i = 0, l = elements.length; i < l; i++) {
         element = elements[i];
@@ -1572,8 +1572,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   function Reset(event) {
     return new Promise(function ($return, $error) {
-      var node = event.target;
-      var elements = node.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+      var elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 
       for (var i = 0, l = elements.length; i < l; i++) {
         var element = elements[i];
