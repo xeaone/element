@@ -26,7 +26,7 @@
                 }
                 return children;
             }
-	  });
+        });
     }
 
     if (!('lastElementChild' in window.DocumentFragment.prototype)) {

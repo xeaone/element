@@ -1,8 +1,8 @@
 
 // custom elements with es5 classes
 
-(function() {
-	'use strict';
+(function () {
+    'use strict';
 
 
     if (window.Reflect === undefined) {
