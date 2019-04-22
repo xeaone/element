@@ -23,17 +23,21 @@ export default async function (event) {
 
         const binder = Binder.get('attribute', element, 'o-value');
         const value = binder ? binder.data : element.value;
+        const name = element.name || binder.values[binder.values.length-1];
 
-        if (name in data) {
+        if (!name) continue;
+        data[name] = value;
 
-            if (typeof data[name] !== 'object') {
-                data[name] = [ data[name] ];
-            }
-
-            data[name].push(value);
-        } else {
-            data[name] = value;
-        }
+        // if (name in data) {
+        //     console.warn(`Oxe.submit - duplicate field name ${name}`);
+        //     // if (typeof data[name] !== 'object') {
+        //     //     data[name] = [ data[name] ];
+        //     // }
+        //     //
+        //     // data[name].push(value);
+        // } else {
+        //     data[name] = value;
+        // }
 
     }
 

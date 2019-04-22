@@ -94,11 +94,21 @@ Oxe.component.define({
 
                 return data;
             }
+        },
+        name: {
+            enumerable: true,
+            get: function () {
+                return this.getAttribute('name') || '';
+            },
+            set: function (data) {
+                this.setAttribute('name', data);
+                return data;
+            }
         }
     },
-    attributed: function (name, _, value) {
+    attributed: function (name, _, data) {
         switch (name) {
-        case 'value': this._value = value || ''; break;
+        case 'value': this._value = data || ''; break;
         }
     }
 });
@@ -140,6 +150,16 @@ export default {
                     this.removeAttribute('multiple');
                 }
 
+                return data;
+            }
+        },
+        name: {
+            enumerable: true,
+            get: function () {
+                return this.getAttribute('name') || '';
+            },
+            set: function (data) {
+                this.setAttribute('name', data);
                 return data;
             }
         }

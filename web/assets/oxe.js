@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 4.16.0
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 (function (global, factory) {
@@ -25,9 +15,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var type = this.type(element);
 
       if ((type === 'radio' || type === 'checkbox') && (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)) {
-        var _name = this.name(element);
-
-        var query = 'input[type="' + type + '"][name="' + _name + '"]';
+        var name = this.name(element);
+        var query = 'input[type="' + type + '"][name="' + name + '"]';
         var form = this.form(element);
         var elements = form ? this.form(element).querySelectorAll(query) : [element];
         var multiple = elements.length > 1;
@@ -250,9 +239,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       for (var i = 0, l = sourceKeys.length; i < l; i++) {
-        var _name2 = sourceKeys[i];
+        var name = sourceKeys[i];
 
-        if (!this.compare(source[_name2], target[_name2])) {
+        if (!this.compare(source[name], target[name])) {
           return false;
         }
       }
@@ -721,13 +710,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         if (!this.data) {
           binder.target.style = '';
         } else if (this.data.constructor === Object) {
-          for (var _name3 in this.data) {
-            var value = this.data[_name3];
+          for (var name in this.data) {
+            var value = this.data[name];
 
             if (value === null || value === undefined) {
-              delete binder.target.style[_name3];
+              delete binder.target.style[name];
             } else {
-              binder.target.style[_name3] = value;
+              binder.target.style[name] = value;
             }
           }
         }
@@ -815,47 +804,46 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) {
       return {
         read: function read() {
+          this.form = binder.target.form || binder.container;
+          this.query = "input[type=\"radio\"][o-value=\"".concat(binder.value, "\"]");
+          this.nodes = this.form.querySelectorAll(this.query);
+          this.radios = Array.prototype.slice.call(this.nodes);
+
+          if (caller === 'view') {
+            binder.data = this.radios.indexOf(binder.target);
+            return false;
+          }
+
           this.data = binder.data;
 
           if (typeof this.data !== 'number') {
             return false;
           }
-
-          this.nodes = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
         },
         write: function write() {
-          var checked = false;
-
-          for (var i = 0, l = this.nodes.length; i < l; i++) {
-            var node = this.nodes[i];
+          for (var i = 0, l = this.radios.length; i < l; i++) {
+            var radio = this.radios[i];
 
             if (i === this.data) {
-              checked = true;
-              node.checked = true;
-              node.setAttribute('checked', '');
+              radio.checked = true;
             } else {
-              node.checked = false;
-              node.removeAttribute('checked');
+              radio.checked = false;
             }
-          }
-
-          if (!checked) {
-            this.nodes[0].checked = true;
-            this.nodes[0].setAttribute('checked', '');
           }
         }
       };
     } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
       return {
         read: function read() {
+          if (caller === 'view') {
+            binder.data = binder.target.checked;
+            return false;
+          }
+
           this.data = binder.data;
 
           if (typeof this.data !== 'boolean') {
             return false;
-          }
-
-          if (caller === 'view') {
-            binder.data = binder.target.checked || false;
           }
         },
         write: function write() {
@@ -865,14 +853,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     } else {
       return {
         read: function read() {
-          this.data = binder.data;
-
-          if (this.data === binder.target.value) {
+          if (caller === 'view') {
+            binder.data = binder.target.value;
             return false;
           }
 
-          if (caller === 'view') {
-            binder.data = binder.target.value;
+          this.data = binder.data;
+
+          if (this.data === binder.target.value) {
             return false;
           }
         },
@@ -939,14 +927,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.data.set('location', new Map());
         this.data.set('attribute', new Map());
 
-        for (var _name4 in this.binders) {
-          this.binders[_name4] = this.binders[_name4].bind(this);
+        for (var name in this.binders) {
+          this.binders[name] = this.binders[name].bind(this);
         }
 
         if (options.binders) {
-          for (var _name5 in options.binders) {
-            if (_name5 in this.binders === false) {
-              this.binders[_name5] = options.binders[_name5].bind(this);
+          for (var _name in options.binders) {
+            if (_name in this.binders === false) {
+              this.binders[_name] = options.binders[_name].bind(this);
             }
           }
         }
@@ -1219,9 +1207,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return new Promise(function ($return, $error) {
         var query = '';
 
-        for (var _name6 in data) {
+        for (var name in data) {
           query = query.length > 0 ? query + '&' : query;
-          query = query + encodeURIComponent(_name6) + '=' + encodeURIComponent(data[_name6]);
+          query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
         }
 
         return $return(query);
@@ -1497,7 +1485,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   function Submit(event) {
     return new Promise(function ($return, $error) {
-      var data, elements, i, l, element, binder, value, submit, method, options, result;
+      var data, elements, i, l, element, binder, value, name, submit, method, options, result;
       data = {};
       elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 
@@ -1510,16 +1498,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         binder = Binder.get('attribute', element, 'o-value');
         value = binder ? binder.data : element.value;
-
-        if (name in data) {
-          if (_typeof(data[name]) !== 'object') {
-            data[name] = [data[name]];
-          }
-
-          data[name].push(value);
-        } else {
-          data[name] = value;
-        }
+        name = element.name || binder.values[binder.values.length - 1];
+        if (!name) continue;
+        data[name] = value;
       }
 
       submit = Binder.get('attribute', event.target, 'o-submit');
@@ -1592,7 +1573,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         var type = element.type;
-        var _name7 = element.nodeName;
+        var name = element.nodeName;
         var binder = Binder.get('attribute', element, 'o-value');
 
         if (!binder) {
@@ -1600,13 +1581,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           continue;
         }
 
-        if (_name7 === 'SELECT' || _name7.indexOf('-SELECT') !== -1) {
+        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
           if (binder.target.multiple) {
             binder.data = [];
           } else {
             binder.data = '';
           }
-        } else if (type === 'radio' || _name7.indexOf('-RADIO') !== -1) ;else if (type === 'checkbox' || _name7.indexOf('-CHECKBOX') !== -1) {
+        } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) ;else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
           binder.data = false;
         } else {
           binder.data = '';
@@ -2324,10 +2305,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       for (var i = 0, l = fragmentSlots.length; i < l; i++) {
         var fragmentSlot = fragmentSlots[i];
-
-        var _name8 = fragmentSlot.getAttribute('name');
-
-        var elementSlot = element.querySelector('[slot="' + _name8 + '"]');
+        var name = fragmentSlot.getAttribute('name');
+        var elementSlot = element.querySelector('[slot="' + name + '"]');
 
         if (elementSlot) {
           fragmentSlot.parentNode.replaceChild(elementSlot, fragmentSlot);
@@ -2600,9 +2579,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var part = routeParts[i];
 
         if (part.slice(0, 1) === '(' && part.slice(-1) === ')') {
-          var _name9 = part.slice(1, part.length - 1).replace('~', '');
-
-          result[_name9] = userParts[i];
+          var name = part.slice(1, part.length - 1).replace('~', '');
+          result[name] = userParts[i];
         }
       }
 

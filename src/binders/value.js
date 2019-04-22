@@ -1,6 +1,5 @@
 import Utility from '../utility.js';
 
-// export default function (binder) {
 export default function (binder, caller) {
     const type = binder.target.type;
     const name = binder.target.nodeName;
@@ -60,55 +59,49 @@ export default function (binder, caller) {
     } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) {
         return {
             read () {
-                this.data = binder.data;
 
-                if (typeof this.data !== 'number') {
-                    // this.data = 0;
+                this.form = binder.target.form || binder.container;
+                this.query = `input[type="radio"][o-value="${binder.value}"]`;
+                this.nodes = this.form.querySelectorAll(this.query);
+                this.radios = Array.prototype.slice.call(this.nodes);
+
+                if (caller === 'view') {
+                    binder.data = this.radios.indexOf(binder.target);
                     return false;
                 }
 
-                this.nodes = binder.container.querySelectorAll(
-                    'input[type="radio"][o-value="' + binder.value + '"]'
-                );
+                this.data = binder.data;
+
+                if (typeof this.data !== 'number') {
+                    return false;
+                }
 
             },
             write () {
-                let checked = false;
-
-                for (let i = 0, l = this.nodes.length; i < l; i++) {
-                    const node = this.nodes[i];
-
+                for (let i = 0, l = this.radios.length; i < l; i++) {
+                    const radio = this.radios[i];
                     if (i === this.data) {
-                        checked = true;
-                        node.checked = true;
-                        node.setAttribute('checked', '');
+                        radio.checked = true;
                     } else {
-                        node.checked = false;
-                        node.removeAttribute('checked');
+                        radio.checked = false;
                     }
-
                 }
-
-                if (!checked) {
-                    this.nodes[0].checked = true;
-                    this.nodes[0].setAttribute('checked', '');
-                    // binder.data = 0;
-                }
-
             }
         };
 
     } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
         return {
             read () {
+
+                if (caller === 'view') {
+                    binder.data = binder.target.checked;
+                    return false;
+                }
+
                 this.data = binder.data;
 
                 if (typeof this.data !== 'boolean') {
                     return false;
-                }
-
-                if (caller === 'view') {
-                    binder.data = binder.target.checked || false;
                 }
 
             },
@@ -119,14 +112,15 @@ export default function (binder, caller) {
     } else {
         return {
             read () {
-                this.data = binder.data;
-
-                if (this.data === binder.target.value) {
-                    return false;
-                }
 
                 if (caller === 'view') {
                     binder.data = binder.target.value;
+                    return false;
+                }
+
+                this.data = binder.data;
+
+                if (this.data === binder.target.value) {
                     return false;
                 }
 
