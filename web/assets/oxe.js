@@ -577,9 +577,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.data = binder.data;
 
         if (this.data === undefined || this.data === null) {
-          return false;
-        } else if (_typeof(this.data) === 'object') {
-          this.data = JSON.stringify(this.data);
+          this.data = '';
         } else if (typeof this.data !== 'string') {
           this.data = String(this.data);
         }
