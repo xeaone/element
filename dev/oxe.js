@@ -8,8 +8,6 @@
 	License, v. 2.0. If a copy of the MPL was not distributed with this
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 (function (global, factory) {
@@ -17,89 +15,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 })(this, function () {
   'use strict';
 
-  var _Fetcher;
-
-  var Batcher = {
-    reads: [],
-    writes: [],
-    time: 1000 / 30,
-    pending: false,
-    setup: function setup(options) {
-      options = options || {};
-      this.time = options.time || this.time;
-    },
-    tick: function tick(callback) {
-      window.requestAnimationFrame(callback.bind(this, null));
-    },
-    schedule: function schedule() {
-      if (this.pending) return;
-      this.pending = true;
-      this.tick(this.flush);
-    },
-    flush: function flush(time) {
-      time = time || performance.now();
-      var task;
-
-      if (this.writes.length === 0) {
-        while (task = this.reads.shift()) {
-          if (task) {
-            task();
-          }
-
-          if (performance.now() - time > this.time) {
-            return this.tick(this.flush);
-          }
-        }
-      }
-
-      while (task = this.writes.shift()) {
-        if (task) {
-          task();
-        }
-
-        if (performance.now() - time > this.time) {
-          return this.tick(this.flush);
-        }
-      }
-
-      if (this.reads.length === 0 && this.writes.length === 0) {
-        this.pending = false;
-      } else if (performance.now() - time > this.time) {
-        this.tick(this.flush);
-      } else {
-        this.flush(time);
-      }
-    },
-    remove: function remove(tasks, task) {
-      var index = tasks.indexOf(task);
-      return !!~index && !!tasks.splice(index, 1);
-    },
-    clear: function clear(task) {
-      return this.remove(this.reads, task) || this.remove(this.writes, task);
-    },
-    batch: function batch(data) {
-      var self = this;
-      if (!data) return;
-      if (!data.read && !data.write) return;
-      data.context = data.context || {};
-
-      var read = function read() {
-        var result;
-
-        if (data.read) {
-          result = data.read.call(data.context, data.context);
-        }
-
-        if (data.write && result !== false) {
-          var write = data.write.bind(data.context, data.context);
-          self.writes.push(write);
-        }
-      };
-
-      self.reads.push(read);
-      self.schedule();
-    }
-  };
   var Utility = {
     PREFIX: /o-/,
     PIPE: /\s?\|\s?/,
@@ -110,8 +25,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var type = this.type(element);
 
       if ((type === 'radio' || type === 'checkbox') && (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)) {
-        var name = this.name(element);
-        var query = 'input[type="' + type + '"][name="' + name + '"]';
+        var _name = this.name(element);
+
+        var query = 'input[type="' + type + '"][name="' + _name + '"]';
         var form = this.form(element);
         var elements = form ? this.form(element).querySelectorAll(query) : [element];
         var multiple = elements.length > 1;
@@ -153,16 +69,20 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         for (var _i = 0, _l = options.length; _i < _l; _i++) {
           var option = options[_i];
-          var selected = this.selected(option);
-          if (!selected) continue;
+          var selected = option.selected;
 
           var _value2 = this.value(option, model);
 
-          if (_multiple) {
-            _result.push(_value2);
-          } else {
-            _result = _value2;
-            break;
+          var match = this[_multiple ? 'includes' : 'compare'](this.data, _value2);
+
+          if (selected && !match) {
+            if (this.multiple) {
+              _result.push(_value2);
+            } else {
+              _result = _value2;
+            }
+          } else if (!selected && match) {
+            option.selected = true;
           }
         }
 
@@ -199,28 +119,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return element.checked;
       } else {
         switch (element.getAttribute('checked')) {
-          case undefined:
-            return false;
-
-          case 'true':
-            return true;
-
-          case null:
-            return false;
-
-          case '':
-            return true;
-
-          default:
-            return false;
-        }
-      }
-    },
-    selected: function selected(element) {
-      if (typeof element.selected === 'boolean') {
-        return element.selected;
-      } else {
-        switch (element.getAttribute('selected')) {
           case undefined:
             return false;
 
@@ -318,50 +216,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       return element;
     },
-    formData: function formData(form, model) {
-      var elements = form.querySelectorAll('[o-value], select[name] , input[name], textarea[name]');
-      var data = {};
-
-      for (var i = 0, l = elements.length; i < l; i++) {
-        var element = elements[i];
-        if (element.nodeName.indexOf('OPTION') !== -1) continue;
-        var value = element.getAttribute('o-value');
-        var values = this.binderValues(value);
-        var name = element.getAttribute('name') || values.slice(-1)[0];
-
-        if (data[name]) {
-          if (_typeof(data[name]) !== 'object') {
-            data[name] = [data[name]];
-          }
-
-          data[name].push(this.getByPath(model, values));
-        } else {
-          data[name] = this.getByPath(model, values);
-        }
-      }
-
-      return data;
-    },
-    formReset: function formReset(form, model) {
-      var elements = form.querySelectorAll('[o-value]');
-
-      for (var i = 0, l = elements.length; i < l; i++) {
-        var element = elements[i];
-        if (element.nodeName === 'OPTION') continue;
-        var value = element.getAttribute('o-value');
-        if (!value) continue;
-        var values = this.binderValues(value);
-        this.setByPath(model, values, '');
-      }
-    },
-    includes: function includes(items, item) {
+    index: function index(items, item) {
       for (var i = 0, l = items.length; i < l; i++) {
         if (this.compare(items[i], item)) {
-          return true;
+          return i;
         }
       }
 
-      return false;
+      return -1;
     },
     compare: function compare(source, target) {
       if (source === target) {
@@ -388,9 +250,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       for (var i = 0, l = sourceKeys.length; i < l; i++) {
-        var name = sourceKeys[i];
+        var _name2 = sourceKeys[i];
 
-        if (!this.compare(source[name], target[name])) {
+        if (!this.compare(source[_name2], target[_name2])) {
           return false;
         }
       }
@@ -434,6 +296,87 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       return data[keys[last]];
+    }
+  };
+  var Batcher = {
+    reads: [],
+    writes: [],
+    time: 1000 / 30,
+    pending: false,
+    setup: function setup(options) {
+      options = options || {};
+      this.time = options.time || this.time;
+    },
+    tick: function tick(callback) {
+      window.requestAnimationFrame(callback.bind(this, null));
+    },
+    schedule: function schedule() {
+      if (this.pending) return;
+      this.pending = true;
+      this.tick(this.flush);
+    },
+    flush: function flush(time) {
+      time = time || performance.now();
+      var task;
+
+      if (this.writes.length === 0) {
+        while (task = this.reads.shift()) {
+          if (task) {
+            task();
+          }
+
+          if (performance.now() - time > this.time) {
+            return this.tick(this.flush);
+          }
+        }
+      }
+
+      while (task = this.writes.shift()) {
+        if (task) {
+          task();
+        }
+
+        if (performance.now() - time > this.time) {
+          return this.tick(this.flush);
+        }
+      }
+
+      if (this.reads.length === 0 && this.writes.length === 0) {
+        this.pending = false;
+      } else if (performance.now() - time > this.time) {
+        this.tick(this.flush);
+      } else {
+        this.flush(time);
+      }
+    },
+    remove: function remove(tasks, task) {
+      var index = tasks.indexOf(task);
+      return !!~index && !!tasks.splice(index, 1);
+    },
+    clear: function clear(task) {
+      return this.remove(this.reads, task) || this.remove(this.writes, task);
+    },
+    batch: function batch(data) {
+      var self = this;
+      if (!data) return;
+      if (!data.read && !data.write) return;
+      data.context = data.context || {};
+
+      var read = function read() {
+        var result;
+
+        if (data.read) {
+          result = data.read.call(data.context, data.context);
+        }
+
+        if (data.write && result !== false) {
+          var write = data.write.bind(data.context, data.context);
+          self.writes.push(write);
+        }
+      };
+
+      self.reads.push(read);
+      self.schedule();
     }
   };
 
@@ -778,13 +721,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         if (!this.data) {
           binder.target.style = '';
         } else if (this.data.constructor === Object) {
-          for (var name in this.data) {
-            var value = this.data[name];
+          for (var _name3 in this.data) {
+            var value = this.data[_name3];
 
             if (value === null || value === undefined) {
-              delete binder.target.style[name];
+              delete binder.target.style[_name3];
             } else {
-              binder.target.style[name] = value;
+              binder.target.style[_name3] = value;
             }
           }
         }
@@ -815,7 +758,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Value(binder) {
+  function Value(binder, caller) {
     var type = binder.target.type;
     var name = binder.target.nodeName;
 
@@ -823,7 +766,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return {
         read: function read() {
           this.data = binder.data;
-          this.nodes = binder.target.options;
+          this.model = binder.model;
+          this.options = binder.target.options;
           this.multiple = Utility.multiple(binder.target);
 
           if (this.multiple && (!this.data || this.data.constructor !== Array)) {
@@ -831,34 +775,44 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         },
         write: function write() {
-          for (var i = 0, l = this.nodes.length; i < l; i++) {
-            var node = this.nodes[i];
-            var value = Utility.value(node, binder.container.model);
+          for (var i = 0, l = this.options.length; i < l; i++) {
+            var option = this.options[i];
+            var selected = option.selected;
+            var value = Utility.value(option, this.model);
+
+            var _index = void 0,
+                match = void 0;
 
             if (this.multiple) {
-              if (node.selected) {
-                if (!node.disabled && !Utility.includes(this.data, value)) {
-                  binder.data.push(value);
-                }
-              } else if (this.data !== undefined && Utility.includes(this.data, value)) {
-                node.selected = true;
-              }
+              _index = Utility.index(this.data, value);
+              match = _index !== -1;
             } else {
-              if (node.selected) {
-                if (!node.disabled && !Utility.compare(this.data, value)) {
-                  binder.data = value;
-                }
+              match = Utility.compare(this.data, value);
+            }
 
-                break;
-              } else if (this.data !== undefined && Utility.compare(this.data, value)) {
-                node.selected = true;
-                break;
+            if (selected && !match) {
+              console.log('selected && !match');
+
+              if (this.multiple) {
+                binder.data.push(value);
+              } else {
+                binder.data = value;
+              }
+            } else if (!selected && match) {
+              if (caller === 'view') {
+                if (this.multiple) {
+                  binder.data.splice(_index, 1);
+                } else {
+                  binder.data = null;
+                }
+              } else {
+                option.selected = true;
               }
             }
           }
         }
       };
-    } else if (type === 'radio') {
+    } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) {
       return {
         read: function read() {
           this.data = binder.data;
@@ -899,15 +853,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           if (typeof this.data !== 'boolean') {
             return false;
           }
+
+          if (caller === 'view') {
+            binder.data = binder.target.checked || false;
+          }
         },
         write: function write() {
           binder.target.checked = this.data;
-
-          if (this.data) {
-            binder.target.setAttribute('checked', '');
-          } else {
-            binder.target.removeAttribute('checked');
-          }
         }
       };
     } else {
@@ -916,6 +868,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           this.data = binder.data;
 
           if (this.data === binder.target.value) {
+            return false;
+          }
+
+          if (caller === 'view') {
+            binder.data = binder.target.value;
             return false;
           }
         },
@@ -982,14 +939,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         this.data.set('location', new Map());
         this.data.set('attribute', new Map());
 
-        for (var name in this.binders) {
-          this.binders[name] = this.binders[name].bind(this);
+        for (var _name4 in this.binders) {
+          this.binders[_name4] = this.binders[_name4].bind(this);
         }
 
         if (options.binders) {
-          for (var _name in options.binders) {
-            if (_name in this.binders === false) {
-              this.binders[_name] = options.binders[_name].bind(this);
+          for (var _name5 in options.binders) {
+            if (_name5 in this.binders === false) {
+              this.binders[_name5] = options.binders[_name5].bind(this);
             }
           }
         }
@@ -1117,9 +1074,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       };
     },
-    render: function render(binder) {
+    render: function render(binder, caller) {
       var type = binder.type in this.binders ? binder.type : 'default';
-      var render = this.binders[type](binder);
+      var render = this.binders[type](binder, caller);
       Batcher.batch(render);
     },
     unbind: function unbind(node) {
@@ -1146,7 +1103,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (binder.originalValue === "$".concat(binder.context.variable, ".$key") || binder.originalValue === "$".concat(binder.context.variable, ".$index") || binder.originalValue === "{{$".concat(binder.context.variable, ".$key}}") || binder.originalValue === "{{$".concat(binder.context.variable, ".$index}}")) {
         var type = binder.type in this.binders ? binder.type : 'default';
-        var render = this.binders[type](binder, binder.context.key);
+        var render = this.binders[type](binder);
         return Batcher.batch(render);
       }
 
@@ -1205,11 +1162,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             skipChildren = true;
           }
 
-          if (attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype' || attribute.name.indexOf('o-') !== 0) {
+          if (attribute.name === 'o-value' || attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype' || attribute.name.indexOf('o-') !== 0) {
             continue;
           }
 
           this.bind(node, attribute.name, attribute.value, context);
+        }
+
+        if ('o-value' in attributes) {
+          this.bind(node, 'o-value', attributes['o-value'].value, context);
         }
 
         if (skipChildren) return;
@@ -1221,49 +1182,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   };
 
-  function Update(node, attribute) {
-    return new Promise(function ($return, $error) {
-      if (!node) return $error(new Error('Oxe.update - requires node argument'));
-      if (!attribute) return $error(new Error('Oxe.update - requires attribute argument'));
-      var binder = Binder.get('attribute', node, attribute);
-
-      var read = function read() {
-        var type = binder.target.type;
-        var name = binder.target.nodeName;
-
-        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-          var value = Utility.value(binder.target, binder.container.model);
-          binder.data = value;
-        } else if (type === 'radio') {
-          var query = 'input[type="radio"][o-value="' + binder.value + '"]';
-          var nodes = binder.container.querySelectorAll(query);
-
-          for (var i = 0, l = nodes.length; i < l; i++) {
-            if (binder.target === nodes[i]) {
-              binder.data = i;
-            }
-          }
-        } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
-          binder.data = binder.target.checked || false;
-        } else {
-          binder.data = binder.target.value || '';
-        }
-      };
-
-      Batcher.batch({
-        read: read
-      });
-      return $return();
-    });
-  }
-
   function Change(event) {
-    if (event.target.hasAttribute('o-value')) {
-      var update = Update(event.target, 'o-value');
+    if ('attributes' in event.target && 'o-value' in event.target.attributes) {
+      var binder = Binder.get('attribute', event.target, 'o-value');
+      Binder.render(binder, 'view');
     }
   }
 
-  var Fetcher = (_Fetcher = {
+  var Fetcher = {
     head: null,
     method: 'get',
     mime: {
@@ -1293,9 +1219,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return new Promise(function ($return, $error) {
         var query = '';
 
-        for (var name in data) {
+        for (var _name6 in data) {
           query = query.length > 0 ? query + '&' : query;
-          query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+          query = query + encodeURIComponent(_name6) + '=' + encodeURIComponent(data[_name6]);
         }
 
         return $return(query);
@@ -1517,48 +1443,44 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         data.method = 'put';
         return $return(this.fetch(data));
       }.bind(this));
+    },
+    patch: function patch(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'patch';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    delete: function _delete(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'delete';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    options: function options(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'options';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    connect: function connect(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'connect';
+        return $return(this.fetch(data));
+      }.bind(this));
     }
-  }, _defineProperty(_Fetcher, "head", function head(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'head';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "patch", function patch(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'patch';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "delete", function _delete(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'delete';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "options", function options(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'options';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "connect", function connect(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'connect';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _Fetcher);
+  };
   var DATA$1 = {};
   var Methods = {
     get data() {
@@ -1572,317 +1494,44 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return Utility.setByPath(this.data, path, data);
     }
   };
-  var Observer = {
-    splice: function splice() {
-      var self = this;
-      var startIndex = arguments[0];
-      var deleteCount = arguments[1];
-      var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
-
-      if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
-        return [];
-      }
-
-      if (startIndex < 0) {
-        startIndex = self.length + startIndex;
-        startIndex = startIndex > 0 ? startIndex : 0;
-      } else {
-        startIndex = startIndex < self.length ? startIndex : self.length;
-      }
-
-      if (deleteCount < 0) {
-        deleteCount = 0;
-      } else if (deleteCount > self.length - startIndex) {
-        deleteCount = self.length - startIndex;
-      }
-
-      var totalCount = self.$meta.length;
-      var argumentIndex = 2;
-      var argumentsCount = arguments.length - argumentIndex;
-      var result = self.slice(startIndex, deleteCount);
-      var updateCount = totalCount - 1 - startIndex;
-      var promises = [];
-      var length = self.length + addCount - deleteCount;
-
-      if (self.length !== length) {
-        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
-      }
-
-      if (updateCount > 0) {
-        var value;
-        var _index = startIndex;
-
-        while (updateCount--) {
-          var key = _index++;
-
-          if (argumentsCount && argumentIndex < argumentsCount) {
-            value = arguments[argumentIndex++];
-          } else {
-            value = self.$meta[_index];
-          }
-
-          self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
-          promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
-        }
-      }
-
-      if (addCount > 0) {
-        while (addCount--) {
-          var _key = self.length;
-
-          if (_key in this === false) {
-            Object.defineProperty(this, _key, Observer.descriptor(_key));
-          }
-
-          self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
-          promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
-        }
-      }
-
-      if (deleteCount > 0) {
-        while (deleteCount--) {
-          self.$meta.length--;
-          self.length--;
-          var _key2 = self.length;
-          promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
-        }
-      }
-
-      Promise.resolve().then(function () {
-        promises.reduce(function (promise, item) {
-          return promise.then(item);
-        }, Promise.resolve());
-      }).catch(console.error);
-      return result;
-    },
-    arrayProperties: function arrayProperties() {
-      var self = this;
-      return {
-        push: {
-          value: function value() {
-            if (!arguments.length) return this.length;
-
-            for (var i = 0, l = arguments.length; i < l; i++) {
-              self.splice.call(this, this.length, 0, arguments[i]);
-            }
-
-            return this.length;
-          }
-        },
-        unshift: {
-          value: function value() {
-            if (!arguments.length) return this.length;
-
-            for (var i = 0, l = arguments.length; i < l; i++) {
-              self.splice.call(this, 0, 0, arguments[i]);
-            }
-
-            return this.length;
-          }
-        },
-        pop: {
-          value: function value() {
-            if (!this.length) return;
-            var result = self.splice.call(this, this.length - 1, 1);
-            return result[0];
-          }
-        },
-        shift: {
-          value: function value() {
-            if (!this.length) return;
-            var result = self.splice.call(this, 0, 1);
-            return result[0];
-          }
-        },
-        splice: {
-          value: self.splice
-        }
-      };
-    },
-    objectProperties: function objectProperties() {
-      var self = this;
-      return {
-        $get: {
-          value: function value(key) {
-            return this.$meta[key];
-          }
-        },
-        $set: {
-          value: function value(key, _value3) {
-            if (_value3 !== this.$meta[key]) {
-              if (key in this === false) {
-                Object.defineProperty(this, key, self.descriptor(key));
-              }
-
-              this.$meta[key] = self.create(_value3, this.$meta.listener, this.$meta.path + key);
-              this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
-            }
-          }
-        },
-        $remove: {
-          value: function value(key) {
-            if (key in this) {
-              if (this.constructor === Array) {
-                return self.splice.call(this, key, 1);
-              } else {
-                var result = this[key];
-                delete this.$meta[key];
-                delete this[key];
-                this.$meta.listener(undefined, this.$meta.path + key, key);
-                return result;
-              }
-            }
-          }
-        }
-      };
-    },
-    descriptor: function descriptor(key) {
-      var self = this;
-      return {
-        enumerable: true,
-        configurable: true,
-        get: function get() {
-          return this.$meta[key];
-        },
-        set: function set(value) {
-          if (value !== this.$meta[key]) {
-            this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
-            this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
-          }
-        }
-      };
-    },
-    create: function create(source, listener, path) {
-      if (!source || source.constructor !== Object && source.constructor !== Array) {
-        return source;
-      }
-
-      path = path ? path + '.' : '';
-      var type = source.constructor;
-      var target = source.constructor();
-      var descriptors = {};
-      descriptors.$meta = {
-        value: source.constructor()
-      };
-      descriptors.$meta.value.path = path;
-      descriptors.$meta.value.listener = listener;
-
-      if (type === Array) {
-        for (var key = 0, length = source.length; key < length; key++) {
-          descriptors.$meta.value[key] = this.create(source[key], listener, path + key);
-          descriptors[key] = this.descriptor(key);
-        }
-      }
-
-      if (type === Object) {
-        for (var _key3 in source) {
-          descriptors.$meta.value[_key3] = this.create(source[_key3], listener, path + _key3);
-          descriptors[_key3] = this.descriptor(_key3);
-        }
-      }
-
-      Object.defineProperties(target, descriptors);
-      Object.defineProperties(target, this.objectProperties(source, listener, path));
-
-      if (type === Array) {
-        Object.defineProperties(target, this.arrayProperties(source, listener, path));
-      }
-
-      return target;
-    }
-  };
-  var Model = {
-    GET: 2,
-    SET: 3,
-    REMOVE: 4,
-    data: null,
-    tasks: [],
-    target: {},
-    setup: function setup(options) {
-      return new Promise(function ($return, $error) {
-        options = options || {};
-        this.target = options.target || this.target;
-        this.data = Observer.create(this.target, this.listener.bind(this));
-        return $return();
-      }.bind(this));
-    },
-    traverse: function traverse(type, keys, value) {
-      var result;
-
-      if (typeof keys === 'string') {
-        keys = keys.split('.');
-      }
-
-      var data = this.data;
-      var key = keys[keys.length - 1];
-
-      for (var i = 0, l = keys.length - 1; i < l; i++) {
-        if (!(keys[i] in data)) {
-          if (type === this.GET || type === this.REMOVE) {
-            return undefined;
-          } else if (type === this.SET) {
-            data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
-          }
-        }
-
-        data = data[keys[i]];
-      }
-
-      if (type === this.SET) {
-        result = data.$set(key, value);
-      } else if (type === this.GET) {
-        result = data[key];
-      } else if (type === this.REMOVE) {
-        result = data[key];
-        data.$remove(key);
-      }
-
-      return result;
-    },
-    get: function get(keys) {
-      return this.traverse(this.GET, keys);
-    },
-    remove: function remove(keys) {
-      return this.traverse(this.REMOVE, keys);
-    },
-    set: function set(keys, value) {
-      return this.traverse(this.SET, keys, value);
-    },
-    listener: function listener(data, location, type) {
-      var parts = location.split('.');
-      var part = parts.slice(1).join('.');
-      var scope = parts.slice(0, 1).join('.');
-      var paths = Binder.get('location', scope);
-      if (!paths) return;
-      paths.forEach(function (binders, path) {
-        if (part === '' || path === part || type !== 'length' && path.indexOf(part + '.') === 0) {
-          binders.forEach(function (binder) {
-            Binder.render(binder);
-          });
-        }
-      });
-    }
-  };
 
   function Submit(event) {
     return new Promise(function ($return, $error) {
-      var node, binder, model, method, data, options, oaction, omethod, oenctype, result;
-      node = event.target;
-      binder = Binder.get('attribute', node, 'o-submit');
-      model = Model.get(binder.scope);
-      method = Methods.get(binder.keys);
-      data = Utility.formData(node, model);
-      return Promise.resolve(method.call(binder.container, data, event)).then(function ($await_45) {
+      var data, elements, i, l, element, binder, value, submit, method, options, result;
+      data = {};
+      elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+
+      for (i = 0, l = elements.length; i < l; i++) {
+        element = elements[i];
+
+        if (element.type === 'submit' || element.type === 'button' || element.nodeName === 'BUTTON' || element.nodeName === 'OPTION' || element.nodeName.indexOf('-BUTTON') !== -1 || element.nodeName.indexOf('-OPTION') !== -1) {
+          continue;
+        }
+
+        binder = Binder.get('attribute', element, 'o-value');
+        value = binder ? binder.data : element.value;
+
+        if (name in data) {
+          if (_typeof(data[name]) !== 'object') {
+            data[name] = [data[name]];
+          }
+
+          data[name].push(value);
+        } else {
+          data[name] = value;
+        }
+      }
+
+      submit = Binder.get('attribute', event.target, 'o-submit');
+      method = Methods.get(submit.keys);
+      return Promise.resolve(method.call(submit.container, data, event)).then(function ($await_45) {
         try {
           options = $await_45;
 
           if (_typeof(options) === 'object') {
-            oaction = node.getAttribute('o-action');
-            omethod = node.getAttribute('o-method');
-            oenctype = node.getAttribute('o-enctype');
-            options.url = options.url || oaction;
-            options.method = options.method || omethod;
-            options.contentType = options.contentType || oenctype;
+            options.url = options.url || event.target.getAttribute('o-action');
+            options.method = options.method || event.target.getAttribute('o-method');
+            options.contentType = options.contentType || event.target.getAttribute('o-enctype');
             return Promise.resolve(Fetcher.fetch(options)).then(function ($await_46) {
               try {
                 result = $await_46;
@@ -1909,8 +1558,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
 
           function $If_6() {
-            if (node.hasAttribute('o-reset') || _typeof(options) === 'object' && options.reset) {
-              node.reset();
+            if (event.target.hasAttribute('o-reset') || _typeof(options) === 'object' && options.reset) {
+              event.target.reset();
             }
 
             return $return();
@@ -1925,16 +1574,45 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Input(event) {
-    if (event.target.type !== 'checkbox' && event.target.type !== 'radio' && event.target.type !== 'option' && event.target.nodeName !== 'SELECT' && event.target.hasAttribute('o-value')) {
-      var update = Update(event.target, 'o-value');
+    if (event.target.type !== 'radio' && event.target.type !== 'option' && event.target.type !== 'checkbox' && event.target.nodeName !== 'SELECT' && 'attributes' in event.target && 'o-value' in event.target.attributes) {
+      var binder = Binder.get('attribute', event.target, 'o-value');
+      Binder.render(binder, 'view');
     }
   }
 
   function Reset(event) {
     return new Promise(function ($return, $error) {
-      var node = event.target;
-      var binder = Binder.get('attribute', node, 'o-submit');
-      Utility.formReset(node, binder.model);
+      var elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+
+      for (var i = 0, l = elements.length; i < l; i++) {
+        var element = elements[i];
+
+        if (element.type === 'submit' || element.type === 'button' || element.nodeName === 'BUTTON' || element.nodeName === 'OPTION' || element.nodeName.indexOf('-BUTTON') !== -1 || element.nodeName.indexOf('-OPTION') !== -1) {
+          continue;
+        }
+
+        var type = element.type;
+        var _name7 = element.nodeName;
+        var binder = Binder.get('attribute', element, 'o-value');
+
+        if (!binder) {
+          element.value = '';
+          continue;
+        }
+
+        if (_name7 === 'SELECT' || _name7.indexOf('-SELECT') !== -1) {
+          if (binder.target.multiple) {
+            binder.data = [];
+          } else {
+            binder.data = '';
+          }
+        } else if (type === 'radio' || _name7.indexOf('-RADIO') !== -1) ;else if (type === 'checkbox' || _name7.indexOf('-CHECKBOX') !== -1) {
+          binder.data = false;
+        } else {
+          binder.data = '';
+        }
+      }
+
       return $return();
     });
   }
@@ -2234,6 +1912,297 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
     }
   };
+  var Observer = {
+    splice: function splice() {
+      var self = this;
+      var startIndex = arguments[0];
+      var deleteCount = arguments[1];
+      var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
+
+      if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
+        return [];
+      }
+
+      if (startIndex < 0) {
+        startIndex = self.length + startIndex;
+        startIndex = startIndex > 0 ? startIndex : 0;
+      } else {
+        startIndex = startIndex < self.length ? startIndex : self.length;
+      }
+
+      if (deleteCount < 0) {
+        deleteCount = 0;
+      } else if (deleteCount > self.length - startIndex) {
+        deleteCount = self.length - startIndex;
+      }
+
+      var totalCount = self.$meta.length;
+      var argumentIndex = 2;
+      var argumentsCount = arguments.length - argumentIndex;
+      var result = self.slice(startIndex, deleteCount);
+      var updateCount = totalCount - 1 - startIndex;
+      var promises = [];
+      var length = self.length + addCount - deleteCount;
+
+      if (self.length !== length) {
+        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+      }
+
+      if (updateCount > 0) {
+        var value;
+        var _index3 = startIndex;
+
+        while (updateCount--) {
+          var key = _index3++;
+
+          if (argumentsCount && argumentIndex < argumentsCount) {
+            value = arguments[argumentIndex++];
+          } else {
+            value = self.$meta[_index3];
+          }
+
+          self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
+          promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
+        }
+      }
+
+      if (addCount > 0) {
+        while (addCount--) {
+          var _key = self.length;
+
+          if (_key in this === false) {
+            Object.defineProperty(this, _key, Observer.descriptor(_key));
+          }
+
+          self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
+          promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
+        }
+      }
+
+      if (deleteCount > 0) {
+        while (deleteCount--) {
+          self.$meta.length--;
+          self.length--;
+          var _key2 = self.length;
+          promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
+        }
+      }
+
+      Promise.resolve().then(function () {
+        promises.reduce(function (promise, item) {
+          return promise.then(item);
+        }, Promise.resolve());
+      }).catch(console.error);
+      return result;
+    },
+    arrayProperties: function arrayProperties() {
+      var self = this;
+      return {
+        push: {
+          value: function value() {
+            if (!arguments.length) return this.length;
+
+            for (var i = 0, l = arguments.length; i < l; i++) {
+              self.splice.call(this, this.length, 0, arguments[i]);
+            }
+
+            return this.length;
+          }
+        },
+        unshift: {
+          value: function value() {
+            if (!arguments.length) return this.length;
+
+            for (var i = 0, l = arguments.length; i < l; i++) {
+              self.splice.call(this, 0, 0, arguments[i]);
+            }
+
+            return this.length;
+          }
+        },
+        pop: {
+          value: function value() {
+            if (!this.length) return;
+            var result = self.splice.call(this, this.length - 1, 1);
+            return result[0];
+          }
+        },
+        shift: {
+          value: function value() {
+            if (!this.length) return;
+            var result = self.splice.call(this, 0, 1);
+            return result[0];
+          }
+        },
+        splice: {
+          value: self.splice
+        }
+      };
+    },
+    objectProperties: function objectProperties() {
+      var self = this;
+      return {
+        $get: {
+          value: function value(key) {
+            return this.$meta[key];
+          }
+        },
+        $set: {
+          value: function value(key, _value3) {
+            if (_value3 !== this.$meta[key]) {
+              if (key in this === false) {
+                Object.defineProperty(this, key, self.descriptor(key));
+              }
+
+              this.$meta[key] = self.create(_value3, this.$meta.listener, this.$meta.path + key);
+              this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
+            }
+          }
+        },
+        $remove: {
+          value: function value(key) {
+            if (key in this) {
+              if (this.constructor === Array) {
+                return self.splice.call(this, key, 1);
+              } else {
+                var result = this[key];
+                delete this.$meta[key];
+                delete this[key];
+                this.$meta.listener(undefined, this.$meta.path + key, key);
+                return result;
+              }
+            }
+          }
+        }
+      };
+    },
+    descriptor: function descriptor(key) {
+      var self = this;
+      return {
+        enumerable: true,
+        configurable: true,
+        get: function get() {
+          return this.$meta[key];
+        },
+        set: function set(value) {
+          if (value !== this.$meta[key]) {
+            this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
+            this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
+          }
+        }
+      };
+    },
+    create: function create(source, listener, path) {
+      if (!source || source.constructor !== Object && source.constructor !== Array) {
+        return source;
+      }
+
+      path = path ? path + '.' : '';
+      var type = source.constructor;
+      var target = source.constructor();
+      var descriptors = {};
+      descriptors.$meta = {
+        value: source.constructor()
+      };
+      descriptors.$meta.value.path = path;
+      descriptors.$meta.value.listener = listener;
+
+      if (type === Array) {
+        for (var key = 0, length = source.length; key < length; key++) {
+          descriptors.$meta.value[key] = this.create(source[key], listener, path + key);
+          descriptors[key] = this.descriptor(key);
+        }
+      }
+
+      if (type === Object) {
+        for (var _key3 in source) {
+          descriptors.$meta.value[_key3] = this.create(source[_key3], listener, path + _key3);
+          descriptors[_key3] = this.descriptor(_key3);
+        }
+      }
+
+      Object.defineProperties(target, descriptors);
+      Object.defineProperties(target, this.objectProperties(source, listener, path));
+
+      if (type === Array) {
+        Object.defineProperties(target, this.arrayProperties(source, listener, path));
+      }
+
+      return target;
+    }
+  };
+  var Model = {
+    GET: 2,
+    SET: 3,
+    REMOVE: 4,
+    data: null,
+    tasks: [],
+    target: {},
+    setup: function setup(options) {
+      return new Promise(function ($return, $error) {
+        options = options || {};
+        this.target = options.target || this.target;
+        this.data = Observer.create(this.target, this.listener.bind(this));
+        return $return();
+      }.bind(this));
+    },
+    traverse: function traverse(type, keys, value) {
+      var result;
+
+      if (typeof keys === 'string') {
+        keys = keys.split('.');
+      }
+
+      var data = this.data;
+      var key = keys[keys.length - 1];
+
+      for (var i = 0, l = keys.length - 1; i < l; i++) {
+        if (!(keys[i] in data)) {
+          if (type === this.GET || type === this.REMOVE) {
+            return undefined;
+          } else if (type === this.SET) {
+            data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
+          }
+        }
+
+        data = data[keys[i]];
+      }
+
+      if (type === this.SET) {
+        result = data.$set(key, value);
+      } else if (type === this.GET) {
+        result = data[key];
+      } else if (type === this.REMOVE) {
+        result = data[key];
+        data.$remove(key);
+      }
+
+      return result;
+    },
+    get: function get(keys) {
+      return this.traverse(this.GET, keys);
+    },
+    remove: function remove(keys) {
+      return this.traverse(this.REMOVE, keys);
+    },
+    set: function set(keys, value) {
+      return this.traverse(this.SET, keys, value);
+    },
+    listener: function listener(data, location, type) {
+      var parts = location.split('.');
+      var part = parts.slice(1).join('.');
+      var scope = parts.slice(0, 1).join('.');
+      var paths = Binder.get('location', scope);
+      if (!paths) return;
+      paths.forEach(function (binders, path) {
+        if (part === '' || path === part || type !== 'length' && path.indexOf(part + '.') === 0) {
+          binders.forEach(function (binder) {
+            Binder.render(binder);
+          });
+        }
+      });
+    }
+  };
   var STYLE = document.createElement('style');
   var SHEET = STYLE.sheet;
   STYLE.setAttribute('title', 'oxe');
@@ -2332,7 +2301,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     style: function style(_style, name) {
       if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
-        var matches = _style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+        var matches = _style.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
 
         for (var i = 0, l = matches.length; i < l; i++) {
           var match = matches[i];
@@ -2344,7 +2313,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':host')) {
-        _style = _style.replace(/\:host/g, name);
+        _style = _style.replace(/:host/g, name);
       }
 
       return _style;
@@ -2355,8 +2324,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       for (var i = 0, l = fragmentSlots.length; i < l; i++) {
         var fragmentSlot = fragmentSlots[i];
-        var name = fragmentSlot.getAttribute('name');
-        var elementSlot = element.querySelector('[slot="' + name + '"]');
+
+        var _name8 = fragmentSlot.getAttribute('name');
+
+        var elementSlot = element.querySelector('[slot="' + _name8 + '"]');
 
         if (elementSlot) {
           fragmentSlot.parentNode.replaceChild(elementSlot, fragmentSlot);
@@ -2511,14 +2482,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   };
   var Event = Object.create(Events);
-
-  var ORouter = function ORouter() {
-    return window.Reflect.construct(HTMLElement, [], this.constructor);
-  };
-
-  Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-  Object.setPrototypeOf(ORouter, HTMLElement);
-  window.customElements.define('o-router', ORouter);
   var Router = {
     on: Event.on.bind(Event),
     off: Event.off.bind(Event),
@@ -2582,9 +2545,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       for (var i = 0, l = routeParts.length; i < l; i++) {
         if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
-          if (routeParts[i] === '(*)') {
+          if (routeParts[i] === '(~)') {
             return true;
-          } else if (routeParts[i].indexOf('*') !== -1) {
+          } else if (routeParts[i].indexOf('~') !== -1) {
             if (userParts[i]) {
               compareParts.push(userParts[i]);
             }
@@ -2637,8 +2600,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var part = routeParts[i];
 
         if (part.slice(0, 1) === '(' && part.slice(-1) === ')') {
-          var name = part.slice(1, part.length - 1).replace('*', '');
-          result[name] = userParts[i];
+          var _name9 = part.slice(1, part.length - 1).replace('~', '');
+
+          result[_name9] = userParts[i];
         }
       }
 
@@ -3270,7 +3234,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     });
   }
 
-  if (!window.Reflect || !window.Reflect.construct) {
+  if (window.Reflect === undefined) {
     window.Reflect = window.Reflect || {};
 
     window.Reflect.construct = function (parent, args, child) {
@@ -3281,6 +3245,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
+  var ORouter = function ORouter() {
+    return window.Reflect.construct(HTMLElement, [], this.constructor);
+  };
+
+  Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+  Object.setPrototypeOf(ORouter, HTMLElement);
+  window.customElements.define('o-router', ORouter);
   var oSetup = document.querySelector('script[o-setup]');
 
   if (oSetup) {
