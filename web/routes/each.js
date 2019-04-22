@@ -6,10 +6,10 @@ export default {
         name: 'r-each',
         model: {
             title: 'Each',
-            items: [
+            as: [
                 { it: { val: 0 } }, { it: { val: 1 } }
             ],
-            props: {
+            os: {
                 keyOne: 'valueOne',
                 keyTwo: 'valueTwo',
                 keyThree: 'valueThree',
@@ -47,40 +47,33 @@ export default {
         },
         template: /*html*/`
 
-			<h2 o-text="title"></h2>
 			<h2>{{title}}</h2>
 			<hr>
 
-			<div o-text="items.0.it.val"></div>
+			<div o-text="as.0.it.val"></div>
+			<input type="text" o-value="as.0.it.val">
 
-			<input type="text" o-value="items.0.it.val">
-
-			<div o-each-item="items">
+			<br>
+			<br>
+			<strong>Array</strong>
+			<div o-each-a="as">
 				<div>
-					<span>{{$item.it.val}}</span>
-					<span>Key: {{$item.$key}}</span>
-					<span>Index: {{$item.$index}}</span>
-					<span>Model: {{$item.it.val}} poop</span>
-					<span o-text="$item.it.val"></span>
-					<span>,</span>
+					<span>Key: {{$a.$key}},</span>
+					<span>Index: {{$a.$index}},</span>
+					<span>Value: {{$a.it.val}}</span>
 				</div>
 			</div>
 
+			<br>
 			<br>
 			<strong>Object</strong>
-			<div o-each-prop="props">
-				<div o-on-click="click | $prop">
-					<span>Key: {{$prop.$key}}</span>
-					<span>Index: {{$prop.$index}}</span>
-					<span>Value: {{$prop}}</span>
-					<span o-text="$prop"></span>
-					<span>,</span>
+			<div o-each-o="os">
+				<div o-on-click="click | $o">
+					<span>Key: {{$o.$key}},</span>
+					<span>Index: {{$o.$index}},</span>
+					<span>Value: {{$o}}</span>
 				</div>
 			</div>
-
-			<br>
-			<strong>No Child</strong>
-			<div o-each-prop="props"></div>
 
 		`
     }

@@ -20,7 +20,7 @@ export default {
 
     async setup () {
 
-        this.append(`
+        this.append(/*css*/`
 			*[hidden] {
 				display: none !important;
 			}

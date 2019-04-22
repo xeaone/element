@@ -87,7 +87,7 @@ export default {
         var imps = code.match(this.imps) || [];
 
         for (var i = 0, l = imps.length; i < l; i++) {
-		 	var imp = imps[i].match(this.imp);
+            var imp = imps[i].match(this.imp);
 
             var rawImport = imp[0];
             var nameImport = imp[1];

@@ -121,7 +121,7 @@ export default {
 
         const meta = data.meta || {};
         const context = data.context || {};
-        const source = type === 'on' ? data.container.methods : data.container.model;
+        const source = type === 'on' || type === 'submit' ? data.container.methods : data.container.model;
 
         return {
             get location () { return location; },
@@ -161,6 +161,8 @@ export default {
 
     render (binder, caller) {
 
+        if (binder.type === 'submit') return;
+
         const type = binder.type in this.binders ? binder.type : 'default';
         const render = this.binders[type](binder, caller);
 
@@ -184,6 +186,14 @@ export default {
 
     bind (node, name, value, context) {
 
+        if (value === `$${context.variable}.$key` || value === `{{$${context.variable}.$key}}`) {
+            return Batcher.batch({ write () { node.textContent = context.key; } });
+        }
+
+        if (value === `$${context.variable}.$index` || value === `{{$${context.variable}.$index}}`) {
+            return Batcher.batch({ write () { node.textContent = context.index; } });
+        }
+
         const binder = this.create({
             name: name,
             value: value,
@@ -192,18 +202,6 @@ export default {
             container: context.container,
             scope: context.container.scope
         });
-
-        if (
-            binder.originalValue === `$${binder.context.variable}.$key` ||
-			binder.originalValue === `$${binder.context.variable}.$index` ||
-			binder.originalValue === `{{$${binder.context.variable}.$key}}` ||
-			binder.originalValue === `{{$${binder.context.variable}.$index}}`
-        ) {
-            const type = binder.type in this.binders ? binder.type : 'default';
-            const render = this.binders[type](binder);
-            // const render = this.binders[type](binder, binder.context.key);
-            return Batcher.batch(render);
-        }
 
         if (!this.data.get('attribute').has(binder.target)) {
             this.data.get('attribute').set(binder.target, new Map());

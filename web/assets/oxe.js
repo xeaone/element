@@ -271,8 +271,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     getByPath: function getByPath(data, path) {
       var keys = typeof path === 'string' ? path.split('.') : path;
       var last = keys.length - 1;
-      if (keys[last] === '$index') return last - 1;
-      if (keys[last] === '$key') return keys[last - 1];
+
+      if (keys[last] === '$key' || keys[last] === '$index') {
+        return keys[last - 1];
+      }
 
       for (var i = 0; i < last; i++) {
         var key = keys[i];
@@ -503,12 +505,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         } else if (binder.meta.currentLength < binder.meta.targetLength) {
           var _element = binder.meta.template.cloneNode(true);
 
+          var _index = binder.meta.currentLength++;
+
           self.add(_element, {
+            index: _index,
             path: binder.path,
             variable: binder.names[1],
             container: binder.container,
             scope: binder.container.scope,
-            key: binder.meta.keys[binder.meta.currentLength++]
+            key: binder.meta.keys[_index]
           });
           binder.target.appendChild(_element);
         }
@@ -769,19 +774,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             var selected = option.selected;
             var value = Utility.value(option, this.model);
 
-            var _index = void 0,
+            var _index2 = void 0,
                 match = void 0;
 
             if (this.multiple) {
-              _index = Utility.index(this.data, value);
-              match = _index !== -1;
+              _index2 = Utility.index(this.data, value);
+              match = _index2 !== -1;
             } else {
               match = Utility.compare(this.data, value);
             }
 
             if (selected && !match) {
-              console.log('selected && !match');
-
               if (this.multiple) {
                 binder.data.push(value);
               } else {
@@ -790,7 +793,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             } else if (!selected && match) {
               if (caller === 'view') {
                 if (this.multiple) {
-                  binder.data.splice(_index, 1);
+                  binder.data.splice(_index2, 1);
                 } else {
                   binder.data = null;
                 }
@@ -981,7 +984,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var location = keys.join('.');
       var meta = data.meta || {};
       var context = data.context || {};
-      var source = type === 'on' ? data.container.methods : data.container.model;
+      var source = type === 'on' || type === 'submit' ? data.container.methods : data.container.model;
       return {
         get location() {
           return location;
@@ -1063,6 +1066,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       };
     },
     render: function render(binder, caller) {
+      if (binder.type === 'submit') return;
       var type = binder.type in this.binders ? binder.type : 'default';
       var render = this.binders[type](binder, caller);
       Batcher.batch(render);
@@ -1080,6 +1084,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       this.data.get('attribute').delete(node);
     },
     bind: function bind(node, name, value, context) {
+      if (value === "$".concat(context.variable, ".$key") || value === "{{$".concat(context.variable, ".$key}}")) {
+        return Batcher.batch({
+          write: function write() {
+            node.textContent = context.key;
+          }
+        });
+      }
+
+      if (value === "$".concat(context.variable, ".$index") || value === "{{$".concat(context.variable, ".$index}}")) {
+        return Batcher.batch({
+          write: function write() {
+            node.textContent = context.index;
+          }
+        });
+      }
+
       var binder = this.create({
         name: name,
         value: value,
@@ -1088,12 +1108,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         container: context.container,
         scope: context.container.scope
       });
-
-      if (binder.originalValue === "$".concat(binder.context.variable, ".$key") || binder.originalValue === "$".concat(binder.context.variable, ".$index") || binder.originalValue === "{{$".concat(binder.context.variable, ".$key}}") || binder.originalValue === "{{$".concat(binder.context.variable, ".$index}}")) {
-        var type = binder.type in this.binders ? binder.type : 'default';
-        var render = this.binders[type](binder);
-        return Batcher.batch(render);
-      }
 
       if (!this.data.get('attribute').has(binder.target)) {
         this.data.get('attribute').set(binder.target, new Map());
@@ -1473,23 +1487,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }.bind(this));
     }
   };
-  var DATA$1 = {};
-  var Methods = {
-    get data() {
-      return DATA$1;
-    },
-
-    get: function get(path) {
-      return Utility.getByPath(this.data, path);
-    },
-    set: function set(path, data) {
-      return Utility.setByPath(this.data, path, data);
-    }
-  };
 
   function Submit(event) {
     return new Promise(function ($return, $error) {
-      var data, elements, i, l, element, binder, value, name, submit, method, options, result;
+      var data, elements, i, l, element, binder, value, name, submit, options, result;
 
       if (event.target.hasAttribute('o-submit') === false) {
         return $return();
@@ -1514,8 +1515,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       submit = Binder.get('attribute', event.target, 'o-submit');
-      method = Methods.get(submit.keys);
-      return Promise.resolve(method.call(submit.container, data, event)).then(function ($await_45) {
+      return Promise.resolve(submit.data.call(submit.container, data, event)).then(function ($await_45) {
         try {
           options = $await_45;
 
@@ -1894,10 +1894,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     off: function off(name, method) {
       if (name in this.events) {
-        var _index2 = this.events[name].indexOf(method);
+        var _index3 = this.events[name].indexOf(method);
 
-        if (_index2 !== -1) {
-          this.events[name].splice(_index2, 1);
+        if (_index3 !== -1) {
+          this.events[name].splice(_index3, 1);
         }
       }
     },
@@ -1910,6 +1910,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           methods[i].apply(this, args);
         }
       }
+    }
+  };
+  var DATA$1 = {};
+  var Methods = {
+    get data() {
+      return DATA$1;
+    },
+
+    get: function get(path) {
+      return Utility.getByPath(this.data, path);
+    },
+    set: function set(path, data) {
+      return Utility.setByPath(this.data, path, data);
     }
   };
   var Observer = {
@@ -1950,15 +1963,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (updateCount > 0) {
         var value;
-        var _index3 = startIndex;
+        var _index4 = startIndex;
 
         while (updateCount--) {
-          var key = _index3++;
+          var key = _index4++;
 
           if (argumentsCount && argumentIndex < argumentsCount) {
             value = arguments[argumentIndex++];
           } else {
-            value = self.$meta[_index3];
+            value = self.$meta[_index4];
           }
 
           self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);

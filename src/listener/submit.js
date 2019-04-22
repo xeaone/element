@@ -1,5 +1,4 @@
 import Fetcher from '../fetcher.js';
-import Methods from '../methods.js';
 import Binder from '../binder.js';
 
 export default async function (event) {
@@ -48,8 +47,7 @@ export default async function (event) {
     }
 
     const submit = Binder.get('attribute', event.target, 'o-submit');
-    const method = Methods.get(submit.keys);
-    const options = await method.call(submit.container, data, event);
+    const options = await submit.data.call(submit.container, data, event);
 
     if (typeof options === 'object') {
 

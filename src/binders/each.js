@@ -45,15 +45,16 @@ export default function (binder) {
                 self.remove(element);
                 binder.meta.currentLength--;
             } else if (binder.meta.currentLength < binder.meta.targetLength) {
-                // const element = document.importNode(binder.meta.template, true);
                 const element = binder.meta.template.cloneNode(true);
+                const index = binder.meta.currentLength++;
 
                 self.add(element, {
+                    index: index,
                     path: binder.path,
                     variable: binder.names[1],
                     container: binder.container,
                     scope: binder.container.scope,
-                    key: binder.meta.keys[binder.meta.currentLength++]
+                    key: binder.meta.keys[index]
                 });
 
                 binder.target.appendChild(element);

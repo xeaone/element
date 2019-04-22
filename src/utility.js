@@ -271,8 +271,9 @@ export default {
         const keys = typeof path === 'string' ? path.split('.') : path;
         const last = keys.length - 1;
 
-        if (keys[last] === '$index') return last - 1;
-        if (keys[last] === '$key') return keys[last - 1];
+        if (keys[last] === '$key' || keys[last] === '$index') {
+            return keys[last - 1];
+        }
 
         for (let i = 0; i < last; i++) {
             const key = keys[i];

@@ -35,7 +35,6 @@ export default function (binder, caller) {
                     // !disabled &&
 
                     if (selected && !match) {
-                        console.log('selected && !match');
                         if (this.multiple) {
                             binder.data.push(value);
                         } else {
