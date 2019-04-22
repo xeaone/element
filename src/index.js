@@ -5,6 +5,7 @@ import Reset from './listener/reset.js';
 import Click from './listener/click.js';
 import State from './listener/state.js';
 import Component from './component.js';
+import Listener from './listener.js';
 import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
 import Methods from './methods.js';
@@ -90,58 +91,22 @@ export default {
         await this.model.setup(options.model);
         await this.binder.setup(options.binder);
 
-        document.addEventListener('input', Input, true);
-        document.addEventListener('click', Click, true);
-        document.addEventListener('change', Change, true);
-        window.addEventListener('popstate', State, true);
-
-        document.addEventListener('reset', function (event) {
-            if (event.target.hasAttribute('o-reset')) {
-                event.preventDefault();
-
-                let before;
-                let after;
-
-                if (options.listener.reset) {
-                    before = typeof options.listener.reset.before === 'function' ? options.listener.reset.before.bind(null, event) : null;
-                    after = typeof options.listener.reset.after === 'function' ? options.listener.reset.after.bind(null, event) : null;
-                }
-
-                Promise.resolve()
-                    .then(before)
-                    .then(Reset.bind(null, event))
-                    .then(after);
-            }
-        }, true);
-
-        document.addEventListener('submit', function (event) {
-            if (event.target.hasAttribute('o-submit')) {
-                event.preventDefault();
-
-                let before;
-                let after;
-
-                if (options.listener.submit) {
-                    before = typeof options.listener.submit.before === 'function' ? options.listener.submit.before.bind(null, event) : null;
-                    after = typeof options.listener.submit.after === 'function' ? options.listener.submit.after.bind(null, event) : null;
-                }
-
-                Promise.resolve()
-                    .then(before)
-                    .then(Submit.bind(null, event))
-                    .then(after);
-            }
-        }, true);
+        document.addEventListener('click', Listener.bind(null, options, Click), true);
+        document.addEventListener('input', Listener.bind(null, options, Input), true);
+        document.addEventListener('reset', Listener.bind(null, options, Reset), true);
+        document.addEventListener('change', Listener.bind(null, options, Change), true);
+        document.addEventListener('submit', Listener.bind(null, options, Submit), true);
+        window.addEventListener('popstate', Listener.bind(null, options, State), true);
 
         if (options.listener.before) {
             await options.listener.before();
         }
 
-        if (options.style) {
-            if ('transition' in options.style) {
-                window.document.documentElement.style.setProperty('--o-transition', `${options.style.transition}ms`);
-            }
-        }
+        // if (options.style) {
+        //     if ('transition' in options.style) {
+        //         window.document.documentElement.style.setProperty('--o-transition', `${options.style.transition}ms`);
+        //     }
+        // }
 
         if (options.path) {
             await this.path.setup(options.path);

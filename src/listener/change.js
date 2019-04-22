@@ -1,6 +1,6 @@
 import Binder from '../binder.js';
 
-export default function (event) {
+export default async function (event) {
     if (
         'attributes' in event.target &&
         'o-value' in event.target.attributes

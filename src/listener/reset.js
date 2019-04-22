@@ -2,6 +2,12 @@ import Binder from '../binder.js';
 
 export default async function (event) {
 
+    if (event.target.hasAttribute('o-reset') === false) {
+        return;
+    }
+
+    event.preventDefault();
+
     const elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 
     for (let i = 0, l = elements.length; i < l; i++) {

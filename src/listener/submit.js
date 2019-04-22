@@ -4,6 +4,12 @@ import Binder from '../binder.js';
 
 export default async function (event) {
 
+    if (event.target.hasAttribute('o-submit') === false) {
+        return;
+    }
+
+    event.preventDefault();
+
     const data = {};
     const elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 

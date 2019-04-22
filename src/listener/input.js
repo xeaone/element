@@ -1,6 +1,6 @@
 import Binder from '../binder.js';
 
-export default function (event) {
+export default async function (event) {
     if (
         event.target.type !== 'radio' &&
 		event.target.type !== 'option' &&

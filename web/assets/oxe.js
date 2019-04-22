@@ -1,13 +1,3 @@
-/*
-	Name: oxe
-	Version: 4.16.0
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 (function (global, factory) {
@@ -1181,10 +1171,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
 
   function Change(event) {
-    if ('attributes' in event.target && 'o-value' in event.target.attributes) {
-      var binder = Binder.get('attribute', event.target, 'o-value');
-      Binder.render(binder, 'view');
-    }
+    return new Promise(function ($return, $error) {
+      if ('attributes' in event.target && 'o-value' in event.target.attributes) {
+        var binder = Binder.get('attribute', event.target, 'o-value');
+        Binder.render(binder, 'view');
+      }
+
+      return $return();
+    });
   }
 
   var Fetcher = {
@@ -1496,6 +1490,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Submit(event) {
     return new Promise(function ($return, $error) {
       var data, elements, i, l, element, binder, value, name, submit, method, options, result;
+
+      if (event.target.hasAttribute('o-submit') === false) {
+        return $return();
+      }
+
+      event.preventDefault();
       data = {};
       elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 
@@ -1565,14 +1565,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Input(event) {
-    if (event.target.type !== 'radio' && event.target.type !== 'option' && event.target.type !== 'checkbox' && event.target.nodeName !== 'SELECT' && 'attributes' in event.target && 'o-value' in event.target.attributes) {
-      var binder = Binder.get('attribute', event.target, 'o-value');
-      Binder.render(binder, 'view');
-    }
+    return new Promise(function ($return, $error) {
+      if (event.target.type !== 'radio' && event.target.type !== 'option' && event.target.type !== 'checkbox' && event.target.nodeName !== 'SELECT' && 'attributes' in event.target && 'o-value' in event.target.attributes) {
+        var binder = Binder.get('attribute', event.target, 'o-value');
+        Binder.render(binder, 'view');
+      }
+
+      return $return();
+    });
   }
 
   function Reset(event) {
     return new Promise(function ($return, $error) {
+      if (event.target.hasAttribute('o-reset') === false) {
+        return $return();
+      }
+
+      event.preventDefault();
       var elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 
       for (var i = 0, l = elements.length; i < l; i++) {
@@ -3177,49 +3186,69 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
 
   function Click(event) {
-    if (event.button !== 0 || event.defaultPrevented || event.target.nodeName === 'INPUT' || event.target.nodeName === 'BUTTON' || event.target.nodeName === 'SELECT' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
-      return;
-    }
+    return new Promise(function ($return, $error) {
+      if (event.button !== 0 || event.defaultPrevented || event.target.nodeName === 'INPUT' || event.target.nodeName === 'BUTTON' || event.target.nodeName === 'SELECT' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return $return();
+      }
 
-    var target = event.path ? event.path[0] : event.target;
-    var parent = target.parentElement;
+      var target = event.path ? event.path[0] : event.target;
+      var parent = target.parentElement;
 
-    if (Router.contain) {
-      while (parent) {
-        if (parent.nodeName === 'O-ROUTER') {
-          break;
-        } else {
-          parent = parent.parentElement;
+      if (Router.contain) {
+        while (parent) {
+          if (parent.nodeName === 'O-ROUTER') {
+            break;
+          } else {
+            parent = parent.parentElement;
+          }
+        }
+
+        if (parent.nodeName !== 'O-ROUTER') {
+          return $return();
         }
       }
 
-      if (parent.nodeName !== 'O-ROUTER') {
-        return;
+      while (target && 'A' !== target.nodeName) {
+        target = target.parentElement;
       }
-    }
 
-    while (target && 'A' !== target.nodeName) {
-      target = target.parentElement;
-    }
+      if (!target || 'A' !== target.nodeName) {
+        return $return();
+      }
 
-    if (!target || 'A' !== target.nodeName) {
-      return;
-    }
+      if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return $return();
+      if (Router.external && (Router.external.constructor === RegExp && Router.external.test(target.href) || Router.external.constructor === Function && Router.external(target.href) || Router.external.constructor === String && Router.external === target.href)) return $return();
+      event.preventDefault();
 
-    if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return;
-    if (Router.external && (Router.external.constructor === RegExp && Router.external.test(target.href) || Router.external.constructor === Function && Router.external(target.href) || Router.external.constructor === String && Router.external === target.href)) return;
-    event.preventDefault();
+      if (Router.location.href !== target.href) {
+        Router.route(target.href);
+      }
 
-    if (Router.location.href !== target.href) {
-      Router.route(target.href).catch(console.error);
-    }
+      return $return();
+    });
   }
 
   function State(event) {
-    var path = event && event.state ? event.state.path : window.location.href;
-    var route = Router.route(path, {
-      mode: 'replace'
+    return new Promise(function ($return, $error) {
+      var path = event && event.state ? event.state.path : window.location.href;
+      Router.route(path, {
+        mode: 'replace'
+      });
+      return $return();
     });
+  }
+
+  function Listener(option, method, event) {
+    var type = event.type;
+    var before;
+    var after;
+
+    if (type in option.listener) {
+      before = typeof option.listener[type].before === 'function' ? option.listener[type].before.bind(null, event) : null;
+      after = typeof option.listener[type].after === 'function' ? option.listener[type].after.bind(null, event) : null;
+    }
+
+    Promise.resolve().then(before).then(method.bind(null, event)).then(after).catch(console.error);
   }
 
   if (window.Reflect === undefined) {
@@ -3349,38 +3378,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               try {
                 return Promise.resolve(this.binder.setup(options.binder)).then(function ($await_67) {
                   try {
-                    document.addEventListener('input', Input, true);
-                    document.addEventListener('click', Click, true);
-                    document.addEventListener('change', Change, true);
-                    window.addEventListener('popstate', State, true);
-                    document.addEventListener('reset', function (event) {
-                      if (event.target.hasAttribute('o-reset')) {
-                        event.preventDefault();
-                        var before;
-                        var after;
-
-                        if (options.listener.reset) {
-                          before = typeof options.listener.reset.before === 'function' ? options.listener.reset.before.bind(null, event) : null;
-                          after = typeof options.listener.reset.after === 'function' ? options.listener.reset.after.bind(null, event) : null;
-                        }
-
-                        Promise.resolve().then(before).then(Reset.bind(null, event)).then(after);
-                      }
-                    }, true);
-                    document.addEventListener('submit', function (event) {
-                      if (event.target.hasAttribute('o-submit')) {
-                        event.preventDefault();
-                        var before;
-                        var after;
-
-                        if (options.listener.submit) {
-                          before = typeof options.listener.submit.before === 'function' ? options.listener.submit.before.bind(null, event) : null;
-                          after = typeof options.listener.submit.after === 'function' ? options.listener.submit.after.bind(null, event) : null;
-                        }
-
-                        Promise.resolve().then(before).then(Submit.bind(null, event)).then(after);
-                      }
-                    }, true);
+                    document.addEventListener('click', Listener.bind(null, options, Click), true);
+                    document.addEventListener('input', Listener.bind(null, options, Input), true);
+                    document.addEventListener('reset', Listener.bind(null, options, Reset), true);
+                    document.addEventListener('change', Listener.bind(null, options, Change), true);
+                    document.addEventListener('submit', Listener.bind(null, options, Submit), true);
+                    window.addEventListener('popstate', Listener.bind(null, options, State), true);
 
                     if (options.listener.before) {
                       return Promise.resolve(options.listener.before()).then(function ($await_68) {
@@ -3393,12 +3396,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                     }
 
                     function $If_33() {
-                      if (options.style) {
-                        if ('transition' in options.style) {
-                          window.document.documentElement.style.setProperty('--o-transition', "".concat(options.style.transition, "ms"));
-                        }
-                      }
-
                       if (options.path) {
                         return Promise.resolve(this.path.setup(options.path)).then(function ($await_69) {
                           try {

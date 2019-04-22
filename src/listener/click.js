@@ -1,6 +1,6 @@
 import Router from '../router.js';
 
-export default function (event) {
+export default async function (event) {
 
     // ignore canceled events, modified clicks, and right clicks
     if (
@@ -65,7 +65,7 @@ export default function (event) {
     event.preventDefault();
 
     if (Router.location.href !== target.href) {
-        Router.route(target.href).catch(console.error);
+        Router.route(target.href);
     }
 
 }
