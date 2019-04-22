@@ -6,11 +6,6 @@ import Component from './component.js';
 
 const Event = Object.create(Events);
 
-const ORouter = function ORouter () { return window.Reflect.construct(HTMLElement, [], this.constructor); };
-Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-Object.setPrototypeOf(ORouter, HTMLElement);
-window.customElements.define('o-router', ORouter);
-
 export default {
 
     on: Event.on.bind(Event),
@@ -67,9 +62,9 @@ export default {
 
             if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
 
-                if (routeParts[i] === '(*)') {
+                if (routeParts[i] === '(~)') {
                     return true;
-                } else if (routeParts[i].indexOf('*') !== -1) {
+                } else if (routeParts[i].indexOf('~') !== -1) {
                     if (userParts[i]) {
                         compareParts.push(userParts[i]);
                     }
@@ -134,7 +129,7 @@ export default {
             let part = routeParts[i];
 
             if (part.slice(0, 1) === '(' && part.slice(-1) === ')') {
-                const name = part.slice(1, part.length - 1).replace('*', '');
+                const name = part.slice(1, part.length - 1).replace('~', '');
                 result[name] = userParts[i];
             }
 

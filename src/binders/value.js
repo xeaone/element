@@ -101,32 +101,17 @@ export default function (binder, caller) {
         return {
             read () {
                 this.data = binder.data;
-
-                if (typeof this.data !== 'boolean') {
-                    return false;
-                }
-
+                if (typeof this.data !== 'boolean') return false;
             },
             write () {
                 binder.target.checked = this.data;
-
-                if (this.data) {
-                    binder.target.setAttribute('checked', '');
-                } else {
-                    binder.target.removeAttribute('checked');
-                }
-
             }
         };
     } else {
         return {
             read () {
                 this.data = binder.data;
-
-                if (this.data === binder.target.value) {
-                    return false;
-                }
-
+                if (this.data === binder.target.value) return false;
             },
             write () {
                 binder.target.value = this.data === undefined || this.data === null ? '' : this.data;

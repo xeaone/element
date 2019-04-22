@@ -34,7 +34,7 @@ export default {
     style (style, name) {
 
         if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
-            const matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+            const matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
 
             for (let i = 0, l = matches.length; i < l; i++) {
                 const match = matches[i];

@@ -1,13 +1,9 @@
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 (function (global, factory) {
   (typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object' && typeof module !== 'undefined' ? module.exports = factory() : typeof define === 'function' && define.amd ? define(factory) : (global = global || self, global.Oxe = factory());
 })(this, function () {
   'use strict';
-
-  var _Fetcher;
 
   var Utility = {
     PREFIX: /o-/,
@@ -876,29 +872,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return {
         read: function read() {
           this.data = binder.data;
-
-          if (typeof this.data !== 'boolean') {
-            return false;
-          }
+          if (typeof this.data !== 'boolean') return false;
         },
         write: function write() {
           binder.target.checked = this.data;
-
-          if (this.data) {
-            binder.target.setAttribute('checked', '');
-          } else {
-            binder.target.removeAttribute('checked');
-          }
         }
       };
     } else {
       return {
         read: function read() {
           this.data = binder.data;
-
-          if (this.data === binder.target.value) {
-            return false;
-          }
+          if (this.data === binder.target.value) return false;
         },
         write: function write() {
           binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
@@ -1211,7 +1195,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (!node) return $error(new Error('Oxe.update - requires node argument'));
       if (!attribute) return $error(new Error('Oxe.update - requires attribute argument'));
       var binder = Binder.get('attribute', node, attribute);
-      Binder.render(binder, 'view');
+      var type = binder.target.type;
+      var name = binder.target.nodeName;
+
+      if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
+        Binder.render(binder, 'view');
+      } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
+        binder.data = binder.target.checked || false;
+      } else {
+        binder.data = node.value;
+      }
+
       return $return();
     });
   }
@@ -1222,7 +1216,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   }
 
-  var Fetcher = (_Fetcher = {
+  var Fetcher = {
     head: null,
     method: 'get',
     mime: {
@@ -1476,48 +1470,44 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         data.method = 'put';
         return $return(this.fetch(data));
       }.bind(this));
+    },
+    patch: function patch(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'patch';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    delete: function _delete(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'delete';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    options: function options(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'options';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    connect: function connect(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'connect';
+        return $return(this.fetch(data));
+      }.bind(this));
     }
-  }, _defineProperty(_Fetcher, "head", function head(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'head';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "patch", function patch(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'patch';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "delete", function _delete(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'delete';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "options", function options(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'options';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "connect", function connect(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'connect';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _Fetcher);
+  };
   var DATA$1 = {};
   var Methods = {
     get data() {
@@ -2291,7 +2281,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     style: function style(_style, name) {
       if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
-        var matches = _style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
+        var matches = _style.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
 
         for (var i = 0, l = matches.length; i < l; i++) {
           var match = matches[i];
@@ -2303,7 +2293,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':host')) {
-        _style = _style.replace(/\:host/g, name);
+        _style = _style.replace(/:host/g, name);
       }
 
       return _style;
@@ -2470,14 +2460,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   };
   var Event = Object.create(Events);
-
-  var ORouter = function ORouter() {
-    return window.Reflect.construct(HTMLElement, [], this.constructor);
-  };
-
-  Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-  Object.setPrototypeOf(ORouter, HTMLElement);
-  window.customElements.define('o-router', ORouter);
   var Router = {
     on: Event.on.bind(Event),
     off: Event.off.bind(Event),
@@ -2541,9 +2523,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       for (var i = 0, l = routeParts.length; i < l; i++) {
         if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
-          if (routeParts[i] === '(*)') {
+          if (routeParts[i] === '(~)') {
             return true;
-          } else if (routeParts[i].indexOf('*') !== -1) {
+          } else if (routeParts[i].indexOf('~') !== -1) {
             if (userParts[i]) {
               compareParts.push(userParts[i]);
             }
@@ -2596,7 +2578,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var part = routeParts[i];
 
         if (part.slice(0, 1) === '(' && part.slice(-1) === ')') {
-          var name = part.slice(1, part.length - 1).replace('*', '');
+          var name = part.slice(1, part.length - 1).replace('~', '');
           result[name] = userParts[i];
         }
       }
@@ -3229,7 +3211,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     });
   }
 
-  if (!window.Reflect || !window.Reflect.construct) {
+  if (window.Reflect === undefined) {
     window.Reflect = window.Reflect || {};
 
     window.Reflect.construct = function (parent, args, child) {
@@ -3240,6 +3222,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
+  var ORouter = function ORouter() {
+    return window.Reflect.construct(HTMLElement, [], this.constructor);
+  };
+
+  Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+  Object.setPrototypeOf(ORouter, HTMLElement);
+  window.customElements.define('o-router', ORouter);
   var oSetup = document.querySelector('script[o-setup]');
 
   if (oSetup) {
