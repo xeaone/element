@@ -66,7 +66,6 @@ export default {
     },
 
     listener (data, location, type) {
-        // const self = this;
         const parts = location.split('.');
         const part = parts.slice(1).join('.');
         const scope = parts.slice(0, 1).join('.');
