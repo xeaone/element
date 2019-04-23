@@ -3,7 +3,7 @@ import Batcher from './batcher.js';
 import Piper from './piper.js';
 
 import Class from './binders/class.js';
-import Css from './binders/css.js';
+// import Css from './binders/css.js';
 import Default from './binders/default.js';
 import Disable from './binders/disable.js';
 import Each from './binders/each.js';
@@ -25,7 +25,7 @@ const DATA = new Map();
 
 const BINDERS = {
     class: Class,
-    css: Css,
+    css: Style,
     default: Default,
     disable: Disable,
     disabled: Disable,

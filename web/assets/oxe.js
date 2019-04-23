@@ -408,25 +408,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Css(binder) {
-    return {
-      read: function read() {
-        this.data = binder.data;
-
-        if (binder.names.length > 1) {
-          this.data = binder.names.slice(1).join('-') + ': ' + this.data + ';';
-        }
-
-        if (this.data === binder.target.style.cssText) {
-          return false;
-        }
-      },
-      write: function write() {
-        binder.target.style.cssText = this.data;
-      }
-    };
-  }
-
   function Default(binder) {
     return {
       read: function read() {
@@ -578,6 +559,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (this.data === undefined || this.data === null) {
           this.data = '';
+        } else if (_typeof(this.data) === 'object') {
+          this.data = JSON.stringify(this.data);
         } else if (typeof this.data !== 'string') {
           this.data = String(this.data);
         }
@@ -708,19 +691,32 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return {
       read: function read() {
         this.data = binder.data;
+
+        if (binder.names.length > 1) {
+          this.name = '';
+          this.names = binder.names.slice(1);
+
+          for (var i = 0, l = this.names.length; i < l; i++) {
+            if (i === 0) {
+              this.name = this.names[i].toLowerCase();
+            } else {
+              this.name += this.names[i].charAt(0).toUpperCase() + this.names[i].slice(1).toLowerCase();
+            }
+          }
+        }
       },
       write: function write() {
-        if (!this.data) {
-          binder.target.style = '';
-        } else if (this.data.constructor === Object) {
-          for (var name in this.data) {
-            var value = this.data[name];
-
-            if (value === null || value === undefined) {
-              delete binder.target.style[name];
-            } else {
-              binder.target.style[name] = value;
-            }
+        if (binder.names.length > 1) {
+          if (this.data) {
+            binder.target.style[this.name] = this.data;
+          } else {
+            binder.target.style[this.name] = '';
+          }
+        } else {
+          if (this.data) {
+            binder.target.style.cssText = this.data;
+          } else {
+            binder.target.style.cssText = '';
           }
         }
       }
@@ -890,7 +886,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   var DATA = new Map();
   var BINDERS = {
     class: Class,
-    css: Css,
+    css: Style,
     default: Default,
     disable: Disable,
     disabled: Disable,

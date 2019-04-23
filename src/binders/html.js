@@ -7,6 +7,8 @@ export default function (binder) {
 
             if (this.data === undefined || this.data === null) {
                 this.data = '';
+            } else if (typeof this.data === 'object') {
+                this.data = JSON.stringify(this.data);
             } else if (typeof this.data !== 'string') {
                 this.data = String(this.data);
             }
