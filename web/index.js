@@ -38,6 +38,7 @@ Oxe.setup({
             'js',
             'test',
             'select',
+            'class',
             'input',
             'style',
             'each',

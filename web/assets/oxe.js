@@ -401,9 +401,29 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   function Class(binder) {
     return {
+      read: function read() {
+        this.data = binder.data;
+
+        if (binder.names.length > 1) {
+          this.name = binder.names.slice(1).join('-');
+        }
+      },
       write: function write() {
-        var name = binder.names.slice(1).join('-');
-        binder.target.classList.toggle(name, binder.data);
+        if (this.name) {
+          if (this.data === undefined || this.data === null) {
+            binder.target.classList.remove(this.name);
+          } else {
+            binder.target.classList.toggle(this.name, this.data);
+          }
+        } else {
+          console.log(this.data);
+
+          if (this.data === undefined || this.data === null) {
+            binder.target.setAttribute('class', '');
+          } else {
+            binder.target.setAttribute('class', this.data);
+          }
+        }
       }
     };
   }
