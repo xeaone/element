@@ -4,10 +4,10 @@
 	"description": "A mighty tiny web components framework/library",
 	"main": "dst/oxe.min.js",
 	"scripts": {
-		"w": "node watch.js",
-		"b": "node build.js dst",
-		"d": "node build.js dev",
-		"p": "node publish.js",
+		"w": "node --experimental-modules watch.mjs",
+		"b": "node --experimental-modules build.mjs src/index.js dst oxe",
+		"d": "node --experimental-modules build.mjs src/index.js dev oxe",
+		"p": "node --experimental-modules publish.mjs",
 		"s": "muleify -ssw ./web"
 	},
 	"repository": {

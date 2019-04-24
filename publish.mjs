@@ -1,13 +1,13 @@
-const Package = require('./package.json');
-const Util = require('util');
-const ChildProcess = require('child_process');
+import Util from 'util';
+import Package from './package.json';
+import ChildProcess from 'child_process';
 
 const Exec = Util.promisify(ChildProcess.exec);
 
 (async function () {
 
     const commands = [
-        'node build.js',
+        'npm run b',
         'rm -r ./docs/*',
         'muleify -p ./web ./docs',
         'git add .',

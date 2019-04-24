@@ -1,11 +1,11 @@
 
-const Rollup = require('rollup');
-const Babel = require('@babel/core');
+import Rollup from 'rollup';
+import Babel from '@babel/core';
 
-const Fs = require('fs');
-const Util = require('util');
-const Path = require('path');
-const Readline = require('readline');
+import Fs from 'fs';
+import Util from 'util';
+import Path from 'path';
+import Readline from 'readline';
 
 const ReadFolder = Util.promisify(Fs.readdir);
 const WriteFile = Util.promisify(Fs.writeFile);
