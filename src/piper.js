@@ -16,12 +16,17 @@ export default function (binder, data) {
     }
 
     for (let i = 0, l = binder.pipes.length; i < l; i++) {
-        const method = binder.pipes[i];
+        const name = binder.pipes[i];
 
-        if (method in methods) {
-            data = methods[method].call(binder.container, data);
+        if (name in methods) {
+            const method = methods[name];
+            if (method && method.constructor === Function) {
+                data = methods[name].call(binder.container, data);
+            } else {
+                console.warn(`Oxe.piper - pipe ${name} invalid type`);
+            }
         } else {
-            throw new Error(`Oxe.piper.pipe - method ${method} not found in scope ${binder.scope}`);
+            console.warn(`Oxe.piper - pipe ${name} not found`);
         }
 
     }
