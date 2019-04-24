@@ -129,29 +129,17 @@ export default {
 
         data.context = data.context || {};
 
-        // const read = data.read ? data.read.bind(null, data.context) : null;
-        // const write = data.write ? data.write.bind(null, data.context) : null;
-        //
-        // self.reads.push(read);
-        // self.writes.push(write);
-        //
-        // self.schedule();
-
         const read = function () {
             let result;
 
             if (data.read) {
                 result = data.read.call(data.context, data.context);
-                // data.read.call(data.context);
             }
 
             if (data.write && result !== false) {
-                // if (data.write) {
                 const write = data.write.bind(data.context, data.context);
 
                 self.writes.push(write);
-                // } else {
-                // self.writes.push(null);
             }
 
         };
