@@ -1,14 +1,14 @@
 /*
-	Name: oxe
-	Version: 4.16.0
-	License: MPL-2.0
-	Author: Alexander Elias
-	Email: alex.steven.elis@gmail.com
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+    	Name: oxe
+    	Version: 4.16.0
+    	License: MPL-2.0
+    	Author: Alexander Elias
+    	Email: alex.steven.elis@gmail.com
+    	This Source Code Form is subject to the terms of the Mozilla Public
+    	License, v. 2.0. If a copy of the MPL was not distributed with this
+    	file, You can obtain one at http://mozilla.org/MPL/2.0/.
+    */
+    function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 (function (global, factory) {
   (typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object' && typeof module !== 'undefined' ? module.exports = factory() : typeof define === 'function' && define.amd ? define(factory) : (global = global || self, global.Oxe = factory());
