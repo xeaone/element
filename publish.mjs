@@ -7,7 +7,8 @@ const Exec = Util.promisify(ChildProcess.exec);
 (async function () {
 
     const commands = [
-        'npm run b',
+        'npm run dev',
+        'npm run dst',
         'rm -r ./docs/*',
         'muleify -p ./web ./docs',
         'git add .',

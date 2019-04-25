@@ -1,11 +1,13 @@
 import Package from './package.json';
 
 export default {
-    name: 'oxe',
+    bundle: true,
+    transform: true,
+    name: 'Oxe',
     input: 'src/index.js',
     output: [
-        { output: 'dev/oxe.js' },
-        { output: 'dev/oxe.min.js', minify: true }
+        { output: 'oxe.js' },
+        { output: 'oxe.min.js', minify: true }
     ],
     header: `/*
     	Name: ${Package.name}

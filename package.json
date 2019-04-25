@@ -4,11 +4,10 @@
 	"description": "A mighty tiny web components framework/library",
 	"main": "dst/oxe.min.js",
 	"scripts": {
-		"p": "node --experimental-modules packer.mjs packer.config.mjs",
-		"w": "node --experimental-modules watch.mjs",
-		"p": "node --experimental-modules publish.mjs",
-		"d": "node --experimental-modules build.mjs src/index.js dev/oxe.js oxe && node --experimental-modules build.mjs src/index.js dev/oxe.min.js oxe -m",
-		"b": "node --experimental-modules build.mjs src/index.js dst/oxe.js oxe && node --experimental-modules build.mjs src/index.js dst/oxe.min.js oxe -m"
+		"watch": "node --experimental-modules watch.mjs",
+		"publish": "node --experimental-modules publish.mjs",
+		"dst": "node --experimental-modules packer.mjs config=packer.config.mjs outputFolder=dst",
+		"dev": "node --experimental-modules packer.mjs config=packer.config.mjs outputFolder=dev"
 	},
 	"repository": {
 		"type": "git",
