@@ -1,79 +1,66 @@
 
 var oLoop = {
-	name: 'o-loop',
-	model: {
-		items: [],
-		message: '',
-		count: 1000
-	},
-	created: function () {
-		console.log(this.model);
-	},
-	methods: {
-		loop: function () {
-			console.time('push');
+    name: 'o-loop',
+    model: {
+        items: [],
+        message: '',
+        count: 1000
+    },
+    created: function () {
+        console.log(this.model);
+    },
+    methods: {
+        push: function () {
+            console.time('push');
 
-			var time = performance.now();
+            for (var i = 0; i < this.model.count; i++) {
+                this.model.items.push({ number: this.model.items.length });
+            }
 
-			for (var i = 0; i < this.model.count; i++) {
-				this.model.items.push({ number: this.model.items.length });
-			}
+            console.timeEnd('push');
+        },
+        overwrite: function () {
+            console.time('overwrite');
 
-			console.timeEnd('push');
-		},
-		over: function () {
-			const self = this;
+            var items = [];
 
-			console.log(self.model.items);
-			console.log(self.model.items.length);
-			console.time('over');
+            for (var i = 0; i < 10; i++) {
+                items.push({ number: i });
+            }
 
-			var time = performance.now();
-			var items = [];
+            this.model.items = items;
 
-			for (var i = 0; i < 10; i++) {
-				items.push({ number: i });
-			}
+            console.timeEnd('overwrite');
+        }
+    },
+    template: /*html*/`
 
-			self.model.items = items;
-
-			console.timeEnd('over')
-			console.log(self.model.items);
-			console.log(self.model.items.length);
-
-			setTimeout(function () {
-				console.log(self.model.items.length);
-			}, 3000);
-		}
-	},
-	template: `
-
-		<h3><span o-text="count"></span> Inputs two way binded</h3>
+		<h3><span o-text="count" o-text="count"></span> Inputs two way binded</h3>
 		<h3><span o-text="count"></span> Text one way binded</h3>
 
-		<form o-submit="loop">
+		<form o-submit="push">
 			<input o-value="count" type="number">
-			<input type="submit" value="Loop">
+			<input type="submit" value="Push">
 		</form>
 
-		<button o-on-click="over">Over</button>
+		<br>
+
+		<button o-on-click="overwrite">Overwrite</button>
 
 		<div o-each-item="items">
 			<div class="box">
-				<div o-text="item.number"></div>
-				<input type="text" o-value="item.number">
+				<div o-text="$item.number"></div>
+				<input type="text" o-value="$item.number">
 			</div>
 		</div>
 
-		<!--
-		-->
-	`,
+	`
 };
 
 Oxe.setup({
-	component: {
-		components: [
-			oLoop
-		]
-	}
+    component: {
+        components: [
+            oLoop
+        ]
+    }
 });

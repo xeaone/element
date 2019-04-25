@@ -37,7 +37,7 @@ export default {
     },
 
     async fetch (options) {
-        let data = Object.assign({}, options);
+        const data = Object.assign({}, options);
 
         data.path = data.path || this.path;
         data.origin = data.origin || this.origin;
@@ -46,9 +46,8 @@ export default {
         if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length-1) === '/') data.origin = data.origin.slice(0, -1);
         if (data.path && data.origin && !data.url) data.url = data.origin + '/' + data.path;
 
-        if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
-
         if (!data.method) throw new Error('Oxe.fetcher - requires method option');
+        if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
 
         if (!data.head && this.head) data.head = this.head;
         if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.method;
@@ -111,8 +110,8 @@ export default {
         // }
 
         if (typeof this.request === 'function') {
-            let copy = Object.assign({}, data);
-            let result = await this.request(copy);
+            const copy = Object.assign({}, data);
+            const result = await this.request(copy);
 
             if (result === false) {
                 return data;
@@ -134,14 +133,14 @@ export default {
 
         }
 
-        let fetchOptions = Object.assign({}, data);
+        const fetchOptions = Object.assign({}, data);
 
         if (fetchOptions.head) {
             fetchOptions.headers = fetchOptions.head;
             delete fetchOptions.head;
         }
 
-        let fetched = await window.fetch(data.url, fetchOptions);
+        const fetched = await window.fetch(data.url, fetchOptions);
 
         data.code = fetched.status;
         data.message = fetched.statusText;

@@ -19,17 +19,11 @@ const header = `/*
 */
 `;
 
-(async function () {
-
-    const input = process.argv.slice(2)[0];
-    const output = process.argv.slice(2)[1];
-    const name = process.argv.slice(2)[2];
+const main = async function (input, output, name, option) {
 
     if (!name) return console.error('name required');
     if (!input) return console.error('input path required');
     if (!output) return console.error('output path required');
-
-    console.log('started: building');
 
     const bundled = await Rollup.rollup({ input });
 
@@ -65,17 +59,31 @@ const header = `/*
         ]
     };
 
-    const dev = Babel.transform(code, options);
+    if (option.includes('m')) {
+        options.minified = true;
+    }
 
-    options.minified = true;
+    const result = Babel.transform(code, options);
 
-    const dst = Babel.transform(code, options);
+    await WriteFile(`./${output}`, header + result.code);
 
-    await Promise.all([
-        await WriteFile(`./${output}/${name}.js`, header + dev.code),
-        await WriteFile(`./${output}/${name}.min.js`, header + dst.code)
-    ]);
+};
 
-    console.log('ended: building');
+if (process.argv.length > 2) {
+    const args = [];
+    const opt = [];
 
-}()).catch(console.error);
+    process.argv.slice(2).forEach(function (arg) {
+        if (arg[0] === '-') {
+            opt.push.apply(opt, arg.slice(1).split());
+        } else {
+            args.push(arg);
+        }
+    });
+
+    args.push(opt);
+
+    main.apply(null, args, opt).catch(console.error);
+}
+
+export default main;

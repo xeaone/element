@@ -74,14 +74,14 @@ var indexhtml = Escape(`
 `);
 
 export default {
-	title: 'Oxe',
-	path: '/',
-	component: {
-		name: 'r-index',
-		created: function () {
-			Say('r-home created');
-		},
-		template: `
+    title: 'Oxe',
+    path: '/',
+    component: {
+        name: 'r-index',
+        created: function () {
+            Say('r-home created');
+        },
+        template: `
 			<h2>Overview</h2>
 
 			<strong>Synopsis</strong>
@@ -151,5 +151,5 @@ export default {
 				<code class="language-html">${indexhtml}</code>
 			</pre>
 		`
-	}
+    }
 };

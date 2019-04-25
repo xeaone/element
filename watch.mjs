@@ -1,31 +1,45 @@
-
-import Rollup from 'rollup';
-import Babel from '@babel/core';
-
 import Fs from 'fs';
 import Util from 'util';
 import Path from 'path';
 import Readline from 'readline';
+import ChildProcess from 'child_process';
 
+const Spawn = ChildProcess.spawn;
+const Exec = Util.promisify(ChildProcess.exec);
 const ReadFolder = Util.promisify(Fs.readdir);
-const WriteFile = Util.promisify(Fs.writeFile);
 
-let Busy = false;
+const Executor = async function (command) {
+    const { stdout, stderr, error } = await Exec(command);
+    if (error) console.error(error);
+    if (stdout) console.log(stdout);
+    if (stderr) console.warn(stderr);
+};
 
-const Keypresser = async function (listener) {
+const Presser = async function (listener, exit) {
     Readline.emitKeypressEvents(process.stdin);
 
     process.stdin.setRawMode(true);
 
-    process.stdin.on('keypress', async function (key, data) {
+    process.stdin.on('keypress', function (key, data) {
         if (data.ctrl && data.name === 'c') {
-            process.exit();
+            Promise.resolve().then(function () {
+                if (typeof exit === 'function') {
+                    return exit();
+                }
+            }).then(function () {
+                process.exit();
+            }).catch(console.error);
         } else {
-            Promise.resolve(listener(key)).catch(console.error);
+            Promise.resolve().then(function () {
+                if (typeof listener === 'function') {
+                    return listener(key);
+                }
+            }).catch(console.error);
         }
     });
 };
 
+let Busy = false;
 const Watcher = async function (data, listener) {
     const paths = await ReadFolder(data);
 
@@ -34,7 +48,19 @@ const Watcher = async function (data, listener) {
 
         if (item.includes('.')) {
             Fs.watch(item, function (type, name) {
-                Promise.resolve(listener(type, name)).catch(console.error);
+                if (Busy) {
+                    return;
+                } else {
+                    Busy = true;
+                    Promise.resolve().then(function () {
+                        return listener(type, name);
+                    }).then(function () {
+                        Busy = false;
+                    }).catch(function (error) {
+                        console.error(error);
+                        Busy = false;
+                    });
+                }
             });
         } else {
             await Watcher(item, listener);
@@ -44,66 +70,33 @@ const Watcher = async function (data, listener) {
 
 };
 
-const compile = async function () {
-    if (Busy) return;
-    else Busy = true;
-
-    console.log('\nWatch Compile Start\n');
-
-    const bundled = await Rollup.rollup({ input: 'src/index.js' });
-
-    const generated = await bundled.generate({
-        name: 'Oxe',
-        indent: '\t',
-        // format: 'esm',
-        format: 'umd',
-        treeshake: true
-    });
-
-    const code = generated.output[0].code;
-
-    const options = {
-        moduleId: 'Oxe',
-        comments: false,
-        sourceMaps: false,
-        plugins: [
-            [ 'module:fast-async', {
-                spec: true
-            } ]
-        ],
-        presets: [
-            [ '@babel/preset-env', {
-                modules: false,
-                // useBuiltIns: 'usage',
-                targets: { ie: '11' },
-                exclude: [
-                    'transform-regenerator',
-                    'transform-async-to-generator',
-                    'proposal-async-generator-functions'
-                ]
-            } ]
-        ]
-    };
-
-    const dev = Babel.transform(code, options);
-
-    await WriteFile('web/assets/oxe.js', dev.code);
-
-    console.log('\nWatch Compile End\n');
-
-    Busy = false;
-};
-
 (async function () {
 
-    await compile();
+    const build = 'node --experimental-modules build.mjs src/index.js web/assets/oxe.js oxe';
 
-    await Keypresser(async function (key) {
-        if (key === 'c') {
-            await compile();
-        }
+    await Executor(build);
+
+    await Watcher('./src', async function () {
+        await Executor(build);
     });
 
-    await Watcher('./src', compile);
+    const child = Spawn('muleify', [ '-ss', 'web' ], { detached: false, stdio: 'inherit' });
+
+    await Presser(
+        async function (key) {
+            switch (key) {
+            case 'c':
+                await Executor(build);
+                break;
+            case 'e':
+                child.kill();
+                process.exit();
+                break;
+            }
+        },
+        async function () {
+            child.kill();
+        }
+    );
 
 }()).catch(console.error);

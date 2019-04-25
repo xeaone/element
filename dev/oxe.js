@@ -397,12 +397,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     for (var i = 0, l = binder.pipes.length; i < l; i++) {
-      var method = binder.pipes[i];
+      var name = binder.pipes[i];
 
-      if (method in methods) {
-        data = methods[method].call(binder.container, data);
+      if (name in methods) {
+        var method = methods[name];
+
+        if (method && method.constructor === Function) {
+          data = methods[name].call(binder.container, data);
+        } else {
+          console.warn("Oxe.piper - pipe ".concat(name, " invalid type"));
+        }
       } else {
-        throw new Error("Oxe.piper.pipe - method ".concat(method, " not found in scope ").concat(binder.scope));
+        console.warn("Oxe.piper - pipe ".concat(name, " not found"));
       }
     }
 
@@ -1267,8 +1273,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         if (data.path && typeof data.path === 'string' && data.path.charAt(0) === '/') data.path = data.path.slice(1);
         if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length - 1) === '/') data.origin = data.origin.slice(0, -1);
         if (data.path && data.origin && !data.url) data.url = data.origin + '/' + data.path;
-        if (!data.url) return $error(new Error('Oxe.fetcher - requires url or origin and path option'));
         if (!data.method) return $error(new Error('Oxe.fetcher - requires method option'));
+        if (!data.url) return $error(new Error('Oxe.fetcher - requires url or origin and path option'));
         if (!data.head && this.head) data.head = this.head;
         if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.method;
         if (!data.acceptType && this.acceptType) data.acceptType = this.acceptType;

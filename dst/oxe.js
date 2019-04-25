@@ -8,8 +8,6 @@
 	License, v. 2.0. If a copy of the MPL was not distributed with this
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 (function (global, factory) {
@@ -17,452 +15,170 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 })(this, function () {
   'use strict';
 
-  var _Fetcher;
-
-  var Observer = {
-    splice: function splice() {
-      var self = this;
-      var startIndex = arguments[0];
-      var deleteCount = arguments[1];
-      var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
-
-      if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
-        return [];
-      }
-
-      if (startIndex < 0) {
-        startIndex = self.length + startIndex;
-        startIndex = startIndex > 0 ? startIndex : 0;
-      } else {
-        startIndex = startIndex < self.length ? startIndex : self.length;
-      }
-
-      if (deleteCount < 0) {
-        deleteCount = 0;
-      } else if (deleteCount > self.length - startIndex) {
-        deleteCount = self.length - startIndex;
-      }
-
-      var totalCount = self.$meta.length;
-      var argumentIndex = 2;
-      var argumentsCount = arguments.length - argumentIndex;
-      var result = self.slice(startIndex, deleteCount);
-      var updateCount = totalCount - 1 - startIndex;
-      var promises = [];
-
-      if (updateCount > 0) {
-        var value;
-        var _index = startIndex;
-
-        while (updateCount--) {
-          var key = _index++;
-
-          if (argumentsCount && argumentIndex < argumentsCount) {
-            value = arguments[argumentIndex++];
-          } else {
-            value = self.$meta[_index];
-          }
-
-          self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
-          promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
-        }
-      }
-
-      if (addCount > 0) {
-        promises.push(self.$meta.listener.bind(null, self.length + addCount, self.$meta.path.slice(0, -1), 'length'));
-
-        while (addCount--) {
-          var _key = self.length;
-
-          if (_key in this === false) {
-            Object.defineProperty(this, _key, Observer.descriptor(_key));
-          }
-
-          self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
-          promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
-        }
-      }
-
-      if (deleteCount > 0) {
-        promises.push(self.$meta.listener.bind(null, self.length - deleteCount, self.$meta.path.slice(0, -1), 'length'));
-
-        while (deleteCount--) {
-          self.$meta.length--;
-          self.length--;
-          var _key2 = self.length;
-          promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
-        }
-      }
-
-      Promise.resolve().then(function () {
-        promises.reduce(function (promise, item) {
-          return promise.then(item);
-        }, Promise.resolve());
-      }).catch(console.error);
-      return result;
-    },
-    arrayProperties: function arrayProperties() {
-      var self = this;
-      return {
-        push: {
-          value: function value() {
-            if (!arguments.length) return this.length;
-
-            for (var i = 0, l = arguments.length; i < l; i++) {
-              self.splice.call(this, this.length, 0, arguments[i]);
-            }
-
-            return this.length;
-          }
-        },
-        unshift: {
-          value: function value() {
-            if (!arguments.length) return this.length;
-
-            for (var i = 0, l = arguments.length; i < l; i++) {
-              self.splice.call(this, 0, 0, arguments[i]);
-            }
-
-            return this.length;
-          }
-        },
-        pop: {
-          value: function value() {
-            if (!this.length) return;
-            var result = self.splice.call(this, this.length - 1, 1);
-            return result[0];
-          }
-        },
-        shift: {
-          value: function value() {
-            if (!this.length) return;
-            var result = self.splice.call(this, 0, 1);
-            return result[0];
-          }
-        },
-        splice: {
-          value: self.splice
-        }
-      };
-    },
-    objectProperties: function objectProperties() {
-      var self = this;
-      return {
-        $get: {
-          value: function value(key) {
-            return this.$meta[key];
-          }
-        },
-        $set: {
-          value: function value(key, _value) {
-            if (_value !== this.$meta[key]) {
-              if (key in this === false) {
-                Object.defineProperty(this, key, self.descriptor(key));
-              }
-
-              this.$meta[key] = self.create(_value, this.$meta.listener, this.$meta.path + key);
-              this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
-            }
-          }
-        },
-        $remove: {
-          value: function value(key) {
-            if (key in this) {
-              if (this.constructor === Array) {
-                return self.splice.call(this, key, 1);
-              } else {
-                var result = this[key];
-                delete this.$meta[key];
-                delete this[key];
-                this.$meta.listener(undefined, this.$meta.path + key, key);
-                return result;
-              }
-            }
-          }
-        }
-      };
-    },
-    descriptor: function descriptor(key) {
-      var self = this;
-      return {
-        enumerable: true,
-        configurable: true,
-        get: function get() {
-          return this.$meta[key];
-        },
-        set: function set(value) {
-          if (value !== this.$meta[key]) {
-            this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
-            this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
-          }
-        }
-      };
-    },
-    create: function create(source, listener, path) {
-      if (!source || source.constructor !== Object && source.constructor !== Array) {
-        return source;
-      }
-
-      path = path ? path + '.' : '';
-      var type = source.constructor;
-      var target = source.constructor();
-      var descriptors = {};
-      descriptors.$meta = {
-        value: source.constructor()
-      };
-      descriptors.$meta.value.path = path;
-      descriptors.$meta.value.listener = listener;
-
-      if (type === Array) {
-        for (var key = 0, length = source.length; key < length; key++) {
-          descriptors.$meta.value[key] = this.create(source[key], listener, path + key);
-          descriptors[key] = this.descriptor(key);
-        }
-      }
-
-      if (type === Object) {
-        for (var _key3 in source) {
-          descriptors.$meta.value[_key3] = this.create(source[_key3], listener, path + _key3);
-          descriptors[_key3] = this.descriptor(_key3);
-        }
-      }
-
-      Object.defineProperties(target, descriptors);
-      Object.defineProperties(target, this.objectProperties(source, listener, path));
-
-      if (type === Array) {
-        Object.defineProperties(target, this.arrayProperties(source, listener, path));
-      }
-
-      return target;
-    }
-  };
-
-  function Class(binder) {
-    return {
-      write: function write() {
-        var className = binder.names.slice(1).join('-');
-        binder.element.classList.remove(className);
-      }
-    };
-  }
-
-  function Css(binder) {
-    return {
-      write: function write() {
-        binder.element.style.cssText = '';
-      }
-    };
-  }
-
-  var Batcher = {
-    reads: [],
-    writes: [],
-    time: 1000 / 30,
-    pending: false,
-    setup: function setup(options) {
-      options = options || {};
-      this.time = options.time || this.time;
-    },
-    tick: function tick(callback) {
-      return window.requestAnimationFrame(callback);
-    },
-    schedule: function schedule() {
-      if (this.pending) return;
-      this.pending = true;
-      this.tick(this.flush.bind(this, null));
-    },
-    flush: function flush(time) {
-      time = time || performance.now();
-      var task;
-
-      while (task = this.reads.shift()) {
-        task();
-
-        if (performance.now() - time > this.time) {
-          this.tick(this.flush.bind(this, null));
-          return;
-        }
-      }
-
-      while (task = this.writes.shift()) {
-        task();
-
-        if (performance.now() - time > this.time) {
-          this.tick(this.flush.bind(this, null));
-          return;
-        }
-      }
-
-      if (!this.reads.length && !this.writes.length) {
-        this.pending = false;
-      } else if (performance.now() - time > this.time) {
-        this.tick(this.flush.bind(this, null));
-      } else {
-        this.flush(time);
-      }
-    },
-    remove: function remove(tasks, task) {
-      var index = tasks.indexOf(task);
-      return !!~index && !!tasks.splice(index, 1);
-    },
-    clear: function clear(task) {
-      return this.remove(this.reads, task) || this.remove(this.writes, task);
-    },
-    batch: function batch(data) {
-      var self = this;
-
-      if (data.read) {
-        var read = function read() {
-          var result;
-          var write;
-
-          if (data.context) {
-            result = data.read.call(data.context);
-          } else {
-            result = data.read();
-          }
-
-          if (data.write && result !== false) {
-            if (data.context) {
-              write = data.write.bind(data.context);
-            } else {
-              write = data.write;
-            }
-
-            self.writes.push(write);
-            self.schedule();
-          }
-        };
-
-        self.reads.push(read);
-        self.schedule();
-      } else if (data.write) {
-        var write;
-
-        if (data.context) {
-          write = data.write.bind(data.context, data.shared);
-        } else {
-          write = data.write;
-        }
-
-        self.writes.push(write);
-        self.schedule();
-      }
-
-      return data;
-    }
-  };
-
-  function Default(binder) {
-    var unrender;
-
-    if (binder.type in this) {
-      unrender = this[binder.type](binder);
-    } else {
-      unrender = {
-        read: function read() {
-          if (binder.element[binder.type] === '') {
-            return false;
-          }
-        },
-        write: function write() {
-          binder.element[binder.type] = '';
-        }
-      };
-    }
-
-    Batcher.batch(unrender);
-  }
-
-  function Disable(binder) {
-    return {
-      write: function write() {
-        binder.element.disabled = false;
-      }
-    };
-  }
-
-  function Each(binder) {
-    return {
-      write: function write() {
-        var element;
-
-        while (element = binder.element.lastElementChild) {
-          binder.element.removeChild(element);
-        }
-      }
-    };
-  }
-
-  function Enable(binder) {
-    return {
-      write: function write() {
-        binder.element.disabled = true;
-      }
-    };
-  }
-
-  function Hide(binder) {
-    return {
-      write: function write() {
-        binder.element.hidden = false;
-      }
-    };
-  }
-
-  function Html(binder) {
-    return {
-      write: function write() {
-        var element;
-
-        while (element = binder.element.lastElementChild) {
-          binder.element.removeChild(element);
-        }
-      }
-    };
-  }
-
-  function On(binder) {
-    return {
-      write: function write() {
-        binder.element.removeEventListener(binder.names[1], binder.cache, false);
-      }
-    };
-  }
-
-  function Read(binder) {
-    return {
-      write: function write() {
-        binder.element.readOnly = false;
-      }
-    };
-  }
-
-  function Required(binder) {
-    return {
-      write: function write() {
-        binder.element.required = false;
-      }
-    };
-  }
-
-  function Show(binder) {
-    return {
-      write: function write() {
-        binder.element.hidden = true;
-      }
-    };
-  }
-
   var Utility = {
     PREFIX: /o-/,
-    ROOT: /^(https?:)?\/?\//,
-    DOT: /\.+/,
     PIPE: /\s?\|\s?/,
     PIPES: /\s?,\s?|\s+/,
-    VARIABLE_START: '(^|(\\|+|\\,+|\\s))',
-    VARIABLE_END: '(?:)',
+    value: function value(element, model) {
+      if (!model) throw new Error('Utility.value - requires model argument');
+      if (!element) throw new Error('Utility.value - requires element argument');
+      var type = this.type(element);
+
+      if ((type === 'radio' || type === 'checkbox') && (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)) {
+        var name = this.name(element);
+        var query = 'input[type="' + type + '"][name="' + name + '"]';
+        var form = this.form(element);
+        var elements = form ? this.form(element).querySelectorAll(query) : [element];
+        var multiple = elements.length > 1;
+        var result = multiple ? [] : undefined;
+
+        for (var i = 0, l = elements.length; i < l; i++) {
+          var child = elements[i];
+          var checked = this.checked(child);
+          if (!checked) continue;
+          var value = this.value(child, model);
+
+          if (multiple) {
+            result.push(value);
+          } else {
+            result = value;
+            break;
+          }
+        }
+
+        return result;
+      } else if (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 || element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 || element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1) {
+        var attribute = element.attributes['o-value'];
+
+        if (attribute) {
+          var values = this.binderValues(attribute.value);
+
+          var _value = this.getByPath(model, values);
+
+          return _value || element.value;
+        } else {
+          return element.value;
+        }
+      } else if (element.nodeName === 'SELECT' || element.nodeName.indexOf('-SELECT') !== -1) {
+        var _multiple = this.multiple(element);
+
+        var options = element.options;
+
+        var _result = _multiple ? [] : undefined;
+
+        for (var _i = 0, _l = options.length; _i < _l; _i++) {
+          var option = options[_i];
+          var selected = option.selected;
+
+          var _value2 = this.value(option, model);
+
+          var match = this[_multiple ? 'includes' : 'compare'](this.data, _value2);
+
+          if (selected && !match) {
+            if (this.multiple) {
+              _result.push(_value2);
+            } else {
+              _result = _value2;
+            }
+          } else if (!selected && match) {
+            option.selected = true;
+          }
+        }
+
+        return _result;
+      }
+    },
+    form: function form(element) {
+      if (element.form) {
+        return element.form;
+      } else {
+        while (element = element.parentElement) {
+          if (element.nodeName === 'FORM' || element.nodeName.indexOf('-FORM') !== -1) {
+            return element;
+          }
+        }
+      }
+    },
+    type: function type(element) {
+      if (typeof element.type === 'string') {
+        return element.type;
+      } else {
+        return element.getAttribute('type');
+      }
+    },
+    name: function name(element) {
+      if (typeof element.name === 'string') {
+        return element.name;
+      } else {
+        return element.getAttribute('name');
+      }
+    },
+    checked: function checked(element) {
+      if (typeof element.checked === 'boolean') {
+        return element.checked;
+      } else {
+        switch (element.getAttribute('checked')) {
+          case undefined:
+            return false;
+
+          case 'true':
+            return true;
+
+          case null:
+            return false;
+
+          case '':
+            return true;
+
+          default:
+            return false;
+        }
+      }
+    },
+    multiple: function multiple(element) {
+      if (typeof element.multiple === 'boolean') {
+        return element.multiple;
+      } else {
+        switch (element.getAttribute('multiple')) {
+          case undefined:
+            return false;
+
+          case 'true':
+            return true;
+
+          case null:
+            return false;
+
+          case '':
+            return true;
+
+          default:
+            return false;
+        }
+      }
+    },
+    disabled: function disabled(element) {
+      if (typeof element.disabled === 'boolean') {
+        return element.disabled;
+      } else {
+        switch (element.getAttribute('disabled')) {
+          case undefined:
+            return false;
+
+          case 'true':
+            return true;
+
+          case null:
+            return false;
+
+          case '':
+            return true;
+
+          default:
+            return false;
+        }
+      }
+    },
     binderNames: function binderNames(data) {
       data = data.split(this.PREFIX)[1];
       return data ? data.split('-') : [];
@@ -499,94 +215,48 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       return element;
     },
-    formData: function formData(form, model) {
-      var elements = form.querySelectorAll('[o-value]');
-      var data = {};
-
-      for (var i = 0, l = elements.length; i < l; i++) {
-        var element = elements[i];
-        if (element.nodeName === 'OPTION') continue;
-        var value = element.getAttribute('o-value');
-        if (!value) continue;
-        var values = this.binderValues(value);
-
-        if (data[values[values.length - 1]]) {
-          if (_typeof(data[values[values.length - 1]]) !== 'object') {
-            data[values[values.length - 1]] = [data[values[values.length - 1]]];
-          }
-
-          data[values[values.length - 1]].push(this.getByPath(model, values));
-        } else {
-          data[values[values.length - 1]] = this.getByPath(model, values);
+    index: function index(items, item) {
+      for (var i = 0, l = items.length; i < l; i++) {
+        if (this.compare(items[i], item)) {
+          return i;
         }
       }
 
-      return data;
+      return -1;
     },
-    formReset: function formReset(form, model) {
-      var elements = form.querySelectorAll('[o-value]');
-
-      for (var i = 0, l = elements.length; i < l; i++) {
-        var element = elements[i];
-        if (element.nodeName === 'OPTION') continue;
-        var value = element.getAttribute('o-value');
-        if (!value) continue;
-        var values = this.binderValues(value);
-        this.setByPath(model, values, '');
+    compare: function compare(source, target) {
+      if (source === target) {
+        return true;
       }
-    },
-    walker: function walker(node, callback) {
-      callback(node);
-      node = node.firstChild;
 
-      while (node) {
-        this.walker(node, callback);
-        node = node.nextSibling;
+      if (_typeof(source) !== _typeof(target)) {
+        return false;
       }
-    },
-    replaceEachVariable: function replaceEachVariable(element, variable, path, key) {
-      variable = variable.toLowerCase();
-      var pattern = new RegExp(this.VARIABLE_START + variable + this.VARIABLE_END, 'ig');
-      this.walker(element, function (node) {
-        if (node.nodeType === 3) {
-          var value = node.nodeValue.toLowerCase();
 
-          if (value === "$".concat(variable) || value === '$index') {
-            node.nodeValue = key;
-          }
-        } else if (node.nodeType === 1) {
-          for (var i = 0, l = node.attributes.length; i < l; i++) {
-            var attribute = node.attributes[i];
+      if (source.constructor !== target.constructor) {
+        return false;
+      }
 
-            if (attribute.name.indexOf('o-') === 0) {
-              attribute.value = attribute.value.replace(pattern, "$1".concat(path, ".").concat(key));
-            }
-          }
+      if (_typeof(source) !== 'object' || _typeof(target) !== 'object') {
+        return source === target;
+      }
+
+      var sourceKeys = Object.keys(source);
+      var targetKeys = Object.keys(target);
+
+      if (sourceKeys.length !== targetKeys.length) {
+        return false;
+      }
+
+      for (var i = 0, l = sourceKeys.length; i < l; i++) {
+        var name = sourceKeys[i];
+
+        if (!this.compare(source[name], target[name])) {
+          return false;
         }
-      });
-    },
-    traverse: function traverse(data, path, callback) {
-      var keys = typeof path === 'string' ? path.split('.') : path;
-      var last = keys.length - 1;
-
-      for (var i = 0; i < last; i++) {
-        var key = keys[i];
-
-        if (!(key in data)) {
-          if (typeof callback === 'function') {
-            callback(data, key, i, keys);
-          } else {
-            return undefined;
-          }
-        }
-
-        data = data[key];
       }
 
-      return {
-        data: data,
-        key: keys[last]
-      };
+      return true;
     },
     setByPath: function setByPath(data, path, value) {
       var keys = typeof path === 'string' ? path.split('.') : path;
@@ -612,10 +282,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var keys = typeof path === 'string' ? path.split('.') : path;
       var last = keys.length - 1;
 
+      if (keys[last] === '$key' || keys[last] === '$index') {
+        return keys[last - 1];
+      }
+
       for (var i = 0; i < last; i++) {
         var key = keys[i];
 
-        if (!(key in data)) {
+        if (key in data === false) {
           return undefined;
         } else {
           data = data[key];
@@ -625,327 +299,460 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return data[keys[last]];
     }
   };
-  var Methods = {
-    data: {},
-    get: function get(path) {
-      return Utility.getByPath(this.data, path);
+  var Batcher = {
+    reads: [],
+    writes: [],
+    time: 1000 / 30,
+    pending: false,
+    setup: function setup(options) {
+      options = options || {};
+      this.time = options.time || this.time;
     },
-    set: function set(path, data) {
-      return Utility.setByPath(this.data, path, data);
+    tick: function tick(callback) {
+      window.requestAnimationFrame(callback.bind(this, null));
+    },
+    schedule: function schedule() {
+      if (this.pending) return;
+      this.pending = true;
+      this.tick(this.flush);
+    },
+    flush: function flush(time) {
+      time = time || performance.now();
+      var task;
+
+      if (this.writes.length === 0) {
+        while (task = this.reads.shift()) {
+          if (task) {
+            task();
+          }
+
+          if (performance.now() - time > this.time) {
+            return this.tick(this.flush);
+          }
+        }
+      }
+
+      while (task = this.writes.shift()) {
+        if (task) {
+          task();
+        }
+
+        if (performance.now() - time > this.time) {
+          return this.tick(this.flush);
+        }
+      }
+
+      if (this.reads.length === 0 && this.writes.length === 0) {
+        this.pending = false;
+      } else if (performance.now() - time > this.time) {
+        this.tick(this.flush);
+      } else {
+        this.flush(time);
+      }
+    },
+    remove: function remove(tasks, task) {
+      var index = tasks.indexOf(task);
+      return !!~index && !!tasks.splice(index, 1);
+    },
+    clear: function clear(task) {
+      return this.remove(this.reads, task) || this.remove(this.writes, task);
+    },
+    batch: function batch(data) {
+      var self = this;
+      if (!data) return;
+      if (!data.read && !data.write) return;
+      data.context = data.context || {};
+
+      var read = function read() {
+        var result;
+
+        if (data.read) {
+          result = data.read.call(data.context, data.context);
+        }
+
+        if (data.write && result !== false) {
+          var write = data.write.bind(data.context, data.context);
+          self.writes.push(write);
+        }
+      };
+
+      self.reads.push(read);
+      self.schedule();
     }
   };
 
-  function Class$1(binder) {
-    var data, name;
-    return {
-      write: function write() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        name = binder.names.slice(1).join('-');
-        binder.element.classList.toggle(name, data);
+  function Piper(binder, data) {
+    if (binder.type === 'on') {
+      return data;
+    }
+
+    if (!binder.pipes.length) {
+      return data;
+    }
+
+    var methods = binder.container.methods;
+
+    if (!methods) {
+      return data;
+    }
+
+    for (var i = 0, l = binder.pipes.length; i < l; i++) {
+      var name = binder.pipes[i];
+
+      if (name in methods) {
+        var method = methods[name];
+
+        if (method && method.constructor === Function) {
+          data = methods[name].call(binder.container, data);
+        } else {
+          console.warn("Oxe.piper - pipe ".concat(name, " invalid type"));
+        }
+      } else {
+        console.warn("Oxe.piper - pipe ".concat(name, " not found"));
       }
-    };
+    }
+
+    return data;
   }
 
-  function Css$1(binder) {
-    var data;
+  function Class(binder) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
+        this.data = binder.data;
 
         if (binder.names.length > 1) {
-          data = binder.names.slice(1).join('-') + ': ' + data + ';';
-        }
-
-        if (data === binder.element.style.cssText) {
-          return false;
+          this.name = binder.names.slice(1).join('-');
         }
       },
       write: function write() {
-        binder.element.style.cssText = data;
+        if (this.name) {
+          if (this.data === undefined || this.data === null) {
+            binder.target.classList.remove(this.name);
+          } else {
+            binder.target.classList.toggle(this.name, this.data);
+          }
+        } else {
+          console.log(this.data);
+
+          if (this.data === undefined || this.data === null) {
+            binder.target.setAttribute('class', '');
+          } else {
+            binder.target.setAttribute('class', this.data);
+          }
+        }
       }
     };
   }
 
-  function Default$1(binder) {
-    var render;
-
-    if (binder.type in this) {
-      render = this[binder.type](binder);
-    } else {
-      var data;
-      render = {
-        read: function read() {
-          data = Model.get(binder.keys);
-          data = Binder.piper(binder, data);
-
-          if (data === undefined || data === null) {
-            return false;
-          } else if (_typeof(data) === 'object') {
-            data = JSON.stringify(data);
-          } else if (typeof data !== 'string') {
-            data = data.toString();
-          }
-
-          if (data === binder.element[binder.type]) {
-            return false;
-          }
-        },
-        write: function write() {
-          binder.element[binder.type] = data;
-        }
-      };
-    }
-
-    if (render) {
-      Batcher.batch(render);
-    }
-  }
-
-  function Disable$1(binder) {
-    var data;
+  function Default(binder) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        if (data === binder.element.disabled) return false;
+        this.data = binder.data;
+
+        if (this.data === undefined || this.data === null) {
+          this.data = '';
+        } else if (_typeof(this.data) === 'object') {
+          this.data = JSON.stringify(this.data);
+        } else if (typeof this.data !== 'string') {
+          this.data = this.data.toString();
+        }
+
+        if (this.data === binder.target[binder.type]) {
+          return false;
+        }
       },
       write: function write() {
-        binder.element.disabled = data;
+        binder.target[binder.type] = this.data;
       }
     };
   }
 
-  var TIME = 15;
-
-  function Each$1(binder) {
-    if (!binder.cache && !binder.element.children.length) {
-      return;
-    }
-
-    if (!binder.fragment) {
-      binder.fragment = document.createDocumentFragment();
-    }
-
-    if (!binder.cache) {
-      binder.cache = binder.element.removeChild(binder.element.firstElementChild);
-    }
-
-    var self = this,
-        data,
-        add,
-        remove;
+  function Disable(binder) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        if (!data || _typeof(data) !== 'object') return false;
-        var isArray = data.constructor === Array;
-        var keys = isArray ? [] : Object.keys(data);
-        var dataLength = isArray ? data.length : keys.length;
-        var elementLength = binder.fragment.children.length + binder.element.children.length;
-        var time = window.performance.now();
+        this.data = binder.data;
+        if (this.data === binder.target.disabled) return false;
+      },
+      write: function write() {
+        binder.target.disabled = this.data;
+      }
+    };
+  }
 
-        if (elementLength === dataLength) {
+  function Each(binder) {
+    var self = this;
+    var render = {
+      read: function read() {
+        this.data = binder.data || [];
+
+        if (binder.meta.keys === undefined) {
+          binder.meta.keys = [];
+          binder.meta.pending = false;
+          binder.meta.targetLength = 0;
+          binder.meta.currentLength = 0;
+
+          if (binder.target.firstElementChild) {
+            binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
+          } else {
+            var element = document.createElement('div');
+            var text = document.createTextNode("{{$".concat(binder.names[1], "}}"));
+            element.appendChild(text);
+            binder.meta.template = element;
+          }
+        }
+
+        binder.meta.keys = Object.keys(this.data);
+        binder.meta.targetLength = binder.meta.keys.length;
+
+        if (binder.meta.currentLength === binder.meta.targetLength) {
           return false;
-        } else if (elementLength > dataLength) {
-          remove = elementLength - dataLength;
-
-          while (binder.fragment.children.length && remove--) {
-            binder.fragment.removeChild(binder.fragment.lastElementChild);
-            if (performance.now() - time > TIME) return;
-          }
-        } else if (elementLength < dataLength) {
-          add = dataLength - elementLength;
-
-          while (elementLength < dataLength) {
-            var clone = document.importNode(binder.cache, true);
-            var variable = isArray ? elementLength : keys[elementLength];
-            Utility.replaceEachVariable(clone, binder.names[1], binder.path, variable);
-            Binder.bind(clone, binder.container, binder.scope);
-            binder.fragment.appendChild(clone);
-            elementLength++;
-            if (performance.now() - time > TIME) return;
-          }
         }
       },
       write: function write() {
-        if (remove) {
-          var time = window.performance.now();
-
-          while (binder.element.children.length && remove--) {
-            binder.element.removeChild(binder.element.lastElementChild);
-            if (performance.now() - time > TIME) break;
-          }
-        } else if (add) {
-          binder.element.appendChild(binder.fragment);
+        if (binder.meta.currentLength === binder.meta.targetLength) {
+          binder.meta.pending = false;
+          return;
         }
 
-        if (binder.element.children.length !== data.length) {
-          self.default(binder);
-        } else if (binder.element.nodeName === 'SELECT' && binder.element.attributes['o-value']) {
-          var name = binder.element.attributes['o-value'].name;
-          var value = binder.element.attributes['o-value'].value;
-          var select = Binder.create({
-            name: name,
-            value: value,
-            scope: binder.scope,
-            element: binder.element,
-            container: binder.container
+        if (binder.meta.currentLength > binder.meta.targetLength) {
+          var element = binder.target.lastElementChild;
+          binder.target.removeChild(element);
+          self.remove(element);
+          binder.meta.currentLength--;
+        } else if (binder.meta.currentLength < binder.meta.targetLength) {
+          var _element = binder.meta.template.cloneNode(true);
+
+          var _index = binder.meta.currentLength++;
+
+          self.add(_element, {
+            index: _index,
+            path: binder.path,
+            variable: binder.names[1],
+            container: binder.container,
+            scope: binder.container.scope,
+            key: binder.meta.keys[_index]
           });
-          self.default(select);
-        }
-      }
-    };
-  }
-
-  function Enable$1(binder) {
-    var data;
-    return {
-      read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        if (!data === binder.element.disabled) return false;
-      },
-      write: function write() {
-        binder.element.disabled = !data;
-      }
-    };
-  }
-
-  function Hide$1(binder) {
-    var data;
-    return {
-      read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        if (data === binder.element.hidden) return false;
-      },
-      write: function write() {
-        binder.element.hidden = data;
-      }
-    };
-  }
-
-  function Html$1(binder) {
-    var data;
-    return {
-      read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-
-        if (data === undefined || data === null) {
-          return false;
-        } else if (_typeof(data) === 'object') {
-          data = JSON.stringify(data);
-        } else if (typeof data !== 'string') {
-          data = String(data);
+          binder.target.appendChild(_element);
         }
 
-        if (data === binder.element.innerHTML) {
+        if (binder.meta.pending && render.read) {
+          return;
+        } else {
+          binder.meta.pending = true;
+        }
+
+        delete render.read;
+        Batcher.batch(render);
+      }
+    };
+    return render;
+  }
+
+  function Enable(binder) {
+    return {
+      read: function read() {
+        this.data = !binder.data;
+        if (this.data === binder.target.disabled) return false;
+      },
+      write: function write() {
+        binder.target.disabled = this.data;
+      }
+    };
+  }
+
+  function Hide(binder) {
+    return {
+      read: function read() {
+        this.data = binder.data;
+        if (this.data === binder.target.hidden) return false;
+      },
+      write: function write() {
+        binder.target.hidden = this.data;
+      }
+    };
+  }
+
+  function Href(binder) {
+    return {
+      read: function read() {
+        this.data = binder.data || '';
+
+        if (this.data === binder.target.href) {
           return false;
         }
       },
       write: function write() {
-        binder.element.innerHTML = data;
+        binder.target.href = this.data;
       }
     };
   }
 
-  function On$1(binder) {
-    var data;
+  function Html(binder) {
+    var self = this;
     return {
-      write: function write() {
-        data = Methods.get(binder.keys);
+      read: function read() {
+        this.data = binder.data;
 
-        if (typeof data !== 'function') {
-          console.warn("Oxe - attribute o-on=\"".concat(binder.keys.join('.'), "\" invalid type function required"));
-          return false;
+        if (this.data === undefined || this.data === null) {
+          this.data = '';
+        } else if (_typeof(this.data) === 'object') {
+          this.data = JSON.stringify(this.data);
+        } else if (typeof this.data !== 'string') {
+          this.data = String(this.data);
+        }
+      },
+      write: function write() {
+        while (binder.target.firstChild) {
+          var node = binder.target.removeNode(binder.target.firstChild);
+          self.remove(node);
         }
 
-        if (!binder.cache) {
-          binder.cache = function (e) {
-            var parameters = [e];
+        var fragment = document.createDocumentFragment();
+        var parser = document.createElement('div');
+        parser.innerHTML = this.data;
+
+        while (parser.firstElementChild) {
+          self.add(parser.firstElementChild, {
+            container: binder.container,
+            scope: binder.container.scope
+          });
+          fragment.appendChild(parser.firstElementChild);
+        }
+
+        binder.target.appendChild(fragment);
+      }
+    };
+  }
+
+  function Label(binder) {
+    return {
+      read: function read() {
+        this.data = binder.data;
+
+        if (this.data === undefined || this.data === null) {
+          this.data = '';
+        } else if (_typeof(this.data) === 'object') {
+          this.data = JSON.stringify(this.data);
+        } else if (typeof this.data !== 'string') {
+          this.data = this.data.toString();
+        }
+
+        if (this.data === binder.target.getAttribute('label')) {
+          return false;
+        }
+      },
+      write: function write() {
+        binder.target.setAttribute('label', this.data);
+      }
+    };
+  }
+
+  function On(binder) {
+    return {
+      read: function read(context) {
+        context.data = binder.data;
+
+        if (typeof context.data !== 'function') {
+          console.warn("Oxe - binder o-on=\"".concat(binder.keys.join('.'), "\" invalid type function required"));
+          return;
+        }
+
+        if (binder.meta.method) {
+          binder.target.removeEventListener(binder.names[1], binder.meta.method);
+        } else {
+          binder.meta.method = function (events) {
+            var parameters = [events];
 
             for (var i = 0, l = binder.pipes.length; i < l; i++) {
               var keys = binder.pipes[i].split('.');
-              keys.unshift(binder.scope);
-              var parameter = Model.get(keys);
+              var parameter = Utility.getByPath(binder.container.model, keys);
               parameters.push(parameter);
             }
 
-            Promise.resolve(data.bind(binder.container).apply(null, parameters)).catch(console.error);
+            Promise.resolve(context.data.bind(binder.container).apply(null, parameters)).catch(console.error);
           };
         }
 
-        binder.element.removeEventListener(binder.names[1], binder.cache);
-        binder.element.addEventListener(binder.names[1], binder.cache);
+        binder.target.addEventListener(binder.names[1], binder.meta.method);
       }
     };
   }
 
-  function Read$1(binder) {
-    var data;
+  function Read(binder) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        if (data === binder.element.readOnly) return false;
+        this.data = binder.data;
+
+        if (this.data === binder.target.readOnly) {
+          return false;
+        }
       },
       write: function write() {
-        binder.element.readOnly = data;
+        binder.target.readOnly = this.data;
       }
     };
   }
 
-  function Required$1(binder) {
-    var data;
+  function Require(binder) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        if (data === binder.element.required) return false;
+        this.data = binder.data;
+
+        if (this.data === binder.target.required) {
+          return false;
+        }
       },
       write: function write() {
-        binder.element.required = data;
+        binder.target.required = this.data;
       }
     };
   }
 
-  function Show$1(binder) {
-    var data;
+  function Show(binder) {
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        if (!data === binder.element.hidden) return false;
+        this.data = binder.data;
+
+        if (!this.data === binder.target.hidden) {
+          return false;
+        }
       },
       write: function write() {
-        binder.element.hidden = !data;
+        binder.target.hidden = !this.data;
       }
     };
   }
 
   function Style(binder) {
-    var data;
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
+        this.data = binder.data;
+
+        if (binder.names.length > 1) {
+          this.name = '';
+          this.names = binder.names.slice(1);
+
+          for (var i = 0, l = this.names.length; i < l; i++) {
+            if (i === 0) {
+              this.name = this.names[i].toLowerCase();
+            } else {
+              this.name += this.names[i].charAt(0).toUpperCase() + this.names[i].slice(1).toLowerCase();
+            }
+          }
+        }
       },
       write: function write() {
-        if (!data) {
-          return;
-        } else if (data.constructor === Object) {
-          for (var name in data) {
-            var value = data[name];
-
-            if (value === null || value === undefined) {
-              delete binder.element.style[name];
-            } else {
-              binder.element.style[name] = value;
-            }
+        if (binder.names.length > 1) {
+          if (this.data) {
+            binder.target.style[this.name] = this.data;
+          } else {
+            binder.target.style[this.name] = '';
+          }
+        } else {
+          if (this.data) {
+            binder.target.style.cssText = this.data;
+          } else {
+            binder.target.style.cssText = '';
           }
         }
       }
@@ -953,518 +760,169 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Text(binder) {
-    var data;
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
+        this.data = binder.data;
 
-        if (data === undefined || data === null) {
-          return false;
-        } else if (_typeof(data) === 'object') {
-          data = JSON.stringify(data);
-        } else if (typeof data !== 'string') {
-          data = data.toString();
+        if (this.data === undefined || this.data === null) {
+          this.data = '';
+        } else if (_typeof(this.data) === 'object') {
+          this.data = JSON.stringify(this.data);
+        } else if (typeof this.data !== 'string') {
+          this.data = this.data.toString();
         }
 
-        if (data === binder.element.innerText) {
+        if (this.data === binder.target.textContent) {
           return false;
         }
       },
       write: function write() {
-        binder.element.innerText = data;
+        binder.target.textContent = this.data;
       }
     };
   }
 
-  function Value(binder) {
-    var self = this;
-    var type = binder.element.type;
-    var name = binder.element.nodeName;
-    var data, multiple;
+  function Value(binder, caller) {
+    var type = binder.target.type;
+    var name = binder.target.nodeName;
 
-    if (name === 'SELECT') {
-      var elements;
+    if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
       return {
         read: function read() {
-          data = Model.get(binder.keys);
-          data = Binder.piper(binder, data);
-          elements = binder.element.options;
-          multiple = binder.element.multiple;
+          this.data = binder.data;
+          this.model = binder.model;
+          this.options = binder.target.options;
+          this.multiple = Utility.multiple(binder.target);
 
-          if (multiple && data.constructor !== Array) {
-            throw new Error("Oxe - invalid multiple select value type ".concat(binder.keys.join('.'), " array required"));
+          if (this.multiple && (!this.data || this.data.constructor !== Array)) {
+            throw new Error("Oxe - invalid o-value ".concat(binder.keys.join('.'), " multiple select requires array"));
           }
-
-          if (multiple) return false;
         },
         write: function write() {
-          var index = 0;
-          var selected = false;
+          for (var i = 0, l = this.options.length; i < l; i++) {
+            var option = this.options[i];
+            var selected = option.selected;
+            var value = Utility.value(option, this.model);
 
-          for (var i = 0, l = elements.length; i < l; i++) {
-            var element = elements[i];
+            var _index2 = void 0,
+                match = void 0;
 
-            if (element.value === data) {
-              selected = true;
-              element.setAttribute('selected', '');
-            } else if (element.hasAttribute('selected')) {
-              index = i;
-              element.removeAttribute('selected');
+            if (this.multiple) {
+              _index2 = Utility.index(this.data, value);
+              match = _index2 !== -1;
             } else {
-              element.removeAttribute('selected');
+              match = Utility.compare(this.data, value);
             }
-          }
 
-          if (elements.length && !selected) {
-            elements[index].setAttribute('selected', '');
-
-            if (data !== (elements[index].value || '')) {
-              Model.set(binder.keys, elements[index].value || '');
-            }
-          }
-        }
-      };
-    } else if (type === 'radio') {
-      var _elements;
-
-      return {
-        read: function read() {
-          data = Model.get(binder.keys);
-
-          if (data === undefined) {
-            Model.set(binder.keys, 0);
-            return false;
-          }
-
-          _elements = binder.container.querySelectorAll('input[type="radio"][o-value="' + binder.value + '"]');
-        },
-        write: function write() {
-          var checked = false;
-
-          for (var i = 0, l = _elements.length; i < l; i++) {
-            var element = _elements[i];
-
-            if (i === data) {
-              checked = true;
-              element.checked = true;
-            } else {
-              element.checked = false;
-            }
-          }
-
-          if (!checked) {
-            _elements[0].checked = true;
-            Model.set(binder.keys, 0);
-          }
-        }
-      };
-    } else if (type === 'file') {
-      return {
-        read: function read() {
-          data = Model.get(binder.keys);
-
-          if (data === undefined) {
-            Model.set(binder.keys, []);
-            return false;
-          }
-
-          if (!data || data.constructor !== Array) {
-            console.warn('Oxe - file attribute invalid type');
-            return false;
-          }
-        },
-        write: function write() {
-          for (var i = 0, l = data.length; i < l; i++) {
-            if (data[i] !== binder.element.files[i]) {
-              if (data[i]) {
-                binder.element.files[i] = data[i];
+            if (selected && !match) {
+              if (this.multiple) {
+                binder.data.push(value);
               } else {
-                console.warn('Oxe - file remove not implemented');
+                binder.data = value;
+              }
+            } else if (!selected && match) {
+              if (caller === 'view') {
+                if (this.multiple) {
+                  binder.data.splice(_index2, 1);
+                } else {
+                  binder.data = null;
+                }
+              } else {
+                option.selected = true;
               }
             }
           }
         }
       };
-    } else if (type === 'checkbox') {
+    } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) {
       return {
         read: function read() {
-          data = Model.get(binder.keys);
+          this.form = binder.target.form || binder.container;
+          this.query = "input[type=\"radio\"][o-value=\"".concat(binder.value, "\"]");
+          this.nodes = this.form.querySelectorAll(this.query);
+          this.radios = Array.prototype.slice.call(this.nodes);
 
-          if (typeof data !== 'boolean') {
-            Model.set(binder.keys, false);
+          if (caller === 'view') {
+            binder.data = this.radios.indexOf(binder.target);
             return false;
           }
 
-          if (data === binder.element.checked) {
+          this.data = binder.data;
+
+          if (typeof this.data !== 'number') {
             return false;
           }
         },
         write: function write() {
-          binder.element.checked = data;
+          for (var i = 0, l = this.radios.length; i < l; i++) {
+            var radio = this.radios[i];
+
+            if (i === this.data) {
+              radio.checked = true;
+            } else {
+              radio.checked = false;
+            }
+          }
+        }
+      };
+    } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
+      return {
+        read: function read() {
+          if (caller === 'view') {
+            binder.data = binder.target.checked;
+            return false;
+          }
+
+          this.data = binder.data;
+
+          if (typeof this.data !== 'boolean') {
+            return false;
+          }
+        },
+        write: function write() {
+          binder.target.checked = this.data;
         }
       };
     } else {
       return {
         read: function read() {
-          if (name === 'OPTION' && binder.element.selected) {
-            var parent = binder.element.parentElement;
-            var select = Binder.elements.get(parent).get('value');
-            self.default(select);
-          }
-
-          data = Model.get(binder.keys);
-
-          if (data === undefined || data === null) {
+          if (caller === 'view') {
+            binder.data = binder.target.value;
             return false;
           }
 
-          if (data === binder.element.value) {
+          this.data = binder.data;
+
+          if (this.data === binder.target.value) {
             return false;
           }
         },
         write: function write() {
-          binder.element.value = data;
+          binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
         }
       };
     }
   }
 
   function Write(binder) {
-    var data;
     return {
       read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-        if (!data === binder.element.readOnly) return false;
+        this.data = binder.data;
+
+        if (!this.data === binder.target.readOnly) {
+          return false;
+        }
       },
       write: function write() {
-        binder.element.readOnly = !data;
+        binder.target.readOnly = !this.data;
       }
     };
   }
 
-  var Render = {
-    class: Class$1,
-    css: Css$1,
-    default: Default$1,
-    disable: Disable$1,
-    disabled: Disable$1,
-    each: Each$1,
-    enable: Enable$1,
-    enabled: Enable$1,
-    hide: Hide$1,
-    html: Html$1,
-    on: On$1,
-    read: Read$1,
-    required: Required$1,
-    show: Show$1,
-    style: Style,
-    text: Text,
-    value: Value,
-    write: Write
-  };
-  var Binder = {
-    data: {},
-    elements: new Map(),
-    create: function create(data) {
-      var binder = {};
-      if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
-      if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
-      if (data.scope === undefined) throw new Error('Oxe.binder.create - missing scope');
-      if (data.element === undefined) throw new Error('Oxe.binder.create - missing element');
-      if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
-      binder.name = data.name;
-      binder.value = data.value;
-      binder.scope = data.scope;
-      binder.element = data.element;
-      binder.container = data.container;
-      binder.names = data.names || Utility.binderNames(data.name);
-      binder.pipes = data.pipes || Utility.binderPipes(data.value);
-      binder.values = data.values || Utility.binderValues(data.value);
-      binder.context = {};
-      binder.path = binder.values.join('.');
-      binder.type = binder.type || binder.names[0];
-      binder.keys = [binder.scope].concat(binder.values);
-      return binder;
-    },
-    get: function get(data) {
-      var binder;
-
-      if (typeof data === 'string') {
-        binder = {};
-        binder.scope = data.split('.').slice(0, 1).join('.');
-        binder.path = data.split('.').slice(1).join('.');
-      } else {
-        binder = data;
-      }
-
-      if (!(binder.scope in this.data)) {
-        return null;
-      }
-
-      if (!(binder.path in this.data[binder.scope])) {
-        return null;
-      }
-
-      var items = this.data[binder.scope][binder.path];
-
-      for (var i = 0, l = items.length; i < l; i++) {
-        var item = items[i];
-
-        if (item.element === binder.element && item.name === binder.name) {
-          return item;
-        }
-      }
-
-      return null;
-    },
-    add: function add(binder) {
-      if (!this.elements.has(binder.element)) {
-        this.elements.set(binder.element, new Map());
-      }
-
-      if (!this.elements.get(binder.element).has(binder.names[0])) {
-        this.elements.get(binder.element).set(binder.names[0], binder);
-      } else {
-        return false;
-      }
-
-      if (!(binder.scope in this.data)) {
-        this.data[binder.scope] = {};
-      }
-
-      if (!(binder.path in this.data[binder.scope])) {
-        this.data[binder.scope][binder.path] = [];
-      }
-
-      this.data[binder.scope][binder.path].push(binder);
-    },
-    remove: function remove(binder) {
-      if (this.elements.has(binder.element)) {
-        if (this.elements.get(binder.element).has(binder.names[0])) {
-          this.elements.get(binder.element).remove(binder.names[0]);
-        }
-
-        if (this.elements.get(binder.elements).length === 0) {
-          this.elements.remove(binder.elements);
-        }
-      }
-
-      if (!(binder.scope in this.data)) {
-        return;
-      }
-
-      if (!(binder.path in this.data[binder.scope])) {
-        return;
-      }
-
-      var items = this.data[binder.scope][binder.path];
-
-      for (var i = 0, l = items.length; i < l; i++) {
-        if (items[i].element === binder.element) {
-          return items.splice(i, 1);
-        }
-      }
-    },
-    piper: function piper(binder, data) {
-      if (!binder.pipes.length) {
-        return data;
-      }
-
-      var methods = Methods.get(binder.scope);
-
-      if (!methods) {
-        return data;
-      }
-
-      for (var i = 0, l = binder.pipes.length; i < l; i++) {
-        var method = binder.pipes[i];
-
-        if (method in methods) {
-          data = methods[method].call(binder.container, data);
-        } else {
-          throw new Error("Oxe - pipe method ".concat(method, " not found in scope ").concat(binder.scope));
-        }
-      }
-
-      return data;
-    },
-    each: function each(path, callback) {
-      var paths = typeof path === 'string' ? path.split('.') : path;
-      var scope = paths[0];
-      var binderPaths = this.data[scope];
-      if (!binderPaths) return;
-      var relativePath = paths.slice(1).join('.');
-
-      for (var binderPath in binderPaths) {
-        if (relativePath === '' || binderPath.indexOf(relativePath) === 0 && (binderPath === relativePath || binderPath.charAt(relativePath.length) === '.')) {
-          var binders = binderPaths[binderPath];
-
-          for (var c = 0, t = binders.length; c < t; c++) {
-            callback(binders[c]);
-          }
-        }
-      }
-    },
-    skipChildren: function skipChildren(element) {
-      if (element.nodeName === '#document-fragment') {
-        return false;
-      }
-
-      if (element.nodeName === 'STYLE' && element.nodeName === 'SCRIPT' && element.nodeName === 'OBJECT' && element.nodeName === 'IFRAME') {
-        return true;
-      }
-
-      for (var i = 0, l = element.attributes.length; i < l; i++) {
-        var attribute = element.attributes[i];
-
-        if (attribute.name.indexOf('o-each') === 0) {
-          return true;
-        }
-      }
-
-      return false;
-    },
-    eachElement: function eachElement(element, callback) {
-      if (element.nodeName !== 'SLOT' && element.nodeName !== 'O-ROUTER' && element.nodeName !== 'TEMPLATE' && element.nodeName !== '#document-fragment') {
-        callback.call(this, element);
-      }
-
-      if (!this.skipChildren(element)) {
-        element = element.firstElementChild;
-
-        while (element) {
-          this.eachElement(element, callback);
-          element = element.nextElementSibling;
-        }
-      }
-    },
-    eachAttribute: function eachAttribute(element, callback) {
-      var attributes = element.attributes;
-
-      for (var i = 0, l = attributes.length; i < l; i++) {
-        var attribute = attributes[i];
-
-        if (attribute.name.indexOf('o-') === 0 && attribute.name !== 'o-scope' && attribute.name !== 'o-reset' && attribute.name !== 'o-action' && attribute.name !== 'o-method' && attribute.name !== 'o-enctype') {
-          callback.call(this, attribute);
-        }
-      }
-    },
-    unbind: function unbind(element, container, scope) {
-      if (!scope) throw new Error('Oxe - unbind requires scope argument');
-      if (!element) throw new Error('Oxe - unbind requires element argument');
-      if (!container) throw new Error('Oxe - unbind requires container argument');
-      this.eachElement(element, function (child) {
-        this.eachAttribute(child, function (attribute) {
-          var binder = this.get({
-            scope: scope,
-            element: child,
-            container: container,
-            name: attribute.name,
-            value: attribute.value
-          });
-          this.remove(binder);
-          Unrender.default(binder);
-        });
-      });
-    },
-    bind: function bind(element, container, scope) {
-      if (!scope) throw new Error('Oxe - bind requires scope argument');
-      if (!element) throw new Error('Oxe - bind requires element argument');
-      if (!container) throw new Error('Oxe - bind requires container argument');
-      this.eachElement(element, function (child) {
-        this.eachAttribute(child, function (attribute) {
-          var binder = this.create({
-            scope: scope,
-            element: child,
-            container: container,
-            name: attribute.name,
-            value: attribute.value
-          });
-          var result = this.add(binder);
-
-          if (result !== false) {
-            Render.default(binder);
-          }
-        });
-      });
-    }
-  };
-
-  function Style$1(binder) {
-    var data;
-    return {
-      read: function read() {
-        data = Model.get(binder.keys);
-        data = Binder.piper(binder, data);
-      },
-      write: function write() {
-        if (!data) {
-          return;
-        } else if (data.constructor === Object) {
-          for (var name in data) {
-            delete binder.element.style[name];
-          }
-        }
-      }
-    };
-  }
-
-  function Text$1(binder) {
-    return {
-      write: function write() {
-        binder.element.innerText = '';
-      }
-    };
-  }
-
-  function Value$1(binder) {
-    return {
-      write: function write() {
-        var i, l, query, element, elements;
-
-        if (binder.element.nodeName === 'SELECT') {
-          elements = binder.element.options;
-
-          for (i = 0, l = elements.length; i < l; i++) {
-            element = elements[i];
-            element.selected = false;
-          }
-        } else if (binder.element.type === 'radio') {
-          query = 'input[type="radio"][o-value="' + binder.path + '"]';
-          elements = binder.element.parentNode.querySelectorAll(query);
-
-          for (i = 0, l = elements.length; i < l; i++) {
-            element = elements[i];
-
-            if (i === 0) {
-              element.checked = true;
-            } else {
-              element.checked = false;
-            }
-          }
-        } else if (binder.element.type === 'checkbox') {
-          binder.element.checked = false;
-          binder.element.value = false;
-        } else {
-          binder.element.value = '';
-        }
-      }
-    };
-  }
-
-  function Write$1(binder) {
-    return {
-      write: function write() {
-        binder.element.readOnly = true;
-      }
-    };
-  }
-
-  var Unrender = {
+  var DATA = new Map();
+  var BINDERS = {
     class: Class,
-    css: Css,
+    css: Style,
     default: Default,
     disable: Disable,
     disabled: Disable,
@@ -1472,175 +930,302 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     enable: Enable,
     enabled: Enable,
     hide: Hide,
+    hidden: Hide,
+    href: Href,
     html: Html,
+    label: Label,
     on: On,
     read: Read,
-    required: Required,
+    require: Require,
+    required: Require,
     show: Show,
-    style: Style$1,
-    text: Text$1,
-    value: Value$1,
-    write: Write$1
+    showed: Show,
+    style: Style,
+    text: Text,
+    value: Value,
+    write: Write
   };
+  var Binder = {
+    get data() {
+      return DATA;
+    },
 
-  var listener = function listener(data, path, type) {
-    var method = data === undefined ? Unrender : Render;
+    get binders() {
+      return BINDERS;
+    },
 
-    if (type === 'length') {
-      var scope = path.split('.').slice(0, 1).join('.');
-      var part = path.split('.').slice(1).join('.');
-      if (!(scope in Binder.data)) return;
-      if (!(part in Binder.data[scope])) return;
-      if (!(0 in Binder.data[scope][part])) return;
-      var binder = Binder.data[scope][part][0];
-      method.default(binder);
-    } else {
-      Binder.each(path, function (binder) {
-        method.default(binder);
-      });
-    }
-  };
+    setup: function setup(options) {
+      return new Promise(function ($return, $error) {
+        options = options || {};
+        this.data.set('location', new Map());
+        this.data.set('attribute', new Map());
 
-  var Model = {
-    GET: 2,
-    SET: 3,
-    REMOVE: 4,
-    data: Observer.create({}, listener),
-    traverse: function traverse(type, keys, value) {
-      var result;
+        for (var name in this.binders) {
+          this.binders[name] = this.binders[name].bind(this);
+        }
 
-      if (typeof keys === 'string') {
-        keys = keys.split('.');
-      }
-
-      var data = this.data;
-      var key = keys[keys.length - 1];
-
-      for (var i = 0, l = keys.length - 1; i < l; i++) {
-        if (!(keys[i] in data)) {
-          if (type === this.GET || type === this.REMOVE) {
-            return undefined;
-          } else if (type === this.SET) {
-            data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
+        if (options.binders) {
+          for (var _name in options.binders) {
+            if (_name in this.binders === false) {
+              this.binders[_name] = options.binders[_name].bind(this);
+            }
           }
         }
 
-        data = data[keys[i]];
-      }
+        return $return();
+      }.bind(this));
+    },
+    get: function get(type) {
+      if (!type) throw new Error('Oxe.binder.get - type argument required');
+      var result = this.data.get(type);
+      if (!result) return result;
 
-      if (type === this.SET) {
-        result = data.$set(key, value);
-      } else if (type === this.GET) {
-        result = data[key];
-      } else if (type === this.REMOVE) {
-        result = data[key];
-        data.$remove(key);
+      for (var i = 1, l = arguments.length; i < l; i++) {
+        var argument = arguments[i];
+        result = result.get(argument);
+        if (!result) return result;
       }
 
       return result;
     },
-    get: function get(keys) {
-      return this.traverse(this.GET, keys);
+    create: function create(data) {
+      if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
+      if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
+      if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
+      if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
+      var originalValue = data.value;
+
+      if (data.value.slice(0, 2) === '{{' && data.value.slice(-2) === '}}') {
+        data.value = data.value.slice(2, -2);
+      }
+
+      if (data.value.indexOf('$') !== -1 && data.context && data.context.variable && data.context.path && data.context.key) {
+        var pattern = new RegExp("\\$".concat(data.context.variable, "(,|\\s+|\\.|\\|)?(.*)?$"), 'ig');
+        data.value = data.value.replace(pattern, "".concat(data.context.path, ".").concat(data.context.key, "$1$2"));
+      }
+
+      var scope = data.container.scope;
+      var names = data.names || Utility.binderNames(data.name);
+      var pipes = data.pipes || Utility.binderPipes(data.value);
+      var values = data.values || Utility.binderValues(data.value);
+      var type = names[0];
+      var path = values.join('.');
+      var keys = [scope].concat(values);
+      var location = keys.join('.');
+      var meta = data.meta || {};
+      var context = data.context || {};
+      var source = type === 'on' || type === 'submit' ? data.container.methods : data.container.model;
+      return {
+        get location() {
+          return location;
+        },
+
+        get type() {
+          return type;
+        },
+
+        get path() {
+          return path;
+        },
+
+        get scope() {
+          return scope;
+        },
+
+        get name() {
+          return data.name;
+        },
+
+        get value() {
+          return data.value;
+        },
+
+        get target() {
+          return data.target;
+        },
+
+        get container() {
+          return data.container;
+        },
+
+        get model() {
+          return data.container.model;
+        },
+
+        get methods() {
+          return data.container.methods;
+        },
+
+        get keys() {
+          return keys;
+        },
+
+        get names() {
+          return names;
+        },
+
+        get pipes() {
+          return pipes;
+        },
+
+        get values() {
+          return values;
+        },
+
+        get meta() {
+          return meta;
+        },
+
+        get context() {
+          return context;
+        },
+
+        get originalValue() {
+          return originalValue;
+        },
+
+        get data() {
+          var data = Utility.getByPath(source, values);
+          return Piper(this, data);
+        },
+
+        set data(value) {
+          return Utility.setByPath(source, values, value);
+        }
+
+      };
     },
-    remove: function remove(keys) {
-      return this.traverse(this.REMOVE, keys);
+    render: function render(binder, caller) {
+      if (binder.type === 'submit') return;
+      var type = binder.type in this.binders ? binder.type : 'default';
+      var render = this.binders[type](binder, caller);
+      Batcher.batch(render);
     },
-    set: function set(keys, value) {
-      return this.traverse(this.SET, keys, value);
+    unbind: function unbind(node) {
+      this.data.get('location').forEach(function (scopes) {
+        scopes.forEach(function (binders) {
+          binders.forEach(function (binder, index) {
+            if (binder.target === node) {
+              binders.splice(index, 1);
+            }
+          });
+        });
+      });
+      this.data.get('attribute').delete(node);
+    },
+    bind: function bind(node, name, value, context) {
+      if (value === "$".concat(context.variable, ".$key") || value === "{{$".concat(context.variable, ".$key}}")) {
+        return Batcher.batch({
+          write: function write() {
+            node.textContent = context.key;
+          }
+        });
+      }
+
+      if (value === "$".concat(context.variable, ".$index") || value === "{{$".concat(context.variable, ".$index}}")) {
+        return Batcher.batch({
+          write: function write() {
+            node.textContent = context.index;
+          }
+        });
+      }
+
+      var binder = this.create({
+        name: name,
+        value: value,
+        target: node,
+        context: context,
+        container: context.container,
+        scope: context.container.scope
+      });
+
+      if (!this.data.get('attribute').has(binder.target)) {
+        this.data.get('attribute').set(binder.target, new Map());
+      }
+
+      if (!this.data.get('location').has(binder.scope)) {
+        this.data.get('location').set(binder.scope, new Map());
+      }
+
+      if (!this.data.get('location').get(binder.scope).has(binder.path)) {
+        this.data.get('location').get(binder.scope).set(binder.path, []);
+      }
+
+      this.data.get('attribute').get(binder.target).set(binder.name, binder);
+      this.data.get('location').get(binder.scope).get(binder.path).push(binder);
+      this.render(binder);
+    },
+    remove: function remove(node) {
+      this.unbind(node);
+
+      for (var i = 0; i < node.childNodes.length; i++) {
+        this.remove(node.childNodes[i]);
+      }
+    },
+    add: function add(node, context) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (node.textContent.indexOf('{{') === -1 || node.textContent.indexOf('}}') === -1) {
+          return;
+        }
+
+        var start = node.textContent.indexOf('{{');
+
+        if (start !== -1 && start !== 0) {
+          node = node.splitText(start);
+        }
+
+        var end = node.textContent.indexOf('}}');
+        var length = node.textContent.length;
+
+        if (end !== -1 && end !== length - 2) {
+          var split = node.splitText(end + 2);
+          this.add(split, context);
+        }
+
+        this.bind(node, 'o-text', node.textContent, context);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        var skipChildren = false;
+        var attributes = node.attributes;
+
+        for (var i = 0, l = attributes.length; i < l; i++) {
+          var attribute = attributes[i];
+
+          if (attribute.name === 'o-html' || attribute.name === 'o-scope' || attribute.name.indexOf('o-each') === 0) {
+            skipChildren = true;
+          }
+
+          if (attribute.name === 'o-value' || attribute.name === 'o-scope' || attribute.name === 'o-reset' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype' || attribute.name.indexOf('o-') !== 0) {
+            continue;
+          }
+
+          this.bind(node, attribute.name, attribute.value, context);
+        }
+
+        if ('o-value' in attributes) {
+          this.bind(node, 'o-value', attributes['o-value'].value, context);
+        }
+
+        if (skipChildren) return;
+
+        for (var _i2 = 0; _i2 < node.childNodes.length; _i2++) {
+          this.add(node.childNodes[_i2], context);
+        }
+      }
     }
   };
 
-  function Update(element, attribute) {
+  function Change(event) {
     return new Promise(function ($return, $error) {
-      if (!element) return $error(new Error('Oxe - requires element argument'));
-      if (!attribute) return $error(new Error('Oxe - requires attribute argument'));
-      var binder = Binder.elements.get(element).get(attribute);
+      if ('attributes' in event.target && 'o-value' in event.target.attributes) {
+        var binder = Binder.get('attribute', event.target, 'o-value');
+        Binder.render(binder, 'view');
+      }
 
-      var read = function read() {
-        var type = binder.element.type;
-        var name = binder.element.nodeName;
-        var data;
-
-        if (name === 'SELECT') {
-          var elements = binder.element.options;
-          var multiple = binder.element.multiple;
-          var selected = false;
-          data = multiple ? [] : '';
-
-          for (var i = 0, l = elements.length; i < l; i++) {
-            var _element = elements[i];
-
-            if (_element.selected) {
-              selected = true;
-
-              if (multiple) {
-                data.push(_element.value);
-              } else {
-                data = _element.value;
-                break;
-              }
-            }
-          }
-
-          if (elements.length && !multiple && !selected) {
-            data = elements[0].value;
-          }
-        } else if (type === 'radio') {
-          var query = 'input[type="radio"][o-value="' + binder.value + '"]';
-
-          var _elements2 = binder.container.querySelectorAll(query);
-
-          for (var _i = 0, _l = _elements2.length; _i < _l; _i++) {
-            var _element2 = _elements2[_i];
-
-            if (binder.element === _element2) {
-              data = _i;
-            }
-          }
-        } else if (type === 'file') {
-          var files = binder.element.files;
-          data = data || [];
-
-          for (var _i2 = 0, _l2 = files.length; _i2 < _l2; _i2++) {
-            var file = files[_i2];
-            data.push(file);
-          }
-        } else if (type === 'checkbox') {
-          data = binder.element.checked;
-        } else {
-          data = binder.element.value;
-        }
-
-        if (data !== undefined) {
-          var original = Model.get(binder.keys);
-
-          if (data && _typeof(data) === 'object' && data.constructor === original.constructor) {
-            for (var key in data) {
-              if (data[key] !== original[key]) {
-                Model.set(binder.keys, data);
-                break;
-              }
-            }
-          } else if (original !== data) {
-            Model.set(binder.keys, data);
-          }
-        }
-      };
-
-      Batcher.batch({
-        read: read
-      });
       return $return();
     });
   }
 
-  function Change(event) {
-    if (event.target.hasAttribute('o-value')) {
-      var update = Update(event.target, 'value');
-    }
-  }
-
-  var Fetcher = (_Fetcher = {
+  var Fetcher = {
     head: null,
     method: 'get',
     mime: {
@@ -1680,7 +1265,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     fetch: function fetch(options) {
       return new Promise(function ($return, $error) {
-        var data, copy, result, fetchOptions, fetched, _copy, _result;
+        var data, copy, result, fetchOptions, fetched, _copy, _result2;
 
         data = Object.assign({}, options);
         data.path = data.path || this.path;
@@ -1688,8 +1273,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         if (data.path && typeof data.path === 'string' && data.path.charAt(0) === '/') data.path = data.path.slice(1);
         if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length - 1) === '/') data.origin = data.origin.slice(0, -1);
         if (data.path && data.origin && !data.url) data.url = data.origin + '/' + data.path;
-        if (!data.url) return $error(new Error('Oxe.fetcher - requires url or origin and path option'));
         if (!data.method) return $error(new Error('Oxe.fetcher - requires method option'));
+        if (!data.url) return $error(new Error('Oxe.fetcher - requires url or origin and path option'));
         if (!data.head && this.head) data.head = this.head;
         if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.method;
         if (!data.acceptType && this.acceptType) data.acceptType = this.acceptType;
@@ -1757,9 +1342,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (typeof this.request === 'function') {
           copy = Object.assign({}, data);
-          return Promise.resolve(this.request(copy)).then(function ($await_36) {
+          return Promise.resolve(this.request(copy)).then(function ($await_40) {
             try {
-              result = $await_36;
+              result = $await_40;
 
               if (result === false) {
                 return $return(data);
@@ -1779,9 +1364,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         function $If_1() {
           if (data.body) {
             if (data.method === 'GET') {
-              return Promise.resolve(this.serialize(data.body)).then(function ($await_37) {
+              return Promise.resolve(this.serialize(data.body)).then(function ($await_41) {
                 try {
-                  data.url = data.url + '?' + $await_37;
+                  data.url = data.url + '?' + $await_41;
                   return $If_5.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -1808,9 +1393,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               delete fetchOptions.head;
             }
 
-            return Promise.resolve(window.fetch(data.url, fetchOptions)).then(function ($await_38) {
+            return Promise.resolve(window.fetch(data.url, fetchOptions)).then(function ($await_42) {
               try {
-                fetched = $await_38;
+                fetched = $await_42;
                 data.code = fetched.status;
                 data.message = fetched.statusText;
 
@@ -1818,9 +1403,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   data.body = fetched.body;
                   return $If_3.call(this);
                 } else {
-                  return Promise.resolve(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType]()).then(function ($await_39) {
+                  return Promise.resolve(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType]()).then(function ($await_43) {
                     try {
-                      data.body = $await_39;
+                      data.body = $await_43;
                       return $If_3.call(this);
                     } catch ($boundEx) {
                       return $error($boundEx);
@@ -1831,16 +1416,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 function $If_3() {
                   if (this.response) {
                     _copy = Object.assign({}, data);
-                    return Promise.resolve(this.response(_copy)).then(function ($await_40) {
+                    return Promise.resolve(this.response(_copy)).then(function ($await_44) {
                       try {
-                        _result = $await_40;
+                        _result2 = $await_44;
 
-                        if (_result === false) {
+                        if (_result2 === false) {
                           return $return(data);
                         }
 
-                        if (_typeof(_result) === 'object') {
-                          Object.assign(data, _result);
+                        if (_typeof(_result2) === 'object') {
+                          Object.assign(data, _result2);
                         }
 
                         return $If_4.call(this);
@@ -1894,74 +1479,86 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         data.method = 'put';
         return $return(this.fetch(data));
       }.bind(this));
+    },
+    patch: function patch(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'patch';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    delete: function _delete(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'delete';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    options: function options(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'options';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    connect: function connect(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'connect';
+        return $return(this.fetch(data));
+      }.bind(this));
     }
-  }, _defineProperty(_Fetcher, "head", function head(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'head';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "patch", function patch(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'patch';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "delete", function _delete(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'delete';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "options", function options(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'options';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Fetcher, "connect", function connect(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'connect';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _Fetcher);
+  };
 
   function Submit(event) {
     return new Promise(function ($return, $error) {
-      var element, binder, method, model, data, options, oaction, omethod, oenctype, result;
-      element = event.target;
-      binder = Binder.elements.get(element).get('submit');
-      method = Methods.get(binder.keys);
-      model = Model.get(binder.scope);
-      data = Utility.formData(element, model);
-      return Promise.resolve(method.call(binder.container, data, event)).then(function ($await_41) {
+      var data, elements, i, l, element, binder, value, name, submit, options, result;
+
+      if (event.target.hasAttribute('o-submit') === false) {
+        return $return();
+      }
+
+      event.preventDefault();
+      data = {};
+      elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+
+      for (i = 0, l = elements.length; i < l; i++) {
+        element = elements[i];
+
+        if (element.type === 'submit' || element.type === 'button' || element.nodeName === 'BUTTON' || element.nodeName === 'OPTION' || element.nodeName.indexOf('-BUTTON') !== -1 || element.nodeName.indexOf('-OPTION') !== -1) {
+          continue;
+        }
+
+        binder = Binder.get('attribute', element, 'o-value');
+        value = binder ? binder.data : element.value;
+        name = element.name || binder.values[binder.values.length - 1];
+        if (!name) continue;
+        data[name] = value;
+      }
+
+      submit = Binder.get('attribute', event.target, 'o-submit');
+      return Promise.resolve(submit.data.call(submit.container, data, event)).then(function ($await_45) {
         try {
-          options = $await_41;
+          options = $await_45;
 
           if (_typeof(options) === 'object') {
-            oaction = element.getAttribute('o-action');
-            omethod = element.getAttribute('o-method');
-            oenctype = element.getAttribute('o-enctype');
-            options.url = options.url || oaction;
-            options.method = options.method || omethod;
-            options.contentType = options.contentType || oenctype;
-            return Promise.resolve(Fetcher.fetch(options)).then(function ($await_42) {
+            options.url = options.url || event.target.getAttribute('o-action');
+            options.method = options.method || event.target.getAttribute('o-method');
+            options.contentType = options.contentType || event.target.getAttribute('o-enctype');
+            return Promise.resolve(Fetcher.fetch(options)).then(function ($await_46) {
               try {
-                result = $await_42;
+                result = $await_46;
 
                 if (options.handler) {
-                  return Promise.resolve(options.handler(result)).then(function ($await_43) {
+                  return Promise.resolve(options.handler(result)).then(function ($await_47) {
                     try {
                       return $If_7.call(this);
                     } catch ($boundEx) {
@@ -1982,8 +1579,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
 
           function $If_6() {
-            if (element.hasAttribute('o-reset') || _typeof(options) === 'object' && options.reset) {
-              element.reset();
+            if (event.target.hasAttribute('o-reset') || _typeof(options) === 'object' && options.reset) {
+              event.target.reset();
             }
 
             return $return();
@@ -1998,17 +1595,54 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Input(event) {
-    if (event.target.type !== 'checkbox' && event.target.type !== 'radio' && event.target.type !== 'option' && event.target.nodeName !== 'SELECT' && event.target.hasAttribute('o-value')) {
-      var update = Update(event.target, 'value');
-    }
+    return new Promise(function ($return, $error) {
+      if (event.target.type !== 'radio' && event.target.type !== 'option' && event.target.type !== 'checkbox' && event.target.nodeName !== 'SELECT' && 'attributes' in event.target && 'o-value' in event.target.attributes) {
+        var binder = Binder.get('attribute', event.target, 'o-value');
+        Binder.render(binder, 'view');
+      }
+
+      return $return();
+    });
   }
 
   function Reset(event) {
     return new Promise(function ($return, $error) {
-      var element = event.target;
-      var binder = Binder.elements.get(element).get('submit');
-      var model = Model.get(binder.scope);
-      Utility.formReset(element, model);
+      if (event.target.hasAttribute('o-reset') === false) {
+        return $return();
+      }
+
+      event.preventDefault();
+      var elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+
+      for (var i = 0, l = elements.length; i < l; i++) {
+        var element = elements[i];
+
+        if (element.type === 'submit' || element.type === 'button' || element.nodeName === 'BUTTON' || element.nodeName === 'OPTION' || element.nodeName.indexOf('-BUTTON') !== -1 || element.nodeName.indexOf('-OPTION') !== -1) {
+          continue;
+        }
+
+        var type = element.type;
+        var name = element.nodeName;
+        var binder = Binder.get('attribute', element, 'o-value');
+
+        if (!binder) {
+          element.value = '';
+          continue;
+        }
+
+        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
+          if (binder.target.multiple) {
+            binder.data = [];
+          } else {
+            binder.data = '';
+          }
+        } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) ;else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
+          binder.data = false;
+        } else {
+          binder.data = '';
+        }
+      }
+
       return $return();
     });
   }
@@ -2196,7 +1830,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         var self = this;
-        options = options || options;
+        options = options || {};
         this.type = options.type || this.type;
 
         if (options.loads) {
@@ -2211,9 +1845,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     fetch: function fetch(url, type) {
       return new Promise(function ($return, $error) {
         var data, code;
-        return Promise.resolve(window.fetch(url)).then(function ($await_44) {
+        return Promise.resolve(window.fetch(url)).then(function ($await_48) {
           try {
-            data = $await_44;
+            data = $await_48;
 
             if (data.status == 404) {
               return $error(new Error('Oxe.loader.load - not found ' + url));
@@ -2223,9 +1857,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               return $error(new Error(data.statusText));
             }
 
-            return Promise.resolve(data.text()).then(function ($await_45) {
+            return Promise.resolve(data.text()).then(function ($await_49) {
               try {
-                code = $await_45;
+                code = $await_49;
 
                 if (type === 'es' || type === 'est') {
                   code = Transformer.template(code);
@@ -2275,8 +1909,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }.bind(this));
     }
   };
+  var EVENTS = {};
   var Events = {
-    events: {},
+    get events() {
+      return EVENTS;
+    },
+
     on: function on(name, method) {
       if (!(name in this.events)) {
         this.events[name] = [];
@@ -2286,10 +1924,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     off: function off(name, method) {
       if (name in this.events) {
-        var _index2 = this.events[name].indexOf(method);
+        var _index3 = this.events[name].indexOf(method);
 
-        if (_index2 !== -1) {
-          this.events[name].splice(_index2, 1);
+        if (_index3 !== -1) {
+          this.events[name].splice(_index3, 1);
         }
       }
     },
@@ -2304,122 +1942,493 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
     }
   };
+  var DATA$1 = {};
+  var Methods = {
+    get data() {
+      return DATA$1;
+    },
+
+    get: function get(path) {
+      return Utility.getByPath(this.data, path);
+    },
+    set: function set(path, data) {
+      return Utility.setByPath(this.data, path, data);
+    }
+  };
+  var Observer = {
+    splice: function splice() {
+      var self = this;
+      var startIndex = arguments[0];
+      var deleteCount = arguments[1];
+      var addCount = arguments.length > 2 ? arguments.length - 2 : 0;
+
+      if (typeof startIndex !== 'number' || typeof deleteCount !== 'number') {
+        return [];
+      }
+
+      if (startIndex < 0) {
+        startIndex = self.length + startIndex;
+        startIndex = startIndex > 0 ? startIndex : 0;
+      } else {
+        startIndex = startIndex < self.length ? startIndex : self.length;
+      }
+
+      if (deleteCount < 0) {
+        deleteCount = 0;
+      } else if (deleteCount > self.length - startIndex) {
+        deleteCount = self.length - startIndex;
+      }
+
+      var totalCount = self.$meta.length;
+      var argumentIndex = 2;
+      var argumentsCount = arguments.length - argumentIndex;
+      var result = self.slice(startIndex, deleteCount);
+      var updateCount = totalCount - 1 - startIndex;
+      var promises = [];
+      var length = self.length + addCount - deleteCount;
+
+      if (self.length !== length) {
+        promises.push(self.$meta.listener.bind(null, self, self.$meta.path.slice(0, -1), 'length'));
+      }
+
+      if (updateCount > 0) {
+        var value;
+        var _index4 = startIndex;
+
+        while (updateCount--) {
+          var key = _index4++;
+
+          if (argumentsCount && argumentIndex < argumentsCount) {
+            value = arguments[argumentIndex++];
+          } else {
+            value = self.$meta[_index4];
+          }
+
+          self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
+          promises.push(self.$meta.listener.bind(null, self.$meta[key], self.$meta.path + key, key));
+        }
+      }
+
+      if (addCount > 0) {
+        while (addCount--) {
+          var _key = self.length;
+
+          if (_key in this === false) {
+            Object.defineProperty(this, _key, Observer.descriptor(_key));
+          }
+
+          self.$meta[_key] = Observer.create(arguments[argumentIndex++], self.$meta.listener, self.$meta.path + _key);
+          promises.push(self.$meta.listener.bind(null, self.$meta[_key], self.$meta.path + _key, _key));
+        }
+      }
+
+      if (deleteCount > 0) {
+        while (deleteCount--) {
+          self.$meta.length--;
+          self.length--;
+          var _key2 = self.length;
+          promises.push(self.$meta.listener.bind(null, undefined, self.$meta.path + _key2, _key2));
+        }
+      }
+
+      Promise.resolve().then(function () {
+        promises.reduce(function (promise, item) {
+          return promise.then(item);
+        }, Promise.resolve());
+      }).catch(console.error);
+      return result;
+    },
+    arrayProperties: function arrayProperties() {
+      var self = this;
+      return {
+        push: {
+          value: function value() {
+            if (!arguments.length) return this.length;
+
+            for (var i = 0, l = arguments.length; i < l; i++) {
+              self.splice.call(this, this.length, 0, arguments[i]);
+            }
+
+            return this.length;
+          }
+        },
+        unshift: {
+          value: function value() {
+            if (!arguments.length) return this.length;
+
+            for (var i = 0, l = arguments.length; i < l; i++) {
+              self.splice.call(this, 0, 0, arguments[i]);
+            }
+
+            return this.length;
+          }
+        },
+        pop: {
+          value: function value() {
+            if (!this.length) return;
+            var result = self.splice.call(this, this.length - 1, 1);
+            return result[0];
+          }
+        },
+        shift: {
+          value: function value() {
+            if (!this.length) return;
+            var result = self.splice.call(this, 0, 1);
+            return result[0];
+          }
+        },
+        splice: {
+          value: self.splice
+        }
+      };
+    },
+    objectProperties: function objectProperties() {
+      var self = this;
+      return {
+        $get: {
+          value: function value(key) {
+            return this.$meta[key];
+          }
+        },
+        $set: {
+          value: function value(key, _value3) {
+            if (_value3 !== this.$meta[key]) {
+              if (key in this === false) {
+                Object.defineProperty(this, key, self.descriptor(key));
+              }
+
+              this.$meta[key] = self.create(_value3, this.$meta.listener, this.$meta.path + key);
+              this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
+            }
+          }
+        },
+        $remove: {
+          value: function value(key) {
+            if (key in this) {
+              if (this.constructor === Array) {
+                return self.splice.call(this, key, 1);
+              } else {
+                var result = this[key];
+                delete this.$meta[key];
+                delete this[key];
+                this.$meta.listener(undefined, this.$meta.path + key, key);
+                return result;
+              }
+            }
+          }
+        }
+      };
+    },
+    descriptor: function descriptor(key) {
+      var self = this;
+      return {
+        enumerable: true,
+        configurable: true,
+        get: function get() {
+          return this.$meta[key];
+        },
+        set: function set(value) {
+          if (value !== this.$meta[key]) {
+            this.$meta[key] = self.create(value, this.$meta.listener, this.$meta.path + key);
+            this.$meta.listener(this.$meta[key], this.$meta.path + key, key, this);
+          }
+        }
+      };
+    },
+    create: function create(source, listener, path) {
+      if (!source || source.constructor !== Object && source.constructor !== Array) {
+        return source;
+      }
+
+      path = path ? path + '.' : '';
+      var type = source.constructor;
+      var target = source.constructor();
+      var descriptors = {};
+      descriptors.$meta = {
+        value: source.constructor()
+      };
+      descriptors.$meta.value.path = path;
+      descriptors.$meta.value.listener = listener;
+
+      if (type === Array) {
+        for (var key = 0, length = source.length; key < length; key++) {
+          descriptors.$meta.value[key] = this.create(source[key], listener, path + key);
+          descriptors[key] = this.descriptor(key);
+        }
+      }
+
+      if (type === Object) {
+        for (var _key3 in source) {
+          descriptors.$meta.value[_key3] = this.create(source[_key3], listener, path + _key3);
+          descriptors[_key3] = this.descriptor(_key3);
+        }
+      }
+
+      Object.defineProperties(target, descriptors);
+      Object.defineProperties(target, this.objectProperties(source, listener, path));
+
+      if (type === Array) {
+        Object.defineProperties(target, this.arrayProperties(source, listener, path));
+      }
+
+      return target;
+    }
+  };
+  var Model = {
+    GET: 2,
+    SET: 3,
+    REMOVE: 4,
+    data: null,
+    tasks: [],
+    target: {},
+    setup: function setup(options) {
+      return new Promise(function ($return, $error) {
+        options = options || {};
+        this.target = options.target || this.target;
+        this.data = Observer.create(this.target, this.listener.bind(this));
+        return $return();
+      }.bind(this));
+    },
+    traverse: function traverse(type, keys, value) {
+      var result;
+
+      if (typeof keys === 'string') {
+        keys = keys.split('.');
+      }
+
+      var data = this.data;
+      var key = keys[keys.length - 1];
+
+      for (var i = 0, l = keys.length - 1; i < l; i++) {
+        if (!(keys[i] in data)) {
+          if (type === this.GET || type === this.REMOVE) {
+            return undefined;
+          } else if (type === this.SET) {
+            data.$set(keys[i], isNaN(keys[i + 1]) ? {} : []);
+          }
+        }
+
+        data = data[keys[i]];
+      }
+
+      if (type === this.SET) {
+        result = data.$set(key, value);
+      } else if (type === this.GET) {
+        result = data[key];
+      } else if (type === this.REMOVE) {
+        result = data[key];
+        data.$remove(key);
+      }
+
+      return result;
+    },
+    get: function get(keys) {
+      return this.traverse(this.GET, keys);
+    },
+    remove: function remove(keys) {
+      return this.traverse(this.REMOVE, keys);
+    },
+    set: function set(keys, value) {
+      return this.traverse(this.SET, keys, value);
+    },
+    listener: function listener(data, location, type) {
+      var parts = location.split('.');
+      var part = parts.slice(1).join('.');
+      var scope = parts.slice(0, 1).join('.');
+      var paths = Binder.get('location', scope);
+      if (!paths) return;
+      paths.forEach(function (binders, path) {
+        if (part === '' || path === part || type !== 'length' && path.indexOf(part + '.') === 0) {
+          binders.forEach(function (binder) {
+            Binder.render(binder);
+          });
+        }
+      });
+    }
+  };
+  var STYLE = document.createElement('style');
+  var SHEET = STYLE.sheet;
+  STYLE.setAttribute('title', 'oxe');
+  STYLE.setAttribute('type', 'text/css');
+  var Style$1 = {
+    get style() {
+      return STYLE;
+    },
+
+    get sheet() {
+      return SHEET;
+    },
+
+    add: function add(data) {
+      this.sheet.insertRule(data);
+    },
+    append: function append(data) {
+      this.style.appendChild(document.createTextNode(data));
+    },
+    setup: function setup() {
+      return new Promise(function ($return, $error) {
+        this.append("\n\t\t\t*[hidden] {\n\t\t\t\tdisplay: none !important;\n\t\t\t}\n\t\t\to-router, o-router > :first-child {\n\t\t\t\tdisplay: block;\n\t\t\t\tanimation: o-transition var(--o-transition) ease-in-out;\n\t\t\t}\n\t\t\t@keyframes o-transition {\n\t\t\t\t0% { opacity: 0; }\n\t\t\t\t100% { opacity: 1; }\n\t\t\t}\n\t\t");
+        document.head.appendChild(this.style);
+        return $return();
+      }.bind(this));
+    }
+  };
   var Component = {
     data: {},
     compiled: false,
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
-        var self = this;
+        var self, i, l, component, load;
+        self = this;
         options = options || {};
 
-        if (options.components && options.components.length) {
-          for (var i = 0, l = options.components.length; i < l; i++) {
-            var component = options.components[i];
+        if (options.components) {
+          i = 0, l = options.components.length;
+          var $Loop_9_trampoline;
 
-            if (typeof component === 'string') {
-              Loader.load(component).then(function (load) {
-                self.define(load.default);
-              }).catch(console.error);
-            } else {
-              self.define(component);
+          function $Loop_9_step() {
+            i++;
+            return $Loop_9;
+          }
+
+          function $Loop_9() {
+            if (i < l) {
+              component = options.components[i];
+
+              if (typeof component === 'string') {
+                return Promise.resolve(Loader.load(component)).then(function ($await_50) {
+                  try {
+                    load = $await_50;
+                    component = load.default;
+                    return $If_11.call(this);
+                  } catch ($boundEx) {
+                    return $error($boundEx);
+                  }
+                }.bind(this), $error);
+              }
+
+              function $If_11() {
+                self.define(component);
+                return $Loop_9_step;
+              }
+
+              return $If_11.call(this);
+            } else return [1];
+          }
+
+          return ($Loop_9_trampoline = function (q) {
+            while (q) {
+              if (q.then) return void q.then($Loop_9_trampoline, $error);
+
+              try {
+                if (q.pop) {
+                  if (q.length) return q.pop() ? $Loop_9_exit.call(this) : q;else q = $Loop_9_step;
+                } else q = q.call(this);
+              } catch (_exception) {
+                return $error(_exception);
+              }
             }
+          }.bind(this))($Loop_9);
+
+          function $Loop_9_exit() {
+            return $If_8.call(this);
           }
         }
 
-        return $return();
+        function $If_8() {
+          return $return();
+        }
+
+        return $If_8.call(this);
       }.bind(this));
     },
-    renderSlot: function renderSlot(target, source, scope) {
-      var targetSlots = target.querySelectorAll('slot[name]');
+    style: function style(_style, name) {
+      if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
+        var matches = _style.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
 
-      for (var i = 0, l = targetSlots.length; i < l; i++) {
-        var targetSlot = targetSlots[i];
-        var name = targetSlot.getAttribute('name');
-        var sourceSlot = source.querySelector('[slot="' + name + '"]');
-
-        if (sourceSlot) {
-          targetSlot.parentNode.replaceChild(sourceSlot, targetSlot);
-        } else {
-          targetSlot.parentNode.removeChild(targetSlot);
+        for (var i = 0, l = matches.length; i < l; i++) {
+          var match = matches[i];
+          var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+          var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
+          _style = _style.replace(rule[0], '');
+          _style = _style.replace(pattern, rule[2]);
         }
       }
 
-      var defaultSlot = target.querySelector('slot:not([name])');
+      if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':host')) {
+        _style = _style.replace(/:host/g, name);
+      }
+
+      return _style;
+    },
+    slot: function slot(element, fragment) {
+      var fragmentSlots = fragment.querySelectorAll('slot[name]');
+      var defaultSlot = fragment.querySelector('slot:not([name])');
+
+      for (var i = 0, l = fragmentSlots.length; i < l; i++) {
+        var fragmentSlot = fragmentSlots[i];
+        var name = fragmentSlot.getAttribute('name');
+        var elementSlot = element.querySelector('[slot="' + name + '"]');
+
+        if (elementSlot) {
+          fragmentSlot.parentNode.replaceChild(elementSlot, fragmentSlot);
+        } else {
+          fragmentSlot.parentNode.removeChild(fragmentSlot);
+        }
+      }
 
       if (defaultSlot) {
-        if (source.children.length) {
-          defaultSlot.parentNode.setAttribute('slot', 'default');
-
-          while (source.firstChild) {
-            defaultSlot.parentNode.insertBefore(source.firstChild, defaultSlot);
+        if (element.children.length) {
+          while (element.firstChild) {
+            defaultSlot.parentNode.insertBefore(element.firstChild, defaultSlot);
           }
         }
 
         defaultSlot.parentNode.removeChild(defaultSlot);
       }
     },
-    renderStyle: function renderStyle(style, scope) {
-      if (!style) return '';
+    fragment: function fragment(element, options) {
+      var fragment = document.createDocumentFragment();
+      var clone = options.clone.cloneNode(true);
 
-      if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
-        var matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g);
-
-        for (var i = 0, l = matches.length; i < l; i++) {
-          var match = matches[i];
-          var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-          var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
-          style = style.replace(rule[0], '');
-          style = style.replace(pattern, rule[2]);
-        }
+      while (clone.firstElementChild) {
+        Binder.add(clone.firstElementChild, {
+          container: element,
+          scope: element.scope
+        });
+        fragment.appendChild(clone.firstElementChild);
       }
 
-      if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':scope')) {
-        style = style.replace(/\:scope/g, '[o-scope="' + scope + '"]');
-      }
-
-      if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':host')) {
-        style = style.replace(/\:host/g, '[o-scope="' + scope + '"]');
-      }
-
-      return '<style type="text/css">' + style + '</style>';
+      return fragment;
     },
     render: function render(element, options) {
-      var self = this;
-      element.setAttribute('o-scope', element.scope);
+      if (this.compiled && element.parentElement.nodeName === 'O-ROUTER') {
+        return;
+      }
 
-      if (self.compiled && element.parentElement.nodeName === 'O-ROUTER') {
-        Binder.bind(element, element, element.scope);
+      if (!options.template) {
+        return;
+      }
+
+      var fragment = this.fragment(element, options);
+
+      if (options.shadow) {
+        if ('attachShadow' in document.body) {
+          element.attachShadow({
+            mode: 'open'
+          }).appendChild(fragment);
+        } else if ('createShadowRoot' in document.body) {
+          element.createShadowRoot().appendChild(fragment);
+        }
       } else {
-        var template = document.createElement('template');
-        var style = self.renderStyle(options.style, element.scope);
-
-        if (typeof options.template === 'string') {
-          template.innerHTML = style + options.template;
-        } else {
-          template.innerHTML = style;
-          template.appendChild(options.template);
-        }
-
-        var clone = document.importNode(template.content, true);
-        Binder.bind(clone, element, element.scope);
-
-        if (options.shadow) {
-          if ('attachShadow' in document.body) {
-            element.attachShadow({
-              mode: 'open'
-            }).appendChild(clone);
-          } else if ('createShadowRoot' in document.body) {
-            element.createShadowRoot().appendChild(clone);
-          }
-        } else {
-          self.renderSlot(clone, element);
-          element.appendChild(clone);
-        }
+        this.slot(element, fragment);
+        element.appendChild(fragment);
       }
     },
     define: function define(options) {
       var self = this;
       if (!options.name) throw new Error('Oxe.component.define - requires name');
+      options.name = options.name.toLowerCase();
       if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
       self.data[options.name] = options;
       options.count = 0;
@@ -2429,6 +2438,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       options.shadow = options.shadow || false;
       options.template = options.template || '';
       options.properties = options.properties || {};
+      options.attributes = options.attributes || [];
+
+      if (options.style) {
+        var style = this.style(options.style, options.name);
+        Style$1.append(style);
+      }
+
+      if (options.template) {
+        options.clone = document.createElement('div');
+        options.clone.innerHTML = options.template;
+      }
 
       options.construct = function () {
         var instance = window.Reflect.construct(HTMLElement, [], this.constructor);
@@ -2447,8 +2467,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             return Model.get(this.scope);
           },
           set: function set(data) {
-            data = data && _typeof(data) === 'object' ? data : {};
-            return Model.set(this.scope, data);
+            return Model.set(this.scope, data && _typeof(data) === 'object' ? data : {});
           }
         };
         options.properties.methods = {
@@ -2462,6 +2481,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         Methods.set(instance.scope, options.methods);
         return instance;
       };
+
+      options.construct.observedAttributes = options.attributes;
 
       options.construct.prototype.attributeChangedCallback = function () {
         if (options.attributed) options.attributed.apply(this, arguments);
@@ -2501,19 +2522,55 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       window.customElements.define(options.name, options.construct);
     }
   };
-  var events = Object.create(Events);
+  var Event = Object.create(Events);
   var Router = {
-    on: events.on.bind(events),
-    off: events.off.bind(events),
-    emit: events.emit.bind(events),
+    on: Event.on.bind(Event),
+    off: Event.off.bind(Event),
+    emit: Event.emit.bind(Event),
     data: [],
     ran: false,
     location: {},
     mode: 'push',
-    element: null,
+    target: null,
     contain: false,
     compiled: false,
     folder: './routes',
+    setup: function setup(options) {
+      return new Promise(function ($return, $error) {
+        options = options || {};
+        this.base = options.base === undefined ? this.base : options.base;
+        this.mode = options.mode === undefined ? this.mode : options.mode;
+        this.after = options.after === undefined ? this.after : options.after;
+        this.folder = options.folder === undefined ? this.folder : options.folder;
+        this.before = options.before === undefined ? this.before : options.before;
+        this.change = options.change === undefined ? this.change : options.change;
+        this.target = options.target === undefined ? this.target : options.target;
+        this.contain = options.contain === undefined ? this.contain : options.contain;
+        this.external = options.external === undefined ? this.external : options.external;
+
+        if (!this.target || typeof this.target === 'string') {
+          this.target = document.body.querySelector(this.target || 'o-router');
+        }
+
+        if (!this.target) return $error(new Error('Oxe.router.setup - target option required'));
+        return Promise.resolve(this.add(options.routes)).then(function ($await_51) {
+          try {
+            return Promise.resolve(this.route(window.location.href, {
+              mode: 'replace',
+              setup: true
+            })).then(function ($await_52) {
+              try {
+                return $return();
+              } catch ($boundEx) {
+                return $error($boundEx);
+              }
+            }, $error);
+          } catch ($boundEx) {
+            return $error($boundEx);
+          }
+        }.bind(this), $error);
+      }.bind(this));
+    },
     compareParts: function compareParts(routePath, userPath, split) {
       var compareParts = [];
       var routeParts = routePath.split(split);
@@ -2529,9 +2586,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       for (var i = 0, l = routeParts.length; i < l; i++) {
         if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
-          if (routeParts[i] === '(*)') {
+          if (routeParts[i] === '(~)') {
             return true;
-          } else if (routeParts[i].indexOf('*') !== -1) {
+          } else if (routeParts[i].indexOf('~') !== -1) {
             if (userParts[i]) {
               compareParts.push(userParts[i]);
             }
@@ -2584,7 +2641,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var part = routeParts[i];
 
         if (part.slice(0, 1) === '(' && part.slice(-1) === ')') {
-          var name = part.slice(1, part.length - 1).replace('*', '');
+          var name = part.slice(1, part.length - 1).replace('~', '');
           result[name] = userParts[i];
         }
       }
@@ -2685,7 +2742,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               path: path,
               load: load
             });
-            return $If_9.call(this);
+            return $If_13.call(this);
           } else {
             if (data.constructor === Object) {
               if (!data.path) {
@@ -2697,22 +2754,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               }
 
               this.data.push(data);
-              return $If_10.call(this);
+              return $If_14.call(this);
             } else {
               if (data.constructor === Array) {
                 i = 0, l = data.length;
-                var $Loop_12_trampoline;
+                var $Loop_16_trampoline;
 
-                function $Loop_12_step() {
+                function $Loop_16_step() {
                   i++;
-                  return $Loop_12;
+                  return $Loop_16;
                 }
 
-                function $Loop_12() {
+                function $Loop_16() {
                   if (i < l) {
-                    return Promise.resolve(this.add(data[i])).then(function ($await_46) {
+                    return Promise.resolve(this.add(data[i])).then(function ($await_53) {
                       try {
-                        return $Loop_12_step;
+                        return $Loop_16_step;
                       } catch ($boundEx) {
                         return $error($boundEx);
                       }
@@ -2720,86 +2777,47 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   } else return [1];
                 }
 
-                return ($Loop_12_trampoline = function (q) {
+                return ($Loop_16_trampoline = function (q) {
                   while (q) {
-                    if (q.then) return void q.then($Loop_12_trampoline, $error);
+                    if (q.then) return void q.then($Loop_16_trampoline, $error);
 
                     try {
                       if (q.pop) {
-                        if (q.length) return q.pop() ? $Loop_12_exit.call(this) : q;else q = $Loop_12_step;
+                        if (q.length) return q.pop() ? $Loop_16_exit.call(this) : q;else q = $Loop_16_step;
                       } else q = q.call(this);
                     } catch (_exception) {
                       return $error(_exception);
                     }
                   }
-                }.bind(this))($Loop_12);
+                }.bind(this))($Loop_16);
 
-                function $Loop_12_exit() {
-                  return $If_11.call(this);
+                function $Loop_16_exit() {
+                  return $If_15.call(this);
                 }
               }
 
-              function $If_11() {
-                return $If_10.call(this);
+              function $If_15() {
+                return $If_14.call(this);
               }
 
-              return $If_11.call(this);
+              return $If_15.call(this);
             }
 
-            function $If_10() {
-              return $If_9.call(this);
+            function $If_14() {
+              return $If_13.call(this);
             }
           }
 
-          function $If_9() {
-            return $If_8.call(this);
+          function $If_13() {
+            return $If_12.call(this);
           }
         }
 
-        function $If_8() {
+        function $If_12() {
           return $return();
         }
 
-        return $If_8.call(this);
-      }.bind(this));
-    },
-    setup: function setup(options) {
-      return new Promise(function ($return, $error) {
-        options = options || {};
-        this.base = options.base === undefined ? this.base : options.base;
-        this.mode = options.mode === undefined ? this.mode : options.mode;
-        this.after = options.after === undefined ? this.after : options.after;
-        this.folder = options.folder === undefined ? this.folder : options.folder;
-        this.before = options.before === undefined ? this.before : options.before;
-        this.change = options.change === undefined ? this.change : options.change;
-        this.element = options.element === undefined ? this.element : options.element;
-        this.contain = options.contain === undefined ? this.contain : options.contain;
-        this.external = options.external === undefined ? this.external : options.external;
-
-        if (!this.element || typeof this.element === 'string') {
-          this.element = document.body.querySelector(this.element || 'o-router');
-        }
-
-        if (!this.element) {
-          return $error(new Error('Oxe.router.render - missing o-router element'));
-        }
-
-        return Promise.resolve(this.add(options.routes)).then(function ($await_47) {
-          try {
-            return Promise.resolve(this.route(window.location.href, {
-              mode: 'replace',
-              setup: true
-            })).then(function ($await_48) {
-              try {
-                return $return();
-              } catch ($boundEx) {
-                return $error($boundEx);
-              }
-            }, $error);
-          } catch ($boundEx) {
-            return $error($boundEx);
-          }
-        }.bind(this), $error);
+        return $If_12.call(this);
       }.bind(this));
     },
     load: function load(route) {
@@ -2807,39 +2825,39 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var load, _load;
 
         if (route.load) {
-          return Promise.resolve(Loader.load(route.load)).then(function ($await_49) {
+          return Promise.resolve(Loader.load(route.load)).then(function ($await_54) {
             try {
-              load = $await_49;
+              load = $await_54;
               route = Object.assign({}, load.default, route);
-              return $If_14.call(this);
+              return $If_18.call(this);
             } catch ($boundEx) {
               return $error($boundEx);
             }
           }.bind(this), $error);
         }
 
-        function $If_14() {
+        function $If_18() {
           if (typeof route.component === 'string') {
             route.load = route.component;
-            return Promise.resolve(Loader.load(route.load)).then(function ($await_50) {
+            return Promise.resolve(Loader.load(route.load)).then(function ($await_55) {
               try {
-                _load = $await_50;
+                _load = $await_55;
                 route.component = _load.default;
-                return $If_15.call(this);
+                return $If_19.call(this);
               } catch ($boundEx) {
                 return $error($boundEx);
               }
             }.bind(this), $error);
           }
 
-          function $If_15() {
+          function $If_19() {
             return $return(route);
           }
 
-          return $If_15.call(this);
+          return $If_19.call(this);
         }
 
-        return $If_14.call(this);
+        return $If_18.call(this);
       });
     },
     remove: function remove(path) {
@@ -2857,19 +2875,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return new Promise(function ($return, $error) {
         var i, l;
         i = 0, l = this.data.length;
-        var $Loop_16_trampoline;
+        var $Loop_20_trampoline;
 
-        function $Loop_16_step() {
+        function $Loop_20_step() {
           i++;
-          return $Loop_16;
+          return $Loop_20;
         }
 
-        function $Loop_16() {
+        function $Loop_20() {
           if (i < l) {
             if (this.data[i].path === path) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_51) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_56) {
                 try {
-                  this.data[i] = $await_51;
+                  this.data[i] = $await_56;
                   return $return(this.data[i]);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -2877,25 +2895,25 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               }.bind(this), $error);
             }
 
-            return $Loop_16_step;
+            return $Loop_20_step;
           } else return [1];
         }
 
-        return ($Loop_16_trampoline = function (q) {
+        return ($Loop_20_trampoline = function (q) {
           while (q) {
-            if (q.then) return void q.then($Loop_16_trampoline, $error);
+            if (q.then) return void q.then($Loop_20_trampoline, $error);
 
             try {
               if (q.pop) {
-                if (q.length) return q.pop() ? $Loop_16_exit.call(this) : q;else q = $Loop_16_step;
+                if (q.length) return q.pop() ? $Loop_20_exit.call(this) : q;else q = $Loop_20_step;
               } else q = q.call(this);
             } catch (_exception) {
               return $error(_exception);
             }
           }
-        }.bind(this))($Loop_16);
+        }.bind(this))($Loop_20);
 
-        function $Loop_16_exit() {
+        function $Loop_20_exit() {
           return $return();
         }
       }.bind(this));
@@ -2905,50 +2923,50 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var result, i, l;
         result = [];
         i = 0, l = this.data.length;
-        var $Loop_19_trampoline;
+        var $Loop_23_trampoline;
 
-        function $Loop_19_step() {
+        function $Loop_23_step() {
           i++;
-          return $Loop_19;
+          return $Loop_23;
         }
 
-        function $Loop_19() {
+        function $Loop_23() {
           if (i < l) {
             if (this.compare(this.data[i].path, path)) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_52) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_57) {
                 try {
-                  this.data[i] = $await_52;
+                  this.data[i] = $await_57;
                   result.push(this.data[i]);
-                  return $If_21.call(this);
+                  return $If_25.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            function $If_21() {
-              return $Loop_19_step;
+            function $If_25() {
+              return $Loop_23_step;
             }
 
-            return $If_21.call(this);
+            return $If_25.call(this);
           } else return [1];
         }
 
-        return ($Loop_19_trampoline = function (q) {
+        return ($Loop_23_trampoline = function (q) {
           while (q) {
-            if (q.then) return void q.then($Loop_19_trampoline, $error);
+            if (q.then) return void q.then($Loop_23_trampoline, $error);
 
             try {
               if (q.pop) {
-                if (q.length) return q.pop() ? $Loop_19_exit.call(this) : q;else q = $Loop_19_step;
+                if (q.length) return q.pop() ? $Loop_23_exit.call(this) : q;else q = $Loop_23_step;
               } else q = q.call(this);
             } catch (_exception) {
               return $error(_exception);
             }
           }
-        }.bind(this))($Loop_19);
+        }.bind(this))($Loop_23);
 
-        function $Loop_19_exit() {
+        function $Loop_23_exit() {
           return $return(result);
         }
       }.bind(this));
@@ -2957,19 +2975,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return new Promise(function ($return, $error) {
         var i, l;
         i = 0, l = this.data.length;
-        var $Loop_22_trampoline;
+        var $Loop_26_trampoline;
 
-        function $Loop_22_step() {
+        function $Loop_26_step() {
           i++;
-          return $Loop_22;
+          return $Loop_26;
         }
 
-        function $Loop_22() {
+        function $Loop_26() {
           if (i < l) {
             if (this.compare(this.data[i].path, path)) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_53) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_58) {
                 try {
-                  this.data[i] = $await_53;
+                  this.data[i] = $await_58;
                   return $return(this.data[i]);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -2977,25 +2995,25 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               }.bind(this), $error);
             }
 
-            return $Loop_22_step;
+            return $Loop_26_step;
           } else return [1];
         }
 
-        return ($Loop_22_trampoline = function (q) {
+        return ($Loop_26_trampoline = function (q) {
           while (q) {
-            if (q.then) return void q.then($Loop_22_trampoline, $error);
+            if (q.then) return void q.then($Loop_26_trampoline, $error);
 
             try {
               if (q.pop) {
-                if (q.length) return q.pop() ? $Loop_22_exit.call(this) : q;else q = $Loop_22_step;
+                if (q.length) return q.pop() ? $Loop_26_exit.call(this) : q;else q = $Loop_26_step;
               } else q = q.call(this);
             } catch (_exception) {
               return $error(_exception);
             }
           }
-        }.bind(this))($Loop_22);
+        }.bind(this))($Loop_26);
 
-        function $Loop_22_exit() {
+        function $Loop_26_exit() {
           return $return();
         }
       }.bind(this));
@@ -3006,8 +3024,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           return $error(new Error('Oxe.render - route argument required. Missing object option.'));
         }
 
-        if (!route.component && !route.element) {
-          return $error(new Error('Oxe.render - route property required. Missing component or element option.'));
+        if (!route.component && !route.target) {
+          return $error(new Error('Oxe.render - route property required. Missing component or target option.'));
         }
 
         if (route.title) {
@@ -3046,27 +3064,27 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           });
         }
 
-        if (!route.element) {
+        if (!route.target) {
           if (route.component.constructor === String) {
-            route.element = window.document.createElement(route.component);
+            route.target = window.document.createElement(route.component);
           } else if (route.component.constructor === Object) {
             Component.define(route.component);
 
             if (this.compiled) {
-              route.element = this.element.firstElementChild;
+              route.target = this.target.firstElementChild;
               this.scroll(0, 0);
               return $return();
             } else {
-              route.element = window.document.createElement(route.component.name);
+              route.target = window.document.createElement(route.component.name);
             }
           }
         }
 
-        while (this.element.firstChild) {
-          this.element.removeChild(this.element.firstChild);
+        while (this.target.firstChild) {
+          this.target.removeChild(this.target.firstChild);
         }
 
-        this.element.appendChild(route.element);
+        this.target.appendChild(route.target);
         this.scroll(0, 0);
         return $return();
       }.bind(this));
@@ -3082,9 +3100,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         mode = options.mode || this.mode;
         location = this.toLocationObject(path);
-        return Promise.resolve(this.find(location.pathname)).then(function ($await_54) {
+        return Promise.resolve(this.find(location.pathname)).then(function ($await_59) {
           try {
-            route = $await_54;
+            route = $await_59;
 
             if (!route) {
               return $error(new Error("Oxe.router.route - missing route ".concat(location.pathname)));
@@ -3103,18 +3121,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               return Promise.resolve(this.redirect(location.route.redirect)).then($return, $error);
             }
 
-            function $If_26() {
+            function $If_30() {
               if (typeof this.before === 'function') {
-                return Promise.resolve(this.before(location)).then(function ($await_57) {
+                return Promise.resolve(this.before(location)).then(function ($await_62) {
                   try {
-                    return $If_27.call(this);
+                    return $If_31.call(this);
                   } catch ($boundEx) {
                     return $error($boundEx);
                   }
                 }.bind(this), $error);
               }
 
-              function $If_27() {
+              function $If_31() {
                 this.emit('route:before', location);
 
                 if (mode === 'href' || this.compiled) {
@@ -3127,44 +3145,44 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   path: location.path
                 }, '', location.path);
                 this.location = location;
-                return Promise.resolve(this.render(location.route)).then(function ($await_58) {
+                return Promise.resolve(this.render(location.route)).then(function ($await_63) {
                   try {
                     if (typeof this.after === 'function') {
-                      return Promise.resolve(this.after(location)).then(function ($await_59) {
+                      return Promise.resolve(this.after(location)).then(function ($await_64) {
                         try {
-                          return $If_28.call(this);
+                          return $If_32.call(this);
                         } catch ($boundEx) {
                           return $error($boundEx);
                         }
                       }.bind(this), $error);
                     }
 
-                    function $If_28() {
+                    function $If_32() {
                       this.emit('route:after', location);
                       return $return();
                     }
 
-                    return $If_28.call(this);
+                    return $If_32.call(this);
                   } catch ($boundEx) {
                     return $error($boundEx);
                   }
                 }.bind(this), $error);
               }
 
-              return $If_27.call(this);
+              return $If_31.call(this);
             }
 
             if (typeof this.before === 'function') {
-              return Promise.resolve(this.before(location)).then(function ($await_57) {
+              return Promise.resolve(this.before(location)).then(function ($await_62) {
                 try {
-                  return $If_27.call(this);
+                  return $If_31.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            function $If_27() {
+            function $If_31() {
               this.emit('route:before', location);
 
               if (mode === 'href' || this.compiled) {
@@ -3177,31 +3195,31 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 path: location.path
               }, '', location.path);
               this.location = location;
-              return Promise.resolve(this.render(location.route)).then(function ($await_58) {
+              return Promise.resolve(this.render(location.route)).then(function ($await_63) {
                 try {
                   if (typeof this.after === 'function') {
-                    return Promise.resolve(this.after(location)).then(function ($await_59) {
+                    return Promise.resolve(this.after(location)).then(function ($await_64) {
                       try {
-                        return $If_28.call(this);
+                        return $If_32.call(this);
                       } catch ($boundEx) {
                         return $error($boundEx);
                       }
                     }.bind(this), $error);
                   }
 
-                  function $If_28() {
+                  function $If_32() {
                     this.emit('route:after', location);
                     return $return();
                   }
 
-                  return $If_28.call(this);
+                  return $If_32.call(this);
                 } catch ($boundEx) {
                   return $error($boundEx);
                 }
               }.bind(this), $error);
             }
 
-            return $If_27.call(this);
+            return $If_31.call(this);
           } catch ($boundEx) {
             return $error($boundEx);
           }
@@ -3211,58 +3229,72 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
 
   function Click(event) {
-    if (event.button !== 0 || event.defaultPrevented || event.target.nodeName === 'INPUT' || event.target.nodeName === 'BUTTON' || event.target.nodeName === 'SELECT' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
-      return;
-    }
+    return new Promise(function ($return, $error) {
+      if (event.button !== 0 || event.defaultPrevented || event.target.nodeName === 'INPUT' || event.target.nodeName === 'BUTTON' || event.target.nodeName === 'SELECT' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return $return();
+      }
 
-    var target = event.path ? event.path[0] : event.target;
-    var parent = target.parentNode;
+      var target = event.path ? event.path[0] : event.target;
+      var parent = target.parentElement;
 
-    if (Router.contain) {
-      while (parent) {
-        if (parent.nodeName === 'O-ROUTER') {
-          break;
-        } else {
-          parent = parent.parentNode;
+      if (Router.contain) {
+        while (parent) {
+          if (parent.nodeName === 'O-ROUTER') {
+            break;
+          } else {
+            parent = parent.parentElement;
+          }
+        }
+
+        if (parent.nodeName !== 'O-ROUTER') {
+          return $return();
         }
       }
 
-      if (parent.nodeName !== 'O-ROUTER') {
-        return;
+      while (target && 'A' !== target.nodeName) {
+        target = target.parentElement;
       }
-    }
 
-    while (target && 'A' !== target.nodeName) {
-      target = target.parentNode;
-    }
+      if (!target || 'A' !== target.nodeName) {
+        return $return();
+      }
 
-    if (!target || 'A' !== target.nodeName) {
-      return;
-    }
+      if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return $return();
+      if (Router.external && (Router.external.constructor === RegExp && Router.external.test(target.href) || Router.external.constructor === Function && Router.external(target.href) || Router.external.constructor === String && Router.external === target.href)) return $return();
+      event.preventDefault();
 
-    if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0) return;
-    if (Router.external && (Router.external.constructor === RegExp && Router.external.test(target.href) || Router.external.constructor === Function && Router.external(target.href) || Router.external.constructor === String && Router.external === target.href)) return;
-    event.preventDefault();
+      if (Router.location.href !== target.href) {
+        Router.route(target.href);
+      }
 
-    if (Router.location.href !== target.href) {
-      Router.route(target.href).catch(console.error);
-    }
-  }
-
-  function State(event) {
-    var path = event && event.state ? event.state.path : window.location.href;
-    var route = Router.route(path, {
-      mode: 'replace'
+      return $return();
     });
   }
 
-  var eStyle = document.createElement('style');
-  var tStyle = document.createTextNode("\n\to-router, o-router > :first-child {\n\t\tdisplay: block;\n\t\tanimation: o-transition var(--o-transition) ease-in-out;\n\t}\n\t@keyframes o-transition {\n\t\t0% { opacity: 0; }\n\t\t100% { opacity: 1; }\n\t}\n");
-  eStyle.setAttribute('type', 'text/css');
-  eStyle.appendChild(tStyle);
-  document.head.appendChild(eStyle);
+  function State(event) {
+    return new Promise(function ($return, $error) {
+      var path = event && event.state ? event.state.path : window.location.href;
+      Router.route(path, {
+        mode: 'replace'
+      });
+      return $return();
+    });
+  }
 
-  if (!window.Reflect || !window.Reflect.construct) {
+  function Listener(option, method, event) {
+    var type = event.type;
+    var before;
+    var after;
+
+    if (type in option.listener) {
+      before = typeof option.listener[type].before === 'function' ? option.listener[type].before.bind(null, event) : null;
+      after = typeof option.listener[type].after === 'function' ? option.listener[type].after.bind(null, event) : null;
+    }
+
+    Promise.resolve().then(before).then(method.bind(null, event)).then(after).catch(console.error);
+  }
+
+  if (window.Reflect === undefined) {
     window.Reflect = window.Reflect || {};
 
     window.Reflect.construct = function (parent, args, child) {
@@ -3299,8 +3331,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     Promise.resolve(Loader.load(options[0]));
   }
 
-  var GLOBAL = {};
   var SETUP = false;
+  var GLOBAL = {};
   var index = {
     get global() {
       return GLOBAL;
@@ -3334,8 +3366,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return (window.document._currentScript || window.document.currentScript).ownerDocument;
     },
 
-    get render() {
-      return Render;
+    get component() {
+      return Component;
+    },
+
+    get batcher() {
+      return Batcher;
+    },
+
+    get fetcher() {
+      return Fetcher;
     },
 
     get methods() {
@@ -3346,20 +3386,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return Utility;
     },
 
-    get batcher() {
-      return Batcher;
-    },
-
     get binder() {
       return Binder;
     },
 
-    get fetcher() {
-      return Fetcher;
-    },
-
-    get component() {
-      return Component;
+    get loader() {
+      return Loader;
     },
 
     get router() {
@@ -3370,157 +3402,143 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return Model;
     },
 
-    get loader() {
-      return Loader;
+    get style() {
+      return Style$1;
     },
 
     get path() {
       return Path;
     },
 
-    setup: function setup(data) {
+    setup: function setup(options) {
       return new Promise(function ($return, $error) {
         if (SETUP) return $return();else SETUP = true;
-        data = data || {};
-        data.listener = data.listener || {};
-        document.addEventListener('input', Input, true);
-        document.addEventListener('click', Click, true);
-        document.addEventListener('change', Change, true);
-        window.addEventListener('popstate', State, true);
-        document.addEventListener('reset', function (event) {
-          if (event.target.hasAttribute('o-reset')) {
-            event.preventDefault();
-            var before;
-            var after;
-
-            if (data.listener.reset) {
-              before = typeof data.listener.reset.before === 'function' ? data.listener.reset.before.bind(null, event) : null;
-              after = typeof data.listener.reset.after === 'function' ? data.listener.reset.after.bind(null, event) : null;
-            }
-
-            Promise.resolve().then(before).then(Reset.bind(null, event)).then(after);
-          }
-        }, true);
-        document.addEventListener('submit', function (event) {
-          if (event.target.hasAttribute('o-submit')) {
-            event.preventDefault();
-            var before;
-            var after;
-
-            if (data.listener.submit) {
-              before = typeof data.listener.submit.before === 'function' ? data.listener.submit.before.bind(null, event) : null;
-              after = typeof data.listener.submit.after === 'function' ? data.listener.submit.after.bind(null, event) : null;
-            }
-
-            Promise.resolve().then(before).then(Submit.bind(null, event)).then(after);
-          }
-        }, true);
-
-        if (data.listener.before) {
-          return Promise.resolve(data.listener.before()).then(function ($await_60) {
-            try {
-              return $If_29.call(this);
-            } catch ($boundEx) {
-              return $error($boundEx);
-            }
-          }.bind(this), $error);
-        }
-
-        function $If_29() {
-          if (data.style) {
-            if ('transition' in data.style) {
-              window.document.documentElement.style.setProperty('--o-transition', "".concat(data.style.transition, "ms"));
-            }
-          }
-
-          if (data.path) {
-            return Promise.resolve(this.path.setup(data.path)).then(function ($await_61) {
+        options = options || {};
+        options.listener = options.listener || {};
+        return Promise.resolve(this.style.setup(options.style)).then(function ($await_65) {
+          try {
+            return Promise.resolve(this.model.setup(options.model)).then(function ($await_66) {
               try {
-                return $If_30.call(this);
-              } catch ($boundEx) {
-                return $error($boundEx);
-              }
-            }.bind(this), $error);
-          }
-
-          function $If_30() {
-            if (data.fetcher) {
-              return Promise.resolve(this.fetcher.setup(data.fetcher)).then(function ($await_62) {
-                try {
-                  return $If_31.call(this);
-                } catch ($boundEx) {
-                  return $error($boundEx);
-                }
-              }.bind(this), $error);
-            }
-
-            function $If_31() {
-              if (data.loader) {
-                return Promise.resolve(this.loader.setup(data.loader)).then(function ($await_63) {
+                return Promise.resolve(this.binder.setup(options.binder)).then(function ($await_67) {
                   try {
-                    return $If_32.call(this);
-                  } catch ($boundEx) {
-                    return $error($boundEx);
-                  }
-                }.bind(this), $error);
-              }
+                    document.addEventListener('click', Listener.bind(null, options, Click), true);
+                    document.addEventListener('input', Listener.bind(null, options, Input), true);
+                    document.addEventListener('reset', Listener.bind(null, options, Reset), true);
+                    document.addEventListener('change', Listener.bind(null, options, Change), true);
+                    document.addEventListener('submit', Listener.bind(null, options, Submit), true);
+                    window.addEventListener('popstate', Listener.bind(null, options, State), true);
 
-              function $If_32() {
-                if (data.component) {
-                  return Promise.resolve(this.component.setup(data.component)).then(function ($await_64) {
-                    try {
-                      return $If_33.call(this);
-                    } catch ($boundEx) {
-                      return $error($boundEx);
-                    }
-                  }.bind(this), $error);
-                }
-
-                function $If_33() {
-                  if (data.router) {
-                    return Promise.resolve(this.router.setup(data.router)).then(function ($await_65) {
-                      try {
-                        return $If_34.call(this);
-                      } catch ($boundEx) {
-                        return $error($boundEx);
-                      }
-                    }.bind(this), $error);
-                  }
-
-                  function $If_34() {
-                    if (data.listener.after) {
-                      return Promise.resolve(data.listener.after()).then(function ($await_66) {
+                    if (options.listener.before) {
+                      return Promise.resolve(options.listener.before()).then(function ($await_68) {
                         try {
-                          return $If_35.call(this);
+                          return $If_33.call(this);
                         } catch ($boundEx) {
                           return $error($boundEx);
                         }
                       }.bind(this), $error);
                     }
 
-                    function $If_35() {
-                      return $return();
+                    function $If_33() {
+                      if (options.path) {
+                        return Promise.resolve(this.path.setup(options.path)).then(function ($await_69) {
+                          try {
+                            return $If_34.call(this);
+                          } catch ($boundEx) {
+                            return $error($boundEx);
+                          }
+                        }.bind(this), $error);
+                      }
+
+                      function $If_34() {
+                        if (options.fetcher) {
+                          return Promise.resolve(this.fetcher.setup(options.fetcher)).then(function ($await_70) {
+                            try {
+                              return $If_35.call(this);
+                            } catch ($boundEx) {
+                              return $error($boundEx);
+                            }
+                          }.bind(this), $error);
+                        }
+
+                        function $If_35() {
+                          if (options.loader) {
+                            return Promise.resolve(this.loader.setup(options.loader)).then(function ($await_71) {
+                              try {
+                                return $If_36.call(this);
+                              } catch ($boundEx) {
+                                return $error($boundEx);
+                              }
+                            }.bind(this), $error);
+                          }
+
+                          function $If_36() {
+                            if (options.component) {
+                              return Promise.resolve(this.component.setup(options.component)).then(function ($await_72) {
+                                try {
+                                  return $If_37.call(this);
+                                } catch ($boundEx) {
+                                  return $error($boundEx);
+                                }
+                              }.bind(this), $error);
+                            }
+
+                            function $If_37() {
+                              if (options.router) {
+                                return Promise.resolve(this.router.setup(options.router)).then(function ($await_73) {
+                                  try {
+                                    return $If_38.call(this);
+                                  } catch ($boundEx) {
+                                    return $error($boundEx);
+                                  }
+                                }.bind(this), $error);
+                              }
+
+                              function $If_38() {
+                                if (options.listener.after) {
+                                  return Promise.resolve(options.listener.after()).then(function ($await_74) {
+                                    try {
+                                      return $If_39.call(this);
+                                    } catch ($boundEx) {
+                                      return $error($boundEx);
+                                    }
+                                  }.bind(this), $error);
+                                }
+
+                                function $If_39() {
+                                  return $return();
+                                }
+
+                                return $If_39.call(this);
+                              }
+
+                              return $If_38.call(this);
+                            }
+
+                            return $If_37.call(this);
+                          }
+
+                          return $If_36.call(this);
+                        }
+
+                        return $If_35.call(this);
+                      }
+
+                      return $If_34.call(this);
                     }
 
-                    return $If_35.call(this);
+                    return $If_33.call(this);
+                  } catch ($boundEx) {
+                    return $error($boundEx);
                   }
-
-                  return $If_34.call(this);
-                }
-
-                return $If_33.call(this);
+                }.bind(this), $error);
+              } catch ($boundEx) {
+                return $error($boundEx);
               }
-
-              return $If_32.call(this);
-            }
-
-            return $If_31.call(this);
+            }.bind(this), $error);
+          } catch ($boundEx) {
+            return $error($boundEx);
           }
-
-          return $If_30.call(this);
-        }
-
-        return $If_29.call(this);
+        }.bind(this), $error);
       }.bind(this));
     }
   };
