@@ -16,7 +16,6 @@
   'use strict';
 
   var Utility = {
-    PREFIX: /o-/,
     PIPE: /\s?\|\s?/,
     PIPES: /\s?,\s?|\s+/,
     value: function value(element, model) {
@@ -179,42 +178,6 @@
         }
       }
     },
-    binderNames: function binderNames(data) {
-      data = data.split(this.PREFIX)[1];
-      return data ? data.split('-') : [];
-    },
-    binderValues: function binderValues(data) {
-      data = data.split(this.PIPE)[0];
-      return data ? data.split('.') : [];
-    },
-    binderPipes: function binderPipes(data) {
-      data = data.split(this.PIPE)[1];
-      return data ? data.split(this.PIPES) : [];
-    },
-    ensureElement: function ensureElement(data) {
-      data.query = data.query || '';
-      data.scope = data.scope || document.body;
-      var element = data.scope.querySelector("".concat(data.name).concat(data.query));
-
-      if (!element) {
-        element = document.createElement(data.name);
-
-        if (data.position === 'afterbegin') {
-          data.scope.insertBefore(element, data.scope.firstChild);
-        } else if (data.position === 'beforeend') {
-          data.scope.appendChild(element);
-        } else {
-          data.scope.appendChild(element);
-        }
-      }
-
-      for (var i = 0, l = data.attributes.length; i < l; i++) {
-        var attribute = data.attributes[i];
-        element.setAttribute(attribute.name, attribute.value);
-      }
-
-      return element;
-    },
     index: function index(items, item) {
       for (var i = 0, l = items.length; i < l; i++) {
         if (this.compare(items[i], item)) {
@@ -257,6 +220,42 @@
       }
 
       return true;
+    },
+    binderNames: function binderNames(data) {
+      data = data.split('o-')[1];
+      return data ? data.split('-') : [];
+    },
+    binderValues: function binderValues(data) {
+      data = data.split(this.PIPE)[0];
+      return data ? data.split('.') : [];
+    },
+    binderPipes: function binderPipes(data) {
+      data = data.split(this.PIPE)[1];
+      return data ? data.split(this.PIPES) : [];
+    },
+    ensureElement: function ensureElement(data) {
+      data.query = data.query || '';
+      data.scope = data.scope || document.body;
+      var element = data.scope.querySelector("".concat(data.name).concat(data.query));
+
+      if (!element) {
+        element = document.createElement(data.name);
+
+        if (data.position === 'afterbegin') {
+          data.scope.insertBefore(element, data.scope.firstChild);
+        } else if (data.position === 'beforeend') {
+          data.scope.appendChild(element);
+        } else {
+          data.scope.appendChild(element);
+        }
+      }
+
+      for (var i = 0, l = data.attributes.length; i < l; i++) {
+        var attribute = data.attributes[i];
+        element.setAttribute(attribute.name, attribute.value);
+      }
+
+      return element;
     },
     setByPath: function setByPath(data, path, value) {
       var keys = typeof path === 'string' ? path.split('.') : path;
@@ -432,8 +431,6 @@
             binder.target.classList.toggle(this.name, this.data);
           }
         } else {
-          console.log(this.data);
-
           if (this.data === undefined || this.data === null) {
             binder.target.setAttribute('class', '');
           } else {
@@ -471,7 +468,10 @@
     return {
       read: function read() {
         this.data = binder.data;
-        if (this.data === binder.target.disabled) return false;
+
+        if (this.data === binder.target.disabled) {
+          return false;
+        }
       },
       write: function write() {
         binder.target.disabled = this.data;
@@ -552,7 +552,10 @@
     return {
       read: function read() {
         this.data = !binder.data;
-        if (this.data === binder.target.disabled) return false;
+
+        if (this.data === binder.target.disabled) {
+          return false;
+        }
       },
       write: function write() {
         binder.target.disabled = this.data;
@@ -564,7 +567,10 @@
     return {
       read: function read() {
         this.data = binder.data;
-        if (this.data === binder.target.hidden) return false;
+
+        if (this.data === binder.target.hidden) {
+          return false;
+        }
       },
       write: function write() {
         binder.target.hidden = this.data;
@@ -983,7 +989,10 @@
       for (var i = 1, l = arguments.length; i < l; i++) {
         var argument = arguments[i];
         result = result.get(argument);
-        if (!result) return result;
+
+        if (!result) {
+          return result;
+        }
       }
 
       return result;
@@ -1226,7 +1235,7 @@
   }
 
   var Fetcher = {
-    head: null,
+    header: null,
     method: 'get',
     mime: {
       xml: 'text/xml; charset=utf-8',
@@ -1238,8 +1247,6 @@
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
-        this.head = options.head || this.head;
-        this.method = options.method || this.method;
         this.path = options.path;
         this.origin = options.origin;
         this.request = options.request;
@@ -1248,6 +1255,8 @@
         this.credentials = options.credentials;
         this.contentType = options.contentType;
         this.responseType = options.responseType;
+        this.method = options.method || this.method;
+        this.headers = options.headers || this.headers;
         return $return();
       }.bind(this));
     },
@@ -1265,7 +1274,7 @@
     },
     fetch: function fetch(options) {
       return new Promise(function ($return, $error) {
-        var data, copy, result, fetchOptions, fetched, _copy, _result2;
+        var data, copy, result, fetched, _copy, _result2;
 
         data = Object.assign({}, options);
         data.path = data.path || this.path;
@@ -1275,7 +1284,7 @@
         if (data.path && data.origin && !data.url) data.url = data.origin + '/' + data.path;
         if (!data.method) return $error(new Error('Oxe.fetcher - requires method option'));
         if (!data.url) return $error(new Error('Oxe.fetcher - requires url or origin and path option'));
-        if (!data.head && this.head) data.head = this.head;
+        if (!data.headers && this.headers) data.headers = this.headers;
         if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.method;
         if (!data.acceptType && this.acceptType) data.acceptType = this.acceptType;
         if (!data.contentType && this.contentType) data.contentType = this.contentType;
@@ -1291,52 +1300,52 @@
         if (!data.keepAlive && this.keepAlive) data.keepAlive = this.keepAlive;
 
         if (data.contentType) {
-          data.head = data.head || {};
+          data.headers = data.headers || {};
 
           switch (data.contentType) {
             case 'js':
-              data.head['Content-Type'] = this.mime.js;
+              data.headers['Content-Type'] = this.mime.js;
               break;
 
             case 'xml':
-              data.head['Content-Type'] = this.mime.xml;
+              data.headers['Content-Type'] = this.mime.xml;
               break;
 
             case 'html':
-              data.head['Content-Type'] = this.mime.html;
+              data.headers['Content-Type'] = this.mime.html;
               break;
 
             case 'json':
-              data.head['Content-Type'] = this.mime.json;
+              data.headers['Content-Type'] = this.mime.json;
               break;
 
             default:
-              data.head['Content-Type'] = data.contentType;
+              data.headers['Content-Type'] = data.contentType;
           }
         }
 
         if (data.acceptType) {
-          data.head = data.head || {};
+          data.headers = data.headers || {};
 
           switch (data.acceptType) {
             case 'js':
-              data.head['Accept'] = this.mime.js;
+              data.headers['Accept'] = this.mime.js;
               break;
 
             case 'xml':
-              data.head['Accept'] = this.mime.xml;
+              data.headers['Accept'] = this.mime.xml;
               break;
 
             case 'html':
-              data.head['Accept'] = this.mime.html;
+              data.headers['Accept'] = this.mime.html;
               break;
 
             case 'json':
-              data.head['Accept'] = this.mime.json;
+              data.headers['Accept'] = this.mime.json;
               break;
 
             default:
-              data.head['Accept'] = data.acceptType;
+              data.headers['Accept'] = data.acceptType;
           }
         }
 
@@ -1386,14 +1395,7 @@
           }
 
           function $If_2() {
-            fetchOptions = Object.assign({}, data);
-
-            if (fetchOptions.head) {
-              fetchOptions.headers = fetchOptions.head;
-              delete fetchOptions.head;
-            }
-
-            return Promise.resolve(window.fetch(data.url, fetchOptions)).then(function ($await_42) {
+            return Promise.resolve(window.fetch(data.url, Object.assign({}, data))).then(function ($await_42) {
               try {
                 fetched = $await_42;
                 data.code = fetched.status;
@@ -1477,6 +1479,15 @@
           url: data
         } : data;
         data.method = 'put';
+        return $return(this.fetch(data));
+      }.bind(this));
+    },
+    head: function head(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'head';
         return $return(this.fetch(data));
       }.bind(this));
     },
