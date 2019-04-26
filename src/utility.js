@@ -1,7 +1,6 @@
 
 export default {
 
-    PREFIX: /o-/,
     PIPE: /\s?\|\s?/,
     PIPES: /\s?,\s?|\s+/,
 
@@ -154,48 +153,6 @@ export default {
         }
     },
 
-    binderNames (data) {
-        data = data.split(this.PREFIX)[1];
-        return data ? data.split('-') : [];
-    },
-
-    binderValues (data) {
-        data = data.split(this.PIPE)[0];
-        return data ? data.split('.') : [];
-    },
-
-    binderPipes (data) {
-        data = data.split(this.PIPE)[1];
-        return data ? data.split(this.PIPES) : [];
-    },
-
-    ensureElement (data) {
-        data.query = data.query || '';
-        data.scope = data.scope || document.body;
-
-        let element = data.scope.querySelector(`${data.name}${data.query}`);
-
-        if (!element) {
-            element = document.createElement(data.name);
-
-            if (data.position === 'afterbegin') {
-                data.scope.insertBefore(element, data.scope.firstChild);
-            } else if (data.position === 'beforeend') {
-                data.scope.appendChild(element);
-            } else {
-                data.scope.appendChild(element);
-            }
-
-        }
-
-        for (let i = 0, l = data.attributes.length; i < l; i++) {
-            const attribute = data.attributes[i];
-            element.setAttribute(attribute.name, attribute.value);
-        }
-
-        return element;
-    },
-
     index (items, item) {
 
         for (let i = 0, l = items.length; i < l; i++) {
@@ -242,6 +199,48 @@ export default {
         }
 
         return true;
+    },
+
+    binderNames (data) {
+        data = data.split('o-')[1];
+        return data ? data.split('-') : [];
+    },
+
+    binderValues (data) {
+        data = data.split(this.PIPE)[0];
+        return data ? data.split('.') : [];
+    },
+
+    binderPipes (data) {
+        data = data.split(this.PIPE)[1];
+        return data ? data.split(this.PIPES) : [];
+    },
+
+    ensureElement (data) {
+        data.query = data.query || '';
+        data.scope = data.scope || document.body;
+
+        let element = data.scope.querySelector(`${data.name}${data.query}`);
+
+        if (!element) {
+            element = document.createElement(data.name);
+
+            if (data.position === 'afterbegin') {
+                data.scope.insertBefore(element, data.scope.firstChild);
+            } else if (data.position === 'beforeend') {
+                data.scope.appendChild(element);
+            } else {
+                data.scope.appendChild(element);
+            }
+
+        }
+
+        for (let i = 0, l = data.attributes.length; i < l; i++) {
+            const attribute = data.attributes[i];
+            element.setAttribute(attribute.name, attribute.value);
+        }
+
+        return element;
     },
 
     setByPath (data, path, value) {
