@@ -10,20 +10,25 @@ export default function (binder) {
 
         },
         write () {
+
             if (this.name) {
+
                 if (this.data === undefined || this.data === null) {
                     binder.target.classList.remove(this.name);
                 } else {
                     binder.target.classList.toggle(this.name, this.data);
                 }
+
             } else {
-                console.log(this.data);
+
                 if (this.data === undefined || this.data === null) {
                     binder.target.setAttribute('class', '');
                 } else {
                     binder.target.setAttribute('class', this.data);
                 }
+
             }
+            
         }
     };
 }

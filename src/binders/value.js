@@ -35,21 +35,27 @@ export default function (binder, caller) {
                     // !disabled &&
 
                     if (selected && !match) {
+
                         if (this.multiple) {
                             binder.data.push(value);
                         } else {
                             binder.data = value;
                         }
+
                     } else if (!selected && match) {
+
                         if (caller === 'view') {
+
                             if (this.multiple) {
                                 binder.data.splice(index, 1);
                             } else {
                                 binder.data = null;
                             }
+
                         } else {
                             option.selected = true;
                         }
+
                     }
 
                 }
@@ -79,11 +85,13 @@ export default function (binder, caller) {
             write () {
                 for (let i = 0, l = this.radios.length; i < l; i++) {
                     const radio = this.radios[i];
+
                     if (i === this.data) {
                         radio.checked = true;
                     } else {
                         radio.checked = false;
                     }
+
                 }
             }
         };
