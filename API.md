@@ -163,7 +163,7 @@ Batches DOM reads and writes.
 	- `options: Object` Accepts `window.fetch` options
 		- `path: String` The default path for the url options (requires origin)
 		- `origin: String` The default origin for url options
-		- `head: Object` (default: null) Http headers to be assigned to requests
+		- `header: Object` (default: null) Http headers to be assigned to requests
 		- `acceptType: String`  Valid http `Accept-Type` value or a Oxe.fetcher.mime name
 		- `contentType: String` Valid http `Content-Type` value or a Oxe.fetcher.mime name
 		- `responseType: String` (default: ReadableStream)

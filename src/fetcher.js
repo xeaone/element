@@ -1,7 +1,7 @@
 
 export default {
 
-    head: null,
+    header: null,
     method: 'get',
     mime: {
         xml: 'text/xml; charset=utf-8',
@@ -13,8 +13,6 @@ export default {
 
     async setup (options) {
         options = options || {};
-        this.head = options.head || this.head;
-        this.method = options.method || this.method;
         this.path = options.path;
         this.origin = options.origin;
         this.request = options.request;
@@ -23,6 +21,8 @@ export default {
         this.credentials = options.credentials;
         this.contentType = options.contentType;
         this.responseType = options.responseType;
+        this.method = options.method || this.method;
+        this.headers = options.headers || this.headers;
     },
 
     async serialize (data) {
@@ -49,7 +49,7 @@ export default {
         if (!data.method) throw new Error('Oxe.fetcher - requires method option');
         if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
 
-        if (!data.head && this.head) data.head = this.head;
+        if (!data.headers && this.headers) data.headers = this.headers;
         if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.method;
 
         if (!data.acceptType && this.acceptType) data.acceptType = this.acceptType;
@@ -79,32 +79,32 @@ export default {
         if (!data.keepAlive && this.keepAlive) data.keepAlive = this.keepAlive;
 
         if (data.contentType) {
-            data.head = data.head || {};
+            data.headers = data.headers || {};
             switch (data.contentType) {
-            case 'js': data.head['Content-Type'] = this.mime.js; break;
-            case 'xml': data.head['Content-Type'] = this.mime.xml; break;
-            case 'html': data.head['Content-Type'] = this.mime.html; break;
-            case 'json': data.head['Content-Type'] = this.mime.json; break;
-            default: data.head['Content-Type'] = data.contentType;
+            case 'js': data.headers['Content-Type'] = this.mime.js; break;
+            case 'xml': data.headers['Content-Type'] = this.mime.xml; break;
+            case 'html': data.headers['Content-Type'] = this.mime.html; break;
+            case 'json': data.headers['Content-Type'] = this.mime.json; break;
+            default: data.headers['Content-Type'] = data.contentType;
             }
         }
 
         if (data.acceptType) {
-            data.head = data.head || {};
+            data.headers = data.headers || {};
             switch (data.acceptType) {
-            case 'js': data.head['Accept'] = this.mime.js; break;
-            case 'xml': data.head['Accept'] = this.mime.xml; break;
-            case 'html': data.head['Accept'] = this.mime.html; break;
-            case 'json': data.head['Accept'] = this.mime.json; break;
-            default: data.head['Accept'] = data.acceptType;
+            case 'js': data.headers['Accept'] = this.mime.js; break;
+            case 'xml': data.headers['Accept'] = this.mime.xml; break;
+            case 'html': data.headers['Accept'] = this.mime.html; break;
+            case 'json': data.headers['Accept'] = this.mime.json; break;
+            default: data.headers['Accept'] = data.acceptType;
             }
         }
 
         // IDEA for auth tokens
-        // if (data.head) {
-        // 	for (let name in data.head) {
-        // 		if (typeof data.head[name] === 'function') {
-        // 			data.head[name] = await data.head[name]();
+        // if (data.headers) {
+        // 	for (let name in data.headers) {
+        // 		if (typeof data.headers[name] === 'function') {
+        // 			data.headers[name] = await data.headers[name]();
         // 		}
         // 	}
         // }
@@ -133,14 +133,7 @@ export default {
 
         }
 
-        const fetchOptions = Object.assign({}, data);
-
-        if (fetchOptions.head) {
-            fetchOptions.headers = fetchOptions.head;
-            delete fetchOptions.head;
-        }
-
-        const fetched = await window.fetch(data.url, fetchOptions);
+        const fetched = await window.fetch(data.url, Object.assign({}, data));
 
         data.code = fetched.status;
         data.message = fetched.statusText;
@@ -154,8 +147,8 @@ export default {
         }
 
         if (this.response) {
-            let copy = Object.assign({}, data);
-            let result = await this.response(copy);
+            const copy = Object.assign({}, data);
+            const result = await this.response(copy);
 
             if (result === false) {
                 return data;
@@ -188,11 +181,11 @@ export default {
         return this.fetch(data);
     },
 
-    // async head (data) {
-    //     data = typeof data === 'string' ? { url: data } : data;
-    //     data.method = 'head';
-    //     return this.fetch(data);
-    // },
+    async head (data) {
+        data = typeof data === 'string' ? { url: data } : data;
+        data.method = 'head';
+        return this.fetch(data);
+    },
 
     async patch (data) {
         data = typeof data === 'string' ? { url: data } : data;

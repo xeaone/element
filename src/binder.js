@@ -3,7 +3,6 @@ import Batcher from './batcher.js';
 import Piper from './piper.js';
 
 import Class from './binders/class.js';
-// import Css from './binders/css.js';
 import Default from './binders/default.js';
 import Disable from './binders/disable.js';
 import Each from './binders/each.js';
@@ -65,11 +64,15 @@ export default {
         }
 
         if (options.binders) {
+
             for (const name in options.binders) {
+
                 if (name in this.binders === false) {
                     this.binders[name] = options.binders[name].bind(this);
                 }
+
             }
+
         }
 
     },
@@ -85,7 +88,11 @@ export default {
         for (let i = 1, l = arguments.length; i < l; i++) {
             const argument = arguments[i];
             result = result.get(argument);
-            if (!result) return result;
+
+            if (!result) {
+                return result;
+            }
+
         }
 
         return result;
