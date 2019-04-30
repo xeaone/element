@@ -52,7 +52,10 @@ export default async function (event) {
 		target.href.indexOf('ftp:') === 0 ||
 		target.href.indexOf('file:') === 0 ||
 		target.href.indexOf('mailto:') === 0 ||
-		target.href.indexOf(window.location.origin) !== 0
+		target.href.indexOf(window.location.origin) !== 0 ||
+		(target.hash !== '' &&
+            target.origin === window.location.origin &&
+            target.pathname === window.location.pathname)
     ) return;
 
     // if external is true then default action
