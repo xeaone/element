@@ -27,12 +27,6 @@ export default function (binder, caller) {
 
                     // !disabled &&
 
-                    // if (caller === 'view') {
-                    //
-                    // } else {
-                    //
-                    // }
-
                     if (this.multiple) {
                         index = Utility.index(this.data, value);
                         match = index !== -1;
