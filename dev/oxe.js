@@ -821,10 +821,14 @@
             }
 
             if (selected && !match) {
-              if (this.multiple) {
-                binder.data.push(value);
+              if (caller === 'view') {
+                if (this.multiple) {
+                  binder.data.push(value);
+                } else {
+                  binder.data = value;
+                }
               } else {
-                binder.data = value;
+                option.selected = false;
               }
             } else if (!selected && match) {
               if (caller === 'view') {

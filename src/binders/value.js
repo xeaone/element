@@ -25,6 +25,14 @@ export default function (binder, caller) {
                     const value = Utility.value(option, this.model);
                     let index, match;
 
+                    // !disabled &&
+
+                    // if (caller === 'view') {
+                    //
+                    // } else {
+                    //
+                    // }
+
                     if (this.multiple) {
                         index = Utility.index(this.data, value);
                         match = index !== -1;
@@ -32,14 +40,19 @@ export default function (binder, caller) {
                         match = Utility.compare(this.data, value);
                     }
 
-                    // !disabled &&
 
                     if (selected && !match) {
 
-                        if (this.multiple) {
-                            binder.data.push(value);
+                        if (caller === 'view') {
+
+                            if (this.multiple) {
+                                binder.data.push(value);
+                            } else {
+                                binder.data = value;
+                            }
+
                         } else {
-                            binder.data = value;
+                            option.selected = false;
                         }
 
                     } else if (!selected && match) {
