@@ -10,10 +10,5 @@ export default function (option, method, event) {
         after = typeof option.listener[type].after === 'function' ? option.listener[type].after.bind(null, event) : null;
     }
 
-    Promise.resolve()
-        .then(before)
-        .then(method.bind(null, event))
-        .then(after)
-        .catch(console.error);
-
+    Promise.resolve().then(before).then(method.bind(null, event)).then(after);
 }

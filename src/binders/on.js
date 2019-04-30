@@ -22,7 +22,7 @@ export default function (binder) {
                         parameters.push(parameter);
                     }
 
-                    Promise.resolve(context.data.bind(binder.container).apply(null, parameters)).catch(console.error);
+                    Promise.resolve(context.data.bind(binder.container).apply(null, parameters));
                 };
             }
 

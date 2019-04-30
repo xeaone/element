@@ -665,7 +665,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               parameters.push(parameter);
             }
 
-            Promise.resolve(context.data.bind(binder.container).apply(null, parameters)).catch(console.error);
+            Promise.resolve(context.data.bind(binder.container).apply(null, parameters));
           };
         }
 
@@ -3296,7 +3296,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       after = typeof option.listener[type].after === 'function' ? option.listener[type].after.bind(null, event) : null;
     }
 
-    Promise.resolve().then(before).then(method.bind(null, event)).then(after).catch(console.error);
+    Promise.resolve().then(before).then(method.bind(null, event)).then(after);
   }
 
   if (window.Reflect === undefined) {
