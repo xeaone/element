@@ -5,7 +5,7 @@ const Spawn = ChildProcess.spawn;
 
 (async function () {
 
-    const packOptions = { name: 'Oxe', input: 'src/index.js', output: 'web/assets/oxe.js' };
+    const packOptions = { bundle: true, transform: true, name: 'Oxe', input: 'src/index.js', output: 'web/assets/oxe.js' };
 
     await Packer(packOptions);
 
@@ -34,5 +34,9 @@ const Spawn = ChildProcess.spawn;
             child.kill();
         }
     );
+
+    console.log('');
+    console.log('Presser - p: packs');
+    console.log('Presser - e: exits');
 
 }()).catch(console.error);
