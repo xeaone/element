@@ -135,6 +135,18 @@ export default {
                 return this.querySelectorAll('o-option');
             }
         },
+        disabled: {
+            enumerable: true,
+            get: function () {
+                return this.hasAttribute('disabled');
+            },
+            set: function (data) {
+                data = data ? true : false;
+                if (data) this.setAttribute('disabled', '');
+                else this.removeAttribute('disabled');
+                return data;
+            }
+        },
         multiple: {
             enumerable: true,
             get: function () {
@@ -164,12 +176,20 @@ export default {
         self.addEventListener('click', function (e) {
             var option = e.target;
 
+            if (self.disabled) {
+                return;
+            }
+
             if (option.nodeName !== 'O-OPTION') {
                 while (option = option.parentElement) {
                     if (option === self) {
                         return;
                     } else if (option.nodeName === 'O-OPTION') {
-                        break;
+                        if (option.disabled) {
+                            return;
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
