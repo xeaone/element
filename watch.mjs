@@ -10,8 +10,9 @@ const Spawn = ChildProcess.spawn;
     await Packer(packOptions);
 
     await Watcher('./src', async function () {
-        console.log('packing');
+        console.log('pack: start');
         await Packer(packOptions);
+        console.log('pack: end');
     });
 
     const child = Spawn('muleify', [ '-ss', 'web' ], { detached: false, stdio: 'inherit' });
@@ -20,12 +21,14 @@ const Spawn = ChildProcess.spawn;
         async function (key) {
             switch (key) {
             case 'p':
-                console.log('packing');
+                console.log('pack: start');
                 await Packer(packOptions);
+                console.log('pack: end');
                 break;
             case 'e':
-                console.log('exiting');
+                console.log('exit: start');
                 child.kill();
+                console.log('exit: end');
                 process.exit();
                 break;
             }
