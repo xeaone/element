@@ -779,12 +779,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Value(binder, caller) {
+    var self = this;
     var type = binder.target.type;
     var name = binder.target.nodeName;
+
+    if (binder.meta.busy) {
+      return;
+    }
 
     if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
       return {
         read: function read() {
+          binder.meta.busy = true;
           this.data = binder.data;
           this.model = binder.model;
           this.options = binder.target.options;
@@ -798,7 +804,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           for (var i = 0, l = this.options.length; i < l; i++) {
             var option = this.options[i];
             var selected = option.selected;
-            var value = Utility.value(option, this.model);
+            var optionBinder = self.get('attribute', option, 'o-value');
+            var value = optionBinder ? optionBinder.data : option.value;
 
             var _index2 = void 0,
                 match = void 0;
@@ -814,11 +821,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               if (caller === 'view') {
                 if (this.multiple) {
                   binder.data.push(value);
-                } else {
+                } else if (!this.selected) {
+                  this.selected = true;
                   binder.data = value;
                 }
               } else {
-                option.selected = false;
+                if (this.multiple) {
+                  option.selected = false;
+                } else if (!this.selected) {
+                  this.selected = true;
+                  option.selected = false;
+                }
               }
             } else if (!selected && match) {
               if (caller === 'view') {
@@ -832,6 +845,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               }
             }
           }
+
+          binder.meta.busy = false;
         }
       };
     } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) {
@@ -1156,7 +1171,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       this.data.get('attribute').get(binder.target).set(binder.name, binder);
       this.data.get('location').get(binder.scope).get(binder.path).push(binder);
-      this.render(binder);
+      this.render(binder, 'view');
     },
     remove: function remove(node) {
       this.unbind(node);

@@ -225,7 +225,8 @@ export default {
         this.data.get('attribute').get(binder.target).set(binder.name, binder);
         this.data.get('location').get(binder.scope).get(binder.path).push(binder);
 
-        this.render(binder);
+        // addedd view
+        this.render(binder, 'view');
     },
 
 

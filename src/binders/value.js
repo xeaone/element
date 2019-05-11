@@ -1,12 +1,19 @@
 import Utility from '../utility.js';
 
 export default function (binder, caller) {
+    const self = this;
     const type = binder.target.type;
     const name = binder.target.nodeName;
+
+    if (binder.meta.busy) {
+        return;
+    }
 
     if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
         return {
             read () {
+                binder.meta.busy = true;
+
                 this.data = binder.data;
                 this.model = binder.model;
                 this.options = binder.target.options;
@@ -22,10 +29,10 @@ export default function (binder, caller) {
 
                     const option = this.options[i];
                     const selected = option.selected;
-                    const value = Utility.value(option, this.model);
-                    let index, match;
+                    const optionBinder = self.get('attribute', option, 'o-value');
+                    const value = optionBinder ? optionBinder.data : option.value;
 
-                    // !disabled &&
+                    let index, match;
 
                     if (this.multiple) {
                         index = Utility.index(this.data, value);
@@ -34,6 +41,33 @@ export default function (binder, caller) {
                         match = Utility.compare(this.data, value);
                     }
 
+                    // if (caller === 'view') {
+                    //     if (selected) {
+                    //         if (this.multiple) {
+                    //             binder.data.push(value);
+                    //         } else {
+                    //             this.selected = true;
+                    //             binder.data = value;
+                    //         }
+                    //     } else {
+                    //         if (this.multiple) {
+                    //             binder.data.splice(index, 1);
+                    //         } else {
+                    //             if (!this.selected) {
+                    //                 binder.data = null;
+                    //             }
+                    //         }
+                    //     }
+                    // } else {
+                    //     // if (this.multiple) {
+                    //     if (match) {
+                    //         option.selected = true;
+                    //     } else {
+                    //         option.selected = false;
+                    //     }
+                    //     // }
+                    //     console.log(this.data);
+                    // }
 
                     if (selected && !match) {
 
@@ -41,12 +75,20 @@ export default function (binder, caller) {
 
                             if (this.multiple) {
                                 binder.data.push(value);
-                            } else {
+                            } else if (!this.selected) {
+                                this.selected = true;
                                 binder.data = value;
                             }
 
                         } else {
-                            option.selected = false;
+
+                            if (this.multiple) {
+                                option.selected = false;
+                            } else if (!this.selected) {
+                                this.selected = true;
+                                option.selected = false;
+                            }
+
                         }
 
                     } else if (!selected && match) {
@@ -66,6 +108,8 @@ export default function (binder, caller) {
                     }
 
                 }
+
+                binder.meta.busy = false;
             }
         };
     } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) {
