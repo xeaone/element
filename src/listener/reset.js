@@ -8,40 +8,42 @@ export default async function (event) {
 
     event.preventDefault();
 
-    const elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+    const elements = event.target.querySelectorAll('*');
 
     for (let i = 0, l = elements.length; i < l; i++) {
         const element = elements[i];
+        const name = element.nodeName;
+        const type = element.type;
 
         if (
-            element.type === 'submit' ||
-            element.type === 'button' ||
-            element.nodeName === 'BUTTON' ||
-            element.nodeName === 'OPTION' ||
-            element.nodeName.indexOf('-BUTTON') !== -1 ||
-            element.nodeName.indexOf('-OPTION') !== -1
+			(!type && name !== 'TEXTAREA') ||
+            type === 'submit' ||
+            type === 'button' ||
+			!type
+            // element.nodeName === 'BUTTON' ||
+            // element.nodeName === 'OPTION' ||
+            // element.nodeName.indexOf('-BUTTON') !== -1 ||
+            // element.nodeName.indexOf('-OPTION') !== -1
         ) {
             continue;
         }
 
-        const type = element.type;
-        const name = element.nodeName;
         const binder = Binder.get('attribute', element, 'o-value');
 
         if (!binder) {
-            element.value = '';
-            continue;
-        }
-
-        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-            if (binder.target.multiple) {
-                binder.data = [];
-            } else {
-                binder.data = '';
-            }
-        } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) {
-            //
-        } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
+			if (type === 'select-one' || type === 'select-multiple') {
+            	element.selectedIndex = null;
+        	} else if (type === 'radio' || type === 'checkbox') {
+            	element.checked = false;
+	        } else {
+            	element.value = null;
+	        }
+        } else if (type === 'select-one') {
+            binder.data = null;
+        } else if (type === 'select-multiple') {
+			// might want better defaults
+            binder.data = [];
+        } else if (type === 'radio' || type === 'checkbox') {
             binder.data = false;
         } else {
             binder.data = '';

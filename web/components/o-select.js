@@ -129,6 +129,12 @@ export default {
         //         }
         //     }
         // },
+        type: {
+            enumerable: true,
+            get: function () {
+                return this.hasAttribute('multiple') ? 'select-multiple' : 'select-one';
+            }
+        },
         options: {
             enumerable: true,
             get: function () {

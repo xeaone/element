@@ -4,11 +4,9 @@ export default async function (event) {
 
     // ignore canceled events, modified clicks, and right clicks
     if (
+		event.target.type ||
         event.button !== 0 ||
 		event.defaultPrevented ||
-		event.target.nodeName === 'INPUT' ||
-		event.target.nodeName === 'BUTTON' ||
-		event.target.nodeName === 'SELECT' ||
 		event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
     ) {
         return;

@@ -5,7 +5,8 @@ export default async function (event) {
         event.target.type !== 'radio' &&
 		event.target.type !== 'option' &&
         event.target.type !== 'checkbox' &&
-		event.target.nodeName !== 'SELECT' &&
+		event.target.type !== 'select-one' &&
+		event.target.type !== 'select-multiple' &&
         'attributes' in event.target &&
         'o-value' in event.target.attributes
     ) {

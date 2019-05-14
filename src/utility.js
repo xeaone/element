@@ -11,10 +11,7 @@ export default {
 
         const type = this.type(element);
 
-        if (
-            (type === 'radio' || type === 'checkbox') &&
-			(element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)
-        ) {
+        if (type === 'radio' || type === 'checkbox') {
             const name = this.name(element);
             const query = 'input[type="' + type + '"][name="' + name + '"]';
             const form = this.form(element);
@@ -40,20 +37,7 @@ export default {
             }
 
             return result;
-        } else if (
-            element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 ||
-			element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 ||
-			element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1
-        ) {
-            const attribute = element.attributes['o-value'];
-            if (attribute) {
-                const values = this.binderValues(attribute.value);
-                const value = this.getByPath(model, values);
-                return value || element.value;
-            } else {
-                return element.value;
-            }
-        } else if (element.nodeName === 'SELECT' || element.nodeName.indexOf('-SELECT') !== -1) {
+		} else if (type === 'select-one' || type === 'select-multiple') {
             const multiple = this.multiple(element);
             const options = element.options;
             let result = multiple ? [] : undefined;
@@ -80,6 +64,20 @@ export default {
             }
 
             return result;
+        // } else if (
+        //     element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 ||
+		// 	element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 ||
+		// 	element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1
+        // ) {
+		} else {
+            const attribute = element.attributes['o-value'];
+            if (attribute) {
+                const values = this.binderValues(attribute.value);
+                const value = this.getByPath(model, values);
+                return value || element.value;
+            } else {
+                return element.value;
+            }
         }
     },
 
@@ -156,7 +154,7 @@ export default {
     index (items, item) {
 
         for (let i = 0, l = items.length; i < l; i++) {
-            if (this.compare(items[i], item)) {
+            if (this.match(items[i], item)) {
                 return i;
             }
         }
@@ -164,7 +162,18 @@ export default {
         return -1;
     },
 
-    compare (source, target) {
+	includes (items, item) {
+
+		for (let i = 0, l = items.length; i < l; i++) {
+			if (this.match(items[i], item)) {
+				return true;
+			}
+		}
+
+		return false;
+	},
+
+    match (source, target) {
 
         if (source === target) {
             return true;
