@@ -23,7 +23,7 @@
       if (!element) throw new Error('Utility.value - requires element argument');
       var type = this.type(element);
 
-      if ((type === 'radio' || type === 'checkbox') && (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1)) {
+      if (type === 'radio' || type === 'checkbox') {
         var name = this.name(element);
         var query = 'input[type="' + type + '"][name="' + name + '"]';
         var form = this.form(element);
@@ -46,19 +46,7 @@
         }
 
         return result;
-      } else if (element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 || element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 || element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1) {
-        var attribute = element.attributes['o-value'];
-
-        if (attribute) {
-          var values = this.binderValues(attribute.value);
-
-          var _value = this.getByPath(model, values);
-
-          return _value || element.value;
-        } else {
-          return element.value;
-        }
-      } else if (element.nodeName === 'SELECT' || element.nodeName.indexOf('-SELECT') !== -1) {
+      } else if (type === 'select-one' || type === 'select-multiple') {
         var _multiple = this.multiple(element);
 
         var options = element.options;
@@ -69,15 +57,15 @@
           var option = options[_i];
           var selected = option.selected;
 
-          var _value2 = this.value(option, model);
+          var _value = this.value(option, model);
 
-          var match = this[_multiple ? 'includes' : 'compare'](this.data, _value2);
+          var match = this[_multiple ? 'includes' : 'compare'](this.data, _value);
 
           if (selected && !match) {
             if (this.multiple) {
-              _result.push(_value2);
+              _result.push(_value);
             } else {
-              _result = _value2;
+              _result = _value;
             }
           } else if (!selected && match) {
             option.selected = true;
@@ -85,6 +73,18 @@
         }
 
         return _result;
+      } else {
+        var attribute = element.attributes['o-value'];
+
+        if (attribute) {
+          var values = this.binderValues(attribute.value);
+
+          var _value2 = this.getByPath(model, values);
+
+          return _value2 || element.value;
+        } else {
+          return element.value;
+        }
       }
     },
     form: function form(element) {
@@ -180,14 +180,23 @@
     },
     index: function index(items, item) {
       for (var i = 0, l = items.length; i < l; i++) {
-        if (this.compare(items[i], item)) {
+        if (this.match(items[i], item)) {
           return i;
         }
       }
 
       return -1;
     },
-    compare: function compare(source, target) {
+    includes: function includes(items, item) {
+      for (var i = 0, l = items.length; i < l; i++) {
+        if (this.match(items[i], item)) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    match: function match(source, target) {
       if (source === target) {
         return true;
       }
@@ -214,7 +223,7 @@
       for (var i = 0, l = sourceKeys.length; i < l; i++) {
         var name = sourceKeys[i];
 
-        if (!this.compare(source[name], target[name])) {
+        if (!this.match(source[name], target[name])) {
           return false;
         }
       }
@@ -789,10 +798,11 @@
   }
 
   function Value(binder, caller) {
+    var self = this;
     var type = binder.target.type;
-    var name = binder.target.nodeName;
+    if (binder.meta.busy) return;else binder.meta.busy = true;
 
-    if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
+    if (type === 'select-one' || type === 'select-multiple') {
       return {
         read: function read() {
           this.data = binder.data;
@@ -805,46 +815,98 @@
           }
         },
         write: function write() {
+          var fallback = false;
+          var fallbackValue = this.multiple ? [] : null;
+          var fallbackOption = this.multiple ? [] : null;
+
           for (var i = 0, l = this.options.length; i < l; i++) {
             var option = this.options[i];
             var selected = option.selected;
-            var value = Utility.value(option, this.model);
-
-            var _index2 = void 0,
-                match = void 0;
+            var optionBinder = self.get('attribute', option, 'o-value');
+            var optionValue = optionBinder ? optionBinder.data : option.value;
+            var selectedAtrribute = option.hasAttribute('selected');
 
             if (this.multiple) {
-              _index2 = Utility.index(this.data, value);
-              match = _index2 !== -1;
+              if (selectedAtrribute) {
+                fallback = true;
+                fallbackOption.push(option);
+                fallbackValue.push(optionValue);
+              }
             } else {
-              match = Utility.compare(this.data, value);
+              if (i === 0 || selectedAtrribute) {
+                fallback = true;
+                fallbackOption = option;
+                fallbackValue = optionValue;
+              }
             }
 
-            if (selected && !match) {
-              if (caller === 'view') {
+            if (caller === 'view') {
+              if (selected) {
                 if (this.multiple) {
-                  binder.data.push(value);
-                } else {
-                  binder.data = value;
+                  var includes = Utility.includes(this.data, optionValue);
+
+                  if (!includes) {
+                    this.selected = true;
+                    binder.data.push(optionValue);
+                  }
+                } else if (!this.selected) {
+                  this.selected = true;
+                  binder.data = optionValue;
                 }
               } else {
-                option.selected = false;
-              }
-            } else if (!selected && match) {
-              if (caller === 'view') {
                 if (this.multiple) {
-                  binder.data.splice(_index2, 1);
-                } else {
+                  var _index2 = Utility.index(this.data, optionValue);
+
+                  if (_index2 !== -1) {
+                    binder.data.splice(_index2, 1);
+                  }
+                } else if (!this.selected && i === l - 1) {
                   binder.data = null;
                 }
+              }
+            } else {
+              if (this.multiple) {
+                var _includes = Utility.includes(this.data, optionValue);
+
+                if (_includes) {
+                  this.selected = true;
+                  option.selected = true;
+                } else {
+                  option.selected = false;
+                }
               } else {
-                option.selected = true;
+                if (!this.selected) {
+                  var match = Utility.match(this.data, optionValue);
+
+                  if (match) {
+                    this.selected = true;
+                    option.selected = true;
+                  } else {
+                    option.selected = false;
+                  }
+                } else {
+                  option.selected = false;
+                }
               }
             }
           }
+
+          if (!this.selected && fallback) {
+            if (this.multiple) {
+              for (var _i2 = 0, _l2 = fallbackOption.length; _i2 < _l2; _i2++) {
+                fallbackOption[_i2].selected = true;
+                binder.data.push(fallbackValue[_i2]);
+              }
+            } else {
+              binder.data = fallbackValue;
+              fallbackOption.selected = true;
+            }
+          }
+
+          binder.meta.busy = false;
         }
       };
-    } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) {
+    } else if (type === 'radio') {
       return {
         read: function read() {
           this.form = binder.target.form || binder.container;
@@ -875,7 +937,7 @@
           }
         }
       };
-    } else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
+    } else if (type === 'checkbox') {
       return {
         read: function read() {
           if (caller === 'view') {
@@ -1220,8 +1282,8 @@
 
         if (skipChildren) return;
 
-        for (var _i2 = 0; _i2 < node.childNodes.length; _i2++) {
-          this.add(node.childNodes[_i2], context);
+        for (var _i3 = 0; _i3 < node.childNodes.length; _i3++) {
+          this.add(node.childNodes[_i3], context);
         }
       }
     }
@@ -1611,7 +1673,7 @@
 
   function Input(event) {
     return new Promise(function ($return, $error) {
-      if (event.target.type !== 'radio' && event.target.type !== 'option' && event.target.type !== 'checkbox' && event.target.nodeName !== 'SELECT' && 'attributes' in event.target && 'o-value' in event.target.attributes) {
+      if (event.target.type !== 'radio' && event.target.type !== 'option' && event.target.type !== 'checkbox' && event.target.type !== 'select-one' && event.target.type !== 'select-multiple' && 'attributes' in event.target && 'o-value' in event.target.attributes) {
         var binder = Binder.get('attribute', event.target, 'o-value');
         Binder.render(binder, 'view');
       }
@@ -1627,31 +1689,32 @@
       }
 
       event.preventDefault();
-      var elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+      var elements = event.target.querySelectorAll('*');
 
       for (var i = 0, l = elements.length; i < l; i++) {
         var element = elements[i];
-
-        if (element.type === 'submit' || element.type === 'button' || element.nodeName === 'BUTTON' || element.nodeName === 'OPTION' || element.nodeName.indexOf('-BUTTON') !== -1 || element.nodeName.indexOf('-OPTION') !== -1) {
-          continue;
-        }
-
-        var type = element.type;
         var name = element.nodeName;
+        var type = element.type;
+
+        if (!type && name !== 'TEXTAREA' || type === 'submit' || type === 'button' || !type) {
+            continue;
+          }
+
         var binder = Binder.get('attribute', element, 'o-value');
 
         if (!binder) {
-          element.value = '';
-          continue;
-        }
-
-        if (name === 'SELECT' || name.indexOf('-SELECT') !== -1) {
-          if (binder.target.multiple) {
-            binder.data = [];
+          if (type === 'select-one' || type === 'select-multiple') {
+            element.selectedIndex = null;
+          } else if (type === 'radio' || type === 'checkbox') {
+            element.checked = false;
           } else {
-            binder.data = '';
+            element.value = null;
           }
-        } else if (type === 'radio' || name.indexOf('-RADIO') !== -1) ;else if (type === 'checkbox' || name.indexOf('-CHECKBOX') !== -1) {
+        } else if (type === 'select-one') {
+          binder.data = null;
+        } else if (type === 'select-multiple') {
+          binder.data = [];
+        } else if (type === 'radio' || type === 'checkbox') {
           binder.data = false;
         } else {
           binder.data = '';
@@ -3245,7 +3308,7 @@
 
   function Click(event) {
     return new Promise(function ($return, $error) {
-      if (event.button !== 0 || event.defaultPrevented || event.target.nodeName === 'INPUT' || event.target.nodeName === 'BUTTON' || event.target.nodeName === 'SELECT' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      if (event.target.type || event.button !== 0 || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
         return $return();
       }
 

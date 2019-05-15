@@ -805,60 +805,68 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         },
         write: function write() {
-          var fallbackValue;
-          var fallbackOption;
+          var fallback = false;
+          var fallbackValue = this.multiple ? [] : null;
+          var fallbackOption = this.multiple ? [] : null;
 
           for (var i = 0, l = this.options.length; i < l; i++) {
             var option = this.options[i];
             var selected = option.selected;
             var optionBinder = self.get('attribute', option, 'o-value');
-            var value = optionBinder ? optionBinder.data : option.value;
+            var optionValue = optionBinder ? optionBinder.data : option.value;
             var selectedAtrribute = option.hasAttribute('selected');
 
             if (this.multiple) {
               if (selectedAtrribute) {
-                fallbackOption = fallbackOption || [];
-                fallbackValue = fallbackValue || [];
+                fallback = true;
                 fallbackOption.push(option);
-                fallbackValue.push(value);
+                fallbackValue.push(optionValue);
               }
             } else {
               if (i === 0 || selectedAtrribute) {
+                fallback = true;
                 fallbackOption = option;
-                fallbackValue = value;
+                fallbackValue = optionValue;
               }
             }
 
             if (caller === 'view') {
               if (selected) {
                 if (this.multiple) {
-                  var includes = Utility.includes(this.data, value);
-                  if (!includes) binder.data.push(value);
+                  var includes = Utility.includes(this.data, optionValue);
+
+                  if (!includes) {
+                    this.selected = true;
+                    binder.data.push(optionValue);
+                  }
                 } else if (!this.selected) {
-                  binder.data = value;
                   this.selected = true;
+                  binder.data = optionValue;
                 }
               } else {
                 if (this.multiple) {
-                  var _index2 = Utility.index(this.data, value);
+                  var _index2 = Utility.index(this.data, optionValue);
 
-                  if (_index2 !== -1) binder.data.splice(_index2, 1);
+                  if (_index2 !== -1) {
+                    binder.data.splice(_index2, 1);
+                  }
                 } else if (!this.selected && i === l - 1) {
                   binder.data = null;
                 }
               }
             } else {
               if (this.multiple) {
-                var _includes = Utility.includes(this.data, value);
+                var _includes = Utility.includes(this.data, optionValue);
 
                 if (_includes) {
+                  this.selected = true;
                   option.selected = true;
                 } else {
                   option.selected = false;
                 }
               } else {
                 if (!this.selected) {
-                  var match = Utility.match(this.data, value);
+                  var match = Utility.match(this.data, optionValue);
 
                   if (match) {
                     this.selected = true;
@@ -873,9 +881,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             }
           }
 
-          if (!this.selected && fallbackValue !== undefined) {
-            binder.data = fallbackValue;
-            fallbackOption.selected = true;
+          if (!this.selected && fallback) {
+            if (this.multiple) {
+              for (var _i2 = 0, _l2 = fallbackOption.length; _i2 < _l2; _i2++) {
+                fallbackOption[_i2].selected = true;
+                binder.data.push(fallbackValue[_i2]);
+              }
+            } else {
+              binder.data = fallbackValue;
+              fallbackOption.selected = true;
+            }
           }
 
           binder.meta.busy = false;
@@ -1257,8 +1272,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (skipChildren) return;
 
-        for (var _i2 = 0; _i2 < node.childNodes.length; _i2++) {
-          this.add(node.childNodes[_i2], context);
+        for (var _i3 = 0; _i3 < node.childNodes.length; _i3++) {
+          this.add(node.childNodes[_i3], context);
         }
       }
     }
