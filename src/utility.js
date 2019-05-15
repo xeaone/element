@@ -37,7 +37,7 @@ export default {
             }
 
             return result;
-		} else if (type === 'select-one' || type === 'select-multiple') {
+        } else if (type === 'select-one' || type === 'select-multiple') {
             const multiple = this.multiple(element);
             const options = element.options;
             let result = multiple ? [] : undefined;
@@ -66,10 +66,10 @@ export default {
             return result;
         // } else if (
         //     element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 ||
-		// 	element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 ||
-		// 	element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1
+            // 	element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 ||
+            // 	element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1
         // ) {
-		} else {
+        } else {
             const attribute = element.attributes['o-value'];
             if (attribute) {
                 const values = this.binderValues(attribute.value);
@@ -162,16 +162,16 @@ export default {
         return -1;
     },
 
-	includes (items, item) {
+    includes (items, item) {
 
-		for (let i = 0, l = items.length; i < l; i++) {
-			if (this.match(items[i], item)) {
-				return true;
-			}
-		}
+        for (let i = 0, l = items.length; i < l; i++) {
+            if (this.match(items[i], item)) {
+                return true;
+            }
+        }
 
-		return false;
-	},
+        return false;
+    },
 
     match (source, target) {
 
@@ -201,7 +201,7 @@ export default {
         for (let i = 0, l = sourceKeys.length; i < l; i++) {
             const name = sourceKeys[i];
 
-            if (!this.compare(source[name], target[name])) {
+            if (!this.match(source[name], target[name])) {
                 return false;
             }
 

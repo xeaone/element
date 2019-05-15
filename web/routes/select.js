@@ -114,7 +114,6 @@ export default {
 				</o-optgroup>
 			</o-select>
 
-
 		`
     }
 };

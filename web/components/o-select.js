@@ -29,18 +29,18 @@ Oxe.component.define({
             writable: true,
             value: false
         },
-        // _selectedDefaultLocked: {
-        //     writable: true,
-        //     value: false
-        // },
+        _selectedDefaultLocked: {
+            writable: true,
+            value: false
+        },
         _value: {
             writable: true,
             value: ''
         },
-        // _selected: {
-        //     writable: true,
-        //     value: false
-        // },
+        _selected: {
+            writable: true,
+            value: false
+        },
         value: {
             enumerable: true,
             get: function () {
@@ -56,32 +56,22 @@ Oxe.component.define({
                 return this._value = data || '';
             }
         },
-        // selected: {
-        //     enumerable: true,
-        //     get: function () {
-        //         if (this._selectedDefaultLocked) {
-        //             return this._selected;
-        //         } else {
-        //             var selected = this.getAttribute('selected');
-        //             return selected !== null && selected !== 'false' ? true : false;
-        //         }
-        //     },
-        //     set: function (data) {
-        //         this._selectedDefaultLocked = true;
-        //         return this._selected = data ? true : false;
-        //     }
-        // },
         selected: {
             enumerable: true,
             get: function () {
-                return this.hasAttribute('selected');
+                if (this._selectedDefaultLocked) {
+                    return this._selected;
+                } else {
+                    var selected = this.getAttribute('selected');
+                    return selected !== null && selected !== 'false' ? true : false;
+                }
             },
             set: function (data) {
-                data = data ? true : false;
-                if (data) this.setAttribute('selected', '');
-                else this.removeAttribute('selected');
-                return data;
-
+                this._selectedDefaultLocked = true;
+                this._selected = data ? true : false;
+                if (this._selected) this.classList.add('active');
+                else this.classList.remove('active');
+                return this._selected;
             }
         },
         disabled: {
@@ -110,6 +100,13 @@ Oxe.component.define({
     attributed: function (name, _, data) {
         switch (name) {
         case 'value': this._value = data || ''; break;
+        }
+    },
+    created: function () {
+        if (this.hasAttribute('selected')) {
+            this.classList.add('active');
+        } else {
+            this.classList.remove('active');
         }
     }
 });

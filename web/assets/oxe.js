@@ -213,7 +213,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       for (var i = 0, l = sourceKeys.length; i < l; i++) {
         var name = sourceKeys[i];
 
-        if (!this.compare(source[name], target[name])) {
+        if (!this.match(source[name], target[name])) {
           return false;
         }
       }
@@ -790,7 +790,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   function Value(binder, caller) {
     var self = this;
     var type = binder.target.type;
-    var name = binder.target.nodeName;
     if (binder.meta.busy) return;else binder.meta.busy = true;
 
     if (type === 'select-one' || type === 'select-multiple') {
@@ -806,7 +805,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         },
         write: function write() {
-          var fallback;
+          var fallbackValue;
+          var fallbackOption;
 
           for (var i = 0, l = this.options.length; i < l; i++) {
             var option = this.options[i];
@@ -817,12 +817,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
             if (this.multiple) {
               if (selectedAtrribute) {
-                fallback = fallback || [];
-                fallback.push(value);
+                fallbackOption = fallbackOption || [];
+                fallbackValue = fallbackValue || [];
+                fallbackOption.push(option);
+                fallbackValue.push(value);
               }
             } else {
               if (i === 0 || selectedAtrribute) {
-                fallback = value;
+                fallbackOption = option;
+                fallbackValue = value;
               }
             }
 
@@ -832,14 +835,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   var includes = Utility.includes(this.data, value);
                   if (!includes) binder.data.push(value);
                 } else if (!this.selected) {
-                  this.selected = true;
                   binder.data = value;
+                  this.selected = true;
                 }
               } else {
                 if (this.multiple) {
                   var _index2 = Utility.index(this.data, value);
 
                   if (_index2 !== -1) binder.data.splice(_index2, 1);
+                } else if (!this.selected && i === l - 1) {
+                  binder.data = null;
                 }
               }
             } else {
@@ -868,8 +873,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             }
           }
 
-          if (!this.selected && fallback !== undefined) {
-            binder.data = fallback;
+          if (!this.selected && fallbackValue !== undefined) {
+            binder.data = fallbackValue;
+            fallbackOption.selected = true;
           }
 
           binder.meta.busy = false;

@@ -3,7 +3,7 @@ import Utility from '../utility.js';
 export default function (binder, caller) {
     const self = this;
     const type = binder.target.type;
-    const name = binder.target.nodeName;
+    // const name = binder.target.nodeName;
 
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
@@ -16,7 +16,8 @@ export default function (binder, caller) {
                 this.model = binder.model;
                 this.options = binder.target.options;
                 this.multiple = Utility.multiple(binder.target);
-				// this.defaults = this.multiple ? binder.querySelectorAll('[selected]') : binder.querySelector('[selected]') || this.options[0];
+
+                // this.selected = this.multiple ? [] : false;
 
                 if (this.multiple && (!this.data || this.data.constructor !== Array)) {
                     throw new Error(`Oxe - invalid o-value ${binder.keys.join('.')} multiple select requires array`);
@@ -24,73 +25,76 @@ export default function (binder, caller) {
 
             },
             write () {
-				let fallback;
+                let fallbackValue;
+                let fallbackOption;
                 for (let i = 0, l = this.options.length; i < l; i++) {
 
                     const option = this.options[i];
                     const selected = option.selected;
                     const optionBinder = self.get('attribute', option, 'o-value');
                     const value = optionBinder ? optionBinder.data : option.value;
-					const selectedAtrribute = option.hasAttribute('selected');
+                    const selectedAtrribute = option.hasAttribute('selected');
 
-					if (this.multiple) {
-						if (selectedAtrribute) {
-							fallback = fallback || [];
-							fallback.push(value);
-							// fallback.push({ value, option, i });
-						}
-					} else {
-						if (i === 0 || selectedAtrribute) {
-							fallback = value;
-							// fallback = { value, option, i };
-						}
-					}
+                    if (this.multiple) {
+                        if (selectedAtrribute) {
+                            fallbackOption = fallbackOption || [];
+                            fallbackValue = fallbackValue || [];
+                            fallbackOption.push(option);
+                            fallbackValue.push(value);
+                        }
+                    } else {
+                        if (i === 0 || selectedAtrribute) {
+                            fallbackOption = option;
+                            fallbackValue = value;
+                        }
+                    }
 
-					if (caller === 'view') {
-						if (selected) {
-							if (this.multiple) {
-								const includes = Utility.includes(this.data, value);
-								if (!includes) binder.data.push(value);
-							} else if (!this.selected) {
-	                 			this.selected = true;
-		                    	binder.data = value;
-							}
-						} else {
-							if (this.multiple) {
-								const index = Utility.index(this.data, value);
-								if (index !== -1) binder.data.splice(index, 1);
-							// } else {
-							// 	if (!this.selected && i === l-1) binder.data = null;
-							}
-						}
-					} else {
-						if (this.multiple) {
-							const includes = Utility.includes(this.data, value);
-							if (includes) {
-                            	option.selected = true;
-							} else {
-                            	option.selected = false;
-							}
+                    if (caller === 'view') {
+                        if (selected) {
+                            if (this.multiple) {
+                                const includes = Utility.includes(this.data, value);
+                                if (!includes) binder.data.push(value);
+                            } else if (!this.selected) {
+                                binder.data = value;
+                                this.selected = true;
+                            }
                         } else {
-							if (!this.selected) {
-								const match = Utility.match(this.data, value);
-								if (match) {
-									this.selected = true;
-	                            	option.selected = true;
-								} else {
-	                            	option.selected = false;
-								}
-							} else {
-	                            option.selected = false;
-							}
-			            }
-					}
+                            if (this.multiple) {
+                                const index = Utility.index(this.data, value);
+                                if (index !== -1) binder.data.splice(index, 1);
+                            } else if (!this.selected && i === l-1) {
+                                binder.data = null;
+                            }
+                        }
+                    } else {
+                        if (this.multiple) {
+                            const includes = Utility.includes(this.data, value);
+                            if (includes) {
+                                option.selected = true;
+                            } else {
+                                option.selected = false;
+                            }
+                        } else {
+                            if (!this.selected) {
+                                const match = Utility.match(this.data, value);
+                                if (match) {
+                                    this.selected = true;
+                                    option.selected = true;
+                                } else {
+                                    option.selected = false;
+                                }
+                            } else {
+                                option.selected = false;
+                            }
+                        }
+                    }
 
                 }
 
-				if (!this.selected && fallback !== undefined) {
-					binder.data = fallback;
-				}
+                if (!this.selected && fallbackValue !== undefined) {
+                    binder.data = fallbackValue;
+                    fallbackOption.selected = true;
+                }
 
                 binder.meta.busy = false;
             }
