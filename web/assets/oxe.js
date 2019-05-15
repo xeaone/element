@@ -801,6 +801,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           this.multiple = Utility.multiple(binder.target);
 
           if (this.multiple && (!this.data || this.data.constructor !== Array)) {
+            binder.meta.busy = false;
             throw new Error("Oxe - invalid o-value ".concat(binder.keys.join('.'), " multiple select requires array"));
           }
         },
@@ -906,12 +907,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
           if (caller === 'view') {
             binder.data = this.radios.indexOf(binder.target);
+            binder.meta.busy = false;
             return false;
           }
 
           this.data = binder.data;
 
           if (typeof this.data !== 'number') {
+            binder.meta.busy = false;
             return false;
           }
         },
@@ -925,6 +928,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               radio.checked = false;
             }
           }
+
+          binder.meta.busy = false;
         }
       };
     } else if (type === 'checkbox') {
@@ -932,17 +937,20 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         read: function read() {
           if (caller === 'view') {
             binder.data = binder.target.checked;
+            binder.meta.busy = false;
             return false;
           }
 
           this.data = binder.data;
 
           if (typeof this.data !== 'boolean') {
+            binder.meta.busy = false;
             return false;
           }
         },
         write: function write() {
           binder.target.checked = this.data;
+          binder.meta.busy = false;
         }
       };
     } else {
@@ -950,17 +958,20 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         read: function read() {
           if (caller === 'view') {
             binder.data = binder.target.value;
+            binder.meta.busy = false;
             return false;
           }
 
           this.data = binder.data;
 
           if (this.data === binder.target.value) {
+            binder.meta.busy = false;
             return false;
           }
         },
         write: function write() {
           binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
+          binder.meta.busy = false;
         }
       };
     }
@@ -1587,7 +1598,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   function Submit(event) {
     return new Promise(function ($return, $error) {
-      var data, elements, i, l, element, binder, value, name, submit, options, result;
+      var data, elements, i, l, element, type, binder, value, name, submit, options, result;
 
       if (event.target.hasAttribute('o-submit') === false) {
         return $return();
@@ -1595,18 +1606,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       event.preventDefault();
       data = {};
-      elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+      elements = event.target.querySelectorAll('*');
 
       for (i = 0, l = elements.length; i < l; i++) {
         element = elements[i];
+        type = element.type;
 
-        if (element.type === 'submit' || element.type === 'button' || element.nodeName === 'BUTTON' || element.nodeName === 'OPTION' || element.nodeName.indexOf('-BUTTON') !== -1 || element.nodeName.indexOf('-OPTION') !== -1) {
-          continue;
-        }
+        if (!type && name !== 'TEXTAREA' || type === 'submit' || type === 'button' || !type) {
+            continue;
+          }
 
         binder = Binder.get('attribute', element, 'o-value');
         value = binder ? binder.data : element.value;
-        name = element.name || binder.values[binder.values.length - 1];
+        name = element.name || (binder ? binder.values[binder.values.length - 1] : i);
         if (!name) continue;
         data[name] = value;
       }

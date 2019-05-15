@@ -18,7 +18,7 @@ export default async function (event) {
         const type = element.type;
 
         if (
-            (!type && name !== 'TEXTAREA') ||
+            !type && name !== 'TEXTAREA' ||
             type === 'submit' ||
             type === 'button' ||
 			!type

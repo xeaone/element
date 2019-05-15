@@ -17,6 +17,7 @@ export default function (binder, caller) {
                 this.multiple = Utility.multiple(binder.target);
 
                 if (this.multiple && (!this.data || this.data.constructor !== Array)) {
+                    binder.meta.busy = false;
                     throw new Error(`Oxe - invalid o-value ${binder.keys.join('.')} multiple select requires array`);
                 }
 
@@ -123,12 +124,14 @@ export default function (binder, caller) {
 
                 if (caller === 'view') {
                     binder.data = this.radios.indexOf(binder.target);
+                    binder.meta.busy = false;
                     return false;
                 }
 
                 this.data = binder.data;
 
                 if (typeof this.data !== 'number') {
+                    binder.meta.busy = false;
                     return false;
                 }
 
@@ -144,6 +147,8 @@ export default function (binder, caller) {
                     }
 
                 }
+
+                binder.meta.busy = false;
             }
         };
 
@@ -153,18 +158,21 @@ export default function (binder, caller) {
 
                 if (caller === 'view') {
                     binder.data = binder.target.checked;
+                    binder.meta.busy = false;
                     return false;
                 }
 
                 this.data = binder.data;
 
                 if (typeof this.data !== 'boolean') {
+                    binder.meta.busy = false;
                     return false;
                 }
 
             },
             write () {
                 binder.target.checked = this.data;
+                binder.meta.busy = false;
             }
         };
     } else {
@@ -173,18 +181,21 @@ export default function (binder, caller) {
 
                 if (caller === 'view') {
                     binder.data = binder.target.value;
+                    binder.meta.busy = false;
                     return false;
                 }
 
                 this.data = binder.data;
 
                 if (this.data === binder.target.value) {
+                    binder.meta.busy = false;
                     return false;
                 }
 
             },
             write () {
                 binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
+                binder.meta.busy = false;
             }
         };
     }
