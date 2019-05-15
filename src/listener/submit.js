@@ -10,25 +10,31 @@ export default async function (event) {
     event.preventDefault();
 
     const data = {};
-    const elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+    const elements = event.target.querySelectorAll('*');
+    // const elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 
     for (let i = 0, l = elements.length; i < l; i++) {
         const element = elements[i];
+        const type = element.type;
 
         if (
-            element.type === 'submit' ||
-            element.type === 'button' ||
-            element.nodeName === 'BUTTON' ||
-            element.nodeName === 'OPTION' ||
-            element.nodeName.indexOf('-BUTTON') !== -1 ||
-            element.nodeName.indexOf('-OPTION') !== -1
+            (!type && name !== 'TEXTAREA') ||
+            type === 'submit' ||
+            type === 'button' ||
+			!type
+        // element.type === 'submit' ||
+        // element.type === 'button' ||
+        // element.nodeName === 'BUTTON' ||
+        // element.nodeName === 'OPTION' ||
+        // element.nodeName.indexOf('-BUTTON') !== -1 ||
+        // element.nodeName.indexOf('-OPTION') !== -1
         ) {
             continue;
         }
 
         const binder = Binder.get('attribute', element, 'o-value');
         const value = binder ? binder.data : element.value;
-        const name = element.name || binder.values[binder.values.length-1];
+        const name = element.name || (binder ? binder.values[binder.values.length-1] : i);
 
         if (!name) continue;
         data[name] = value;

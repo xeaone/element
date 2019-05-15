@@ -1597,7 +1597,7 @@
 
   function Submit(event) {
     return new Promise(function ($return, $error) {
-      var data, elements, i, l, element, binder, value, name, submit, options, result;
+      var data, elements, i, l, element, type, binder, value, name, submit, options, result;
 
       if (event.target.hasAttribute('o-submit') === false) {
         return $return();
@@ -1605,18 +1605,19 @@
 
       event.preventDefault();
       data = {};
-      elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
+      elements = event.target.querySelectorAll('*');
 
       for (i = 0, l = elements.length; i < l; i++) {
         element = elements[i];
+        type = element.type;
 
-        if (element.type === 'submit' || element.type === 'button' || element.nodeName === 'BUTTON' || element.nodeName === 'OPTION' || element.nodeName.indexOf('-BUTTON') !== -1 || element.nodeName.indexOf('-OPTION') !== -1) {
-          continue;
-        }
+        if (!type && name !== 'TEXTAREA' || type === 'submit' || type === 'button' || !type) {
+            continue;
+          }
 
         binder = Binder.get('attribute', element, 'o-value');
         value = binder ? binder.data : element.value;
-        name = element.name || binder.values[binder.values.length - 1];
+        name = element.name || (binder ? binder.values[binder.values.length - 1] : i);
         if (!name) continue;
         data[name] = value;
       }
