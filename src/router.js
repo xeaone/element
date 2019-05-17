@@ -41,7 +41,8 @@ export default {
         if (!this.target) throw new Error('Oxe.router.setup - target option required');
 
         await this.add(options.routes);
-        await this.route(window.location.href, { mode: 'replace', setup: true });
+        // await this.route(window.location.href, { mode: 'replace', setup: true });
+        await this.route(window.location.href, { mode: 'replace' });
     },
 
     compareParts (routePath, userPath, split) {
@@ -427,9 +428,9 @@ export default {
         this.emit('route:before', location);
 
         if (mode === 'href' || this.compiled) {
-            if (!options.setup) {
+            // if (!options.setup) {
                 return window.location.assign(location.path);
-            }
+            // }
         }
 
         window.history[mode + 'State']({ path: location.path }, '', location.path);

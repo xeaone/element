@@ -2636,8 +2636,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return Promise.resolve(this.add(options.routes)).then(function ($await_51) {
           try {
             return Promise.resolve(this.route(window.location.href, {
-              mode: 'replace',
-              setup: true
+              mode: 'replace'
             })).then(function ($await_52) {
               try {
                 return $return();
@@ -3216,9 +3215,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 this.emit('route:before', location);
 
                 if (mode === 'href' || this.compiled) {
-                  if (!options.setup) {
-                    return $return(window.location.assign(location.path));
-                  }
+                  return $return(window.location.assign(location.path));
                 }
 
                 window.history[mode + 'State']({
@@ -3266,9 +3263,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               this.emit('route:before', location);
 
               if (mode === 'href' || this.compiled) {
-                if (!options.setup) {
-                  return $return(window.location.assign(location.path));
-                }
+                return $return(window.location.assign(location.path));
               }
 
               window.history[mode + 'State']({
