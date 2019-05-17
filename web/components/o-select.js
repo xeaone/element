@@ -53,7 +53,7 @@ Oxe.component.define({
             },
             set: function (data) {
                 this._valueDefaultLocked = true;
-                return this._value = data || '';
+                return this._value = data === null || data === undefined ? '' : data;
             }
         },
         selected: {
@@ -69,8 +69,9 @@ Oxe.component.define({
             set: function (data) {
                 this._selectedDefaultLocked = true;
                 this._selected = data ? true : false;
-                if (this._selected) this.classList.add('active');
-                else this.classList.remove('active');
+                // maybe use toggle attribute neeed to test in IE
+                if (this._selected) this.setAttribute('data-selected', '');
+                else this.removeAttribute('data-selected');
                 return this._selected;
             }
         },
@@ -104,9 +105,9 @@ Oxe.component.define({
     },
     created: function () {
         if (this.hasAttribute('selected')) {
-            this.classList.add('active');
+            this.setAttribute('data-selected', '');
         } else {
-            this.classList.remove('active');
+            this.removeAttribute('data-selected');
         }
     }
 });
@@ -197,16 +198,17 @@ export default {
                 }
             }
 
-            var optgroup = option;
-
-            while (optgroup = optgroup.parentElement) {
-                if (optgroup === self) {
-                    break;
-                } else if (optgroup.nodeName === 'O-OPTGROUP') {
-                    if (optgroup.disabled) {
-                        return;
-                    } else {
+            if (option && option.parentElement !== self) {
+                var optgroup = option;
+                while (optgroup = optgroup.parentElement) {
+                    if (optgroup === self) {
                         break;
+                    } else if (optgroup.nodeName === 'O-OPTGROUP') {
+                        if (optgroup.disabled) {
+                            return;
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
