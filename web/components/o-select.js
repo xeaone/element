@@ -117,16 +117,42 @@ export default {
     template: '<slot></slot>',
     style: 'o-select { display: block; }',
     properties: {
-        // update: {
+        _selectedOptions: { writable: true, value: [] },
+        // _selectedIndex: { writable: true, value: -1 },
+        // selectedIndex: {
         //     enumerable: true,
-        //     value: function (element) {
-        //         if (element.hasAttribute('o-value')) {
-        //             var binder = Oxe.binder.get('attribute', element, 'o-value');
-        //             var value = Oxe.utility.value(element, this.model);
-        //             binder.data = value;
-        //         }
+        //     get: function () {
+        //         return this._selectedIndex;
         //     }
         // },
+        selectedOptions: {
+            enumerable: true,
+            get: function () {
+                return this._selectedOptions;
+            }
+        },
+        required: {
+            enumerable: true,
+            get: function () {
+                return this.hasAttribute('required');
+            },
+            set: function (data) {
+                data = data ? true : false;
+                if (data) this.setAttribute('required', '');
+                else this.removeAttribute('required');
+                return data;
+            }
+        },
+        checkValidity: {
+            enumerable: true,
+            value: function () {
+                if (this.required) {
+                    return this.selectedOptions.length ? true : false;
+                } else {
+                    return true;
+                }
+            }
+        },
         type: {
             enumerable: true,
             get: function () {
@@ -222,6 +248,18 @@ export default {
 
             if (option) {
                 option.selected = !option.selected;
+            }
+
+            var index = self._selectedOptions.indexOf(option);
+
+            if (option.selected) {
+                if (index === -1) {
+                    self._selectedOptions.push(option);
+                }
+            } else {
+                if (index !== -1) {
+                    self._selectedOptions.splice(index, 1);
+                }
             }
 
             var binder = Oxe.binder.get('attribute', self, 'o-value');
