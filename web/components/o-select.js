@@ -198,8 +198,8 @@ export default {
                 }
             }
 
-            if (option && option.parentElement !== self) {
-                var optgroup = option;
+            var optgroup = option;
+            if (optgroup && optgroup.nodeName !== 'O-OPTGROUP') {
                 while (optgroup = optgroup.parentElement) {
                     if (optgroup === self) {
                         break;
@@ -220,7 +220,9 @@ export default {
                 }
             }
 
-            option.selected = !option.selected;
+            if (option) {
+                option.selected = !option.selected;
+            }
 
             var binder = Oxe.binder.get('attribute', self, 'o-value');
             Oxe.binder.render(binder, 'view');
