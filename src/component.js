@@ -3,6 +3,7 @@ import Binder from './binder.js';
 import Loader from './loader.js';
 import Model from './model.js';
 import Style from './style.js';
+import Utility from './utility.js';
 
 export default {
 
@@ -146,8 +147,8 @@ export default {
         options.methods = options.methods || {};
         options.shadow = options.shadow || false;
         options.template = options.template || '';
-        options.properties = options.properties || {};
         options.attributes = options.attributes || [];
+        options.properties = options.properties || {};
 
         if (options.style) {
             const style = this.style(options.style, options.name);
@@ -159,55 +160,59 @@ export default {
             options.clone.innerHTML = options.template;
         }
 
-        options.construct = function () {
+        const construct = function () {
             const instance = window.Reflect.construct(HTMLElement, [], this.constructor);
+            const properties = Utility.clone(options.properties);
+            const methods = Utility.clone(options.methods);
+            const model = Utility.clone(options.model);
+            const scope = options.name + '-' + options.count++;
 
-            options.properties.created = {
+            properties.created = {
                 value: false,
                 enumerable: true,
                 configurable: true
             };
 
-            options.properties.scope = {
+            properties.scope = {
                 enumerable: true,
-                value: options.name + '-' + options.count++
+                value: scope
             };
 
-            options.properties.model = {
+            properties.model = {
                 enumerable: true,
                 get: function () {
-                    return Model.get(this.scope);
+                    return Model.get(scope);
                 },
                 set: function (data) {
-                    return Model.set(this.scope, data && typeof data === 'object' ? data : {});
+                    return Model.set(scope, data && typeof data === 'object' ? data : {});
                 }
             };
 
-            options.properties.methods = {
+            properties.methods = {
                 enumerable: true,
                 get: function () {
-                    return Methods.get(this.scope);
+                    return Methods.get(scope);
                 }
             };
 
-            Object.defineProperties(instance, options.properties);
-            Model.set(instance.scope, options.model);
-            Methods.set(instance.scope, options.methods);
+            Object.defineProperties(instance, properties);
+            Methods.set(scope, methods);
+            Model.set(scope, model);
 
             return instance;
         };
 
-        options.construct.observedAttributes = options.attributes;
+        construct.observedAttributes = options.attributes;
 
-        options.construct.prototype.attributeChangedCallback = function () {
+        construct.prototype.attributeChangedCallback = function () {
             if (options.attributed) options.attributed.apply(this, arguments);
         };
 
-        options.construct.prototype.adoptedCallback = function () {
+        construct.prototype.adoptedCallback = function () {
             if (options.adopted) options.adopted.call(this);
         };
 
-        options.construct.prototype.connectedCallback = function () {
+        construct.prototype.connectedCallback = function () {
 
             if (!this.created) {
 
@@ -230,16 +235,16 @@ export default {
             }
         };
 
-        options.construct.prototype.disconnectedCallback = function () {
+        construct.prototype.disconnectedCallback = function () {
             if (options.detached) {
                 options.detached.call(this);
             }
         };
 
-        Object.setPrototypeOf(options.construct.prototype, HTMLElement.prototype);
-        Object.setPrototypeOf(options.construct, HTMLElement);
+        Object.setPrototypeOf(construct.prototype, HTMLElement.prototype);
+        Object.setPrototypeOf(construct, HTMLElement);
 
-        window.customElements.define(options.name, options.construct);
+        window.customElements.define(options.name, construct);
     }
 
 };

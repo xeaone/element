@@ -295,7 +295,32 @@ export default {
         }
 
         return data[keys[last]];
+    },
+
+    clone (source) {
+
+        if (
+            source === null ||
+            source === undefined ||
+            source.constructor !== Array &&
+            source.constructor !== Object
+        ) {
+            return source;
+        }
+
+        var descriptors = Object.getOwnPropertyDescriptors(source);
+
+        for (var name in descriptors) {
+            var descriptor = descriptors[name];
+            if ('value' in descriptor) {
+                descriptor.value = this.clone(descriptor.value);
+            }
+        }
+
+        var target = source.constructor();
+        return Object.defineProperties(target, descriptors);
     }
+
 
     // walker (node, callback) {
     // 	callback(node);
