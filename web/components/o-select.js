@@ -204,11 +204,12 @@ export default {
         var self = this;
 
         self.addEventListener('click', function (e) {
-            var option = e.target;
 
-            if (self.disabled) {
+            if (self.disabled || e.target === self) {
                 return;
             }
+
+            var option = e.target;
 
             if (option.nodeName !== 'O-OPTION') {
                 while (option = option.parentElement) {
@@ -225,6 +226,7 @@ export default {
             }
 
             var optgroup = option;
+            
             if (optgroup && optgroup.nodeName !== 'O-OPTGROUP') {
                 while (optgroup = optgroup.parentElement) {
                     if (optgroup === self) {
