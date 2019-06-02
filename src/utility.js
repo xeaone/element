@@ -321,12 +321,11 @@ export default {
 
                 Object.defineProperty(target, name, descriptor);
             }
-            
+
         }
 
         return target;
     }
-
 
     // walker (node, callback) {
     // 	callback(node);
