@@ -311,18 +311,21 @@
         return source;
       }
 
-      var descriptors = Object.getOwnPropertyDescriptors(source);
+      var target = source.constructor();
 
-      for (var name in descriptors) {
-        var descriptor = descriptors[name];
+      for (var name in source) {
+        var descriptor = Object.getOwnPropertyDescriptor(source, name);
 
-        if ('value' in descriptor) {
-          descriptor.value = this.clone(descriptor.value);
+        if (descriptor) {
+          if ('value' in descriptor) {
+            descriptor.value = this.clone(descriptor.value);
+          }
+
+          Object.defineProperty(target, name, descriptor);
         }
       }
 
-      var target = source.constructor();
-      return Object.defineProperties(target, descriptors);
+      return target;
     }
   };
   var Batcher = {
