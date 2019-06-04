@@ -133,6 +133,19 @@ export default {
     define (options) {
         const self = this;
 
+        if (typeof options !== 'object') {
+            return console.warn('Oxe.component.define - invalid argument type');
+        }
+
+        if (options.constructor === Array) {
+            
+            for (let i = 0, l = options.length; i < l; i++) {
+                self.define(options[i]);
+            }
+
+            return;
+        }
+
         if (!options.name) throw new Error('Oxe.component.define - requires name');
 
         options.name = options.name.toLowerCase();

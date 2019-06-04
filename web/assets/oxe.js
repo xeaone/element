@@ -295,6 +295,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       return data[keys[last]];
+    },
+    clone: function clone(source) {
+      if (source === null || source === undefined || source.constructor !== Array && source.constructor !== Object) {
+        return source;
+      }
+
+      var descriptors = Object.getOwnPropertyDescriptors(source);
+
+      for (var name in descriptors) {
+        var descriptor = descriptors[name];
+
+        if ('value' in descriptor) {
+          descriptor.value = this.clone(descriptor.value);
+        }
+      }
+
+      var target = source.constructor();
+      return Object.defineProperties(target, descriptors);
     }
   };
   var Batcher = {
@@ -2507,6 +2525,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     define: function define(options) {
       var self = this;
+
+      if (_typeof(options) !== 'object') {
+        return console.warn('Oxe.component.define - invalid argument type');
+      }
+
+      if (options.constructor === Array) {
+        for (var i = 0, l = options.length; i < l; i++) {
+          self.define(options[i]);
+        }
+
+        return;
+      }
+
       if (!options.name) throw new Error('Oxe.component.define - requires name');
       options.name = options.name.toLowerCase();
       if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
@@ -2517,8 +2548,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       options.methods = options.methods || {};
       options.shadow = options.shadow || false;
       options.template = options.template || '';
-      options.properties = options.properties || {};
       options.attributes = options.attributes || [];
+      options.properties = options.properties || {};
 
       if (options.style) {
         var style = this.style(options.style, options.name);
@@ -2530,49 +2561,53 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         options.clone.innerHTML = options.template;
       }
 
-      options.construct = function () {
+      var construct = function construct() {
         var instance = window.Reflect.construct(HTMLElement, [], this.constructor);
-        options.properties.created = {
+        var properties = Utility.clone(options.properties);
+        var methods = Utility.clone(options.methods);
+        var model = Utility.clone(options.model);
+        var scope = options.name + '-' + options.count++;
+        properties.created = {
           value: false,
           enumerable: true,
           configurable: true
         };
-        options.properties.scope = {
+        properties.scope = {
           enumerable: true,
-          value: options.name + '-' + options.count++
+          value: scope
         };
-        options.properties.model = {
+        properties.model = {
           enumerable: true,
           get: function get() {
-            return Model.get(this.scope);
+            return Model.get(scope);
           },
           set: function set(data) {
-            return Model.set(this.scope, data && _typeof(data) === 'object' ? data : {});
+            return Model.set(scope, data && _typeof(data) === 'object' ? data : {});
           }
         };
-        options.properties.methods = {
+        properties.methods = {
           enumerable: true,
           get: function get() {
-            return Methods.get(this.scope);
+            return Methods.get(scope);
           }
         };
-        Object.defineProperties(instance, options.properties);
-        Model.set(instance.scope, options.model);
-        Methods.set(instance.scope, options.methods);
+        Object.defineProperties(instance, properties);
+        Methods.set(scope, methods);
+        Model.set(scope, model);
         return instance;
       };
 
-      options.construct.observedAttributes = options.attributes;
+      construct.observedAttributes = options.attributes;
 
-      options.construct.prototype.attributeChangedCallback = function () {
+      construct.prototype.attributeChangedCallback = function () {
         if (options.attributed) options.attributed.apply(this, arguments);
       };
 
-      options.construct.prototype.adoptedCallback = function () {
+      construct.prototype.adoptedCallback = function () {
         if (options.adopted) options.adopted.call(this);
       };
 
-      options.construct.prototype.connectedCallback = function () {
+      construct.prototype.connectedCallback = function () {
         if (!this.created) {
           self.render(this, options);
           Object.defineProperty(this, 'created', {
@@ -2591,15 +2626,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       };
 
-      options.construct.prototype.disconnectedCallback = function () {
+      construct.prototype.disconnectedCallback = function () {
         if (options.detached) {
           options.detached.call(this);
         }
       };
 
-      Object.setPrototypeOf(options.construct.prototype, HTMLElement.prototype);
-      Object.setPrototypeOf(options.construct, HTMLElement);
-      window.customElements.define(options.name, options.construct);
+      Object.setPrototypeOf(construct.prototype, HTMLElement.prototype);
+      Object.setPrototypeOf(construct, HTMLElement);
+      window.customElements.define(options.name, construct);
     }
   };
   var Event = Object.create(Events);
