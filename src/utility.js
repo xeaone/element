@@ -308,19 +308,24 @@ export default {
             return source;
         }
 
-        var descriptors = Object.getOwnPropertyDescriptors(source);
+        var target = source.constructor();
 
-        for (var name in descriptors) {
-            var descriptor = descriptors[name];
-            if ('value' in descriptor) {
-                descriptor.value = this.clone(descriptor.value);
+        for (const name in source) {
+            const descriptor = Object.getOwnPropertyDescriptor(source, name);
+
+            if (descriptor) {
+
+                if ('value' in descriptor) {
+                    descriptor.value = this.clone(descriptor.value);
+                }
+
+                Object.defineProperty(target, name, descriptor);
             }
+
         }
 
-        var target = source.constructor();
-        return Object.defineProperties(target, descriptors);
+        return target;
     }
-
 
     // walker (node, callback) {
     // 	callback(node);
