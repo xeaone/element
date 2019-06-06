@@ -27,11 +27,6 @@ if (window.Reflect === undefined) {
     };
 }
 
-const ORouter = function ORouter () { return window.Reflect.construct(HTMLElement, [], this.constructor); };
-Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-Object.setPrototypeOf(ORouter, HTMLElement);
-window.customElements.define('o-router', ORouter);
-
 const oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
@@ -101,12 +96,6 @@ export default {
         if (options.listener.before) {
             await options.listener.before();
         }
-
-        // if (options.style) {
-        //     if ('transition' in options.style) {
-        //         window.document.documentElement.style.setProperty('--o-transition', `${options.style.transition}ms`);
-        //     }
-        // }
 
         if (options.path) {
             await this.path.setup(options.path);

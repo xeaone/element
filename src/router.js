@@ -40,8 +40,12 @@ export default {
 
         if (!this.target) throw new Error('Oxe.router.setup - target option required');
 
+        const ORouter = function ORouter () { return window.Reflect.construct(HTMLElement, [], this.constructor); };
+        Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+        Object.setPrototypeOf(ORouter, HTMLElement);
+        window.customElements.define('o-router', ORouter);
+
         await this.add(options.routes);
-        // await this.route(window.location.href, { mode: 'replace', setup: true });
         await this.route(window.location.href, { mode: 'replace' });
     },
 
