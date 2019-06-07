@@ -1,0 +1,116 @@
+html > * {
+	margin: 0;
+	padding: 0;
+	color: dimgray;
+	box-sizing: border-box;
+	font-family: sans-serif;
+}
+html, body {
+	flex: 1;
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	overflow-x: hidden;
+    flex-direction: column;
+	background-color: white;
+}
+h1 {
+	font-size: 3rem;
+	font-weight: 300;
+	margin: 1rem 0;
+}
+h2 {
+	font-weight: 300;
+	font-size: 2.9rem;
+	margin: 3rem 0 1rem 0;
+}
+a {
+	cursor: pointer;
+	color: darkorange;
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+li {
+	margin: 0.6rem;
+}
+i {
+	font-weight: 200;
+	font-family: monospace;
+}
+pre {
+	flex: 1 0;
+	font-family: monospace !important;
+	background-color: whitesmoke !important;
+}
+hr {
+	margin: 3rem 0;
+}
+.title {
+	display: block;
+	padding: 1rem 0;
+	text-align: center;
+}
+.title > h1 {
+	font-weight: 200;
+    color: lightslategrey;
+}
+.title > h2 {
+	font-weight: 200;
+	font-size: 1.3rem;
+    color: lightslategrey;
+}
+.title > h1 > span {
+	font-weight: 200;
+	font-size: 3.9rem;
+    color: darkorange;
+	text-transform: uppercase;
+}
+.menu {
+	width: 100%;
+	display: block;
+	text-align: center;
+	background-color: whitesmoke;
+	border-bottom: solid 3px darkorange;
+}
+.menu a {
+	display: inline-block;
+	vertical-align: middle;
+	padding: 1.3rem 1.9rem;
+	text-transform: uppercase;
+}
+.menu a:hover {
+	background: rgba(0, 0, 0, 0.1);
+}
+.menu-item {
+	position: relative;
+	display: inline-block;
+}
+.menu-item-button > a::after {
+	margin: 0.6rem;
+	content: '\2bc6';
+	color: darkorange;
+}
+.menu-item-content {
+	z-index: 1;
+	display: none;
+	position: absolute;
+	background: whitesmoke;
+}
+.menu-item:hover .menu-item-content {
+  display: block;
+}
+
+main {
+	margin: auto;
+	padding: 1rem;
+	max-width: 900px;
+}
+r-error {
+	text-align: center;
+	align-items: center;
+	align-content: center;
+	justify-content: center;
+	flex-direction: column;
+}
