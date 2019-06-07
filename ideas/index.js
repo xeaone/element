@@ -2,7 +2,7 @@ import oSelect from './components/o-select.js';
 import cMenu from './components/c-menu.js';
 import cFoo from './components/c-foo.js';
 
-import Index from './index.js';
+// import Index from './index.js';
 
 document.head.insertAdjacentHTML('afterbegin', /*html*/`
 
@@ -57,7 +57,7 @@ Oxe.setup({
     },
     component: {
         components: [
-            Index,
+            // Index,
             cFoo,
             cMenu,
             oSelect
