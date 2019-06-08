@@ -22,8 +22,8 @@ export default function (binder) {
                         parameters.push(parameter);
                     }
 
-                    parameter.push(events);
-                    parameter.push(this);
+                    parameters.push(events);
+                    parameters.push(this);
 
                     Promise.resolve(context.data.bind(binder.container).apply(null, parameters));
                 };

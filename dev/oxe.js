@@ -701,14 +701,12 @@
 
             for (var i = 0, l = binder.pipes.length; i < l; i++) {
               var keys = binder.pipes[i].split('.');
-
-              var _parameter = Utility.getByPath(binder.container.model, keys);
-
-              parameters.push(_parameter);
+              var parameter = Utility.getByPath(binder.container.model, keys);
+              parameters.push(parameter);
             }
 
-            parameter.push(events);
-            parameter.push(this);
+            parameters.push(events);
+            parameters.push(this);
             Promise.resolve(context.data.bind(binder.container).apply(null, parameters));
           };
         }
