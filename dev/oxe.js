@@ -697,14 +697,18 @@
           binder.target.removeEventListener(binder.names[1], binder.meta.method);
         } else {
           binder.meta.method = function (events) {
-            var parameters = [events];
+            var parameters = [];
 
             for (var i = 0, l = binder.pipes.length; i < l; i++) {
               var keys = binder.pipes[i].split('.');
-              var parameter = Utility.getByPath(binder.container.model, keys);
-              parameters.push(parameter);
+
+              var _parameter = Utility.getByPath(binder.container.model, keys);
+
+              parameters.push(_parameter);
             }
 
+            parameter.push(events);
+            parameter.push(this);
             Promise.resolve(context.data.bind(binder.container).apply(null, parameters));
           };
         }
@@ -2665,6 +2669,7 @@
     folder: './routes',
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
+        var ORouter;
         options = options || {};
         this.base = options.base === undefined ? this.base : options.base;
         this.mode = options.mode === undefined ? this.mode : options.mode;
@@ -2681,6 +2686,14 @@
         }
 
         if (!this.target) return $error(new Error('Oxe.router.setup - target option required'));
+
+        ORouter = function ORouter() {
+          return window.Reflect.construct(HTMLElement, [], this.constructor);
+        };
+
+        Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+        Object.setPrototypeOf(ORouter, HTMLElement);
+        window.customElements.define('o-router', ORouter);
         return Promise.resolve(this.add(options.routes)).then(function ($await_51) {
           try {
             return Promise.resolve(this.route(window.location.href, {
@@ -3428,13 +3441,6 @@
     };
   }
 
-  var ORouter = function ORouter() {
-    return window.Reflect.construct(HTMLElement, [], this.constructor);
-  };
-
-  Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-  Object.setPrototypeOf(ORouter, HTMLElement);
-  window.customElements.define('o-router', ORouter);
   var oSetup = document.querySelector('script[o-setup]');
 
   if (oSetup) {

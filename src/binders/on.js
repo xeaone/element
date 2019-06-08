@@ -14,13 +14,16 @@ export default function (binder) {
                 binder.target.removeEventListener(binder.names[1], binder.meta.method);
             } else {
                 binder.meta.method = function (events) {
-                    const parameters = [ events ];
+                    const parameters = [];
 
                     for (let i = 0, l = binder.pipes.length; i < l; i++) {
                         const keys = binder.pipes[i].split('.');
                         const parameter = Utility.getByPath(binder.container.model, keys);
                         parameters.push(parameter);
                     }
+
+                    parameter.push(events);
+                    parameter.push(this);
 
                     Promise.resolve(context.data.bind(binder.container).apply(null, parameters));
                 };
