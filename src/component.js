@@ -93,10 +93,12 @@ export default {
 
         while (clone.firstElementChild) {
 
-            Binder.add(clone.firstElementChild, {
-                container: element,
-                scope: element.scope
-            });
+            if (!options.adopt) {
+                Binder.add(clone.firstElementChild, {
+                    container: element,
+                    scope: element.scope
+                });
+            }
 
             fragment.appendChild(clone.firstElementChild);
 
@@ -115,17 +117,37 @@ export default {
             return;
         }
 
-        const fragment = this.fragment(element, options);
+        let fragment;
 
-        if (options.shadow) {
-            if ('attachShadow' in document.body) {
-                element.attachShadow({ mode: 'open' }).appendChild(fragment);
-            } else if ('createShadowRoot' in document.body) {
-                element.createShadowRoot().appendChild(fragment);
-            }
+        if (options.template) {
+            fragment = this.fragment(element, options);
+        }
+
+        let root;
+
+        if (options.shadow && 'attachShadow' in document.body) {
+            root = element.attachShadow({ mode: 'open' })
+        } else if (options.shadow && 'createShadowRoot' in document.body) {
+            root = element.createShadowRoot();
         } else {
-            this.slot(element, fragment);
-            element.appendChild(fragment);
+
+            if (fragment) {
+                this.slot(element, fragment);
+            }
+
+            root = element;
+        }
+
+        if (fragment) {
+            root.appendChild(fragment);
+        }
+
+        if (options.adopt) {
+            let e = root.firstElementChild;
+            while (e) {
+                Binder.add(e, { container: element, scope: element.scope });
+                e = e.nextElementSibling;
+            }
         }
 
     },
@@ -138,7 +160,7 @@ export default {
         }
 
         if (options.constructor === Array) {
-            
+
             for (let i = 0, l = options.length; i < l; i++) {
                 self.define(options[i]);
             }
@@ -158,6 +180,7 @@ export default {
         options.style = options.style || '';
         options.model = options.model || {};
         options.methods = options.methods || {};
+        options.adopt = options.adopt || false;
         options.shadow = options.shadow || false;
         options.template = options.template || '';
         options.attributes = options.attributes || [];

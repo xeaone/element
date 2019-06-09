@@ -687,7 +687,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           binder.target.removeEventListener(binder.names[1], binder.meta.method);
         } else {
           binder.meta.method = function (events) {
-            var parameters = [events];
+            var parameters = [];
 
             for (var i = 0, l = binder.pipes.length; i < l; i++) {
               var keys = binder.pipes[i].split('.');
@@ -695,6 +695,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               parameters.push(parameter);
             }
 
+            parameters.push(events);
+            parameters.push(this);
             Promise.resolve(context.data.bind(binder.container).apply(null, parameters));
           };
         }
@@ -2493,10 +2495,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var clone = options.clone.cloneNode(true);
 
       while (clone.firstElementChild) {
-        Binder.add(clone.firstElementChild, {
-          container: element,
-          scope: element.scope
-        });
+        if (!options.adopt) {
+          Binder.add(clone.firstElementChild, {
+            container: element,
+            scope: element.scope
+          });
+        }
+
         fragment.appendChild(clone.firstElementChild);
       }
 
@@ -2511,19 +2516,42 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return;
       }
 
-      var fragment = this.fragment(element, options);
+      var fragment;
 
-      if (options.shadow) {
-        if ('attachShadow' in document.body) {
-          element.attachShadow({
-            mode: 'open'
-          }).appendChild(fragment);
-        } else if ('createShadowRoot' in document.body) {
-          element.createShadowRoot().appendChild(fragment);
-        }
+      if (options.template) {
+        fragment = this.fragment(element, options);
+      }
+
+      var root;
+
+      if (options.shadow && 'attachShadow' in document.body) {
+        root = element.attachShadow({
+          mode: 'open'
+        });
+      } else if (options.shadow && 'createShadowRoot' in document.body) {
+        root = element.createShadowRoot();
       } else {
-        this.slot(element, fragment);
-        element.appendChild(fragment);
+        if (fragment) {
+          this.slot(element, fragment);
+        }
+
+        root = element;
+      }
+
+      if (fragment) {
+        root.appendChild(fragment);
+      }
+
+      if (options.adopt) {
+        var e = root.firstElementChild;
+
+        while (e) {
+          Binder.add(e, {
+            container: element,
+            scope: element.scope
+          });
+          e = e.nextElementSibling;
+        }
       }
     },
     define: function define(options) {
@@ -2549,6 +2577,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       options.style = options.style || '';
       options.model = options.model || {};
       options.methods = options.methods || {};
+      options.adopt = options.adopt || false;
       options.shadow = options.shadow || false;
       options.template = options.template || '';
       options.attributes = options.attributes || [];
@@ -2655,6 +2684,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     folder: './routes',
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
+        var ORouter;
         options = options || {};
         this.base = options.base === undefined ? this.base : options.base;
         this.mode = options.mode === undefined ? this.mode : options.mode;
@@ -2671,6 +2701,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         if (!this.target) return $error(new Error('Oxe.router.setup - target option required'));
+
+        ORouter = function ORouter() {
+          return window.Reflect.construct(HTMLElement, [], this.constructor);
+        };
+
+        Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
+        Object.setPrototypeOf(ORouter, HTMLElement);
+        window.customElements.define('o-router', ORouter);
         return Promise.resolve(this.add(options.routes)).then(function ($await_51) {
           try {
             return Promise.resolve(this.route(window.location.href, {
@@ -3418,13 +3456,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  var ORouter = function ORouter() {
-    return window.Reflect.construct(HTMLElement, [], this.constructor);
-  };
-
-  Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-  Object.setPrototypeOf(ORouter, HTMLElement);
-  window.customElements.define('o-router', ORouter);
   var oSetup = document.querySelector('script[o-setup]');
 
   if (oSetup) {
