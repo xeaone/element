@@ -160,7 +160,8 @@ export default {
             },
 
             set data (value) {
-                return Utility.setByPath(source, values, value);
+                const data = Piper(this, value);
+                return Utility.setByPath(source, values, data);
             }
 
         };
