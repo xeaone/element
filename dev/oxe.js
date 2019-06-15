@@ -1200,7 +1200,7 @@
 
         set data(value) {
           var data = Piper(this, value);
-          return Utility.setByPath(source, values, value);
+          return Utility.setByPath(source, values, data);
         }
 
       };
