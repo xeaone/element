@@ -17,6 +17,8 @@ import Model from './model.js';
 import Style from './style.js';
 import Path from './path.js';
 
+document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}</style>');
+
 if (window.Reflect === undefined) {
     window.Reflect = window.Reflect || {};
     window.Reflect.construct = function (parent, args, child) {
