@@ -34,7 +34,7 @@ export default async function (event) {
 
         const binder = Binder.get('attribute', element, 'o-value');
         const value = binder ? binder.data : element.value;
-        const name = element.name || (binder ? binder.values[binder.values.length-1] : i);
+        const name = element.name || (binder ? binder.values[binder.values.length-1] : null);
 
         if (!name) continue;
         data[name] = value;
