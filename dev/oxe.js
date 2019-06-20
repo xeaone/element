@@ -639,7 +639,7 @@
       },
       write: function write() {
         while (binder.target.firstChild) {
-          var node = binder.target.removeNode(binder.target.firstChild);
+          var node = binder.target.removeChild(binder.target.firstChild);
           self.remove(node);
         }
 
@@ -3455,6 +3455,8 @@
 
     Promise.resolve().then(before).then(method.bind(null, event)).then(after);
   }
+
+  document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}</style>');
 
   if (window.Reflect === undefined) {
     window.Reflect = window.Reflect || {};

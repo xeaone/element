@@ -17,7 +17,7 @@ export default function (binder) {
         write () {
 
             while (binder.target.firstChild) {
-                const node = binder.target.removeNode(binder.target.firstChild);
+                const node = binder.target.removeChild(binder.target.firstChild);
                 self.remove(node);
             }
 
