@@ -1,7 +1,7 @@
 
 export default {
 
-    header: null,
+    headers: null,
     method: 'get',
     mime: {
         xml: 'text/xml; charset=utf-8',

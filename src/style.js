@@ -18,21 +18,12 @@ export default {
         this.style.appendChild(document.createTextNode(data));
     },
 
-    async setup () {
+    async setup (option) {
+        option = option || {};
 
-        this.append(/*css*/`
-			*[hidden] {
-				display: none !important;
-			}
-			o-router, o-router > :first-child {
-				display: block;
-				animation: o-transition var(--o-transition) ease-in-out;
-			}
-			@keyframes o-transition {
-				0% { opacity: 0; }
-				100% { opacity: 1; }
-			}
-		`);
+        if (option.style) {
+            this.append(option.style);
+        }
 
         document.head.appendChild(this.style);
     }

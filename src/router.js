@@ -2,6 +2,7 @@ import Path from './path.js';
 import Loader from './loader.js';
 import Events from './events.js';
 import Utility from './utility.js';
+import Definer from './definer.js';
 import Component from './component.js';
 
 const Event = Object.create(Events);
@@ -18,34 +19,32 @@ export default {
     mode: 'push',
     target: null,
     contain: false,
-    compiled: false,
     folder: './routes',
 
-    async setup (options) {
-        options = options || {};
+    async setup (option) {
+        option = option || {};
 
-        this.base = options.base === undefined ? this.base : options.base;
-        this.mode = options.mode === undefined ? this.mode : options.mode;
-        this.after = options.after === undefined ? this.after : options.after;
-        this.folder = options.folder === undefined ? this.folder : options.folder;
-        this.before = options.before === undefined ? this.before : options.before;
-        this.change = options.change === undefined ? this.change : options.change;
-        this.target = options.target === undefined ? this.target : options.target;
-        this.contain = options.contain === undefined ? this.contain : options.contain;
-        this.external = options.external === undefined ? this.external : options.external;
+        this.base = option.base === undefined ? this.base : option.base;
+        this.mode = option.mode === undefined ? this.mode : option.mode;
+        this.after = option.after === undefined ? this.after : option.after;
+        this.folder = option.folder === undefined ? this.folder : option.folder;
+        this.before = option.before === undefined ? this.before : option.before;
+        this.change = option.change === undefined ? this.change : option.change;
+        this.target = option.target === undefined ? this.target : option.target;
+        this.contain = option.contain === undefined ? this.contain : option.contain;
+        this.external = option.external === undefined ? this.external : option.external;
 
         if (!this.target || typeof this.target === 'string') {
             this.target = document.body.querySelector(this.target || 'o-router');
         }
 
-        if (!this.target) throw new Error('Oxe.router.setup - target option required');
+        if (this.mode !== 'href') {
+            window.document.addEventListener('click', this.click.bind(this), true);
+        }
 
-        const ORouter = function ORouter () { return window.Reflect.construct(HTMLElement, [], this.constructor); };
-        Object.setPrototypeOf(ORouter.prototype, HTMLElement.prototype);
-        Object.setPrototypeOf(ORouter, HTMLElement);
-        window.customElements.define('o-router', ORouter);
+        Definer.define('o-router');
 
-        await this.add(options.routes);
+        await this.add(option.routes);
         await this.route(window.location.href, { mode: 'replace' });
     },
 
@@ -378,22 +377,18 @@ export default {
                 route.target = window.document.createElement(route.component);
             } else if (route.component.constructor === Object) {
                 Component.define(route.component);
-
-                if (this.compiled) {
-                    route.target = this.target.firstElementChild;
-                    this.scroll(0, 0);
-                    return;
-                } else {
-                    route.target = window.document.createElement(route.component.name);
-                }
+                route.target = window.document.createElement(route.component.name);
             }
         }
 
-        while (this.target.firstChild) {
-            this.target.removeChild(this.target.firstChild);
+        if (this.target) {
+            while (this.target.firstChild) {
+                this.target.removeChild(this.target.firstChild);
+            }
+
+            this.target.appendChild(route.target);
         }
 
-        this.target.appendChild(route.target);
         this.scroll(0, 0);
     },
 
@@ -431,10 +426,8 @@ export default {
 
         this.emit('route:before', location);
 
-        if (mode === 'href' || this.compiled) {
-            // if (!options.setup) {
-                return window.location.assign(location.path);
-            // }
+        if (mode === 'href') {
+            return window.location.assign(location.path);
         }
 
         window.history[mode + 'State']({ path: location.path }, '', location.path);
@@ -448,6 +441,77 @@ export default {
         }
 
         this.emit('route:after', location);
+    },
+
+    async click (event) {
+
+        // ignore canceled events, modified clicks, and right clicks
+        if (
+    		event.target.type ||
+            event.button !== 0 ||
+    		event.defaultPrevented ||
+    		event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+        ) {
+            return;
+        }
+
+        // if shadow dom use
+        var target = event.path ? event.path[0] : event.target;
+        var parent = target.parentElement;
+
+        if (this.contain) {
+
+            while (parent) {
+
+                if (parent.nodeName === 'O-ROUTER') {
+                    break;
+                } else {
+                    parent = parent.parentElement;
+                }
+
+            }
+
+            if (parent.nodeName !== 'O-ROUTER') {
+                return;
+            }
+
+        }
+
+        while (target && 'A' !== target.nodeName) {
+            target = target.parentElement;
+        }
+
+        if (!target || 'A' !== target.nodeName) {
+            return;
+        }
+
+        // check non-acceptables
+        if (target.hasAttribute('download') ||
+    		target.hasAttribute('external') ||
+    		target.hasAttribute('o-external') ||
+    		target.href.indexOf('tel:') === 0 ||
+    		target.href.indexOf('ftp:') === 0 ||
+    		target.href.indexOf('file:') === 0 ||
+    		target.href.indexOf('mailto:') === 0 ||
+    		target.href.indexOf(window.location.origin) !== 0 ||
+    		(target.hash !== '' &&
+                target.origin === window.location.origin &&
+                target.pathname === window.location.pathname)
+        ) return;
+
+        // if external is true then default action
+        if (this.external &&
+    		(this.external.constructor === RegExp && this.external.test(target.href) ||
+    		this.external.constructor === Function && this.external(target.href) ||
+    		this.external.constructor === String && this.external === target.href)
+        ) return;
+
+        event.preventDefault();
+
+        if (this.location.href !== target.href) {
+            this.route(target.href);
+        }
+
     }
 
 };

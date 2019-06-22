@@ -2,11 +2,11 @@ import Change from './listener/change.js';
 import Submit from './listener/submit.js';
 import Input from './listener/input.js';
 import Reset from './listener/reset.js';
-import Click from './listener/click.js';
 import State from './listener/state.js';
 import Component from './component.js';
 import Listener from './listener.js';
 import Batcher from './batcher.js';
+import Definer from './definer.js';
 import Fetcher from './fetcher.js';
 import Methods from './methods.js';
 import Utility from './utility.js';
@@ -19,26 +19,20 @@ import Path from './path.js';
 
 document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}</style>');
 
-if (window.Reflect === undefined) {
-    window.Reflect = window.Reflect || {};
-    window.Reflect.construct = function (parent, args, child) {
-        var target = child === undefined ? parent : child;
-        var prototype = target.prototype || Object.prototype;
-        var copy = Object.create(prototype);
-        return Function.prototype.apply.call(parent, copy, args) || copy;
-    };
-}
+// if (window.Reflect === undefined) {
+//     window.Reflect = window.Reflect || {};
+//     window.Reflect.construct = function (parent, args, child) {
+//         var target = child === undefined ? parent : child;
+//         var prototype = target.prototype || Object.prototype;
+//         var copy = Object.create(prototype);
+//         return Function.prototype.apply.call(parent, copy, args) || copy;
+//     };
+// }
 
 const oSetup = document.querySelector('script[o-setup]');
 
 if (oSetup) {
     const options = oSetup.getAttribute('o-setup').split(/\s+|\s*,+\s*/);
-    const meta = document.querySelector('meta[name="oxe"]');
-
-    if (meta && meta.getAttribute('content') === 'compiled') {
-        Router.compiled = true;
-        Component.compiled = true;
-    }
 
     if (!options[0]) {
         throw new Error('Oxe - script attribute o-setup requires path');
@@ -46,7 +40,6 @@ if (oSetup) {
 
     Loader.type = options[1] || 'esm';
 
-    // might need to wait for export
     Promise.resolve(Loader.load(options[0]));
 }
 
@@ -56,16 +49,10 @@ const GLOBAL = {};
 export default {
 
     get global () { return GLOBAL; },
-    get window () { return window; },
-    get document () { return window.document; },
-    get body () { return window.document.body; },
-    get head () { return window.document.head; },
-    get location () { return this.router.location; },
-    get currentScript () { return (window.document._currentScript || window.document.currentScript); },
-    get ownerDocument () { return (window.document._currentScript || window.document.currentScript).ownerDocument; },
 
     get component () { return Component; },
     get batcher () { return Batcher; },
+    get definer () { return Definer; },
     get fetcher () { return Fetcher; },
     get methods () { return Methods; },
     get utility () { return Utility; },
@@ -87,8 +74,8 @@ export default {
         await this.style.setup(options.style);
         await this.model.setup(options.model);
         await this.binder.setup(options.binder);
+        await this.definer.setup(options.definer);
 
-        document.addEventListener('click', Listener.bind(null, options, Click), true);
         document.addEventListener('input', Listener.bind(null, options, Input), true);
         document.addEventListener('reset', Listener.bind(null, options, Reset), true);
         document.addEventListener('change', Listener.bind(null, options, Change), true);

@@ -4,11 +4,11 @@ import Loader from './loader.js';
 import Model from './model.js';
 import Style from './style.js';
 import Utility from './utility.js';
+import Definer from './definer.js';
 
 export default {
 
     data: {},
-    compiled: false,
 
     async setup (options) {
         const self = this;
@@ -87,47 +87,37 @@ export default {
 
     },
 
-    fragment (element, options) {
+    fragment (element, template, adopt) {
         const fragment = document.createDocumentFragment();
-        const clone = options.clone.cloneNode(true);
+        const clone = template.cloneNode(true);
 
-        while (clone.firstElementChild) {
+        let child = clone.firstElementChild;
+        while (child) {
 
-            if (!options.adopt) {
-                Binder.add(clone.firstElementChild, {
-                    container: element,
-                    scope: element.scope
-                });
+            if (!adopt) {
+                Binder.add(child, { container: element, scope: element.scope });
             }
 
-            fragment.appendChild(clone.firstElementChild);
-
+            fragment.appendChild(child);
+            child = clone.firstElementChild;
         }
 
         return fragment;
     },
 
-    render (element, options) {
+    render (element, template, adopt, shadow) {
 
-        if (this.compiled && element.parentElement.nodeName === 'O-ROUTER') {
+        if (!template) {
             return;
         }
 
-        if (!options.template) {
-            return;
-        }
-
-        let fragment;
-
-        if (options.template) {
-            fragment = this.fragment(element, options);
-        }
+        const fragment = this.fragment(element, template);
 
         let root;
 
-        if (options.shadow && 'attachShadow' in document.body) {
+        if (shadow && 'attachShadow' in document.body) {
             root = element.attachShadow({ mode: 'open' })
-        } else if (options.shadow && 'createShadowRoot' in document.body) {
+        } else if (shadow && 'createShadowRoot' in document.body) {
             root = element.createShadowRoot();
         } else {
 
@@ -142,11 +132,11 @@ export default {
             root.appendChild(fragment);
         }
 
-        if (options.adopt) {
-            let e = root.firstElementChild;
-            while (e) {
-                Binder.add(e, { container: element, scope: element.scope });
-                e = e.nextElementSibling;
+        if (adopt) {
+            let child = root.firstElementChild;
+            while (child) {
+                Binder.add(child, { container: element, scope: element.scope });
+                child = child.nextElementSibling;
             }
         }
 
@@ -168,119 +158,130 @@ export default {
             return;
         }
 
-        if (!options.name) throw new Error('Oxe.component.define - requires name');
+        if (!options.name) {
+            return console.warn('Oxe.component.define - requires name');
+        }
 
         options.name = options.name.toLowerCase();
 
-        if (options.name in self.data) throw new Error('Oxe.component.define - component previously defined');
+        if (options.name in self.data) {
+            throw new Error('Oxe.component.define - component defined');
+        }
 
         self.data[options.name] = options;
 
         options.count = 0;
-        options.style = options.style || '';
         options.model = options.model || {};
-        options.methods = options.methods || {};
         options.adopt = options.adopt || false;
+        options.methods = options.methods || {};
         options.shadow = options.shadow || false;
-        options.template = options.template || '';
         options.attributes = options.attributes || [];
         options.properties = options.properties || {};
 
         if (options.style) {
-            const style = this.style(options.style, options.name);
-            Style.append(style);
+            options.style = this.style(options.style, options.name);
+            Style.append(options.style);
         }
 
-        if (options.template) {
-            options.clone = document.createElement('div');
-            options.clone.innerHTML = options.template;
+        if (options.template && typeof options.template === 'string') {
+            const data = document.createElement('div');
+            data.innerHTML = options.template;
+            options.template = data;
         }
 
-        const construct = function () {
-            const instance = window.Reflect.construct(HTMLElement, [], this.constructor);
-            const properties = Utility.clone(options.properties);
+        options.properties.created = {
+            get () { return this._created; }
+        };
+
+        options.properties.scope = {
+            get () { return this._scope; }
+        };
+
+        options.properties.methods = {
+            get () { return Methods.get(this.scope); }
+        };
+
+        options.properties.model = {
+            get () { return Model.get(this.scope); },
+            set (data) {
+                return Model.set(this.scope, data && typeof data === 'object' ? data : {});
+            }
+        };
+
+        options.properties.observedAttributes = {
+            value: options.attributes
+        };
+
+        options.properties.attributeChangedCallback = {
+            value () {
+                if (options.attributed) options.attributed.apply(this, arguments);
+            }
+        };
+
+        options.properties.adoptedCallback = {
+            value () {
+                if (options.adopted) options.adopted.apply(this, arguments);
+            }
+        };
+
+        options.properties.disconnectedCallback = {
+            value () {
+                if (options.detached) options.detached.call(this);
+            }
+        };
+
+        options.properties.connectedCallback = {
+            value () {
+                const instance = this;
+
+                if (instance.created) {
+                    if (options.attached) {
+                        options.attached.call(instance);
+                    }
+                } else {
+                    instance._created = true;
+
+                    self.render(instance, options.template, options.adopt, options.shadow);
+
+                    Promise.resolve().then(function () {
+                        if (options.created) {
+                            return options.created.call(instance);
+                        }
+                    }).then(function () {
+                        if (options.attached) {
+                            return options.attached.call(instance);
+                        }
+                    });
+
+                }
+            }
+        };
+
+        const constructor = function () {
+            this._created = false;
+            this._scope = options.name + '-' + options.count++;
+
+            // Object.defineProperties(this, {
+            //     created: {
+            //         value: false,
+            //         enumerable: true,
+            //         configurable: true
+            //     },
+            //     scope: {
+            //         enumerable: true,
+            //         value: scope
+            //     }
+            // });
+
             const methods = Utility.clone(options.methods);
             const model = Utility.clone(options.model);
-            const scope = options.name + '-' + options.count++;
 
-            properties.created = {
-                value: false,
-                enumerable: true,
-                configurable: true
-            };
-
-            properties.scope = {
-                enumerable: true,
-                value: scope
-            };
-
-            properties.model = {
-                enumerable: true,
-                get: function () {
-                    return Model.get(scope);
-                },
-                set: function (data) {
-                    return Model.set(scope, data && typeof data === 'object' ? data : {});
-                }
-            };
-
-            properties.methods = {
-                enumerable: true,
-                get: function () {
-                    return Methods.get(scope);
-                }
-            };
-
-            Object.defineProperties(instance, properties);
-            Methods.set(scope, methods);
-            Model.set(scope, model);
-
-            return instance;
+            Methods.set(this.scope, methods);
+            Model.set(this.scope, model);
         };
 
-        construct.observedAttributes = options.attributes;
-
-        construct.prototype.attributeChangedCallback = function () {
-            if (options.attributed) options.attributed.apply(this, arguments);
-        };
-
-        construct.prototype.adoptedCallback = function () {
-            if (options.adopted) options.adopted.call(this);
-        };
-
-        construct.prototype.connectedCallback = function () {
-
-            if (!this.created) {
-
-                self.render(this, options);
-
-                Object.defineProperty(this, 'created', {
-                    value: true,
-                    enumerable: true,
-                    configurable: false
-                });
-
-                if (options.created) {
-                    options.created.call(this);
-                }
-
-            }
-
-            if (options.attached) {
-                options.attached.call(this);
-            }
-        };
-
-        construct.prototype.disconnectedCallback = function () {
-            if (options.detached) {
-                options.detached.call(this);
-            }
-        };
-
-        Object.setPrototypeOf(construct.prototype, HTMLElement.prototype);
-        Object.setPrototypeOf(construct, HTMLElement);
-
-        window.customElements.define(options.name, construct);
+        Object.defineProperties(constructor.prototype, options.properties);
+        Definer.define(options.name, constructor);
     }
 
 };
