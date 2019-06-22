@@ -34,6 +34,8 @@ export default {
 
     style (style, name) {
 
+        style.replace(/\n|\r|\t/g, '');
+
         if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
             const matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
 
@@ -47,9 +49,7 @@ export default {
 
         }
 
-        if (!window.CSS || !window.CSS.supports || !window.CSS.supports(':host')) {
-            style = style.replace(/:host/g, name);
-        }
+        style = style.replace(/:host/g, name);
 
         return style;
     },
