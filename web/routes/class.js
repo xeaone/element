@@ -3,7 +3,7 @@ export default {
     title: 'Class',
     path: '/class',
     component: {
-        name: 'r-style',
+        name: 'r-class',
         model: {
             c: 'default',
             ca: false,

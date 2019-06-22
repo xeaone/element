@@ -162,7 +162,8 @@ export default {
         options.name = options.name.toLowerCase();
 
         if (options.name in self.data) {
-            throw new Error('Oxe.component.define - component defined');
+            console.log(options.name);
+            return console.warn('Oxe.component.define - component defined');
         }
 
         self.data[options.name] = options;
