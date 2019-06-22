@@ -2489,7 +2489,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }.bind(this));
     },
     style: function style(_style, name) {
-      _style.replace(/\n|\r|\t/g, '');
+      _style = _style.replace(/\n|\r|\t/g, '');
+      _style = _style.replace(/:host/g, name);
 
       if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
         var matches = _style.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
@@ -2503,7 +2504,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
 
-      _style = _style.replace(/:host/g, name);
       return _style;
     },
     slot: function slot(element, fragment) {

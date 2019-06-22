@@ -34,11 +34,11 @@ export default {
 
     style (style, name) {
 
-        style.replace(/\n|\r|\t/g, '');
+        style = style.replace(/\n|\r|\t/g, '');
+        style = style.replace(/:host/g, name);
 
         if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
             const matches = style.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
-
             for (let i = 0, l = matches.length; i < l; i++) {
                 const match = matches[i];
                 const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
@@ -46,10 +46,7 @@ export default {
                 style = style.replace(rule[0], '');
                 style = style.replace(pattern, rule[2]);
             }
-
         }
-
-        style = style.replace(/:host/g, name);
 
         return style;
     },
