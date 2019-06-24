@@ -32,12 +32,12 @@ export default {
 
         if (name in this.events) {
 
-            let methods = this.events[name];
-            let args = Array.prototype.slice.call(arguments, 1);
+            const methods = this.events[name];
+            const args = Array.prototype.slice.call(arguments, 2);
 
-            for (let i = 0, l = methods.length; i < l; i++) {
-                methods[i].apply(this, args);
-            }
+            Promise.all(methods.map(function (method) {
+                return method.apply(this, args);
+            }));
 
         }
 
