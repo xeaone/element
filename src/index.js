@@ -18,41 +18,27 @@ import Path from './path.js';
 
 document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}o-router,o-router>:first-child{display:block;}</style>');
 
-const oSetup = document.querySelector('script[o-setup]');
-
-if (oSetup) {
-    const options = oSetup.getAttribute('o-setup').split(/\s+|\s*,+\s*/);
-
-    if (!options[0]) {
-        throw new Error('Oxe - script attribute o-setup requires path');
-    }
-
-    Loader.type = options[1] || 'esm';
-
-    Promise.resolve(Loader.load(options[0]));
-}
-
 let SETUP = false;
 const GLOBAL = {};
 
-export default {
+export default Object.freeze({
 
-    get global () { return GLOBAL; },
+    global: GLOBAL,
+    component: Component,
+    batcher: Batcher,
+    definer: Definer,
+    fetcher: Fetcher,
+    methods: Methods,
+    utility: Utility,
+    binder: Binder,
+    loader: Loader,
+    router: Router,
+    model: Model,
+    style: Style,
+    path: Path,
 
-    get component () { return Component; },
-    get batcher () { return Batcher; },
-    get definer () { return Definer; },
-    get fetcher () { return Fetcher; },
-    get methods () { return Methods; },
-    get utility () { return Utility; },
-    get binder () { return Binder; },
-    get loader () { return Loader; },
-    get router () { return Router; },
-    get model () { return Model; },
-    get style () { return Style; },
-    get path () { return Path; },
-
-    async setup (options) {
+    setup (options) {
+        const self = this;
 
         if (SETUP) return;
         else SETUP = true;
@@ -60,44 +46,52 @@ export default {
         options = options || {};
         options.listener = options.listener || {};
 
-        await this.style.setup(options.style);
-        await this.model.setup(options.model);
-        await this.binder.setup(options.binder);
-        await this.definer.setup(options.definer);
-
         document.addEventListener('input', Listener.bind(null, options, Input), true);
         document.addEventListener('reset', Listener.bind(null, options, Reset), true);
         document.addEventListener('change', Listener.bind(null, options, Change), true);
         document.addEventListener('submit', Listener.bind(null, options, Submit), true);
 
-        if (options.listener.before) {
-            await options.listener.before();
-        }
+        return Promise.all([
+            self.path.setup(options.path),
+            self.style.setup(options.style),
+            self.model.setup(options.model),
+            self.binder.setup(options.binder),
+            self.definer.setup(options.definer),
+            self.fetcher.setup(options.fetcher),
+            self.loader.setup(options.loader),
+        ]).then(function () {
+            if (options.listener.before) {
+                return options.listener.before();
+            }
+        }).then(function () {
+            if (options.component) {
+                return self.component.setup(options.component);
+            }
+        }).then(function () {
+            if (options.router) {
+                return self.router.setup(options.router);
+            }
+        }).then(function () {
+            const oSetup = document.querySelector('script[o-setup]');
 
-        if (options.path) {
-            await this.path.setup(options.path);
-        }
+            if (!oSetup) return;
 
-        if (options.fetcher) {
-            await this.fetcher.setup(options.fetcher);
-        }
+            const attribute = oSetup.getAttribute('o-setup');
 
-        if (options.loader) {
-            await this.loader.setup(options.loader);
-        }
+            if (!attribute) {
+                throw new Error('Oxe - attribute o-setup requires arguments');
+            }
 
-        if (options.component) {
-            await this.component.setup(options.component);
-        }
+            const options = attribute.split(/\s+|\s*,+\s*/);
 
-        if (options.router) {
-            await this.router.setup(options.router);
-        }
+            Loader.type = options[1] || 'esm';
 
-        if (options.listener.after) {
-            await options.listener.after();
-        }
-
+            return Loader.load(options[0]);
+        }).then(function () {
+            if (options.listener.after) {
+                return options.listener.after();
+            }
+        });
     }
 
-};
+});

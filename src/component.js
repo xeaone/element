@@ -16,18 +16,15 @@ export default {
         options = options || {};
 
         if (options.components) {
-
-            for (let i = 0, l = options.components.length; i < l; i++) {
-                let component = options.components[i];
-
+            return Promise.all(options.components.map(function (component) {
                 if (typeof component === 'string') {
-                    const load = await Loader.load(component);
-                    component = load.default;
+                    return Loader.load(component).then(function (load) {
+                        return self.define(load.default);
+                    });
+                } else {
+                    return self.define(component);
                 }
-
-                self.define(component);
-            }
-
+            }));
         }
 
     },
