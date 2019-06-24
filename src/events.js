@@ -37,7 +37,7 @@ export default {
 
             Promise.all(methods.map(function (method) {
                 return method.apply(this, args);
-            }));
+            })).catch(console.error);
 
         }
 
