@@ -17,17 +17,7 @@ import Model from './model.js';
 import Style from './style.js';
 import Path from './path.js';
 
-document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}</style>');
-
-// if (window.Reflect === undefined) {
-//     window.Reflect = window.Reflect || {};
-//     window.Reflect.construct = function (parent, args, child) {
-//         var target = child === undefined ? parent : child;
-//         var prototype = target.prototype || Object.prototype;
-//         var copy = Object.create(prototype);
-//         return Function.prototype.apply.call(parent, copy, args) || copy;
-//     };
-// }
+document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}o-router,o-router>:first-child{display:block;}</style>');
 
 const oSetup = document.querySelector('script[o-setup]');
 

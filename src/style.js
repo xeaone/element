@@ -1,11 +1,9 @@
 
-const DEFAULT = document.createTextNode('o-router, o-router > :first-child { display: block; }');
 const STYLE = document.createElement('style');
 const SHEET = STYLE.sheet;
 
 STYLE.setAttribute('title', 'oxe');
 STYLE.setAttribute('type', 'text/css');
-STYLE.appendChild(DEFAULT);
 
 export default {
 
