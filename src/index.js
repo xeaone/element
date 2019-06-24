@@ -2,7 +2,6 @@ import Change from './listener/change.js';
 import Submit from './listener/submit.js';
 import Input from './listener/input.js';
 import Reset from './listener/reset.js';
-import State from './listener/state.js';
 import Component from './component.js';
 import Listener from './listener.js';
 import Batcher from './batcher.js';
@@ -70,7 +69,6 @@ export default {
         document.addEventListener('reset', Listener.bind(null, options, Reset), true);
         document.addEventListener('change', Listener.bind(null, options, Change), true);
         document.addEventListener('submit', Listener.bind(null, options, Submit), true);
-        window.addEventListener('popstate', Listener.bind(null, options, State), true);
 
         if (options.listener.before) {
             await options.listener.before();

@@ -39,6 +39,7 @@ export default {
         }
 
         if (this.mode !== 'href') {
+            window.addEventListener('popstate', this.state.bind(this), true);
             window.document.addEventListener('click', this.click.bind(this), true);
         }
 
@@ -441,6 +442,12 @@ export default {
         }
 
         this.emit('route:after', location);
+    },
+
+    async state (event) {
+        const path = event && event.state ? event.state.path : window.location.href;
+        console.log(path);
+        this.route(path, { mode: 'replace' });
     },
 
     async click (event) {
