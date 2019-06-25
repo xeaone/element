@@ -1,6 +1,10 @@
-import oSelect from './components/o-select.js';
-import cMenu from './components/c-menu.js';
-import cFoo from './components/c-foo.js';
+// import oSelect from './components/o-select.js';
+// import cMenu from './components/c-menu.js';
+// import cFoo from './components/c-foo.js';
+
+// Oxe.router.on('route:after', function () {
+//     console.log('route:after');
+// });
 
 Oxe.setup({
     loader: {
@@ -16,9 +20,12 @@ Oxe.setup({
     },
     component: {
         components: [
-            cFoo,
-            cMenu,
-            oSelect
+            // cFoo,
+            // cMenu,
+            // oSelect
+            './components/c-foo.js',
+            './components/c-menu.js',
+            './components/o-select.js'
         ]
     },
     router: {
