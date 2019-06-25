@@ -18,6 +18,24 @@ import Path from './path.js';
 
 document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}o-router,o-router>:first-child{display:block;}</style>');
 
+const oSetup = document.querySelector('script[o-setup]');
+
+if (oSetup) {
+    Promise.resolve().then(function () {
+        const attribute = oSetup.getAttribute('o-setup');
+
+        if (!attribute) {
+            throw new Error('Oxe - attribute o-setup requires arguments');
+        }
+
+        const options = attribute.split(/\s+|\s*,+\s*/);
+
+        Loader.type = options[1] || 'esm';
+        
+        return Loader.load(options[0]);
+    });
+}
+
 let SETUP = false;
 const GLOBAL = {};
 
@@ -71,22 +89,6 @@ export default Object.freeze({
             if (options.router) {
                 return self.router.setup(options.router);
             }
-        }).then(function () {
-            const oSetup = document.querySelector('script[o-setup]');
-
-            if (!oSetup) return;
-
-            const attribute = oSetup.getAttribute('o-setup');
-
-            if (!attribute) {
-                throw new Error('Oxe - attribute o-setup requires arguments');
-            }
-
-            const options = attribute.split(/\s+|\s*,+\s*/);
-
-            Loader.type = options[1] || 'esm';
-
-            return Loader.load(options[0]);
         }).then(function () {
             if (options.listener.after) {
                 return options.listener.after();
