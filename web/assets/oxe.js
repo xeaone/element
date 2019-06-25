@@ -3382,7 +3382,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     state: function state(event) {
       return new Promise(function ($return, $error) {
         var path = event && event.state ? event.state.path : window.location.href;
-        console.log(path);
         this.route(path, {
           mode: 'replace'
         });

@@ -29,6 +29,7 @@ Oxe.setup({
         ]
     },
     router: {
+        // mode: 'href',
         routes: [
             'index',
             'js',

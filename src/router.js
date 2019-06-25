@@ -446,7 +446,6 @@ export default {
 
     async state (event) {
         const path = event && event.state ? event.state.path : window.location.href;
-        console.log(path);
         this.route(path, { mode: 'replace' });
     },
 

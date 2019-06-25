@@ -31,7 +31,7 @@ if (oSetup) {
         const options = attribute.split(/\s+|\s*,+\s*/);
 
         Loader.type = options[1] || 'esm';
-        
+
         return Loader.load(options[0]);
     });
 }
