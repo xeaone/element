@@ -110,7 +110,9 @@ export default {
             code = code + '\n\nreturn { default: $DEFAULT };\n';
         }
 
-        code = '"use strict";\n' + before + after + code + '});';
+        // code = '"use strict";\n' + before + after + code + '});';
+        // code = '"use strict";\n' + before + after + code + '}).catch(console.error);';
+        code = '"use strict";\n' + before + after + code + '}).catch(function (error) { return error; });';
 
         return code;
     }

@@ -1947,7 +1947,7 @@
         code = code + '\n\nreturn { default: $DEFAULT };\n';
       }
 
-      code = '"use strict";\n' + before + after + code + '});';
+      code = '"use strict";\n' + before + after + code + '}).catch(function (error) { return error; });';
       return code;
     }
   };
@@ -1971,7 +1971,7 @@
     },
     fetch: function fetch(url, type) {
       return new Promise(function ($return, $error) {
-        var data, code;
+        var data, code, method, result;
         return Promise.resolve(window.fetch(url)).then(function ($await_37) {
           try {
             data = $await_37;
@@ -1996,9 +1996,20 @@
                   code = Transformer.module(code, url);
                 }
 
-                code = new Function('window', 'document', '$LOADER', code);
-                this.data[url] = code(window, window.document, this);
-                return $return(this.data[url]);
+                method = new Function('window', 'document', '$LOADER', code);
+                return Promise.resolve(method(window, window.document, this)).then(function ($await_39) {
+                  try {
+                    result = $await_39;
+
+                    if (result instanceof Error) {
+                      return $error(new result.constructor("".concat(result.message, " - ").concat(url), result.fileName, result.lineNumber));
+                    }
+
+                    return $return(this.data[url] = result);
+                  } catch ($boundEx) {
+                    return $error($boundEx);
+                  }
+                }.bind(this), $error);
               } catch ($boundEx) {
                 return $error($boundEx);
               }
@@ -2725,11 +2736,11 @@
         }
 
         Definer.define('o-router');
-        return Promise.resolve(this.add(option.routes)).then(function ($await_39) {
+        return Promise.resolve(this.add(option.routes)).then(function ($await_40) {
           try {
             return Promise.resolve(this.route(window.location.href, {
               mode: 'replace'
-            })).then(function ($await_40) {
+            })).then(function ($await_41) {
               try {
                 return $return();
               } catch ($boundEx) {
@@ -2938,7 +2949,7 @@
 
                 function $Loop_12() {
                   if (i < l) {
-                    return Promise.resolve(this.add(data[i])).then(function ($await_41) {
+                    return Promise.resolve(this.add(data[i])).then(function ($await_42) {
                       try {
                         return $Loop_12_step;
                       } catch ($boundEx) {
@@ -2996,9 +3007,9 @@
         var load, _load;
 
         if (route.load) {
-          return Promise.resolve(Loader.load(route.load)).then(function ($await_42) {
+          return Promise.resolve(Loader.load(route.load)).then(function ($await_43) {
             try {
-              load = $await_42;
+              load = $await_43;
               route = Object.assign({}, load.default, route);
               return $If_14.call(this);
             } catch ($boundEx) {
@@ -3010,9 +3021,9 @@
         function $If_14() {
           if (typeof route.component === 'string') {
             route.load = route.component;
-            return Promise.resolve(Loader.load(route.load)).then(function ($await_43) {
+            return Promise.resolve(Loader.load(route.load)).then(function ($await_44) {
               try {
-                _load = $await_43;
+                _load = $await_44;
                 route.component = _load.default;
                 return $If_15.call(this);
               } catch ($boundEx) {
@@ -3056,9 +3067,9 @@
         function $Loop_16() {
           if (i < l) {
             if (this.data[i].path === path) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_44) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_45) {
                 try {
-                  this.data[i] = $await_44;
+                  this.data[i] = $await_45;
                   return $return(this.data[i]);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -3104,9 +3115,9 @@
         function $Loop_19() {
           if (i < l) {
             if (this.compare(this.data[i].path, path)) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_45) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_46) {
                 try {
-                  this.data[i] = $await_45;
+                  this.data[i] = $await_46;
                   result.push(this.data[i]);
                   return $If_21.call(this);
                 } catch ($boundEx) {
@@ -3156,9 +3167,9 @@
         function $Loop_22() {
           if (i < l) {
             if (this.compare(this.data[i].path, path)) {
-              return Promise.resolve(this.load(this.data[i])).then(function ($await_46) {
+              return Promise.resolve(this.load(this.data[i])).then(function ($await_47) {
                 try {
-                  this.data[i] = $await_46;
+                  this.data[i] = $await_47;
                   return $return(this.data[i]);
                 } catch ($boundEx) {
                   return $error($boundEx);
@@ -3267,9 +3278,9 @@
 
         mode = options.mode || this.mode;
         location = this.toLocationObject(path);
-        return Promise.resolve(this.find(location.pathname)).then(function ($await_47) {
+        return Promise.resolve(this.find(location.pathname)).then(function ($await_48) {
           try {
-            route = $await_47;
+            route = $await_48;
 
             if (!route) {
               return $error(new Error("Oxe.router.route - missing route ".concat(location.pathname)));
@@ -3290,7 +3301,7 @@
 
             function $If_26() {
               if (typeof this.before === 'function') {
-                return Promise.resolve(this.before(location)).then(function ($await_50) {
+                return Promise.resolve(this.before(location)).then(function ($await_51) {
                   try {
                     return $If_27.call(this);
                   } catch ($boundEx) {
@@ -3310,10 +3321,10 @@
                   path: location.path
                 }, '', location.path);
                 this.location = location;
-                return Promise.resolve(this.render(location.route)).then(function ($await_51) {
+                return Promise.resolve(this.render(location.route)).then(function ($await_52) {
                   try {
                     if (typeof this.after === 'function') {
-                      return Promise.resolve(this.after(location)).then(function ($await_52) {
+                      return Promise.resolve(this.after(location)).then(function ($await_53) {
                         try {
                           return $If_28.call(this);
                         } catch ($boundEx) {
@@ -3338,7 +3349,7 @@
             }
 
             if (typeof this.before === 'function') {
-              return Promise.resolve(this.before(location)).then(function ($await_50) {
+              return Promise.resolve(this.before(location)).then(function ($await_51) {
                 try {
                   return $If_27.call(this);
                 } catch ($boundEx) {
@@ -3358,10 +3369,10 @@
                 path: location.path
               }, '', location.path);
               this.location = location;
-              return Promise.resolve(this.render(location.route)).then(function ($await_51) {
+              return Promise.resolve(this.render(location.route)).then(function ($await_52) {
                 try {
                   if (typeof this.after === 'function') {
-                    return Promise.resolve(this.after(location)).then(function ($await_52) {
+                    return Promise.resolve(this.after(location)).then(function ($await_53) {
                       try {
                         return $If_28.call(this);
                       } catch ($boundEx) {

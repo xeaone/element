@@ -53,11 +53,14 @@ export default {
             code = Transformer.module(code, url);
         }
 
-        code = new Function('window', 'document', '$LOADER', code);
+        const method = new Function('window', 'document', '$LOADER', code);
+        const result = await method(window, window.document, this);
 
-        this.data[url] = code(window, window.document, this);
+        if (result instanceof Error) {
+            throw new result.constructor(`${result.message} - ${url}`, result.fileName, result.lineNumber);
+        }
 
-        return this.data[url];
+        return this.data[url] = result;
     },
 
     async load () {
