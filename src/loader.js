@@ -4,6 +4,8 @@ import Path from './path.js';
 // import export in strings cause error
 // backtick in template strings or regex could possibly causes issues
 
+// function hasDynamicImport () {try {new Function('import("")');return true;} catch (e) {return false;}}
+
 export default {
 
     data: {},
