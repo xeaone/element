@@ -347,11 +347,22 @@ export default {
             document.title = route.title;
         }
 
-        if (route.description) {
-            Utility.ensureElement({
+        const ensures = [];
+
+        if (route.keywords) {
+            ensures.push({
                 name: 'meta',
-                scope: document.head,
-                position: 'afterbegin',
+                query: '[name="keywords"]',
+                attributes: [
+                    { name: 'name', value: 'keywords' },
+                    { name: 'content', value: route.keywords }
+                ]
+            });
+        }
+
+        if (route.description) {
+            ensures.push({
+                name: 'meta',
                 query: '[name="description"]',
                 attributes: [
                     { name: 'name', value: 'description' },
@@ -360,17 +371,25 @@ export default {
             });
         }
 
-        if (route.keywords) {
-            Utility.ensureElement({
-                name: 'meta',
-                scope: document.head,
-                position: 'afterbegin',
-                query: '[name="keywords"]',
+        if (route.canonical) {
+            ensures.push({
+                name: 'link',
+                query: '[rel="canonical"]',
                 attributes: [
-                    { name: 'name', value: 'keywords' },
-                    { name: 'content', value: route.keywords }
+                    { name: 'rel', value: 'canonical' },
+                    { name: 'href', value: route.canonical }
                 ]
             });
+        }
+
+        if (ensures.length) {
+            Promise.all(ensures.map(function (option) {
+                return Promise.resolve().then(function () {
+                    option.position = 'afterbegin';
+                    option.scope = document.head;
+                    return Utility.ensureElement(option);
+                });
+            }));
         }
 
         if (!route.target) {
