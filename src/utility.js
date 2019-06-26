@@ -228,25 +228,18 @@ export default {
     ensureElement (data) {
         data.query = data.query || '';
         data.scope = data.scope || document.body;
+        data.position = data.position || 'beforeend';
 
         let element = data.scope.querySelector(`${data.name}${data.query}`);
 
         if (!element) {
             element = document.createElement(data.name);
-
-            if (data.position === 'afterbegin') {
-                data.scope.insertBefore(element, data.scope.firstChild);
-            } else if (data.position === 'beforeend') {
-                data.scope.appendChild(element);
-            } else {
-                data.scope.appendChild(element);
-            }
-
+            data.scope.insertAdjacentElement(data.position, element);
         }
 
         for (let i = 0, l = data.attributes.length; i < l; i++) {
-            const attribute = data.attributes[i];
-            element.setAttribute(attribute.name, attribute.value);
+            const { name, value } = data.attributes[i];
+            element.setAttribute(name, value);
         }
 
         return element;
