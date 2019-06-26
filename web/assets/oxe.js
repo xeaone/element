@@ -235,23 +235,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     ensureElement: function ensureElement(data) {
       data.query = data.query || '';
       data.scope = data.scope || document.body;
+      data.position = data.position || 'beforeend';
       var element = data.scope.querySelector("".concat(data.name).concat(data.query));
 
       if (!element) {
         element = document.createElement(data.name);
-
-        if (data.position === 'afterbegin') {
-          data.scope.insertBefore(element, data.scope.firstChild);
-        } else if (data.position === 'beforeend') {
-          data.scope.appendChild(element);
-        } else {
-          data.scope.appendChild(element);
-        }
+        data.scope.insertAdjacentElement(data.position, element);
       }
 
       for (var i = 0, l = data.attributes.length; i < l; i++) {
-        var attribute = data.attributes[i];
-        element.setAttribute(attribute.name, attribute.value);
+        var _data$attributes$i = data.attributes[i],
+            name = _data$attributes$i.name,
+            value = _data$attributes$i.value;
+        element.setAttribute(name, value);
       }
 
       return element;
@@ -3204,11 +3200,25 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           document.title = route.title;
         }
 
-        if (route.description) {
-          Utility.ensureElement({
+        var ensures = [];
+
+        if (route.keywords) {
+          ensures.push({
             name: 'meta',
-            scope: document.head,
-            position: 'afterbegin',
+            query: '[name="keywords"]',
+            attributes: [{
+              name: 'name',
+              value: 'keywords'
+            }, {
+              name: 'content',
+              value: route.keywords
+            }]
+          });
+        }
+
+        if (route.description) {
+          ensures.push({
+            name: 'meta',
             query: '[name="description"]',
             attributes: [{
               name: 'name',
@@ -3220,20 +3230,28 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           });
         }
 
-        if (route.keywords) {
-          Utility.ensureElement({
-            name: 'meta',
-            scope: document.head,
-            position: 'afterbegin',
-            query: '[name="keywords"]',
+        if (route.canonical) {
+          ensures.push({
+            name: 'link',
+            query: '[rel="canonical"]',
             attributes: [{
-              name: 'name',
-              value: 'keywords'
+              name: 'rel',
+              value: 'canonical'
             }, {
-              name: 'content',
-              value: route.keywords
+              name: 'href',
+              value: route.canonical
             }]
           });
+        }
+
+        if (ensures.length) {
+          Promise.all(ensures.map(function (option) {
+            return Promise.resolve().then(function () {
+              option.position = 'afterbegin';
+              option.scope = document.head;
+              return Utility.ensureElement(option);
+            });
+          }));
         }
 
         if (!route.target) {
