@@ -76,12 +76,13 @@ var indexhtml = Escape(`
 export default {
     title: 'Oxe',
     path: '/',
+    description: 'A mighty tiny web components framework/library.',
     component: {
         name: 'r-index',
         created: function () {
             Say('r-home created');
         },
-        template: `
+        template: /*html*/`
 			<h2>Overview</h2>
 
 			<strong>Synopsis</strong>
