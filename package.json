@@ -4,7 +4,7 @@
 	"description": "A mighty tiny web components framework/library",
 	"main": "dst/oxe.min.js",
 	"scripts": {
-		"watch": "node --experimental-modules watch.mjs",
+		"test": "node --experimental-modules watch.mjs",
 		"publish": "node --experimental-modules publish.mjs",
 		"dst": "node --experimental-modules packer.mjs config=packer.config.mjs outputFolder=dst",
 		"dev": "node --experimental-modules packer.mjs config=packer.config.mjs outputFolder=dev"
