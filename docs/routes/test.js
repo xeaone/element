@@ -158,6 +158,8 @@ export default {
             // this.model.empty.$set({ boo: 'ha'});
         },
         template: /*html*/`
+        <div id="hash"></div>
+
 		<style>
 			[o-each-item] {
 				min-height: 150px;
@@ -254,13 +256,12 @@ export default {
 		<br>
 
 		<ul>
+			<li><a href="./test#hash">#hash</a></li>
 			<li>
 				<a href="./test">test</a>
 			</li>
 			<li>
-				<a href="./js">
-					<strong>js</strong>
-				</a>
+				<a href="./js">js</a>
 			</li>
 			<li>
 				<a href="./js?name=ferret&color=purple#hash">js?name=ferret&amp;color=purple#hash</a>

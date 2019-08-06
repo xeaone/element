@@ -12,10 +12,10 @@ export default {
 			--g: gray;
 			--r-e-d: red;
 		}
-		:scope ul {
+		:host ul {
 			background: var(--g);
 		}
-		:scope li {
+		:host li {
 			background: var(--r-e-d);
 		}
 	`,
