@@ -49,7 +49,7 @@ The recommend entry or setup method.
 		- `created: Function` Triggered once on DOM creation
 		- `attached: Function` Triggered on each DOM attachment
 		- `detached: Function` Triggered on each DOM detachment
-		- `attributed: Function` Triggered attribute change
+		- `attributed: Function` Triggered on each attribute change
 
 ### Oxe.loader
 Loads files and dependencies asynchronously. ES6 import/export module and template string re-write support via transformers.
