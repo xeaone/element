@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 5.1.0
+    	Version: 5.2.0
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
