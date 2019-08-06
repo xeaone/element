@@ -2,16 +2,10 @@
 - setup
 - component
 - loader
-- keeper
 - router
 - fetcher
-- location
-- ownerDocument
-- currentScript
-- document
-- window
-- head
-- body
+- batcher
+- path
 - global
 
 ### Oxe.setup(options)
@@ -22,7 +16,6 @@ The recommend entry or setup method.
 		- `after: Function`
 	- `path: Object` Oxe.path options
 	- `loader: Object` Oxe.loader options
-	- `keeper: Object` Oxe.keeper options
 	- `router: Object` Oxe.router options
 	- `batcher: Object` Oxe.batcher options
 	- `fetcher: Object` Oxe.fetcher options
@@ -86,14 +79,13 @@ Loads files and dependencies asynchronously. ES6 import/export module and templa
 		- href
 		- push
 		- replace
-	- `trailing: Boolean` (default: true) Trailing slash mode
 	- `element: String, Element` (default: 'o-router') The element to render route changes
 	- `contain: Boolean` (default: false) Limits all href clicks to the 'o-router' element
 	- `external: String, RegExp, Function` Filters URL requests. If true or match Oxe.router will not handle request
 	- `before: AsyncFunction` Invoked before the routed
 		- `location: Object` Oxe.router.location argument for the upcoming route
 	- `routes: Array`
-		- `route: Object, String` Dynamically loads the string based on the Oxe.router.folder and appends .js
+		- `route: Object, String, Component<Options>` Dynamically loads the string based on the Oxe.router.folder and appends .js
 			- `load: String` Dynamically loads the content and assigns it to the route object
 			- `path: String` Any path starting with forward slash
 				- `parameters: String` Paths can have parameters `/account/{user}` or catchalls `{\*}`
@@ -210,27 +202,6 @@ Batches DOM reads and writes.
 	- `html` 'text/html; charset=utf-8'
 	- `json` 'application/json; charset=utf-8'
 	- `js` 'application/javascript; charset=utf-8'
-
-### Oxe.location
-Alias for `Oxe.router.location`
-
-### Oxe.ownerDocument
-Alias for `window.document.currentScript.ownerDocument`
-
-### Oxe.currentScript
-Alias for `window.document.currentScript`
-
-### Oxe.document
-Alias for `window.document`
-
-### Oxe.window
-Alias for `window`
-
-### Oxe.head
-Alias for `window.document.head`
-
-### Oxe.body
-Alias for `window.document.body`
 
 ### Oxe.global
 A global object for random data.

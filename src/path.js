@@ -73,35 +73,6 @@ export default {
         return data;
     },
 
-    // normalize (data) {
-    //
-    // 	if (!data) {
-    // 		throw new Error('Oxe.path.normalize - argument required');
-    // 	}
-    //
-    // 	let flag = false;
-    // 	const result = [];
-    // 	const parts = this.clean(data).split(/\/+/);
-    //
-    // 	for (let i = 0, l = parts.length; i < l; i++) {
-    // 		if (parts[i] === '.') {
-    // 			continue;
-    // 		} else if (parts[i] === '') {
-    // 			if (i === 0) {
-    // 				flag = true;
-    // 			}
-    // 		} else if (parts[i] === '..') {
-    // 			if (i > 0) {
-    // 				result.pop();
-    // 			}
-    // 		} else {
-    // 			result.push(parts[i]);
-    // 		}
-    // 	}
-    //
-    // 	return (flag ? '/' : '') + result.join('/');
-    // },
-
     join () {
 
         if (!arguments.length) {
@@ -117,33 +88,4 @@ export default {
         return this.normalize(result.join('/'));
     }
 
-    // resolve () {
-    //
-    // 	if (!arguments.length) {
-    // 		throw new Error('Oxe.path.resolve - argument required');
-    // 	}
-    //
-    // 	const result = [];
-    //
-    // 	let argument;
-    // 	let i = arguments.length;
-    //
-    // 	while (argument = arguments[--i]) {
-    //
-    // 		result.unshift(this.clean(argument));
-    //
-    // 		if (argument[0] === '/') {
-    // 			break;
-    // 		}
-    //
-    // 	}
-    //
-    // 	if (result[0][0] !== '/') {
-    // 		const base = this.base || window.location.pathname ? window.location.pathname : '/';
-    // 		result.unshift(this.base);
-    // 	}
-    //
-    // 	return this.normalize(result.join('/'));
-    // }
-
-};
+}

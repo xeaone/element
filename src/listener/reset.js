@@ -20,10 +20,6 @@ export default async function (event) {
             type === 'submit' ||
             type === 'button' ||
 			!type
-        // element.nodeName === 'BUTTON' ||
-        // element.nodeName === 'OPTION' ||
-        // element.nodeName.indexOf('-BUTTON') !== -1 ||
-        // element.nodeName.indexOf('-OPTION') !== -1
         ) {
             continue;
         }

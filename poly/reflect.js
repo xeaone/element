@@ -4,7 +4,6 @@
 (function () {
     'use strict';
 
-
     if (window.Reflect === undefined) {
         window.Reflect = window.Reflect || {};
         window.Reflect.construct = function (parent, args, child) {

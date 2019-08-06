@@ -11,7 +11,6 @@ export default async function (event) {
 
     const data = {};
     const elements = event.target.querySelectorAll('*');
-    // const elements = event.target.querySelectorAll('[o-value], [value], select[name], input[name], textarea[name]');
 
     for (let i = 0, l = elements.length; i < l; i++) {
         const element = elements[i];
@@ -22,12 +21,6 @@ export default async function (event) {
             type === 'submit' ||
             type === 'button' ||
 			!type
-        // element.type === 'submit' ||
-        // element.type === 'button' ||
-        // element.nodeName === 'BUTTON' ||
-        // element.nodeName === 'OPTION' ||
-        // element.nodeName.indexOf('-BUTTON') !== -1 ||
-        // element.nodeName.indexOf('-OPTION') !== -1
         ) {
             continue;
         }
@@ -38,17 +31,6 @@ export default async function (event) {
 
         if (!name) continue;
         data[name] = value;
-
-        // if (name in data) {
-        //     console.warn(`Oxe.submit - duplicate field name ${name}`);
-        //     // if (typeof data[name] !== 'object') {
-        //     //     data[name] = [ data[name] ];
-        //     // }
-        //     //
-        //     // data[name].push(value);
-        // } else {
-        //     data[name] = value;
-        // }
 
     }
 

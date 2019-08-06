@@ -250,8 +250,8 @@ export default {
                 throw new Error('Oxe.router.add - route path required');
             }
 
-            if (!data.load && !data.component) {
-                throw new Error('Oxe.router.add -  route.component or route.load required');
+            if (!data.name && !data.load && !data.component) {
+                throw new Error('Oxe.router.add -  route requires name, load, or component property');
             }
 
             this.data.push(data);
@@ -325,10 +325,6 @@ export default {
             throw new Error('Oxe.render - route argument required. Missing object option.');
         }
 
-        if (!route.component && !route.target) {
-            throw new Error('Oxe.render - route property required. Missing component or target option.');
-        }
-
         if (route.title) {
             document.title = route.title;
         }
@@ -379,11 +375,16 @@ export default {
         }
 
         if (!route.target) {
-            if (route.component.constructor === String) {
+            if (!route.component) {
+                Component.define(route);
+                route.target = window.document.createElement(route.name);
+            } else if (route.component.constructor === String) {
                 route.target = window.document.createElement(route.component);
             } else if (route.component.constructor === Object) {
                 Component.define(route.component);
                 route.target = window.document.createElement(route.component.name);
+            } else {
+                throw new Error('Oxe.router.render - route requires name, load, or component property');
             }
         }
 

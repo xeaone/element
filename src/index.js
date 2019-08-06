@@ -74,9 +74,9 @@ export default Object.freeze({
             self.style.setup(options.style),
             self.model.setup(options.model),
             self.binder.setup(options.binder),
+            self.loader.setup(options.loader),
             self.definer.setup(options.definer),
             self.fetcher.setup(options.fetcher),
-            self.loader.setup(options.loader),
         ]).then(function () {
             if (options.listener.before) {
                 return options.listener.before();

@@ -1633,8 +1633,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         type = element.type;
 
         if (!type && name !== 'TEXTAREA' || type === 'submit' || type === 'button' || !type) {
-            continue;
-          }
+          continue;
+        }
 
         binder = Binder.get('attribute', element, 'o-value');
         value = binder ? binder.data : element.value;
@@ -1719,8 +1719,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var type = element.type;
 
         if (!type && name !== 'TEXTAREA' || type === 'submit' || type === 'button' || !type) {
-            continue;
-          }
+          continue;
+        }
 
         var binder = Binder.get('attribute', element, 'o-value');
 
@@ -2917,8 +2917,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 return $error(new Error('Oxe.router.add - route path required'));
               }
 
-              if (!data.load && !data.component) {
-                return $error(new Error('Oxe.router.add -  route.component or route.load required'));
+              if (!data.name && !data.load && !data.component) {
+                return $error(new Error('Oxe.router.add -  route requires name, load, or component property'));
               }
 
               this.data.push(data);
@@ -3192,10 +3192,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           return $error(new Error('Oxe.render - route argument required. Missing object option.'));
         }
 
-        if (!route.component && !route.target) {
-          return $error(new Error('Oxe.render - route property required. Missing component or target option.'));
-        }
-
         if (route.title) {
           document.title = route.title;
         }
@@ -3255,11 +3251,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         if (!route.target) {
-          if (route.component.constructor === String) {
+          if (!route.component) {
+            Component.define(route);
+            route.target = window.document.createElement(route.name);
+          } else if (route.component.constructor === String) {
             route.target = window.document.createElement(route.component);
           } else if (route.component.constructor === Object) {
             Component.define(route.component);
             route.target = window.document.createElement(route.component.name);
+          } else {
+            return $error(new Error('Oxe.router.render - route requires name, load, or component property'));
           }
         }
 
@@ -3502,7 +3503,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       document.addEventListener('reset', Listener.bind(null, options, Reset), true);
       document.addEventListener('change', Listener.bind(null, options, Change), true);
       document.addEventListener('submit', Listener.bind(null, options, Submit), true);
-      return Promise.all([self.path.setup(options.path), self.style.setup(options.style), self.model.setup(options.model), self.binder.setup(options.binder), self.definer.setup(options.definer), self.fetcher.setup(options.fetcher), self.loader.setup(options.loader)]).then(function () {
+      return Promise.all([self.path.setup(options.path), self.style.setup(options.style), self.model.setup(options.model), self.binder.setup(options.binder), self.loader.setup(options.loader), self.definer.setup(options.definer), self.fetcher.setup(options.fetcher)]).then(function () {
         if (options.listener.before) {
           return options.listener.before();
         }
