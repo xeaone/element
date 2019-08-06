@@ -193,20 +193,6 @@ export default {
 
         location.path = location.pathname + location.search + location.hash;
 
-        // might need to check how base should work
-
-        // var base = document.querySelector('base');
-        //
-        // location.pathname = parser.pathname;
-        // location.base = base ? base.href : null;
-        //
-        // if (location.protocol === 'file:' && location.base) {
-        // 	location.pathname = parser.pathname.replace(location.base.replace('file://', ''), '');
-        // }
-        //
-        // location.pathname = location.pathname[0] === '/' ? location.pathname : '/' + location.pathname;
-        // location.path = location.pathname + location.search + location.hash;
-
         return location;
     },
 
