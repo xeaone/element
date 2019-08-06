@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 4.16.0
+    	Version: 5.1.0
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
@@ -245,23 +245,19 @@
     ensureElement: function ensureElement(data) {
       data.query = data.query || '';
       data.scope = data.scope || document.body;
+      data.position = data.position || 'beforeend';
       var element = data.scope.querySelector("".concat(data.name).concat(data.query));
 
       if (!element) {
         element = document.createElement(data.name);
-
-        if (data.position === 'afterbegin') {
-          data.scope.insertBefore(element, data.scope.firstChild);
-        } else if (data.position === 'beforeend') {
-          data.scope.appendChild(element);
-        } else {
-          data.scope.appendChild(element);
-        }
+        data.scope.insertAdjacentElement(data.position, element);
       }
 
       for (var i = 0, l = data.attributes.length; i < l; i++) {
-        var attribute = data.attributes[i];
-        element.setAttribute(attribute.name, attribute.value);
+        var _data$attributes$i = data.attributes[i],
+            name = _data$attributes$i.name,
+            value = _data$attributes$i.value;
+        element.setAttribute(name, value);
       }
 
       return element;
@@ -1647,8 +1643,8 @@
         type = element.type;
 
         if (!type && name !== 'TEXTAREA' || type === 'submit' || type === 'button' || !type) {
-            continue;
-          }
+          continue;
+        }
 
         binder = Binder.get('attribute', element, 'o-value');
         value = binder ? binder.data : element.value;
@@ -1733,8 +1729,8 @@
         var type = element.type;
 
         if (!type && name !== 'TEXTAREA' || type === 'submit' || type === 'button' || !type) {
-            continue;
-          }
+          continue;
+        }
 
         var binder = Binder.get('attribute', element, 'o-value');
 
@@ -2931,8 +2927,8 @@
                 return $error(new Error('Oxe.router.add - route path required'));
               }
 
-              if (!data.load && !data.component) {
-                return $error(new Error('Oxe.router.add -  route.component or route.load required'));
+              if (!data.name && !data.load && !data.component) {
+                return $error(new Error('Oxe.router.add -  route requires name, load, or component property'));
               }
 
               this.data.push(data);
@@ -3206,35 +3202,15 @@
           return $error(new Error('Oxe.render - route argument required. Missing object option.'));
         }
 
-        if (!route.component && !route.target) {
-          return $error(new Error('Oxe.render - route property required. Missing component or target option.'));
-        }
-
         if (route.title) {
           document.title = route.title;
         }
 
-        if (route.description) {
-          Utility.ensureElement({
-            name: 'meta',
-            scope: document.head,
-            position: 'afterbegin',
-            query: '[name="description"]',
-            attributes: [{
-              name: 'name',
-              value: 'description'
-            }, {
-              name: 'content',
-              value: route.description
-            }]
-          });
-        }
+        var ensures = [];
 
         if (route.keywords) {
-          Utility.ensureElement({
+          ensures.push({
             name: 'meta',
-            scope: document.head,
-            position: 'afterbegin',
             query: '[name="keywords"]',
             attributes: [{
               name: 'name',
@@ -3246,12 +3222,55 @@
           });
         }
 
+        if (route.description) {
+          ensures.push({
+            name: 'meta',
+            query: '[name="description"]',
+            attributes: [{
+              name: 'name',
+              value: 'description'
+            }, {
+              name: 'content',
+              value: route.description
+            }]
+          });
+        }
+
+        if (route.canonical) {
+          ensures.push({
+            name: 'link',
+            query: '[rel="canonical"]',
+            attributes: [{
+              name: 'rel',
+              value: 'canonical'
+            }, {
+              name: 'href',
+              value: route.canonical
+            }]
+          });
+        }
+
+        if (ensures.length) {
+          Promise.all(ensures.map(function (option) {
+            return Promise.resolve().then(function () {
+              option.position = 'afterbegin';
+              option.scope = document.head;
+              return Utility.ensureElement(option);
+            });
+          }));
+        }
+
         if (!route.target) {
-          if (route.component.constructor === String) {
+          if (!route.component) {
+            Component.define(route);
+            route.target = window.document.createElement(route.name);
+          } else if (route.component.constructor === String) {
             route.target = window.document.createElement(route.component);
           } else if (route.component.constructor === Object) {
             Component.define(route.component);
             route.target = window.document.createElement(route.component.name);
+          } else {
+            return $error(new Error('Oxe.router.render - route requires name, load, or component property'));
           }
         }
 
@@ -3494,7 +3513,7 @@
       document.addEventListener('reset', Listener.bind(null, options, Reset), true);
       document.addEventListener('change', Listener.bind(null, options, Change), true);
       document.addEventListener('submit', Listener.bind(null, options, Submit), true);
-      return Promise.all([self.path.setup(options.path), self.style.setup(options.style), self.model.setup(options.model), self.binder.setup(options.binder), self.definer.setup(options.definer), self.fetcher.setup(options.fetcher), self.loader.setup(options.loader)]).then(function () {
+      return Promise.all([self.path.setup(options.path), self.style.setup(options.style), self.model.setup(options.model), self.binder.setup(options.binder), self.loader.setup(options.loader), self.definer.setup(options.definer), self.fetcher.setup(options.fetcher)]).then(function () {
         if (options.listener.before) {
           return options.listener.before();
         }
