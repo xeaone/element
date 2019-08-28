@@ -18,8 +18,6 @@ export default {
     define (name, constructor) {
         constructor = constructor || function () {};
 
-        const prototypes = Object.getOwnPropertyDescriptors(constructor.prototype);
-
         // const properties = Object.assign({}, constructor);
         // const prototypes = Object.assign({}, constructor.prototype);
         // const properties = Object.getOwnPropertyDescriptors(constructor);
@@ -35,6 +33,8 @@ export default {
             constructor.call(instance);
             return instance;
         };
+
+        const prototypes = Object.getOwnPropertyDescriptors(constructor.prototype);
 
         construct.prototype = Object.create(HTMLElement.prototype);
 

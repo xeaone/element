@@ -184,74 +184,6 @@ export default {
             options.template = data;
         }
 
-        options.properties.created = {
-            get () { return this._created; }
-        };
-
-        options.properties.scope = {
-            get () { return this._scope; }
-        };
-
-        options.properties.methods = {
-            get () { return Methods.get(this.scope); }
-        };
-
-        options.properties.model = {
-            get () { return Model.get(this.scope); },
-            set (data) {
-                return Model.set(this.scope, data && typeof data === 'object' ? data : {});
-            }
-        };
-
-        options.properties.observedAttributes = {
-            value: options.attributes
-        };
-
-        options.properties.attributeChangedCallback = {
-            value () {
-                if (options.attributed) options.attributed.apply(this, arguments);
-            }
-        };
-
-        options.properties.adoptedCallback = {
-            value () {
-                if (options.adopted) options.adopted.apply(this, arguments);
-            }
-        };
-
-        options.properties.disconnectedCallback = {
-            value () {
-                if (options.detached) options.detached.call(this);
-            }
-        };
-
-        options.properties.connectedCallback = {
-            value () {
-                const instance = this;
-
-                if (instance.created) {
-                    if (options.attached) {
-                        options.attached.call(instance);
-                    }
-                } else {
-                    instance._created = true;
-
-                    self.render(instance, options.template, options.adopt, options.shadow);
-
-                    Promise.resolve().then(function () {
-                        if (options.created) {
-                            return options.created.call(instance);
-                        }
-                    }).then(function () {
-                        if (options.attached) {
-                            return options.attached.call(instance);
-                        }
-                    });
-
-                }
-            }
-        };
-
         const constructor = function () {
             this._created = false;
             this._scope = options.name + '-' + options.count++;
@@ -268,14 +200,77 @@ export default {
             //     }
             // });
 
+            const properties = Utility.clone(options.properties);
             const methods = Utility.clone(options.methods);
             const model = Utility.clone(options.model);
 
+            Object.defineProperties(this, properties);
             Methods.set(this.scope, methods);
             Model.set(this.scope, model);
         };
 
-        Object.defineProperties(constructor.prototype, options.properties);
+        Object.defineProperties(constructor.prototype, {
+            created: {
+                get () { return this._created; }
+            },
+            scope: {
+                get () { return this._scope; }
+            },
+            methods: {
+                get () { return Methods.get(this.scope); }
+            },
+            model: {
+                get () { return Model.get(this.scope); },
+                set (data) {
+                    return Model.set(this.scope, data && typeof data === 'object' ? data : {});
+                }
+            },
+            observedAttributes: {
+                value: options.attributes
+            },
+            attributeChangedCallback: {
+                value () {
+                    if (options.attributed) options.attributed.apply(this, arguments);
+                }
+            },
+            adoptedCallback: {
+                value () {
+                    if (options.adopted) options.adopted.apply(this, arguments);
+                }
+            },
+            disconnectedCallback: {
+                value () {
+                    if (options.detached) options.detached.call(this);
+                }
+            },
+            connectedCallback: {
+                value () {
+                    const instance = this;
+
+                    if (instance.created) {
+                        if (options.attached) {
+                            options.attached.call(instance);
+                        }
+                    } else {
+                        instance._created = true;
+
+                        self.render(instance, options.template, options.adopt, options.shadow);
+
+                        Promise.resolve().then(function () {
+                            if (options.created) {
+                                return options.created.call(instance);
+                            }
+                        }).then(function () {
+                            if (options.attached) {
+                                return options.attached.call(instance);
+                            }
+                        });
+
+                    }
+                }
+            }
+        });
+
         Definer.define(options.name, constructor);
     }
 
