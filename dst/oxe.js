@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 5.2.0
+    	Version: 5.2.1
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
@@ -2386,14 +2386,13 @@
     define: function define(name, constructor) {
       constructor = constructor || function () {};
 
-      var prototypes = Object.getOwnPropertyDescriptors(constructor.prototype);
-
       var construct = function construct() {
         var instance = window.Reflect.construct(HTMLElement, [], this.constructor);
         constructor.call(instance);
         return instance;
       };
 
+      var prototypes = Object.getOwnPropertyDescriptors(constructor.prototype);
       construct.prototype = Object.create(HTMLElement.prototype);
       Object.defineProperties(construct.prototype, prototypes);
       Object.defineProperty(construct.prototype, 'constructor', {
@@ -2573,81 +2572,83 @@
         options.template = data;
       }
 
-      options.properties.created = {
-        get: function get() {
-          return this._created;
-        }
-      };
-      options.properties.scope = {
-        get: function get() {
-          return this._scope;
-        }
-      };
-      options.properties.methods = {
-        get: function get() {
-          return Methods.get(this.scope);
-        }
-      };
-      options.properties.model = {
-        get: function get() {
-          return Model.get(this.scope);
-        },
-        set: function set(data) {
-          return Model.set(this.scope, data && _typeof(data) === 'object' ? data : {});
-        }
-      };
-      options.properties.observedAttributes = {
-        value: options.attributes
-      };
-      options.properties.attributeChangedCallback = {
-        value: function value() {
-          if (options.attributed) options.attributed.apply(this, arguments);
-        }
-      };
-      options.properties.adoptedCallback = {
-        value: function value() {
-          if (options.adopted) options.adopted.apply(this, arguments);
-        }
-      };
-      options.properties.disconnectedCallback = {
-        value: function value() {
-          if (options.detached) options.detached.call(this);
-        }
-      };
-      options.properties.connectedCallback = {
-        value: function value() {
-          var instance = this;
-
-          if (instance.created) {
-            if (options.attached) {
-              options.attached.call(instance);
-            }
-          } else {
-            instance._created = true;
-            self.render(instance, options.template, options.adopt, options.shadow);
-            Promise.resolve().then(function () {
-              if (options.created) {
-                return options.created.call(instance);
-              }
-            }).then(function () {
-              if (options.attached) {
-                return options.attached.call(instance);
-              }
-            });
-          }
-        }
-      };
-
       var constructor = function constructor() {
         this._created = false;
         this._scope = options.name + '-' + options.count++;
+        var properties = Utility.clone(options.properties);
         var methods = Utility.clone(options.methods);
         var model = Utility.clone(options.model);
+        Object.defineProperties(this, properties);
         Methods.set(this.scope, methods);
         Model.set(this.scope, model);
       };
 
-      Object.defineProperties(constructor.prototype, options.properties);
+      Object.defineProperties(constructor.prototype, {
+        created: {
+          get: function get() {
+            return this._created;
+          }
+        },
+        scope: {
+          get: function get() {
+            return this._scope;
+          }
+        },
+        methods: {
+          get: function get() {
+            return Methods.get(this.scope);
+          }
+        },
+        model: {
+          get: function get() {
+            return Model.get(this.scope);
+          },
+          set: function set(data) {
+            return Model.set(this.scope, data && _typeof(data) === 'object' ? data : {});
+          }
+        },
+        observedAttributes: {
+          value: options.attributes
+        },
+        attributeChangedCallback: {
+          value: function value() {
+            if (options.attributed) options.attributed.apply(this, arguments);
+          }
+        },
+        adoptedCallback: {
+          value: function value() {
+            if (options.adopted) options.adopted.apply(this, arguments);
+          }
+        },
+        disconnectedCallback: {
+          value: function value() {
+            if (options.detached) options.detached.call(this);
+          }
+        },
+        connectedCallback: {
+          value: function value() {
+            var instance = this;
+
+            if (instance.created) {
+              if (options.attached) {
+                options.attached.call(instance);
+              }
+            } else {
+              instance._created = true;
+              self.render(instance, options.template, options.adopt, options.shadow);
+              Promise.resolve().then(function () {
+                if (options.created) {
+                  return options.created.call(instance);
+                }
+              }).then(function () {
+                if (options.attached) {
+                  return options.attached.call(instance);
+                }
+              });
+            }
+          }
+        }
+      });
       Definer.define(options.name, constructor);
     }
   };
