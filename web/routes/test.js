@@ -83,10 +83,7 @@ export default {
             },
             fetch: function () {
                 const options = { url: 'https://jsonplaceholder.typicode.com/todos/1' };
-                return Promise.resolve()
-                    .then(Oxe.fetcher.get.bind(null, options))
-                    .then(console.log)
-                    .catch(console.error);
+                return Oxe.fetcher.get(options).then(console.log).catch(console.error);
             }
         },
         properties: {
