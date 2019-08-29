@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 5.2.1
+    	Version: 5.2.2
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
@@ -836,6 +836,7 @@
         },
         write: function write() {
           var fallback = false;
+          var fallbackSelectedAtrribute = false;
           var fallbackValue = this.multiple ? [] : null;
           var fallbackOption = this.multiple ? [] : null;
 
@@ -857,6 +858,7 @@
                 fallback = true;
                 fallbackOption = option;
                 fallbackValue = optionValue;
+                fallbackSelectedAtrribute = selectedAtrribute;
               }
             }
 
@@ -917,7 +919,7 @@
                 fallbackOption[_i2].selected = true;
                 binder.data.push(fallbackValue[_i2]);
               }
-            } else {
+            } else if (fallbackSelectedAtrribute || this.nodeName === 'OPTION') {
               binder.data = fallbackValue;
               fallbackOption.selected = true;
             }
