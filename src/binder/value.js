@@ -24,8 +24,10 @@ export default function (binder, caller) {
             },
             write () {
                 let fallback = false;
+                let fallbackSelectedAtrribute = false;
                 let fallbackValue = this.multiple ? [] : null;
                 let fallbackOption = this.multiple ? [] : null;
+
                 for (let i = 0, l = this.options.length; i < l; i++) {
 
                     const option = this.options[i];
@@ -45,11 +47,11 @@ export default function (binder, caller) {
                             fallback = true;
                             fallbackOption = option;
                             fallbackValue = optionValue;
+                            fallbackSelectedAtrribute = selectedAtrribute;
                         }
                     }
 
                     if (caller === 'view') {
-
                         if (selected) {
                             if (this.multiple) {
                                 const includes = Utility.includes(this.data, optionValue);
@@ -103,8 +105,7 @@ export default function (binder, caller) {
                             fallbackOption[i].selected = true;
                             binder.data.push(fallbackValue[i]);
                         }
-
-                    } else {
+                    } else if (fallbackSelectedAtrribute || this.nodeName === 'OPTION') {
                         binder.data = fallbackValue;
                         fallbackOption.selected = true;
                     }
