@@ -1649,7 +1649,7 @@
         }
 
         binder = Binder.get('attribute', element, 'o-value');
-        value = binder ? binder.data : element.value;
+        value = binder ? binder.data : Array.prototype.slice.call(element.files) || element.value;
         name = element.name || (binder ? binder.values[binder.values.length - 1] : null);
         if (!name) continue;
         data[name] = value;
