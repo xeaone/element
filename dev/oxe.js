@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 5.2.4
+    	Version: 5.2.5
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
@@ -984,6 +984,15 @@
           binder.meta.busy = false;
         }
       };
+    } else if (type === 'file') {
+      return {
+        read: function read() {
+          this.multiple = Utility.multiple(binder.target);
+          binder.data = this.multiple ? Array.prototype.slice.call(binder.target.files) : binder.target.files[0];
+          binder.meta.busy = false;
+          this.data = binder.data;
+        }
+      };
     } else {
       return {
         read: function read() {
@@ -1100,7 +1109,6 @@
       if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
       if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
       if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
-      var originalValue = data.value;
 
       if (data.value.slice(0, 2) === '{{' && data.value.slice(-2) === '}}') {
         data.value = data.value.slice(2, -2);
@@ -1185,10 +1193,6 @@
 
         get context() {
           return context;
-        },
-
-        get originalValue() {
-          return originalValue;
         },
 
         get data() {
@@ -1649,7 +1653,7 @@
         }
 
         binder = Binder.get('attribute', element, 'o-value');
-        value = binder ? binder.data : element.files ? Array.prototype.slice.call(element.files) : element.value;
+        value = binder ? binder.data : element.files ? element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0] : element.value;
         name = element.name || (binder ? binder.values[binder.values.length - 1] : null);
         if (!name) continue;
         data[name] = value;
