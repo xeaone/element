@@ -19,7 +19,7 @@ export default async function (event) {
             !type && name !== 'TEXTAREA' ||
             type === 'submit' ||
             type === 'button' ||
-			!type
+            !type
         ) {
             continue;
         }
@@ -37,7 +37,6 @@ export default async function (event) {
         } else if (type === 'select-one') {
             binder.data = null;
         } else if (type === 'select-multiple') {
-            // might want better defaults
             binder.data = [];
         } else if (type === 'radio' || type === 'checkbox') {
             binder.data = false;
