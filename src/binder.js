@@ -50,10 +50,10 @@ const BINDERS = {
 
 export default {
 
-    get data () { return DATA; },
-    get binders () { return BINDERS; },
+    get data() { return DATA; },
+    get binders() { return BINDERS; },
 
-    async setup (options) {
+    async setup(options) {
         options = options || {};
 
         this.data.set('location', new Map());
@@ -77,7 +77,7 @@ export default {
 
     },
 
-    get (type) {
+    get(type) {
 
         if (!type) throw new Error('Oxe.binder.get - type argument required');
 
@@ -98,14 +98,14 @@ export default {
         return result;
     },
 
-    create (data) {
+    create(data) {
 
         if (data.name === undefined) throw new Error('Oxe.binder.create - missing name');
         if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
         if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
         if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
 
-        const originalValue = data.value;
+        // const originalValue = data.value;
 
         if (data.value.slice(0, 2) === '{{' && data.value.slice(-2) === '}}') {
             data.value = data.value.slice(2, -2);
@@ -123,7 +123,7 @@ export default {
 
         const type = names[0];
         const path = values.join('.');
-        const keys = [ scope ].concat(values);
+        const keys = [scope].concat(values);
         const location = keys.join('.');
 
         const meta = data.meta || {};
@@ -131,35 +131,35 @@ export default {
         const source = type === 'on' || type === 'submit' ? data.container.methods : data.container.model;
 
         return {
-            get location () { return location; },
+            get location() { return location; },
 
-            get type () { return type; },
-            get path () { return path; },
-            get scope () { return scope; },
+            get type() { return type; },
+            get path() { return path; },
+            get scope() { return scope; },
 
-            get name () { return data.name; },
-            get value () { return data.value; },
-            get target () { return data.target; },
-            get container () { return data.container; },
-            get model () { return data.container.model; },
-            get methods () { return data.container.methods; },
+            get name() { return data.name; },
+            get value() { return data.value; },
+            get target() { return data.target; },
+            get container() { return data.container; },
+            get model() { return data.container.model; },
+            get methods() { return data.container.methods; },
 
-            get keys () { return keys; },
-            get names () { return names; },
-            get pipes () { return pipes; },
-            get values () { return values; },
+            get keys() { return keys; },
+            get names() { return names; },
+            get pipes() { return pipes; },
+            get values() { return values; },
 
-            get meta () { return meta; },
-            get context () { return context; },
+            get meta() { return meta; },
+            get context() { return context; },
 
-            get originalValue () { return originalValue; },
+            // get originalValue () { return originalValue; },
 
-            get data () {
+            get data() {
                 const data = Utility.getByPath(source, values);
                 return Piper(this, data);
             },
 
-            set data (value) {
+            set data(value) {
                 const data = Piper(this, value);
                 return Utility.setByPath(source, values, data);
             }
@@ -167,7 +167,7 @@ export default {
         };
     },
 
-    render (binder, caller) {
+    render(binder, caller) {
 
         if (binder.type === 'submit') return;
 
@@ -177,7 +177,7 @@ export default {
         Batcher.batch(render);
     },
 
-    unbind (node) {
+    unbind(node) {
 
         this.data.get('location').forEach(function (scopes) {
             scopes.forEach(function (binders) {
@@ -192,14 +192,14 @@ export default {
         this.data.get('attribute').delete(node);
     },
 
-    bind (node, name, value, context) {
+    bind(node, name, value, context) {
 
         if (value === `$${context.variable}.$key` || value === `{{$${context.variable}.$key}}`) {
-            return Batcher.batch({ write () { node.textContent = context.key; } });
+            return Batcher.batch({ write() { node.textContent = context.key; } });
         }
 
         if (value === `$${context.variable}.$index` || value === `{{$${context.variable}.$index}}`) {
-            return Batcher.batch({ write () { node.textContent = context.index; } });
+            return Batcher.batch({ write() { node.textContent = context.index; } });
         }
 
         const binder = this.create({
@@ -231,7 +231,7 @@ export default {
     },
 
 
-    remove (node) {
+    remove(node) {
 
         this.unbind(node);
 
@@ -241,7 +241,7 @@ export default {
 
     },
 
-    add (node, context) {
+    add(node, context) {
         if (node.nodeType === Node.TEXT_NODE) {
 
             if (node.textContent.indexOf('{{') === -1 || node.textContent.indexOf('}}') === -1) {
@@ -271,8 +271,8 @@ export default {
 
                 if (
                     attribute.name === 'o-html' ||
-					attribute.name === 'o-scope' ||
-					attribute.name.indexOf('o-each') === 0
+                    attribute.name === 'o-scope' ||
+                    attribute.name.indexOf('o-each') === 0
                 ) {
                     skipChildren = true;
                 }
@@ -280,11 +280,11 @@ export default {
                 if (
                     attribute.name === 'o-value' ||
                     attribute.name === 'o-scope' ||
-					attribute.name === 'o-reset' ||
-					attribute.name === 'o-action' ||
-					attribute.name === 'o-method' ||
-					attribute.name === 'o-enctype' ||
-					attribute.name.indexOf('o-') !== 0
+                    attribute.name === 'o-reset' ||
+                    attribute.name === 'o-action' ||
+                    attribute.name === 'o-method' ||
+                    attribute.name === 'o-enctype' ||
+                    attribute.name.indexOf('o-') !== 0
                 ) {
                     continue;
                 }

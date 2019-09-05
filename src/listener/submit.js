@@ -29,7 +29,9 @@ export default async function (event) {
 
         const value = (
             binder ? binder.data : (
-                element.files ? Array.prototype.slice.call(element.files) : element.value
+                element.files ? (
+                    element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]
+                ) : element.value
             )
         );
 

@@ -9,7 +9,7 @@ export default function (binder, caller) {
 
     if (type === 'select-one' || type === 'select-multiple') {
         return {
-            read () {
+            read() {
 
                 this.data = binder.data;
                 this.model = binder.model;
@@ -22,7 +22,7 @@ export default function (binder, caller) {
                 }
 
             },
-            write () {
+            write() {
                 let fallback = false;
                 let fallbackSelectedAtrribute = false;
                 let fallbackValue = this.multiple ? [] : null;
@@ -69,7 +69,7 @@ export default function (binder, caller) {
                                 if (index !== -1) {
                                     binder.data.splice(index, 1);
                                 }
-                            } else if (!this.selected && i === l-1) {
+                            } else if (!this.selected && i === l - 1) {
                                 binder.data = null;
                             }
                         }
@@ -116,7 +116,7 @@ export default function (binder, caller) {
         };
     } else if (type === 'radio') {
         return {
-            read () {
+            read() {
 
                 this.form = binder.target.form || binder.container;
                 this.query = `input[type="radio"][o-value="${binder.value}"]`;
@@ -137,7 +137,7 @@ export default function (binder, caller) {
                 }
 
             },
-            write () {
+            write() {
                 for (let i = 0, l = this.radios.length; i < l; i++) {
                     const radio = this.radios[i];
 
@@ -155,7 +155,7 @@ export default function (binder, caller) {
 
     } else if (type === 'checkbox') {
         return {
-            read () {
+            read() {
 
                 if (caller === 'view') {
                     binder.data = binder.target.checked;
@@ -171,14 +171,30 @@ export default function (binder, caller) {
                 }
 
             },
-            write () {
+            write() {
                 binder.target.checked = this.data;
                 binder.meta.busy = false;
             }
         };
+    } else if (type === 'file') {
+        return {
+            read() {
+                this.multiple = Utility.multiple(binder.target);
+                binder.data = this.multiple ? Array.prototype.slice.call(binder.target.files) : binder.target.files[0];
+                binder.meta.busy = false;
+                this.data = binder.data;
+            },
+            // write: function write() {
+            // console.warn('Oxe.binder.value - setting file input is not support by browsers');
+            // if (this.data !== undefined && this.data !== null && this.data.length) {
+            //     Array.prototype.push.apply(binder.target.files, this.data);
+            // }
+            // binder.meta.busy = false;
+            // }
+        };
     } else {
         return {
-            read () {
+            read() {
 
                 if (caller === 'view') {
                     binder.data = binder.target.value;
@@ -194,7 +210,7 @@ export default function (binder, caller) {
                 }
 
             },
-            write () {
+            write() {
                 binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
                 binder.meta.busy = false;
             }
