@@ -826,6 +826,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         },
         write: function write() {
           var fallback = false;
+          var fallbackSelectedAtrribute = false;
           var fallbackValue = this.multiple ? [] : null;
           var fallbackOption = this.multiple ? [] : null;
 
@@ -847,6 +848,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 fallback = true;
                 fallbackOption = option;
                 fallbackValue = optionValue;
+                fallbackSelectedAtrribute = selectedAtrribute;
               }
             }
 
@@ -907,7 +909,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 fallbackOption[_i2].selected = true;
                 binder.data.push(fallbackValue[_i2]);
               }
-            } else {
+            } else if (fallbackSelectedAtrribute || this.nodeName === 'OPTION') {
               binder.data = fallbackValue;
               fallbackOption.selected = true;
             }
@@ -1637,7 +1639,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         binder = Binder.get('attribute', element, 'o-value');
-        value = binder ? binder.data : element.value;
+        value = binder ? binder.data : element.files ? Array.prototype.slice.call(element.files) : element.value;
         name = element.name || (binder ? binder.values[binder.values.length - 1] : null);
         if (!name) continue;
         data[name] = value;

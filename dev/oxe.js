@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 5.2.2
+    	Version: 5.2.4
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
@@ -1649,7 +1649,7 @@
         }
 
         binder = Binder.get('attribute', element, 'o-value');
-        value = binder ? binder.data : Array.prototype.slice.call(element.files) || element.value;
+        value = binder ? binder.data : element.files ? Array.prototype.slice.call(element.files) : element.value;
         name = element.name || (binder ? binder.values[binder.values.length - 1] : null);
         if (!name) continue;
         data[name] = value;
