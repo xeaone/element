@@ -4,7 +4,7 @@ export default {
     PIPE: /\s?\|\s?/,
     PIPES: /\s?,\s?|\s+/,
 
-    value (element, model) {
+    value(element, model) {
 
         if (!model) throw new Error('Utility.value - requires model argument');
         if (!element) throw new Error('Utility.value - requires element argument');
@@ -15,7 +15,7 @@ export default {
             const name = this.name(element);
             const query = 'input[type="' + type + '"][name="' + name + '"]';
             const form = this.form(element);
-            const elements = form ? this.form(element).querySelectorAll(query) : [ element ];
+            const elements = form ? this.form(element).querySelectorAll(query) : [element];
             const multiple = elements.length > 1;
 
             let result = multiple ? [] : undefined;
@@ -64,11 +64,11 @@ export default {
             }
 
             return result;
-        // } else if (
-        //     element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 ||
+            // } else if (
+            //     element.nodeName === 'INPUT' || element.nodeName.indexOf('-INPUT') !== -1 ||
             // 	element.nodeName === 'OPTION' || element.nodeName.indexOf('-OPTION') !== -1 ||
             // 	element.nodeName === 'TEXTAREA' || element.nodeName.indexOf('-TEXTAREA') !== -1
-        // ) {
+            // ) {
         } else {
             const attribute = element.attributes['o-value'];
             if (attribute) {
@@ -81,7 +81,7 @@ export default {
         }
     },
 
-    form (element) {
+    form(element) {
         if (element.form) {
             return element.form;
         } else {
@@ -93,7 +93,7 @@ export default {
         }
     },
 
-    type (element) {
+    type(element) {
         if (typeof element.type === 'string') {
             return element.type;
         } else {
@@ -101,7 +101,7 @@ export default {
         }
     },
 
-    name (element) {
+    name(element) {
         if (typeof element.name === 'string') {
             return element.name;
         } else {
@@ -109,49 +109,49 @@ export default {
         }
     },
 
-    checked (element) {
+    checked(element) {
         if (typeof element.checked === 'boolean') {
             return element.checked;
         } else {
             switch (element.getAttribute('checked')) {
-            case undefined: return false;
-            case 'true': return true;
-            case null: return false;
-            case '': return true;
-            default: return false;
+                case undefined: return false;
+                case 'true': return true;
+                case null: return false;
+                case '': return true;
+                default: return false;
             }
         }
     },
 
-    multiple (element) {
+    multiple(element) {
         if (typeof element.multiple === 'boolean') {
             return element.multiple;
         } else {
             switch (element.getAttribute('multiple')) {
-            case undefined: return false;
-            case 'true': return true;
-            case null: return false;
-            case '': return true;
-            default: return false;
+                case undefined: return false;
+                case 'true': return true;
+                case null: return false;
+                case '': return true;
+                default: return false;
             }
         }
     },
 
-    disabled (element) {
+    disabled(element) {
         if (typeof element.disabled === 'boolean') {
             return element.disabled;
         } else {
             switch (element.getAttribute('disabled')) {
-            case undefined: return false;
-            case 'true': return true;
-            case null: return false;
-            case '': return true;
-            default: return false;
+                case undefined: return false;
+                case 'true': return true;
+                case null: return false;
+                case '': return true;
+                default: return false;
             }
         }
     },
 
-    index (items, item) {
+    index(items, item) {
 
         for (let i = 0, l = items.length; i < l; i++) {
             if (this.match(items[i], item)) {
@@ -162,7 +162,7 @@ export default {
         return -1;
     },
 
-    includes (items, item) {
+    includes(items, item) {
 
         for (let i = 0, l = items.length; i < l; i++) {
             if (this.match(items[i], item)) {
@@ -173,10 +173,18 @@ export default {
         return false;
     },
 
-    match (source, target) {
+    match(source, target) {
 
         if (source === target) {
             return true;
+        }
+
+        if (source === null || source === undefined) {
+            return false;
+        }
+
+        if (target === null || target === undefined) {
+            return false;
         }
 
         if (typeof source !== typeof target) {
@@ -210,22 +218,22 @@ export default {
         return true;
     },
 
-    binderNames (data) {
+    binderNames(data) {
         data = data.split('o-')[1];
         return data ? data.split('-') : [];
     },
 
-    binderValues (data) {
+    binderValues(data) {
         data = data.split(this.PIPE)[0];
         return data ? data.split('.') : [];
     },
 
-    binderPipes (data) {
+    binderPipes(data) {
         data = data.split(this.PIPE)[1];
         return data ? data.split(this.PIPES) : [];
     },
 
-    ensureElement (data) {
+    ensureElement(data) {
         data.query = data.query || '';
         data.scope = data.scope || document.body;
         data.position = data.position || 'beforeend';
@@ -245,7 +253,7 @@ export default {
         return element;
     },
 
-    setByPath (data, path, value) {
+    setByPath(data, path, value) {
         const keys = typeof path === 'string' ? path.split('.') : path;
         const last = keys.length - 1;
 
@@ -268,7 +276,7 @@ export default {
         return data[keys[last]] = value;
     },
 
-    getByPath (data, path) {
+    getByPath(data, path) {
         const keys = typeof path === 'string' ? path.split('.') : path;
         const last = keys.length - 1;
 
@@ -290,7 +298,7 @@ export default {
         return data[keys[last]];
     },
 
-    clone (source) {
+    clone(source) {
 
         if (
             source === null ||

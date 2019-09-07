@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 5.2.5
+    	Version: 5.2.6
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
@@ -199,6 +199,14 @@
     match: function match(source, target) {
       if (source === target) {
         return true;
+      }
+
+      if (source === null || source === undefined) {
+        return false;
+      }
+
+      if (target === null || target === undefined) {
+        return false;
       }
 
       if (_typeof(source) !== _typeof(target)) {
