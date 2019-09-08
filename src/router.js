@@ -21,7 +21,7 @@ export default {
     contain: false,
     folder: './routes',
 
-    async setup (option) {
+    async setup(option) {
         option = option || {};
 
         this.base = option.base === undefined ? this.base : option.base;
@@ -49,7 +49,7 @@ export default {
         await this.route(window.location.href, { mode: 'replace' });
     },
 
-    compareParts (routePath, userPath, split) {
+    compareParts(routePath, userPath, split) {
         const compareParts = [];
 
         const routeParts = routePath.split(split);
@@ -92,7 +92,7 @@ export default {
         }
     },
 
-    compare (routePath, userPath) {
+    compare(routePath, userPath) {
         const base = Path.normalize(Path.base);
 
         userPath = Path.normalize(userPath);
@@ -117,14 +117,14 @@ export default {
         return false;
     },
 
-    toParameterObject (routePath, userPath) {
+    toParameterObject(routePath, userPath) {
         let result = {};
 
         if (
             !routePath
-			|| !userPath
-			|| routePath === '/'
-			|| userPath === '/'
+            || !userPath
+            || routePath === '/'
+            || userPath === '/'
         ) return result;
 
         const userParts = userPath.split(/\/|-/);
@@ -143,7 +143,7 @@ export default {
         return result;
     },
 
-    toQueryString (data) {
+    toQueryString(data) {
         let result = '?';
 
         for (let key in data) {
@@ -158,7 +158,7 @@ export default {
         return result;
     },
 
-    toQueryObject (path) {
+    toQueryObject(path) {
         let result = {};
 
         if (path.indexOf('?') === 0) path = path.slice(1);
@@ -176,7 +176,7 @@ export default {
         return result;
     },
 
-    toLocationObject (href) {
+    toLocationObject(href) {
         const location = {};
         const parser = document.createElement('a');
 
@@ -196,23 +196,23 @@ export default {
         return location;
     },
 
-    scroll (x, y) {
+    scroll(x, y) {
         window.scroll(x, y);
     },
 
-    back () {
+    back() {
         window.history.back();
     },
 
-    forward () {
+    forward() {
         window.history.forward();
     },
 
-    redirect (path) {
+    redirect(path) {
         window.location.href = path;
     },
 
-    async add (data) {
+    async add(data) {
         if (!data) {
             return;
         } else if (data.constructor === String) {
@@ -240,7 +240,7 @@ export default {
                 path = '/' + path;
             }
 
-            load = load + '.js';
+            load = load.replace(/\/?\((\w+)?\~\)\/?/ig, '') + '.js';
             load = Path.join(this.folder, load);
 
             this.data.push({ path, load });
@@ -264,7 +264,7 @@ export default {
         }
     },
 
-    async load (route) {
+    async load(route) {
 
         if (route.load) {
             const load = await Loader.load(route.load);
@@ -280,7 +280,7 @@ export default {
         return route;
     },
 
-    async remove (path) {
+    async remove(path) {
         for (let i = 0, l = this.data.length; i < l; i++) {
             if (this.data[i].path === path) {
                 this.data.splice(i, 1);
@@ -288,7 +288,7 @@ export default {
         }
     },
 
-    async get (path) {
+    async get(path) {
         for (let i = 0, l = this.data.length; i < l; i++) {
             if (this.data[i].path === path) {
                 this.data[i] = await this.load(this.data[i]);
@@ -297,7 +297,7 @@ export default {
         }
     },
 
-    async filter (path) {
+    async filter(path) {
         const result = [];
 
         for (let i = 0, l = this.data.length; i < l; i++) {
@@ -310,7 +310,7 @@ export default {
         return result;
     },
 
-    async find (path) {
+    async find(path) {
         for (let i = 0, l = this.data.length; i < l; i++) {
             if (this.compare(this.data[i].path, path)) {
                 this.data[i] = await this.load(this.data[i]);
@@ -319,7 +319,7 @@ export default {
         }
     },
 
-    async render (route) {
+    async render(route) {
 
         if (!route) {
             throw new Error('Oxe.render - route argument required. Missing object option.');
@@ -399,7 +399,7 @@ export default {
         this.scroll(0, 0);
     },
 
-    async route (path, options) {
+    async route(path, options) {
         options = options || {};
 
         if (options.query) {
@@ -450,19 +450,19 @@ export default {
         this.emit('route:after', location);
     },
 
-    async state (event) {
+    async state(event) {
         const path = event && event.state ? event.state.path : window.location.href;
         this.route(path, { mode: 'replace' });
     },
 
-    async click (event) {
+    async click(event) {
 
         // ignore canceled events, modified clicks, and right clicks
         if (
-    		event.target.type ||
+            event.target.type ||
             event.button !== 0 ||
-    		event.defaultPrevented ||
-    		event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+            event.defaultPrevented ||
+            event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
         ) {
             return;
         }
@@ -499,23 +499,23 @@ export default {
 
         // check non-acceptables
         if (target.hasAttribute('download') ||
-    		target.hasAttribute('external') ||
-    		target.hasAttribute('o-external') ||
-    		target.href.indexOf('tel:') === 0 ||
-    		target.href.indexOf('ftp:') === 0 ||
-    		target.href.indexOf('file:') === 0 ||
-    		target.href.indexOf('mailto:') === 0 ||
-    		target.href.indexOf(window.location.origin) !== 0 ||
-    		(target.hash !== '' &&
+            target.hasAttribute('external') ||
+            target.hasAttribute('o-external') ||
+            target.href.indexOf('tel:') === 0 ||
+            target.href.indexOf('ftp:') === 0 ||
+            target.href.indexOf('file:') === 0 ||
+            target.href.indexOf('mailto:') === 0 ||
+            target.href.indexOf(window.location.origin) !== 0 ||
+            (target.hash !== '' &&
                 target.origin === window.location.origin &&
                 target.pathname === window.location.pathname)
         ) return;
 
         // if external is true then default action
         if (this.external &&
-    		(this.external.constructor === RegExp && this.external.test(target.href) ||
-    		this.external.constructor === Function && this.external(target.href) ||
-    		this.external.constructor === String && this.external === target.href)
+            (this.external.constructor === RegExp && this.external.test(target.href) ||
+                this.external.constructor === Function && this.external(target.href) ||
+                this.external.constructor === String && this.external === target.href)
         ) return;
 
         event.preventDefault();

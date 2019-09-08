@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 5.2.6
+    	Version: 5.2.7
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
@@ -2929,7 +2929,7 @@
               path = '/' + path;
             }
 
-            load = load + '.js';
+            load = load.replace(/\/?\((\w+)?\~\)\/?/ig, '') + '.js';
             load = Path.join(this.folder, load);
             this.data.push({
               path: path,
