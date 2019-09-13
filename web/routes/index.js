@@ -112,7 +112,7 @@ export default {
 		<ul>
 			<li>
 				<p>
-					<a hregf="https://github.com/vokeio/oxe/blob/master/dst/poly.min.js">poly.min.js</a> includes everything need except shadow poly code.
+					<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.min.js">poly.min.js</a> includes everything need except shadow poly code.
 				</p>
 				<ul>
 					<li>customElements</li>
