@@ -35,8 +35,7 @@ var oLoop = {
     },
     template: /*html*/`
 
-		<h3><span o-text="count" o-text="count"></span> Inputs two way binded</h3>
-		<h3><span o-text="count"></span> Text one way binded</h3>
+		<h3><span>{{count}}</span> Inputs two way binded</h3>
 
 		<form o-submit="push">
 			<input o-value="count" type="number">
@@ -49,7 +48,7 @@ var oLoop = {
 
 		<div o-each-item="items">
 			<div class="box">
-				<div o-text="$item.number"></div>
+				<div>{{$item.number}}</div>
 				<input type="text" o-value="$item.number">
 			</div>
 		</div>

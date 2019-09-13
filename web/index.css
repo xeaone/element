@@ -89,7 +89,8 @@ hr {
 }
 .menu-item-button > a::after {
 	margin: 0.6rem;
-	content: '\2bc6';
+	/* content: '\2bc6'; */
+	content: '';
 	color: darkorange;
 }
 .menu-item-content {

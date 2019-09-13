@@ -33,7 +33,7 @@ export default {
                 three: 3
             },
             arrayChange: [ 1, 2 ],
-            html: '<h3 o-text="title"></h3>'
+            html: '<h3>{{title}}</h3>'
         },
         methods: {
             say: Say,
@@ -166,19 +166,19 @@ export default {
 		<br>
 
 		<div>
-			<h3 o-text="title"></h3>
+			<h3>{{title}}</h3>
 		</div>
 		<br>
 		<br>
 
-		<strong o-text="nah">nah</strong>
+		<strong>{{nah}}</strong>
 		<strong o-show="isshow">isshow</strong>
 		<strong o-hide="ishide">ishide</strong>
 		<br>
 		<br>
 
 		<form o-submit="s0" o-reset>
-			<div o-text="loopy.doopy"></div>
+			<div>{{loopy.doopy}}</div>
 			<input type="text" o-value="loopy.doopy" placeholder="text" required><br>
 			<input type="text" o-value="blank" placeholder="text" required><br>
 			<input type="submit" name="Submit">
@@ -192,10 +192,10 @@ export default {
 		<br>
 
 		<c-menu>
-			<li slot="one" o-text="menuItemOne"></li>
+			<li slot="one">{{menuItemOne}}</li>
 			<li slot="two">Item Two</li>
 			<c-foo>
-				<div slot="sub" o-text="text"></div>
+				<div slot="sub">{{text}}</div>
 			</c-foo>
 		</c-menu>
 		<br>
@@ -208,24 +208,24 @@ export default {
 		<br>
 		<br>
 
-		<p o-text="text | upper"></p>
-		<p o-text="text | lower"></p>
+		<p>{{text | upper}}</p>
+		<p>{{text | lower}}</p>
 		<input type="text" o-value="text | lower" placeholder="text">
 		<input type="text" o-value="text | upper" placeholder="text">
 		<br>
 		<br>
 
-		<div o-text="isChecked"></div>
+		<div>{{isChecked}}</div>
 		<input type="checkbox" o-value="isChecked">
 		<br>
 		<br>
 
-		<div o-text="initiallyNotOnModel">initiallyNotOnModel</div>
+		<div>{{initiallyNotOnModel}}</div>
 		<input type="checkbox" o-value="initiallyNotOnModel">
 		<br>
 		<br>
 
-		<div o-text="numRadio"></div>
+		<div>{{numRadio}}</div>
 		<input type="radio" o-value="numRadio">
 		<input type="radio" o-value="numRadio">
 		<br>

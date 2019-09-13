@@ -26,13 +26,13 @@ Oxe.setup({
         // mode: 'href',
         routes: [
             'index',
-            'js',
             'test',
-            'select',
-            'class',
-            'input',
-            'style',
-            'each',
+            'binders/each',
+            'binders/class',
+            'binders/select',
+            'binders/style',
+            'binders/text',
+            'binders/value',
             '(~)'
         ]
     }

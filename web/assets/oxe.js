@@ -191,6 +191,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return true;
       }
 
+      if (source === null || source === undefined) {
+        return false;
+      }
+
+      if (target === null || target === undefined) {
+        return false;
+      }
+
       if (_typeof(source) !== _typeof(target)) {
         return false;
       }
@@ -974,6 +982,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           binder.meta.busy = false;
         }
       };
+    } else if (type === 'file') {
+      return {
+        read: function read() {
+          this.multiple = Utility.multiple(binder.target);
+          binder.data = this.multiple ? Array.prototype.slice.call(binder.target.files) : binder.target.files[0];
+          binder.meta.busy = false;
+          this.data = binder.data;
+        }
+      };
     } else {
       return {
         read: function read() {
@@ -1090,7 +1107,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       if (data.value === undefined) throw new Error('Oxe.binder.create - missing value');
       if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
       if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
-      var originalValue = data.value;
 
       if (data.value.slice(0, 2) === '{{' && data.value.slice(-2) === '}}') {
         data.value = data.value.slice(2, -2);
@@ -1175,10 +1191,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         get context() {
           return context;
-        },
-
-        get originalValue() {
-          return originalValue;
         },
 
         get data() {
@@ -1639,7 +1651,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         binder = Binder.get('attribute', element, 'o-value');
-        value = binder ? binder.data : element.files ? Array.prototype.slice.call(element.files) : element.value;
+        value = binder ? binder.data : element.files ? element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0] : element.value;
         name = element.name || (binder ? binder.values[binder.values.length - 1] : null);
         if (!name) continue;
         data[name] = value;
@@ -2907,7 +2919,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               path = '/' + path;
             }
 
-            load = load + '.js';
+            load = load.replace(/\/?\((\w+)?\~\)\/?/ig, '') + '.js';
             load = Path.join(this.folder, load);
             this.data.push({
               path: path,
