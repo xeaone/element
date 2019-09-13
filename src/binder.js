@@ -269,6 +269,13 @@ export default {
             for (let i = 0, l = attributes.length; i < l; i++) {
                 const attribute = attributes[i];
 
+                // idea
+                // if (
+                //     attribute.name.indexOf('{{') === 0 &&
+                //     attribute.name.indexOf('}}') === attribute.name.length-2
+                // ) {
+                // }
+
                 if (
                     attribute.name === 'o-html' ||
                     attribute.name === 'o-scope' ||
