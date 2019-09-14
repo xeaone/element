@@ -276,6 +276,26 @@ export default {
                 // ) {
                 // }
 
+                // invisble char idea
+                // if (attribute.value.indexOf('{{') !== -1 && attribute.value.indexOf('}}') !== -1) {
+
+                //     var f = false;
+                //     var start = attribute.textContent.indexOf('{{');
+        
+                //     if (start !== -1 && start !== 0) {
+                //       f = true;
+                //       attribute.value = attribute.value.slice(0, start) + '\u200C' + attribute.value.slice(start);
+                //     }
+        
+                //     var end = attribute.textContent.indexOf('}}');
+                //     var length = attribute.textContent.length;
+        
+                //     if (f) {
+                //       attribute.value = attribute.value.slice(0, end+2) + '\u200C' + attribute.value.slice(end+2);
+                //     }
+
+                // }
+
                 if (
                     attribute.name === 'o-html' ||
                     attribute.name === 'o-scope' ||
