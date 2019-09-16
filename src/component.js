@@ -256,15 +256,13 @@ export default {
 
                         self.render(instance, options.template, options.adopt, options.shadow);
 
-                        Promise.resolve().then(function () {
-                            if (options.created) {
-                                return options.created.call(instance);
-                            }
-                        }).then(function () {
-                            if (options.attached) {
-                                return options.attached.call(instance);
-                            }
-                        });
+                        if (options.created && options.attached) {
+                            Promise.resolve().then(options.created.bind(instance)).then(options.attached.bind(instance));
+                        } else if (options.created) {
+                            Promise.resolve().then(options.created.bind(instance));
+                        } else if (options.attached) {
+                            Promise.resolve().then(options.attached.bind(instance));
+                        }
 
                     }
                 }
