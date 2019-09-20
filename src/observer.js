@@ -34,11 +34,10 @@ const Observer = {
             deleteCount = self.length - startIndex;
         }
 
+        const result = [];
         let totalCount = self.$meta.length;
         let argumentIndex = 2;
         let argumentsCount = arguments.length - argumentIndex;
-        const result = self.slice(startIndex, deleteCount);
-
         let updateCount = (totalCount - 1) - startIndex;
 
         const promises = [];
@@ -85,6 +84,7 @@ const Observer = {
 
         if (deleteCount > 0) {
             while (deleteCount--) {
+                result.push(self[self.length-1]);
                 self.$meta.length--;
                 self.length--;
                 const key = self.length;
