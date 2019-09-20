@@ -105,16 +105,14 @@ export default {
         if (data.target === undefined) throw new Error('Oxe.binder.create - missing target');
         if (data.container === undefined) throw new Error('Oxe.binder.create - missing container');
 
-        // const originalValue = data.value;
+        // if (data.value.slice(0, 2) === '{{' && data.value.slice(-2) === '}}') {
+        //     data.value = data.value.slice(2, -2);
+        // }
 
-        if (data.value.slice(0, 2) === '{{' && data.value.slice(-2) === '}}') {
-            data.value = data.value.slice(2, -2);
-        }
-
-        if (data.value.indexOf('$') !== -1 && data.context && data.context.variable && data.context.path && data.context.key) {
-            const pattern = new RegExp(`\\$${data.context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
-            data.value = data.value.replace(pattern, `${data.context.path}.${data.context.key}$1$2`);
-        }
+        // if (data.value.indexOf('$') !== -1 && data.context && data.context.variable && data.context.path && data.context.key) {
+        //     const pattern = new RegExp(`\\$${data.context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
+        //     data.value = data.value.replace(pattern, `${data.context.path}.${data.context.key}$1$2`);
+        // }
 
         const scope = data.container.scope;
         const names = data.names || Utility.binderNames(data.name);
@@ -152,16 +150,12 @@ export default {
             get meta() { return meta; },
             get context() { return context; },
 
-            // get originalValue () { return originalValue; },
-
             get data() {
-                const data = Utility.getByPath(source, values);
-                return Piper(this, data);
+                return Piper(this, Utility.getByPath(source, values));
             },
 
             set data(value) {
-                const data = Piper(this, value);
-                return Utility.setByPath(source, values, data);
+                return Utility.setByPath(source, values, Piper(this, value));
             }
 
         };
@@ -194,12 +188,51 @@ export default {
 
     bind(node, name, value, context) {
 
-        if (value === `$${context.variable}.$key` || value === `{{$${context.variable}.$key}}`) {
-            return Batcher.batch({ write() { node.textContent = context.key; } });
+        // if (value === `$${context.variable}.$key` || value === `{{$${context.variable}.$key}}`) {
+        //     return Batcher.batch({ write() { node.textContent = context.key; } });
+        // }
+
+        // if (value === `$${context.variable}.$index` || value === `{{$${context.variable}.$index}}`) {
+        //     return Batcher.batch({ write() { node.textContent = context.index; } });
+        // }
+
+        // if (value.indexOf('$') !== -1 && context && context.variable && context.path && context.key) {
+        //     const pattern = new RegExp(`\\$${context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
+        //     value = value.replace(pattern, `${context.path}.${context.key}$1$2`);
+        // }
+
+        // const ms = value.match(/\[\[(.*)\]\]/g);
+        // console.log(ms);
+
+        if (context) {
+
+            if (context.keyVariable && value === context.keyVariable || value === `{{${context.keyVariable}}}`) {
+                return Batcher.batch({ write() { node.textContent = context.key; } });
+            }
+
+            if (context.indexVariable && value === context.indexVariable || value === `{{${context.indexVariable}}}`) {
+                return Batcher.batch({ write() { node.textContent = context.index; } });
+            }
+
         }
 
-        if (value === `$${context.variable}.$index` || value === `{{$${context.variable}.$index}}`) {
-            return Batcher.batch({ write() { node.textContent = context.index; } });
+        if (context && context.keyVariable) {
+            const pattern = new RegExp(`\\[${context.keyVariable}\\]`, 'g');
+            value = value.replace(pattern, `.${context.key}`);
+        }
+
+        if (context && context.indexVariable) {
+            const pattern = new RegExp(`\\[${context.indexVariable}\\]`, 'g');
+            value = value.replace(pattern, `.${context.index}`);
+        }
+
+        if (context && context.variable) {
+            const pattern = new RegExp(`\\b${context.variable}\\b`, 'g');
+            value = value.replace(pattern, `${context.path}.${context.key}`);
+        }
+
+        if (value && value.slice(0, 2) === '{{' && value.slice(-2) === '}}') {
+            value = value.slice(2, -2);
         }
 
         const binder = this.create({

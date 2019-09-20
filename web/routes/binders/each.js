@@ -7,7 +7,7 @@ export default {
         model: {
             title: 'Each',
             as: [
-                { it: { val: 0 } }, { it: { val: 1 } }
+                { it: { val: 'zero' } }, { it: { val: 'one' } }
             ],
             os: {
                 keyOne: 'valueOne',
@@ -56,25 +56,25 @@ export default {
 			<br>
 			<br>
 			<strong>Array</strong>
-			<div o-each-a="as">
+			<div o-each-a="as" o-index="i" o-key="k">
 				<div>
-					<span>Key: {{$a.$key}},</span>
-					<span>Index: {{$a.$index}},</span>
-					<span>Value: {{$a.it.val}}</span>
+					<strong>Index: </strong>{{i}},
+					<strong>Key: </strong>{{k}},
+					<strong>Value: </strong>{{a.it.val}}
 				</div>
 			</div>
 
 			<br>
 			<br>
 			<strong>Object</strong>
-			<div o-each-o="os">
-				<div o-on-click="click | $o">
-					<span>Key: {{$o.$key}},</span>
-					<span>Index: {{$o.$index}},</span>
-					<span>Value: {{$o}}</span>
+			<div o-each-o="os" o-index="i" o-key="k">
+				<div o-on-click="click | o">
+					<strong>Index: </strong>{{i}},
+					<strong>Key: </strong>{{k}},
+                    <strong>Value: </strong>{{o}}
 				</div>
-			</div>
-
+            </div>
+            
 		`
     }
 };

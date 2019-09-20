@@ -13,6 +13,9 @@ export default function (binder) {
                 binder.meta.targetLength = 0;
                 binder.meta.currentLength = 0;
 
+                binder.meta.keyVariable = binder.target.getAttribute('o-key');
+                binder.meta.indexVariable = binder.target.getAttribute('o-index');
+
                 if (binder.target.firstElementChild) {
                     binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
                 } else {
@@ -54,7 +57,9 @@ export default function (binder) {
                     variable: binder.names[1],
                     container: binder.container,
                     scope: binder.container.scope,
-                    key: binder.meta.keys[index]
+                    key: binder.meta.keys[index],
+                    keyVariable: binder.meta.keyVariable,
+                    indexVariable: binder.meta.indexVariable
                 });
 
                 binder.target.appendChild(element);
