@@ -483,6 +483,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       },
       write: function write() {
+        binder.target.setAttribute(binder.type, this.data);
         binder.target[binder.type] = this.data;
       }
     };
@@ -509,22 +510,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       read: function read() {
         this.data = binder.data || [];
 
-        if (binder.meta.keys === undefined) {
+        if (!binder.meta.setup) {
           binder.meta.keys = [];
+          binder.meta.counts = [];
+          binder.meta.setup = false;
           binder.meta.pending = false;
           binder.meta.targetLength = 0;
           binder.meta.currentLength = 0;
+          binder.meta.parentContext = binder.context;
+          binder.meta.template = document.createDocumentFragment();
           binder.meta.keyVariable = binder.target.getAttribute('o-key');
           binder.meta.indexVariable = binder.target.getAttribute('o-index');
-
-          if (binder.target.firstElementChild) {
-            binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
-          } else {
-            var element = document.createElement('div');
-            var text = document.createTextNode("{{$".concat(binder.names[1], "}}"));
-            element.appendChild(text);
-            binder.meta.template = element;
-          }
         }
 
         binder.meta.keys = Object.keys(this.data);
@@ -535,22 +531,35 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       },
       write: function write() {
+        if (!binder.meta.setup) {
+          while (binder.target.firstChild) {
+            binder.meta.template.appendChild(binder.target.removeChild(binder.target.firstChild));
+          }
+
+          binder.meta.setup = true;
+        }
+
         if (binder.meta.currentLength === binder.meta.targetLength) {
           binder.meta.pending = false;
           return;
         }
 
         if (binder.meta.currentLength > binder.meta.targetLength) {
-          var element = binder.target.lastElementChild;
-          binder.target.removeChild(element);
-          self.remove(element);
+          var count = binder.meta.counts.pop();
+
+          while (count--) {
+            var node = binder.target.lastChild;
+            binder.target.removeChild(node);
+            self.remove(node);
+          }
+
           binder.meta.currentLength--;
         } else if (binder.meta.currentLength < binder.meta.targetLength) {
-          var _element = binder.meta.template.cloneNode(true);
+          var fragment = binder.meta.template.cloneNode(true);
 
           var _index = binder.meta.currentLength++;
 
-          self.add(_element, {
+          self.add(fragment, {
             index: _index,
             path: binder.path,
             variable: binder.names[1],
@@ -558,9 +567,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             scope: binder.container.scope,
             key: binder.meta.keys[_index],
             keyVariable: binder.meta.keyVariable,
+            parentContext: binder.meta.parentContext,
             indexVariable: binder.meta.indexVariable
           });
-          binder.target.appendChild(_element);
+          binder.meta.counts.push(fragment.childNodes.length);
+          binder.target.appendChild(fragment);
         }
 
         if (binder.meta.pending && render.read) {
@@ -1188,11 +1199,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         },
 
         get data() {
-          return Piper(this, Utility.getByPath(source, values));
+          if (data.name === 'o-value') {
+            return Utility.getByPath(source, values);
+          } else {
+            return Piper(this, Utility.getByPath(source, values));
+          }
         },
 
         set data(value) {
-          return Utility.setByPath(source, values, Piper(this, value));
+          if (data.name === 'o-value') {
+            return Utility.setByPath(source, values, Piper(this, value));
+          } else {
+            return Utility.setByPath(source, values, value);
+          }
         }
 
       };
@@ -1217,38 +1236,54 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     bind: function bind(node, name, value, context) {
       if (context) {
-        if (context.keyVariable && value === context.keyVariable || value === "{{".concat(context.keyVariable, "}}")) {
-          return Batcher.batch({
-            write: function write() {
-              node.textContent = context.key;
+        var _ret = function () {
+          var c = context;
+
+          while (c) {
+            if (node.nodeType === Node.TEXT_NODE) {
+              if (c.keyVariable && value === "{{".concat(c.keyVariable, "}}")) {
+                return {
+                  v: Batcher.batch({
+                    write: function write() {
+                      node.textContent = c.key;
+                    }
+                  })
+                };
+              }
+
+              if (c.indexVariable && value === "{{".concat(c.indexVariable, "}}")) {
+                return {
+                  v: Batcher.batch({
+                    write: function write() {
+                      node.textContent = c.index;
+                    }
+                  })
+                };
+              }
             }
-          });
-        }
 
-        if (context.indexVariable && value === context.indexVariable || value === "{{".concat(context.indexVariable, "}}")) {
-          return Batcher.batch({
-            write: function write() {
-              node.textContent = context.index;
+            if (c.keyVariable) {
+              var pattern = new RegExp("(^|[^A-Za-z0-9_$.])".concat(c.keyVariable, "([^A-Za-z0-9_$.]|$)"), 'g');
+              value = value.replace(pattern, "$1".concat(c.key, "$2"));
             }
-          });
-        }
-      }
 
-      if (context && context.keyVariable) {
-        var pattern = new RegExp("\\[".concat(context.keyVariable, "\\]"), 'g');
-        value = value.replace(pattern, ".".concat(context.key));
-      }
+            if (c.indexVariable) {
+              var _pattern = new RegExp("(^|[^A-Za-z0-9_$.])".concat(c.indexVariable, "([^A-Za-z0-9_$.]|$)"), 'g');
 
-      if (context && context.indexVariable) {
-        var _pattern = new RegExp("\\[".concat(context.indexVariable, "\\]"), 'g');
+              value = value.replace(_pattern, "$1".concat(c.index, "$2"));
+            }
 
-        value = value.replace(_pattern, ".".concat(context.index));
-      }
+            if (c.variable) {
+              var _pattern2 = new RegExp("(^|[^A-Za-z0-9_$.])".concat(c.variable, "([^A-Za-z0-9_$]|$)"), 'g');
 
-      if (context && context.variable) {
-        var _pattern2 = new RegExp("\\b".concat(context.variable, "\\b"), 'g');
+              value = value.replace(_pattern2, "$1".concat(c.path, ".").concat(c.key, "$2"));
+            }
 
-        value = value.replace(_pattern2, "".concat(context.path, ".").concat(context.key));
+            c = c.parentContext;
+          }
+        }();
+
+        if (_typeof(_ret) === "object") return _ret.v;
       }
 
       if (value && value.slice(0, 2) === '{{' && value.slice(-2) === '}}') {
@@ -1304,10 +1339,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         if (end !== -1 && end !== length - 2) {
           var split = node.splitText(end + 2);
+          this.bind(node, 'o-text', node.textContent, context);
           this.add(split, context);
+        } else {
+          this.bind(node, 'o-text', node.textContent, context);
         }
-
-        this.bind(node, 'o-text', node.textContent, context);
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         var skipChildren = false;
         var attributes = node.attributes;
@@ -1334,6 +1370,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         for (var _i3 = 0; _i3 < node.childNodes.length; _i3++) {
           this.add(node.childNodes[_i3], context);
+        }
+      } else if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        for (var _i4 = 0; _i4 < node.childNodes.length; _i4++) {
+          this.add(node.childNodes[_i4], context);
         }
       }
     }
@@ -2101,10 +2141,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         deleteCount = self.length - startIndex;
       }
 
+      var result = [];
       var totalCount = self.$meta.length;
       var argumentIndex = 2;
       var argumentsCount = arguments.length - argumentIndex;
-      var result = self.slice(startIndex, deleteCount);
       var updateCount = totalCount - 1 - startIndex;
       var promises = [];
       var length = self.length + addCount - deleteCount;
@@ -2146,6 +2186,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (deleteCount > 0) {
         while (deleteCount--) {
+          result.push(self[self.length - 1]);
           self.$meta.length--;
           self.length--;
           var _key2 = self.length;

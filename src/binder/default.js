@@ -18,6 +18,7 @@ export default function (binder) {
 
         },
         write () {
+            binder.target.setAttribute(binder.type, this.data);
             binder.target[binder.type] = this.data;
         }
     };

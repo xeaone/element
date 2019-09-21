@@ -151,11 +151,19 @@ export default {
             get context() { return context; },
 
             get data() {
-                return Piper(this, Utility.getByPath(source, values));
+                if (data.name === 'o-value') {
+                    return Utility.getByPath(source, values);
+                } else {
+                    return Piper(this, Utility.getByPath(source, values));
+                }
             },
 
             set data(value) {
-                return Utility.setByPath(source, values, Piper(this, value));
+                if (data.name === 'o-value') {
+                    return Utility.setByPath(source, values, Piper(this, value));
+                } else {
+                    return Utility.setByPath(source, values, value);
+                }
             }
 
         };
@@ -201,34 +209,45 @@ export default {
         //     value = value.replace(pattern, `${context.path}.${context.key}$1$2`);
         // }
 
-        // const ms = value.match(/\[\[(.*)\]\]/g);
-        // console.log(ms);
-
         if (context) {
+            
+            let c = context;
+            while (c) {
 
-            if (context.keyVariable && value === context.keyVariable || value === `{{${context.keyVariable}}}`) {
-                return Batcher.batch({ write() { node.textContent = context.key; } });
+                if (node.nodeType === Node.TEXT_NODE) {
+
+                    if (c.keyVariable && value === `{{${c.keyVariable}}}`) {
+                        return Batcher.batch({ write() { node.textContent = c.key; } });
+                    }
+
+                    if (c.indexVariable && value === `{{${c.indexVariable}}}`) {
+                        return Batcher.batch({ write() { node.textContent = c.index; } });
+                    }
+
+                }
+
+                if (c.keyVariable) {
+                    // const pattern = new RegExp(`\\[${c.keyVariable}\\]`, 'g');
+                    // value = value.replace(pattern, `.${c.key}`);
+                    const pattern = new RegExp(`(^|[^A-Za-z0-9_$.])${c.keyVariable}([^A-Za-z0-9_$.]|$)`, 'g');
+                    value = value.replace(pattern, `$1${c.key}$2`);
+                }
+
+                if (c.indexVariable) {
+                    // const pattern = new RegExp(`\\[${c.indexVariable}\\]`, 'g');
+                    // value = value.replace(pattern, `.${c.index}`);
+                    const pattern = new RegExp(`(^|[^A-Za-z0-9_$.])${c.indexVariable}([^A-Za-z0-9_$.]|$)`, 'g');
+                    value = value.replace(pattern, `$1${c.index}$2`);
+                }
+
+                if (c.variable) {
+                    const pattern = new RegExp(`(^|[^A-Za-z0-9_$.])${c.variable}([^A-Za-z0-9_$]|$)`, 'g');
+                    value = value.replace(pattern, `$1${c.path}.${c.key}$2`);
+                }
+
+                c = c.parentContext;
             }
 
-            if (context.indexVariable && value === context.indexVariable || value === `{{${context.indexVariable}}}`) {
-                return Batcher.batch({ write() { node.textContent = context.index; } });
-            }
-
-        }
-
-        if (context && context.keyVariable) {
-            const pattern = new RegExp(`\\[${context.keyVariable}\\]`, 'g');
-            value = value.replace(pattern, `.${context.key}`);
-        }
-
-        if (context && context.indexVariable) {
-            const pattern = new RegExp(`\\[${context.indexVariable}\\]`, 'g');
-            value = value.replace(pattern, `.${context.index}`);
-        }
-
-        if (context && context.variable) {
-            const pattern = new RegExp(`\\b${context.variable}\\b`, 'g');
-            value = value.replace(pattern, `${context.path}.${context.key}`);
         }
 
         if (value && value.slice(0, 2) === '{{' && value.slice(-2) === '}}') {
@@ -260,7 +279,6 @@ export default {
         this.data.get('location').get(binder.scope).get(binder.path).push(binder);
 
         this.render(binder);
-        // this.render(binder, 'view');
     },
 
 
@@ -288,12 +306,13 @@ export default {
 
             const end = node.textContent.indexOf('}}');
             const length = node.textContent.length;
-            if (end !== -1 && end !== length - 2) {
+            if (end !== -1 && end !== length-2) {
                 const split = node.splitText(end + 2);
+                this.bind(node, 'o-text', node.textContent, context);
                 this.add(split, context);
+            } else {
+                this.bind(node, 'o-text', node.textContent, context);
             }
-
-            this.bind(node, 'o-text', node.textContent, context);
 
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             let skipChildren = false;
@@ -363,6 +382,10 @@ export default {
                 this.add(node.childNodes[i], context);
             }
 
+        } else if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+            for (let i = 0; i < node.childNodes.length; i++) {
+                this.add(node.childNodes[i], context);
+            }
         }
     }
 

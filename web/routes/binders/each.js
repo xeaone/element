@@ -57,7 +57,7 @@ export default {
 			<br>
 			<strong>Array</strong>
 			<div o-each-a="as" o-index="i" o-key="k">
-				<div>
+				<div o-name="a.it.val">
 					<strong>Index: </strong>{{i}},
 					<strong>Key: </strong>{{k}},
 					<strong>Value: </strong>{{a.it.val}}
@@ -68,12 +68,21 @@ export default {
 			<br>
 			<strong>Object</strong>
 			<div o-each-o="os" o-index="i" o-key="k">
-				<div o-on-click="click | o">
+				<div o-name="o" o-on-click="click | o">
 					<strong>Index: </strong>{{i}},
 					<strong>Key: </strong>{{k}},
                     <strong>Value: </strong>{{o}}
 				</div>
             </div>
+
+			<br>
+			<br>
+			<strong>Array</strong>
+			<div o-each-a="as" o-index="i" o-key="k">
+                <strong>Index: </strong>{{i}},
+                <strong>Key: </strong>{{k}},
+                <strong>Value: </strong>{{a.it.val}}
+			</div>
             
 		`
     }
