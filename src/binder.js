@@ -196,21 +196,9 @@ export default {
 
     bind(node, name, value, context) {
 
-        // if (value === `$${context.variable}.$key` || value === `{{$${context.variable}.$key}}`) {
-        //     return Batcher.batch({ write() { node.textContent = context.key; } });
-        // }
-
-        // if (value === `$${context.variable}.$index` || value === `{{$${context.variable}.$index}}`) {
-        //     return Batcher.batch({ write() { node.textContent = context.index; } });
-        // }
-
-        // if (value.indexOf('$') !== -1 && context && context.variable && context.path && context.key) {
-        //     const pattern = new RegExp(`\\$${context.variable}(,|\\s+|\\.|\\|)?(.*)?$`, 'ig');
-        //     value = value.replace(pattern, `${context.path}.${context.key}$1$2`);
-        // }
-
         if (context) {
-            
+
+            // NOTE: might be able to stop the loop after a match is found
             let c = context;
             while (c) {
 
@@ -227,15 +215,11 @@ export default {
                 }
 
                 if (c.keyVariable) {
-                    // const pattern = new RegExp(`\\[${c.keyVariable}\\]`, 'g');
-                    // value = value.replace(pattern, `.${c.key}`);
                     const pattern = new RegExp(`(^|[^A-Za-z0-9_$.])${c.keyVariable}([^A-Za-z0-9_$.]|$)`, 'g');
                     value = value.replace(pattern, `$1${c.key}$2`);
                 }
 
                 if (c.indexVariable) {
-                    // const pattern = new RegExp(`\\[${c.indexVariable}\\]`, 'g');
-                    // value = value.replace(pattern, `.${c.index}`);
                     const pattern = new RegExp(`(^|[^A-Za-z0-9_$.])${c.indexVariable}([^A-Za-z0-9_$.]|$)`, 'g');
                     value = value.replace(pattern, `$1${c.index}$2`);
                 }
