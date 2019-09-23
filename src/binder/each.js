@@ -18,6 +18,13 @@ export default function (binder) {
                 binder.meta.template = document.createDocumentFragment();
                 binder.meta.keyVariable = binder.target.getAttribute('o-key');
                 binder.meta.indexVariable = binder.target.getAttribute('o-index');
+                // binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
+
+                while (binder.target.firstChild) {
+                    binder.meta.template.appendChild(binder.target.removeChild(binder.target.firstChild));
+                }
+
+                binder.meta.setup = true;
             }
 
             binder.meta.keys = Object.keys(this.data);
@@ -29,16 +36,6 @@ export default function (binder) {
 
         },
         write () {
-
-            if (!binder.meta.setup) {
-                // binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
-
-                while (binder.target.firstChild) {
-                    binder.meta.template.appendChild(binder.target.removeChild(binder.target.firstChild));
-                }
-
-                binder.meta.setup = true;
-            }
 
             if (binder.meta.currentLength === binder.meta.targetLength) {
                 binder.meta.pending = false;
