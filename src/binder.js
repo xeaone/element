@@ -216,11 +216,11 @@ export default {
 
                 if (node.nodeType === Node.TEXT_NODE) {
 
-                    if (c.keyVariable && value === `{{${c.keyVariable}}}`) {
+                    if (value === `{{${c.keyVariable}}}`) {
                         return Batcher.batch({ write() { node.textContent = c.key; } });
                     }
 
-                    if (c.indexVariable && value === `{{${c.indexVariable}}}`) {
+                    if (value === `{{${c.indexVariable}}}`) {
                         return Batcher.batch({ write() { node.textContent = c.index; } });
                     }
 
