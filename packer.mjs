@@ -35,6 +35,7 @@ export const Transformer = async function (option) {
         minified: option.minify,
         comments: option.comments,
         plugins: [
+            // '@babel/plugin-syntax-dynamic-import',
             [ 'module:fast-async', {
                 spec: true
             } ]
