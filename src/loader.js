@@ -1,13 +1,10 @@
 import Transformer from './transformer.js';
 import Path from './path.js';
 
-// import export in strings cause error
-// backtick in template strings or regex could possibly causes issues
-
 // let IMPORT;
-//
+
 // try {
-//     new Function('import("")');
+//     new Function('import("").catch(function(){})')();
 //     IMPORT = true;
 // } catch (e) {
 //     IMPORT = false;
@@ -17,6 +14,7 @@ export default {
 
     data: {},
     type: 'esm',
+    // type: IMPORT ? '' : 'esm',
 
     async setup (options) {
         const self = this;
@@ -79,6 +77,10 @@ export default {
         }
 
         url = Path.normalize(url);
+
+        // if (IMPORT && !type) {
+        //     return new Function('url', 'return import(url)')(url);
+        // }
 
         if (url in this.data === false) {
             this.data[url] = this.fetch(url, type);
