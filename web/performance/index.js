@@ -62,4 +62,4 @@ Oxe.setup({
             oLoop
         ]
     }
-});
+}).catch(console.error);
