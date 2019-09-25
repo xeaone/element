@@ -74,18 +74,19 @@ export default {
 
         if (!paths) return;
 
-        paths.forEach(function (binders, path) {
+        for (const [ path, binders ] of paths) {
             if (
                 part === '' ||
 				path === part ||
 				(type !== 'length' && path.indexOf(part + '.') === 0)
             ) {
-                binders.forEach(function (binder) {
+                for (const binder of binders) {
                     Binder.render(binder);
-                });
+                    
+                }
             }
-        });
+        }
 
     }
 
-};
+}
