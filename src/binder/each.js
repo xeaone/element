@@ -3,8 +3,12 @@ import Batcher from '../batcher.js';
 export default function (binder) {
     const self = this;
 
-    const render = {
+    if (binder.meta.pending) return;
+    else binder.meta.pending = true;
+
+    return {
         read () {
+
             this.data = binder.data || [];
 
             if (!binder.meta.setup) {
@@ -15,15 +19,16 @@ export default function (binder) {
                 binder.meta.targetLength = 0;
                 binder.meta.currentLength = 0;
                 binder.meta.parentContext = binder.context;
+                binder.meta.fragment = document.createDocumentFragment();
                 binder.meta.template = document.createDocumentFragment();
                 binder.meta.keyVariable = binder.target.getAttribute('o-key');
                 binder.meta.indexVariable = binder.target.getAttribute('o-index');
-                // binder.meta.template = binder.target.removeChild(binder.target.firstElementChild);
 
                 while (binder.target.firstChild) {
                     binder.meta.template.appendChild(binder.target.removeChild(binder.target.firstChild));
                 }
 
+                binder.meta.templateLength = binder.meta.template.childNodes.length;
                 binder.meta.setup = true;
             }
 
@@ -31,7 +36,8 @@ export default function (binder) {
             binder.meta.targetLength = binder.meta.keys.length;
 
             if (binder.meta.currentLength === binder.meta.targetLength) {
-                return false;
+                binder.meta.pending = false;
+                this.write = false;
             }
 
         },
@@ -41,47 +47,69 @@ export default function (binder) {
                 binder.meta.pending = false;
                 return;
             }
-
+            
             if (binder.meta.currentLength > binder.meta.targetLength) {
-                let count = binder.meta.counts.pop();
 
-                while(count--) {
-                    const node = binder.target.lastChild;
-                    binder.target.removeChild(node);
-                    self.remove(node);
+                while (binder.meta.currentLength > binder.meta.targetLength) {
+
+                    // might need count after Binder.add
+                    let count = binder.meta.templateLength;
+                    
+                    while(count--) {
+                        const node = binder.target.lastChild;
+                        binder.target.removeChild(node);
+                        Promise.resolve().then(function (n) {
+                            return self.remove(n);
+                        }.bind(null, node)).catch(console.error);
+                    }
+
+                    binder.meta.currentLength--;
                 }
 
-                binder.meta.currentLength--;
             } else if (binder.meta.currentLength < binder.meta.targetLength) {
-                const fragment = binder.meta.template.cloneNode(true);
-                const index = binder.meta.currentLength++;
 
-                self.add(fragment, {
-                    index: index,
-                    path: binder.path,
-                    variable: binder.names[1],
-                    container: binder.container,
-                    scope: binder.container.scope,
-                    key: binder.meta.keys[index],
-                    keyVariable: binder.meta.keyVariable,
-                    parentContext: binder.meta.parentContext,
-                    indexVariable: binder.meta.indexVariable
-                });
+                while (binder.meta.currentLength < binder.meta.targetLength) {
+                    const clone = binder.meta.template.cloneNode(true);
+                    const index = binder.meta.currentLength;
+                    
+                    let node;
+                    while (node = clone.firstChild) {
 
-                binder.meta.counts.push(fragment.childNodes.length);
-                binder.target.appendChild(fragment);
+                        Promise.resolve().then(function (n) {
+                            self.add(n, {
+                                index: index,
+                                path: binder.path,
+                                variable: binder.names[1],
+                                container: binder.container,
+                                scope: binder.container.scope,
+                                key: binder.meta.keys[index],
+                                keyVariable: binder.meta.keyVariable,
+                                parentContext: binder.meta.parentContext,
+                                indexVariable: binder.meta.indexVariable,
+                                templateLength: binder.meta.templateLength,
+                            });
+                        }.bind(null, node)).catch(console.error);
+
+                        binder.meta.fragment.appendChild(node);
+                    }
+                    
+                    binder.meta.currentLength++;
+                }
+
+                binder.target.appendChild(binder.meta.fragment);
             }
 
-            if (binder.meta.pending && render.read) {
-                return;
-            } else {
-                binder.meta.pending = true;
-            }
-
-            delete render.read;
-            Batcher.batch(render);
+            // if (binder.meta.pending && render.read) {
+            //     binder.meta.pending = false;
+            //     return;
+            // } else {
+            //     binder.meta.pending = true;
+            // }
+            // delete render.read;
+            // render.context = render.context || { read: false };
+            
+            binder.meta.pending = false;
+            // Batcher.batch(render);
         }
     };
-
-    return render;
 }
