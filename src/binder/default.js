@@ -13,7 +13,7 @@ export default function (binder) {
             }
 
             if (this.data === binder.target[binder.type]) {
-                return false;
+                return this.write = false;
             }
 
         },

@@ -126,14 +126,14 @@ export default function (binder, caller) {
                 if (caller === 'view') {
                     binder.data = this.radios.indexOf(binder.target);
                     binder.meta.busy = false;
-                    return false;
+                    return this.write = false;
                 }
 
                 this.data = binder.data;
 
                 if (typeof this.data !== 'number') {
                     binder.meta.busy = false;
-                    return false;
+                    return this.write = false;
                 }
 
             },
@@ -160,14 +160,14 @@ export default function (binder, caller) {
                 if (caller === 'view') {
                     binder.data = binder.target.checked;
                     binder.meta.busy = false;
-                    return false;
+                    return this.write = false;
                 }
 
                 this.data = binder.data;
 
                 if (typeof this.data !== 'boolean') {
                     binder.meta.busy = false;
-                    return false;
+                    return this.write = false;
                 }
 
             },
@@ -199,14 +199,14 @@ export default function (binder, caller) {
                 if (caller === 'view') {
                     binder.data = binder.target.value;
                     binder.meta.busy = false;
-                    return false;
+                    return this.write = false;
                 }
 
                 this.data = binder.data;
 
                 if (this.data === binder.target.value) {
                     binder.meta.busy = false;
-                    return false;
+                    return this.write = false;
                 }
 
             },

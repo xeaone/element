@@ -13,7 +13,7 @@ export default function (binder) {
             }
 
             if (this.data === binder.target.getAttribute('label')) {
-                return false;
+                return this.write = false;
             }
 
         },

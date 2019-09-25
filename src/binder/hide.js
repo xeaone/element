@@ -5,7 +5,7 @@ export default function (binder) {
             this.data = binder.data;
 
             if (this.data === binder.target.hidden) {
-                return false;
+                return this.write = false;
             }
 
         },

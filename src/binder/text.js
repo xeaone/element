@@ -13,7 +13,8 @@ export default function (binder) {
             }
 
             if (this.data === binder.target.textContent) {
-                return false;
+                this.write = false;
+                return;
             }
 
         },
