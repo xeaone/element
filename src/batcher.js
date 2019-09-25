@@ -3,8 +3,8 @@ export default {
 
     reads: [],
     writes: [],
-    time: 1000 / 30,
-    // time: 1000/60,
+    // time: 1000 / 30,
+    time: 1000/60,
     pending: false,
 
     setup (options) {
@@ -28,66 +28,16 @@ export default {
 
         let task;
 
-        // if (data.reads === 0) {
-        // 	while (task = this.reads.shift()) {
-        //
-        // 		if (task) {
-        // 			task();
-        // 			data.reads++;
-        // 		}
-        //
-        // 		if (data.writes && data.writes === data.reads) {
-        // 			data.writes = 0;
-        // 			break;
-        // 		}
-        //
-        // 		if ((performance.now() - data.time) > this.time) {
-        // 			data.writes = 0;
-        // 			data.time = null;
-        // 			return this.tick(this.flush, data);
-        // 			break;
-        // 		}
-        //
-        // 	}
-        // }
-        //
-        // if (data.writes === 0) {
-        // 	while (task = this.writes.shift()) {
-        //
-        // 		if (task) {
-        // 			task();
-        // 			data.writes++;
-        // 		}
-        //
-        // 		if (data.reads && data.reads === data.writes) {
-        // 			data.reads = 0;
-        // 			break;
-        // 		}
-        //
-        // 		if ((performance.now() - data.time) > this.time) {
-        // 			data.reads = 0;
-        // 			data.time = null;
-        // 			return this.tick(this.flush, data);
-        // 		}
-        //
-        // 	}
-        // }
+        while (task = this.reads.shift()) {
 
-        // while (task = this.reads.shift()) task();
-        // while (task = this.writes.shift()) task();
-
-        if (this.writes.length === 0) {
-            while (task = this.reads.shift()) {
-
-                if (task) {
-                    task();
-                }
-
-                if ((performance.now() - time) > this.time) {
-                    return this.tick(this.flush);
-                }
-
+            if (task) {
+                task();
             }
+
+            if ((performance.now() - time) > this.time) {
+                return this.tick(this.flush);
+            }
+
         }
 
         while (task = this.writes.shift()) {
@@ -128,23 +78,21 @@ export default {
         if (!data.read && !data.write) return;
 
         data.context = data.context || {};
+        data.context.read = true;
+        data.context.write = true;
 
-        const read = function () {
-            let result;
+        self.reads.push(data.read ? function () {
+             if (this.read) {
+                return data.read.call(data.context, data.context);
+            }           
+        }.bind(data.context, data.context) : null);
 
-            if (data.read) {
-                result = data.read.call(data.context, data.context);
+        self.writes.push(data.write ? function () {
+            if (this.write) {
+                return data.write.call(data.context, data.context);
             }
+        }.bind(data.context, data.context) : null);
 
-            if (data.write && result !== false) {
-                const write = data.write.bind(data.context, data.context);
-
-                self.writes.push(write);
-            }
-
-        };
-
-        self.reads.push(read);
         self.schedule();
     }
 
