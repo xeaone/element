@@ -18,16 +18,6 @@ export default {
     define (name, constructor) {
         constructor = constructor || function () {};
 
-        // const properties = Object.assign({}, constructor);
-        // const prototypes = Object.assign({}, constructor.prototype);
-        // const properties = Object.getOwnPropertyDescriptors(constructor);
-
-        // delete properties.name;
-        // delete properties.caller;
-        // delete properties.length;
-        // delete properties.arguments;
-        // delete properties.prototype;
-
         const construct = function () {
             const instance = window.Reflect.construct(HTMLElement, [], this.constructor);
             constructor.call(instance);
@@ -35,12 +25,8 @@ export default {
         };
 
         const prototypes = Object.getOwnPropertyDescriptors(constructor.prototype);
-
         construct.prototype = Object.create(HTMLElement.prototype);
 
-        // Object.assign(construct, properties);
-        // Object.assign(construct.prototype, prototypes);
-        // Object.defineProperties(construct, properties);
         Object.defineProperties(construct.prototype, prototypes);
         Object.defineProperty(construct.prototype, 'constructor', { enumerable: false, writable: true, value: construct });
 
