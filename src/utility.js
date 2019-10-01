@@ -233,71 +233,6 @@ export default {
         return data ? data.split(this.PIPES) : [];
     },
 
-    ensureElement(data) {
-        data.query = data.query || '';
-        data.scope = data.scope || document.body;
-        data.position = data.position || 'beforeend';
-
-        let element = data.scope.querySelector(`${data.name}${data.query}`);
-
-        if (!element) {
-            element = document.createElement(data.name);
-            data.scope.insertAdjacentElement(data.position, element);
-        }
-
-        for (let i = 0, l = data.attributes.length; i < l; i++) {
-            const { name, value } = data.attributes[i];
-            element.setAttribute(name, value);
-        }
-
-        return element;
-    },
-
-    setByPath(data, path, value) {
-        const keys = typeof path === 'string' ? path.split('.') : path;
-        const last = keys.length - 1;
-
-        for (let i = 0; i < last; i++) {
-            const key = keys[i];
-
-            if (!(key in data)) {
-
-                if (isNaN(keys[i + 1])) {
-                    data[key] = {};
-                } else {
-                    data[key] = [];
-                }
-
-            }
-
-            data = data[key];
-        }
-
-        return data[keys[last]] = value;
-    },
-
-    getByPath(data, path) {
-        const keys = typeof path === 'string' ? path.split('.') : path;
-        const last = keys.length - 1;
-
-        if (keys[last] === '$key' || keys[last] === '$index') {
-            return keys[last - 1];
-        }
-
-        for (let i = 0; i < last; i++) {
-            const key = keys[i];
-
-            if (key in data === false) {
-                return undefined;
-            } else {
-                data = data[key];
-            }
-
-        }
-
-        return data[keys[last]];
-    },
-
     clone(source) {
 
         if (
@@ -328,13 +263,5 @@ export default {
         return target;
     }
 
-    // walker (node, callback) {
-    // 	callback(node);
-    // 	node = node.firstChild;
-    // 	while (node) {
-    // 	    this.walker(node, callback);
-    // 	    node = node.nextSibling;
-    // 	}
-    // },
 
 };

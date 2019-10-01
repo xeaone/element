@@ -1,9 +1,8 @@
 
-const EVENTS = {};
 
-export default {
+export default Object.freeze({
 
-    get events () { return EVENTS; },
+    events: {},
 
     on (name, method) {
 
@@ -43,4 +42,4 @@ export default {
 
     }
 
-};
+});

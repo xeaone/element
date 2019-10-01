@@ -18,7 +18,6 @@ export default function (binder) {
                 binder.meta.pending = false;
                 binder.meta.targetLength = 0;
                 binder.meta.currentLength = 0;
-                binder.meta.parentContext = binder.context;
                 binder.meta.fragment = document.createDocumentFragment();
                 binder.meta.template = document.createDocumentFragment();
                 binder.meta.keyVariable = binder.target.getAttribute('o-key');
@@ -79,12 +78,12 @@ export default function (binder) {
                             self.add(n, {
                                 index: index,
                                 path: binder.path,
+                                parent: binder.context,
                                 variable: binder.names[1],
                                 container: binder.container,
-                                scope: binder.container.scope,
                                 key: binder.meta.keys[index],
+                                scope: binder.container.scope,
                                 keyVariable: binder.meta.keyVariable,
-                                parentContext: binder.meta.parentContext,
                                 indexVariable: binder.meta.indexVariable,
                                 templateLength: binder.meta.templateLength,
                             });

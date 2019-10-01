@@ -2,8 +2,6 @@ import Component from './component.js';
 // import Listener from './listener.js';
 import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
-import Utility from './utility.js';
-import Extend from './extend.js';
 import Binder from './binder.js';
 import Loader from './loader.js';
 import Router from './router.js';
@@ -38,9 +36,7 @@ export default Object.freeze({
     global: GLOBAL,
     component: Component,
     batcher: Batcher,
-    extend: Extend,
     fetcher: Fetcher,
-    utility: Utility,
     binder: Binder,
     loader: Loader,
     router: Router,

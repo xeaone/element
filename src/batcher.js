@@ -1,14 +1,17 @@
 
-export default {
+export default Object.freeze({
 
     reads: [],
     writes: [],
-    time: 1000/60,
-    pending: false,
+
+    options: {
+        time: 1000/60,
+        pending: false
+    },
 
     setup (options) {
         options = options || {};
-        this.time = options.time || this.time;
+        this.options.time = options.time || this.options.time;
     },
 
     tick (callback) {
@@ -17,8 +20,8 @@ export default {
 
     // schedules a new read/write batch if one is not pending
     schedule () {
-        if (this.pending) return;
-        this.pending = true;
+        if (this.options.pending) return;
+        this.options.pending = true;
         this.tick(this.flush);
     },
 
@@ -32,7 +35,7 @@ export default {
                 task();
             }
 
-            if ((performance.now() - time) > this.time) {
+            if ((performance.now() - time) > this.options.time) {
                 return this.tick(this.flush);
             }
 
@@ -44,15 +47,15 @@ export default {
                 task();
             }
 
-            if ((performance.now() - time) > this.time) {
+            if ((performance.now() - time) > this.options.time) {
                 return this.tick(this.flush);
             }
 
         }
 
         if (this.reads.length === 0 && this.writes.length === 0) {
-            this.pending = false;
-        } else if ((performance.now() - time) > this.time) {
+            this.options.pending = false;
+        } else if ((performance.now() - time) > this.options.time) {
             this.tick(this.flush);
         } else {
             this.flush(time);
@@ -94,4 +97,4 @@ export default {
         self.schedule();
     }
 
-};
+});

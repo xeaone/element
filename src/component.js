@@ -1,9 +1,9 @@
 import Binder from './binder.js';
 import Loader from './loader.js';
-import Style from './style.js';
 
+import Style from './style.js';
 import Observer from './observer.js';
-import Extend from './extend.js';
+import Extend from './utility/extend.js';
 
 export default Object.freeze({
 

@@ -1,44 +1,40 @@
 import Path from './path.js';
 import Loader from './loader.js';
 import Events from './events.js';
-import Extend from './extend.js';
-import Utility from './utility.js';
 import Component from './component.js';
+import Extend from './utility/extend.js';
+import Ensure from './utility/ensure.js';
 
-const Event = Object.create(Events);
-
-export default {
-
-    on: Event.on.bind(Event),
-    off: Event.off.bind(Event),
-    emit: Event.emit.bind(Event),
+export default Object.freeze({
 
     data: [],
-    ran: false,
     location: {},
-    mode: 'push',
-    target: null,
-    contain: false,
-    folder: './routes',
+
+    option: {
+        mode: 'push',
+        target: null,
+        contain: false,
+        folder: './routes',
+        external: null, before: null, after: null,
+    },
 
     async setup(option) {
         option = option || {};
 
-        this.base = option.base === undefined ? this.base : option.base;
-        this.mode = option.mode === undefined ? this.mode : option.mode;
-        this.after = option.after === undefined ? this.after : option.after;
-        this.folder = option.folder === undefined ? this.folder : option.folder;
-        this.before = option.before === undefined ? this.before : option.before;
-        this.change = option.change === undefined ? this.change : option.change;
-        this.target = option.target === undefined ? this.target : option.target;
-        this.contain = option.contain === undefined ? this.contain : option.contain;
-        this.external = option.external === undefined ? this.external : option.external;
+        this.option.after = option.after === undefined ? this.option.after : option.after;
+        this.option.before = option.before === undefined ? this.option.before : option.before;
+        this.option.external = option.external === undefined ? this.option.external : option.external;
 
-        if (!this.target || typeof this.target === 'string') {
-            this.target = document.body.querySelector(this.target || 'o-router');
+        this.option.mode = option.mode === undefined ? this.option.mode : option.mode;
+        this.option.folder = option.folder === undefined ? this.option.folder : option.folder;
+        this.option.target = option.target === undefined ? this.option.target : option.target;
+        this.option.contain = option.contain === undefined ? this.option.contain : option.contain;
+
+        if (!this.option.target || typeof this.option.target === 'string') {
+            this.option.target = document.body.querySelector(this.option.target || 'o-router');
         }
 
-        if (this.mode !== 'href') {
+        if (this.option.mode !== 'href') {
             window.addEventListener('popstate', this.state.bind(this), true);
             window.document.addEventListener('click', this.click.bind(this), true);
         }
@@ -241,7 +237,7 @@ export default {
             }
 
             load = load.replace(/\/?\((\w+)?\~\)\/?/ig, '') + '.js';
-            load = Path.join(this.folder, load);
+            load = Path.join(this.option.folder, load);
 
             this.data.push({ path, load });
         } else if (data.constructor === Object) {
@@ -369,7 +365,7 @@ export default {
                 return Promise.resolve().then(function () {
                     option.position = 'afterbegin';
                     option.scope = document.head;
-                    return Utility.ensureElement(option);
+                    return Ensure(option);
                 });
             }));
         }
@@ -388,12 +384,12 @@ export default {
             }
         }
 
-        if (this.target) {
-            while (this.target.firstChild) {
-                this.target.removeChild(this.target.firstChild);
+        if (this.option.target) {
+            while (this.option.target.firstChild) {
+                this.option.target.removeChild(this.option.target.firstChild);
             }
 
-            this.target.appendChild(route.target);
+            this.option.target.appendChild(route.target);
         }
 
         this.scroll(0, 0);
@@ -406,7 +402,7 @@ export default {
             path += this.toQueryString(options.query);
         }
 
-        const mode = options.mode || this.mode;
+        const mode = options.mode || this.option.mode;
         const location = this.toLocationObject(path);
         const route = await this.find(location.pathname);
 
@@ -427,11 +423,11 @@ export default {
             return await this.redirect(location.route.redirect);
         }
 
-        if (typeof this.before === 'function') {
-            await this.before(location);
+        if (typeof this.option.before === 'function') {
+            await this.option.before(location);
         }
 
-        this.emit('route:before', location);
+        Events.emit('route:before', location);
 
         if (mode === 'href') {
             return window.location.assign(location.path);
@@ -439,15 +435,27 @@ export default {
 
         window.history[mode + 'State']({ path: location.path }, '', location.path);
 
-        this.location = location;
+        this.location.href = location.href;
+        this.location.host = location.host;
+        this.location.port = location.port;
+        this.location.hash = location.hash;
+        this.location.path = location.path;
+        this.location.route = location.route;
+        this.location.title = location.title;
+        this.location.query = location.query;
+        this.location.search = location.search;
+        this.location.protocol = location.protocol;
+        this.location.hostname = location.hostname;
+        this.location.pathname = location.pathname;
+        this.location.parameters = location.parameters;
 
         await this.render(location.route);
 
-        if (typeof this.after === 'function') {
-            await this.after(location);
+        if (typeof this.option.after === 'function') {
+            await this.option.after(location);
         }
 
-        this.emit('route:after', location);
+        Events.emit('route:after', location);
     },
 
     async state(event) {
@@ -471,7 +479,7 @@ export default {
         var target = event.path ? event.path[0] : event.target;
         var parent = target.parentElement;
 
-        if (this.contain) {
+        if (this.option.contain) {
 
             while (parent) {
 
@@ -512,10 +520,10 @@ export default {
         ) return;
 
         // if external is true then default action
-        if (this.external &&
-            (this.external.constructor === RegExp && this.external.test(target.href) ||
-                this.external.constructor === Function && this.external(target.href) ||
-                this.external.constructor === String && this.external === target.href)
+        if (this.option.external &&
+            (this.option.external.constructor === RegExp && this.option.external.test(target.href) ||
+                this.option.external.constructor === Function && this.option.external(target.href) ||
+                this.option.external.constructor === String && this.option.external === target.href)
         ) return;
 
         event.preventDefault();
@@ -526,4 +534,4 @@ export default {
 
     }
 
-};
+});

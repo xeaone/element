@@ -5,6 +5,28 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 })(this, function () {
   'use strict';
 
+  function traverse(data, path, end) {
+    var keys = typeof path === 'string' ? path.split('.') : path;
+    var length = keys.length - (end || 0);
+    var result = data;
+
+    for (var _index = 0; _index < length; _index++) {
+      result = result[keys[_index]];
+    }
+
+    return result;
+  }
+
+  function walker(node, callback) {
+    callback(node);
+    node = node.firstChild;
+
+    while (node) {
+      walker(node, callback);
+      node = node.nextSibling;
+    }
+  }
+
   var Utility = {
     PIPE: /\s?\|\s?/,
     PIPES: /\s?,\s?|\s+/,
@@ -240,66 +262,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       data = data.split(this.PIPE)[1];
       return data ? data.split(this.PIPES) : [];
     },
-    ensureElement: function ensureElement(data) {
-      data.query = data.query || '';
-      data.scope = data.scope || document.body;
-      data.position = data.position || 'beforeend';
-      var element = data.scope.querySelector("".concat(data.name).concat(data.query));
-
-      if (!element) {
-        element = document.createElement(data.name);
-        data.scope.insertAdjacentElement(data.position, element);
-      }
-
-      for (var i = 0, l = data.attributes.length; i < l; i++) {
-        var _data$attributes$i = data.attributes[i],
-            name = _data$attributes$i.name,
-            value = _data$attributes$i.value;
-        element.setAttribute(name, value);
-      }
-
-      return element;
-    },
-    setByPath: function setByPath(data, path, value) {
-      var keys = typeof path === 'string' ? path.split('.') : path;
-      var last = keys.length - 1;
-
-      for (var i = 0; i < last; i++) {
-        var key = keys[i];
-
-        if (!(key in data)) {
-          if (isNaN(keys[i + 1])) {
-            data[key] = {};
-          } else {
-            data[key] = [];
-          }
-        }
-
-        data = data[key];
-      }
-
-      return data[keys[last]] = value;
-    },
-    getByPath: function getByPath(data, path) {
-      var keys = typeof path === 'string' ? path.split('.') : path;
-      var last = keys.length - 1;
-
-      if (keys[last] === '$key' || keys[last] === '$index') {
-        return keys[last - 1];
-      }
-
-      for (var i = 0; i < last; i++) {
-        var key = keys[i];
-
-        if (key in data === false) {
-          return undefined;
-        } else {
-          data = data[key];
-        }
-      }
-
-      return data[keys[last]];
-    },
     clone: function clone(source) {
       if (source === null || source === undefined || source.constructor !== Array && source.constructor !== Object) {
         return source;
@@ -322,21 +284,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return target;
     }
   };
-  var Batcher = {
+  var Batcher = Object.freeze({
     reads: [],
     writes: [],
-    time: 1000 / 60,
-    pending: false,
+    options: {
+      time: 1000 / 60,
+      pending: false
+    },
     setup: function setup(options) {
       options = options || {};
-      this.time = options.time || this.time;
+      this.options.time = options.time || this.options.time;
     },
     tick: function tick(callback) {
       window.requestAnimationFrame(callback.bind(this));
     },
     schedule: function schedule() {
-      if (this.pending) return;
-      this.pending = true;
+      if (this.options.pending) return;
+      this.options.pending = true;
       this.tick(this.flush);
     },
     flush: function flush(time) {
@@ -347,7 +311,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           task();
         }
 
-        if (performance.now() - time > this.time) {
+        if (performance.now() - time > this.options.time) {
           return this.tick(this.flush);
         }
       }
@@ -357,14 +321,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           task();
         }
 
-        if (performance.now() - time > this.time) {
+        if (performance.now() - time > this.options.time) {
           return this.tick(this.flush);
         }
       }
 
       if (this.reads.length === 0 && this.writes.length === 0) {
-        this.pending = false;
-      } else if (performance.now() - time > this.time) {
+        this.options.pending = false;
+      } else if (performance.now() - time > this.options.time) {
         this.tick(this.flush);
       } else {
         this.flush(time);
@@ -396,7 +360,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }.bind(data.context, data.context) : null);
       self.schedule();
     }
-  };
+  });
 
   function Piper(binder, data) {
     if (binder.type === 'on') {
@@ -516,7 +480,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           binder.meta.pending = false;
           binder.meta.targetLength = 0;
           binder.meta.currentLength = 0;
-          binder.meta.parentContext = binder.context;
           binder.meta.fragment = document.createDocumentFragment();
           binder.meta.template = document.createDocumentFragment();
           binder.meta.keyVariable = binder.target.getAttribute('o-key');
@@ -569,12 +532,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 self.add(n, {
                   index: index,
                   path: binder.path,
+                  parent: binder.context,
                   variable: binder.names[1],
                   container: binder.container,
-                  scope: binder.container.scope,
                   key: binder.meta.keys[index],
+                  scope: binder.container.scope,
                   keyVariable: binder.meta.keyVariable,
-                  parentContext: binder.meta.parentContext,
                   indexVariable: binder.meta.indexVariable,
                   templateLength: binder.meta.templateLength
                 });
@@ -727,7 +690,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
           for (var i = 0, l = binder.pipes.length; i < l; i++) {
             var keys = binder.pipes[i].split('.');
-            var parameter = Utility.getByPath(binder.container.model, keys);
+            var parameter = traverse(binder.container.model, keys);
             parameters.push(parameter);
           }
 
@@ -1042,10 +1005,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 }
               } else {
                 if (this.multiple) {
-                  var _index = Utility.index(this.data, optionValue);
+                  var _index2 = Utility.index(this.data, optionValue);
 
-                  if (_index !== -1) {
-                    binder.data.splice(_index, 1);
+                  if (_index2 !== -1) {
+                    binder.data.splice(_index2, 1);
                   }
                 } else if (!this.selected && i === l - 1) {
                   binder.data = null;
@@ -1193,6 +1156,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
+  var PIPE = /\s?\|\s?/;
+  var PIPES = /\s?,\s?|\s+/;
+  var PATH = /\s?,\s?|\s?\|\s?|\s+/;
   var Binder = Object.freeze({
     data: new Map(),
     nodes: new Map(),
@@ -1258,30 +1224,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     create: function create(data) {
       var name = data.name,
+          names = data.names,
           value = data.value,
+          values = data.values,
+          paths = data.paths,
+          pipes = data.pipes,
           target = data.target,
-          container = data.container;
-      if (name === undefined) throw new Error('Oxe.binder.create - missing name');
-      if (value === undefined) throw new Error('Oxe.binder.create - missing value');
-      if (target === undefined) throw new Error('Oxe.binder.create - missing target');
-      if (container === undefined) throw new Error('Oxe.binder.create - missing container');
-      var scope = container.scope;
-      var names = data.names || Utility.binderNames(name);
-      var pipes = data.pipes || Utility.binderPipes(value);
-      var values = data.values || Utility.binderValues(value);
+          scope = data.scope,
+          container = data.container,
+          context = data.context;
+      var meta = {};
       var type = names[0];
-      var path = values.join('.');
-      var keys = [scope].concat(values);
-      var location = keys.join('.');
-      var meta = data.meta || {};
-      var context = data.context || {};
-      var property = values[values.length - 1];
-      var model = container.model;
-
-      for (var i = 0, l = values.length - 1; i < l; i++) {
-        model = model[values[i]];
-      }
-
+      var path = paths[0];
+      var parts = paths[0].split('.');
+      var location = "".concat(scope, ".").concat(path);
+      var keys = [scope].concat(parts);
+      var property = parts.slice(-1)[0];
+      var model;
+      console.log(arguments);
       return Object.freeze({
         location: location,
         type: type,
@@ -1299,6 +1259,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         context: context,
 
         get data() {
+          if (model === undefined) model = traverse(container.model, parts, 1);
+
           if (name === 'o-value' || name.indexOf('o-on') === 0) {
             return model[property];
           } else {
@@ -1307,6 +1269,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         },
 
         set data(value) {
+          if (model === undefined) model = traverse(container.model, parts, 1);
+
           if (name === 'o-value') {
             return model[property] = Piper(this, value);
           } else {
@@ -1341,64 +1305,76 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
     },
     bind: function bind(node, name, value, context) {
-      if (context) {
-        var _ret = function () {
+      value = value.replace(/{{|}}/g, '');
+      name = name.replace(/^o-/, '');
+      var pipe = value.split(PIPE);
+      var paths = value.split(PATH);
+      var names = name.split('-');
+      var values = pipe[0] ? pipe[0].split('.') : [];
+      var pipes = pipe[1] ? pipe[1].split(PIPES) : [];
+
+      if (context && 'variable' in context) {
+        var _loop2 = function _loop2(i, l) {
+          var path = paths[i];
+          var parts = path.split('.');
+          var part = parts.slice(1).join('.');
           var c = context;
 
           while (c) {
             if (node.nodeType === Node.TEXT_NODE) {
-              if (value === "{{".concat(c.keyVariable, "}}")) {
-                return {
-                  v: Batcher.batch({
-                    write: function write() {
-                      node.textContent = c.key;
-                    }
-                  })
-                };
-              }
-
-              if (value === "{{".concat(c.indexVariable, "}}")) {
-                return {
-                  v: Batcher.batch({
-                    write: function write() {
-                      node.textContent = c.index;
-                    }
-                  })
-                };
-              }
+              if (value === c.keyVariable) return {
+                v: Batcher.batch({
+                  write: function write() {
+                    node.textContent = c.key;
+                  }
+                })
+              };
+              if (value === c.indexVariable) return {
+                v: Batcher.batch({
+                  write: function write() {
+                    node.textContent = c.index;
+                  }
+                })
+              };
             }
 
-            if (c.keyVariable) {
-              var pattern = new RegExp("(^|[^A-Za-z0-9_$.])".concat(c.keyVariable, "([^A-Za-z0-9_$.]|$)"), 'g');
-              value = value.replace(pattern, "$1".concat(c.key, "$2"));
+            if (c.variable === parts[0]) {
+              paths[i] = "".concat(c.path, ".").concat(c.key, ".").concat(part);
+              break;
             }
 
-            if (c.indexVariable) {
-              var _pattern = new RegExp("(^|[^A-Za-z0-9_$.])".concat(c.indexVariable, "([^A-Za-z0-9_$.]|$)"), 'g');
-
-              value = value.replace(_pattern, "$1".concat(c.index, "$2"));
+            if (c.indexVariable === path) {
+              paths[i] = c.index;
+              break;
             }
 
-            if (c.variable) {
-              var _pattern2 = new RegExp("(^|[^A-Za-z0-9_$.])".concat(c.variable, "([^A-Za-z0-9_$]|$)"), 'g');
-
-              value = value.replace(_pattern2, "$1".concat(c.path, ".").concat(c.key, "$2"));
+            if (c.keyVariable === path) {
+              paths[i] = c.key;
+              break;
             }
 
-            c = c.parentContext;
+            var keyPattern = new RegExp("\\[".concat(c.keyVariable, "\\]"), 'g');
+            var indexPattern = new RegExp("\\[".concat(c.indexVariable, "\\]"), 'g');
+            paths[i] = path.replace(keyPattern, ".".concat(c.key));
+            paths[i] = path.replace(indexPattern, ".".concat(c.index));
+            c = c.parent;
           }
-        }();
+        };
 
-        if (_typeof(_ret) === "object") return _ret.v;
-      }
+        for (var i = 0, l = paths.length; i < l; i++) {
+          var _ret = _loop2(i, l);
 
-      if (value && value.slice(0, 2) === '{{' && value.slice(-2) === '}}') {
-        value = value.slice(2, -2);
+          if (_typeof(_ret) === "object") return _ret.v;
+        }
       }
 
       var binder = this.create({
         name: name,
+        names: names,
         value: value,
+        values: values,
+        paths: paths,
+        pipes: pipes,
         target: node,
         context: context,
         container: context.container,
@@ -1420,25 +1396,21 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       this.render(binder);
     },
     remove: function remove(node) {
-      this.unbind(node);
-
-      for (var i = 0; i < node.childNodes.length; i++) {
-        this.remove(node.childNodes[i]);
-      }
+      walker(node, this.unbind.bind(this));
     },
     add: function add(node, context) {
       if (node.nodeType === Node.TEXT_NODE) {
-        if (node.textContent.indexOf('{{') === -1 || node.textContent.indexOf('}}') === -1) {
+        var start = node.textContent.indexOf('{{');
+        var end = node.textContent.indexOf('}}');
+
+        if (start === -1 || end === -1) {
           return;
         }
-
-        var start = node.textContent.indexOf('{{');
 
         if (start !== -1 && start !== 0) {
           node = node.splitText(start);
         }
 
-        var end = node.textContent.indexOf('}}');
         var length = node.textContent.length;
 
         if (end !== -1 && end !== length - 2) {
@@ -1449,35 +1421,30 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           this.bind(node, 'o-text', node.textContent, context);
         }
       } else if (node.nodeType === Node.ELEMENT_NODE) {
-        var skipChildren = false;
+        var skip = false;
         var attributes = node.attributes;
 
         for (var i = 0, l = attributes.length; i < l; i++) {
           var attribute = attributes[i];
 
-          if (attribute.name === 'o-html' || attribute.name.indexOf('o-each') === 0) {
-            skipChildren = true;
+          if (attribute.name.indexOf('o-each') === 0) {
+            skip = true;
           }
 
-          if (attribute.name === 'o-value' || attribute.name === 'o-action' || attribute.name === 'o-method' || attribute.name === 'o-enctype' || attribute.name.indexOf('o-') !== 0) {
-            continue;
+          if (attribute.name.indexOf('o-') === 0) {
+            this.bind(node, attribute.name, attribute.value, context);
           }
-
-          this.bind(node, attribute.name, attribute.value, context);
         }
 
-        if ('o-value' in attributes) {
-          this.bind(node, 'o-value', attributes['o-value'].value, context);
+        if (skip) {
+          return;
         }
 
-        if (skipChildren) return;
+        node = node.firstChild;
 
-        for (var _i4 = 0; _i4 < node.childNodes.length; _i4++) {
-          this.add(node.childNodes[_i4], context);
-        }
-      } else if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-        for (var _i5 = 0; _i5 < node.childNodes.length; _i5++) {
-          this.add(node.childNodes[_i5], context);
+        while (node) {
+          this.add(node, context);
+          node = node.nextSibling;
         }
       }
     }
@@ -1840,15 +1807,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       if (updateCount > 0) {
         var value;
-        var _index2 = startIndex;
+        var _index3 = startIndex;
 
         while (updateCount--) {
-          var key = _index2++;
+          var key = _index3++;
 
           if (argumentsCount && argumentIndex < argumentsCount) {
             value = arguments[argumentIndex++];
           } else {
-            value = self.$meta[_index2];
+            value = self.$meta[_index3];
           }
 
           self.$meta[key] = Observer.create(value, self.$meta.listener, self.$meta.path + key);
@@ -2573,12 +2540,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }.bind(this));
     }
   };
-  var EVENTS = {};
-  var Events = {
-    get events() {
-      return EVENTS;
-    },
-
+  var Events = Object.freeze({
+    events: {},
     on: function on(name, method) {
       if (!(name in this.events)) {
         this.events[name] = [];
@@ -2588,10 +2551,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     off: function off(name, method) {
       if (name in this.events) {
-        var _index3 = this.events[name].indexOf(method);
+        var _index4 = this.events[name].indexOf(method);
 
-        if (_index3 !== -1) {
-          this.events[name].splice(_index3, 1);
+        if (_index4 !== -1) {
+          this.events[name].splice(_index4, 1);
         }
       }
     },
@@ -2604,37 +2567,57 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         })).catch(console.error);
       }
     }
-  };
-  var Event = Object.create(Events);
-  var Router = {
-    on: Event.on.bind(Event),
-    off: Event.off.bind(Event),
-    emit: Event.emit.bind(Event),
+  });
+
+  function ensure(data) {
+    data.query = data.query || '';
+    data.scope = data.scope || document.body;
+    data.position = data.position || 'beforeend';
+    var element = data.scope.querySelector("".concat(data.name).concat(data.query));
+
+    if (!element) {
+      element = document.createElement(data.name);
+      data.scope.insertAdjacentElement(data.position, element);
+    }
+
+    for (var i = 0, l = data.attributes.length; i < l; i++) {
+      var _data$attributes$i = data.attributes[i],
+          name = _data$attributes$i.name,
+          value = _data$attributes$i.value;
+      element.setAttribute(name, value);
+    }
+
+    return element;
+  }
+
+  var Router = Object.freeze({
     data: [],
-    ran: false,
     location: {},
-    mode: 'push',
-    target: null,
-    contain: false,
-    folder: './routes',
+    option: {
+      mode: 'push',
+      target: null,
+      contain: false,
+      folder: './routes',
+      external: null,
+      before: null,
+      after: null
+    },
     setup: function setup(option) {
       return new Promise(function ($return, $error) {
         option = option || {};
-        this.base = option.base === undefined ? this.base : option.base;
-        this.mode = option.mode === undefined ? this.mode : option.mode;
-        this.after = option.after === undefined ? this.after : option.after;
-        this.folder = option.folder === undefined ? this.folder : option.folder;
-        this.before = option.before === undefined ? this.before : option.before;
-        this.change = option.change === undefined ? this.change : option.change;
-        this.target = option.target === undefined ? this.target : option.target;
-        this.contain = option.contain === undefined ? this.contain : option.contain;
-        this.external = option.external === undefined ? this.external : option.external;
+        this.option.after = option.after === undefined ? this.option.after : option.after;
+        this.option.before = option.before === undefined ? this.option.before : option.before;
+        this.option.external = option.external === undefined ? this.option.external : option.external;
+        this.option.mode = option.mode === undefined ? this.option.mode : option.mode;
+        this.option.folder = option.folder === undefined ? this.option.folder : option.folder;
+        this.option.target = option.target === undefined ? this.option.target : option.target;
+        this.option.contain = option.contain === undefined ? this.option.contain : option.contain;
 
-        if (!this.target || typeof this.target === 'string') {
-          this.target = document.body.querySelector(this.target || 'o-router');
+        if (!this.option.target || typeof this.option.target === 'string') {
+          this.option.target = document.body.querySelector(this.option.target || 'o-router');
         }
 
-        if (this.mode !== 'href') {
+        if (this.option.mode !== 'href') {
           window.addEventListener('popstate', this.state.bind(this), true);
           window.document.addEventListener('click', this.click.bind(this), true);
         }
@@ -2823,7 +2806,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             }
 
             load = load.replace(/\/?\((\w+)?\~\)\/?/ig, '') + '.js';
-            load = Path.join(this.folder, load);
+            load = Path.join(this.option.folder, load);
             this.data.push({
               path: path,
               load: load
@@ -3163,7 +3146,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             return Promise.resolve().then(function () {
               option.position = 'afterbegin';
               option.scope = document.head;
-              return Utility.ensureElement(option);
+              return ensure(option);
             });
           }));
         }
@@ -3182,12 +3165,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         }
 
-        if (this.target) {
-          while (this.target.firstChild) {
-            this.target.removeChild(this.target.firstChild);
+        if (this.option.target) {
+          while (this.option.target.firstChild) {
+            this.option.target.removeChild(this.option.target.firstChild);
           }
 
-          this.target.appendChild(route.target);
+          this.option.target.appendChild(route.target);
         }
 
         this.scroll(0, 0);
@@ -3203,7 +3186,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           path += this.toQueryString(options.query);
         }
 
-        mode = options.mode || this.mode;
+        mode = options.mode || this.option.mode;
         location = this.toLocationObject(path);
         return Promise.resolve(this.find(location.pathname)).then(function ($await_48) {
           try {
@@ -3227,8 +3210,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             }
 
             function $If_27() {
-              if (typeof this.before === 'function') {
-                return Promise.resolve(this.before(location)).then(function ($await_51) {
+              if (typeof this.option.before === 'function') {
+                return Promise.resolve(this.option.before(location)).then(function ($await_51) {
                   try {
                     return $If_28.call(this);
                   } catch ($boundEx) {
@@ -3238,7 +3221,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               }
 
               function $If_28() {
-                this.emit('route:before', location);
+                Events.emit('route:before', location);
 
                 if (mode === 'href') {
                   return $return(window.location.assign(location.path));
@@ -3247,11 +3230,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 window.history[mode + 'State']({
                   path: location.path
                 }, '', location.path);
-                this.location = location;
+                this.location.href = location.href;
+                this.location.host = location.host;
+                this.location.port = location.port;
+                this.location.hash = location.hash;
+                this.location.path = location.path;
+                this.location.route = location.route;
+                this.location.title = location.title;
+                this.location.query = location.query;
+                this.location.search = location.search;
+                this.location.protocol = location.protocol;
+                this.location.hostname = location.hostname;
+                this.location.pathname = location.pathname;
+                this.location.parameters = location.parameters;
                 return Promise.resolve(this.render(location.route)).then(function ($await_52) {
                   try {
-                    if (typeof this.after === 'function') {
-                      return Promise.resolve(this.after(location)).then(function ($await_53) {
+                    if (typeof this.option.after === 'function') {
+                      return Promise.resolve(this.option.after(location)).then(function ($await_53) {
                         try {
                           return $If_29.call(this);
                         } catch ($boundEx) {
@@ -3261,7 +3256,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                     }
 
                     function $If_29() {
-                      this.emit('route:after', location);
+                      Events.emit('route:after', location);
                       return $return();
                     }
 
@@ -3275,8 +3270,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               return $If_28.call(this);
             }
 
-            if (typeof this.before === 'function') {
-              return Promise.resolve(this.before(location)).then(function ($await_51) {
+            if (typeof this.option.before === 'function') {
+              return Promise.resolve(this.option.before(location)).then(function ($await_51) {
                 try {
                   return $If_28.call(this);
                 } catch ($boundEx) {
@@ -3286,7 +3281,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             }
 
             function $If_28() {
-              this.emit('route:before', location);
+              Events.emit('route:before', location);
 
               if (mode === 'href') {
                 return $return(window.location.assign(location.path));
@@ -3295,11 +3290,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               window.history[mode + 'State']({
                 path: location.path
               }, '', location.path);
-              this.location = location;
+              this.location.href = location.href;
+              this.location.host = location.host;
+              this.location.port = location.port;
+              this.location.hash = location.hash;
+              this.location.path = location.path;
+              this.location.route = location.route;
+              this.location.title = location.title;
+              this.location.query = location.query;
+              this.location.search = location.search;
+              this.location.protocol = location.protocol;
+              this.location.hostname = location.hostname;
+              this.location.pathname = location.pathname;
+              this.location.parameters = location.parameters;
               return Promise.resolve(this.render(location.route)).then(function ($await_52) {
                 try {
-                  if (typeof this.after === 'function') {
-                    return Promise.resolve(this.after(location)).then(function ($await_53) {
+                  if (typeof this.option.after === 'function') {
+                    return Promise.resolve(this.option.after(location)).then(function ($await_53) {
                       try {
                         return $If_29.call(this);
                       } catch ($boundEx) {
@@ -3309,7 +3316,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                   }
 
                   function $If_29() {
-                    this.emit('route:after', location);
+                    Events.emit('route:after', location);
                     return $return();
                   }
 
@@ -3345,7 +3352,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var target = event.path ? event.path[0] : event.target;
         var parent = target.parentElement;
 
-        if (this.contain) {
+        if (this.option.contain) {
           while (parent) {
             if (parent.nodeName === 'O-ROUTER') {
               break;
@@ -3368,7 +3375,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0 || target.hash !== '' && target.origin === window.location.origin && target.pathname === window.location.pathname) return $return();
-        if (this.external && (this.external.constructor === RegExp && this.external.test(target.href) || this.external.constructor === Function && this.external(target.href) || this.external.constructor === String && this.external === target.href)) return $return();
+        if (this.option.external && (this.option.external.constructor === RegExp && this.option.external.test(target.href) || this.option.external.constructor === Function && this.option.external(target.href) || this.option.external.constructor === String && this.option.external === target.href)) return $return();
         event.preventDefault();
 
         if (this.location.href !== target.href) {
@@ -3378,7 +3385,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return $return();
       }.bind(this));
     }
-  };
+  });
   document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}o-router,o-router>:first-child{display:block;}</style>');
   var oSetup = document.querySelector('script[o-setup]');
 
@@ -3402,9 +3409,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     global: GLOBAL,
     component: Component,
     batcher: Batcher,
-    extend: Extend,
     fetcher: Fetcher,
-    utility: Utility,
     binder: Binder,
     loader: Loader,
     router: Router,

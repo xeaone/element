@@ -1,4 +1,4 @@
-import Utility from '../utility.js';
+import Traverse from '../utility/traverse.js';
 
 export default function (binder) {
     let data;
@@ -20,7 +20,7 @@ export default function (binder) {
 
                 for (let i = 0, l = binder.pipes.length; i < l; i++) {
                     const keys = binder.pipes[i].split('.');
-                    const parameter = Utility.getByPath(binder.container.model, keys);
+                    const parameter = Traverse(binder.container.model, keys);
                     parameters.push(parameter);
                 }
 
