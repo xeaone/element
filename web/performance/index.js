@@ -4,12 +4,7 @@ var oLoop = {
     model: {
         items: [],
         message: '',
-        count: 1000
-    },
-    created: function () {
-        console.log(this.model);
-    },
-    methods: {
+        count: 1000,
         push: function () {
             console.time('push');
 
@@ -32,6 +27,9 @@ var oLoop = {
 
             console.timeEnd('overwrite');
         }
+    },
+    created: function () {
+        console.log(this.model);
     },
     template: /*html*/`
 

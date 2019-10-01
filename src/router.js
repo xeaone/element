@@ -1,8 +1,8 @@
 import Path from './path.js';
 import Loader from './loader.js';
 import Events from './events.js';
+import Extend from './extend.js';
 import Utility from './utility.js';
-import Definer from './definer.js';
 import Component from './component.js';
 
 const Event = Object.create(Events);
@@ -43,7 +43,7 @@ export default {
             window.document.addEventListener('click', this.click.bind(this), true);
         }
 
-        Definer.define('o-router');
+        window.customElements.define('o-router', Extend(function () {}, HTMLElement));
 
         await this.add(option.routes);
         await this.route(window.location.href, { mode: 'replace' });

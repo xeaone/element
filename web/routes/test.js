@@ -33,13 +33,9 @@ export default {
                 three: 3
             },
             arrayChange: [ 1, 2 ],
-            html: '<h3>{{title}}</h3>'
-        },
-        methods: {
-            say: Say,
-            submit: function (data) {
-                console.log(data);
-            },
+            html: '<h3>{{title}}</h3>',
+        // methods
+            log: Say,
             mod: function () {
                 console.log('here');
                 console.log(arguments);
@@ -62,24 +58,8 @@ export default {
             toggleShowHide: function () {
                 this.model.showHide = !this.model.showHide;
             },
-            submitGet: function () {
-                console.log(arguments);
-            },
-            s0: function (data) {
-                var model = this.model;
-                if (data.username === '') {
-                    model.message = 'username required';
-                } else {
-                    return {
-                        data: data,
-                        reset: true,
-                        url: '/foo',
-                        method: 'get',
-                        handler: function (result) {
-                            console.log(result);
-                        }
-                    };
-                }
+            onSubmit: function (data) {
+                console.log(data);
             },
             fetch: function () {
                 const options = { url: 'https://jsonplaceholder.typicode.com/todos/1' };
@@ -177,7 +157,7 @@ export default {
 		<br>
 		<br>
 
-		<form o-submit="s0" o-reset>
+		<form o-submit="onSubmit" o-reset>
 			<div>{{loopy.doopy}}</div>
 			<input type="text" o-value="loopy.doopy" placeholder="text" required><br>
 			<input type="text" o-value="blank" placeholder="text" required><br>
@@ -220,35 +200,23 @@ export default {
 		<br>
 		<br>
 
-		<div>{{initiallyNotOnModel}}</div>
-		<input type="checkbox" o-value="initiallyNotOnModel">
-		<br>
-		<br>
-
 		<div>{{numRadio}}</div>
 		<input type="radio" o-value="numRadio">
 		<input type="radio" o-value="numRadio">
 		<br>
 		<br>
 
-		<button o-on-click="say">Console Log</button>
+		<button o-on-click="log">Console Log</button>
 		<br>
 		<br>
 
 		<div o-each-item="eo">
 			<span>
-				<span>{{$item}}</span>
-				<span o-text="$item"></span>
+				<span>{{item}}</span>
+				<span o-text="item"></span>
 				<span>,</span>
 			</span>
 		</div>
-		<br>
-		<br>
-
-		<form o-submit="submit">
-			<input type="text" o-value="submit"/>
-			<input type="submit" value="Submit Form"/>
-		</form>
 		<br>
 		<br>
 

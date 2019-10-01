@@ -1,16 +1,17 @@
 
 export default function (binder) {
+    let data;
     return {
         read () {
-            this.data = binder.data || '';
+            data = binder.data || '';
 
-            if (this.data === binder.target.href) {
+            if (data === binder.target.href) {
                 return this.write = false;
             }
 
         },
         write () {
-            binder.target.href = this.data;
+            binder.target.href = data;
         }
     };
 }

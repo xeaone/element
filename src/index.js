@@ -1,18 +1,12 @@
-import Change from './listener/change.js';
-import Submit from './listener/submit.js';
-import Input from './listener/input.js';
-import Reset from './listener/reset.js';
 import Component from './component.js';
-import Listener from './listener.js';
+// import Listener from './listener.js';
 import Batcher from './batcher.js';
-import Definer from './definer.js';
 import Fetcher from './fetcher.js';
-import Methods from './methods.js';
 import Utility from './utility.js';
+import Extend from './extend.js';
 import Binder from './binder.js';
 import Loader from './loader.js';
 import Router from './router.js';
-import Model from './model.js';
 import Style from './style.js';
 import Path from './path.js';
 
@@ -44,14 +38,12 @@ export default Object.freeze({
     global: GLOBAL,
     component: Component,
     batcher: Batcher,
-    definer: Definer,
+    extend: Extend,
     fetcher: Fetcher,
-    methods: Methods,
     utility: Utility,
     binder: Binder,
     loader: Loader,
     router: Router,
-    model: Model,
     style: Style,
     path: Path,
 
@@ -64,18 +56,11 @@ export default Object.freeze({
         options = options || {};
         options.listener = options.listener || {};
 
-        document.addEventListener('input', Listener.bind(null, options, Input), true);
-        document.addEventListener('reset', Listener.bind(null, options, Reset), true);
-        document.addEventListener('change', Listener.bind(null, options, Change), true);
-        document.addEventListener('submit', Listener.bind(null, options, Submit), true);
-
         return Promise.all([
             self.path.setup(options.path),
             self.style.setup(options.style),
-            self.model.setup(options.model),
             self.binder.setup(options.binder),
             self.loader.setup(options.loader),
-            self.definer.setup(options.definer),
             self.fetcher.setup(options.fetcher),
         ]).then(function () {
             if (options.listener.before) {

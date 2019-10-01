@@ -1,34 +1,35 @@
 
 export default function (binder) {
+    let data, name;
     return {
         read () {
-            this.data = binder.data;
+            data = binder.data;
 
             if (binder.names.length > 1) {
-                this.name = binder.names.slice(1).join('-');
+                name = binder.names.slice(1).join('-');
             }
 
         },
         write () {
 
-            if (this.name) {
+            if (name) {
 
-                if (this.data === undefined || this.data === null) {
-                    binder.target.classList.remove(this.name);
+                if (data === undefined || data === null) {
+                    binder.target.classList.remove(name);
                 } else {
-                    binder.target.classList.toggle(this.name, this.data);
+                    binder.target.classList.toggle(name, data);
                 }
 
             } else {
 
-                if (this.data === undefined || this.data === null) {
+                if (data === undefined || data === null) {
                     binder.target.setAttribute('class', '');
                 } else {
-                    binder.target.setAttribute('class', this.data);
+                    binder.target.setAttribute('class', data);
                 }
 
             }
-            
+
         }
     };
 }

@@ -1,4 +1,3 @@
-import Batcher from '../batcher.js';
 
 export default function (binder) {
     const self = this;
@@ -6,10 +5,11 @@ export default function (binder) {
     if (binder.meta.pending) return;
     else binder.meta.pending = true;
 
+    let data;
+
     return {
         read () {
-
-            this.data = binder.data || [];
+            data = binder.data || [];
 
             if (!binder.meta.setup) {
                 binder.meta.keys = [];
@@ -32,7 +32,7 @@ export default function (binder) {
                 binder.meta.setup = true;
             }
 
-            binder.meta.keys = Object.keys(this.data);
+            binder.meta.keys = Object.keys(data);
             binder.meta.targetLength = binder.meta.keys.length;
 
             if (binder.meta.currentLength === binder.meta.targetLength) {
@@ -47,14 +47,14 @@ export default function (binder) {
                 binder.meta.pending = false;
                 return;
             }
-            
+
             if (binder.meta.currentLength > binder.meta.targetLength) {
 
                 while (binder.meta.currentLength > binder.meta.targetLength) {
 
                     // might need count after Binder.add
                     let count = binder.meta.templateLength;
-                    
+
                     while(count--) {
                         const node = binder.target.lastChild;
                         binder.target.removeChild(node);
@@ -71,7 +71,7 @@ export default function (binder) {
                 while (binder.meta.currentLength < binder.meta.targetLength) {
                     const clone = binder.meta.template.cloneNode(true);
                     const index = binder.meta.currentLength;
-                    
+
                     let node;
                     while (node = clone.firstChild) {
 
@@ -92,24 +92,14 @@ export default function (binder) {
 
                         binder.meta.fragment.appendChild(node);
                     }
-                    
+
                     binder.meta.currentLength++;
                 }
 
                 binder.target.appendChild(binder.meta.fragment);
             }
 
-            // if (binder.meta.pending && render.read) {
-            //     binder.meta.pending = false;
-            //     return;
-            // } else {
-            //     binder.meta.pending = true;
-            // }
-            // delete render.read;
-            // render.context = render.context || { read: false };
-            
             binder.meta.pending = false;
-            // Batcher.batch(render);
         }
     };
 }

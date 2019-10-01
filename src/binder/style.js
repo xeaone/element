@@ -1,20 +1,21 @@
 
 export default function (binder) {
+    let data, name, names;
     return {
         read () {
-            this.data = binder.data;
+            data = binder.data;
 
             if (binder.names.length > 1) {
-                
-                this.name = '';
-                this.names = binder.names.slice(1);
 
-                for (let i = 0, l = this.names.length; i < l; i++) {
+                name = '';
+                names = binder.names.slice(1);
+
+                for (let i = 0, l = names.length; i < l; i++) {
 
                     if (i === 0) {
-                        this.name = this.names[i].toLowerCase();
+                        name = names[i].toLowerCase();
                     } else {
-                        this.name += this.names[i].charAt(0).toUpperCase() + this.names[i].slice(1).toLowerCase();
+                        name += names[i].charAt(0).toUpperCase() + names[i].slice(1).toLowerCase();
                     }
 
                 }
@@ -26,16 +27,16 @@ export default function (binder) {
 
             if (binder.names.length > 1) {
 
-                if (this.data) {
-                    binder.target.style[this.name] = this.data;
+                if (data) {
+                    binder.target.style[name] = data;
                 } else {
-                    binder.target.style[this.name] = '';
+                    binder.target.style[name] = '';
                 }
 
             } else {
 
-                if (this.data) {
-                    binder.target.style.cssText = this.data;
+                if (data) {
+                    binder.target.style.cssText = data;
                 } else {
                     binder.target.style.cssText = '';
                 }

@@ -3,7 +3,6 @@ export default {
 
     reads: [],
     writes: [],
-    // time: 1000 / 30,
     time: 1000/60,
     pending: false,
 
@@ -13,7 +12,7 @@ export default {
     },
 
     tick (callback) {
-        window.requestAnimationFrame(callback.bind(this, null));
+        window.requestAnimationFrame(callback.bind(this));
     },
 
     // schedules a new read/write batch if one is not pending
@@ -24,7 +23,6 @@ export default {
     },
 
     flush (time) {
-        time = time || performance.now();
 
         let task;
 
@@ -84,7 +82,7 @@ export default {
         self.reads.push(data.read ? function () {
              if (this.read) {
                 return data.read.call(data.context, data.context);
-            }           
+            }
         }.bind(data.context, data.context) : null);
 
         self.writes.push(data.write ? function () {

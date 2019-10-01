@@ -9,7 +9,7 @@ export default function (binder, data) {
         return data;
     }
 
-    const methods = binder.container.methods;
+    const methods = binder.container.model;
 
     if (!methods) {
         return data;

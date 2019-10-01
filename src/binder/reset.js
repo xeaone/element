@@ -1,10 +1,5 @@
-import Binder from '../binder.js';
 
-export default async function (event) {
-
-    if (event.target.hasAttribute('o-reset') === false) {
-        return;
-    }
+const reset = async function (binder, event) {
 
     event.preventDefault();
 
@@ -24,7 +19,7 @@ export default async function (event) {
             continue;
         }
 
-        const binder = Binder.get('attribute', element, 'o-value');
+        const binder = this.get(element, 'o-value');
 
         if (!binder) {
             if (type === 'select-one' || type === 'select-multiple') {
@@ -46,4 +41,18 @@ export default async function (event) {
 
     }
 
+    let method = binder.data;
+    if (typeof method === 'function') {
+        await method.call(binder.container, event);
+    }
+
+};
+
+export default function (binder) {
+    if (binder.meta.method) {
+        binder.target.removeEventListener('reset', binder.meta.method, false);
+    } else {
+        binder.meta.method = reset.bind(this, binder);
+        binder.target.addEventListener('reset', binder.meta.method, false);
+    }
 }

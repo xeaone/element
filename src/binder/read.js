@@ -1,16 +1,18 @@
 
 export default function (binder) {
+    let data;
     return {
         read () {
-            this.data = binder.data;
+            data = binder.data;
 
-            if (this.data === binder.target.readOnly) {
-                return this.write = false;
+            if (data === binder.target.readOnly) {
+                this.write = false;
+                return;
             }
 
         },
         write () {
-            binder.target.readOnly = this.data;
+            binder.target.readOnly = data;
         }
     };
 }

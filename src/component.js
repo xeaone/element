@@ -1,14 +1,13 @@
-import Methods from './methods.js';
 import Binder from './binder.js';
 import Loader from './loader.js';
-import Model from './model.js';
 import Style from './style.js';
-import Utility from './utility.js';
-import Definer from './definer.js';
 
-export default {
+import Observer from './observer.js';
+import Extend from './extend.js';
 
-    data: {},
+export default Object.freeze({
+
+    // data: {},
 
     async setup (options) {
         const self = this;
@@ -156,21 +155,18 @@ export default {
             return console.warn('Oxe.component.define - requires name');
         }
 
-        options.name = options.name.toLowerCase();
-
-        if (options.name in self.data) {
-            return console.warn('Oxe.component.define - component defined: ${options.name}');
-        }
-
-        self.data[options.name] = options;
+        // if (options.name in self.data) {
+        //     return console.warn('Oxe.component.define - component defined: ${options.name}');
+        // }
+        //
+        // self.data[options.name] = options;
 
         options.count = 0;
         options.model = options.model || {};
         options.adopt = options.adopt || false;
-        options.methods = options.methods || {};
         options.shadow = options.shadow || false;
+        options.name = options.name.toLowerCase();
         options.attributes = options.attributes || [];
-        options.properties = options.properties || {};
 
         if (options.style) {
             options.style = this.style(options.style, options.name);
@@ -183,92 +179,72 @@ export default {
             options.template = data;
         }
 
-        const constructor = function () {
-            this._created = false;
-            this._scope = options.name + '-' + options.count++;
+        const OElement = function OElement () {
+            const scope = `${options.name}-${options.count++}`;
 
-            // Object.defineProperties(this, {
-            //     created: {
-            //         value: false,
-            //         enumerable: true,
-            //         configurable: true
-            //     },
-            //     scope: {
-            //         enumerable: true,
-            //         value: scope
-            //     }
-            // });
+            const model = Observer.create(options.model, function (data, path, type) {
+                const location = `${scope}.${path}`;
+                const binders = Binder.data.get(location);
+                if (binders) {
+                    binders.forEach(function (binder) {
+                        Binder.render(binder);
+                    });
+                }
+            });
 
-            const properties = Utility.clone(options.properties);
-            const methods = Utility.clone(options.methods);
-            const model = Utility.clone(options.model);
+            Object.defineProperties(this, {
+                // created: { value: false, enumerable: true, configurable: true },
+                scope: { enumerable: true, value: scope },
+                model: { enumerable: true, value: model }
+            });
 
-            Object.defineProperties(this, properties);
-            Methods.set(this.scope, methods);
-            Model.set(this.scope, model);
+            if (options.properties) {
+                Object.defineProperties(this, options.properties);
+            }
+
         };
 
-        Object.defineProperties(constructor.prototype, {
-            created: {
-                get () { return this._created; }
-            },
-            scope: {
-                get () { return this._scope; }
-            },
-            methods: {
-                get () { return Methods.get(this.scope); }
-            },
-            model: {
-                get () { return Model.get(this.scope); },
-                set (data) {
-                    return Model.set(this.scope, data && typeof data === 'object' ? data : {});
-                }
-            },
-            observedAttributes: {
-                value: options.attributes
-            },
-            attributeChangedCallback: {
-                value () {
-                    if (options.attributed) options.attributed.apply(this, arguments);
-                }
-            },
-            adoptedCallback: {
-                value () {
-                    if (options.adopted) options.adopted.apply(this, arguments);
-                }
-            },
-            disconnectedCallback: {
-                value () {
-                    if (options.detached) options.detached.call(this);
-                }
-            },
-            connectedCallback: {
-                value () {
-                    const instance = this;
+        if (options.prototype) {
+            Object.assign(OElement.prototype, options.prototype);
+        }
 
-                    if (instance.created) {
-                        if (options.attached) {
-                            options.attached.call(instance);
-                        }
-                    } else {
-                        instance._created = true;
+        OElement.prototype.observedAttributes = options.attributes;
 
-                        self.render(instance, options.template, options.adopt, options.shadow);
+        OElement.prototype.attributeChangedCallback = function () {
+            if (options.attributed) options.attributed.apply(this, arguments);
+        };
 
-                        if (options.created && options.attached) {
-                            Promise.resolve().then(options.created.bind(instance)).then(options.attached.bind(instance));
-                        } else if (options.created) {
-                            Promise.resolve().then(options.created.bind(instance));
-                        } else if (options.attached) {
-                            Promise.resolve().then(options.attached.bind(instance));
-                        }
+        OElement.prototype.adoptedCallback = function () {
+            if (options.adopted) options.adopted.apply(this, arguments);
+        };
 
-                    }
+        OElement.prototype.disconnectedCallback = function () {
+            if (options.detached) options.detached.call(this);
+        };
+
+        OElement.prototype.connectedCallback = function () {
+
+            if (this.created) {
+                if (options.attached) {
+                    options.attached.call(this);
                 }
+            } else {
+                this.created = true;
+
+                self.render(this, options.template, options.adopt, options.shadow);
+
+                if (options.created && options.attached) {
+                    Promise.resolve().then(options.created.bind(this)).then(options.attached.bind(this));
+                } else if (options.created) {
+                    Promise.resolve().then(options.created.bind(this));
+                } else if (options.attached) {
+                    Promise.resolve().then(options.attached.bind(this));
+                }
+
             }
-        });
+        };
 
-        Definer.define(options.name, constructor);
+        window.customElements.define(options.name, Extend(OElement, HTMLElement));
     }
 
-};
+});

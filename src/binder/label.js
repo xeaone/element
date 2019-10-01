@@ -1,24 +1,25 @@
 
 export default function (binder) {
+    let data;
     return {
         read () {
-            this.data = binder.data;
+            data = binder.data;
 
-            if (this.data === undefined || this.data === null) {
-                this.data = '';
-            } else if (typeof this.data === 'object') {
-                this.data = JSON.stringify(this.data);
-            } else if (typeof this.data !== 'string') {
-                this.data = this.data.toString();
+            if (data === undefined || data === null) {
+                data = '';
+            } else if (typeof data === 'object') {
+                data = JSON.stringify(data);
+            } else if (typeof data !== 'string') {
+                data = data.toString();
             }
 
-            if (this.data === binder.target.getAttribute('label')) {
+            if (data === binder.target.getAttribute('label')) {
                 return this.write = false;
             }
 
         },
         write () {
-            binder.target.setAttribute('label', this.data);
+            binder.target.setAttribute('label', data);
         }
     };
 }

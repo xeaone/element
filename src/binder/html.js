@@ -1,16 +1,17 @@
 
 export default function (binder) {
     const self = this;
+    let data;
     return {
         read () {
-            this.data = binder.data;
+            data = binder.data;
 
-            if (this.data === undefined || this.data === null) {
-                this.data = '';
-            } else if (typeof this.data === 'object') {
-                this.data = JSON.stringify(this.data);
-            } else if (typeof this.data !== 'string') {
-                this.data = String(this.data);
+            if (data === undefined || data === null) {
+                data = '';
+            } else if (typeof data === 'object') {
+                data = JSON.stringify(data);
+            } else if (typeof data !== 'string') {
+                data = String(data);
             }
 
         },
@@ -24,7 +25,7 @@ export default function (binder) {
             const fragment = document.createDocumentFragment();
             const parser = document.createElement('div');
 
-            parser.innerHTML = this.data;
+            parser.innerHTML = data;
 
             while (parser.firstElementChild) {
 

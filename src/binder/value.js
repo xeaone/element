@@ -3,9 +3,21 @@ import Utility from '../utility.js';
 export default function (binder, caller) {
     const self = this;
     const type = binder.target.type;
+    let data;
 
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
+
+    if (!binder.meta.setup) {
+        binder.meta.setup = true;
+        binder.target.addEventListener('input', function () {
+            self.render(binder, 'view');
+            // binder.data = binder.target.value;
+        }, false);
+        // binder.target.addEventListener('change', function () {
+        //     console.log('change');
+        // });
+    }
 
     if (type === 'select-one' || type === 'select-multiple') {
         return {
@@ -129,9 +141,7 @@ export default function (binder, caller) {
                     return this.write = false;
                 }
 
-                this.data = binder.data;
-
-                if (typeof this.data !== 'number') {
+                if (typeof binder.data !== 'number') {
                     binder.meta.busy = false;
                     return this.write = false;
                 }
@@ -141,7 +151,7 @@ export default function (binder, caller) {
                 for (let i = 0, l = this.radios.length; i < l; i++) {
                     const radio = this.radios[i];
 
-                    if (i === this.data) {
+                    if (i === binder.data) {
                         radio.checked = true;
                     } else {
                         radio.checked = false;
@@ -163,16 +173,14 @@ export default function (binder, caller) {
                     return this.write = false;
                 }
 
-                this.data = binder.data;
-
-                if (typeof this.data !== 'boolean') {
+                if (typeof binder.data !== 'boolean') {
                     binder.meta.busy = false;
                     return this.write = false;
                 }
 
             },
             write() {
-                binder.target.checked = this.data;
+                binder.target.checked = binder.data;
                 binder.meta.busy = false;
             }
         };
@@ -182,19 +190,17 @@ export default function (binder, caller) {
                 this.multiple = Utility.multiple(binder.target);
                 binder.data = this.multiple ? Array.prototype.slice.call(binder.target.files) : binder.target.files[0];
                 binder.meta.busy = false;
-                this.data = binder.data;
-            },
-            // write: function write() {
-            // console.warn('Oxe.binder.value - setting file input is not support by browsers');
-            // if (this.data !== undefined && this.data !== null && this.data.length) {
-            //     Array.prototype.push.apply(binder.target.files, this.data);
-            // }
-            // binder.meta.busy = false;
-            // }
+            }
         };
     } else {
         return {
             read() {
+                data = binder.data;
+
+                if (data === binder.target.value) {
+                    binder.meta.busy = false;
+                    return this.write = false;
+                }
 
                 if (caller === 'view') {
                     binder.data = binder.target.value;
@@ -202,16 +208,9 @@ export default function (binder, caller) {
                     return this.write = false;
                 }
 
-                this.data = binder.data;
-
-                if (this.data === binder.target.value) {
-                    binder.meta.busy = false;
-                    return this.write = false;
-                }
-
             },
             write() {
-                binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
+                binder.target.value = data === undefined || data === null ? '' : data;
                 binder.meta.busy = false;
             }
         };

@@ -1,16 +1,17 @@
 
 export default function (binder) {
+    let data;
     return {
         read () {
-            this.data = binder.data;
+            data = binder.data;
 
-            if (this.data === binder.target.hidden) {
+            if (data === binder.target.hidden) {
                 return this.write = false;
             }
 
         },
         write () {
-            binder.target.hidden = this.data;
+            binder.target.hidden = data;
         }
     };
 }

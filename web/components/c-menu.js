@@ -7,7 +7,7 @@ export default {
     created: function () {
         console.log('created c-menu');
     },
-    style: `
+    style: /*css*/`
 		:host {
 			--g: gray;
 			--r-e-d: red;
@@ -19,7 +19,7 @@ export default {
 			background: var(--r-e-d);
 		}
 	`,
-    template: `
+    template: /*html*/`
 		<ul>
 			<c-foo>
 				<div slot="sub" o-text="text"></div>
