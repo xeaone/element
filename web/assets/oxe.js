@@ -493,8 +493,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           binder.meta.setup = true;
         }
 
-        binder.meta.keys = Object.keys(data);
+        binder.meta.keys = Object.keys(data || []);
         binder.meta.targetLength = binder.meta.keys.length;
+
+        if (binder.meta.currentLength === binder.meta.targetLength) {
+          binder.meta.pending = false;
+          this.write = false;
+        }
       },
       write: function write() {
         if (binder.meta.currentLength === binder.meta.targetLength) {
@@ -898,12 +903,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
 
   function Submit(binder) {
-    if (binder.meta.method) {
-      binder.target.removeEventListener('submit', binder.meta.method, false);
-    } else {
-      binder.meta.method = submit.bind(this, binder);
-      binder.target.addEventListener('submit', binder.meta.method, false);
-    }
+    var self = this;
+    var data;
+    return {
+      read: function read() {
+        data = binder.data;
+
+        if (typeof data !== 'function') {
+          return console.warn("Oxe - binder ".concat(binder.name, "=\"").concat(binder.value, "\" invalid type function required"));
+        }
+
+        if (binder.meta.method) {
+          binder.target.removeEventListener('submit', binder.meta.method);
+        }
+
+        binder.meta.method = submit.bind(self, binder);
+        binder.target.addEventListener('submit', binder.meta.method);
+      }
+    };
   }
 
   function Text(binder) {
@@ -1235,8 +1252,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var location = "".concat(scope, ".").concat(path);
       var keys = [scope].concat(parts);
       var property = parts.slice(-1)[0];
-      var model;
-      console.log(arguments);
       return Object.freeze({
         location: location,
         type: type,
@@ -1254,7 +1269,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         context: context,
 
         get data() {
-          if (model === undefined) model = traverse(container.model, parts, 1);
+          var model = traverse(container.model, parts, 1);
 
           if (name === 'o-value' || name.indexOf('o-on') === 0) {
             return model[property];
@@ -1264,7 +1279,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         },
 
         set data(value) {
-          if (model === undefined) model = traverse(container.model, parts, 1);
+          var model = traverse(container.model, parts, 1);
 
           if (name === 'o-value') {
             return model[property] = Piper(this, value);
@@ -1275,9 +1290,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       });
     },
-    render: function render(binder, caller) {
+    render: function render(binder, data) {
       var type = binder.type in this.binders ? binder.type : 'default';
-      var render = this.binders[type](binder, caller);
+      var render = this.binders[type](binder, data);
       Batcher.batch(render);
     },
     unbind: function unbind(node) {
@@ -1765,49 +1780,77 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   };
   var Observer = {
-    create: function create(source, handler, path) {
-      var self = this;
+    get: function get(tasks, handler, path, target, property) {
+      if (target instanceof Array && property === 'push') {
+        tasks.push(handler.bind(null, target, path.slice(0, -1)));
+      }
 
-      if (!source || source.constructor !== Object && source.constructor !== Array) {
+      return target[property];
+    },
+    set: function set(tasks, handler, path, target, property, value) {
+      if (property === 'length') {
+        return true;
+      }
+
+      target[property] = this.create(value, handler, path + property, tasks);
+      Promise.resolve().then(function () {
+        var task;
+
+        while (task = tasks.shift()) {
+          task();
+        }
+      }).catch(console.error);
+      return true;
+    },
+    create: function create(source, handler, path, tasks) {
+      path = path || '';
+      tasks = tasks || [];
+      tasks.push(handler.bind(null, source, path));
+
+      if (source instanceof Object === false && source instanceof Array === false) {
+        if (!path) {
+          Promise.resolve().then(function () {
+            var task;
+
+            while (task = tasks.shift()) {
+              task();
+            }
+          }).catch(console.error);
+        }
+
         return source;
       }
 
       path = path ? path + '.' : '';
-      var type = source.constructor;
-      var target = new Proxy(source.constructor(), {
-        set: function set(t, property, value) {
-          if (!property in t) {
-            value = self.create(value, handler, path + property + '.');
-          }
 
-          if (property === 'length') {
-            handler(t, path.slice(0, -1));
-          } else {
-            handler(value, path + property);
-          }
-
-          t[property] = value;
-          return true;
-        },
-        get: function get(t, property) {
-          return t[property];
-        }
-      });
-
-      if (type === Array) {
-        for (var key = 0, length = source.length; key < length; key++) {
-          target[key] = this.create(source[key], handler, path + key);
+      if (source instanceof Array) {
+        for (var key = 0; key < source.length; key++) {
+          tasks.push(handler.bind(null, source[key], path + key));
+          source[key] = this.create(source[key], handler, path + key, tasks);
         }
       }
 
-      if (type === Object) {
+      if (source instanceof Object) {
         for (var _key in source) {
-          descriptors.$meta.value[_key] = this.create(source[_key], handler, path + _key);
-          descriptors[_key] = this.descriptor(_key);
+          tasks.push(handler.bind(null, source[_key], path + _key));
+          source[_key] = this.create(source[_key], handler, path + _key, tasks);
         }
       }
 
-      return target;
+      if (!path) {
+        Promise.resolve().then(function () {
+          var task;
+
+          while (task = tasks.shift()) {
+            task();
+          }
+        }).catch(console.error);
+      }
+
+      return new Proxy(source, {
+        get: this.get.bind(this, tasks, handler, path),
+        set: this.set.bind(this, tasks, handler, path)
+      });
     }
   };
 
@@ -2001,16 +2044,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       var OElement = function OElement() {
         var scope = "".concat(options.name, "-").concat(options.count++);
-        var model = Observer.create(options.model, function (data, path, type) {
+
+        var handler = function handler(data, path) {
           var location = "".concat(scope, ".").concat(path);
           var binders = Binder.data.get(location);
 
           if (binders) {
             binders.forEach(function (binder) {
-              Binder.render(binder);
+              Binder.render(binder, data);
             });
           }
-        });
+        };
+
+        var model = Observer.create(options.model, handler);
         Object.defineProperties(this, {
           scope: {
             enumerable: true,

@@ -1,3 +1,4 @@
+// import Traverse from '../utility/traverse.js';
 
 const submit = async function (binder, event) {
 
@@ -48,10 +49,37 @@ const submit = async function (binder, event) {
 };
 
 export default function (binder) {
-    if (binder.meta.method) {
-        binder.target.removeEventListener('submit', binder.meta.method, false);
-    } else {
-        binder.meta.method = submit.bind(this, binder);
-        binder.target.addEventListener('submit', binder.meta.method, false);
-    }
+    const self = this;
+    let data;
+    return {
+        read () {
+            data = binder.data;
+
+            if (typeof data !== 'function') {
+                return console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
+            }
+
+            if (binder.meta.method) {
+                binder.target.removeEventListener('submit', binder.meta.method);
+            }
+
+            // binder.meta.method = function (events) {
+            //     const parameters = [];
+            //
+            //     for (let i = 0, l = binder.pipes.length; i < l; i++) {
+            //         const keys = binder.pipes[i].split('.');
+            //         const parameter = Traverse(binder.container.model, keys);
+            //         parameters.push(parameter);
+            //     }
+            //
+            //     parameters.push(events);
+            //     parameters.push(this);
+            //
+            //     Promise.resolve(data.bind(binder.container).apply(null, parameters)).catch(console.error);
+            // };
+
+            binder.meta.method = submit.bind(self, binder);
+            binder.target.addEventListener('submit', binder.meta.method);
+        }
+    };
 }

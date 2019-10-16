@@ -23,7 +23,6 @@ var oLoop = {
                 items.push({ number: i });
             }
 
-            console.log(items);
             this.model.items = items;
 
             console.timeEnd('overwrite');

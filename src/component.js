@@ -182,15 +182,17 @@ export default Object.freeze({
         const OElement = function OElement () {
             const scope = `${options.name}-${options.count++}`;
 
-            const model = Observer.create(options.model, function (data, path, type) {
+            const handler = function (data, path) {
                 const location = `${scope}.${path}`;
                 const binders = Binder.data.get(location);
                 if (binders) {
                     binders.forEach(function (binder) {
-                        Binder.render(binder);
+                        Binder.render(binder, data);
                     });
                 }
-            });
+            };
+
+            const model = Observer.create(options.model, handler);
 
             Object.defineProperties(this, {
                 // created: { value: false, enumerable: true, configurable: true },

@@ -83,7 +83,7 @@ export default Object.freeze({
 
     },
 
-    get(node, name) {
+    get (node, name) {
         const value = node.attributes[name].value;
         const binders = this.nodes.get(node);
         for (let i = 0, l = binders.length; i < l; i++) {
@@ -94,19 +94,6 @@ export default Object.freeze({
         }
         return null;
     },
-
-    // get(node, name, scope) {
-    //     const value = node.attributes[name].value;
-    //     const location = `${scope}.${value.replace(/\s?\|\s?.*$/, '')}`;
-    //     const binders = this.data.get(location);
-    //     for (let i = 0, l = binders.length; i < l; i++) {
-    //         const binder = binders[i];
-    //         if (binder.name === name && binder.value === value) {
-    //             return binder;
-    //         }
-    //     }
-    //     return null;
-    // },
 
     create(data) {
         const { name, names, value, values, paths, pipes, target, scope, container, context } = data;
@@ -123,11 +110,6 @@ export default Object.freeze({
         const location = `${scope}.${path}`;
         const keys = [scope].concat(parts);
         const property = parts.slice(-1)[0];
-        // const model = Traverse(container.model, parts, 1);
-        let model;
-        // get pipes here also
-
-        console.log(arguments);
 
         return Object.freeze({
 
@@ -135,8 +117,8 @@ export default Object.freeze({
             name, value, target, container,
             keys, names, pipes, values, meta, context,
 
-            get data() {
-                if (model === undefined) model = Traverse(container.model, parts, 1);
+            get data () {
+                const model = Traverse(container.model, parts, 1);
                 if (name === 'o-value' || name.indexOf('o-on') === 0) {
                     return model[property];
                 } else {
@@ -144,8 +126,8 @@ export default Object.freeze({
                 }
             },
 
-            set data(value) {
-                if (model === undefined) model = Traverse(container.model, parts, 1);
+            set data (value) {
+                const model = Traverse(container.model, parts, 1);
                 if (name === 'o-value') {
                     return model[property] = Piper(this, value);
                 } else {
@@ -156,9 +138,9 @@ export default Object.freeze({
         });
     },
 
-    render (binder, caller) {
+    render (binder, data) {
         const type = binder.type in this.binders ? binder.type : 'default';
-        const render = this.binders[type](binder, caller);
+        const render = this.binders[type](binder, data);
         Batcher.batch(render);
     },
 

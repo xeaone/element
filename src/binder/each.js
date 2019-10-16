@@ -31,13 +31,13 @@ export default function (binder) {
                 binder.meta.setup = true;
             }
 
-            binder.meta.keys = Object.keys(data);
+            binder.meta.keys = Object.keys(data || []);
             binder.meta.targetLength = binder.meta.keys.length;
 
-            // if (binder.meta.currentLength === binder.meta.targetLength) {
-            //     binder.meta.pending = false;
-            //     this.write = false;
-            // }
+            if (binder.meta.currentLength === binder.meta.targetLength) {
+                binder.meta.pending = false;
+                this.write = false;
+            }
 
         },
         write () {
