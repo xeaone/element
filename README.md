@@ -1,3 +1,4 @@
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/vokeio/oxe.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/vokeio/oxe/alerts/)
 
 # Oxe
 A mighty tiny web components framework/library.
