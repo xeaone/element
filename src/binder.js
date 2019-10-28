@@ -1,7 +1,6 @@
 import Traverse from './utility/traverse.js';
 import Walker from './utility/walker.js';
 
-import Utility from './utility.js';
 import Batcher from './batcher.js';
 import Piper from './piper.js';
 
@@ -129,9 +128,9 @@ export default Object.freeze({
             set data (value) {
                 const model = Traverse(container.model, parts, 1);
                 if (name === 'o-value') {
-                    return model[property] = Piper(this, value);
+                    model[property] = Piper(this, value);
                 } else {
-                    return model[property] = value;
+                    model[property] = value;
                 }
             }
 
