@@ -109,7 +109,7 @@ export default Object.freeze({
         let root;
 
         if (shadow && 'attachShadow' in document.body) {
-            root = element.attachShadow({ mode: 'open' })
+            root = element.attachShadow({ mode: 'open' });
         } else if (shadow && 'createShadowRoot' in document.body) {
             root = element.createShadowRoot();
         } else {
