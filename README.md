@@ -1,4 +1,5 @@
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/vokeio/oxe.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/vokeio/oxe/alerts/)
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/vokeio/oxe.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/vokeio/oxe/context:javascript)
 
 # Oxe
 A mighty tiny web components framework/library.
