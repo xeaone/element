@@ -9,13 +9,12 @@ const submit = async function (binder, event) {
 
     for (let i = 0, l = elements.length; i < l; i++) {
         const element = elements[i];
-        const type = element.type;
 
         if (
-            !type && name !== 'TEXTAREA' ||
-            type === 'submit' ||
-            type === 'button' ||
-            !type
+            !element.type && element.nodeName !== 'TEXTAREA' ||
+            element.type === 'submit' ||
+            element.type === 'button' ||
+            !element.type
         ) {
             continue;
         }
