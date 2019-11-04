@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 5.2.7
+    	Version: 5.2.8
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
@@ -2406,7 +2406,12 @@
         return instance;
       };
 
-      var prototypes = Object.getOwnPropertyDescriptors(constructor.prototype);
+      var names = Object.getOwnPropertyNames(constructor.prototype);
+      var prototypes = {};
+      for (var i = 0; i < names.length; i++) {
+          prototypes[names[i]] = Object.getOwnPropertyDescriptor(constructor.prototype, names[i]);
+      }
+
       construct.prototype = Object.create(HTMLElement.prototype);
       Object.defineProperties(construct.prototype, prototypes);
       Object.defineProperty(construct.prototype, 'constructor', {
