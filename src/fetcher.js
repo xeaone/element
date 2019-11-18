@@ -1,8 +1,8 @@
 
-export default {
+export default Object.freeze({
 
-    headers: null,
-    method: 'get',
+    options: {},
+
     mime: {
         xml: 'text/xml; charset=utf-8',
         html: 'text/html; charset=utf-8',
@@ -13,16 +13,16 @@ export default {
 
     async setup (options) {
         options = options || {};
-        this.path = options.path;
-        this.origin = options.origin;
-        this.request = options.request;
-        this.response = options.response;
-        this.acceptType = options.acceptType;
-        this.credentials = options.credentials;
-        this.contentType = options.contentType;
-        this.responseType = options.responseType;
-        this.method = options.method || this.method;
-        this.headers = options.headers || this.headers;
+        this.options.path = options.path;
+        this.options.origin = options.origin;
+        this.options.request = options.request;
+        this.options.response = options.response;
+        this.options.acceptType = options.acceptType;
+        this.options.headers = options.headers || {};
+        this.options.method = options.method || 'get';
+        this.options.credentials = options.credentials;
+        this.options.contentType = options.contentType;
+        this.options.responseType = options.responseType;
     },
 
     async serialize (data) {
@@ -39,8 +39,8 @@ export default {
     async fetch (options) {
         const data = Object.assign({}, options);
 
-        data.path = data.path || this.path;
-        data.origin = data.origin || this.origin;
+        data.path = data.path || this.options.path;
+        data.origin = data.origin || this.options.origin;
 
         if (data.path && typeof data.path === 'string' && data.path.charAt(0) === '/') data.path = data.path.slice(1);
         if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length-1) === '/') data.origin = data.origin.slice(0, -1);
@@ -49,54 +49,54 @@ export default {
         if (!data.method) throw new Error('Oxe.fetcher - requires method option');
         if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
 
-        if (!data.headers && this.headers) data.headers = this.headers;
-        if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.method;
+        if (!data.headers && this.options.headers) data.headers = this.options.headers;
+        if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.options.method;
 
-        if (!data.acceptType && this.acceptType) data.acceptType = this.acceptType;
-        if (!data.contentType && this.contentType) data.contentType = this.contentType;
-        if (!data.responseType && this.responseType) data.responseType = this.responseType;
+        if (!data.acceptType && this.options.acceptType) data.acceptType = this.options.acceptType;
+        if (!data.contentType && this.options.contentType) data.contentType = this.options.contentType;
+        if (!data.responseType && this.options.responseType) data.responseType = this.options.responseType;
 
         // omit, same-origin, or include
-        if (!data.credentials && this.credentials) data.credentials = this.credentials;
+        if (!data.credentials && this.options.credentials) data.credentials = this.options.credentials;
 
         // cors, no-cors, or same-origin
-        if (!data.mode && this.mode) data.mode = this.mode;
+        if (!data.mode && this.options.mode) data.mode = this.options.mode;
 
         // default, no-store, reload, no-cache, force-cache, or only-if-cached
-        if (!data.cache && this.cache) data.cahce = this.cache;
+        if (!data.cache && this.options.cache) data.cahce = this.options.cache;
 
         // follow, error, or manual
-        if (!data.redirect && this.redirect) data.redirect = this.redirect;
+        if (!data.redirect && this.options.redirect) data.redirect = this.options.redirect;
 
         // no-referrer, client, or a URL
-        if (!data.referrer && this.referrer) data.referrer = this.referrer;
+        if (!data.referrer && this.options.referrer) data.referrer = this.options.referrer;
 
         // no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
-        if (!data.referrerPolicy && this.referrerPolicy) data.referrerPolicy = this.referrerPolicy;
+        if (!data.referrerPolicy && this.options.referrerPolicy) data.referrerPolicy = this.options.referrerPolicy;
 
-        if (!data.signal && this.signal) data.signal = this.signal;
-        if (!data.integrity && this.integrity) data.integrity = this.integrity;
-        if (!data.keepAlive && this.keepAlive) data.keepAlive = this.keepAlive;
+        if (!data.signal && this.options.signal) data.signal = this.options.signal;
+        if (!data.integrity && this.options.integrity) data.integrity = this.options.integrity;
+        if (!data.keepAlive && this.options.keepAlive) data.keepAlive = this.options.keepAlive;
 
         if (data.contentType) {
             data.headers = data.headers || {};
             switch (data.contentType) {
-            case 'js': data.headers['Content-Type'] = this.mime.js; break;
-            case 'xml': data.headers['Content-Type'] = this.mime.xml; break;
-            case 'html': data.headers['Content-Type'] = this.mime.html; break;
-            case 'json': data.headers['Content-Type'] = this.mime.json; break;
-            default: data.headers['Content-Type'] = data.contentType;
+                case 'js': data.headers['Content-Type'] = this.mime.js; break;
+                case 'xml': data.headers['Content-Type'] = this.mime.xml; break;
+                case 'html': data.headers['Content-Type'] = this.mime.html; break;
+                case 'json': data.headers['Content-Type'] = this.mime.json; break;
+                default: data.headers['Content-Type'] = data.contentType;
             }
         }
 
         if (data.acceptType) {
             data.headers = data.headers || {};
             switch (data.acceptType) {
-            case 'js': data.headers['Accept'] = this.mime.js; break;
-            case 'xml': data.headers['Accept'] = this.mime.xml; break;
-            case 'html': data.headers['Accept'] = this.mime.html; break;
-            case 'json': data.headers['Accept'] = this.mime.json; break;
-            default: data.headers['Accept'] = data.acceptType;
+                case 'js': data.headers['Accept'] = this.mime.js; break;
+                case 'xml': data.headers['Accept'] = this.mime.xml; break;
+                case 'html': data.headers['Accept'] = this.mime.html; break;
+                case 'json': data.headers['Accept'] = this.mime.json; break;
+                default: data.headers['Accept'] = data.acceptType;
             }
         }
 
@@ -109,9 +109,9 @@ export default {
         // 	}
         // }
 
-        if (typeof this.request === 'function') {
+        if (typeof this.options.request === 'function') {
             const copy = Object.assign({}, data);
-            const result = await this.request(copy);
+            const result = await this.options.request(copy);
 
             if (result === false) {
                 return data;
@@ -146,9 +146,9 @@ export default {
             ]();
         }
 
-        if (this.response) {
+        if (this.options.response) {
             const copy = Object.assign({}, data);
-            const result = await this.response(copy);
+            const result = await this.options.response(copy);
 
             if (result === false) {
                 return data;
@@ -211,4 +211,4 @@ export default {
         return this.fetch(data);
     }
 
-};
+});
