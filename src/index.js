@@ -1,5 +1,4 @@
 import Component from './component.js';
-// import Listener from './listener.js';
 import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
 import Binder from './binder.js';
