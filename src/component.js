@@ -7,8 +7,6 @@ import Extend from './utility/extend.js';
 
 export default Object.freeze({
 
-    // data: {},
-
     async setup (options) {
         const self = this;
 
