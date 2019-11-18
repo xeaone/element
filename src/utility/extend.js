@@ -9,7 +9,7 @@ if (window.Reflect === undefined) {
     };
 }
 
-export default function (extender, extending) {
+export default function extend (extender, extending) {
 
     const construct = function () {
         const instance = window.Reflect.construct(extending, [], this.constructor);
