@@ -225,7 +225,6 @@ export default Object.freeze({
         };
 
         OElement.prototype.connectedCallback = function () {
-
             if (this.created) {
                 if (options.attached) {
                     options.attached.call(this);

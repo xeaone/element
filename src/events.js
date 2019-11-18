@@ -1,5 +1,4 @@
 
-
 export default Object.freeze({
 
     events: {},
