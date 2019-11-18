@@ -83,14 +83,22 @@ export default Object.freeze({
     },
 
     get (node, name) {
+        if (!(name in node.attributes)) return null;
+
         const value = node.attributes[name].value;
         const binders = this.nodes.get(node);
-        for (let i = 0, l = binders.length; i < l; i++) {
+
+        if (!binders || !binders.length) return null;
+
+        const length = binders.length;
+
+        for (let i = 0; i < length; i++) {
             const binder = binders[i];
             if (binder.name === name && binder.value === value) {
                 return binder;
             }
         }
+
         return null;
     },
 
@@ -177,8 +185,8 @@ export default Object.freeze({
                 const path = paths[i];
                 const parts = path.split('.');
                 const part = parts.slice(1).join('.');
-                let c = context;
 
+                let c = context;
                 while (c) {
 
                     if (node.nodeType === Node.TEXT_NODE) {
@@ -186,17 +194,30 @@ export default Object.freeze({
                         if (value === c.indexVariable) return Batcher.batch({ write() { node.textContent = c.index; } });
                     }
 
-                    if (c.variable === parts[0]) { paths[i] = `${c.path}.${c.key}.${part}`; break; }
-                    if (c.indexVariable === path) { paths[i] = c.index; break; }
-                    if (c.keyVariable === path) { paths[i] = c.key; break; }
+                    if (c.variable === parts[0]) {
+                        paths[i] = `${c.path}.${c.key}${part ? `.${part}` : ''}`;
+                        break;
+                    }
+
+                    if (c.indexVariable === path) {
+                        paths[i] = c.index;
+                        break;
+                    }
+
+                    if (c.keyVariable === path) {
+                        paths[i] = c.key;
+                        break;
+                    }
 
                     const keyPattern = new RegExp(`\\[${c.keyVariable}\\]`, 'g');
                     const indexPattern = new RegExp(`\\[${c.indexVariable}\\]`, 'g');
+
                     paths[i] = path.replace(keyPattern, `.${c.key}`);
                     paths[i] = path.replace(indexPattern, `.${c.index}`);
 
                     c = c.parent;
                 }
+
             }
         }
 

@@ -73,13 +73,13 @@ export default {
 		<hr>
 		<div o-text="result.cars"></div>
 		<select o-value="result.cars" o-each-car="cars" multiple>
-			<option o-value="$car" o-text="$car"></option>
+			<option o-value="car" o-text="car"></option>
 		</select>
 
 		<hr>
 		<div>{{result.name}}</div>
 		<o-select o-value="result.name" o-each-name="names">
-			<o-option o-value="$name">{{$name}}</o-option>
+			<o-option o-value="name">{{name}}</o-option>
 		</o-select>
 
 		<br>
@@ -87,12 +87,12 @@ export default {
 		<div o-text="result.friends"></div>
 		<br>
 		<o-select o-value="result.friends" o-each-group="groups" multiple>
-			<o-optgroup o-label="$group" o-each-friend="friends">
-				<o-option o-value="$friend">
-					<div>{{$friend.$key}}</div>
-					<div>{{$friend.$index}}</div>
-					<div>{{$friend.name}}</div>
-					<div o-text="$friend.name"></div>
+			<o-optgroup o-label="group" o-each-friend="friends" o-key="key" o-index="index">
+				<o-option o-value="friend">
+					<div>{{key}}</div>
+					<div>{{index}}</div>
+					<div>{{friend.name}}</div>
+					<div o-text="friend.name"></div>
 				</o-option>
 			</o-optgroup>
 		</o-select>
@@ -101,11 +101,11 @@ export default {
 		<hr>
 		<div o-text="result.plants"></div>
 		<br>
-		<o-select o-value="result.plants" o-each-plant="plants" multiple>
-			<o-optgroup o-label="$plant.$key" o-each-p="$plant">
-				<o-option o-value="$p">
-					<div>{{$p.name}}</div>
-					<div o-text="$p.name"></div>
+		<o-select o-value="result.plants" o-each-plant="plants" o-key="key" o-index="index" multiple>
+			<o-optgroup o-label="key" o-each-p="plant">
+				<o-option o-value="p">
+					<div>{{p.name}}</div>
+					<div o-text="p.name"></div>
 				</o-option>
 			</o-optgroup>
 		</o-select>

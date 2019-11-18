@@ -47,7 +47,7 @@ export default function (binder, caller) {
 
                     const option = this.options[i];
                     const selected = option.selected;
-                    const optionBinder = self.get('attribute', option, 'o-value');
+                    const optionBinder = self.get(option, 'o-value');
                     const optionValue = optionBinder ? optionBinder.data : option.value;
                     const selectedAtrribute = option.hasAttribute('selected');
 

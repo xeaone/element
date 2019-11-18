@@ -1,9 +1,13 @@
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 (function (global, factory) {
   (typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object' && typeof module !== 'undefined' ? module.exports = factory() : typeof define === 'function' && define.amd ? define(factory) : (global = global || self, global.Oxe = factory());
 })(this, function () {
   'use strict';
+
+  var _Object$freeze;
 
   function traverse(data, path, end) {
     var keys = typeof path === 'string' ? path.split('.') : path;
@@ -27,263 +31,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
   }
 
-  var Utility = {
-    PIPE: /\s?\|\s?/,
-    PIPES: /\s?,\s?|\s+/,
-    value: function value(element, model) {
-      if (!model) throw new Error('Utility.value - requires model argument');
-      if (!element) throw new Error('Utility.value - requires element argument');
-      var type = this.type(element);
-
-      if (type === 'radio' || type === 'checkbox') {
-        var name = this.name(element);
-        var query = 'input[type="' + type + '"][name="' + name + '"]';
-        var form = this.form(element);
-        var elements = form ? this.form(element).querySelectorAll(query) : [element];
-        var multiple = elements.length > 1;
-        var result = multiple ? [] : undefined;
-
-        for (var i = 0, l = elements.length; i < l; i++) {
-          var child = elements[i];
-          var checked = this.checked(child);
-          if (!checked) continue;
-          var value = this.value(child, model);
-
-          if (multiple) {
-            result.push(value);
-          } else {
-            result = value;
-            break;
-          }
-        }
-
-        return result;
-      } else if (type === 'select-one' || type === 'select-multiple') {
-        var _multiple = this.multiple(element);
-
-        var options = element.options;
-
-        var _result = _multiple ? [] : undefined;
-
-        for (var _i = 0, _l = options.length; _i < _l; _i++) {
-          var option = options[_i];
-          var selected = option.selected;
-
-          var _value = this.value(option, model);
-
-          var match = this[_multiple ? 'includes' : 'compare'](this.data, _value);
-
-          if (selected && !match) {
-            if (this.multiple) {
-              _result.push(_value);
-            } else {
-              _result = _value;
-            }
-          } else if (!selected && match) {
-            option.selected = true;
-          }
-        }
-
-        return _result;
-      } else {
-        var attribute = element.attributes['o-value'];
-
-        if (attribute) {
-          var values = this.binderValues(attribute.value);
-
-          var _value2 = this.getByPath(model, values);
-
-          return _value2 || element.value;
-        } else {
-          return element.value;
-        }
-      }
-    },
-    form: function form(element) {
-      if (element.form) {
-        return element.form;
-      } else {
-        while (element = element.parentElement) {
-          if (element.nodeName === 'FORM' || element.nodeName.indexOf('-FORM') !== -1) {
-            return element;
-          }
-        }
-      }
-    },
-    type: function type(element) {
-      if (typeof element.type === 'string') {
-        return element.type;
-      } else {
-        return element.getAttribute('type');
-      }
-    },
-    name: function name(element) {
-      if (typeof element.name === 'string') {
-        return element.name;
-      } else {
-        return element.getAttribute('name');
-      }
-    },
-    checked: function checked(element) {
-      if (typeof element.checked === 'boolean') {
-        return element.checked;
-      } else {
-        switch (element.getAttribute('checked')) {
-          case undefined:
-            return false;
-
-          case 'true':
-            return true;
-
-          case null:
-            return false;
-
-          case '':
-            return true;
-
-          default:
-            return false;
-        }
-      }
-    },
-    multiple: function multiple(element) {
-      if (typeof element.multiple === 'boolean') {
-        return element.multiple;
-      } else {
-        switch (element.getAttribute('multiple')) {
-          case undefined:
-            return false;
-
-          case 'true':
-            return true;
-
-          case null:
-            return false;
-
-          case '':
-            return true;
-
-          default:
-            return false;
-        }
-      }
-    },
-    disabled: function disabled(element) {
-      if (typeof element.disabled === 'boolean') {
-        return element.disabled;
-      } else {
-        switch (element.getAttribute('disabled')) {
-          case undefined:
-            return false;
-
-          case 'true':
-            return true;
-
-          case null:
-            return false;
-
-          case '':
-            return true;
-
-          default:
-            return false;
-        }
-      }
-    },
-    index: function index(items, item) {
-      for (var i = 0, l = items.length; i < l; i++) {
-        if (this.match(items[i], item)) {
-          return i;
-        }
-      }
-
-      return -1;
-    },
-    includes: function includes(items, item) {
-      for (var i = 0, l = items.length; i < l; i++) {
-        if (this.match(items[i], item)) {
-          return true;
-        }
-      }
-
-      return false;
-    },
-    match: function match(source, target) {
-      if (source === target) {
-        return true;
-      }
-
-      if (source === null || source === undefined) {
-        return false;
-      }
-
-      if (target === null || target === undefined) {
-        return false;
-      }
-
-      if (_typeof(source) !== _typeof(target)) {
-        return false;
-      }
-
-      if (source.constructor !== target.constructor) {
-        return false;
-      }
-
-      if (_typeof(source) !== 'object' || _typeof(target) !== 'object') {
-        return source === target;
-      }
-
-      var sourceKeys = Object.keys(source);
-      var targetKeys = Object.keys(target);
-
-      if (sourceKeys.length !== targetKeys.length) {
-        return false;
-      }
-
-      for (var i = 0, l = sourceKeys.length; i < l; i++) {
-        var name = sourceKeys[i];
-
-        if (!this.match(source[name], target[name])) {
-          return false;
-        }
-      }
-
-      return true;
-    },
-    binderNames: function binderNames(data) {
-      data = data.split('o-')[1];
-      return data ? data.split('-') : [];
-    },
-    binderValues: function binderValues(data) {
-      data = data.split(this.PIPE)[0];
-      return data ? data.split('.') : [];
-    },
-    binderPipes: function binderPipes(data) {
-      data = data.split(this.PIPE)[1];
-      return data ? data.split(this.PIPES) : [];
-    },
-    clone: function clone(source) {
-      if (source === null || source === undefined || source.constructor !== Array && source.constructor !== Object) {
-        return source;
-      }
-
-      var target = source.constructor();
-
-      for (var name in source) {
-        var descriptor = Object.getOwnPropertyDescriptor(source, name);
-
-        if (descriptor) {
-          if ('value' in descriptor) {
-            descriptor.value = this.clone(descriptor.value);
-          }
-
-          Object.defineProperty(target, name, descriptor);
-        }
-      }
-
-      return target;
-    }
-  };
   var Batcher = Object.freeze({
     reads: [],
     writes: [],
@@ -514,42 +261,35 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             while (count--) {
               var node = binder.target.lastChild;
               binder.target.removeChild(node);
-              Promise.resolve().then(function (n) {
-                return self.remove(n);
-              }.bind(null, node)).catch(console.error);
+              Promise.resolve().then(self.remove.bind(self, node)).catch(console.error);
             }
 
             binder.meta.currentLength--;
           }
         } else if (binder.meta.currentLength < binder.meta.targetLength) {
-          var _loop = function _loop() {
+          while (binder.meta.currentLength < binder.meta.targetLength) {
             var clone = binder.meta.template.cloneNode(true);
-            var index = binder.meta.currentLength;
-            var node = void 0;
+            var _index2 = binder.meta.currentLength;
 
-            while (node = clone.firstChild) {
-              Promise.resolve().then(function (n) {
-                self.add(n, {
-                  index: index,
-                  path: binder.path,
-                  parent: binder.context,
-                  variable: binder.names[1],
-                  container: binder.container,
-                  key: binder.meta.keys[index],
-                  scope: binder.container.scope,
-                  keyVariable: binder.meta.keyVariable,
-                  indexVariable: binder.meta.indexVariable,
-                  templateLength: binder.meta.templateLength
-                });
-              }.bind(null, node)).catch(console.error);
-              binder.meta.fragment.appendChild(node);
+            var _node = void 0;
+
+            while (_node = clone.firstChild) {
+              Promise.resolve().then(self.add.bind(self, _node, {
+                index: _index2,
+                path: binder.path,
+                parent: binder.context,
+                variable: binder.names[1],
+                container: binder.container,
+                key: binder.meta.keys[_index2],
+                scope: binder.container.scope,
+                keyVariable: binder.meta.keyVariable,
+                indexVariable: binder.meta.indexVariable,
+                templateLength: binder.meta.templateLength
+              })).catch(console.error);
+              binder.meta.fragment.appendChild(_node);
             }
 
             binder.meta.currentLength++;
-          };
-
-          while (binder.meta.currentLength < binder.meta.targetLength) {
-            _loop();
           }
 
           binder.target.appendChild(binder.meta.fragment);
@@ -858,16 +598,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   var submit = function submit(binder, event) {
     return new Promise(function ($return, $error) {
-      var data, elements, i, l, element, type, b, value, name, method;
+      var data, elements, i, l, element, b, value, name, method;
       event.preventDefault();
       data = {};
       elements = event.target.querySelectorAll('*');
 
       for (i = 0, l = elements.length; i < l; i++) {
         element = elements[i];
-        type = element.type;
 
-        if (!type && name !== 'TEXTAREA' || type === 'submit' || type === 'button' || !type) {
+        if (!element.type && element.nodeName !== 'TEXTAREA' || element.type === 'submit' || element.type === 'button' || !element.type) {
           continue;
         }
 
@@ -948,6 +687,92 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
+  function Match(source, target) {
+    if (source === target) {
+      return true;
+    }
+
+    if (source === null || source === undefined) {
+      return false;
+    }
+
+    if (target === null || target === undefined) {
+      return false;
+    }
+
+    if (_typeof(source) !== _typeof(target)) {
+      return false;
+    }
+
+    if (source.constructor !== target.constructor) {
+      return false;
+    }
+
+    if (_typeof(source) !== 'object' || _typeof(target) !== 'object') {
+      return source === target;
+    }
+
+    var sourceKeys = Object.keys(source);
+    var targetKeys = Object.keys(target);
+
+    if (sourceKeys.length !== targetKeys.length) {
+      return false;
+    }
+
+    for (var i = 0; i < sourceKeys.length; i++) {
+      var name = sourceKeys[i];
+
+      if (!Match(source[name], target[name])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  function Index(items, item) {
+    for (var i = 0; i < items.length; i++) {
+      if (Match(items[i], item)) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  function Includes(items, item) {
+    for (var i = 0; i < items.length; i++) {
+      if (Match(items[i], item)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function multiple(element) {
+    if (typeof element.multiple === 'boolean') {
+      return element.multiple;
+    } else {
+      switch (element.getAttribute('multiple')) {
+        case undefined:
+          return false;
+
+        case 'true':
+          return true;
+
+        case null:
+          return false;
+
+        case '':
+          return true;
+
+        default:
+          return false;
+      }
+    }
+  }
+
   function Value(binder, caller) {
     var self = this;
     var type = binder.target.type;
@@ -967,7 +792,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           this.data = binder.data;
           this.model = binder.model;
           this.options = binder.target.options;
-          this.multiple = Utility.multiple(binder.target);
+          this.multiple = multiple(binder.target);
 
           if (this.multiple && (!this.data || this.data.constructor !== Array)) {
             binder.meta.busy = false;
@@ -983,7 +808,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           for (var i = 0, l = this.options.length; i < l; i++) {
             var option = this.options[i];
             var selected = option.selected;
-            var optionBinder = self.get('attribute', option, 'o-value');
+            var optionBinder = self.get(option, 'o-value');
             var optionValue = optionBinder ? optionBinder.data : option.value;
             var selectedAtrribute = option.hasAttribute('selected');
 
@@ -1005,7 +830,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             if (caller === 'view') {
               if (selected) {
                 if (this.multiple) {
-                  var includes = Utility.includes(this.data, optionValue);
+                  var includes = Includes(this.data, optionValue);
 
                   if (!includes) {
                     this.selected = true;
@@ -1017,10 +842,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 }
               } else {
                 if (this.multiple) {
-                  var _index2 = Utility.index(this.data, optionValue);
+                  var _index3 = Index(this.data, optionValue);
 
-                  if (_index2 !== -1) {
-                    binder.data.splice(_index2, 1);
+                  if (_index3 !== -1) {
+                    binder.data.splice(_index3, 1);
                   }
                 } else if (!this.selected && i === l - 1) {
                   binder.data = null;
@@ -1028,7 +853,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               }
             } else {
               if (this.multiple) {
-                var _includes = Utility.includes(this.data, optionValue);
+                var _includes = Includes(this.data, optionValue);
 
                 if (_includes) {
                   this.selected = true;
@@ -1038,7 +863,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 }
               } else {
                 if (!this.selected) {
-                  var match = Utility.match(this.data, optionValue);
+                  var match = Match(this.data, optionValue);
 
                   if (match) {
                     this.selected = true;
@@ -1055,9 +880,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
           if (!this.selected && fallback) {
             if (this.multiple) {
-              for (var _i2 = 0, _l2 = fallbackOption.length; _i2 < _l2; _i2++) {
-                fallbackOption[_i2].selected = true;
-                binder.data.push(fallbackValue[_i2]);
+              for (var _i = 0, _l = fallbackOption.length; _i < _l; _i++) {
+                fallbackOption[_i].selected = true;
+                binder.data.push(fallbackValue[_i]);
               }
             } else if (fallbackSelectedAtrribute || this.nodeName === 'OPTION') {
               binder.data = fallbackValue;
@@ -1123,7 +948,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     } else if (type === 'file') {
       return {
         read: function read() {
-          this.multiple = Utility.multiple(binder.target);
+          this.multiple = multiple(binder.target);
           binder.data = this.multiple ? Array.prototype.slice.call(binder.target.files) : binder.target.files[0];
           binder.meta.busy = false;
         }
@@ -1221,10 +1046,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }.bind(this));
     },
     get: function get(node, name) {
+      if (!(name in node.attributes)) return null;
       var value = node.attributes[name].value;
       var binders = this.nodes.get(node);
+      if (!binders || !binders.length) return null;
+      var length = binders.length;
 
-      for (var i = 0, l = binders.length; i < l; i++) {
+      for (var i = 0; i < length; i++) {
         var binder = binders[i];
 
         if (binder.name === name && binder.value === value) {
@@ -1282,9 +1110,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           var model = traverse(container.model, parts, 1);
 
           if (name === 'o-value') {
-            return model[property] = Piper(this, value);
+            model[property] = Piper(this, value);
           } else {
-            return model[property] = value;
+            model[property] = value;
           }
         }
 
@@ -1304,11 +1132,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           nodeBinders.splice(i, i + 1);
           var locationBinders = this.data.get(nodeBinder.location);
 
-          for (var _i3 = 0; _i3 < locationBinders.length; _i3++) {
-            var locationBinder = locationBinders[_i3];
+          for (var _i2 = 0; _i2 < locationBinders.length; _i2++) {
+            var locationBinder = locationBinders[_i2];
 
             if (locationBinder === nodeBinder) {
-              locationBinders.splice(_i3, _i3 + 1);
+              locationBinders.splice(_i2, _i2 + 1);
             }
           }
         }
@@ -1324,7 +1152,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       var pipes = pipe[1] ? pipe[1].split(PIPES) : [];
 
       if (context && 'variable' in context) {
-        var _loop2 = function _loop2(i, l) {
+        var _loop = function _loop(i, l) {
           var path = paths[i];
           var parts = path.split('.');
           var part = parts.slice(1).join('.');
@@ -1349,7 +1177,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             }
 
             if (c.variable === parts[0]) {
-              paths[i] = "".concat(c.path, ".").concat(c.key, ".").concat(part);
+              paths[i] = "".concat(c.path, ".").concat(c.key).concat(part ? ".".concat(part) : '');
               break;
             }
 
@@ -1372,7 +1200,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         };
 
         for (var i = 0, l = paths.length; i < l; i++) {
-          var _ret = _loop2(i, l);
+          var _ret = _loop(i, l);
 
           if (_typeof(_ret) === "object") return _ret.v;
         }
@@ -1636,14 +1464,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return code;
     }
   };
-  var Loader = {
+  var Loader = Object.freeze({
     data: {},
-    type: 'esm',
+    options: {},
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         var self = this;
         options = options || {};
-        this.type = options.type || this.type;
+        this.options.type = options.type || 'esm';
 
         if (options.loads) {
           return $return(Promise.all(options.loads.map(function (load) {
@@ -1730,7 +1558,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           type = $args[0]['type'];
         } else {
           url = $args[0];
-          type = $args[1] || this.type;
+          type = $args[1] || this.options.type;
         }
 
         if (!url) {
@@ -1746,20 +1574,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return $return(this.data[url]);
       }.bind(this));
     }
-  };
+  });
   var STYLE = document.createElement('style');
   var SHEET = STYLE.sheet;
   STYLE.setAttribute('title', 'oxe');
   STYLE.setAttribute('type', 'text/css');
-  var Style$1 = {
-    get style() {
-      return STYLE;
-    },
-
-    get sheet() {
-      return SHEET;
-    },
-
+  var Style$1 = Object.freeze({
+    style: STYLE,
+    sheet: SHEET,
     add: function add(data) {
       this.sheet.insertRule(data);
     },
@@ -1778,7 +1600,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         return $return();
       }.bind(this));
     }
-  };
+  });
   var Observer = {
     get: function get(tasks, handler, path, target, property) {
       if (target instanceof Array && property === 'push') {
@@ -1865,7 +1687,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     };
   }
 
-  function Extend(extender, extending) {
+  function extend(extender, extending) {
     var construct = function construct() {
       var instance = window.Reflect.construct(extending, [], this.constructor);
       extender.call(instance);
@@ -2110,12 +1932,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       };
 
-      window.customElements.define(options.name, Extend(OElement, HTMLElement));
+      window.customElements.define(options.name, extend(OElement, HTMLElement));
     }
   });
-  var Fetcher = {
-    headers: null,
-    method: 'get',
+  var Fetcher = Object.freeze((_Object$freeze = {
+    options: {},
     mime: {
       xml: 'text/xml; charset=utf-8',
       html: 'text/html; charset=utf-8',
@@ -2126,16 +1947,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
-        this.path = options.path;
-        this.origin = options.origin;
-        this.request = options.request;
-        this.response = options.response;
-        this.acceptType = options.acceptType;
-        this.credentials = options.credentials;
-        this.contentType = options.contentType;
-        this.responseType = options.responseType;
-        this.method = options.method || this.method;
-        this.headers = options.headers || this.headers;
+        this.options.path = options.path;
+        this.options.origin = options.origin;
+        this.options.request = options.request;
+        this.options.response = options.response;
+        this.options.acceptType = options.acceptType;
+        this.options.headers = options.headers || {};
+        this.options.method = options.method || 'get';
+        this.options.credentials = options.credentials;
+        this.options.contentType = options.contentType;
+        this.options.responseType = options.responseType;
         return $return();
       }.bind(this));
     },
@@ -2153,30 +1974,30 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     fetch: function fetch(options) {
       return new Promise(function ($return, $error) {
-        var data, copy, result, fetched, _copy, _result2;
+        var data, copy, result, fetched, _copy, _result;
 
         data = Object.assign({}, options);
-        data.path = data.path || this.path;
-        data.origin = data.origin || this.origin;
+        data.path = data.path || this.options.path;
+        data.origin = data.origin || this.options.origin;
         if (data.path && typeof data.path === 'string' && data.path.charAt(0) === '/') data.path = data.path.slice(1);
         if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length - 1) === '/') data.origin = data.origin.slice(0, -1);
         if (data.path && data.origin && !data.url) data.url = data.origin + '/' + data.path;
         if (!data.method) return $error(new Error('Oxe.fetcher - requires method option'));
         if (!data.url) return $error(new Error('Oxe.fetcher - requires url or origin and path option'));
-        if (!data.headers && this.headers) data.headers = this.headers;
-        if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.method;
-        if (!data.acceptType && this.acceptType) data.acceptType = this.acceptType;
-        if (!data.contentType && this.contentType) data.contentType = this.contentType;
-        if (!data.responseType && this.responseType) data.responseType = this.responseType;
-        if (!data.credentials && this.credentials) data.credentials = this.credentials;
-        if (!data.mode && this.mode) data.mode = this.mode;
-        if (!data.cache && this.cache) data.cahce = this.cache;
-        if (!data.redirect && this.redirect) data.redirect = this.redirect;
-        if (!data.referrer && this.referrer) data.referrer = this.referrer;
-        if (!data.referrerPolicy && this.referrerPolicy) data.referrerPolicy = this.referrerPolicy;
-        if (!data.signal && this.signal) data.signal = this.signal;
-        if (!data.integrity && this.integrity) data.integrity = this.integrity;
-        if (!data.keepAlive && this.keepAlive) data.keepAlive = this.keepAlive;
+        if (!data.headers && this.options.headers) data.headers = this.options.headers;
+        if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.options.method;
+        if (!data.acceptType && this.options.acceptType) data.acceptType = this.options.acceptType;
+        if (!data.contentType && this.options.contentType) data.contentType = this.options.contentType;
+        if (!data.responseType && this.options.responseType) data.responseType = this.options.responseType;
+        if (!data.credentials && this.options.credentials) data.credentials = this.options.credentials;
+        if (!data.mode && this.options.mode) data.mode = this.options.mode;
+        if (!data.cache && this.options.cache) data.cahce = this.options.cache;
+        if (!data.redirect && this.options.redirect) data.redirect = this.options.redirect;
+        if (!data.referrer && this.options.referrer) data.referrer = this.options.referrer;
+        if (!data.referrerPolicy && this.options.referrerPolicy) data.referrerPolicy = this.options.referrerPolicy;
+        if (!data.signal && this.options.signal) data.signal = this.options.signal;
+        if (!data.integrity && this.options.integrity) data.integrity = this.options.integrity;
+        if (!data.keepAlive && this.options.keepAlive) data.keepAlive = this.options.keepAlive;
 
         if (data.contentType) {
           data.headers = data.headers || {};
@@ -2228,9 +2049,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
         }
 
-        if (typeof this.request === 'function') {
+        if (typeof this.options.request === 'function') {
           copy = Object.assign({}, data);
-          return Promise.resolve(this.request(copy)).then(function ($await_35) {
+          return Promise.resolve(this.options.request(copy)).then(function ($await_35) {
             try {
               result = $await_35;
 
@@ -2295,18 +2116,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 }
 
                 function $If_6() {
-                  if (this.response) {
+                  if (this.options.response) {
                     _copy = Object.assign({}, data);
-                    return Promise.resolve(this.response(_copy)).then(function ($await_39) {
+                    return Promise.resolve(this.options.response(_copy)).then(function ($await_39) {
                       try {
-                        _result2 = $await_39;
+                        _result = $await_39;
 
-                        if (_result2 === false) {
+                        if (_result === false) {
                           return $return(data);
                         }
 
-                        if (_typeof(_result2) === 'object') {
-                          Object.assign(data, _result2);
+                        if (_typeof(_result) === 'object') {
+                          Object.assign(data, _result);
                         }
 
                         return $If_7.call(this);
@@ -2387,26 +2208,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         data.method = 'delete';
         return $return(this.fetch(data));
       }.bind(this));
-    },
-    options: function options(data) {
-      return new Promise(function ($return, $error) {
-        data = typeof data === 'string' ? {
-          url: data
-        } : data;
-        data.method = 'options';
-        return $return(this.fetch(data));
-      }.bind(this));
-    },
-    connect: function connect(data) {
-      return new Promise(function ($return, $error) {
-        data = typeof data === 'string' ? {
-          url: data
-        } : data;
-        data.method = 'connect';
-        return $return(this.fetch(data));
-      }.bind(this));
     }
-  };
+  }, _defineProperty(_Object$freeze, "options", function options(data) {
+    return new Promise(function ($return, $error) {
+      data = typeof data === 'string' ? {
+        url: data
+      } : data;
+      data.method = 'options';
+      return $return(this.fetch(data));
+    }.bind(this));
+  }), _defineProperty(_Object$freeze, "connect", function connect(data) {
+    return new Promise(function ($return, $error) {
+      data = typeof data === 'string' ? {
+        url: data
+      } : data;
+      data.method = 'connect';
+      return $return(this.fetch(data));
+    }.bind(this));
+  }), _Object$freeze));
   var Events = Object.freeze({
     events: {},
     on: function on(name, method) {
@@ -2418,10 +2237,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     off: function off(name, method) {
       if (name in this.events) {
-        var _index3 = this.events[name].indexOf(method);
+        var _index4 = this.events[name].indexOf(method);
 
-        if (_index3 !== -1) {
-          this.events[name].splice(_index3, 1);
+        if (_index4 !== -1) {
+          this.events[name].splice(_index4, 1);
         }
       }
     },
@@ -2489,7 +2308,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           window.document.addEventListener('click', this.click.bind(this), true);
         }
 
-        window.customElements.define('o-router', Extend(function () {}, HTMLElement));
+        window.customElements.define('o-router', extend(function () {}, HTMLElement));
         return Promise.resolve(this.add(option.routes)).then(function ($await_40) {
           try {
             return Promise.resolve(this.route(window.location.href, {

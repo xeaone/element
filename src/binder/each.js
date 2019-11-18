@@ -57,9 +57,7 @@ export default function (binder) {
                     while (count--) {
                         const node = binder.target.lastChild;
                         binder.target.removeChild(node);
-                        Promise.resolve().then(function (n) {
-                            return self.remove(n);
-                        }.bind(null, node)).catch(console.error);
+                        Promise.resolve().then(self.remove.bind(self, node)).catch(console.error);
                     }
 
                     binder.meta.currentLength--;
@@ -74,20 +72,18 @@ export default function (binder) {
                     let node;
                     while (node = clone.firstChild) {
 
-                        Promise.resolve().then(function (n) {
-                            self.add(n, {
-                                index: index,
-                                path: binder.path,
-                                parent: binder.context,
-                                variable: binder.names[1],
-                                container: binder.container,
-                                key: binder.meta.keys[index],
-                                scope: binder.container.scope,
-                                keyVariable: binder.meta.keyVariable,
-                                indexVariable: binder.meta.indexVariable,
-                                templateLength: binder.meta.templateLength,
-                            });
-                        }.bind(null, node)).catch(console.error);
+                        Promise.resolve().then(self.add.bind(self, node, {
+                            index: index,
+                            path: binder.path,
+                            parent: binder.context,
+                            variable: binder.names[1],
+                            container: binder.container,
+                            key: binder.meta.keys[index],
+                            scope: binder.container.scope,
+                            keyVariable: binder.meta.keyVariable,
+                            indexVariable: binder.meta.indexVariable,
+                            templateLength: binder.meta.templateLength,
+                        })).catch(console.error);
 
                         binder.meta.fragment.appendChild(node);
                     }
