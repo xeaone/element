@@ -1,5 +1,5 @@
 
-export default function (binder, data) {
+export default function Piper (binder, data) {
 
     if (binder.type === 'on') {
         return data;
