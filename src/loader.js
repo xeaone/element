@@ -10,17 +10,17 @@ import Path from './path.js';
 //     IMPORT = false;
 // }
 
-export default {
+export default Object.freeze({
 
     data: {},
-    type: 'esm',
+    options: {},
     // type: IMPORT ? '' : 'esm',
 
     async setup (options) {
         const self = this;
 
         options = options || {};
-        this.type = options.type || this.type;
+        this.options.type = options.type || 'esm';
 
         if (options.loads) {
             return Promise.all(options.loads.map(function (load) {
@@ -69,7 +69,7 @@ export default {
             type = arguments[0]['type'];
         } else {
             url = arguments[0];
-            type = arguments[1] || this.type;
+            type = arguments[1] || this.options.type;
         }
 
         if (!url) {
@@ -89,4 +89,4 @@ export default {
         return this.data[url];
     }
 
-};
+})
