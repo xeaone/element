@@ -54,7 +54,7 @@ export default function (binder) {
                     // might need count after Binder.add
                     let count = binder.meta.templateLength;
 
-                    while(count--) {
+                    while (count--) {
                         const node = binder.target.lastChild;
                         binder.target.removeChild(node);
                         Promise.resolve().then(function (n) {
