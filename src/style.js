@@ -5,10 +5,13 @@ const SHEET = STYLE.sheet;
 STYLE.setAttribute('title', 'oxe');
 STYLE.setAttribute('type', 'text/css');
 
-export default {
+export default Object.freeze({
 
-    get style () { return STYLE; },
-    get sheet () { return SHEET; },
+    style: STYLE,
+    sheet: SHEET,
+
+    // get style () { return STYLE; },
+    // get sheet () { return SHEET; },
 
     add (data) {
         this.sheet.insertRule(data);
@@ -28,4 +31,4 @@ export default {
         document.head.appendChild(this.style);
     }
 
-};
+})
