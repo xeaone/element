@@ -263,5 +263,4 @@ export default {
         return target;
     }
 
-
-};
+}
