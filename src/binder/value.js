@@ -1,4 +1,7 @@
-import Utility from '../utility.js';
+import Index from '../utility/index.js';
+import Match from '../utility/match.js';
+import Includes from '../utility/includes.js';
+import Multiple from '../utility/multiple.js';
 
 export default function (binder, caller) {
     const self = this;
@@ -26,7 +29,7 @@ export default function (binder, caller) {
                 this.data = binder.data;
                 this.model = binder.model;
                 this.options = binder.target.options;
-                this.multiple = Utility.multiple(binder.target);
+                this.multiple = Multiple(binder.target);
 
                 if (this.multiple && (!this.data || this.data.constructor !== Array)) {
                     binder.meta.busy = false;
@@ -66,7 +69,7 @@ export default function (binder, caller) {
                     if (caller === 'view') {
                         if (selected) {
                             if (this.multiple) {
-                                const includes = Utility.includes(this.data, optionValue);
+                                const includes = Includes(this.data, optionValue);
                                 if (!includes) {
                                     this.selected = true;
                                     binder.data.push(optionValue);
@@ -77,7 +80,7 @@ export default function (binder, caller) {
                             }
                         } else {
                             if (this.multiple) {
-                                const index = Utility.index(this.data, optionValue);
+                                const index = Index(this.data, optionValue);
                                 if (index !== -1) {
                                     binder.data.splice(index, 1);
                                 }
@@ -87,7 +90,7 @@ export default function (binder, caller) {
                         }
                     } else {
                         if (this.multiple) {
-                            const includes = Utility.includes(this.data, optionValue);
+                            const includes = Includes(this.data, optionValue);
                             if (includes) {
                                 this.selected = true;
                                 option.selected = true;
@@ -96,7 +99,7 @@ export default function (binder, caller) {
                             }
                         } else {
                             if (!this.selected) {
-                                const match = Utility.match(this.data, optionValue);
+                                const match = Match(this.data, optionValue);
                                 if (match) {
                                     this.selected = true;
                                     option.selected = true;
@@ -187,7 +190,7 @@ export default function (binder, caller) {
     } else if (type === 'file') {
         return {
             read() {
-                this.multiple = Utility.multiple(binder.target);
+                this.multiple = Multiple(binder.target);
                 binder.data = this.multiple ? Array.prototype.slice.call(binder.target.files) : binder.target.files[0];
                 binder.meta.busy = false;
             }
