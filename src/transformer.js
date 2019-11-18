@@ -1,10 +1,12 @@
 import Path from './path.js';
 
 export default {
+
     /*
-		templates
-	*/
-    innerHandler: function (character, index, string) {
+        templates
+    */
+
+    innerHandler (character, index, string) {
         if (string[index-1] === '\\') return;
         if (character === '\'') return '\\\'';
         if (character === '\"') return '\\"';
@@ -14,13 +16,16 @@ export default {
         if (character === '\w') return '\\w';
         if (character === '\b') return '\\b';
     },
-    updateString: function (value, index, string) {
+
+    updateString (value, index, string) {
         return string.slice(0, index) + value + string.slice(index+1);
     },
-    updateIndex: function (value, index) {
+
+    updateIndex (value, index) {
         return index + value.length-1;
     },
-    template: function (data) {
+
+    template (data) {
 
         var first = data.indexOf('`');
         var second = data.indexOf('`', first+1);
@@ -72,14 +77,16 @@ export default {
         }
 
     },
+
     /*
-		modules
-	*/
+        modules
+    */
+
     exp: /export\s+default\s*(var|let|const)?/,
     imps: /import(?:\s+(?:\*\s+as\s+)?\w+\s+from)?\s+(?:'|").*?(?:'|");?\n?/g,
     imp: /import(?:\s+(?:\*\s+as\s+)?(\w+)\s+from)?\s+(?:'|")(.*?)(?:'|");?\n?/,
-    module: function (code, url) {
 
+    module (code, url) {
         var before = 'return Promise.all([\n';
         var after = ']).then(function ($MODULES) {\n';
         var parentImport = url.slice(0, url.lastIndexOf('/') + 1);
@@ -117,4 +124,4 @@ export default {
         return code;
     }
 
-};
+}
