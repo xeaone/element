@@ -136,14 +136,36 @@ export default Object.freeze({
         const fetched = await window.fetch(data.url, Object.assign({}, data));
 
         data.code = fetched.status;
+        data.headers = fetched.headers;
         data.message = fetched.statusText;
 
         if (!data.responseType) {
             data.body = fetched.body;
         } else {
-            data.body = await fetched[
-                data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType
-            ]();
+            const responseType = data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType || '';
+            const contentType = fetched.headers.get('content-type') || fetched.headers.get('Content-Type') || '';
+            let type = responseType;
+
+            if (responseType === 'json') {
+                if (contentType.indexOf('json') !== -1) {
+                    type = 'json';
+                } else {
+                    type = 'text';
+                }
+            }
+
+            if ([
+                'json',
+                'text',
+                'blob',
+                'formData',
+                'arrayBuffer',
+                ].indexOf(type) === -1
+            ) {
+                throw new Error('Oxe.fetch - invalid responseType value');
+            }
+
+            data.body = await fetched[type]();
         }
 
         if (this.options.response) {
