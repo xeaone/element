@@ -1,6 +1,6 @@
 /*
     	Name: oxe
-    	Version: 5.2.8
+    	Version: 5.2.9
     	License: MPL-2.0
     	Author: Alexander Elias
     	Email: alex.steven.elis@gmail.com
@@ -1516,7 +1516,17 @@
                   data.body = fetched.body;
                   return $If_3.call(this);
                 } else {
-                  return Promise.resolve(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType]()).then(function ($await_32) {
+                  var rt = data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType || '';
+                  var ct = fetched.headers.get('content-type') || fetched.headers.get('Content-Type') || '';
+                  var type = rt;
+                    if (rt === 'json') {
+                        if (ct.indexOf('json') !== -1) {
+                            type = 'json';
+                        } else {
+                            type = 'text';
+                        }
+                    }
+                  return Promise.resolve(fetched[type]()).then(function ($await_32) {
                     try {
                       data.body = $await_32;
                       return $If_3.call(this);
