@@ -110,23 +110,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   });
 
   function Piper(binder, data) {
-    if (binder.type === 'on') {
-      return data;
-    }
-
-    if (!binder.pipes.length) {
-      return data;
-    }
-
+    if (binder.type === 'on') return data;
+    if (!binder.pipes.length) return data;
     var methods = binder.container.model;
-
-    if (!methods) {
-      return data;
-    }
-
-    for (var i = 0, l = binder.pipes.length; i < l; i++) {
-      var name = binder.pipes[i];
-
+    if (!methods) return data;
+    binder.pipes.forEach(function (name) {
       if (name in methods) {
         var method = methods[name];
 
@@ -138,8 +126,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       } else {
         console.warn("Oxe.piper - pipe ".concat(name, " not found"));
       }
-    }
-
+    });
     return data;
   }
 
@@ -774,6 +761,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   function Value(binder, caller) {
+    var _this = this;
+
     var self = this;
     var type = binder.target.type;
     var data;
@@ -782,7 +771,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     if (!binder.meta.setup) {
       binder.meta.setup = true;
       binder.target.addEventListener('input', function () {
-        self.render(binder, 'view');
+        _this.render(binder, 'view');
       }, false);
     }
 
@@ -1974,7 +1963,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     },
     fetch: function fetch(options) {
       return new Promise(function ($return, $error) {
-        var data, copy, result, fetched, _copy, _result;
+        var data, copy, result, fetched, responseType, contentType, type, _copy, _result;
 
         data = Object.assign({}, options);
         data.path = data.path || this.options.path;
@@ -2099,13 +2088,30 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               try {
                 fetched = $await_37;
                 data.code = fetched.status;
+                data.headers = fetched.headers;
                 data.message = fetched.statusText;
 
                 if (!data.responseType) {
                   data.body = fetched.body;
                   return $If_6.call(this);
                 } else {
-                  return Promise.resolve(fetched[data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType]()).then(function ($await_38) {
+                  responseType = data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType || '';
+                  contentType = fetched.headers.get('content-type') || fetched.headers.get('Content-Type') || '';
+                  type = responseType;
+
+                  if (responseType === 'json') {
+                    if (contentType.indexOf('json') !== -1) {
+                      type = 'json';
+                    } else {
+                      type = 'text';
+                    }
+                  }
+
+                  if (['json', 'text', 'blob', 'formData', 'arrayBuffer'].indexOf(type) === -1) {
+                    return $error(new Error('Oxe.fetch - invalid responseType value'));
+                  }
+
+                  return Promise.resolve(fetched[type]()).then(function ($await_38) {
                     try {
                       data.body = $await_38;
                       return $If_6.call(this);
@@ -2229,29 +2235,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   var Events = Object.freeze({
     events: {},
     on: function on(name, method) {
-      if (!(name in this.events)) {
-        this.events[name] = [];
-      }
-
+      if (!(name in this.events)) this.events[name] = [];
       this.events[name].push(method);
     },
     off: function off(name, method) {
-      if (name in this.events) {
-        var _index4 = this.events[name].indexOf(method);
-
-        if (_index4 !== -1) {
-          this.events[name].splice(_index4, 1);
-        }
-      }
+      if (!(name in this.events)) return;
+      var index = this.events[name].indexOf(method);
+      if (index !== -1) this.events[name].splice(index, 1);
     },
     emit: function emit(name) {
-      if (name in this.events) {
-        var methods = this.events[name];
-        var args = Array.prototype.slice.call(arguments, 2);
-        Promise.all(methods.map(function (method) {
-          return method.apply(this, args);
-        })).catch(console.error);
-      }
+      var _this2 = this;
+
+      if (!(name in this.events)) return;
+      var methods = this.events[name];
+      var args = Array.prototype.slice.call(arguments, 2);
+      Promise.all(methods.map(function (method) {
+        return method.apply(_this2, args);
+      })).catch(console.error);
     }
   });
 

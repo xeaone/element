@@ -61,7 +61,7 @@ export default Object.freeze({
         write: Write
     },
 
-    async setup(options) {
+    async setup (options) {
         options = options || {};
 
         for (const name in this.binders) {
@@ -69,15 +69,11 @@ export default Object.freeze({
         }
 
         if (options.binders) {
-
             for (const name in options.binders) {
-
                 if (name in this.binders === false) {
                     this.binders[name] = options.binders[name].bind(this);
                 }
-
             }
-
         }
 
     },
@@ -102,7 +98,7 @@ export default Object.freeze({
         return null;
     },
 
-    create(data) {
+    create (data) {
         const { name, names, value, values, paths, pipes, target, scope, container, context } = data;
 
         // if (name === undefined) throw new Error('Oxe.binder.create - missing name');

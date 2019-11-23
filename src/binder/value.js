@@ -13,13 +13,10 @@ export default function (binder, caller) {
 
     if (!binder.meta.setup) {
         binder.meta.setup = true;
-        binder.target.addEventListener('input', function () {
-            self.render(binder, 'view');
+        binder.target.addEventListener('input', () => {
+            this.render(binder, 'view');
             // binder.data = binder.target.value;
         }, false);
-        // binder.target.addEventListener('change', function () {
-        //     console.log('change');
-        // });
     }
 
     if (type === 'select-one' || type === 'select-multiple') {

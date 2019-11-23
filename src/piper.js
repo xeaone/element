@@ -15,9 +15,7 @@ export default function Piper (binder, data) {
         return data;
     }
 
-    for (let i = 0, l = binder.pipes.length; i < l; i++) {
-        const name = binder.pipes[i];
-
+    binder.pipes.forEach(name => {
         if (name in methods) {
             const method = methods[name];
             if (method && method.constructor === Function) {
@@ -28,8 +26,7 @@ export default function Piper (binder, data) {
         } else {
             console.warn(`Oxe.piper - pipe ${name} not found`);
         }
-
-    }
+    });
 
     return data;
 }
