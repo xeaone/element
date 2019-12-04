@@ -47,9 +47,10 @@
 		"src": "src"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.6.2",
-		"@babel/preset-env": "^7.6.2",
+		"@babel/core": "^7.7.4",
+		"@babel/preset-env": "^7.7.4",
 		"fast-async": "^6.3.8",
-		"rollup": "^1.21.4"
+		"oxe-components": "^4.1.1",
+		"rollup": "^1.27.8"
 	}
 }
