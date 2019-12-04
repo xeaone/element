@@ -6,7 +6,6 @@ import Multiple from '../utility/multiple.js';
 export default function (binder, caller) {
     const self = this;
     const type = binder.target.type;
-    let data;
 
     if (binder.meta.busy) return;
     else binder.meta.busy = true;
@@ -24,11 +23,10 @@ export default function (binder, caller) {
             read() {
 
                 this.data = binder.data;
-                this.model = binder.model;
                 this.options = binder.target.options;
                 this.multiple = Multiple(binder.target);
 
-                if (this.multiple && (!this.data || this.data.constructor !== Array)) {
+                if (this.multiple && (!this.data || this.data instanceof Array === false)) {
                     binder.meta.busy = false;
                     throw new Error(`Oxe - invalid o-value ${binder.keys.join('.')} multiple select requires array`);
                 }
@@ -195,7 +193,7 @@ export default function (binder, caller) {
     } else {
         return {
             read() {
-                data = binder.data;
+                this.data = binder.data;
 
                 if (data === binder.target.value) {
                     binder.meta.busy = false;
@@ -210,7 +208,7 @@ export default function (binder, caller) {
 
             },
             write() {
-                binder.target.value = data === undefined || data === null ? '' : data;
+                binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
                 binder.meta.busy = false;
             }
         };
