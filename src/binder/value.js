@@ -195,7 +195,7 @@ export default function (binder, caller) {
             read() {
                 this.data = binder.data;
 
-                if (data === binder.target.value) {
+                if (this.data === binder.target.value) {
                     binder.meta.busy = false;
                     return this.write = false;
                 }

@@ -1,9 +1,11 @@
+const methods = ['push','pop','splice','shift','unshift','reverse'];
 
 export default {
 
     get (tasks, handler, path, target, property) {
 
-        if (target instanceof Array && property === 'push') {
+        if (target instanceof Array && methods.indexOf(property) !== -1) {
+            // console.log(path.slice(0, -1));
             tasks.push(handler.bind(null, target, path.slice(0, -1)));
         }
 
@@ -12,15 +14,19 @@ export default {
 
     set (tasks, handler, path, target, property, value) {
 
-        if (property === 'length') {
-            return true;
-        }
+        // if (property === 'length') {
+        //     console.log('length ', value);
+        //     return true;
+        // }
+        // console.log(property);
 
         target[property] = this.create(value, handler, path + property, tasks);
 
-        Promise.resolve().then(function () {
-            let task; while (task = tasks.shift()) task();
-        }).catch(console.error);
+        if (tasks.length) {
+            Promise.resolve().then(function () {
+                let task; while (task = tasks.shift()) task();
+            }).catch(console.error);
+        }
 
         return true;
     },
@@ -33,7 +39,7 @@ export default {
 
         if (source instanceof Object === false && source instanceof Array === false) {
 
-            if (!path) {
+            if (!path && tasks.length) {
                 Promise.resolve().then(function () {
                     let task; while (task = tasks.shift()) task();
                 }).catch(console.error);
@@ -58,7 +64,7 @@ export default {
             }
         }
 
-        if (!path) {
+        if (!path && tasks.length) {
             Promise.resolve().then(function () {
                 let task; while (task = tasks.shift()) task();
             }).catch(console.error);

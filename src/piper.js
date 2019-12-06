@@ -1,3 +1,4 @@
+import Traverse from './utility/traverse.js';
 
 export default function Piper (binder, data) {
 
@@ -9,24 +10,22 @@ export default function Piper (binder, data) {
         return data;
     }
 
-    const methods = binder.container.model;
+    // const source = binder.container.model;
+    const source = binder.container.methods;
 
-    if (!methods) {
+    if (!Object.keys(source).length) {
         return data;
     }
 
-    binder.pipes.forEach(name => {
-        if (name in methods) {
-            const method = methods[name];
-            if (method && method.constructor === Function) {
-                data = methods[name].call(binder.container, data);
-            } else {
-                console.warn(`Oxe.piper - pipe ${name} invalid type`);
-            }
+    for (let i = 0, l = binder.pipes.length; i < l; i++) {
+        const path = binder.pipes[i];
+        const method = Traverse(source, path);
+        if (method instanceof Function) {
+            data = method.call(binder.container, data);
         } else {
-            console.warn(`Oxe.piper - pipe ${name} not found`);
+            console.warn(`Oxe.piper - pipe ${path} invalid`);
         }
-    });
+    }
 
     return data;
 }

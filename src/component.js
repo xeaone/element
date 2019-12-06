@@ -8,18 +8,16 @@ import Extend from './utility/extend.js';
 export default Object.freeze({
 
     async setup (options) {
-        const self = this;
-
         options = options || {};
 
         if (options.components) {
-            return Promise.all(options.components.map(function (component) {
+            return Promise.all(options.components.map(component => {
                 if (typeof component === 'string') {
-                    return Loader.load(component).then(function (load) {
-                        return self.define(load.default);
+                    return Loader.load(component).then(load => {
+                        return this.define(load.default);
                     });
                 } else {
-                    return self.define(component);
+                    return this.define(component);
                 }
             }));
         }
@@ -162,16 +160,17 @@ export default Object.freeze({
         options.count = 0;
         options.model = options.model || {};
         options.adopt = options.adopt || false;
+        options.methods = options.methods || {};
         options.shadow = options.shadow || false;
         options.name = options.name.toLowerCase();
         options.attributes = options.attributes || [];
 
-        if (options.style) {
+        if (typeof options.style === 'string') {
             options.style = this.style(options.style, options.name);
             Style.append(options.style);
         }
 
-        if (options.template && typeof options.template === 'string') {
+        if (typeof options.template === 'string') {
             const data = document.createElement('div');
             data.innerHTML = options.template;
             options.template = data;
@@ -183,19 +182,18 @@ export default Object.freeze({
             const handler = function (data, path) {
                 const location = `${scope}.${path}`;
                 const binders = Binder.data.get(location);
-                if (binders) {
-                    binders.forEach(function (binder) {
-                        Binder.render(binder, data);
-                    });
+                if (!binders) return;
+                for (let i = 0; i < binders.length; i++) {
+                    Binder.render(binders[i], data);
                 }
             };
 
             const model = Observer.create(options.model, handler);
 
             Object.defineProperties(this, {
-                // created: { value: false, enumerable: true, configurable: true },
                 scope: { enumerable: true, value: scope },
-                model: { enumerable: true, value: model }
+                model: { enumerable: true, value: model },
+                methods: { enumerable: true, value: options.methods }
             });
 
             if (options.properties) {
@@ -219,7 +217,7 @@ export default Object.freeze({
         };
 
         OElement.prototype.disconnectedCallback = function () {
-            if (options.detached) options.detached.call(this);
+            if (options.detached) options.detached.apply(this, arguments);
         };
 
         OElement.prototype.connectedCallback = function () {

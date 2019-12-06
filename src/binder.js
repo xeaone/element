@@ -79,16 +79,14 @@ export default Object.freeze({
     },
 
     get (node, name) {
-        if (!(name in node.attributes)) return null;
+        if (name in node.attributes === false) return null;
 
         const value = node.attributes[name].value;
         const binders = this.nodes.get(node);
 
-        if (!binders || !binders.length) return null;
+        if (!binders) return null;
 
-        const length = binders.length;
-
-        for (let i = 0; i < length; i++) {
+        for (let i = 0, l = binders.length; i < l; i++) {
             const binder = binders[i];
             if (binder.name === name && binder.value === value) {
                 return binder;
@@ -121,20 +119,30 @@ export default Object.freeze({
             keys, names, pipes, values, meta, context,
 
             get data () {
-                const model = Traverse(container.model, parts, 1);
-                if (name === 'o-value' || name.indexOf('o-on') === 0) {
-                    return model[property];
+                if (names[0] === 'on') {
+                    const source = Traverse(container.methods, parts, 1);
+                    return source[property];
                 } else {
-                    return Piper(this, model[property]);
+                    const source = Traverse(container.model, parts, 1);
+                    if (names[0] === 'value') {
+                        return source[property];
+                    } else {
+                        return Piper(this, source[property]);
+                    }
                 }
             },
 
             set data (value) {
-                const model = Traverse(container.model, parts, 1);
-                if (name === 'o-value') {
-                    model[property] = Piper(this, value);
+                if (names[0] === 'on') {
+                    const source = Traverse(container.methods, parts, 1);
+                    source[property] = value;
                 } else {
-                    model[property] = value;
+                    const source = Traverse(container.model, parts, 1);
+                    if (names[0] === 'value') {
+                        source[property] = Piper(this, value);
+                    } else {
+                        source[property] = value;
+                    }
                 }
             }
 
@@ -166,8 +174,8 @@ export default Object.freeze({
 
     bind (node, name, value, context) {
 
-        value = value.replace(/{{|}}/g, '');
-        name = name.replace(/^o-/, '');
+        value = value.replace(/{{|}}/g, '').trim();
+        name = name.replace(/^o-/, '').trim();
 
         const pipe = value.split(PIPE);
         const paths = value.split(PATH);
@@ -190,8 +198,11 @@ export default Object.freeze({
                         if (value === c.indexVariable) return Batcher.batch({ write() { node.textContent = c.index; } });
                     }
 
+                    console.log(c.variable, parts[0]);
+
                     if (c.variable === parts[0]) {
                         paths[i] = `${c.path}.${c.key}${part ? `.${part}` : ''}`;
+                        console.log(paths[i]);
                         break;
                     }
 
@@ -256,19 +267,16 @@ export default Object.freeze({
         if (node.nodeType === Node.TEXT_NODE) {
 
             const start = node.textContent.indexOf('{{');
-            const end = node.textContent.indexOf('}}');
+            if (start === -1)  return;
 
-            if (start === -1 || end === -1) {
-                return;
-            }
-
-            if (start !== -1 && start !== 0) {
+            if (start !== 0) {
                 node = node.splitText(start);
             }
 
-            const length = node.textContent.length;
+            const end = node.textContent.indexOf('}}');
+            if (end === -1) return;
 
-            if (end !== -1 && end !== length-2) {
+            if (end+2 !== node.textContent.length) {
                 const split = node.splitText(end + 2);
                 this.bind(node, 'o-text', node.textContent, context);
                 this.add(split, context);

@@ -12,22 +12,18 @@ export default function (binder) {
         },
         write () {
 
-            if (name) {
-
-                if (data === undefined || data === null) {
+            if (data === undefined || data === null) {
+                if (name) {
                     binder.target.classList.remove(name);
                 } else {
-                    binder.target.classList.toggle(name, data);
-                }
-
-            } else {
-
-                if (data === undefined || data === null) {
                     binder.target.setAttribute('class', '');
+                }
+            } else {
+                if (name) {
+                    binder.target.classList.toggle(name, data);
                 } else {
                     binder.target.setAttribute('class', data);
                 }
-
             }
 
         }

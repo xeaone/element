@@ -83,7 +83,7 @@ export default {
                 <strong>Key: </strong>{{k}},
                 <strong>Value: </strong>{{a.it.val}}
 			</div>
-            
+
 		`
     }
 };

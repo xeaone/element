@@ -19,13 +19,13 @@ export default function (binder) {
                 const parameters = [];
 
                 for (let i = 0, l = binder.pipes.length; i < l; i++) {
-                    const keys = binder.pipes[i].split('.');
-                    const parameter = Traverse(binder.container.model, keys);
+                    const path = binder.pipes[i];
+                    const parameter = Traverse(binder.container.model, path);
                     parameters.push(parameter);
                 }
 
                 parameters.push(events);
-                parameters.push(this);
+                // parameters.push(this);
 
                 Promise.resolve(data.bind(binder.container).apply(null, parameters)).catch(console.error);
             };
