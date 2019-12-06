@@ -21,6 +21,7 @@ const submit = async function (binder, event) {
 
         const b = this.get(element, 'o-value');
 
+        console.warn('todo: need to get a value for selects');
         const value = (
             b ? b.data : (
                 element.files ? (
