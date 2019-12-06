@@ -7,6 +7,8 @@ import Router from './router.js';
 import Style from './style.js';
 import Path from './path.js';
 
+console.warn('todo: need to allow multiple o- attributes');
+
 document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}o-router,o-router>:first-child{display:block;}</style>');
 
 const oSetup = document.querySelector('script[o-setup]');
