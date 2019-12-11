@@ -88,4 +88,4 @@ export default {
         return this.normalize(result.join('/'));
     }
 
-}
+};

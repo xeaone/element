@@ -109,7 +109,7 @@ export default Object.freeze({
         const path = paths[0];
         const parts = paths[0].split('.');
         const location = `${scope}.${path}`;
-        const keys = [scope].concat(parts);
+        const keys = [ scope ].concat(parts);
         const property = parts.slice(-1)[0];
 
         return Object.freeze({
@@ -194,8 +194,8 @@ export default Object.freeze({
                 while (c) {
 
                     if (node.nodeType === Node.TEXT_NODE) {
-                        if (value === c.keyVariable) return Batcher.batch({ write() { node.textContent = c.key; } });
-                        if (value === c.indexVariable) return Batcher.batch({ write() { node.textContent = c.index; } });
+                        if (value === c.keyVariable) return Batcher.batch({ write () { node.textContent = c.key; } });
+                        if (value === c.indexVariable) return Batcher.batch({ write () { node.textContent = c.index; } });
                     }
 
                     console.log(c.variable, parts[0]);
@@ -239,13 +239,13 @@ export default Object.freeze({
         if (this.nodes.has(binder.target)) {
             this.nodes.get(binder.target).push(binder);
         } else {
-            this.nodes.set(binder.target, [binder]);
+            this.nodes.set(binder.target, [ binder ]);
         }
 
         if (this.data.has(binder.location)) {
             this.data.get(binder.location).push(binder);
         } else {
-            this.data.set(binder.location, [binder]);
+            this.data.set(binder.location, [ binder ]);
         }
 
         this.render(binder);
@@ -255,12 +255,12 @@ export default Object.freeze({
     remove (node) {
         Walker(node, this.unbind.bind(this));
         // this.unbind(node);
-    	// node = node.firstChild;
+        // node = node.firstChild;
         //
-    	// while (node) {
-    	//     this.remove(node);
-    	//     node = node.nextSibling;
-    	// }
+        // while (node) {
+        //     this.remove(node);
+        //     node = node.nextSibling;
+        // }
     },
 
     add (node, context) {
@@ -314,12 +314,13 @@ export default Object.freeze({
                 return;
             }
 
-        	node = node.firstChild;
+            // Walker(node, this.add.bind(this, node, context));
 
-        	while (node) {
-        	    this.add(node, context);
-        	    node = node.nextSibling;
-        	}
+            node = node.firstChild;
+            while (node) {
+                this.add(node, context);
+                node = node.nextSibling;
+            }
 
         }
     }

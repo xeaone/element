@@ -14,7 +14,7 @@ export default function (binder) {
             }
 
             if (data === binder.target[binder.type]) {
-                return write = false;
+                return this.write = false;
             }
 
         },

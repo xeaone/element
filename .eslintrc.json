@@ -14,7 +14,6 @@
     },
     "rules": {
         "strict": "warn",
-        "no-console": "warn",
         "no-unused-vars": "warn",
         "indent": [ "warn", 4 ],
         "semi": [ "warn", "always" ],

@@ -4,11 +4,11 @@ export default function multiple (element) {
         return element.multiple;
     } else {
         switch (element.getAttribute('multiple')) {
-            case undefined: return false;
-            case 'true': return true;
-            case null: return false;
-            case '': return true;
-            default: return false;
+        case undefined: return false;
+        case 'true': return true;
+        case null: return false;
+        case '': return true;
+        default: return false;
         }
     }
 }

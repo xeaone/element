@@ -82,7 +82,7 @@ export default function (binder) {
                             scope: binder.container.scope,
                             keyVariable: binder.meta.keyVariable,
                             indexVariable: binder.meta.indexVariable,
-                            templateLength: binder.meta.templateLength,
+                            templateLength: binder.meta.templateLength
                         })).catch(console.error);
 
                         binder.meta.fragment.appendChild(node);

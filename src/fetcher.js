@@ -1,4 +1,6 @@
 
+console.warn('options function would need to be deprected');
+
 export default Object.freeze({
 
     options: {},
@@ -10,6 +12,8 @@ export default Object.freeze({
         json: 'application/json; charset=utf-8',
         js: 'application/javascript; charset=utf-8'
     },
+
+    types: [ 'json', 'text', 'blob', 'formData', 'arrayBuffer' ],
 
     async setup (options) {
         options = options || {};
@@ -81,22 +85,22 @@ export default Object.freeze({
         if (data.contentType) {
             data.headers = data.headers || {};
             switch (data.contentType) {
-                case 'js': data.headers['Content-Type'] = this.mime.js; break;
-                case 'xml': data.headers['Content-Type'] = this.mime.xml; break;
-                case 'html': data.headers['Content-Type'] = this.mime.html; break;
-                case 'json': data.headers['Content-Type'] = this.mime.json; break;
-                default: data.headers['Content-Type'] = data.contentType;
+            case 'js': data.headers['Content-Type'] = this.mime.js; break;
+            case 'xml': data.headers['Content-Type'] = this.mime.xml; break;
+            case 'html': data.headers['Content-Type'] = this.mime.html; break;
+            case 'json': data.headers['Content-Type'] = this.mime.json; break;
+            default: data.headers['Content-Type'] = data.contentType;
             }
         }
 
         if (data.acceptType) {
             data.headers = data.headers || {};
             switch (data.acceptType) {
-                case 'js': data.headers['Accept'] = this.mime.js; break;
-                case 'xml': data.headers['Accept'] = this.mime.xml; break;
-                case 'html': data.headers['Accept'] = this.mime.html; break;
-                case 'json': data.headers['Accept'] = this.mime.json; break;
-                default: data.headers['Accept'] = data.acceptType;
+            case 'js': data.headers['Accept'] = this.mime.js; break;
+            case 'xml': data.headers['Accept'] = this.mime.xml; break;
+            case 'html': data.headers['Accept'] = this.mime.html; break;
+            case 'json': data.headers['Accept'] = this.mime.json; break;
+            default: data.headers['Accept'] = data.acceptType;
             }
         }
 
@@ -154,16 +158,7 @@ export default Object.freeze({
                 }
             }
 
-            if ([
-                'json',
-                'text',
-                'blob',
-                'formData',
-                'arrayBuffer',
-                ].indexOf(type) === -1
-            ) {
-                throw new Error('Oxe.fetch - invalid responseType value');
-            }
+            if (this.types.indexOf(type) === -1) throw new Error('Oxe.fetch - invalid responseType value');
 
             data.body = await fetched[type]();
         }
@@ -221,11 +216,11 @@ export default Object.freeze({
         return this.fetch(data);
     },
 
-    async options (data) {
-        data = typeof data === 'string' ? { url: data } : data;
-        data.method = 'options';
-        return this.fetch(data);
-    },
+    // async options (data) {
+    //     data = typeof data === 'string' ? { url: data } : data;
+    //     data.method = 'options';
+    //     return this.fetch(data);
+    // },
 
     async connect (data) {
         data = typeof data === 'string' ? { url: data } : data;

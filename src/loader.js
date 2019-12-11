@@ -89,4 +89,4 @@ export default Object.freeze({
         return this.data[url];
     }
 
-})
+});

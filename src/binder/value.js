@@ -20,7 +20,7 @@ export default function (binder, caller) {
 
     if (type === 'select-one' || type === 'select-multiple') {
         return {
-            read() {
+            read () {
 
                 this.data = binder.data;
                 this.options = binder.target.options;
@@ -32,7 +32,7 @@ export default function (binder, caller) {
                 }
 
             },
-            write() {
+            write () {
                 let fallback = false;
                 let fallbackSelectedAtrribute = false;
                 let fallbackValue = this.multiple ? [] : null;
@@ -126,7 +126,7 @@ export default function (binder, caller) {
         };
     } else if (type === 'radio') {
         return {
-            read() {
+            read () {
 
                 this.form = binder.target.form || binder.container;
                 this.query = `input[type="radio"][o-value="${binder.value}"]`;
@@ -145,7 +145,7 @@ export default function (binder, caller) {
                 }
 
             },
-            write() {
+            write () {
                 for (let i = 0, l = this.radios.length; i < l; i++) {
                     const radio = this.radios[i];
 
@@ -163,7 +163,7 @@ export default function (binder, caller) {
 
     } else if (type === 'checkbox') {
         return {
-            read() {
+            read () {
 
                 if (caller === 'view') {
                     binder.data = binder.target.checked;
@@ -177,14 +177,14 @@ export default function (binder, caller) {
                 }
 
             },
-            write() {
+            write () {
                 binder.target.checked = binder.data;
                 binder.meta.busy = false;
             }
         };
     } else if (type === 'file') {
         return {
-            read() {
+            read () {
                 this.multiple = Multiple(binder.target);
                 binder.data = this.multiple ? Array.prototype.slice.call(binder.target.files) : binder.target.files[0];
                 binder.meta.busy = false;
@@ -192,7 +192,7 @@ export default function (binder, caller) {
         };
     } else {
         return {
-            read() {
+            read () {
                 this.data = binder.data;
 
                 if (this.data === binder.target.value) {
@@ -207,7 +207,7 @@ export default function (binder, caller) {
                 }
 
             },
-            write() {
+            write () {
                 binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
                 binder.meta.busy = false;
             }

@@ -8,13 +8,12 @@ export default {
 
     innerHandler (character, index, string) {
         if (string[index-1] === '\\') return;
-        if (character === '\'') return '\\\'';
-        if (character === '\"') return '\\"';
+        if (character === '"') return '\\"';
         if (character === '\t') return '\\t';
         if (character === '\r') return '\\r';
         if (character === '\n') return '\\n';
-        if (character === '\w') return '\\w';
         if (character === '\b') return '\\b';
+        if (character === '\'') return '\\\'';
     },
 
     updateString (value, index, string) {
@@ -58,8 +57,9 @@ export default {
                 }
 
             } else if (isInner) {
+                value = this.innerHandler(character, index, string);
 
-                if (value = this.innerHandler(character, index, string)) {
+                if (value) {
                     string = this.updateString(value, index, string);
                     index = this.updateIndex(value, index);
                 }
@@ -124,4 +124,4 @@ export default {
         return code;
     }
 
-}
+};

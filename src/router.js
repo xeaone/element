@@ -15,10 +15,10 @@ export default Object.freeze({
         target: null,
         contain: false,
         folder: './routes',
-        external: null, before: null, after: null,
+        external: null, before: null, after: null
     },
 
-    async setup(option) {
+    async setup (option) {
         option = option || {};
 
         this.option.after = option.after === undefined ? this.option.after : option.after;
@@ -236,7 +236,7 @@ export default Object.freeze({
                 path = '/' + path;
             }
 
-            load = load.replace(/\/?\((\w+)?\~\)\/?/ig, '') + '.js';
+            load = load.replace(/\/?\((\w+)?~\)\/?/ig, '') + '.js';
             load = Path.join(this.option.folder, load);
 
             this.data.push({ path, load });
@@ -260,7 +260,7 @@ export default Object.freeze({
         }
     },
 
-    async load(route) {
+    async load (route) {
 
         if (route.load) {
             const load = await Loader.load(route.load);
@@ -276,7 +276,7 @@ export default Object.freeze({
         return route;
     },
 
-    async remove(path) {
+    async remove (path) {
         for (let i = 0, l = this.data.length; i < l; i++) {
             if (this.data[i].path === path) {
                 this.data.splice(i, 1);
@@ -284,7 +284,7 @@ export default Object.freeze({
         }
     },
 
-    async get(path) {
+    async get (path) {
         for (let i = 0, l = this.data.length; i < l; i++) {
             if (this.data[i].path === path) {
                 this.data[i] = await this.load(this.data[i]);
@@ -293,7 +293,7 @@ export default Object.freeze({
         }
     },
 
-    async filter(path) {
+    async filter (path) {
         const result = [];
 
         for (let i = 0, l = this.data.length; i < l; i++) {
@@ -306,7 +306,7 @@ export default Object.freeze({
         return result;
     },
 
-    async find(path) {
+    async find (path) {
         for (let i = 0, l = this.data.length; i < l; i++) {
             if (this.compare(this.data[i].path, path)) {
                 this.data[i] = await this.load(this.data[i]);
@@ -315,7 +315,7 @@ export default Object.freeze({
         }
     },
 
-    async render(route) {
+    async render (route) {
 
         if (!route) {
             throw new Error('Oxe.render - route argument required. Missing object option.');
@@ -395,7 +395,7 @@ export default Object.freeze({
         this.scroll(0, 0);
     },
 
-    async route(path, options) {
+    async route (path, options) {
         options = options || {};
 
         if (options.query) {
@@ -458,12 +458,12 @@ export default Object.freeze({
         Events.emit('route:after', location);
     },
 
-    async state(event) {
+    async state (event) {
         const path = event && event.state ? event.state.path : window.location.href;
         this.route(path, { mode: 'replace' });
     },
 
-    async click(event) {
+    async click (event) {
 
         // ignore canceled events, modified clicks, and right clicks
         if (

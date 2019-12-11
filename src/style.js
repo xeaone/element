@@ -31,4 +31,4 @@ export default Object.freeze({
         document.head.appendChild(this.style);
     }
 
-})
+});

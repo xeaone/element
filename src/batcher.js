@@ -83,7 +83,7 @@ export default Object.freeze({
         data.context.write = true;
 
         self.reads.push(data.read ? function () {
-             if (this.read) {
+            if (this.read) {
                 return data.read.call(data.context, data.context);
             }
         }.bind(data.context, data.context) : null);
