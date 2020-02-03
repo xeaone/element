@@ -148,14 +148,12 @@ export default Object.freeze({
         } else {
             const responseType = data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType || '';
             const contentType = fetched.headers.get('content-type') || fetched.headers.get('Content-Type') || '';
-            let type = responseType;
 
-            if (responseType === 'json') {
-                if (contentType.indexOf('json') !== -1) {
-                    type = 'json';
-                } else {
-                    type = 'text';
-                }
+            let type;
+            if (responseType === 'json' && contentType.indexOf('json') !== -1) {
+                type = 'json';
+            } else {
+                type = responseType || 'text';
             }
 
             if (this.types.indexOf(type) === -1) throw new Error('Oxe.fetch - invalid responseType value');
