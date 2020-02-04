@@ -45,7 +45,7 @@ export default Object.freeze({
         await this.route(window.location.href, { mode: 'replace' });
     },
 
-    compareParts(routePath, userPath, split) {
+    compareParts (routePath, userPath, split) {
         const compareParts = [];
 
         const routeParts = routePath.split(split);
@@ -88,7 +88,7 @@ export default Object.freeze({
         }
     },
 
-    compare(routePath, userPath) {
+    compare (routePath, userPath) {
         const base = Path.normalize(Path.base);
 
         userPath = Path.normalize(userPath);
@@ -113,7 +113,7 @@ export default Object.freeze({
         return false;
     },
 
-    toParameterObject(routePath, userPath) {
+    toParameterObject (routePath, userPath) {
         let result = {};
 
         if (
@@ -139,7 +139,7 @@ export default Object.freeze({
         return result;
     },
 
-    toQueryString(data) {
+    toQueryString (data) {
         let result = '?';
 
         for (let key in data) {
@@ -154,7 +154,7 @@ export default Object.freeze({
         return result;
     },
 
-    toQueryObject(path) {
+    toQueryObject (path) {
         let result = {};
 
         if (path.indexOf('?') === 0) path = path.slice(1);
@@ -172,7 +172,7 @@ export default Object.freeze({
         return result;
     },
 
-    toLocationObject(href) {
+    toLocationObject (href) {
         const location = {};
         const parser = document.createElement('a');
 
@@ -192,23 +192,23 @@ export default Object.freeze({
         return location;
     },
 
-    scroll(x, y) {
+    scroll (x, y) {
         window.scroll(x, y);
     },
 
-    back() {
+    back () {
         window.history.back();
     },
 
-    forward() {
+    forward () {
         window.history.forward();
     },
 
-    redirect(path) {
+    redirect (path) {
         window.location.href = path;
     },
 
-    async add(data) {
+    async add (data) {
         if (!data) {
             return;
         } else if (data.constructor === String) {
