@@ -269,9 +269,7 @@ export default Object.freeze({
             const start = node.textContent.indexOf('{{');
             if (start === -1)  return;
 
-            if (start !== 0) {
-                node = node.splitText(start);
-            }
+            if (start !== 0) node = node.splitText(start);
 
             const end = node.textContent.indexOf('}}');
             if (end === -1) return;
@@ -310,9 +308,7 @@ export default Object.freeze({
             //     this.bind(node, 'o-value', attributes['o-value'].value, context);
             // }
 
-            if (skip) {
-                return;
-            }
+            if (skip) return;
 
             // Walker(node, this.add.bind(this, node, context));
 

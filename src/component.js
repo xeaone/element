@@ -61,15 +61,11 @@ export default Object.freeze({
         }
 
         if (defaultSlot) {
-
             if (element.children.length) {
-
                 while (element.firstChild) {
                     defaultSlot.parentNode.insertBefore(element.firstChild, defaultSlot);
                 }
-
             }
-
             defaultSlot.parentNode.removeChild(defaultSlot);
         }
 
