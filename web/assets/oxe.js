@@ -1,13 +1,9 @@
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 (function (global, factory) {
   (typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object' && typeof module !== 'undefined' ? module.exports = factory() : typeof define === 'function' && define.amd ? define(factory) : (global = global || self, global.Oxe = factory());
 })(this, function () {
   'use strict';
-
-  var _Object$freeze;
 
   function traverse(data, path, end) {
     var keys = typeof path === 'string' ? path.split('.') : path;
@@ -19,16 +15,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     return result;
-  }
-
-  function walker(node, callback) {
-    callback(node);
-    node = node.firstChild;
-
-    while (node) {
-      walker(node, callback);
-      node = node.nextSibling;
-    }
   }
 
   var Batcher = Object.freeze({
@@ -181,7 +167,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         if (data === binder.target[binder.type]) {
-          return write = false;
+          return this.write = false;
         }
       },
       write: function write() {
@@ -211,87 +197,79 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     var self = this;
     if (binder.meta.pending) return;else binder.meta.pending = true;
     var data;
-    return {
-      read: function read() {
-        data = binder.data || [];
 
-        if (!binder.meta.setup) {
-          binder.meta.keys = [];
-          binder.meta.counts = [];
-          binder.meta.setup = false;
-          binder.meta.pending = false;
-          binder.meta.targetLength = 0;
-          binder.meta.currentLength = 0;
-          binder.meta.fragment = document.createDocumentFragment();
-          binder.meta.template = document.createDocumentFragment();
-          binder.meta.keyVariable = binder.target.getAttribute('o-key');
-          binder.meta.indexVariable = binder.target.getAttribute('o-index');
+    var read = function read() {
+      data = binder.data || [];
 
-          while (binder.target.firstChild) {
-            binder.meta.template.appendChild(binder.target.removeChild(binder.target.firstChild));
-          }
-
-          binder.meta.templateLength = binder.meta.template.childNodes.length;
-          binder.meta.setup = true;
-        }
-
-        binder.meta.keys = Object.keys(data || []);
-        binder.meta.targetLength = binder.meta.keys.length;
-
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-          binder.meta.pending = false;
-          this.write = false;
-        }
-      },
-      write: function write() {
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-          binder.meta.pending = false;
-          return;
-        }
-
-        if (binder.meta.currentLength > binder.meta.targetLength) {
-          while (binder.meta.currentLength > binder.meta.targetLength) {
-            var count = binder.meta.templateLength;
-
-            while (count--) {
-              var node = binder.target.lastChild;
-              binder.target.removeChild(node);
-              Promise.resolve().then(self.remove.bind(self, node)).catch(console.error);
-            }
-
-            binder.meta.currentLength--;
-          }
-        } else if (binder.meta.currentLength < binder.meta.targetLength) {
-          while (binder.meta.currentLength < binder.meta.targetLength) {
-            var clone = binder.meta.template.cloneNode(true);
-            var _index2 = binder.meta.currentLength;
-
-            var _node = void 0;
-
-            while (_node = clone.firstChild) {
-              Promise.resolve().then(self.add.bind(self, _node, {
-                index: _index2,
-                path: binder.path,
-                parent: binder.context,
-                variable: binder.names[1],
-                container: binder.container,
-                key: binder.meta.keys[_index2],
-                scope: binder.container.scope,
-                keyVariable: binder.meta.keyVariable,
-                indexVariable: binder.meta.indexVariable,
-                templateLength: binder.meta.templateLength
-              })).catch(console.error);
-              binder.meta.fragment.appendChild(_node);
-            }
-
-            binder.meta.currentLength++;
-          }
-
-          binder.target.appendChild(binder.meta.fragment);
-        }
-
+      if (!binder.meta.setup) {
+        binder.meta.keys = [];
+        binder.meta.counts = [];
+        binder.meta.setup = false;
         binder.meta.pending = false;
+        binder.meta.targetLength = 0;
+        binder.meta.currentLength = 0;
+        binder.meta.templateString = binder.target.innerHTML;
+        binder.meta.fragment = document.createDocumentFragment();
+        binder.meta.templateLength = binder.target.childNodes.length;
+
+        while (binder.target.firstChild) {
+          binder.target.removeChild(binder.target.firstChild);
+        }
+
+        binder.meta.setup = true;
       }
+
+      binder.meta.keys = data ? Object.keys(data) : [];
+      binder.meta.targetLength = binder.meta.keys.length;
+
+      if (binder.meta.currentLength === binder.meta.targetLength) {
+        binder.meta.pending = false;
+        this.write = false;
+      }
+    };
+
+    var write = function write() {
+      if (binder.meta.currentLength > binder.meta.targetLength) {
+        while (binder.meta.currentLength > binder.meta.targetLength) {
+          var count = binder.meta.templateLength;
+
+          while (count--) {
+            var node = binder.target.lastChild;
+            binder.target.removeChild(node);
+            Promise.resolve().then(self.remove.bind(self, node)).catch(console.error);
+          }
+
+          binder.meta.currentLength--;
+        }
+      } else if (binder.meta.currentLength < binder.meta.targetLength) {
+        while (binder.meta.currentLength < binder.meta.targetLength) {
+          var _index2 = binder.meta.currentLength;
+          var key = binder.meta.keys[_index2];
+          var variablePattern = new RegExp("\\[".concat(binder.names[1], "\\]"), 'g');
+          var indexPattern = new RegExp("({{)?\\[".concat(binder.names[2], "\\](}})?"), 'g');
+          var keyPattern = new RegExp("({{)?\\[".concat(binder.names[3], "\\](}})?"), 'g');
+          var clone = binder.meta.templateString.replace(variablePattern, "".concat(binder.path, ".").concat(key)).replace(indexPattern, _index2).replace(keyPattern, key);
+          var parsed = new DOMParser().parseFromString(clone, 'text/html').body;
+
+          var _node = void 0;
+
+          while (_node = parsed.firstChild) {
+            binder.meta.fragment.appendChild(_node);
+            Promise.resolve().then(self.add.bind(self, _node, binder.container, binder.scope)).catch(console.error);
+          }
+
+          binder.meta.currentLength++;
+        }
+
+        binder.target.appendChild(binder.meta.fragment);
+      }
+
+      binder.meta.pending = false;
+    };
+
+    return {
+      read: read,
+      write: write
     };
   }
 
@@ -605,6 +583,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
 
         b = this.get(element, 'o-value');
+        console.warn('todo: need to get a value for selects');
         value = b ? b.data : element.files ? element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0] : element.value;
         name = element.name || (b ? b.values[b.values.length - 1] : null);
         if (!name) continue;
@@ -991,6 +970,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   var PIPES = /\s?,\s?|\s+/;
   var PATH = /\s?,\s?|\s?\|\s?|\s+/;
   var Binder = Object.freeze({
+    get ms() {
+      return '{{';
+    },
+
+    get me() {
+      return '}}';
+    },
+
+    get ds() {
+      return '[';
+    },
+
+    get de() {
+      return ']';
+    },
+
     data: new Map(),
     nodes: new Map(),
     binders: {
@@ -1055,72 +1050,6 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       return null;
     },
-    create: function create(data) {
-      var name = data.name,
-          names = data.names,
-          value = data.value,
-          values = data.values,
-          paths = data.paths,
-          pipes = data.pipes,
-          target = data.target,
-          scope = data.scope,
-          container = data.container,
-          context = data.context;
-      var meta = {};
-      var type = names[0];
-      var path = paths[0];
-      var parts = paths[0].split('.');
-      var location = "".concat(scope, ".").concat(path);
-      var keys = [scope].concat(parts);
-      var property = parts.slice(-1)[0];
-      return Object.freeze({
-        location: location,
-        type: type,
-        path: path,
-        scope: scope,
-        name: name,
-        value: value,
-        target: target,
-        container: container,
-        keys: keys,
-        names: names,
-        pipes: pipes,
-        values: values,
-        meta: meta,
-        context: context,
-
-        get data() {
-          if (names[0] === 'on') {
-            var source = traverse(container.methods, parts, 1);
-            return source[property];
-          } else {
-            var _source = traverse(container.model, parts, 1);
-
-            if (names[0] === 'value') {
-              return _source[property];
-            } else {
-              return Piper(this, _source[property]);
-            }
-          }
-        },
-
-        set data(value) {
-          if (names[0] === 'on') {
-            var source = traverse(container.methods, parts, 1);
-            source[property] = value;
-          } else {
-            var _source2 = traverse(container.model, parts, 1);
-
-            if (names[0] === 'value') {
-              _source2[property] = Piper(this, value);
-            } else {
-              _source2[property] = value;
-            }
-          }
-        }
-
-      });
-    },
     render: function render(binder, data) {
       var type = binder.type in this.binders ? binder.type : 'default';
       var render = this.binders[type](binder, data);
@@ -1145,84 +1074,57 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         }
       }
     },
-    bind: function bind(node, name, value, context) {
-      value = value.replace(/{{|}}/g, '').trim();
-      name = name.replace(/^o-/, '').trim();
+    bind: function bind(target, name, value, container, scope) {
+      var pattern = new RegExp("".concat(this.ms, "|").concat(this.me), 'g');
+      value = value.replace(pattern, '').trim();
+      name = name.replace(/^o-/, '').replace(pattern, '').trim();
       var pipe = value.split(PIPE);
       var paths = value.split(PATH);
       var names = name.split('-');
       var values = pipe[0] ? pipe[0].split('.') : [];
       var pipes = pipe[1] ? pipe[1].split(PIPES) : [];
-
-      if (context && 'variable' in context) {
-        var _loop = function _loop(i, l) {
-          var path = paths[i];
-          var parts = path.split('.');
-          var part = parts.slice(1).join('.');
-          var c = context;
-
-          while (c) {
-            if (node.nodeType === Node.TEXT_NODE) {
-              if (value === c.keyVariable) return {
-                v: Batcher.batch({
-                  write: function write() {
-                    node.textContent = c.key;
-                  }
-                })
-              };
-              if (value === c.indexVariable) return {
-                v: Batcher.batch({
-                  write: function write() {
-                    node.textContent = c.index;
-                  }
-                })
-              };
-            }
-
-            console.log(c.variable, parts[0]);
-
-            if (c.variable === parts[0]) {
-              paths[i] = "".concat(c.path, ".").concat(c.key).concat(part ? ".".concat(part) : '');
-              console.log(paths[i]);
-              break;
-            }
-
-            if (c.indexVariable === path) {
-              paths[i] = c.index;
-              break;
-            }
-
-            if (c.keyVariable === path) {
-              paths[i] = c.key;
-              break;
-            }
-
-            var keyPattern = new RegExp("\\[".concat(c.keyVariable, "\\]"), 'g');
-            var indexPattern = new RegExp("\\[".concat(c.indexVariable, "\\]"), 'g');
-            paths[i] = path.replace(keyPattern, ".".concat(c.key));
-            paths[i] = path.replace(indexPattern, ".".concat(c.index));
-            c = c.parent;
-          }
-        };
-
-        for (var i = 0, l = paths.length; i < l; i++) {
-          var _ret = _loop(i, l);
-
-          if (_typeof(_ret) === "object") return _ret.v;
-        }
-      }
-
-      var binder = this.create({
+      var meta = {};
+      var type = names[0];
+      var path = paths[0];
+      var parts = paths[0].split('.');
+      var location = "".concat(scope, ".").concat(path);
+      var keys = [scope].concat(parts);
+      var property = parts.slice(-1)[0];
+      var binder = Object.freeze({
+        location: location,
+        type: type,
+        path: path,
+        scope: scope,
         name: name,
-        names: names,
         value: value,
-        values: values,
-        paths: paths,
+        target: target,
+        container: container,
+        keys: keys,
+        names: names,
         pipes: pipes,
-        target: node,
-        context: context,
-        container: context.container,
-        scope: context.container.scope
+        values: values,
+        meta: meta,
+
+        get data() {
+          var source = traverse(container.model, parts, 1);
+
+          if (names[0] === 'value') {
+            return source[property];
+          } else {
+            return Piper(this, source[property]);
+          }
+        },
+
+        set data(value) {
+          var source = traverse(container.model, parts, 1);
+
+          if (names[0] === 'value') {
+            source[property] = Piper(this, value);
+          } else {
+            source[property] = value;
+          }
+        }
+
       });
 
       if (this.nodes.has(binder.target)) {
@@ -1240,32 +1142,34 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       this.render(binder);
     },
     remove: function remove(node) {
-      walker(node, this.unbind.bind(this));
+      this.unbind(node);
+      node = node.firstChild;
+
+      while (node) {
+        this.remove(node);
+        node = node.nextSibling;
+      }
     },
-    add: function add(node, context) {
+    add: function add(node, container, scope) {
       if (node.nodeType === Node.TEXT_NODE) {
-        var start = node.textContent.indexOf('{{');
+        var start = node.textContent.indexOf(this.ms);
         if (start === -1) return;
-
-        if (start !== 0) {
-          node = node.splitText(start);
-        }
-
-        var end = node.textContent.indexOf('}}');
+        if (start !== 0) node = node.splitText(start);
+        var end = node.textContent.indexOf(this.me);
         if (end === -1) return;
 
-        if (end + 2 !== node.textContent.length) {
-          var split = node.splitText(end + 2);
-          this.bind(node, 'o-text', node.textContent, context);
-          this.add(split, context);
+        if (end + this.ms.length !== node.textContent.length) {
+          var split = node.splitText(end + this.me.length);
+          this.bind(node, 'o-text', node.textContent, container, scope);
+          this.add(split);
         } else {
-          this.bind(node, 'o-text', node.textContent, context);
+          this.bind(node, 'o-text', node.textContent, container, scope);
         }
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         var skip = false;
         var attributes = node.attributes;
 
-        for (var i = 0, l = attributes.length; i < l; i++) {
+        for (var i = 0; i < attributes.length; i++) {
           var attribute = attributes[i];
 
           if (attribute.name.indexOf('o-each') === 0) {
@@ -1273,18 +1177,15 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
           }
 
           if (attribute.name.indexOf('o-') === 0) {
-            this.bind(node, attribute.name, attribute.value, context);
+            this.bind(node, attribute.name, attribute.value, container, scope);
           }
         }
 
-        if (skip) {
-          return;
-        }
-
+        if (skip) return;
         node = node.firstChild;
 
         while (node) {
-          this.add(node, context);
+          this.add(node, container, scope);
           node = node.nextSibling;
         }
       }
@@ -1375,13 +1276,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   var Transformer = {
     innerHandler: function innerHandler(character, index, string) {
       if (string[index - 1] === '\\') return;
-      if (character === '\'') return '\\\'';
-      if (character === '\"') return '\\"';
+      if (character === '"') return '\\"';
       if (character === '\t') return '\\t';
       if (character === '\r') return '\\r';
       if (character === '\n') return '\\n';
-      if (character === '\w') return '\\w';
       if (character === '\b') return '\\b';
+      if (character === '\'') return '\\\'';
     },
     updateString: function updateString(value, index, string) {
       return string.slice(0, index) + value + string.slice(index + 1);
@@ -1417,7 +1317,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
             index = this.updateIndex(value, index);
           }
         } else if (isInner) {
-          if (value = this.innerHandler(character, index, string)) {
+          value = this.innerHandler(character, index, string);
+
+          if (value) {
             string = this.updateString(value, index, string);
             index = this.updateIndex(value, index);
           }
@@ -1782,10 +1684,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
       while (child) {
         if (!adopt) {
-          Binder.add(child, {
-            container: element,
-            scope: element.scope
-          });
+          Binder.add(child, element, element.scope);
         }
 
         fragment.appendChild(child);
@@ -1795,10 +1694,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       return fragment;
     },
     render: function render(element, template, adopt, shadow) {
-      if (!template) {
-        return;
-      }
-
+      if (!template) return;
       var fragment = this.fragment(element, template);
       var root;
 
@@ -1824,10 +1720,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         var child = root.firstElementChild;
 
         while (child) {
-          Binder.add(child, {
-            container: element,
-            scope: element.scope
-          });
+          Binder.add(child, element, element.scope);
           child = child.nextElementSibling;
         }
       }
@@ -1865,9 +1758,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }
 
       if (typeof options.template === 'string') {
-        var data = document.createElement('div');
-        data.innerHTML = options.template;
-        options.template = data;
+        options.template = new DOMParser().parseFromString(options.template, 'text/html').body;
       }
 
       var OElement = function OElement() {
@@ -1944,7 +1835,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       window.customElements.define(options.name, extend(OElement, HTMLElement));
     }
   });
-  var Fetcher = Object.freeze((_Object$freeze = {
+  console.warn('options function would need to be deprected');
+  var Fetcher = Object.freeze({
     options: {},
     mime: {
       xml: 'text/xml; charset=utf-8',
@@ -1953,6 +1845,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       json: 'application/json; charset=utf-8',
       js: 'application/javascript; charset=utf-8'
     },
+    types: ['json', 'text', 'blob', 'formData', 'arrayBuffer'],
     setup: function setup(options) {
       return new Promise(function ($return, $error) {
         options = options || {};
@@ -2117,20 +2010,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
                 } else {
                   responseType = data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType || '';
                   contentType = fetched.headers.get('content-type') || fetched.headers.get('Content-Type') || '';
-                  type = responseType;
 
-                  if (responseType === 'json') {
-                    if (contentType.indexOf('json') !== -1) {
-                      type = 'json';
-                    } else {
-                      type = 'text';
-                    }
+                  if (responseType === 'json' && contentType.indexOf('json') !== -1) {
+                    type = 'json';
+                  } else {
+                    type = responseType || 'text';
                   }
 
-                  if (['json', 'text', 'blob', 'formData', 'arrayBuffer'].indexOf(type) === -1) {
-                    return $error(new Error('Oxe.fetch - invalid responseType value'));
-                  }
-
+                  if (this.types.indexOf(type) === -1) return $error(new Error('Oxe.fetch - invalid responseType value'));
                   return Promise.resolve(fetched[type]()).then(function ($await_38) {
                     try {
                       data.body = $await_38;
@@ -2234,24 +2121,17 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         data.method = 'delete';
         return $return(this.fetch(data));
       }.bind(this));
+    },
+    connect: function connect(data) {
+      return new Promise(function ($return, $error) {
+        data = typeof data === 'string' ? {
+          url: data
+        } : data;
+        data.method = 'connect';
+        return $return(this.fetch(data));
+      }.bind(this));
     }
-  }, _defineProperty(_Object$freeze, "options", function options(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'options';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _defineProperty(_Object$freeze, "connect", function connect(data) {
-    return new Promise(function ($return, $error) {
-      data = typeof data === 'string' ? {
-        url: data
-      } : data;
-      data.method = 'connect';
-      return $return(this.fetch(data));
-    }.bind(this));
-  }), _Object$freeze));
+  });
   var Events = Object.freeze({
     events: {},
     on: function on(name, method) {
@@ -2511,7 +2391,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
               path = '/' + path;
             }
 
-            load = load.replace(/\/?\((\w+)?\~\)\/?/ig, '') + '.js';
+            load = load.replace(/\/?\((\w+)?~\)\/?/ig, '') + '.js';
             load = Path.join(this.option.folder, load);
             this.data.push({
               path: path,
@@ -3092,6 +2972,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       }.bind(this));
     }
   });
+  console.warn('todo: need to allow multiple o- attributes');
   document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}o-router,o-router>:first-child{display:block;}</style>');
   var oSetup = document.querySelector('script[o-setup]');
 
