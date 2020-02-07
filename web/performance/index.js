@@ -46,8 +46,8 @@ var oLoop = {
 
 		<div o-each-item="items">
 			<div class="box">
-				<div>{{item.number}}</div>
-				<input type="text" o-value="item.number">
+				<div>{{[item].number}}</div>
+				<input type="text" o-value="[item].number">
 			</div>
 		</div>
 

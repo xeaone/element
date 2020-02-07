@@ -56,15 +56,15 @@ export default {
 			<br>
 			<br>
 			<strong>Array: o-each-a="as"</strong>
-			<div o-each-a="as" o-index="i" o-key="k">
-				<div o-name="a.it.val">
-					<strong>Index: </strong>{{i}},
-					<strong>Key: </strong>{{k}},
-					<strong>Value: </strong>{{a.it.val}}
+			<div o-each-a-i-k="as">
+				<div o-name="[a].it.val">
+					<strong>Index: </strong>{{[i]}},
+					<strong>Key: </strong>{{[k]}},
+					<strong>Value: </strong>{{[a].it.val}}
 				</div>
 			</div>
 
-			<br>
+			<!-- <br>
 			<br>
 			<strong>Object: o-each-o="os"</strong>
 			<div o-each-o="os" o-index="i" o-key="k">
@@ -83,7 +83,7 @@ export default {
                 <strong>Key: </strong>{{k}},
                 <strong>Value: </strong>{{a.it.val}}
                 <br>
-			</div>
+			</div> -->
 
 		`
     }

@@ -79,7 +79,7 @@ export default Object.freeze({
         while (child) {
 
             if (!adopt) {
-                Binder.add(child, { container: element, scope: element.scope });
+                Binder.add(child, element, element.scope);
             }
 
             fragment.appendChild(child);
@@ -90,10 +90,7 @@ export default Object.freeze({
     },
 
     render (element, template, adopt, shadow) {
-
-        if (!template) {
-            return;
-        }
+        if (!template) return;
 
         const fragment = this.fragment(element, template);
 
@@ -119,7 +116,7 @@ export default Object.freeze({
         if (adopt) {
             let child = root.firstElementChild;
             while (child) {
-                Binder.add(child, { container: element, scope: element.scope });
+                Binder.add(child, element, element.scope);
                 child = child.nextElementSibling;
             }
         }
@@ -166,9 +163,12 @@ export default Object.freeze({
         }
 
         if (typeof options.template === 'string') {
-            const data = document.createElement('div');
-            data.innerHTML = options.template;
-            options.template = data;
+            // const data = document.createElement('div');
+            // data.innerHTML = options.template;
+            // options.template = data;
+            options.template = new DOMParser()
+                .parseFromString(options.template, 'text/html')
+                .body;
         }
 
         const OElement = function OElement () {
