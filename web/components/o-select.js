@@ -1,13 +1,3 @@
-/*
-	Name: oxe-components
-	Version: 4.1.1
-	License: MPL-2.0
-	Author: Arc IO
-	Email: undefined
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
 
 export default [
     {
@@ -18,17 +8,21 @@ export default [
         created: function () {
             this.tabIndex = 0;
         },
-        attributed: function (name, _, data) {
+        attributed: function (name) {
             switch (name) {
-                case 'multiple': this.multiple = false; break;
+            case 'multiple': this.multiple = false; break;
             }
         },
         properties: {
+            _options: { writable: true, value: [] },
+            _selectedIndex: { writable: true, value: -1 },
             _selectedOptions: { writable: true, value: [] },
-            selectedOptions: {
+            options: { enumerable: true, get: function () { return this._options; } },
+            selectedOptions: { enumerable: true, get: function () { return this._selectedOptions; } },
+            selectedIndex: {
                 enumerable: true,
                 get: function () {
-                    return this._selectedOptions;
+                    return this._options.indexOf(this._selectedOptions[0]);
                 }
             },
             required: {
@@ -57,12 +51,6 @@ export default [
                 enumerable: true,
                 get: function () {
                     return this.hasAttribute('multiple') ? 'select-multiple' : 'select-one';
-                }
-            },
-            options: {
-                enumerable: true,
-                get: function () {
-                    return this.querySelectorAll('o-option');
                 }
             },
             disabled: {
@@ -111,7 +99,7 @@ export default [
     },
     {
         name: 'o-optgroup',
-        attributes: ['label'],
+        attributes: [ 'label' ],
         template: '<slot></slot>',
         style: 'o-optgroup { display: block; } o-optgroup::before { content: attr(label); }',
         properties: {
@@ -139,7 +127,7 @@ export default [
         },
         attributed: function (name, _, data) {
             switch (name) {
-                case 'label': this.label = data; break;
+            case 'label': this.label = data; break;
             }
         },
         created: function () {
@@ -230,7 +218,7 @@ export default [
                     if (select.multiple === false) {
                         var old = select._selectedOptions[0];
                         if (old && this !== old) {
-                            old.selected = false
+                            old.selected = false;
                         }
                     }
 
@@ -242,7 +230,7 @@ export default [
                         }
                     } else {
                         if (index !== -1) {
-                           select._selectedOptions.splice(index, 1);
+                            select._selectedOptions.splice(index, 1);
                         }
                     }
 
@@ -270,32 +258,32 @@ export default [
                     this.setAttribute('name', data);
                     return data;
                 }
-            },
+            }
         },
         attributed: function (name, _, data) {
             switch (name) {
-                case 'value': this._value = data || ''; break;
+            case 'value': this._value = data || ''; break;
             }
         },
         created: function () {
             var self = this;
+            var group = self._group;
+            var select = self._select;
+            var event = new window.Event('input');
 
-            self.addEventListener('click', function () {
-                var group = self._group;
-                var select = self._select;
+            select._options.push(self);
+
+            var click = function () {
 
                 if (self.disabled || (select && select.disabled) || (group && group.disabled)) {
                     return;
                 }
 
                 self.selected = !self.selected;
+                select.dispatchEvent(event);
+            };
 
-                if (select) {
-                    var binder = Oxe.binder.get(select, 'o-value');
-                    if (binder) Oxe.binder.render(binder, 'view');
-                }
-
-            });
+            self.addEventListener('click', click);
 
             if (self.hasAttribute('selected')) {
                 click();
