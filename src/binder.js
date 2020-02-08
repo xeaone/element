@@ -30,11 +30,13 @@ const PATH = /\s?,\s?|\s?\|\s?|\s+/;
 
 export default Object.freeze({
 
-    get ms () { return '{{'; },
-    get me () { return '}}'; },
-
-    get ds () { return '['; },
-    get de () { return ']'; },
+    // get ds () { return '['; },
+    // get de () { return ']'; },
+    prefix: 'o-',
+    syntaxEnd: '}}',
+    syntaxStart: '{{',
+    prefixReplace: new RegExp('^o-'),
+    syntaxReplace: new RegExp('{{|}}', 'g'),
 
     data: new Map(),
     nodes: new Map(),
@@ -85,7 +87,7 @@ export default Object.freeze({
     },
 
     get (node, name) {
-        if (name in node.attributes === false) return null;
+        // if (name in node.attributes === false) return null;
 
         const value = node.attributes[name].value;
         const binders = this.nodes.get(node);
@@ -126,10 +128,9 @@ export default Object.freeze({
     },
 
     bind (target, name, value, container, scope) {
-        const pattern = new RegExp(`${this.ms}|${this.me}`, 'g');
 
-        value = value.replace(pattern, '').trim();
-        name = name.replace(/^o-/, '').replace(pattern, '').trim();
+        value = value.replace(this.syntaxReplace, '').trim();
+        name = name.replace(this.prefixReplace, '').replace(this.syntaxReplace, '').trim();
 
         const pipe = value.split(PIPE);
         const paths = value.split(PATH);
@@ -211,20 +212,20 @@ export default Object.freeze({
     add (node, container, scope) {
         if (node.nodeType === Node.TEXT_NODE) {
 
-            const start = node.textContent.indexOf(this.ms);
+            const start = node.textContent.indexOf(this.syntaxStart);
             if (start === -1)  return;
 
             if (start !== 0) node = node.splitText(start);
 
-            const end = node.textContent.indexOf(this.me);
+            const end = node.textContent.indexOf(this.syntaxEnd);
             if (end === -1) return;
 
-            if (end+this.ms.length !== node.textContent.length) {
-                const split = node.splitText(end + this.me.length);
-                this.bind(node, 'o-text', node.textContent, container, scope);
+            if (end+this.syntaxStart.length !== node.textContent.length) {
+                const split = node.splitText(end + this.syntaxEnd.length);
+                this.bind(node, `${this.prefix}text`, node.textContent, container, scope);
                 this.add(split);
             } else {
-                this.bind(node, 'o-text', node.textContent,  container, scope);
+                this.bind(node, `${this.prefix}text`, node.textContent,  container, scope);
             }
 
         } else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -236,11 +237,11 @@ export default Object.freeze({
 
                 // if (attribute.name === 'o-value') continue;
 
-                if (attribute.name.indexOf('o-each') === 0) {
+                if (attribute.name.indexOf(`${this.prefix}each`) === 0) {
                     skip = true;
                 }
 
-                if (attribute.name.indexOf('o-') === 0) {
+                if (attribute.name.indexOf(this.prefix) === 0) {
                     this.bind(node, attribute.name, attribute.value, container, scope);
                 }
 
