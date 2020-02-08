@@ -47,7 +47,6 @@ export default function (binder) {
                 while (count--) {
                     const node = binder.target.lastChild;
                     binder.target.removeChild(node);
-                    // self.remove(node);
                     Promise.resolve().then(self.remove.bind(self, node)).catch(console.error);
                 }
 
@@ -73,8 +72,6 @@ export default function (binder) {
                 while (node = parsed.firstChild) {
                     binder.meta.fragment.appendChild(node);
                     Promise.resolve().then(self.add.bind(self, node, binder.container, binder.scope)).catch(console.error);
-                    // self.add(node, binder.container, binder.scope);
-                    // binder.target.appendChild(node);
                 }
 
                 binder.meta.currentLength++;
