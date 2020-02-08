@@ -21,4 +21,4 @@ export default {
     title: 'Value Binder',
     name: 'r-binder-value',
     model, template, methods
-}
+};

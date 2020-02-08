@@ -21,4 +21,4 @@ export default {
         <span o-text="attributeVar"></span>
 
     `
-}
+};

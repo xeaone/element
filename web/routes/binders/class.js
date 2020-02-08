@@ -7,10 +7,9 @@ var toggle = function () {
 };
 
 var model = {
-    // toggle,
     ca: false,
     c: 'default',
-    title: 'Class',
+    title: 'Class'
 };
 
 var style = /*css*/`
@@ -46,10 +45,6 @@ export default {
         toggle,
         overwrite: function () {
             this.model.c = 'overwrite';
-        },
-        // toggle: function () {
-        //     console.log('toggle');
-        //     this.model.ca = !this.model.ca;
-        // }
+        }
     }
-}
+};

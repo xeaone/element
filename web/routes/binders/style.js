@@ -37,4 +37,4 @@ export default {
         <button style="border: solid 0.5rem red" o-style-border-color="bc" o-on-click="change">Change Colors</button>
 
     `
-}
+};
