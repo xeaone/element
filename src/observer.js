@@ -18,7 +18,6 @@ export default {
         //     console.log('length ', value);
         //     return true;
         // }
-        // console.log(property);
 
         target[property] = this.create(value, handler, path + property, tasks);
 
