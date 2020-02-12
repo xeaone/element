@@ -17,8 +17,18 @@ export default [
             _options: { writable: true, value: [] },
             _selectedIndex: { writable: true, value: -1 },
             _selectedOptions: { writable: true, value: [] },
-            options: { enumerable: true, get: function () { return this._options; } },
-            selectedOptions: { enumerable: true, get: function () { return this._selectedOptions; } },
+            options: {
+                enumerable: true,
+                get: function () {
+                    return Object.freeze(this._options.slice());
+                }
+            },
+            selectedOptions: {
+                enumerable: true,
+                get: function () {
+                    return Object.freeze(this._selectedOptions.slice());
+                }
+            },
             selectedIndex: {
                 enumerable: true,
                 get: function () {
@@ -142,43 +152,43 @@ export default [
         style: 'o-option { display: block; }',
         attributes: [ 'value' ],
         properties: {
-            _select: {
+            _value: { writable: true, value: '' },
+            _group: { writable: true, value: null },
+            _select: { writable: true, value: null },
+            _selected: { writable: true, value: false },
+            _valueDefaultLocked: { writable: true, value: false },
+            _selectedDefaultLocked: { writable: true, value: false },
+            select: {
                 get: function () {
-                    if (!this.parentElement) {
-                        return null;
-                    } else if (this.parentElement.nodeName === 'O-SELECT') {
-                        return this.parentElement;
-                    } else if (!this.parentElement.parentElement) {
-                        return null;
-                    } else if (this.parentElement.parentElement.nodeName === 'O-SELECT') {
-                        return this.parentElement.parentElement;
+                    if (!this._select) {
+                        if (!this.parentElement) {
+                            return this._select = null;
+                        } else if (this.parentElement.nodeName === 'O-SELECT') {
+                            return this._select = this.parentElement;
+                        } else if (!this.parentElement.parentElement) {
+                            return this._select = null;
+                        } else if (this.parentElement.parentElement.nodeName === 'O-SELECT') {
+                            return this._select = this.parentElement.parentElement;
+                        } else {
+                            console.warn('o-option invalid parent type');
+                        }
                     } else {
-                        console.warn('o-option invalid parent type');
+                        return this._select;
                     }
                 }
             },
-            _group: {
+            group: {
                 get: function () {
-                    if (this.parentElement && this.parentElement.nodeName === 'O-OPTGROUP') {
-                        return this.parentElement;
+                    if (!this._group) {
+                        if (!this.parentElement) {
+                            return this._group = null;
+                        } else if (this.parentElement.nodeName === 'O-OPTGROUP') {
+                            return this._group = this.parentElement;
+                        }
+                    } else {
+                        return this._group;
                     }
                 }
-            },
-            _valueDefaultLocked: {
-                writable: true,
-                value: false
-            },
-            _selectedDefaultLocked: {
-                writable: true,
-                value: false
-            },
-            _value: {
-                writable: true,
-                value: ''
-            },
-            _selected: {
-                writable: true,
-                value: false
             },
             value: {
                 enumerable: true,
@@ -209,28 +219,38 @@ export default [
                     this._selectedDefaultLocked = true;
 
                     var selected = this._selected = data ? true : false;
-                    if (selected) this.setAttribute('data-selected', '');
-                    else this.removeAttribute('data-selected');
+                    if (selected) this.setAttribute('active', '');
+                    else this.removeAttribute('active');
 
-                    var select = this._select;
+                    var select = this.select;
                     if (!select) return selected;
 
-                    if (select.multiple === false) {
-                        var old = select._selectedOptions[0];
-                        if (old && this !== old) {
-                            old.selected = false;
+                    var options = select._selectedOptions;
+
+                    if (!select.multiple) {
+                        for (var i = 0; i < options.length; i++) {
+                            var option = options[i];
+                            if (this !== option) {
+                                if (option._selected) {
+                                    options.splice(i, 1);
+                                    option._selected = false;
+                                    option.removeAttribute('active');
+                                }
+                            }
                         }
                     }
 
-                    var index = select._selectedOptions.indexOf(this);
+                    var index = options.indexOf(this);
 
                     if (selected) {
                         if (index === -1) {
-                            select._selectedOptions.push(this);
+                            options.push(this);
+                            this.setAttribute('active', '');
                         }
                     } else {
                         if (index !== -1) {
-                            select._selectedOptions.splice(index, 1);
+                            options.splice(index, 1);
+                            this.removeAttribute('active');
                         }
                     }
 
@@ -258,6 +278,20 @@ export default [
                     this.setAttribute('name', data);
                     return data;
                 }
+            },
+            _click: {
+                enumerable: true,
+                value: function () {
+                    if (
+                        this.disabled ||
+                        (this.select && this.select.disabled) ||
+                        (this.group && this.group.disabled)
+                    ) return;
+
+                    this.selected = !this.selected;
+                    this.select.dispatchEvent(new window.Event('change'));
+                    this.select.dispatchEvent(new window.Event('input'));
+                }
             }
         },
         attributed: function (name, _, data) {
@@ -265,33 +299,26 @@ export default [
             case 'value': this._value = data || ''; break;
             }
         },
-        created: function () {
-            var self = this;
-            var group = self._group;
-            var select = self._select;
-            var event = new window.Event('input');
-
-            select._options.push(self);
-
-            var click = function () {
-
-                if (self.disabled || (select && select.disabled) || (group && group.disabled)) {
-                    return;
-                }
-
-                self.selected = !self.selected;
-                select.dispatchEvent(event);
-            };
-
-            self.addEventListener('click', click);
-
-            if (self.hasAttribute('selected')) {
-                click();
-                self.setAttribute('data-selected', '');
-            } else {
-                self.removeAttribute('data-selected');
+        attached: function () {
+            if (this.select) {
+                this.select._options.push(this);
             }
 
+            if (this.hasAttribute('selected')) {
+                this._click();
+                this.setAttribute('active', '');
+            } else {
+                this.removeAttribute('active');
+            }
+
+        },
+        detached: function () {
+            if (this.select) {
+                this.select._options.splice(this.select._options.indexOf(this), 1);
+            }
+        },
+        created: function () {
+            this.onclick = this._click;
         }
     }
 ];
