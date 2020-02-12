@@ -3,7 +3,7 @@ import Match from '../utility/match.js';
 import Includes from '../utility/includes.js';
 import Multiple from '../utility/multiple.js';
 
-export default function (binder, caller) {
+export default function (binder, data, e) {
     const self = this;
     const type = binder.target.type;
 
@@ -12,112 +12,99 @@ export default function (binder, caller) {
 
     if (!binder.meta.setup) {
         binder.meta.setup = true;
-        binder.target.addEventListener('input', () => {
-            this.render(binder, 'view');
-            // binder.data = binder.target.value;
+        binder.target.addEventListener('input', (e) => {
+            this.render(binder, data, e);
         }, false);
     }
+
+    console.log(e);
 
     if (type === 'select-one' || type === 'select-multiple') {
         return {
             read () {
 
-                this.data = binder.data;
                 this.options = binder.target.options;
                 this.multiple = Multiple(binder.target);
 
-                if (this.multiple && (!this.data || this.data instanceof Array === false)) {
-                    binder.meta.busy = false;
-                    throw new Error(`Oxe - invalid o-value ${binder.keys.join('.')} multiple select requires array`);
+                if (this.multiple && binder.data instanceof Array === false) {
+                    binder.data = [];
+                    // binder.meta.busy = false;
+                    // throw new Error(`Oxe - invalid o-value ${binder.keys.join('.')} multiple select requires array`);
                 }
 
             },
             write () {
-                let fallback = false;
-                let fallbackSelectedAtrribute = false;
-                let fallbackValue = this.multiple ? [] : null;
-                let fallbackOption = this.multiple ? [] : null;
 
-                for (let i = 0, l = this.options.length; i < l; i++) {
+                const fallback = [];
+                const multiple = this.multiple;
+                const options = this.options;
+                for (let i = 0; i < options.length; i++) {
 
-                    const option = this.options[i];
+                    const option = options[i];
                     const selected = option.selected;
-                    const optionBinder = self.get(option, 'o-value');
-                    const optionValue = optionBinder ? optionBinder.data : option.value;
-                    const selectedAtrribute = option.hasAttribute('selected');
+                    const optionBinder = self.get(option, 'value');
+                    const value = optionBinder ? optionBinder.data : option.value;
 
-                    if (this.multiple) {
-                        if (selectedAtrribute) {
-                            fallback = true;
-                            fallbackOption.push(option);
-                            fallbackValue.push(optionValue);
-                        }
-                    } else {
-                        if (i === 0 || selectedAtrribute) {
-                            fallback = true;
-                            fallbackOption = option;
-                            fallbackValue = optionValue;
-                            fallbackSelectedAtrribute = selectedAtrribute;
-                        }
+                    if (option.hasAttribute('selected')) {
+                        fallback.push({ option, value });
                     }
 
-                    if (caller === 'view') {
-                        if (selected) {
-                            if (this.multiple) {
-                                const includes = Includes(this.data, optionValue);
+                    console.log(binder.data, value, binder.data===value);
+
+                    if (e) {
+                        if (multiple) {
+                            if (selected) {
+                                const includes = Includes(binder.data, value);
                                 if (!includes) {
-                                    this.selected = true;
-                                    binder.data.push(optionValue);
+                                    binder.data.push(value);
                                 }
-                            } else if (!this.selected) {
-                                this.selected = true;
-                                binder.data = optionValue;
-                            }
-                        } else {
-                            if (this.multiple) {
-                                const index = Index(this.data, optionValue);
+                            } else {
+                                const index = Index(binder.data, value);
                                 if (index !== -1) {
                                     binder.data.splice(index, 1);
                                 }
-                            } else if (!this.selected && i === l - 1) {
-                                binder.data = null;
+                            }
+                        } else {
+                            if (selected) {
+                                binder.data = value;
+                                break;
                             }
                         }
                     } else {
-                        if (this.multiple) {
-                            const includes = Includes(this.data, optionValue);
+                        if (multiple) {
+                            const includes = Includes(binder.data, value);
                             if (includes) {
-                                this.selected = true;
                                 option.selected = true;
                             } else {
                                 option.selected = false;
                             }
                         } else {
-                            if (!this.selected) {
-                                const match = Match(this.data, optionValue);
-                                if (match) {
-                                    this.selected = true;
-                                    option.selected = true;
-                                } else {
-                                    option.selected = false;
-                                }
-                            } else {
-                                option.selected = false;
+                            const match = Match(binder.data, value);
+                            if (match) {
+                                option.selected = true;
+                                break;
                             }
                         }
                     }
-
                 }
 
-                if (!this.selected && fallback) {
-                    if (this.multiple) {
-                        for (let i = 0, l = fallbackOption.length; i < l; i++) {
-                            fallbackOption[i].selected = true;
-                            binder.data.push(fallbackValue[i]);
+                if (this.selectedIndex === -1) {
+                    if (multiple) {
+                        for (let i = 0; i < fallback.length; i++) {
+                            const { option, value } = fallback[i];
+                            if (e) {
+                                binder.data.push(value);
+                            } else {
+                                option.selected = true;
+                            }
                         }
-                    } else if (fallbackSelectedAtrribute || this.nodeName === 'OPTION') {
-                        binder.data = fallbackValue;
-                        fallbackOption.selected = true;
+                    } else {
+                        // const { option, value } = fallback[0] || this.options[0];
+                        // if (e) {
+                        //     binder.data = value;
+                        // } else {
+                        //     option.selected = true;
+                        // }
                     }
                 }
 
@@ -133,7 +120,7 @@ export default function (binder, caller) {
                 this.nodes = this.form.querySelectorAll(this.query);
                 this.radios = Array.prototype.slice.call(this.nodes);
 
-                if (caller === 'view') {
+                if (e) {
                     binder.data = this.radios.indexOf(binder.target);
                     binder.meta.busy = false;
                     return this.write = false;
@@ -160,12 +147,11 @@ export default function (binder, caller) {
                 binder.meta.busy = false;
             }
         };
-
     } else if (type === 'checkbox') {
         return {
             read () {
 
-                if (caller === 'view') {
+                if (e) {
                     binder.data = binder.target.checked;
                     binder.meta.busy = false;
                     return this.write = false;
@@ -193,14 +179,13 @@ export default function (binder, caller) {
     } else {
         return {
             read () {
-                this.data = binder.data;
 
-                if (this.data === binder.target.value) {
+                if (binder.data === binder.target.value) {
                     binder.meta.busy = false;
                     return this.write = false;
                 }
 
-                if (caller === 'view') {
+                if (e) {
                     binder.data = binder.target.value;
                     binder.meta.busy = false;
                     return this.write = false;
@@ -208,7 +193,7 @@ export default function (binder, caller) {
 
             },
             write () {
-                binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
+                binder.target.value = binder.data === undefined || binder.data === null ? '' : binder.data;
                 binder.meta.busy = false;
             }
         };
