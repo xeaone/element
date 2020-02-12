@@ -44,15 +44,6 @@ export default {
     },
     template: /*html*/`
 
-        <style>
-            o-optgroup::before, o-options::before {
-                font-weight: bold;
-            }
-            o-option {
-                margin-left: 1rem;
-            }
-        </style>
-
         <h2 o-text="title"></h2>
 
         <!-- <hr>
