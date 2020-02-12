@@ -118,3 +118,16 @@ r-error {
 	justify-content: center;
 	flex-direction: column;
 }
+o-select {
+    padding: 0.5rem;
+    border: 1px solid lightgray;
+}
+o-option {
+    margin-left: 1rem;
+}
+o-option[active] {
+    background-color: lightgray;
+}
+o-optgroup::before {
+    font-weight: bold;
+}
