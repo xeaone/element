@@ -104,9 +104,9 @@ export default Object.freeze({
         return null;
     },
 
-    render (binder, data) {
+    render (binder, data, e) {
         const type = binder.type in this.binders ? binder.type : 'default';
-        const render = this.binders[type](binder, data);
+        const render = this.binders[type](binder, data, e);
         Batcher.batch(render);
     },
 
