@@ -89,14 +89,16 @@ export default Object.freeze({
     get (node, name) {
         // if (name in node.attributes === false) return null;
 
-        const value = node.attributes[name].value;
+        // const value = node.attributes[name].value;
         const binders = this.nodes.get(node);
 
         if (!binders) return null;
 
         for (let i = 0, l = binders.length; i < l; i++) {
             const binder = binders[i];
-            if (binder.name === name && binder.value === value) {
+            // console.log(binder);
+            // if (binder.name === name && binder.value === value) {
+            if (binder.name === name) {
                 return binder;
             }
         }
