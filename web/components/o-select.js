@@ -305,7 +305,6 @@ export default [
             }
 
             if (this.hasAttribute('selected')) {
-                this._click();
                 this.setAttribute('active', '');
             } else {
                 this.removeAttribute('active');
