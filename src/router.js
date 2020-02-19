@@ -236,7 +236,9 @@ export default Object.freeze({
                 path = '/' + path;
             }
 
-            load = load.replace(/\/?\((\w+)?~\)\/?/ig, '') + '.js';
+            console.warn('need to look at why we had this');
+            // load = load.replace(/\/?\((\w+)?~\)\/?/ig, '') + '.js';
+            load =  + '.js';
             load = Path.join(this.option.folder, load);
 
             this.data.push({ path, load });
