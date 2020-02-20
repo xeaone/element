@@ -26,6 +26,4 @@ const Exec = Util.promisify(ChildProcess.exec);
 
     }
 
-}()).catch(function (error) {
-    console.error(error.message);
-});
+}()).catch(console.error);
