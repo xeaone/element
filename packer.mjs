@@ -35,20 +35,17 @@ export const Transformer = async function (option) {
         minified: option.minify,
         comments: option.comments,
         plugins: [
-            // '@babel/plugin-syntax-dynamic-import',
-            [ 'module:fast-async', {
-                spec: true
-            } ]
+            '@babel/plugin-transform-spread',
+            '@babel/plugin-syntax-dynamic-import',
+            '@babel/plugin-transform-arrow-functions',
+            'babel-plugin-transform-async-to-promises'
         ],
         presets: [
             [ '@babel/preset-env', {
                 modules: false,
-                targets: { ie: '11' },
-                exclude: [
-                    'transform-regenerator',
-                    'transform-async-to-generator',
-                    'proposal-async-generator-functions'
-                ]
+                // useBuiltIns: 'usage',
+                // targets: { ie: '11' },
+                targets: '> 0.25%, not dead'
             } ]
         ]
     });
