@@ -45,7 +45,6 @@ export default Object.freeze({
     path: Path,
 
     setup (options) {
-        const self = this;
 
         if (SETUP) return;
         else SETUP = true;
@@ -54,24 +53,24 @@ export default Object.freeze({
         options.listener = options.listener || {};
 
         return Promise.all([
-            self.path.setup(options.path),
-            self.style.setup(options.style),
-            self.binder.setup(options.binder),
-            self.loader.setup(options.loader),
-            self.fetcher.setup(options.fetcher)
-        ]).then(function () {
+            this.path.setup(options.path),
+            this.style.setup(options.style),
+            this.binder.setup(options.binder),
+            this.loader.setup(options.loader),
+            this.fetcher.setup(options.fetcher)
+        ]).then(() => {
             if (options.listener.before) {
                 return options.listener.before();
             }
-        }).then(function () {
+        }).then(() => {
             if (options.component) {
-                return self.component.setup(options.component);
+                return this.component.setup(options.component);
             }
-        }).then(function () {
+        }).then(() => {
             if (options.router) {
-                return self.router.setup(options.router);
+                return this.router.setup(options.router);
             }
-        }).then(function () {
+        }).then(() => {
             if (options.listener.after) {
                 return options.listener.after();
             }
