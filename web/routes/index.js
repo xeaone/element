@@ -1,6 +1,8 @@
 import Escape from '../modules/escape.js';
 import Say from '../modules/say.js';
 
+// import Say from '../modules/say.js';
+
 var home = Escape(`
 	// home.js
 
@@ -32,8 +34,8 @@ var home = Escape(`
 var indexjs = Escape(`
 	// index.js
 
-	imprt './elements/e-menu.js';
-	imprt Home from './home.js';
+    import './elements/e-menu.js';
+	import Home from './home.js';
 
 	Oxe.setup({
 		loader: {
