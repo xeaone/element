@@ -1,6 +1,7 @@
 
+// https://regexr.com/4uq22
 const IMPORT_PATTERN = `
-    ^\\s*import
+    import
     (?:
         (?:
             \\s+(\\w+)(?:\\s+|\\s*,\\s*)
@@ -30,12 +31,14 @@ const IMPORT_PATTERN = `
     )
     ?
     \\s*
-    (?:
-        (?:"(.*?)")|(?:'(.*?)')
-    )
-    \\s*(?:;|)
-`.replace(/\t|\s/g, '');
+    (?:"|')
+    (.*?)
+    (?:'|")
+    (?:\\s*;)?
+`.replace(/\s+/g, '');
 
+// https://regexr.com/4uq8k
+const EXPORT_PATTERN = '^export\\b(?:\\s*(default)\\s*)?(?:\\s*(var|let|const|function|class)\\s*)?(?:\\s*(\\w+)\\s*)?';
 
 const Normalize = function (data) {
     const parser = window.document.createElement('a');
@@ -158,25 +161,26 @@ const Transformer = {
     */
 
     importPattern: new RegExp(IMPORT_PATTERN),
-    importsPattern: new RegExp(IMPORT_PATTERN, 'gm'),
-    exp: /export\s+default\s*(var|let|const)?/,
+    importsPattern: new RegExp(IMPORT_PATTERN, 'g'),
+    exportPattern: new RegExp(EXPORT_PATTERN),
+    exportsPattern: new RegExp(EXPORT_PATTERN, 'gm'),
 
     module (code, url) {
 
-        var before = `window.Oxe.loader.data["${url}"] = Promise.all([\n`;
-        var after = ']).then(function ($MODULES) {\n';
-        var parentImport = url.slice(0, url.lastIndexOf('/') + 1);
+        let before = `window.Oxe.loader.data["${url}"] = Promise.all([\n`;
+        let after = ']).then(function ($MODULES) {\n';
 
-        var imps = code.match(this.importsPattern) || [];
-        console.log(imps);
+        const parentImport = url.slice(0, url.lastIndexOf('/') + 1);
 
-        for (var i = 0, l = imps.length; i < l; i++) {
-            var imp = imps[i].match(this.importPattern);
-            console.log(imp);
+        const importMatches = code.match(this.importsPattern) || [];
+        // console.log(importMatches);
+        for (let i = 0, l = importMatches.length; i < l; i++) {
+            const importMatch = importMatches[i].match(this.importPattern);
+            // console.log(importMatch);
 
-            var rawImport = imp[0];
-            var nameImport = imp[1]; // default
-            var pathImport = imp[4] || imp[5];
+            var rawImport = importMatch[0];
+            var nameImport = importMatch[1]; // default
+            var pathImport = importMatch[4] || importMatch[5];
 
             if (pathImport.slice(0, 1) !== '/') {
                 pathImport = Normalize(parentImport + '/' + pathImport);
@@ -187,12 +191,29 @@ const Transformer = {
             before = before + '\twindow.Oxe.loader.load("' + pathImport + '"),\n';
             after = after + 'var ' + nameImport + ' = $MODULES[' + i + '].default;\n';
 
-            code = code.replace(rawImport, '');
+            code = code.replace(rawImport, '') || [];
         }
 
-        if (this.exp.test(code)) {
-            code = code.replace(this.exp, 'var $DEFAULT = ');
-            code = code + '\n\nreturn { default: $DEFAULT };\n';
+        let hasDefault = false;
+        const exps = code.match(this.exportsPattern);
+        for (let i = 0, l = exps.length; i < l; i++) {
+            const exp = exps[i].match(this.exportPattern);
+            const rawExport = exp[0];
+            const defaultExport = exp[1] || '';
+            const typeExport = exp[2] || '';
+            const nameExport = exp[3] || '';
+            if (defaultExport) {
+                if (hasDefault) {
+                    code = code.replace(rawExport, `$DEFAULT = ${typeExport} ${nameExport}`);
+                } else {
+                    hasDefault = true;
+                    code = code.replace(rawExport, `var $DEFAULT = ${typeExport} ${nameExport}`);
+                }
+            }
+        }
+
+        if (hasDefault) {
+            code += '\n\nreturn { default: $DEFAULT };\n';
         }
 
         code = '"use strict";\n' + before + after + code + '});';
