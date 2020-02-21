@@ -35,10 +35,6 @@ export const Transformer = async function (option) {
         minified: option.minify,
         comments: option.comments,
         plugins: [
-            // '@babel/plugin-transform-spread',
-            // '@babel/plugin-syntax-dynamic-import',
-            // '@babel/plugin-transform-destructuring',
-            // '@babel/plugin-transform-arrow-functions',
             'babel-plugin-transform-async-to-promises'
         ],
         presets: [
