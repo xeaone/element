@@ -7,26 +7,13 @@ import Router from './router.js';
 import Style from './style.js';
 import Path from './path.js';
 
-console.warn('todo: need to allow multiple o- attributes');
-
 document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}o-router,o-router>:first-child{display:block;}</style>');
 
-const oSetup = document.querySelector('script[o-setup]');
+const setup = document.querySelector('script[o-setup]');
 
-if (oSetup) {
-    Promise.resolve().then(function () {
-        const attribute = oSetup.getAttribute('o-setup');
-
-        if (!attribute) {
-            throw new Error('Oxe - attribute o-setup requires arguments');
-        }
-
-        const options = attribute.split(/\s+|\s*,+\s*/);
-
-        Loader.options.type = options[1] || 'esm';
-
-        return Loader.load(options[0]);
-    });
+if (setup) {
+    const url = setup.getAttribute('o-setup');
+    Promise.resolve().then(() => Loader.load(url));
 }
 
 let SETUP = false;
