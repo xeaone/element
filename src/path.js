@@ -30,62 +30,29 @@ export default {
         return position > 0 ? data.slice(position + 1) : '';
     },
 
-    clean (data) {
-        const hash = window.location.hash;
-        const search = window.location.search;
+    resolve () {
+        const result = [];
         const origin = window.location.origin;
-        const protocol = window.location.protocol + '//';
-
-        if (data.slice(0, origin.length) === origin) {
-            data = data.slice(origin.length);
-        }
-
-        if (data.slice(0, protocol.length) === protocol) {
-            data = data.slice(protocol.length);
-        }
-
-        if (data.slice(-hash.length) === hash) {
-            data = data.slice(0, -hash.length);
-        }
-
-        if (data.slice(-search.length) === search) {
-            data = data.slice(0, -search.length);
-        }
-
-        return data || '/';
-    },
-
-    normalize (data) {
         const parser = window.document.createElement('a');
 
-        data = this.clean(data);
-        data = data.replace(/\/+/g, '/');
-
-        parser.href = data;
-
-        data = parser.pathname;
-        data = data ? data : '/';
-
-        if (data !== '/' && data.slice(-1) === '/') {
-            data = data.slice(0, -1);
-        }
-
-        return data;
-    },
-
-    join () {
-
-        if (!arguments.length) {
-            throw new Error('Oxe.path.join - argument required');
-        }
-
-        const result = [];
-
         for (let i = 0, l = arguments.length; i < l; i++) {
-            result.push(arguments[i]);
+            const path = arguments[i];
+            if (!path) continue;
+            parser.href = path;
+            if (parser.origin === origin) {
+                if (path.indexOf(origin) === 0) {
+                    result.push(path.slice(origin.length));
+                } else {
+                    result.push(path);
+                }
+            } else {
+                return path;
+            }
         }
 
-        return this.normalize(result.join('/'));
+        parser.href = result.join('/').replace(/\/+/g, '/');
+
+        return parser.pathname;
     }
 
 };

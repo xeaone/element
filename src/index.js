@@ -10,11 +10,8 @@ import Path from './path.js';
 document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}o-router,o-router>:first-child{display:block;}</style>');
 
 const setup = document.querySelector('script[o-setup]');
-
-if (setup) {
-    const url = setup.getAttribute('o-setup');
-    Promise.resolve().then(() => Loader.load(url));
-}
+const url = setup ? setup.getAttribute('o-setup') : '';
+if (setup) Loader.load(url);
 
 let SETUP = false;
 const GLOBAL = {};
@@ -31,13 +28,25 @@ export default Object.freeze({
     style: Style,
     path: Path,
 
-    setup (options) {
+    setup (options = {}) {
 
         if (SETUP) return;
         else SETUP = true;
 
-        options = options || {};
         options.listener = options.listener || {};
+
+        // if (document.currentScript) {
+        //     options.base = document.currentScript.src.replace(window.location.origin, '');
+        // } else if (url) {
+        //     const a = document.createElement('a');
+        //     a.setAttribute('href', url);
+        //     options.base = a.pathname;
+        // }
+        //
+        // options.base = options.base ? options.base.replace(/\/*\w*.js$/, '') : '/';
+        // options.loader.base = options.base;
+        // options.router.base = options.base;
+        // options.component.base = options.base;
 
         return Promise.all([
             this.path.setup(options.path),

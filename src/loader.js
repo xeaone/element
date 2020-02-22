@@ -1,3 +1,4 @@
+import Path from './path.js';
 
 // innerHandler (character, index, string) {
 //     if (string[index-1] === '\\') return;
@@ -70,45 +71,6 @@
 //     }
 //
 // },
-
-const ImportPath = function (data) {
-    const parser = window.document.createElement('a');
-
-    const hash = window.location.hash;
-    const search = window.location.search;
-    const origin = window.location.origin;
-    const protocol = window.location.protocol + '//';
-
-    if (data.slice(0, origin.length) === origin) {
-        data = data.slice(origin.length);
-    }
-
-    if (data.slice(0, protocol.length) === protocol) {
-        data = data.slice(protocol.length);
-    }
-
-    if (data.slice(-hash.length) === hash) {
-        data = data.slice(0, -hash.length);
-    }
-
-    if (data.slice(-search.length) === search) {
-        data = data.slice(0, -search.length);
-    }
-
-    data = (data || '/').replace(/\/+/g, '/');
-
-    parser.href = data;
-
-    data = parser.pathname;
-    data = data ? data : '/';
-
-    if (data !== '/' && data.slice(-1) === '/') {
-        data = data.slice(0, -1);
-    }
-
-    return data;
-};
-
 
 const MODULES = {};
 
@@ -189,11 +151,15 @@ const transform = function (code, url) {
         var nameImport = importMatch[1]; // default
         var pathImport = importMatch[4] || importMatch[5];
 
+        console.log(pathImport);
         if (pathImport.slice(0, 1) !== '/') {
-            pathImport = ImportPath(parentImport + '/' + pathImport);
+            // pathImport = ImportPath(parentImport + '/' + pathImport);
+            pathImport = Path.resolve(parentImport, pathImport);
         } else {
-            pathImport = ImportPath(pathImport);
+            // pathImport = ImportPath(pathImport);
+            pathImport = Path.resolve(pathImport);
         }
+        console.log(pathImport);
 
         before = before + '\twindow.Oxe.loader.load("' + pathImport + '"),\n';
         after = after + 'var ' + nameImport + ' = $MODULES[' + i + '].default;\n';
@@ -309,47 +275,37 @@ const IMPORT = function (url) {
     });
 };
 
-export default Object.freeze({
+let native;
+try {
+    new Function('import("")');
+    native = true;
+} catch {
+    native = false;
+}
 
-    data: MODULES,
-    options: {},
+const load = async function (url) {
+    if (!url) throw new Error('url argument required');
+    // if (native) {
+    if (false) {
+        console.log('native import');
+        return new Function('url', 'return import(url)')(url);
+    } else {
+        console.log('not native import');
+        return IMPORT(url);
+    }
+};
 
-    async setup (options) {
-        options = options || {};
+const setup = async function (options = {}) {
+    const { loads } = options;
 
-        const loads = options.loads;
-
-        if (loads) {
-            return Promise.all(loads.map(load => this.load(load)));
-        }
-
-    },
-
-    async load () {
-        let url, type;
-
-        if (typeof arguments[0] === 'object') {
-            url = arguments[0]['url'];
-            type = arguments[0]['type'];
-        } else {
-            url = arguments[0];
-            type = arguments[1] || this.options.type;
-        }
-
-        if (!url) {
-            throw new Error('Oxe.loader.load - url argument required');
-        }
-
-        // try {
-        //     const a = window.document.createElement('a');
-        //     a.setAttribute('href', url);
-        //     url = a.href;
-        //     const method = new Function('url', 'return import(url);');
-        //     return method(url);
-        // } catch (error) {
-            return IMPORT(url);
-        // }
-
+    if (loads) {
+        return Promise.all(loads.map(load => this.load(Path.resolve(load))));
     }
 
+};
+
+export default Object.freeze({
+    data: MODULES,
+    options: {},
+    setup, load
 });

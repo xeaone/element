@@ -1,3 +1,4 @@
+import Path from './path.js';
 import Style from './style.js';
 import Binder from './binder.js';
 import Loader from './loader.js';
@@ -6,13 +7,14 @@ import Extend from './utility/extend.js';
 
 export default Object.freeze({
 
-    async setup (options) {
-        options = options || {};
+    async setup (options = {}) {
+        const { components } = options;
 
-        if (options.components) {
-            return Promise.all(options.components.map(component => {
+        if (components) {
+            return Promise.all(components.map(component => {
                 if (typeof component === 'string') {
-                    return Loader.load(component).then(load => {
+                    const path = Path.resolve(component); 
+                    return Loader.load(path).then(load => {
                         return this.define(load.default);
                     });
                 } else {

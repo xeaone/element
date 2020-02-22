@@ -89,18 +89,22 @@ export default Object.freeze({
     },
 
     compare (routePath, userPath) {
-        const base = Path.normalize(Path.base);
 
-        userPath = Path.normalize(userPath);
-        routePath = Path.normalize(routePath);
+        userPath = Path.resolve(userPath);
+        routePath = Path.resolve(routePath);
 
-        if (userPath.slice(0, base.length) !== base) {
-            userPath = Path.join(base, userPath);
-        }
-
-        if (routePath.slice(0, base.length) !== base) {
-            routePath = Path.join(base, routePath);
-        }
+        // const base = Path.normalize(Path.base);
+        //
+        // userPath = Path.normalize(userPath);
+        // routePath = Path.normalize(routePath);
+        //
+        // if (userPath.slice(0, base.length) !== base) {
+        //     userPath = Path.join(base, userPath);
+        // }
+        //
+        // if (routePath.slice(0, base.length) !== base) {
+        //     routePath = Path.join(base, routePath);
+        // }
 
         if (this.compareParts(routePath, userPath, '/')) {
             return true;
@@ -239,7 +243,7 @@ export default Object.freeze({
             console.warn('need to look at why we had this');
             // load = load.replace(/\/?\((\w+)?~\)\/?/ig, '') + '.js';
             load = load + '.js';
-            load = Path.join(this.option.folder, load);
+            load = Path.resolve(this.option.folder, load);
 
             this.data.push({ path, load });
         } else if (data.constructor === Object) {
