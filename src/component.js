@@ -1,4 +1,3 @@
-import Path from './path.js';
 import Style from './style.js';
 import Binder from './binder.js';
 import Loader from './loader.js';
@@ -13,8 +12,7 @@ export default Object.freeze({
         if (components) {
             return Promise.all(components.map(component => {
                 if (typeof component === 'string') {
-                    const path = Path.resolve(component); 
-                    return Loader.load(path).then(load => {
+                    return Loader.load(component).then(load => {
                         return this.define(load.default);
                     });
                 } else {
