@@ -216,34 +216,22 @@ export default Object.freeze({
         if (!data) {
             return;
         } else if (data.constructor === String) {
+            let load = data;
             let path = data;
 
-            if (path.slice(-3) === '.js') {
-                path = path.slice(0, -3);
-            }
+            if (path.slice(-3) === '.js') path = path.slice(0, -3);
+            if (path.slice(-5) === 'index') path = path.slice(0, -5);
+            if (path.slice(-6) === 'index/') path = path.slice(0, -6);
+            if (path.slice(0, 2) === './') path = path.slice(2);
+            if (path.slice(0, 1) !== '/') path = '/' + path;
 
-            let load = path;
+            if (load.slice(-3) !== '.js') load = load + '.js';
+            if (load.slice(0, 2) === './') load = load.slice(2);
+            if (load.slice(0, 1) !== '/') load = '/' + load;
 
-            if (path.slice(-5) === 'index') {
-                path = path.slice(0, -5);
-            }
+            if (this.option.folder.slice(-1) === '/') this.option.folder = this.option.folder.slice(0, -1);
 
-            if (path.slice(-6) === 'index/') {
-                path = path.slice(0, -6);
-            }
-
-            if (path.slice(0, 2) === './') {
-                path = path.slice(2);
-            }
-
-            if (path.slice(0, 1) !== '/') {
-                path = '/' + path;
-            }
-
-            console.warn('need to look at why we had this');
-            // load = load.replace(/\/?\((\w+)?~\)\/?/ig, '') + '.js';
-            load = load + '.js';
-            load = Path.resolve(this.option.folder, load);
+            load = this.option.folder + '/' + load;
 
             this.data.push({ path, load });
         } else if (data.constructor === Object) {
