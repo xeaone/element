@@ -1,7 +1,6 @@
 // import Traverse from '../utility/traverse.js';
 
 const submit = async function (binder, event) {
-
     event.preventDefault();
 
     const data = {};
@@ -19,9 +18,11 @@ const submit = async function (binder, event) {
             continue;
         }
 
-        const b = this.get(element, 'o-value');
+        const attribute = element.attributes['o-value'];
+        const b = this.get(attribute);
 
         console.warn('todo: need to get a value for selects');
+
         const value = (
             b ? b.data : (
                 element.files ? (
@@ -34,12 +35,10 @@ const submit = async function (binder, event) {
 
         if (!name) continue;
         data[name] = value;
-
     }
 
-    let method = binder.data;
-    if (typeof method === 'function') {
-        await method.call(binder.container, data, event);
+    if (typeof binder.data === 'function') {
+        await binder.data.call(binder.container, data, event);
     }
 
     if ('o-reset' in event.target.attributes) {
@@ -60,6 +59,7 @@ export default function (binder) {
             }
 
             if (binder.meta.method) {
+                console.log('remove method');
                 binder.target.removeEventListener('submit', binder.meta.method);
             }
 
