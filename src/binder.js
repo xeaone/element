@@ -1,5 +1,4 @@
 import Traverse from './utility/traverse.js';
-// import Walker from './utility/walker.js';
 
 import Batcher from './batcher.js';
 import Piper from './piper.js';
@@ -30,8 +29,6 @@ const PATH = /\s?,\s?|\s?\|\s?|\s+/;
 
 export default Object.freeze({
 
-    // get ds () { return '['; },
-    // get de () { return ']'; },
     prefix: 'o-',
     syntaxEnd: '}}',
     syntaxStart: '{{',
@@ -39,7 +36,6 @@ export default Object.freeze({
     syntaxReplace: new RegExp('{{|}}', 'g'),
 
     data: new Map(),
-    nodes: new Map(),
 
     binders: {
         class: Class,
@@ -88,23 +84,6 @@ export default Object.freeze({
 
     get (node) {
         return this.data.get(node);
-
-        // if (name in node.attributes === false) return null;
-        // const value = node.attributes[name].value;
-        // const binders = this.nodes.get(node);
-        //
-        // if (!binders) return null;
-        //
-        // for (let i = 0, l = binders.length; i < l; i++) {
-        //     const binder = binders[i];
-        //     // console.log(binder);
-        //     // if (binder.name === name && binder.value === value) {
-        //     if (binder.name === name) {
-        //         return binder;
-        //     }
-        // }
-        //
-        // return null;
     },
 
     render (binder, data, e) {
@@ -239,8 +218,6 @@ export default Object.freeze({
             // }
 
             if (skip) return;
-
-            // Walker(node, this.add.bind(this, node);
 
             node = node.firstChild;
             while (node) {
