@@ -1,81 +1,20 @@
 import Path from './path.js';
 
-// innerHandler (character, index, string) {
-//     if (string[index-1] === '\\') return;
-//     if (character === '"') return '\\"';
-//     if (character === '\t') return '\\t';
-//     if (character === '\r') return '\\r';
-//     if (character === '\n') return '\\n';
-//     if (character === '\b') return '\\b';
-//     if (character === '\'') return '\\\'';
-// },
-//
-// updateString (value, index, string) {
-//     return string.slice(0, index) + value + string.slice(index+1);
-// },
-//
-// updateIndex (value, index) {
-//     return index + value.length-1;
-// },
-//
-// template (data) {
-//
-//     var first = data.indexOf('`');
-//     var second = data.indexOf('`', first+1);
-//
-//     if (first === -1 || second === -1) return data;
-//
-//     var value;
-//     var ends = 0;
-//     var starts = 0;
-//     var string = data;
-//     var isInner = false;
-//
-//     for (var index = 0; index < string.length; index++) {
-//         var character = string[index];
-//
-//         if (character === '`' && string[index-1] !== '\\') {
-//
-//             if (isInner) {
-//                 ends++;
-//                 value = '\'';
-//                 isInner = false;
-//                 string = this.updateString(value, index, string);
-//                 index = this.updateIndex(value, index);
-//             } else {
-//                 starts++;
-//                 value = '\'';
-//                 isInner = true;
-//                 string = this.updateString(value, index, string);
-//                 index = this.updateIndex(value, index);
-//             }
-//
-//         } else if (isInner) {
-//             value = this.innerHandler(character, index, string);
-//
-//             if (value) {
-//                 string = this.updateString(value, index, string);
-//                 index = this.updateIndex(value, index);
-//             }
-//
-//         }
-//
-//     }
-//
-//     string = string.replace(/\${(.*?)}/g, '\'+$1+\'');
-//
-//     if (starts === ends) {
-//         return string;
-//     } else {
-//         throw new Error('import transformer missing backtick');
-//     }
-//
-// },
-
-const MODULES = {};
-
-// https://regexr.com/4uq8k
-const S_EXPORT = '^export\\b(?:\\s*(default)\\s*)?(?:\\s*(var|let|const|function|class)\\s*)?(?:\\s*(\\w+)\\s*)?';
+// https://regexr.com/4uued
+const S_EXPORT = `
+    ^export\\b
+    (?:
+        \\s*(default)\\s*
+    )?
+    (?:
+        \\s*(var|let|const|function|class)\\s*
+    )?
+    (\\s*?:{\\s*)?
+    (
+        (?:\\w+\\s*,?\\s*)*
+    )?
+    (\\s*?:}\\s*)?
+`.replace(/\s+/g, '');
 
 // https://regexr.com/4uq22
 const S_IMPORT = `
@@ -115,9 +54,10 @@ const S_IMPORT = `
     (?:\\s*;)?
 `.replace(/\s+/g, '');
 
+const MODULES = {};
 const R_IMPORT = new RegExp(S_IMPORT);
-const R_IMPORTS = new RegExp(S_IMPORT, 'g');
 const R_EXPORT = new RegExp(S_EXPORT);
+const R_IMPORTS = new RegExp(S_IMPORT, 'g');
 const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
 const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
 
@@ -128,9 +68,9 @@ const transform = function (code, url) {
 
     const templateMatches = code.match(R_TEMPLATES) || [];
     for (let i = 0; i < templateMatches.length; i++) {
-        // console.log(templateMatches[i]);
-        code = code.replace(templateMatches[i],
-            templateMatches[i]
+        const templateMatch = templateMatches[i];
+        code = code.replace(templateMatch,
+            templateMatch
                 .replace(/'/g, '\\\'')
                 .replace(/^([^\\])?`/, '$1\'')
                 .replace(/([^\\])?`$/, '$1\'')
@@ -138,28 +78,22 @@ const transform = function (code, url) {
                 .replace(/\n/g, '\\n')
         );
     }
-    // console.log(code);
 
     const parentImport = url.slice(0, url.lastIndexOf('/') + 1);
     const importMatches = code.match(R_IMPORTS) || [];
-    // console.log(importMatches);
     for (let i = 0, l = importMatches.length; i < l; i++) {
-        const importMatch = importMatches[i].match(R_IMPORT) || [];
-        // console.log(importMatch);
+        const importMatch = importMatches[i].match(R_IMPORT);
+        if (!importMatch) continue;
 
-        var rawImport = importMatch[0];
-        var nameImport = importMatch[1]; // default
-        var pathImport = importMatch[4] || importMatch[5];
+        const rawImport = importMatch[0];
+        const nameImport = importMatch[1]; // default
+        const pathImport = importMatch[4] || importMatch[5];
 
-        console.log(pathImport);
         if (pathImport.slice(0, 1) !== '/') {
-            // pathImport = ImportPath(parentImport + '/' + pathImport);
             pathImport = Path.resolve(parentImport, pathImport);
         } else {
-            // pathImport = ImportPath(pathImport);
             pathImport = Path.resolve(pathImport);
         }
-        console.log(pathImport);
 
         before = before + '\twindow.Oxe.loader.load("' + pathImport + '"),\n';
         after = after + 'var ' + nameImport + ' = $MODULES[' + i + '].default;\n';
@@ -168,13 +102,13 @@ const transform = function (code, url) {
     }
 
     let hasDefault = false;
-    const exps = code.match(R_EXPORTS) || [];
-    for (let i = 0, l = exps.length; i < l; i++) {
-        const exp = exps[i].match(R_EXPORT) || [];
-        const rawExport = exp[0];
-        const defaultExport = exp[1] || '';
-        const typeExport = exp[2] || '';
-        const nameExport = exp[3] || '';
+    const exportMatches = code.match(R_EXPORTS) || [];
+    for (let i = 0, l = exportMatches.length; i < l; i++) {
+        const exportMatch = exportMatches[i].match(R_EXPORT) || [];
+        const rawExport = exportMatch[0];
+        const defaultExport = exportMatch[1] || '';
+        const typeExport = exportMatch[2] || '';
+        const nameExport = exportMatch[3] || '';
         if (defaultExport) {
             if (hasDefault) {
                 code = code.replace(rawExport, `$DEFAULT = ${typeExport} ${nameExport}`);
@@ -195,22 +129,19 @@ const transform = function (code, url) {
 };
 
 const IMPORT = function (url) {
-    // window._import.modules = window._import.modules || {};
     return new Promise(function (resolve, reject) {
 
-        var a = window.document.createElement('a');
-        a.setAttribute('href', url);
+        const a = window.document.createElement('a');
+        a.href = url;
         url = a.href;
 
-        // if (window._import.modules[url]) {
         if (MODULES[url]) {
-            // return resolve(window._import.modules[url]);
             return resolve(MODULES[url]);
         }
 
-        var script = document.createElement('script');
+        const script = document.createElement('script');
 
-        var clean = function () {
+        const clean = function () {
             script.remove();
             URL.revokeObjectURL(script.src);
         };
@@ -222,41 +153,35 @@ const IMPORT = function (url) {
         }
 
         script.onerror = function () {
-            reject(new Error('failed to import: ' + url));
+            reject(new Error(`failed to import: ${url}`));
             clean();
         };
 
         script.onload = function () {
-            // resolve(window._import.modules[url]);
             resolve(MODULES[url]);
             clean();
         };
 
         if (false) {
         // if ('noModule' in script) {
-            // var code = 'import * as m from "' + url + '"; window._import.modules["' + url + '"] = m;';
-            var code = 'import * as m from "' + url + '"; Oxe.loader.data["' + url + '"] = m;';
-            var blob = new Blob([ code ], { type: 'text/javascript' });
-
+            console.log('noModule yes');
+            const code = 'import * as m from "' + url + '"; Oxe.loader.data["' + url + '"] = m;';
+            const blob = new Blob([ code ], { type: 'text/javascript' });
             script.src = URL.createObjectURL(blob);
-
-            document.head.appendChild(script);
+            window.document.head.appendChild(script);
         } else {
-            var xhr = new XMLHttpRequest();
+            console.log('noModule no');
+            const xhr = new XMLHttpRequest();
 
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200 || xhr.status === 0) {
-                        var code = xhr.responseText;
-
-                        code = transform(code, url);
-
-                        var blob = new Blob([ code ], { type: 'text/javascript' });
+                        const code = transform(xhr.responseText, url);
+                        const blob = new Blob([ code ], { type: 'text/javascript' });
                         script.src = URL.createObjectURL(blob);
-
-                        document.head.appendChild(script);
+                        window.document.head.appendChild(script);
                     } else {
-                        reject(new Error('failed to import: ' + url));
+                        reject(new Error(`failed to import: ${url}`));
                         clean();
                     }
                 }
@@ -266,7 +191,7 @@ const IMPORT = function (url) {
                 xhr.open('GET', url, true);
                 xhr.send();
             } catch (e) {
-                reject(new Error('failed to import: ' + url));
+                reject(new Error(`failed to import: ${url}`));
                 clean();
             }
 
@@ -284,22 +209,26 @@ try {
 }
 
 const load = async function (url) {
-    if (!url) throw new Error('url argument required');
-    // if (native) {
-    if (false) {
+    if (!url) throw new Error('Oxe.loader.load - url argument required');
+
+    url = Path.resolve(url);
+
+    if (native) {
+    // if (false) {
         console.log('native import');
         return new Function('url', 'return import(url)')(url);
     } else {
         console.log('not native import');
         return IMPORT(url);
     }
+
 };
 
 const setup = async function (options = {}) {
     const { loads } = options;
 
     if (loads) {
-        return Promise.all(loads.map(load => this.load(Path.resolve(load))));
+        return Promise.all(loads.map(load => this.load(load)));
     }
 
 };
