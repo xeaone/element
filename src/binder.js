@@ -86,24 +86,25 @@ export default Object.freeze({
 
     },
 
-    get (node, name) {
+    get (node) {
+        return this.data.get(node);
+
         // if (name in node.attributes === false) return null;
-
         // const value = node.attributes[name].value;
-        const binders = this.nodes.get(node);
-
-        if (!binders) return null;
-
-        for (let i = 0, l = binders.length; i < l; i++) {
-            const binder = binders[i];
-            // console.log(binder);
-            // if (binder.name === name && binder.value === value) {
-            if (binder.name === name) {
-                return binder;
-            }
-        }
-
-        return null;
+        // const binders = this.nodes.get(node);
+        //
+        // if (!binders) return null;
+        //
+        // for (let i = 0, l = binders.length; i < l; i++) {
+        //     const binder = binders[i];
+        //     // console.log(binder);
+        //     // if (binder.name === name && binder.value === value) {
+        //     if (binder.name === name) {
+        //         return binder;
+        //     }
+        // }
+        //
+        // return null;
     },
 
     render (binder, data, e) {
@@ -113,23 +114,11 @@ export default Object.freeze({
     },
 
     unbind (node) {
-        const nodeBinders = this.nodes.get(node);
-        if (nodeBinders) {
-            for (let i = 0; i < nodeBinders.length; i++) {
-                const nodeBinder = nodeBinders[i];
-                nodeBinders.splice(i, i+1);
-                const locationBinders = this.data.get(nodeBinder.location);
-                for (let i = 0; i < locationBinders.length; i++) {
-                    const locationBinder = locationBinders[i];
-                    if (locationBinder === nodeBinder) {
-                        locationBinders.splice(i, i+1);
-                    }
-                }
-            }
-        }
+        return this.data.remove(node);
     },
 
-    bind (target, name, value, container, scope) {
+    bind (target, name, value, container, scope, attr) {
+        // target = attr || target;
 
         value = value.replace(this.syntaxReplace, '').trim();
         name = name.replace(this.prefixReplace, '').replace(this.syntaxReplace, '').trim();
@@ -185,23 +174,18 @@ export default Object.freeze({
 
         });
 
-        if (this.nodes.has(binder.target)) {
-            this.nodes.get(binder.target).push(binder);
-        } else {
-            this.nodes.set(binder.target, [ binder ]);
-        }
-
-        if (this.data.has(binder.location)) {
-            this.data.get(binder.location).push(binder);
-        } else {
-            this.data.set(binder.location, [ binder ]);
-        }
-
+        this.data.set(attr || binder.target, binder);
         this.render(binder);
     },
 
     remove (node) {
-        // Walker(node, this.unbind.bind(this));
+
+        const attributes = node.attributes;
+        for (let i = 0; i < attributes.length; i++) {
+            const attribute = attributes[i];
+            this.unbind(attribute);
+        }
+
         this.unbind(node);
         node = node.firstChild;
 
@@ -244,7 +228,7 @@ export default Object.freeze({
                 }
 
                 if (attribute.name.indexOf(this.prefix) === 0) {
-                    this.bind(node, attribute.name, attribute.value, container, scope);
+                    this.bind(node, attribute.name, attribute.value, container, scope, attribute);
                 }
 
             }

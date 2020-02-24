@@ -176,11 +176,16 @@ export default Object.freeze({
 
             const handler = function (data, path) {
                 const location = `${scope}.${path}`;
-                const binders = Binder.data.get(location);
-                if (!binders) return;
-                for (let i = 0; i < binders.length; i++) {
-                    Binder.render(binders[i], data);
-                }
+                Binder.data.forEach(binder => {
+                    if (binder.location === location) {
+                        Binder.render(binder, data);
+                    }
+                });
+                // const binders = Binder.data.get(location);
+                // if (!binders) return;
+                // for (let i = 0; i < binders.length; i++) {
+                //     Binder.render(binders[i], data);
+                // }
             };
 
             const model = Observer.create(options.model, handler);
