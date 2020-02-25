@@ -96,11 +96,16 @@ export default Object.freeze({
         return this.data.remove(node);
     },
 
+    expression (data) {},
+
     bind (target, name, value, container, scope, attr) {
-        // target = attr || target;
 
         value = value.replace(this.syntaxReplace, '').trim();
         name = name.replace(this.prefixReplace, '').replace(this.syntaxReplace, '').trim();
+
+        if (name.indexOf('on') === 0) {
+            name = 'on-' + name.slice(2);
+        }
 
         const pipe = value.split(PIPE);
         const paths = value.split(PATH);
@@ -175,6 +180,11 @@ export default Object.freeze({
     },
 
     add (node, container, scope) {
+        // if (node.nodeType === Node.ATTRIBUTE_NODE) {
+        //     if (node.name.indexOf(this.prefix) === 0) {
+        //         this.bind(node, node.name, node.value, container, scope, attribute);
+        //     }
+        // } else
         if (node.nodeType === Node.TEXT_NODE) {
 
             const start = node.textContent.indexOf(this.syntaxStart);
@@ -200,13 +210,19 @@ export default Object.freeze({
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[i];
 
-                // if (attribute.name === 'o-value') continue;
-
                 if (attribute.name.indexOf(`${this.prefix}each`) === 0) {
                     skip = true;
                 }
 
-                if (attribute.name.indexOf(this.prefix) === 0) {
+                if (
+                    attribute.value.indexOf(this.syntaxStart) !== -1
+                    &&
+                    attribute.value.indexOf(this.syntaxEnd) !== -1
+                ) {
+                    this.bind(node, attribute.name, attribute.value, container, scope, attribute);
+                } else if (
+                    attribute.name.indexOf(this.prefix) === 0
+                ) {
                     this.bind(node, attribute.name, attribute.value, container, scope, attribute);
                 }
 
