@@ -12,12 +12,9 @@ export default function (binder, data, e) {
 
     if (!binder.meta.setup) {
         binder.meta.setup = true;
-        binder.target.addEventListener('input', (e) => {
-            this.render(binder, data, e);
-        }, false);
+        binder.target.addEventListener('input', e => this.render(binder, data, e));
+        // binder.target.addEventListener('change', e => this.render(binder, data, e));
     }
-
-    console.log(e);
 
     if (type === 'select-one' || type === 'select-multiple') {
         return {
@@ -49,7 +46,7 @@ export default function (binder, data, e) {
                         fallback.push({ option, value });
                     }
 
-                    console.log(binder.data, value, binder.data===value);
+                    // console.log(binder.data, value, binder.data===value);
 
                     if (e) {
                         if (multiple) {
