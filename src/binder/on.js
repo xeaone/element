@@ -2,6 +2,9 @@ import Traverse from '../utility/traverse.js';
 
 export default function (binder) {
     let data;
+
+    binder.target[binder.names[1]] = null;
+
     return {
         read () {
             data = binder.data;
