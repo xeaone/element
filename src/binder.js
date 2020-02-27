@@ -101,7 +101,7 @@ export default Object.freeze({
     bind (target, name, value, container, scope, attr) {
 
         value = value.replace(this.syntaxReplace, '').trim();
-        name = name.replace(this.prefixReplace, '').replace(this.syntaxReplace, '').trim();
+        name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
 
         if (name.indexOf('on') === 0) {
             name = 'on-' + name.slice(2);
@@ -180,12 +180,13 @@ export default Object.freeze({
     },
 
     add (node, container, scope) {
+        const type = node.nodeType;
         // if (node.nodeType === Node.ATTRIBUTE_NODE) {
         //     if (node.name.indexOf(this.prefix) === 0) {
         //         this.bind(node, node.name, node.value, container, scope, attribute);
         //     }
         // } else
-        if (node.nodeType === Node.TEXT_NODE) {
+        if (type === Node.TEXT_NODE) {
 
             const start = node.textContent.indexOf(this.syntaxStart);
             if (start === -1)  return;
@@ -197,41 +198,40 @@ export default Object.freeze({
 
             if (end+this.syntaxStart.length !== node.textContent.length) {
                 const split = node.splitText(end + this.syntaxEnd.length);
-                this.bind(node, `${this.prefix}text`, node.textContent, container, scope);
+                this.bind(node, 'text', node.textContent, container, scope);
                 this.add(split);
             } else {
-                this.bind(node, `${this.prefix}text`, node.textContent,  container, scope);
+                this.bind(node, 'text', node.textContent,  container, scope);
             }
 
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
+        } else if (type === Node.ELEMENT_NODE) {
             let skip = false;
 
             const attributes = node.attributes;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[i];
-
-                if (attribute.name.indexOf(`${this.prefix}each`) === 0) {
-                    skip = true;
-                }
+                const { name, value } = attribute;
 
                 if (
-                    attribute.value.indexOf(this.syntaxStart) !== -1
-                    &&
-                    attribute.value.indexOf(this.syntaxEnd) !== -1
+                    name.indexOf(this.prefix) === 0
+                    ||
+                    (name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1)
+                    ||
+                    (value.indexOf(this.syntaxStart) !== -1 && value.indexOf(this.syntaxEnd) !== -1)
                 ) {
-                    this.bind(node, attribute.name, attribute.value, container, scope, attribute);
-                } else if (
-                    attribute.name.indexOf(this.prefix) === 0
-                ) {
-                    this.bind(node, attribute.name, attribute.value, container, scope, attribute);
+
+                    if (
+                        name.indexOf('each') === 0
+                        ||
+                        name.indexOf(`${this.prefix}each`) === 0
+                    ) {
+                        skip = true;
+                    }
+
+                    this.bind(node, name, value, container, scope, attribute);
                 }
 
             }
-
-            // priorities o-each
-            // if ('o-value' in attributes) {
-            //     this.bind(node, 'o-value', attributes['o-value'].value);
-            // }
 
             if (skip) return;
 
