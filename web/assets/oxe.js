@@ -256,63 +256,6 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 })(this, function () {
   'use strict';
 
-  var BASE;
-  var Path = {
-    get base() {
-      if (!BASE) BASE = window.document.querySelector('base');
-      if (BASE) return BASE.href;
-      return window.location.origin + (window.location.pathname ? window.location.pathname : '/');
-    },
-
-    setup: function setup(option) {
-      try {
-        option = option || {};
-
-        if (option.base) {
-          BASE = window.document.querySelector('base');
-
-          if (!BASE) {
-            BASE = window.document.createElement('base');
-            window.document.head.insertBefore(BASE, window.document.head.firstElementChild);
-          }
-
-          BASE.href = option.base;
-        }
-
-        return _await();
-      } catch (e) {
-        return Promise.reject(e);
-      }
-    },
-    extension: function extension(data) {
-      var position = data.lastIndexOf('.');
-      return position > 0 ? data.slice(position + 1) : '';
-    },
-    resolve: function resolve() {
-      var result = [];
-      var origin = window.location.origin;
-      var parser = window.document.createElement('a');
-
-      for (var i = 0, l = arguments.length; i < l; i++) {
-        var path = arguments[i];
-        if (!path) continue;
-        parser.href = path;
-
-        if (parser.origin === origin) {
-          if (path.indexOf(origin) === 0) {
-            result.push(path.slice(origin.length));
-          } else {
-            result.push(path);
-          }
-        } else {
-          return path;
-        }
-      }
-
-      parser.href = result.join('/').replace(/\/+/g, '/');
-      return parser.pathname;
-    }
-  };
   var STYLE = document.createElement('style');
   var SHEET = STYLE.sheet;
   STYLE.setAttribute('title', 'oxe');
@@ -363,8 +306,8 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       time: 1000 / 60,
       pending: false
     },
-    setup: function setup(options) {
-      options = options || {};
+    setup: function setup() {
+      var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
       this.options.time = options.time || this.options.time;
     },
     tick: function tick(callback) {
@@ -724,6 +667,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
   function On(binder) {
     var data;
+    binder.target[binder.names[1]] = null;
     return {
       read: function read() {
         data = binder.data;
@@ -908,7 +852,9 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         return;
       }
 
-      var b = _this4.get(element, 'o-value');
+      var attribute = element.attributes['o-value'];
+
+      var b = _this4.get(attribute);
 
       console.warn('todo: need to get a value for selects');
       var value = b ? b.data : element.files ? element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0] : element.value;
@@ -917,10 +863,9 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       data[name] = value;
     }
 
-    var method = binder.data;
     return _invoke(function () {
-      if (typeof method === 'function') {
-        return _awaitIgnored(method.call(binder.container, data, event));
+      if (typeof binder.data === 'function') {
+        return _awaitIgnored(binder.data.call(binder.container, data, event));
       }
     }, function () {
       if ('o-reset' in event.target.attributes) {
@@ -941,6 +886,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         }
 
         if (binder.meta.method) {
+          console.log('remove method');
           binder.target.removeEventListener('submit', binder.meta.method);
         }
 
@@ -1071,11 +1017,9 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     if (!binder.meta.setup) {
       binder.meta.setup = true;
       binder.target.addEventListener('input', function (e) {
-        _this5.render(binder, data, e);
-      }, false);
+        return _this5.render(binder, data, e);
+      });
     }
-
-    console.log(e);
 
     if (type === 'select-one' || type === 'select-multiple') {
       return {
@@ -1104,8 +1048,6 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
                 value: value
               });
             }
-
-            console.log(binder.data, value, binder.data === value);
 
             if (e) {
               if (multiple) {
@@ -1275,7 +1217,6 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     prefixReplace: new RegExp('^o-'),
     syntaxReplace: new RegExp('{{|}}', 'g'),
     data: new Map(),
-    nodes: new Map(),
     binders: {
       class: Class,
       css: Style$1,
@@ -1326,19 +1267,8 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         return Promise.reject(e);
       }
     },
-    get: function get(node, name) {
-      var binders = this.nodes.get(node);
-      if (!binders) return null;
-
-      for (var i = 0, l = binders.length; i < l; i++) {
-        var binder = binders[i];
-
-        if (binder.name === name) {
-          return binder;
-        }
-      }
-
-      return null;
+    get: function get(node) {
+      return this.data.get(node);
     },
     render: function render(binder, data, e) {
       var type = binder.type in this.binders ? binder.type : 'default';
@@ -1346,27 +1276,17 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       Batcher.batch(render);
     },
     unbind: function unbind(node) {
-      var nodeBinders = this.nodes.get(node);
-
-      if (nodeBinders) {
-        for (var i = 0; i < nodeBinders.length; i++) {
-          var nodeBinder = nodeBinders[i];
-          nodeBinders.splice(i, i + 1);
-          var locationBinders = this.data.get(nodeBinder.location);
-
-          for (var _i2 = 0; _i2 < locationBinders.length; _i2++) {
-            var locationBinder = locationBinders[_i2];
-
-            if (locationBinder === nodeBinder) {
-              locationBinders.splice(_i2, _i2 + 1);
-            }
-          }
-        }
-      }
+      return this.data.remove(node);
     },
-    bind: function bind(target, name, value, container, scope) {
+    expression: function expression(data) {},
+    bind: function bind(target, name, value, container, scope, attr) {
       value = value.replace(this.syntaxReplace, '').trim();
-      name = name.replace(this.prefixReplace, '').replace(this.syntaxReplace, '').trim();
+      name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
+
+      if (name.indexOf('on') === 0) {
+        name = 'on-' + name.slice(2);
+      }
+
       var pipe = value.split(PIPE);
       var paths = value.split(PATH);
       var names = name.split('-');
@@ -1415,22 +1335,17 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         }
 
       });
-
-      if (this.nodes.has(binder.target)) {
-        this.nodes.get(binder.target).push(binder);
-      } else {
-        this.nodes.set(binder.target, [binder]);
-      }
-
-      if (this.data.has(binder.location)) {
-        this.data.get(binder.location).push(binder);
-      } else {
-        this.data.set(binder.location, [binder]);
-      }
-
+      this.data.set(attr || binder.target, binder);
       this.render(binder);
     },
     remove: function remove(node) {
+      var attributes = node.attributes;
+
+      for (var i = 0; i < attributes.length; i++) {
+        var attribute = attributes[i];
+        this.unbind(attribute);
+      }
+
       this.unbind(node);
       node = node.firstChild;
 
@@ -1440,7 +1355,9 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       }
     },
     add: function add(node, container, scope) {
-      if (node.nodeType === Node.TEXT_NODE) {
+      var type = node.nodeType;
+
+      if (type === Node.TEXT_NODE) {
         var start = node.textContent.indexOf(this.syntaxStart);
         if (start === -1) return;
         if (start !== 0) node = node.splitText(start);
@@ -1449,24 +1366,26 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
         if (end + this.syntaxStart.length !== node.textContent.length) {
           var split = node.splitText(end + this.syntaxEnd.length);
-          this.bind(node, "".concat(this.prefix, "text"), node.textContent, container, scope);
+          this.bind(node, 'text', node.textContent, container, scope);
           this.add(split);
         } else {
-          this.bind(node, "".concat(this.prefix, "text"), node.textContent, container, scope);
+          this.bind(node, 'text', node.textContent, container, scope);
         }
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
+      } else if (type === Node.ELEMENT_NODE) {
         var skip = false;
         var attributes = node.attributes;
 
         for (var i = 0; i < attributes.length; i++) {
           var attribute = attributes[i];
+          var name = attribute.name,
+              value = attribute.value;
 
-          if (attribute.name.indexOf("".concat(this.prefix, "each")) === 0) {
-            skip = true;
-          }
+          if (name.indexOf(this.prefix) === 0 || name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1 || value.indexOf(this.syntaxStart) !== -1 && value.indexOf(this.syntaxEnd) !== -1) {
+            if (name.indexOf('each') === 0 || name.indexOf("".concat(this.prefix, "each")) === 0) {
+              skip = true;
+            }
 
-          if (attribute.name.indexOf(this.prefix) === 0) {
-            this.bind(node, attribute.name, attribute.value, container, scope);
+            this.bind(node, name, value, container, scope, attribute);
           }
         }
 
@@ -1480,12 +1399,73 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       }
     }
   });
-  var MODULES = {};
-  var S_EXPORT = '^export\\b(?:\\s*(default)\\s*)?(?:\\s*(var|let|const|function|class)\\s*)?(?:\\s*(\\w+)\\s*)?';
+  var BASE;
+
+  var setup = _async(function (option) {
+    option = option || {};
+
+    if (option.base) {
+      BASE = window.document.querySelector('base');
+
+      if (!BASE) {
+        BASE = window.document.createElement('base');
+        window.document.head.insertBefore(BASE, window.document.head.firstElementChild);
+      }
+
+      BASE.href = option.base;
+    }
+
+    return _await();
+  });
+
+  var base = function base() {
+    if (!BASE) BASE = window.document.querySelector('base');
+    if (BASE) return BASE.href;
+    return window.location.origin + (window.location.pathname ? window.location.pathname : '/');
+  };
+
+  var extension = function extension(data) {
+    var position = data.lastIndexOf('.');
+    return position > 0 ? data.slice(position + 1) : '';
+  };
+
+  var resolve = function resolve() {
+    var result = [];
+    var origin = window.location.origin;
+    var parser = window.document.createElement('a');
+
+    for (var i = 0, l = arguments.length; i < l; i++) {
+      var path = arguments[i];
+      if (!path) continue;
+      parser.href = path;
+
+      if (parser.origin === origin) {
+        if (path.indexOf(origin) === 0) {
+          result.push(path.slice(origin.length));
+        } else {
+          result.push(path);
+        }
+      } else {
+        return path;
+      }
+    }
+
+    parser.href = result.join('/').replace(/\/+/g, '/');
+    return parser.pathname;
+  };
+
+  var Path = Object.freeze({
+    setup: setup,
+    base: base,
+    extension: extension,
+    resolve: resolve
+  });
+  var S_EXPORT = "\n    ^export\\b\n    (?:\n        \\s*(default)\\s*\n    )?\n    (?:\n        \\s*(var|let|const|function|class)\\s*\n    )?\n    (\\s*?:{\\s*)?\n    (\n        (?:\\w+\\s*,?\\s*)*\n    )?\n    (\\s*?:}\\s*)?\n".replace(/\s+/g, '');
   var S_IMPORT = "\n    import\n    (?:\n        (?:\n            \\s+(\\w+)(?:\\s+|\\s*,\\s*)\n        )\n        ?\n        (?:\n            (?:\\s+(\\*\\s+as\\s+\\w+)\\s+)\n            |\n            (?:\n                \\s*{\\s*\n                (\n                    (?:\n                        (?:\n                            (?:\\w+)\n                            |\n                            (?:\\w+\\s+as\\s+\\w+)\n                        )\n                        \\s*,?\\s*\n                    )\n                    *\n                )\n                \\s*}\\s*\n            )\n        )\n        ?\n        from\n    )\n    ?\n    \\s*\n    (?:\"|')\n    (.*?)\n    (?:'|\")\n    (?:\\s*;)?\n".replace(/\s+/g, '');
+  var MODULES = {};
   var R_IMPORT = new RegExp(S_IMPORT);
-  var R_IMPORTS = new RegExp(S_IMPORT, 'g');
   var R_EXPORT = new RegExp(S_EXPORT);
+  var R_IMPORTS = new RegExp(S_IMPORT, 'g');
   var R_EXPORTS = new RegExp(S_EXPORT, 'gm');
   var R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
 
@@ -1495,18 +1475,20 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     var templateMatches = code.match(R_TEMPLATES) || [];
 
     for (var i = 0; i < templateMatches.length; i++) {
-      code = code.replace(templateMatches[i], templateMatches[i].replace(/'/g, '\\\'').replace(/^([^\\])?`/, '$1\'').replace(/([^\\])?`$/, '$1\'').replace(/\${(.*)?}/g, '\'+$1+\'').replace(/\n/g, '\\n'));
+      var templateMatch = templateMatches[i];
+      code = code.replace(templateMatch, templateMatch.replace(/'/g, '\\\'').replace(/^([^\\])?`/, '$1\'').replace(/([^\\])?`$/, '$1\'').replace(/\${(.*)?}/g, '\'+$1+\'').replace(/\n/g, '\\n'));
     }
 
     var parentImport = url.slice(0, url.lastIndexOf('/') + 1);
     var importMatches = code.match(R_IMPORTS) || [];
 
-    for (var _i3 = 0, l = importMatches.length; _i3 < l; _i3++) {
-      var importMatch = importMatches[_i3].match(R_IMPORT) || [];
+    for (var _i2 = 0, l = importMatches.length; _i2 < l; _i2++) {
+      var importMatch = importMatches[_i2].match(R_IMPORT);
+
+      if (!importMatch) continue;
       var rawImport = importMatch[0];
       var nameImport = importMatch[1];
       var pathImport = importMatch[4] || importMatch[5];
-      console.log(pathImport);
 
       if (pathImport.slice(0, 1) !== '/') {
         pathImport = Path.resolve(parentImport, pathImport);
@@ -1514,21 +1496,20 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         pathImport = Path.resolve(pathImport);
       }
 
-      console.log(pathImport);
       before = before + '\twindow.Oxe.loader.load("' + pathImport + '"),\n';
-      after = after + 'var ' + nameImport + ' = $MODULES[' + _i3 + '].default;\n';
+      after = after + 'var ' + nameImport + ' = $MODULES[' + _i2 + '].default;\n';
       code = code.replace(rawImport, '') || [];
     }
 
     var hasDefault = false;
-    var exps = code.match(R_EXPORTS) || [];
+    var exportMatches = code.match(R_EXPORTS) || [];
 
-    for (var _i4 = 0, _l = exps.length; _i4 < _l; _i4++) {
-      var exp = exps[_i4].match(R_EXPORT) || [];
-      var rawExport = exp[0];
-      var defaultExport = exp[1] || '';
-      var typeExport = exp[2] || '';
-      var nameExport = exp[3] || '';
+    for (var _i3 = 0, _l = exportMatches.length; _i3 < _l; _i3++) {
+      var exportMatch = exportMatches[_i3].match(R_EXPORT) || [];
+      var rawExport = exportMatch[0];
+      var defaultExport = exportMatch[1] || '';
+      var typeExport = exportMatch[2] || '';
+      var nameExport = exportMatch[3] || '';
 
       if (defaultExport) {
         if (hasDefault) {
@@ -1551,7 +1532,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
   var IMPORT = function IMPORT(url) {
     return new Promise(function (resolve, reject) {
       var a = window.document.createElement('a');
-      a.setAttribute('href', url);
+      a.href = url;
       url = a.href;
 
       if (MODULES[url]) {
@@ -1572,7 +1553,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       }
 
       script.onerror = function () {
-        reject(new Error('failed to import: ' + url));
+        reject(new Error("failed to import: ".concat(url)));
         clean();
       };
 
@@ -1582,20 +1563,20 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       };
 
       {
+        console.log('noModule no');
         var xhr = new XMLHttpRequest();
 
         xhr.onreadystatechange = function () {
           if (xhr.readyState === 4) {
             if (xhr.status === 200 || xhr.status === 0) {
-              var code = xhr.responseText;
-              code = transform(code, url);
+              var code = transform(xhr.responseText, url);
               var blob = new Blob([code], {
                 type: 'text/javascript'
               });
               script.src = URL.createObjectURL(blob);
-              document.head.appendChild(script);
+              window.document.head.appendChild(script);
             } else {
-              reject(new Error('failed to import: ' + url));
+              reject(new Error("failed to import: ".concat(url)));
               clean();
             }
           }
@@ -1604,45 +1585,49 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         try {
           xhr.open('GET', url, true);
           xhr.send();
-        } catch (e) {
-          reject(new Error('failed to import: ' + url));
+        } catch (_unused) {
+          reject(new Error("failed to import: ".concat(url)));
           clean();
         }
       }
     });
   };
 
-  var native;
+  var native = true;
 
   try {
     new Function('import("")');
-    native = true;
-  } catch (_unused) {
+  } catch (_unused2) {
     native = false;
   }
 
   var load = _async(function (url) {
-    if (!url) throw new Error('url argument required');
-    {
+    if (!url) throw new Error('Oxe.loader.load - url argument required');
+    url = Path.resolve(url);
+
+    if (native) {
+      console.log('native import');
+      return new Function('url', 'return import(url)')(url);
+    } else {
       console.log('not native import');
       return IMPORT(url);
     }
   });
 
-  var setup = _async(function () {
+  var setup$1 = _async(function () {
     var _this8 = this;
 
     var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var loads = options.loads;
     return loads ? Promise.all(loads.map(function (load) {
-      return _this8.load(Path.resolve(load));
+      return _this8.load(load);
     })) : _await();
   });
 
   var Loader = Object.freeze({
     data: MODULES,
     options: {},
-    setup: setup,
+    setup: setup$1,
     load: load
   });
   var methods = ['push', 'pop', 'splice', 'shift', 'unshift', 'reverse'];
@@ -1750,234 +1735,234 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     return construct;
   }
 
-  var Component = Object.freeze({
-    setup: function setup() {
-      var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var setup$2 = _async(function () {
+    var _this9 = this;
 
-      try {
-        var _this10 = this;
-
-        var components = options.components;
-
-        if (components) {
-          return Promise.all(components.map(function (component) {
-            if (typeof component === 'string') {
-              var path = Path.resolve(component);
-              return Loader.load(path).then(function (load) {
-                return _this10.define(load.default);
-              });
-            } else {
-              return _this10.define(component);
-            }
-          }));
-        }
-
-        return _await();
-      } catch (e) {
-        return Promise.reject(e);
+    var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var components = options.components;
+    return components ? Promise.all(components.map(function (component) {
+      if (typeof component === 'string') {
+        return Loader.load(component).then(function (load) {
+          return _this9.define(load.default);
+        });
+      } else {
+        return _this9.define(component);
       }
-    },
-    style: function style(_style, name) {
-      _style = _style.replace(/\n|\r|\t/g, '');
-      _style = _style.replace(/:host/g, name);
+    })) : _await();
+  });
 
-      if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
-        var matches = _style.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
+  var style = function style(_style, name) {
+    _style = _style.replace(/\n|\r|\t/g, '');
+    _style = _style.replace(/:host/g, name);
 
-        for (var i = 0, l = matches.length; i < l; i++) {
-          var match = matches[i];
-          var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-          var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
-          _style = _style.replace(rule[0], '');
-          _style = _style.replace(pattern, rule[2]);
-        }
+    if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
+      var matches = _style.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
+
+      for (var i = 0, l = matches.length; i < l; i++) {
+        var match = matches[i];
+        var rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+        var pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
+        _style = _style.replace(rule[0], '');
+        _style = _style.replace(pattern, rule[2]);
       }
+    }
 
-      return _style;
-    },
-    slot: function slot(element, fragment) {
-      var fragmentSlots = fragment.querySelectorAll('slot[name]');
-      var defaultSlot = fragment.querySelector('slot:not([name])');
+    return _style;
+  };
 
-      for (var i = 0, l = fragmentSlots.length; i < l; i++) {
-        var fragmentSlot = fragmentSlots[i];
-        var name = fragmentSlot.getAttribute('name');
-        var elementSlot = element.querySelector('[slot="' + name + '"]');
+  var slot = function slot(element, fragment) {
+    var fragmentSlots = fragment.querySelectorAll('slot[name]');
+    var defaultSlot = fragment.querySelector('slot:not([name])');
 
-        if (elementSlot) {
-          fragmentSlot.parentNode.replaceChild(elementSlot, fragmentSlot);
-        } else {
-          fragmentSlot.parentNode.removeChild(fragmentSlot);
+    for (var i = 0, l = fragmentSlots.length; i < l; i++) {
+      var fragmentSlot = fragmentSlots[i];
+      var name = fragmentSlot.getAttribute('name');
+      var elementSlot = element.querySelector('[slot="' + name + '"]');
+
+      if (elementSlot) {
+        fragmentSlot.parentNode.replaceChild(elementSlot, fragmentSlot);
+      } else {
+        fragmentSlot.parentNode.removeChild(fragmentSlot);
+      }
+    }
+
+    if (defaultSlot) {
+      if (element.children.length) {
+        while (element.firstChild) {
+          defaultSlot.parentNode.insertBefore(element.firstChild, defaultSlot);
         }
       }
 
-      if (defaultSlot) {
-        if (element.children.length) {
-          while (element.firstChild) {
-            defaultSlot.parentNode.insertBefore(element.firstChild, defaultSlot);
-          }
-        }
+      defaultSlot.parentNode.removeChild(defaultSlot);
+    }
+  };
 
-        defaultSlot.parentNode.removeChild(defaultSlot);
+  var fragment = function fragment(element, template, adopt) {
+    var fragment = document.createDocumentFragment();
+    var clone = template.cloneNode(true);
+    var child = clone.firstElementChild;
+
+    while (child) {
+      if (!adopt) {
+        Binder.add(child, element, element.scope);
       }
-    },
-    fragment: function fragment(element, template, adopt) {
-      var fragment = document.createDocumentFragment();
-      var clone = template.cloneNode(true);
-      var child = clone.firstElementChild;
+
+      fragment.appendChild(child);
+      child = clone.firstElementChild;
+    }
+
+    return fragment;
+  };
+
+  var render = function render(element, template, adopt, shadow) {
+    if (!template) return;
+    var fragment = this.fragment(element, template);
+    var root;
+
+    if (shadow && 'attachShadow' in document.body) {
+      root = element.attachShadow({
+        mode: 'open'
+      });
+    } else if (shadow && 'createShadowRoot' in document.body) {
+      root = element.createShadowRoot();
+    } else {
+      if (fragment) {
+        this.slot(element, fragment);
+      }
+
+      root = element;
+    }
+
+    if (fragment) {
+      root.appendChild(fragment);
+    }
+
+    if (adopt) {
+      var child = root.firstElementChild;
 
       while (child) {
-        if (!adopt) {
-          Binder.add(child, element, element.scope);
-        }
-
-        fragment.appendChild(child);
-        child = clone.firstElementChild;
+        Binder.add(child, element, element.scope);
+        child = child.nextElementSibling;
       }
-
-      return fragment;
-    },
-    render: function render(element, template, adopt, shadow) {
-      if (!template) return;
-      var fragment = this.fragment(element, template);
-      var root;
-
-      if (shadow && 'attachShadow' in document.body) {
-        root = element.attachShadow({
-          mode: 'open'
-        });
-      } else if (shadow && 'createShadowRoot' in document.body) {
-        root = element.createShadowRoot();
-      } else {
-        if (fragment) {
-          this.slot(element, fragment);
-        }
-
-        root = element;
-      }
-
-      if (fragment) {
-        root.appendChild(fragment);
-      }
-
-      if (adopt) {
-        var child = root.firstElementChild;
-
-        while (child) {
-          Binder.add(child, element, element.scope);
-          child = child.nextElementSibling;
-        }
-      }
-    },
-    define: function define(options) {
-      var self = this;
-
-      if (_typeof(options) !== 'object') {
-        return console.warn('Oxe.component.define - invalid argument type');
-      }
-
-      if (options.constructor === Array) {
-        for (var i = 0, l = options.length; i < l; i++) {
-          self.define(options[i]);
-        }
-
-        return;
-      }
-
-      if (!options.name) {
-        return console.warn('Oxe.component.define - requires name');
-      }
-
-      options.count = 0;
-      options.model = options.model || {};
-      options.adopt = options.adopt || false;
-      options.methods = options.methods || {};
-      options.shadow = options.shadow || false;
-      options.name = options.name.toLowerCase();
-      options.attributes = options.attributes || [];
-
-      if (typeof options.style === 'string') {
-        options.style = this.style(options.style, options.name);
-        Style.append(options.style);
-      }
-
-      if (typeof options.template === 'string') {
-        options.template = new DOMParser().parseFromString(options.template, 'text/html').body;
-      }
-
-      var OElement = function OElement() {
-        var scope = "".concat(options.name, "-").concat(options.count++);
-
-        var handler = function handler(data, path) {
-          var location = "".concat(scope, ".").concat(path);
-          var binders = Binder.data.get(location);
-          if (!binders) return;
-
-          for (var _i5 = 0; _i5 < binders.length; _i5++) {
-            Binder.render(binders[_i5], data);
-          }
-        };
-
-        var model = Observer.create(options.model, handler);
-        Object.defineProperties(this, {
-          scope: {
-            enumerable: true,
-            value: scope
-          },
-          model: {
-            enumerable: true,
-            value: model
-          },
-          methods: {
-            enumerable: true,
-            value: options.methods
-          }
-        });
-
-        if (options.properties) {
-          Object.defineProperties(this, options.properties);
-        }
-      };
-
-      if (options.prototype) {
-        Object.assign(OElement.prototype, options.prototype);
-      }
-
-      OElement.prototype.observedAttributes = options.attributes;
-
-      OElement.prototype.attributeChangedCallback = function () {
-        if (options.attributed) options.attributed.apply(this, arguments);
-      };
-
-      OElement.prototype.adoptedCallback = function () {
-        if (options.adopted) options.adopted.apply(this, arguments);
-      };
-
-      OElement.prototype.disconnectedCallback = function () {
-        if (options.detached) options.detached.apply(this, arguments);
-      };
-
-      OElement.prototype.connectedCallback = function () {
-        if (this.created) {
-          if (options.attached) {
-            options.attached.call(this);
-          }
-        } else {
-          this.created = true;
-          self.render(this, options.template, options.adopt, options.shadow);
-
-          if (options.created && options.attached) {
-            Promise.resolve().then(options.created.bind(this)).then(options.attached.bind(this));
-          } else if (options.created) {
-            Promise.resolve().then(options.created.bind(this));
-          } else if (options.attached) {
-            Promise.resolve().then(options.attached.bind(this));
-          }
-        }
-      };
-
-      window.customElements.define(options.name, extend(OElement, HTMLElement));
     }
+  };
+
+  var define = function define(options) {
+    var self = this;
+
+    if (_typeof(options) !== 'object') {
+      return console.warn('Oxe.component.define - invalid argument type');
+    }
+
+    if (options.constructor === Array) {
+      for (var i = 0, l = options.length; i < l; i++) {
+        self.define(options[i]);
+      }
+
+      return;
+    }
+
+    if (!options.name) {
+      return console.warn('Oxe.component.define - requires name');
+    }
+
+    options.count = 0;
+    options.model = options.model || {};
+    options.adopt = options.adopt || false;
+    options.methods = options.methods || {};
+    options.shadow = options.shadow || false;
+    options.name = options.name.toLowerCase();
+    options.attributes = options.attributes || [];
+
+    if (typeof options.style === 'string') {
+      options.style = this.style(options.style, options.name);
+      Style.append(options.style);
+    }
+
+    if (typeof options.template === 'string') {
+      options.template = new DOMParser().parseFromString(options.template, 'text/html').body;
+    }
+
+    var OElement = function OElement() {
+      var scope = "".concat(options.name, "-").concat(options.count++);
+
+      var handler = function handler(data, path) {
+        var location = "".concat(scope, ".").concat(path);
+        Binder.data.forEach(function (binder) {
+          if (binder.location === location) {
+            Binder.render(binder, data);
+          }
+        });
+      };
+
+      var model = Observer.create(options.model, handler);
+      Object.defineProperties(this, {
+        scope: {
+          enumerable: true,
+          value: scope
+        },
+        model: {
+          enumerable: true,
+          value: model
+        },
+        methods: {
+          enumerable: true,
+          value: options.methods
+        }
+      });
+
+      if (options.properties) {
+        Object.defineProperties(this, options.properties);
+      }
+    };
+
+    if (options.prototype) {
+      Object.assign(OElement.prototype, options.prototype);
+    }
+
+    OElement.prototype.observedAttributes = options.attributes;
+
+    OElement.prototype.attributeChangedCallback = function () {
+      if (options.attributed) options.attributed.apply(this, arguments);
+    };
+
+    OElement.prototype.adoptedCallback = function () {
+      if (options.adopted) options.adopted.apply(this, arguments);
+    };
+
+    OElement.prototype.disconnectedCallback = function () {
+      if (options.detached) options.detached.apply(this, arguments);
+    };
+
+    OElement.prototype.connectedCallback = function () {
+      if (this.created) {
+        if (options.attached) {
+          options.attached.call(this);
+        }
+      } else {
+        this.created = true;
+        self.render(this, options.template, options.adopt, options.shadow);
+
+        if (options.created && options.attached) {
+          Promise.resolve().then(options.created.bind(this)).then(options.attached.bind(this));
+        } else if (options.created) {
+          Promise.resolve().then(options.created.bind(this));
+        } else if (options.attached) {
+          Promise.resolve().then(options.attached.bind(this));
+        }
+      }
+    };
+
+    window.customElements.define(options.name, extend(OElement, HTMLElement));
+  };
+
+  var Component = Object.freeze({
+    setup: setup$2,
+    style: style,
+    slot: slot,
+    fragment: fragment,
+    render: render,
+    define: define
   });
   console.warn('options function would need to be deprected');
   var Fetcher = Object.freeze({
@@ -1992,19 +1977,19 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     types: ['json', 'text', 'blob', 'formData', 'arrayBuffer'],
     setup: function setup(options) {
       try {
-        var _this12 = this;
+        var _this11 = this;
 
         options = options || {};
-        _this12.options.path = options.path;
-        _this12.options.origin = options.origin;
-        _this12.options.request = options.request;
-        _this12.options.response = options.response;
-        _this12.options.acceptType = options.acceptType;
-        _this12.options.headers = options.headers || {};
-        _this12.options.method = options.method || 'get';
-        _this12.options.credentials = options.credentials;
-        _this12.options.contentType = options.contentType;
-        _this12.options.responseType = options.responseType;
+        _this11.options.path = options.path;
+        _this11.options.origin = options.origin;
+        _this11.options.request = options.request;
+        _this11.options.response = options.response;
+        _this11.options.acceptType = options.acceptType;
+        _this11.options.headers = options.headers || {};
+        _this11.options.method = options.method || 'get';
+        _this11.options.credentials = options.credentials;
+        _this11.options.contentType = options.contentType;
+        _this11.options.responseType = options.responseType;
         return _await();
       } catch (e) {
         return Promise.reject(e);
@@ -2028,49 +2013,49 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       try {
         var _exit4 = false;
 
-        var _this14 = this;
+        var _this13 = this;
 
         var data = Object.assign({}, options);
-        data.path = data.path || _this14.options.path;
-        data.origin = data.origin || _this14.options.origin;
+        data.path = data.path || _this13.options.path;
+        data.origin = data.origin || _this13.options.origin;
         if (data.path && typeof data.path === 'string' && data.path.charAt(0) === '/') data.path = data.path.slice(1);
         if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length - 1) === '/') data.origin = data.origin.slice(0, -1);
         if (data.path && data.origin && !data.url) data.url = data.origin + '/' + data.path;
         if (!data.method) throw new Error('Oxe.fetcher - requires method option');
         if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
-        if (!data.headers && _this14.options.headers) data.headers = _this14.options.headers;
-        if (typeof data.method === 'string') data.method = data.method.toUpperCase() || _this14.options.method;
-        if (!data.acceptType && _this14.options.acceptType) data.acceptType = _this14.options.acceptType;
-        if (!data.contentType && _this14.options.contentType) data.contentType = _this14.options.contentType;
-        if (!data.responseType && _this14.options.responseType) data.responseType = _this14.options.responseType;
-        if (!data.credentials && _this14.options.credentials) data.credentials = _this14.options.credentials;
-        if (!data.mode && _this14.options.mode) data.mode = _this14.options.mode;
-        if (!data.cache && _this14.options.cache) data.cahce = _this14.options.cache;
-        if (!data.redirect && _this14.options.redirect) data.redirect = _this14.options.redirect;
-        if (!data.referrer && _this14.options.referrer) data.referrer = _this14.options.referrer;
-        if (!data.referrerPolicy && _this14.options.referrerPolicy) data.referrerPolicy = _this14.options.referrerPolicy;
-        if (!data.signal && _this14.options.signal) data.signal = _this14.options.signal;
-        if (!data.integrity && _this14.options.integrity) data.integrity = _this14.options.integrity;
-        if (!data.keepAlive && _this14.options.keepAlive) data.keepAlive = _this14.options.keepAlive;
+        if (!data.headers && _this13.options.headers) data.headers = _this13.options.headers;
+        if (typeof data.method === 'string') data.method = data.method.toUpperCase() || _this13.options.method;
+        if (!data.acceptType && _this13.options.acceptType) data.acceptType = _this13.options.acceptType;
+        if (!data.contentType && _this13.options.contentType) data.contentType = _this13.options.contentType;
+        if (!data.responseType && _this13.options.responseType) data.responseType = _this13.options.responseType;
+        if (!data.credentials && _this13.options.credentials) data.credentials = _this13.options.credentials;
+        if (!data.mode && _this13.options.mode) data.mode = _this13.options.mode;
+        if (!data.cache && _this13.options.cache) data.cahce = _this13.options.cache;
+        if (!data.redirect && _this13.options.redirect) data.redirect = _this13.options.redirect;
+        if (!data.referrer && _this13.options.referrer) data.referrer = _this13.options.referrer;
+        if (!data.referrerPolicy && _this13.options.referrerPolicy) data.referrerPolicy = _this13.options.referrerPolicy;
+        if (!data.signal && _this13.options.signal) data.signal = _this13.options.signal;
+        if (!data.integrity && _this13.options.integrity) data.integrity = _this13.options.integrity;
+        if (!data.keepAlive && _this13.options.keepAlive) data.keepAlive = _this13.options.keepAlive;
 
         if (data.contentType) {
           data.headers = data.headers || {};
 
           switch (data.contentType) {
             case 'js':
-              data.headers['Content-Type'] = _this14.mime.js;
+              data.headers['Content-Type'] = _this13.mime.js;
               return;
 
             case 'xml':
-              data.headers['Content-Type'] = _this14.mime.xml;
+              data.headers['Content-Type'] = _this13.mime.xml;
               return;
 
             case 'html':
-              data.headers['Content-Type'] = _this14.mime.html;
+              data.headers['Content-Type'] = _this13.mime.html;
               return;
 
             case 'json':
-              data.headers['Content-Type'] = _this14.mime.json;
+              data.headers['Content-Type'] = _this13.mime.json;
               return;
 
             default:
@@ -2083,19 +2068,19 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
           switch (data.acceptType) {
             case 'js':
-              data.headers['Accept'] = _this14.mime.js;
+              data.headers['Accept'] = _this13.mime.js;
               return;
 
             case 'xml':
-              data.headers['Accept'] = _this14.mime.xml;
+              data.headers['Accept'] = _this13.mime.xml;
               return;
 
             case 'html':
-              data.headers['Accept'] = _this14.mime.html;
+              data.headers['Accept'] = _this13.mime.html;
               return;
 
             case 'json':
-              data.headers['Accept'] = _this14.mime.json;
+              data.headers['Accept'] = _this13.mime.json;
               return;
 
             default:
@@ -2104,9 +2089,9 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         }
 
         return _invoke(function () {
-          if (typeof _this14.options.request === 'function') {
+          if (typeof _this13.options.request === 'function') {
             var copy = Object.assign({}, data);
-            return _await(_this14.options.request(copy), function (result) {
+            return _await(_this13.options.request(copy), function (result) {
               if (result === false) {
                 _exit4 = true;
                 return data;
@@ -2124,8 +2109,8 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
                 if (data.method === 'GET') {
                   var _temp2 = data.url + '?';
 
-                  return _await(_this14.serialize(data.body), function (_this13$serialize) {
-                    data.url = _temp2 + _this13$serialize;
+                  return _await(_this13.serialize(data.body), function (_this12$serialize) {
+                    data.url = _temp2 + _this12$serialize;
                   });
                 } else if (data.contentType === 'json') {
                   data.body = JSON.stringify(data.body);
@@ -2152,7 +2137,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
                     type = responseType || 'text';
                   }
 
-                  if (_this14.types.indexOf(type) === -1) throw new Error('Oxe.fetch - invalid responseType value');
+                  if (_this13.types.indexOf(type) === -1) throw new Error('Oxe.fetch - invalid responseType value');
                   return _await(fetched[type](), function (_fetched$type) {
                     data.body = _fetched$type;
                   });
@@ -2161,9 +2146,9 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
                 var _exit3 = false;
                 if (_exit2) return _result2;
                 return _invoke(function () {
-                  if (_this14.options.response) {
+                  if (_this13.options.response) {
                     var copy = Object.assign({}, data);
-                    return _await(_this14.options.response(copy), function (result) {
+                    return _await(_this13.options.response(copy), function (result) {
                       if (result === false) {
                         _exit3 = true;
                         return data;
@@ -2187,91 +2172,91 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     post: function post(data) {
       try {
-        var _this16 = this;
+        var _this15 = this;
 
         data = typeof data === 'string' ? {
           url: data
         } : data;
         data.method = 'post';
-        return _this16.fetch(data);
+        return _this15.fetch(data);
       } catch (e) {
         return Promise.reject(e);
       }
     },
     get: function get(data) {
       try {
-        var _this18 = this;
+        var _this17 = this;
 
         data = typeof data === 'string' ? {
           url: data
         } : data;
         data.method = 'get';
-        return _this18.fetch(data);
+        return _this17.fetch(data);
       } catch (e) {
         return Promise.reject(e);
       }
     },
     put: function put(data) {
       try {
-        var _this20 = this;
+        var _this19 = this;
 
         data = typeof data === 'string' ? {
           url: data
         } : data;
         data.method = 'put';
-        return _this20.fetch(data);
+        return _this19.fetch(data);
       } catch (e) {
         return Promise.reject(e);
       }
     },
     head: function head(data) {
       try {
-        var _this22 = this;
+        var _this21 = this;
 
         data = typeof data === 'string' ? {
           url: data
         } : data;
         data.method = 'head';
-        return _this22.fetch(data);
+        return _this21.fetch(data);
       } catch (e) {
         return Promise.reject(e);
       }
     },
     patch: function patch(data) {
       try {
-        var _this24 = this;
+        var _this23 = this;
 
         data = typeof data === 'string' ? {
           url: data
         } : data;
         data.method = 'patch';
-        return _this24.fetch(data);
+        return _this23.fetch(data);
       } catch (e) {
         return Promise.reject(e);
       }
     },
     delete: function _delete(data) {
       try {
-        var _this26 = this;
+        var _this25 = this;
 
         data = typeof data === 'string' ? {
           url: data
         } : data;
         data.method = 'delete';
-        return _this26.fetch(data);
+        return _this25.fetch(data);
       } catch (e) {
         return Promise.reject(e);
       }
     },
     connect: function connect(data) {
       try {
-        var _this28 = this;
+        var _this27 = this;
 
         data = typeof data === 'string' ? {
           url: data
         } : data;
         data.method = 'connect';
-        return _this28.fetch(data);
+        return _this27.fetch(data);
       } catch (e) {
         return Promise.reject(e);
       }
@@ -2289,13 +2274,13 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       if (index !== -1) this.events[name].splice(index, 1);
     },
     emit: function emit(name) {
-      var _this29 = this;
+      var _this28 = this;
 
       if (!(name in this.events)) return;
       var methods = this.events[name];
       var args = Array.prototype.slice.call(arguments, 2);
       Promise.all(methods.map(function (method) {
-        return method.apply(_this29, args);
+        return method.apply(_this28, args);
       })).catch(console.error);
     }
   });
@@ -2335,29 +2320,29 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     setup: function setup(option) {
       try {
-        var _this31 = this;
+        var _this30 = this;
 
         option = option || {};
-        _this31.option.after = option.after === undefined ? _this31.option.after : option.after;
-        _this31.option.before = option.before === undefined ? _this31.option.before : option.before;
-        _this31.option.external = option.external === undefined ? _this31.option.external : option.external;
-        _this31.option.mode = option.mode === undefined ? _this31.option.mode : option.mode;
-        _this31.option.folder = option.folder === undefined ? _this31.option.folder : option.folder;
-        _this31.option.target = option.target === undefined ? _this31.option.target : option.target;
-        _this31.option.contain = option.contain === undefined ? _this31.option.contain : option.contain;
+        _this30.option.after = option.after === undefined ? _this30.option.after : option.after;
+        _this30.option.before = option.before === undefined ? _this30.option.before : option.before;
+        _this30.option.external = option.external === undefined ? _this30.option.external : option.external;
+        _this30.option.mode = option.mode === undefined ? _this30.option.mode : option.mode;
+        _this30.option.folder = option.folder === undefined ? _this30.option.folder : option.folder;
+        _this30.option.target = option.target === undefined ? _this30.option.target : option.target;
+        _this30.option.contain = option.contain === undefined ? _this30.option.contain : option.contain;
 
-        if (!_this31.option.target || typeof _this31.option.target === 'string') {
-          _this31.option.target = document.body.querySelector(_this31.option.target || 'o-router');
+        if (!_this30.option.target || typeof _this30.option.target === 'string') {
+          _this30.option.target = document.body.querySelector(_this30.option.target || 'o-router');
         }
 
-        if (_this31.option.mode !== 'href') {
-          window.addEventListener('popstate', _this31.state.bind(_this31), true);
-          window.document.addEventListener('click', _this31.click.bind(_this31), true);
+        if (_this30.option.mode !== 'href') {
+          window.addEventListener('popstate', _this30.state.bind(_this30), true);
+          window.document.addEventListener('click', _this30.click.bind(_this30), true);
         }
 
         window.customElements.define('o-router', extend(function () {}, HTMLElement));
-        return _await(_this31.add(option.routes), function () {
-          return _awaitIgnored(_this31.route(window.location.href, {
+        return _await(_this30.add(option.routes), function () {
+          return _awaitIgnored(_this30.route(window.location.href, {
             mode: 'replace'
           }));
         });
@@ -2491,40 +2476,25 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     add: function add(data) {
       try {
-        var _this33 = this;
+        var _this32 = this;
 
         return function () {
           if (!data) {} else return function () {
             if (data.constructor === String) {
+              var _load = data;
               var path = data;
+              if (path.slice(-3) === '.js') path = path.slice(0, -3);
+              if (path.slice(-5) === 'index') path = path.slice(0, -5);
+              if (path.slice(-6) === 'index/') path = path.slice(0, -6);
+              if (path.slice(0, 2) === './') path = path.slice(2);
+              if (path.slice(0, 1) !== '/') path = '/' + path;
+              if (_load.slice(-3) !== '.js') _load = _load + '.js';
+              if (_load.slice(0, 2) === './') _load = _load.slice(2);
+              if (_load.slice(0, 1) !== '/') _load = '/' + _load;
+              if (_this32.option.folder.slice(-1) === '/') _this32.option.folder = _this32.option.folder.slice(0, -1);
+              _load = _this32.option.folder + '/' + _load;
 
-              if (path.slice(-3) === '.js') {
-                path = path.slice(0, -3);
-              }
-
-              var _load = path;
-
-              if (path.slice(-5) === 'index') {
-                path = path.slice(0, -5);
-              }
-
-              if (path.slice(-6) === 'index/') {
-                path = path.slice(0, -6);
-              }
-
-              if (path.slice(0, 2) === './') {
-                path = path.slice(2);
-              }
-
-              if (path.slice(0, 1) !== '/') {
-                path = '/' + path;
-              }
-
-              console.warn('need to look at why we had this');
-              _load = _load + '.js';
-              _load = Path.resolve(_this33.option.folder, _load);
-
-              _this33.data.push({
+              _this32.data.push({
                 path: path,
                 load: _load
               });
@@ -2538,17 +2508,17 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
                   throw new Error('Oxe.router.add -  route requires name, load, or component property');
                 }
 
-                _this33.data.push(data);
+                _this32.data.push(data);
               } else return _invokeIgnored(function () {
                 if (data.constructor === Array) {
-                  var _i6 = 0,
+                  var _i4 = 0,
                       _l2 = data.length;
                   return _continueIgnored(_for(function () {
-                    return _i6 < _l2;
+                    return _i4 < _l2;
                   }, function () {
-                    return _i6++;
+                    return _i4++;
                   }, function () {
-                    return _awaitIgnored(_this33.add(data[_i6]));
+                    return _awaitIgnored(_this32.add(data[_i4]));
                   }));
                 }
               });
@@ -2585,11 +2555,11 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     remove: function remove(path) {
       try {
-        var _this35 = this;
+        var _this34 = this;
 
-        for (var _i7 = 0, _l3 = _this35.data.length; _i7 < _l3; _i7++) {
-          if (_this35.data[_i7].path === path) {
-            _this35.data.splice(_i7, 1);
+        for (var _i5 = 0, _l3 = _this34.data.length; _i5 < _l3; _i5++) {
+          if (_this34.data[_i5].path === path) {
+            _this34.data.splice(_i5, 1);
           }
         }
 
@@ -2602,21 +2572,21 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       try {
         var _exit6 = false;
 
-        var _this37 = this;
+        var _this36 = this;
 
-        var _i8 = 0,
-            _l4 = _this37.data.length;
+        var _i6 = 0,
+            _l4 = _this36.data.length;
         return _for(function () {
-          return !_exit6 && _i8 < _l4;
+          return !_exit6 && _i6 < _l4;
         }, function () {
-          return _i8++;
+          return _i6++;
         }, function () {
           return function () {
-            if (_this37.data[_i8].path === path) {
-              return _await(_this37.load(_this37.data[_i8]), function (_this36$load) {
-                _this37.data[_i8] = _this36$load;
+            if (_this36.data[_i6].path === path) {
+              return _await(_this36.load(_this36.data[_i6]), function (_this35$load) {
+                _this36.data[_i6] = _this35$load;
                 _exit6 = true;
-                return _this37.data[_i8];
+                return _this36.data[_i6];
               });
             }
           }();
@@ -2627,22 +2597,22 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     filter: function filter(path) {
       try {
-        var _this39 = this;
+        var _this38 = this;
 
         var _result9 = [];
-        var _i9 = 0,
-            _l5 = _this39.data.length;
+        var _i7 = 0,
+            _l5 = _this38.data.length;
         return _continue(_for(function () {
-          return _i9 < _l5;
+          return _i7 < _l5;
         }, function () {
-          return _i9++;
+          return _i7++;
         }, function () {
           return _invokeIgnored(function () {
-            if (_this39.compare(_this39.data[_i9].path, path)) {
-              return _await(_this39.load(_this39.data[_i9]), function (_this38$load) {
-                _this39.data[_i9] = _this38$load;
+            if (_this38.compare(_this38.data[_i7].path, path)) {
+              return _await(_this38.load(_this38.data[_i7]), function (_this37$load) {
+                _this38.data[_i7] = _this37$load;
 
-                _result9.push(_this39.data[_i9]);
+                _result9.push(_this38.data[_i7]);
               });
             }
           });
@@ -2657,21 +2627,21 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       try {
         var _exit8 = false;
 
-        var _this41 = this;
+        var _this40 = this;
 
-        var _i10 = 0,
-            _l6 = _this41.data.length;
+        var _i8 = 0,
+            _l6 = _this40.data.length;
         return _for(function () {
-          return !_exit8 && _i10 < _l6;
+          return !_exit8 && _i8 < _l6;
         }, function () {
-          return _i10++;
+          return _i8++;
         }, function () {
           return function () {
-            if (_this41.compare(_this41.data[_i10].path, path)) {
-              return _await(_this41.load(_this41.data[_i10]), function (_this40$load) {
-                _this41.data[_i10] = _this40$load;
+            if (_this40.compare(_this40.data[_i8].path, path)) {
+              return _await(_this40.load(_this40.data[_i8]), function (_this39$load) {
+                _this40.data[_i8] = _this39$load;
                 _exit8 = true;
-                return _this41.data[_i10];
+                return _this40.data[_i8];
               });
             }
           }();
@@ -2682,7 +2652,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     render: function render(route) {
       try {
-        var _this43 = this;
+        var _this42 = this;
 
         if (!route) {
           throw new Error('Oxe.render - route argument required. Missing object option.');
@@ -2760,15 +2730,15 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
           }
         }
 
-        if (_this43.option.target) {
-          while (_this43.option.target.firstChild) {
-            _this43.option.target.removeChild(_this43.option.target.firstChild);
+        if (_this42.option.target) {
+          while (_this42.option.target.firstChild) {
+            _this42.option.target.removeChild(_this42.option.target.firstChild);
           }
 
-          _this43.option.target.appendChild(route.target);
+          _this42.option.target.appendChild(route.target);
         }
 
-        _this43.scroll(0, 0);
+        _this42.scroll(0, 0);
 
         return _await();
       } catch (e) {
@@ -2777,19 +2747,19 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     route: function route(path, options) {
       try {
-        var _this45 = this;
+        var _this44 = this;
 
         options = options || {};
 
         if (options.query) {
-          path += _this45.toQueryString(options.query);
+          path += _this44.toQueryString(options.query);
         }
 
-        var mode = options.mode || _this45.option.mode;
+        var mode = options.mode || _this44.option.mode;
 
-        var location = _this45.toLocationObject(path);
+        var location = _this44.toLocationObject(path);
 
-        return _await(_this45.find(location.pathname), function (route) {
+        return _await(_this44.find(location.pathname), function (route) {
           var _exit9 = false;
 
           if (!route) {
@@ -2798,8 +2768,8 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
           location.route = route;
           location.title = location.route.title;
-          location.query = _this45.toQueryObject(location.search);
-          location.parameters = _this45.toParameterObject(location.route.path, location.pathname);
+          location.query = _this44.toQueryObject(location.search);
+          location.parameters = _this44.toParameterObject(location.route.path, location.pathname);
           return _invoke(function () {
             if (location.route && location.route.handler) {
               _exit9 = true;
@@ -2811,12 +2781,12 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
             return _invoke(function () {
               if (location.route && location.route.redirect) {
                 _exit10 = true;
-                return _await(_this45.redirect(location.route.redirect));
+                return _await(_this44.redirect(location.route.redirect));
               }
             }, function (_result13) {
               return _exit10 ? _result13 : _invoke(function () {
-                if (typeof _this45.option.before === 'function') {
-                  return _awaitIgnored(_this45.option.before(location));
+                if (typeof _this44.option.before === 'function') {
+                  return _awaitIgnored(_this44.option.before(location));
                 }
               }, function () {
                 Events.emit('route:before', location);
@@ -2828,23 +2798,23 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
                 window.history[mode + 'State']({
                   path: location.path
                 }, '', location.path);
-                _this45.location.href = location.href;
-                _this45.location.host = location.host;
-                _this45.location.port = location.port;
-                _this45.location.hash = location.hash;
-                _this45.location.path = location.path;
-                _this45.location.route = location.route;
-                _this45.location.title = location.title;
-                _this45.location.query = location.query;
-                _this45.location.search = location.search;
-                _this45.location.protocol = location.protocol;
-                _this45.location.hostname = location.hostname;
-                _this45.location.pathname = location.pathname;
-                _this45.location.parameters = location.parameters;
-                return _await(_this45.render(location.route), function () {
+                _this44.location.href = location.href;
+                _this44.location.host = location.host;
+                _this44.location.port = location.port;
+                _this44.location.hash = location.hash;
+                _this44.location.path = location.path;
+                _this44.location.route = location.route;
+                _this44.location.title = location.title;
+                _this44.location.query = location.query;
+                _this44.location.search = location.search;
+                _this44.location.protocol = location.protocol;
+                _this44.location.hostname = location.hostname;
+                _this44.location.pathname = location.pathname;
+                _this44.location.parameters = location.parameters;
+                return _await(_this44.render(location.route), function () {
                   return _invoke(function () {
-                    if (typeof _this45.option.after === 'function') {
-                      return _awaitIgnored(_this45.option.after(location));
+                    if (typeof _this44.option.after === 'function') {
+                      return _awaitIgnored(_this44.option.after(location));
                     }
                   }, function () {
                     Events.emit('route:after', location);
@@ -2860,11 +2830,11 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     state: function state(event) {
       try {
-        var _this47 = this;
+        var _this46 = this;
 
         var path = event && event.state ? event.state.path : window.location.href;
 
-        _this47.route(path, {
+        _this46.route(path, {
           mode: 'replace'
         });
 
@@ -2875,7 +2845,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     click: function click(event) {
       try {
-        var _this49 = this;
+        var _this48 = this;
 
         if (event.target.type || event.button !== 0 || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
           return;
@@ -2884,7 +2854,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         var target = event.path ? event.path[0] : event.target;
         var parent = target.parentElement;
 
-        if (_this49.option.contain) {
+        if (_this48.option.contain) {
           while (parent) {
             if (parent.nodeName === 'O-ROUTER') {
               break;
@@ -2907,11 +2877,11 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         }
 
         if (target.hasAttribute('download') || target.hasAttribute('external') || target.hasAttribute('o-external') || target.href.indexOf('tel:') === 0 || target.href.indexOf('ftp:') === 0 || target.href.indexOf('file:') === 0 || target.href.indexOf('mailto:') === 0 || target.href.indexOf(window.location.origin) !== 0 || target.hash !== '' && target.origin === window.location.origin && target.pathname === window.location.pathname) return;
-        if (_this49.option.external && (_this49.option.external.constructor === RegExp && _this49.option.external.test(target.href) || _this49.option.external.constructor === Function && _this49.option.external(target.href) || _this49.option.external.constructor === String && _this49.option.external === target.href)) return;
+        if (_this48.option.external && (_this48.option.external.constructor === RegExp && _this48.option.external.test(target.href) || _this48.option.external.constructor === Function && _this48.option.external(target.href) || _this48.option.external.constructor === String && _this48.option.external === target.href)) return;
         event.preventDefault();
 
-        if (_this49.location.href !== target.href) {
-          _this49.route(target.href);
+        if (_this48.location.href !== target.href) {
+          _this48.route(target.href);
         }
 
         return _await();
@@ -2921,9 +2891,9 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     }
   });
   document.head.insertAdjacentHTML('afterbegin', '<style>:not(:defined){visibility:hidden;}o-router,o-router>:first-child{display:block;}</style>');
-  var setup$1 = document.querySelector('script[o-setup]');
-  var url = setup$1 ? setup$1.getAttribute('o-setup') : '';
-  if (setup$1) Loader.load(url);
+  var setup$3 = document.querySelector('script[o-setup]');
+  var url = setup$3 ? setup$3.getAttribute('o-setup') : '';
+  if (setup$3) Loader.load(url);
   var SETUP = false;
   var GLOBAL = {};
   var index = Object.freeze({
@@ -2937,7 +2907,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     style: Style,
     path: Path,
     setup: function setup() {
-      var _this50 = this;
+      var _this49 = this;
 
       var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
       if (SETUP) return;else SETUP = true;
@@ -2948,11 +2918,11 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         }
       }).then(function () {
         if (options.component) {
-          return _this50.component.setup(options.component);
+          return _this49.component.setup(options.component);
         }
       }).then(function () {
         if (options.router) {
-          return _this50.router.setup(options.router);
+          return _this49.router.setup(options.router);
         }
       }).then(function () {
         if (options.listener.after) {

@@ -42,6 +42,7 @@ var oLoop = {
 
 		<br>
 
+		<button o-on-click="push">Push</button>
 		<button o-on-click="overwrite">Overwrite</button>
 
 		<div o-each-item="items">

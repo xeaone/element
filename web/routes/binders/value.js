@@ -1,6 +1,9 @@
 
 var model = {
-    text: 'Hello World'
+    text: 'Hello World',
+    input: function (e) {
+       console.log(e.target.value);
+    }
 };
 
 var template = /*html*/`
@@ -8,7 +11,9 @@ var template = /*html*/`
     <hr>
 
     <div>{{text | upper}}</div>
-    <input o-value="text">
+    <div>{{ upper(text) }}</div>
+    <!-- <input o-value="text"> -->
+    <input value="{{text}}" oninput="{{input}}">
 `;
 
 var upper = function (text) {

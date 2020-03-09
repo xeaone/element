@@ -1,15 +1,19 @@
 var title = 'Class Binder';
 var name = 'r-binder-class';
 
-var toggle = function () {
-    console.log('toggle');
-    this.model.ca = !this.model.ca;
-};
-
 var model = {
     ca: false,
     c: 'default',
-    title: 'Class'
+    title: 'Class',
+
+    toggle: function () {
+        this.model.ca = !this.model.ca;
+    },
+
+    overwrite: function () {
+        this.model.c = 'overwrite';
+    }
+
 };
 
 var style = /*css*/`
@@ -41,10 +45,5 @@ var template = /*html*/`
 
 export default {
     title, name, model, style, template,
-    methods: {
-        toggle,
-        overwrite: function () {
-            this.model.c = 'overwrite';
-        }
-    }
+    // methods: {}
 };
