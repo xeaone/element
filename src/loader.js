@@ -87,7 +87,7 @@ const transform = function (code, url) {
 
         const rawImport = importMatch[0];
         const nameImport = importMatch[1]; // default
-        const pathImport = importMatch[4] || importMatch[5];
+        let pathImport = importMatch[4] || importMatch[5];
 
         if (pathImport.slice(0, 1) !== '/') {
             pathImport = Path.resolve(parentImport, pathImport);
@@ -190,7 +190,7 @@ const IMPORT = function (url) {
             try {
                 xhr.open('GET', url, true);
                 xhr.send();
-            } catch (e) {
+            } catch {
                 reject(new Error(`failed to import: ${url}`));
                 clean();
             }
@@ -200,13 +200,9 @@ const IMPORT = function (url) {
     });
 };
 
-let native;
-try {
-    new Function('import("")');
-    native = true;
-} catch {
-    native = false;
-}
+let native = true;
+try { new Function('import("")'); }
+catch { native = false; }
 
 const load = async function (url) {
     if (!url) throw new Error('Oxe.loader.load - url argument required');

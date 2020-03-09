@@ -9,8 +9,7 @@ export default Object.freeze({
         pending: false
     },
 
-    setup (options) {
-        options = options || {};
+    setup (options = {}) {
         this.options.time = options.time || this.options.time;
     },
 
