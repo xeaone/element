@@ -1,28 +1,29 @@
 import ChildProcess from 'child_process';
-import { Packer, Watcher, Presser } from './packer.mjs';
+import Config from './packer.config.js';
+import { Packer, Watcher, Presser } from './packer.js';
 
 const Spawn = ChildProcess.spawn;
 
 (async function () {
 
-    const packOptions = { bundle: true, transform: true, name: 'Oxe', input: 'src/index.js', output: 'web/assets/oxe.js' };
+    Config.output = 'web/assets/oxe.js';
 
-    await Packer(packOptions);
+    await Packer(Config);
 
-    await Watcher('./src', async function () {
+    await Watcher('./src', async () => {
         console.log('pack: start');
-        await Packer(packOptions);
+        await Packer(Config);
         console.log('pack: end');
     });
 
     const child = Spawn('muleify', [ '-ss', 'web' ], { detached: false, stdio: 'inherit' });
 
     await Presser(
-        async function (key) {
+        async (key) => {
             switch (key) {
             case 'p':
                 console.log('pack: start');
-                await Packer(packOptions);
+                await Packer(Config);
                 console.log('pack: end');
                 break;
             case 'e':
@@ -33,7 +34,7 @@ const Spawn = ChildProcess.spawn;
                 break;
             }
         },
-        async function () {
+        async () => {
             child.kill();
         }
     );

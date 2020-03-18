@@ -1,13 +1,13 @@
 {
 	"name": "oxe",
 	"version": "5.2.9",
+    "type": "module",
 	"description": "A mighty tiny web components framework/library",
 	"main": "dst/oxe.min.js",
 	"scripts": {
-		"test": "node --experimental-modules watch.mjs",
-		"p": "node --experimental-modules publish.mjs",
-		"dst": "node --experimental-modules packer.mjs config=packer.config.mjs outputFolder=dst",
-		"dev": "node --experimental-modules packer.mjs config=packer.config.mjs outputFolder=dev"
+		"w": "node --experimental-modules watch.js",
+		"dst": "node --experimental-modules packer.js config=packer.config.js outputFolder=dst",
+		"dev": "node --experimental-modules packer.js config=packer.config.js outputFolder=dev"
 	},
 	"repository": {
 		"type": "git",
@@ -47,10 +47,12 @@
 		"src": "src"
 	},
 	"devDependencies": {
-		"rollup": "^1.31.1",
-		"@babel/core": "^7.8.4",
+		"@babel/core": "^7.8.7",
+		"@babel/preset-env": "^7.8.7",
+		"@webcomponents/custom-elements": "^1.4.1",
+		"@webcomponents/webcomponentsjs": "^2.4.3",
+		"fast-async": "^6.3.8",
 		"oxe-components": "^4.1.1",
-		"@babel/preset-env": "^7.8.4",
-		"babel-plugin-transform-async-to-promises": "^0.8.15"
+		"rollup": "^2.0.6"
 	}
 }
