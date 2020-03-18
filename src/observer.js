@@ -15,7 +15,10 @@ export default {
     set (tasks, handler, path, target, property, value) {
 
         // if (property === 'length') {
-        //     console.log('length ', value);
+        //     return true;
+        // }
+
+        // if (target[property] === value) {
         //     return true;
         // }
 
