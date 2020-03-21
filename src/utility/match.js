@@ -5,24 +5,19 @@ export default function Match (source, target) {
         return true;
     }
 
-    if (source === null || source === undefined) {
+    const sourceType = typeof source;
+    const targetType = typeof target;
+
+    if (sourceType !== targetType) {
         return false;
     }
 
-    if (target === null || target === undefined) {
-        return false;
-    }
-
-    if (typeof source !== typeof target) {
-        return false;
+    if (sourceType !== 'object' || targetType !== 'object') {
+        return source === target;
     }
 
     if (source.constructor !== target.constructor) {
         return false;
-    }
-
-    if (typeof source !== 'object' || typeof target !== 'object') {
-        return source === target;
     }
 
     const sourceKeys = Object.keys(source);
