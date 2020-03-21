@@ -1,5 +1,5 @@
 import Path from './path.js';
-import Loader from './loader.js';
+import Load from './load.js';
 import Events from './events.js';
 import Component from './component.js';
 import Extend from './utility/extend.js';
@@ -257,13 +257,13 @@ export default Object.freeze({
     async load (route) {
 
         if (route.load) {
-            const load = await Loader.load(route.load);
+            const load = await Load(route.load);
             route = Object.assign({}, load.default, route);
         }
 
         if (typeof route.component === 'string') {
             route.load = route.component;
-            const load = await Loader.load(route.load);
+            const load = await Load(route.load);
             route.component = load.default;
         }
 
