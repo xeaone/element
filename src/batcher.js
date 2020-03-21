@@ -75,7 +75,7 @@ export default Object.freeze({
         const self = this;
 
         if (!data) return;
-        if (!data.read && !data.write) return;
+        // if (!data.read && !data.write) return;
 
         data.context = data.context || {};
         data.context.read = true;
