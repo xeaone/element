@@ -12,12 +12,12 @@ export const ReadFolder = Util.promisify(Fs.readdir);
 export const WriteFile = Util.promisify(Fs.writeFile);
 
 export const Bundler = async function (option) {
-    const { input, name, format, indent, treeshake, rollup } = option;
+    const { input, name, format, indent, rollup } = option;
 
     const bundled = await Rollup.rollup({ input });
 
     const generated = await bundled.generate({
-        name, format, indent, treeshake, ...rollup
+        name, format, indent, ...rollup
     });
 
     return generated.output[0].code;
@@ -117,11 +117,9 @@ export const Packer = async function (option = {}) {
 
     // option.format = option.format || 'umd';
     // option.indent = option.indent || '    ';
+    // option.comments = option.comments === undefined ? false : option.comments;
 
     option.header = option.header === undefined ? null : option.header;
-    // option.comments = option.comments === undefined ? false : option.comments;
-    // option.treeshake = option.treeshake === undefined ? true : option.treeshake;
-
     option.bundle = option.bundle === undefined ? false : option.bundle;
     option.transform = option.transform === undefined ? false : option.transform;
 
