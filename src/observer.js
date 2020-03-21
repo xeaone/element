@@ -25,7 +25,7 @@ export default {
         target[property] = this.create(value, handler, path + property, tasks);
 
         if (tasks.length) {
-            Promise.resolve().then(function () {
+            Promise.resolve().then(() => {
                 let task; while (task = tasks.shift()) task();
             }).catch(console.error);
         }
@@ -42,7 +42,7 @@ export default {
         if (source instanceof Object === false && source instanceof Array === false) {
 
             if (!path && tasks.length) {
-                Promise.resolve().then(function () {
+                Promise.resolve().then(() => {
                     let task; while (task = tasks.shift()) task();
                 }).catch(console.error);
             }
@@ -57,9 +57,7 @@ export default {
                 tasks.push(handler.bind(null, source[key], path + key));
                 source[key] = this.create(source[key], handler, path + key, tasks);
             }
-        }
-
-        if (source instanceof Object) {
+        } else if (source instanceof Object) {
             for (let key in source) {
                 tasks.push(handler.bind(null, source[key], path + key));
                 source[key] = this.create(source[key], handler, path + key, tasks);
@@ -67,7 +65,7 @@ export default {
         }
 
         if (!path && tasks.length) {
-            Promise.resolve().then(function () {
+            Promise.resolve().then(() => {
                 let task; while (task = tasks.shift()) task();
             }).catch(console.error);
         }
