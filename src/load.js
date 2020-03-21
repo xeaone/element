@@ -204,8 +204,8 @@ let native = true;
 try { new Function('import("")'); }
 catch { native = false; }
 
-const load = async function (url) {
-    if (!url) throw new Error('Oxe.loader.load - url argument required');
+export default async function Load (url) {
+    if (!url) throw new Error('Oxe.load - url required');
 
     url = Path.resolve(url);
 
@@ -218,19 +218,35 @@ const load = async function (url) {
         return IMPORT(url);
     }
 
-};
+}
 
-const setup = async function (options = {}) {
-    const { loads } = options;
-
-    if (loads) {
-        return Promise.all(loads.map(load => this.load(load)));
-    }
-
-};
-
-export default Object.freeze({
-    data: MODULES,
-    options: {},
-    setup, load
-});
+// const load = async function (url) {
+//     if (!url) throw new Error('Oxe.loader.load - url argument required');
+//
+//     url = Path.resolve(url);
+//
+//     if (native) {
+//     // if (false) {
+//         console.log('native import');
+//         return new Function('url', 'return import(url)')(url);
+//     } else {
+//         console.log('not native import');
+//         return IMPORT(url);
+//     }
+//
+// };
+//
+// const setup = async function (options = {}) {
+//     const { loads } = options;
+//
+//     if (loads) {
+//         return Promise.all(loads.map(load => this.load(load)));
+//     }
+//
+// };
+//
+// export default Object.freeze({
+//     data: MODULES,
+//     options: {},
+//     setup, load
+// });
