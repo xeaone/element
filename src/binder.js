@@ -86,17 +86,15 @@ export default Object.freeze({
         return this.data.get(node);
     },
 
-    render (binder, data, e) {
+    render (binder) {
         const type = binder.type in this.binders ? binder.type : 'default';
-        const render = this.binders[type](binder, data, e);
+        const render = this.binders[type](...arguments);
         Batcher.batch(render);
     },
 
     unbind (node) {
         return this.data.remove(node);
     },
-
-    expression (data) {},
 
     bind (target, name, value, container, scope, attr) {
 
@@ -159,7 +157,13 @@ export default Object.freeze({
         });
 
         this.data.set(attr || binder.target, binder);
-        this.render(binder);
+
+        if (target.nodeName.includes('-')) {
+            window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
+        } else {
+            this.render(binder);
+        }
+
     },
 
     remove (node) {
