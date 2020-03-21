@@ -4,9 +4,6 @@
 // });
 
 Oxe.setup({
-    loader: {
-        type: 'es'
-    },
     fetcher: {
         request: function () {
             console.log(arguments);
