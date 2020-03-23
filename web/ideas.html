@@ -1,0 +1,142 @@
+
+<script>
+
+const Descriptors = function (data) {
+    const descriptors = {};
+
+    for (const name in data) {
+        if (data.hasOwnProperty(name)) {
+            descriptors[name] = Object.getOwnPropertyDescriptor(data, name);
+        }
+    }
+
+    return descriptors;
+};
+
+const $extends = function (parent, child) {
+    const prototype = parent.prototype;
+    const parentDescriptors = Descriptors(parent);
+    const childPrototypeDescriptors = Descriptors(child.prototype);
+
+    const base = function () {
+        const { constructor } = Object.getPrototypeOf(prototype);
+        console.log(constructor);
+        return window.Reflect.construct(constructor, arguments, this.constructor);
+    };
+
+    child.prototype = Object.create(parent.prototype);
+
+    Object.defineProperties(child, parentDescriptors);
+    Object.defineProperties(child.prototype, childPrototypeDescriptors);
+    Object.defineProperty(child.prototype, '$super', { enumerable: false, writable: true, value: base });
+    Object.defineProperty(child.prototype, 'constructor', { enumerable: false, writable: true, value: child });
+
+    return child;
+};
+
+const $construct = function (data) {
+    if (!data || typeof data === 'function') return data;
+
+    const { constructor } = data;
+    delete data.constructor;
+    const descriptors = Descriptors(data);
+
+    const Construct = function () {
+        return constructor.apply(this, arguments);
+    };
+
+    Object.defineProperties(Construct.prototype, descriptors);
+    Object.defineProperty(Construct.prototype, 'constructor', { enumerable: false, writable: true, value: Construct });
+
+    return Construct;
+};
+
+const $class = function (parent, child) {
+    child = child || parent;
+    parent = parent === child ? undefined : parent;
+
+    if (child) child = $construct(child);
+    if (parent) parent = $construct(parent);
+
+    return child && parent ? $extends(parent, child) : child;
+};
+
+const Thing = $class(HTMLElement, {
+
+    get observered () {
+        return [ 'one' ];
+    },
+
+    constructor (message) {
+        console.log(message);
+    },
+
+    method () {
+        console.log('method');
+    },
+
+});
+
+const t = new Thing('hello wolrds');
+t.method();
+console.log('t instanceof Thing', t instanceof Thing);
+console.log('t instanceof HTMLElement', t instanceof HTMLElement);
+
+// const OElement = extend(HTMLElement, class OElement {
+//     constructor() {
+//         console.log('OElement');
+//     }
+// });
+
+const OElement = $extends(HTMLElement, function OElement () {
+    console.log('OElement');
+    return this.$super();
+    // return window.Reflect.construct(HTMLElement, [], this.constructor);
+});
+
+OElement.prototype.connectedCallback = function () {
+    this.innerHTML = 'hello world';
+    if (this.attached) {
+        this.attached.apply(this, arguments);
+    }
+};
+
+OElement.prototype.attributeChangedCallback = function () { console.log(arguments); }
+// window.customElements.define('my-element', OElement);
+
+// const MyElement = $class(OElement, function MyElement (s) {
+//     console.log('MyElement');
+//     return this.$super();
+// });
+const MyElement = $class(class MyElement extends OElement {
+    constructor () {
+        super();
+        console.log('MyElement');
+    }
+});
+MyElement.observedAttributes = [ 'three' ];
+// MyElement.prototype.observedAttributes = [ 'three' ];
+
+// Object.defineProperty(OElement, 'observedAttributes', {
+// Object.defineProperty(OElement.prototype, 'observedAttributes', {
+//     get: function () {
+//         return this.observered || [ 'two' ];
+//     }
+// });
+MyElement.prototype.attached = function () {
+    this.innerHTML = 'hello world';
+}
+window.customElements.define('my-element', MyElement);
+
+setTimeout(function () {
+    const myElement = document.createElement('my-element');
+    console.log(myElement instanceof HTMLElement)
+    console.log(myElement instanceof OElement);
+    console.log(myElement instanceof MyElement)
+    myElement.setAttribute('one', 1);
+    myElement.setAttribute('two', 2);
+    myElement.setAttribute('three', 3);
+    document.body.appendChild(myElement);
+}, 500);
+
+</script>
