@@ -558,6 +558,7 @@
 
           var _index = binder.meta.currentLength++;
 
+          binder.target.appendChild(_element);
           self.add(_element, {
             index: _index,
             path: binder.path,
@@ -566,7 +567,6 @@
             scope: binder.container.scope,
             key: binder.meta.keys[_index]
           });
-          binder.target.appendChild(_element);
         }
 
         if (binder.meta.pending && render.read) {
@@ -830,112 +830,22 @@
     if (binder.meta.busy) return;else binder.meta.busy = true;
 
     if (type === 'select-one' || type === 'select-multiple') {
-      return {
-        read: function read() {
-          this.data = binder.data;
-          this.model = binder.model;
-          this.options = binder.target.options;
-          this.multiple = Utility.multiple(binder.target);
-
-          if (this.multiple && (!this.data || this.data.constructor !== Array)) {
-            binder.meta.busy = false;
-            throw new Error("Oxe - invalid o-value ".concat(binder.keys.join('.'), " multiple select requires array"));
-          }
-        },
-        write: function write() {
-          var fallback = false;
-          var fallbackSelectedAtrribute = false;
-          var fallbackValue = this.multiple ? [] : null;
-          var fallbackOption = this.multiple ? [] : null;
-
-          for (var i = 0, l = this.options.length; i < l; i++) {
-            var option = this.options[i];
-            var selected = option.selected;
-            var optionBinder = self.get('attribute', option, 'o-value');
-            var optionValue = optionBinder ? optionBinder.data : option.value;
-            var selectedAtrribute = option.hasAttribute('selected');
-
-            if (this.multiple) {
-              if (selectedAtrribute) {
-                fallback = true;
-                fallbackOption.push(option);
-                fallbackValue.push(optionValue);
-              }
-            } else {
-              if (i === 0 || selectedAtrribute) {
-                fallback = true;
-                fallbackOption = option;
-                fallbackValue = optionValue;
-                fallbackSelectedAtrribute = selectedAtrribute;
-              }
+        return {
+            read: function () {
+                for (var i = 0; i < binder.target.options.length; i++) {
+                    var optionElement = binder.target.options[i];
+                    var optionBinder = self.get('attribute', optionElement, 'o-value') || { meta: {}, target: optionElement };
+                    if ('data' in optionBinder === false) {
+                        Object.defineProperties(optionBinder, { data: {
+                            get: function () { return optionElement.value; },
+                            set: function (data) { return optionElement.value = data; } }
+                        });
+                    }
+                    self.render(optionBinder, caller);
+                }
+                binder.meta.busy = false;
             }
-
-            if (caller === 'view') {
-              if (selected) {
-                if (this.multiple) {
-                  var includes = Utility.includes(this.data, optionValue);
-
-                  if (!includes) {
-                    this.selected = true;
-                    binder.data.push(optionValue);
-                  }
-                } else if (!this.selected) {
-                  this.selected = true;
-                  binder.data = optionValue;
-                }
-              } else {
-                if (this.multiple) {
-                  var _index2 = Utility.index(this.data, optionValue);
-
-                  if (_index2 !== -1) {
-                    binder.data.splice(_index2, 1);
-                  }
-                } else if (!this.selected && i === l - 1) {
-                  binder.data = null;
-                }
-              }
-            } else {
-              if (this.multiple) {
-                var _includes = Utility.includes(this.data, optionValue);
-
-                if (_includes) {
-                  this.selected = true;
-                  option.selected = true;
-                } else {
-                  option.selected = false;
-                }
-              } else {
-                if (!this.selected) {
-                  var match = Utility.match(this.data, optionValue);
-
-                  if (match) {
-                    this.selected = true;
-                    option.selected = true;
-                  } else {
-                    option.selected = false;
-                  }
-                } else {
-                  option.selected = false;
-                }
-              }
-            }
-          }
-
-          if (!this.selected && fallback) {
-            if (this.multiple) {
-              for (var _i2 = 0, _l2 = fallbackOption.length; _i2 < _l2; _i2++) {
-                fallbackOption[_i2].selected = true;
-                binder.data.push(fallbackValue[_i2]);
-              }
-            } else if (fallbackSelectedAtrribute || this.nodeName === 'OPTION') {
-              binder.data = fallbackValue;
-              fallbackOption.selected = true;
-            }
-          }
-
-          binder.meta.busy = false;
-        }
-      };
+        };
     } else if (type === 'radio') {
       return {
         read: function read() {
@@ -1002,26 +912,64 @@
         }
       };
     } else {
-      return {
-        read: function read() {
-          if (caller === 'view') {
-            binder.data = binder.target.value;
-            binder.meta.busy = false;
-            return false;
-          }
+        return {
+            read: function () {
+                this.data = binder.data;
+                this.value = binder.target.value;
+                this.selected = binder.target.selected;
 
-          this.data = binder.data;
+                if (
+                    binder.target.parentElement &&
+                    (binder.target.parentElement.type === 'select-one'||
+                    binder.target.parentElement.type === 'select-multiple')
+                ) {
+                    this.select = binder.target.parentElement;
+                } else if (
+                    binder.target.parentElement &&
+                    binder.target.parentElement.parentElement &&
+                    (binder.target.parentElement.parentElement.type === 'select-one'||
+                    binder.target.parentElement.parentElement.type === 'select-multiple')
+                ) {
+                    this.select = binder.target.parentElement.parentElement;
+                }
 
-          if (this.data === binder.target.value) {
-            binder.meta.busy = false;
-            return false;
-          }
-        },
-        write: function write() {
-          binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
-          binder.meta.busy = false;
-        }
-      };
+                if (this.select) {
+                    this.select = self.get('attribute', this.select, 'o-value');
+                    this.multiple = this.select.target.multiple;
+                }
+
+            },
+            write: function () {
+
+                if (this.select) {
+                   if (this.multiple) {
+                        var index = Utility.index(this.select.data, this.data);
+                        if (caller === 'view') {
+                            if (this.selected && index === -1) this.select.data.push(this.data);
+                            else if (!this.selected && index !== -1) this.select.data.splice(index, 1);
+                        } else {
+                            if (index === -1) binder.target.selected = false;
+                            else binder.target.selected = true;
+                        }
+                    } else {
+                        var match = Utility.match(this.select.data, this.data);
+                        if (caller === 'view') {
+                            if (this.selected !== match) this.select.data = this.data;
+                        } else {
+                            if (match) binder.target.selected = true;
+                            else binder.target.selected = false;
+                        }
+                    }
+                }
+
+                if (this.data !== this.value) {
+                    if (caller === 'view') binder.data = this.value === '' ? this.data : this.value;
+                    else binder.target.value = this.data === undefined || this.data === null ? '' : this.data;
+                }
+
+                binder.meta.busy = false;
+            }
+        };
     }
   }
 

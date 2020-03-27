@@ -3,9 +3,9 @@ import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
 import Binder from './binder.js';
 import Define from './define.js';
+import Import from './import.js';
 import Router from './router.js';
 import Style from './style.js';
-import Load from './load.js';
 
 if (typeof window.CustomEvent !== 'function') {
     window.CustomEvent = function CustomEvent (event, params) {
@@ -51,8 +51,7 @@ export default Object.freeze({
     Binder,
     binder: Binder,
 
-    Load,
-    load: Load,
+    Import,
 
     Router,
     router: Router,
