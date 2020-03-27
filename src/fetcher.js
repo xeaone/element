@@ -1,9 +1,7 @@
 
-console.warn('options function would need to be deprected');
+const OPTIONS = {};
 
 export default Object.freeze({
-
-    options: {},
 
     mime: {
         xml: 'text/xml; charset=utf-8',
@@ -17,16 +15,16 @@ export default Object.freeze({
 
     async setup (options) {
         options = options || {};
-        this.options.path = options.path;
-        this.options.origin = options.origin;
-        this.options.request = options.request;
-        this.options.response = options.response;
-        this.options.acceptType = options.acceptType;
-        this.options.headers = options.headers || {};
-        this.options.method = options.method || 'get';
-        this.options.credentials = options.credentials;
-        this.options.contentType = options.contentType;
-        this.options.responseType = options.responseType;
+        OPTIONS.path = options.path;
+        OPTIONS.origin = options.origin;
+        OPTIONS.request = options.request;
+        OPTIONS.response = options.response;
+        OPTIONS.acceptType = options.acceptType;
+        OPTIONS.headers = options.headers || {};
+        OPTIONS.method = options.method || 'get';
+        OPTIONS.credentials = options.credentials;
+        OPTIONS.contentType = options.contentType;
+        OPTIONS.responseType = options.responseType;
     },
 
     async serialize (data) {
@@ -43,8 +41,8 @@ export default Object.freeze({
     async fetch (options) {
         const data = Object.assign({}, options);
 
-        data.path = data.path || this.options.path;
-        data.origin = data.origin || this.options.origin;
+        data.path = data.path || OPTIONS.path;
+        data.origin = data.origin || OPTIONS.origin;
 
         if (data.path && typeof data.path === 'string' && data.path.charAt(0) === '/') data.path = data.path.slice(1);
         if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length-1) === '/') data.origin = data.origin.slice(0, -1);
@@ -53,34 +51,34 @@ export default Object.freeze({
         if (!data.method) throw new Error('Oxe.fetcher - requires method option');
         if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
 
-        if (!data.headers && this.options.headers) data.headers = this.options.headers;
-        if (typeof data.method === 'string') data.method = data.method.toUpperCase() || this.options.method;
+        if (!data.headers && OPTIONS.headers) data.headers = OPTIONS.headers;
+        if (typeof data.method === 'string') data.method = data.method.toUpperCase() || OPTIONS.method;
 
-        if (!data.acceptType && this.options.acceptType) data.acceptType = this.options.acceptType;
-        if (!data.contentType && this.options.contentType) data.contentType = this.options.contentType;
-        if (!data.responseType && this.options.responseType) data.responseType = this.options.responseType;
+        if (!data.acceptType && OPTIONS.acceptType) data.acceptType = OPTIONS.acceptType;
+        if (!data.contentType && OPTIONS.contentType) data.contentType = OPTIONS.contentType;
+        if (!data.responseType && OPTIONS.responseType) data.responseType = OPTIONS.responseType;
 
         // omit, same-origin, or include
-        if (!data.credentials && this.options.credentials) data.credentials = this.options.credentials;
+        if (!data.credentials && OPTIONS.credentials) data.credentials = OPTIONS.credentials;
 
         // cors, no-cors, or same-origin
-        if (!data.mode && this.options.mode) data.mode = this.options.mode;
+        if (!data.mode && OPTIONS.mode) data.mode = OPTIONS.mode;
 
         // default, no-store, reload, no-cache, force-cache, or only-if-cached
-        if (!data.cache && this.options.cache) data.cahce = this.options.cache;
+        if (!data.cache && OPTIONS.cache) data.cahce = OPTIONS.cache;
 
         // follow, error, or manual
-        if (!data.redirect && this.options.redirect) data.redirect = this.options.redirect;
+        if (!data.redirect && OPTIONS.redirect) data.redirect = OPTIONS.redirect;
 
         // no-referrer, client, or a URL
-        if (!data.referrer && this.options.referrer) data.referrer = this.options.referrer;
+        if (!data.referrer && OPTIONS.referrer) data.referrer = OPTIONS.referrer;
 
         // no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
-        if (!data.referrerPolicy && this.options.referrerPolicy) data.referrerPolicy = this.options.referrerPolicy;
+        if (!data.referrerPolicy && OPTIONS.referrerPolicy) data.referrerPolicy = OPTIONS.referrerPolicy;
 
-        if (!data.signal && this.options.signal) data.signal = this.options.signal;
-        if (!data.integrity && this.options.integrity) data.integrity = this.options.integrity;
-        if (!data.keepAlive && this.options.keepAlive) data.keepAlive = this.options.keepAlive;
+        if (!data.signal && OPTIONS.signal) data.signal = OPTIONS.signal;
+        if (!data.integrity && OPTIONS.integrity) data.integrity = OPTIONS.integrity;
+        if (!data.keepAlive && OPTIONS.keepAlive) data.keepAlive = OPTIONS.keepAlive;
 
         if (data.contentType) {
             data.headers = data.headers || {};
@@ -104,18 +102,9 @@ export default Object.freeze({
             }
         }
 
-        // IDEA for auth tokens
-        // if (data.headers) {
-        // 	for (let name in data.headers) {
-        // 		if (typeof data.headers[name] === 'function') {
-        // 			data.headers[name] = await data.headers[name]();
-        // 		}
-        // 	}
-        // }
-
-        if (typeof this.options.request === 'function') {
+        if (typeof OPTIONS.request === 'function') {
             const copy = Object.assign({}, data);
-            const result = await this.options.request(copy);
+            const result = await OPTIONS.request(copy);
 
             if (result === false) {
                 return data;
@@ -161,9 +150,9 @@ export default Object.freeze({
             data.body = await fetched[type]();
         }
 
-        if (this.options.response) {
+        if (OPTIONS.response) {
             const copy = Object.assign({}, data);
-            const result = await this.options.response(copy);
+            const result = await OPTIONS.response(copy);
 
             if (result === false) {
                 return data;
@@ -214,11 +203,11 @@ export default Object.freeze({
         return this.fetch(data);
     },
 
-    // async options (data) {
-    //     data = typeof data === 'string' ? { url: data } : data;
-    //     data.method = 'options';
-    //     return this.fetch(data);
-    // },
+    async options (data) {
+        data = typeof data === 'string' ? { url: data } : data;
+        data.method = 'options';
+        return this.fetch(data);
+    },
 
     async connect (data) {
         data = typeof data === 'string' ? { url: data } : data;

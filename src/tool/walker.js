@@ -1,11 +1,11 @@
 
-export default function walker (node, callback) {
+export default function Walker (node, callback) {
 
     callback(node);
     node = node.firstChild;
 
     while (node) {
-        walker(node, callback);
+        Walker(node, callback);
         node = node.nextSibling;
     }
 

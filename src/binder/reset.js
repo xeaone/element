@@ -1,6 +1,6 @@
+import Binder from '../binder.js';
 
 const reset = async function (binder, event) {
-
     event.preventDefault();
 
     const elements = event.target.querySelectorAll('*');
@@ -19,7 +19,7 @@ const reset = async function (binder, event) {
             continue;
         }
 
-        const binder = this.get(element, 'o-value');
+        const binder = Binder.get(element, 'o-value');
 
         if (!binder) {
             if (type === 'select-one' || type === 'select-multiple') {
@@ -41,7 +41,7 @@ const reset = async function (binder, event) {
 
     }
 
-    let method = binder.data;
+    const method = binder.data;
     if (typeof method === 'function') {
         await method.call(binder.container, event);
     }
@@ -49,10 +49,16 @@ const reset = async function (binder, event) {
 };
 
 export default function (binder) {
+
+    if (typeof binder.data !== 'function') {
+        console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
+        return;
+    }
+
     if (binder.meta.method) {
         binder.target.removeEventListener('reset', binder.meta.method, false);
-    } else {
-        binder.meta.method = reset.bind(this, binder);
-        binder.target.addEventListener('reset', binder.meta.method, false);
     }
+
+    binder.meta.method = reset.bind(this, binder);
+    binder.target.addEventListener('reset', binder.meta.method, false);
 }

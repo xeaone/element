@@ -1,4 +1,4 @@
-import Traverse from './utility/traverse.js';
+import Traverse from './tool/traverse.js';
 
 import Batcher from './batcher.js';
 import Piper from './piper.js';

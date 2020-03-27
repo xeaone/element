@@ -6,7 +6,8 @@ export default function (binder) {
             data = binder.data;
 
             if (!data === binder.target.readOnly) {
-                return this.write = false;
+                this.write = false;
+                return;
             }
 
         },

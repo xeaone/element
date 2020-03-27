@@ -1,4 +1,4 @@
-// import Traverse from '../utility/traverse.js';
+import Binder from '../binder.js';
 
 const submit = async function (binder, event) {
     event.preventDefault();
@@ -19,7 +19,7 @@ const submit = async function (binder, event) {
         }
 
         const attribute = element.attributes['o-value'];
-        const b = this.get(attribute);
+        const b = Binder.get(attribute);
 
         console.warn('todo: need to get a value for selects');
 
@@ -37,8 +37,13 @@ const submit = async function (binder, event) {
         data[name] = value;
     }
 
-    if (typeof binder.data === 'function') {
-        await binder.data.call(binder.container, data, event);
+    // if (typeof binder.data === 'function') {
+    //     await binder.data.call(binder.container, data, event);
+    // }
+
+    const method = binder.data;
+    if (typeof method === 'function') {
+        await method.call(binder.container, data, event);
     }
 
     if ('o-reset' in event.target.attributes) {
@@ -48,38 +53,31 @@ const submit = async function (binder, event) {
 };
 
 export default function (binder) {
-    const self = this;
-    let data;
-    return {
-        read () {
-            data = binder.data;
 
-            if (typeof data !== 'function') {
-                return console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
-            }
+    if (typeof binder.data !== 'function') {
+        console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
+        return;
+    }
 
-            if (binder.meta.method) {
-                console.log('remove method');
-                binder.target.removeEventListener('submit', binder.meta.method);
-            }
+    if (binder.meta.method) {
+        binder.target.removeEventListener('submit', binder.meta.method);
+    }
 
-            // binder.meta.method = function (events) {
-            //     const parameters = [];
-            //
-            //     for (let i = 0, l = binder.pipes.length; i < l; i++) {
-            //         const keys = binder.pipes[i].split('.');
-            //         const parameter = Traverse(binder.container.model, keys);
-            //         parameters.push(parameter);
-            //     }
-            //
-            //     parameters.push(events);
-            //     parameters.push(this);
-            //
-            //     Promise.resolve(data.bind(binder.container).apply(null, parameters)).catch(console.error);
-            // };
+    // binder.meta.method = function (events) {
+    //     const parameters = [];
+    //
+    //     for (let i = 0, l = binder.pipes.length; i < l; i++) {
+    //         const keys = binder.pipes[i].split('.');
+    //         const parameter = Traverse(binder.container.model, keys);
+    //         parameters.push(parameter);
+    //     }
+    //
+    //     parameters.push(events);
+    //     parameters.push(this);
+    //
+    //     Promise.resolve(data.bind(binder.container).apply(null, parameters)).catch(console.error);
+    // };
 
-            binder.meta.method = submit.bind(self, binder);
-            binder.target.addEventListener('submit', binder.meta.method);
-        }
-    };
+    binder.meta.method = submit.bind(this, binder);
+    binder.target.addEventListener('submit', binder.meta.method);
 }

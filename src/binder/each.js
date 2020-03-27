@@ -1,9 +1,11 @@
+import Binder from '../binder.js';
 
 export default function (binder) {
-    const self = this;
 
-    if (binder.meta.pending) return;
-    else binder.meta.pending = true;
+    if (binder.meta.busy) {
+        console.log('busy each');
+        return;
+    } else binder.meta.busy = true;
 
     let data;
 
@@ -14,11 +16,11 @@ export default function (binder) {
             binder.meta.keys = [];
             binder.meta.counts = [];
             binder.meta.setup = false;
-            binder.meta.pending = false;
+            binder.meta.busy = false;
             binder.meta.targetLength = 0;
             binder.meta.currentLength = 0;
             binder.meta.templateString = binder.target.innerHTML;
-            binder.meta.fragment = document.createDocumentFragment();
+            // binder.meta.fragment = document.createDocumentFragment();
             binder.meta.templateLength = binder.target.childNodes.length;
 
             while (binder.target.firstChild) {
@@ -32,7 +34,7 @@ export default function (binder) {
         binder.meta.targetLength = binder.meta.keys.length;
 
         if (binder.meta.currentLength === binder.meta.targetLength) {
-            binder.meta.pending = false;
+            binder.meta.busy = false;
             this.write = false;
         }
 
@@ -46,8 +48,8 @@ export default function (binder) {
 
                 while (count--) {
                     const node = binder.target.lastChild;
+                    Promise.resolve().then(Binder.remove(node));
                     binder.target.removeChild(node);
-                    Promise.resolve().then(self.remove.bind(self, node)).catch(console.error);
                 }
 
                 binder.meta.currentLength--;
@@ -70,16 +72,18 @@ export default function (binder) {
 
                 let node;
                 while (node = parsed.firstChild) {
-                    binder.meta.fragment.appendChild(node);
-                    Promise.resolve().then(self.add.bind(self, node, binder.container, binder.scope)).catch(console.error);
+                    binder.target.appendChild(node);
+                    Promise.resolve().then(Binder.add(node, binder.container, binder.scope));
+                    // binder.meta.fragment.appendChild(node);
+                    // Promise.resolve().then(Binder.add(node, binder.container, binder.scope)).catch(console.error);
                 }
 
                 binder.meta.currentLength++;
             }
-            binder.target.appendChild(binder.meta.fragment);
+            // binder.target.appendChild(binder.meta.fragment);
         }
 
-        binder.meta.pending = false;
+        binder.meta.busy = false;
     };
 
     return { read, write };

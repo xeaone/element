@@ -1,34 +1,42 @@
 
-const STYLE = document.createElement('style');
-const SHEET = STYLE.sheet;
+const style = document.createElement('style');
+const sheet = style.sheet;
 
-STYLE.setAttribute('title', 'oxe');
-STYLE.setAttribute('type', 'text/css');
+style.setAttribute('title', 'oxe');
+style.setAttribute('type', 'text/css');
 
-export default Object.freeze({
+const add = function (data) {
+    this.sheet.insertRule(data);
+};
 
-    style: STYLE,
-    sheet: SHEET,
+const append = function (data) {
 
-    // get style () { return STYLE; },
-    // get sheet () { return SHEET; },
+    if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
+        const matches = data.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
 
-    add (data) {
-        this.sheet.insertRule(data);
-    },
-
-    append (data) {
-        this.style.appendChild(document.createTextNode(data));
-    },
-
-    async setup (option) {
-        option = option || {};
-
-        if (option.style) {
-            this.append(option.style);
+        for (let i = 0; i < matches.length; i++) {
+            const match = matches[i];
+            const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+            const pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+            data = data.replace(rule[0], '');
+            data = data.replace(pattern, rule[2]);
         }
 
-        document.head.appendChild(this.style);
     }
 
+    this.style.appendChild(document.createTextNode(data));
+};
+
+const setup = async function (option) {
+    option = option || {};
+
+    if (option.style) {
+        this.append(option.style);
+    }
+
+    document.head.appendChild(this.style);
+};
+
+export default Object.freeze({
+    style, sheet, add, append, setup
 });

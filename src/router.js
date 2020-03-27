@@ -1,9 +1,9 @@
-import Path from './path.js';
 import Load from './load.js';
+import Define from './define.js';
 import Events from './events.js';
-import Component from './component.js';
-import Extend from './utility/extend.js';
-import Ensure from './utility/ensure.js';
+import Ensure from './tool/ensure.js';
+import Absolute from './tool/absolute.js';
+// import Component from './component.js';
 
 export default Object.freeze({
 
@@ -39,7 +39,10 @@ export default Object.freeze({
             window.document.addEventListener('click', this.click.bind(this), true);
         }
 
-        window.customElements.define('o-router', Extend(function () {}, HTMLElement));
+        const ORouter = function ORouter () { return window.Reflect.construct(HTMLElement, arguments, this.constructor); };
+        ORouter.prototype = HTMLElement.prototype;
+        Object.defineProperty(ORouter.prototype, 'constructor', { enumerable: false, writable: true, value: ORouter });
+        window.customElements.define('o-router', ORouter);
 
         await this.add(option.routes);
         await this.route(window.location.href, { mode: 'replace' });
@@ -90,21 +93,8 @@ export default Object.freeze({
 
     compare (routePath, userPath) {
 
-        userPath = Path.resolve(userPath);
-        routePath = Path.resolve(routePath);
-
-        // const base = Path.normalize(Path.base);
-        //
-        // userPath = Path.normalize(userPath);
-        // routePath = Path.normalize(routePath);
-        //
-        // if (userPath.slice(0, base.length) !== base) {
-        //     userPath = Path.join(base, userPath);
-        // }
-        //
-        // if (routePath.slice(0, base.length) !== base) {
-        //     routePath = Path.join(base, routePath);
-        // }
+        userPath = Absolute(userPath);
+        routePath = Absolute(routePath);
 
         if (this.compareParts(routePath, userPath, '/')) {
             return true;
@@ -366,12 +356,12 @@ export default Object.freeze({
 
         if (!route.target) {
             if (!route.component) {
-                Component.define(route);
+                Define(route);
                 route.target = window.document.createElement(route.name);
             } else if (route.component.constructor === String) {
                 route.target = window.document.createElement(route.component);
             } else if (route.component.constructor === Object) {
-                Component.define(route.component);
+                Define(route.component);
                 route.target = window.document.createElement(route.component.name);
             } else {
                 throw new Error('Oxe.router.render - route requires name, load, or component property');
@@ -421,7 +411,7 @@ export default Object.freeze({
             await this.option.before(location);
         }
 
-        Events.emit('route:before', location);
+        Events(this.option.target, 'before', location);
 
         if (mode === 'href') {
             return window.location.assign(location.path);
@@ -449,7 +439,7 @@ export default Object.freeze({
             await this.option.after(location);
         }
 
-        Events.emit('route:after', location);
+        Events(this.option.target, 'after', location);
     },
 
     async state (event) {

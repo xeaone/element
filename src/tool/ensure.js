@@ -1,5 +1,5 @@
 
-export default function ensure (data) {
+export default function Ensure (data) {
     data.query = data.query || '';
     data.scope = data.scope || document.body;
     data.position = data.position || 'beforeend';

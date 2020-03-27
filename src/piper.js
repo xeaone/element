@@ -1,4 +1,4 @@
-import Traverse from './utility/traverse.js';
+import Traverse from './tool/traverse.js';
 
 export default function Piper (binder, data) {
 
@@ -17,14 +17,16 @@ export default function Piper (binder, data) {
         return data;
     }
 
-    for (let i = 0, l = binder.pipes.length; i < l; i++) {
+    for (let i = 0; i < binder.pipes.length; i++) {
         const path = binder.pipes[i];
         const method = Traverse(source, path);
+
         if (method instanceof Function) {
             data = method.call(binder.container, data);
         } else {
             console.warn(`Oxe.piper - pipe ${path} invalid`);
         }
+
     }
 
     return data;

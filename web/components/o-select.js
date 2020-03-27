@@ -20,13 +20,13 @@ export default [
             options: {
                 enumerable: true,
                 get: function () {
-                    return Object.freeze(this._options.slice());
+                    return this._options;
                 }
             },
             selectedOptions: {
                 enumerable: true,
                 get: function () {
-                    return Object.freeze(this._selectedOptions.slice());
+                    return this._selectedOptions;
                 }
             },
             selectedIndex: {
@@ -87,9 +87,10 @@ export default [
                         this.setAttribute('multiple', '');
                     } else {
                         this.removeAttribute('multiple');
-                        this._selectedOptions.slice(1).forEach(function (option) {
-                            option.selected = false;
-                        });
+                        for (var i = 1; i < this._selectedOptions.length; i++) {
+                            this._selectedOptions[i].selected = false;
+                        }
+
                     }
 
                     return data;
@@ -170,7 +171,7 @@ export default [
                         } else if (this.parentElement.parentElement.nodeName === 'O-SELECT') {
                             return this._select = this.parentElement.parentElement;
                         } else {
-                            console.warn('o-option invalid parent type');
+                            return null;
                         }
                     } else {
                         return this._select;
@@ -208,14 +209,15 @@ export default [
             selected: {
                 enumerable: true,
                 get: function () {
-                    if (this._selectedDefaultLocked) {
-                        return this._selected;
-                    } else {
-                        var selected = this.getAttribute('selected');
-                        return selected !== null && selected !== 'false' ? true : false;
-                    }
+                    // if (this._selectedDefaultLocked) {
+                    return this._selected;
+                    // } else {
+                    //     var selected = this.getAttribute('selected');
+                    //     return selected !== null && selected !== 'false' ? true : false;
+                    // }
                 },
                 set: function (data) {
+                    console.log('set');
                     this._selectedDefaultLocked = true;
 
                     var selected = this._selected = data ? true : false;
@@ -225,31 +227,29 @@ export default [
                     var select = this.select;
                     if (!select) return selected;
 
-                    var options = select._selectedOptions;
+                    var multiple = select.multiple;
+                    var selectedOptions = select._selectedOptions;
 
-                    if (!select.multiple) {
-                        for (var i = 0; i < options.length; i++) {
-                            var option = options[i];
-                            if (this !== option) {
-                                if (option._selected) {
-                                    options.splice(i, 1);
-                                    option._selected = false;
-                                    option.removeAttribute('active');
-                                }
-                            }
+                    if (!multiple && selectedOptions[0]) {
+                        if (selectedOptions[0] === this) {
+                            return selected;
+                        } else {
+                            selectedOptions[0].removeAttribute('active');
+                            selectedOptions[0]._selected = false;
+                            selectedOptions.splice(0, 1);
                         }
                     }
 
-                    var index = options.indexOf(this);
+                    var index = selectedOptions.indexOf(this);
 
                     if (selected) {
                         if (index === -1) {
-                            options.push(this);
+                            selectedOptions.push(this);
                             this.setAttribute('active', '');
                         }
                     } else {
                         if (index !== -1) {
-                            options.splice(index, 1);
+                            selectedOptions.splice(index, 1);
                             this.removeAttribute('active');
                         }
                     }
@@ -300,20 +300,25 @@ export default [
             }
         },
         attached: function () {
+
             if (this.select) {
                 this.select._options.push(this);
+                // this.selected = this.selected ? true : false;
             }
 
-            if (this.hasAttribute('selected')) {
-                this.setAttribute('active', '');
-            } else {
-                this.removeAttribute('active');
-            }
+            // if (this.hasAttribute('selected')) {
+            //     this.setAttribute('active', '');
+            // } else {
+            //     this.removeAttribute('active');
+            // }
 
         },
         detached: function () {
+            console.log('detached');
             if (this.select) {
+                this.selected = false;
                 this.select._options.splice(this.select._options.indexOf(this), 1);
+                this._select = null;
             }
         },
         created: function () {

@@ -1,6 +1,11 @@
 
 var oLoop = {
-    name: 'o-loop',
+    constructor: function () {
+        this.Super();
+    },
+    created: function () {
+        console.log(this.model);
+    },
     model: {
         items: [],
         message: '',
@@ -28,9 +33,6 @@ var oLoop = {
             console.timeEnd('overwrite');
         }
     },
-    created: function () {
-        console.log(this.model);
-    },
     template: /*html*/`
 
 		<h3><span>{{count}}</span> Inputs two way binded</h3>
@@ -55,10 +57,12 @@ var oLoop = {
 	`
 };
 
-Oxe.setup({
-    component: {
-        components: [
-            oLoop
-        ]
-    }
-}).catch(console.error);
+Oxe.Define('o-loop', oLoop);
+
+// Oxe.setup({
+//     component: {
+//         components: [
+//             oLoop
+//         ]
+//     }
+// }).catch(console.error);

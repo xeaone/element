@@ -1,68 +1,43 @@
 const methods = [ 'push','pop','splice','shift','unshift','reverse' ];
 
-export default {
+const get = function (tasks, handler, path, target, property) {
 
-    get (tasks, handler, path, target, property) {
+    if (target instanceof Array && methods.indexOf(property) !== -1) {
+        // console.log(path.slice(0, -1));
+        tasks.push(handler.bind(null, target, path.slice(0, -1)));
+    }
 
-        if (target instanceof Array && methods.indexOf(property) !== -1) {
-            // console.log(path.slice(0, -1));
-            tasks.push(handler.bind(null, target, path.slice(0, -1)));
-        }
+    return target[property];
+};
 
-        return target[property];
-    },
+const set = function (tasks, handler, path, target, property, value) {
 
-    set (tasks, handler, path, target, property, value) {
+    // if (property === 'length') {
+    //     return true;
+    // }
 
-        // if (property === 'length') {
-        //     return true;
-        // }
+    // if (target[property] === value) {
+    //     return true;
+    // }
 
-        // if (target[property] === value) {
-        //     return true;
-        // }
+    target[property] = create(value, handler, path + property, tasks);
 
-        target[property] = this.create(value, handler, path + property, tasks);
+    if (tasks.length) {
+        Promise.resolve().then(() => {
+            let task; while (task = tasks.shift()) task();
+        }).catch(console.error);
+    }
 
-        if (tasks.length) {
-            Promise.resolve().then(() => {
-                let task; while (task = tasks.shift()) task();
-            }).catch(console.error);
-        }
+    return true;
+};
 
-        return true;
-    },
+const create = function (source, handler, path, tasks) {
+    path = path || '';
+    tasks = tasks || [];
 
-    create (source, handler, path, tasks) {
-        path = path || '';
-        tasks = tasks || [];
+    tasks.push(handler.bind(null, source, path));
 
-        tasks.push(handler.bind(null, source, path));
-
-        if (source instanceof Object === false && source instanceof Array === false) {
-
-            if (!path && tasks.length) {
-                Promise.resolve().then(() => {
-                    let task; while (task = tasks.shift()) task();
-                }).catch(console.error);
-            }
-
-            return source;
-        }
-
-        path = path ? path + '.' : '';
-
-        if (source instanceof Array) {
-            for (let key = 0; key < source.length; key++) {
-                tasks.push(handler.bind(null, source[key], path + key));
-                source[key] = this.create(source[key], handler, path + key, tasks);
-            }
-        } else if (source instanceof Object) {
-            for (let key in source) {
-                tasks.push(handler.bind(null, source[key], path + key));
-                source[key] = this.create(source[key], handler, path + key, tasks);
-            }
-        }
+    if (source instanceof Object === false && source instanceof Array === false) {
 
         if (!path && tasks.length) {
             Promise.resolve().then(() => {
@@ -70,11 +45,34 @@ export default {
             }).catch(console.error);
         }
 
-        return new Proxy(source, {
-            get: this.get.bind(this, tasks, handler, path),
-            set: this.set.bind(this, tasks, handler, path)
-        });
-
+        return source;
     }
 
+    path = path ? path + '.' : '';
+
+    if (source instanceof Array) {
+        for (let key = 0; key < source.length; key++) {
+            tasks.push(handler.bind(null, source[key], path + key));
+            source[key] = create(source[key], handler, path + key, tasks);
+        }
+    } else if (source instanceof Object) {
+        for (let key in source) {
+            tasks.push(handler.bind(null, source[key], path + key));
+            source[key] = create(source[key], handler, path + key, tasks);
+        }
+    }
+
+    if (!path && tasks.length) {
+        Promise.resolve().then(() => {
+            let task; while (task = tasks.shift()) task();
+        }).catch(console.error);
+    }
+
+    return new Proxy(source, {
+        get: get.bind(get, tasks, handler, path),
+        set: set.bind(set, tasks, handler, path)
+    });
+
 };
+
+export default { get, set, create };

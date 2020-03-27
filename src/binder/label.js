@@ -14,7 +14,8 @@ export default function (binder) {
             }
 
             if (data === binder.target.getAttribute('label')) {
-                return this.write = false;
+                this.write = false;
+                return;
             }
 
         },

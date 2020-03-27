@@ -1,12 +1,13 @@
 
-const resolve  = function () {
+export default function Absolute () {
+
     const result = [];
     const origin = window.location.origin;
     const parser = window.document.createElement('a');
 
     for (let i = 0, l = arguments.length; i < l; i++) {
         const path = arguments[i];
-        
+
         if (!path) continue;
         parser.href = path;
 
@@ -25,8 +26,5 @@ const resolve  = function () {
     parser.href = result.join('/').replace(/\/+/g, '/');
 
     return parser.pathname;
-};
-
-export default Object.freeze({
-    resolve
-});
+    
+}

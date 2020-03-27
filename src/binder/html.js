@@ -1,6 +1,6 @@
+import Binder from '../binder.js';
 
 export default function (binder) {
-    const self = this;
     let data;
     return {
         read () {
@@ -19,7 +19,7 @@ export default function (binder) {
 
             while (binder.target.firstChild) {
                 const node = binder.target.removeChild(binder.target.firstChild);
-                self.remove(node);
+                Binder.remove(node);
             }
 
             const fragment = document.createDocumentFragment();
@@ -29,7 +29,7 @@ export default function (binder) {
 
             while (parser.firstElementChild) {
 
-                self.add(parser.firstElementChild, {
+                Binder.add(parser.firstElementChild, {
                     container: binder.container,
                     scope: binder.container.scope
                 });

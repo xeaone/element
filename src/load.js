@@ -1,4 +1,4 @@
-import Path from './path.js';
+import Absolute from './tool/absolute.js';
 
 // https://regexr.com/4uued
 const S_EXPORT = `
@@ -90,9 +90,9 @@ const transform = function (code, url) {
         let pathImport = importMatch[4] || importMatch[5];
 
         if (pathImport.slice(0, 1) !== '/') {
-            pathImport = Path.resolve(parentImport, pathImport);
+            pathImport = Absolute(parentImport, pathImport);
         } else {
-            pathImport = Path.resolve(pathImport);
+            pathImport = Absolute(pathImport);
         }
 
         before = before + '\twindow.Oxe.loader.load("' + pathImport + '"),\n';
@@ -162,8 +162,7 @@ const IMPORT = function (url) {
             clean();
         };
 
-        if (false) {
-        // if ('noModule' in script) {
+        if ('noModule' in script) {
             console.log('noModule yes');
             const code = 'import * as m from "' + url + '"; Oxe.loader.data["' + url + '"] = m;';
             const blob = new Blob([ code ], { type: 'text/javascript' });
@@ -207,10 +206,9 @@ catch { native = false; }
 export default async function Load (url) {
     if (!url) throw new Error('Oxe.load - url required');
 
-    url = Path.resolve(url);
+    url = Absolute(url);
 
     if (native) {
-    // if (false) {
         console.log('native import');
         return new Function('url', 'return import(url)')(url);
     } else {
@@ -219,34 +217,3 @@ export default async function Load (url) {
     }
 
 }
-
-// const load = async function (url) {
-//     if (!url) throw new Error('Oxe.loader.load - url argument required');
-//
-//     url = Path.resolve(url);
-//
-//     if (native) {
-//     // if (false) {
-//         console.log('native import');
-//         return new Function('url', 'return import(url)')(url);
-//     } else {
-//         console.log('not native import');
-//         return IMPORT(url);
-//     }
-//
-// };
-//
-// const setup = async function (options = {}) {
-//     const { loads } = options;
-//
-//     if (loads) {
-//         return Promise.all(loads.map(load => this.load(load)));
-//     }
-//
-// };
-//
-// export default Object.freeze({
-//     data: MODULES,
-//     options: {},
-//     setup, load
-// });
