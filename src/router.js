@@ -1,30 +1,34 @@
-import Query from './query.js';
-import Define from './define.js';
-import Import from './import.js';
-import Events from './events.js';
-import Location from './location.js';
 import Ensure from './tool/ensure.js';
-import Absolute from './tool/absolute.js';
-// import Component from './component.js';
+import Location from './location.js';
+import Importer from './importer.js';
+import Events from './events.js';
+import Define from './define.js';
+import Query from './query.js';
 
+const self = {};
 const data = [];
-let mode, after, before, target, contain, external, folder;
+
+const absolute = function (path) {
+    const a = document.createElement('a');
+    a.href = path;
+    return a.pathname;
+};
 
 const setup = async function (option = {}) {
 
-    mode = option.mode === undefined ? mode : 'push';
-    after = option.after === undefined ? after : null;
-    before = option.before === undefined ? before : null;
-    target = option.target === undefined ? target : null;
-    contain = option.contain === undefined ? contain : false;
-    external = option.external === undefined ? external : null;
-    folder = option.folder === undefined ? folder : './routes';
+    self.after = option.after;
+    self.before = option.before;
+    self.target = option.target;
+    self.external = option.external;
+    self.mode = option.mode || 'push';
+    self.folder = option.folder || './routes';
+    self.contain = option.contain === undefined ? false : option.contain;
 
-    if (!target || typeof target === 'string') {
-        target = document.body.querySelector(target || 'o-router');
+    if (!self.target || typeof self.target === 'string') {
+        self.target = document.body.querySelector(self.target || 'o-router');
     }
 
-    if (mode !== 'href') {
+    if (self.mode !== 'href') {
         window.addEventListener('popstate', this.state.bind(this), true);
         window.document.addEventListener('click', this.click.bind(this), true);
     }
@@ -83,8 +87,11 @@ const compareParts = function (routePath, userPath, split) {
 
 const compare = function (routePath, userPath) {
 
-    userPath = Absolute(userPath);
-    routePath = Absolute(routePath);
+    // userPath = Resolve(userPath);
+    // routePath = Resolve(routePath);
+
+    userPath = absolute(userPath);
+    routePath = absolute(routePath);
 
     if (this.compareParts(routePath, userPath, '/')) {
         return true;
@@ -116,7 +123,7 @@ const redirect = function (path) {
 const add = async function (data) {
     if (!data) {
         return;
-    } else if (data.constructor === String) {
+    } else if (typeof data === 'string') {
         let load = data;
         let path = data;
 
@@ -130,12 +137,17 @@ const add = async function (data) {
         if (load.slice(0, 2) === './') load = load.slice(2);
         if (load.slice(0, 1) !== '/') load = '/' + load;
 
-        if (folder.slice(-1) === '/') folder = folder.slice(0, -1);
+        if (self.folder.slice(-1) === '/') self.folder = self.folder.slice(0, -1);
 
-        load = folder + '/' + load;
+        load = self.folder + '/' + load;
 
         this.data.push({ path, load });
-    } else if (data.constructor === Object) {
+
+    } else if (data instanceof Array) {
+        for (let i = 0; i < data.length; i++) {
+            await this.add(data[i]);
+        }
+    } else {
 
         if (!data.path) {
             throw new Error('Oxe.router.add - route path required');
@@ -146,25 +158,19 @@ const add = async function (data) {
         }
 
         this.data.push(data);
-    } else if (data.constructor === Array) {
-
-        for (let i = 0, l = data.length; i < l; i++) {
-            await this.add(data[i]);
-        }
-
     }
 };
 
 const load = async function (route) {
 
     if (route.load) {
-        const load = await Import(route.load);
-        route = Object.assign({}, load.default, route);
+        const load = await Importer(route.load);
+        route = { ...load.default, ...route };
     }
 
     if (typeof route.component === 'string') {
         route.load = route.component;
-        const load = await Import(route.load);
+        const load = await Importer(route.load);
         route.component = load.default;
     }
 
@@ -172,7 +178,7 @@ const load = async function (route) {
 };
 
 const remove = async function (path) {
-    for (let i = 0, l = this.data.length; i < l; i++) {
+    for (let i = 0; i < this.data.length; i++) {
         if (this.data[i].path === path) {
             this.data.splice(i, 1);
         }
@@ -180,7 +186,7 @@ const remove = async function (path) {
 };
 
 const get = async function (path) {
-    for (let i = 0, l = this.data.length; i < l; i++) {
+    for (let i = 0; i < this.data.length; i++) {
         if (this.data[i].path === path) {
             this.data[i] = await this.load(this.data[i]);
             return this.data[i];
@@ -191,7 +197,7 @@ const get = async function (path) {
 const filter = async function (path) {
     const result = [];
 
-    for (let i = 0, l = this.data.length; i < l; i++) {
+    for (let i = 0; i < this.data.length; i++) {
         if (this.compare(this.data[i].path, path)) {
             this.data[i] = await this.load(this.data[i]);
             result.push(this.data[i]);
@@ -202,7 +208,7 @@ const filter = async function (path) {
 };
 
 const find = async function (path) {
-    for (let i = 0, l = this.data.length; i < l; i++) {
+    for (let i = 0; i < this.data.length; i++) {
         if (this.compare(this.data[i].path, path)) {
             this.data[i] = await this.load(this.data[i]);
             return this.data[i];
@@ -267,45 +273,45 @@ const render = async function (route) {
 
     if (!route.target) {
         if (!route.component) {
-            Define(route);
+            Define(route.name, route);
             route.target = window.document.createElement(route.name);
         } else if (route.component.constructor === String) {
             route.target = window.document.createElement(route.component);
         } else if (route.component.constructor === Object) {
-            Define(route.component);
+            Define(route.name, route.component);
             route.target = window.document.createElement(route.component.name);
         } else {
             throw new Error('Oxe.router.render - route requires name, load, or component property');
         }
     }
 
-    if (target) {
-        while (target.firstChild) {
-            target.removeChild(target.firstChild);
+    if (self.target) {
+        while (self.target.firstChild) {
+            self.target.removeChild(self.target.firstChild);
         }
 
-        target.appendChild(route.target);
+        self.target.appendChild(route.target);
     }
 
     this.scroll(0, 0);
 };
 
-const route = async function (path, options) {
-    options = options || {};
+const route = async function (path, options = {}) {
 
     if (options.query) {
         path += Query(options.query);
     }
 
     const location = Location(path);
+    const mode = options.mode || self.mode;
     const route = await this.find(location.pathname);
 
     if (!route) {
         throw new Error(`Oxe.router.route - missing route ${location.pathname}`);
     }
 
-    if (typeof before === 'function') {
-        await before(location);
+    if (typeof self.before === 'function') {
+        await self.before(location);
     }
 
     if (route.handler) {
@@ -316,9 +322,9 @@ const route = async function (path, options) {
         return this.redirect(route.redirect);
     }
 
-    Events(target, 'before', location);
+    Events(self.target, 'before', location);
 
-    if ((options.mode || mode) === 'href') {
+    if (mode === 'href') {
         return window.location.assign(location.path);
     }
 
@@ -330,11 +336,11 @@ const route = async function (path, options) {
 
     await this.render(route);
 
-    if (typeof after === 'function') {
-        await after(location);
+    if (typeof self.after === 'function') {
+        await self.after(location);
     }
 
-    Events(target, 'after', location);
+    Events(self.target, 'after', location);
 };
 
 const state = async function (event) {
@@ -358,7 +364,7 @@ const click = async function (event) {
     var target = event.path ? event.path[0] : event.target;
     var parent = target.parentElement;
 
-    if (contain) {
+    if (self.contain) {
 
         while (parent) {
 
@@ -399,10 +405,10 @@ const click = async function (event) {
     ) return;
 
     // if external is true then default action
-    if (external &&
-        (external.constructor === RegExp && external.test(target.href) ||
-            external.constructor === Function && external(target.href) ||
-            external.constructor === String && external === target.href)
+    if (self.external &&
+        (self.external.constructor === RegExp && self.external.test(target.href) ||
+            self.external.constructor === Function && self.external(target.href) ||
+            self.external.constructor === String && self.external === target.href)
     ) return;
 
     event.preventDefault();

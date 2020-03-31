@@ -1,5 +1,16 @@
 
-const OPTIONS = {};
+const self = {};
+
+const method = async function (method, data) {
+    data = typeof data === 'string' ? { url: data } : data;
+    data.method = method;
+    return this.fetch(data);
+};
+
+const define = function (target, name, value) {
+    const enumerable = true;
+    Object.defineProperty(target, name, { enumerable, value });
+};
 
 export default Object.freeze({
 
@@ -11,26 +22,33 @@ export default Object.freeze({
         js: 'application/javascript; charset=utf-8'
     },
 
+    get: method.bind('get'),
+    put: method.bind('put'),
+    post: method.bind('post'),
+    head: method.bind('head'),
+    patch: method.bind('patch'),
+    delete: method.bind('delete'),
+    options: method.bind('options'),
+    connect: method.bind('connect'),
     types: [ 'json', 'text', 'blob', 'formData', 'arrayBuffer' ],
 
-    async setup (options) {
-        options = options || {};
-        OPTIONS.path = options.path;
-        OPTIONS.origin = options.origin;
-        OPTIONS.request = options.request;
-        OPTIONS.response = options.response;
-        OPTIONS.acceptType = options.acceptType;
-        OPTIONS.headers = options.headers || {};
-        OPTIONS.method = options.method || 'get';
-        OPTIONS.credentials = options.credentials;
-        OPTIONS.contentType = options.contentType;
-        OPTIONS.responseType = options.responseType;
+    async setup (options = {}) {
+        self.path = options.path;
+        self.method = options.method;
+        self.origin = options.origin;
+        self.request = options.request;
+        self.headers = options.headers;
+        self.response = options.response;
+        self.acceptType = options.acceptType;
+        self.credentials = options.credentials;
+        self.contentType = options.contentType;
+        self.responseType = options.responseType;
     },
 
     async serialize (data) {
         let query = '';
 
-        for (let name in data) {
+        for (const name in data) {
             query = query.length > 0 ? query + '&' : query;
             query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
         }
@@ -38,105 +56,100 @@ export default Object.freeze({
         return query;
     },
 
-    async fetch (options) {
-        const data = Object.assign({}, options);
+    async fetch (options = {}) {
+        const context = { ...options };
 
-        data.path = data.path || OPTIONS.path;
-        data.origin = data.origin || OPTIONS.origin;
+        context.path = context.path || self.path;
+        context.origin = context.origin || self.origin;
 
-        if (data.path && typeof data.path === 'string' && data.path.charAt(0) === '/') data.path = data.path.slice(1);
-        if (data.origin && typeof data.origin === 'string' && data.origin.charAt(data.origin.length-1) === '/') data.origin = data.origin.slice(0, -1);
-        if (data.path && data.origin && !data.url) data.url = data.origin + '/' + data.path;
+        if (context.path && typeof context.path === 'string' && context.path.charAt(0) === '/') context.path = context.path.slice(1);
+        if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length-1) === '/') context.origin = context.origin.slice(0, -1);
+        if (context.path && context.origin && !context.url) context.url = context.origin + '/' + context.path;
 
-        if (!data.method) throw new Error('Oxe.fetcher - requires method option');
-        if (!data.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
+        if (!context.method) throw new Error('Oxe.fetcher - requires method option');
+        if (!context.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
 
-        if (!data.headers && OPTIONS.headers) data.headers = OPTIONS.headers;
-        if (typeof data.method === 'string') data.method = data.method.toUpperCase() || OPTIONS.method;
-
-        if (!data.acceptType && OPTIONS.acceptType) data.acceptType = OPTIONS.acceptType;
-        if (!data.contentType && OPTIONS.contentType) data.contentType = OPTIONS.contentType;
-        if (!data.responseType && OPTIONS.responseType) data.responseType = OPTIONS.responseType;
+        context.aborted = false;
+        context.signal = context.signal || self.signal;
+        context.integrity = context.integrity || self.integrity;
+        context.keepAlive = context.keepAlive || self.keepAlive;
+        context.headers = context.headers || self.headers || {};
+        context.acceptType = context.acceptType || self.acceptType;
+        context.contentType = context.contentType || self.contentType;
+        context.method = (context.method || self.method).toUpperCase();
+        context.responseType = context.responseType || self.responseType;
 
         // omit, same-origin, or include
-        if (!data.credentials && OPTIONS.credentials) data.credentials = OPTIONS.credentials;
+        context.credentials = context.credentials || self.credentials;
 
         // cors, no-cors, or same-origin
-        if (!data.mode && OPTIONS.mode) data.mode = OPTIONS.mode;
+        context.mode = context.mode || self.mode;
 
         // default, no-store, reload, no-cache, force-cache, or only-if-cached
-        if (!data.cache && OPTIONS.cache) data.cahce = OPTIONS.cache;
+        context.cahce = context.cahce || self.cache;
 
         // follow, error, or manual
-        if (!data.redirect && OPTIONS.redirect) data.redirect = OPTIONS.redirect;
+        context.redirect = context.redirect || self.redirect;
 
         // no-referrer, client, or a URL
-        if (!data.referrer && OPTIONS.referrer) data.referrer = OPTIONS.referrer;
+        context.referrer = context.referrer || self.referrer;
 
         // no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, unsafe-url
-        if (!data.referrerPolicy && OPTIONS.referrerPolicy) data.referrerPolicy = OPTIONS.referrerPolicy;
+        context.referrerPolicy = context.referrerPolicy || self.referrerPolicy;
 
-        if (!data.signal && OPTIONS.signal) data.signal = OPTIONS.signal;
-        if (!data.integrity && OPTIONS.integrity) data.integrity = OPTIONS.integrity;
-        if (!data.keepAlive && OPTIONS.keepAlive) data.keepAlive = OPTIONS.keepAlive;
-
-        if (data.contentType) {
-            data.headers = data.headers || {};
-            switch (data.contentType) {
-            case 'js': data.headers['Content-Type'] = this.mime.js; break;
-            case 'xml': data.headers['Content-Type'] = this.mime.xml; break;
-            case 'html': data.headers['Content-Type'] = this.mime.html; break;
-            case 'json': data.headers['Content-Type'] = this.mime.json; break;
-            default: data.headers['Content-Type'] = data.contentType;
+        if (context.contentType) {
+            switch (context.contentType) {
+            case 'js': context.headers['Content-Type'] = this.mime.js; break;
+            case 'xml': context.headers['Content-Type'] = this.mime.xml; break;
+            case 'html': context.headers['Content-Type'] = this.mime.html; break;
+            case 'json': context.headers['Content-Type'] = this.mime.json; break;
+            default: context.headers['Content-Type'] = context.contentType;
             }
         }
 
-        if (data.acceptType) {
-            data.headers = data.headers || {};
-            switch (data.acceptType) {
-            case 'js': data.headers['Accept'] = this.mime.js; break;
-            case 'xml': data.headers['Accept'] = this.mime.xml; break;
-            case 'html': data.headers['Accept'] = this.mime.html; break;
-            case 'json': data.headers['Accept'] = this.mime.json; break;
-            default: data.headers['Accept'] = data.acceptType;
+        if (context.acceptType) {
+            switch (context.acceptType) {
+            case 'js': context.headers['Accept'] = this.mime.js; break;
+            case 'xml': context.headers['Accept'] = this.mime.xml; break;
+            case 'html': context.headers['Accept'] = this.mime.html; break;
+            case 'json': context.headers['Accept'] = this.mime.json; break;
+            default: context.headers['Accept'] = context.acceptType;
             }
         }
 
-        if (typeof OPTIONS.request === 'function') {
-            const copy = Object.assign({}, data);
-            const result = await OPTIONS.request(copy);
+        define(context, 'abort', () => {
+            context.aborted = true;
+            return context;
+        });
 
-            if (result === false) {
-                return data;
-            }
-
-            if (typeof result === 'object') {
-                Object.assign(data, result);
-            }
-
+        if (typeof self.request === 'function') {
+            await self.request(context);
         }
 
-        if (data.body) {
-
-            if (data.method === 'GET') {
-                data.url = data.url + '?' + await this.serialize(data.body);
-            } else if (data.contentType === 'json') {
-                data.body = JSON.stringify(data.body);
-            }
-
+        if (context.aborted) {
+            return;
         }
 
-        const fetched = await window.fetch(data.url, Object.assign({}, data));
+        if (context.body) {
+            if (context.method === 'GET') {
+                context.url = context.url + '?' + await this.serialize(context.body);
+            } else if (context.contentType === 'json') {
+                context.body = JSON.stringify(context.body);
+            }
+        }
 
-        data.code = fetched.status;
-        data.headers = fetched.headers;
-        data.message = fetched.statusText;
+        const result = await window.fetch(context.url, context);
 
-        if (!data.responseType) {
-            data.body = fetched.body;
+        define(context, 'result', result);
+        define(context, 'code', result.status);
+        // define(context, 'headers', result.headers);
+        // define(context, 'message', result.statusText);
+
+        if (!context.responseType) {
+            context.body = result.body;
         } else {
-            const responseType = data.responseType === 'buffer' ? 'arrayBuffer' : data.responseType || '';
-            const contentType = fetched.headers.get('content-type') || fetched.headers.get('Content-Type') || '';
+            const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
+            const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
 
             let type;
             if (responseType === 'json' && contentType.indexOf('json') !== -1) {
@@ -145,74 +158,22 @@ export default Object.freeze({
                 type = responseType || 'text';
             }
 
-            if (this.types.indexOf(type) === -1) throw new Error('Oxe.fetch - invalid responseType value');
-
-            data.body = await fetched[type]();
-        }
-
-        if (OPTIONS.response) {
-            const copy = Object.assign({}, data);
-            const result = await OPTIONS.response(copy);
-
-            if (result === false) {
-                return data;
+            if (this.types.indexOf(type) === -1) {
+                throw new Error('Oxe.fetch - invalid responseType value');
             }
 
-            if (typeof result === 'object') {
-                Object.assign(data, result);
-            }
-
+            context.body = await result[type]();
         }
 
-        return data;
-    },
+        if (typeof self.response === 'function') {
+            await self.response(context);
+        }
 
-    async post (data) {
-        data = typeof data === 'string' ? { url: data } : data;
-        data.method = 'post';
-        return this.fetch(data);
-    },
+        if (context.aborted) {
+            return;
+        }
 
-    async get (data) {
-        data = typeof data === 'string' ? { url: data } : data;
-        data.method = 'get';
-        return this.fetch(data);
-    },
-
-    async put (data) {
-        data = typeof data === 'string' ? { url: data } : data;
-        data.method = 'put';
-        return this.fetch(data);
-    },
-
-    async head (data) {
-        data = typeof data === 'string' ? { url: data } : data;
-        data.method = 'head';
-        return this.fetch(data);
-    },
-
-    async patch (data) {
-        data = typeof data === 'string' ? { url: data } : data;
-        data.method = 'patch';
-        return this.fetch(data);
-    },
-
-    async delete (data) {
-        data = typeof data === 'string' ? { url: data } : data;
-        data.method = 'delete';
-        return this.fetch(data);
-    },
-
-    async options (data) {
-        data = typeof data === 'string' ? { url: data } : data;
-        data.method = 'options';
-        return this.fetch(data);
-    },
-
-    async connect (data) {
-        data = typeof data === 'string' ? { url: data } : data;
-        data.method = 'connect';
-        return this.fetch(data);
+        return context;
     }
 
 });

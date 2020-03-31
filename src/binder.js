@@ -27,7 +27,9 @@ const PIPE = /\s?\|\s?/;
 const PIPES = /\s?,\s?|\s+/;
 const PATH = /\s?,\s?|\s?\|\s?|\s+/;
 
-export default Object.freeze({
+const Binder = {
+
+    data: new Map(),
 
     prefix: 'o-',
     syntaxEnd: '}}',
@@ -35,47 +37,41 @@ export default Object.freeze({
     prefixReplace: new RegExp('^o-'),
     syntaxReplace: new RegExp('{{|}}', 'g'),
 
-    data: new Map(),
-
     binders: {
-        class: Class,
-        css: Style,
-        default: Default,
-        disable: Disable,
-        disabled: Disable,
-        each: Each,
-        enable: Enable,
-        enabled: Enable,
-        hide: Hide,
-        hidden: Hide,
-        href: Href,
-        html: Html,
-        label: Label,
-        on: On,
-        read: Read,
-        require: Require,
-        required: Require,
-        reset: Reset,
-        show: Show,
-        showed: Show,
-        style: Style,
-        submit: Submit,
-        text: Text,
-        value: Value,
-        write: Write
+        class: Class.bind(Binder),
+        css: Style.bind(Binder),
+        default: Default.bind(Binder),
+        disable: Disable.bind(Binder),
+        disabled: Disable.bind(Binder),
+        each: Each.bind(Binder),
+        enable: Enable.bind(Binder),
+        enabled: Enable.bind(Binder),
+        hide: Hide.bind(Binder),
+        hidden: Hide.bind(Binder),
+        href: Href.bind(Binder),
+        html: Html.bind(Binder),
+        label: Label.bind(Binder),
+        on: On.bind(Binder),
+        read: Read.bind(Binder),
+        require: Require.bind(Binder),
+        required: Require.bind(Binder),
+        reset: Reset.bind(Binder),
+        show: Show.bind(Binder),
+        showed: Show.bind(Binder),
+        style: Style.bind(Binder),
+        submit: Submit.bind(Binder),
+        text: Text.bind(Binder),
+        value: Value.bind(Binder),
+        write: Write.bind(Binder)
     },
 
-    async setup (options) {
-        options = options || {};
+    async setup (options = {}) {
+        const { binders } = options;
 
-        for (const name in this.binders) {
-            this.binders[name] = this.binders[name].bind(this);
-        }
-
-        if (options.binders) {
-            for (const name in options.binders) {
+        if (binders) {
+            for (const name in binders) {
                 if (name in this.binders === false) {
-                    this.binders[name] = options.binders[name].bind(this);
+                    this.binders[name] = binders[name].bind(this);
                 }
             }
         }
@@ -248,4 +244,6 @@ export default Object.freeze({
         }
     }
 
-});
+};
+
+export default Object.freeze(Binder);

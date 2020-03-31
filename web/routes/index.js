@@ -77,9 +77,11 @@ var indexhtml = Escape(`
 
 export default {
     title: 'Oxe',
-    path: '/',
-    description: 'A mighty tiny web components framework/library.',
     name: 'r-index',
+    description: 'A mighty tiny web components framework/library.',
+    constructor: function () {
+        this.Super();
+    },
     created: function () {
         Say('r-home created');
     },

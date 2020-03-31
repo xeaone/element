@@ -1,15 +1,18 @@
 
+const text = ':not(:defined) { visibility: hidden; }';
 const style = document.createElement('style');
+const node = document.createTextNode(text);
 const sheet = style.sheet;
 
 style.setAttribute('title', 'oxe');
 style.setAttribute('type', 'text/css');
+style.appendChild(node);
 
-const add = function (data) {
-    this.sheet.insertRule(data);
-};
+// o-router, o-router > :first-child { display: block; }
 
-const append = function (data) {
+document.head.appendChild(style);
+
+const transform = function (data) {
 
     if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
         const matches = data.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
@@ -24,17 +27,25 @@ const append = function (data) {
 
     }
 
-    this.style.appendChild(document.createTextNode(data));
+    return data;
 };
 
-const setup = async function (option) {
-    option = option || {};
+const add = function (data) {
+    data = transform(data);
+    sheet.insertRule(data);
+};
+
+const append = function (data) {
+    data = transform(data);
+    style.appendChild(document.createTextNode(data));
+};
+
+const setup = async function (option = {}) {
 
     if (option.style) {
-        this.append(option.style);
+        append(option.style);
     }
 
-    document.head.appendChild(this.style);
 };
 
 export default Object.freeze({

@@ -1,11 +1,11 @@
 
-export default function Absolute () {
+export default function Resolve () {
 
     const result = [];
     const origin = window.location.origin;
     const parser = window.document.createElement('a');
 
-    for (let i = 0, l = arguments.length; i < l; i++) {
+    for (let i = 0; i < arguments.length; i++) {
         const path = arguments[i];
 
         if (!path) continue;
@@ -25,6 +25,6 @@ export default function Absolute () {
 
     parser.href = result.join('/').replace(/\/+/g, '/');
 
-    return parser.pathname;
-    
+    return parser;
+    // return parser.pathname;
 }

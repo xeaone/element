@@ -1,4 +1,3 @@
-import Absolute from './tool/absolute.js';
 
 import S_EXPORT from './import/s-export.js';
 import S_IMPORT from './import/s-import.js';
@@ -7,21 +6,60 @@ window.MODULES = 'MODULES' in window ? window.MODULES : {};
 window.DYNAMIC_SUPPORT = 'DYNAMIC_SUPPORT' in window ? window.DYNAMIC_SUPPORT : undefined;
 window.REGULAR_SUPPORT = 'REGULAR_SUPPORT' in window ? window.REGULAR_SUPPORT : undefined;
 
+const MODULES_GLOBAL = 'window.MODULES';
+
+// const IMPORT_GLOBAL = 'window.IMPORT';
+const IMPORT_GLOBAL = 'window.Oxe.Importer';
+
 const R_IMPORT = new RegExp(S_IMPORT);
 const R_EXPORT = new RegExp(S_EXPORT);
 const R_IMPORTS = new RegExp(S_IMPORT, 'g');
 const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
 const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
 
+const absolute = function  (url) {
+    if (
+        url.indexOf('/') === 0 ||
+        url.indexOf('//') === 0 ||
+        url.indexOf('://') === 0 ||
+        url.indexOf('ftp://') === 0 ||
+        url.indexOf('file://') === 0 ||
+        url.indexOf('http://') === 0 ||
+        url.indexOf('https://') === 0
+    ) {
+        return true;
+    } else {
+        return false;
+    }
+};
+
+const resolve = function (url) {
+    url = url.trim();
+
+    for (let i = 1; i < arguments.length; i++) {
+        const part = arguments[i].trim();
+        if (url[url.length-1] !== '/' && part[0] !== '/') {
+            url += '/';
+        }
+        url += part;
+    }
+
+    const a = window.document.createElement('a');
+    a.href = url;
+
+    return a.href;
+};
+
 const transform = function (code, url) {
 
-    let before = `window.MODULES["${url}"] = Promise.all([\n`;
+    let before = `${MODULES_GLOBAL}["${url}"] = Promise.all([\n`;
     let after = ']).then(function ($MODULES) {\n';
 
     const templateMatches = code.match(R_TEMPLATES) || [];
     for (let i = 0; i < templateMatches.length; i++) {
         const templateMatch = templateMatches[i];
-        code = code.replace(templateMatch,
+        code = code.replace(
+            templateMatch,
             templateMatch
                 .replace(/'/g, '\\\'')
                 .replace(/^([^\\])?`/, '$1\'')
@@ -41,13 +79,15 @@ const transform = function (code, url) {
         const nameImport = importMatch[1]; // default
         let pathImport = importMatch[4] || importMatch[5];
 
-        if (pathImport.slice(0, 1) !== '/') {
-            pathImport = Absolute(parentImport, pathImport);
+        if (absolute(pathImport)) {
+            pathImport = resolve(pathImport);
         } else {
-            pathImport = Absolute(pathImport);
+            console.log(parentImport, pathImport);
+            pathImport = resolve(parentImport, pathImport);
+            console.log(pathImport);
         }
 
-        before = `${before} \twindow.Import("${pathImport}"),\n`;
+        before = `${before} \t${IMPORT_GLOBAL}("${pathImport}"),\n`;
         after = `${after}var ${nameImport} = $MODULES[${i}].default;\n`;
 
         code = code.replace(rawImport, '') || [];
@@ -131,28 +171,27 @@ const request = function (url) {
     });
 };
 
-// const normalize = function (url) {
-//     const a = window.document.createElement('a');
-//     a.href = url;
-//     return a.href;
-// };
-
-export default async function Import (url) {
+export default async function Importer (url) {
     if (!url) throw new Error('import url required');
 
-    url = Absolute(url);
-    // url = normalize(url);
+    url = resolve(url);
+    console.log(url);
+    // url = absolute(url);
+
+    // force dev
+    window.REGULAR_SUPPORT = false;
+    window.DYNAMIC_SUPPORT = false;
 
     if (typeof window.DYNAMIC_SUPPORT !== 'boolean') {
-        await run('try { window.DYNAMIC_SUPPORT = true; import(""); } catch (e) { //e }');
+        // await run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,Cg=="); } catch (e) { /*e*/ }');
+        await run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,"); } catch (e) { /*e*/ }');
         window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
     }
 
     if (window.DYNAMIC_SUPPORT === true) {
         console.log('native import');
-        await run(`window.MODULES[${url}] = import("${url}")`);
+        await run(`window.MODULES["${url}"] = import("${url}");`);
         return window.MODULES[url];
-        // return new Function('url', 'return import(url)')(url);
     }
 
     console.log('not native import');
@@ -173,15 +212,15 @@ export default async function Import (url) {
         code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
     } else {
         console.log('noModule: no');
-        code = request(url);
+        code = await request(url);
         code = transform(code, url);
     }
 
     try {
         await run(code);
-    } catch (error) {
+    } catch (e) {
         throw new Error(`failed to import: ${url}`);
     }
 
     return window.MODULES[url];
-}
+};
