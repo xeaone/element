@@ -1,8 +1,8 @@
 
 // https://regexr.com/4uued
-    // ^export\\b
 export default `
-    export\\b
+
+    ^export\\b
     (?:
         \\s*(default)\\s*
     )?
@@ -14,4 +14,5 @@ export default `
         (?:\\w+\\s*,?\\s*)*
     )?
     (\\s*?:}\\s*)?
+
 `.replace(/\s+/g, '');

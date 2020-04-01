@@ -1,6 +1,6 @@
 import Ensure from './tool/ensure.js';
 import Location from './location.js';
-import Importer from './importer.js';
+// import Importer from './importer.js';
 import Events from './events.js';
 import Define from './define.js';
 import Query from './query.js';
@@ -137,9 +137,12 @@ const add = async function (data) {
         if (load.slice(0, 2) === './') load = load.slice(2);
         if (load.slice(0, 1) !== '/') load = '/' + load;
 
+        if (load.slice(0, 1) === '/') load = load.slice(1);
         if (self.folder.slice(-1) === '/') self.folder = self.folder.slice(0, -1);
 
         load = self.folder + '/' + load;
+        load = absolute(load);
+        console.log(load);
 
         this.data.push({ path, load });
 
@@ -164,13 +167,15 @@ const add = async function (data) {
 const load = async function (route) {
 
     if (route.load) {
-        const load = await Importer(route.load);
+        // const load = await Importer(route.load);
+        const load = await import(route.load);
         route = { ...load.default, ...route };
     }
 
     if (typeof route.component === 'string') {
         route.load = route.component;
-        const load = await Importer(route.load);
+        // const load = await Importer(route.load);
+        const load = await import(route.load);
         route.component = load.default;
     }
 

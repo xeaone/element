@@ -1,15 +1,10 @@
+import absolute from './load/absolute.js';
+import resolve from './load/resolve.js';
+import fetch from './load/fetch.js';
+import run from './load/run.js';
 
-import S_EXPORT from './import/s-export.js';
-import S_IMPORT from './import/s-import.js';
-
-window.MODULES = 'MODULES' in window ? window.MODULES : {};
-window.DYNAMIC_SUPPORT = 'DYNAMIC_SUPPORT' in window ? window.DYNAMIC_SUPPORT : undefined;
-window.REGULAR_SUPPORT = 'REGULAR_SUPPORT' in window ? window.REGULAR_SUPPORT : undefined;
-
-const MODULES_GLOBAL = 'window.MODULES';
-
-// const IMPORT_GLOBAL = 'window.IMPORT';
-const IMPORT_GLOBAL = 'window.Oxe.Importer';
+import S_EXPORT from './s-export.js';
+import S_IMPORT from './s-import.js';
 
 const R_IMPORT = new RegExp(S_IMPORT);
 const R_EXPORT = new RegExp(S_EXPORT);
@@ -17,38 +12,8 @@ const R_IMPORTS = new RegExp(S_IMPORT, 'g');
 const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
 const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
 
-const absolute = function  (url) {
-    if (
-        url.indexOf('/') === 0 ||
-        url.indexOf('//') === 0 ||
-        url.indexOf('://') === 0 ||
-        url.indexOf('ftp://') === 0 ||
-        url.indexOf('file://') === 0 ||
-        url.indexOf('http://') === 0 ||
-        url.indexOf('https://') === 0
-    ) {
-        return true;
-    } else {
-        return false;
-    }
-};
-
-const resolve = function (url) {
-    url = url.trim();
-
-    for (let i = 1; i < arguments.length; i++) {
-        const part = arguments[i].trim();
-        if (url[url.length-1] !== '/' && part[0] !== '/') {
-            url += '/';
-        }
-        url += part;
-    }
-
-    const a = window.document.createElement('a');
-    a.href = url;
-
-    return a.href;
-};
+const IMPORT_GLOBAL = 'window.Oxe.load';
+const MODULES_GLOBAL = 'window.Oxe.load.modules';
 
 const transform = function (code, url) {
 
@@ -82,9 +47,7 @@ const transform = function (code, url) {
         if (absolute(pathImport)) {
             pathImport = resolve(pathImport);
         } else {
-            console.log(parentImport, pathImport);
             pathImport = resolve(parentImport, pathImport);
-            console.log(pathImport);
         }
 
         before = `${before} \t${IMPORT_GLOBAL}("${pathImport}"),\n`;
@@ -120,70 +83,15 @@ const transform = function (code, url) {
     return code;
 };
 
-const run = function (code) {
-    return new Promise(function (resolve, reject) {
-        const blob = new Blob([ code ], { type: 'text/javascript' });
-        const script = document.createElement('script');
-
-        if ('noModule' in script) {
-            script.type = 'module';
-        }
-
-        script.onerror = function (e) {
-            reject(e);
-            script.remove();
-            URL.revokeObjectURL(script.src);
-        };
-
-        script.onload = function (e) {
-            resolve(e);
-            script.remove();
-            URL.revokeObjectURL(script.src);
-        };
-
-        script.src = URL.createObjectURL(blob);
-
-        window.document.head.appendChild(script);
-    });
-};
-
-const request = function (url) {
-    return new Promise(function (resolve, reject) {
-        const xhr = new XMLHttpRequest();
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200 || xhr.status === 0) {
-                    resolve(xhr.responseText);
-                } else {
-                    reject(new Error(`failed to import: ${url}`));
-                }
-            }
-        };
-
-        try {
-            xhr.open('GET', url, true);
-            xhr.send();
-        } catch (error) {
-            reject(new Error(`failed to import: ${url}`));
-        }
-
-    });
-};
-
-export default async function Importer (url) {
+export default async function load (url) {
     if (!url) throw new Error('import url required');
 
     url = resolve(url);
-    console.log(url);
-    // url = absolute(url);
 
-    // force dev
-    window.REGULAR_SUPPORT = false;
-    window.DYNAMIC_SUPPORT = false;
+    // window.REGULAR_SUPPORT = false;
+    // window.DYNAMIC_SUPPORT = false;
 
     if (typeof window.DYNAMIC_SUPPORT !== 'boolean') {
-        // await run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,Cg=="); } catch (e) { /*e*/ }');
         await run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,"); } catch (e) { /*e*/ }');
         window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
     }
@@ -197,6 +105,7 @@ export default async function Importer (url) {
     console.log('not native import');
 
     if (window.MODULES[url]) {
+        // maybe clean up
         return window.MODULES[url];
     }
 
@@ -212,15 +121,83 @@ export default async function Importer (url) {
         code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
     } else {
         console.log('noModule: no');
-        code = await request(url);
+        code = await fetch(url);
         code = transform(code, url);
     }
 
     try {
         await run(code);
-    } catch (e) {
+    } catch {
         throw new Error(`failed to import: ${url}`);
     }
 
-    return window.MODULES[url];
-};
+    return this.modules[url];
+}
+
+load.modules = load.modules || {};
+
+// window.importer = window.importer || importer;
+// window.importer.modules = window.importer.modules || {};
+// window.DYNAMIC_SUPPORT = 'DYNAMIC_SUPPORT' in window ? window.DYNAMIC_SUPPORT : undefined;
+// window.REGULAR_SUPPORT = 'REGULAR_SUPPORT' in window ? window.REGULAR_SUPPORT : undefined;
+//
+// const observer = new MutationObserver(mutations => {
+//     mutations.forEach(({ addedNodes }) => {
+//         addedNodes.forEach(node => {
+//             if (
+//                 node.nodeType === 1 &&
+//                 node.nodeName === 'SCRIPT'&&
+//                 node.type === 'module' &&
+//                 node.src
+//             ) {
+//                 const src = node.src;
+//                 // node.src = '';
+//                 node.type = 'module/blocked';
+//                 Promise.resolve().then(() => dynamic()).then(() => {
+//                     if (window.DYNAMIC_SUPPORT) {
+//                         // node.src = src;
+//                         node.type = 'module';
+//                     } else {
+//                         return window.importer(src);
+//                     }
+//                 });
+//             }
+//         });
+//     });
+// });
+//
+// observer.observe(document.documentElement, { childList: true, subtree: true });
+
+// const load = function load () {
+//     const scripts = document.getElementsByTagName('script');
+//     // var anonCnt = 0;
+//
+//     for (let i = 0; i < scripts.length; i++) {
+//         const script = scripts[i];
+//         if (script.type == 'module' && !script.loaded) {
+//             script.loaded = true;
+//             if (script.src) {
+//                 script.parentElement.reomveChild(script);
+//                 window.importer(script.src);
+//             } else {
+//             // anonymous modules supported via a custom naming scheme and registry
+//                 // var uri = './<anon' + ++anonCnt + '>';
+//                 // if (script.id !== ""){
+//                 //     uri = "./" + script.id;
+//                 // }
+//                 //
+//                 // var anonName = resolveIfNotPlain(uri, baseURI);
+//                 // anonSources[anonName] = script.innerHTML;
+//                 // loader.import(anonName);
+//             }
+//         }
+//     }
+//
+//     // document.removeEventListener('DOMContentLoaded', , false );
+// };
+
+// if (document.readyState === 'complete') {
+//     load();
+// } else {
+//     document.addEventListener('DOMContentLoaded', load, false);
+// }

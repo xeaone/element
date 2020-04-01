@@ -1,6 +1,8 @@
 
 // https://regexr.com/4uq22
+
 export default `
+
     import
     (?:
         (?:
@@ -35,4 +37,5 @@ export default `
     (.*?)
     (?:'|")
     (?:\\s*;)?
+   
 `.replace(/\s+/g, '');

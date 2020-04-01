@@ -11,7 +11,7 @@ export default function Ensure (data) {
         data.scope.insertAdjacentElement(data.position, element);
     }
 
-    for (let i = 0, l = data.attributes.length; i < l; i++) {
+    for (let i = 0; i < data.attributes.length; i++) {
         const { name, value } = data.attributes[i];
         element.setAttribute(name, value);
     }

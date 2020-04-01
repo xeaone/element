@@ -1,6 +1,5 @@
 import Component from './component.js';
 import Location from './location.js';
-import Importer from './importer.js';
 import Batcher from './batcher.js';
 import Fetcher from './fetcher.js';
 import Binder from './binder.js';
@@ -9,6 +8,7 @@ import Router from './router.js';
 import Style from './style.js';
 import Class from './class.js';
 import Query from './query.js';
+import Load from './load.js';
 
 if (typeof window.CustomEvent !== 'function') {
     window.CustomEvent = function CustomEvent (event, options) {
@@ -28,9 +28,9 @@ if (typeof window.Reflect !== 'object' && typeof window.Reflect.construct !== 'f
     };
 }
 
-// const setup = document.querySelector('script[o-setup]');
-// const url = setup ? setup.getAttribute('o-setup') : '';
-// if (setup) Load(url);
+const setup = document.querySelector('script[o-setup]');
+const url = setup ? setup.getAttribute('o-setup') : '';
+if (setup) Load(url);
 
 let SETUP = false;
 
@@ -63,11 +63,11 @@ export default Object.freeze({
     Fetcher,
     fetcher: Fetcher,
 
-    Importer,
-    importer: Importer,
-
     Router,
     router: Router,
+
+    Load,
+    load: Load,
 
     setup (options = {}) {
 
