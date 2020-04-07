@@ -1,10 +1,10 @@
-import absolute from './load/absolute.js';
-import resolve from './load/resolve.js';
+import absolute from './path/absolute.js';
+import resolve from './path/resolve.js';
 import fetch from './load/fetch.js';
 import run from './load/run.js';
 
-import S_EXPORT from './s-export.js';
-import S_IMPORT from './s-import.js';
+import S_EXPORT from './load/s-export.js';
+import S_IMPORT from './load/s-import.js';
 
 const R_IMPORT = new RegExp(S_IMPORT);
 const R_EXPORT = new RegExp(S_EXPORT);
@@ -12,12 +12,9 @@ const R_IMPORTS = new RegExp(S_IMPORT, 'g');
 const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
 const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
 
-const IMPORT_GLOBAL = 'window.Oxe.load';
-const MODULES_GLOBAL = 'window.Oxe.load.modules';
-
 const transform = function (code, url) {
 
-    let before = `${MODULES_GLOBAL}["${url}"] = Promise.all([\n`;
+    let before = `window.MODULES["${url}"] = Promise.all([\n`;
     let after = ']).then(function ($MODULES) {\n';
 
     const templateMatches = code.match(R_TEMPLATES) || [];
@@ -50,7 +47,7 @@ const transform = function (code, url) {
             pathImport = resolve(parentImport, pathImport);
         }
 
-        before = `${before} \t${IMPORT_GLOBAL}("${pathImport}"),\n`;
+        before = `${before} \twindow.LOAD("${pathImport}"),\n`;
         after = `${after}var ${nameImport} = $MODULES[${i}].default;\n`;
 
         code = code.replace(rawImport, '') || [];
@@ -83,8 +80,8 @@ const transform = function (code, url) {
     return code;
 };
 
-export default async function load (url) {
-    if (!url) throw new Error('import url required');
+const load = async function (url) {
+    if (!url) throw new Error('Oxe.load - url required');
 
     url = resolve(url);
 
@@ -128,13 +125,18 @@ export default async function load (url) {
     try {
         await run(code);
     } catch {
-        throw new Error(`failed to import: ${url}`);
+        throw new Error(`Oxe.load - failed to import: ${url}`);
     }
 
     return this.modules[url];
-}
+};
 
-load.modules = load.modules || {};
+window.LOAD = window.LOAD || load;
+window.MODULES = window.MODULES || {};
+
+export default load;
+
+// load.modules = load.modules || {};
 
 // window.importer = window.importer || importer;
 // window.importer.modules = window.importer.modules || {};

@@ -1,18 +1,23 @@
 
-export default function Ensure (data) {
-    data.query = data.query || '';
+export default function Ensure (data = {}) {
     data.scope = data.scope || document.body;
     data.position = data.position || 'beforeend';
 
-    let element = data.scope.querySelector(`${data.name}${data.query}`);
+    const { name, query, scope, position, attributes } = data;
 
-    if (!element) {
-        element = document.createElement(data.name);
-        data.scope.insertAdjacentElement(data.position, element);
+    let element;
+
+    if (query) {
+        element = scope.querySelector(query);
     }
 
-    for (let i = 0; i < data.attributes.length; i++) {
-        const { name, value } = data.attributes[i];
+    if (!element) {
+        element = document.createElement(name);
+        scope.insertAdjacentElement(position, element);
+    }
+
+    for (let i = 0; i < attributes.length; i++) {
+        const { name, value } = attributes[i];
         element.setAttribute(name, value);
     }
 

@@ -80,7 +80,8 @@ export default {
     name: 'r-index',
     description: 'A mighty tiny web components framework/library.',
     constructor: function () {
-        this.Super();
+        // this.Super();
+        this.super();
     },
     created: function () {
         Say('r-home created');

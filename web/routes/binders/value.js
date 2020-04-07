@@ -2,7 +2,7 @@
 var model = {
     text: 'Hello World',
     input: function (e) {
-       console.log(e.target.value);
+        console.log(e.target.value);
     }
 };
 

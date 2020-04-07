@@ -1,14 +1,14 @@
 import Component from './component.js';
-// import Importer from './importer.js';
 import Class from './class.js';
+import Load from './load.js';
 
 export default function Define (name, constructor) {
-    console.log(name);
+    if (!name) throw new Error('Oxe.define - name required');
+    if (!name) throw new Error('Oxe.define - constructor required');
     if (typeof constructor === 'string') {
         return Promise.resolve()
-            // .then(() => Importer(constructor))
-            .then(() => import(constructor))
-            .then((data) => Define(name, data));
+            .then(() => Load(constructor))
+            .then((data) => Define(name, data.default));
     } else if (typeof constructor === 'function') {
         window.customElements.define(name, constructor);
     } else if (constructor instanceof Array) {

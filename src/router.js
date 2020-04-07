@@ -1,9 +1,12 @@
 import Ensure from './tool/ensure.js';
 import Location from './location.js';
-// import Importer from './importer.js';
 import Events from './events.js';
 import Define from './define.js';
 import Query from './query.js';
+import Load from './load.js';
+
+import basename from './path/basename.js';
+import normalize from './path/normalize.js';
 
 const self = {};
 const data = [];
@@ -122,10 +125,12 @@ const redirect = function (path) {
 
 const add = async function (data) {
     if (!data) {
-        return;
+        throw new Error('Oxe.router.add - options required');
+        // return;
     } else if (typeof data === 'string') {
         let load = data;
         let path = data;
+        const name = 'r-' + basename(data, '.js');
 
         if (path.slice(-3) === '.js') path = path.slice(0, -3);
         if (path.slice(-5) === 'index') path = path.slice(0, -5);
@@ -142,23 +147,27 @@ const add = async function (data) {
 
         load = self.folder + '/' + load;
         load = absolute(load);
-        console.log(load);
 
-        this.data.push({ path, load });
+        // console.log(name, basename(name, '.js'));
+        // console.log(path, basename(path, '.js'));
+        // console.log(load, basename(load, '.js'));
+        // console.log(path);
+        // console.log(load);
 
+        this.add({ path, name, load });
     } else if (data instanceof Array) {
         for (let i = 0; i < data.length; i++) {
             await this.add(data[i]);
         }
     } else {
 
-        if (!data.path) {
-            throw new Error('Oxe.router.add - route path required');
-        }
+        if (!data.name) throw new Error('Oxe.router.add - name required');
+        if (!data.path) throw new Error('Oxe.router.add - path required');
+        if (!data.load) throw new Error('Oxe.router.add - load required');
 
-        if (!data.name && !data.load && !data.component) {
-            throw new Error('Oxe.router.add -  route requires name, load, or component property');
-        }
+        // if (!data.name && !data.load && !data.component) {
+        //     throw new Error('Oxe.router.add - route requires name and load property');
+        // }
 
         this.data.push(data);
     }
@@ -166,18 +175,21 @@ const add = async function (data) {
 
 const load = async function (route) {
 
-    if (route.load) {
-        // const load = await Importer(route.load);
-        const load = await import(route.load);
-        route = { ...load.default, ...route };
-    }
-
-    if (typeof route.component === 'string') {
-        route.load = route.component;
-        // const load = await Importer(route.load);
-        const load = await import(route.load);
+    if (route.load && !route.component) {
+        const load = await Load(route.load);
         route.component = load.default;
     }
+
+    // if (route.load) {
+    //     const load = await Load(route.load);
+    //     route = { ...load.default, ...route };
+    // }
+
+    // if (typeof route.component === 'string') {
+    //     route.load = route.component;
+    //     const load = await Load(route.load);
+    //     route.component = load.default;
+    // }
 
     return route;
 };
@@ -224,78 +236,88 @@ const find = async function (path) {
 const render = async function (route) {
 
     if (!route) {
-        throw new Error('Oxe.render - route argument required. Missing object option.');
+        throw new Error('Oxe.render - route required');
     }
 
-    if (route.title) {
-        document.title = route.title;
-    }
-
-    const ensures = [];
-
-    if (route.keywords) {
-        ensures.push({
-            name: 'meta',
-            query: '[name="keywords"]',
-            attributes: [
-                { name: 'name', value: 'keywords' },
-                { name: 'content', value: route.keywords }
-            ]
-        });
-    }
-
-    if (route.description) {
-        ensures.push({
-            name: 'meta',
-            query: '[name="description"]',
-            attributes: [
-                { name: 'name', value: 'description' },
-                { name: 'content', value: route.description }
-            ]
-        });
-    }
-
-    if (route.canonical) {
-        ensures.push({
-            name: 'link',
-            query: '[rel="canonical"]',
-            attributes: [
-                { name: 'rel', value: 'canonical' },
-                { name: 'href', value: route.canonical }
-            ]
-        });
-    }
-
-    if (ensures.length) {
-        Promise.all(ensures.map(function (option) {
-            return Promise.resolve().then(function () {
-                option.position = 'afterbegin';
-                option.scope = document.head;
-                return Ensure(option);
-            });
-        }));
-    }
+    // if (route.title) {
+    //     document.title = route.title;
+    // }
+    //
+    // const ensures = [];
+    //
+    // if (route.keywords) {
+    //     ensures.push({
+    //         name: 'meta',
+    //         query: 'meta[name="keywords"]',
+    //         attributes: [
+    //             { name: 'name', value: 'keywords' },
+    //             { name: 'content', value: route.keywords }
+    //         ]
+    //     });
+    // }
+    //
+    // if (route.description) {
+    //     ensures.push({
+    //         name: 'meta',
+    //         query: 'meta[name="description"]',
+    //         attributes: [
+    //             { name: 'name', value: 'description' },
+    //             { name: 'content', value: route.description }
+    //         ]
+    //     });
+    // }
+    //
+    // if (route.canonical) {
+    //     ensures.push({
+    //         name: 'link',
+    //         query: 'link[rel="canonical"]',
+    //         attributes: [
+    //             { name: 'rel', value: 'canonical' },
+    //             { name: 'href', value: route.canonical }
+    //         ]
+    //     });
+    // }
+    //
+    // if (ensures.length) {
+    //     Promise.all(ensures.map(function (option) {
+    //         return Promise.resolve().then(function () {
+    //             option.position = 'afterbegin';
+    //             option.scope = document.head;
+    //             Ensure(option);
+    //         });
+    //     }));
+    // }
 
     if (!route.target) {
-        if (!route.component) {
-            Define(route.name, route);
-            route.target = window.document.createElement(route.name);
-        } else if (route.component.constructor === String) {
-            route.target = window.document.createElement(route.component);
-        } else if (route.component.constructor === Object) {
+        if (route.name) throw new Error('Oxe.router.render - name required');
+        console.log(route);
+        if (route.name && route.component) {
             Define(route.name, route.component);
-            route.target = window.document.createElement(route.component.name);
+            route.target = window.document.createElement(route.name);
         } else {
-            throw new Error('Oxe.router.render - route requires name, load, or component property');
+            throw new Error('Oxe.router.render - name and component required');
         }
+        // if (!route.component) {
+        //     Define(route.name, route);
+        //     route.target = window.document.createElement(route.name);
+        // } else if (route.component.constructor === String) {
+        //     route.target = window.document.createElement(route.component);
+        // } else if (route.component.constructor === Object) {
+        //     Define(route.name, route.component);
+        //     route.target = window.document.createElement(route.component.name);
+        // } else {
+        //     throw new Error('Oxe.router.render - route requires name, load, or component property');
+        // }
     }
 
     if (self.target) {
+
         while (self.target.firstChild) {
             self.target.removeChild(self.target.firstChild);
         }
 
         self.target.appendChild(route.target);
+
     }
 
     this.scroll(0, 0);
@@ -361,13 +383,11 @@ const click = async function (event) {
         event.button !== 0 ||
         event.defaultPrevented ||
         event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
-    ) {
-        return;
-    }
+    ) return;
 
     // if shadow dom use
-    var target = event.path ? event.path[0] : event.target;
-    var parent = target.parentElement;
+    let target = event.path ? event.path[0] : event.target;
+    let parent = target.parentElement;
 
     if (self.contain) {
 
@@ -396,14 +416,19 @@ const click = async function (event) {
     }
 
     // check non-acceptables
+    const tel = 'tel:';
+    const ftp = 'ftp:';
+    const file = 'file:';
+    const mailto = 'mailto:';
+
     if (target.hasAttribute('download') ||
         target.hasAttribute('external') ||
         target.hasAttribute('o-external') ||
-        target.href.indexOf('tel:') === 0 ||
-        target.href.indexOf('ftp:') === 0 ||
-        target.href.indexOf('file:') === 0 ||
-        target.href.indexOf('mailto:') === 0 ||
-        target.href.indexOf(window.location.origin) !== 0 ||
+        target.href.slice(0, tel.length) === tel ||
+        target.href.slice(0, ftp.length) === ftp ||
+        target.href.slice(0, file.length) === file ||
+        target.href.slice(0, mailto.length) === mailto ||
+        target.href.slice(window.location.origin) !== 0 ||
         (target.hash !== '' &&
             target.origin === window.location.origin &&
             target.pathname === window.location.pathname)
@@ -418,9 +443,9 @@ const click = async function (event) {
 
     event.preventDefault();
 
-    if (this.location.href !== target.href) {
-        this.route(target.href);
-    }
+    // if (this.location.href !== target.href) {
+    this.route(target.href);
+    // }
 
 };
 

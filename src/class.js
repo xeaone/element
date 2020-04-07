@@ -24,11 +24,11 @@ export default function (parent, child) {
 
         constructor.apply(self, arguments);
 
-        if ('Super' in self) {
-            if ('_Super' in self) {
-                return assignOwnPropertyDescriptors(self._Super, self);
+        if ('super' in self) {
+            if ('_super' in self) {
+                return assignOwnPropertyDescriptors(self._super, self);
             } else {
-                throw new Error('Class this.Super call required');
+                throw new Error('Class this.super call required');
             }
         } else {
             return self;
@@ -41,14 +41,14 @@ export default function (parent, child) {
         Class.prototype = Object.create(parent.prototype);
         assignOwnPropertyDescriptors(Class.prototype, prototype);
 
-        const Super = function () {
-            if (this._Super) return this._Super;
-            this._Super = window.Reflect.construct(parent, arguments, this.constructor);
-            assignOwnPropertyDescriptors(this.Super, parent.prototype);
-            return this._Super;
+        const Super = function Super () {
+            if (this._super) return this._super;
+            this._super = window.Reflect.construct(parent, arguments, this.constructor);
+            assignOwnPropertyDescriptors(this.super, parent.prototype);
+            return this._super;
         };
 
-        Object.defineProperty(Class.prototype, 'Super', { enumerable: false, writable: true, value: Super });
+        Object.defineProperty(Class.prototype, 'super', { enumerable: false, writable: true, value: Super });
     } else {
         Class.prototype = Object.create({});
         assignOwnPropertyDescriptors(Class.prototype, prototype);
