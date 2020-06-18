@@ -1,18 +1,33 @@
-html > * {
-	margin: 0;
-	padding: 0;
-	color: dimgray;
-	box-sizing: border-box;
-	font-family: sans-serif;
-}
 html, body {
 	flex: 1;
+    margin: 0;
+    padding: 0;
 	width: 100vw;
 	height: 100vh;
 	display: flex;
 	overflow-x: hidden;
     flex-direction: column;
 	background-color: white;
+}
+body > * {
+	color: dimgray;
+	box-sizing: border-box;
+	font-family: sans-serif;
+}
+a {
+	cursor: pointer;
+	color: darkorange;
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+i {
+	font-weight: 200;
+	font-family: monospace;
+}
+li {
+	margin: 0.6rem;
 }
 h1 {
 	font-size: 3rem;
@@ -24,28 +39,23 @@ h2 {
 	font-size: 2.9rem;
 	margin: 3rem 0 1rem 0;
 }
-a {
-	cursor: pointer;
-	color: darkorange;
-	text-decoration: none;
-}
-a:hover {
-	text-decoration: underline;
-}
-li {
-	margin: 0.6rem;
-}
-i {
-	font-weight: 200;
-	font-family: monospace;
+hr {
+	margin: 3rem 0;
 }
 pre {
 	flex: 1 0;
+    overflow-x: auto;
 	font-family: monospace !important;
 	background-color: whitesmoke !important;
 }
-hr {
-	margin: 3rem 0;
+main {
+    width: 100%;
+	margin: auto;
+	max-width: 900px;
+}
+main > :first-child {
+    display: block;
+    padding: 0 5vw;
 }
 .title {
 	display: block;
@@ -103,14 +113,6 @@ hr {
   display: block;
 }
 
-o-router {
-	padding: 1rem;
-	display: block;
-}
-o-router > :first-child {
-	margin: auto;
-	max-width: 900px;
-}
 r-error {
 	text-align: center;
 	align-items: center;
