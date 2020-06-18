@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 
-const { name, version, license, author, email } = JSON.parse(readFileSync('./package.json'));
+const pkg = readFileSync('./package.json');
+const { name, version, license, author, email } = JSON.parse(pkg);
 
 const rollup = {
     format: 'umd',
