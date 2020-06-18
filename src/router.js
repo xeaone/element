@@ -1,4 +1,3 @@
-import Ensure from './tool/ensure.js';
 import Location from './location.js';
 import Events from './events.js';
 import Define from './define.js';
@@ -35,11 +34,6 @@ const setup = async function (option = {}) {
         window.addEventListener('popstate', this.state.bind(this), true);
         window.document.addEventListener('click', this.click.bind(this), true);
     }
-
-    // const ORouter = function ORouter () { return window.Reflect.construct(HTMLElement, arguments, this.constructor); };
-    // ORouter.prototype = HTMLElement.prototype;
-    // Object.defineProperty(ORouter.prototype, 'constructor', { enumerable: false, writable: true, value: ORouter });
-    // window.customElements.define('o-router', ORouter);
 
     await this.add(option.routes);
     await this.route(window.location.href, { mode: 'replace' });
@@ -95,8 +89,6 @@ const compare = function (routePath, userPath) {
 
     userPath = absolute(userPath);
     routePath = absolute(routePath);
-    console.log(userPath);
-    console.log(routePath);
 
     if (this.compareParts(routePath, userPath, '/')) {
         return true;
@@ -255,61 +247,14 @@ const render = async function (route) {
         throw new Error('Oxe.router.render - route required');
     }
 
-    // if (route.title) {
-    //     document.title = route.title;
-    // }
-    //
-    // const ensures = [];
-    //
-    // if (route.keywords) {
-    //     ensures.push({
-    //         name: 'meta',
-    //         query: 'meta[name="keywords"]',
-    //         attributes: [
-    //             { name: 'name', value: 'keywords' },
-    //             { name: 'content', value: route.keywords }
-    //         ]
-    //     });
-    // }
-    //
-    // if (route.description) {
-    //     ensures.push({
-    //         name: 'meta',
-    //         query: 'meta[name="description"]',
-    //         attributes: [
-    //             { name: 'name', value: 'description' },
-    //             { name: 'content', value: route.description }
-    //         ]
-    //     });
-    // }
-    //
-    // if (route.canonical) {
-    //     ensures.push({
-    //         name: 'link',
-    //         query: 'link[rel="canonical"]',
-    //         attributes: [
-    //             { name: 'rel', value: 'canonical' },
-    //             { name: 'href', value: route.canonical }
-    //         ]
-    //     });
-    // }
-    //
-    // if (ensures.length) {
-    //     Promise.all(ensures.map(function (option) {
-    //         return Promise.resolve().then(function () {
-    //             option.position = 'afterbegin';
-    //             option.scope = document.head;
-    //             Ensure(option);
-    //         });
-    //     }));
-    // }
-
     if (!route.target) {
         if (!route.name) throw new Error('Oxe.router.render - name required');
         if (!route.component) throw new Error('Oxe.router.render - component required');
         Define(route.name, route.component);
         route.target = window.document.createElement(route.name);
     }
+
+    window.document.title = route.component.title || route.target.title || route.target.model.title;
 
     if (self.target) {
 
@@ -333,7 +278,6 @@ const route = async function (path, options = {}) {
     const location = Location(path);
     const mode = options.mode || self.mode;
 
-    console.log(location.pathname);
     const route = await this.find(location.pathname);
 
     if (!route) {

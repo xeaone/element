@@ -2254,8 +2254,6 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
   var compare = function compare(routePath, userPath) {
     userPath = absolute$1(userPath);
     routePath = absolute$1(routePath);
-    console.log(userPath);
-    console.log(routePath);
 
     if (this.compareParts(routePath, userPath, '/')) {
       return true;
@@ -2597,6 +2595,8 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         route.target = window.document.createElement(route.name);
       }
 
+      window.document.title = route.component.title || route.target.title || route.target.model.title;
+
       if (self$1.target) {
         while (self$1.target.firstChild) {
           self$1.target.removeChild(self$1.target.firstChild);
@@ -2622,7 +2622,6 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
       location = Location(path);
       mode = options.mode || self$1.mode;
-      console.log(location.pathname);
       return Promise.resolve(this.find(location.pathname)).then(function ($await_53) {
         try {
           route = $await_53;
