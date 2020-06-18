@@ -9,11 +9,11 @@
     	License, v. 2.0. If a copy of the MPL was not distributed with this
     	file, You can obtain one at http://mozilla.org/MPL/2.0/.
     */
-    function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
+    function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
 
-function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance"); }
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _iterableToArrayLimit(arr, i) { if (!(Symbol.iterator in Object(arr) || Object.prototype.toString.call(arr) === "[object Arguments]")) { return; } var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return; var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
 
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
@@ -23,13 +23,17 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
 
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && Symbol.iterator in Object(iter)) return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
@@ -2172,18 +2176,18 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
   var setup$2 = function setup$2() {
     var $args = arguments;
     return new Promise(function ($return, $error) {
-      var option, ORouter;
+      var option;
       option = $args.length > 0 && $args[0] !== undefined ? $args[0] : {};
       self$1.after = option.after;
       self$1.before = option.before;
-      self$1.target = option.target;
       self$1.external = option.external;
       self$1.mode = option.mode || 'push';
+      self$1.target = option.target || 'main';
       self$1.folder = option.folder || './routes';
       self$1.contain = option.contain === undefined ? false : option.contain;
 
-      if (!self$1.target || typeof self$1.target === 'string') {
-        self$1.target = document.body.querySelector(self$1.target || 'o-router');
+      if (typeof self$1.target === 'string') {
+        self$1.target = document.body.querySelector(self$1.target);
       }
 
       if (self$1.mode !== 'href') {
@@ -2191,17 +2195,6 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         window.document.addEventListener('click', this.click.bind(this), true);
       }
 
-      ORouter = function ORouter() {
-        return window.Reflect.construct(HTMLElement, arguments, this.constructor);
-      };
-
-      ORouter.prototype = HTMLElement.prototype;
-      Object.defineProperty(ORouter.prototype, 'constructor', {
-        enumerable: false,
-        writable: true,
-        value: ORouter
-      });
-      window.customElements.define('o-router', ORouter);
       return Promise.resolve(this.add(option.routes)).then(function ($await_45) {
         try {
           return Promise.resolve(this.route(window.location.href, {
@@ -2261,6 +2254,8 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
   var compare = function compare(routePath, userPath) {
     userPath = absolute$1(userPath);
     routePath = absolute$1(routePath);
+    console.log(userPath);
+    console.log(routePath);
 
     if (this.compareParts(routePath, userPath, '/')) {
       return true;
@@ -2523,7 +2518,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
   var find = function find(path) {
     return new Promise(function ($return, $error) {
-      var i;
+      var i, load, name, route;
       i = 0;
       var $Loop_28_trampoline;
 
@@ -2534,7 +2529,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
       function $Loop_28() {
         if (i < this.data.length) {
-          if (this.compare(this.data[i].path, path)) {
+          if (this.data[i].path === path) {
             return Promise.resolve(this.load(this.data[i])).then(function ($await_51) {
               try {
                 this.data[i] = $await_51;
@@ -2564,7 +2559,27 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       }.bind(this))($Loop_28);
 
       function $Loop_28_exit() {
-        return $return();
+        load = path;
+        load = load.charAt(0) === '/' ? load.slice(1) : load;
+        load = load.charAt(load.length - 1) === '/' ? load.slice(0, load.length - 1) : load;
+        load = load.split('/');
+        load.splice(-1, 1, 'default.js');
+        load.unshift(self$1.folder);
+        load = load.join('/');
+        name = 'r-' + basename(path);
+        return Promise.resolve(this.load({
+          path: path,
+          name: name,
+          load: load
+        })).then(function ($await_52) {
+          try {
+            route = $await_52;
+            this.data.push(route);
+            return $return(route);
+          } catch ($boundEx) {
+            return $error($boundEx);
+          }
+        }.bind(this), $error);
       }
     }.bind(this));
   };
@@ -2572,19 +2587,14 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
   var render = function render(route) {
     return new Promise(function ($return, $error) {
       if (!route) {
-        return $error(new Error('Oxe.render - route required'));
+        return $error(new Error('Oxe.router.render - route required'));
       }
 
       if (!route.target) {
-        if (route.name) return $error(new Error('Oxe.router.render - name required'));
-        console.log(route);
-
-        if (route.name && route.component) {
-          Define(route.name, route.component);
-          route.target = window.document.createElement(route.name);
-        } else {
-          return $error(new Error('Oxe.router.render - name and component required'));
-        }
+        if (!route.name) return $error(new Error('Oxe.router.render - name required'));
+        if (!route.component) return $error(new Error('Oxe.router.render - component required'));
+        Define(route.name, route.component);
+        route.target = window.document.createElement(route.name);
       }
 
       if (self$1.target) {
@@ -2595,9 +2605,9 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         self$1.target.appendChild(route.target);
       }
 
-      this.scroll(0, 0);
+      window.scroll(0, 0);
       return $return();
-    }.bind(this));
+    });
   };
 
   var route = function route(path) {
@@ -2612,16 +2622,17 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
       location = Location(path);
       mode = options.mode || self$1.mode;
-      return Promise.resolve(this.find(location.pathname)).then(function ($await_52) {
+      console.log(location.pathname);
+      return Promise.resolve(this.find(location.pathname)).then(function ($await_53) {
         try {
-          route = $await_52;
+          route = $await_53;
 
           if (!route) {
             return $error(new Error("Oxe.router.route - missing route ".concat(location.pathname)));
           }
 
           if (typeof self$1.before === 'function') {
-            return Promise.resolve(self$1.before(location)).then(function ($await_53) {
+            return Promise.resolve(self$1.before(location)).then(function ($await_54) {
               try {
                 return $If_31.call(this);
               } catch ($boundEx) {
@@ -2653,10 +2664,10 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
               window.document.title = route.title;
             }
 
-            return Promise.resolve(this.render(route)).then(function ($await_54) {
+            return Promise.resolve(this.render(route)).then(function ($await_55) {
               try {
                 if (typeof self$1.after === 'function') {
-                  return Promise.resolve(self$1.after(location)).then(function ($await_55) {
+                  return Promise.resolve(self$1.after(location)).then(function ($await_56) {
                     try {
                       return $If_32.call(this);
                     } catch ($boundEx) {

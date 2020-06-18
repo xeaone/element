@@ -21,14 +21,14 @@ const setup = async function (option = {}) {
 
     self.after = option.after;
     self.before = option.before;
-    self.target = option.target;
     self.external = option.external;
     self.mode = option.mode || 'push';
+    self.target = option.target || 'main';
     self.folder = option.folder || './routes';
     self.contain = option.contain === undefined ? false : option.contain;
 
-    if (!self.target || typeof self.target === 'string') {
-        self.target = document.body.querySelector(self.target || 'o-router');
+    if (typeof self.target === 'string') {
+        self.target = document.body.querySelector(self.target);
     }
 
     if (self.mode !== 'href') {
@@ -36,10 +36,10 @@ const setup = async function (option = {}) {
         window.document.addEventListener('click', this.click.bind(this), true);
     }
 
-    const ORouter = function ORouter () { return window.Reflect.construct(HTMLElement, arguments, this.constructor); };
-    ORouter.prototype = HTMLElement.prototype;
-    Object.defineProperty(ORouter.prototype, 'constructor', { enumerable: false, writable: true, value: ORouter });
-    window.customElements.define('o-router', ORouter);
+    // const ORouter = function ORouter () { return window.Reflect.construct(HTMLElement, arguments, this.constructor); };
+    // ORouter.prototype = HTMLElement.prototype;
+    // Object.defineProperty(ORouter.prototype, 'constructor', { enumerable: false, writable: true, value: ORouter });
+    // window.customElements.define('o-router', ORouter);
 
     await this.add(option.routes);
     await this.route(window.location.href, { mode: 'replace' });
@@ -95,6 +95,8 @@ const compare = function (routePath, userPath) {
 
     userPath = absolute(userPath);
     routePath = absolute(routePath);
+    console.log(userPath);
+    console.log(routePath);
 
     if (this.compareParts(routePath, userPath, '/')) {
         return true;
@@ -226,17 +228,31 @@ const filter = async function (path) {
 
 const find = async function (path) {
     for (let i = 0; i < this.data.length; i++) {
-        if (this.compare(this.data[i].path, path)) {
+        if (this.data[i].path === path) {
+        // if (this.compare(this.data[i].path, path)) {
             this.data[i] = await this.load(this.data[i]);
             return this.data[i];
         }
     }
+
+    let load = path;
+    load = load.charAt(0) === '/' ? load.slice(1) : load;
+    load = load.charAt(load.length-1) === '/' ? load.slice(0, load.length-1) : load;
+    load = load.split('/');
+    load.splice(-1, 1, 'default.js');
+    load.unshift(self.folder);
+    load = load.join('/');
+
+    const name = 'r-' + basename(path);
+    const route = await this.load({ path, name, load });
+    this.data.push(route);
+    return route;
 };
 
 const render = async function (route) {
 
     if (!route) {
-        throw new Error('Oxe.render - route required');
+        throw new Error('Oxe.router.render - route required');
     }
 
     // if (route.title) {
@@ -289,25 +305,10 @@ const render = async function (route) {
     // }
 
     if (!route.target) {
-        if (route.name) throw new Error('Oxe.router.render - name required');
-        console.log(route);
-        if (route.name && route.component) {
-            Define(route.name, route.component);
-            route.target = window.document.createElement(route.name);
-        } else {
-            throw new Error('Oxe.router.render - name and component required');
-        }
-        // if (!route.component) {
-        //     Define(route.name, route);
-        //     route.target = window.document.createElement(route.name);
-        // } else if (route.component.constructor === String) {
-        //     route.target = window.document.createElement(route.component);
-        // } else if (route.component.constructor === Object) {
-        //     Define(route.name, route.component);
-        //     route.target = window.document.createElement(route.component.name);
-        // } else {
-        //     throw new Error('Oxe.router.render - route requires name, load, or component property');
-        // }
+        if (!route.name) throw new Error('Oxe.router.render - name required');
+        if (!route.component) throw new Error('Oxe.router.render - component required');
+        Define(route.name, route.component);
+        route.target = window.document.createElement(route.name);
     }
 
     if (self.target) {
@@ -320,7 +321,7 @@ const render = async function (route) {
 
     }
 
-    this.scroll(0, 0);
+    window.scroll(0, 0);
 };
 
 const route = async function (path, options = {}) {
@@ -331,6 +332,8 @@ const route = async function (path, options = {}) {
 
     const location = Location(path);
     const mode = options.mode || self.mode;
+
+    console.log(location.pathname);
     const route = await this.find(location.pathname);
 
     if (!route) {
