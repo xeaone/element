@@ -168,6 +168,7 @@ const add = async function (data) {
 };
 
 const load = async function (route) {
+    console.log(route);
 
     if (route.load && !route.component) {
         const load = await Load(route.load);
@@ -219,13 +220,25 @@ const filter = async function (path) {
 };
 
 const find = async function (path) {
-    for (let i = 0; i < this.data.length; i++) {
-        if (this.data[i].path === path) {
-        // if (this.compare(this.data[i].path, path)) {
-            this.data[i] = await this.load(this.data[i]);
-            return this.data[i];
-        }
-    }
+    // for (let i = 0; i < this.data.length; i++) {
+    //     console.log(path);
+    //     if (this.data[i].path === path) {
+    //     // if (this.compare(this.data[i].path, path)) {
+    //         this.data[i] = await this.load(this.data[i]);
+    //         return this.data[i];
+    //     }
+    // }
+
+    let name;
+    if (path === '/') name = 'r-index';
+    else if (path.endsWith('/')) name = `r-${basename(path)}-index`;
+
+    const cache = this.data.find(route => route.path === path);
+    if (cache) return this.load(cache);
+
+    
+
+    // if ()
 
     let load = path;
     load = load.charAt(0) === '/' ? load.slice(1) : load;
@@ -235,7 +248,7 @@ const find = async function (path) {
     load.unshift(self.folder);
     load = load.join('/');
 
-    const name = 'r-' + basename(path);
+    console.log(name, path, load);
     const route = await this.load({ path, name, load });
     this.data.push(route);
     return route;
@@ -340,7 +353,7 @@ const click = async function (event) {
 
         while (parent) {
 
-            if (parent.nodeName === 'O-ROUTER') {
+            if (parent.nodeName === self.target.nodeName) {
                 break;
             } else {
                 parent = parent.parentElement;
@@ -348,7 +361,7 @@ const click = async function (event) {
 
         }
 
-        if (parent.nodeName !== 'O-ROUTER') {
+        if (parent.nodeName !== self.target.nodeName) {
             return;
         }
 
