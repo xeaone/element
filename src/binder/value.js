@@ -48,7 +48,7 @@ export default function (binder, event) {
                     const node = ctx.options[i];
                     const selected = node.selected;
                     const attribute = node.attributes['o-value'] || node.attributes['value'];
-                    const option = Binder.get(attribute) || { get data () { return node.value; }, set data (data) { return node.value = data; } };
+                    const option = Binder.get(attribute) || { get data () { return node.value; }, set data (data) { node.value = data; } };
                     if (ctx.multiple) {
                         const index = Index(binder.data, option.data);
                         if (event) {
@@ -95,7 +95,7 @@ export default function (binder, event) {
                 //     const attribute = target.attributes['o-value'] || target.attributes['value'];
                 //     Binder.render(
                 //         Binder.get(attribute) ||
-                //         { meta: {}, target, get data () { return target.value; }, set data (data) { return target.value = data; } },
+                //         { meta: {}, target, get data () { return target.value; }, set data (data) { target.value = data; } },
                 //         event
                 //     );
                 // }
@@ -122,7 +122,7 @@ export default function (binder, event) {
                 //     const selected = option.selected;
                 //
                 //     const attribute = option.attributes['o-value'] || option.attributes['value'];
-                //     const optionBinder = Binder.get(attribute) || { get data () { return option.value; }, set data (data) { return option.value = data; } };
+                //     const optionBinder = Binder.get(attribute) || { get data () { return option.value; }, set data (data) { option.value = data; } };
                 //
                 //     if (multiple) {
                 //         const index = Index(ctx.data, optionBinder.data);
