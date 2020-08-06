@@ -2137,7 +2137,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
   }
 
   function normalize(path) {
-    return path.replace(/\/+/g, '/').replace(/$\//g, '') || '.';
+    return path.replace(/\/+/g, '/').replace(/\/$/g, '') || '.';
   }
 
   function basename(path, extention) {
