@@ -1922,7 +1922,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
     for (var i = 0; i < templateMatches.length; i++) {
       var templateMatch = templateMatches[i];
-      code = code.replace(templateMatch, templateMatch.replace(/'/g, '\\\'').replace(/^([^\\])?`/, '$1\'').replace(/([^\\])?`$/, '$1\'').replace(/\${(.*)?}/g, '\'+$1+\'').replace(/\n/g, '\\n'));
+      code = code.replace(templateMatch, templateMatch.replace(/'/g, '\\' + '\'').replace(/^([^\\])?`/, '$1\'').replace(/([^\\])?`$/, '$1\'').replace(/\${(.*)?}/g, '\'+$1+\'').replace(/\n/g, '\\n'));
     }
 
     var parentImport = url.slice(0, url.lastIndexOf('/') + 1);

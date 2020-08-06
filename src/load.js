@@ -23,7 +23,7 @@ const transform = function (code, url) {
         code = code.replace(
             templateMatch,
             templateMatch
-                .replace(/'/g, '\\\'')
+                .replace(/'/g, '\\' + '\'')
                 .replace(/^([^\\])?`/, '$1\'')
                 .replace(/([^\\])?`$/, '$1\'')
                 .replace(/\${(.*)?}/g, '\'+$1+\'')
