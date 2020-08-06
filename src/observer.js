@@ -1,4 +1,4 @@
-const methods = [ 'push','pop','splice','shift','unshift','reverse' ];
+const methods = [ 'push', 'pop', 'splice', 'shift', 'unshift', 'reverse' ];
 
 const get = function (tasks, handler, path, target, property) {
 

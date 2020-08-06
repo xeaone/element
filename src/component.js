@@ -6,7 +6,7 @@ const Slot = function (element, fragment) {
     const fragmentSlots = fragment.querySelectorAll('slot[name]');
     const defaultSlot = fragment.querySelector('slot:not([name])');
 
-    for (let i = 0, l = fragmentSlots.length; i < l; i++) {
+    for (let i = 0; i < fragmentSlots.length; i++) {
 
         const fragmentSlot = fragmentSlots[i];
         const name = fragmentSlot.getAttribute('name');

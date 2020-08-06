@@ -5,7 +5,9 @@ export default function (binder) {
     if (binder.meta.busy) {
         console.log('busy each');
         return;
-    } else binder.meta.busy = true;
+    } else {
+        binder.meta.busy = true;
+    }
 
     let data;
 

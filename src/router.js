@@ -5,7 +5,7 @@ import Query from './query.js';
 import Load from './load.js';
 
 import basename from './path/basename.js';
-import normalize from './path/normalize.js';
+// import normalize from './path/normalize.js';
 
 const self = {};
 const data = [];
@@ -236,10 +236,6 @@ const find = async function (path) {
     const cache = this.data.find(route => route.path === path);
     if (cache) return this.load(cache);
 
-    
-
-    // if ()
-
     let load = path;
     load = load.charAt(0) === '/' ? load.slice(1) : load;
     load = load.charAt(load.length-1) === '/' ? load.slice(0, load.length-1) : load;
@@ -248,7 +244,7 @@ const find = async function (path) {
     load.unshift(self.folder);
     load = load.join('/');
 
-    console.log(name, path, load);
+    // console.log(name, path, load);
     const route = await this.load({ path, name, load });
     this.data.push(route);
     return route;

@@ -1,7 +1,7 @@
 
 var oLoop = {
     constructor: function () {
-        this.Super();
+        this.super();
     },
     created: function () {
         console.log(this.model);
