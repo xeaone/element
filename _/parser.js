@@ -1,17 +1,14 @@
 
 const space = ' ';
 const number = '0123456789';
-const symbol = '|&^=<>+-/*%!~()[]:?;,\'\"\`';
+const symbol = '|&^=<>+-/*%!~()[]:?;,\'"`';
 const lower = 'abcdefghijklmnopqrstuvwxyz';
 const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const PS = '(';
 const PE = ')';
-
-const SA = '\'\"\`';
-
+const SA = '\'"`';
 const BA = space + symbol;
-
 const VS = '$_'  + lower + upper;
 const VA = '$._'  + number + lower + upper;
 const VE = space + symbol;
@@ -119,14 +116,12 @@ const parse = function (s) {
 
 const parser = function (text) {
     const stack = [];
-    text.split(';')
-
+    text.split(';');
 };
 
-
-console.log(
-    parser('hello(world) ? foo : bar()')
-);
+// console.log(
+//     parser('hello(world) ? foo : bar()')
+// );
 
 // const model = {
 //     a: 1,
