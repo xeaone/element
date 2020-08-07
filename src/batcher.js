@@ -11,40 +11,47 @@ const setup = function (options = {}) {
     this.options.time = options.time || this.options.time;
 };
 
-const tick = function (callback) {
-    window.requestAnimationFrame(callback.bind(this));
+const tick = function (method) {
+    const self = this;
+    return new Promise((resolve, reject) => {
+        window.requestAnimationFrame((time) => {
+            Promise.resolve()
+                .then(method.bind(self, time))
+                .then(resolve)
+                .catch(reject);
+        });
+    });
 };
 
 // schedules a new read/write batch if one is not pending
-const schedule = function () {
+const schedule = async function () {
     if (this.options.pending) return;
     this.options.pending = true;
-    this.tick(this.flush);
+    return this.tick(this.flush);
 };
 
-const flush = function (time) {
+const flush = async function (time) {
 
-    let task;
+    console.log('reads:', this.reads.length);
+    console.log('write:', this.writes.length);
 
-    while (task = this.reads.shift()) {
-
-        if (task) {
-            task();
-        }
+    let read;
+    while (read = this.reads.shift()) {
+        if (read) await read();
 
         if ((performance.now() - time) > this.options.time) {
+            console.log('read max');
             return this.tick(this.flush);
         }
 
     }
 
-    while (task = this.writes.shift()) {
-
-        if (task) {
-            task();
-        }
+    let write;
+    while (write = this.writes.shift()) {
+        if (write) await write();
 
         if ((performance.now() - time) > this.options.time) {
+            console.log('write max');
             return this.tick(this.flush);
         }
 
@@ -53,9 +60,9 @@ const flush = function (time) {
     if (this.reads.length === 0 && this.writes.length === 0) {
         this.options.pending = false;
     } else if ((performance.now() - time) > this.options.time) {
-        this.tick(this.flush);
+        return this.tick(this.flush);
     } else {
-        this.flush(time);
+        return this.flush(time);
     }
 
 };
@@ -73,25 +80,25 @@ const batch = function (data) {
     const self = this;
 
     if (!data) return;
-    // if (!data.read && !data.write) return;
+    if (!data.read && !data.write) return;
 
-    data.context = data.context || {};
-    data.context.read = true;
-    data.context.write = true;
+    data.context = data.context ? { ...data.context } : {};
+    data.context.read = data.read;
+    data.context.write = data.write;
 
-    self.reads.push(data.read ? function () {
-        if (this.read) {
-            return data.read.call(data.context, data.context);
-        }
-    }.bind(data.context, data.context) : null);
+    if (data.read) {
+        self.reads.push(async function () {
+            if (this.read) return this.read.call(this, this);
+        }.bind(data.context, data.context));
+    }
 
-    self.writes.push(data.write ? function () {
-        if (this.write) {
-            return data.write.call(data.context, data.context);
-        }
-    }.bind(data.context, data.context) : null);
+    if (data.write) {
+        self.writes.push(async function () {
+            if (this.write) return this.write.call(this, this);
+        }.bind(data.context, data.context));
+    }
 
-    self.schedule();
+    self.schedule().catch(console.error);
 };
 
 export default Object.freeze({
