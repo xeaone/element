@@ -36,38 +36,17 @@ let SETUP = false;
 
 export default Object.freeze({
 
-    Class,
-    class: Class,
-
-    Style,
-    style: Style,
-
-    Component,
-    component: Component,
-
-    Query,
-    query: Query,
-
-    Location,
-    location: Location,
-
-    Define,
-    define: Define,
-
-    Binder,
-    binder: Binder,
-
-    Batcher,
-    batcher: Batcher,
-
-    Fetcher,
-    fetcher: Fetcher,
-
-    Router,
-    router: Router,
-
-    Load,
-    load: Load,
+    Component, component: Component,
+    Location, location: Location,
+    Batcher, batcher: Batcher,
+    Fetcher, fetcher: Fetcher,
+    Router, router: Router,
+    Binder, binder: Binder,
+    Define, define: Define,
+    Class, class: Class,
+    Query, query: Query,
+    Style, style: Style,
+    Load, load: Load,
 
     setup (options = {}) {
 

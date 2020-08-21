@@ -95,10 +95,12 @@ const Component = function Component (options = {}) {
     const methods = options.methods || this.methods;
     const template = options.template || self.template;
 
-    self.options = { ...options };
-    self.options.adopt = false;
-    self.options.shadow = false;
-    self.options.attributes = [];
+    self.options = {
+        adopt: false,
+        shadow: false,
+        attributes: [],
+        ...options
+    };
 
     if (typeof style === 'string') {
         Style.append(
