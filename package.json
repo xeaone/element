@@ -47,12 +47,12 @@
 		"src": "src"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.11.1",
+		"@babel/core": "^7.11.4",
 		"@babel/preset-env": "^7.11.0",
 		"@webcomponents/custom-elements": "^1.4.2",
 		"@webcomponents/webcomponentsjs": "^2.4.4",
 		"fast-async": "^7.0.6",
 		"oxe-components": "^4.1.1",
-		"rollup": "^2.26.4"
+		"rollup": "^2.26.6"
 	}
 }
