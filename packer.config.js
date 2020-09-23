@@ -21,10 +21,10 @@ const babel = {
 };
 
 export default {
-    babel,
+    // babel,
     rollup,
     bundle: true,
-    transform: true,
+    // transform: true,
     name: 'Oxe',
     input: 'src/index.js',
     output: [
