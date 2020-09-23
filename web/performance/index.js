@@ -1,12 +1,10 @@
+const { Component, Define } = Oxe;
 
-var oLoop = {
-    constructor: function () {
-        this.super();
-    },
-    created: function () {
-        console.log(this.model);
-    },
-    model: {
+class oLoop extends Component {
+
+    static attributes = [ 'test' ];
+
+    static model = {
         items: [],
         message: '',
         count: 1000,
@@ -32,32 +30,43 @@ var oLoop = {
 
             console.timeEnd('overwrite');
         }
-    },
-    template: /*html*/`
+    }
 
-		<h3><span>{{count}}</span> Inputs two way binded</h3>
+    static template = /*html*/`
 
-		<form o-submit="push">
-			<input o-value="count" type="number">
-			<input type="submit" value="Push">
-		</form>
+        <h3><span>{{count}}</span> Inputs two way binded</h3>
 
-		<br>
+        <form o-submit="push">
+            <input o-value="count" type="number">
+            <input type="submit" value="Push">
+        </form>
 
-		<button o-on-click="push">Push</button>
-		<button o-on-click="overwrite">Overwrite</button>
+        <br>
 
-		<div o-each-item="items">
-			<div class="box">
-				<div>{{[item].number}}</div>
-				<input type="text" o-value="[item].number">
-			</div>
-		</div>
+        <button o-on-click="push">Push</button>
+        <button o-on-click="overwrite">Overwrite</button>
 
-	`
-};
+        <div o-each-item="items">
+            <div class="box">
+                <div>{{[item].number}}</div>
+                <input type="text" o-value="[item].number">
+            </div>
+        </div>
 
-Oxe.Define('o-loop', oLoop);
+    `
+    // constructor () { super(); }
+
+    attributed () {
+        console.log(arguments);
+    }
+
+    created () {
+        console.log(this.model);
+    }
+
+}
+
+Define('o-loop', oLoop);
 
 // Oxe.setup({
 //     component: {
