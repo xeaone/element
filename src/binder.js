@@ -27,7 +27,9 @@ const PIPE = /\s?\|\s?/;
 const PIPES = /\s?,\s?|\s+/;
 const PATH = /\s?,\s?|\s?\|\s?|\s+/;
 
-const Binder = {
+const Binder = {};
+
+const properties = {
 
     data: new Map(),
 
@@ -246,4 +248,4 @@ const Binder = {
 
 };
 
-export default Object.freeze(Binder);
+export default Object.freeze({ ...Binder, ...properties });
