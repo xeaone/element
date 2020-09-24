@@ -1,29 +1,30 @@
+const { Component } = Oxe;
 
-var model = {
-    text: 'Hello World',
-    input: function (e) {
-        console.log(e.target.value);
-    }
-};
-
-var template = /*html*/`
-    <h2>Value Binder</h2>
-    <hr>
-
-    <div>{{text | upper}}</div>
-    <div>{{ upper(text) }}</div>
-    <!-- <input o-value="text"> -->
-    <input value="{{text}}" oninput="{{input}}">
-`;
-
-var upper = function (text) {
+const upper = function (text) {
     return text.toUpperCase();
 };
 
-var methods = { upper };
+export default class RouteBinderValue extends Component {
 
-export default {
-    title: 'Value Binder',
-    name: 'r-binder-value',
-    model, template, methods
+    title = 'Value Binder'
+
+    static methods = {
+        upper
+    }
+
+    static model = {
+        text: 'Hello World',
+        input (e) {
+            console.log(e.target.value);
+        }
+    }
+
+    static template = /*html*/`
+        <h2>Value Binder</h2>
+        <hr>
+
+        <div>{{text | upper}}</div>
+        <input value="{{text}}" oninput="{{input}}">
+    `
+
 };

@@ -124,7 +124,7 @@ const add = async function (data) {
     } else if (typeof data === 'string') {
         let load = data;
         let path = data;
-        const name = 'r-' + basename(data, '.js');
+        const name = `r-${data.replace('/', '-')}.js`;;
 
         if (path.slice(-3) === '.js') path = path.slice(0, -3);
         if (path.slice(-5) === 'index') path = path.slice(0, -5);
@@ -141,12 +141,6 @@ const add = async function (data) {
 
         load = self.folder + '/' + load;
         load = absolute(load);
-
-        // console.log(name, basename(name, '.js'));
-        // console.log(path, basename(path, '.js'));
-        // console.log(load, basename(load, '.js'));
-        // console.log(path);
-        // console.log(load);
 
         this.add({ path, name, load });
     } else if (data instanceof Array) {
@@ -168,7 +162,6 @@ const add = async function (data) {
 };
 
 const load = async function (route) {
-    console.log(route);
 
     if (route.load && !route.component) {
         const load = await Load(route.load);
@@ -221,7 +214,6 @@ const filter = async function (path) {
 
 const find = async function (path) {
     // for (let i = 0; i < this.data.length; i++) {
-    //     console.log(path);
     //     if (this.data[i].path === path) {
     //     // if (this.compare(this.data[i].path, path)) {
     //         this.data[i] = await this.load(this.data[i]);
@@ -244,7 +236,6 @@ const find = async function (path) {
     load.unshift(self.folder);
     load = load.join('/');
 
-    // console.log(name, path, load);
     const route = await this.load({ path, name, load });
     this.data.push(route);
     return route;

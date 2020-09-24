@@ -304,6 +304,7 @@ export default function (binder, event) {
     } else {
         return {
             read (ctx) {
+                console.log('read: value');
                 // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') {
                 //     console.log(binder);
                 //     return ctx.write = false;
@@ -342,6 +343,7 @@ export default function (binder, event) {
 
             },
             write (ctx) {
+                console.log('write: value');
                 // const { select, selected, multiple } = ctx;
 
                 // if (select) {
@@ -383,9 +385,13 @@ export default function (binder, event) {
 
                 // if (!Match(ctx.data, ctx.value)) {
                     if (event) {
-                        binder.data = ctx.value === '' ? binder.data : ctx.value;
+                        // console.log(ctx.value);
+                        // console.log(binder.target.value);
+                        binder.data = ctx.value;
                     } else {
-                        binder.target.value = ctx.data === undefined || ctx.data === null ? '' : binder.data;
+                        console.log(ctx.data);
+                        binder.target.value = binder.data === undefined || binder.data === null ? '' : binder.data;
+                        // binder.target.value = ctx.data === undefined || ctx.data === null ? '' : ctx.data;
                     }
                 // }
 

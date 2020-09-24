@@ -1,12 +1,16 @@
+const { Component } = Oxe;
 
-export default {
-    title: 'Text Binder',
-    name: 'r-binder-text',
-    model: {
+export default class RouteBinderText extends Component {
+
+    title = 'Text Binder'
+    name = 'r-binder-text'
+
+    static model = {
         templateVar: '<div>{{templateVar}}<div>',
         attributeVar: '<div o-text="attributeVar"></div>'
-    },
-    template: /*html*/`
+    }
+
+    static template = /*html*/`
 
         <h2>Text Binder</h2>
         <hr>
@@ -21,4 +25,5 @@ export default {
         <span o-text="attributeVar"></span>
 
     `
-};
+
+}

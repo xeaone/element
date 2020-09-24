@@ -75,9 +75,9 @@ export default function (binder) {
                 let node;
                 while (node = parsed.firstChild) {
                     binder.target.appendChild(node);
-                    Promise.resolve().then(Binder.add(node, binder.container, binder.scope));
+                    Promise.resolve().then(Binder.add(node, binder.container));
                     // binder.meta.fragment.appendChild(node);
-                    // Promise.resolve().then(Binder.add(node, binder.container, binder.scope)).catch(console.error);
+                    // Promise.resolve().then(Binder.add(node, binder.container)).catch(console.error);
                 }
 
                 binder.meta.currentLength++;

@@ -29,6 +29,8 @@ var home = Escape(`
 			}
 		}
 	};
+
+
 `);
 
 var indexjs = Escape(`
@@ -50,7 +52,7 @@ var indexjs = Escape(`
 	}).catch(console.error);
 `);
 
-var indexhtml = Escape(`
+var indexhtml = Escape(/*html*/`
 	<!-- index.html -->
 
 	<html>

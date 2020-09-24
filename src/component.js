@@ -2,60 +2,48 @@ import Observer from './observer.js';
 import Binder from './binder.js';
 // import Style from './style.js';
 
-const Slot = function (element, fragment) {
-    const fragmentSlots = fragment.querySelectorAll('slot[name]');
-    const defaultSlot = fragment.querySelector('slot:not([name])');
+const compose = function (instance, template) {
+    const templateSlots = template.querySelectorAll('slot[name]');
+    const defaultSlot = template.querySelector('slot:not([name])');
 
-    for (let i = 0; i < fragmentSlots.length; i++) {
+    for (let i = 0; i < templateSlots.length; i++) {
 
-        const fragmentSlot = fragmentSlots[i];
-        const name = fragmentSlot.getAttribute('name');
-        const elementSlot = element.querySelector('[slot="'+ name + '"]');
+        const templateSlot = templateSlots[i];
+        const name = templateSlot.getAttribute('name');
+        const instanceSlot = instance.querySelector('[slot="'+ name + '"]');
 
-        if (elementSlot) {
-            fragmentSlot.parentNode.replaceChild(elementSlot, fragmentSlot);
+        if (instanceSlot) {
+            templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
         } else {
-            fragmentSlot.parentNode.removeChild(fragmentSlot);
+            templateSlot.parentNode.removeChild(templateSlot);
         }
 
     }
 
-    if (defaultSlot) {
-        if (element.children.length) {
-            while (element.firstChild) {
-                defaultSlot.parentNode.insertBefore(element.firstChild, defaultSlot);
+    if (instance.children.length) {
+        while (instance.firstChild) {
+            if (defaultSlot) {
+                defaultSlot.parentNode.insertBefore(instance.firstChild, defaultSlot);
+            } else {
+               instance.removeChild(instance.firstChild);
             }
         }
+    }
+
+    if (defaultSlot) {
         defaultSlot.parentNode.removeChild(defaultSlot);
     }
 
 };
 
-const Fragment = function (element, template, adopt) {
-    const fragment = document.createDocumentFragment();
-    const clone = template.cloneNode(true);
-
-    let child = clone.firstElementChild;
-    while (child) {
-
-        if (!adopt) {
-            Binder.add(child, element, element.scope);
-        }
-
-        fragment.appendChild(child);
-        child = clone.firstElementChild;
-    }
-
-    return fragment;
-};
-
 class Component extends HTMLElement {
 
-    // static #count = 0
     static count = 0
     static attributes = []
     static get observedAttributes () { return this.attributes; }
     static set observedAttributes (attributes) { this.attributes = attributes; }
+
+    #root
 
     #template = ''
     get template () { return this.#template; }
@@ -65,9 +53,6 @@ class Component extends HTMLElement {
 
     #methods = {}
     get methods () { return this.#methods; }
-
-    #scope = ''
-    get scope () { return this.#scope; }
 
     constructor () {
         super();
@@ -87,52 +72,52 @@ class Component extends HTMLElement {
         //     );
         // }
 
-
         this.#methods = this.constructor.methods || {};
-        this.#scope = `${this.nodeName.toLowerCase()}-${this.constructor.count++}`;
-        this.#template = new DOMParser().parseFromString(this.constructor.template || '' , 'text/html').body;
+        this.#template = this.constructor.template || '';
 
         this.#model = Observer.create(this.constructor.model || {} , (data, path) => {
-            const location = `${this.scope}.${path}`;
             Binder.data.forEach(binder => {
-                if (binder.location === location) {
+                if (binder.container === this && binder.path === path) {
                     Binder.render(binder);
                 }
             });
         }); 
 
-        this.render();
     }
 
     render () {
 
-        const fragment = Fragment(this, this.template);
+        const template = document.createElement('template');
+        template.innerHTML = this.template;
 
-        let root;
+        const clone = template.content.cloneNode(true);
 
-        if (this.shadow && 'attachShadow' in document.body) {
-            root = this.attachShadow({ mode: 'open' });
-        } else if (this.shadow && 'createShadowRoot' in document.body) {
-            root = this.createShadowRoot();
-        } else {
-
-            if (fragment) {
-                Slot(this, fragment);
-            }
-
-            root = this;
-        }
-
-        if (fragment) {
-            root.appendChild(fragment);
-        }
-
-        if (this.adopt) {
-            let child = root.firstElementChild;
+        if (this.adopt === true) {
+            let child = this.firstElementChild;
             while (child) {
-                Binder.add(child, this, this.scope);
+                Binder.add(child, this);
                 child = child.nextElementSibling;
             }
+        }
+
+        if (this.shadow && 'attachShadow' in document.body) {
+            this.#root = this.attachShadow({ mode: 'open' });
+        } else if (this.shadow && 'createShadowRoot' in document.body) {
+            this.#root = this.createShadowRoot();
+        } else {
+            compose(this, clone);
+            this.#root = this;
+        }
+
+        // if (fragment) root.appendChild(fragment);
+        // root.appendChild(fragment);
+
+        let child = clone.firstElementChild;
+        while (child) {
+            // if (this.adopt === false) 
+            Binder.add(child, this);
+            this.#root.appendChild(child);
+            child = clone.firstElementChild;
         }
 
     }
@@ -154,6 +139,7 @@ class Component extends HTMLElement {
             Promise.resolve().then(() => this.attached());
         } else {
             this.CREATED = true;
+            this.render();
             Promise.resolve().then(() => this.created()).then(() => this.attached());
         }
     }

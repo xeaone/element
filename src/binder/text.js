@@ -1,26 +1,29 @@
 
 export default function (binder) {
-    let data;
     return {
-        read () {
-            data = binder.data;
+        read (ctx) {
+            console.log('read: text');
 
-            if (data === undefined || data === null) {
-                data = '';
-            } else if (typeof data === 'object') {
-                data = JSON.stringify(data);
-            } else if (typeof data !== 'string') {
-                data = data.toString();
+            ctx.data = binder.data;
+
+            if (ctx.data === undefined || ctx.data === null) {
+                ctx.data = '';
+            } else if (typeof ctx.data === 'object') {
+                ctx.data = JSON.stringify(ctx.data);
+            } else if (typeof ctx.data !== 'string') {
+                ctx.data = ctx.data.toString();
             }
 
-            if (data === binder.target.textContent) {
-                this.write = false;
-                return;
+            if (ctx.data === binder.target.textContent) {
+                return ctx.write = false;
             }
 
         },
-        write () {
-            binder.target.textContent = data;
+        write (ctx) {
+            console.log('write: text');
+            // console.log(ctx.data);
+            // console.log(binder.data);
+            binder.target.textContent = ctx.data;
         }
     };
 }

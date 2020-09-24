@@ -31,7 +31,6 @@ export default function (binder) {
 
                 Binder.add(parser.firstElementChild, {
                     container: binder.container,
-                    scope: binder.container.scope
                 });
 
                 fragment.appendChild(parser.firstElementChild);

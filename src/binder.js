@@ -94,7 +94,7 @@ const properties = {
         return this.data.remove(node);
     },
 
-    bind (target, name, value, container, scope, attr) {
+    bind (target, name, value, container, attr) {
 
         value = value.replace(this.syntaxReplace, '').trim();
         name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
@@ -113,42 +113,42 @@ const properties = {
         const meta = {};
         const type = names[0];
         const path = paths[0];
-        const parts = paths[0].split('.');
-        const location = `${scope}.${path}`;
-        const keys = [ scope ].concat(parts);
-        const property = parts.slice(-1)[0];
+        const keys = paths[0].split('.');
+        const property = keys.slice(-1)[0];
 
         const binder = Object.freeze({
 
-            location, type, path, scope,
+            type, path,
             name, value, target, container,
             keys, names, pipes, values, meta,
 
             get data () {
             // if (names[0] === 'on') {
-            //     const source = Traverse(container.methods, parts, 1);
+            //     const source = Traverse(container.methods, keys, 1);
             //     return source[property];
             // } else {
-                const source = Traverse(container.model, parts, 1);
-                if (names[0] === 'value') {
-                    return source[property];
-                } else {
-                    return Piper(this, source[property]);
-                }
+                const source = Traverse(container.model, keys, 1);
+                return source[property];
+                // if (names[0] === 'value') {
+                //     return source[property];
+                // } else {
+                //     return Piper(this, source[property]);
+                // }
             // }
             },
 
             set data (value) {
             // if (names[0] === 'on') {
-            //     const source = Traverse(container.methods, parts, 1);
+            //     const source = Traverse(container.methods, keys, 1);
             //     source[property] = value;
             // } else {
-                const source = Traverse(container.model, parts, 1);
-                if (names[0] === 'value') {
-                    source[property] = Piper(this, value);
-                } else {
-                    source[property] = value;
-                }
+                const source = Traverse(container.model, keys, 1);
+                source[property] = value;
+                // if (names[0] === 'value') {
+                //     source[property] = Piper(this, value);
+                // } else {
+                //     source[property] = value;
+                // }
             // }
             }
 
@@ -181,11 +181,11 @@ const properties = {
         }
     },
 
-    add (node, container, scope) {
+    add (node, container) {
         const type = node.nodeType;
         // if (node.nodeType === Node.ATTRIBUTE_NODE) {
         //     if (node.name.indexOf(this.prefix) === 0) {
-        //         this.bind(node, node.name, node.value, container, scope, attribute);
+        //         this.bind(node, node.name, node.value, container, attribute);
         //     }
         // } else
         if (type === Node.TEXT_NODE) {
@@ -200,10 +200,10 @@ const properties = {
 
             if (end+this.syntaxStart.length !== node.textContent.length) {
                 const split = node.splitText(end + this.syntaxEnd.length);
-                this.bind(node, 'text', node.textContent, container, scope);
+                this.bind(node, 'text', node.textContent, container);
                 this.add(split);
             } else {
-                this.bind(node, 'text', node.textContent,  container, scope);
+                this.bind(node, 'text', node.textContent,  container);
             }
 
         } else if (type === Node.ELEMENT_NODE) {
@@ -230,7 +230,7 @@ const properties = {
                         skip = true;
                     }
 
-                    this.bind(node, name, value, container, scope, attribute);
+                    this.bind(node, name, value, container, attribute);
                 }
 
             }
@@ -239,7 +239,7 @@ const properties = {
 
             node = node.firstChild;
             while (node) {
-                this.add(node, container, scope);
+                this.add(node, container);
                 node = node.nextSibling;
             }
 

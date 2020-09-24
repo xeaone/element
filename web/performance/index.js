@@ -34,6 +34,8 @@ class oLoop extends Component {
 
     static template = /*html*/`
 
+        <slot name="main">Main Default</slot>
+
         <h3><span>{{count}}</span> Inputs two way binded</h3>
 
         <form o-submit="push">
