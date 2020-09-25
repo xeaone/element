@@ -9,22 +9,62 @@ export default class RouteBinderValue extends Component {
     title = 'Value Binder'
 
     static methods = {
-        upper
     }
 
     static model = {
+
         text: 'Hello World',
-        input (e) {
-            console.log(e.target.value);
-        }
+        textInput () { console.log(this.model.text); },
+
+        number: 0,
+        numberInput () { console.log(this.model.number); },
+
+        checkbox: true,
+        checkboxInput () { console.log(this.model.checkbox); },
+
+        radio: 'two',
+        radioInput () { console.log(this.model.radio); }
+
     }
 
     static template = /*html*/`
         <h2>Value Binder</h2>
         <hr>
+        
+        <p>See browser console logs.</p>
 
-        <div>{{text | upper}}</div>
-        <input value="{{text}}" oninput="{{input}}">
+        <br>
+        <br>
+        <br>
+        <strong>type="text" as String</strong>
+        <div>{{text}}</div>
+        <input value="{{text}}" type="text" oninput="{{textInput}}">
+
+        <br>
+        <br>
+        <br>
+        <strong>type="number" as Number</strong>
+        <div>{{number}}</div>
+        <input value="{{number}}" type="number" oninput="{{numberInput}}">
+
+        <br>
+        <br>
+        <br>
+        <strong>type="checkbox" As Boolean</strong>
+        <div>{{checkbox}}</div>
+        <input value="{{checkbox}}" type="checkbox" oninput="{{checkboxInput}}">
+
+        <br>
+        <br>
+        <br>
+        <strong>type="radio" as String</strong>
+        <div>{{radio}}</div>
+        <input name="radios" type="radio" value="one" o-value="{{radio}}" oninput="{{radioInput}}">
+        <input name="radios" type="radio" value="two" o-value="{{radio}}" oninput="{{radioInput}}">
+        <input name="radios" type="radio" value="three" o-value="{{radio}}" oninput="{{radioInput}}">
+
     `
 
 };
+
+        // <input value="{{checkbox}}" type="checkbox" oninput="{{checkboxInput}}"></input>

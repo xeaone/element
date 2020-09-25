@@ -29,11 +29,8 @@ export default function Match (source, target) {
 
     for (let i = 0; i < sourceKeys.length; i++) {
         const name = sourceKeys[i];
-
-        if (!Match(source[name], target[name])) {
-            return false;
-        }
-
+        const match = Match(source[name], target[name]);
+        if (!match) return false;
     }
 
     return true;

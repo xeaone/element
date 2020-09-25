@@ -2,8 +2,6 @@
 export default function (binder) {
     return {
         read (ctx) {
-            console.log('read: text');
-
             ctx.data = binder.data;
 
             if (ctx.data === undefined || ctx.data === null) {
@@ -20,9 +18,6 @@ export default function (binder) {
 
         },
         write (ctx) {
-            console.log('write: text');
-            // console.log(ctx.data);
-            // console.log(binder.data);
             binder.target.textContent = ctx.data;
         }
     };

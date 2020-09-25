@@ -239,84 +239,133 @@ export default function (binder, event) {
         };
     } else if (type === 'radio') {
         return {
-            read () {
+            read (ctx) {
 
-                this.form = binder.target.form || binder.container;
-                this.query = `input[type="radio"][o-value="${binder.value}"]`;
-                this.radios = [ ...this.form.querySelectorAll(this.query) ];
+                ctx.data = binder.data;
+                ctx.value = binder.target.value;
+                ctx.match = Match(ctx.data, ctx.value);
 
-                if (event) {
-                    binder.data = this.radios.indexOf(binder.target);
+                if (ctx.match === binder.target.checked) {
                     binder.meta.busy = false;
-                    return this.write = false;
+                    ctx.write = false;
+                    return;
                 }
 
-                if (typeof binder.data !== 'number') {
+                if (event) {
+                    binder.data = ctx.value;
                     binder.meta.busy = false;
-                    return this.write = false;
+                    ctx.write = false;
+                    return;
                 }
 
             },
-            write () {
-                const { radios } = this;
-
-                for (let i = 0; i < radios.length; i++) {
-                    const radio = radios[i];
-                    if (i === binder.data) {
-                        radio.checked = true;
-                    } else {
-                        radio.checked = false;
-                    }
-                }
-
+            write (ctx) {
+                binder.target.checked = ctx.match;
                 binder.meta.busy = false;
             }
         };
     } else if (type === 'checkbox') {
         return {
-            read () {
+            read (ctx) {
 
-                if (event) {
-                    binder.data = binder.target.checked;
+                ctx.data = Boolean(binder.data);
+                ctx.value = Boolean(binder.target.checked);
+                ctx.match = Match(ctx.data, ctx.value);
+
+                if (ctx.match) {
                     binder.meta.busy = false;
-                    return this.write = false;
+                    ctx.write = false;
+                    return;
                 }
 
-                if (typeof binder.data !== 'boolean') {
+                if (event) {
+                    binder.data = ctx.value;
                     binder.meta.busy = false;
-                    return this.write = false;
+                    ctx.write = false;
+                    return;
                 }
 
             },
-            write () {
-                binder.target.checked = binder.data;
+            write (ctx) {
+                binder.target.checked = ctx.data;
+                binder.meta.busy = false;
+            }
+        };
+
+    } else if (type === 'number') {
+        return {
+            read (ctx) {
+
+                ctx.data = Number(binder.data);
+                ctx.value = binder.target.value ? Number(binder.target.value) : NaN;
+                ctx.match = Match(ctx.data, ctx.value);
+
+                if (ctx.match) {
+                    binder.meta.busy = false;
+                    ctx.write = false;
+                    return;
+                }
+
+                if (event) {
+                    binder.data = ctx.value;
+                    binder.meta.busy = false;
+                    ctx.write = false;
+                    return;
+                }
+
+            },
+            write (ctx) {
+                binder.target.value = ctx.data;
                 binder.meta.busy = false;
             }
         };
     } else if (type === 'file') {
         return {
-            read () {
-                this.multiple = binder.target.multiple;
-                binder.data = this.multiple ? [ ...binder.target.files ] : binder.target.files[0];
-                binder.meta.busy = false;
+            read (ctx) {
+
+                ctx.data = binder.data;
+                ctx.multiple = binder.target.multiple;
+                ctx.value = ctx.multiple ? [ ...binder.target.files ] : binder.target.files[0];
+                ctx.match = Match(ctx.data, ctx.value);
+
+                if (ctx.match) {
+                    binder.meta.busy = false;
+                    ctx.write = false;
+                    return;
+                }
+
+                if (event) {
+                    binder.data = ctx.value;
+                    binder.meta.busy = false;
+                    ctx.write = false;
+                    return;
+                }
+
             }
         };
     } else {
         return {
             read (ctx) {
-                console.log('read: value');
-                // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') {
-                //     console.log(binder);
-                //     return ctx.write = false;
-                // }
+                // console.log('read: value', binder.data);
+
+                // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') return ctx.write = false;
 
                 ctx.data = binder.data;
                 ctx.value = binder.target.value;
+                ctx.match = Match(ctx.data, ctx.value);
                 // ctx.selected = binder.target.selected;
 
-                if (Match(ctx.data, ctx.value)) {
+                if (ctx.match) {
                     binder.meta.busy = false;
-                    return ctx.write = false;
+                    ctx.write = false;
+                    return;
+                }
+
+                if (event) {
+                    binder.data = ctx.value;
+                    binder.meta.busy = false;
+                    ctx.write = false;
+                    return;
                 }
 
                 // if (
@@ -343,7 +392,7 @@ export default function (binder, event) {
 
             },
             write (ctx) {
-                console.log('write: value');
+                // console.log('write: value', binder.data);
                 // const { select, selected, multiple } = ctx;
 
                 // if (select) {
@@ -383,17 +432,7 @@ export default function (binder, event) {
                 //     }
                 // }
 
-                // if (!Match(ctx.data, ctx.value)) {
-                    if (event) {
-                        // console.log(ctx.value);
-                        // console.log(binder.target.value);
-                        binder.data = ctx.value;
-                    } else {
-                        console.log(ctx.data);
-                        binder.target.value = binder.data === undefined || binder.data === null ? '' : binder.data;
-                        // binder.target.value = ctx.data === undefined || ctx.data === null ? '' : ctx.data;
-                    }
-                // }
+                binder.target.value = ctx.data ?? '';
 
                 // select.meta.busy = false;
                 binder.meta.busy = false;

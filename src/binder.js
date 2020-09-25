@@ -3,6 +3,7 @@ import Traverse from './tool/traverse.js';
 import Batcher from './batcher.js';
 import Piper from './piper.js';
 
+import Checked from './binder/checked.js';
 import Class from './binder/class.js';
 import Default from './binder/default.js';
 import Disable from './binder/disable.js';
@@ -40,6 +41,7 @@ const properties = {
     syntaxReplace: new RegExp('{{|}}', 'g'),
 
     binders: {
+        checked: Checked.bind(Binder),
         class: Class.bind(Binder),
         css: Style.bind(Binder),
         default: Default.bind(Binder),

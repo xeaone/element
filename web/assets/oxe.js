@@ -139,8 +139,8 @@
 
     const flush = async function (time) {
 
-        console.log('reads:', this.reads.length);
-        console.log('write:', this.writes.length);
+        console.log('reads before:', this.reads.length);
+        console.log('write before:', this.writes.length);
 
         let read;
         while (read = this.reads.shift()) {
@@ -164,6 +164,9 @@
 
         }
 
+        console.log('reads after:', this.reads.length);
+        console.log('write after:', this.writes.length);
+
         if (this.reads.length === 0 && this.writes.length === 0) {
             this.options.pending = false;
         } else if ((performance.now() - time) > this.options.time) {
@@ -183,27 +186,19 @@
         return this.remove(this.reads, task) || this.remove(this.writes, task);
     };
 
-    const batch = function (data) {
+    const batch = function (context) {
         const self = this;
 
-        if (!data) return;
-        if (!data.read && !data.write) return;
+        if (!context) return;
+        if (!context.read && !context.write) return;
 
-        data.context = data.context ? { ...data.context } : {};
-        data.context.read = data.read;
-        data.context.write = data.write;
+        self.reads.push(async () =>
+            context.read ? context.read.call(context, context) : undefined
+        );
 
-        if (data.read) {
-            self.reads.push(async function () {
-                if (this.read) return this.read.call(this, this);
-            }.bind(data.context, data.context));
-        }
-
-        if (data.write) {
-            self.writes.push(async function () {
-                if (this.write) return this.write.call(this, this);
-            }.bind(data.context, data.context));
-        }
+        self.writes.push(async () => 
+            context.write ? context.write.call(context, context) : undefined
+        );
 
         self.schedule().catch(console.error);
     };
@@ -220,6 +215,48 @@
         clear,
         batch
     });
+
+    function Checked (binder, event) {
+
+        if (binder.meta.busy) {
+            return;
+        } else {
+            binder.meta.busy = true;
+        }
+
+        if (!binder.meta.setup) {
+            binder.meta.setup = true;
+            binder.target.addEventListener('input', event => Binder$1.render(binder, event));
+        }
+
+        return {
+            read (ctx) {
+
+                ctx.data = Boolean(binder.data);
+                ctx.checked = Boolean(binder.target.checked);
+                ctx.match = ctx.data === ctx.checked;
+
+                if (ctx.match) {
+                    binder.meta.busy = false;
+                    ctx.write = false;
+                    return;
+                }
+
+                if (event) {
+                    binder.data = ctx.checked;
+                    binder.meta.busy = false;
+                    ctx.write = false;
+                    return;
+                }
+
+            },
+            write (ctx) {
+                binder.target.checked = ctx.data;
+                binder.meta.busy = false;
+            }
+        };
+
+    }
 
     function Class (binder) {
         let data, name;
@@ -509,44 +546,31 @@
         };
     }
 
-    // import Traverse from '../tool/traverse.js';
-    // import Binder from '../binder.js';
-
-    const on = async function (binder, event) {
-        // const parameters = [];
-        //
-        // for (let i = 0, l = binder.pipes.length; i < l; i++) {
-        //     const path = binder.pipes[i];
-        //     const parameter = Traverse(binder.container.model, path);
-        //     parameters.push(parameter);
-        // }
-        //
-        // parameters.push(event);
-
-        // Promise.resolve(data.bind(binder.container).apply(null, parameters)).catch(console.error);
-
-        const method = binder.data;
-        if (typeof method === 'function') {
-            await method.call(binder.container, event);
-        }
-
-    };
-
     function On (binder) {
         const type = binder.names[1];
 
-        binder.target[type] = null;
-
-        if (typeof binder.data !== 'function') {
-            console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
-            return;
-        }
+        binder.target[`on${type}`] = null;
 
         if (binder.meta.method) {
             binder.target.removeEventListener(type, binder.meta.method);
         }
 
-        binder.meta.method = on.bind(this, binder);
+        binder.meta.method = (event) => {
+            Batcher.batch({
+                read (ctx) {
+                    ctx.data = binder.data;
+                    ctx.container = binder.container;
+                    if (typeof ctx.data !== 'function') {
+                        ctx.write = false;
+                        return;
+                    }
+                },
+                write (ctx) {
+                    return ctx.data.call(ctx.container, event);
+                }
+            });
+        };
+
         binder.target.addEventListener(type, binder.meta.method);
     }
 
@@ -800,8 +824,6 @@
     function Text (binder) {
         return {
             read (ctx) {
-                console.log('read: text');
-
                 ctx.data = binder.data;
 
                 if (ctx.data === undefined || ctx.data === null) {
@@ -818,9 +840,6 @@
 
             },
             write (ctx) {
-                console.log('write: text');
-                // console.log(ctx.data);
-                // console.log(binder.data);
                 binder.target.textContent = ctx.data;
             }
         };
@@ -856,11 +875,8 @@
 
         for (let i = 0; i < sourceKeys.length; i++) {
             const name = sourceKeys[i];
-
-            if (!Match(source[name], target[name])) {
-                return false;
-            }
-
+            const match = Match(source[name], target[name]);
+            if (!match) return false;
         }
 
         return true;
@@ -1115,84 +1131,133 @@
             };
         } else if (type === 'radio') {
             return {
-                read () {
+                read (ctx) {
 
-                    this.form = binder.target.form || binder.container;
-                    this.query = `input[type="radio"][o-value="${binder.value}"]`;
-                    this.radios = [ ...this.form.querySelectorAll(this.query) ];
+                    ctx.data = binder.data;
+                    ctx.value = binder.target.value;
+                    ctx.match = Match(ctx.data, ctx.value);
 
-                    if (event) {
-                        binder.data = this.radios.indexOf(binder.target);
+                    if (ctx.match === binder.target.checked) {
                         binder.meta.busy = false;
-                        return this.write = false;
+                        ctx.write = false;
+                        return;
                     }
 
-                    if (typeof binder.data !== 'number') {
+                    if (event) {
+                        binder.data = ctx.value;
                         binder.meta.busy = false;
-                        return this.write = false;
+                        ctx.write = false;
+                        return;
                     }
 
                 },
-                write () {
-                    const { radios } = this;
-
-                    for (let i = 0; i < radios.length; i++) {
-                        const radio = radios[i];
-                        if (i === binder.data) {
-                            radio.checked = true;
-                        } else {
-                            radio.checked = false;
-                        }
-                    }
-
+                write (ctx) {
+                    binder.target.checked = ctx.match;
                     binder.meta.busy = false;
                 }
             };
         } else if (type === 'checkbox') {
             return {
-                read () {
+                read (ctx) {
 
-                    if (event) {
-                        binder.data = binder.target.checked;
+                    ctx.data = Boolean(binder.data);
+                    ctx.value = Boolean(binder.target.checked);
+                    ctx.match = Match(ctx.data, ctx.value);
+
+                    if (ctx.match) {
                         binder.meta.busy = false;
-                        return this.write = false;
+                        ctx.write = false;
+                        return;
                     }
 
-                    if (typeof binder.data !== 'boolean') {
+                    if (event) {
+                        binder.data = ctx.value;
                         binder.meta.busy = false;
-                        return this.write = false;
+                        ctx.write = false;
+                        return;
                     }
 
                 },
-                write () {
-                    binder.target.checked = binder.data;
+                write (ctx) {
+                    binder.target.checked = ctx.data;
+                    binder.meta.busy = false;
+                }
+            };
+
+        } else if (type === 'number') {
+            return {
+                read (ctx) {
+
+                    ctx.data = Number(binder.data);
+                    ctx.value = binder.target.value ? Number(binder.target.value) : NaN;
+                    ctx.match = Match(ctx.data, ctx.value);
+
+                    if (ctx.match) {
+                        binder.meta.busy = false;
+                        ctx.write = false;
+                        return;
+                    }
+
+                    if (event) {
+                        binder.data = ctx.value;
+                        binder.meta.busy = false;
+                        ctx.write = false;
+                        return;
+                    }
+
+                },
+                write (ctx) {
+                    binder.target.value = ctx.data;
                     binder.meta.busy = false;
                 }
             };
         } else if (type === 'file') {
             return {
-                read () {
-                    this.multiple = binder.target.multiple;
-                    binder.data = this.multiple ? [ ...binder.target.files ] : binder.target.files[0];
-                    binder.meta.busy = false;
+                read (ctx) {
+
+                    ctx.data = binder.data;
+                    ctx.multiple = binder.target.multiple;
+                    ctx.value = ctx.multiple ? [ ...binder.target.files ] : binder.target.files[0];
+                    ctx.match = Match(ctx.data, ctx.value);
+
+                    if (ctx.match) {
+                        binder.meta.busy = false;
+                        ctx.write = false;
+                        return;
+                    }
+
+                    if (event) {
+                        binder.data = ctx.value;
+                        binder.meta.busy = false;
+                        ctx.write = false;
+                        return;
+                    }
+
                 }
             };
         } else {
             return {
                 read (ctx) {
-                    console.log('read: value');
-                    // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') {
-                    //     console.log(binder);
-                    //     return ctx.write = false;
-                    // }
+                    // console.log('read: value', binder.data);
+
+                    // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') return ctx.write = false;
 
                     ctx.data = binder.data;
                     ctx.value = binder.target.value;
+                    ctx.match = Match(ctx.data, ctx.value);
                     // ctx.selected = binder.target.selected;
 
-                    if (Match(ctx.data, ctx.value)) {
+                    if (ctx.match) {
                         binder.meta.busy = false;
-                        return ctx.write = false;
+                        ctx.write = false;
+                        return;
+                    }
+
+                    if (event) {
+                        binder.data = ctx.value;
+                        binder.meta.busy = false;
+                        ctx.write = false;
+                        return;
                     }
 
                     // if (
@@ -1219,7 +1284,7 @@
 
                 },
                 write (ctx) {
-                    console.log('write: value');
+                    // console.log('write: value', binder.data);
                     // const { select, selected, multiple } = ctx;
 
                     // if (select) {
@@ -1259,17 +1324,7 @@
                     //     }
                     // }
 
-                    // if (!Match(ctx.data, ctx.value)) {
-                        if (event) {
-                            // console.log(ctx.value);
-                            // console.log(binder.target.value);
-                            binder.data = ctx.value;
-                        } else {
-                            console.log(ctx.data);
-                            binder.target.value = binder.data === undefined || binder.data === null ? '' : binder.data;
-                            // binder.target.value = ctx.data === undefined || ctx.data === null ? '' : ctx.data;
-                        }
-                    // }
+                    binder.target.value = ctx.data ?? '';
 
                     // select.meta.busy = false;
                     binder.meta.busy = false;
@@ -1313,6 +1368,7 @@
         syntaxReplace: new RegExp('{{|}}', 'g'),
 
         binders: {
+            checked: Checked.bind(Binder),
             class: Class.bind(Binder),
             css: Style.bind(Binder),
             default: Default.bind(Binder),
@@ -2485,7 +2541,7 @@
         } else if (typeof data === 'string') {
             let load = data;
             let path = data;
-            const name = `r-${data.replace('/', '-')}.js`;
+            const name = `r-${data.replace('/', '-')}`;
             if (path.slice(-3) === '.js') path = path.slice(0, -3);
             if (path.slice(-5) === 'index') path = path.slice(0, -5);
             if (path.slice(-6) === 'index/') path = path.slice(0, -6);

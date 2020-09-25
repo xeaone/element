@@ -1,4 +1,3 @@
-
 const reads = [];
 const writes = [];
 
@@ -32,8 +31,8 @@ const schedule = async function () {
 
 const flush = async function (time) {
 
-    console.log('reads:', this.reads.length);
-    console.log('write:', this.writes.length);
+    console.log('reads before:', this.reads.length);
+    console.log('write before:', this.writes.length);
 
     let read;
     while (read = this.reads.shift()) {
@@ -57,6 +56,9 @@ const flush = async function (time) {
 
     }
 
+    console.log('reads after:', this.reads.length);
+    console.log('write after:', this.writes.length);
+
     if (this.reads.length === 0 && this.writes.length === 0) {
         this.options.pending = false;
     } else if ((performance.now() - time) > this.options.time) {
@@ -76,27 +78,19 @@ const clear = function (task) {
     return this.remove(this.reads, task) || this.remove(this.writes, task);
 };
 
-const batch = function (data) {
+const batch = function (context) {
     const self = this;
 
-    if (!data) return;
-    if (!data.read && !data.write) return;
+    if (!context) return;
+    if (!context.read && !context.write) return;
 
-    data.context = data.context ? { ...data.context } : {};
-    data.context.read = data.read;
-    data.context.write = data.write;
+    self.reads.push(async () =>
+        context.read ? context.read.call(context, context) : undefined
+    );
 
-    if (data.read) {
-        self.reads.push(async function () {
-            if (this.read) return this.read.call(this, this);
-        }.bind(data.context, data.context));
-    }
-
-    if (data.write) {
-        self.writes.push(async function () {
-            if (this.write) return this.write.call(this, this);
-        }.bind(data.context, data.context));
-    }
+    self.writes.push(async () => 
+        context.write ? context.write.call(context, context) : undefined
+    );
 
     self.schedule().catch(console.error);
 };

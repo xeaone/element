@@ -124,7 +124,7 @@ const add = async function (data) {
     } else if (typeof data === 'string') {
         let load = data;
         let path = data;
-        const name = `r-${data.replace('/', '-')}.js`;;
+        const name = `r-${data.replace('/', '-')}`;;
 
         if (path.slice(-3) === '.js') path = path.slice(0, -3);
         if (path.slice(-5) === 'index') path = path.slice(0, -5);
