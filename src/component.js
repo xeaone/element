@@ -45,6 +45,10 @@ class Component extends HTMLElement {
 
     #root
 
+
+    #binder
+    get binder () { return this.#binder; }
+
     #template = ''
     get template () { return this.#template; }
 
@@ -71,6 +75,8 @@ class Component extends HTMLElement {
         //             .replace(/:host/g, name)
         //     );
         // }
+
+        this.#binder = Binder;
 
         this.#methods = this.constructor.methods || {};
         this.#template = this.constructor.template || '';

@@ -1,3 +1,4 @@
+import Match from '../tool/match.js';
 import Binder from '../binder.js';
 
 export default function (binder, event) {
@@ -16,18 +17,18 @@ export default function (binder, event) {
     return {
         read (ctx) {
 
-            ctx.data = Boolean(binder.data);
-            ctx.checked = Boolean(binder.target.checked);
-            ctx.match = ctx.data === ctx.checked;
+            ctx.data = binder.data;
+            ctx.value = binder.getAttribute('value');
+            ctx.match = Match(ctx.data, ctx.value);
 
-            if (ctx.match) {
+            if (ctx.match === binder.target.checked) {
                 binder.meta.busy = false;
                 ctx.write = false;
                 return;
             }
 
             if (event) {
-                binder.data = ctx.checked;
+                binder.data = ctx.value;
                 binder.meta.busy = false;
                 ctx.write = false;
                 return;
@@ -35,9 +36,8 @@ export default function (binder, event) {
 
         },
         write (ctx) {
-            binder.target.checked = ctx.data;
+            binder.target.checked = ctx.match;
             binder.meta.busy = false;
         }
     };
-
 }

@@ -59,9 +59,9 @@ export default class RouteBinderValue extends Component {
         <br>
         <strong>type="radio" as String</strong>
         <div>{{radio}}</div>
-        <input name="radios" type="radio" value="one" o-value="{{radio}}" oninput="{{radioInput}}">
-        <input name="radios" type="radio" value="two" o-value="{{radio}}" oninput="{{radioInput}}">
-        <input name="radios" type="radio" value="three" o-value="{{radio}}" oninput="{{radioInput}}">
+        <input name="radios" type="radio" value="one" checked="{{radio}}" oninput="{{radioInput}}">
+        <input name="radios" type="radio" value="two" checked="{{radio}}" oninput="{{radioInput}}">
+        <input name="radios" type="radio" value="three" checked="{{radio}}" oninput="{{radioInput}}">
 
     `
 

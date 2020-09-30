@@ -216,6 +216,43 @@
         batch
     });
 
+    function Match (source, target) {
+
+        if (source === target) {
+            return true;
+        }
+
+        const sourceType = typeof source;
+        const targetType = typeof target;
+
+        if (sourceType !== targetType) {
+            return false;
+        }
+
+        if (sourceType !== 'object' || targetType !== 'object') {
+            return source === target;
+        }
+
+        if (source.constructor !== target.constructor) {
+            return false;
+        }
+
+        const sourceKeys = Object.keys(source);
+        const targetKeys = Object.keys(target);
+
+        if (sourceKeys.length !== targetKeys.length) {
+            return false;
+        }
+
+        for (let i = 0; i < sourceKeys.length; i++) {
+            const name = sourceKeys[i];
+            const match = Match(source[name], target[name]);
+            if (!match) return false;
+        }
+
+        return true;
+    }
+
     function Checked (binder, event) {
 
         if (binder.meta.busy) {
@@ -232,18 +269,18 @@
         return {
             read (ctx) {
 
-                ctx.data = Boolean(binder.data);
-                ctx.checked = Boolean(binder.target.checked);
-                ctx.match = ctx.data === ctx.checked;
+                ctx.data = binder.data;
+                ctx.value = binder.getAttribute('value');
+                ctx.match = Match(ctx.data, ctx.value);
 
-                if (ctx.match) {
+                if (ctx.match === binder.target.checked) {
                     binder.meta.busy = false;
                     ctx.write = false;
                     return;
                 }
 
                 if (event) {
-                    binder.data = ctx.checked;
+                    binder.data = ctx.value;
                     binder.meta.busy = false;
                     ctx.write = false;
                     return;
@@ -251,11 +288,10 @@
 
             },
             write (ctx) {
-                binder.target.checked = ctx.data;
+                binder.target.checked = ctx.match;
                 binder.meta.busy = false;
             }
         };
-
     }
 
     function Class (binder) {
@@ -845,43 +881,6 @@
         };
     }
 
-    function Match (source, target) {
-
-        if (source === target) {
-            return true;
-        }
-
-        const sourceType = typeof source;
-        const targetType = typeof target;
-
-        if (sourceType !== targetType) {
-            return false;
-        }
-
-        if (sourceType !== 'object' || targetType !== 'object') {
-            return source === target;
-        }
-
-        if (source.constructor !== target.constructor) {
-            return false;
-        }
-
-        const sourceKeys = Object.keys(source);
-        const targetKeys = Object.keys(target);
-
-        if (sourceKeys.length !== targetKeys.length) {
-            return false;
-        }
-
-        for (let i = 0; i < sourceKeys.length; i++) {
-            const name = sourceKeys[i];
-            const match = Match(source[name], target[name]);
-            if (!match) return false;
-        }
-
-        return true;
-    }
-
     function Index (items, item) {
 
         for (let i = 0; i < items.length; i++) {
@@ -892,8 +891,6 @@
 
         return -1;
     }
-
-    // import Includes from '../tool/includes.js';
 
     function Value (binder, event) {
         // const self = this;
@@ -1129,39 +1126,12 @@
                 //     }
                 //
             };
-        } else if (type === 'radio') {
+        } else if (type === 'radio') ; else if (type === 'checkbox') {
             return {
                 read (ctx) {
 
                     ctx.data = binder.data;
                     ctx.value = binder.target.value;
-                    ctx.match = Match(ctx.data, ctx.value);
-
-                    if (ctx.match === binder.target.checked) {
-                        binder.meta.busy = false;
-                        ctx.write = false;
-                        return;
-                    }
-
-                    if (event) {
-                        binder.data = ctx.value;
-                        binder.meta.busy = false;
-                        ctx.write = false;
-                        return;
-                    }
-
-                },
-                write (ctx) {
-                    binder.target.checked = ctx.match;
-                    binder.meta.busy = false;
-                }
-            };
-        } else if (type === 'checkbox') {
-            return {
-                read (ctx) {
-
-                    ctx.data = Boolean(binder.data);
-                    ctx.value = Boolean(binder.target.checked);
                     ctx.match = Match(ctx.data, ctx.value);
 
                     if (ctx.match) {
@@ -1424,6 +1394,7 @@
         },
 
         bind (target, name, value, container, attr) {
+            const self = this;
 
             value = value.replace(this.syntaxReplace, '').trim();
             name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
@@ -1450,6 +1421,13 @@
                 type, path,
                 name, value, target, container,
                 keys, names, pipes, values, meta,
+
+                render: self.render,
+
+                getAttribute (name) {
+                    const an = target.getAttributeNode(name);
+                    return self.data?.get(an)?.data || an.value;
+                },
 
                 get data () {
                 // if (names[0] === 'on') {
@@ -1624,6 +1602,10 @@
 
         #root
 
+
+        #binder
+        get binder () { return this.#binder; }
+
         #template = ''
         get template () { return this.#template; }
 
@@ -1650,6 +1632,8 @@
             //             .replace(/:host/g, name)
             //     );
             // }
+
+            this.#binder = Binder$1;
 
             this.#methods = this.constructor.methods || {};
             this.#template = this.constructor.template || '';

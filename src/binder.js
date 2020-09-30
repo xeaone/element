@@ -97,6 +97,7 @@ const properties = {
     },
 
     bind (target, name, value, container, attr) {
+        const self = this;
 
         value = value.replace(this.syntaxReplace, '').trim();
         name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
@@ -123,6 +124,13 @@ const properties = {
             type, path,
             name, value, target, container,
             keys, names, pipes, values, meta,
+
+            render: self.render,
+
+            getAttribute (name) {
+                const an = target.getAttributeNode(name);
+                return self.data?.get(an)?.data || an.value;
+            },
 
             get data () {
             // if (names[0] === 'on') {
