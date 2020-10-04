@@ -17,9 +17,9 @@ const set = function (tasks, handler, path, target, property, value) {
     //     return true;
     // }
 
-    // if (target[property] === value) {
-    //     return true;
-    // }
+    if (target[property] === value) {
+        return true;
+    }
 
     target[property] = create(value, handler, path + property, tasks);
 

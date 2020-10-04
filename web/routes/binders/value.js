@@ -20,8 +20,10 @@ export default class RouteBinderValue extends Component {
         numberInput () { console.log(this.model.number); },
 
         checkbox: true,
+        // checkbox: false,
         checkboxInput () { console.log(this.model.checkbox); },
 
+        one: 'one',
         radio: 'two',
         radioInput () { console.log(this.model.radio); }
 
@@ -52,14 +54,18 @@ export default class RouteBinderValue extends Component {
         <br>
         <strong>type="checkbox" As Boolean</strong>
         <div>{{checkbox}}</div>
-        <input value="{{checkbox}}" type="checkbox" oninput="{{checkboxInput}}">
+        <input checked="{{checkbox}}" type="checkbox" oninput="{{checkboxInput}}">
+        <i>checked attribute linked to boolean on model with no value attribute.</i>
+        <br>
+        <input value="{{checkbox}}" checked="{{checkbox}}" type="checkbox" oninput="{{checkboxInput}}">
+        <i>checked boolean value and checked attribute</i>
 
         <br>
         <br>
         <br>
         <strong>type="radio" as String</strong>
         <div>{{radio}}</div>
-        <input name="radios" type="radio" value="one" checked="{{radio}}" oninput="{{radioInput}}">
+        <input name="radios" type="radio" value="{{one}}" checked="{{radio}}" oninput="{{radioInput}}">
         <input name="radios" type="radio" value="two" checked="{{radio}}" oninput="{{radioInput}}">
         <input name="radios" type="radio" value="three" checked="{{radio}}" oninput="{{radioInput}}">
 

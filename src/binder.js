@@ -128,8 +128,10 @@ const properties = {
             render: self.render,
 
             getAttribute (name) {
-                const an = target.getAttributeNode(name);
-                return self.data?.get(an)?.data || an.value;
+                const node = target.getAttributeNode(name);
+                if (!node) return undefined;
+                const data = self.data?.get(node)?.data;
+                return data === undefined ? node.value : data;
             },
 
             get data () {
