@@ -13,6 +13,7 @@ export default function (binder) {
         },
         write () {
             binder.target.readOnly = data;
+            binder.target.setAttribute('readonly', data);
         }
     };
 }

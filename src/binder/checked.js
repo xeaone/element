@@ -1,10 +1,6 @@
-import Match from '../tool/match.js';
 import Binder from '../binder.js';
-
-import {
-    isBoolean,
-    toBoolean
-} from '../tool.js';
+import Match from '../tool/match.js';
+import { isBoolean } from '../tool.js';
 
 export default function (binder, event) {
 

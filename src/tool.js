@@ -7,13 +7,16 @@ export const isNumber = data => data?.constructor === Number;
 export const isObject = data => data?.constructor === Object;
 export const isBoolean = data => data?.constructor === Boolean;
 
-export const toString = data => `${data}`;
-export const toNumber = data => Number(data);
 export const toArray = data => JSON.parse(data);
 export const toObject = data => JSON.parse(data);
-export const toBoolean = data => data === 'true';
 export const toDate = data => new Date(Number(data));
 export const toMap = data => new Map(JSON.parse(data));
+
+export const toBoolean = data => data === 'true';
+
+export const toString = data => typeof data === 'string' ? data : JSON.stringify(data);
+
+export const toNumber = data => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
 
 export const to = function (source, target) {
     try {

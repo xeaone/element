@@ -11,7 +11,6 @@ export default function (binder) {
 
         },
         write () {
-
             if (data === undefined || data === null) {
                 if (name) {
                     binder.target.classList.remove(name);
@@ -25,7 +24,6 @@ export default function (binder) {
                     binder.target.setAttribute('class', data);
                 }
             }
-
         }
     };
 }

@@ -13,6 +13,7 @@ export default function (binder) {
         },
         write () {
             binder.target.href = data;
+            binder.target.setAttribute('href', data);
         }
     };
 }

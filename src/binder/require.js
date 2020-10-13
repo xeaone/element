@@ -13,6 +13,7 @@ export default function (binder) {
         },
         write () {
             binder.target.required = data;
+            binder.target.setAttribute('required', data);
         }
     };
 }

@@ -12,7 +12,6 @@ import Enable from './binder/enable.js';
 import Hide from './binder/hide.js';
 import Href from './binder/href.js';
 import Html from './binder/html.js';
-import Label from './binder/label.js';
 import On from './binder/on.js';
 import Read from './binder/read.js';
 import Require from './binder/require.js';
@@ -54,7 +53,6 @@ const properties = {
         hidden: Hide.bind(Binder),
         href: Href.bind(Binder),
         html: Html.bind(Binder),
-        label: Label.bind(Binder),
         on: On.bind(Binder),
         read: Read.bind(Binder),
         require: Require.bind(Binder),

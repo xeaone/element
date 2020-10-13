@@ -1,49 +1,51 @@
-var title = 'Class Binder';
-var name = 'r-binder-class';
+const { Component } = Oxe;
 
-var model = {
-    ca: false,
-    c: 'default',
-    title: 'Class',
+export default class RouteBinderClass extends Component {
 
-    toggle: function () {
-        this.model.ca = !this.model.ca;
-    },
+    title = 'Class Binder';
 
-    overwrite: function () {
-        this.model.c = 'overwrite';
-    }
+    static model = {
 
-};
+        title: 'Class',
 
-var style = /*css*/`
-    .default {
-        border: solid 0.3rem black;
-    }
-    .overwrite {
-        border: solid 0.3rem red;
-    }
-    .active {
-        background: lightgray;
-    }
-`;
+        ca: false,
+        toggle () { this.model.ca = !this.model.ca; },
 
-var template = /*html*/`
-    <h2>{{title}}</h2>
-    <hr>
+        c: 'default',
+        overwrite () { this.model.c = 'overwrite'; }
 
-    <br>
-    <br>
-    <div o-class="c">o-class="{{c}}"</div>
-    <button o-on-click="overwrite">Overwrite Class</button>
+    };
 
-    <br>
-    <br>
-    <div class="default" o-class-active="ca">o-class-active="{{ca}}"</div>
-    <button o-on-click="toggle">Toggle Class</button>
-`;
+    static style = /*css*/`
+        .default {
+            border: solid 0.3rem black;
+        }
+        .overwrite {
+            border: solid 0.3rem red;
+        }
+        .active {
+            background: lightgray;
+        }
+    `;
 
-export default {
-    title, name, model, style, template,
-    // methods: {}
-};
+    static template = /*html*/`
+
+        <h2>{{title}}</h2>
+        <hr>
+
+        <br>
+        <br>
+
+        <div class="{{c}}">o-class="{{c}}"</div>
+        <button onclick="{{overwrite}}">Overwrite Class</button>
+
+        <br>
+        <br>
+
+        <div class="default" class-active="{{ca}}">o-class-active="{{ca}}"</div>
+        <button onclick="{{toggle}}">Toggle Class</button>
+
+
+    `;
+
+}

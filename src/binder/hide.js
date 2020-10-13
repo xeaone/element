@@ -13,6 +13,7 @@ export default function (binder) {
         },
         write () {
             binder.target.hidden = data;
+            binder.target.setAttribute('hidden', data);
         }
     };
 }

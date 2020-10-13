@@ -261,13 +261,16 @@
     const isObject = data => data?.constructor === Object;
     const isBoolean = data => data?.constructor === Boolean;
 
-    const toString = data => `${data}`;
-    const toNumber = data => Number(data);
     const toArray = data => JSON.parse(data);
     const toObject = data => JSON.parse(data);
-    const toBoolean = data => data === 'true';
     const toDate = data => new Date(Number(data));
     const toMap = data => new Map(JSON.parse(data));
+
+    const toBoolean = data => data === 'true';
+
+    const toString = data => typeof data === 'string' ? data : JSON.stringify(data);
+
+    const toNumber = data => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
 
     const to = function (source, target) {
         try {
@@ -341,7 +344,6 @@
 
             },
             write () {
-
                 if (data === undefined || data === null) {
                     if (name) {
                         binder.target.classList.remove(name);
@@ -355,7 +357,6 @@
                         binder.target.setAttribute('class', data);
                     }
                 }
-
             }
         };
     }
@@ -364,15 +365,7 @@
         let data;
         return {
             read () {
-                data = binder.data;
-
-                if (data === undefined || data === null) {
-                    data = '';
-                } else if (typeof data === 'object') {
-                    data = JSON.stringify(data);
-                } else if (typeof data !== 'string') {
-                    data = data.toString();
-                }
+                data = toString(binder.data);
 
                 if (data === binder.target[binder.type]) {
                     this.write = false;
@@ -381,8 +374,8 @@
 
             },
             write () {
-                binder.target.setAttribute(binder.type, data);
                 binder.target[binder.type] = data;
+                binder.target.setAttribute(binder.type, data);
             }
         };
     }
@@ -401,6 +394,7 @@
             },
             write () {
                 binder.target.disabled = data;
+                binder.target.setAttribute('disabled', data);
             }
         };
     }
@@ -510,6 +504,7 @@
             },
             write () {
                 binder.target.disabled = data;
+                binder.target.setAttribute('disabled', data);
             }
         };
     }
@@ -528,6 +523,7 @@
             },
             write () {
                 binder.target.hidden = data;
+                binder.target.setAttribute('hidden', data);
             }
         };
     }
@@ -546,6 +542,7 @@
             },
             write () {
                 binder.target.href = data;
+                binder.target.setAttribute('href', data);
             }
         };
     }
@@ -591,32 +588,6 @@
         };
     }
 
-    function Label (binder) {
-        let data;
-        return {
-            read () {
-                data = binder.data;
-
-                if (data === undefined || data === null) {
-                    data = '';
-                } else if (typeof data === 'object') {
-                    data = JSON.stringify(data);
-                } else if (typeof data !== 'string') {
-                    data = data.toString();
-                }
-
-                if (data === binder.target.getAttribute('label')) {
-                    this.write = false;
-                    return;
-                }
-
-            },
-            write () {
-                binder.target.setAttribute('label', data);
-            }
-        };
-    }
-
     function On (binder) {
         const type = binder.names[1];
 
@@ -626,24 +597,38 @@
             binder.target.removeEventListener(type, binder.meta.method);
         }
 
-        binder.meta.method = (event) => {
-            Batcher.batch({
-                read (ctx) {
-                    ctx.data = binder.data;
-                    ctx.container = binder.container;
-                    if (typeof ctx.data !== 'function') {
-                        ctx.write = false;
-                        return;
-                    }
-                },
-                write (ctx) {
-                    return ctx.data.call(ctx.container, event);
-                }
-            });
+        // binder.meta.method = (event) => {
+        //     Batcher.batch({
+        //         read (ctx) {
+        //             ctx.data = binder.data;
+        //             ctx.container = binder.container;
+        //             if (typeof ctx.data !== 'function') {
+        //                 ctx.write = false;
+        //                 return;
+        //             }
+        //         },
+        //         write (ctx) {
+        //             ctx.data.call(ctx.container, event);
+        //         }
+        //     });
+        // };
+
+        binder.meta.method = event => {
+            binder.data.call(binder.container, event);
         };
 
         binder.target.addEventListener(type, binder.meta.method);
     }
+
+    // export default function (binder) {
+    //     return {
+    //         read () {
+
+    //         },
+    //         write () {
+    //         }
+    //     };
+    // }
 
     function Read (binder) {
         let data;
@@ -659,6 +644,7 @@
             },
             write () {
                 binder.target.readOnly = data;
+                binder.target.setAttribute('readonly', data);
             }
         };
     }
@@ -677,6 +663,7 @@
             },
             write () {
                 binder.target.required = data;
+                binder.target.setAttribute('required', data);
             }
         };
     }
@@ -748,16 +735,17 @@
         let data;
         return {
             read () {
-                data = binder.data;
+                data = !binder.data;
 
-                if (!data === binder.target.hidden) {
+                if (data === binder.target.hidden) {
                     this.write = false;
                     return;
                 }
 
             },
             write () {
-                binder.target.hidden = !data;
+                binder.target.hidden = data;
+                binder.target.setAttribute('hidden', data);
             }
         };
     }
@@ -820,13 +808,11 @@
             const element = elements[i];
 
             if (
-                !element.type && element.nodeName !== 'TEXTAREA' ||
+                (!element.type && element.nodeName !== 'TEXTAREA') ||
                 element.type === 'submit' ||
                 element.type === 'button' ||
                 !element.type
-            ) {
-                continue;
-            }
+            ) continue;
 
             const attribute = element.attributes['o-value'];
             const b = Binder$1.get(attribute);
@@ -856,13 +842,15 @@
             await method.call(binder.container, data, event);
         }
 
-        if ('o-reset' in event.target.attributes) {
+        if (binder.getAttribute('reset')) {
             event.target.reset();
         }
 
     };
 
     function Submit (binder) {
+
+        binder.target.submit = null;
 
         if (typeof binder.data !== 'function') {
             console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
@@ -893,25 +881,19 @@
     }
 
     function Text (binder) {
+        let data;
         return {
-            read (ctx) {
-                ctx.data = binder.data;
+            read () {
+                data = toString(binder.data);
 
-                if (ctx.data === undefined || ctx.data === null) {
-                    ctx.data = '';
-                } else if (typeof ctx.data === 'object') {
-                    ctx.data = JSON.stringify(ctx.data);
-                } else if (typeof ctx.data !== 'string') {
-                    ctx.data = ctx.data.toString();
-                }
-
-                if (ctx.data === binder.target.textContent) {
-                    return ctx.write = false;
+                if (data === binder.target.textContent) {
+                    this.write = false;
+                    return;
                 }
 
             },
-            write (ctx) {
-                binder.target.textContent = ctx.data;
+            write () {
+                binder.target.textContent = data;
             }
         };
     }
@@ -927,6 +909,21 @@
         return -1;
     }
 
+    const input = function (binder) {
+        const type = binder.target.type;
+
+        if (type === 'select-one' || type === 'select-multiple') ; else if (type === 'checkbox' || type === 'radio') {
+            binder.data = to(binder.data, binder.target.value);
+        } else if (type === 'number') {
+            binder.data = toNumber(binder.target.value);
+        } else if (type === 'file') {
+            const multiple = binder.target.multiple;
+            binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[0];
+        } else {
+            binder.data = binder.target.value;
+        }
+    };
+
     function Value (binder, event) {
         const type = binder.target.type;
 
@@ -939,7 +936,8 @@
 
         if (!binder.meta.setup) {
             binder.meta.setup = true;
-            binder.target.addEventListener('input', event => Binder$1.render(binder, event));
+            binder.target.addEventListener('input', () => input(binder));
+            // binder.target.addEventListener('input', event => Binder.render(binder, event));
             // binder.target.addEventListener('change', event => Binder.render(binder, event));
         }
 
@@ -1160,49 +1158,15 @@
                 //     }
                 //
             };
-        // } else if (type === 'radio') {
-        //     return {
-        //         read (ctx) {
-
-        //             ctx.data = binder.data;
-        //             ctx.value = binder.target.value;
-        //             // ctx.match = Match(ctx.data, ctx.value);
-
-        //             if (ctx.match === binder.target.checked) {
-        //                 binder.meta.busy = false;
-        //                 ctx.write = false;
-        //                 return;
-        //             }
-
-        //             if (event) {
-        //                 binder.data = ctx.value;
-        //                 binder.meta.busy = false;
-        //                 ctx.write = false;
-        //                 return;
-        //             }
-
-        //         },
-        //         write (ctx) {
-        //             binder.target.checked = ctx.match;
-        //             binder.meta.busy = false;
-        //         }
-        //     };
         } else if (type === 'checkbox' || type === 'radio') {
             return {
                 read (ctx) {
                     ctx.data = binder.data;
-
-                    if (event) {
-                        binder.data = to(ctx.data, binder.target.value);
-                        binder.meta.busy = false;
-                        ctx.write = false;
-                        return;
-                    }
-
                 },
                 write (ctx) {
-                    binder.target.value = toString(ctx.data);
-                    binder.target.setAttribute('value', toString(ctx.data));
+                    ctx.value = toString(ctx.data);
+                    binder.target.value = ctx.value;
+                    binder.target.setAttribute('value', ctx.value);
                     binder.meta.busy = false;
                 }
             };
@@ -1210,78 +1174,39 @@
         } else if (type === 'number') {
             return {
                 read (ctx) {
-
-                    ctx.data = Number(binder.data);
-                    ctx.value = binder.target.value ? Number(binder.target.value) : NaN;
-                    ctx.match = Match(ctx.data, ctx.value);
-
-                    if (ctx.match) {
-                        binder.meta.busy = false;
-                        ctx.write = false;
-                        return;
-                    }
-
-                    if (event) {
-                        binder.data = ctx.value;
-                        binder.meta.busy = false;
-                        ctx.write = false;
-                        return;
-                    }
-
+                    ctx.data = binder.data;
+                    ctx.value = toNumber(binder.target.value);
                 },
                 write (ctx) {
-                    binder.target.value = ctx.data;
+                    ctx.value = toString(ctx.data);
+                    binder.target.value = ctx.value;
+                    binder.target.setAttribute('value', ctx.value);
                     binder.meta.busy = false;
                 }
             };
         } else if (type === 'file') {
             return {
                 read (ctx) {
-
                     ctx.data = binder.data;
                     ctx.multiple = binder.target.multiple;
                     ctx.value = ctx.multiple ? [ ...binder.target.files ] : binder.target.files[0];
-                    ctx.match = Match(ctx.data, ctx.value);
-
-                    if (ctx.match) {
-                        binder.meta.busy = false;
-                        ctx.write = false;
-                        return;
-                    }
-
-                    if (event) {
-                        binder.data = ctx.value;
-                        binder.meta.busy = false;
-                        ctx.write = false;
-                        return;
-                    }
-
                 }
             };
         } else {
             return {
                 read (ctx) {
-                    // console.log('read: value', binder.data);
-
                     // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') return ctx.write = false;
 
                     ctx.data = binder.data;
                     ctx.value = binder.target.value;
-                    ctx.match = Match(ctx.data, ctx.value);
+                    // ctx.match = Match(ctx.data, ctx.value);
                     // ctx.selected = binder.target.selected;
 
-                    if (ctx.match) {
-                        binder.meta.busy = false;
-                        ctx.write = false;
-                        return;
-                    }
-
-                    if (event) {
-                        binder.data = ctx.value;
-                        binder.meta.busy = false;
-                        ctx.write = false;
-                        return;
-                    }
+                    // if (ctx.match) {
+                    //     binder.meta.busy = false;
+                    //     ctx.write = false;
+                    //     return;
+                    // }
 
                     // if (
                     //     binder.target.parentElement &&
@@ -1307,7 +1232,6 @@
 
                 },
                 write (ctx) {
-                    // console.log('write: value', binder.data);
                     // const { select, selected, multiple } = ctx;
 
                     // if (select) {
@@ -1346,10 +1270,9 @@
                     //         }
                     //     }
                     // }
+                    // select.meta.busy = false;
 
                     binder.target.value = ctx.data ?? '';
-
-                    // select.meta.busy = false;
                     binder.meta.busy = false;
                 }
             };
@@ -1360,16 +1283,17 @@
         let data;
         return {
             read () {
-                data = binder.data;
+                data = !binder.data;
 
-                if (!data === binder.target.readOnly) {
+                if (data === binder.target.readOnly) {
                     this.write = false;
                     return;
                 }
 
             },
             write () {
-                binder.target.readOnly = !data;
+                binder.target.readOnly = data;
+                binder.target.setAttribute('readonly', data);
             }
         };
     }
@@ -1404,7 +1328,6 @@
             hidden: Hide.bind(Binder),
             href: Href.bind(Binder),
             html: Html.bind(Binder),
-            label: Label.bind(Binder),
             on: On.bind(Binder),
             read: Read.bind(Binder),
             require: Require.bind(Binder),

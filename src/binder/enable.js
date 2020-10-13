@@ -13,6 +13,7 @@ export default function (binder) {
         },
         write () {
             binder.target.disabled = data;
+            binder.target.setAttribute('disabled', data);
         }
     };
 }

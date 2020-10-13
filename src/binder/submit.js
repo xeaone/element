@@ -10,13 +10,11 @@ const submit = async function (binder, event) {
         const element = elements[i];
 
         if (
-            !element.type && element.nodeName !== 'TEXTAREA' ||
+            (!element.type && element.nodeName !== 'TEXTAREA') ||
             element.type === 'submit' ||
             element.type === 'button' ||
             !element.type
-        ) {
-            continue;
-        }
+        ) continue;
 
         const attribute = element.attributes['o-value'];
         const b = Binder.get(attribute);
@@ -46,13 +44,15 @@ const submit = async function (binder, event) {
         await method.call(binder.container, data, event);
     }
 
-    if ('o-reset' in event.target.attributes) {
+    if (binder.getAttribute('reset')) {
         event.target.reset();
     }
 
 };
 
 export default function (binder) {
+
+    binder.target.submit = null;
 
     if (typeof binder.data !== 'function') {
         console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);

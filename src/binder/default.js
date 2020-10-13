@@ -1,17 +1,10 @@
+import { toString } from '../tool.js';
 
 export default function (binder) {
     let data;
     return {
         read () {
-            data = binder.data;
-
-            if (data === undefined || data === null) {
-                data = '';
-            } else if (typeof data === 'object') {
-                data = JSON.stringify(data);
-            } else if (typeof data !== 'string') {
-                data = data.toString();
-            }
+            data = toString(binder.data);
 
             if (data === binder.target[binder.type]) {
                 this.write = false;
@@ -20,8 +13,8 @@ export default function (binder) {
 
         },
         write () {
-            binder.target.setAttribute(binder.type, data);
             binder.target[binder.type] = data;
+            binder.target.setAttribute(binder.type, data);
         }
     };
 }

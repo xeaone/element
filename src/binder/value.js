@@ -5,11 +5,26 @@ import Binder from '../binder.js';
 
 import {
     to,
-    isBoolean,
-    toBoolean,
-    toString
+    toString,
+    toNumber
 } from '../tool.js';
 
+const input = function (binder) {
+    const type = binder.target.type;
+
+    if (type === 'select-one' || type === 'select-multiple') {
+
+    } else if (type === 'checkbox' || type === 'radio') {
+        binder.data = to(binder.data, binder.target.value);
+    } else if (type === 'number') {
+        binder.data = toNumber(binder.target.value);
+    } else if (type === 'file') {
+        const multiple = binder.target.multiple;
+        binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[0];
+    } else {
+        binder.data = binder.target.value;
+    }
+};
 
 export default function (binder, event) {
     const type = binder.target.type;
@@ -23,7 +38,8 @@ export default function (binder, event) {
 
     if (!binder.meta.setup) {
         binder.meta.setup = true;
-        binder.target.addEventListener('input', event => Binder.render(binder, event));
+        binder.target.addEventListener('input', () => input(binder));
+        // binder.target.addEventListener('input', event => Binder.render(binder, event));
         // binder.target.addEventListener('change', event => Binder.render(binder, event));
     }
 
@@ -244,49 +260,15 @@ export default function (binder, event) {
             //     }
             //
         };
-    // } else if (type === 'radio') {
-    //     return {
-    //         read (ctx) {
-
-    //             ctx.data = binder.data;
-    //             ctx.value = binder.target.value;
-    //             // ctx.match = Match(ctx.data, ctx.value);
-
-    //             if (ctx.match === binder.target.checked) {
-    //                 binder.meta.busy = false;
-    //                 ctx.write = false;
-    //                 return;
-    //             }
-
-    //             if (event) {
-    //                 binder.data = ctx.value;
-    //                 binder.meta.busy = false;
-    //                 ctx.write = false;
-    //                 return;
-    //             }
-
-    //         },
-    //         write (ctx) {
-    //             binder.target.checked = ctx.match;
-    //             binder.meta.busy = false;
-    //         }
-    //     };
     } else if (type === 'checkbox' || type === 'radio') {
         return {
             read (ctx) {
                 ctx.data = binder.data;
-
-                if (event) {
-                    binder.data = to(ctx.data, binder.target.value);
-                    binder.meta.busy = false;
-                    ctx.write = false;
-                    return;
-                }
-
             },
             write (ctx) {
-                binder.target.value = toString(ctx.data);
-                binder.target.setAttribute('value', toString(ctx.data));
+                ctx.value = toString(ctx.data);
+                binder.target.value = ctx.value;
+                binder.target.setAttribute('value', ctx.value);
                 binder.meta.busy = false;
             }
         };
@@ -294,78 +276,39 @@ export default function (binder, event) {
     } else if (type === 'number') {
         return {
             read (ctx) {
-
-                ctx.data = Number(binder.data);
-                ctx.value = binder.target.value ? Number(binder.target.value) : NaN;
-                ctx.match = Match(ctx.data, ctx.value);
-
-                if (ctx.match) {
-                    binder.meta.busy = false;
-                    ctx.write = false;
-                    return;
-                }
-
-                if (event) {
-                    binder.data = ctx.value;
-                    binder.meta.busy = false;
-                    ctx.write = false;
-                    return;
-                }
-
+                ctx.data = binder.data;
+                ctx.value = toNumber(binder.target.value);
             },
             write (ctx) {
-                binder.target.value = ctx.data;
+                ctx.value = toString(ctx.data);
+                binder.target.value = ctx.value;
+                binder.target.setAttribute('value', ctx.value);
                 binder.meta.busy = false;
             }
         };
     } else if (type === 'file') {
         return {
             read (ctx) {
-
                 ctx.data = binder.data;
                 ctx.multiple = binder.target.multiple;
                 ctx.value = ctx.multiple ? [ ...binder.target.files ] : binder.target.files[0];
-                ctx.match = Match(ctx.data, ctx.value);
-
-                if (ctx.match) {
-                    binder.meta.busy = false;
-                    ctx.write = false;
-                    return;
-                }
-
-                if (event) {
-                    binder.data = ctx.value;
-                    binder.meta.busy = false;
-                    ctx.write = false;
-                    return;
-                }
-
             }
         };
     } else {
         return {
             read (ctx) {
-                // console.log('read: value', binder.data);
-
                 // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') return ctx.write = false;
 
                 ctx.data = binder.data;
                 ctx.value = binder.target.value;
-                ctx.match = Match(ctx.data, ctx.value);
+                // ctx.match = Match(ctx.data, ctx.value);
                 // ctx.selected = binder.target.selected;
 
-                if (ctx.match) {
-                    binder.meta.busy = false;
-                    ctx.write = false;
-                    return;
-                }
-
-                if (event) {
-                    binder.data = ctx.value;
-                    binder.meta.busy = false;
-                    ctx.write = false;
-                    return;
-                }
+                // if (ctx.match) {
+                //     binder.meta.busy = false;
+                //     ctx.write = false;
+                //     return;
+                // }
 
                 // if (
                 //     binder.target.parentElement &&
@@ -391,7 +334,6 @@ export default function (binder, event) {
 
             },
             write (ctx) {
-                // console.log('write: value', binder.data);
                 // const { select, selected, multiple } = ctx;
 
                 // if (select) {
@@ -430,10 +372,9 @@ export default function (binder, event) {
                 //         }
                 //     }
                 // }
+                // select.meta.busy = false;
 
                 binder.target.value = ctx.data ?? '';
-
-                // select.meta.busy = false;
                 binder.meta.busy = false;
             }
         };

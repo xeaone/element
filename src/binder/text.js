@@ -1,24 +1,19 @@
+import { toString } from '../tool.js'
 
 export default function (binder) {
+    let data;
     return {
-        read (ctx) {
-            ctx.data = binder.data;
+        read () {
+            data = toString(binder.data);
 
-            if (ctx.data === undefined || ctx.data === null) {
-                ctx.data = '';
-            } else if (typeof ctx.data === 'object') {
-                ctx.data = JSON.stringify(ctx.data);
-            } else if (typeof ctx.data !== 'string') {
-                ctx.data = ctx.data.toString();
-            }
-
-            if (ctx.data === binder.target.textContent) {
-                return ctx.write = false;
+            if (data === binder.target.textContent) {
+                this.write = false;
+                return;
             }
 
         },
-        write (ctx) {
-            binder.target.textContent = ctx.data;
+        write () {
+            binder.target.textContent = data;
         }
     };
 }

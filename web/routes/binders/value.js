@@ -16,7 +16,8 @@ export default class RouteBinderValue extends Component {
         text: 'Hello World',
         textInput () { console.log(this.model.text); },
 
-        number: 0,
+        number: 1,
+        // number: NaN,
         numberInput () { console.log(this.model.number); },
 
         checkbox: true,
@@ -38,6 +39,7 @@ export default class RouteBinderValue extends Component {
         <br>
         <br>
         <br>
+
         <strong>type="text" as String</strong>
         <div>{{text}}</div>
         <input value="{{text}}" type="text" oninput="{{textInput}}">
@@ -45,6 +47,7 @@ export default class RouteBinderValue extends Component {
         <br>
         <br>
         <br>
+
         <strong>type="number" as Number</strong>
         <div>{{number}}</div>
         <input value="{{number}}" type="number" oninput="{{numberInput}}">
@@ -52,6 +55,7 @@ export default class RouteBinderValue extends Component {
         <br>
         <br>
         <br>
+
         <strong>type="checkbox" As Boolean</strong>
         <div>{{checkbox}}</div>
         <input checked="{{checkbox}}" type="checkbox" oninput="{{checkboxInput}}">
@@ -63,6 +67,7 @@ export default class RouteBinderValue extends Component {
         <br>
         <br>
         <br>
+
         <strong>type="radio" as String</strong>
         <div>{{radio}}</div>
         <input name="radios" type="radio" value="{{one}}" checked="{{radio}}" oninput="{{radioInput}}">
