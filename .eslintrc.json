@@ -16,7 +16,10 @@
         "strict": "warn",
         "no-cond-assign": "off",
         "no-unused-vars": "warn",
-        "indent": [ "warn", 4 ],
+        "indent": [
+            "warn", 4,
+            { "SwitchCase": 1 } 
+        ],
         "semi": [ "warn", "always" ],
         "quotes": [ "warn", "single" ],
         "comma-dangle": [ "warn", "never" ],
