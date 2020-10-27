@@ -459,15 +459,23 @@
                 while (binder.meta.currentLength < binder.meta.targetLength) {
                     const index = binder.meta.currentLength;
                     const key = binder.meta.keys[index];
+                    const variable = `${binder.path}.${key}`;
+                    
+                    let clone = binder.meta.templateString;
+                    const length = binder.names.length > 4 ? 4 : binder.names.length;
+                    for (let i = 1; i < length; i++) {
+                        const item = new RegExp(`\\b(${binder.names[i]})\\b`, 'g');
+                        const syntax = new RegExp(`{{.*?\\b(${binder.names[i]})\\b.*?}}`, 'g');
+                        let replace;
+                        switch (i) {
+                            case 1: replace = variable; break;
+                            case 2: replace = index; break;
+                            case 3: replace = key; break;
+                        }
+                        clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
+                    }
 
-                    const variablePattern = new RegExp(`\\[${binder.names[1]}\\]`, 'g');
-                    const indexPattern = new RegExp(`({{)?\\[${binder.names[2]}\\](}})?`, 'g');
-                    const keyPattern = new RegExp(`({{)?\\[${binder.names[3]}\\](}})?`, 'g');
-
-                    const clone = binder.meta.templateString
-                        .replace(variablePattern, `${binder.path}.${key}`)
-                        .replace(indexPattern, index)
-                        .replace(keyPattern, key);
+                    console.log(clone);
 
                     const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
 
@@ -1300,7 +1308,6 @@
 
     const PIPE = /\s?\|\s?/;
     const PIPES = /\s?,\s?|\s+/;
-    const PATH = /\s?,\s?|\s?\|\s?|\s+/;
 
     const Binder = {};
 
@@ -1375,12 +1382,23 @@
             value = value.replace(this.syntaxReplace, '').trim();
             name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
 
-            if (name.indexOf('on') === 0) {
-                name = 'on-' + name.slice(2);
+            if (name.startsWith('on')) name = 'on-' + name.slice(2);
+
+            const variablePatterns = /[._$a-z0-9[\]]+/g;
+
+            if (value.startsWith('\'') || value.startsWith('"')) {
+                target.textContent = value.slice(1, -1);
+                return;
+            } else if (/^NaN$|^[0-9]/.test(value)) {
+                target.textContent = value;
+                return;
+            } else if (!/[._$a-z0-9[\]]+/.test(value)) {
+                console.error('Oxe.binder - value is not valid');
             }
 
             const pipe = value.split(PIPE);
-            const paths = value.split(PATH);
+            const paths = value.match(variablePatterns) || [];
+            // const paths = value.split(PATH);
 
             const names = name.split('-');
             const values = pipe[0] ? pipe[0].split('.') : [];
@@ -1389,16 +1407,24 @@
             const meta = {};
             const type = names[0];
             const path = paths[0];
-            const keys = paths[0].split('.');
+            const keys = paths[0]?.split('.') || [];
             const property = keys.slice(-1)[0];
 
             const binder = Object.freeze({
 
-                type, path,
-                name, value, target, container,
-                keys, names, pipes, values, meta,
+                type,
+                // path,
+                keys,
+                name, value,
+                names, pipes, values, meta,
+                target, container,
 
                 render: self.render,
+
+                get path () {
+                    // need to handle []
+                    return path;
+                },
 
                 getAttribute (name) {
                     const node = target.getAttributeNode(name);
@@ -1618,7 +1644,8 @@
 
             this.#model = Observer.create(this.constructor.model || {} , (data, path) => {
                 Binder$1.data.forEach(binder => {
-                    if (binder.container === this && binder.path === path) {
+                    if (binder.container === this && binder.path.includes(path)) {
+                    // if (binder.container === this && binder.path === path) {
                         Binder$1.render(binder);
                     }
                 });

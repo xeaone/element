@@ -1,4 +1,4 @@
-import { toString } from '../tool.js'
+import { toString } from '../tool.js';
 
 export default function (binder) {
     let data;

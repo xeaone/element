@@ -83,7 +83,8 @@ class Component extends HTMLElement {
 
         this.#model = Observer.create(this.constructor.model || {} , (data, path) => {
             Binder.data.forEach(binder => {
-                if (binder.container === this && binder.path === path) {
+                if (binder.container === this && binder.path.includes(path)) {
+                // if (binder.container === this && binder.path === path) {
                     Binder.render(binder);
                 }
             });

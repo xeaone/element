@@ -60,15 +60,23 @@ export default function (binder) {
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const index = binder.meta.currentLength;
                 const key = binder.meta.keys[index];
+                const variable = `${binder.path}.${key}`;
+                
+                let clone = binder.meta.templateString;
+                const length = binder.names.length > 4 ? 4 : binder.names.length;
+                for (let i = 1; i < length; i++) {
+                    const item = new RegExp(`\\b(${binder.names[i]})\\b`, 'g');
+                    const syntax = new RegExp(`{{.*?\\b(${binder.names[i]})\\b.*?}}`, 'g');
+                    let replace;
+                    switch (i) {
+                        case 1: replace = variable; break;
+                        case 2: replace = index; break;
+                        case 3: replace = key; break;
+                    }
+                    clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
+                }
 
-                const variablePattern = new RegExp(`\\[${binder.names[1]}\\]`, 'g');
-                const indexPattern = new RegExp(`({{)?\\[${binder.names[2]}\\](}})?`, 'g');
-                const keyPattern = new RegExp(`({{)?\\[${binder.names[3]}\\](}})?`, 'g');
-
-                const clone = binder.meta.templateString
-                    .replace(variablePattern, `${binder.path}.${key}`)
-                    .replace(indexPattern, index)
-                    .replace(keyPattern, key);
+                console.log(clone);
 
                 const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
 

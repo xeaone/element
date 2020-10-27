@@ -3,7 +3,6 @@ const { Component } = Oxe;
 export default class RouteBinderText extends Component {
 
     title = 'Text Binder'
-    name = 'r-binder-text'
 
     static model = {
         templateVar: '<div>{{templateVar}}<div>',

@@ -1,12 +1,14 @@
+const { Component } = Oxe;
 
-export default {
-    // title: 'Each',
-    // path: '/each',
-    // name: 'r-each',
-    model: {
-        title: 'Each',
+export default class RouteBinderEach extends Component {
+
+    title = 'Each Binder'
+
+    static model = {
+        title: 'Each Binder',
         as: [
-            { it: { val: 'zero' } }, { it: { val: 'one' } }
+            { it: { val: 'zero' } },
+            { it: { val: 'one' } }
         ],
         os: {
             keyOne: 'valueOne',
@@ -14,16 +16,15 @@ export default {
             keyThree: 'valueThree',
             keyFour: 'valueFour'
         }
-    },
-    constructor: function () {
-        this.super();
-    },
-    methods: {
-        click: function () {
-            console.log(arguments);
-        }
-    },
-    created: function () {
+    }
+
+    // methods: {
+    //     click: function () {
+    //         console.log(arguments);
+    //     }
+    // }
+
+    static created () {
 
         // setTimeout(function () {
         // 	var increaseInterval = setInterval(function () {
@@ -46,23 +47,24 @@ export default {
         // 	}, 50);
         // }, 3000);
 
-    },
-    template: /*html*/`
+    }
+
+    static template = /*html*/`
 
 		<h2>{{title}}</h2>
 		<hr>
-
+        
 		<div o-text="as.0.it.val"></div>
-		<input type="text" o-value="as.0.it.val">
+		<input o-value="as.0.it.val">
 
 		<br>
 		<br>
-		<strong>Array: o-each-a="as"</strong>
+		<strong>Array: o-each-a-i-k="as"</strong>
 		<div o-each-a-i-k="as">
-			<div o-name="[a].it.val">
-				<strong>Index: </strong>{{[i]}},
-				<strong>Key: </strong>{{[k]}},
-				<strong>Value: </strong>{{[a].it.val}}
+			<div name="{{a.it.val}}">
+				<strong>Value: </strong>{{a.it.val}}
+				<strong>Index: </strong>{{i}},
+				<strong>Key: </strong>{{k}},
 			</div>
 		</div>
 
@@ -87,5 +89,6 @@ export default {
             <br>
 		</div> -->
 
-	`
-};
+    `
+
+}
