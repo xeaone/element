@@ -9,16 +9,13 @@ export default function (binder) {
         binder.meta.busy = true;
     }
 
-    let data;
-
     const read = function () {
-        data = binder.data || [];
 
         if (!binder.meta.setup) {
             binder.meta.keys = [];
             binder.meta.counts = [];
-            binder.meta.setup = false;
             binder.meta.busy = false;
+            binder.meta.setup = false;
             binder.meta.targetLength = 0;
             binder.meta.currentLength = 0;
             binder.meta.templateString = binder.target.innerHTML;
@@ -32,7 +29,7 @@ export default function (binder) {
             binder.meta.setup = true;
         }
 
-        binder.meta.keys = data ? Object.keys(data) : [];
+        binder.meta.keys = Object.keys(binder.data || []);
         binder.meta.targetLength = binder.meta.keys.length;
 
         if (binder.meta.currentLength === binder.meta.targetLength) {
@@ -75,8 +72,6 @@ export default function (binder) {
                     }
                     clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
                 }
-
-                console.log(clone);
 
                 const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
 

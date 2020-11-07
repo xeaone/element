@@ -1,53 +1,52 @@
 
-const text = ':not(:defined) { visibility: hidden; }';
-const style = document.createElement('style');
-const node = document.createTextNode(text);
-const sheet = style.sheet;
+export default class Style {
 
-style.setAttribute('title', 'oxe');
-style.setAttribute('type', 'text/css');
-style.appendChild(node);
+    static support = !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)');
 
-// o-router, o-router > :first-child { display: block; }
+    constructor (name, data) {
+        if (!name) throw new Error('Oxe.style - name required');
 
-document.head.appendChild(style);
+        this.name = name;
+        this.data = this.scope(this.transform(data || ''));
 
-const transform = function (data) {
+        // const text = ':not(:defined) { visibility: hidden; }';
+        const style = document.createElement('style');
+        const node = document.createTextNode(this.data);
+        // const sheet = style.sheet;
 
-    if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
-        const matches = data.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
+        style.setAttribute('title', this.name);
+        // style.setAttribute('type', 'text/css');
+        style.appendChild(node);
 
-        for (let i = 0; i < matches.length; i++) {
-            const match = matches[i];
-            const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-            const pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
-            data = data.replace(rule[0], '');
-            data = data.replace(pattern, rule[2]);
+        document.head.appendChild(style);
+    }
+
+    scope (data) {
+        data 
+            .replace(/\n|\r|\t/g, '')
+            .replace(/:host/g, this.name);
+    }
+
+    transform (data) {
+
+        if (!this.support) {
+            const matches = data.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
+    
+            for (let i = 0; i < matches.length; i++) {
+                const match = matches[i];
+                const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+                const pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+                data = data.replace(rule[0], '');
+                data = data.replace(pattern, rule[2]);
+            }
+    
         }
-
+    
+        return data;
     }
 
-    return data;
-};
-
-const add = function (data) {
-    data = transform(data);
-    sheet.insertRule(data);
-};
-
-const append = function (data) {
-    data = transform(data);
-    style.appendChild(document.createTextNode(data));
-};
-
-const setup = async function (option = {}) {
-
-    if (option.style) {
-        append(option.style);
+    remove () {
+        document.head.querySelector(`style[title="${this.name}"]`);
     }
 
-};
-
-export default Object.freeze({
-    style, sheet, add, append, setup
-});
+}

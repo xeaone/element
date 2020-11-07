@@ -408,16 +408,13 @@
             binder.meta.busy = true;
         }
 
-        let data;
-
         const read = function () {
-            data = binder.data || [];
 
             if (!binder.meta.setup) {
                 binder.meta.keys = [];
                 binder.meta.counts = [];
-                binder.meta.setup = false;
                 binder.meta.busy = false;
+                binder.meta.setup = false;
                 binder.meta.targetLength = 0;
                 binder.meta.currentLength = 0;
                 binder.meta.templateString = binder.target.innerHTML;
@@ -431,7 +428,7 @@
                 binder.meta.setup = true;
             }
 
-            binder.meta.keys = data ? Object.keys(data) : [];
+            binder.meta.keys = Object.keys(binder.data || []);
             binder.meta.targetLength = binder.meta.keys.length;
 
             if (binder.meta.currentLength === binder.meta.targetLength) {
@@ -474,8 +471,6 @@
                         }
                         clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
                     }
-
-                    console.log(clone);
 
                     const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
 
@@ -1308,6 +1303,7 @@
 
     const PIPE = /\s?\|\s?/;
     const PIPES = /\s?,\s?|\s+/;
+    const VARIABLE_PATTERNS = /[._$a-zA-Z0-9[\]]+/g;
 
     const Binder = {};
 
@@ -1384,8 +1380,6 @@
 
             if (name.startsWith('on')) name = 'on-' + name.slice(2);
 
-            const variablePatterns = /[._$a-z0-9[\]]+/g;
-
             if (value.startsWith('\'') || value.startsWith('"')) {
                 target.textContent = value.slice(1, -1);
                 return;
@@ -1397,7 +1391,7 @@
             }
 
             const pipe = value.split(PIPE);
-            const paths = value.match(variablePatterns) || [];
+            const paths = value.match(VARIABLE_PATTERNS) || [];
             // const paths = value.split(PATH);
 
             const names = name.split('-');
@@ -1606,9 +1600,11 @@
 
         #root
 
-
         #binder
         get binder () { return this.#binder; }
+
+        #style = ''
+        get style () { return this.#style; }
 
         #template = ''
         get template () { return this.#template; }
@@ -1638,7 +1634,7 @@
             // }
 
             this.#binder = Binder$1;
-
+            this.#style = this.constructor.style || '';
             this.#methods = this.constructor.methods || {};
             this.#template = this.constructor.template || '';
 

@@ -8,11 +8,11 @@ export default class RouteBinderClass extends Component {
 
         title: 'Class',
 
-        ca: false,
-        toggle () { this.model.ca = !this.model.ca; },
+        t: false,
+        toggle () { this.model.t = !this.model.t; },
 
-        c: 'default',
-        overwrite () { this.model.c = 'overwrite'; }
+        o: 'default',
+        overwrite () { this.model.o = 'overwrite'; }
 
     };
 
@@ -36,13 +36,13 @@ export default class RouteBinderClass extends Component {
         <br>
         <br>
 
-        <div class="{{c}}">o-class="{{c}}"</div>
+        <div class="{{c}}">class="{{c}}"</div>
         <button onclick="{{overwrite}}">Overwrite Class</button>
 
         <br>
         <br>
 
-        <div class="default" class-active="{{ca}}">o-class-active="{{ca}}"</div>
+        <div class="default" class-active="{{ca}}">class="default" class-active="{{ca}}"</div>
         <button onclick="{{toggle}}">Toggle Class</button>
 
 

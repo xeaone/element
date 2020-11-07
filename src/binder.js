@@ -26,6 +26,7 @@ import Write from './binder/write.js';
 const PIPE = /\s?\|\s?/;
 const PIPES = /\s?,\s?|\s+/;
 const PATH = /\s?,\s?|\s?\|\s?|\s+/;
+const VARIABLE_PATTERNS = /[._$a-zA-Z0-9[\]]+/g;
 
 const Binder = {};
 
@@ -102,8 +103,6 @@ const properties = {
 
         if (name.startsWith('on')) name = 'on-' + name.slice(2);
 
-        const variablePatterns = /[._$a-z0-9[\]]+/g;
-
         if (value.startsWith('\'') || value.startsWith('"')) {
             target.textContent = value.slice(1, -1);
             return;
@@ -115,7 +114,7 @@ const properties = {
         }
 
         const pipe = value.split(PIPE);
-        const paths = value.match(variablePatterns) || [];
+        const paths = value.match(VARIABLE_PATTERNS) || [];
         // const paths = value.split(PATH);
 
         const names = name.split('-');

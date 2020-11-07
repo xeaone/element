@@ -34,10 +34,6 @@ export default class RouteBinderValue extends Component {
         <h2>Value Binder</h2>
         <hr>
         
-        <p>See browser console logs.</p>
-
-        <br>
-        <br>
         <br>
 
         <strong>type="text" as String</strong>

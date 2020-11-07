@@ -1,6 +1,6 @@
 import Observer from './observer.js';
 import Binder from './binder.js';
-// import Style from './style.js';
+import Style from './style.js';
 
 const compose = function (instance, template) {
     const templateSlots = template.querySelectorAll('slot[name]');
@@ -45,9 +45,11 @@ class Component extends HTMLElement {
 
     #root
 
-
     #binder
     get binder () { return this.#binder; }
+
+    #style = ''
+    get style () { return this.#style; }
 
     #template = ''
     get template () { return this.#template; }
@@ -68,18 +70,11 @@ class Component extends HTMLElement {
         this.attached = typeof this.attached === 'function' ? this.attached : function () {};
         this.detached = typeof this.detached === 'function' ? this.detached : function () {};
 
-        // if (typeof this.style === 'string') {
-        //     Style.append(
-        //         this.style
-        //             .replace(/\n|\r|\t/g, '')
-        //             .replace(/:host/g, name)
-        //     );
-        // }
-
         this.#binder = Binder;
-
         this.#methods = this.constructor.methods || {};
         this.#template = this.constructor.template || '';
+        
+        // this.#style = new Style(this.nodeName.toLowerCase(), this.constructor.style || '');
 
         this.#model = Observer.create(this.constructor.model || {} , (data, path) => {
             Binder.data.forEach(binder => {
