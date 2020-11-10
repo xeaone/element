@@ -1,28 +1,32 @@
 import Color from '../../modules/color.js';
 
-export default {
-    title: 'Style Binder',
-    name: 'r-binder-style',
-    model: {
+export default class RouteBinderStyle extends Component {
+
+    title = 'Style Binder'
+
+    static model = {
         c: '',
         b: '',
         s: '',
         bc: ''
-    },
-    methods: {
+    }
+    
+     static methods = {
         change: function () {
             this.model.b = Color();
             this.model.c = Color();
             this.model.s = 'background: ' + Color() + '; color: ' + Color() + ';';
         }
-    },
-    created: function () {
+    }
+
+    static created () {
         const self = this;
         setInterval(function () {
             self.model.bc = Color();
         }, 1000);
-    },
-    template: /*html*/`
+    }
+
+     static template = /*html*/`
 
         <h2>Style Binder</h2>
         <hr>
@@ -37,4 +41,5 @@ export default {
         <button style="border: solid 0.5rem red" o-style-border-color="bc" o-on-click="change">Change Colors</button>
 
     `
-};
+
+}

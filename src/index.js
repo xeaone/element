@@ -5,10 +5,10 @@ import Fetcher from './fetcher.js';
 import Binder from './binder.js';
 import Define from './define.js';
 import Router from './router.js';
-import Style from './style.js';
 import Class from './class.js';
 import Query from './query.js';
 import Load from './load.js';
+import Css from './css.js';
 
 if (typeof window.CustomEvent !== 'function') {
     window.CustomEvent = function CustomEvent (event, options) {
@@ -45,7 +45,7 @@ export default Object.freeze({
     Define, define: Define,
     Class, class: Class,
     Query, query: Query,
-    Style, style: Style,
+    Css, css: Css,
     Load, load: Load,
 
     setup (options = {}) {
@@ -69,9 +69,8 @@ export default Object.freeze({
         // options.component.base = options.base;
 
         return Promise.all([
-            this.style.setup(options.style),
-            this.binder.setup(options.binder),
             // this.loader.setup(options.loader),
+            this.binder.setup(options.binder),
             this.fetcher.setup(options.fetcher)
         ]).then(() => {
             if (options.listener.before) {

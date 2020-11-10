@@ -92,7 +92,55 @@
 
     };
 
-    var Observer = { get, set, create };
+    const clone = function (source, handler, path, tasks) {
+        path = path || '';
+        tasks = tasks || [];
+
+        tasks.push(handler.bind(null, source, path));
+
+        if (source instanceof Object === false && source instanceof Array === false) {
+
+            if (!path && tasks.length) {
+                Promise.resolve().then(() => {
+                    let task; while (task = tasks.shift()) task();
+                }).catch(console.error);
+            }
+
+            return source;
+        }
+        
+        let target;
+
+        path = path ? path + '.' : '';
+
+        if (source instanceof Array) {
+            target = [];
+            for (let key = 0; key < source.length; key++) {
+                tasks.push(handler.bind(null, source[key], path + key));
+                target[key] = create(source[key], handler, path + key, tasks);
+            }
+        } else if (source instanceof Object) {
+            target = {};
+            for (let key in source) {
+                tasks.push(handler.bind(null, source[key], path + key));
+                target[key] = create(source[key], handler, path + key, tasks);
+            }
+        }
+
+        if (!path && tasks.length) {
+            Promise.resolve().then(() => {
+                let task; while (task = tasks.shift()) task();
+            }).catch(console.error);
+        }
+
+        return new Proxy(target, {
+            get: get.bind(get, tasks, handler, path),
+            set: set.bind(set, tasks, handler, path)
+        });
+
+    };
+
+    var Observer = { get, set, create, clone };
 
     function Traverse (data, path, end) {
         const keys = typeof path === 'string' ? path.split('.') : path;
@@ -1555,7 +1603,79 @@
 
     var Binder$1 = Object.freeze({ ...Binder, ...properties });
 
-    // import Style from './style.js';
+    class Css {
+
+        static support = !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)');
+
+        #data = new Map();
+        #style = document.createElement('style');
+
+        constructor () {
+            this.#style.appendChild(document.createTextNode(':not(:defined){visibility:hidden;}'));
+            this.#style.setAttribute('title', 'oxe');
+            document.head.appendChild(this.#style);
+        }
+
+        scope (name, text) {
+            return text 
+                .replace(/\t|\n\s*/g, '')
+                .replace(/(^\s*|}\s*|,\s*)(\.?[a-zA-Z_-]+)/g, `$1${name} $2`)
+                .replace(/:host/g, name);
+        }
+
+        transform (text) {
+
+            if (!this.support) {
+                const matches = text.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
+        
+                for (let i = 0; i < matches.length; i++) {
+                    const match = matches[i];
+                    const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
+                    const pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
+                    text = text.replace(rule[0], '');
+                    text = text.replace(pattern, rule[2]);
+                }
+        
+            }
+        
+            return text;
+        }
+        
+        detach (name) {
+
+            const item = this.#data.get(name);
+            if (!item || item.count === 0) return;
+
+            item.count--;
+
+            if (item.count === 0) this.#style.removeChild(item.node);
+
+        }
+
+        attach (name, text) {
+
+            if (this.#data.has(name)) {
+                this.#data.get(name).count++;
+            } else {
+                const node = this.node(name, text);
+                this.#data.set(name, { count: 1, node });
+                this.#style.appendChild(node);
+            }
+
+
+        }
+
+        node (name, text) {
+            return document.createTextNode(this.scope(name, this.transform(text || '')));
+        }
+
+        // append (data) {
+        //     this.#style.appendChild(document.createTextNode(this.scope(this.transform(data || ''))));
+        // }
+
+    }
+
+    var Css$1 = new Css();
 
     const compose = function (instance, template) {
         const templateSlots = template.querySelectorAll('slot[name]');
@@ -1593,52 +1713,54 @@
 
     class Component extends HTMLElement {
 
-        static count = 0
-        static attributes = []
+        static model = {};
+        static template = '';
+        static attributes = [];
         static get observedAttributes () { return this.attributes; }
         static set observedAttributes (attributes) { this.attributes = attributes; }
 
+        #name
         #root
+        #adopt;
+        #shadow;
+        #adopted;
+        #created;
+        #attached;
+        #detached;
+        #attributed;
 
-        #binder
+        #css = Css$1;
+        get css () { return this.#css; }
+
+        #binder = Binder$1;
         get binder () { return this.#binder; }
 
-        #style = ''
-        get style () { return this.#style; }
+        // #template = '';
+        // get template () { return this.#template; }
 
-        #template = ''
-        get template () { return this.#template; }
-
-        #model = {}
+        #model;
         get model () { return this.#model; }
 
-        #methods = {}
-        get methods () { return this.#methods; }
+        // #methods = {};
+        // get methods () { return this.#methods; }
 
         constructor () {
             super();
 
-            this.adopt = typeof this.adopt === 'boolean' ? this.adopt : false;
-            this.shadow = typeof this.shadow === 'boolean' ? this.shadow : false;
-            this.adopted = typeof this.adopted === 'function' ? this.adopted : function () {};
-            this.created = typeof this.created === 'function' ? this.created : function () {};
-            this.attached = typeof this.attached === 'function' ? this.attached : function () {};
-            this.detached = typeof this.detached === 'function' ? this.detached : function () {};
+            this.#adopt = typeof this.constructor.adopt === 'boolean' ? this.constructor.adopt : false;
+            this.#shadow = typeof this.constructor.shadow === 'boolean' ? this.constructor.shadow : false;
+            this.#adopted = typeof this.constructor.adopted === 'function' ? this.constructor.adopted : function () {};
+            this.#created = typeof this.constructor.created === 'function' ? this.constructor.created : function () {};
+            this.#attached = typeof this.constructor.attached === 'function' ? this.constructor.attached : function () {};
+            this.#detached = typeof this.constructor.detached === 'function' ? this.constructor.detached : function () {};
+            this.#attributed = typeof this.constructor.attributed === 'function' ? this.constructor.attributed : function () {};
 
-            // if (typeof this.style === 'string') {
-            //     Style.append(
-            //         this.style
-            //             .replace(/\n|\r|\t/g, '')
-            //             .replace(/:host/g, name)
-            //     );
-            // }
+            this.#name = this.nodeName.toLowerCase();
+            // this.#methods = this.constructor.methods || {};
+            // this.#template = this.constructor.template || '';
 
-            this.#binder = Binder$1;
-            this.#style = this.constructor.style || '';
-            this.#methods = this.constructor.methods || {};
-            this.#template = this.constructor.template || '';
-
-            this.#model = Observer.create(this.constructor.model || {} , (data, path) => {
+            this.#model = Observer.clone(this.constructor.model, (data, path) => {
+            // this.#model = Observer.create(this.constructor.model, (data, path) => {
                 Binder$1.data.forEach(binder => {
                     if (binder.container === this && binder.path.includes(path)) {
                     // if (binder.container === this && binder.path === path) {
@@ -1652,11 +1774,11 @@
         render () {
 
             const template = document.createElement('template');
-            template.innerHTML = this.template;
+            template.innerHTML = this.constructor.template;
 
             const clone = template.content.cloneNode(true);
 
-            if (this.adopt === true) {
+            if (this.#adopt === true) {
                 let child = this.firstElementChild;
                 while (child) {
                     Binder$1.add(child, this);
@@ -1664,9 +1786,9 @@
                 }
             }
 
-            if (this.shadow && 'attachShadow' in document.body) {
+            if (this.#shadow && 'attachShadow' in document.body) {
                 this.#root = this.attachShadow({ mode: 'open' });
-            } else if (this.shadow && 'createShadowRoot' in document.body) {
+            } else if (this.#shadow && 'createShadowRoot' in document.body) {
                 this.#root = this.createShadowRoot();
             } else {
                 compose(this, clone);
@@ -1678,7 +1800,7 @@
 
             let child = clone.firstElementChild;
             while (child) {
-                // if (this.adopt === false) 
+                // if (this.#adopt === false) 
                 Binder$1.add(child, this);
                 this.#root.appendChild(child);
                 child = clone.firstElementChild;
@@ -1687,24 +1809,27 @@
         }
 
         attributeChangedCallback () {
-            Promise.resolve().then(() => this.attributed(...arguments));
+            Promise.resolve().then(() => this.#attributed(...arguments));
         }
 
         adoptedCallback () {
-            Promise.resolve().then(() => this.adopted());
+            Promise.resolve().then(() => this.#adopted());
         }
 
         disconnectedCallback () {
-            Promise.resolve().then(() => this.detached());
+            this.#css.detach(this.#name);
+            Promise.resolve().then(() => this.#detached());
         }
 
         connectedCallback () {
+            this.#css.attach(this.#name, this.constructor.css);
+
             if (this.CREATED) {
-                Promise.resolve().then(() => this.attached());
+                Promise.resolve().then(() => this.#attached());
             } else {
                 this.CREATED = true;
                 this.render();
-                Promise.resolve().then(() => this.created()).then(() => this.attached());
+                Promise.resolve().then(() => this.#created()).then(() => this.#attached());
             }
         }
 
@@ -1837,21 +1962,21 @@
 
             if (context.contentType) {
                 switch (context.contentType) {
-                case 'js': context.headers['Content-Type'] = this.mime.js; break;
-                case 'xml': context.headers['Content-Type'] = this.mime.xml; break;
-                case 'html': context.headers['Content-Type'] = this.mime.html; break;
-                case 'json': context.headers['Content-Type'] = this.mime.json; break;
-                default: context.headers['Content-Type'] = context.contentType;
+                    case 'js': context.headers['Content-Type'] = this.mime.js; break;
+                    case 'xml': context.headers['Content-Type'] = this.mime.xml; break;
+                    case 'html': context.headers['Content-Type'] = this.mime.html; break;
+                    case 'json': context.headers['Content-Type'] = this.mime.json; break;
+                    default: context.headers['Content-Type'] = context.contentType;
                 }
             }
 
             if (context.acceptType) {
                 switch (context.acceptType) {
-                case 'js': context.headers['Accept'] = this.mime.js; break;
-                case 'xml': context.headers['Accept'] = this.mime.xml; break;
-                case 'html': context.headers['Accept'] = this.mime.html; break;
-                case 'json': context.headers['Accept'] = this.mime.json; break;
-                default: context.headers['Accept'] = context.acceptType;
+                    case 'js': context.headers['Accept'] = this.mime.js; break;
+                    case 'xml': context.headers['Accept'] = this.mime.xml; break;
+                    case 'html': context.headers['Accept'] = this.mime.html; break;
+                    case 'json': context.headers['Accept'] = this.mime.json; break;
+                    default: context.headers['Accept'] = context.acceptType;
                 }
             }
 
@@ -2806,59 +2931,6 @@
         state, click
     });
 
-    const text = ':not(:defined) { visibility: hidden; }';
-    const style = document.createElement('style');
-    const node = document.createTextNode(text);
-    const sheet = style.sheet;
-
-    style.setAttribute('title', 'oxe');
-    style.setAttribute('type', 'text/css');
-    style.appendChild(node);
-
-    // o-router, o-router > :first-child { display: block; }
-
-    document.head.appendChild(style);
-
-    const transform$1 = function (data) {
-
-        if (!window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)')) {
-            const matches = data.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
-
-            for (let i = 0; i < matches.length; i++) {
-                const match = matches[i];
-                const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-                const pattern = new RegExp('var\\('+rule[1]+'\\)', 'g');
-                data = data.replace(rule[0], '');
-                data = data.replace(pattern, rule[2]);
-            }
-
-        }
-
-        return data;
-    };
-
-    const add$1 = function (data) {
-        data = transform$1(data);
-        sheet.insertRule(data);
-    };
-
-    const append = function (data) {
-        data = transform$1(data);
-        style.appendChild(document.createTextNode(data));
-    };
-
-    const setup$2 = async function (option = {}) {
-
-        if (option.style) {
-            append(option.style);
-        }
-
-    };
-
-    var Style$1 = Object.freeze({
-        style, sheet, add: add$1, append, setup: setup$2
-    });
-
     if (typeof window.CustomEvent !== 'function') {
         window.CustomEvent = function CustomEvent (event, options) {
             options = options || { bubbles: false, cancelable: false, detail: null };
@@ -2877,9 +2949,9 @@
         };
     }
 
-    const setup$3 = document.querySelector('script[o-setup]');
-    const url = setup$3 ? setup$3.getAttribute('o-setup') : '';
-    if (setup$3) load(url);
+    const setup$2 = document.querySelector('script[o-setup]');
+    const url = setup$2 ? setup$2.getAttribute('o-setup') : '';
+    if (setup$2) load(url);
 
     let SETUP = false;
 
@@ -2894,7 +2966,7 @@
         Define, define: Define,
         Class: Class$1, class: Class$1,
         Query, query: Query,
-        Style: Style$1, style: Style$1,
+        Css: Css$1, css: Css$1,
         Load: load, load: load,
 
         setup (options = {}) {
@@ -2918,9 +2990,8 @@
             // options.component.base = options.base;
 
             return Promise.all([
-                this.style.setup(options.style),
-                this.binder.setup(options.binder),
                 // this.loader.setup(options.loader),
+                this.binder.setup(options.binder),
                 this.fetcher.setup(options.fetcher)
             ]).then(() => {
                 if (options.listener.before) {

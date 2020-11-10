@@ -76,4 +76,52 @@ const create = function (source, handler, path, tasks) {
 
 };
 
-export default { get, set, create };
+const clone = function (source, handler, path, tasks) {
+    path = path || '';
+    tasks = tasks || [];
+
+    tasks.push(handler.bind(null, source, path));
+
+    if (source instanceof Object === false && source instanceof Array === false) {
+
+        if (!path && tasks.length) {
+            Promise.resolve().then(() => {
+                let task; while (task = tasks.shift()) task();
+            }).catch(console.error);
+        }
+
+        return source;
+    }
+    
+    let target;
+
+    path = path ? path + '.' : '';
+
+    if (source instanceof Array) {
+        target = [];
+        for (let key = 0; key < source.length; key++) {
+            tasks.push(handler.bind(null, source[key], path + key));
+            target[key] = create(source[key], handler, path + key, tasks);
+        }
+    } else if (source instanceof Object) {
+        target = {};
+        for (let key in source) {
+            tasks.push(handler.bind(null, source[key], path + key));
+            target[key] = create(source[key], handler, path + key, tasks);
+        }
+    }
+
+    if (!path && tasks.length) {
+        Promise.resolve().then(() => {
+            let task; while (task = tasks.shift()) task();
+        }).catch(console.error);
+    }
+
+    return new Proxy(target, {
+        get: get.bind(get, tasks, handler, path),
+        set: set.bind(set, tasks, handler, path)
+    });
+
+};
+
+export default { get, set, create, clone };

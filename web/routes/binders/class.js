@@ -16,7 +16,7 @@ export default class RouteBinderClass extends Component {
 
     };
 
-    static style = /*css*/`
+    static css = /*css*/`
         .default {
             border: solid 0.3rem black;
         }
@@ -36,13 +36,13 @@ export default class RouteBinderClass extends Component {
         <br>
         <br>
 
-        <div class="{{c}}">class="{{c}}"</div>
+        <div class="{{o}}">class="{{o}}"</div>
         <button onclick="{{overwrite}}">Overwrite Class</button>
 
         <br>
         <br>
 
-        <div class="default" class-active="{{ca}}">class="default" class-active="{{ca}}"</div>
+        <div class="default" class-active="{{t}}">class="default" class-active="{{t}}"</div>
         <button onclick="{{toggle}}">Toggle Class</button>
 
 

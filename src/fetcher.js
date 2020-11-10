@@ -102,21 +102,21 @@ export default Object.freeze({
 
         if (context.contentType) {
             switch (context.contentType) {
-            case 'js': context.headers['Content-Type'] = this.mime.js; break;
-            case 'xml': context.headers['Content-Type'] = this.mime.xml; break;
-            case 'html': context.headers['Content-Type'] = this.mime.html; break;
-            case 'json': context.headers['Content-Type'] = this.mime.json; break;
-            default: context.headers['Content-Type'] = context.contentType;
+                case 'js': context.headers['Content-Type'] = this.mime.js; break;
+                case 'xml': context.headers['Content-Type'] = this.mime.xml; break;
+                case 'html': context.headers['Content-Type'] = this.mime.html; break;
+                case 'json': context.headers['Content-Type'] = this.mime.json; break;
+                default: context.headers['Content-Type'] = context.contentType;
             }
         }
 
         if (context.acceptType) {
             switch (context.acceptType) {
-            case 'js': context.headers['Accept'] = this.mime.js; break;
-            case 'xml': context.headers['Accept'] = this.mime.xml; break;
-            case 'html': context.headers['Accept'] = this.mime.html; break;
-            case 'json': context.headers['Accept'] = this.mime.json; break;
-            default: context.headers['Accept'] = context.acceptType;
+                case 'js': context.headers['Accept'] = this.mime.js; break;
+                case 'xml': context.headers['Accept'] = this.mime.xml; break;
+                case 'html': context.headers['Accept'] = this.mime.html; break;
+                case 'json': context.headers['Accept'] = this.mime.json; break;
+                default: context.headers['Accept'] = context.acceptType;
             }
         }
 
