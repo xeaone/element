@@ -1,6 +1,6 @@
 import Color from '../../modules/color.js';
 
-export default class RouteBinderStyle extends Component {
+export default class RouteBinderStyle extends Oxe.Component {
 
     title = 'Style Binder'
 
@@ -8,22 +8,16 @@ export default class RouteBinderStyle extends Component {
         c: '',
         b: '',
         s: '',
-        bc: ''
-    }
-    
-     static methods = {
-        change: function () {
+        bc: '',
+        change () {
             this.model.b = Color();
             this.model.c = Color();
             this.model.s = 'background: ' + Color() + '; color: ' + Color() + ';';
         }
     }
-
+    
     static created () {
-        const self = this;
-        setInterval(function () {
-            self.model.bc = Color();
-        }, 1000);
+        setInterval(() => this.model.bc = Color(), 1000);
     }
 
      static template = /*html*/`
@@ -38,7 +32,7 @@ export default class RouteBinderStyle extends Component {
 
         <br>
         <br>
-        <button style="border: solid 0.5rem red" o-style-border-color="bc" o-on-click="change">Change Colors</button>
+        <button style="border: solid 0.5rem red" o-style-border-color="bc" onclick="{{change}}">Change Colors</button>
 
     `
 
