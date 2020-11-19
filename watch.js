@@ -21,17 +21,17 @@ const Spawn = ChildProcess.spawn;
     await Presser(
         async (key) => {
             switch (key) {
-            case 'p':
-                console.log('pack: start');
-                await Packer(Config);
-                console.log('pack: end');
-                break;
-            case 'e':
-                console.log('exit: start');
-                child.kill();
-                console.log('exit: end');
-                process.exit();
-                break;
+                case 'p':
+                    console.log('pack: start');
+                    await Packer(Config);
+                    console.log('pack: end');
+                    break;
+                case 'e':
+                    console.log('exit: start');
+                    child.kill();
+                    console.log('exit: end');
+                    process.exit();
+                    break;
             }
         },
         async () => {
