@@ -1,4 +1,4 @@
-import { toString } from '../tool.js';
+import { toString } from '../tool';
 
 export default function (binder) {
     let data;
@@ -6,14 +6,15 @@ export default function (binder) {
         read () {
             data = toString(binder.data);
 
-            if (data === binder.target.textContent) {
+            if (data === binder.target[binder.type]) {
                 this.write = false;
                 return;
             }
 
         },
         write () {
-            binder.target.textContent = data;
+            binder.target[binder.type] = data;
+            binder.target.setAttribute(binder.type, data);
         }
     };
 }

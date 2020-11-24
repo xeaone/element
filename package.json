@@ -5,7 +5,7 @@
 	"description": "A mighty tiny web components framework/library",
 	"main": "dst/oxe.min.js",
 	"scripts": {
-		"w": "node --experimental-modules watch.js",
+		"w": "node --experimental-modules scripts/watch.js",
 		"dst": "node --experimental-modules packer.js config=packer.config.js outputFolder=dst",
 		"dev": "node --experimental-modules packer.js config=packer.config.js outputFolder=dev"
 	},
@@ -48,11 +48,15 @@
 	},
 	"devDependencies": {
 		"@babel/core": "^7.11.6",
+		"@babel/plugin-proposal-class-properties": "^7.12.1",
 		"@babel/preset-env": "^7.11.5",
+		"@rollup/plugin-babel": "^5.2.1",
+		"@rollup/plugin-typescript": "^6.1.0",
 		"@webcomponents/custom-elements": "^1.4.2",
 		"@webcomponents/webcomponentsjs": "^2.4.4",
 		"fast-async": "^7.0.6",
 		"oxe-components": "^4.1.1",
-		"rollup": "^2.28.1"
+		"tslib": "^2.0.3",
+		"typescript": "^4.1.2"
 	}
 }

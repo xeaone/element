@@ -1,13 +1,13 @@
-import Index from '../tool/index.js';
-import Match from '../tool/match.js';
-import Binder from '../binder.js';
-// import Includes from '../tool/includes.js';
+import Index from '../tool/index';
+import Match from '../tool/match';
+import Binder from '../binder';
+// import Includes from '../tool/includes';
 
 import {
     to,
     toString,
     toNumber
-} from '../tool.js';
+} from '../tool';
 
 const input = function (binder) {
     const type = binder.target.type;

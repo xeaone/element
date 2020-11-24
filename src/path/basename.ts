@@ -1,4 +1,4 @@
-import normalize from './normalize.js';
+import normalize from './normalize';
 
 export default function basename (path, extention) {
     path = normalize(path);

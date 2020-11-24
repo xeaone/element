@@ -1,11 +1,11 @@
-import Location from './location.js';
-import Events from './events.js';
-import Define from './define.js';
-import Query from './query.js';
-import Load from './load.js';
+import Location from './location';
+import Events from './events';
+import Define from './define';
+import Query from './query';
+import Load from './load';
 
-import basename from './path/basename.js';
-// import normalize from './path/normalize.js';
+import basename from './path/basename';
+// import normalize from './path/normalize';
 
 const self = {};
 const data = [];
@@ -126,13 +126,13 @@ const add = async function (data) {
         let path = data;
         const name = `r-${data.replace('/', '-')}`;;
 
-        if (path.slice(-3) === '.js') path = path.slice(0, -3);
+        if (path.slice(-3) === '') path = path.slice(0, -3);
         if (path.slice(-5) === 'index') path = path.slice(0, -5);
         if (path.slice(-6) === 'index/') path = path.slice(0, -6);
         if (path.slice(0, 2) === './') path = path.slice(2);
         if (path.slice(0, 1) !== '/') path = '/' + path;
 
-        if (load.slice(-3) !== '.js') load = load + '.js';
+        if (load.slice(-3) !== '') load = load + '';
         if (load.slice(0, 2) === './') load = load.slice(2);
         if (load.slice(0, 1) !== '/') load = '/' + load;
 
@@ -232,7 +232,7 @@ const find = async function (path) {
     load = load.charAt(0) === '/' ? load.slice(1) : load;
     load = load.charAt(load.length-1) === '/' ? load.slice(0, load.length-1) : load;
     load = load.split('/');
-    load.splice(-1, 1, 'default.js');
+    load.splice(-1, 1, 'default');
     load.unshift(self.folder);
     load = load.join('/');
 

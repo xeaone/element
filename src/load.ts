@@ -1,16 +1,26 @@
-import absolute from './path/absolute.js';
-import resolve from './path/resolve.js';
-import fetch from './load/fetch.js';
-import run from './load/run.js';
+import absolute from './path/absolute';
+import resolve from './path/resolve';
+import fetch from './load/fetch';
+import run from './load/run';
 
-import S_EXPORT from './load/s-export.js';
-import S_IMPORT from './load/s-import.js';
+import S_EXPORT from './load/s-export';
+import S_IMPORT from './load/s-import';
 
 const R_IMPORT = new RegExp(S_IMPORT);
 const R_EXPORT = new RegExp(S_EXPORT);
 const R_IMPORTS = new RegExp(S_IMPORT, 'g');
 const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
 const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
+
+declare global {
+    interface Window {
+        LOAD: any;
+        MODULES: any;
+        REGULAR: any;
+        REGULAR_SUPPORT: any;
+        DYNAMIC_SUPPORT: any;
+    }
+}
 
 const transform = function (code, url) {
 

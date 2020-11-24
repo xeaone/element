@@ -1,12 +1,11 @@
 
-class Css {
-
-    static support = !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)');
+export default class Css {
 
     #data = new Map();
     #style = document.createElement('style');
+    #support = !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)');
 
-    constructor () {
+    private constructor () {
         this.#style.appendChild(document.createTextNode(':not(:defined){visibility:hidden;}'));
         this.#style.setAttribute('title', 'oxe');
         document.head.appendChild(this.#style);
@@ -21,7 +20,7 @@ class Css {
 
     transform (text) {
 
-        if (!this.support) {
+        if (!this.#support) {
             const matches = text.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
     
             for (let i = 0; i < matches.length; i++) {
@@ -70,5 +69,3 @@ class Css {
     // }
 
 }
-
-export default new Css();

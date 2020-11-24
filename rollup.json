@@ -1,0 +1,9 @@
+{
+    "input": "src/index.js",
+    "output": {
+        "name": "Oxe",
+        "file": "dev/o.ts",
+        "format": "esm",
+        "indent": "    "
+    }
+}

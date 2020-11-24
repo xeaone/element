@@ -1,3 +1,4 @@
+
 const reads = [];
 const writes = [];
 
@@ -6,16 +7,15 @@ const options = {
     pending: false
 };
 
-const setup = function (options = {}) {
+const setup = function (options:any = {}) {
     this.options.time = options.time || this.options.time;
 };
 
 const tick = function (method) {
-    const self = this;
     return new Promise((resolve, reject) => {
-        window.requestAnimationFrame((time) => {
+        requestAnimationFrame((time) => {
             Promise.resolve()
-                .then(method.bind(self, time))
+                .then(method.bind(this, time))
                 .then(resolve)
                 .catch(reject);
         });

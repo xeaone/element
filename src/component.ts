@@ -1,6 +1,6 @@
-import Observer from './observer.js';
-import Binder from './binder.js';
-import Css from './css.js';
+import Observer from './observer';
+import Binder from './binder';
+import Css from './css';
 
 const compose = function (instance, template) {
     const templateSlots = template.querySelectorAll('slot[name]');
@@ -44,17 +44,24 @@ class Component extends HTMLElement {
     static get observedAttributes () { return this.attributes; }
     static set observedAttributes (attributes) { this.attributes = attributes; }
 
-    #name
-    #root
-    #adopt;
-    #shadow;
-    #adopted;
-    #created;
-    #attached;
-    #detached;
-    #attributed;
+    #name: string;
+    #root: string;
+    #adopt: boolean;
+    #shadow: Node;
 
-    #css = Css;
+    #adopted: () => void;
+    #created: () => void;
+    #attached: () => void;
+    #detached: () => void;
+    #attributed: () => void;
+
+    static adopted: () => void;
+    static created: () => void;
+    static attached: () => void;
+    static detached: () => void;
+    static attributed: () => void;
+
+    #css: Css = Css;
     get css () { return this.#css; }
 
     #binder = Binder;

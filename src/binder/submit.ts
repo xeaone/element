@@ -1,4 +1,4 @@
-import Binder from '../binder.js';
+import Binder from '../binder';
 
 const submit = async function (binder, event) {
     event.preventDefault();

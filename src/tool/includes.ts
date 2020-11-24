@@ -1,4 +1,4 @@
-import Match from './match.js';
+import Match from './match';
 
 export default function Includes (items, item) {
 

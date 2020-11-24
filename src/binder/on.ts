@@ -1,4 +1,4 @@
-import Batcher from '../batcher.js';
+import Batcher from '../batcher';
 
 export default function (binder) {
     const type = binder.names[1];

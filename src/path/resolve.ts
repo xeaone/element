@@ -1,6 +1,6 @@
 
-export default function resolve (path) {
-    path = path.trim();
+export default function resolve () {
+    let path = arguments[0].trim();
 
     for (let i = 1; i < arguments.length; i++) {
         const part = arguments[i].trim();

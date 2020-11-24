@@ -1,6 +1,6 @@
 
 export default function fetch (url) {
-    return new Promise(function (resolve, reject) {
+    return new globalThis.Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
 
         xhr.onreadystatechange = function () {

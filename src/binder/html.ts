@@ -1,4 +1,4 @@
-import Binder from '../binder.js';
+import Binder from '../binder';
 
 export default function (binder) {
     let data;

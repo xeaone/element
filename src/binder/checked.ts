@@ -1,6 +1,6 @@
-import Binder from '../binder.js';
-import Match from '../tool/match.js';
-import { isBoolean } from '../tool.js';
+import Binder from '../binder';
+import Match from '../tool/match';
+import { isBoolean } from '../tool';
 
 export default function (binder, event) {
 

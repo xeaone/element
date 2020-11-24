@@ -1,6 +1,6 @@
-import Component from './component.js';
-import Class from './class.js';
-import Load from './load.js';
+import Component from './component';
+import Class from './class';
+import Load from './load';
 
 export default function Define (name, constructor) {
     if (!name) throw new Error('Oxe.define - name required');

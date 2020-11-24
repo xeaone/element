@@ -1,4 +1,4 @@
-import Traverse from './tool/traverse.js';
+import Traverse from './tool/traverse';
 
 export default function Piper (binder, data) {
 

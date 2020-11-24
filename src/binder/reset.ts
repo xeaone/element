@@ -1,4 +1,4 @@
-import Binder from '../binder.js';
+import Binder from '../binder';
 
 const reset = async function (binder, event) {
     event.preventDefault();
@@ -19,7 +19,7 @@ const reset = async function (binder, event) {
             continue;
         }
 
-        const binder = Binder.get(element, 'o-value');
+        const binder = Binder.get(element)?.get('value');
 
         if (!binder) {
             if (type === 'select-one' || type === 'select-multiple') {

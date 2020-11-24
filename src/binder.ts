@@ -1,27 +1,27 @@
-import Traverse from './tool/traverse.js';
+import Traverse from './tool/traverse';
 
-import Batcher from './batcher.js';
-import Piper from './piper.js';
+import Batcher from './batcher';
+import Piper from './piper';
 
-import Checked from './binder/checked.js';
-import Class from './binder/class.js';
-import Default from './binder/default.js';
-import Disable from './binder/disable.js';
-import Each from './binder/each.js';
-import Enable from './binder/enable.js';
-import Hide from './binder/hide.js';
-import Href from './binder/href.js';
-import Html from './binder/html.js';
-import On from './binder/on.js';
-import Read from './binder/read.js';
-import Require from './binder/require.js';
-import Reset from './binder/reset.js';
-import Show from './binder/show.js';
-import Style from './binder/style.js';
-import Submit from './binder/submit.js';
-import Text from './binder/text.js';
-import Value from './binder/value.js';
-import Write from './binder/write.js';
+import Checked from './binder/checked';
+import Class from './binder/class';
+import Default from './binder/default';
+import Disable from './binder/disable';
+import Each from './binder/each';
+import Enable from './binder/enable';
+import Hide from './binder/hide';
+import Href from './binder/href';
+import Html from './binder/html';
+import On from './binder/on';
+import Read from './binder/read';
+import Require from './binder/require';
+import Reset from './binder/reset';
+import Show from './binder/show';
+import Style from './binder/style';
+import Submit from './binder/submit';
+import Text from './binder/text';
+import Value from './binder/value';
+import Write from './binder/write';
 
 const PIPE = /\s?\|\s?/;
 const PIPES = /\s?,\s?|\s+/;
@@ -68,7 +68,7 @@ const properties = {
         write: Write.bind(Binder)
     },
 
-    async setup (options = {}) {
+    async setup (options:any = {}) {
         const { binders } = options;
 
         if (binders) {

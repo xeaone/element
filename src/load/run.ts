@@ -1,6 +1,6 @@
 
 export default function run (code) {
-    return new Promise(function (resolve, reject) {
+    return new globalThis.Promise(function (resolve, reject) {
         const blob = new Blob([ code ], { type: 'text/javascript' });
         const script = document.createElement('script');
 
@@ -22,6 +22,6 @@ export default function run (code) {
 
         script.src = URL.createObjectURL(blob);
 
-        window.document.head.appendChild(script);
+        document.head.appendChild(script);
     });
 }

@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "sourceMap": false,
+        "declaration": true,
+        "removeComments": true,
+        "importHelpers": false,
+        "downlevelIteration": true,
+        "module": "umd",
+        "target": "es2015",
+        "outDir": "dev",
+        "lib": [ "es2015", "dom" ]
+    },
+    "files": [ "dev/o.ts" ],
+    "include": [ "src/**/*" ]
+}
