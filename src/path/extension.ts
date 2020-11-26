@@ -1,5 +1,5 @@
 
-export default function extension (data) {
-    const position = data.lastIndexOf('.');
-    return position > 0 ? data.slice(position + 1) : '';
+export default function extension (path:string) {
+    const position = path.lastIndexOf('.');
+    return position > 0 ? path.slice(position + 1) : '';
 }

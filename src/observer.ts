@@ -76,7 +76,7 @@ const create = function (source, handler, path, tasks) {
 
 };
 
-const clone = function (source, handler, path, tasks) {
+const clone = function (source: Object, handler: Function, path?: String, tasks?: Array<Function>) {
     path = path || '';
     tasks = tasks || [];
 
@@ -100,14 +100,14 @@ const clone = function (source, handler, path, tasks) {
     if (source instanceof Array) {
         target = [];
         for (let key = 0; key < source.length; key++) {
-            tasks.push(handler.bind(null, source[key], path + key));
-            target[key] = create(source[key], handler, path + key, tasks);
+            tasks.push(handler.bind(null, source[key], `${path}${key}`));
+            target[key] = create(source[key], handler, `${path}${key}`, tasks);
         }
     } else if (source instanceof Object) {
         target = {};
         for (let key in source) {
-            tasks.push(handler.bind(null, source[key], path + key));
-            target[key] = create(source[key], handler, path + key, tasks);
+            tasks.push(handler.bind(null, source[key], `${path}${key}`));
+            target[key] = create(source[key], handler, `${path}${key}`, tasks);
         }
     }
 

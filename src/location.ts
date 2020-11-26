@@ -7,6 +7,7 @@ export default function Location (data) {
     parser.href = data;
 
     const location = {
+        path: '',
         href: parser.href,
         host: parser.host,
         port: parser.port,

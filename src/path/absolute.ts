@@ -7,7 +7,7 @@ const file = 'file://';
 const http = 'http://';
 const https = 'https://';
 
-export default function absolute (path) {
+export default function absolute (path:string) {
     if (
         path.slice(0, single.length) === single ||
         path.slice(0, double.length) === double ||

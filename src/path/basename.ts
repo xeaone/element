@@ -1,6 +1,6 @@
 import normalize from './normalize';
 
-export default function basename (path, extention) {
+export default function basename (path:string, extention?:string) {
     path = normalize(path);
 
     if (path.slice(0, 1) === '.') {

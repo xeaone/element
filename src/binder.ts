@@ -85,9 +85,9 @@ const properties = {
         return this.data.get(node);
     },
 
-    render (binder) {
+    render (binder, ...extra) {
         const type = binder.type in this.binders ? binder.type : 'default';
-        const render = this.binders[type](...arguments);
+        const render = this.binders[type](...extra);
         Batcher.batch(render);
     },
 

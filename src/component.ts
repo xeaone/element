@@ -44,34 +44,30 @@ class Component extends HTMLElement {
     static get observedAttributes () { return this.attributes; }
     static set observedAttributes (attributes) { this.attributes = attributes; }
 
-    #name: string;
-    #root: string;
-    #adopt: boolean;
-    #shadow: Node;
+    CREATED: boolean;
 
-    #adopted: () => void;
-    #created: () => void;
-    #attached: () => void;
-    #detached: () => void;
-    #attributed: () => void;
-
-    static adopted: () => void;
-    static created: () => void;
-    static attached: () => void;
-    static detached: () => void;
-    static attributed: () => void;
-
-    #css: Css = Css;
-    get css () { return this.#css; }
-
+    #css = Css;
     #binder = Binder;
+
+    #root: any;
+    #name: string;
+    #adopt: boolean;
+    #shadow: boolean;
+    #model: Object | Array<any>;
+
+    #adopted: () => any;
+    #created: () => any;
+    #attached: () => any;
+    #detached: () => any;
+    #attributed: (name, oldValue, newValue) => any;
+
+    get css () { return this.#css; }
+    get model () { return this.#model; }
     get binder () { return this.#binder; }
 
     // #template = '';
     // get template () { return this.#template; }
 
-    #model;
-    get model () { return this.#model; }
 
     // #methods = {};
     // get methods () { return this.#methods; }
@@ -79,20 +75,19 @@ class Component extends HTMLElement {
     constructor () {
         super();
 
-        this.#adopt = typeof this.constructor.adopt === 'boolean' ? this.constructor.adopt : false;
-        this.#shadow = typeof this.constructor.shadow === 'boolean' ? this.constructor.shadow : false;
-        this.#adopted = typeof this.constructor.adopted === 'function' ? this.constructor.adopted : function () {};
-        this.#created = typeof this.constructor.created === 'function' ? this.constructor.created : function () {};
-        this.#attached = typeof this.constructor.attached === 'function' ? this.constructor.attached : function () {};
-        this.#detached = typeof this.constructor.detached === 'function' ? this.constructor.detached : function () {};
-        this.#attributed = typeof this.constructor.attributed === 'function' ? this.constructor.attributed : function () {};
+        this.#adopt = typeof (this.constructor as any).adopt === 'boolean' ? (this.constructor as any).adopt : false;
+        this.#shadow = typeof (this.constructor as any).shadow === 'boolean' ? (this.constructor as any).shadow : false;
+        this.#adopted = typeof (this.constructor as any).adopted === 'function' ? (this.constructor as any).adopted : function () {};
+        this.#created = typeof (this.constructor as any).created === 'function' ? (this.constructor as any).created : function () {};
+        this.#attached = typeof (this.constructor as any).attached === 'function' ? (this.constructor as any).attached : function () {};
+        this.#detached = typeof (this.constructor as any).detached === 'function' ? (this.constructor as any).detached : function () {};
+        this.#attributed = typeof (this.constructor as any).attributed === 'function' ? (this.constructor as any).attributed : function () {};
 
         this.#name = this.nodeName.toLowerCase();
         // this.#methods = this.constructor.methods || {};
         // this.#template = this.constructor.template || '';
 
-        this.#model = Observer.clone(this.constructor.model, (data, path) => {
-        // this.#model = Observer.create(this.constructor.model, (data, path) => {
+        this.#model = Observer.clone((this.constructor as any).model, (data, path) => {
             Binder.data.forEach(binder => {
                 if (binder.container === this && binder.path.includes(path)) {
                 // if (binder.container === this && binder.path === path) {
@@ -106,9 +101,9 @@ class Component extends HTMLElement {
     render () {
 
         const template = document.createElement('template');
-        template.innerHTML = this.constructor.template;
+        template.innerHTML = (this.constructor as any).template;
 
-        const clone = template.content.cloneNode(true);
+        const clone = template.content.cloneNode(true) as Element;
 
         if (this.#adopt === true) {
             let child = this.firstElementChild;
@@ -121,7 +116,7 @@ class Component extends HTMLElement {
         if (this.#shadow && 'attachShadow' in document.body) {
             this.#root = this.attachShadow({ mode: 'open' });
         } else if (this.#shadow && 'createShadowRoot' in document.body) {
-            this.#root = this.createShadowRoot();
+            this.#root = (this as any).createShadowRoot();
         } else {
             compose(this, clone);
             this.#root = this;
@@ -140,8 +135,8 @@ class Component extends HTMLElement {
 
     }
 
-    attributeChangedCallback () {
-        Promise.resolve().then(() => this.#attributed(...arguments));
+    attributeChangedCallback (name, oldValue, newValue) {
+        Promise.resolve().then(() => this.#attributed(name, oldValue, newValue));
     }
 
     adoptedCallback () {
@@ -154,7 +149,7 @@ class Component extends HTMLElement {
     }
 
     connectedCallback () {
-        this.#css.attach(this.#name, this.constructor.css);
+        this.#css.attach(this.#name, (this.constructor as any).css);
 
         if (this.CREATED) {
             Promise.resolve().then(() => this.#attached());

@@ -1,24 +1,44 @@
-export default Object.freeze({
 
-    option: {},
+type FetcherOption = {
+    path?:string
+    method?:string
+    origin?:string
+    headers?:object
+    acceptType?:string
+    credentials?:string
+    contentType?:string
+    responseType?:string
+    request?:(FetchOption) => void
+    response?:(FetchOption) => void
+}
+
+type FetchOption = FetcherOption & {
+    body?:any
+    url?:string
+    aborted?:boolean
+}
+
+export default new class Fetcher {
+
+    option:FetcherOption = {}
     
-    types: Object.freeze([
+    readonly types =[
         'json',
         'text',
         'blob',
         'formData',
         'arrayBuffer'
-    ]),
+    ]
 
-    mime: Object.freeze({
+    readonly mime = {
         xml: 'text/xml; charset=utf-8',
         html: 'text/html; charset=utf-8',
         text: 'text/plain; charset=utf-8',
         json: 'application/json; charset=utf-8',
         js: 'application/javascript; charset=utf-8'
-    }),
+    }
 
-    async setup (option = {}) {
+    async setup (option:FetcherOption = {}) {
         this.option.path = option.path;
         this.option.method = option.method;
         this.option.origin = option.origin;
@@ -29,45 +49,44 @@ export default Object.freeze({
         this.option.credentials = option.credentials;
         this.option.contentType = option.contentType;
         this.option.responseType = option.responseType;
-    },
+    }
 
-    async method (method, data) {
+    async method (method:string, data?:string|object) {
         data = typeof data === 'string' ? { url: data } : data;
-        data.method = method;
-        return this.fetch(data);
-    },
+        return this.fetch({ ...data, method });
+    }
 
     async get () {
         return this.method('get', ...arguments);
-    },
+    }
     
     async put () {
         return this.method('put', ...arguments);
-    },
+    }
     
     async post () {
         return this.method('post', ...arguments);
-    },
+    }
     
     async head () {
         return this.method('head', ...arguments);
-    },
+    }
     
     async patch () {
         return this.method('patch', ...arguments);
-    },
+    }
     
     async delete () {
         return this.method('delete', ...arguments);
-    },
+    }
     
     async options () {
         return this.method('options', ...arguments);
-    },
+    }
     
     async connect () {
         return this.method('connect', ...arguments);
-    },
+    }
 
     async serialize (data) {
         let query = '';
@@ -78,9 +97,9 @@ export default Object.freeze({
         }
 
         return query;
-    },
+    }
 
-    async fetch (data = {}) {
+    async fetch (data:FetchOption = {}) {
         const { option } = this;
         const context = { ...option, ...data };
 
@@ -131,7 +150,7 @@ export default Object.freeze({
             }
         }
 
-        const result = await window.fetch(context.url, context);
+        const result = await window.fetch(context.url, (context as any));
 
         Object.defineProperties(context, {
             result: { enumerable: true, value: result },
@@ -166,4 +185,4 @@ export default Object.freeze({
         return context;
     }
 
-});
+}

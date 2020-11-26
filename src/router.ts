@@ -10,397 +10,423 @@ import basename from './path/basename';
 const self = {};
 const data = [];
 
+type Route = {
+    name : string
+    path : string
+    load : string
+}
+
+type Option = {
+    folder?: string;
+    routes?: Route[];
+    contain?: boolean;
+    external?: string;
+    target?: string | Element;
+    after?: (location:any) => void;
+    before?: (location:any) => void;
+    mode?: 'push' | 'replace' | 'href';
+}
+
 const absolute = function (path) {
     const a = document.createElement('a');
     a.href = path;
     return a.pathname;
 };
 
-const setup = async function (option = {}) {
+export default new class Router {
 
-    self.after = option.after;
-    self.before = option.before;
-    self.external = option.external;
-    self.mode = option.mode || 'push';
-    self.target = option.target || 'main';
-    self.folder = option.folder || './routes';
-    self.contain = option.contain === undefined ? false : option.contain;
+    data: Route[] = [];
 
-    if (typeof self.target === 'string') {
-        self.target = document.body.querySelector(self.target);
-    }
+    #folder: string;
+    #contain: boolean;
+    #target: Element;
+    #after: (location:any) => void;
+    #before: (location:any) => void;
+    #external: string | RegExp | Function;
+    #mode: 'push' | 'replace' | 'href' = 'push';
 
-    if (self.mode !== 'href') {
-        window.addEventListener('popstate', this.state.bind(this), true);
-        window.document.addEventListener('click', this.click.bind(this), true);
-    }
+    async setup (option : Option = {}) {
 
-    await this.add(option.routes);
-    await this.route(window.location.href, { mode: 'replace' });
-};
+        this.#after = option.after;
+        this.#before = option.before;
+        this.#external = option.external;
+        this.#mode = option.mode ?? 'push';
+        this.#contain = option.contain ?? false;
+        this.#folder = option.folder ?? './routes';
+        this.#target =  option.target instanceof Element ? option.target : document.body.querySelector(option.target || 'main'); 
 
-const compareParts = function (routePath, userPath, split) {
-    const compareParts = [];
+        if (this.#mode !== 'href') {
+            window.addEventListener('popstate', this.state.bind(this), true);
+            window.document.addEventListener('click', this.click.bind(this), true);
+        }
 
-    const routeParts = routePath.split(split);
-    const userParts = userPath.split(split);
+        await this.add(option.routes);
+        await this.route(window.location.href, { mode: 'replace' });
+    };
 
-    if (userParts.length > 1 && userParts[userParts.length - 1] === '') {
-        userParts.pop();
-    }
+    compareParts  (routePath, userPath, split) {
+        const compareParts = [];
 
-    if (routeParts.length > 1 && routeParts[routeParts.length - 1] === '') {
-        routeParts.pop();
-    }
+        const routeParts = routePath.split(split);
+        const userParts = userPath.split(split);
 
-    for (let i = 0, l = routeParts.length; i < l; i++) {
+        if (userParts.length > 1 && userParts[userParts.length - 1] === '') {
+            userParts.pop();
+        }
 
-        if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
+        if (routeParts.length > 1 && routeParts[routeParts.length - 1] === '') {
+            routeParts.pop();
+        }
 
-            if (routeParts[i] === '(~)') {
-                return true;
-            } else if (routeParts[i].indexOf('~') !== -1) {
-                if (userParts[i]) {
+        for (let i = 0, l = routeParts.length; i < l; i++) {
+
+            if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
+
+                if (routeParts[i] === '(~)') {
+                    return true;
+                } else if (routeParts[i].indexOf('~') !== -1) {
+                    if (userParts[i]) {
+                        compareParts.push(userParts[i]);
+                    }
+                } else {
                     compareParts.push(userParts[i]);
                 }
+
+            } else if (routeParts[i] !== userParts[i]) {
+                return false;
             } else {
-                compareParts.push(userParts[i]);
+                compareParts.push(routeParts[i]);
             }
 
-        } else if (routeParts[i] !== userParts[i]) {
-            return false;
+        }
+
+        if (compareParts.join(split) === userParts.join(split)) {
+            return true;
         } else {
-            compareParts.push(routeParts[i]);
+            return false;
+        }
+    };
+
+    compare (routePath, userPath) {
+
+        // userPath = Resolve(userPath);
+        // routePath = Resolve(routePath);
+
+        userPath = absolute(userPath);
+        routePath = absolute(routePath);
+
+        if (this.compareParts(routePath, userPath, '/')) {
+            return true;
         }
 
-    }
+        if (this.compareParts(routePath, userPath, '-')) {
+            return true;
+        }
 
-    if (compareParts.join(split) === userParts.join(split)) {
-        return true;
-    } else {
         return false;
-    }
-};
+    };
 
-const compare = function (routePath, userPath) {
+    scroll (x, y) {
+        window.scroll(x, y);
+    };
 
-    // userPath = Resolve(userPath);
-    // routePath = Resolve(routePath);
+    async back () {
+        window.history.back();
+    };
 
-    userPath = absolute(userPath);
-    routePath = absolute(routePath);
+    async forward () {
+        window.history.forward();
+    };
 
-    if (this.compareParts(routePath, userPath, '/')) {
-        return true;
-    }
+    async redirect (path) {
+        window.location.href = path;
+    };
 
-    if (this.compareParts(routePath, userPath, '-')) {
-        return true;
-    }
+    async add (data : string | Array<string|Route> | Route) {
+        if (!data) {
+            throw new Error('Oxe.router.add - options required');
+            // return;
+        } else if (typeof data === 'string') {
+            let load = data;
+            let path = data;
+            const name = `r-${data.replace('/', '-')}`;;
 
-    return false;
-};
+            if (path.slice(-3) === '') path = path.slice(0, -3);
+            if (path.slice(-5) === 'index') path = path.slice(0, -5);
+            if (path.slice(-6) === 'index/') path = path.slice(0, -6);
+            if (path.slice(0, 2) === './') path = path.slice(2);
+            if (path.slice(0, 1) !== '/') path = '/' + path;
 
-const scroll = function (x, y) {
-    window.scroll(x, y);
-};
+            if (load.slice(-3) !== '') load = load + '';
+            if (load.slice(0, 2) === './') load = load.slice(2);
+            if (load.slice(0, 1) !== '/') load = '/' + load;
 
-const back = function () {
-    window.history.back();
-};
+            if (load.slice(0, 1) === '/') load = load.slice(1);
+            if (this.#folder.slice(-1) === '/') this.#folder = this.#folder.slice(0, -1);
 
-const forward = function () {
-    window.history.forward();
-};
+            load = this.#folder + '/' + load;
+            load = absolute(load);
 
-const redirect = function (path) {
-    window.location.href = path;
-};
+            this.add({ path, name, load });
+        } else if (data instanceof Array) {
+            for (let i = 0; i < data.length; i++) {
+                await this.add(data[i]);
+            }
+        } else {
 
-const add = async function (data) {
-    if (!data) {
-        throw new Error('Oxe.router.add - options required');
-        // return;
-    } else if (typeof data === 'string') {
-        let load = data;
-        let path = data;
-        const name = `r-${data.replace('/', '-')}`;;
+            if (!data.name) throw new Error('Oxe.router.add - name required');
+            if (!data.path) throw new Error('Oxe.router.add - path required');
+            if (!data.load) throw new Error('Oxe.router.add - load required');
 
-        if (path.slice(-3) === '') path = path.slice(0, -3);
-        if (path.slice(-5) === 'index') path = path.slice(0, -5);
-        if (path.slice(-6) === 'index/') path = path.slice(0, -6);
-        if (path.slice(0, 2) === './') path = path.slice(2);
-        if (path.slice(0, 1) !== '/') path = '/' + path;
+            // if (!data.name && !data.load && !data.component) {
+            //     throw new Error('Oxe.router.add - route requires name and load property');
+            // }
 
-        if (load.slice(-3) !== '') load = load + '';
-        if (load.slice(0, 2) === './') load = load.slice(2);
-        if (load.slice(0, 1) !== '/') load = '/' + load;
-
-        if (load.slice(0, 1) === '/') load = load.slice(1);
-        if (self.folder.slice(-1) === '/') self.folder = self.folder.slice(0, -1);
-
-        load = self.folder + '/' + load;
-        load = absolute(load);
-
-        this.add({ path, name, load });
-    } else if (data instanceof Array) {
-        for (let i = 0; i < data.length; i++) {
-            await this.add(data[i]);
+            this.data.push(data);
         }
-    } else {
+    };
 
-        if (!data.name) throw new Error('Oxe.router.add - name required');
-        if (!data.path) throw new Error('Oxe.router.add - path required');
-        if (!data.load) throw new Error('Oxe.router.add - load required');
+    async load (route) {
 
-        // if (!data.name && !data.load && !data.component) {
-        //     throw new Error('Oxe.router.add - route requires name and load property');
+        if (route.load && !route.component) {
+            const load = await Load(route.load);
+            route.component = load.default;
+        }
+
+        // if (route.load) {
+        //     const load = await Load(route.load);
+        //     route = { ...load.default, ...route };
         // }
 
-        this.data.push(data);
-    }
-};
+        // if (typeof route.component === 'string') {
+        //     route.load = route.component;
+        //     const load = await Load(route.load);
+        //     route.component = load.default;
+        // }
 
-const load = async function (route) {
+        return route;
+    };
 
-    if (route.load && !route.component) {
-        const load = await Load(route.load);
-        route.component = load.default;
-    }
-
-    // if (route.load) {
-    //     const load = await Load(route.load);
-    //     route = { ...load.default, ...route };
-    // }
-
-    // if (typeof route.component === 'string') {
-    //     route.load = route.component;
-    //     const load = await Load(route.load);
-    //     route.component = load.default;
-    // }
-
-    return route;
-};
-
-const remove = async function (path) {
-    for (let i = 0; i < this.data.length; i++) {
-        if (this.data[i].path === path) {
-            this.data.splice(i, 1);
+    async remove (path) {
+        for (let i = 0; i < this.data.length; i++) {
+            if (this.data[i].path === path) {
+                this.data.splice(i, 1);
+            }
         }
-    }
-};
+    };
 
-const get = async function (path) {
-    for (let i = 0; i < this.data.length; i++) {
-        if (this.data[i].path === path) {
-            this.data[i] = await this.load(this.data[i]);
-            return this.data[i];
+    async get (path) {
+        for (let i = 0; i < this.data.length; i++) {
+            if (this.data[i].path === path) {
+                this.data[i] = await this.load(this.data[i]);
+                return this.data[i];
+            }
         }
-    }
-};
+    };
 
-const filter = async function (path) {
-    const result = [];
+    async filter (path) {
+        const result = [];
 
-    for (let i = 0; i < this.data.length; i++) {
-        if (this.compare(this.data[i].path, path)) {
-            this.data[i] = await this.load(this.data[i]);
-            result.push(this.data[i]);
-        }
-    }
-
-    return result;
-};
-
-const find = async function (path) {
-    // for (let i = 0; i < this.data.length; i++) {
-    //     if (this.data[i].path === path) {
-    //     // if (this.compare(this.data[i].path, path)) {
-    //         this.data[i] = await this.load(this.data[i]);
-    //         return this.data[i];
-    //     }
-    // }
-
-    let name;
-    if (path === '/') name = 'r-index';
-    else if (path.endsWith('/')) name = `r-${basename(path)}-index`;
-
-    const cache = this.data.find(route => route.path === path);
-    if (cache) return this.load(cache);
-
-    let load = path;
-    load = load.charAt(0) === '/' ? load.slice(1) : load;
-    load = load.charAt(load.length-1) === '/' ? load.slice(0, load.length-1) : load;
-    load = load.split('/');
-    load.splice(-1, 1, 'default');
-    load.unshift(self.folder);
-    load = load.join('/');
-
-    const route = await this.load({ path, name, load });
-    this.data.push(route);
-    return route;
-};
-
-const render = async function (route) {
-
-    if (!route) {
-        throw new Error('Oxe.router.render - route required');
-    }
-
-    if (!route.target) {
-        if (!route.name) throw new Error('Oxe.router.render - name required');
-        if (!route.component) throw new Error('Oxe.router.render - component required');
-        Define(route.name, route.component);
-        route.target = window.document.createElement(route.name);
-    }
-
-    window.document.title = route.component.title || route.target.title || route.target.model.title;
-
-    if (self.target) {
-
-        while (self.target.firstChild) {
-            self.target.removeChild(self.target.firstChild);
+        for (let i = 0; i < this.data.length; i++) {
+            if (this.compare(this.data[i].path, path)) {
+                this.data[i] = await this.load(this.data[i]);
+                result.push(this.data[i]);
+            }
         }
 
-        self.target.appendChild(route.target);
+        return result;
+    };
 
-    }
+    async find (path) {
+        // for (let i = 0; i < this.data.length; i++) {
+        //     if (this.data[i].path === path) {
+        //     // if (this.compare(this.data[i].path, path)) {
+        //         this.data[i] = await this.load(this.data[i]);
+        //         return this.data[i];
+        //     }
+        // }
 
-    window.scroll(0, 0);
-};
+        let name;
+        if (path === '/') name = 'r-index';
+        else if (path.endsWith('/')) name = `r-${basename(path)}-index`;
 
-const route = async function (path, options = {}) {
+        const cache = this.data.find(route => route.path === path);
+        if (cache) return this.load(cache);
 
-    if (options.query) {
-        path += Query(options.query);
-    }
+        let load = path;
+        load = load.charAt(0) === '/' ? load.slice(1) : load;
+        load = load.charAt(load.length-1) === '/' ? load.slice(0, load.length-1) : load;
+        load = load.split('/');
+        load.splice(-1, 1, 'default');
+        load.unshift(this.#folder);
+        load = load.join('/');
 
-    const location = Location(path);
-    const mode = options.mode || self.mode;
+        const route = await this.load({ path, name, load });
+        this.data.push(route);
+        return route;
+    };
 
-    const route = await this.find(location.pathname);
+    async render (route) {
 
-    if (!route) {
-        throw new Error(`Oxe.router.route - missing route ${location.pathname}`);
-    }
+        if (!route) {
+            throw new Error('Oxe.router.render - route required');
+        }
 
-    if (typeof self.before === 'function') {
-        await self.before(location);
-    }
+        if (!route.target) {
+            if (!route.name) throw new Error('Oxe.router.render - name required');
+            if (!route.component) throw new Error('Oxe.router.render - component required');
+            Define(route.name, route.component);
+            route.target = window.document.createElement(route.name);
+        }
 
-    if (route.handler) {
-        return route.handler(location);
-    }
+        window.document.title = route.component.title || route.target.title || route.target.model.title;
 
-    if (route.redirect) {
-        return this.redirect(route.redirect);
-    }
+        if (this.#target) {
 
-    Events(self.target, 'before', location);
+            while (this.#target.firstChild) {
+                this.#target.removeChild(this.#target.firstChild);
+            }
 
-    if (mode === 'href') {
-        return window.location.assign(location.path);
-    }
+            this.#target.appendChild(route.target);
 
-    window.history[mode + 'State']({ path: location.path }, '', location.path);
+        }
 
-    if (route.title) {
-        window.document.title = route.title;
-    }
+        window.scroll(0, 0);
+    };
 
-    await this.render(route);
+    async route (path, options:any = {}) {
 
-    if (typeof self.after === 'function') {
-        await self.after(location);
-    }
+        if (options.query) {
+            path += Query(options.query);
+        }
 
-    Events(self.target, 'after', location);
-};
+        const location = Location(path);
+        const mode = options.mode || this.#mode;
 
-const state = async function (event) {
-    const path = event && event.state ? event.state.path : window.location.href;
-    this.route(path, { mode: 'replace' });
-};
+        const route = await this.find(location.pathname);
 
-const click = async function (event) {
+        if (!route) {
+            throw new Error(`Oxe.router.route - missing route ${location.pathname}`);
+        }
 
-    // ignore canceled events, modified clicks, and right clicks
-    if (
-        event.target.type ||
-        event.button !== 0 ||
-        event.defaultPrevented ||
-        event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
-    ) return;
+        if (typeof this.#before === 'function') {
+            await this.#before(location);
+        }
 
-    // if shadow dom use
-    let target = event.path ? event.path[0] : event.target;
-    let parent = target.parentElement;
+        if (route.handler) {
+            return route.handler(location);
+        }
 
-    if (self.contain) {
+        if (route.redirect) {
+            return this.redirect(route.redirect);
+        }
 
-        while (parent) {
+        Events(this.#target, 'before', location);
 
-            if (parent.nodeName === self.target.nodeName) {
-                break;
-            } else {
-                parent = parent.parentElement;
+        if (mode === 'href') {
+            return window.location.assign(location.path);
+        }
+
+        window.history[mode + 'State']({ path: location.path }, '', location.path);
+
+        if (route.title) {
+            window.document.title = route.title;
+        }
+
+        await this.render(route);
+
+        if (typeof this.#after === 'function') {
+            await this.#after(location);
+        }
+
+        Events(this.#target, 'after', location);
+    };
+
+    async state (event) {
+        const path = event && event.state ? event.state.path : window.location.href;
+        this.route(path, { mode: 'replace' });
+    };
+
+    async click (event) {
+
+        // ignore canceled events, modified clicks, and right clicks
+        if (
+            event.target.type ||
+            event.button !== 0 ||
+            event.defaultPrevented ||
+            event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+        ) return;
+
+        // if shadow dom use
+        let target = event.path ? event.path[0] : event.target;
+        let parent = target.parentElement;
+
+        if (this.#contain) {
+
+            while (parent) {
+
+                if (parent.nodeName === this.#target.nodeName) {
+                    break;
+                } else {
+                    parent = parent.parentElement;
+                }
+
+            }
+
+            if (parent.nodeName !== this.#target.nodeName) {
+                return;
             }
 
         }
 
-        if (parent.nodeName !== self.target.nodeName) {
+        while (target && 'A' !== target.nodeName) {
+            target = target.parentElement;
+        }
+
+        if (!target || 'A' !== target.nodeName) {
             return;
         }
 
+        // check non-acceptables
+        const tel = 'tel:';
+        const ftp = 'ftp:';
+        const file = 'file:';
+        const mailto = 'mailto:';
+
+        if (target.hasAttribute('download') ||
+            target.hasAttribute('external') ||
+            target.hasAttribute('o-external') ||
+            target.href.slice(0, tel.length) === tel ||
+            target.href.slice(0, ftp.length) === ftp ||
+            target.href.slice(0, file.length) === file ||
+            target.href.slice(0, mailto.length) === mailto ||
+            target.href.slice(window.location.origin) !== 0 ||
+            (target.hash !== '' &&
+                target.origin === window.location.origin &&
+                target.pathname === window.location.pathname)
+        ) return;
+
+        // if external is true then default action
+        if (this.#external &&
+            (this.#external instanceof RegExp && this.#external.test(target.href) ||
+                typeof this.#external === 'function' && this.#external(target.href) ||
+                typeof this.#external === 'string' && this.#external === target.href)
+        ) return;
+
+        event.preventDefault();
+
+        // if (this.location.href !== target.href) {
+        this.route(target.href);
+        // }
     }
 
-    while (target && 'A' !== target.nodeName) {
-        target = target.parentElement;
-    }
+}
 
-    if (!target || 'A' !== target.nodeName) {
-        return;
-    }
-
-    // check non-acceptables
-    const tel = 'tel:';
-    const ftp = 'ftp:';
-    const file = 'file:';
-    const mailto = 'mailto:';
-
-    if (target.hasAttribute('download') ||
-        target.hasAttribute('external') ||
-        target.hasAttribute('o-external') ||
-        target.href.slice(0, tel.length) === tel ||
-        target.href.slice(0, ftp.length) === ftp ||
-        target.href.slice(0, file.length) === file ||
-        target.href.slice(0, mailto.length) === mailto ||
-        target.href.slice(window.location.origin) !== 0 ||
-        (target.hash !== '' &&
-            target.origin === window.location.origin &&
-            target.pathname === window.location.pathname)
-    ) return;
-
-    // if external is true then default action
-    if (self.external &&
-        (self.external.constructor === RegExp && self.external.test(target.href) ||
-            self.external.constructor === Function && self.external(target.href) ||
-            self.external.constructor === String && self.external === target.href)
-    ) return;
-
-    event.preventDefault();
-
-    // if (this.location.href !== target.href) {
-    this.route(target.href);
-    // }
-
-};
-
-export default Object.freeze({
-    data,
-    setup, compareParts, compare,
-    scroll, back, forward, redirect,
-    add, get, find, remove, filter,
-    route, render, load,
-    state, click
-});
+// export default Object.freeze({
+//     data,
+//     setup, compareParts, compare,
+//     scroll, back, forward, redirect,
+//     add, get, find, remove, filter,
+//     route, render, load,
+//     state, click
+// });

@@ -1,11 +1,11 @@
 
-export default class Css {
+export default new class Css {
 
     #data = new Map();
     #style = document.createElement('style');
     #support = !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)');
 
-    private constructor () {
+    constructor () {
         this.#style.appendChild(document.createTextNode(':not(:defined){visibility:hidden;}'));
         this.#style.setAttribute('title', 'oxe');
         document.head.appendChild(this.#style);

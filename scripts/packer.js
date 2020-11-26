@@ -2,8 +2,6 @@ import Fs from 'fs';
 import Path from 'path';
 import Util from 'util';
 import Readline from 'readline';
-// import Babel from '@babel/core';
-// import * as Rollup from 'rollup';
 import ChildProcess from 'child_process';
 
 let WATCHER_BUSY = false;
@@ -31,36 +29,12 @@ export const Spawn = async function (command, options = {}) {
     return s(commands[0], commands.slice(1), { ...options, detached: false, stdio: 'inherit' });
 };
 
-// export const Bundler = async function (option) {
-//     const { input, name, format, indent, rollup } = option;
-
-//     const bundled = await Rollup.rollup({ input });
-
-//     const generated = await bundled.generate({
-//         name, format, indent, ...rollup
-//     });
-
-//     return generated.output[0].code;
-// };
-
-// export const Transformer = async function (option) {
-//     const { code, name, minify, comments, babel } = option;
-
-//     const transformed = Babel.transform(code, {
-//         moduleId: name, minified: minify,
-//         comments, ...babel,
-//         sourceMaps: false
-//     });
-
-//     return transformed.code;
-// };
-
 export const Press = async function (key, listener) {
     Readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
-    process.stdin.on('keypress', name => {
+    process.stdin.on('keypress', async name => {
         if (name === key) {
-            Promise.resolve().then(listener).catch(console.error);
+            await listener();
         }
     });
 };
@@ -92,7 +66,7 @@ export const Watch = async function (data, listener) {
 
 };
 
-export const Argumenter = async function (args) {
+export const Argument = async function (args) {
     const result = {};
 
     // need to account for random = signs
@@ -120,70 +94,3 @@ export const Argumenter = async function (args) {
 
     return result;
 };
-
-// export const Packer = async function (option = {}) {
-
-//     if (!option.input) return console.error('input path required');
-//     if (!option.output) return console.error('output path required');
-
-//     // option.format = option.format || 'umd';
-//     // option.indent = option.indent || '    ';
-//     // option.comments = option.comments === undefined ? false : option.comments;
-
-//     option.header = option.header === undefined ? null : option.header;
-//     option.bundle = option.bundle === undefined ? false : option.bundle;
-//     option.transform = option.transform === undefined ? false : option.transform;
-
-//     option.name = option.name || '';
-//     option.input = Path.resolve(option.inputFolder || '', option.input);
-//     option.output = Path.resolve(option.outputFolder || '', option.output);
-
-//     // option.minify = option.minify === undefined ? option.output.includes('.min.') : option.minify;
-//     // option.name = option.name ? `${option.name[0].toUpperCase()}${option.name.slice(1).toLowerCase()}` : '';
-
-//     option.code = null;
-
-//     if (option.bundle) option.code = await Bundler(option);
-//     if (option.transform) option.code = await Transformer(option);
-//     if (!option.code)  option.code = await ReadFile(option.input);
-//     if (option.header) option.code = `${option.header}${option.code}`;
-
-//     await WriteFile(option.output, option.code);
-// };
-
-(async function () {
-
-    const args = process.argv.slice(2);
-    if (args.length === 0) return;
-
-    const opt = await Argumenter(args);
-
-    if (opt.config) {
-
-        const path = Path.resolve(opt.config);
-        const extension = Path.extname(path);
-
-        if (extension === '.js' || extension === '.mjs') {
-            Object.assign(opt, (await import(path)).default);
-        } else {
-            return console.error('\nPacker - invalid file extension');
-        }
-
-    }
-
-    console.log('\nPacker Started');
-
-    if (opt.output instanceof Array) {
-        for (let output of opt.output) {
-            output = typeof output === 'string' ? { output } : output;
-            console.log(`\toutput: ${Path.join(opt.outputFolder || '', output.output)}`);
-            await Packer({ ...opt, ...output });
-        }
-    } else {
-        console.log(`\toutput: ${Path.join(opt.outputFolder || '', opt.output)}`);
-        await Packer(opt);
-    }
-
-    console.log('Packer Ended\n');
-
-}()).catch(console.error);

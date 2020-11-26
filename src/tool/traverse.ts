@@ -1,5 +1,5 @@
 
-export default function Traverse (data, path, end) {
+export default function Traverse (data:object, path:string, end?:number) {
     const keys = typeof path === 'string' ? path.split('.') : path;
     const length = keys.length - (end || 0);
     let result = data;

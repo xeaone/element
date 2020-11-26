@@ -1,8 +1,9 @@
-{
-    "input": "src/index.js",
+
+export default {
+    "input": "build/index.js",
     "output": {
         "name": "Oxe",
-        "file": "dev/o.ts",
+        "file": "dev/oxe.js",
         "format": "esm",
         "indent": "    "
     }

@@ -2,15 +2,14 @@
     "compilerOptions": {
         "allowJs": true,
         "sourceMap": false,
-        "declaration": true,
+        "declaration": false,
         "removeComments": true,
         "importHelpers": false,
         "downlevelIteration": true,
-        "module": "umd",
+        "module": "es6",
         "target": "es2015",
-        "outDir": "dev",
-        "lib": [ "es2015", "dom" ]
+        "outDir": "build",
+        "lib": [ "es2015", "es2016", "dom" ]
     },
-    "files": [ "dev/o.ts" ],
     "include": [ "src/**/*" ]
 }
