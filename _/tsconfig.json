@@ -4,12 +4,15 @@
         "sourceMap": false,
         "declaration": false,
         "removeComments": true,
-        "importHelpers": false,
-        "downlevelIteration": true,
+        "noEmitHelpers": true,
         "module": "es6",
         "target": "es2015",
         "outDir": "build",
-        "lib": [ "es2015", "es2016", "dom" ]
+        "lib": [ "es2015", "es2016", "dom" ],
+        "baseUrl": ".",
+        "paths": {
+            "tslib" : [ "node_modules/tslib" ]
+        }
     },
     "include": [ "src/**/*" ]
 }

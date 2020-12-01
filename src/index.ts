@@ -48,43 +48,40 @@ let SETUP = false;
 //     listener: object;
 // }
 
-// export default Object.freeze({
-export default class Oxe {
+export default Object.freeze(new class Oxe {
 
-    static readonly Component;
-    static readonly component = Component;
+    Component = Component;
+    component = Component;
 
-    static readonly Location;
-    static readonly location = Location;
+    Location = Location;
+    location = Location;
 
-    static readonly Batcher;
-    static readonly batcher = Batcher;
+    Batcher = Batcher;
+    batcher = Batcher;
 
-    static readonly Fetcher;
-    static readonly fetcher = Fetcher;
+    Fetcher = Fetcher;
+    fetcher = Fetcher;
 
-    static readonly Router;
-    static readonly router = Router;
+    Router = Router;
+    router = Router;
 
-    static readonly Binder;
-    static readonly binder = Binder;
+    Binder = Binder;
+    binder = Binder;
 
-    static readonly Define;
-    static readonly define = Define;
+    Define = Define;
+    define = Define;
 
-    static readonly Class;
-    static readonly class = Class;
+    Class = Class;
+    class = Class;
 
-    static readonly Query;
-    static readonly query = Query;
+    Query = Query;
+    query = Query;
 
-    static readonly Load;
-    static readonly load = Load;
+    Load = Load;
+    load = Load;
 
-    static readonly Css;
-    static readonly css = Css;
-
-    private constructor () {}
+    Css = Css;
+    css = Css;
 
     setup (options: any) {
 
@@ -108,9 +105,9 @@ export default class Oxe {
 
         return Promise.all([
             // this.loader.setup(options.loader),
-            Oxe.binder.setup(options.binder),
-            Oxe.fetcher.setup(options.fetcher),
-            options.router ? Oxe.router.setup(options.router) : null
+            this.binder.setup(options.binder),
+            this.fetcher.setup(options.fetcher),
+            options.router ? this.router.setup(options.router) : null
         ]);
         // .then(() => {
         //     if (options.listener.before) {
@@ -127,5 +124,5 @@ export default class Oxe {
         // });
     }
 
-}
+})
 // });

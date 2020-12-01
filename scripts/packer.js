@@ -7,12 +7,13 @@ import ChildProcess from 'child_process';
 let WATCHER_BUSY = false;
 
 Readline.emitKeypressEvents(process.stdin);
-process.stdin.setRawMode(true);
-process.stdin.on('keypress', (_, data) => {
-    if (data.ctrl && data.name === 'c') {
-        process.exit();
-    }
-});
+
+// process.stdin.setRawMode(true);
+// process.stdin.on('keypress', (_, data) => {
+//     if (data.ctrl && data.name === 'c') {
+//         process.exit();
+//     }
+// });
 
 export const s = ChildProcess.spawn;
 export const e = Util.promisify(ChildProcess.exec);
@@ -26,13 +27,13 @@ export const Execute = async function (command, options) {
 
 export const Spawn = async function (command, options = {}) {
     const commands = command.split(/\s+/);
-    return s(commands[0], commands.slice(1), { ...options, detached: false, stdio: 'inherit' });
+    return s(commands[0], commands.slice(1), { ...options, detached: false, stdio: [ 'ignore', 'inherit', 'inherit' ] });
 };
 
 export const Press = async function (key, listener) {
     Readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
-    process.stdin.on('keypress', async name => {
+    process.stdin.on('keypress', async (name) => {
         if (name === key) {
             await listener();
         }
