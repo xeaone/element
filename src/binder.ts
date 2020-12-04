@@ -87,7 +87,7 @@ const properties = {
 
     render (binder, ...extra) {
         const type = binder.type in this.binders ? binder.type : 'default';
-        const render = this.binders[type](...extra);
+        const render = this.binders[type](binder, ...extra);
         Batcher.batch(render);
     },
 

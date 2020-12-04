@@ -90,7 +90,7 @@ const transform = function (code, url) {
     return code;
 };
 
-const load = async function (url) {
+const load = async function (url : string) {
     if (!url) throw new Error('Oxe.load - url required');
 
     url = resolve(url);

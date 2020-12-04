@@ -11,9 +11,9 @@ const setup = function (options:any = {}) {
     this.options.time = options.time || this.options.time;
 };
 
-const tick = function (method) {
+const tick = function (method: () => void) {
     return new Promise((resolve, reject) => {
-        requestAnimationFrame((time) => {
+        window.requestAnimationFrame(time => {
             Promise.resolve()
                 .then(method.bind(this, time))
                 .then(resolve)

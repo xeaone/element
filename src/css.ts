@@ -11,14 +11,14 @@ export default new class Css {
         document.head.appendChild(this.#style);
     }
 
-    scope (name, text) {
+    scope (name:string, text:string) {
         return text 
             .replace(/\t|\n\s*/g, '')
             .replace(/(^\s*|}\s*|,\s*)(\.?[a-zA-Z_-]+)/g, `$1${name} $2`)
             .replace(/:host/g, name);
     }
 
-    transform (text) {
+    transform (text:string = '') {
 
         if (!this.#support) {
             const matches = text.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
@@ -36,32 +36,35 @@ export default new class Css {
         return text;
     }
     
-    detach (name) {
-
+    detach (name:string) {
         const item = this.#data.get(name);
-        if (!item || item.count === 0) return;
 
+        if (!item || item.count === 0) return;
         item.count--;
 
-        if (item.count === 0) this.#style.removeChild(item.node);
-
-    }
-
-    attach (name, text) {
-
-        if (this.#data.has(name)) {
-            this.#data.get(name).count++;
-        } else {
-            const node = this.node(name, text);
-            this.#data.set(name, { count: 1, node });
-            this.#style.appendChild(node);
+        if (item.count === 0 && this.#style.contains(item.node)) {
+            this.#style.removeChild(item.node);
         }
 
+    }
+
+    attach (name:string, text:string) {
+        const item = this.#data.get(name) || { count: 0, node: this.node(name, text) };
+
+        if (item) {
+            item.count++;
+        } else {
+            this.#data.set(name, item);
+        }
+
+        if (!this.#style.contains(item.node)) {
+            this.#style.appendChild(item.node);
+        }
 
     }
 
-    node (name, text) {
-        return document.createTextNode(this.scope(name, this.transform(text || '')));
+    node (name:string, text:string) {
+        return document.createTextNode(this.scope(name, this.transform(text)));
     }
 
     // append (data) {

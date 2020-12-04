@@ -181,7 +181,7 @@
     };
     const tick = function (method) {
         return new Promise((resolve, reject) => {
-            requestAnimationFrame((time) => {
+            window.requestAnimationFrame(time => {
                 Promise.resolve()
                     .then(method.bind(this, time))
                     .then(resolve)
@@ -1056,7 +1056,7 @@
         },
         render(binder, ...extra) {
             const type = binder.type in this.binders ? binder.type : 'default';
-            const render = this.binders[type](...extra);
+            const render = this.binders[type](binder, ...extra);
             Batcher.batch(render);
         },
         unbind(node) {
@@ -1205,7 +1205,7 @@
                     .replace(/(^\s*|}\s*|,\s*)(\.?[a-zA-Z_-]+)/g, `$1${name} $2`)
                     .replace(/:host/g, name);
             }
-            transform(text) {
+            transform(text = '') {
                 if (!__classPrivateFieldGet(this, _support)) {
                     const matches = text.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
                     for (let i = 0; i < matches.length; i++) {
@@ -1223,21 +1223,24 @@
                 if (!item || item.count === 0)
                     return;
                 item.count--;
-                if (item.count === 0)
+                if (item.count === 0 && __classPrivateFieldGet(this, _style).contains(item.node)) {
                     __classPrivateFieldGet(this, _style).removeChild(item.node);
+                }
             }
             attach(name, text) {
-                if (__classPrivateFieldGet(this, _data).has(name)) {
-                    __classPrivateFieldGet(this, _data).get(name).count++;
+                const item = __classPrivateFieldGet(this, _data).get(name) || { count: 0, node: this.node(name, text) };
+                if (item) {
+                    item.count++;
                 }
                 else {
-                    const node = this.node(name, text);
-                    __classPrivateFieldGet(this, _data).set(name, { count: 1, node });
-                    __classPrivateFieldGet(this, _style).appendChild(node);
+                    __classPrivateFieldGet(this, _data).set(name, item);
+                }
+                if (!__classPrivateFieldGet(this, _style).contains(item.node)) {
+                    __classPrivateFieldGet(this, _style).appendChild(item.node);
                 }
             }
             node(name, text) {
-                return document.createTextNode(this.scope(name, this.transform(text || '')));
+                return document.createTextNode(this.scope(name, this.transform(text)));
             }
         },
         _data = new WeakMap(),
@@ -1571,56 +1574,6 @@
         }
     };
 
-    const assignOwnPropertyDescriptors = function (target, source) {
-        for (const name in source) {
-            if (Object.prototype.hasOwnProperty.call(source, name)) {
-                const descriptor = Object.getOwnPropertyDescriptor(source, name);
-                Object.defineProperty(target, name, descriptor);
-            }
-        }
-        return target;
-    };
-    function Class$1 (parent, child) {
-        child = child || parent;
-        parent = parent === child ? undefined : parent;
-        const prototype = typeof child === 'function' ? child.prototype : child;
-        const constructor = typeof child === 'function' ? child : child.constructor;
-        const Class = function Class() {
-            const self = this;
-            constructor.apply(self, arguments);
-            if ('super' in self) {
-                if ('_super' in self) {
-                    return assignOwnPropertyDescriptors(self._super, self);
-                }
-                else {
-                    throw new Error('Class this.super call required');
-                }
-            }
-            else {
-                return self;
-            }
-        };
-        if (parent) {
-            assignOwnPropertyDescriptors(Class, parent);
-            Class.prototype = Object.create(parent.prototype);
-            assignOwnPropertyDescriptors(Class.prototype, prototype);
-            const Super = function Super() {
-                if (this._super)
-                    return this._super;
-                this._super = window.Reflect.construct(parent, arguments, this.constructor);
-                assignOwnPropertyDescriptors(this.super, parent.prototype);
-                return this._super;
-            };
-            Object.defineProperty(Class.prototype, 'super', { enumerable: false, writable: true, value: Super });
-        }
-        else {
-            Class.prototype = Object.create({});
-            assignOwnPropertyDescriptors(Class.prototype, prototype);
-        }
-        Object.defineProperty(Class.prototype, 'constructor', { enumerable: false, writable: true, value: Class });
-        return Class;
-    }
-
     const single = '/';
     const double = '//';
     const colon = '://';
@@ -1864,28 +1817,27 @@
     window.MODULES = window.MODULES || {};
 
     function Define(name, constructor) {
-        if (!name)
-            throw new Error('Oxe.define - name required');
-        if (!name)
-            throw new Error('Oxe.define - constructor required');
-        if (typeof constructor === 'string') {
-            return Promise.resolve()
-                .then(() => load(constructor))
-                .then((data) => Define(name, data.default));
-        }
-        else if (typeof constructor === 'function') {
-            window.customElements.define(name, constructor);
-        }
-        else if (constructor instanceof Array) {
-            constructor.forEach(Define.bind(this, name));
-        }
-        else {
-            Define(name, Class$1(Component, constructor));
-        }
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!name)
+                throw new Error('Oxe.define - name required');
+            if (!name)
+                throw new Error('Oxe.define - constructor required');
+            if (typeof constructor === 'string') {
+                return Promise.resolve()
+                    .then(() => load(constructor))
+                    .then(data => Define(name, data.default));
+            }
+            else if (constructor instanceof Array) {
+                constructor.forEach(Define.bind(this, name));
+            }
+            else {
+                window.customElements.define(name, constructor);
+            }
+        });
     }
 
     function Events(target, name, detail, options) {
-        options = options || {};
+        options = options || { detail: null };
         options.detail = detail === undefined ? null : detail;
         target.dispatchEvent(new window.CustomEvent(name, options));
     }
@@ -1925,7 +1877,7 @@
         }
     }
 
-    var _folder, _contain, _target, _after, _before, _external, _mode, _a$1;
+    var _folder, _target, _contain, _external, _after, _before, _mode, _a$1;
     const absolute$1 = function (path) {
         const a = document.createElement('a');
         a.href = path;
@@ -1935,11 +1887,11 @@
             constructor() {
                 this.data = [];
                 _folder.set(this, void 0);
-                _contain.set(this, void 0);
                 _target.set(this, void 0);
+                _contain.set(this, void 0);
+                _external.set(this, void 0);
                 _after.set(this, void 0);
                 _before.set(this, void 0);
-                _external.set(this, void 0);
                 _mode.set(this, 'push');
             }
             setup(option = {}) {
@@ -1953,6 +1905,7 @@
                     __classPrivateFieldSet(this, _folder, (_c = option.folder) !== null && _c !== void 0 ? _c : './routes');
                     __classPrivateFieldSet(this, _target, option.target instanceof Element ? option.target : document.body.querySelector(option.target || 'main'));
                     if (__classPrivateFieldGet(this, _mode) !== 'href') {
+                        console.log(__classPrivateFieldGet(this, _mode));
                         window.addEventListener('popstate', this.state.bind(this), true);
                         window.document.addEventListener('click', this.click.bind(this), true);
                     }
@@ -1964,8 +1917,6 @@
             compare(routePath, userPath) {
                 const userParts = absolute$1(userPath).replace(/(\-|\/)/g, '**$1**').replace(/^\*\*|\*\*$/g, '').split('**');
                 const routeParts = absolute$1(routePath).replace(/(\-|\/)/g, '**$1**').replace(/^\*\*|\*\*$/g, '').split('**');
-                console.log(routePath, routeParts);
-                console.log(userPath, userParts);
                 for (let i = 0, l = userParts.length; i < l; i++) {
                     if (routeParts[i] === 'any')
                         return true;
@@ -1999,13 +1950,9 @@
             ;
             add(data) {
                 return __awaiter(this, void 0, void 0, function* () {
-                    if (!data) {
-                        throw new Error('Oxe.router.add - options required');
-                    }
-                    else if (typeof data === 'string') {
+                    if (typeof data === 'string') {
                         let load = data;
                         let path = data;
-                        const name = `r-${data.replace('/', '-')}`;
                         if (path.slice(-3) === '')
                             path = path.slice(0, -3);
                         if (path.slice(-5) === 'index')
@@ -2028,32 +1975,15 @@
                             __classPrivateFieldSet(this, _folder, __classPrivateFieldGet(this, _folder).slice(0, -1));
                         load = __classPrivateFieldGet(this, _folder) + '/' + load + '.js';
                         load = absolute$1(load);
+                        const name = `r-${data.replace('/', '-')}`;
                         this.add({ path, name, load });
                     }
                     else if (data instanceof Array) {
-                        for (let i = 0; i < data.length; i++) {
-                            yield this.add(data[i]);
-                        }
+                        return Promise.all(data.map(route => this.add(route)));
                     }
                     else {
-                        if (!data.name)
-                            throw new Error('Oxe.router.add - name required');
-                        if (!data.path)
-                            throw new Error('Oxe.router.add - path required');
-                        if (!data.load)
-                            throw new Error('Oxe.router.add - load required');
                         this.data.push(data);
                     }
-                });
-            }
-            ;
-            load(route) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (route.load && !route.component) {
-                        const load$1 = yield load(route.load);
-                        route.component = load$1.default;
-                    }
-                    return route;
                 });
             }
             ;
@@ -2091,38 +2021,41 @@
                 });
             }
             ;
+            load(route) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (!route.component) {
+                        const load$1 = yield load(route.load);
+                        route.component = load$1.default;
+                    }
+                    return route;
+                });
+            }
+            ;
             find(path) {
                 return __awaiter(this, void 0, void 0, function* () {
                     const route = this.data.find(route => this.compare(route.path, path));
-                    console.log(route);
-                    if (!route)
-                        throw new Error(`Oxe.router.route - not found ${path}`);
-                    const load = yield this.load(route);
-                    console.log(load);
-                    return load;
+                    return route ? yield this.load(route) : null;
                 });
             }
             ;
             render(route) {
                 return __awaiter(this, void 0, void 0, function* () {
-                    if (!route) {
-                        throw new Error('Oxe.router.render - route required');
-                    }
                     if (!route.target) {
                         if (!route.name)
                             throw new Error('Oxe.router.render - name required');
                         if (!route.component)
                             throw new Error('Oxe.router.render - component required');
-                        Define(route.name, route.component);
+                        window.customElements.define(route.name, route.component);
                         route.target = window.document.createElement(route.name);
                     }
-                    window.document.title = route.component.title || route.target.title || route.target.model.title;
-                    if (__classPrivateFieldGet(this, _target)) {
-                        while (__classPrivateFieldGet(this, _target).firstChild) {
-                            __classPrivateFieldGet(this, _target).removeChild(__classPrivateFieldGet(this, _target).firstChild);
-                        }
-                        __classPrivateFieldGet(this, _target).appendChild(route.target);
+                    window.document.title = route.component.title || route.target.title;
+                    if (!__classPrivateFieldGet(this, _target)) {
+                        throw new Error(`Oxe.router.render - target required`);
                     }
+                    while (__classPrivateFieldGet(this, _target).firstChild) {
+                        __classPrivateFieldGet(this, _target).removeChild(__classPrivateFieldGet(this, _target).firstChild);
+                    }
+                    __classPrivateFieldGet(this, _target).appendChild(route.target);
                     window.scroll(0, 0);
                 });
             }
@@ -2136,25 +2069,16 @@
                     const mode = options.mode || __classPrivateFieldGet(this, _mode);
                     const route = yield this.find(location.pathname);
                     if (!route) {
-                        throw new Error(`Oxe.router.route - missing route ${location.pathname}`);
+                        throw new Error(`Oxe.router.route - ${location.pathname} not found`);
+                    }
+                    if (mode === 'href') {
+                        return window.location.assign(location.path);
                     }
                     if (typeof __classPrivateFieldGet(this, _before) === 'function') {
                         yield __classPrivateFieldGet(this, _before).call(this, location);
                     }
-                    if (route.handler) {
-                        return route.handler(location);
-                    }
-                    if (route.redirect) {
-                        return this.redirect(route.redirect);
-                    }
                     Events(__classPrivateFieldGet(this, _target), 'before', location);
-                    if (mode === 'href') {
-                        return window.location.assign(location.path);
-                    }
                     window.history[mode + 'State']({ path: location.path }, '', location.path);
-                    if (route.title) {
-                        window.document.title = route.title;
-                    }
                     yield this.render(route);
                     if (typeof __classPrivateFieldGet(this, _after) === 'function') {
                         yield __classPrivateFieldGet(this, _after).call(this, location);
@@ -2198,21 +2122,14 @@
                     if (!target || 'A' !== target.nodeName) {
                         return;
                     }
-                    const tel = 'tel:';
-                    const ftp = 'ftp:';
-                    const file = 'file:';
-                    const mailto = 'mailto:';
                     if (target.hasAttribute('download') ||
                         target.hasAttribute('external') ||
                         target.hasAttribute('o-external') ||
-                        target.href.slice(0, tel.length) === tel ||
-                        target.href.slice(0, ftp.length) === ftp ||
-                        target.href.slice(0, file.length) === file ||
-                        target.href.slice(0, mailto.length) === mailto ||
-                        target.href.slice(window.location.origin) !== 0 ||
-                        (target.hash !== '' &&
-                            target.origin === window.location.origin &&
-                            target.pathname === window.location.pathname))
+                        target.href.startsWith('tel:') ||
+                        target.href.startsWith('ftp:') ||
+                        target.href.startsWith('file:)') ||
+                        target.href.startsWith('mailto:') ||
+                        !target.href.startsWith(window.location.origin))
                         return;
                     if (__classPrivateFieldGet(this, _external) &&
                         (__classPrivateFieldGet(this, _external) instanceof RegExp && __classPrivateFieldGet(this, _external).test(target.href) ||
@@ -2223,15 +2140,66 @@
                     this.route(target.href);
                 });
             }
+            ;
         },
         _folder = new WeakMap(),
-        _contain = new WeakMap(),
         _target = new WeakMap(),
+        _contain = new WeakMap(),
+        _external = new WeakMap(),
         _after = new WeakMap(),
         _before = new WeakMap(),
-        _external = new WeakMap(),
         _mode = new WeakMap(),
         _a$1);
+
+    const assignOwnPropertyDescriptors = function (target, source) {
+        for (const name in source) {
+            if (Object.prototype.hasOwnProperty.call(source, name)) {
+                const descriptor = Object.getOwnPropertyDescriptor(source, name);
+                Object.defineProperty(target, name, descriptor);
+            }
+        }
+        return target;
+    };
+    function Class$1 (parent, child) {
+        child = child || parent;
+        parent = parent === child ? undefined : parent;
+        const prototype = typeof child === 'function' ? child.prototype : child;
+        const constructor = typeof child === 'function' ? child : child.constructor;
+        const Class = function Class() {
+            const self = this;
+            constructor.apply(self, arguments);
+            if ('super' in self) {
+                if ('_super' in self) {
+                    return assignOwnPropertyDescriptors(self._super, self);
+                }
+                else {
+                    throw new Error('Class this.super call required');
+                }
+            }
+            else {
+                return self;
+            }
+        };
+        if (parent) {
+            assignOwnPropertyDescriptors(Class, parent);
+            Class.prototype = Object.create(parent.prototype);
+            assignOwnPropertyDescriptors(Class.prototype, prototype);
+            const Super = function Super() {
+                if (this._super)
+                    return this._super;
+                this._super = window.Reflect.construct(parent, arguments, this.constructor);
+                assignOwnPropertyDescriptors(this.super, parent.prototype);
+                return this._super;
+            };
+            Object.defineProperty(Class.prototype, 'super', { enumerable: false, writable: true, value: Super });
+        }
+        else {
+            Class.prototype = Object.create({});
+            assignOwnPropertyDescriptors(Class.prototype, prototype);
+        }
+        Object.defineProperty(Class.prototype, 'constructor', { enumerable: false, writable: true, value: Class });
+        return Class;
+    }
 
     if (typeof window.CustomEvent !== 'function') {
         window.CustomEvent = function CustomEvent(event, options) {

@@ -1,5 +1,5 @@
 
-export default function Location (data) {
+export default function Location (data:string) {
     data = data || window.location.href;
 
     const parser = document.createElement('a');
