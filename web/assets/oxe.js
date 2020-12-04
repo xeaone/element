@@ -469,7 +469,7 @@
                     let count = binder.meta.templateLength;
                     while (count--) {
                         const node = binder.target.lastChild;
-                        Promise.resolve().then(() => Binder$1.remove(node));
+                        Promise.resolve().then(Binder$1.remove.bind(Binder$1, node));
                         binder.target.removeChild(node);
                     }
                     binder.meta.currentLength--;
@@ -503,7 +503,7 @@
                     let node;
                     while (node = parsed.firstChild) {
                         binder.target.appendChild(node);
-                        Promise.resolve().then(() => Binder$1.add(node, binder.container));
+                        Promise.resolve().then(Binder$1.add.bind(Binder$1, node, binder.container));
                     }
                     binder.meta.currentLength++;
                 }

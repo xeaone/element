@@ -211,6 +211,7 @@ const properties = {
 
     add (node, container) {
         const type = node.nodeType;
+        
         // if (node.nodeType === Node.ATTRIBUTE_NODE) {
         //     if (node.name.indexOf(this.prefix) === 0) {
         //         this.bind(node, node.name, node.value, container, attribute);
