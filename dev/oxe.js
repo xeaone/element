@@ -2160,7 +2160,9 @@
                         name = 'r-index';
                     else if (path.endsWith('/'))
                         name = `r-${basename(path)}-index`;
+                    console.log(path);
                     const cache = this.data.find(route => route.path === path);
+                    console.log(cache);
                     if (cache)
                         return this.load(cache);
                     let load = path;
@@ -2207,7 +2209,9 @@
                     }
                     const location = Location(path);
                     const mode = options.mode || __classPrivateFieldGet(this, _mode);
+                    console.log(path);
                     const route = yield this.find(location.pathname);
+                    console.log(route);
                     if (!route) {
                         throw new Error(`Oxe.router.route - missing route ${location.pathname}`);
                     }

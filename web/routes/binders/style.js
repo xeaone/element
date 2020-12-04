@@ -1,6 +1,6 @@
 import Color from '../../modules/color.js';
 
-export default class RouteBinderStyle extends Oxe.Component {
+export default class BinderStyleRoute extends Oxe.Component {
 
     title = 'Style Binder'
 

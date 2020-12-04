@@ -1,11 +1,12 @@
 import Escape from '../modules/escape.js';
 import Say from '../modules/say.js';
 
+const { Component } = Oxe;
+
 // imprt Say from '../modules/say.js';
 
 var home = Escape(`
 	// home.js
-
 	exprt default {
 		path: '/',
 		title: 'Home',
@@ -35,7 +36,6 @@ var home = Escape(`
 
 var indexjs = Escape(`
 	// index.js
-
     imprt "./elements/e-menu.js";
 	imprt Home from './home.js';
 
@@ -54,7 +54,6 @@ var indexjs = Escape(`
 
 var indexhtml = Escape(/*html*/`
 	<!-- index.html -->
-
 	<html>
 	<head>
 
@@ -77,17 +76,16 @@ var indexhtml = Escape(/*html*/`
 	</html>
 `);
 
-export default {
-    title: 'Oxe',
-    // description: 'A mighty tiny web components framework/library.',
-    constructor: function () {
-        // this.Super();
-        this.super();
-    },
-    created: function () {
-        Say('r-home created');
-    },
-    template: /*html*/`
+export default class IndexRoute extends Component {
+
+    static title = 'Oxe';
+    static description = 'A mighty tiny web components framework/library.';
+
+	static created () {
+        Say('index created');
+	}
+
+    static template = /*html*/`
 		<h2>Overview</h2>
 
 		<strong>Synopsis</strong>
@@ -157,4 +155,5 @@ export default {
 			<code class="language-html">${indexhtml}</code>
 		</pre>
 	`
-};
+
+}

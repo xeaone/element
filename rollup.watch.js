@@ -25,7 +25,7 @@ export default [
         output: {
             banner,
             name: 'Oxe',
-            file: 'dev/oxe.js',
+            file: 'web/assets/oxe.js',
             format: 'umd',
             indent: '    ',
         },

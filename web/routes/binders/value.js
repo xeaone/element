@@ -4,7 +4,7 @@ const upper = function (text) {
     return text.toUpperCase();
 };
 
-export default class RouteBinderValue extends Component {
+export default class BinderValueRoute extends Component {
 
     title = 'Value Binder'
 

@@ -64,66 +64,19 @@ export default new class Router {
         await this.route(window.location.href, { mode: 'replace' });
     };
 
-    compareParts  (routePath, userPath, split) {
-        const compareParts = [];
-
-        const routeParts = routePath.split(split);
-        const userParts = userPath.split(split);
-
-        if (userParts.length > 1 && userParts[userParts.length - 1] === '') {
-            userParts.pop();
-        }
-
-        if (routeParts.length > 1 && routeParts[routeParts.length - 1] === '') {
-            routeParts.pop();
-        }
-
-        for (let i = 0, l = routeParts.length; i < l; i++) {
-
-            if (routeParts[i].slice(0, 1) === '(' && routeParts[i].slice(-1) === ')') {
-
-                if (routeParts[i] === '(~)') {
-                    return true;
-                } else if (routeParts[i].indexOf('~') !== -1) {
-                    if (userParts[i]) {
-                        compareParts.push(userParts[i]);
-                    }
-                } else {
-                    compareParts.push(userParts[i]);
-                }
-
-            } else if (routeParts[i] !== userParts[i]) {
-                return false;
-            } else {
-                compareParts.push(routeParts[i]);
-            }
-
-        }
-
-        if (compareParts.join(split) === userParts.join(split)) {
-            return true;
-        } else {
-            return false;
-        }
-    };
-
     compare (routePath, userPath) {
+        const userParts = absolute(userPath).replace(/(\-|\/)/g, '**$1**').replace(/^\*\*|\*\*$/g, '').split('**');
+        const routeParts = absolute(routePath).replace(/(\-|\/)/g, '**$1**').replace(/^\*\*|\*\*$/g, '').split('**');
 
-        // userPath = Resolve(userPath);
-        // routePath = Resolve(routePath);
+        console.log(routePath, routeParts);
+        console.log(userPath, userParts);
 
-        userPath = absolute(userPath);
-        routePath = absolute(routePath);
-
-        if (this.compareParts(routePath, userPath, '/')) {
-            return true;
+        for (let i = 0, l = userParts.length; i < l; i++) {
+            if (routeParts[i] === 'any') return true;
+            if (routeParts[i] !== userParts[i]) return false;
         }
 
-        if (this.compareParts(routePath, userPath, '-')) {
-            return true;
-        }
-
-        return false;
+        return true;
     };
 
     scroll (x, y) {
@@ -164,7 +117,7 @@ export default new class Router {
             if (load.slice(0, 1) === '/') load = load.slice(1);
             if (this.#folder.slice(-1) === '/') this.#folder = this.#folder.slice(0, -1);
 
-            load = this.#folder + '/' + load;
+            load = this.#folder + '/' + load + '.js';
             load = absolute(load);
 
             this.add({ path, name, load });
@@ -246,24 +199,34 @@ export default new class Router {
         //     }
         // }
 
-        let name;
-        if (path === '/') name = 'r-index';
-        else if (path.endsWith('/')) name = `r-${basename(path)}-index`;
+        // let name;
+        // if (path === '/') name = 'r-index';
+        // else if (path.endsWith('/')) name = `r-${basename(path)}-index`;
 
-        const cache = this.data.find(route => route.path === path);
-        if (cache) return this.load(cache);
+        const route = this.data.find(route => this.compare(route.path, path));
+            // this.data.find(route => route.path === path) ||
+            // this.data.find(route => route.path === '/any');
+            console.log(route);
+            
 
-        let load = path;
-        load = load.charAt(0) === '/' ? load.slice(1) : load;
-        load = load.charAt(load.length-1) === '/' ? load.slice(0, load.length-1) : load;
-        load = load.split('/');
-        load.splice(-1, 1, 'default');
-        load.unshift(this.#folder);
-        load = load.join('/');
+        if (!route) throw new Error(`Oxe.router.route - not found ${path}`);
 
-        const route = await this.load({ path, name, load });
-        this.data.push(route);
-        return route;
+        const load = await this.load(route);
+        console.log(load);
+
+        return load;
+
+        // let load = path;
+        // load = load.charAt(0) === '/' ? load.slice(1) : load;
+        // load = load.charAt(load.length-1) === '/' ? load.slice(0, load.length-1) : load;
+        // load = load.split('/');
+        // load.splice(-1, 1, 'default');
+        // load.unshift(this.#folder);
+        // load = load.join('/');
+
+        // const route = await this.load({ path, name, load });
+        // this.data.push(route);
+        // return route;
     };
 
     async render (route) {

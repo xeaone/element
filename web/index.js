@@ -45,7 +45,7 @@ Oxe.setup({
             'binders/style',
             'binders/text',
             'binders/value',
-            '(~)'
+            'any'
         ]
     }
 }).catch(console.error);

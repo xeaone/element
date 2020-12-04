@@ -1,6 +1,6 @@
 const { Component } = Oxe;
 
-export default class RouteBinderEach extends Component {
+export default class BinderEachRoute extends Component {
 
     title = 'Each Binder'
 
