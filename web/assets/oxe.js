@@ -160,14 +160,16 @@
     };
     var Observer = { get, set, create, clone };
 
-    function Traverse(data, path, end) {
-        const keys = typeof path === 'string' ? path.split('.') : path;
-        const length = keys.length - (end || 0);
-        let result = data;
-        for (let index = 0; index < length; index++) {
-            result = result[keys[index]];
+    function Traverse(data, paths) {
+        if (paths.length === 0) {
+            return data;
         }
-        return result;
+        else if (typeof data !== 'object') {
+            return undefined;
+        }
+        else {
+            return Traverse(data[paths[0]], paths.slice(1));
+        }
     }
 
     const reads = [];
@@ -327,7 +329,7 @@
         }
     };
 
-    function Checked (binder, event) {
+    function checked (binder, event) {
         if (binder.meta.busy) {
             return;
         }
@@ -336,7 +338,7 @@
         }
         if (!binder.meta.setup) {
             binder.meta.setup = true;
-            binder.target.addEventListener('input', event => Binder$1.render(binder, event));
+            binder.target.addEventListener('input', event => Binder.render(binder, event));
         }
         return {
             read(ctx) {
@@ -415,7 +417,7 @@
         };
     }
 
-    function Disable (binder) {
+    function disable (binder) {
         let data;
         return {
             read() {
@@ -432,7 +434,7 @@
         };
     }
 
-    function Each (binder) {
+    function each (binder) {
         if (binder.meta.busy) {
             console.log('busy each');
             return;
@@ -469,7 +471,7 @@
                     let count = binder.meta.templateLength;
                     while (count--) {
                         const node = binder.target.lastChild;
-                        Promise.resolve().then(Binder$1.remove.bind(Binder$1, node));
+                        Promise.resolve().then(Binder.remove.bind(Binder, node));
                         binder.target.removeChild(node);
                     }
                     binder.meta.currentLength--;
@@ -503,7 +505,7 @@
                     let node;
                     while (node = parsed.firstChild) {
                         binder.target.appendChild(node);
-                        Promise.resolve().then(Binder$1.add.bind(Binder$1, node, binder.container));
+                        Promise.resolve().then(Binder.add.bind(Binder, node, binder.container));
                     }
                     binder.meta.currentLength++;
                 }
@@ -513,7 +515,7 @@
         return { read, write };
     }
 
-    function Enable (binder) {
+    function enable (binder) {
         let data;
         return {
             read() {
@@ -530,7 +532,7 @@
         };
     }
 
-    function Hide (binder) {
+    function hide (binder) {
         let data;
         return {
             read() {
@@ -547,7 +549,7 @@
         };
     }
 
-    function Href (binder) {
+    function href (binder) {
         let data;
         return {
             read() {
@@ -564,7 +566,7 @@
         };
     }
 
-    function Html (binder) {
+    function html (binder) {
         let data;
         return {
             read() {
@@ -582,13 +584,13 @@
             write() {
                 while (binder.target.firstChild) {
                     const node = binder.target.removeChild(binder.target.firstChild);
-                    Binder$1.remove(node);
+                    Binder.remove(node);
                 }
                 const fragment = document.createDocumentFragment();
                 const parser = document.createElement('div');
                 parser.innerHTML = data;
                 while (parser.firstElementChild) {
-                    Binder$1.add(parser.firstElementChild, {
+                    Binder.add(parser.firstElementChild, {
                         container: binder.container,
                     });
                     fragment.appendChild(parser.firstElementChild);
@@ -598,19 +600,17 @@
         };
     }
 
-    function On (binder) {
+    function on (binder) {
         const type = binder.names[1];
         binder.target[`on${type}`] = null;
         if (binder.meta.method) {
             binder.target.removeEventListener(type, binder.meta.method);
         }
-        binder.meta.method = event => {
-            binder.data.call(binder.container, event);
-        };
+        binder.meta.method = binder.data;
         binder.target.addEventListener(type, binder.meta.method);
     }
 
-    function Read (binder) {
+    function read (binder) {
         let data;
         return {
             read() {
@@ -659,7 +659,7 @@
                     !type) {
                     continue;
                 }
-                const binder = (_a = Binder$1.get(element)) === null || _a === void 0 ? void 0 : _a.get('value');
+                const binder = (_a = Binder.get(element)) === null || _a === void 0 ? void 0 : _a.get('value');
                 if (!binder) {
                     if (type === 'select-one' || type === 'select-multiple') {
                         element.selectedIndex = null;
@@ -690,7 +690,7 @@
             }
         });
     };
-    function Reset (binder) {
+    function reset$1 (binder) {
         if (typeof binder.data !== 'function') {
             console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
             return;
@@ -702,7 +702,7 @@
         binder.target.addEventListener('reset', binder.meta.method, false);
     }
 
-    function Show (binder) {
+    function show (binder) {
         let data;
         return {
             read() {
@@ -719,7 +719,7 @@
         };
     }
 
-    function Style (binder) {
+    function style (binder) {
         let data, name, names;
         return {
             read() {
@@ -771,7 +771,7 @@
                     !element.type)
                     continue;
                 const attribute = element.attributes['o-value'];
-                const b = Binder$1.get(attribute);
+                const b = Binder.get(attribute);
                 console.warn('todo: need to get a value for selects');
                 const value = (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
                 const name = element.name || (b ? b.values[b.values.length - 1] : null);
@@ -788,7 +788,7 @@
             }
         });
     };
-    function Submit (binder) {
+    function submit$1 (binder) {
         binder.target.submit = null;
         if (typeof binder.data !== 'function') {
             console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
@@ -801,7 +801,7 @@
         binder.target.addEventListener('submit', binder.meta.method);
     }
 
-    function Text (binder) {
+    function text (binder) {
         let data;
         return {
             read() {
@@ -843,7 +843,7 @@
             binder.data = binder.target.value;
         }
     };
-    function Value (binder, event) {
+    function value (binder, event) {
         const type = binder.target.type;
         if (binder.meta.busy) {
             console.log('busy value');
@@ -878,7 +878,7 @@
                         const node = ctx.options[i];
                         const selected = node.selected;
                         const attribute = node.attributes['o-value'] || node.attributes['value'];
-                        const option = Binder$1.get(attribute) || { get data() { return node.value; }, set data(data) { node.value = data; } };
+                        const option = Binder.get(attribute) || { get data() { return node.value; }, set data(data) { node.value = data; } };
                         if (ctx.multiple) {
                             const index = Index(binder.data, option.data);
                             if (event) {
@@ -984,7 +984,7 @@
         }
     }
 
-    function Write (binder) {
+    function write (binder) {
         let data;
         return {
             read() {
@@ -1001,44 +1001,39 @@
         };
     }
 
-    const PIPE = /\s?\|\s?/;
-    const PIPES = /\s?,\s?|\s+/;
-    const VARIABLE_PATTERNS = /[._$a-zA-Z0-9[\]]+/g;
-    const Binder = {};
-    const properties = {
-        data: new Map(),
-        prefix: 'o-',
-        syntaxEnd: '}}',
-        syntaxStart: '{{',
-        prefixReplace: new RegExp('^o-'),
-        syntaxReplace: new RegExp('{{|}}', 'g'),
-        binders: {
-            checked: Checked.bind(Binder),
-            class: Class.bind(Binder),
-            css: Style.bind(Binder),
-            default: Default.bind(Binder),
-            disable: Disable.bind(Binder),
-            disabled: Disable.bind(Binder),
-            each: Each.bind(Binder),
-            enable: Enable.bind(Binder),
-            enabled: Enable.bind(Binder),
-            hide: Hide.bind(Binder),
-            hidden: Hide.bind(Binder),
-            href: Href.bind(Binder),
-            html: Html.bind(Binder),
-            on: On.bind(Binder),
-            read: Read.bind(Binder),
-            require: Require.bind(Binder),
-            required: Require.bind(Binder),
-            reset: Reset.bind(Binder),
-            show: Show.bind(Binder),
-            showed: Show.bind(Binder),
-            style: Style.bind(Binder),
-            submit: Submit.bind(Binder),
-            text: Text.bind(Binder),
-            value: Value.bind(Binder),
-            write: Write.bind(Binder)
-        },
+    const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+    const TN = Node.TEXT_NODE;
+    const EN = Node.ELEMENT_NODE;
+    var Binder = new class Binder {
+        constructor() {
+            this.data = new Map();
+            this.prefix = 'o-';
+            this.syntaxEnd = '}}';
+            this.syntaxStart = '{{';
+            this.prefixReplace = new RegExp('^o-');
+            this.syntaxReplace = new RegExp('{{|}}', 'g');
+            this.binders = {
+                checked,
+                class: Class,
+                default: Default,
+                disable, disabled: disable,
+                each,
+                enable, enabled: enable,
+                hide, hidden: hide,
+                href,
+                html,
+                on,
+                read,
+                require: Require, required: Require,
+                reset: reset$1,
+                show, showed: show,
+                style,
+                submit: submit$1,
+                text,
+                value,
+                write
+            };
+        }
         setup(options = {}) {
             return __awaiter(this, void 0, void 0, function* () {
                 const { binders } = options;
@@ -1050,97 +1045,125 @@
                     }
                 }
             });
-        },
+        }
         get(node) {
             return this.data.get(node);
-        },
+        }
         render(binder, ...extra) {
             const type = binder.type in this.binders ? binder.type : 'default';
             const render = this.binders[type](binder, ...extra);
             Batcher.batch(render);
-        },
+        }
         unbind(node) {
-            return this.data.remove(node);
-        },
-        bind(target, name, value, container, attr) {
-            var _a;
+            return this.data.delete(node);
+        }
+        bind(target, name, value, container, key) {
             const self = this;
             value = value.replace(this.syntaxReplace, '').trim();
             name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
-            if (name.startsWith('on'))
+            if (name.startsWith('on')) {
                 name = 'on-' + name.slice(2);
-            if (value.startsWith('\'') || value.startsWith('"')) {
+            }
+            if (value.startsWith('\'') || value.startsWith('\"')) {
                 target.textContent = value.slice(1, -1);
                 return;
             }
-            else if (/^NaN$|^[0-9]/.test(value)) {
+            else if (/\s*(^NaN$|^true$|^false$|^[0-9]+$)\s*/.test(value)) {
                 target.textContent = value;
                 return;
             }
-            else if (!/[._$a-z0-9[\]]+/.test(value)) {
-                console.error('Oxe.binder - value is not valid');
+            const values = value.match(VARIABLE_PATTERNS);
+            if (!values) {
+                console.error('Oxe.binder.bind - value is not valid');
+                return;
             }
-            const pipe = value.split(PIPE);
-            const paths = value.match(VARIABLE_PATTERNS) || [];
+            const paths = values.map(path => path.split('.'));
             const names = name.split('-');
-            const values = pipe[0] ? pipe[0].split('.') : [];
-            const pipes = pipe[1] ? pipe[1].split(PIPES) : [];
             const meta = {};
             const type = names[0];
-            const path = paths[0];
-            const keys = ((_a = paths[0]) === null || _a === void 0 ? void 0 : _a.split('.')) || [];
-            const property = keys.slice(-1)[0];
-            const binder = Object.freeze({
-                type,
-                keys,
-                name, value,
-                names, pipes, values, meta,
-                target, container,
-                render: self.render,
-                get path() {
-                    return path;
-                },
-                getAttribute(name) {
-                    var _a, _b;
-                    const node = target.getAttributeNode(name);
-                    if (!node)
-                        return undefined;
-                    const data = (_b = (_a = self.data) === null || _a === void 0 ? void 0 : _a.get(node)) === null || _b === void 0 ? void 0 : _b.data;
-                    return data === undefined ? node.value : data;
-                },
-                get data() {
-                    const source = Traverse(container.model, keys, 1);
-                    return source[property];
-                },
-                set data(value) {
-                    const source = Traverse(container.model, keys, 1);
-                    source[property] = value;
+            const parameterPaths = paths.slice(1);
+            const childKey = paths[0].slice(-1)[0];
+            const parentKeys = paths[0].slice(0, -1);
+            for (const path of values) {
+                const binder = Object.freeze({
+                    path, paths,
+                    name, names,
+                    value, values,
+                    meta,
+                    type,
+                    target, container,
+                    render: self.render,
+                    childKey,
+                    parentKeys,
+                    parameterPaths,
+                    getAttribute(name) {
+                        var _a, _b;
+                        const node = target.getAttributeNode(name);
+                        if (!node)
+                            return undefined;
+                        const data = (_b = (_a = self.data) === null || _a === void 0 ? void 0 : _a.get(node)) === null || _b === void 0 ? void 0 : _b.data;
+                        return data === undefined ? node.value : data;
+                    },
+                    get data() {
+                        const parentValue = Traverse(container.model, this.parentKeys);
+                        const childValue = parentValue[this.childKey];
+                        if (this.type === 'on') {
+                            return event => {
+                                const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                                return childValue.call(this.container, event, ...parameters);
+                            };
+                        }
+                        else if (typeof childValue === 'function') {
+                            const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                            return childValue.call(this.container, ...parameters);
+                        }
+                        else {
+                            return childValue;
+                        }
+                    },
+                    set data(value) {
+                        const parentValue = Traverse(container.model, this.parentKeys);
+                        const childValue = parentValue[this.childKey];
+                        if (this.type === 'on') {
+                            parentValue[this.childKey] = value;
+                        }
+                        else if (typeof childValue === 'function') {
+                            const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                            childValue.call(this.container, ...parameters);
+                        }
+                        else {
+                            parentValue[this.childKey] = value;
+                        }
+                    }
+                });
+                this.data.set(key, binder);
+                if (target.nodeName.includes('-')) {
+                    window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
                 }
-            });
-            this.data.set(attr || binder.target, binder);
-            if (target.nodeName.includes('-')) {
-                window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
+                else {
+                    this.render(binder);
+                }
             }
-            else {
-                this.render(binder);
-            }
-        },
+        }
         remove(node) {
-            const attributes = node.attributes;
-            for (let i = 0; i < attributes.length; i++) {
-                const attribute = attributes[i];
-                this.unbind(attribute);
+            const type = node.nodeType;
+            if (type === EN) {
+                const attributes = node.attributes;
+                for (let i = 0; i < attributes.length; i++) {
+                    const attribute = attributes[i];
+                    this.unbind(attribute);
+                }
             }
             this.unbind(node);
-            node = node.firstChild;
-            while (node) {
-                this.remove(node);
-                node = node.nextSibling;
+            let child = node.firstChild;
+            while (child) {
+                this.remove(child);
+                child = child.nextSibling;
             }
-        },
+        }
         add(node, container) {
             const type = node.nodeType;
-            if (type === Node.TEXT_NODE) {
+            if (type === TN) {
                 const start = node.textContent.indexOf(this.syntaxStart);
                 if (start === -1)
                     return;
@@ -1151,14 +1174,14 @@
                     return;
                 if (end + this.syntaxStart.length !== node.textContent.length) {
                     const split = node.splitText(end + this.syntaxEnd.length);
-                    this.bind(node, 'text', node.textContent, container);
-                    this.add(split);
+                    this.bind(node, 'text', node.textContent, container, node);
+                    this.add(split, container);
                 }
                 else {
-                    this.bind(node, 'text', node.textContent, container);
+                    this.bind(node, 'text', node.textContent, container, node);
                 }
             }
-            else if (type === Node.ELEMENT_NODE) {
+            else if (type === EN) {
                 let skip = false;
                 const attributes = node.attributes;
                 for (let i = 0; i < attributes.length; i++) {
@@ -1179,15 +1202,14 @@
                 }
                 if (skip)
                     return;
-                node = node.firstChild;
-                while (node) {
-                    this.add(node, container);
-                    node = node.nextSibling;
+                let child = node.firstChild;
+                while (child) {
+                    this.add(child, container);
+                    child = child.nextSibling;
                 }
             }
         }
     };
-    var Binder$1 = Object.freeze(Object.assign(Object.assign({}, Binder), properties));
 
     var _data, _style, _support, _a;
     var Css = new (_a = class Css {
@@ -1281,7 +1303,7 @@
         constructor() {
             super();
             _css.set(this, Css);
-            _binder.set(this, Binder$1);
+            _binder.set(this, Binder);
             _root.set(this, void 0);
             _name.set(this, void 0);
             _adopt.set(this, void 0);
@@ -1301,9 +1323,9 @@
             __classPrivateFieldSet(this, _attributed, typeof this.constructor.attributed === 'function' ? this.constructor.attributed : function () { });
             __classPrivateFieldSet(this, _name, this.nodeName.toLowerCase());
             __classPrivateFieldSet(this, _model, Observer.clone(this.constructor.model, (data, path) => {
-                Binder$1.data.forEach(binder => {
-                    if (binder.container === this && binder.path.includes(path)) {
-                        Binder$1.render(binder);
+                Binder.data.forEach(binder => {
+                    if (binder.container === this && binder.path.startsWith(path)) {
+                        Binder.render(binder);
                     }
                 });
             }));
@@ -1320,7 +1342,7 @@
             if (__classPrivateFieldGet(this, _adopt) === true) {
                 let child = this.firstElementChild;
                 while (child) {
-                    Binder$1.add(child, this);
+                    Binder.add(child, this);
                     child = child.nextElementSibling;
                 }
             }
@@ -1336,7 +1358,7 @@
             }
             let child = clone.firstElementChild;
             while (child) {
-                Binder$1.add(child, this);
+                Binder.add(child, this);
                 __classPrivateFieldGet(this, _root).appendChild(child);
                 child = clone.firstElementChild;
             }
@@ -2234,8 +2256,8 @@
             this.fetcher = Fetcher;
             this.Router = Router;
             this.router = Router;
-            this.Binder = Binder$1;
-            this.binder = Binder$1;
+            this.Binder = Binder;
+            this.binder = Binder;
             this.Define = Define;
             this.define = Define;
             this.Class = Class$1;

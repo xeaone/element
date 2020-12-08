@@ -89,7 +89,8 @@ class Component extends HTMLElement {
 
         this.#model = Observer.clone((this.constructor as any).model, (data, path) => {
             Binder.data.forEach(binder => {
-                if (binder.container === this && binder.path.includes(path)) {
+                if (binder.container === this && binder.path.startsWith(path)) {
+                // if (binder.container === this && binder.path.includes(path)) {
                 // if (binder.container === this && binder.path === path) {
                     Binder.render(binder);
                 }

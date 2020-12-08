@@ -25,9 +25,11 @@ export default function (binder) {
     //     });
     // };
 
-    binder.meta.method = event => {
-        binder.data.call(binder.container, event);
-    };
+    binder.meta.method = binder.data;
+
+    // binder.meta.method = event => {
+    //     binder.data.call(binder.container, event);
+    // };
 
     binder.target.addEventListener(type, binder.meta.method);
 }

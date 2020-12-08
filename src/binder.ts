@@ -3,70 +3,67 @@ import Traverse from './tool/traverse';
 import Batcher from './batcher';
 import Piper from './piper';
 
-import Checked from './binder/checked';
+import checked from './binder/checked';
 import Class from './binder/class';
 import Default from './binder/default';
-import Disable from './binder/disable';
-import Each from './binder/each';
-import Enable from './binder/enable';
-import Hide from './binder/hide';
-import Href from './binder/href';
-import Html from './binder/html';
-import On from './binder/on';
-import Read from './binder/read';
+import disable from './binder/disable';
+import each from './binder/each';
+import enable from './binder/enable';
+import hide from './binder/hide';
+import href from './binder/href';
+import html from './binder/html';
+import on from './binder/on';
+import read from './binder/read';
 import Require from './binder/require';
-import Reset from './binder/reset';
-import Show from './binder/show';
-import Style from './binder/style';
-import Submit from './binder/submit';
-import Text from './binder/text';
-import Value from './binder/value';
-import Write from './binder/write';
+import reset from './binder/reset';
+import show from './binder/show';
+import style from './binder/style';
+import submit from './binder/submit';
+import text from './binder/text';
+import value from './binder/value';
+import write from './binder/write';
 
 const PIPE = /\s?\|\s?/;
 const PIPES = /\s?,\s?|\s+/;
-const PATH = /\s?,\s?|\s?\|\s?|\s+/;
-const VARIABLE_PATTERNS = /[._$a-zA-Z0-9[\]]+/g;
+// const PATH = /\s?,\s?|\s?\|\s?|\s+/;
+const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
 
-const Binder = {};
+const TN = Node.TEXT_NODE;
+const EN = Node.ELEMENT_NODE;
+const AN = Node.ATTRIBUTE_NODE;
 
-const properties = {
+export default new class Binder {
 
-    data: new Map(),
+    data:Map<Node, any> = new Map();
 
-    prefix: 'o-',
-    syntaxEnd: '}}',
-    syntaxStart: '{{',
-    prefixReplace: new RegExp('^o-'),
-    syntaxReplace: new RegExp('{{|}}', 'g'),
+    prefix = 'o-';
+    syntaxEnd = '}}';
+    syntaxStart = '{{';
+    prefixReplace = new RegExp('^o-');
+    syntaxReplace = new RegExp('{{|}}', 'g');
 
-    binders: {
-        checked: Checked.bind(Binder),
-        class: Class.bind(Binder),
-        css: Style.bind(Binder),
-        default: Default.bind(Binder),
-        disable: Disable.bind(Binder),
-        disabled: Disable.bind(Binder),
-        each: Each.bind(Binder),
-        enable: Enable.bind(Binder),
-        enabled: Enable.bind(Binder),
-        hide: Hide.bind(Binder),
-        hidden: Hide.bind(Binder),
-        href: Href.bind(Binder),
-        html: Html.bind(Binder),
-        on: On.bind(Binder),
-        read: Read.bind(Binder),
-        require: Require.bind(Binder),
-        required: Require.bind(Binder),
-        reset: Reset.bind(Binder),
-        show: Show.bind(Binder),
-        showed: Show.bind(Binder),
-        style: Style.bind(Binder),
-        submit: Submit.bind(Binder),
-        text: Text.bind(Binder),
-        value: Value.bind(Binder),
-        write: Write.bind(Binder)
-    },
+    binders = {
+        checked,
+        class: Class,
+        // css: style,
+        default: Default,
+        disable, disabled: disable,
+        each,
+        enable, enabled: enable,
+        hide, hidden: hide,
+        href,
+        html,
+        on,
+        read,
+        require: Require, required: Require,
+        reset,
+        show, showed: show,
+        style,
+        submit,
+        text,
+        value,
+        write
+    }
 
     async setup (options:any = {}) {
         const { binders } = options;
@@ -79,166 +76,203 @@ const properties = {
             }
         }
 
-    },
+    }
 
     get (node) {
         return this.data.get(node);
-    },
+    }
 
-    render (binder, ...extra) {
+    render (binder:any, ...extra) {
         const type = binder.type in this.binders ? binder.type : 'default';
         const render = this.binders[type](binder, ...extra);
         Batcher.batch(render);
-    },
+    }
 
-    unbind (node) {
-        return this.data.remove(node);
-    },
+    unbind (node:Node) {
+        return this.data.delete(node);
+    }
 
-    bind (target, name, value, container, attr) {
+    bind (target:Node, name:string, value:string, container:any, key:Node) {
         const self = this;
 
         value = value.replace(this.syntaxReplace, '').trim();
         name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
 
-        if (name.startsWith('on')) name = 'on-' + name.slice(2);
-
-        if (value.startsWith('\'') || value.startsWith('"')) {
-            target.textContent = value.slice(1, -1);
-            return;
-        } else if (/^NaN$|^[0-9]/.test(value)) {
-            target.textContent = value;
-            return;
-        } else if (!/[._$a-z0-9[\]]+/.test(value)) {
-            console.error('Oxe.binder - value is not valid');
+        if (name.startsWith('on')) {
+            name = 'on-' + name.slice(2);
         }
 
-        const pipe = value.split(PIPE);
-        const paths = value.match(VARIABLE_PATTERNS) || [];
-        // const paths = value.split(PATH);
+        if (value.startsWith('\'') || value.startsWith('\"')) {
+            target.textContent = value.slice(1, -1);
+            return;
+        } else if (/\s*(^NaN$|^true$|^false$|^[0-9]+$)\s*/.test(value)) {
+            target.textContent = value;
+            return;
+        }
 
+        // const pipe = value.split(PIPE);
+        const values = value.match(VARIABLE_PATTERNS);
+
+        if (!values) {
+            console.error('Oxe.binder.bind - value is not valid');
+            return;
+        }
+
+        const paths = values.map(path => path.split('.'));
+
+        // const values = [];
         const names = name.split('-');
-        const values = pipe[0] ? pipe[0].split('.') : [];
-        const pipes = pipe[1] ? pipe[1].split(PIPES) : [];
 
         const meta = {};
         const type = names[0];
-        const path = paths[0];
-        const keys = paths[0]?.split('.') || [];
-        const property = keys.slice(-1)[0];
+        const parameterPaths = paths.slice(1);
+        const childKey = paths[0].slice(-1)[0];
+        const parentKeys = paths[0].slice(0, -1);
 
-        const binder = Object.freeze({
+        // const values = pipe[0] ? pipe[0].split('.') : [];
+        // const pipes = pipe[1] ? pipe[1].split(PIPES) : [];
+        // const properties = path.split('.');
+        // const property = properties.slice(-1)[0];
 
-            type,
-            // path,
-            keys,
-            name, value,
-            names, pipes, values, meta,
-            target, container,
+        for (const path of values) {
+            const binder = Object.freeze({
 
-            render: self.render,
+                path, paths, 
+                name, names,
+                value, values,
 
-            get path () {
-                // need to handle []
-                return path;
-            },
+                // pipes,
+                // property, properties,
 
-            getAttribute (name) {
-                const node = target.getAttributeNode(name);
-                if (!node) return undefined;
-                const data = self.data?.get(node)?.data;
-                return data === undefined ? node.value : data;
-            },
+                meta,
+                type,
+                target, container,
 
-            get data () {
-            // if (names[0] === 'on') {
-            //     const source = Traverse(container.methods, keys, 1);
-            //     return source[property];
-            // } else {
-                const source = Traverse(container.model, keys, 1);
-                return source[property];
-                // if (names[0] === 'value') {
-                //     return source[property];
-                // } else {
-                //     return Piper(this, source[property]);
-                // }
-            // }
-            },
+                render: self.render,
 
-            set data (value) {
-            // if (names[0] === 'on') {
-            //     const source = Traverse(container.methods, keys, 1);
-            //     source[property] = value;
-            // } else {
-                const source = Traverse(container.model, keys, 1);
-                source[property] = value;
-                // if (names[0] === 'value') {
-                //     source[property] = Piper(this, value);
-                // } else {
+                childKey,
+                parentKeys,
+                parameterPaths,
+
+                getAttribute (name:string) {
+                    const node = (target as any).getAttributeNode(name);
+                    if (!node) return undefined;
+                    const data = (self.data?.get(node) as any)?.data;
+                    return data === undefined ? node.value : data;
+                },
+
+                get data () {
+                    const parentValue = Traverse(container.model, this.parentKeys);
+                    const childValue = parentValue[this.childKey];
+
+                    if (this.type === 'on') {
+                        return event => {
+                            const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                            return childValue.call(this.container, event, ...parameters);
+                        };
+                    } else if (typeof childValue === 'function') {
+                        const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                        return childValue.call(this.container, ...parameters);
+                    } else {
+                        return childValue;
+                    }
+                },
+
+                set data (value:any) {
+                // if (names[0] === 'on') {
+                //     const source = Traverse(container.methods, keys, 1);
                 //     source[property] = value;
+                // } else {
+
+                    const parentValue = Traverse(container.model, this.parentKeys);
+                    const childValue = parentValue[this.childKey];
+
+                    if (this.type === 'on') {
+                        parentValue[this.childKey] = value;
+                    } else if (typeof childValue === 'function') {
+                        const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                        childValue.call(this.container, ...parameters);
+                    } else {
+                        parentValue[this.childKey] = value;
+                    }
+
+                    // if (names[0] === 'value') {
+                    //     source[property] = Piper(this, value);
+                    // } else {
+                    //     source[property] = value;
+                    // }
                 // }
-            // }
+                }
+
+            });
+
+            this.data.set(key, binder);
+
+            if (target.nodeName.includes('-')) {
+                window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
+            } else {
+                this.render(binder);
             }
-
-        });
-
-        this.data.set(attr || binder.target, binder);
-
-        if (target.nodeName.includes('-')) {
-            window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
-        } else {
-            this.render(binder);
         }
 
-    },
+    }
 
-    remove (node) {
+    remove (node:Node) {
+        const type = node.nodeType;
 
-        const attributes = node.attributes;
-        for (let i = 0; i < attributes.length; i++) {
-            const attribute = attributes[i];
-            this.unbind(attribute);
+        if (type === EN) {
+            const attributes = (node as Element).attributes;
+            // const attributes = node.attributes;
+            for (let i = 0; i < attributes.length; i++) {
+                const attribute = attributes[i];
+                this.unbind(attribute);
+            }
         }
 
         this.unbind(node);
-        node = node.firstChild;
 
-        while (node) {
-            this.remove(node);
-            node = node.nextSibling;
+        let child = node.firstChild;
+        while (child) {
+            this.remove(child);
+            child = child.nextSibling;
         }
-    },
 
-    add (node, container) {
+    }
+
+    add (node:Node, container:any) {
         const type = node.nodeType;
         
-        // if (node.nodeType === Node.ATTRIBUTE_NODE) {
+        // if (type === AN) {
         //     if (node.name.indexOf(this.prefix) === 0) {
         //         this.bind(node, node.name, node.value, container, attribute);
         //     }
         // } else
-        if (type === Node.TEXT_NODE) {
+
+        if (type === TN) {
 
             const start = node.textContent.indexOf(this.syntaxStart);
             if (start === -1)  return;
 
-            if (start !== 0) node = node.splitText(start);
+            // if (start !== 0) node = node.splitText(start);
+            if (start !== 0) node = (node as Text).splitText(start);
 
             const end = node.textContent.indexOf(this.syntaxEnd);
             if (end === -1) return;
 
             if (end+this.syntaxStart.length !== node.textContent.length) {
-                const split = node.splitText(end + this.syntaxEnd.length);
-                this.bind(node, 'text', node.textContent, container);
-                this.add(split);
+                // const split = node.splitText(end + this.syntaxEnd.length);
+                const split = (node as Text).splitText(end + this.syntaxEnd.length);
+                this.bind(node, 'text', node.textContent, container, node);
+                this.add(split, container);
             } else {
-                this.bind(node, 'text', node.textContent,  container);
+                this.bind(node, 'text', node.textContent, container, node);
             }
 
-        } else if (type === Node.ELEMENT_NODE) {
+        } else if (type === EN) {
             let skip = false;
 
-            const attributes = node.attributes;
+            // const attributes = node.attributes;
+            const attributes = (node as Element).attributes;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[i];
                 const { name, value } = attribute;
@@ -266,15 +300,13 @@ const properties = {
 
             if (skip) return;
 
-            node = node.firstChild;
-            while (node) {
-                this.add(node, container);
-                node = node.nextSibling;
+            let child = node.firstChild;
+            while (child) {
+                this.add(child, container);
+                child = child.nextSibling;
             }
 
         }
     }
 
-};
-
-export default Object.freeze({ ...Binder, ...properties });
+}
