@@ -1,6 +1,6 @@
 
 export default function run (code) {
-    return new globalThis.Promise(function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
         const blob = new Blob([ code ], { type: 'text/javascript' });
         const script = document.createElement('script');
 

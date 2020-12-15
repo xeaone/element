@@ -23,9 +23,9 @@ type Option = {
     external?: string;
     routes?: Array<Route>;
     target?: string | Element;
+    mode?: 'push' | 'replace' | 'href';
     after?: (location:any) => Promise<void>;
     before?: (location:any) => Promise<void>;
-    mode?: 'push' | 'replace' | 'href';
 }
 
 const absolute = function (path:string) {

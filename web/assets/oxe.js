@@ -293,35 +293,35 @@
         return true;
     }
 
-    const isMap = data => (data === null || data === void 0 ? void 0 : data.constructor) === Map;
-    const isDate = data => (data === null || data === void 0 ? void 0 : data.constructor) === Date;
-    const isArray = data => (data === null || data === void 0 ? void 0 : data.constructor) === Array;
-    const isString = data => (data === null || data === void 0 ? void 0 : data.constructor) === String;
-    const isNumber = data => (data === null || data === void 0 ? void 0 : data.constructor) === Number;
-    const isObject = data => (data === null || data === void 0 ? void 0 : data.constructor) === Object;
-    const isBoolean = data => (data === null || data === void 0 ? void 0 : data.constructor) === Boolean;
-    const toArray = data => JSON.parse(data);
-    const toObject = data => JSON.parse(data);
-    const toDate = data => new Date(Number(data));
-    const toMap = data => new Map(JSON.parse(data));
-    const toBoolean = data => data === 'true';
-    const toString = data => typeof data === 'string' ? data : JSON.stringify(data);
-    const toNumber = data => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
+    const isMap = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Map;
+    const isDate = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Date;
+    const isArray = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Array;
+    const isString = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === String;
+    const isNumber = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Number;
+    const isObject = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Object;
+    const isBoolean = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Boolean;
+    const toArray = (data) => JSON.parse(data);
+    const toObject = (data) => JSON.parse(data);
+    const toBoolean = (data) => data === 'true';
+    const toDate = (data) => new Date(Number(data));
+    const toMap = (data) => new Map(JSON.parse(data));
+    const toString = (data) => typeof data === 'string' ? data : JSON.stringify(data);
+    const toNumber = (data) => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
     const to = function (source, target) {
         try {
             if (isMap(source))
                 return toMap(target);
-            else if (isDate(source))
+            if (isDate(source))
                 return toDate(target);
-            else if (isArray(source))
+            if (isArray(source))
                 return toArray(target);
-            else if (isString(source))
+            if (isString(source))
                 return toString(target);
-            else if (isObject(source))
+            if (isObject(source))
                 return toObject(target);
-            else if (isNumber(source))
+            if (isNumber(source))
                 return toNumber(target);
-            else if (isBoolean(source))
+            if (isBoolean(source))
                 return toBoolean(target);
         }
         catch (_a) {
@@ -1633,7 +1633,7 @@
     }
 
     function fetch(url) {
-        return new globalThis.Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
@@ -1656,7 +1656,7 @@
     }
 
     function run(code) {
-        return new globalThis.Promise(function (resolve, reject) {
+        return new Promise(function (resolve, reject) {
             const blob = new Blob([code], { type: 'text/javascript' });
             const script = document.createElement('script');
             if ('noModule' in script) {
