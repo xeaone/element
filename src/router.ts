@@ -206,8 +206,8 @@ export default new class Router {
             path += Query(options.query);
         }
 
-        const location = Location(path);
         const mode = options.mode || this.#mode;
+        const location = Location(path, mode);
         const route = await this.find(location.pathname);
 
         if (!route) {
@@ -222,19 +222,18 @@ export default new class Router {
         //     return this.redirect(route.redirect);
         // }
 
-        // Events(this.#target, 'before', location);
 
-        if (mode === 'href') {
+        if (location.mode === 'href') {
             return window.location.assign(location.path);
         }
  
+        Events(this.#target, 'before', location);
+
         if (typeof this.#before === 'function') {
             await this.#before(location);
         }
-       
-        Events(this.#target, 'before', location);
 
-        window.history[mode + 'State']({ path: location.path }, '', location.path);
+        window.history[location.mode + 'State']({ path: location.path }, '', location.path);
 
         await this.render(route);
 
