@@ -1,29 +1,23 @@
+import { toString } from "../tool";
 
 export default function (binder) {
     let data, name;
     return {
-        read () {
-            data = binder.data;
+        read() {
 
-            if (binder.names.length > 1) {
-                name = binder.names.slice(1).join('-');
+            data = binder.data;
+            data = typeof data !== 'string' && data ? binder.key : data;
+            data = binder.display(toString(data));
+
+            if (data === binder.target.class) {
+                this.write = false;
+                return;
             }
 
         },
-        write () {
-            if (data === undefined || data === null) {
-                if (name) {
-                    binder.target.classList.remove(name);
-                } else {
-                    binder.target.setAttribute('class', '');
-                }
-            } else {
-                if (name) {
-                    binder.target.classList.toggle(name, data);
-                } else {
-                    binder.target.setAttribute('class', data);
-                }
-            }
+        write() {
+            binder.target.class = data;
+            binder.target.setAttribute('class', data);
         }
     };
 }

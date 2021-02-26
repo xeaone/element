@@ -57,8 +57,10 @@
     }
 
     const methods = ['push', 'pop', 'splice', 'shift', 'unshift', 'reverse'];
+    const isArray = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Array;
+    const isObject = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Object;
     const get = function (tasks, handler, path, target, property) {
-        if (target instanceof Array && methods.indexOf(property) !== -1) {
+        if (isArray(target) && methods.indexOf(property) !== -1) {
             tasks.push(handler.bind(null, target, path.slice(0, -1)));
         }
         return target[property];
@@ -81,28 +83,23 @@
         path = path || '';
         tasks = tasks || [];
         tasks.push(handler.bind(null, source, path));
-        if (source instanceof Object === false && source instanceof Array === false) {
-            if (!path && tasks.length) {
-                Promise.resolve().then(() => {
-                    let task;
-                    while (task = tasks.shift())
-                        task();
-                }).catch(console.error);
-            }
-            return source;
-        }
-        path = path ? path + '.' : '';
-        if (source instanceof Array) {
+        let isNative = false;
+        if (isArray(source)) {
+            path = path ? path + '.' : '';
             for (let key = 0; key < source.length; key++) {
                 tasks.push(handler.bind(null, source[key], path + key));
                 source[key] = create(source[key], handler, path + key, tasks);
             }
         }
-        else if (source instanceof Object) {
+        else if (isObject(source)) {
+            path = path ? path + '.' : '';
             for (let key in source) {
                 tasks.push(handler.bind(null, source[key], path + key));
                 source[key] = create(source[key], handler, path + key, tasks);
             }
+        }
+        else {
+            isNative = true;
         }
         if (!path && tasks.length) {
             Promise.resolve().then(() => {
@@ -111,6 +108,8 @@
                     task();
             }).catch(console.error);
         }
+        if (isNative)
+            return source;
         return new Proxy(source, {
             get: get.bind(get, tasks, handler, path),
             set: set.bind(set, tasks, handler, path)
@@ -120,31 +119,26 @@
         path = path || '';
         tasks = tasks || [];
         tasks.push(handler.bind(null, source, path));
-        if (source instanceof Object === false && source instanceof Array === false) {
-            if (!path && tasks.length) {
-                Promise.resolve().then(() => {
-                    let task;
-                    while (task = tasks.shift())
-                        task();
-                }).catch(console.error);
-            }
-            return source;
-        }
         let target;
-        path = path ? path + '.' : '';
-        if (source instanceof Array) {
+        let isNative = false;
+        if (isArray(source)) {
             target = [];
+            path = path ? path + '.' : '';
             for (let key = 0; key < source.length; key++) {
                 tasks.push(handler.bind(null, source[key], `${path}${key}`));
                 target[key] = create(source[key], handler, `${path}${key}`, tasks);
             }
         }
-        else if (source instanceof Object) {
+        else if (isObject(source)) {
             target = {};
+            path = path ? path + '.' : '';
             for (let key in source) {
                 tasks.push(handler.bind(null, source[key], `${path}${key}`));
                 target[key] = create(source[key], handler, `${path}${key}`, tasks);
             }
+        }
+        else {
+            isNative = true;
         }
         if (!path && tasks.length) {
             Promise.resolve().then(() => {
@@ -153,6 +147,8 @@
                     task();
             }).catch(console.error);
         }
+        if (isNative)
+            return source;
         return new Proxy(target, {
             get: get.bind(get, tasks, handler, path),
             set: set.bind(set, tasks, handler, path)
@@ -295,10 +291,10 @@
 
     const isMap = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Map;
     const isDate = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Date;
-    const isArray = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Array;
+    const isArray$1 = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Array;
     const isString = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === String;
     const isNumber = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Number;
-    const isObject = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Object;
+    const isObject$1 = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Object;
     const isBoolean = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Boolean;
     const toArray = (data) => JSON.parse(data);
     const toObject = (data) => JSON.parse(data);
@@ -313,11 +309,11 @@
                 return toMap(target);
             if (isDate(source))
                 return toDate(target);
-            if (isArray(source))
+            if (isArray$1(source))
                 return toArray(target);
             if (isString(source))
                 return toString(target);
-            if (isObject(source))
+            if (isObject$1(source))
                 return toObject(target);
             if (isNumber(source))
                 return toNumber(target);
@@ -371,31 +367,20 @@
     }
 
     function Class (binder) {
-        let data, name;
+        let data;
         return {
             read() {
                 data = binder.data;
-                if (binder.names.length > 1) {
-                    name = binder.names.slice(1).join('-');
+                data = typeof data !== 'string' && data ? binder.key : data;
+                data = binder.display(toString(data));
+                if (data === binder.target.class) {
+                    this.write = false;
+                    return;
                 }
             },
             write() {
-                if (data === undefined || data === null) {
-                    if (name) {
-                        binder.target.classList.remove(name);
-                    }
-                    else {
-                        binder.target.setAttribute('class', '');
-                    }
-                }
-                else {
-                    if (name) {
-                        binder.target.classList.toggle(name, data);
-                    }
-                    else {
-                        binder.target.setAttribute('class', data);
-                    }
-                }
+                binder.target.class = data;
+                binder.target.setAttribute('class', data);
             }
         };
     }
@@ -404,11 +389,10 @@
         let data;
         return {
             read() {
-                data = toString(binder.data);
-                if (data === binder.target[binder.type]) {
-                    this.write = false;
-                    return;
-                }
+                data = binder.data;
+                data = data === null || data === undefined ? '' : data;
+                data = toString(data);
+                data = binder.display(data);
             },
             write() {
                 binder.target[binder.type] = data;
@@ -532,7 +516,7 @@
         };
     }
 
-    function hide (binder) {
+    function hidden (binder) {
         let data;
         return {
             read() {
@@ -544,24 +528,6 @@
             },
             write() {
                 binder.target.hidden = data;
-                binder.target.setAttribute('hidden', data);
-            }
-        };
-    }
-
-    function href (binder) {
-        let data;
-        return {
-            read() {
-                data = binder.data || '';
-                if (data === binder.target.href) {
-                    this.write = false;
-                    return;
-                }
-            },
-            write() {
-                binder.target.href = data;
-                binder.target.setAttribute('href', data);
             }
         };
     }
@@ -601,13 +567,13 @@
     }
 
     function on (binder) {
-        const type = binder.names[1];
-        binder.target[`on${type}`] = null;
+        binder.target[binder.name] = null;
+        const name = binder.name.slice(2);
         if (binder.meta.method) {
-            binder.target.removeEventListener(type, binder.meta.method);
+            binder.target.removeEventListener(name, binder.meta.method);
         }
         binder.meta.method = binder.data;
-        binder.target.addEventListener(type, binder.meta.method);
+        binder.target.addEventListener(name, binder.meta.method);
     }
 
     function read (binder) {
@@ -715,45 +681,6 @@
             write() {
                 binder.target.hidden = data;
                 binder.target.setAttribute('hidden', data);
-            }
-        };
-    }
-
-    function style (binder) {
-        let data, name, names;
-        return {
-            read() {
-                data = binder.data;
-                if (binder.names.length > 1) {
-                    name = '';
-                    names = binder.names.slice(1);
-                    for (let i = 0, l = names.length; i < l; i++) {
-                        if (i === 0) {
-                            name = names[i].toLowerCase();
-                        }
-                        else {
-                            name += names[i].charAt(0).toUpperCase() + names[i].slice(1).toLowerCase();
-                        }
-                    }
-                }
-            },
-            write() {
-                if (binder.names.length > 1) {
-                    if (data) {
-                        binder.target.style[name] = data;
-                    }
-                    else {
-                        binder.target.style[name] = '';
-                    }
-                }
-                else {
-                    if (data) {
-                        binder.target.style.cssText = data;
-                    }
-                    else {
-                        binder.target.style.cssText = '';
-                    }
-                }
             }
         };
     }
@@ -1001,7 +928,7 @@
         };
     }
 
-    const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+    const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     var Binder = new class Binder {
@@ -1016,18 +943,16 @@
                 checked,
                 class: Class,
                 default: Default,
-                disable, disabled: disable,
                 each,
+                hidden,
+                show, showed: show,
                 enable, enabled: enable,
-                hide, hidden: hide,
-                href,
+                disable, disabled: disable,
                 html,
                 on,
                 read,
                 require: Require, required: Require,
                 reset: reset$1,
-                show, showed: show,
-                style,
                 submit: submit$1,
                 text,
                 value,
@@ -1052,50 +977,46 @@
         render(binder, ...extra) {
             const type = binder.type in this.binders ? binder.type : 'default';
             const render = this.binders[type](binder, ...extra);
-            Batcher.batch(render);
+            if (render)
+                Batcher.batch(render);
         }
         unbind(node) {
             return this.data.delete(node);
         }
-        bind(target, name, value, container, key) {
+        bind(target, name, value, container, pointer) {
             const self = this;
-            value = value.replace(this.syntaxReplace, '').trim();
-            name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
-            if (name.startsWith('on')) {
-                name = 'on-' + name.slice(2);
-            }
-            if (value.startsWith('\'') || value.startsWith('\"')) {
-                target.textContent = value.slice(1, -1);
-                return;
-            }
-            else if (/\s*(^NaN$|^true$|^false$|^[0-9]+$)\s*/.test(value)) {
-                target.textContent = value;
-                return;
-            }
-            const values = value.match(VARIABLE_PATTERNS);
-            if (!values) {
-                console.error('Oxe.binder.bind - value is not valid');
-                return;
-            }
-            const paths = values.map(path => path.split('.'));
+            const parameters = value.match(PARAMETER_PATTERNS);
+            if (!parameters)
+                return console.error('Oxe.binder.bind - value is not valid');
+            const paths = parameters.map(path => path.replace(this.syntaxReplace, ''));
             const names = name.split('-');
             const meta = {};
-            const type = names[0];
-            const parameterPaths = paths.slice(1);
-            const childKey = paths[0].slice(-1)[0];
-            const parentKeys = paths[0].slice(0, -1);
-            for (const path of values) {
+            const type = name.startsWith('on') ? 'on' : name;
+            paths.forEach((path, index) => {
+                const keys = path.split('.');
+                const [key] = keys.slice(-1);
+                const parameter = parameters[index];
+                const childKey = keys.slice(-1)[0];
+                const parentKeys = keys.slice(0, -1);
                 const binder = Object.freeze({
-                    path, paths,
+                    key, keys,
+                    value,
                     name, names,
-                    value, values,
+                    path, paths,
+                    parameter, parameters,
                     meta,
                     type,
                     target, container,
                     render: self.render,
                     childKey,
                     parentKeys,
-                    parameterPaths,
+                    display(data) {
+                        let value = this.value;
+                        parameters.forEach(parameter => {
+                            value = value.replace(parameter, parameter === this.parameter ? data : Traverse(container.model, parameter.replace(/{{|}}/, '').split('.')));
+                        });
+                        return value;
+                    },
                     getAttribute(name) {
                         var _a, _b;
                         const node = target.getAttributeNode(name);
@@ -1105,17 +1026,12 @@
                         return data === undefined ? node.value : data;
                     },
                     get data() {
-                        const parentValue = Traverse(container.model, this.parentKeys);
+                        const parentValue = Traverse(this.container.model, this.parentKeys);
                         const childValue = parentValue[this.childKey];
-                        if (this.type === 'on') {
+                        if (typeof childValue === 'function') {
                             return event => {
-                                const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
                                 return childValue.call(this.container, event, ...parameters);
                             };
-                        }
-                        else if (typeof childValue === 'function') {
-                            const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
-                            return childValue.call(this.container, ...parameters);
                         }
                         else {
                             return childValue;
@@ -1136,14 +1052,14 @@
                         }
                     }
                 });
-                this.data.set(key, binder);
+                this.data.set(pointer, binder);
                 if (target.nodeName.includes('-')) {
                     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
                 }
                 else {
                     this.render(binder);
                 }
-            }
+            });
         }
         remove(node) {
             const type = node.nodeType;
@@ -1390,11 +1306,12 @@
     Component.template = '';
     Component.attributes = [];
 
-    function Location(data) {
+    function Location(data, mode) {
         data = data || window.location.href;
         const parser = document.createElement('a');
         parser.href = data;
         const location = {
+            mode,
             path: '',
             href: parser.href,
             host: parser.host,
@@ -2087,20 +2004,20 @@
                     if (options.query) {
                         path += Query(options.query);
                     }
-                    const location = Location(path);
                     const mode = options.mode || __classPrivateFieldGet(this, _mode);
+                    const location = Location(path, mode);
                     const route = yield this.find(location.pathname);
                     if (!route) {
                         throw new Error(`Oxe.router.route - ${location.pathname} not found`);
                     }
-                    if (mode === 'href') {
+                    if (location.mode === 'href') {
                         return window.location.assign(location.path);
                     }
+                    Events(__classPrivateFieldGet(this, _target), 'before', location);
                     if (typeof __classPrivateFieldGet(this, _before) === 'function') {
                         yield __classPrivateFieldGet(this, _before).call(this, location);
                     }
-                    Events(__classPrivateFieldGet(this, _target), 'before', location);
-                    window.history[mode + 'State']({ path: location.path }, '', location.path);
+                    window.history[location.mode + 'State']({ path: location.path }, '', location.path);
                     yield this.render(route);
                     if (typeof __classPrivateFieldGet(this, _after) === 'function') {
                         yield __classPrivateFieldGet(this, _after).call(this, location);

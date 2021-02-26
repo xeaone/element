@@ -1,9 +1,15 @@
 
-const methods = [ 'push', 'pop', 'splice', 'shift', 'unshift', 'reverse' ];
+type task = () => void;
+type handler = () => void;
+
+const methods = ['push', 'pop', 'splice', 'shift', 'unshift', 'reverse'];
+
+const isArray = (data: any) => data?.constructor === Array;
+const isObject = (data: any) => data?.constructor === Object;
 
 const get = function (tasks, handler, path, target, property) {
 
-    if (target instanceof Array && methods.indexOf(property) !== -1) {
+    if (isArray(target) && methods.indexOf(property) !== -1) {
         // console.log(path.slice(0, -1));
         tasks.push(handler.bind(null, target, path.slice(0, -1)));
     }
@@ -32,35 +38,42 @@ const set = function (tasks, handler, path, target, property, value) {
     return true;
 };
 
-const create = function (source, handler, path, tasks) {
+const create = function (source: object | any[], handler: handler, path?: string, tasks?: task[]) {
     path = path || '';
     tasks = tasks || [];
 
     tasks.push(handler.bind(null, source, path));
 
-    if (source instanceof Object === false && source instanceof Array === false) {
+    // if (!isObject(source) && !isArray(source)) {
 
-        if (!path && tasks.length) {
-            Promise.resolve().then(() => {
-                let task; while (task = tasks.shift()) task();
-            }).catch(console.error);
-        }
+    //     if (!path && tasks.length) {
+    //         Promise.resolve().then(() => {
+    //             let task; while (task = tasks.shift()) task();
+    //         }).catch(console.error);
+    //     }
 
-        return source;
-    }
+    //     return source;
+    // }
+    // path = path ? path + '.' : '';
 
-    path = path ? path + '.' : '';
+    let isNative = false;
 
-    if (source instanceof Array) {
+    if (isArray(source)) {
+        path = path ? path + '.' : '';
+
         for (let key = 0; key < source.length; key++) {
             tasks.push(handler.bind(null, source[key], path + key));
             source[key] = create(source[key], handler, path + key, tasks);
         }
-    } else if (source instanceof Object) {
+    } else if (isObject(source)) {
+        path = path ? path + '.' : '';
+
         for (let key in source) {
             tasks.push(handler.bind(null, source[key], path + key));
             source[key] = create(source[key], handler, path + key, tasks);
         }
+    } else {
+        isNative = true;
     }
 
     if (!path && tasks.length) {
@@ -68,6 +81,8 @@ const create = function (source, handler, path, tasks) {
             let task; while (task = tasks.shift()) task();
         }).catch(console.error);
     }
+
+    if (isNative) return source;
 
     return new Proxy(source, {
         get: get.bind(get, tasks, handler, path),
@@ -76,39 +91,45 @@ const create = function (source, handler, path, tasks) {
 
 };
 
-const clone = function (source: Object, handler: Function, path?: String, tasks?: Array<Function>) {
+const clone = function (source: object | any[], handler: handler, path?: string, tasks?: task[]) {
     path = path || '';
     tasks = tasks || [];
 
     tasks.push(handler.bind(null, source, path));
 
-    if (source instanceof Object === false && source instanceof Array === false) {
+    // if (!isObject(source) && !isArray(source)) {
 
-        if (!path && tasks.length) {
-            Promise.resolve().then(() => {
-                let task; while (task = tasks.shift()) task();
-            }).catch(console.error);
-        }
+    //     if (!path && tasks.length) {
+    //         Promise.resolve().then(() => {
+    //             let task; while (task = tasks.shift()) task();
+    //         }).catch(console.error);
+    //     }
 
-        return source;
-    }
-    
+    //     return source;
+    // }
+    // path = path ? path + '.' : '';
+
     let target;
+    let isNative = false;
 
-    path = path ? path + '.' : '';
-
-    if (source instanceof Array) {
+    if (isArray(source)) {
         target = [];
+        path = path ? path + '.' : '';
+
         for (let key = 0; key < source.length; key++) {
             tasks.push(handler.bind(null, source[key], `${path}${key}`));
             target[key] = create(source[key], handler, `${path}${key}`, tasks);
         }
-    } else if (source instanceof Object) {
+    } else if (isObject(source)) {
         target = {};
+        path = path ? path + '.' : '';
+
         for (let key in source) {
             tasks.push(handler.bind(null, source[key], `${path}${key}`));
             target[key] = create(source[key], handler, `${path}${key}`, tasks);
         }
+    } else {
+        isNative = true;
     }
 
     if (!path && tasks.length) {
@@ -116,6 +137,8 @@ const clone = function (source: Object, handler: Function, path?: String, tasks?
             let task; while (task = tasks.shift()) task();
         }).catch(console.error);
     }
+
+    if (isNative) return source;
 
     return new Proxy(target, {
         get: get.bind(get, tasks, handler, path),

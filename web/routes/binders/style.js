@@ -5,34 +5,31 @@ export default class BinderStyleRoute extends Oxe.Component {
     title = 'Style Binder'
 
     static model = {
-        c: '',
-        b: '',
-        s: '',
-        bc: '',
-        change () {
-            this.model.b = Color();
+        b: 'blue',
+        c: 'red',
+        change() {
             this.model.c = Color();
-            this.model.s = 'background: ' + Color() + '; color: ' + Color() + ';';
+            this.model.b = Color();
+            console.log(this.model);
         }
     }
-    
-    static created () {
-        setInterval(() => this.model.bc = Color(), 1000);
+
+    static created() {
+        // setInterval(() => this.model.b = Color(), 1000);
     }
 
-     static template = /*html*/`
+    static template = /*html*/`
 
         <h2>Style Binder</h2>
         <hr>
 
         <br>
         <br>
-        <div o-style="s">o-style="{{s}}"</div>
-        <div o-style-color="c" o-style-background-color="b">o-style-color="{{c}}", o-style-background-color="{{b}}"</div>
+        <div style="color: {{c}}">style="color: {{c}}"</div>
 
         <br>
         <br>
-        <button style="border: solid 0.5rem red" o-style-border-color="bc" onclick="{{change}}">Change Colors</button>
+        <button style="border: solid 0.5rem {{b}}" onclick="{{change}}">Change Colors</button>
 
     `
 

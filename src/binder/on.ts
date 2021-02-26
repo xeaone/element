@@ -1,12 +1,12 @@
-import Batcher from '../batcher';
+// import Batcher from '../batcher';
 
 export default function (binder) {
-    const type = binder.names[1];
 
-    binder.target[`on${type}`] = null;
+    binder.target[binder.name] = null;
+    const name = binder.name.slice(2);
 
     if (binder.meta.method) {
-        binder.target.removeEventListener(type, binder.meta.method);
+        binder.target.removeEventListener(name, binder.meta.method);
     }
 
     // binder.meta.method = (event) => {
@@ -31,7 +31,7 @@ export default function (binder) {
     //     binder.data.call(binder.container, event);
     // };
 
-    binder.target.addEventListener(type, binder.meta.method);
+    binder.target.addEventListener(name, binder.meta.method);
 }
 
 // export default function (binder) {

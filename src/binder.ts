@@ -1,7 +1,7 @@
 import Traverse from './tool/traverse';
 
 import Batcher from './batcher';
-import Piper from './piper';
+// import Piper from './piper';
 
 import checked from './binder/checked';
 import Class from './binder/class';
@@ -9,15 +9,13 @@ import Default from './binder/default';
 import disable from './binder/disable';
 import each from './binder/each';
 import enable from './binder/enable';
-import hide from './binder/hide';
-import href from './binder/href';
+import hidden from './binder/hidden';
 import html from './binder/html';
 import on from './binder/on';
 import read from './binder/read';
 import Require from './binder/require';
 import reset from './binder/reset';
 import show from './binder/show';
-import style from './binder/style';
 import submit from './binder/submit';
 import text from './binder/text';
 import value from './binder/value';
@@ -26,7 +24,9 @@ import write from './binder/write';
 const PIPE = /\s?\|\s?/;
 const PIPES = /\s?,\s?|\s+/;
 // const PATH = /\s?,\s?|\s?\|\s?|\s+/;
-const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+// const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -34,7 +34,7 @@ const AN = Node.ATTRIBUTE_NODE;
 
 export default new class Binder {
 
-    data:Map<Node, any> = new Map();
+    data: Map<Node, any> = new Map();
 
     prefix = 'o-';
     syntaxEnd = '}}';
@@ -45,27 +45,27 @@ export default new class Binder {
     binders = {
         checked,
         class: Class,
-        // css: style,
         default: Default,
-        disable, disabled: disable,
         each,
+
+        hidden,
+        // hide, hidden: hide,
+        show, showed: show,
         enable, enabled: enable,
-        hide, hidden: hide,
-        href,
+        disable, disabled: disable,
+
         html,
         on,
         read,
         require: Require, required: Require,
         reset,
-        show, showed: show,
-        style,
         submit,
         text,
         value,
         write
     }
 
-    async setup (options:any = {}) {
+    async setup(options: any = {}) {
         const { binders } = options;
 
         if (binders) {
@@ -78,68 +78,70 @@ export default new class Binder {
 
     }
 
-    get (node) {
+    get(node) {
         return this.data.get(node);
     }
 
-    render (binder:any, ...extra) {
+    render(binder: any, ...extra) {
         const type = binder.type in this.binders ? binder.type : 'default';
         const render = this.binders[type](binder, ...extra);
-        Batcher.batch(render);
+        if (render) Batcher.batch(render);
     }
 
-    unbind (node:Node) {
+    unbind(node: Node) {
         return this.data.delete(node);
     }
 
-    bind (target:Node, name:string, value:string, container:any, key:Node) {
+    bind(target: Node, name: string, value: string, container: any, pointer: Node | Attr) {
         const self = this;
 
-        value = value.replace(this.syntaxReplace, '').trim();
-        name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
+        // if (value.startsWith('{{\'') || value.startsWith('{{\"')) {
+        //     target.textContent = value.slice(3, -3);
+        //     return;
+        // } else if (/\s*{{(^NaN$|^true$|^false$|^[0-9]+$)}}\s*/.test(value)) {
+        //     target.textContent = value;
+        //     return;
+        // }
 
-        if (name.startsWith('on')) {
-            name = 'on-' + name.slice(2);
-        }
+        const parameters = value.match(PARAMETER_PATTERNS);
+        if (!parameters) return console.error('Oxe.binder.bind - value is not valid');
 
-        if (value.startsWith('\'') || value.startsWith('\"')) {
-            target.textContent = value.slice(1, -1);
-            return;
-        } else if (/\s*(^NaN$|^true$|^false$|^[0-9]+$)\s*/.test(value)) {
-            target.textContent = value;
-            return;
-        }
+        // value = value.replace(this.syntaxReplace, '').trim();
+        // name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
+        // if (name.startsWith('on')) name = 'on-' + name.slice(2);
 
         // const pipe = value.split(PIPE);
-        const values = value.match(VARIABLE_PATTERNS);
-
-        if (!values) {
-            console.error('Oxe.binder.bind - value is not valid');
-            return;
-        }
-
-        const paths = values.map(path => path.split('.'));
-
-        // const values = [];
+        // const values = value.match(PARAMETER_PATTERNS);
+        const paths = parameters.map(path => path.replace(this.syntaxReplace, ''));
+        // const keys = parameters.map(key => key.replace(this.syntaxReplace, '').split('.'));
         const names = name.split('-');
 
         const meta = {};
-        const type = names[0];
-        const parameterPaths = paths.slice(1);
-        const childKey = paths[0].slice(-1)[0];
-        const parentKeys = paths[0].slice(0, -1);
+        const type = name.startsWith('on') ? 'on' : name;
 
         // const values = pipe[0] ? pipe[0].split('.') : [];
         // const pipes = pipe[1] ? pipe[1].split(PIPES) : [];
         // const properties = path.split('.');
         // const property = properties.slice(-1)[0];
 
-        for (const path of values) {
+        paths.forEach((path, index) => {
+
+            const keys = path.split('.');
+            const [key] = keys.slice(-1);
+
+            const parameter = parameters[index];
+            // const parameterPaths = paths.slice(1);
+            const childKey = keys.slice(-1)[0];
+            const parentKeys = keys.slice(0, -1);
+
             const binder = Object.freeze({
 
-                path, paths, 
+                key, keys,
+                value,
                 name, names,
-                value, values,
+                path, paths,
+                parameter, parameters,
+                // value, values,
 
                 // pipes,
                 // property, properties,
@@ -152,37 +154,53 @@ export default new class Binder {
 
                 childKey,
                 parentKeys,
-                parameterPaths,
+                // parameterPaths,
 
-                getAttribute (name:string) {
+                // index,
+                display(data: any) {
+                    let value = this.value;
+                    parameters.forEach(parameter => {
+                        value = value.replace(
+                            parameter, parameter === this.parameter ? data : Traverse(
+                                container.model,
+                                parameter.replace(/{{|}}/, '').split('.')
+                            )
+                        );
+                    });
+                    return value;
+                },
+
+                getAttribute(name: string) {
                     const node = (target as any).getAttributeNode(name);
                     if (!node) return undefined;
                     const data = (self.data?.get(node) as any)?.data;
                     return data === undefined ? node.value : data;
                 },
 
-                get data () {
-                    const parentValue = Traverse(container.model, this.parentKeys);
+                get data() {
+                    const parentValue = Traverse(this.container.model, this.parentKeys);
+
                     const childValue = parentValue[this.childKey];
 
-                    if (this.type === 'on') {
+                    // if (this.type === 'on') {
+                    if (typeof childValue === 'function') {
                         return event => {
-                            const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                            // const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
                             return childValue.call(this.container, event, ...parameters);
                         };
-                    } else if (typeof childValue === 'function') {
-                        const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
-                        return childValue.call(this.container, ...parameters);
+                        // } else if (typeof childValue === 'function') {
+                        //     const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                        //     return childValue.call(this.container, ...parameters);
                     } else {
                         return childValue;
                     }
                 },
 
-                set data (value:any) {
-                // if (names[0] === 'on') {
-                //     const source = Traverse(container.methods, keys, 1);
-                //     source[property] = value;
-                // } else {
+                set data(value: any) {
+                    // if (names[0] === 'on') {
+                    //     const source = Traverse(container.methods, keys, 1);
+                    //     source[property] = value;
+                    // } else {
 
                     const parentValue = Traverse(container.model, this.parentKeys);
                     const childValue = parentValue[this.childKey];
@@ -201,23 +219,24 @@ export default new class Binder {
                     // } else {
                     //     source[property] = value;
                     // }
-                // }
+                    // }
                 }
 
             });
 
-            this.data.set(key, binder);
+            this.data.set(pointer, binder);
 
             if (target.nodeName.includes('-')) {
                 window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
             } else {
                 this.render(binder);
             }
-        }
+
+        });
 
     }
 
-    remove (node:Node) {
+    remove(node: Node) {
         const type = node.nodeType;
 
         if (type === EN) {
@@ -239,9 +258,9 @@ export default new class Binder {
 
     }
 
-    add (node:Node, container:any) {
+    add(node: Node, container: any) {
         const type = node.nodeType;
-        
+
         // if (type === AN) {
         //     if (node.name.indexOf(this.prefix) === 0) {
         //         this.bind(node, node.name, node.value, container, attribute);
@@ -251,7 +270,7 @@ export default new class Binder {
         if (type === TN) {
 
             const start = node.textContent.indexOf(this.syntaxStart);
-            if (start === -1)  return;
+            if (start === -1) return;
 
             // if (start !== 0) node = node.splitText(start);
             if (start !== 0) node = (node as Text).splitText(start);
@@ -259,7 +278,7 @@ export default new class Binder {
             const end = node.textContent.indexOf(this.syntaxEnd);
             if (end === -1) return;
 
-            if (end+this.syntaxStart.length !== node.textContent.length) {
+            if (end + this.syntaxStart.length !== node.textContent.length) {
                 // const split = node.splitText(end + this.syntaxEnd.length);
                 const split = (node as Text).splitText(end + this.syntaxEnd.length);
                 this.bind(node, 'text', node.textContent, container, node);

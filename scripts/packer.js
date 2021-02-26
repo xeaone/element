@@ -22,12 +22,12 @@ export const ReadFolder = Util.promisify(Fs.readdir);
 export const WriteFile = Util.promisify(Fs.writeFile);
 
 export const Execute = async function (command, options) {
-    return e(command, options); 
+    return e(command, options);
 };
 
 export const Spawn = async function (command, options = {}) {
     const commands = command.split(/\s+/);
-    return s(commands[0], commands.slice(1), { ...options, detached: false, stdio: [ 'ignore', 'inherit', 'inherit' ] });
+    return s(commands[0], commands.slice(1), { ...options, detached: false, stdio: ['ignore', 'inherit', 'inherit'] });
 };
 
 export const Press = async function (key, listener) {
@@ -74,11 +74,11 @@ export const Argument = async function (args) {
 
     args.forEach(arg => {
         if (arg.includes('=')) {
-            let [ name, value ] = arg.split('=');
+            let [name, value] = arg.split('=');
 
             if (
-                (value[0] === '[' && value[value.length-1] === ']') ||
-                (value[0] === '{' && value[value.length-1] === '}')
+                (value[0] === '[' && value[value.length - 1] === ']') ||
+                (value[0] === '{' && value[value.length - 1] === '}')
             ) {
                 value = JSON.parse(value);
             } else if (value.includes(',')) {

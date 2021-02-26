@@ -20,7 +20,7 @@ export default class BinderTextRoute extends Component {
         <br>
         <br>
         <strong>Attribute Style: </strong>
-        <span o-text="attributeVar"></span>
+        <span o-text="{{attributeVar}}"></span>
 
     `
 

@@ -2,7 +2,7 @@
 export default function (binder) {
     let data;
     return {
-        read () {
+        read() {
             data = binder.data;
 
             if (data === binder.target.hidden) {
@@ -11,9 +11,8 @@ export default function (binder) {
             }
 
         },
-        write () {
+        write() {
             binder.target.hidden = data;
-            binder.target.setAttribute('hidden', data);
         }
     };
 }

@@ -5,26 +5,21 @@ export default class BinderClassRoute extends Component {
     title = 'Class Binder';
 
     static model = {
-
         title: 'Class',
-
-        t: false,
-        toggle () { this.model.t = !this.model.t; },
-
-        o: 'default',
-        overwrite () { this.model.o = 'overwrite'; }
-
+        boolean: true,
+        string: 'string',
+        toggle() { this.model.boolean = !this.model.boolean; }
     };
 
     static css = /*css*/`
         .default {
             border: solid 0.3rem black;
         }
-        .overwrite {
-            border: solid 0.3rem red;
+        .boolean {
+            background: lightblue;
         }
-        .active {
-            background: lightgray;
+        .string {
+            background: lightgreen;
         }
     `;
 
@@ -36,15 +31,10 @@ export default class BinderClassRoute extends Component {
         <br>
         <br>
 
-        <div class="{{o}}">class="{{o}}"</div>
-        <button onclick="{{overwrite}}">Overwrite Class</button>
+        <div class="default {{string}}">class="default {{string}}"</div>
 
-        <br>
-        <br>
-
-        <div class="default" class-active="{{t}}">class="default" class-active="{{t}}"</div>
+        <div class="default {{boolean}}">class="default {{boolean}}"</div>
         <button onclick="{{toggle}}">Toggle Class</button>
-
 
     `;
 

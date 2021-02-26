@@ -45,6 +45,7 @@ Oxe.setup({
             'binders/style',
             'binders/text',
             'binders/value',
+            'binders/bool',
             'any'
         ]
     }
