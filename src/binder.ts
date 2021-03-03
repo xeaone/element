@@ -1,25 +1,17 @@
-import Traverse from './tool/traverse';
+import { traverse } from './tool';
 
 import Batcher from './batcher';
-// import Piper from './piper';
 
 import checked from './binder/checked';
 import Class from './binder/class';
 import Default from './binder/default';
-import disable from './binder/disable';
 import each from './binder/each';
-import enable from './binder/enable';
-import hidden from './binder/hidden';
 import html from './binder/html';
 import on from './binder/on';
-import read from './binder/read';
-import Require from './binder/require';
 import reset from './binder/reset';
-import show from './binder/show';
 import submit from './binder/submit';
 import text from './binder/text';
 import value from './binder/value';
-import write from './binder/write';
 
 const PIPE = /\s?\|\s?/;
 const PIPES = /\s?,\s?|\s+/;
@@ -45,24 +37,16 @@ export default new class Binder {
     binders = {
         checked,
         class: Class,
-        default: Default,
         each,
 
-        hidden,
-        // hide, hidden: hide,
-        show, showed: show,
-        enable, enabled: enable,
-        disable, disabled: disable,
+        default: Default,
 
         html,
         on,
-        read,
-        require: Require, required: Require,
         reset,
         submit,
         text,
         value,
-        write
     }
 
     async setup(options: any = {}) {
@@ -84,6 +68,7 @@ export default new class Binder {
 
     render(binder: any, ...extra) {
         const type = binder.type in this.binders ? binder.type : 'default';
+        console.log(type);
         const render = this.binders[type](binder, ...extra);
         if (render) Batcher.batch(render);
     }
@@ -161,7 +146,7 @@ export default new class Binder {
                     let value = this.value;
                     parameters.forEach(parameter => {
                         value = value.replace(
-                            parameter, parameter === this.parameter ? data : Traverse(
+                            parameter, parameter === this.parameter ? data : traverse(
                                 container.model,
                                 parameter.replace(/{{|}}/, '').split('.')
                             )
@@ -178,18 +163,18 @@ export default new class Binder {
                 },
 
                 get data() {
-                    const parentValue = Traverse(this.container.model, this.parentKeys);
+                    const parentValue = traverse(this.container.model, this.parentKeys);
 
                     const childValue = parentValue[this.childKey];
 
                     // if (this.type === 'on') {
                     if (typeof childValue === 'function') {
                         return event => {
-                            // const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                            // const parameters = this.parameterPaths.map(path => traverse(container.model, path));
                             return childValue.call(this.container, event, ...parameters);
                         };
                         // } else if (typeof childValue === 'function') {
-                        //     const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                        //     const parameters = this.parameterPaths.map(path => traverse(container.model, path));
                         //     return childValue.call(this.container, ...parameters);
                     } else {
                         return childValue;
@@ -198,17 +183,17 @@ export default new class Binder {
 
                 set data(value: any) {
                     // if (names[0] === 'on') {
-                    //     const source = Traverse(container.methods, keys, 1);
+                    //     const source = traverse(container.methods, keys, 1);
                     //     source[property] = value;
                     // } else {
 
-                    const parentValue = Traverse(container.model, this.parentKeys);
+                    const parentValue = traverse(container.model, this.parentKeys);
                     const childValue = parentValue[this.childKey];
 
                     if (this.type === 'on') {
                         parentValue[this.childKey] = value;
                     } else if (typeof childValue === 'function') {
-                        const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                        const parameters = this.parameterPaths.map(path => traverse(container.model, path));
                         childValue.call(this.container, ...parameters);
                     } else {
                         parentValue[this.childKey] = value;

@@ -56,9 +56,89 @@
         return value;
     }
 
-    const methods = ['push', 'pop', 'splice', 'shift', 'unshift', 'reverse'];
+    const isMap = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Map;
+    const isDate = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Date;
     const isArray = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Array;
+    const isString = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === String;
+    const isNumber = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Number;
     const isObject = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Object;
+    const isBoolean = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Boolean;
+    const toArray = (data) => JSON.parse(data);
+    const toObject = (data) => JSON.parse(data);
+    const toBoolean = (data) => data === 'true';
+    const toDate = (data) => new Date(Number(data));
+    const toMap = (data) => new Map(JSON.parse(data));
+    const toString = (data) => typeof data === 'string' ? data : JSON.stringify(data);
+    const toNumber = (data) => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
+    const to = function (source, target) {
+        try {
+            if (isMap(source))
+                return toMap(target);
+            if (isDate(source))
+                return toDate(target);
+            if (isArray(source))
+                return toArray(target);
+            if (isString(source))
+                return toString(target);
+            if (isObject(source))
+                return toObject(target);
+            if (isNumber(source))
+                return toNumber(target);
+            if (isBoolean(source))
+                return toBoolean(target);
+        }
+        catch (_a) {
+            return target;
+        }
+    };
+    const traverse = function (data, paths) {
+        if (paths.length === 0) {
+            return data;
+        }
+        else if (typeof data !== 'object') {
+            return undefined;
+        }
+        else {
+            return traverse(data[paths[0]], paths.slice(1));
+        }
+    };
+    const match = function (source, target) {
+        if (source === target) {
+            return true;
+        }
+        const sourceType = typeof source;
+        const targetType = typeof target;
+        if (sourceType !== targetType) {
+            return false;
+        }
+        if (sourceType !== 'object' || targetType !== 'object') {
+            return source === target;
+        }
+        if (source.constructor !== target.constructor) {
+            return false;
+        }
+        const sourceKeys = Object.keys(source);
+        const targetKeys = Object.keys(target);
+        if (sourceKeys.length !== targetKeys.length) {
+            return false;
+        }
+        for (let i = 0; i < sourceKeys.length; i++) {
+            const name = sourceKeys[i];
+            if (!match(source[name], target[name]))
+                return false;
+        }
+        return true;
+    };
+    const index = function (items, item) {
+        for (let i = 0; i < items.length; i++) {
+            if (match(items[i], item)) {
+                return i;
+            }
+        }
+        return -1;
+    };
+
+    const methods = ['push', 'pop', 'splice', 'shift', 'unshift', 'reverse'];
     const get = function (tasks, handler, path, target, property) {
         if (isArray(target) && methods.indexOf(property) !== -1) {
             tasks.push(handler.bind(null, target, path.slice(0, -1)));
@@ -156,18 +236,6 @@
     };
     var Observer = { get, set, create, clone };
 
-    function Traverse(data, paths) {
-        if (paths.length === 0) {
-            return data;
-        }
-        else if (typeof data !== 'object') {
-            return undefined;
-        }
-        else {
-            return Traverse(data[paths[0]], paths.slice(1));
-        }
-    }
-
     const reads = [];
     const writes = [];
     const options = {
@@ -260,71 +328,6 @@
         batch
     });
 
-    function Match(source, target) {
-        if (source === target) {
-            return true;
-        }
-        const sourceType = typeof source;
-        const targetType = typeof target;
-        if (sourceType !== targetType) {
-            return false;
-        }
-        if (sourceType !== 'object' || targetType !== 'object') {
-            return source === target;
-        }
-        if (source.constructor !== target.constructor) {
-            return false;
-        }
-        const sourceKeys = Object.keys(source);
-        const targetKeys = Object.keys(target);
-        if (sourceKeys.length !== targetKeys.length) {
-            return false;
-        }
-        for (let i = 0; i < sourceKeys.length; i++) {
-            const name = sourceKeys[i];
-            const match = Match(source[name], target[name]);
-            if (!match)
-                return false;
-        }
-        return true;
-    }
-
-    const isMap = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Map;
-    const isDate = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Date;
-    const isArray$1 = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Array;
-    const isString = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === String;
-    const isNumber = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Number;
-    const isObject$1 = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Object;
-    const isBoolean = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Boolean;
-    const toArray = (data) => JSON.parse(data);
-    const toObject = (data) => JSON.parse(data);
-    const toBoolean = (data) => data === 'true';
-    const toDate = (data) => new Date(Number(data));
-    const toMap = (data) => new Map(JSON.parse(data));
-    const toString = (data) => typeof data === 'string' ? data : JSON.stringify(data);
-    const toNumber = (data) => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
-    const to = function (source, target) {
-        try {
-            if (isMap(source))
-                return toMap(target);
-            if (isDate(source))
-                return toDate(target);
-            if (isArray$1(source))
-                return toArray(target);
-            if (isString(source))
-                return toString(target);
-            if (isObject$1(source))
-                return toObject(target);
-            if (isNumber(source))
-                return toNumber(target);
-            if (isBoolean(source))
-                return toBoolean(target);
-        }
-        catch (_a) {
-            return target;
-        }
-    };
-
     function checked (binder, event) {
         if (binder.meta.busy) {
             return;
@@ -344,7 +347,7 @@
                 }
                 else {
                     ctx.value = binder.getAttribute('value');
-                    ctx.checked = Match(ctx.data, ctx.value);
+                    ctx.checked = match(ctx.data, ctx.value);
                 }
                 if (event) {
                     if (isBoolean(ctx.data)) {
@@ -371,49 +374,53 @@
         return {
             read() {
                 data = binder.data;
-                data = typeof data !== 'string' && data ? binder.key : data;
-                data = binder.display(toString(data));
-                if (data === binder.target.class) {
+                if (typeof data !== 'string')
+                    data = data ? binder.key : '';
+                data = binder.display(data);
+                if (data === binder.target.className) {
                     this.write = false;
                     return;
                 }
             },
             write() {
-                binder.target.class = data;
+                binder.target.className = data;
                 binder.target.setAttribute('class', data);
             }
         };
     }
 
+    const bools = [
+        'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
+        'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
+        'indeterminate', 'inert', 'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nohref', 'noresize', 'noshade', 'hidden',
+        'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly', 'required', 'reversed', 'scoped', 'seamless', 'selected',
+        'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
+    ];
     function Default (binder) {
-        let data;
+        let data, bool;
         return {
             read() {
                 data = binder.data;
-                data = data === null || data === undefined ? '' : data;
-                data = toString(data);
-                data = binder.display(data);
-            },
-            write() {
-                binder.target[binder.type] = data;
-                binder.target.setAttribute(binder.type, data);
-            }
-        };
-    }
-
-    function disable (binder) {
-        let data;
-        return {
-            read() {
-                data = binder.data;
-                if (data === binder.target.disabled) {
-                    this.write = false;
-                    return;
+                bool = bools.includes(binder.type);
+                if (bool) {
+                    data = data ? true : false;
+                }
+                else {
+                    data = data === null || data === undefined ? '' : data;
+                    data = binder.display(data);
                 }
             },
             write() {
-                binder.target.disabled = data;
-                binder.target.setAttribute('disabled', data);
+                binder.target[binder.type] = data;
+                if (bool) {
+                    if (data)
+                        binder.target.setAttribute(binder.type, '');
+                    else
+                        binder.target.removeAttribute(binder.type);
+                }
+                else {
+                    binder.target.setAttribute(binder.type, data);
+                }
             }
         };
     }
@@ -499,39 +506,6 @@
         return { read, write };
     }
 
-    function enable (binder) {
-        let data;
-        return {
-            read() {
-                data = !binder.data;
-                if (data === binder.target.disabled) {
-                    this.write = false;
-                    return;
-                }
-            },
-            write() {
-                binder.target.disabled = data;
-                binder.target.setAttribute('disabled', data);
-            }
-        };
-    }
-
-    function hidden (binder) {
-        let data;
-        return {
-            read() {
-                data = binder.data;
-                if (data === binder.target.hidden) {
-                    this.write = false;
-                    return;
-                }
-            },
-            write() {
-                binder.target.hidden = data;
-            }
-        };
-    }
-
     function html (binder) {
         let data;
         return {
@@ -556,9 +530,7 @@
                 const parser = document.createElement('div');
                 parser.innerHTML = data;
                 while (parser.firstElementChild) {
-                    Binder.add(parser.firstElementChild, {
-                        container: binder.container,
-                    });
+                    Binder.add(parser.firstElementChild, { container: binder.container });
                     fragment.appendChild(parser.firstElementChild);
                 }
                 binder.target.appendChild(fragment);
@@ -574,40 +546,6 @@
         }
         binder.meta.method = binder.data;
         binder.target.addEventListener(name, binder.meta.method);
-    }
-
-    function read (binder) {
-        let data;
-        return {
-            read() {
-                data = binder.data;
-                if (data === binder.target.readOnly) {
-                    this.write = false;
-                    return;
-                }
-            },
-            write() {
-                binder.target.readOnly = data;
-                binder.target.setAttribute('readonly', data);
-            }
-        };
-    }
-
-    function Require (binder) {
-        let data;
-        return {
-            read() {
-                data = binder.data;
-                if (data === binder.target.required) {
-                    this.write = false;
-                    return;
-                }
-            },
-            write() {
-                binder.target.required = data;
-                binder.target.setAttribute('required', data);
-            }
-        };
     }
 
     const reset = function (binder, event) {
@@ -668,29 +606,12 @@
         binder.target.addEventListener('reset', binder.meta.method, false);
     }
 
-    function show (binder) {
-        let data;
-        return {
-            read() {
-                data = !binder.data;
-                if (data === binder.target.hidden) {
-                    this.write = false;
-                    return;
-                }
-            },
-            write() {
-                binder.target.hidden = data;
-                binder.target.setAttribute('hidden', data);
-            }
-        };
-    }
-
     const submit = function (binder, event) {
         return __awaiter(this, void 0, void 0, function* () {
             event.preventDefault();
             const data = {};
             const elements = event.target.querySelectorAll('*');
-            for (let i = 0, l = elements.length; i < l; i++) {
+            for (let i = 0; i < elements.length; i++) {
                 const element = elements[i];
                 if ((!element.type && element.nodeName !== 'TEXTAREA') ||
                     element.type === 'submit' ||
@@ -742,15 +663,6 @@
                 binder.target.textContent = data;
             }
         };
-    }
-
-    function Index(items, item) {
-        for (let i = 0; i < items.length; i++) {
-            if (Match(items[i], item)) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     const input = function (binder) {
@@ -807,17 +719,17 @@
                         const attribute = node.attributes['o-value'] || node.attributes['value'];
                         const option = Binder.get(attribute) || { get data() { return node.value; }, set data(data) { node.value = data; } };
                         if (ctx.multiple) {
-                            const index = Index(binder.data, option.data);
+                            const index$1 = index(binder.data, option.data);
                             if (event) {
-                                if (selected && index === -1) {
+                                if (selected && index$1 === -1) {
                                     binder.data.push(option.data);
                                 }
-                                else if (!selected && index !== -1) {
-                                    binder.data.splice(index, 1);
+                                else if (!selected && index$1 !== -1) {
+                                    binder.data.splice(index$1, 1);
                                 }
                             }
                             else {
-                                if (index === -1) {
+                                if (index$1 === -1) {
                                     ctx.unselects.push(node);
                                 }
                                 else {
@@ -826,17 +738,17 @@
                             }
                         }
                         else {
-                            const match = Match(binder.data, option.data);
+                            const match$1 = match(binder.data, option.data);
                             if (event) {
-                                if (selected && !match) {
+                                if (selected && !match$1) {
                                     binder.data = option.data;
                                 }
-                                else if (!selected && match) {
+                                else if (!selected && match$1) {
                                     continue;
                                 }
                             }
                             else {
-                                if (match) {
+                                if (match$1) {
                                     ctx.selects.push(node);
                                 }
                                 else {
@@ -911,23 +823,6 @@
         }
     }
 
-    function write (binder) {
-        let data;
-        return {
-            read() {
-                data = !binder.data;
-                if (data === binder.target.readOnly) {
-                    this.write = false;
-                    return;
-                }
-            },
-            write() {
-                binder.target.readOnly = data;
-                binder.target.setAttribute('readonly', data);
-            }
-        };
-    }
-
     const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
@@ -942,21 +837,14 @@
             this.binders = {
                 checked,
                 class: Class,
-                default: Default,
                 each,
-                hidden,
-                show, showed: show,
-                enable, enabled: enable,
-                disable, disabled: disable,
+                default: Default,
                 html,
                 on,
-                read,
-                require: Require, required: Require,
                 reset: reset$1,
                 submit: submit$1,
                 text,
                 value,
-                write
             };
         }
         setup(options = {}) {
@@ -976,6 +864,7 @@
         }
         render(binder, ...extra) {
             const type = binder.type in this.binders ? binder.type : 'default';
+            console.log(type);
             const render = this.binders[type](binder, ...extra);
             if (render)
                 Batcher.batch(render);
@@ -1013,7 +902,7 @@
                     display(data) {
                         let value = this.value;
                         parameters.forEach(parameter => {
-                            value = value.replace(parameter, parameter === this.parameter ? data : Traverse(container.model, parameter.replace(/{{|}}/, '').split('.')));
+                            value = value.replace(parameter, parameter === this.parameter ? data : traverse(container.model, parameter.replace(/{{|}}/, '').split('.')));
                         });
                         return value;
                     },
@@ -1026,7 +915,7 @@
                         return data === undefined ? node.value : data;
                     },
                     get data() {
-                        const parentValue = Traverse(this.container.model, this.parentKeys);
+                        const parentValue = traverse(this.container.model, this.parentKeys);
                         const childValue = parentValue[this.childKey];
                         if (typeof childValue === 'function') {
                             return event => {
@@ -1038,13 +927,13 @@
                         }
                     },
                     set data(value) {
-                        const parentValue = Traverse(container.model, this.parentKeys);
+                        const parentValue = traverse(container.model, this.parentKeys);
                         const childValue = parentValue[this.childKey];
                         if (this.type === 'on') {
                             parentValue[this.childKey] = value;
                         }
                         else if (typeof childValue === 'function') {
-                            const parameters = this.parameterPaths.map(path => Traverse(container.model, path));
+                            const parameters = this.parameterPaths.map(path => traverse(container.model, path));
                             childValue.call(this.container, ...parameters);
                         }
                         else {
@@ -1306,25 +1195,441 @@
     Component.template = '';
     Component.attributes = [];
 
-    function Location(data, mode) {
-        data = data || window.location.href;
-        const parser = document.createElement('a');
-        parser.href = data;
-        const location = {
-            mode,
-            path: '',
-            href: parser.href,
-            host: parser.host,
-            port: parser.port,
-            hash: parser.hash,
-            search: parser.search,
-            protocol: parser.protocol,
-            hostname: parser.hostname,
-            pathname: parser.pathname[0] === '/' ? parser.pathname : '/' + parser.pathname
-        };
-        location.path = location.pathname + location.search + location.hash;
-        return location;
+    const single = '/';
+    const double = '//';
+    const colon = '://';
+    const ftp = 'ftp://';
+    const file = 'file://';
+    const http = 'http://';
+    const https = 'https://';
+    function absolute(path) {
+        if (path.slice(0, single.length) === single ||
+            path.slice(0, double.length) === double ||
+            path.slice(0, colon.length) === colon ||
+            path.slice(0, ftp.length) === ftp ||
+            path.slice(0, file.length) === file ||
+            path.slice(0, http.length) === http ||
+            path.slice(0, https.length) === https) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
+
+    function resolve(...paths) {
+        let path = (paths[0] || '').trim();
+        for (let i = 1; i < paths.length; i++) {
+            const part = paths[i].trim();
+            if (path[path.length - 1] !== '/' && part[0] !== '/') {
+                path += '/';
+            }
+            path += part;
+        }
+        const a = window.document.createElement('a');
+        a.href = path;
+        return a.href;
+    }
+
+    const S_EXPORT = `
+
+    ^export\\b
+    (?:
+        \\s*(default)\\s*
+    )?
+    (?:
+        \\s*(var|let|const|function|class)\\s*
+    )?
+    (\\s*?:{\\s*)?
+    (
+        (?:\\w+\\s*,?\\s*)*
+    )?
+    (\\s*?:}\\s*)?
+
+`.replace(/\s+/g, '');
+    const S_IMPORT = `
+
+    import
+    (?:
+        (?:
+            \\s+(\\w+)(?:\\s+|\\s*,\\s*)
+        )
+        ?
+        (?:
+            (?:\\s+(\\*\\s+as\\s+\\w+)\\s+)
+            |
+            (?:
+                \\s*{\\s*
+                (
+                    (?:
+                        (?:
+                            (?:\\w+)
+                            |
+                            (?:\\w+\\s+as\\s+\\w+)
+                        )
+                        \\s*,?\\s*
+                    )
+                    *
+                )
+                \\s*}\\s*
+            )
+        )
+        ?
+        from
+    )
+    ?
+    \\s*
+    (?:"|')
+    (.*?)
+    (?:'|")
+    (?:\\s*;)?
+   
+`.replace(/\s+/g, '');
+    const R_IMPORT = new RegExp(S_IMPORT);
+    const R_EXPORT = new RegExp(S_EXPORT);
+    const R_IMPORTS = new RegExp(S_IMPORT, 'g');
+    const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
+    const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
+    const fetch = function (url) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200 || xhr.status === 0) {
+                        resolve(xhr.responseText);
+                    }
+                    else {
+                        reject(new Error(`failed to import: ${url}`));
+                    }
+                }
+            };
+            try {
+                xhr.open('GET', url, true);
+                xhr.send();
+            }
+            catch (_a) {
+                reject(new Error(`failed to import: ${url}`));
+            }
+        });
+    };
+    const run = function (code) {
+        return new Promise(function (resolve, reject) {
+            const blob = new Blob([code], { type: 'text/javascript' });
+            const script = document.createElement('script');
+            if ('noModule' in script) {
+                script.type = 'module';
+            }
+            script.onerror = function (error) {
+                reject(error);
+                script.remove();
+                URL.revokeObjectURL(script.src);
+            };
+            script.onload = function (error) {
+                resolve(error);
+                script.remove();
+                URL.revokeObjectURL(script.src);
+            };
+            script.src = URL.createObjectURL(blob);
+            document.head.appendChild(script);
+        });
+    };
+    const transform = function (code, url) {
+        let before = `window.MODULES["${url}"] = Promise.all([\n`;
+        let after = ']).then(function ($MODULES) {\n';
+        const templateMatches = code.match(R_TEMPLATES) || [];
+        for (let i = 0; i < templateMatches.length; i++) {
+            const templateMatch = templateMatches[i];
+            code = code.replace(templateMatch, templateMatch
+                .replace(/'/g, '\\' + '\'')
+                .replace(/^([^\\])?`/, '$1\'')
+                .replace(/([^\\])?`$/, '$1\'')
+                .replace(/\${(.*)?}/g, '\'+$1+\'')
+                .replace(/\n/g, '\\n'));
+        }
+        const parentImport = url.slice(0, url.lastIndexOf('/') + 1);
+        const importMatches = code.match(R_IMPORTS) || [];
+        for (let i = 0, l = importMatches.length; i < l; i++) {
+            const importMatch = importMatches[i].match(R_IMPORT);
+            if (!importMatch)
+                continue;
+            const rawImport = importMatch[0];
+            const nameImport = importMatch[1];
+            let pathImport = importMatch[4] || importMatch[5];
+            if (absolute(pathImport)) {
+                pathImport = resolve(pathImport);
+            }
+            else {
+                pathImport = resolve(parentImport, pathImport);
+            }
+            before = `${before} \twindow.LOAD("${pathImport}"),\n`;
+            after = `${after}var ${nameImport} = $MODULES[${i}].default;\n`;
+            code = code.replace(rawImport, '') || [];
+        }
+        let hasDefault = false;
+        const exportMatches = code.match(R_EXPORTS) || [];
+        for (let i = 0, l = exportMatches.length; i < l; i++) {
+            const exportMatch = exportMatches[i].match(R_EXPORT) || [];
+            const rawExport = exportMatch[0];
+            const defaultExport = exportMatch[1] || '';
+            const typeExport = exportMatch[2] || '';
+            const nameExport = exportMatch[3] || '';
+            if (defaultExport) {
+                if (hasDefault) {
+                    code = code.replace(rawExport, `$DEFAULT = ${typeExport} ${nameExport}`);
+                }
+                else {
+                    hasDefault = true;
+                    code = code.replace(rawExport, `var $DEFAULT = ${typeExport} ${nameExport}`);
+                }
+            }
+        }
+        if (hasDefault) {
+            code += '\n\nreturn { default: $DEFAULT };\n';
+        }
+        code = '"use strict";\n' + before + after + code + '});';
+        return code;
+    };
+    const load = function (url) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!url)
+                throw new Error('Oxe.load - url required');
+            url = resolve(url);
+            if (typeof window.DYNAMIC_SUPPORT !== 'boolean') {
+                yield run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,"); } catch (e) { /*e*/ }');
+                window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
+            }
+            if (window.DYNAMIC_SUPPORT === true) {
+                console.log('native import');
+                yield run(`window.MODULES["${url}"] = import("${url}");`);
+                return window.MODULES[url];
+            }
+            if (window.MODULES[url]) {
+                return window.MODULES[url];
+            }
+            if (typeof window.REGULAR_SUPPORT !== 'boolean') {
+                const script = document.createElement('script');
+                window.REGULAR_SUPPORT = 'noModule' in script;
+            }
+            let code;
+            if (window.REGULAR_SUPPORT) {
+                console.log('noModule: yes');
+                code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
+            }
+            else {
+                console.log('noModule: no');
+                code = yield fetch(url);
+                code = transform(code, url);
+            }
+            try {
+                yield run(code);
+            }
+            catch (_a) {
+                throw new Error(`Oxe.load - failed to import: ${url}`);
+            }
+            return this.modules[url];
+        });
+    };
+    window.LOAD = window.LOAD || load;
+    window.MODULES = window.MODULES || {};
+
+    var _target, _data$1, _folder, _dynamic, _contain, _external, _after, _before, _a$1;
+    const absolute$1 = function (path) {
+        const a = document.createElement('a');
+        a.href = path;
+        return a.pathname;
+    };
+    var Location = new (_a$1 = class Location {
+            constructor() {
+                _target.set(this, void 0);
+                _data$1.set(this, {});
+                _folder.set(this, '');
+                _dynamic.set(this, true);
+                _contain.set(this, false);
+                _external.set(this, void 0);
+                _after.set(this, void 0);
+                _before.set(this, void 0);
+            }
+            get hash() { return window.location.hash; }
+            get host() { return window.location.host; }
+            get hostname() { return window.location.hostname; }
+            get href() { return window.location.href; }
+            get origin() { return window.location.origin; }
+            get pathname() { return window.location.pathname; }
+            get port() { return window.location.port; }
+            get protocol() { return window.location.protocol; }
+            get search() { return window.location.search; }
+            toString() {
+                return window.location.href;
+            }
+            back() {
+                window.history.back();
+            }
+            forward() {
+                window.history.forward();
+            }
+            reload() {
+                window.location.reload();
+            }
+            redirect(href) {
+                window.location.href = href;
+            }
+            listen(option) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if ('folder' in option)
+                        __classPrivateFieldSet(this, _folder, option.folder);
+                    if ('contain' in option)
+                        __classPrivateFieldSet(this, _contain, option.contain);
+                    if ('dynamic' in option)
+                        __classPrivateFieldSet(this, _dynamic, option.dynamic);
+                    if ('external' in option)
+                        __classPrivateFieldSet(this, _external, option.external);
+                    __classPrivateFieldSet(this, _target, option.target instanceof Element ? option.target : document.body.querySelector(option.target));
+                    if (__classPrivateFieldGet(this, _dynamic)) {
+                        window.addEventListener('popstate', this.state.bind(this), true);
+                        if (__classPrivateFieldGet(this, _contain)) {
+                            __classPrivateFieldGet(this, _target).addEventListener('click', this.click.bind(this), true);
+                        }
+                        else {
+                            window.document.addEventListener('click', this.click.bind(this), true);
+                        }
+                    }
+                    return this.replace(window.location.href);
+                });
+            }
+            assign(data) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    return this.go(data, { mode: 'push' });
+                });
+            }
+            replace(data) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    return this.go(data, { mode: 'replace' });
+                });
+            }
+            location(href = window.location.href) {
+                const parser = document.createElement('a');
+                parser.href = href;
+                return {
+                    href: parser.href,
+                    host: parser.host,
+                    port: parser.port,
+                    hash: parser.hash,
+                    search: parser.search,
+                    protocol: parser.protocol,
+                    hostname: parser.hostname,
+                    pathname: parser.pathname
+                };
+            }
+            go(path, options = {}) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const { mode } = options;
+                    const location = this.location(path);
+                    if (__classPrivateFieldGet(this, _before))
+                        yield __classPrivateFieldGet(this, _before).call(this, location);
+                    if (!__classPrivateFieldGet(this, _dynamic)) {
+                        return window.location[mode === 'push' ? 'assign' : mode](location.href);
+                    }
+                    window.history.replaceState({
+                        href: window.location.href,
+                        top: document.documentElement.scrollTop || document.body.scrollTop || 0
+                    }, '', window.location.href);
+                    window.history[mode + 'State']({
+                        top: 0,
+                        href: location.href
+                    }, '', location.href);
+                    let element;
+                    if (location.pathname in __classPrivateFieldGet(this, _data$1)) {
+                        element = __classPrivateFieldGet(this, _data$1)[location.pathname];
+                    }
+                    else {
+                        const path = location.pathname === '/' ? '/index' : location.pathname;
+                        let load$1 = path;
+                        if (load$1.slice(0, 2) === './')
+                            load$1 = load$1.slice(2);
+                        if (load$1.slice(0, 1) !== '/')
+                            load$1 = '/' + load$1;
+                        if (load$1.slice(0, 1) === '/')
+                            load$1 = load$1.slice(1);
+                        load$1 = `${__classPrivateFieldGet(this, _folder)}/${load$1}.js`.replace(/\/+/g, '/');
+                        load$1 = absolute$1(load$1);
+                        const component = (yield load(load$1)).default;
+                        const name = 'l' + path.replace(/\/+/g, '-');
+                        window.customElements.define(name, component);
+                        element = window.document.createElement(name);
+                        __classPrivateFieldGet(this, _data$1)[location.pathname] = element;
+                    }
+                    if (element.title)
+                        window.document.title = element.title;
+                    while (__classPrivateFieldGet(this, _target).firstChild) {
+                        __classPrivateFieldGet(this, _target).removeChild(__classPrivateFieldGet(this, _target).firstChild);
+                    }
+                    __classPrivateFieldGet(this, _target).appendChild(element);
+                    if (__classPrivateFieldGet(this, _after))
+                        yield __classPrivateFieldGet(this, _after).call(this, location);
+                });
+            }
+            state(event) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    yield this.replace(event.state.href);
+                    window.scroll(event.state.top, 0);
+                });
+            }
+            click(event) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (event.target.type ||
+                        event.button !== 0 ||
+                        event.defaultPrevented ||
+                        event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
+                        return;
+                    let target = event.path ? event.path[0] : event.target;
+                    let parent = target.parentElement;
+                    if (__classPrivateFieldGet(this, _contain)) {
+                        while (parent) {
+                            if (parent.nodeName === __classPrivateFieldGet(this, _target).nodeName) {
+                                break;
+                            }
+                            else {
+                                parent = parent.parentElement;
+                            }
+                        }
+                        if (parent.nodeName !== __classPrivateFieldGet(this, _target).nodeName) {
+                            return;
+                        }
+                    }
+                    while (target && 'A' !== target.nodeName) {
+                        target = target.parentElement;
+                    }
+                    if (!target || 'A' !== target.nodeName) {
+                        return;
+                    }
+                    if (target.hasAttribute('download') ||
+                        target.hasAttribute('external') ||
+                        target.hasAttribute('o-external') ||
+                        target.href.startsWith('tel:') ||
+                        target.href.startsWith('ftp:') ||
+                        target.href.startsWith('file:)') ||
+                        target.href.startsWith('mailto:') ||
+                        !target.href.startsWith(window.location.origin))
+                        return;
+                    if (__classPrivateFieldGet(this, _external) &&
+                        (__classPrivateFieldGet(this, _external) instanceof RegExp && __classPrivateFieldGet(this, _external).test(target.href) ||
+                            typeof __classPrivateFieldGet(this, _external) === 'function' && __classPrivateFieldGet(this, _external).call(this, target.href) ||
+                            typeof __classPrivateFieldGet(this, _external) === 'string' && __classPrivateFieldGet(this, _external) === target.href))
+                        return;
+                    event.preventDefault();
+                    this.assign(target.href);
+                });
+            }
+        },
+        _target = new WeakMap(),
+        _data$1 = new WeakMap(),
+        _folder = new WeakMap(),
+        _dynamic = new WeakMap(),
+        _contain = new WeakMap(),
+        _external = new WeakMap(),
+        _after = new WeakMap(),
+        _before = new WeakMap(),
+        _a$1);
 
     var Fetcher = new class Fetcher {
         constructor() {
@@ -1513,248 +1818,6 @@
         }
     };
 
-    const single = '/';
-    const double = '//';
-    const colon = '://';
-    const ftp = 'ftp://';
-    const file = 'file://';
-    const http = 'http://';
-    const https = 'https://';
-    function absolute(path) {
-        if (path.slice(0, single.length) === single ||
-            path.slice(0, double.length) === double ||
-            path.slice(0, colon.length) === colon ||
-            path.slice(0, ftp.length) === ftp ||
-            path.slice(0, file.length) === file ||
-            path.slice(0, http.length) === http ||
-            path.slice(0, https.length) === https) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    function resolve(...paths) {
-        let path = (paths[0] || '').trim();
-        for (let i = 1; i < paths.length; i++) {
-            const part = paths[i].trim();
-            if (path[path.length - 1] !== '/' && part[0] !== '/') {
-                path += '/';
-            }
-            path += part;
-        }
-        const a = window.document.createElement('a');
-        a.href = path;
-        return a.href;
-    }
-
-    function fetch(url) {
-        return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200 || xhr.status === 0) {
-                        resolve(xhr.responseText);
-                    }
-                    else {
-                        reject(new Error(`failed to import: ${url}`));
-                    }
-                }
-            };
-            try {
-                xhr.open('GET', url, true);
-                xhr.send();
-            }
-            catch (_a) {
-                reject(new Error(`failed to import: ${url}`));
-            }
-        });
-    }
-
-    function run(code) {
-        return new Promise(function (resolve, reject) {
-            const blob = new Blob([code], { type: 'text/javascript' });
-            const script = document.createElement('script');
-            if ('noModule' in script) {
-                script.type = 'module';
-            }
-            script.onerror = function (error) {
-                reject(error);
-                script.remove();
-                URL.revokeObjectURL(script.src);
-            };
-            script.onload = function (error) {
-                resolve(error);
-                script.remove();
-                URL.revokeObjectURL(script.src);
-            };
-            script.src = URL.createObjectURL(blob);
-            document.head.appendChild(script);
-        });
-    }
-
-    var S_EXPORT = `
-
-    ^export\\b
-    (?:
-        \\s*(default)\\s*
-    )?
-    (?:
-        \\s*(var|let|const|function|class)\\s*
-    )?
-    (\\s*?:{\\s*)?
-    (
-        (?:\\w+\\s*,?\\s*)*
-    )?
-    (\\s*?:}\\s*)?
-
-`.replace(/\s+/g, '');
-
-    var S_IMPORT = `
-
-    import
-    (?:
-        (?:
-            \\s+(\\w+)(?:\\s+|\\s*,\\s*)
-        )
-        ?
-        (?:
-            (?:\\s+(\\*\\s+as\\s+\\w+)\\s+)
-            |
-            (?:
-                \\s*{\\s*
-                (
-                    (?:
-                        (?:
-                            (?:\\w+)
-                            |
-                            (?:\\w+\\s+as\\s+\\w+)
-                        )
-                        \\s*,?\\s*
-                    )
-                    *
-                )
-                \\s*}\\s*
-            )
-        )
-        ?
-        from
-    )
-    ?
-    \\s*
-    (?:"|')
-    (.*?)
-    (?:'|")
-    (?:\\s*;)?
-   
-`.replace(/\s+/g, '');
-
-    const R_IMPORT = new RegExp(S_IMPORT);
-    const R_EXPORT = new RegExp(S_EXPORT);
-    const R_IMPORTS = new RegExp(S_IMPORT, 'g');
-    const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
-    const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
-    const transform = function (code, url) {
-        let before = `window.MODULES["${url}"] = Promise.all([\n`;
-        let after = ']).then(function ($MODULES) {\n';
-        const templateMatches = code.match(R_TEMPLATES) || [];
-        for (let i = 0; i < templateMatches.length; i++) {
-            const templateMatch = templateMatches[i];
-            code = code.replace(templateMatch, templateMatch
-                .replace(/'/g, '\\' + '\'')
-                .replace(/^([^\\])?`/, '$1\'')
-                .replace(/([^\\])?`$/, '$1\'')
-                .replace(/\${(.*)?}/g, '\'+$1+\'')
-                .replace(/\n/g, '\\n'));
-        }
-        const parentImport = url.slice(0, url.lastIndexOf('/') + 1);
-        const importMatches = code.match(R_IMPORTS) || [];
-        for (let i = 0, l = importMatches.length; i < l; i++) {
-            const importMatch = importMatches[i].match(R_IMPORT);
-            if (!importMatch)
-                continue;
-            const rawImport = importMatch[0];
-            const nameImport = importMatch[1];
-            let pathImport = importMatch[4] || importMatch[5];
-            if (absolute(pathImport)) {
-                pathImport = resolve(pathImport);
-            }
-            else {
-                pathImport = resolve(parentImport, pathImport);
-            }
-            before = `${before} \twindow.LOAD("${pathImport}"),\n`;
-            after = `${after}var ${nameImport} = $MODULES[${i}].default;\n`;
-            code = code.replace(rawImport, '') || [];
-        }
-        let hasDefault = false;
-        const exportMatches = code.match(R_EXPORTS) || [];
-        for (let i = 0, l = exportMatches.length; i < l; i++) {
-            const exportMatch = exportMatches[i].match(R_EXPORT) || [];
-            const rawExport = exportMatch[0];
-            const defaultExport = exportMatch[1] || '';
-            const typeExport = exportMatch[2] || '';
-            const nameExport = exportMatch[3] || '';
-            if (defaultExport) {
-                if (hasDefault) {
-                    code = code.replace(rawExport, `$DEFAULT = ${typeExport} ${nameExport}`);
-                }
-                else {
-                    hasDefault = true;
-                    code = code.replace(rawExport, `var $DEFAULT = ${typeExport} ${nameExport}`);
-                }
-            }
-        }
-        if (hasDefault) {
-            code += '\n\nreturn { default: $DEFAULT };\n';
-        }
-        code = '"use strict";\n' + before + after + code + '});';
-        return code;
-    };
-    const load = function (url) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!url)
-                throw new Error('Oxe.load - url required');
-            url = resolve(url);
-            if (typeof window.DYNAMIC_SUPPORT !== 'boolean') {
-                yield run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,"); } catch (e) { /*e*/ }');
-                window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
-            }
-            if (window.DYNAMIC_SUPPORT === true) {
-                console.log('native import');
-                yield run(`window.MODULES["${url}"] = import("${url}");`);
-                return window.MODULES[url];
-            }
-            console.log('not native import');
-            if (window.MODULES[url]) {
-                return window.MODULES[url];
-            }
-            if (typeof window.REGULAR_SUPPORT !== 'boolean') {
-                const script = document.createElement('script');
-                window.REGULAR_SUPPORT = 'noModule' in script;
-            }
-            let code;
-            if (window.REGULAR_SUPPORT) {
-                console.log('noModule: yes');
-                code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
-            }
-            else {
-                console.log('noModule: no');
-                code = yield fetch(url);
-                code = transform(code, url);
-            }
-            try {
-                yield run(code);
-            }
-            catch (_a) {
-                throw new Error(`Oxe.load - failed to import: ${url}`);
-            }
-            return this.modules[url];
-        });
-    };
-    window.LOAD = window.LOAD || load;
-    window.MODULES = window.MODULES || {};
-
     function Define(name, constructor) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!name)
@@ -1766,378 +1829,10 @@
                     .then(() => load(constructor))
                     .then(data => Define(name, data.default));
             }
-            else if (constructor instanceof Array) {
-                constructor.forEach(Define.bind(this, name));
-            }
             else {
                 window.customElements.define(name, constructor);
             }
         });
-    }
-
-    function Events(target, name, detail, options) {
-        options = options || { detail: null };
-        options.detail = detail === undefined ? null : detail;
-        target.dispatchEvent(new window.CustomEvent(name, options));
-    }
-
-    function Query(data) {
-        data = data || window.location.search;
-        if (typeof data === 'string') {
-            const result = {};
-            if (data.indexOf('?') === 0)
-                data = data.slice(1);
-            const queries = data.split('&');
-            for (let i = 0; i < queries.length; i++) {
-                const [name, value] = queries[i].split('=');
-                if (name !== undefined && value !== undefined) {
-                    if (name in result) {
-                        if (typeof result[name] === 'string') {
-                            result[name] = [value];
-                        }
-                        else {
-                            result[name].push(value);
-                        }
-                    }
-                    else {
-                        result[name] = value;
-                    }
-                }
-            }
-            return result;
-        }
-        else {
-            const result = [];
-            for (const key in data) {
-                const value = data[key];
-                result.push(`${key}=${value}`);
-            }
-            return `?${result.join('&')}`;
-        }
-    }
-
-    var _folder, _target, _contain, _external, _after, _before, _mode, _a$1;
-    const absolute$1 = function (path) {
-        const a = document.createElement('a');
-        a.href = path;
-        return a.pathname;
-    };
-    var Router = new (_a$1 = class Router {
-            constructor() {
-                this.data = [];
-                _folder.set(this, void 0);
-                _target.set(this, void 0);
-                _contain.set(this, void 0);
-                _external.set(this, void 0);
-                _after.set(this, void 0);
-                _before.set(this, void 0);
-                _mode.set(this, 'push');
-            }
-            setup(option = {}) {
-                var _a, _b, _c;
-                return __awaiter(this, void 0, void 0, function* () {
-                    __classPrivateFieldSet(this, _after, option.after);
-                    __classPrivateFieldSet(this, _before, option.before);
-                    __classPrivateFieldSet(this, _external, option.external);
-                    __classPrivateFieldSet(this, _mode, (_a = option.mode) !== null && _a !== void 0 ? _a : 'push');
-                    __classPrivateFieldSet(this, _contain, (_b = option.contain) !== null && _b !== void 0 ? _b : false);
-                    __classPrivateFieldSet(this, _folder, (_c = option.folder) !== null && _c !== void 0 ? _c : './routes');
-                    __classPrivateFieldSet(this, _target, option.target instanceof Element ? option.target : document.body.querySelector(option.target || 'main'));
-                    if (__classPrivateFieldGet(this, _mode) !== 'href') {
-                        console.log(__classPrivateFieldGet(this, _mode));
-                        window.addEventListener('popstate', this.state.bind(this), true);
-                        window.document.addEventListener('click', this.click.bind(this), true);
-                    }
-                    yield this.add(option.routes);
-                    yield this.route(window.location.href, { mode: 'replace' });
-                });
-            }
-            ;
-            compare(routePath, userPath) {
-                const userParts = absolute$1(userPath).replace(/(\-|\/)/g, '**$1**').replace(/^\*\*|\*\*$/g, '').split('**');
-                const routeParts = absolute$1(routePath).replace(/(\-|\/)/g, '**$1**').replace(/^\*\*|\*\*$/g, '').split('**');
-                for (let i = 0, l = userParts.length; i < l; i++) {
-                    if (routeParts[i] === 'any')
-                        return true;
-                    if (routeParts[i] !== userParts[i])
-                        return false;
-                }
-                return true;
-            }
-            ;
-            scroll(x, y) {
-                window.scroll(x, y);
-            }
-            ;
-            back() {
-                return __awaiter(this, void 0, void 0, function* () {
-                    window.history.back();
-                });
-            }
-            ;
-            forward() {
-                return __awaiter(this, void 0, void 0, function* () {
-                    window.history.forward();
-                });
-            }
-            ;
-            redirect(path) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    window.location.href = path;
-                });
-            }
-            ;
-            add(data) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (typeof data === 'string') {
-                        let load = data;
-                        let path = data;
-                        if (path.slice(-3) === '')
-                            path = path.slice(0, -3);
-                        if (path.slice(-5) === 'index')
-                            path = path.slice(0, -5);
-                        if (path.slice(-6) === 'index/')
-                            path = path.slice(0, -6);
-                        if (path.slice(0, 2) === './')
-                            path = path.slice(2);
-                        if (path.slice(0, 1) !== '/')
-                            path = '/' + path;
-                        if (load.slice(-3) !== '')
-                            load = load + '';
-                        if (load.slice(0, 2) === './')
-                            load = load.slice(2);
-                        if (load.slice(0, 1) !== '/')
-                            load = '/' + load;
-                        if (load.slice(0, 1) === '/')
-                            load = load.slice(1);
-                        if (__classPrivateFieldGet(this, _folder).slice(-1) === '/')
-                            __classPrivateFieldSet(this, _folder, __classPrivateFieldGet(this, _folder).slice(0, -1));
-                        load = __classPrivateFieldGet(this, _folder) + '/' + load + '.js';
-                        load = absolute$1(load);
-                        const name = `r-${data.replace('/', '-')}`;
-                        this.add({ path, name, load });
-                    }
-                    else if (data instanceof Array) {
-                        return Promise.all(data.map(route => this.add(route)));
-                    }
-                    else {
-                        this.data.push(data);
-                    }
-                });
-            }
-            ;
-            remove(path) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    for (let i = 0; i < this.data.length; i++) {
-                        if (this.data[i].path === path) {
-                            this.data.splice(i, 1);
-                        }
-                    }
-                });
-            }
-            ;
-            get(path) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    for (let i = 0; i < this.data.length; i++) {
-                        if (this.data[i].path === path) {
-                            this.data[i] = yield this.load(this.data[i]);
-                            return this.data[i];
-                        }
-                    }
-                });
-            }
-            ;
-            filter(path) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    const result = [];
-                    for (let i = 0; i < this.data.length; i++) {
-                        if (this.compare(this.data[i].path, path)) {
-                            this.data[i] = yield this.load(this.data[i]);
-                            result.push(this.data[i]);
-                        }
-                    }
-                    return result;
-                });
-            }
-            ;
-            load(route) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (!route.component) {
-                        const load$1 = yield load(route.load);
-                        route.component = load$1.default;
-                    }
-                    return route;
-                });
-            }
-            ;
-            find(path) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    const route = this.data.find(route => this.compare(route.path, path));
-                    return route ? yield this.load(route) : null;
-                });
-            }
-            ;
-            render(route) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (!route.target) {
-                        if (!route.name)
-                            throw new Error('Oxe.router.render - name required');
-                        if (!route.component)
-                            throw new Error('Oxe.router.render - component required');
-                        window.customElements.define(route.name, route.component);
-                        route.target = window.document.createElement(route.name);
-                    }
-                    window.document.title = route.component.title || route.target.title;
-                    if (!__classPrivateFieldGet(this, _target)) {
-                        throw new Error(`Oxe.router.render - target required`);
-                    }
-                    while (__classPrivateFieldGet(this, _target).firstChild) {
-                        __classPrivateFieldGet(this, _target).removeChild(__classPrivateFieldGet(this, _target).firstChild);
-                    }
-                    __classPrivateFieldGet(this, _target).appendChild(route.target);
-                    window.scroll(0, 0);
-                });
-            }
-            ;
-            route(path, options = {}) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (options.query) {
-                        path += Query(options.query);
-                    }
-                    const mode = options.mode || __classPrivateFieldGet(this, _mode);
-                    const location = Location(path, mode);
-                    const route = yield this.find(location.pathname);
-                    if (!route) {
-                        throw new Error(`Oxe.router.route - ${location.pathname} not found`);
-                    }
-                    if (location.mode === 'href') {
-                        return window.location.assign(location.path);
-                    }
-                    Events(__classPrivateFieldGet(this, _target), 'before', location);
-                    if (typeof __classPrivateFieldGet(this, _before) === 'function') {
-                        yield __classPrivateFieldGet(this, _before).call(this, location);
-                    }
-                    window.history[location.mode + 'State']({ path: location.path }, '', location.path);
-                    yield this.render(route);
-                    if (typeof __classPrivateFieldGet(this, _after) === 'function') {
-                        yield __classPrivateFieldGet(this, _after).call(this, location);
-                    }
-                    Events(__classPrivateFieldGet(this, _target), 'after', location);
-                });
-            }
-            ;
-            state(event) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    const path = event && event.state ? event.state.path : window.location.href;
-                    this.route(path, { mode: 'replace' });
-                });
-            }
-            ;
-            click(event) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (event.target.type ||
-                        event.button !== 0 ||
-                        event.defaultPrevented ||
-                        event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
-                        return;
-                    let target = event.path ? event.path[0] : event.target;
-                    let parent = target.parentElement;
-                    if (__classPrivateFieldGet(this, _contain)) {
-                        while (parent) {
-                            if (parent.nodeName === __classPrivateFieldGet(this, _target).nodeName) {
-                                break;
-                            }
-                            else {
-                                parent = parent.parentElement;
-                            }
-                        }
-                        if (parent.nodeName !== __classPrivateFieldGet(this, _target).nodeName) {
-                            return;
-                        }
-                    }
-                    while (target && 'A' !== target.nodeName) {
-                        target = target.parentElement;
-                    }
-                    if (!target || 'A' !== target.nodeName) {
-                        return;
-                    }
-                    if (target.hasAttribute('download') ||
-                        target.hasAttribute('external') ||
-                        target.hasAttribute('o-external') ||
-                        target.href.startsWith('tel:') ||
-                        target.href.startsWith('ftp:') ||
-                        target.href.startsWith('file:)') ||
-                        target.href.startsWith('mailto:') ||
-                        !target.href.startsWith(window.location.origin))
-                        return;
-                    if (__classPrivateFieldGet(this, _external) &&
-                        (__classPrivateFieldGet(this, _external) instanceof RegExp && __classPrivateFieldGet(this, _external).test(target.href) ||
-                            typeof __classPrivateFieldGet(this, _external) === 'function' && __classPrivateFieldGet(this, _external).call(this, target.href) ||
-                            typeof __classPrivateFieldGet(this, _external) === 'string' && __classPrivateFieldGet(this, _external) === target.href))
-                        return;
-                    event.preventDefault();
-                    this.route(target.href);
-                });
-            }
-            ;
-        },
-        _folder = new WeakMap(),
-        _target = new WeakMap(),
-        _contain = new WeakMap(),
-        _external = new WeakMap(),
-        _after = new WeakMap(),
-        _before = new WeakMap(),
-        _mode = new WeakMap(),
-        _a$1);
-
-    const assignOwnPropertyDescriptors = function (target, source) {
-        for (const name in source) {
-            if (Object.prototype.hasOwnProperty.call(source, name)) {
-                const descriptor = Object.getOwnPropertyDescriptor(source, name);
-                Object.defineProperty(target, name, descriptor);
-            }
-        }
-        return target;
-    };
-    function Class$1 (parent, child) {
-        child = child || parent;
-        parent = parent === child ? undefined : parent;
-        const prototype = typeof child === 'function' ? child.prototype : child;
-        const constructor = typeof child === 'function' ? child : child.constructor;
-        const Class = function Class() {
-            const self = this;
-            constructor.apply(self, arguments);
-            if ('super' in self) {
-                if ('_super' in self) {
-                    return assignOwnPropertyDescriptors(self._super, self);
-                }
-                else {
-                    throw new Error('Class this.super call required');
-                }
-            }
-            else {
-                return self;
-            }
-        };
-        if (parent) {
-            assignOwnPropertyDescriptors(Class, parent);
-            Class.prototype = Object.create(parent.prototype);
-            assignOwnPropertyDescriptors(Class.prototype, prototype);
-            const Super = function Super() {
-                if (this._super)
-                    return this._super;
-                this._super = window.Reflect.construct(parent, arguments, this.constructor);
-                assignOwnPropertyDescriptors(this.super, parent.prototype);
-                return this._super;
-            };
-            Object.defineProperty(Class.prototype, 'super', { enumerable: false, writable: true, value: Super });
-        }
-        else {
-            Class.prototype = Object.create({});
-            assignOwnPropertyDescriptors(Class.prototype, prototype);
-        }
-        Object.defineProperty(Class.prototype, 'constructor', { enumerable: false, writable: true, value: Class });
-        return Class;
     }
 
     if (typeof window.CustomEvent !== 'function') {
@@ -2156,12 +1851,7 @@
             return Function.prototype.apply.call(parent, prototype, args) || prototype;
         };
     }
-    const setup$1 = document.querySelector('script[o-setup]');
-    const url = setup$1 ? setup$1.getAttribute('o-setup') : '';
-    if (setup$1)
-        load(url);
-    let SETUP = false;
-    var index = Object.freeze(new class Oxe {
+    var index$1 = Object.freeze(new class Oxe {
         constructor() {
             this.Component = Component;
             this.component = Component;
@@ -2171,34 +1861,17 @@
             this.batcher = Batcher;
             this.Fetcher = Fetcher;
             this.fetcher = Fetcher;
-            this.Router = Router;
-            this.router = Router;
             this.Binder = Binder;
             this.binder = Binder;
             this.Define = Define;
             this.define = Define;
-            this.Class = Class$1;
-            this.class = Class$1;
-            this.Query = Query;
-            this.query = Query;
             this.Load = load;
             this.load = load;
             this.Css = Css;
             this.css = Css;
         }
-        setup(options) {
-            if (SETUP)
-                return;
-            else
-                SETUP = true;
-            return Promise.all([
-                this.binder.setup(options.binder),
-                this.fetcher.setup(options.fetcher),
-                options.router ? this.router.setup(options.router) : null
-            ]);
-        }
     });
 
-    return index;
+    return index$1;
 
 })));

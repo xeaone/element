@@ -4,6 +4,10 @@ export default class BinderStyleRoute extends Oxe.Component {
 
     title = 'Style Binder'
 
+    static created() {
+        // setInterval(() => this.model.b = Color(), 1000);
+    }
+
     static model = {
         b: 'blue',
         c: 'red',
@@ -12,10 +16,6 @@ export default class BinderStyleRoute extends Oxe.Component {
             this.model.b = Color();
             console.log(this.model);
         }
-    }
-
-    static created() {
-        // setInterval(() => this.model.b = Color(), 1000);
     }
 
     static template = /*html*/`

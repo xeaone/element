@@ -6,7 +6,7 @@ const submit = async function (binder, event) {
     const data = {};
     const elements = event.target.querySelectorAll('*');
 
-    for (let i = 0, l = elements.length; i < l; i++) {
+    for (let i = 0; i < elements.length; i++) {
         const element = elements[i];
 
         if (

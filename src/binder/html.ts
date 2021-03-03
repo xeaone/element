@@ -3,7 +3,7 @@ import Binder from '../binder';
 export default function (binder) {
     let data;
     return {
-        read () {
+        read() {
             data = binder.data;
 
             if (data === undefined || data === null) {
@@ -15,7 +15,7 @@ export default function (binder) {
             }
 
         },
-        write () {
+        write() {
 
             while (binder.target.firstChild) {
                 const node = binder.target.removeChild(binder.target.firstChild);
@@ -28,11 +28,7 @@ export default function (binder) {
             parser.innerHTML = data;
 
             while (parser.firstElementChild) {
-
-                Binder.add(parser.firstElementChild, {
-                    container: binder.container,
-                });
-
+                Binder.add(parser.firstElementChild, { container: binder.container });
                 fragment.appendChild(parser.firstElementChild);
             }
 

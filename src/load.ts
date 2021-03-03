@@ -1,16 +1,5 @@
 import absolute from './path/absolute';
 import resolve from './path/resolve';
-import fetch from './load/fetch';
-import run from './load/run';
-
-import S_EXPORT from './load/s-export';
-import S_IMPORT from './load/s-import';
-
-const R_IMPORT = new RegExp(S_IMPORT);
-const R_EXPORT = new RegExp(S_EXPORT);
-const R_IMPORTS = new RegExp(S_IMPORT, 'g');
-const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
-const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
 
 declare global {
     interface Window {
@@ -21,6 +10,121 @@ declare global {
         DYNAMIC_SUPPORT: any;
     }
 }
+
+// https://regexr.com/5nj32
+const S_EXPORT = `
+
+    ^export\\b
+    (?:
+        \\s*(default)\\s*
+    )?
+    (?:
+        \\s*(var|let|const|function|class)\\s*
+    )?
+    (\\s*?:{\\s*)?
+    (
+        (?:\\w+\\s*,?\\s*)*
+    )?
+    (\\s*?:}\\s*)?
+
+`.replace(/\s+/g, '');
+
+// https://regexr.com/5nj38
+const S_IMPORT = `
+
+    import
+    (?:
+        (?:
+            \\s+(\\w+)(?:\\s+|\\s*,\\s*)
+        )
+        ?
+        (?:
+            (?:\\s+(\\*\\s+as\\s+\\w+)\\s+)
+            |
+            (?:
+                \\s*{\\s*
+                (
+                    (?:
+                        (?:
+                            (?:\\w+)
+                            |
+                            (?:\\w+\\s+as\\s+\\w+)
+                        )
+                        \\s*,?\\s*
+                    )
+                    *
+                )
+                \\s*}\\s*
+            )
+        )
+        ?
+        from
+    )
+    ?
+    \\s*
+    (?:"|')
+    (.*?)
+    (?:'|")
+    (?:\\s*;)?
+   
+`.replace(/\s+/g, '');
+
+const R_IMPORT = new RegExp(S_IMPORT);
+const R_EXPORT = new RegExp(S_EXPORT);
+const R_IMPORTS = new RegExp(S_IMPORT, 'g');
+const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
+const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
+
+const fetch = function (url) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200 || xhr.status === 0) {
+                    resolve(xhr.responseText);
+                } else {
+                    reject(new Error(`failed to import: ${url}`));
+                }
+            }
+        };
+
+        try {
+            xhr.open('GET', url, true);
+            xhr.send();
+        } catch {
+            reject(new Error(`failed to import: ${url}`));
+        }
+
+    });
+};
+
+const run = function (code) {
+    return new Promise(function (resolve, reject) {
+        const blob = new Blob([code], { type: 'text/javascript' });
+        const script = document.createElement('script');
+
+        if ('noModule' in script) {
+            script.type = 'module';
+        }
+
+        script.onerror = function (error) {
+            reject(error);
+            script.remove();
+            URL.revokeObjectURL(script.src);
+        };
+
+        script.onload = function (error) {
+            resolve(error);
+            script.remove();
+            URL.revokeObjectURL(script.src);
+        };
+
+        script.src = URL.createObjectURL(blob);
+
+        document.head.appendChild(script);
+    });
+};
 
 const transform = function (code, url) {
 
@@ -90,7 +194,7 @@ const transform = function (code, url) {
     return code;
 };
 
-const load = async function (url : string) {
+const load = async function (url: string) {
     if (!url) throw new Error('Oxe.load - url required');
 
     url = resolve(url);
@@ -109,7 +213,7 @@ const load = async function (url : string) {
         return window.MODULES[url];
     }
 
-    console.log('not native import');
+    // console.log('not native import');
 
     if (window.MODULES[url]) {
         // maybe clean up
@@ -145,71 +249,3 @@ window.LOAD = window.LOAD || load;
 window.MODULES = window.MODULES || {};
 
 export default load;
-
-// load.modules = load.modules || {};
-
-// window.importer = window.importer || importer;
-// window.importer.modules = window.importer.modules || {};
-// window.DYNAMIC_SUPPORT = 'DYNAMIC_SUPPORT' in window ? window.DYNAMIC_SUPPORT : undefined;
-// window.REGULAR_SUPPORT = 'REGULAR_SUPPORT' in window ? window.REGULAR_SUPPORT : undefined;
-//
-// const observer = new MutationObserver(mutations => {
-//     mutations.forEach(({ addedNodes }) => {
-//         addedNodes.forEach(node => {
-//             if (
-//                 node.nodeType === 1 &&
-//                 node.nodeName === 'SCRIPT'&&
-//                 node.type === 'module' &&
-//                 node.src
-//             ) {
-//                 const src = node.src;
-//                 // node.src = '';
-//                 node.type = 'module/blocked';
-//                 Promise.resolve().then(() => dynamic()).then(() => {
-//                     if (window.DYNAMIC_SUPPORT) {
-//                         // node.src = src;
-//                         node.type = 'module';
-//                     } else {
-//                         return window.importer(src);
-//                     }
-//                 });
-//             }
-//         });
-//     });
-// });
-//
-// observer.observe(document.documentElement, { childList: true, subtree: true });
-
-// const load = function load () {
-//     const scripts = document.getElementsByTagName('script');
-//     // var anonCnt = 0;
-//
-//     for (let i = 0; i < scripts.length; i++) {
-//         const script = scripts[i];
-//         if (script.type == 'module' && !script.loaded) {
-//             script.loaded = true;
-//             if (script.src) {
-//                 script.parentElement.reomveChild(script);
-//                 window.importer(script.src);
-//             } else {
-//             // anonymous modules supported via a custom naming scheme and registry
-//                 // var uri = './<anon' + ++anonCnt + '>';
-//                 // if (script.id !== ""){
-//                 //     uri = "./" + script.id;
-//                 // }
-//                 //
-//                 // var anonName = resolveIfNotPlain(uri, baseURI);
-//                 // anonSources[anonName] = script.innerHTML;
-//                 // loader.import(anonName);
-//             }
-//         }
-//     }
-//
-//     // document.removeEventListener('DOMContentLoaded', , false );
-// };
-
-// if (document.readyState === 'complete') {
-//     load();
-// } else {
-//     document.addEventListener('DOMContentLoaded', load, false);
-// }

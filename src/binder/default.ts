@@ -1,23 +1,39 @@
 import { toString } from '../tool';
 
+const bools = [
+    'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
+    'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
+    'indeterminate', 'inert', 'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nohref', 'noresize', 'noshade', 'hidden',
+    'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly', 'required', 'reversed', 'scoped', 'seamless', 'selected',
+    'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
+];
+
 export default function (binder) {
-    let data;
+    let data, bool;
     return {
         read() {
             data = binder.data;
-            data = data === null || data === undefined ? '' : data;
-            data = toString(data);
-            data = binder.display(data);
+            bool = bools.includes(binder.type);
 
-            // if (data === binder.target[binder.type]) {
-            //     this.write = false;
-            //     return;
-            // }
+            if (bool) {
+                data = data ? true : false;
+            } else {
+                data = data === null || data === undefined ? '' : data;
+                // data = toString(data);
+                data = binder.display(data);
+            }
 
         },
         write() {
             binder.target[binder.type] = data;
-            binder.target.setAttribute(binder.type, data);
+
+            if (bool) {
+                if (data) binder.target.setAttribute(binder.type, '');
+                else binder.target.removeAttribute(binder.type);
+            } else {
+                binder.target.setAttribute(binder.type, data);
+            }
+
         }
     };
 }

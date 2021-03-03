@@ -1,6 +1,5 @@
 import Binder from '../binder';
-import Match from '../tool/match';
-import { isBoolean } from '../tool';
+import { isBoolean, match } from '../tool';
 
 export default function (binder, event) {
 
@@ -16,14 +15,14 @@ export default function (binder, event) {
     }
 
     return {
-        read (ctx) {
+        read(ctx) {
             ctx.data = binder.data;
 
             if (isBoolean(ctx.data)) {
                 ctx.checked = event ? binder.target.checked : ctx.data;
             } else {
                 ctx.value = binder.getAttribute('value');
-                ctx.checked = Match(ctx.data, ctx.value);
+                ctx.checked = match(ctx.data, ctx.value);
             }
 
             if (event) {
@@ -40,7 +39,7 @@ export default function (binder, event) {
             }
 
         },
-        write (ctx) {
+        write(ctx) {
             binder.target.checked = ctx.checked;
             binder.target.setAttribute('checked', ctx.checked);
             binder.meta.busy = false;

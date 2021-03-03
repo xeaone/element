@@ -10,7 +10,7 @@ const compose = function (instance, template) {
 
         const templateSlot = templateSlots[i];
         const name = templateSlot.getAttribute('name');
-        const instanceSlot = instance.querySelector('[slot="'+ name + '"]');
+        const instanceSlot = instance.querySelector('[slot="' + name + '"]');
 
         if (instanceSlot) {
             templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
@@ -25,7 +25,7 @@ const compose = function (instance, template) {
             if (defaultSlot) {
                 defaultSlot.parentNode.insertBefore(instance.firstChild, defaultSlot);
             } else {
-               instance.removeChild(instance.firstChild);
+                instance.removeChild(instance.firstChild);
             }
         }
     }
@@ -36,13 +36,13 @@ const compose = function (instance, template) {
 
 };
 
-class Component extends HTMLElement {
+export default class Component extends HTMLElement {
 
     static model = {};
     static template = '';
     static attributes = [];
-    static get observedAttributes () { return this.attributes; }
-    static set observedAttributes (attributes) { this.attributes = attributes; }
+    static get observedAttributes() { return this.attributes; }
+    static set observedAttributes(attributes) { this.attributes = attributes; }
 
     CREATED: boolean;
 
@@ -61,9 +61,9 @@ class Component extends HTMLElement {
     #detached: () => any;
     #attributed: (name, oldValue, newValue) => any;
 
-    get css () { return this.#css; }
-    get model () { return this.#model; }
-    get binder () { return this.#binder; }
+    get css() { return this.#css; }
+    get model() { return this.#model; }
+    get binder() { return this.#binder; }
 
     // #template = '';
     // get template () { return this.#template; }
@@ -72,16 +72,16 @@ class Component extends HTMLElement {
     // #methods = {};
     // get methods () { return this.#methods; }
 
-    constructor () {
+    constructor() {
         super();
 
         this.#adopt = typeof (this.constructor as any).adopt === 'boolean' ? (this.constructor as any).adopt : false;
         this.#shadow = typeof (this.constructor as any).shadow === 'boolean' ? (this.constructor as any).shadow : false;
-        this.#adopted = typeof (this.constructor as any).adopted === 'function' ? (this.constructor as any).adopted : function () {};
-        this.#created = typeof (this.constructor as any).created === 'function' ? (this.constructor as any).created : function () {};
-        this.#attached = typeof (this.constructor as any).attached === 'function' ? (this.constructor as any).attached : function () {};
-        this.#detached = typeof (this.constructor as any).detached === 'function' ? (this.constructor as any).detached : function () {};
-        this.#attributed = typeof (this.constructor as any).attributed === 'function' ? (this.constructor as any).attributed : function () {};
+        this.#adopted = typeof (this.constructor as any).adopted === 'function' ? (this.constructor as any).adopted : function () { };
+        this.#created = typeof (this.constructor as any).created === 'function' ? (this.constructor as any).created : function () { };
+        this.#attached = typeof (this.constructor as any).attached === 'function' ? (this.constructor as any).attached : function () { };
+        this.#detached = typeof (this.constructor as any).detached === 'function' ? (this.constructor as any).detached : function () { };
+        this.#attributed = typeof (this.constructor as any).attributed === 'function' ? (this.constructor as any).attributed : function () { };
 
         this.#name = this.nodeName.toLowerCase();
         // this.#methods = this.constructor.methods || {};
@@ -90,16 +90,16 @@ class Component extends HTMLElement {
         this.#model = Observer.clone((this.constructor as any).model, (data, path) => {
             Binder.data.forEach(binder => {
                 if (binder.container === this && binder.path.startsWith(path)) {
-                // if (binder.container === this && binder.path.includes(path)) {
-                // if (binder.container === this && binder.path === path) {
+                    // if (binder.container === this && binder.path.includes(path)) {
+                    // if (binder.container === this && binder.path === path) {
                     Binder.render(binder);
                 }
             });
-        }); 
+        });
 
     }
 
-    render () {
+    render() {
 
         const template = document.createElement('template');
         template.innerHTML = (this.constructor as any).template;
@@ -136,20 +136,20 @@ class Component extends HTMLElement {
 
     }
 
-    attributeChangedCallback (name, oldValue, newValue) {
+    attributeChangedCallback(name, oldValue, newValue) {
         Promise.resolve().then(() => this.#attributed(name, oldValue, newValue));
     }
 
-    adoptedCallback () {
+    adoptedCallback() {
         Promise.resolve().then(() => this.#adopted());
     }
 
-    disconnectedCallback () {
+    disconnectedCallback() {
         this.#css.detach(this.#name);
         Promise.resolve().then(() => this.#detached());
     }
 
-    connectedCallback () {
+    connectedCallback() {
         this.#css.attach(this.#name, (this.constructor as any).css);
 
         if (this.CREATED) {
@@ -162,5 +162,3 @@ class Component extends HTMLElement {
     }
 
 }
-
-export default Component;

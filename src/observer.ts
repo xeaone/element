@@ -1,11 +1,9 @@
+import { isArray, isObject } from './tool';
 
 type task = () => void;
 type handler = () => void;
 
 const methods = ['push', 'pop', 'splice', 'shift', 'unshift', 'reverse'];
-
-const isArray = (data: any) => data?.constructor === Array;
-const isObject = (data: any) => data?.constructor === Object;
 
 const get = function (tasks, handler, path, target, property) {
 
@@ -38,7 +36,7 @@ const set = function (tasks, handler, path, target, property, value) {
     return true;
 };
 
-const create = function (source: object | any[], handler: handler, path?: string, tasks?: task[]) {
+const create = function (source: any, handler: handler, path?: string, tasks?: task[]) {
     path = path || '';
     tasks = tasks || [];
 
@@ -91,7 +89,7 @@ const create = function (source: object | any[], handler: handler, path?: string
 
 };
 
-const clone = function (source: object | any[], handler: handler, path?: string, tasks?: task[]) {
+const clone = function (source: any, handler: handler, path?: string, tasks?: task[]) {
     path = path || '';
     tasks = tasks || [];
 

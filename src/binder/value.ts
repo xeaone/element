@@ -1,5 +1,4 @@
-import Index from '../tool/index';
-import Match from '../tool/match';
+import { index as Index, match as Match } from '../tool';
 import Binder from '../binder';
 // import Includes from '../tool/includes';
 
@@ -20,7 +19,7 @@ const input = function (binder) {
         binder.data = toNumber(binder.target.value);
     } else if (type === 'file') {
         const multiple = binder.target.multiple;
-        binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[0];
+        binder.data = multiple ? [...binder.target.files] : binder.target.files[0];
     } else {
         binder.data = binder.target.value;
     }
@@ -45,14 +44,14 @@ export default function (binder, event) {
 
     if (type === 'select-one' || type === 'select-multiple') {
         return {
-            read (ctx) {
+            read(ctx) {
 
                 console.log(event);
                 console.log(binder.target);
                 console.log(binder.data);
 
                 ctx.selectBinder = binder;
-                ctx.select =  binder.target;
+                ctx.select = binder.target;
                 ctx.options = binder.target.options;
                 ctx.multiple = binder.target.multiple;
 
@@ -71,7 +70,7 @@ export default function (binder, event) {
                     const node = ctx.options[i];
                     const selected = node.selected;
                     const attribute = node.attributes['o-value'] || node.attributes['value'];
-                    const option = Binder.get(attribute) || { get data () { return node.value; }, set data (data) { node.value = data; } };
+                    const option = Binder.get(attribute) || { get data() { return node.value; }, set data(data) { node.value = data; } };
                     if (ctx.multiple) {
                         const index = Index(binder.data, option.data);
                         if (event) {
@@ -125,7 +124,7 @@ export default function (binder, event) {
 
                 // binder.meta.busy = false;
             },
-            write (ctx) {
+            write(ctx) {
                 const { selects, unselects } = ctx;
 
                 selects.forEach(option => {
@@ -163,7 +162,7 @@ export default function (binder, event) {
                 //             }
                 //         }
                 //     } else {
-                //         const match = Match(ctx.data, optionBinder.data);
+                //         const match = match(ctx.data, optionBinder.data);
                 //         if (event) {
                 //             if (selected && !match) {
                 //                 binder.data = optionBinder.data;
@@ -230,7 +229,7 @@ export default function (binder, event) {
             //                     option.selected = false;
             //                 }
             //             } else {
-            //                 const match = Match(binder.data, value);
+            //                 const match = match(binder.data, value);
             //                 if (match) {
             //                     option.selected = true;
             //                     break;
@@ -262,10 +261,10 @@ export default function (binder, event) {
         };
     } else if (type === 'checkbox' || type === 'radio') {
         return {
-            read (ctx) {
+            read(ctx) {
                 ctx.data = binder.data;
             },
-            write (ctx) {
+            write(ctx) {
                 ctx.value = toString(ctx.data);
                 binder.target.value = ctx.value;
                 binder.target.setAttribute('value', ctx.value);
@@ -275,11 +274,11 @@ export default function (binder, event) {
 
     } else if (type === 'number') {
         return {
-            read (ctx) {
+            read(ctx) {
                 ctx.data = binder.data;
                 ctx.value = toNumber(binder.target.value);
             },
-            write (ctx) {
+            write(ctx) {
                 ctx.value = toString(ctx.data);
                 binder.target.value = ctx.value;
                 binder.target.setAttribute('value', ctx.value);
@@ -288,20 +287,20 @@ export default function (binder, event) {
         };
     } else if (type === 'file') {
         return {
-            read (ctx) {
+            read(ctx) {
                 ctx.data = binder.data;
                 ctx.multiple = binder.target.multiple;
-                ctx.value = ctx.multiple ? [ ...binder.target.files ] : binder.target.files[0];
+                ctx.value = ctx.multiple ? [...binder.target.files] : binder.target.files[0];
             }
         };
     } else {
         return {
-            read (ctx) {
+            read(ctx) {
                 // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') return ctx.write = false;
 
                 ctx.data = binder.data;
                 ctx.value = binder.target.value;
-                // ctx.match = Match(ctx.data, ctx.value);
+                // ctx.match = match(ctx.data, ctx.value);
                 // ctx.selected = binder.target.selected;
 
                 // if (ctx.match) {
@@ -333,7 +332,7 @@ export default function (binder, event) {
                 // }
 
             },
-            write (ctx) {
+            write(ctx) {
                 // const { select, selected, multiple } = ctx;
 
                 // if (select) {
@@ -353,7 +352,7 @@ export default function (binder, event) {
                 //             }
                 //         }
                 //     } else {
-                //         const match = Match(select.data, ctx.data);
+                //         const match = match(select.data, ctx.data);
                 //         if (event) {
                 //             // console.log(match);
                 //             // console.log(select.data);

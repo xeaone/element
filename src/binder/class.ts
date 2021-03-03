@@ -1,22 +1,23 @@
-import { toString } from "../tool";
 
 export default function (binder) {
-    let data, name;
+    let data;
     return {
         read() {
 
             data = binder.data;
-            data = typeof data !== 'string' && data ? binder.key : data;
-            data = binder.display(toString(data));
 
-            if (data === binder.target.class) {
+            if (typeof data !== 'string') data = data ? binder.key : '';
+
+            data = binder.display(data);
+
+            if (data === binder.target.className) {
                 this.write = false;
                 return;
             }
 
         },
         write() {
-            binder.target.class = data;
+            binder.target.className = data;
             binder.target.setAttribute('class', data);
         }
     };

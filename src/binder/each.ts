@@ -58,7 +58,7 @@ export default function (binder) {
                 const index = binder.meta.currentLength;
                 const key = binder.meta.keys[index];
                 const variable = `${binder.path}.${key}`;
-                
+
                 let clone = binder.meta.templateString;
                 const length = binder.names.length > 4 ? 4 : binder.names.length;
                 for (let i = 1; i < length; i++) {
