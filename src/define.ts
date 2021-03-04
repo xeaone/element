@@ -1,16 +1,15 @@
-// import Component from './component';
+import { toDash } from './tool';
 import Load from './load';
 
-export default async function Define(name, constructor) {
-    if (!name) throw new Error('Oxe.define - name required');
-    if (!name) throw new Error('Oxe.define - constructor required');
-    if (typeof constructor === 'string') {
+export default async function Define(component: any) {
+    if (typeof component === 'string') {
         return Promise.resolve()
-            .then(() => Load(constructor))
-            .then(data => Define(name, data.default));
-        // } else if (constructor instanceof Array) {
-        // constructor.forEach(Define.bind(this, name));
+            .then(() => Load(component))
+            .then(data => Define(data.default));
+    } else if (component instanceof Array) {
+        return Promise.all(component.map(data => Define(data)));
     } else {
-        window.customElements.define(name, constructor);
+        const name = toDash(component.name);
+        window.customElements.define(name, component);
     }
 }

@@ -37,25 +37,12 @@ export default new class Location {
     get protocol() { return window.location.protocol; }
     get search() { return window.location.search; }
 
-    toString() {
-        return window.location.href;
-    }
+    toString() { return window.location.href; }
 
-    back() {
-        window.history.back();
-    }
-
-    forward() {
-        window.history.forward();
-    }
-
-    reload() {
-        window.location.reload();
-    }
-
-    redirect(href: string) {
-        window.location.href = href;
-    }
+    back() { window.history.back(); }
+    forward() { window.history.forward(); }
+    reload() { window.location.reload(); }
+    redirect(href: string) { window.location.href = href; }
 
     async listen(option: Option) {
 

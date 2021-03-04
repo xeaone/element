@@ -29,6 +29,8 @@ export const to = function (source: any, target: any) {
     }
 };
 
+export const toDash = (data: string) => data.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
+
 export const base = function () {
     const base = window.document.querySelector('base');
     if (base) {
@@ -118,8 +120,23 @@ export const index = function (items, item) {
     return -1;
 };
 
-export const events = function (target: Element, name: string, detail?: any, options?: any) {
-    options = options || { detail: null };
-    options.detail = detail === undefined ? null : detail;
-    target.dispatchEvent(new window.CustomEvent(name, options));
-};
+// export const events = function (target: Element, name: string, detail?: any, options?: any) {
+//     options = options || { detail: null };
+//     options.detail = detail === undefined ? null : detail;
+//     target.dispatchEvent(new window.CustomEvent(name, options));
+// };
+
+// export default function extension (path:string) {
+//     const position = path.lastIndexOf('.');
+//     return position > 0 ? path.slice(position + 1) : '';
+// }
+
+// export default function normalize (path:string) {
+//     return path
+//         .replace(/\/+/g, '/')
+//         .replace(/\/$/g, '')
+//         || '.';
+// }
+
+
+

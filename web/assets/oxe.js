@@ -91,6 +91,7 @@
             return target;
         }
     };
+    const toDash = (data) => data.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
     const traverse = function (data, paths) {
         if (paths.length === 0) {
             return data;
@@ -1195,42 +1196,6 @@
     Component.template = '';
     Component.attributes = [];
 
-    const single = '/';
-    const double = '//';
-    const colon = '://';
-    const ftp = 'ftp://';
-    const file = 'file://';
-    const http = 'http://';
-    const https = 'https://';
-    function absolute(path) {
-        if (path.slice(0, single.length) === single ||
-            path.slice(0, double.length) === double ||
-            path.slice(0, colon.length) === colon ||
-            path.slice(0, ftp.length) === ftp ||
-            path.slice(0, file.length) === file ||
-            path.slice(0, http.length) === http ||
-            path.slice(0, https.length) === https) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    function resolve(...paths) {
-        let path = (paths[0] || '').trim();
-        for (let i = 1; i < paths.length; i++) {
-            const part = paths[i].trim();
-            if (path[path.length - 1] !== '/' && part[0] !== '/') {
-                path += '/';
-            }
-            path += part;
-        }
-        const a = window.document.createElement('a');
-        a.href = path;
-        return a.href;
-    }
-
     const S_EXPORT = `
 
     ^export\\b
@@ -1290,6 +1255,33 @@
     const R_IMPORTS = new RegExp(S_IMPORT, 'g');
     const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
     const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
+    const isAbsolute = function (path) {
+        if (path.startsWith('/') ||
+            path.startsWith('//') ||
+            path.startsWith('://') ||
+            path.startsWith('ftp://') ||
+            path.startsWith('file://') ||
+            path.startsWith('http://') ||
+            path.startsWith('https://')) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
+    const resolve = function (...paths) {
+        let path = (paths[0] || '').trim();
+        for (let i = 1; i < paths.length; i++) {
+            const part = paths[i].trim();
+            if (path[path.length - 1] !== '/' && part[0] !== '/') {
+                path += '/';
+            }
+            path += part;
+        }
+        const a = window.document.createElement('a');
+        a.href = path;
+        return a.href;
+    };
     const fetch = function (url) {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
@@ -1355,7 +1347,7 @@
             const rawImport = importMatch[0];
             const nameImport = importMatch[1];
             let pathImport = importMatch[4] || importMatch[5];
-            if (absolute(pathImport)) {
+            if (isAbsolute(pathImport)) {
                 pathImport = resolve(pathImport);
             }
             else {
@@ -1433,7 +1425,7 @@
     window.MODULES = window.MODULES || {};
 
     var _target, _data$1, _folder, _dynamic, _contain, _external, _after, _before, _a$1;
-    const absolute$1 = function (path) {
+    const absolute = function (path) {
         const a = document.createElement('a');
         a.href = path;
         return a.pathname;
@@ -1458,21 +1450,11 @@
             get port() { return window.location.port; }
             get protocol() { return window.location.protocol; }
             get search() { return window.location.search; }
-            toString() {
-                return window.location.href;
-            }
-            back() {
-                window.history.back();
-            }
-            forward() {
-                window.history.forward();
-            }
-            reload() {
-                window.location.reload();
-            }
-            redirect(href) {
-                window.location.href = href;
-            }
+            toString() { return window.location.href; }
+            back() { window.history.back(); }
+            forward() { window.history.forward(); }
+            reload() { window.location.reload(); }
+            redirect(href) { window.location.href = href; }
             listen(option) {
                 return __awaiter(this, void 0, void 0, function* () {
                     if ('folder' in option)
@@ -1551,7 +1533,7 @@
                         if (load$1.slice(0, 1) === '/')
                             load$1 = load$1.slice(1);
                         load$1 = `${__classPrivateFieldGet(this, _folder)}/${load$1}.js`.replace(/\/+/g, '/');
-                        load$1 = absolute$1(load$1);
+                        load$1 = absolute(load$1);
                         const component = (yield load(load$1)).default;
                         const name = 'l' + path.replace(/\/+/g, '-');
                         window.customElements.define(name, component);
@@ -1818,19 +1800,19 @@
         }
     };
 
-    function Define(name, constructor) {
+    function Define(component) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!name)
-                throw new Error('Oxe.define - name required');
-            if (!name)
-                throw new Error('Oxe.define - constructor required');
-            if (typeof constructor === 'string') {
+            if (typeof component === 'string') {
                 return Promise.resolve()
-                    .then(() => load(constructor))
-                    .then(data => Define(name, data.default));
+                    .then(() => load(component))
+                    .then(data => Define(data.default));
+            }
+            else if (component instanceof Array) {
+                return Promise.all(component.map(data => Define(data)));
             }
             else {
-                window.customElements.define(name, constructor);
+                const name = toDash(component.name);
+                window.customElements.define(name, component);
             }
         });
     }
@@ -1850,6 +1832,14 @@
             var prototype = Object.create(target.prototype || Object.prototype);
             return Function.prototype.apply.call(parent, prototype, args) || prototype;
         };
+    }
+    if (!window.String.prototype.startsWith) {
+        Object.defineProperty(window.String.prototype, 'startsWith', {
+            value: function (search, rawPos) {
+                var pos = rawPos > 0 ? rawPos | 0 : 0;
+                return this.substring(pos, pos + search.length) === search;
+            }
+        });
     }
     var index$1 = Object.freeze(new class Oxe {
         constructor() {

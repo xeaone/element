@@ -1,5 +1,3 @@
-import absolute from './path/absolute';
-import resolve from './path/resolve';
 
 declare global {
     interface Window {
@@ -74,6 +72,42 @@ const R_EXPORT = new RegExp(S_EXPORT);
 const R_IMPORTS = new RegExp(S_IMPORT, 'g');
 const R_EXPORTS = new RegExp(S_EXPORT, 'gm');
 const R_TEMPLATES = /[^\\]`(.|[\r\n])*?[^\\]`/g;
+
+const isAbsolute = function (path: string) {
+    if (
+        path.startsWith('/') ||
+        path.startsWith('//') ||
+        path.startsWith('://') ||
+        path.startsWith('ftp://') ||
+        path.startsWith('file://') ||
+        path.startsWith('http://') ||
+        path.startsWith('https://')
+    ) {
+        return true;
+    } else {
+        return false;
+    }
+};
+
+const resolve = function (...paths: string[]) {
+    let path = (paths[0] || '').trim();
+
+    for (let i = 1; i < paths.length; i++) {
+        const part = paths[i].trim();
+
+        if (path[path.length - 1] !== '/' && part[0] !== '/') {
+            path += '/';
+        }
+
+        path += part;
+    }
+
+    const a = window.document.createElement('a');
+
+    a.href = path;
+
+    return a.href;
+};
 
 const fetch = function (url) {
     return new Promise((resolve, reject) => {
@@ -155,7 +189,7 @@ const transform = function (code, url) {
         const nameImport = importMatch[1]; // default
         let pathImport = importMatch[4] || importMatch[5];
 
-        if (absolute(pathImport)) {
+        if (isAbsolute(pathImport)) {
             pathImport = resolve(pathImport);
         } else {
             pathImport = resolve(parentImport, pathImport);
