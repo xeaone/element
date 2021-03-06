@@ -68,7 +68,6 @@ export default new class Binder {
 
     render(binder: any, ...extra) {
         const type = binder.type in this.binders ? binder.type : 'default';
-        console.log(type);
         const render = this.binders[type](binder, ...extra);
         if (render) Batcher.batch(render);
     }
@@ -89,7 +88,7 @@ export default new class Binder {
         // }
 
         const parameters = value.match(PARAMETER_PATTERNS);
-        if (!parameters) return console.error('Oxe.binder.bind - value is not valid');
+        if (!parameters) return console.error(`Oxe.binder.bind - value ${value} is not valid`);
 
         // value = value.replace(this.syntaxReplace, '').trim();
         // name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();

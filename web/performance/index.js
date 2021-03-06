@@ -1,8 +1,8 @@
 const { Component, Define } = Oxe;
 
-class oLoop extends Component {
+class OLoop extends Component {
 
-    static attributes = [ 'test' ];
+    static attributes = ['test'];
 
     static model = {
         items: [],
@@ -12,7 +12,7 @@ class oLoop extends Component {
             console.time('push');
 
             for (var i = 0; i < this.model.count; i++) {
-                this.model.items.push({ number: this.model.items.length });
+                this.model.items.push({ number: i });
             }
 
             console.timeEnd('push');
@@ -38,37 +38,41 @@ class oLoop extends Component {
 
         <h3><span>{{count}}</span> Inputs two way binded</h3>
 
-        <form o-submit="push">
-            <input o-value="count" type="number">
+        <form onsubmit="{{push}}">
+            <input value="{{count}}" type="number">
             <input type="submit" value="Push">
         </form>
 
         <br>
 
-        <button o-on-click="push">Push</button>
-        <button o-on-click="overwrite">Overwrite</button>
+        <button onclick="{{push}}">Push</button>
+        <button onclick="{{overwrite}}">Overwrite</button>
 
-        <div o-each-item="items">
+        <!--
+        <div each-item="items" for="item" of="items">
             <div class="box">
-                <div>{{[item].number}}</div>
-                <input type="text" o-value="[item].number">
+                <div>{{item.number}}</div>
+                <input value="{{item.number}}">
             </div>
         </div>
+        -->
 
     `
     // constructor () { super(); }
 
-    attributed () {
+    static attributed() {
         console.log(arguments);
     }
 
-    created () {
+    static created() {
+        console.log(this);
         console.log(this.model);
     }
 
 }
 
-Define('o-loop', oLoop);
+Define(OLoop);
+// Define('o-loop', oLoop);
 
 // Oxe.setup({
 //     component: {

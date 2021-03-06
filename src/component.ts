@@ -2,58 +2,24 @@ import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
 
-const compose = function (instance, template) {
-    const templateSlots = template.querySelectorAll('slot[name]');
-    const defaultSlot = template.querySelector('slot:not([name])');
-
-    for (let i = 0; i < templateSlots.length; i++) {
-
-        const templateSlot = templateSlots[i];
-        const name = templateSlot.getAttribute('name');
-        const instanceSlot = instance.querySelector('[slot="' + name + '"]');
-
-        if (instanceSlot) {
-            templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-        } else {
-            templateSlot.parentNode.removeChild(templateSlot);
-        }
-
-    }
-
-    if (instance.children.length) {
-        while (instance.firstChild) {
-            if (defaultSlot) {
-                defaultSlot.parentNode.insertBefore(instance.firstChild, defaultSlot);
-            } else {
-                instance.removeChild(instance.firstChild);
-            }
-        }
-    }
-
-    if (defaultSlot) {
-        defaultSlot.parentNode.removeChild(defaultSlot);
-    }
-
-};
-
 export default class Component extends HTMLElement {
 
-    static model = {};
     static template = '';
+    static model = {};
     static attributes = [];
     static get observedAttributes() { return this.attributes; }
     static set observedAttributes(attributes) { this.attributes = attributes; }
 
-    CREATED: boolean;
+    #CREATED: boolean;
 
     #css = Css;
     #binder = Binder;
 
     #root: any;
     #name: string;
+    #model: object;
     #adopt: boolean;
     #shadow: boolean;
-    #model: Object | Array<any>;
 
     #adopted: () => any;
     #created: () => any;
@@ -62,12 +28,12 @@ export default class Component extends HTMLElement {
     #attributed: (name, oldValue, newValue) => any;
 
     get css() { return this.#css; }
+    get root() { return this.#root; }
     get model() { return this.#model; }
     get binder() { return this.#binder; }
 
     // #template = '';
     // get template () { return this.#template; }
-
 
     // #methods = {};
     // get methods () { return this.#methods; }
@@ -75,13 +41,13 @@ export default class Component extends HTMLElement {
     constructor() {
         super();
 
-        this.#adopt = typeof (this.constructor as any).adopt === 'boolean' ? (this.constructor as any).adopt : false;
-        this.#shadow = typeof (this.constructor as any).shadow === 'boolean' ? (this.constructor as any).shadow : false;
-        this.#adopted = typeof (this.constructor as any).adopted === 'function' ? (this.constructor as any).adopted : function () { };
-        this.#created = typeof (this.constructor as any).created === 'function' ? (this.constructor as any).created : function () { };
-        this.#attached = typeof (this.constructor as any).attached === 'function' ? (this.constructor as any).attached : function () { };
-        this.#detached = typeof (this.constructor as any).detached === 'function' ? (this.constructor as any).detached : function () { };
-        this.#attributed = typeof (this.constructor as any).attributed === 'function' ? (this.constructor as any).attributed : function () { };
+        this.#adopt = typeof (this.constructor as any).adopt === 'boolean' ? (this.constructor as any).adopt.bind(this) : false;
+        this.#shadow = typeof (this.constructor as any).shadow === 'boolean' ? (this.constructor as any).shadow.bind(this) : false;
+        this.#adopted = typeof (this.constructor as any).adopted === 'function' ? (this.constructor as any).adopted.bind(this) : function () { };
+        this.#created = typeof (this.constructor as any).created === 'function' ? (this.constructor as any).created.bind(this) : function () { };
+        this.#attached = typeof (this.constructor as any).attached === 'function' ? (this.constructor as any).attached.bind(this) : function () { };
+        this.#detached = typeof (this.constructor as any).detached === 'function' ? (this.constructor as any).detached.bind(this) : function () { };
+        this.#attributed = typeof (this.constructor as any).attributed === 'function' ? (this.constructor as any).attributed.bind(this) : function () { };
 
         this.#name = this.nodeName.toLowerCase();
         // this.#methods = this.constructor.methods || {};
@@ -99,12 +65,41 @@ export default class Component extends HTMLElement {
 
     }
 
-    render() {
+    async sloted(template) {
+        const templateSlots = template.querySelectorAll('slot[name]');
+        const defaultSlot = template.querySelector('slot:not([name])');
 
-        const template = document.createElement('template');
-        template.innerHTML = (this.constructor as any).template;
+        for (let i = 0; i < templateSlots.length; i++) {
 
-        const clone = template.content.cloneNode(true) as Element;
+            const templateSlot = templateSlots[i];
+            const name = templateSlot.getAttribute('name');
+            const instanceSlot = this.querySelector('[slot="' + name + '"]');
+
+            if (instanceSlot) {
+                templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+            } else {
+                templateSlot.parentNode.removeChild(templateSlot);
+            }
+
+        }
+
+        if (this.children.length) {
+            while (this.firstChild) {
+                if (defaultSlot) {
+                    defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+                } else {
+                    this.removeChild(this.firstChild);
+                }
+            }
+        }
+
+        if (defaultSlot) {
+            defaultSlot.parentNode.removeChild(defaultSlot);
+        }
+
+    }
+
+    async render() {
 
         if (this.#adopt === true) {
             let child = this.firstElementChild;
@@ -114,12 +109,16 @@ export default class Component extends HTMLElement {
             }
         }
 
+        const template = document.createElement('template');
+        template.innerHTML = (this.constructor as any).template;
+        const clone = template.content.cloneNode(true) as Element;
+
         if (this.#shadow && 'attachShadow' in document.body) {
             this.#root = this.attachShadow({ mode: 'open' });
         } else if (this.#shadow && 'createShadowRoot' in document.body) {
             this.#root = (this as any).createShadowRoot();
         } else {
-            compose(this, clone);
+            this.sloted(clone);
             this.#root = this;
         }
 
@@ -136,28 +135,34 @@ export default class Component extends HTMLElement {
 
     }
 
-    attributeChangedCallback(name, oldValue, newValue) {
-        Promise.resolve().then(() => this.#attributed(name, oldValue, newValue));
+    async attributeChangedCallback(name, oldValue, newValue) {
+        // Promise.resolve().then(() => this.#attributed(name, oldValue, newValue));
+        await this.#attributed(name, oldValue, newValue);
     }
 
-    adoptedCallback() {
-        Promise.resolve().then(() => this.#adopted());
+    async adoptedCallback() {
+        // Promise.resolve().then(() => this.#adopted());
+        await this.#adopted();
     }
 
-    disconnectedCallback() {
+    async disconnectedCallback() {
         this.#css.detach(this.#name);
-        Promise.resolve().then(() => this.#detached());
+        // Promise.resolve().then(() => this.#detached());
+        await this.#detached();
     }
 
-    connectedCallback() {
+    async connectedCallback() {
         this.#css.attach(this.#name, (this.constructor as any).css);
 
-        if (this.CREATED) {
-            Promise.resolve().then(() => this.#attached());
+        if (this.#CREATED) {
+            // Promise.resolve().then(() => this.#attached());
+            await this.#attached();
         } else {
-            this.CREATED = true;
+            this.#CREATED = true;
             this.render();
-            Promise.resolve().then(() => this.#created()).then(() => this.#attached());
+            // Promise.resolve().then(() => this.#created()).then(() => this.#attached());
+            await this.#created();
+            await this.#attached();
         }
     }
 

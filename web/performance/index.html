@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
 	<base href="/">
@@ -15,16 +16,19 @@
 	<script src="index.js" defer></script>
 
 	<style>
-		html > * {
+		html>* {
 			margin: 0;
 			padding: 0;
 			text-align: center;
 		}
-		body, o-loop {
+
+		body,
+		o-loop {
 			width: 100%;
 			height: 3000px;
 			display: block;
 		}
+
 		.box {
 			width: 60px;
 			margin: 1.5px;
@@ -33,6 +37,7 @@
 			display: inline-block;
 			background: lightgray;
 		}
+
 		.box input {
 			width: 90%;
 			margin: auto;
@@ -41,12 +46,14 @@
 	</style>
 
 </head>
+
 <body>
 
-	<o-loop>
+	<o-loop test="hello">
 		<span slot="main">Main Slotted</span>
 		<span>test</span>
 	</o-loop>
 
 </body>
+
 </html>

@@ -91,7 +91,7 @@
             return target;
         }
     };
-    const toDash = (data) => data.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
+    const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
     const traverse = function (data, paths) {
         if (paths.length === 0) {
             return data;
@@ -865,7 +865,6 @@
         }
         render(binder, ...extra) {
             const type = binder.type in this.binders ? binder.type : 'default';
-            console.log(type);
             const render = this.binders[type](binder, ...extra);
             if (render)
                 Batcher.batch(render);
@@ -877,7 +876,7 @@
             const self = this;
             const parameters = value.match(PARAMETER_PATTERNS);
             if (!parameters)
-                return console.error('Oxe.binder.bind - value is not valid');
+                return console.error(`Oxe.binder.bind - value ${value} is not valid`);
             const paths = parameters.map(path => path.replace(this.syntaxReplace, ''));
             const names = name.split('-');
             const meta = {};
@@ -1076,57 +1075,30 @@
         _support = new WeakMap(),
         _a);
 
-    var _css, _binder, _root, _name, _adopt, _shadow, _model, _adopted, _created, _attached, _detached, _attributed;
-    const compose = function (instance, template) {
-        const templateSlots = template.querySelectorAll('slot[name]');
-        const defaultSlot = template.querySelector('slot:not([name])');
-        for (let i = 0; i < templateSlots.length; i++) {
-            const templateSlot = templateSlots[i];
-            const name = templateSlot.getAttribute('name');
-            const instanceSlot = instance.querySelector('[slot="' + name + '"]');
-            if (instanceSlot) {
-                templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-            }
-            else {
-                templateSlot.parentNode.removeChild(templateSlot);
-            }
-        }
-        if (instance.children.length) {
-            while (instance.firstChild) {
-                if (defaultSlot) {
-                    defaultSlot.parentNode.insertBefore(instance.firstChild, defaultSlot);
-                }
-                else {
-                    instance.removeChild(instance.firstChild);
-                }
-            }
-        }
-        if (defaultSlot) {
-            defaultSlot.parentNode.removeChild(defaultSlot);
-        }
-    };
+    var _CREATED, _css, _binder, _root, _name, _model, _adopt, _shadow, _adopted, _created, _attached, _detached, _attributed;
     class Component extends HTMLElement {
         constructor() {
             super();
+            _CREATED.set(this, void 0);
             _css.set(this, Css);
             _binder.set(this, Binder);
             _root.set(this, void 0);
             _name.set(this, void 0);
+            _model.set(this, void 0);
             _adopt.set(this, void 0);
             _shadow.set(this, void 0);
-            _model.set(this, void 0);
             _adopted.set(this, void 0);
             _created.set(this, void 0);
             _attached.set(this, void 0);
             _detached.set(this, void 0);
             _attributed.set(this, void 0);
-            __classPrivateFieldSet(this, _adopt, typeof this.constructor.adopt === 'boolean' ? this.constructor.adopt : false);
-            __classPrivateFieldSet(this, _shadow, typeof this.constructor.shadow === 'boolean' ? this.constructor.shadow : false);
-            __classPrivateFieldSet(this, _adopted, typeof this.constructor.adopted === 'function' ? this.constructor.adopted : function () { });
-            __classPrivateFieldSet(this, _created, typeof this.constructor.created === 'function' ? this.constructor.created : function () { });
-            __classPrivateFieldSet(this, _attached, typeof this.constructor.attached === 'function' ? this.constructor.attached : function () { });
-            __classPrivateFieldSet(this, _detached, typeof this.constructor.detached === 'function' ? this.constructor.detached : function () { });
-            __classPrivateFieldSet(this, _attributed, typeof this.constructor.attributed === 'function' ? this.constructor.attributed : function () { });
+            __classPrivateFieldSet(this, _adopt, typeof this.constructor.adopt === 'boolean' ? this.constructor.adopt.bind(this) : false);
+            __classPrivateFieldSet(this, _shadow, typeof this.constructor.shadow === 'boolean' ? this.constructor.shadow.bind(this) : false);
+            __classPrivateFieldSet(this, _adopted, typeof this.constructor.adopted === 'function' ? this.constructor.adopted.bind(this) : function () { });
+            __classPrivateFieldSet(this, _created, typeof this.constructor.created === 'function' ? this.constructor.created.bind(this) : function () { });
+            __classPrivateFieldSet(this, _attached, typeof this.constructor.attached === 'function' ? this.constructor.attached.bind(this) : function () { });
+            __classPrivateFieldSet(this, _detached, typeof this.constructor.detached === 'function' ? this.constructor.detached.bind(this) : function () { });
+            __classPrivateFieldSet(this, _attributed, typeof this.constructor.attributed === 'function' ? this.constructor.attributed.bind(this) : function () { });
             __classPrivateFieldSet(this, _name, this.nodeName.toLowerCase());
             __classPrivateFieldSet(this, _model, Observer.clone(this.constructor.model, (data, path) => {
                 Binder.data.forEach(binder => {
@@ -1139,61 +1111,103 @@
         static get observedAttributes() { return this.attributes; }
         static set observedAttributes(attributes) { this.attributes = attributes; }
         get css() { return __classPrivateFieldGet(this, _css); }
+        get root() { return __classPrivateFieldGet(this, _root); }
         get model() { return __classPrivateFieldGet(this, _model); }
         get binder() { return __classPrivateFieldGet(this, _binder); }
+        sloted(template) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const templateSlots = template.querySelectorAll('slot[name]');
+                const defaultSlot = template.querySelector('slot:not([name])');
+                for (let i = 0; i < templateSlots.length; i++) {
+                    const templateSlot = templateSlots[i];
+                    const name = templateSlot.getAttribute('name');
+                    const instanceSlot = this.querySelector('[slot="' + name + '"]');
+                    if (instanceSlot) {
+                        templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+                    }
+                    else {
+                        templateSlot.parentNode.removeChild(templateSlot);
+                    }
+                }
+                if (this.children.length) {
+                    while (this.firstChild) {
+                        if (defaultSlot) {
+                            defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+                        }
+                        else {
+                            this.removeChild(this.firstChild);
+                        }
+                    }
+                }
+                if (defaultSlot) {
+                    defaultSlot.parentNode.removeChild(defaultSlot);
+                }
+            });
+        }
         render() {
-            const template = document.createElement('template');
-            template.innerHTML = this.constructor.template;
-            const clone = template.content.cloneNode(true);
-            if (__classPrivateFieldGet(this, _adopt) === true) {
-                let child = this.firstElementChild;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (__classPrivateFieldGet(this, _adopt) === true) {
+                    let child = this.firstElementChild;
+                    while (child) {
+                        Binder.add(child, this);
+                        child = child.nextElementSibling;
+                    }
+                }
+                const template = document.createElement('template');
+                template.innerHTML = this.constructor.template;
+                const clone = template.content.cloneNode(true);
+                if (__classPrivateFieldGet(this, _shadow) && 'attachShadow' in document.body) {
+                    __classPrivateFieldSet(this, _root, this.attachShadow({ mode: 'open' }));
+                }
+                else if (__classPrivateFieldGet(this, _shadow) && 'createShadowRoot' in document.body) {
+                    __classPrivateFieldSet(this, _root, this.createShadowRoot());
+                }
+                else {
+                    this.sloted(clone);
+                    __classPrivateFieldSet(this, _root, this);
+                }
+                let child = clone.firstElementChild;
                 while (child) {
                     Binder.add(child, this);
-                    child = child.nextElementSibling;
+                    __classPrivateFieldGet(this, _root).appendChild(child);
+                    child = clone.firstElementChild;
                 }
-            }
-            if (__classPrivateFieldGet(this, _shadow) && 'attachShadow' in document.body) {
-                __classPrivateFieldSet(this, _root, this.attachShadow({ mode: 'open' }));
-            }
-            else if (__classPrivateFieldGet(this, _shadow) && 'createShadowRoot' in document.body) {
-                __classPrivateFieldSet(this, _root, this.createShadowRoot());
-            }
-            else {
-                compose(this, clone);
-                __classPrivateFieldSet(this, _root, this);
-            }
-            let child = clone.firstElementChild;
-            while (child) {
-                Binder.add(child, this);
-                __classPrivateFieldGet(this, _root).appendChild(child);
-                child = clone.firstElementChild;
-            }
+            });
         }
         attributeChangedCallback(name, oldValue, newValue) {
-            Promise.resolve().then(() => __classPrivateFieldGet(this, _attributed).call(this, name, oldValue, newValue));
+            return __awaiter(this, void 0, void 0, function* () {
+                yield __classPrivateFieldGet(this, _attributed).call(this, name, oldValue, newValue);
+            });
         }
         adoptedCallback() {
-            Promise.resolve().then(() => __classPrivateFieldGet(this, _adopted).call(this));
+            return __awaiter(this, void 0, void 0, function* () {
+                yield __classPrivateFieldGet(this, _adopted).call(this);
+            });
         }
         disconnectedCallback() {
-            __classPrivateFieldGet(this, _css).detach(__classPrivateFieldGet(this, _name));
-            Promise.resolve().then(() => __classPrivateFieldGet(this, _detached).call(this));
+            return __awaiter(this, void 0, void 0, function* () {
+                __classPrivateFieldGet(this, _css).detach(__classPrivateFieldGet(this, _name));
+                yield __classPrivateFieldGet(this, _detached).call(this);
+            });
         }
         connectedCallback() {
-            __classPrivateFieldGet(this, _css).attach(__classPrivateFieldGet(this, _name), this.constructor.css);
-            if (this.CREATED) {
-                Promise.resolve().then(() => __classPrivateFieldGet(this, _attached).call(this));
-            }
-            else {
-                this.CREATED = true;
-                this.render();
-                Promise.resolve().then(() => __classPrivateFieldGet(this, _created).call(this)).then(() => __classPrivateFieldGet(this, _attached).call(this));
-            }
+            return __awaiter(this, void 0, void 0, function* () {
+                __classPrivateFieldGet(this, _css).attach(__classPrivateFieldGet(this, _name), this.constructor.css);
+                if (__classPrivateFieldGet(this, _CREATED)) {
+                    yield __classPrivateFieldGet(this, _attached).call(this);
+                }
+                else {
+                    __classPrivateFieldSet(this, _CREATED, true);
+                    this.render();
+                    yield __classPrivateFieldGet(this, _created).call(this);
+                    yield __classPrivateFieldGet(this, _attached).call(this);
+                }
+            });
         }
     }
-    _css = new WeakMap(), _binder = new WeakMap(), _root = new WeakMap(), _name = new WeakMap(), _adopt = new WeakMap(), _shadow = new WeakMap(), _model = new WeakMap(), _adopted = new WeakMap(), _created = new WeakMap(), _attached = new WeakMap(), _detached = new WeakMap(), _attributed = new WeakMap();
-    Component.model = {};
+    _CREATED = new WeakMap(), _css = new WeakMap(), _binder = new WeakMap(), _root = new WeakMap(), _name = new WeakMap(), _model = new WeakMap(), _adopt = new WeakMap(), _shadow = new WeakMap(), _adopted = new WeakMap(), _created = new WeakMap(), _attached = new WeakMap(), _detached = new WeakMap(), _attributed = new WeakMap();
     Component.template = '';
+    Component.model = {};
     Component.attributes = [];
 
     const S_EXPORT = `

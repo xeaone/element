@@ -14,7 +14,6 @@ export default class BinderStyleRoute extends Oxe.Component {
         change() {
             this.model.c = Color();
             this.model.b = Color();
-            console.log(this.model);
         }
     }
 

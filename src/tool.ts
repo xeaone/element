@@ -29,7 +29,7 @@ export const to = function (source: any, target: any) {
     }
 };
 
-export const toDash = (data: string) => data.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
+export const toDash = (data: string) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
 
 export const base = function () {
     const base = window.document.querySelector('base');
