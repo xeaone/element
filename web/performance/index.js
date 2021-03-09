@@ -4,20 +4,20 @@ class OLoop extends Component {
 
     static attributes = ['test'];
 
-    static model = {
+    data = {
         items: [],
         message: '',
         count: 1000,
-        push: function () {
+        push() {
             console.time('push');
 
-            for (var i = 0; i < this.model.count; i++) {
-                this.model.items.push({ number: i });
+            for (var i = 0; i < this.data.count; i++) {
+                this.data.items.push({ number: i });
             }
 
             console.timeEnd('push');
         },
-        overwrite: function () {
+        overwrite() {
             console.time('overwrite');
 
             var items = [];
@@ -26,13 +26,13 @@ class OLoop extends Component {
                 items.push({ number: i });
             }
 
-            this.model.items = items;
+            this.data.items = items;
 
             console.timeEnd('overwrite');
         }
     }
 
-    static template = /*html*/`
+    html = /*html*/`
 
         <slot name="main">Main Default</slot>
 
@@ -58,15 +58,13 @@ class OLoop extends Component {
         -->
 
     `
-    // constructor () { super(); }
 
-    static attributed() {
+    async attributed() {
         console.log(arguments);
     }
 
-    static created() {
-        console.log(this);
-        console.log(this.model);
+    async connected() {
+        console.log('connected');
     }
 
 }

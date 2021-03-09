@@ -902,7 +902,7 @@
                     display(data) {
                         let value = this.value;
                         parameters.forEach(parameter => {
-                            value = value.replace(parameter, parameter === this.parameter ? data : traverse(container.model, parameter.replace(/{{|}}/, '').split('.')));
+                            value = value.replace(parameter, parameter === this.parameter ? data : traverse(container.data, parameter.replace(/{{|}}/, '').split('.')));
                         });
                         return value;
                     },
@@ -915,7 +915,7 @@
                         return data === undefined ? node.value : data;
                     },
                     get data() {
-                        const parentValue = traverse(this.container.model, this.parentKeys);
+                        const parentValue = traverse(this.container.data, this.parentKeys);
                         const childValue = parentValue[this.childKey];
                         if (typeof childValue === 'function') {
                             return event => {
@@ -927,13 +927,13 @@
                         }
                     },
                     set data(value) {
-                        const parentValue = traverse(container.model, this.parentKeys);
+                        const parentValue = traverse(container.data, this.parentKeys);
                         const childValue = parentValue[this.childKey];
                         if (this.type === 'on') {
                             parentValue[this.childKey] = value;
                         }
                         else if (typeof childValue === 'function') {
-                            const parameters = this.parameterPaths.map(path => traverse(container.model, path));
+                            const parameters = this.parameterPaths.map(path => traverse(container.data, path));
                             childValue.call(this.container, ...parameters);
                         }
                         else {
@@ -1075,77 +1075,57 @@
         _support = new WeakMap(),
         _a);
 
-    var _CREATED, _css, _binder, _root, _name, _model, _adopt, _shadow, _adopted, _created, _attached, _detached, _attributed;
+    var _root, _css, _html, _data$1, _adopt, _shadow, _flag, _name, _adopted, _rendered, _connected, _disconnected, _attributed;
     class Component extends HTMLElement {
         constructor() {
             super();
-            _CREATED.set(this, void 0);
-            _css.set(this, Css);
-            _binder.set(this, Binder);
             _root.set(this, void 0);
-            _name.set(this, void 0);
-            _model.set(this, void 0);
+            _css.set(this, void 0);
+            _html.set(this, void 0);
+            _data$1.set(this, void 0);
             _adopt.set(this, void 0);
             _shadow.set(this, void 0);
-            _adopted.set(this, void 0);
-            _created.set(this, void 0);
-            _attached.set(this, void 0);
-            _detached.set(this, void 0);
-            _attributed.set(this, void 0);
-            __classPrivateFieldSet(this, _adopt, typeof this.constructor.adopt === 'boolean' ? this.constructor.adopt.bind(this) : false);
-            __classPrivateFieldSet(this, _shadow, typeof this.constructor.shadow === 'boolean' ? this.constructor.shadow.bind(this) : false);
-            __classPrivateFieldSet(this, _adopted, typeof this.constructor.adopted === 'function' ? this.constructor.adopted.bind(this) : function () { });
-            __classPrivateFieldSet(this, _created, typeof this.constructor.created === 'function' ? this.constructor.created.bind(this) : function () { });
-            __classPrivateFieldSet(this, _attached, typeof this.constructor.attached === 'function' ? this.constructor.attached.bind(this) : function () { });
-            __classPrivateFieldSet(this, _detached, typeof this.constructor.detached === 'function' ? this.constructor.detached.bind(this) : function () { });
-            __classPrivateFieldSet(this, _attributed, typeof this.constructor.attributed === 'function' ? this.constructor.attributed.bind(this) : function () { });
-            __classPrivateFieldSet(this, _name, this.nodeName.toLowerCase());
-            __classPrivateFieldSet(this, _model, Observer.clone(this.constructor.model, (data, path) => {
-                Binder.data.forEach(binder => {
-                    if (binder.container === this && binder.path.startsWith(path)) {
-                        Binder.render(binder);
-                    }
-                });
-            }));
+            _flag.set(this, false);
+            _name.set(this, this.nodeName.toLowerCase());
+            _adopted.set(this, typeof this.adopted === 'function' ? this.adopted : null);
+            _rendered.set(this, typeof this.rendered === 'function' ? this.rendered : null);
+            _connected.set(this, typeof this.connected === 'function' ? this.connected : null);
+            _disconnected.set(this, typeof this.disconnected === 'function' ? this.disconnected : null);
+            _attributed.set(this, typeof this.attributed === 'function' ? this.attributed : null);
+            this.css = '';
+            this.html = '';
+            this.data = {};
+            this.adopt = false;
+            this.shadow = false;
+            if (__classPrivateFieldGet(this, _shadow) && 'attachShadow' in document.body) {
+                __classPrivateFieldSet(this, _root, this.attachShadow({ mode: 'open' }));
+            }
+            else if (__classPrivateFieldGet(this, _shadow) && 'createShadowRoot' in document.body) {
+                __classPrivateFieldSet(this, _root, this.createShadowRoot());
+            }
+            else {
+                __classPrivateFieldSet(this, _root, this);
+            }
         }
         static get observedAttributes() { return this.attributes; }
         static set observedAttributes(attributes) { this.attributes = attributes; }
-        get css() { return __classPrivateFieldGet(this, _css); }
         get root() { return __classPrivateFieldGet(this, _root); }
-        get model() { return __classPrivateFieldGet(this, _model); }
-        get binder() { return __classPrivateFieldGet(this, _binder); }
-        sloted(template) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const templateSlots = template.querySelectorAll('slot[name]');
-                const defaultSlot = template.querySelector('slot:not([name])');
-                for (let i = 0; i < templateSlots.length; i++) {
-                    const templateSlot = templateSlots[i];
-                    const name = templateSlot.getAttribute('name');
-                    const instanceSlot = this.querySelector('[slot="' + name + '"]');
-                    if (instanceSlot) {
-                        templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-                    }
-                    else {
-                        templateSlot.parentNode.removeChild(templateSlot);
-                    }
-                }
-                if (this.children.length) {
-                    while (this.firstChild) {
-                        if (defaultSlot) {
-                            defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
-                        }
-                        else {
-                            this.removeChild(this.firstChild);
-                        }
-                    }
-                }
-                if (defaultSlot) {
-                    defaultSlot.parentNode.removeChild(defaultSlot);
-                }
-            });
-        }
+        get binder() { return Binder; }
         render() {
+            var _a, _b, _c, _d, _e;
             return __awaiter(this, void 0, void 0, function* () {
+                __classPrivateFieldSet(this, _css, (_a = __classPrivateFieldGet(this, _css)) !== null && _a !== void 0 ? _a : this.css);
+                __classPrivateFieldSet(this, _html, (_b = __classPrivateFieldGet(this, _html)) !== null && _b !== void 0 ? _b : this.html);
+                __classPrivateFieldSet(this, _data$1, (_c = __classPrivateFieldGet(this, _data$1)) !== null && _c !== void 0 ? _c : this.data);
+                __classPrivateFieldSet(this, _adopt, (_d = __classPrivateFieldGet(this, _adopt)) !== null && _d !== void 0 ? _d : this.adopt);
+                __classPrivateFieldSet(this, _shadow, (_e = __classPrivateFieldGet(this, _shadow)) !== null && _e !== void 0 ? _e : this.shadow);
+                this.data = Observer.clone(__classPrivateFieldGet(this, _data$1), (_, path) => {
+                    Binder.data.forEach(binder => {
+                        if (binder.container === this && binder.path.startsWith(path)) {
+                            Binder.render(binder);
+                        }
+                    });
+                });
                 if (__classPrivateFieldGet(this, _adopt) === true) {
                     let child = this.firstElementChild;
                     while (child) {
@@ -1154,17 +1134,32 @@
                     }
                 }
                 const template = document.createElement('template');
-                template.innerHTML = this.constructor.template;
+                template.innerHTML = __classPrivateFieldGet(this, _html);
                 const clone = template.content.cloneNode(true);
-                if (__classPrivateFieldGet(this, _shadow) && 'attachShadow' in document.body) {
-                    __classPrivateFieldSet(this, _root, this.attachShadow({ mode: 'open' }));
-                }
-                else if (__classPrivateFieldGet(this, _shadow) && 'createShadowRoot' in document.body) {
-                    __classPrivateFieldSet(this, _root, this.createShadowRoot());
-                }
-                else {
-                    this.sloted(clone);
-                    __classPrivateFieldSet(this, _root, this);
+                if (!__classPrivateFieldGet(this, _shadow) ||
+                    !('attachShadow' in document.body) &&
+                        !('createShadowRoot' in document.body)) {
+                    const templateSlots = clone.querySelectorAll('slot[name]');
+                    const defaultSlot = clone.querySelector('slot:not([name])');
+                    for (let i = 0; i < templateSlots.length; i++) {
+                        const templateSlot = templateSlots[i];
+                        const name = templateSlot.getAttribute('name');
+                        const instanceSlot = this.querySelector('[slot="' + name + '"]');
+                        if (instanceSlot)
+                            templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+                        else
+                            templateSlot.parentNode.removeChild(templateSlot);
+                    }
+                    if (this.children.length) {
+                        while (this.firstChild) {
+                            if (defaultSlot)
+                                defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+                            else
+                                this.removeChild(this.firstChild);
+                        }
+                    }
+                    if (defaultSlot)
+                        defaultSlot.parentNode.removeChild(defaultSlot);
                 }
                 let child = clone.firstElementChild;
                 while (child) {
@@ -1174,41 +1169,43 @@
                 }
             });
         }
-        attributeChangedCallback(name, oldValue, newValue) {
+        attributeChangedCallback(name, from, to) {
             return __awaiter(this, void 0, void 0, function* () {
-                yield __classPrivateFieldGet(this, _attributed).call(this, name, oldValue, newValue);
+                yield __classPrivateFieldGet(this, _attributed).call(this, name, from, to);
             });
         }
         adoptedCallback() {
             return __awaiter(this, void 0, void 0, function* () {
-                yield __classPrivateFieldGet(this, _adopted).call(this);
+                if (__classPrivateFieldGet(this, _adopted))
+                    yield __classPrivateFieldGet(this, _adopted).call(this);
             });
         }
         disconnectedCallback() {
             return __awaiter(this, void 0, void 0, function* () {
-                __classPrivateFieldGet(this, _css).detach(__classPrivateFieldGet(this, _name));
-                yield __classPrivateFieldGet(this, _detached).call(this);
+                Css.detach(__classPrivateFieldGet(this, _name));
+                if (__classPrivateFieldGet(this, _disconnected))
+                    yield __classPrivateFieldGet(this, _disconnected).call(this);
             });
         }
         connectedCallback() {
             return __awaiter(this, void 0, void 0, function* () {
-                __classPrivateFieldGet(this, _css).attach(__classPrivateFieldGet(this, _name), this.constructor.css);
-                if (__classPrivateFieldGet(this, _CREATED)) {
-                    yield __classPrivateFieldGet(this, _attached).call(this);
+                Css.attach(__classPrivateFieldGet(this, _name), __classPrivateFieldGet(this, _css));
+                if (__classPrivateFieldGet(this, _flag)) {
+                    if (__classPrivateFieldGet(this, _connected))
+                        yield __classPrivateFieldGet(this, _connected).call(this);
                 }
                 else {
-                    __classPrivateFieldSet(this, _CREATED, true);
-                    this.render();
-                    yield __classPrivateFieldGet(this, _created).call(this);
-                    yield __classPrivateFieldGet(this, _attached).call(this);
+                    __classPrivateFieldSet(this, _flag, true);
+                    yield this.render();
+                    if (__classPrivateFieldGet(this, _rendered))
+                        yield __classPrivateFieldGet(this, _rendered).call(this);
+                    if (__classPrivateFieldGet(this, _connected))
+                        yield __classPrivateFieldGet(this, _connected).call(this);
                 }
             });
         }
     }
-    _CREATED = new WeakMap(), _css = new WeakMap(), _binder = new WeakMap(), _root = new WeakMap(), _name = new WeakMap(), _model = new WeakMap(), _adopt = new WeakMap(), _shadow = new WeakMap(), _adopted = new WeakMap(), _created = new WeakMap(), _attached = new WeakMap(), _detached = new WeakMap(), _attributed = new WeakMap();
-    Component.template = '';
-    Component.model = {};
-    Component.attributes = [];
+    _root = new WeakMap(), _css = new WeakMap(), _html = new WeakMap(), _data$1 = new WeakMap(), _adopt = new WeakMap(), _shadow = new WeakMap(), _flag = new WeakMap(), _name = new WeakMap(), _adopted = new WeakMap(), _rendered = new WeakMap(), _connected = new WeakMap(), _disconnected = new WeakMap(), _attributed = new WeakMap();
 
     const S_EXPORT = `
 
@@ -1438,7 +1435,7 @@
     window.LOAD = window.LOAD || load;
     window.MODULES = window.MODULES || {};
 
-    var _target, _data$1, _folder, _dynamic, _contain, _external, _after, _before, _a$1;
+    var _target, _data$2, _folder, _dynamic, _contain, _external, _after, _before, _a$1;
     const absolute = function (path) {
         const a = document.createElement('a');
         a.href = path;
@@ -1447,7 +1444,7 @@
     var Location = new (_a$1 = class Location {
             constructor() {
                 _target.set(this, void 0);
-                _data$1.set(this, {});
+                _data$2.set(this, {});
                 _folder.set(this, '');
                 _dynamic.set(this, true);
                 _contain.set(this, false);
@@ -1534,8 +1531,8 @@
                         href: location.href
                     }, '', location.href);
                     let element;
-                    if (location.pathname in __classPrivateFieldGet(this, _data$1)) {
-                        element = __classPrivateFieldGet(this, _data$1)[location.pathname];
+                    if (location.pathname in __classPrivateFieldGet(this, _data$2)) {
+                        element = __classPrivateFieldGet(this, _data$2)[location.pathname];
                     }
                     else {
                         const path = location.pathname === '/' ? '/index' : location.pathname;
@@ -1552,7 +1549,7 @@
                         const name = 'l' + path.replace(/\/+/g, '-');
                         window.customElements.define(name, component);
                         element = window.document.createElement(name);
-                        __classPrivateFieldGet(this, _data$1)[location.pathname] = element;
+                        __classPrivateFieldGet(this, _data$2)[location.pathname] = element;
                     }
                     if (element.title)
                         window.document.title = element.title;
@@ -1618,7 +1615,7 @@
             }
         },
         _target = new WeakMap(),
-        _data$1 = new WeakMap(),
+        _data$2 = new WeakMap(),
         _folder = new WeakMap(),
         _dynamic = new WeakMap(),
         _contain = new WeakMap(),

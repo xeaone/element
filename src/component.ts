@@ -4,56 +4,61 @@ import Css from './css';
 
 export default class Component extends HTMLElement {
 
-    static template = '';
-    static model = {};
-    static attributes = [];
+    static attributes: [];
     static get observedAttributes() { return this.attributes; }
     static set observedAttributes(attributes) { this.attributes = attributes; }
 
-    #CREATED: boolean;
-
-    #css = Css;
-    #binder = Binder;
-
     #root: any;
-    #name: string;
-    #model: object;
+    #css: string;
+    #html: string;
+    #data: object;
     #adopt: boolean;
     #shadow: boolean;
+    #flag: boolean = false;
+    #name: string = this.nodeName.toLowerCase();
+    // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
+    // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
+    // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
+    // #adopt: boolean = typeof (this as any).adopt === 'boolean' ? (this as any).adopt : false;
+    // #shadow: boolean = typeof (this as any).shadow === 'boolean' ? (this as any).shadow : false;
+    #adopted: () => any = typeof (this as any).adopted === 'function' ? (this as any).adopted : null;
+    #rendered: () => any = typeof (this as any).rendered === 'function' ? (this as any).rendered : null;
+    #connected: () => any = typeof (this as any).connected === 'function' ? (this as any).connected : null;
+    #disconnected: () => any = typeof (this as any).disconnected === 'function' ? (this as any).disconnected : null;
+    #attributed: (name, from, to) => any = typeof (this as any).attributed === 'function' ? (this as any).attributed : null;
 
-    #adopted: () => any;
-    #created: () => any;
-    #attached: () => any;
-    #detached: () => any;
-    #attributed: (name, oldValue, newValue) => any;
+    css: string = '';
+    html: string = '';
+    data: object = {};
+    adopt: boolean = false;
+    shadow: boolean = false;
 
-    get css() { return this.#css; }
     get root() { return this.#root; }
-    get model() { return this.#model; }
-    get binder() { return this.#binder; }
-
-    // #template = '';
-    // get template () { return this.#template; }
-
-    // #methods = {};
-    // get methods () { return this.#methods; }
+    get binder() { return Binder; }
 
     constructor() {
         super();
 
-        this.#adopt = typeof (this.constructor as any).adopt === 'boolean' ? (this.constructor as any).adopt.bind(this) : false;
-        this.#shadow = typeof (this.constructor as any).shadow === 'boolean' ? (this.constructor as any).shadow.bind(this) : false;
-        this.#adopted = typeof (this.constructor as any).adopted === 'function' ? (this.constructor as any).adopted.bind(this) : function () { };
-        this.#created = typeof (this.constructor as any).created === 'function' ? (this.constructor as any).created.bind(this) : function () { };
-        this.#attached = typeof (this.constructor as any).attached === 'function' ? (this.constructor as any).attached.bind(this) : function () { };
-        this.#detached = typeof (this.constructor as any).detached === 'function' ? (this.constructor as any).detached.bind(this) : function () { };
-        this.#attributed = typeof (this.constructor as any).attributed === 'function' ? (this.constructor as any).attributed.bind(this) : function () { };
+        if (this.#shadow && 'attachShadow' in document.body) {
+            this.#root = this.attachShadow({ mode: 'open' });
+        } else if (this.#shadow && 'createShadowRoot' in document.body) {
+            this.#root = (this as any).createShadowRoot();
+        } else {
+            this.#root = this;
+        }
 
-        this.#name = this.nodeName.toLowerCase();
-        // this.#methods = this.constructor.methods || {};
-        // this.#template = this.constructor.template || '';
+    }
 
-        this.#model = Observer.clone((this.constructor as any).model, (data, path) => {
+    async render() {
+
+        this.#css = this.#css ?? this.css;
+        this.#html = this.#html ?? this.html;
+        this.#data = this.#data ?? this.data;
+        this.#adopt = this.#adopt ?? this.adopt;
+        this.#shadow = this.#shadow ?? this.shadow;
+
+        // this.#data = Observer.create((this as any).data, (_, path) => {
+        this.data = Observer.clone(this.#data, (_, path) => {
             Binder.data.forEach(binder => {
                 if (binder.container === this && binder.path.startsWith(path)) {
                     // if (binder.container === this && binder.path.includes(path)) {
@@ -62,44 +67,6 @@ export default class Component extends HTMLElement {
                 }
             });
         });
-
-    }
-
-    async sloted(template) {
-        const templateSlots = template.querySelectorAll('slot[name]');
-        const defaultSlot = template.querySelector('slot:not([name])');
-
-        for (let i = 0; i < templateSlots.length; i++) {
-
-            const templateSlot = templateSlots[i];
-            const name = templateSlot.getAttribute('name');
-            const instanceSlot = this.querySelector('[slot="' + name + '"]');
-
-            if (instanceSlot) {
-                templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-            } else {
-                templateSlot.parentNode.removeChild(templateSlot);
-            }
-
-        }
-
-        if (this.children.length) {
-            while (this.firstChild) {
-                if (defaultSlot) {
-                    defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
-                } else {
-                    this.removeChild(this.firstChild);
-                }
-            }
-        }
-
-        if (defaultSlot) {
-            defaultSlot.parentNode.removeChild(defaultSlot);
-        }
-
-    }
-
-    async render() {
 
         if (this.#adopt === true) {
             let child = this.firstElementChild;
@@ -110,24 +77,37 @@ export default class Component extends HTMLElement {
         }
 
         const template = document.createElement('template');
-        template.innerHTML = (this.constructor as any).template;
-        const clone = template.content.cloneNode(true) as Element;
+        template.innerHTML = this.#html;
+        const clone = template.content.cloneNode(true) as DocumentFragment;
 
-        if (this.#shadow && 'attachShadow' in document.body) {
-            this.#root = this.attachShadow({ mode: 'open' });
-        } else if (this.#shadow && 'createShadowRoot' in document.body) {
-            this.#root = (this as any).createShadowRoot();
-        } else {
-            this.sloted(clone);
-            this.#root = this;
+        if (
+            !this.#shadow ||
+            !('attachShadow' in document.body) &&
+            !('createShadowRoot' in document.body)
+        ) {
+            const templateSlots = clone.querySelectorAll('slot[name]');
+            const defaultSlot = clone.querySelector('slot:not([name])');
+
+            for (let i = 0; i < templateSlots.length; i++) {
+                const templateSlot = templateSlots[i];
+                const name = templateSlot.getAttribute('name');
+                const instanceSlot = this.querySelector('[slot="' + name + '"]');
+                if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+                else templateSlot.parentNode.removeChild(templateSlot);
+            }
+
+            if (this.children.length) {
+                while (this.firstChild) {
+                    if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+                    else this.removeChild(this.firstChild);
+                }
+            }
+
+            if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
         }
-
-        // if (fragment) root.appendChild(fragment);
-        // root.appendChild(fragment);
 
         let child = clone.firstElementChild;
         while (child) {
-            // if (this.#adopt === false) 
             Binder.add(child, this);
             this.#root.appendChild(child);
             child = clone.firstElementChild;
@@ -135,34 +115,30 @@ export default class Component extends HTMLElement {
 
     }
 
-    async attributeChangedCallback(name, oldValue, newValue) {
-        // Promise.resolve().then(() => this.#attributed(name, oldValue, newValue));
-        await this.#attributed(name, oldValue, newValue);
+    async attributeChangedCallback(name, from, to) {
+        await this.#attributed(name, from, to);
     }
 
     async adoptedCallback() {
-        // Promise.resolve().then(() => this.#adopted());
-        await this.#adopted();
+        if (this.#adopted) await this.#adopted();
     }
 
     async disconnectedCallback() {
-        this.#css.detach(this.#name);
-        // Promise.resolve().then(() => this.#detached());
-        await this.#detached();
+        Css.detach(this.#name);
+        if (this.#disconnected) await this.#disconnected();
     }
 
     async connectedCallback() {
-        this.#css.attach(this.#name, (this.constructor as any).css);
 
-        if (this.#CREATED) {
-            // Promise.resolve().then(() => this.#attached());
-            await this.#attached();
+        Css.attach(this.#name, this.#css);
+
+        if (this.#flag) {
+            if (this.#connected) await this.#connected();
         } else {
-            this.#CREATED = true;
-            this.render();
-            // Promise.resolve().then(() => this.#created()).then(() => this.#attached());
-            await this.#created();
-            await this.#attached();
+            this.#flag = true;
+            await this.render();
+            if (this.#rendered) await this.#rendered();
+            if (this.#connected) await this.#connected();
         }
     }
 

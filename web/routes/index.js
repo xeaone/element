@@ -52,7 +52,7 @@ var indexjs = Escape(`
 	}).catch(console.error);
 `);
 
-var indexhtml = Escape(/*html*/`
+var indexhtml = Escape(`
 	<!-- index.html -->
 	<html>
 	<head>
@@ -70,7 +70,7 @@ var indexhtml = Escape(/*html*/`
 			</ul>
 		</e-menu>
 
-		<o-router></o-router>
+		<main></main>
 
 	</body>
 	</html>
@@ -78,14 +78,14 @@ var indexhtml = Escape(/*html*/`
 
 export default class IndexRoute extends Component {
 
-    static title = 'Oxe';
-    static description = 'A mighty tiny web components framework/library.';
+	static title = 'Oxe';
+	static description = 'A mighty tiny web components framework/library.';
 
-	static created () {
-        Say('index created');
+	static connected() {
+		Say('index connected');
 	}
 
-    static template = /*html*/`
+	static html = /*html*/`
 		<h2>Overview</h2>
 
 		<strong>Synopsis</strong>

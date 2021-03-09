@@ -146,7 +146,7 @@ export default new class Binder {
                     parameters.forEach(parameter => {
                         value = value.replace(
                             parameter, parameter === this.parameter ? data : traverse(
-                                container.model,
+                                container.data,
                                 parameter.replace(/{{|}}/, '').split('.')
                             )
                         );
@@ -162,18 +162,18 @@ export default new class Binder {
                 },
 
                 get data() {
-                    const parentValue = traverse(this.container.model, this.parentKeys);
+                    const parentValue = traverse(this.container.data, this.parentKeys);
 
                     const childValue = parentValue[this.childKey];
 
                     // if (this.type === 'on') {
                     if (typeof childValue === 'function') {
                         return event => {
-                            // const parameters = this.parameterPaths.map(path => traverse(container.model, path));
+                            // const parameters = this.parameterPaths.map(path => traverse(container.data, path));
                             return childValue.call(this.container, event, ...parameters);
                         };
                         // } else if (typeof childValue === 'function') {
-                        //     const parameters = this.parameterPaths.map(path => traverse(container.model, path));
+                        //     const parameters = this.parameterPaths.map(path => traverse(container.data, path));
                         //     return childValue.call(this.container, ...parameters);
                     } else {
                         return childValue;
@@ -186,13 +186,13 @@ export default new class Binder {
                     //     source[property] = value;
                     // } else {
 
-                    const parentValue = traverse(container.model, this.parentKeys);
+                    const parentValue = traverse(container.data, this.parentKeys);
                     const childValue = parentValue[this.childKey];
 
                     if (this.type === 'on') {
                         parentValue[this.childKey] = value;
                     } else if (typeof childValue === 'function') {
-                        const parameters = this.parameterPaths.map(path => traverse(container.model, path));
+                        const parameters = this.parameterPaths.map(path => traverse(container.data, path));
                         childValue.call(this.container, ...parameters);
                     } else {
                         parentValue[this.childKey] = value;

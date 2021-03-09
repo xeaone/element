@@ -68,7 +68,7 @@ export default function (binder) {
     //
     //     for (let i = 0, l = binder.pipes.length; i < l; i++) {
     //         const keys = binder.pipes[i].split('.');
-    //         const parameter = Traverse(binder.container.model, keys);
+    //         const parameter = Traverse(binder.container.data, keys);
     //         parameters.push(parameter);
     //     }
     //
