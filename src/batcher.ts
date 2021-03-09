@@ -3,11 +3,11 @@ const reads = [];
 const writes = [];
 
 const options = {
-    time: 1000/60,
+    time: 1000 / 60,
     pending: false
 };
 
-const setup = function (options:any = {}) {
+const setup = function (options: any = {}) {
     this.options.time = options.time || this.options.time;
 };
 
@@ -78,21 +78,14 @@ const clear = function (task) {
     return this.remove(this.reads, task) || this.remove(this.writes, task);
 };
 
-const batch = function (context) {
-    const self = this;
+const batch = function (read, write) {
 
-    if (!context) return;
-    if (!context.read && !context.write) return;
+    if (!read && !write) return;
 
-    self.reads.push(async () =>
-        context.read ? context.read.call(context, context) : undefined
-    );
+    this.reads.push(read);
+    this.writes.push(write);
 
-    self.writes.push(async () => 
-        context.write ? context.write.call(context, context) : undefined
-    );
-
-    self.schedule().catch(console.error);
+    this.schedule().catch(console.error);
 };
 
 export default Object.freeze({

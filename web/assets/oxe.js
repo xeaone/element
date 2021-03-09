@@ -306,15 +306,12 @@
     const clear = function (task) {
         return this.remove(this.reads, task) || this.remove(this.writes, task);
     };
-    const batch = function (context) {
-        const self = this;
-        if (!context)
+    const batch = function (read, write) {
+        if (!read && !write)
             return;
-        if (!context.read && !context.write)
-            return;
-        self.reads.push(() => __awaiter(this, void 0, void 0, function* () { return context.read ? context.read.call(context, context) : undefined; }));
-        self.writes.push(() => __awaiter(this, void 0, void 0, function* () { return context.write ? context.write.call(context, context) : undefined; }));
-        self.schedule().catch(console.error);
+        this.reads.push(read);
+        this.writes.push(write);
+        this.schedule().catch(console.error);
     };
     var Batcher = Object.freeze({
         reads,
@@ -330,28 +327,23 @@
     });
 
     function checked (binder, event) {
-        if (binder.meta.busy) {
-            return;
-        }
-        else {
-            binder.meta.busy = true;
-        }
-        if (!binder.meta.setup) {
-            binder.meta.setup = true;
-            binder.target.addEventListener('input', event => Binder.render(binder, event));
-        }
+        let data;
         return {
             read(ctx) {
-                ctx.data = binder.data;
-                if (isBoolean(ctx.data)) {
-                    ctx.checked = event ? binder.target.checked : ctx.data;
+                data = binder.data;
+                if (!binder.meta.setup) {
+                    binder.meta.setup = true;
+                    binder.target.addEventListener('input', event => Binder.render(binder, event));
+                }
+                if (isBoolean(data)) {
+                    ctx.checked = event ? binder.target.checked : data;
                 }
                 else {
                     ctx.value = binder.getAttribute('value');
-                    ctx.checked = match(ctx.data, ctx.value);
+                    ctx.checked = match(data, ctx.value);
                 }
                 if (event) {
-                    if (isBoolean(ctx.data)) {
+                    if (isBoolean(data)) {
                         binder.data = ctx.checked;
                     }
                     else {
@@ -426,85 +418,60 @@
         };
     }
 
+    const variablePattern = /\s*\{\{\s*(.*?)\s+.*/;
     function each (binder) {
-        if (binder.meta.busy) {
-            console.log('busy each');
-            return;
-        }
-        else {
-            binder.meta.busy = true;
-        }
-        const read = function () {
-            if (!binder.meta.setup) {
-                binder.meta.keys = [];
-                binder.meta.counts = [];
-                binder.meta.busy = false;
-                binder.meta.setup = false;
-                binder.meta.targetLength = 0;
-                binder.meta.currentLength = 0;
-                binder.meta.templateString = binder.target.innerHTML;
-                binder.meta.templateLength = binder.target.childNodes.length;
-                while (binder.target.firstChild) {
-                    binder.target.removeChild(binder.target.firstChild);
-                }
-                binder.meta.setup = true;
-            }
-            binder.meta.keys = Object.keys(binder.data || []);
-            binder.meta.targetLength = binder.meta.keys.length;
-            if (binder.meta.currentLength === binder.meta.targetLength) {
-                binder.meta.busy = false;
-                this.write = false;
-            }
-        };
-        const write = function () {
-            var _a;
-            if (binder.meta.currentLength > binder.meta.targetLength) {
-                while (binder.meta.currentLength > binder.meta.targetLength) {
-                    let count = binder.meta.templateLength;
-                    while (count--) {
-                        const node = binder.target.lastChild;
-                        Promise.resolve().then(Binder.remove.bind(Binder, node));
-                        binder.target.removeChild(node);
+        return {
+            read() {
+                if (!binder.meta.setup) {
+                    binder.meta.keys = [];
+                    binder.meta.counts = [];
+                    binder.meta.setup = true;
+                    binder.meta.targetLength = 0;
+                    binder.meta.currentLength = 0;
+                    binder.meta.templateString = binder.target.innerHTML;
+                    binder.meta.templateLength = binder.target.childNodes.length;
+                    binder.meta.variable = binder.value.replace(variablePattern, '$1');
+                    while (binder.target.firstChild) {
+                        binder.target.removeChild(binder.target.firstChild);
                     }
-                    binder.meta.currentLength--;
                 }
-            }
-            else if (binder.meta.currentLength < binder.meta.targetLength) {
-                while (binder.meta.currentLength < binder.meta.targetLength) {
-                    const index = binder.meta.currentLength;
-                    const key = binder.meta.keys[index];
-                    const variable = `${binder.path}.${key}`;
-                    let clone = binder.meta.templateString;
-                    const length = binder.names.length > 4 ? 4 : binder.names.length;
-                    for (let i = 1; i < length; i++) {
-                        const item = new RegExp(`\\b(${binder.names[i]})\\b`, 'g');
-                        const syntax = new RegExp(`{{.*?\\b(${binder.names[i]})\\b.*?}}`, 'g');
-                        let replace;
-                        switch (i) {
-                            case 1:
-                                replace = variable;
-                                break;
-                            case 2:
-                                replace = index;
-                                break;
-                            case 3:
-                                replace = key;
-                                break;
+                binder.meta.keys = Object.keys(binder.data || []);
+                binder.meta.targetLength = binder.meta.keys.length;
+            },
+            write() {
+                var _a;
+                if (binder.meta.currentLength > binder.meta.targetLength) {
+                    while (binder.meta.currentLength > binder.meta.targetLength) {
+                        let count = binder.meta.templateLength;
+                        while (count--) {
+                            const node = binder.target.lastChild;
+                            Promise.resolve().then(Binder.remove.bind(Binder, node));
+                            binder.target.removeChild(node);
                         }
+                        binder.meta.currentLength--;
+                    }
+                }
+                else if (binder.meta.currentLength < binder.meta.targetLength) {
+                    while (binder.meta.currentLength < binder.meta.targetLength) {
+                        const index = binder.meta.currentLength;
+                        const key = binder.meta.keys[index];
+                        const variable = `${binder.path}.${key}`;
+                        let clone = binder.meta.templateString;
+                        const item = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
+                        const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable})\\b.*?}}`, 'g');
+                        let replace = variable;
                         (_a = clone.match(syntax)) === null || _a === void 0 ? void 0 : _a.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
+                        const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
+                        let node;
+                        while (node = parsed.firstChild) {
+                            binder.target.appendChild(node);
+                            Promise.resolve().then(Binder.add.bind(Binder, node, binder.container));
+                        }
+                        binder.meta.currentLength++;
                     }
-                    const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
-                    let node;
-                    while (node = parsed.firstChild) {
-                        binder.target.appendChild(node);
-                        Promise.resolve().then(Binder.add.bind(Binder, node, binder.container));
-                    }
-                    binder.meta.currentLength++;
                 }
             }
-            binder.meta.busy = false;
         };
-        return { read, write };
     }
 
     function html (binder) {
@@ -539,14 +506,54 @@
         };
     }
 
+    const submit = function (event, binder) {
+        return __awaiter(this, void 0, void 0, function* () {
+            event.preventDefault();
+            const data = {};
+            const elements = event.target.querySelectorAll('*');
+            for (let i = 0; i < elements.length; i++) {
+                const element = elements[i];
+                if ((!element.type && element.nodeName !== 'TEXTAREA') ||
+                    element.type === 'submit' ||
+                    element.type === 'button' ||
+                    !element.type)
+                    continue;
+                const attribute = element.attributes['o-value'];
+                const b = Binder.get(attribute);
+                console.warn('todo: need to get a value for selects');
+                const value = (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
+                const name = element.name || (b ? b.values[b.values.length - 1] : null);
+                if (!name)
+                    continue;
+                data[name] = value;
+            }
+            const method = binder.data;
+            if (typeof method === 'function') {
+                yield method.call(binder.container, event, data);
+            }
+            if (binder.getAttribute('reset')) {
+                event.target.reset();
+            }
+        });
+    };
     function on (binder) {
-        binder.target[binder.name] = null;
-        const name = binder.name.slice(2);
-        if (binder.meta.method) {
-            binder.target.removeEventListener(name, binder.meta.method);
-        }
-        binder.meta.method = binder.data;
-        binder.target.addEventListener(name, binder.meta.method);
+        const read = function () {
+            binder.target[binder.name] = null;
+            const name = binder.name.slice(2);
+            if (binder.meta.method) {
+                binder.target.removeEventListener(name, binder.meta.method);
+            }
+            binder.meta.method = event => {
+                if (name === 'submit') {
+                    submit.call(binder.container, event, binder);
+                }
+                else {
+                    binder.data.call(binder.container, event);
+                }
+            };
+            binder.target.addEventListener(name, binder.meta.method);
+        };
+        return { read };
     }
 
     const reset = function (binder, event) {
@@ -607,60 +614,15 @@
         binder.target.addEventListener('reset', binder.meta.method, false);
     }
 
-    const submit = function (binder, event) {
-        return __awaiter(this, void 0, void 0, function* () {
-            event.preventDefault();
-            const data = {};
-            const elements = event.target.querySelectorAll('*');
-            for (let i = 0; i < elements.length; i++) {
-                const element = elements[i];
-                if ((!element.type && element.nodeName !== 'TEXTAREA') ||
-                    element.type === 'submit' ||
-                    element.type === 'button' ||
-                    !element.type)
-                    continue;
-                const attribute = element.attributes['o-value'];
-                const b = Binder.get(attribute);
-                console.warn('todo: need to get a value for selects');
-                const value = (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
-                const name = element.name || (b ? b.values[b.values.length - 1] : null);
-                if (!name)
-                    continue;
-                data[name] = value;
-            }
-            const method = binder.data;
-            if (typeof method === 'function') {
-                yield method.call(binder.container, data, event);
-            }
-            if (binder.getAttribute('reset')) {
-                event.target.reset();
-            }
-        });
-    };
-    function submit$1 (binder) {
-        binder.target.submit = null;
-        if (typeof binder.data !== 'function') {
-            console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
-            return;
-        }
-        if (binder.meta.method) {
-            binder.target.removeEventListener('submit', binder.meta.method);
-        }
-        binder.meta.method = submit.bind(this, binder);
-        binder.target.addEventListener('submit', binder.meta.method);
-    }
-
     function text (binder) {
         let data;
         return {
             read() {
                 data = toString(binder.data);
-                if (data === binder.target.textContent) {
-                    this.write = false;
-                    return;
-                }
             },
             write() {
+                if (data === binder.target.textContent)
+                    return;
                 binder.target.textContent = data;
             }
         };
@@ -825,6 +787,7 @@
     }
 
     const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
+    const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     var Binder = new class Binder {
@@ -843,7 +806,6 @@
                 html,
                 on,
                 reset: reset$1,
-                submit: submit$1,
                 text,
                 value,
             };
@@ -864,10 +826,23 @@
             return this.data.get(node);
         }
         render(binder, ...extra) {
+            if (binder.busy)
+                return;
+            else
+                binder.busy = true;
             const type = binder.type in this.binders ? binder.type : 'default';
             const render = this.binders[type](binder, ...extra);
-            if (render)
-                Batcher.batch(render);
+            if (render) {
+                const context = {};
+                Batcher.batch(() => __awaiter(this, void 0, void 0, function* () {
+                    if (render.read)
+                        yield render.read(context);
+                }), () => __awaiter(this, void 0, void 0, function* () {
+                    if (render.write)
+                        yield render.write(context);
+                    binder.busy = false;
+                }));
+            }
         }
         unbind(node) {
             return this.data.delete(node);
@@ -877,9 +852,9 @@
             const parameters = value.match(PARAMETER_PATTERNS);
             if (!parameters)
                 return console.error(`Oxe.binder.bind - value ${value} is not valid`);
-            const paths = parameters.map(path => path.replace(this.syntaxReplace, ''));
-            const names = name.split('-');
-            const meta = {};
+            const paths = parameters.map(path => path
+                .replace(this.syntaxReplace, '')
+                .replace(eachPattern, ''));
             const type = name.startsWith('on') ? 'on' : name;
             paths.forEach((path, index) => {
                 const keys = path.split('.');
@@ -888,12 +863,14 @@
                 const childKey = keys.slice(-1)[0];
                 const parentKeys = keys.slice(0, -1);
                 const binder = Object.freeze({
+                    meta: {},
+                    _meta: { busy: false },
+                    get busy() { return this._meta.busy; },
+                    set busy(busy) { this._meta.busy = busy; },
                     key, keys,
-                    value,
-                    name, names,
+                    name, value,
                     path, paths,
                     parameter, parameters,
-                    meta,
                     type,
                     target, container,
                     render: self.render,

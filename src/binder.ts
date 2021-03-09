@@ -9,7 +9,7 @@ import each from './binder/each';
 import html from './binder/html';
 import on from './binder/on';
 import reset from './binder/reset';
-import submit from './binder/submit';
+// import submit from '../_/submit';
 import text from './binder/text';
 import value from './binder/value';
 
@@ -19,6 +19,7 @@ const PIPES = /\s?,\s?|\s+/;
 // const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
 const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
 const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
+const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -44,7 +45,7 @@ export default new class Binder {
         html,
         on,
         reset,
-        submit,
+        // submit,
         text,
         value,
     }
@@ -67,9 +68,22 @@ export default new class Binder {
     }
 
     render(binder: any, ...extra) {
+
+        if (binder.busy) return;
+        else binder.busy = true;
+
         const type = binder.type in this.binders ? binder.type : 'default';
         const render = this.binders[type](binder, ...extra);
-        if (render) Batcher.batch(render);
+
+        if (render) {
+            const context = {};
+            Batcher.batch(async () => {
+                if (render.read) await render.read(context);
+            }, async () => {
+                if (render.write) await render.write(context);
+                binder.busy = false;
+            });
+        }
     }
 
     unbind(node: Node) {
@@ -96,11 +110,14 @@ export default new class Binder {
 
         // const pipe = value.split(PIPE);
         // const values = value.match(PARAMETER_PATTERNS);
-        const paths = parameters.map(path => path.replace(this.syntaxReplace, ''));
+        const paths = parameters.map(path =>
+            path
+                .replace(this.syntaxReplace, '')
+                .replace(eachPattern, '')
+        );
         // const keys = parameters.map(key => key.replace(this.syntaxReplace, '').split('.'));
-        const names = name.split('-');
+        // const names = name.split('-');
 
-        const meta = {};
         const type = name.startsWith('on') ? 'on' : name;
 
         // const values = pipe[0] ? pipe[0].split('.') : [];
@@ -120,9 +137,13 @@ export default new class Binder {
 
             const binder = Object.freeze({
 
+                meta: {},
+                _meta: { busy: false },
+                get busy() { return this._meta.busy; },
+                set busy(busy) { this._meta.busy = busy; },
+
                 key, keys,
-                value,
-                name, names,
+                name, value,
                 path, paths,
                 parameter, parameters,
                 // value, values,
@@ -130,7 +151,6 @@ export default new class Binder {
                 // pipes,
                 // property, properties,
 
-                meta,
                 type,
                 target, container,
 
@@ -225,7 +245,6 @@ export default new class Binder {
 
         if (type === EN) {
             const attributes = (node as Element).attributes;
-            // const attributes = node.attributes;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[i];
                 this.unbind(attribute);

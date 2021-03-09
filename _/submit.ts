@@ -1,6 +1,6 @@
-import Binder from '../binder';
+import Binder from '../src/binder';
 
-const submit = async function (binder, event) {
+const submit = async function (event, binder) {
     event.preventDefault();
 
     const data = {};
@@ -41,7 +41,7 @@ const submit = async function (binder, event) {
 
     const method = binder.data;
     if (typeof method === 'function') {
-        await method.call(binder.container, data, event);
+        await method.call(binder.container, event, data);
     }
 
     if (binder.getAttribute('reset')) {
@@ -52,7 +52,7 @@ const submit = async function (binder, event) {
 
 export default function (binder) {
 
-    binder.target.submit = null;
+    binder.target.onsubmit = null;
 
     if (typeof binder.data !== 'function') {
         console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
@@ -78,6 +78,11 @@ export default function (binder) {
     //     Promise.resolve(data.bind(binder.container).apply(null, parameters)).catch(console.error);
     // };
 
-    binder.meta.method = submit.bind(this, binder);
+    binder.meta.method = (event) => {
+        event.preventDefault();
+        submit(event, binder);
+        return false;
+    };
+
     binder.target.addEventListener('submit', binder.meta.method);
 }

@@ -2,32 +2,27 @@ import Binder from '../binder';
 import { isBoolean, match } from '../tool';
 
 export default function (binder, event) {
-
-    if (binder.meta.busy) {
-        return;
-    } else {
-        binder.meta.busy = true;
-    }
-
-    if (!binder.meta.setup) {
-        binder.meta.setup = true;
-        binder.target.addEventListener('input', event => Binder.render(binder, event));
-    }
+    let data, write;
 
     return {
         read(ctx) {
-            ctx.data = binder.data;
+            data = binder.data;
 
-            if (isBoolean(ctx.data)) {
-                ctx.checked = event ? binder.target.checked : ctx.data;
+            if (!binder.meta.setup) {
+                binder.meta.setup = true;
+                binder.target.addEventListener('input', event => Binder.render(binder, event));
+            }
+
+            if (isBoolean(data)) {
+                ctx.checked = event ? binder.target.checked : data;
             } else {
                 ctx.value = binder.getAttribute('value');
-                ctx.checked = match(ctx.data, ctx.value);
+                ctx.checked = match(data, ctx.value);
             }
 
             if (event) {
 
-                if (isBoolean(ctx.data)) {
+                if (isBoolean(data)) {
                     binder.data = ctx.checked;
                 } else {
                     binder.data = ctx.value;

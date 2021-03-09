@@ -48,14 +48,12 @@ class OLoop extends Component {
         <button onclick="{{push}}">Push</button>
         <button onclick="{{overwrite}}">Overwrite</button>
 
-        <!--
-        <div each-item="items" for="item" of="items">
+        <div each="{{item of items}}">
             <div class="box">
                 <div>{{item.number}}</div>
                 <input value="{{item.number}}">
             </div>
         </div>
-        -->
 
     `
 
