@@ -24,6 +24,7 @@ export default function (binder) {
 
             binder.meta.keys = Object.keys(binder.data || []);
             binder.meta.targetLength = binder.meta.keys.length;
+            binder.meta.currentLength = binder.target.children.length / binder.meta.templateLength;
 
             // if (binder.meta.currentLength === binder.meta.targetLength) {
             //     binder.busy = false;
@@ -42,13 +43,15 @@ export default function (binder) {
 
                     while (count--) {
                         const node = binder.target.lastChild;
-                        Promise.resolve().then(Binder.remove.bind(Binder, node));
+                        Binder.remove(node);
+                        // Promise.resolve().then(Binder.remove.bind(Binder, node));
                         binder.target.removeChild(node);
                     }
 
-                    binder.meta.currentLength--;
+                    // binder.meta.currentLength--;
                 }
             } else if (binder.meta.currentLength < binder.meta.targetLength) {
+                // setTimeout(() => {
                 while (binder.meta.currentLength < binder.meta.targetLength) {
                     const index = binder.meta.currentLength;
                     const key = binder.meta.keys[index];
@@ -76,14 +79,22 @@ export default function (binder) {
 
                     let node;
                     while (node = parsed.firstChild) {
+                        // tasks.push(Binder.add(node, binder.container));
+
                         binder.target.appendChild(node);
-                        Promise.resolve().then(Binder.add.bind(Binder, node, binder.container));
+                        Binder.add(node, binder.container);
+
+                        // Binder.add(node, binder.container).then(binder.target.appendChild.bind(binder.target, node));
+
+                        // setTimeout(Binder.add.bind(Binder, node, binder.container))
+                        // Promise.resolve().then(Binder.add.bind(Binder, node, binder.container));
                         // binder.meta.fragment.appendChild(node);
                         // Promise.resolve().then(Binder.add(node, binder.container)).catch(console.error);
                     }
 
-                    binder.meta.currentLength++;
+                    // binder.meta.currentLength++;
                 }
+                // });
                 // binder.target.appendChild(binder.meta.fragment);
             }
 

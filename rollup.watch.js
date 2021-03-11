@@ -1,5 +1,4 @@
 import typescript from '@rollup/plugin-typescript';
-import { terser } from "rollup-plugin-terser";
 import { readFileSync } from 'fs';
 
 const pkg = readFileSync('./package.json');
@@ -36,7 +35,8 @@ export default [
                 removeComments: true,
                 noEmitHelpers: true,
                 module: 'es6',
-                target: 'es2015',
+                // target: 'es2015',
+                target: 'es2020',
                 // lib: [ 'es2015', 'es2016', 'dom' ] 
             })
         ]

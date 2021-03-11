@@ -31,16 +31,6 @@
     PERFORMANCE OF THIS SOFTWARE.
     ***************************************************************************** */
 
-    function __awaiter(thisArg, _arguments, P, generator) {
-        function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-        return new (P || (P = Promise))(function (resolve, reject) {
-            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-            function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-            step((generator = generator.apply(thisArg, _arguments || [])).next());
-        });
-    }
-
     function __classPrivateFieldGet(receiver, privateMap) {
         if (!privateMap.has(receiver)) {
             throw new TypeError("attempted to get private field on non-instance");
@@ -56,13 +46,13 @@
         return value;
     }
 
-    const isMap = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Map;
-    const isDate = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Date;
-    const isArray = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Array;
-    const isString = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === String;
-    const isNumber = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Number;
-    const isObject = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Object;
-    const isBoolean = (data) => (data === null || data === void 0 ? void 0 : data.constructor) === Boolean;
+    const isMap = (data) => data?.constructor === Map;
+    const isDate = (data) => data?.constructor === Date;
+    const isArray = (data) => data?.constructor === Array;
+    const isString = (data) => data?.constructor === String;
+    const isNumber = (data) => data?.constructor === Number;
+    const isObject = (data) => data?.constructor === Object;
+    const isBoolean = (data) => data?.constructor === Boolean;
     const toArray = (data) => JSON.parse(data);
     const toObject = (data) => JSON.parse(data);
     const toBoolean = (data) => data === 'true';
@@ -87,7 +77,7 @@
             if (isBoolean(source))
                 return toBoolean(target);
         }
-        catch (_a) {
+        catch {
             return target;
         }
     };
@@ -130,7 +120,7 @@
         }
         return true;
     };
-    const index = function (items, item) {
+    const index$1 = function (items, item) {
         for (let i = 0; i < items.length; i++) {
             if (match(items[i], item)) {
                 return i;
@@ -256,48 +246,37 @@
             });
         });
     };
-    const schedule = function () {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.options.pending)
-                return;
+    const schedule = async function () {
+        if (this.options.pending)
+            return;
+        else
             this.options.pending = true;
-            return this.tick(this.flush);
-        });
+        return this.tick(this.flush).catch(console.error);
     };
-    const flush = function (time) {
-        return __awaiter(this, void 0, void 0, function* () {
-            console.log('reads before:', this.reads.length);
-            console.log('write before:', this.writes.length);
-            let read;
-            while (read = this.reads.shift()) {
-                if (read)
-                    yield read();
-                if ((performance.now() - time) > this.options.time) {
-                    console.log('read max');
-                    return this.tick(this.flush);
-                }
-            }
-            let write;
-            while (write = this.writes.shift()) {
-                if (write)
-                    yield write();
-                if ((performance.now() - time) > this.options.time) {
-                    console.log('write max');
-                    return this.tick(this.flush);
-                }
-            }
-            console.log('reads after:', this.reads.length);
-            console.log('write after:', this.writes.length);
-            if (this.reads.length === 0 && this.writes.length === 0) {
-                this.options.pending = false;
-            }
-            else if ((performance.now() - time) > this.options.time) {
-                return this.tick(this.flush);
-            }
-            else {
-                return this.flush(time);
-            }
-        });
+    const flush = async function (time) {
+        console.log('reads before:', this.reads.length);
+        console.log('write before:', this.writes.length);
+        let read;
+        while (read = this.reads.shift()) {
+            if (read)
+                await read();
+        }
+        let write;
+        while (write = this.writes.shift()) {
+            if (write)
+                await write();
+        }
+        console.log('reads after:', this.reads.length);
+        console.log('write after:', this.writes.length);
+        if (this.reads.length === 0 && this.writes.length === 0) {
+            this.options.pending = false;
+        }
+        else if ((performance.now() - time) > this.options.time) {
+            return this.tick(this.flush);
+        }
+        else {
+            return this.flush(time);
+        }
     };
     const remove = function (tasks, task) {
         const index = tasks.indexOf(task);
@@ -437,18 +416,17 @@
                 }
                 binder.meta.keys = Object.keys(binder.data || []);
                 binder.meta.targetLength = binder.meta.keys.length;
+                binder.meta.currentLength = binder.target.children.length / binder.meta.templateLength;
             },
             write() {
-                var _a;
                 if (binder.meta.currentLength > binder.meta.targetLength) {
                     while (binder.meta.currentLength > binder.meta.targetLength) {
                         let count = binder.meta.templateLength;
                         while (count--) {
                             const node = binder.target.lastChild;
-                            Promise.resolve().then(Binder.remove.bind(Binder, node));
+                            Binder.remove(node);
                             binder.target.removeChild(node);
                         }
-                        binder.meta.currentLength--;
                     }
                 }
                 else if (binder.meta.currentLength < binder.meta.targetLength) {
@@ -460,14 +438,13 @@
                         const item = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
                         const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable})\\b.*?}}`, 'g');
                         let replace = variable;
-                        (_a = clone.match(syntax)) === null || _a === void 0 ? void 0 : _a.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
+                        clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
                         const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
                         let node;
                         while (node = parsed.firstChild) {
                             binder.target.appendChild(node);
-                            Promise.resolve().then(Binder.add.bind(Binder, node, binder.container));
+                            Binder.add(node, binder.container);
                         }
-                        binder.meta.currentLength++;
                     }
                 }
             }
@@ -506,35 +483,33 @@
         };
     }
 
-    const submit = function (event, binder) {
-        return __awaiter(this, void 0, void 0, function* () {
-            event.preventDefault();
-            const data = {};
-            const elements = event.target.querySelectorAll('*');
-            for (let i = 0; i < elements.length; i++) {
-                const element = elements[i];
-                if ((!element.type && element.nodeName !== 'TEXTAREA') ||
-                    element.type === 'submit' ||
-                    element.type === 'button' ||
-                    !element.type)
-                    continue;
-                const attribute = element.attributes['o-value'];
-                const b = Binder.get(attribute);
-                console.warn('todo: need to get a value for selects');
-                const value = (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
-                const name = element.name || (b ? b.values[b.values.length - 1] : null);
-                if (!name)
-                    continue;
-                data[name] = value;
-            }
-            const method = binder.data;
-            if (typeof method === 'function') {
-                yield method.call(binder.container, event, data);
-            }
-            if (binder.getAttribute('reset')) {
-                event.target.reset();
-            }
-        });
+    const submit = async function (event, binder) {
+        event.preventDefault();
+        const data = {};
+        const elements = event.target.querySelectorAll('*');
+        for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            if ((!element.type && element.nodeName !== 'TEXTAREA') ||
+                element.type === 'submit' ||
+                element.type === 'button' ||
+                !element.type)
+                continue;
+            const attribute = element.attributes['o-value'];
+            const b = Binder.get(attribute);
+            console.warn('todo: need to get a value for selects');
+            const value = (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
+            const name = element.name || (b ? b.values[b.values.length - 1] : null);
+            if (!name)
+                continue;
+            data[name] = value;
+        }
+        const method = binder.data;
+        if (typeof method === 'function') {
+            await method.call(binder.container, event, data);
+        }
+        if (binder.getAttribute('reset')) {
+            event.target.reset();
+        }
     };
     function on (binder) {
         const read = function () {
@@ -556,51 +531,48 @@
         return { read };
     }
 
-    const reset = function (binder, event) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            event.preventDefault();
-            const elements = event.target.querySelectorAll('*');
-            for (let i = 0, l = elements.length; i < l; i++) {
-                const element = elements[i];
-                const name = element.nodeName;
-                const type = element.type;
-                if (!type && name !== 'TEXTAREA' ||
-                    type === 'submit' ||
-                    type === 'button' ||
-                    !type) {
-                    continue;
-                }
-                const binder = (_a = Binder.get(element)) === null || _a === void 0 ? void 0 : _a.get('value');
-                if (!binder) {
-                    if (type === 'select-one' || type === 'select-multiple') {
-                        element.selectedIndex = null;
-                    }
-                    else if (type === 'radio' || type === 'checkbox') {
-                        element.checked = false;
-                    }
-                    else {
-                        element.value = null;
-                    }
-                }
-                else if (type === 'select-one') {
-                    binder.data = null;
-                }
-                else if (type === 'select-multiple') {
-                    binder.data = [];
+    const reset = async function (binder, event) {
+        event.preventDefault();
+        const elements = event.target.querySelectorAll('*');
+        for (let i = 0, l = elements.length; i < l; i++) {
+            const element = elements[i];
+            const name = element.nodeName;
+            const type = element.type;
+            if (!type && name !== 'TEXTAREA' ||
+                type === 'submit' ||
+                type === 'button' ||
+                !type) {
+                continue;
+            }
+            const binder = Binder.get(element)?.get('value');
+            if (!binder) {
+                if (type === 'select-one' || type === 'select-multiple') {
+                    element.selectedIndex = null;
                 }
                 else if (type === 'radio' || type === 'checkbox') {
-                    binder.data = false;
+                    element.checked = false;
                 }
                 else {
-                    binder.data = '';
+                    element.value = null;
                 }
             }
-            const method = binder.data;
-            if (typeof method === 'function') {
-                yield method.call(binder.container, event);
+            else if (type === 'select-one') {
+                binder.data = null;
             }
-        });
+            else if (type === 'select-multiple') {
+                binder.data = [];
+            }
+            else if (type === 'radio' || type === 'checkbox') {
+                binder.data = false;
+            }
+            else {
+                binder.data = '';
+            }
+        }
+        const method = binder.data;
+        if (typeof method === 'function') {
+            await method.call(binder.container, event);
+        }
     };
     function reset$1 (binder) {
         if (typeof binder.data !== 'function') {
@@ -682,17 +654,17 @@
                         const attribute = node.attributes['o-value'] || node.attributes['value'];
                         const option = Binder.get(attribute) || { get data() { return node.value; }, set data(data) { node.value = data; } };
                         if (ctx.multiple) {
-                            const index$1 = index(binder.data, option.data);
+                            const index = index$1(binder.data, option.data);
                             if (event) {
-                                if (selected && index$1 === -1) {
+                                if (selected && index === -1) {
                                     binder.data.push(option.data);
                                 }
-                                else if (!selected && index$1 !== -1) {
-                                    binder.data.splice(index$1, 1);
+                                else if (!selected && index !== -1) {
+                                    binder.data.splice(index, 1);
                                 }
                             }
                             else {
-                                if (index$1 === -1) {
+                                if (index === -1) {
                                     ctx.unselects.push(node);
                                 }
                                 else {
@@ -778,8 +750,7 @@
                     ctx.value = binder.target.value;
                 },
                 write(ctx) {
-                    var _a;
-                    binder.target.value = (_a = ctx.data) !== null && _a !== void 0 ? _a : '';
+                    binder.target.value = ctx.data ?? '';
                     binder.meta.busy = false;
                 }
             };
@@ -810,17 +781,15 @@
                 value,
             };
         }
-        setup(options = {}) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const { binders } = options;
-                if (binders) {
-                    for (const name in binders) {
-                        if (name in this.binders === false) {
-                            this.binders[name] = binders[name].bind(this);
-                        }
+        async setup(options = {}) {
+            const { binders } = options;
+            if (binders) {
+                for (const name in binders) {
+                    if (name in this.binders === false) {
+                        this.binders[name] = binders[name].bind(this);
                     }
                 }
-            });
+            }
         }
         get(node) {
             return this.data.get(node);
@@ -834,14 +803,14 @@
             const render = this.binders[type](binder, ...extra);
             if (render) {
                 const context = {};
-                Batcher.batch(() => __awaiter(this, void 0, void 0, function* () {
+                Batcher.batch(async () => {
                     if (render.read)
-                        yield render.read(context);
-                }), () => __awaiter(this, void 0, void 0, function* () {
+                        await render.read(context);
+                }, async () => {
                     if (render.write)
-                        yield render.write(context);
+                        await render.write(context);
                     binder.busy = false;
-                }));
+                });
             }
         }
         unbind(node) {
@@ -884,11 +853,10 @@
                         return value;
                     },
                     getAttribute(name) {
-                        var _a, _b;
                         const node = target.getAttributeNode(name);
                         if (!node)
                             return undefined;
-                        const data = (_b = (_a = self.data) === null || _a === void 0 ? void 0 : _a.get(node)) === null || _b === void 0 ? void 0 : _b.data;
+                        const data = self.data?.get(node)?.data;
                         return data === undefined ? node.value : data;
                     },
                     get data() {
@@ -993,10 +961,10 @@
         }
     };
 
-    var _data, _style, _support, _a;
-    var Css = new (_a = class Css {
+    var _data$2, _style, _support, _a$1;
+    var Css = new (_a$1 = class Css {
             constructor() {
-                _data.set(this, new Map());
+                _data$2.set(this, new Map());
                 _style.set(this, document.createElement('style'));
                 _support.set(this, !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)'));
                 __classPrivateFieldGet(this, _style).appendChild(document.createTextNode(':not(:defined){visibility:hidden;}'));
@@ -1023,7 +991,7 @@
                 return text;
             }
             detach(name) {
-                const item = __classPrivateFieldGet(this, _data).get(name);
+                const item = __classPrivateFieldGet(this, _data$2).get(name);
                 if (!item || item.count === 0)
                     return;
                 item.count--;
@@ -1032,12 +1000,12 @@
                 }
             }
             attach(name, text) {
-                const item = __classPrivateFieldGet(this, _data).get(name) || { count: 0, node: this.node(name, text) };
+                const item = __classPrivateFieldGet(this, _data$2).get(name) || { count: 0, node: this.node(name, text) };
                 if (item) {
                     item.count++;
                 }
                 else {
-                    __classPrivateFieldGet(this, _data).set(name, item);
+                    __classPrivateFieldGet(this, _data$2).set(name, item);
                 }
                 if (!__classPrivateFieldGet(this, _style).contains(item.node)) {
                     __classPrivateFieldGet(this, _style).appendChild(item.node);
@@ -1047,10 +1015,10 @@
                 return document.createTextNode(this.scope(name, this.transform(text)));
             }
         },
-        _data = new WeakMap(),
+        _data$2 = new WeakMap(),
         _style = new WeakMap(),
         _support = new WeakMap(),
-        _a);
+        _a$1);
 
     var _root, _css, _html, _data$1, _adopt, _shadow, _flag, _name, _adopted, _rendered, _connected, _disconnected, _attributed;
     class Component extends HTMLElement {
@@ -1088,98 +1056,87 @@
         static set observedAttributes(attributes) { this.attributes = attributes; }
         get root() { return __classPrivateFieldGet(this, _root); }
         get binder() { return Binder; }
-        render() {
-            var _a, _b, _c, _d, _e;
-            return __awaiter(this, void 0, void 0, function* () {
-                __classPrivateFieldSet(this, _css, (_a = __classPrivateFieldGet(this, _css)) !== null && _a !== void 0 ? _a : this.css);
-                __classPrivateFieldSet(this, _html, (_b = __classPrivateFieldGet(this, _html)) !== null && _b !== void 0 ? _b : this.html);
-                __classPrivateFieldSet(this, _data$1, (_c = __classPrivateFieldGet(this, _data$1)) !== null && _c !== void 0 ? _c : this.data);
-                __classPrivateFieldSet(this, _adopt, (_d = __classPrivateFieldGet(this, _adopt)) !== null && _d !== void 0 ? _d : this.adopt);
-                __classPrivateFieldSet(this, _shadow, (_e = __classPrivateFieldGet(this, _shadow)) !== null && _e !== void 0 ? _e : this.shadow);
-                this.data = Observer.clone(__classPrivateFieldGet(this, _data$1), (_, path) => {
-                    Binder.data.forEach(binder => {
-                        if (binder.container === this && binder.path.startsWith(path)) {
-                            Binder.render(binder);
-                        }
-                    });
+        async render() {
+            __classPrivateFieldSet(this, _css, __classPrivateFieldGet(this, _css) ?? this.css);
+            __classPrivateFieldSet(this, _html, __classPrivateFieldGet(this, _html) ?? this.html);
+            __classPrivateFieldSet(this, _data$1, __classPrivateFieldGet(this, _data$1) ?? this.data);
+            __classPrivateFieldSet(this, _adopt, __classPrivateFieldGet(this, _adopt) ?? this.adopt);
+            __classPrivateFieldSet(this, _shadow, __classPrivateFieldGet(this, _shadow) ?? this.shadow);
+            this.data = Observer.clone(__classPrivateFieldGet(this, _data$1), (_, path) => {
+                Binder.data.forEach(binder => {
+                    if (binder.container === this && binder.path.startsWith(path)) {
+                        Binder.render(binder);
+                    }
                 });
-                if (__classPrivateFieldGet(this, _adopt) === true) {
-                    let child = this.firstElementChild;
-                    while (child) {
-                        Binder.add(child, this);
-                        child = child.nextElementSibling;
-                    }
-                }
-                const template = document.createElement('template');
-                template.innerHTML = __classPrivateFieldGet(this, _html);
-                const clone = template.content.cloneNode(true);
-                if (!__classPrivateFieldGet(this, _shadow) ||
-                    !('attachShadow' in document.body) &&
-                        !('createShadowRoot' in document.body)) {
-                    const templateSlots = clone.querySelectorAll('slot[name]');
-                    const defaultSlot = clone.querySelector('slot:not([name])');
-                    for (let i = 0; i < templateSlots.length; i++) {
-                        const templateSlot = templateSlots[i];
-                        const name = templateSlot.getAttribute('name');
-                        const instanceSlot = this.querySelector('[slot="' + name + '"]');
-                        if (instanceSlot)
-                            templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-                        else
-                            templateSlot.parentNode.removeChild(templateSlot);
-                    }
-                    if (this.children.length) {
-                        while (this.firstChild) {
-                            if (defaultSlot)
-                                defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
-                            else
-                                this.removeChild(this.firstChild);
-                        }
-                    }
-                    if (defaultSlot)
-                        defaultSlot.parentNode.removeChild(defaultSlot);
-                }
-                let child = clone.firstElementChild;
+            });
+            if (__classPrivateFieldGet(this, _adopt) === true) {
+                let child = this.firstElementChild;
                 while (child) {
                     Binder.add(child, this);
-                    __classPrivateFieldGet(this, _root).appendChild(child);
-                    child = clone.firstElementChild;
+                    child = child.nextElementSibling;
                 }
-            });
-        }
-        attributeChangedCallback(name, from, to) {
-            return __awaiter(this, void 0, void 0, function* () {
-                yield __classPrivateFieldGet(this, _attributed).call(this, name, from, to);
-            });
-        }
-        adoptedCallback() {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (__classPrivateFieldGet(this, _adopted))
-                    yield __classPrivateFieldGet(this, _adopted).call(this);
-            });
-        }
-        disconnectedCallback() {
-            return __awaiter(this, void 0, void 0, function* () {
-                Css.detach(__classPrivateFieldGet(this, _name));
-                if (__classPrivateFieldGet(this, _disconnected))
-                    yield __classPrivateFieldGet(this, _disconnected).call(this);
-            });
-        }
-        connectedCallback() {
-            return __awaiter(this, void 0, void 0, function* () {
-                Css.attach(__classPrivateFieldGet(this, _name), __classPrivateFieldGet(this, _css));
-                if (__classPrivateFieldGet(this, _flag)) {
-                    if (__classPrivateFieldGet(this, _connected))
-                        yield __classPrivateFieldGet(this, _connected).call(this);
+            }
+            const template = document.createElement('template');
+            template.innerHTML = __classPrivateFieldGet(this, _html);
+            const clone = template.content.cloneNode(true);
+            if (!__classPrivateFieldGet(this, _shadow) ||
+                !('attachShadow' in document.body) &&
+                    !('createShadowRoot' in document.body)) {
+                const templateSlots = clone.querySelectorAll('slot[name]');
+                const defaultSlot = clone.querySelector('slot:not([name])');
+                for (let i = 0; i < templateSlots.length; i++) {
+                    const templateSlot = templateSlots[i];
+                    const name = templateSlot.getAttribute('name');
+                    const instanceSlot = this.querySelector('[slot="' + name + '"]');
+                    if (instanceSlot)
+                        templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+                    else
+                        templateSlot.parentNode.removeChild(templateSlot);
                 }
-                else {
-                    __classPrivateFieldSet(this, _flag, true);
-                    yield this.render();
-                    if (__classPrivateFieldGet(this, _rendered))
-                        yield __classPrivateFieldGet(this, _rendered).call(this);
-                    if (__classPrivateFieldGet(this, _connected))
-                        yield __classPrivateFieldGet(this, _connected).call(this);
+                if (this.children.length) {
+                    while (this.firstChild) {
+                        if (defaultSlot)
+                            defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+                        else
+                            this.removeChild(this.firstChild);
+                    }
                 }
-            });
+                if (defaultSlot)
+                    defaultSlot.parentNode.removeChild(defaultSlot);
+            }
+            let child = clone.firstElementChild;
+            while (child) {
+                Binder.add(child, this);
+                __classPrivateFieldGet(this, _root).appendChild(child);
+                child = clone.firstElementChild;
+            }
+        }
+        async attributeChangedCallback(name, from, to) {
+            await __classPrivateFieldGet(this, _attributed).call(this, name, from, to);
+        }
+        async adoptedCallback() {
+            if (__classPrivateFieldGet(this, _adopted))
+                await __classPrivateFieldGet(this, _adopted).call(this);
+        }
+        async disconnectedCallback() {
+            Css.detach(__classPrivateFieldGet(this, _name));
+            if (__classPrivateFieldGet(this, _disconnected))
+                await __classPrivateFieldGet(this, _disconnected).call(this);
+        }
+        async connectedCallback() {
+            Css.attach(__classPrivateFieldGet(this, _name), __classPrivateFieldGet(this, _css));
+            if (__classPrivateFieldGet(this, _flag)) {
+                if (__classPrivateFieldGet(this, _connected))
+                    await __classPrivateFieldGet(this, _connected).call(this);
+            }
+            else {
+                __classPrivateFieldSet(this, _flag, true);
+                await this.render();
+                if (__classPrivateFieldGet(this, _rendered))
+                    await __classPrivateFieldGet(this, _rendered).call(this);
+                if (__classPrivateFieldGet(this, _connected))
+                    await __classPrivateFieldGet(this, _connected).call(this);
+            }
         }
     }
     _root = new WeakMap(), _css = new WeakMap(), _html = new WeakMap(), _data$1 = new WeakMap(), _adopt = new WeakMap(), _shadow = new WeakMap(), _flag = new WeakMap(), _name = new WeakMap(), _adopted = new WeakMap(), _rendered = new WeakMap(), _connected = new WeakMap(), _disconnected = new WeakMap(), _attributed = new WeakMap();
@@ -1287,7 +1244,7 @@
                 xhr.open('GET', url, true);
                 xhr.send();
             }
-            catch (_a) {
+            catch {
                 reject(new Error(`failed to import: ${url}`));
             }
         });
@@ -1369,59 +1326,57 @@
         code = '"use strict";\n' + before + after + code + '});';
         return code;
     };
-    const load = function (url) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!url)
-                throw new Error('Oxe.load - url required');
-            url = resolve(url);
-            if (typeof window.DYNAMIC_SUPPORT !== 'boolean') {
-                yield run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,"); } catch (e) { /*e*/ }');
-                window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
-            }
-            if (window.DYNAMIC_SUPPORT === true) {
-                console.log('native import');
-                yield run(`window.MODULES["${url}"] = import("${url}");`);
-                return window.MODULES[url];
-            }
-            if (window.MODULES[url]) {
-                return window.MODULES[url];
-            }
-            if (typeof window.REGULAR_SUPPORT !== 'boolean') {
-                const script = document.createElement('script');
-                window.REGULAR_SUPPORT = 'noModule' in script;
-            }
-            let code;
-            if (window.REGULAR_SUPPORT) {
-                console.log('noModule: yes');
-                code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
-            }
-            else {
-                console.log('noModule: no');
-                code = yield fetch(url);
-                code = transform(code, url);
-            }
-            try {
-                yield run(code);
-            }
-            catch (_a) {
-                throw new Error(`Oxe.load - failed to import: ${url}`);
-            }
-            return this.modules[url];
-        });
+    const load = async function (url) {
+        if (!url)
+            throw new Error('Oxe.load - url required');
+        url = resolve(url);
+        if (typeof window.DYNAMIC_SUPPORT !== 'boolean') {
+            await run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,"); } catch (e) { /*e*/ }');
+            window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
+        }
+        if (window.DYNAMIC_SUPPORT === true) {
+            console.log('native import');
+            await run(`window.MODULES["${url}"] = import("${url}");`);
+            return window.MODULES[url];
+        }
+        if (window.MODULES[url]) {
+            return window.MODULES[url];
+        }
+        if (typeof window.REGULAR_SUPPORT !== 'boolean') {
+            const script = document.createElement('script');
+            window.REGULAR_SUPPORT = 'noModule' in script;
+        }
+        let code;
+        if (window.REGULAR_SUPPORT) {
+            console.log('noModule: yes');
+            code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
+        }
+        else {
+            console.log('noModule: no');
+            code = await fetch(url);
+            code = transform(code, url);
+        }
+        try {
+            await run(code);
+        }
+        catch {
+            throw new Error(`Oxe.load - failed to import: ${url}`);
+        }
+        return this.modules[url];
     };
     window.LOAD = window.LOAD || load;
     window.MODULES = window.MODULES || {};
 
-    var _target, _data$2, _folder, _dynamic, _contain, _external, _after, _before, _a$1;
+    var _target, _data, _folder, _dynamic, _contain, _external, _after, _before, _a;
     const absolute = function (path) {
         const a = document.createElement('a');
         a.href = path;
         return a.pathname;
     };
-    var Location = new (_a$1 = class Location {
+    var Location = new (_a = class Location {
             constructor() {
                 _target.set(this, void 0);
-                _data$2.set(this, {});
+                _data.set(this, {});
                 _folder.set(this, '');
                 _dynamic.set(this, true);
                 _contain.set(this, false);
@@ -1443,38 +1398,32 @@
             forward() { window.history.forward(); }
             reload() { window.location.reload(); }
             redirect(href) { window.location.href = href; }
-            listen(option) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if ('folder' in option)
-                        __classPrivateFieldSet(this, _folder, option.folder);
-                    if ('contain' in option)
-                        __classPrivateFieldSet(this, _contain, option.contain);
-                    if ('dynamic' in option)
-                        __classPrivateFieldSet(this, _dynamic, option.dynamic);
-                    if ('external' in option)
-                        __classPrivateFieldSet(this, _external, option.external);
-                    __classPrivateFieldSet(this, _target, option.target instanceof Element ? option.target : document.body.querySelector(option.target));
-                    if (__classPrivateFieldGet(this, _dynamic)) {
-                        window.addEventListener('popstate', this.state.bind(this), true);
-                        if (__classPrivateFieldGet(this, _contain)) {
-                            __classPrivateFieldGet(this, _target).addEventListener('click', this.click.bind(this), true);
-                        }
-                        else {
-                            window.document.addEventListener('click', this.click.bind(this), true);
-                        }
+            async listen(option) {
+                if ('folder' in option)
+                    __classPrivateFieldSet(this, _folder, option.folder);
+                if ('contain' in option)
+                    __classPrivateFieldSet(this, _contain, option.contain);
+                if ('dynamic' in option)
+                    __classPrivateFieldSet(this, _dynamic, option.dynamic);
+                if ('external' in option)
+                    __classPrivateFieldSet(this, _external, option.external);
+                __classPrivateFieldSet(this, _target, option.target instanceof Element ? option.target : document.body.querySelector(option.target));
+                if (__classPrivateFieldGet(this, _dynamic)) {
+                    window.addEventListener('popstate', this.state.bind(this), true);
+                    if (__classPrivateFieldGet(this, _contain)) {
+                        __classPrivateFieldGet(this, _target).addEventListener('click', this.click.bind(this), true);
                     }
-                    return this.replace(window.location.href);
-                });
+                    else {
+                        window.document.addEventListener('click', this.click.bind(this), true);
+                    }
+                }
+                return this.replace(window.location.href);
             }
-            assign(data) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    return this.go(data, { mode: 'push' });
-                });
+            async assign(data) {
+                return this.go(data, { mode: 'push' });
             }
-            replace(data) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    return this.go(data, { mode: 'replace' });
-                });
+            async replace(data) {
+                return this.go(data, { mode: 'replace' });
             }
             location(href = window.location.href) {
                 const parser = document.createElement('a');
@@ -1490,116 +1439,110 @@
                     pathname: parser.pathname
                 };
             }
-            go(path, options = {}) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    const { mode } = options;
-                    const location = this.location(path);
-                    if (__classPrivateFieldGet(this, _before))
-                        yield __classPrivateFieldGet(this, _before).call(this, location);
-                    if (!__classPrivateFieldGet(this, _dynamic)) {
-                        return window.location[mode === 'push' ? 'assign' : mode](location.href);
-                    }
-                    window.history.replaceState({
-                        href: window.location.href,
-                        top: document.documentElement.scrollTop || document.body.scrollTop || 0
-                    }, '', window.location.href);
-                    window.history[mode + 'State']({
-                        top: 0,
-                        href: location.href
-                    }, '', location.href);
-                    let element;
-                    if (location.pathname in __classPrivateFieldGet(this, _data$2)) {
-                        element = __classPrivateFieldGet(this, _data$2)[location.pathname];
-                    }
-                    else {
-                        const path = location.pathname === '/' ? '/index' : location.pathname;
-                        let load$1 = path;
-                        if (load$1.slice(0, 2) === './')
-                            load$1 = load$1.slice(2);
-                        if (load$1.slice(0, 1) !== '/')
-                            load$1 = '/' + load$1;
-                        if (load$1.slice(0, 1) === '/')
-                            load$1 = load$1.slice(1);
-                        load$1 = `${__classPrivateFieldGet(this, _folder)}/${load$1}.js`.replace(/\/+/g, '/');
-                        load$1 = absolute(load$1);
-                        const component = (yield load(load$1)).default;
-                        const name = 'l' + path.replace(/\/+/g, '-');
-                        window.customElements.define(name, component);
-                        element = window.document.createElement(name);
-                        __classPrivateFieldGet(this, _data$2)[location.pathname] = element;
-                    }
-                    if (element.title)
-                        window.document.title = element.title;
-                    while (__classPrivateFieldGet(this, _target).firstChild) {
-                        __classPrivateFieldGet(this, _target).removeChild(__classPrivateFieldGet(this, _target).firstChild);
-                    }
-                    __classPrivateFieldGet(this, _target).appendChild(element);
-                    if (__classPrivateFieldGet(this, _after))
-                        yield __classPrivateFieldGet(this, _after).call(this, location);
-                });
+            async go(path, options = {}) {
+                const { mode } = options;
+                const location = this.location(path);
+                if (__classPrivateFieldGet(this, _before))
+                    await __classPrivateFieldGet(this, _before).call(this, location);
+                if (!__classPrivateFieldGet(this, _dynamic)) {
+                    return window.location[mode === 'push' ? 'assign' : mode](location.href);
+                }
+                window.history.replaceState({
+                    href: window.location.href,
+                    top: document.documentElement.scrollTop || document.body.scrollTop || 0
+                }, '', window.location.href);
+                window.history[mode + 'State']({
+                    top: 0,
+                    href: location.href
+                }, '', location.href);
+                let element;
+                if (location.pathname in __classPrivateFieldGet(this, _data)) {
+                    element = __classPrivateFieldGet(this, _data)[location.pathname];
+                }
+                else {
+                    const path = location.pathname === '/' ? '/index' : location.pathname;
+                    let load$1 = path;
+                    if (load$1.slice(0, 2) === './')
+                        load$1 = load$1.slice(2);
+                    if (load$1.slice(0, 1) !== '/')
+                        load$1 = '/' + load$1;
+                    if (load$1.slice(0, 1) === '/')
+                        load$1 = load$1.slice(1);
+                    load$1 = `${__classPrivateFieldGet(this, _folder)}/${load$1}.js`.replace(/\/+/g, '/');
+                    load$1 = absolute(load$1);
+                    const component = (await load(load$1)).default;
+                    const name = 'l' + path.replace(/\/+/g, '-');
+                    window.customElements.define(name, component);
+                    element = window.document.createElement(name);
+                    __classPrivateFieldGet(this, _data)[location.pathname] = element;
+                }
+                if (element.title)
+                    window.document.title = element.title;
+                while (__classPrivateFieldGet(this, _target).firstChild) {
+                    __classPrivateFieldGet(this, _target).removeChild(__classPrivateFieldGet(this, _target).firstChild);
+                }
+                __classPrivateFieldGet(this, _target).appendChild(element);
+                if (__classPrivateFieldGet(this, _after))
+                    await __classPrivateFieldGet(this, _after).call(this, location);
             }
-            state(event) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    yield this.replace(event.state.href);
-                    window.scroll(event.state.top, 0);
-                });
+            async state(event) {
+                await this.replace(event.state.href);
+                window.scroll(event.state.top, 0);
             }
-            click(event) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (event.target.type ||
-                        event.button !== 0 ||
-                        event.defaultPrevented ||
-                        event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
-                        return;
-                    let target = event.path ? event.path[0] : event.target;
-                    let parent = target.parentElement;
-                    if (__classPrivateFieldGet(this, _contain)) {
-                        while (parent) {
-                            if (parent.nodeName === __classPrivateFieldGet(this, _target).nodeName) {
-                                break;
-                            }
-                            else {
-                                parent = parent.parentElement;
-                            }
+            async click(event) {
+                if (event.target.type ||
+                    event.button !== 0 ||
+                    event.defaultPrevented ||
+                    event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
+                    return;
+                let target = event.path ? event.path[0] : event.target;
+                let parent = target.parentElement;
+                if (__classPrivateFieldGet(this, _contain)) {
+                    while (parent) {
+                        if (parent.nodeName === __classPrivateFieldGet(this, _target).nodeName) {
+                            break;
                         }
-                        if (parent.nodeName !== __classPrivateFieldGet(this, _target).nodeName) {
-                            return;
+                        else {
+                            parent = parent.parentElement;
                         }
                     }
-                    while (target && 'A' !== target.nodeName) {
-                        target = target.parentElement;
-                    }
-                    if (!target || 'A' !== target.nodeName) {
+                    if (parent.nodeName !== __classPrivateFieldGet(this, _target).nodeName) {
                         return;
                     }
-                    if (target.hasAttribute('download') ||
-                        target.hasAttribute('external') ||
-                        target.hasAttribute('o-external') ||
-                        target.href.startsWith('tel:') ||
-                        target.href.startsWith('ftp:') ||
-                        target.href.startsWith('file:)') ||
-                        target.href.startsWith('mailto:') ||
-                        !target.href.startsWith(window.location.origin))
-                        return;
-                    if (__classPrivateFieldGet(this, _external) &&
-                        (__classPrivateFieldGet(this, _external) instanceof RegExp && __classPrivateFieldGet(this, _external).test(target.href) ||
-                            typeof __classPrivateFieldGet(this, _external) === 'function' && __classPrivateFieldGet(this, _external).call(this, target.href) ||
-                            typeof __classPrivateFieldGet(this, _external) === 'string' && __classPrivateFieldGet(this, _external) === target.href))
-                        return;
-                    event.preventDefault();
-                    this.assign(target.href);
-                });
+                }
+                while (target && 'A' !== target.nodeName) {
+                    target = target.parentElement;
+                }
+                if (!target || 'A' !== target.nodeName) {
+                    return;
+                }
+                if (target.hasAttribute('download') ||
+                    target.hasAttribute('external') ||
+                    target.hasAttribute('o-external') ||
+                    target.href.startsWith('tel:') ||
+                    target.href.startsWith('ftp:') ||
+                    target.href.startsWith('file:)') ||
+                    target.href.startsWith('mailto:') ||
+                    !target.href.startsWith(window.location.origin))
+                    return;
+                if (__classPrivateFieldGet(this, _external) &&
+                    (__classPrivateFieldGet(this, _external) instanceof RegExp && __classPrivateFieldGet(this, _external).test(target.href) ||
+                        typeof __classPrivateFieldGet(this, _external) === 'function' && __classPrivateFieldGet(this, _external).call(this, target.href) ||
+                        typeof __classPrivateFieldGet(this, _external) === 'string' && __classPrivateFieldGet(this, _external) === target.href))
+                    return;
+                event.preventDefault();
+                this.assign(target.href);
             }
         },
         _target = new WeakMap(),
-        _data$2 = new WeakMap(),
+        _data = new WeakMap(),
         _folder = new WeakMap(),
         _dynamic = new WeakMap(),
         _contain = new WeakMap(),
         _external = new WeakMap(),
         _after = new WeakMap(),
         _before = new WeakMap(),
-        _a$1);
+        _a);
 
     var Fetcher = new class Fetcher {
         constructor() {
@@ -1619,190 +1562,164 @@
                 js: 'application/javascript; charset=utf-8'
             };
         }
-        setup(option = {}) {
-            return __awaiter(this, void 0, void 0, function* () {
-                this.option.path = option.path;
-                this.option.method = option.method;
-                this.option.origin = option.origin;
-                this.option.request = option.request;
-                this.option.headers = option.headers;
-                this.option.response = option.response;
-                this.option.acceptType = option.acceptType;
-                this.option.credentials = option.credentials;
-                this.option.contentType = option.contentType;
-                this.option.responseType = option.responseType;
-            });
+        async setup(option = {}) {
+            this.option.path = option.path;
+            this.option.method = option.method;
+            this.option.origin = option.origin;
+            this.option.request = option.request;
+            this.option.headers = option.headers;
+            this.option.response = option.response;
+            this.option.acceptType = option.acceptType;
+            this.option.credentials = option.credentials;
+            this.option.contentType = option.contentType;
+            this.option.responseType = option.responseType;
         }
-        method(method, data) {
-            return __awaiter(this, void 0, void 0, function* () {
-                data = typeof data === 'string' ? { url: data } : data;
-                return this.fetch(Object.assign(Object.assign({}, data), { method }));
-            });
+        async method(method, data) {
+            data = typeof data === 'string' ? { url: data } : data;
+            return this.fetch({ ...data, method });
         }
-        get() {
-            return __awaiter(this, arguments, void 0, function* () {
-                return this.method('get', ...arguments);
-            });
+        async get() {
+            return this.method('get', ...arguments);
         }
-        put() {
-            return __awaiter(this, arguments, void 0, function* () {
-                return this.method('put', ...arguments);
-            });
+        async put() {
+            return this.method('put', ...arguments);
         }
-        post() {
-            return __awaiter(this, arguments, void 0, function* () {
-                return this.method('post', ...arguments);
-            });
+        async post() {
+            return this.method('post', ...arguments);
         }
-        head() {
-            return __awaiter(this, arguments, void 0, function* () {
-                return this.method('head', ...arguments);
-            });
+        async head() {
+            return this.method('head', ...arguments);
         }
-        patch() {
-            return __awaiter(this, arguments, void 0, function* () {
-                return this.method('patch', ...arguments);
-            });
+        async patch() {
+            return this.method('patch', ...arguments);
         }
-        delete() {
-            return __awaiter(this, arguments, void 0, function* () {
-                return this.method('delete', ...arguments);
-            });
+        async delete() {
+            return this.method('delete', ...arguments);
         }
-        options() {
-            return __awaiter(this, arguments, void 0, function* () {
-                return this.method('options', ...arguments);
-            });
+        async options() {
+            return this.method('options', ...arguments);
         }
-        connect() {
-            return __awaiter(this, arguments, void 0, function* () {
-                return this.method('connect', ...arguments);
-            });
+        async connect() {
+            return this.method('connect', ...arguments);
         }
-        serialize(data) {
-            return __awaiter(this, void 0, void 0, function* () {
-                let query = '';
-                for (const name in data) {
-                    query = query.length > 0 ? query + '&' : query;
-                    query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+        async serialize(data) {
+            let query = '';
+            for (const name in data) {
+                query = query.length > 0 ? query + '&' : query;
+                query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+            }
+            return query;
+        }
+        async fetch(data = {}) {
+            const { option } = this;
+            const context = { ...option, ...data };
+            if (context.path && typeof context.path === 'string' && context.path.charAt(0) === '/')
+                context.path = context.path.slice(1);
+            if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length - 1) === '/')
+                context.origin = context.origin.slice(0, -1);
+            if (context.path && context.origin && !context.url)
+                context.url = context.origin + '/' + context.path;
+            if (!context.method)
+                throw new Error('Oxe.fetcher - requires method option');
+            if (!context.url)
+                throw new Error('Oxe.fetcher - requires url or origin and path option');
+            context.aborted = false;
+            context.headers = context.headers || {};
+            context.method = context.method.toUpperCase();
+            Object.defineProperty(context, 'abort', {
+                enumerable: true,
+                value() { context.aborted = true; return context; }
+            });
+            if (context.contentType) {
+                switch (context.contentType) {
+                    case 'js':
+                        context.headers['Content-Type'] = this.mime.js;
+                        break;
+                    case 'xml':
+                        context.headers['Content-Type'] = this.mime.xml;
+                        break;
+                    case 'html':
+                        context.headers['Content-Type'] = this.mime.html;
+                        break;
+                    case 'json':
+                        context.headers['Content-Type'] = this.mime.json;
+                        break;
+                    default: context.headers['Content-Type'] = context.contentType;
                 }
-                return query;
+            }
+            if (context.acceptType) {
+                switch (context.acceptType) {
+                    case 'js':
+                        context.headers['Accept'] = this.mime.js;
+                        break;
+                    case 'xml':
+                        context.headers['Accept'] = this.mime.xml;
+                        break;
+                    case 'html':
+                        context.headers['Accept'] = this.mime.html;
+                        break;
+                    case 'json':
+                        context.headers['Accept'] = this.mime.json;
+                        break;
+                    default: context.headers['Accept'] = context.acceptType;
+                }
+            }
+            if (typeof option.request === 'function')
+                await option.request(context);
+            if (context.aborted)
+                return;
+            if (context.body) {
+                if (context.method === 'GET') {
+                    context.url = context.url + '?' + await this.serialize(context.body);
+                }
+                else if (context.contentType === 'json') {
+                    context.body = JSON.stringify(context.body);
+                }
+            }
+            const result = await window.fetch(context.url, context);
+            Object.defineProperties(context, {
+                result: { enumerable: true, value: result },
+                code: { enumerable: true, value: result.status }
             });
-        }
-        fetch(data = {}) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const { option } = this;
-                const context = Object.assign(Object.assign({}, option), data);
-                if (context.path && typeof context.path === 'string' && context.path.charAt(0) === '/')
-                    context.path = context.path.slice(1);
-                if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length - 1) === '/')
-                    context.origin = context.origin.slice(0, -1);
-                if (context.path && context.origin && !context.url)
-                    context.url = context.origin + '/' + context.path;
-                if (!context.method)
-                    throw new Error('Oxe.fetcher - requires method option');
-                if (!context.url)
-                    throw new Error('Oxe.fetcher - requires url or origin and path option');
-                context.aborted = false;
-                context.headers = context.headers || {};
-                context.method = context.method.toUpperCase();
-                Object.defineProperty(context, 'abort', {
-                    enumerable: true,
-                    value() { context.aborted = true; return context; }
-                });
-                if (context.contentType) {
-                    switch (context.contentType) {
-                        case 'js':
-                            context.headers['Content-Type'] = this.mime.js;
-                            break;
-                        case 'xml':
-                            context.headers['Content-Type'] = this.mime.xml;
-                            break;
-                        case 'html':
-                            context.headers['Content-Type'] = this.mime.html;
-                            break;
-                        case 'json':
-                            context.headers['Content-Type'] = this.mime.json;
-                            break;
-                        default: context.headers['Content-Type'] = context.contentType;
-                    }
-                }
-                if (context.acceptType) {
-                    switch (context.acceptType) {
-                        case 'js':
-                            context.headers['Accept'] = this.mime.js;
-                            break;
-                        case 'xml':
-                            context.headers['Accept'] = this.mime.xml;
-                            break;
-                        case 'html':
-                            context.headers['Accept'] = this.mime.html;
-                            break;
-                        case 'json':
-                            context.headers['Accept'] = this.mime.json;
-                            break;
-                        default: context.headers['Accept'] = context.acceptType;
-                    }
-                }
-                if (typeof option.request === 'function')
-                    yield option.request(context);
-                if (context.aborted)
-                    return;
-                if (context.body) {
-                    if (context.method === 'GET') {
-                        context.url = context.url + '?' + (yield this.serialize(context.body));
-                    }
-                    else if (context.contentType === 'json') {
-                        context.body = JSON.stringify(context.body);
-                    }
-                }
-                const result = yield window.fetch(context.url, context);
-                Object.defineProperties(context, {
-                    result: { enumerable: true, value: result },
-                    code: { enumerable: true, value: result.status }
-                });
-                if (!context.responseType) {
-                    context.body = result.body;
+            if (!context.responseType) {
+                context.body = result.body;
+            }
+            else {
+                const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
+                const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
+                let type;
+                if (responseType === 'json' && contentType.indexOf('json') !== -1) {
+                    type = 'json';
                 }
                 else {
-                    const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
-                    const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
-                    let type;
-                    if (responseType === 'json' && contentType.indexOf('json') !== -1) {
-                        type = 'json';
-                    }
-                    else {
-                        type = responseType || 'text';
-                    }
-                    if (this.types.indexOf(type) === -1) {
-                        throw new Error('Oxe.fetch - invalid responseType value');
-                    }
-                    context.body = yield result[type]();
+                    type = responseType || 'text';
                 }
-                if (typeof option.response === 'function')
-                    yield option.response(context);
-                if (context.aborted)
-                    return;
-                return context;
-            });
+                if (this.types.indexOf(type) === -1) {
+                    throw new Error('Oxe.fetch - invalid responseType value');
+                }
+                context.body = await result[type]();
+            }
+            if (typeof option.response === 'function')
+                await option.response(context);
+            if (context.aborted)
+                return;
+            return context;
         }
     };
 
-    function Define(component) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (typeof component === 'string') {
-                return Promise.resolve()
-                    .then(() => load(component))
-                    .then(data => Define(data.default));
-            }
-            else if (component instanceof Array) {
-                return Promise.all(component.map(data => Define(data)));
-            }
-            else {
-                const name = toDash(component.name);
-                window.customElements.define(name, component);
-            }
-        });
+    async function Define(component) {
+        if (typeof component === 'string') {
+            return Promise.resolve()
+                .then(() => load(component))
+                .then(data => Define(data.default));
+        }
+        else if (component instanceof Array) {
+            return Promise.all(component.map(data => Define(data)));
+        }
+        else {
+            const name = toDash(component.name);
+            window.customElements.define(name, component);
+        }
     }
 
     if (typeof window.CustomEvent !== 'function') {
@@ -1829,7 +1746,7 @@
             }
         });
     }
-    var index$1 = Object.freeze(new class Oxe {
+    var index = Object.freeze(new class Oxe {
         constructor() {
             this.Component = Component;
             this.component = Component;
@@ -1850,6 +1767,6 @@
         }
     });
 
-    return index$1;
+    return index;
 
 })));

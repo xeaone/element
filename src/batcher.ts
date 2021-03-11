@@ -25,8 +25,9 @@ const tick = function (method: () => void) {
 // schedules a new read/write batch if one is not pending
 const schedule = async function () {
     if (this.options.pending) return;
-    this.options.pending = true;
-    return this.tick(this.flush);
+    else this.options.pending = true;
+    return this.tick(this.flush).catch(console.error);
+    // setTimeout(() => this.tick(this.flush).catch(console.error));
 };
 
 const flush = async function (time) {
@@ -38,10 +39,10 @@ const flush = async function (time) {
     while (read = this.reads.shift()) {
         if (read) await read();
 
-        if ((performance.now() - time) > this.options.time) {
-            console.log('read max');
-            return this.tick(this.flush);
-        }
+        // if ((performance.now() - time) > this.options.time) {
+        //     console.log('read max');
+        //     return this.tick(this.flush);
+        // }
 
     }
 
@@ -49,10 +50,10 @@ const flush = async function (time) {
     while (write = this.writes.shift()) {
         if (write) await write();
 
-        if ((performance.now() - time) > this.options.time) {
-            console.log('write max');
-            return this.tick(this.flush);
-        }
+        // if ((performance.now() - time) > this.options.time) {
+        //     console.log('write max');
+        //     return this.tick(this.flush);
+        // }
 
     }
 
