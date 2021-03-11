@@ -50,24 +50,24 @@ export default new class Binder {
         value,
     }
 
-    async setup(options: any = {}) {
-        const { binders } = options;
+    // async setup(options: any = {}) {
+    //     const { binders } = options;
 
-        if (binders) {
-            for (const name in binders) {
-                if (name in this.binders === false) {
-                    this.binders[name] = binders[name].bind(this);
-                }
-            }
-        }
+    //     if (binders) {
+    //         for (const name in binders) {
+    //             if (name in this.binders === false) {
+    //                 this.binders[name] = binders[name].bind(this);
+    //             }
+    //         }
+    //     }
 
-    }
+    // }
 
     get(node) {
         return this.data.get(node);
     }
 
-    render(binder: any, ...extra) {
+    async render(binder: any, ...extra) {
 
         if (binder.busy) return;
         else binder.busy = true;
@@ -86,11 +86,11 @@ export default new class Binder {
         }
     }
 
-    unbind(node: Node) {
+    async unbind(node: Node) {
         return this.data.delete(node);
     }
 
-    bind(target: Node, name: string, value: string, container: any, pointer: Node | Attr) {
+    async bind(target: Node, name: string, value: string, container: any, pointer: Node | Attr) {
         const self = this;
 
         // if (value.startsWith('{{\'') || value.startsWith('{{\"')) {
@@ -240,7 +240,7 @@ export default new class Binder {
 
     }
 
-    remove(node: Node) {
+    async remove(node: Node) {
         const type = node.nodeType;
 
         if (type === EN) {
@@ -261,7 +261,7 @@ export default new class Binder {
 
     }
 
-    add(node: Node, container: any) {
+    async add(node: Node, container: any) {
         const type = node.nodeType;
 
         // if (type === AN) {

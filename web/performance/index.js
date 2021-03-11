@@ -50,7 +50,6 @@ class OLoop extends Component {
         <div each="{{item of items}}">
             <div class="box">
                 <div>{{item.number}}</div>
-                <input value="{{item.number}}">
             </div>
         </div>
 
@@ -65,6 +64,7 @@ class OLoop extends Component {
     }
 
 }
+// <input value="{{item.number}}"></input>
 
 Define(OLoop);
 // Define('o-loop', oLoop);

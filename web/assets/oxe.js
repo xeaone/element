@@ -251,20 +251,25 @@
             return;
         else
             this.options.pending = true;
-        return this.tick(this.flush).catch(console.error);
+        return this.tick(this.flush);
     };
     const flush = async function (time) {
         console.log('reads before:', this.reads.length);
         console.log('write before:', this.writes.length);
         let read;
+        let reads = 0;
         while (read = this.reads.shift()) {
             if (read)
                 await read();
+            reads++;
         }
         let write;
+        let writes = 0;
         while (write = this.writes.shift()) {
             if (write)
                 await write();
+            if (++writes === reads)
+                break;
         }
         console.log('reads after:', this.reads.length);
         console.log('write after:', this.writes.length);
@@ -399,8 +404,10 @@
 
     const variablePattern = /\s*\{\{\s*(.*?)\s+.*/;
     function each (binder) {
+        let data;
         return {
-            read() {
+            async read() {
+                data = binder.data;
                 if (!binder.meta.setup) {
                     binder.meta.keys = [];
                     binder.meta.counts = [];
@@ -414,25 +421,30 @@
                         binder.target.removeChild(binder.target.firstChild);
                     }
                 }
-                binder.meta.keys = Object.keys(binder.data || []);
-                binder.meta.targetLength = binder.meta.keys.length;
-                binder.meta.currentLength = binder.target.children.length / binder.meta.templateLength;
+                if (data instanceof Array) {
+                    binder.meta.targetLength = data.length;
+                }
+                else {
+                    binder.meta.keys = Object.keys(data || {});
+                    binder.meta.targetLength = binder.meta.keys.length;
+                }
             },
-            write() {
+            async write() {
                 if (binder.meta.currentLength > binder.meta.targetLength) {
                     while (binder.meta.currentLength > binder.meta.targetLength) {
                         let count = binder.meta.templateLength;
                         while (count--) {
                             const node = binder.target.lastChild;
-                            Binder.remove(node);
-                            binder.target.removeChild(node);
+                            Promise.resolve().then(() => binder.target.removeChild(node)).then(() => Binder.remove(node));
                         }
+                        binder.meta.currentLength--;
                     }
                 }
                 else if (binder.meta.currentLength < binder.meta.targetLength) {
                     while (binder.meta.currentLength < binder.meta.targetLength) {
                         const index = binder.meta.currentLength;
-                        const key = binder.meta.keys[index];
+                        const key = binder.meta.keys[index] ?? index;
+                        console.log(key);
                         const variable = `${binder.path}.${key}`;
                         let clone = binder.meta.templateString;
                         const item = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
@@ -440,11 +452,10 @@
                         let replace = variable;
                         clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
                         const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
-                        let node;
-                        while (node = parsed.firstChild) {
-                            binder.target.appendChild(node);
-                            Binder.add(node, binder.container);
+                        for (const node of parsed.childNodes) {
+                            Promise.resolve().then(() => Binder.add(node, binder.container)).then(() => binder.target.appendChild(node));
                         }
+                        binder.meta.currentLength++;
                     }
                 }
             }
@@ -589,10 +600,10 @@
     function text (binder) {
         let data;
         return {
-            read() {
+            async read() {
                 data = toString(binder.data);
             },
-            write() {
+            async write() {
                 if (data === binder.target.textContent)
                     return;
                 binder.target.textContent = data;
@@ -781,20 +792,10 @@
                 value,
             };
         }
-        async setup(options = {}) {
-            const { binders } = options;
-            if (binders) {
-                for (const name in binders) {
-                    if (name in this.binders === false) {
-                        this.binders[name] = binders[name].bind(this);
-                    }
-                }
-            }
-        }
         get(node) {
             return this.data.get(node);
         }
-        render(binder, ...extra) {
+        async render(binder, ...extra) {
             if (binder.busy)
                 return;
             else
@@ -813,10 +814,10 @@
                 });
             }
         }
-        unbind(node) {
+        async unbind(node) {
             return this.data.delete(node);
         }
-        bind(target, name, value, container, pointer) {
+        async bind(target, name, value, container, pointer) {
             const self = this;
             const parameters = value.match(PARAMETER_PATTERNS);
             if (!parameters)
@@ -895,7 +896,7 @@
                 }
             });
         }
-        remove(node) {
+        async remove(node) {
             const type = node.nodeType;
             if (type === EN) {
                 const attributes = node.attributes;
@@ -911,7 +912,7 @@
                 child = child.nextSibling;
             }
         }
-        add(node, container) {
+        async add(node, container) {
             const type = node.nodeType;
             if (type === TN) {
                 const start = node.textContent.indexOf(this.syntaxStart);

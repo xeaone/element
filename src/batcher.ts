@@ -26,7 +26,7 @@ const tick = function (method: () => void) {
 const schedule = async function () {
     if (this.options.pending) return;
     else this.options.pending = true;
-    return this.tick(this.flush).catch(console.error);
+    return this.tick(this.flush);
     // setTimeout(() => this.tick(this.flush).catch(console.error));
 };
 
@@ -36,8 +36,10 @@ const flush = async function (time) {
     console.log('write before:', this.writes.length);
 
     let read;
+    let reads = 0;
     while (read = this.reads.shift()) {
         if (read) await read();
+        reads++;
 
         // if ((performance.now() - time) > this.options.time) {
         //     console.log('read max');
@@ -47,8 +49,10 @@ const flush = async function (time) {
     }
 
     let write;
+    let writes = 0;
     while (write = this.writes.shift()) {
         if (write) await write();
+        if (++writes === reads) break;
 
         // if ((performance.now() - time) > this.options.time) {
         //     console.log('write max');

@@ -3,8 +3,10 @@ import Binder from '../binder';
 const variablePattern = /\s*\{\{\s*(.*?)\s+.*/;
 
 export default function (binder) {
+    let data;
     return {
-        read() {
+        async read() {
+            data = binder.data;
 
             if (!binder.meta.setup) {
                 binder.meta.keys = [];
@@ -22,20 +24,17 @@ export default function (binder) {
 
             }
 
-            binder.meta.keys = Object.keys(binder.data || []);
-            binder.meta.targetLength = binder.meta.keys.length;
-            binder.meta.currentLength = binder.target.children.length / binder.meta.templateLength;
+            if (data instanceof Array) {
+                binder.meta.targetLength = data.length;
+            } else {
+                binder.meta.keys = Object.keys(data || {});
+                binder.meta.targetLength = binder.meta.keys.length;
+            }
 
-            // if (binder.meta.currentLength === binder.meta.targetLength) {
-            //     binder.busy = false;
-            //     this.write = false;
-            // } else {
-            // binder.busy = true;
-            // }
-
-            // binder.busy = true;
+            // binder.meta.currentLength = binder.target.children.length / binder.meta.templateLength;
         },
-        write() {
+        async write() {
+            // const tasks = [];
 
             if (binder.meta.currentLength > binder.meta.targetLength) {
                 while (binder.meta.currentLength > binder.meta.targetLength) {
@@ -43,18 +42,20 @@ export default function (binder) {
 
                     while (count--) {
                         const node = binder.target.lastChild;
-                        Binder.remove(node);
-                        // Promise.resolve().then(Binder.remove.bind(Binder, node));
-                        binder.target.removeChild(node);
+                        // tasks.push(async function (node) {
+                        //     binder.target.removeChild(node);
+                        //     return Binder.remove(node);
+                        // }.call(this, node));
+                        Promise.resolve().then(() => binder.target.removeChild(node)).then(() => Binder.remove(node));
                     }
 
-                    // binder.meta.currentLength--;
+                    binder.meta.currentLength--;
                 }
             } else if (binder.meta.currentLength < binder.meta.targetLength) {
-                // setTimeout(() => {
                 while (binder.meta.currentLength < binder.meta.targetLength) {
                     const index = binder.meta.currentLength;
-                    const key = binder.meta.keys[index];
+                    const key = binder.meta.keys[index] ?? index;
+                    console.log(key);
                     const variable = `${binder.path}.${key}`;
 
                     let clone = binder.meta.templateString;
@@ -77,24 +78,18 @@ export default function (binder) {
 
                     const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
 
-                    let node;
-                    while (node = parsed.firstChild) {
-                        // tasks.push(Binder.add(node, binder.container));
-
-                        binder.target.appendChild(node);
-                        Binder.add(node, binder.container);
-
-                        // Binder.add(node, binder.container).then(binder.target.appendChild.bind(binder.target, node));
-
-                        // setTimeout(Binder.add.bind(Binder, node, binder.container))
-                        // Promise.resolve().then(Binder.add.bind(Binder, node, binder.container));
-                        // binder.meta.fragment.appendChild(node);
-                        // Promise.resolve().then(Binder.add(node, binder.container)).catch(console.error);
+                    for (const node of parsed.childNodes) {
+                        Promise.resolve().then(() => Binder.add(node, binder.container)).then(() => binder.target.appendChild(node));
+                        // tasks.push(async function (node) {
+                        //     await Binder.add(node, binder.container);
+                        //     binder.target.appendChild(node);
+                        // }.call(this, node));
                     }
 
-                    // binder.meta.currentLength++;
+                    binder.meta.currentLength++;
                 }
-                // });
+
+                // return Promise.all(tasks);
                 // binder.target.appendChild(binder.meta.fragment);
             }
 
