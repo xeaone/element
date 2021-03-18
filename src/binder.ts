@@ -184,7 +184,7 @@ export default new class Binder {
                 get data() {
                     const parentValue = traverse(this.container.data, this.parentKeys);
 
-                    const childValue = parentValue[this.childKey];
+                    const childValue = parentValue?.[this.childKey];
 
                     // if (this.type === 'on') {
                     if (typeof childValue === 'function') {
@@ -207,7 +207,7 @@ export default new class Binder {
                     // } else {
 
                     const parentValue = traverse(container.data, this.parentKeys);
-                    const childValue = parentValue[this.childKey];
+                    const childValue = parentValue?.[this.childKey];
 
                     if (this.type === 'on') {
                         parentValue[this.childKey] = value;

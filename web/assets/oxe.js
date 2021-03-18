@@ -254,33 +254,30 @@
         return this.tick(this.flush);
     };
     const flush = async function (time) {
-        console.log('reads before:', this.reads.length);
-        console.log('write before:', this.writes.length);
+        const readTasks = [];
         let read;
         let reads = 0;
         while (read = this.reads.shift()) {
             if (read)
-                await read();
+                readTasks.push(read());
             reads++;
         }
+        await Promise.all(readTasks);
+        const writeTasks = [];
         let write;
         let writes = 0;
         while (write = this.writes.shift()) {
             if (write)
-                await write();
+                writeTasks.push(write());
             if (++writes === reads)
                 break;
         }
-        console.log('reads after:', this.reads.length);
-        console.log('write after:', this.writes.length);
+        await Promise.all(writeTasks);
         if (this.reads.length === 0 && this.writes.length === 0) {
             this.options.pending = false;
         }
-        else if ((performance.now() - time) > this.options.time) {
-            return this.tick(this.flush);
-        }
         else {
-            return this.flush(time);
+            return this.tick(this.flush);
         }
     };
     const remove = function (tasks, task) {
@@ -414,11 +411,16 @@
                     binder.meta.setup = true;
                     binder.meta.targetLength = 0;
                     binder.meta.currentLength = 0;
-                    binder.meta.templateString = binder.target.innerHTML;
-                    binder.meta.templateLength = binder.target.childNodes.length;
+                    binder.meta.templateLength = 0;
+                    binder.meta.templateString = '';
                     binder.meta.variable = binder.value.replace(variablePattern, '$1');
-                    while (binder.target.firstChild) {
-                        binder.target.removeChild(binder.target.firstChild);
+                    let node;
+                    while (node = binder.target.firstChild) {
+                        if (node.nodeType === 1 || (node.nodeType === 3 && /\S/.test(node.nodeValue))) {
+                            binder.meta.templateString += node.outerHTML;
+                            binder.meta.templateLength++;
+                        }
+                        binder.target.removeChild(node);
                     }
                 }
                 if (data instanceof Array) {
@@ -435,7 +437,8 @@
                         let count = binder.meta.templateLength;
                         while (count--) {
                             const node = binder.target.lastChild;
-                            Promise.resolve().then(() => binder.target.removeChild(node)).then(() => Binder.remove(node));
+                            binder.target.removeChild(node);
+                            Binder.remove(node);
                         }
                         binder.meta.currentLength--;
                     }
@@ -444,16 +447,17 @@
                     while (binder.meta.currentLength < binder.meta.targetLength) {
                         const index = binder.meta.currentLength;
                         const key = binder.meta.keys[index] ?? index;
-                        console.log(key);
                         const variable = `${binder.path}.${key}`;
                         let clone = binder.meta.templateString;
                         const item = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
                         const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable})\\b.*?}}`, 'g');
                         let replace = variable;
                         clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
-                        const parsed = new DOMParser().parseFromString(clone, 'text/html').body;
-                        for (const node of parsed.childNodes) {
-                            Promise.resolve().then(() => Binder.add(node, binder.container)).then(() => binder.target.appendChild(node));
+                        const template = document.createElement('template');
+                        template.innerHTML = clone;
+                        for (const node of template.content.childNodes) {
+                            Binder.add(node, binder.container);
+                            binder.target.appendChild(node);
                         }
                         binder.meta.currentLength++;
                     }
@@ -862,7 +866,7 @@
                     },
                     get data() {
                         const parentValue = traverse(this.container.data, this.parentKeys);
-                        const childValue = parentValue[this.childKey];
+                        const childValue = parentValue?.[this.childKey];
                         if (typeof childValue === 'function') {
                             return event => {
                                 return childValue.call(this.container, event, ...parameters);
@@ -874,7 +878,7 @@
                     },
                     set data(value) {
                         const parentValue = traverse(container.data, this.parentKeys);
-                        const childValue = parentValue[this.childKey];
+                        const childValue = parentValue?.[this.childKey];
                         if (this.type === 'on') {
                             parentValue[this.childKey] = value;
                         }

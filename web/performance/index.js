@@ -25,6 +25,7 @@ class OLoop extends Component {
                 items.push({ number: i });
             }
 
+            console.log(items);
             this.data.items = items;
 
             console.timeEnd('overwrite');

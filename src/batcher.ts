@@ -26,50 +26,72 @@ const tick = function (method: () => void) {
 const schedule = async function () {
     if (this.options.pending) return;
     else this.options.pending = true;
+    // return this.flush();
     return this.tick(this.flush);
-    // setTimeout(() => this.tick(this.flush).catch(console.error));
 };
 
 const flush = async function (time) {
 
-    console.log('reads before:', this.reads.length);
-    console.log('write before:', this.writes.length);
+    // console.log('reads before:', this.reads.length);
+    // console.log('write before:', this.writes.length);
 
+    const readTasks = [];
     let read;
     let reads = 0;
     while (read = this.reads.shift()) {
-        if (read) await read();
+        if (read) readTasks.push(read());
         reads++;
-
-        // if ((performance.now() - time) > this.options.time) {
-        //     console.log('read max');
-        //     return this.tick(this.flush);
-        // }
-
     }
-
+    await Promise.all(readTasks);
+    const writeTasks = [];
     let write;
     let writes = 0;
     while (write = this.writes.shift()) {
-        if (write) await write();
+        if (write) writeTasks.push(write());
         if (++writes === reads) break;
-
-        // if ((performance.now() - time) > this.options.time) {
-        //     console.log('write max');
-        //     return this.tick(this.flush);
-        // }
-
     }
+    await Promise.all(writeTasks);
 
-    console.log('reads after:', this.reads.length);
-    console.log('write after:', this.writes.length);
+    // let read;
+    // let reads = 0;
+    // while (read = this.reads.shift()) {
+    //     if (read) await read();
+    //     reads++;
+    // }
+    // let write;
+    // let writes = 0;
+    // while (write = this.writes.shift()) {
+    //     if (write) await write();
+    //     if (++writes === reads) break;
+    // }
+
+    // const readTasks = [];
+    // let read;
+    // let reads = 0;
+    // while (read = this.reads.shift()) {
+    //     if (read) readTasks.push(this.tick(read));
+    //     reads++;
+    // }
+    // await Promise.all(readTasks);
+    // const writeTasks = [];
+    // let write;
+    // let writes = 0;
+    // while (write = this.writes.shift()) {
+    //     if (write) writeTasks.push(this.tick(write));
+    //     if (++writes === reads) break;
+    // }
+    // await Promise.all(writeTasks);
+
+    // console.log('reads after:', this.reads.length);
+    // console.log('write after:', this.writes.length);
 
     if (this.reads.length === 0 && this.writes.length === 0) {
         this.options.pending = false;
-    } else if ((performance.now() - time) > this.options.time) {
-        return this.tick(this.flush);
+    // } else if ((performance.now() - time) > this.options.time) {
+        // return this.tick(this.flush);
     } else {
-        return this.flush(time);
+        return this.tick(this.flush);
+        // return this.flush(time);
     }
 
 };
