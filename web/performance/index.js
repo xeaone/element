@@ -11,9 +11,7 @@ class OLoop extends Component {
         push() {
             console.time('push');
 
-            for (var i = 0; i < this.data.count; i++) {
-                this.data.items.push({ number: i });
-            }
+            for (var i = 0; i < this.data.count; i++) this.data.items.push({ number: i });
 
             console.timeEnd('push');
         },
@@ -21,11 +19,7 @@ class OLoop extends Component {
             console.time('overwrite');
 
             var items = [];
-            for (var i = 0; i < 10; i++) {
-                items.push({ number: i });
-            }
-
-            console.log(items);
+            for (var i = 0; i < 10; i++) items.push({ number: i });
             this.data.items = items;
 
             console.timeEnd('overwrite');
@@ -38,7 +32,7 @@ class OLoop extends Component {
 
         <h3><span>{{count}}</span> Inputs two way binded</h3>
 
-        <form onsubmit="{{push}}">
+        <form onsubmit="{{push(1)}}">
             <input value="{{count}}" type="number">
             <input type="submit" value="Push">
         </form>

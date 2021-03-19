@@ -49,6 +49,7 @@ const submit = async function (event, binder) {
         event.target.reset();
     }
 
+    return false;
 };
 
 export default function (binder) {
@@ -79,9 +80,9 @@ export default function (binder) {
 
         binder.meta.method = event => {
             if (name === 'submit') {
-                submit.call(binder.container, event, binder);
+                return submit.call(binder.container, event, binder);
             } else {
-                binder.data.call(binder.container, event);
+                return binder.data.call(binder.container, event);
             }
         }
 

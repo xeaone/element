@@ -67,6 +67,17 @@ export default new class Binder {
         return this.data.get(node);
     }
 
+    // parse(arg, data) {
+    //     if (arg === 'NaN') return NaN;
+    //     if (arg === 'null') return null;
+    //     if (arg === 'true') return true;
+    //     if (arg === 'false') return false;
+    //     if (arg === 'undefined') return undefined;
+    //     if (/^[0-9]+(\.[0-9]+)?$/.test(arg)) return Number(arg);
+    //     if (/^("|'|`).*?(`|'|")$/.test(arg)) return arg.slice(1, -1);
+    //     return traverse(data, arg);
+    // }
+
     async render(binder: any, ...extra) {
 
         if (binder.busy) return;
@@ -93,45 +104,35 @@ export default new class Binder {
     async bind(target: Node, name: string, value: string, container: any, pointer: Node | Attr) {
         const self = this;
 
-        // if (value.startsWith('{{\'') || value.startsWith('{{\"')) {
-        //     target.textContent = value.slice(3, -3);
-        //     return;
-        // } else if (/\s*{{(^NaN$|^true$|^false$|^[0-9]+$)}}\s*/.test(value)) {
-        //     target.textContent = value;
-        //     return;
-        // }
+        if (value.startsWith('{{\'') || value.startsWith('{{\"')) {
+            target.textContent = value.slice(3, -3);
+            return;
+        } else if (/\s*{{(^NaN$|^true$|^false$|^[0-9]+(\.[0-9]+)?$)}}\s*/.test(value)) {
+            target.textContent = value;
+            return;
+        }
 
         const parameters = value.match(PARAMETER_PATTERNS);
         if (!parameters) return console.error(`Oxe.binder.bind - value ${value} is not valid`);
 
-        // value = value.replace(this.syntaxReplace, '').trim();
-        // name = name.replace(this.syntaxReplace, '').replace(this.prefixReplace, '').trim();
-        // if (name.startsWith('on')) name = 'on-' + name.slice(2);
-
-        // const pipe = value.split(PIPE);
-        // const values = value.match(PARAMETER_PATTERNS);
-        const paths = parameters.map(path =>
-            path
-                .replace(this.syntaxReplace, '')
-                .replace(eachPattern, '')
-        );
-        // const keys = parameters.map(key => key.replace(this.syntaxReplace, '').split('.'));
-        // const names = name.split('-');
-
         const type = name.startsWith('on') ? 'on' : name;
-
-        // const values = pipe[0] ? pipe[0].split('.') : [];
-        // const pipes = pipe[1] ? pipe[1].split(PIPES) : [];
-        // const properties = path.split('.');
-        // const property = properties.slice(-1)[0];
+        const paths = parameters.map(path => path.replace(this.syntaxReplace, ''));
 
         paths.forEach((path, index) => {
 
+            const args = [];
+            if (path.includes(')')) {
+                args.push(...path.replace(/.*?\((.*?)\)/, '$1').split(/\s*,\s*/));
+                path = paths[index] = path.replace(/\(.*?\)/, '');
+            }
+
+            if (path.includes(' of ') || path.includes(' in ')) {
+                path = paths[index] = path.replace(eachPattern, '');
+            }
+
             const keys = path.split('.');
             const [key] = keys.slice(-1);
-
             const parameter = parameters[index];
-            // const parameterPaths = paths.slice(1);
             const childKey = keys.slice(-1)[0];
             const parentKeys = keys.slice(0, -1);
 
@@ -142,90 +143,74 @@ export default new class Binder {
                 get busy() { return this._meta.busy; },
                 set busy(busy) { this._meta.busy = busy; },
 
+                args,
                 key, keys,
                 name, value,
                 path, paths,
+                childKey, parentKeys,
                 parameter, parameters,
-                // value, values,
-
-                // pipes,
-                // property, properties,
 
                 type,
-                target, container,
-
+                target,
+                container,
                 render: self.render,
 
-                childKey,
-                parentKeys,
-                // parameterPaths,
-
-                // index,
                 display(data: any) {
                     let value = this.value;
-                    parameters.forEach(parameter => {
+                    this.parameters.forEach(parameter => {
                         value = value.replace(
                             parameter, parameter === this.parameter ? data : traverse(
-                                container.data,
+                                this.container.data,
                                 parameter.replace(/{{|}}/, '').split('.')
                             )
                         );
                     });
                     return value;
                 },
-
                 getAttribute(name: string) {
                     const node = (target as any).getAttributeNode(name);
                     if (!node) return undefined;
                     const data = (self.data?.get(node) as any)?.data;
                     return data === undefined ? node.value : data;
                 },
-
+                parse(arg) {
+                    if (arg === 'NaN') return NaN;
+                    if (arg === 'null') return null;
+                    if (arg === 'true') return true;
+                    if (arg === 'false') return false;
+                    if (arg === 'undefined') return undefined;
+                    if (/^[0-9]+(\.[0-9]+)?$/.test(arg)) return Number(arg);
+                    if (/^("|'|`).*?(`|'|")$/.test(arg)) return arg.slice(1, -1);
+                    return traverse(this.container.data, arg);
+                },
                 get data() {
                     const parentValue = traverse(this.container.data, this.parentKeys);
-
                     const childValue = parentValue?.[this.childKey];
 
-                    // if (this.type === 'on') {
                     if (typeof childValue === 'function') {
                         return event => {
-                            // const parameters = this.parameterPaths.map(path => traverse(container.data, path));
-                            return childValue.call(this.container, event, ...parameters);
+                            const args = this.args.map(arg => this.parse(arg, this.container.data));
+                            if (event) args.unshift(event);
+                            return childValue.apply(this.container, args);
                         };
-                        // } else if (typeof childValue === 'function') {
-                        //     const parameters = this.parameterPaths.map(path => traverse(container.data, path));
-                        //     return childValue.call(this.container, ...parameters);
                     } else {
                         return childValue;
                     }
                 },
-
                 set data(value: any) {
-                    // if (names[0] === 'on') {
-                    //     const source = traverse(container.methods, keys, 1);
-                    //     source[property] = value;
-                    // } else {
-
-                    const parentValue = traverse(container.data, this.parentKeys);
+                    const parentValue = traverse(this.container.data, this.parentKeys);
                     const childValue = parentValue?.[this.childKey];
 
-                    if (this.type === 'on') {
-                        parentValue[this.childKey] = value;
-                    } else if (typeof childValue === 'function') {
-                        const parameters = this.parameterPaths.map(path => traverse(container.data, path));
-                        childValue.call(this.container, ...parameters);
+                    if(typeof childValue === 'function') {
+                        parentValue[this.childKey] = event => {
+                            const args = this.args.map(arg => this.parse(arg, this.container.data));
+                            if (event) args.unshift(event);
+                            return childValue.apply(this.container, args);
+                        };
                     } else {
                         parentValue[this.childKey] = value;
                     }
-
-                    // if (names[0] === 'value') {
-                    //     source[property] = Piper(this, value);
-                    // } else {
-                    //     source[property] = value;
-                    // }
-                    // }
                 }
-
             });
 
             this.data.set(pointer, binder);

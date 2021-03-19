@@ -525,6 +525,7 @@
         if (binder.getAttribute('reset')) {
             event.target.reset();
         }
+        return false;
     };
     function on (binder) {
         const read = function () {
@@ -535,10 +536,10 @@
             }
             binder.meta.method = event => {
                 if (name === 'submit') {
-                    submit.call(binder.container, event, binder);
+                    return submit.call(binder.container, event, binder);
                 }
                 else {
-                    binder.data.call(binder.container, event);
+                    return binder.data.call(binder.container, event);
                 }
             };
             binder.target.addEventListener(name, binder.meta.method);
@@ -823,14 +824,28 @@
         }
         async bind(target, name, value, container, pointer) {
             const self = this;
+            if (value.startsWith('{{\'') || value.startsWith('{{\"')) {
+                target.textContent = value.slice(3, -3);
+                return;
+            }
+            else if (/\s*{{(^NaN$|^true$|^false$|^[0-9]+(\.[0-9]+)?$)}}\s*/.test(value)) {
+                target.textContent = value;
+                return;
+            }
             const parameters = value.match(PARAMETER_PATTERNS);
             if (!parameters)
                 return console.error(`Oxe.binder.bind - value ${value} is not valid`);
-            const paths = parameters.map(path => path
-                .replace(this.syntaxReplace, '')
-                .replace(eachPattern, ''));
             const type = name.startsWith('on') ? 'on' : name;
+            const paths = parameters.map(path => path.replace(this.syntaxReplace, ''));
             paths.forEach((path, index) => {
+                const args = [];
+                if (path.includes(')')) {
+                    args.push(...path.replace(/.*?\((.*?)\)/, '$1').split(/\s*,\s*/));
+                    path = paths[index] = path.replace(/\(.*?\)/, '');
+                }
+                if (path.includes(' of ') || path.includes(' in ')) {
+                    path = paths[index] = path.replace(eachPattern, '');
+                }
                 const keys = path.split('.');
                 const [key] = keys.slice(-1);
                 const parameter = parameters[index];
@@ -841,19 +856,20 @@
                     _meta: { busy: false },
                     get busy() { return this._meta.busy; },
                     set busy(busy) { this._meta.busy = busy; },
+                    args,
                     key, keys,
                     name, value,
                     path, paths,
+                    childKey, parentKeys,
                     parameter, parameters,
                     type,
-                    target, container,
+                    target,
+                    container,
                     render: self.render,
-                    childKey,
-                    parentKeys,
                     display(data) {
                         let value = this.value;
-                        parameters.forEach(parameter => {
-                            value = value.replace(parameter, parameter === this.parameter ? data : traverse(container.data, parameter.replace(/{{|}}/, '').split('.')));
+                        this.parameters.forEach(parameter => {
+                            value = value.replace(parameter, parameter === this.parameter ? data : traverse(this.container.data, parameter.replace(/{{|}}/, '').split('.')));
                         });
                         return value;
                     },
@@ -864,12 +880,32 @@
                         const data = self.data?.get(node)?.data;
                         return data === undefined ? node.value : data;
                     },
+                    parse(arg) {
+                        if (arg === 'NaN')
+                            return NaN;
+                        if (arg === 'null')
+                            return null;
+                        if (arg === 'true')
+                            return true;
+                        if (arg === 'false')
+                            return false;
+                        if (arg === 'undefined')
+                            return undefined;
+                        if (/^[0-9]+(\.[0-9]+)?$/.test(arg))
+                            return Number(arg);
+                        if (/^("|'|`).*?(`|'|")$/.test(arg))
+                            return arg.slice(1, -1);
+                        return traverse(this.container.data, arg);
+                    },
                     get data() {
                         const parentValue = traverse(this.container.data, this.parentKeys);
                         const childValue = parentValue?.[this.childKey];
                         if (typeof childValue === 'function') {
                             return event => {
-                                return childValue.call(this.container, event, ...parameters);
+                                const args = this.args.map(arg => this.parse(arg, this.container.data));
+                                if (event)
+                                    args.unshift(event);
+                                return childValue.apply(this.container, args);
                             };
                         }
                         else {
@@ -877,14 +913,15 @@
                         }
                     },
                     set data(value) {
-                        const parentValue = traverse(container.data, this.parentKeys);
+                        const parentValue = traverse(this.container.data, this.parentKeys);
                         const childValue = parentValue?.[this.childKey];
-                        if (this.type === 'on') {
-                            parentValue[this.childKey] = value;
-                        }
-                        else if (typeof childValue === 'function') {
-                            const parameters = this.parameterPaths.map(path => traverse(container.data, path));
-                            childValue.call(this.container, ...parameters);
+                        if (typeof childValue === 'function') {
+                            parentValue[this.childKey] = event => {
+                                const args = this.args.map(arg => this.parse(arg, this.container.data));
+                                if (event)
+                                    args.unshift(event);
+                                return childValue.apply(this.container, args);
+                            };
                         }
                         else {
                             parentValue[this.childKey] = value;
