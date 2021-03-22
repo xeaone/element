@@ -4,14 +4,14 @@ export default class BinderClassRoute extends Component {
 
     title = 'Class Binder';
 
-    static model = {
+    data = {
         title: 'Class',
         boolean: true,
         string: 'string',
-        toggle() { this.model.boolean = !this.model.boolean; }
+        toggle() { this.data.boolean = !this.data.boolean; }
     };
 
-    static css = /*css*/`
+    css = /*css*/`
         .default {
             border: solid 0.3rem black;
         }
@@ -23,7 +23,7 @@ export default class BinderClassRoute extends Component {
         }
     `;
 
-    static template = /*html*/`
+    html = /*html*/`
 
         <h2>{{title}}</h2>
         <hr>

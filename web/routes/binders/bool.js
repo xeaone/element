@@ -3,17 +3,17 @@ export default class BinderBoolRoute extends Oxe.Component {
 
     title = 'Bool Binder'
 
-    static model = {
+    data = {
         b: 'blue',
         c: 'red',
         hidden: false,
         toggleHidden() {
             console.log('toggleHidden');
-            this.model.hidden = !this.model.hidden;
+            this.data.hidden = !this.data.hidden;
         }
     }
 
-    static template = /*html*/`
+    html = /*html*/`
 
         <h2>Bool Binder</h2>
         <hr>

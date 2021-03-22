@@ -52,8 +52,10 @@ export const walker = function (node, callback) {
 
 };
 
-export const traverse = function (data: any, paths: string[]) {
-    if (paths.length === 0) {
+export const traverse = function (data: any, paths: string[] | string) {
+    paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
+
+    if (!paths.length) {
         return data;
     } else if (typeof data !== 'object') {
         return undefined;

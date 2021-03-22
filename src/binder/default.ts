@@ -1,4 +1,4 @@
-import { toString } from '../tool';
+// import { toString } from '../tool';
 
 const bools = [
     'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
@@ -11,8 +11,8 @@ const bools = [
 export default function (binder) {
     let data, bool;
     return {
-        read() {
-            data = binder.data;
+        async read() {
+            data = await binder.data;
             bool = bools.includes(binder.type);
 
             if (bool) {
@@ -24,7 +24,7 @@ export default function (binder) {
             }
 
         },
-        write() {
+        async write() {
             binder.target[binder.type] = data;
 
             if (bool) {

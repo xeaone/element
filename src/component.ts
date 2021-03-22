@@ -51,7 +51,6 @@ export default class Component extends HTMLElement {
 
     async render() {
 
-        this.#css = this.#css ?? this.css;
         this.#html = this.#html ?? this.html;
         this.#data = this.#data ?? this.data;
         this.#adopt = this.#adopt ?? this.adopt;
@@ -106,11 +105,11 @@ export default class Component extends HTMLElement {
             if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
         }
 
-        let child = clone.firstElementChild;
+        let child = clone.firstChild;
         while (child) {
             Binder.add(child, this);
             this.#root.appendChild(child);
-            child = clone.firstElementChild;
+            child = clone.firstChild;
         }
 
     }
@@ -129,6 +128,7 @@ export default class Component extends HTMLElement {
     }
 
     async connectedCallback() {
+        this.#css = this.#css ?? this.css;
 
         Css.attach(this.#name, this.#css);
 

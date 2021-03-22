@@ -2,13 +2,13 @@
 export default function (binder) {
     let data;
     return {
-        read() {
+        async read() {
 
-            data = binder.data;
+            data = await binder.data;
 
             if (typeof data !== 'string') data = data ? binder.key : '';
 
-            data = binder.display(data);
+            // data = binder.display(data);
 
             if (data === binder.target.className) {
                 this.write = false;
@@ -16,7 +16,7 @@ export default function (binder) {
             }
 
         },
-        write() {
+        async write() {
             binder.target.className = data;
             binder.target.setAttribute('class', data);
         }

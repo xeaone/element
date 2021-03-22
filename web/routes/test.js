@@ -49,14 +49,14 @@ export default {
                 return text.toUpperCase();
             },
             overwriteArray: function () {
-                this.model.arrayChange = [ 3, 4, 5, 6 ];
+                this.data.arrayChange = [ 3, 4, 5, 6 ];
             },
             foo: function (e, item) {
                 console.log(item);
                 console.log('foo');
             },
             toggleShowHide: function () {
-                this.model.showHide = !this.model.showHide;
+                this.data.showHide = !this.data.showHide;
             },
             onSubmit: function (data) {
                 console.log(data);
@@ -125,14 +125,14 @@ export default {
 
             Say('r-test created');
 
-            // console.log(this.model.o);
+            // console.log(this.data.o);
             // [
             // 	{ n: 1, a: [ '1' ] },
             // 	{ n: 2, a: [ '2' ] },
             // 	{ n: 3, a: [ '3' ] }
             // ]
 
-            // this.model.empty.$set({ boo: 'ha'});
+            // this.data.empty.$set({ boo: 'ha'});
         },
         template: /*html*/`
         <div id="hash"></div>

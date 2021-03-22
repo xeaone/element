@@ -8,16 +8,14 @@ import Default from './binder/default';
 import each from './binder/each';
 import html from './binder/html';
 import on from './binder/on';
-import reset from './binder/reset';
-// import submit from '../_/submit';
 import text from './binder/text';
 import value from './binder/value';
 
-const PIPE = /\s?\|\s?/;
-const PIPES = /\s?,\s?|\s+/;
+// const PIPE = /\s?\|\s?/;
+// const PIPES = /\s?,\s?|\s+/;
 // const PATH = /\s?,\s?|\s?\|\s?|\s+/;
 // const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
-const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+// const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
 const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
 const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
 
@@ -38,45 +36,28 @@ export default new class Binder {
     binders = {
         checked,
         class: Class,
-        each,
-
         default: Default,
-
+        each,
         html,
         on,
-        reset,
-        // submit,
         text,
-        value,
+        value
     }
 
-    // async setup(options: any = {}) {
-    //     const { binders } = options;
-
-    //     if (binders) {
-    //         for (const name in binders) {
-    //             if (name in this.binders === false) {
-    //                 this.binders[name] = binders[name].bind(this);
-    //             }
-    //         }
-    //     }
-
-    // }
+    async setup(options: any = {}) {
+        const { binders } = options;
+        if (binders) {
+            for (const name in binders) {
+                if (name in this.binders === false) {
+                    this.binders[name] = binders[name].bind(this);
+                }
+            }
+        }
+    }
 
     get(node) {
         return this.data.get(node);
     }
-
-    // parse(arg, data) {
-    //     if (arg === 'NaN') return NaN;
-    //     if (arg === 'null') return null;
-    //     if (arg === 'true') return true;
-    //     if (arg === 'false') return false;
-    //     if (arg === 'undefined') return undefined;
-    //     if (/^[0-9]+(\.[0-9]+)?$/.test(arg)) return Number(arg);
-    //     if (/^("|'|`).*?(`|'|")$/.test(arg)) return arg.slice(1, -1);
-    //     return traverse(data, arg);
-    // }
 
     async render(binder: any, ...extra) {
 
@@ -104,11 +85,8 @@ export default new class Binder {
     async bind(target: Node, name: string, value: string, container: any, pointer: Node | Attr) {
         const self = this;
 
-        if (value.startsWith('{{\'') || value.startsWith('{{\"')) {
-            target.textContent = value.slice(3, -3);
-            return;
-        } else if (/\s*{{(^NaN$|^true$|^false$|^[0-9]+(\.[0-9]+)?$)}}\s*/.test(value)) {
-            target.textContent = value;
+        if (/^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/.test(value)) {
+            target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
             return;
         }
 
@@ -116,18 +94,18 @@ export default new class Binder {
         if (!parameters) return console.error(`Oxe.binder.bind - value ${value} is not valid`);
 
         const type = name.startsWith('on') ? 'on' : name;
-        const paths = parameters.map(path => path.replace(this.syntaxReplace, ''));
 
-        paths.forEach((path, index) => {
+        for (let index = 0; index < parameters.length; index++) {
+            let path = parameters[index].replace(this.syntaxReplace, '');
 
             const args = [];
             if (path.includes(')')) {
                 args.push(...path.replace(/.*?\((.*?)\)/, '$1').split(/\s*,\s*/));
-                path = paths[index] = path.replace(/\(.*?\)/, '');
+                path = path.replace(/\(.*?\)/, '');
             }
 
             if (path.includes(' of ') || path.includes(' in ')) {
-                path = paths[index] = path.replace(eachPattern, '');
+                path = path.replace(eachPattern, '');
             }
 
             const keys = path.split('.');
@@ -144,9 +122,9 @@ export default new class Binder {
                 set busy(busy) { this._meta.busy = busy; },
 
                 args,
+                path,
                 key, keys,
                 name, value,
-                path, paths,
                 childKey, parentKeys,
                 parameter, parameters,
 
@@ -154,24 +132,22 @@ export default new class Binder {
                 target,
                 container,
                 render: self.render,
-
-                display(data: any) {
-                    let value = this.value;
-                    this.parameters.forEach(parameter => {
-                        value = value.replace(
-                            parameter, parameter === this.parameter ? data : traverse(
-                                this.container.data,
-                                parameter.replace(/{{|}}/, '').split('.')
-                            )
-                        );
-                    });
-                    return value;
-                },
                 getAttribute(name: string) {
                     const node = (target as any).getAttributeNode(name);
                     if (!node) return undefined;
                     const data = (self.data?.get(node) as any)?.data;
                     return data === undefined ? node.value : data;
+                },
+                display(data: any) {
+                    let value = this.value;
+                    this.parameters.forEach(parameter => {
+                        value = value.replace(
+                            parameter, parameter === this.parameter ?
+                                data :
+                                this.parse(parameter.replace(self.syntaxReplace, ''))
+                        );
+                    });
+                    return value;
                 },
                 parse(arg) {
                     if (arg === 'NaN') return NaN;
@@ -214,14 +190,16 @@ export default new class Binder {
             });
 
             this.data.set(pointer, binder);
+            this.render(binder);
 
-            if (target.nodeName.includes('-')) {
-                window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
-            } else {
-                this.render(binder);
-            }
+            // if (target.nodeName.includes('-')) {
+            //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
+            // } else {
+            //     this.render(binder);
+            // }
 
-        });
+            return path;
+        }
 
     }
 
@@ -278,7 +256,6 @@ export default new class Binder {
         } else if (type === EN) {
             let skip = false;
 
-            // const attributes = node.attributes;
             const attributes = (node as Element).attributes;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[i];

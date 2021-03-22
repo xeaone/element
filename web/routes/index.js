@@ -21,12 +21,12 @@ var home = Escape(`
 			},
 			methods: {
 				greet: function () {
-					console.log(this.model.greeting);
+					console.log(this.data.greeting);
 				}
 			},
 			created: function () {
-				console.log(this.model.greeting);
-				this.model.greeting = 'New Hello World';
+				console.log(this.data.greeting);
+				this.data.greeting = 'New Hello World';
 			}
 		}
 	};
@@ -81,11 +81,11 @@ export default class IndexRoute extends Component {
 	static title = 'Oxe';
 	static description = 'A mighty tiny web components framework/library.';
 
-	static connected() {
+	async connected() {
 		Say('index connected');
 	}
 
-	static html = /*html*/`
+	html = /*html*/`
 		<h2>Overview</h2>
 
 		<strong>Synopsis</strong>

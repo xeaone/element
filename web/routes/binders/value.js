@@ -8,32 +8,29 @@ export default class BinderValueRoute extends Component {
 
     title = 'Value Binder'
 
-    static methods = {
-    }
-
-    static model = {
+    data = {
 
         text: 'Hello World',
-        textInput () { console.log(this.model.text); },
+        textInput () { console.log(this.data.text); },
 
         number: 1,
         // number: NaN,
-        numberInput () { console.log(this.model.number); },
+        numberInput () { console.log(this.data.number); },
 
         checkbox: true,
         // checkbox: false,
-        checkboxInput () { console.log(this.model.checkbox); },
+        checkboxInput () { console.log(this.data.checkbox); },
 
         one: 'one',
         radio: 'two',
-        radioInput () { console.log(this.model.radio); }
+        radioInput () { console.log(this.data.radio); }
 
     }
 
-    static template = /*html*/`
+    html = /*html*/`
         <h2>Value Binder</h2>
         <hr>
-        
+
         <br>
 
         <strong>type="text" as String</strong>

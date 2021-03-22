@@ -83,7 +83,8 @@
     };
     const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
     const traverse = function (data, paths) {
-        if (paths.length === 0) {
+        paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
+        if (!paths.length) {
             return data;
         }
         else if (typeof data !== 'object') {
@@ -346,17 +347,16 @@
     function Class (binder) {
         let data;
         return {
-            read() {
-                data = binder.data;
+            async read() {
+                data = await binder.data;
                 if (typeof data !== 'string')
                     data = data ? binder.key : '';
-                data = binder.display(data);
                 if (data === binder.target.className) {
                     this.write = false;
                     return;
                 }
             },
-            write() {
+            async write() {
                 binder.target.className = data;
                 binder.target.setAttribute('class', data);
             }
@@ -373,8 +373,8 @@
     function Default (binder) {
         let data, bool;
         return {
-            read() {
-                data = binder.data;
+            async read() {
+                data = await binder.data;
                 bool = bools.includes(binder.type);
                 if (bool) {
                     data = data ? true : false;
@@ -384,7 +384,7 @@
                     data = binder.display(data);
                 }
             },
-            write() {
+            async write() {
                 binder.target[binder.type] = data;
                 if (bool) {
                     if (data)
@@ -527,26 +527,6 @@
         }
         return false;
     };
-    function on (binder) {
-        const read = function () {
-            binder.target[binder.name] = null;
-            const name = binder.name.slice(2);
-            if (binder.meta.method) {
-                binder.target.removeEventListener(name, binder.meta.method);
-            }
-            binder.meta.method = event => {
-                if (name === 'submit') {
-                    return submit.call(binder.container, event, binder);
-                }
-                else {
-                    return binder.data.call(binder.container, event);
-                }
-            };
-            binder.target.addEventListener(name, binder.meta.method);
-        };
-        return { read };
-    }
-
     const reset = async function (binder, event) {
         event.preventDefault();
         const elements = event.target.querySelectorAll('*');
@@ -590,16 +570,27 @@
             await method.call(binder.container, event);
         }
     };
-    function reset$1 (binder) {
-        if (typeof binder.data !== 'function') {
-            console.warn(`Oxe - binder ${binder.name}="${binder.value}" invalid type function required`);
-            return;
-        }
-        if (binder.meta.method) {
-            binder.target.removeEventListener('reset', binder.meta.method, false);
-        }
-        binder.meta.method = reset.bind(this, binder);
-        binder.target.addEventListener('reset', binder.meta.method, false);
+    function on (binder) {
+        const read = function () {
+            binder.target[binder.name] = null;
+            const name = binder.name.slice(2);
+            if (binder.meta.method) {
+                binder.target.removeEventListener(name, binder.meta.method);
+            }
+            binder.meta.method = event => {
+                if (name === 'reset') {
+                    return reset.call(binder.container, event, binder);
+                }
+                else if (name === 'submit') {
+                    return submit.call(binder.container, event, binder);
+                }
+                else {
+                    return binder.data.call(binder.container, event);
+                }
+            };
+            binder.target.addEventListener(name, binder.meta.method);
+        };
+        return { read };
     }
 
     function text (binder) {
@@ -788,14 +779,23 @@
             this.binders = {
                 checked,
                 class: Class,
-                each,
                 default: Default,
+                each,
                 html,
                 on,
-                reset: reset$1,
                 text,
-                value,
+                value
             };
+        }
+        async setup(options = {}) {
+            const { binders } = options;
+            if (binders) {
+                for (const name in binders) {
+                    if (name in this.binders === false) {
+                        this.binders[name] = binders[name].bind(this);
+                    }
+                }
+            }
         }
         get(node) {
             return this.data.get(node);
@@ -824,27 +824,23 @@
         }
         async bind(target, name, value, container, pointer) {
             const self = this;
-            if (value.startsWith('{{\'') || value.startsWith('{{\"')) {
-                target.textContent = value.slice(3, -3);
-                return;
-            }
-            else if (/\s*{{(^NaN$|^true$|^false$|^[0-9]+(\.[0-9]+)?$)}}\s*/.test(value)) {
-                target.textContent = value;
+            if (/^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/.test(value)) {
+                target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
                 return;
             }
             const parameters = value.match(PARAMETER_PATTERNS);
             if (!parameters)
                 return console.error(`Oxe.binder.bind - value ${value} is not valid`);
             const type = name.startsWith('on') ? 'on' : name;
-            const paths = parameters.map(path => path.replace(this.syntaxReplace, ''));
-            paths.forEach((path, index) => {
+            for (let index = 0; index < parameters.length; index++) {
+                let path = parameters[index].replace(this.syntaxReplace, '');
                 const args = [];
                 if (path.includes(')')) {
                     args.push(...path.replace(/.*?\((.*?)\)/, '$1').split(/\s*,\s*/));
-                    path = paths[index] = path.replace(/\(.*?\)/, '');
+                    path = path.replace(/\(.*?\)/, '');
                 }
                 if (path.includes(' of ') || path.includes(' in ')) {
-                    path = paths[index] = path.replace(eachPattern, '');
+                    path = path.replace(eachPattern, '');
                 }
                 const keys = path.split('.');
                 const [key] = keys.slice(-1);
@@ -857,28 +853,30 @@
                     get busy() { return this._meta.busy; },
                     set busy(busy) { this._meta.busy = busy; },
                     args,
+                    path,
                     key, keys,
                     name, value,
-                    path, paths,
                     childKey, parentKeys,
                     parameter, parameters,
                     type,
                     target,
                     container,
                     render: self.render,
-                    display(data) {
-                        let value = this.value;
-                        this.parameters.forEach(parameter => {
-                            value = value.replace(parameter, parameter === this.parameter ? data : traverse(this.container.data, parameter.replace(/{{|}}/, '').split('.')));
-                        });
-                        return value;
-                    },
                     getAttribute(name) {
                         const node = target.getAttributeNode(name);
                         if (!node)
                             return undefined;
                         const data = self.data?.get(node)?.data;
                         return data === undefined ? node.value : data;
+                    },
+                    display(data) {
+                        let value = this.value;
+                        this.parameters.forEach(parameter => {
+                            value = value.replace(parameter, parameter === this.parameter ?
+                                data :
+                                this.parse(parameter.replace(self.syntaxReplace, '')));
+                        });
+                        return value;
                     },
                     parse(arg) {
                         if (arg === 'NaN')
@@ -929,13 +927,9 @@
                     }
                 });
                 this.data.set(pointer, binder);
-                if (target.nodeName.includes('-')) {
-                    window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
-                }
-                else {
-                    this.render(binder);
-                }
-            });
+                this.render(binder);
+                return path;
+            }
         }
         async remove(node) {
             const type = node.nodeType;
@@ -1099,7 +1093,6 @@
         get root() { return __classPrivateFieldGet(this, _root); }
         get binder() { return Binder; }
         async render() {
-            __classPrivateFieldSet(this, _css, __classPrivateFieldGet(this, _css) ?? this.css);
             __classPrivateFieldSet(this, _html, __classPrivateFieldGet(this, _html) ?? this.html);
             __classPrivateFieldSet(this, _data$1, __classPrivateFieldGet(this, _data$1) ?? this.data);
             __classPrivateFieldSet(this, _adopt, __classPrivateFieldGet(this, _adopt) ?? this.adopt);
@@ -1146,11 +1139,11 @@
                 if (defaultSlot)
                     defaultSlot.parentNode.removeChild(defaultSlot);
             }
-            let child = clone.firstElementChild;
+            let child = clone.firstChild;
             while (child) {
                 Binder.add(child, this);
                 __classPrivateFieldGet(this, _root).appendChild(child);
-                child = clone.firstElementChild;
+                child = clone.firstChild;
             }
         }
         async attributeChangedCallback(name, from, to) {
@@ -1166,6 +1159,7 @@
                 await __classPrivateFieldGet(this, _disconnected).call(this);
         }
         async connectedCallback() {
+            __classPrivateFieldSet(this, _css, __classPrivateFieldGet(this, _css) ?? this.css);
             Css.attach(__classPrivateFieldGet(this, _name), __classPrivateFieldGet(this, _css));
             if (__classPrivateFieldGet(this, _flag)) {
                 if (__classPrivateFieldGet(this, _connected))

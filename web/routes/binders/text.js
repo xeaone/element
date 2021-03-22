@@ -4,12 +4,12 @@ export default class BinderTextRoute extends Component {
 
     title = 'Text Binder'
 
-    static model = {
+    data = {
         templateVar: '<div>{{templateVar}}<div>',
         attributeVar: '<div o-text="attributeVar"></div>'
     }
 
-    static template = /*html*/`
+    html = /*html*/`
 
         <h2>Text Binder</h2>
         <hr>

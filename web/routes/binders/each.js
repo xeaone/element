@@ -4,7 +4,7 @@ export default class BinderEachRoute extends Component {
 
     title = 'Each Binder'
 
-    static model = {
+    data = {
         title: 'Each Binder',
         as: [
             { it: { val: 'zero' } },
@@ -18,42 +18,11 @@ export default class BinderEachRoute extends Component {
         }
     }
 
-    // methods: {
-    //     click: function () {
-    //         console.log(arguments);
-    //     }
-    // }
-
-    static created () {
-
-        // setTimeout(function () {
-        // 	var increaseInterval = setInterval(function () {
-        //
-        // 		if (self.model.items.length === 20) {
-        // 			clearInterval(increaseInterval);
-        //
-        // 			var decreaseInterval = setInterval(function () {
-        // 				if (self.model.items.length === 10) {
-        // 					clearInterval(decreaseInterval);
-        // 				} else {
-        // 					self.model.items.pop();
-        // 				}
-        // 			}, 50);
-        //
-        // 		} else {
-        // 			self.model.items.push({ it: { val: self.model.items.length } });
-        // 		}
-        //
-        // 	}, 50);
-        // }, 3000);
-
-    }
-
-    static template = /*html*/`
+    html = /*html*/`
 
 		<h2>{{title}}</h2>
 		<hr>
-        
+
 		<div o-text="as.0.it.val"></div>
 		<input o-value="as.0.it.val">
 
@@ -90,5 +59,30 @@ export default class BinderEachRoute extends Component {
 		</div> -->
 
     `
+
+    static connected() {
+
+        // setTimeout(function () {
+        // 	var increaseInterval = setInterval(function () {
+        //
+        // 		if (self.model.items.length === 20) {
+        // 			clearInterval(increaseInterval);
+        //
+        // 			var decreaseInterval = setInterval(function () {
+        // 				if (self.model.items.length === 10) {
+        // 					clearInterval(decreaseInterval);
+        // 				} else {
+        // 					self.model.items.pop();
+        // 				}
+        // 			}, 50);
+        //
+        // 		} else {
+        // 			self.model.items.push({ it: { val: self.model.items.length } });
+        // 		}
+        //
+        // 	}, 50);
+        // }, 3000);
+
+    }
 
 }
