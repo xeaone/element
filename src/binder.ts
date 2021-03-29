@@ -17,7 +17,8 @@ import value from './binder/value';
 // const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
 // const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
 const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
-const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
+// const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
+const eachPattern = /.*?\s+of\s+/;
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -42,9 +43,9 @@ export default new class Binder {
         on,
         text,
         value
-    }
+    };
 
-    async setup(options: any = {}) {
+    async setup (options: any = {}) {
         const { binders } = options;
         if (binders) {
             for (const name in binders) {
@@ -55,11 +56,11 @@ export default new class Binder {
         }
     }
 
-    get(node) {
+    get (node) {
         return this.data.get(node);
     }
 
-    async render(binder: any, ...extra) {
+    async render (binder: any, ...extra) {
 
         if (binder.busy) return;
         else binder.busy = true;
@@ -78,11 +79,11 @@ export default new class Binder {
         }
     }
 
-    async unbind(node: Node) {
+    async unbind (node: Node) {
         return this.data.delete(node);
     }
 
-    async bind(target: Node, name: string, value: string, container: any, pointer: Node | Attr) {
+    async bind (target: Node, name: string, value: string, container: any, pointer: Node | Attr) {
         const self = this;
 
         if (/^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/.test(value)) {
@@ -118,8 +119,8 @@ export default new class Binder {
 
                 meta: {},
                 _meta: { busy: false },
-                get busy() { return this._meta.busy; },
-                set busy(busy) { this._meta.busy = busy; },
+                get busy () { return this._meta.busy; },
+                set busy (busy) { this._meta.busy = busy; },
 
                 args,
                 path,
@@ -132,24 +133,24 @@ export default new class Binder {
                 target,
                 container,
                 render: self.render,
-                getAttribute(name: string) {
+                getAttribute (name: string) {
                     const node = (target as any).getAttributeNode(name);
                     if (!node) return undefined;
                     const data = (self.data?.get(node) as any)?.data;
                     return data === undefined ? node.value : data;
                 },
-                display(data: any) {
+                display (data: any) {
                     let value = this.value;
                     this.parameters.forEach(parameter => {
                         value = value.replace(
                             parameter, parameter === this.parameter ?
-                                data :
-                                this.parse(parameter.replace(self.syntaxReplace, ''))
+                            data :
+                            this.parse(parameter.replace(self.syntaxReplace, ''))
                         );
                     });
                     return value;
                 },
-                parse(arg) {
+                parse (arg) {
                     if (arg === 'NaN') return NaN;
                     if (arg === 'null') return null;
                     if (arg === 'true') return true;
@@ -159,7 +160,7 @@ export default new class Binder {
                     if (/^("|'|`).*?(`|'|")$/.test(arg)) return arg.slice(1, -1);
                     return traverse(this.container.data, arg);
                 },
-                get data() {
+                get data () {
                     const parentValue = traverse(this.container.data, this.parentKeys);
                     const childValue = parentValue?.[this.childKey];
 
@@ -173,11 +174,11 @@ export default new class Binder {
                         return childValue;
                     }
                 },
-                set data(value: any) {
+                set data (value: any) {
                     const parentValue = traverse(this.container.data, this.parentKeys);
                     const childValue = parentValue?.[this.childKey];
 
-                    if(typeof childValue === 'function') {
+                    if (typeof childValue === 'function') {
                         parentValue[this.childKey] = event => {
                             const args = this.args.map(arg => this.parse(arg, this.container.data));
                             if (event) args.unshift(event);
@@ -203,7 +204,7 @@ export default new class Binder {
 
     }
 
-    async remove(node: Node) {
+    async remove (node: Node) {
         const type = node.nodeType;
 
         if (type === EN) {
@@ -224,7 +225,7 @@ export default new class Binder {
 
     }
 
-    async add(node: Node, container: any) {
+    async add (node: Node, container: any) {
         const type = node.nodeType;
 
         // if (type === AN) {
@@ -262,10 +263,8 @@ export default new class Binder {
                 const { name, value } = attribute;
 
                 if (
-                    name.indexOf(this.prefix) === 0
-                    ||
-                    (name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1)
-                    ||
+                    name.indexOf(this.prefix) === 0 ||
+                    (name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1) ||
                     (value.indexOf(this.syntaxStart) !== -1 && value.indexOf(this.syntaxEnd) !== -1)
                 ) {
 
@@ -293,4 +292,4 @@ export default new class Binder {
         }
     }
 
-}
+};

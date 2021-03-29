@@ -2,13 +2,13 @@ const { Component } = Oxe;
 
 export default class BinderEachRoute extends Component {
 
-    title = 'Each Binder'
+    title = 'Each Binder';
 
     data = {
         title: 'Each Binder',
-        as: [
-            { it: { val: 'zero' } },
-            { it: { val: 'one' } }
+        items: [
+            { foo: { bar: 'zero' } },
+            { foo: { bar: 'one' } }
         ],
         os: {
             keyOne: 'valueOne',
@@ -16,6 +16,31 @@ export default class BinderEachRoute extends Component {
             keyThree: 'valueThree',
             keyFour: 'valueFour'
         }
+    };
+
+    async connected () {
+
+        // setTimeout(function () {
+        // 	var increaseInterval = setInterval(function () {
+        //
+        // 		if (self.model.items.length === 20) {
+        // 			clearInterval(increaseInterval);
+        //
+        // 			var decreaseInterval = setInterval(function () {
+        // 				if (self.model.items.length === 10) {
+        // 					clearInterval(decreaseInterval);
+        // 				} else {
+        // 					self.model.items.pop();
+        // 				}
+        // 			}, 50);
+        //
+        // 		} else {
+        // 			self.model.items.push({ it: { val: self.model.items.length } });
+        // 		}
+        //
+        // 	}, 50);
+        // }, 3000);
+
     }
 
     html = /*html*/`
@@ -23,17 +48,17 @@ export default class BinderEachRoute extends Component {
 		<h2>{{title}}</h2>
 		<hr>
 
-		<div o-text="as.0.it.val"></div>
-		<input o-value="as.0.it.val">
+		<div>{{items.0.foo.bar}}</div>
+		<input value="{{items.0.foo.bar}}">
 
 		<br>
 		<br>
-		<strong>Array: o-each-a-i-k="as"</strong>
-		<div o-each-a-i-k="as">
-			<div name="{{a.it.val}}">
-				<strong>Value: </strong>{{a.it.val}}
-				<strong>Index: </strong>{{i}},
-				<strong>Key: </strong>{{k}},
+		<strong>Array: each="{{key, index, item of items}}"</strong>
+		<div each="{{key, index, item of items}}">
+			<div name="{{item.foo.bar}}">
+				<strong>Key: </strong>{{key}},
+				<strong>Index: </strong>{{index}},
+				<strong>Value: </strong>{{item.foo.bar}}
 			</div>
 		</div>
 
@@ -58,31 +83,6 @@ export default class BinderEachRoute extends Component {
             <br>
 		</div> -->
 
-    `
-
-    static connected() {
-
-        // setTimeout(function () {
-        // 	var increaseInterval = setInterval(function () {
-        //
-        // 		if (self.model.items.length === 20) {
-        // 			clearInterval(increaseInterval);
-        //
-        // 			var decreaseInterval = setInterval(function () {
-        // 				if (self.model.items.length === 10) {
-        // 					clearInterval(decreaseInterval);
-        // 				} else {
-        // 					self.model.items.pop();
-        // 				}
-        // 			}, 50);
-        //
-        // 		} else {
-        // 			self.model.items.push({ it: { val: self.model.items.length } });
-        // 		}
-        //
-        // 	}, 50);
-        // }, 3000);
-
-    }
+    `;
 
 }

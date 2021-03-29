@@ -1,14 +1,21 @@
 import Binder from '../binder';
 
-const variablePattern = /\s*\{\{\s*(.*?)\s+.*/;
+// const variablePattern = /\s*\{\{\s*(.*?)\s+.*/;
 
 export default function (binder) {
     let data;
     return {
-        async read() {
+        async read () {
             data = binder.data;
 
             if (!binder.meta.setup) {
+                // const [variable, index, key] = binder.value.replace(/{{|}}|\s+of\s+\w+/g, '').split(/\s*,\s*/);
+                const [key, index, variable] = binder.value.slice(2, -2).replace(/\s+of\s+.*/, '').split(/\s*,\s*/);
+
+                binder.meta.variable = variable;
+                binder.meta.index = index;
+                binder.meta.key = key;
+
                 binder.meta.keys = [];
                 binder.meta.counts = [];
                 binder.meta.setup = true;
@@ -18,7 +25,7 @@ export default function (binder) {
                 binder.meta.templateString = '';
                 // binder.meta.templateString = binder.target.innerHTML;
                 // binder.meta.templateLength = binder.target.childNodes.length;
-                binder.meta.variable = binder.value.replace(variablePattern, '$1');
+                // binder.meta.variable = binder.value.replace(variablePattern, '$1');
 
                 let node;
                 while (node = binder.target.firstChild) {
@@ -39,7 +46,7 @@ export default function (binder) {
             }
 
         },
-        async write() {
+        async write () {
 
             if (binder.meta.currentLength > binder.meta.targetLength) {
                 while (binder.meta.currentLength > binder.meta.targetLength) {
@@ -60,22 +67,15 @@ export default function (binder) {
                     const variable = `${binder.path}.${key}`;
 
                     let clone = binder.meta.templateString;
-                    // const length = binder.names.length > 4 ? 4 : binder.names.length;
-                    // for (let i = 1; i < length; i++) {
-                    // const item = new RegExp(`\\b(${binder.names[i]})\\b`, 'g');
-                    // const syntax = new RegExp(`{{.*?\\b(${binder.names[i]})\\b.*?}}`, 'g');
-                    const item = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
-                    const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable})\\b.*?}}`, 'g');
-                    let replace = variable;
-                    // let replace;
-                    // switch (i) {
-                    //     case 1: replace = variable; break;
-                    //     case 2: replace = index; break;
-                    //     case 3: replace = key; break;
-                    // }
-                    clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
 
-                    // }
+                    const rKey = new RegExp(`\\b(${binder.meta.key})\\b`, 'g');
+                    const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
+                    const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
+                    const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
+
+                    clone.match(syntax)?.forEach(match => clone = clone.replace(match,
+                        match.replace(rVariable, variable).replace(rIndex, index).replace(rKey, key)
+                    ));
 
                     const template = document.createElement('template');
                     template.innerHTML = clone;

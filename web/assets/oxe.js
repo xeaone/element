@@ -399,13 +399,17 @@
         };
     }
 
-    const variablePattern = /\s*\{\{\s*(.*?)\s+.*/;
     function each (binder) {
         let data;
         return {
             async read() {
                 data = binder.data;
                 if (!binder.meta.setup) {
+                    const [key, index, variable] = binder.value.slice(2, -2).replace(/\s+of\s+.*/, '').split(/\s*,\s*/);
+                    console.log(variable, index, key);
+                    binder.meta.variable = variable;
+                    binder.meta.index = index;
+                    binder.meta.key = key;
                     binder.meta.keys = [];
                     binder.meta.counts = [];
                     binder.meta.setup = true;
@@ -413,7 +417,6 @@
                     binder.meta.currentLength = 0;
                     binder.meta.templateLength = 0;
                     binder.meta.templateString = '';
-                    binder.meta.variable = binder.value.replace(variablePattern, '$1');
                     let node;
                     while (node = binder.target.firstChild) {
                         if (node.nodeType === 1 || (node.nodeType === 3 && /\S/.test(node.nodeValue))) {
@@ -449,10 +452,11 @@
                         const key = binder.meta.keys[index] ?? index;
                         const variable = `${binder.path}.${key}`;
                         let clone = binder.meta.templateString;
-                        const item = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
-                        const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable})\\b.*?}}`, 'g');
-                        let replace = variable;
-                        clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(item, replace)));
+                        const rKey = new RegExp(`\\b(${binder.meta.key})\\b`, 'g');
+                        const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
+                        const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
+                        const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
+                        clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(rVariable, variable).replace(rIndex, index).replace(rKey, key)));
                         const template = document.createElement('template');
                         template.innerHTML = clone;
                         for (const node of template.content.childNodes) {
@@ -765,7 +769,7 @@
     }
 
     const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
-    const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
+    const eachPattern = /.*?\s+of\s+/;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     var Binder = new class Binder {
@@ -973,11 +977,9 @@
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
                     const { name, value } = attribute;
-                    if (name.indexOf(this.prefix) === 0
-                        ||
-                            (name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1)
-                        ||
-                            (value.indexOf(this.syntaxStart) !== -1 && value.indexOf(this.syntaxEnd) !== -1)) {
+                    if (name.indexOf(this.prefix) === 0 ||
+                        (name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1) ||
+                        (value.indexOf(this.syntaxStart) !== -1 && value.indexOf(this.syntaxEnd) !== -1)) {
                         if (name.indexOf('each') === 0
                             ||
                                 name.indexOf(`${this.prefix}each`) === 0) {
