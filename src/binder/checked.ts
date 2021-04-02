@@ -5,7 +5,7 @@ export default function (binder, event) {
     let data, value, checked;
 
     return {
-        async read (ctx) {
+        async read () {
             data = await binder.data;
 
             if (!binder.meta.setup) {
@@ -17,7 +17,7 @@ export default function (binder, event) {
                 checked = event ? binder.target.checked : data;
             } else {
                 value = binder.getAttribute('value');
-                checked = match(data, ctx.value);
+                checked = match(data, value);
             }
 
             if (event) {
@@ -29,9 +29,9 @@ export default function (binder, event) {
             }
 
         },
-        async write (ctx) {
-            binder.target.checked = ctx.checked;
-            binder.target.setAttribute('checked', ctx.checked);
+        async write () {
+            binder.target.checked = checked;
+            binder.target.setAttribute('checked', checked);
         }
     };
 }
