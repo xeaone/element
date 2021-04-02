@@ -6,7 +6,7 @@ const upper = function (text) {
 
 export default class BinderValueRoute extends Component {
 
-    title = 'Value Binder'
+    title = 'Value Binder';
 
     data = {
 
@@ -25,7 +25,7 @@ export default class BinderValueRoute extends Component {
         radio: 'two',
         radioInput () { console.log(this.data.radio); }
 
-    }
+    };
 
     html = /*html*/`
         <h2>Value Binder</h2>
@@ -67,7 +67,7 @@ export default class BinderValueRoute extends Component {
         <input name="radios" type="radio" value="two" checked="{{radio}}" oninput="{{radioInput}}">
         <input name="radios" type="radio" value="three" checked="{{radio}}" oninput="{{radioInput}}">
 
-    `
+    `;
 
 };
 

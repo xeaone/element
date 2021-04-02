@@ -11,7 +11,7 @@ const bools = [
 export default function (binder) {
     let data, bool;
     return {
-        async read() {
+        async read () {
             data = await binder.data;
             bool = bools.includes(binder.type);
 
@@ -24,7 +24,7 @@ export default function (binder) {
             }
 
         },
-        async write() {
+        async write () {
             binder.target[binder.type] = data;
 
             if (bool) {
