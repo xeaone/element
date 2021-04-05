@@ -22,7 +22,8 @@ export default class BinderValueRoute extends Component {
         checkboxInput () { console.log(this.data.checkbox); },
 
         one: 'one',
-        radio: 'two',
+        // radio: 'two',
+        radio: true,
         radioInput () { console.log(this.data.radio); }
 
     };

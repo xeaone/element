@@ -18,8 +18,7 @@ export default function (binder) {
             if (bool) {
                 data = data ? true : false;
             } else {
-                data = data === null || data === undefined ? '' : data;
-                // data = toString(data);
+                // data = data === null || data === undefined ? '' : data;
                 data = binder.display(data);
             }
 

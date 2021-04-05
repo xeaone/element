@@ -28,12 +28,12 @@ const input = function (binder) {
 export default function (binder, event) {
     const type = binder.target.type;
 
-    if (binder.meta.busy) {
-        console.log('busy value');
-        return;
-    } else {
-        binder.meta.busy = true;
-    }
+    // if (binder.meta.busy) {
+    //     console.log('busy value');
+    //     return;
+    // } else {
+    //     binder.meta.busy = true;
+    // }
 
     if (!binder.meta.setup) {
         binder.meta.setup = true;
@@ -44,7 +44,7 @@ export default function (binder, event) {
 
     if (type === 'select-one' || type === 'select-multiple') {
         return {
-            read(ctx) {
+            read (ctx) {
 
                 console.log(event);
                 console.log(binder.target);
@@ -70,7 +70,7 @@ export default function (binder, event) {
                     const node = ctx.options[i];
                     const selected = node.selected;
                     const attribute = node.attributes['o-value'] || node.attributes['value'];
-                    const option = Binder.get(attribute) || { get data() { return node.value; }, set data(data) { node.value = data; } };
+                    const option = Binder.get(attribute) || { get data () { return node.value; }, set data (data) { node.value = data; } };
                     if (ctx.multiple) {
                         const index = Index(binder.data, option.data);
                         if (event) {
@@ -124,7 +124,7 @@ export default function (binder, event) {
 
                 // binder.meta.busy = false;
             },
-            write(ctx) {
+            write (ctx) {
                 const { selects, unselects } = ctx;
 
                 selects.forEach(option => {
@@ -260,25 +260,25 @@ export default function (binder, event) {
             //
         };
     } else if (type === 'checkbox' || type === 'radio') {
+        let data;
         return {
-            read(ctx) {
-                ctx.data = binder.data;
+            async read () {
+                data = await binder.data;
+                data = await binder.display(data);
+                console.log(data);
             },
-            write(ctx) {
-                ctx.value = toString(ctx.data);
-                binder.target.value = ctx.value;
-                binder.target.setAttribute('value', ctx.value);
-                binder.meta.busy = false;
+            async write () {
+                binder.target.value = data;
+                binder.target.setAttribute('value', data);
             }
         };
-
     } else if (type === 'number') {
         return {
-            read(ctx) {
+            read (ctx) {
                 ctx.data = binder.data;
                 ctx.value = toNumber(binder.target.value);
             },
-            write(ctx) {
+            write (ctx) {
                 ctx.value = toString(ctx.data);
                 binder.target.value = ctx.value;
                 binder.target.setAttribute('value', ctx.value);
@@ -287,7 +287,7 @@ export default function (binder, event) {
         };
     } else if (type === 'file') {
         return {
-            read(ctx) {
+            read (ctx) {
                 ctx.data = binder.data;
                 ctx.multiple = binder.target.multiple;
                 ctx.value = ctx.multiple ? [...binder.target.files] : binder.target.files[0];
@@ -295,7 +295,7 @@ export default function (binder, event) {
         };
     } else {
         return {
-            read(ctx) {
+            read (ctx) {
                 // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') return ctx.write = false;
 
                 ctx.data = binder.data;
@@ -332,7 +332,7 @@ export default function (binder, event) {
                 // }
 
             },
-            write(ctx) {
+            write (ctx) {
                 // const { select, selected, multiple } = ctx;
 
                 // if (select) {

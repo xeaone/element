@@ -18,7 +18,9 @@ import value from './binder/value';
 // const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
 const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
 // const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
-const eachPattern = /.*?\s+of\s+/;
+const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
+const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
+const eachPattern = /.*?\s+(of|in)\s+/;
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -93,113 +95,122 @@ export default new class Binder {
 
         const parameters = value.match(PARAMETER_PATTERNS);
         if (!parameters) return console.error(`Oxe.binder.bind - value ${value} is not valid`);
+        console.log(parameters);
 
         const type = name.startsWith('on') ? 'on' : name;
 
         for (let index = 0; index < parameters.length; index++) {
-            let path = parameters[index].replace(this.syntaxReplace, '');
+            let parameter = parameters[index].replace(this.syntaxReplace, '');
 
-            const args = [];
-            if (path.includes(')')) {
-                args.push(...path.replace(/.*?\((.*?)\)/, '$1').split(/\s*,\s*/));
-                path = path.replace(/\(.*?\)/, '');
-            }
+            const args = parameter.replace(eachPattern, '').split(Instructions);
 
-            if (path.includes(' of ') || path.includes(' in ')) {
-                path = path.replace(eachPattern, '');
-            }
-
-            const keys = path.split('.');
-            const [key] = keys.slice(-1);
-            const parameter = parameters[index];
-            const childKey = keys.slice(-1)[0];
-            const parentKeys = keys.slice(0, -1);
-
-            const binder = Object.freeze({
-
-                meta: {},
-                _meta: { busy: false },
-                get busy () { return this._meta.busy; },
-                set busy (busy) { this._meta.busy = busy; },
-
-                args,
-                path,
-                key, keys,
-                name, value,
-                childKey, parentKeys,
-                parameter, parameters,
-
-                type,
-                target,
-                container,
-                render: self.render,
-                getAttribute (name: string) {
-                    const node = (target as any).getAttributeNode(name);
-                    if (!node) return undefined;
-                    const data = (self.data?.get(node) as any)?.data;
-                    return data === undefined ? node.value : data;
-                },
-                display (data: any) {
-                    let value = this.value;
-                    this.parameters.forEach(parameter => {
-                        value = value.replace(
-                            parameter, parameter === this.parameter ?
-                            data :
-                            this.parse(parameter.replace(self.syntaxReplace, ''))
-                        );
-                    });
-                    return value;
-                },
-                parse (arg) {
-                    if (arg === 'NaN') return NaN;
-                    if (arg === 'null') return null;
-                    if (arg === 'true') return true;
-                    if (arg === 'false') return false;
-                    if (arg === 'undefined') return undefined;
-                    if (/^[0-9]+(\.[0-9]+)?$/.test(arg)) return Number(arg);
-                    if (/^("|'|`).*?(`|'|")$/.test(arg)) return arg.slice(1, -1);
-                    return traverse(this.container.data, arg);
-                },
-                get data () {
-                    const parentValue = traverse(this.container.data, this.parentKeys);
-                    const childValue = parentValue?.[this.childKey];
-
-                    if (typeof childValue === 'function') {
-                        return event => {
-                            const args = this.args.map(arg => this.parse(arg, this.container.data));
-                            if (event) args.unshift(event);
-                            return childValue.apply(this.container, args);
-                        };
-                    } else {
-                        return childValue;
-                    }
-                },
-                set data (value: any) {
-                    const parentValue = traverse(this.container.data, this.parentKeys);
-                    const childValue = parentValue?.[this.childKey];
-
-                    if (typeof childValue === 'function') {
-                        parentValue[this.childKey] = event => {
-                            const args = this.args.map(arg => this.parse(arg, this.container.data));
-                            if (event) args.unshift(event);
-                            return childValue.apply(this.container, args);
-                        };
-                    } else {
-                        parentValue[this.childKey] = value;
-                    }
-                }
-            });
-
-            this.data.set(pointer, binder);
-            this.render(binder);
-
-            // if (target.nodeName.includes('-')) {
-            //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
-            // } else {
-            //     this.render(binder);
+            // const args = [];
+            // if (parameter.includes(')')) {
+            //     args.push(...parameter.replace(/.*?\((.*?)\)/, '$1').split(/\s*,\s*/));
+            //     parameter = parameter.replace(/\(.*?\)/, '');
             // }
 
-            return path;
+            // if (parameter.includes(' of ') || parameter.includes(' in ')) {
+            //     parameter = parameter.replace(eachPattern, '');
+            // }
+
+            // const paths = [parameter];
+            for (const path of args) {
+                if (isNative.test(path)) continue;
+
+                const keys = path.split('.');
+                const [key] = keys.slice(-1);
+                const parameter = parameters[index];
+                const childKey = keys.slice(-1)[0];
+                const parentKeys = keys.slice(0, -1);
+
+                const binder = Object.freeze({
+
+                    meta: {},
+                    _meta: { busy: false },
+                    get busy () { return this._meta.busy; },
+                    set busy (busy) { this._meta.busy = busy; },
+
+                    args,
+                    path,
+                    key, keys,
+                    name, value,
+                    childKey, parentKeys,
+                    parameter, parameters,
+
+                    type,
+                    target,
+                    container,
+                    render: self.render,
+                    getAttribute (name: string) {
+                        const node = (target as any).getAttributeNode(name);
+                        if (!node) return undefined;
+                        const data = (self.data?.get(node) as any)?.data;
+                        return data === undefined ? node.value : data;
+                    },
+                    display (data: any) {
+                        if (data === null || data === undefined) return '';
+                        let value = this.value;
+                        this.parameters.forEach(parameter => {
+                            value = value.replace(
+                                parameter, parameter === this.parameter ?
+                                data :
+                                this.parse(parameter.replace(self.syntaxReplace, ''))
+                            );
+                        });
+                        return value;
+                    },
+                    parse (arg) {
+                        if (arg === 'NaN') return NaN;
+                        if (arg === 'null') return null;
+                        if (arg === 'true') return true;
+                        if (arg === 'false') return false;
+                        if (arg === 'undefined') return undefined;
+                        if (/^[0-9]+(\.[0-9]+)?$/.test(arg)) return Number(arg);
+                        if (/^("|'|`).*?(`|'|")$/.test(arg)) return arg.slice(1, -1);
+                        return traverse(this.container.data, arg);
+                    },
+                    get data () {
+                        const parentValue = traverse(this.container.data, this.parentKeys);
+                        const childValue = parentValue?.[this.childKey];
+
+                        if (typeof childValue === 'function') {
+                            return event => {
+                                const args = this.args.map(arg => this.parse(arg, this.container.data));
+                                if (event) args.unshift(event);
+                                return childValue.apply(this.container, args);
+                            };
+                        } else {
+                            return childValue;
+                        }
+                    },
+                    set data (value: any) {
+                        const parentValue = traverse(this.container.data, this.parentKeys);
+                        const childValue = parentValue?.[this.childKey];
+
+                        if (typeof childValue === 'function') {
+                            parentValue[this.childKey] = event => {
+                                const args = this.args.map(arg => this.parse(arg, this.container.data));
+                                if (event) args.unshift(event);
+                                return childValue.apply(this.container, args);
+                            };
+                        } else {
+                            parentValue[this.childKey] = value;
+                        }
+                    }
+                });
+
+                this.data.set(pointer, binder);
+                this.render(binder);
+
+                // if (target.nodeName.includes('-')) {
+                //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
+                // } else {
+                //     this.render(binder);
+                // }
+                // return path;
+            }
+
         }
 
     }
