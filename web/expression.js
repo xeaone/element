@@ -1,23 +1,11 @@
-
 const $string = 'string';
 const $number = 'number';
 const $variable = 'variable';
 const $function = 'function';
 
-type Node = {
-    mode?: boolean,
-    // mode?: string,
-    type?: string,
-    parent?: Node,
-    dots?: number,
-    value?: string,
-    start?: string,
-    children?: any[],
-    execute?: () => any,
-};
-
-const traverse = function (data: any, paths: string[] | string) {
-    paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
+const traverse = function (data, paths) {
+    paths = typeof paths === 'string' ? paths.split(/\.|\[|\]/) : paths;
+    console.log(paths);
 
     if (!paths.length) {
         return data;
@@ -28,7 +16,7 @@ const traverse = function (data: any, paths: string[] | string) {
     }
 };
 
-const finish = function (node: any, data: any) {
+const finish = function (node, data) {
     if (node.type === $string) {
         node.execute = () => node.value.slice(1, -1);
     } else if (node.type === $number) {
@@ -56,48 +44,51 @@ const finish = function (node: any, data: any) {
     }
 };
 
-export default function (expression: string, data: any) {
+export default function expression (expression, data) {
 
-    const tree: Node = {
+    const tree = {
         type: 'tree', children: [], value: null, parent: null,
         execute () {
-            if (this.children.legnth === 1) {
-                return this.children[0].execute();
+            if (tree.children.length === 1) {
+                return tree.children[0].execute();
             } else {
-                return this.children.map(child => child.execute()).join('');
+                console.log(tree.children);
+                return tree.children.map(child => child.execute()).join('');
             }
         }
     };
 
     let parent = tree;
-    // let node: Node;
-    let node: Node = { value: '', parent, children: [], mode: true };
-    // let child: Node;
+    let node = { value: '', parent, children: [] };
 
     for (let i = 0; i < expression.length; i++) {
         const c = expression[i];
         const next = expression[i + 1];
 
-        // if (c === '{' && expression[i + 1] === '{') {
-        //     i++;
-
-        //     if (node.value) {
-        //         node.type = $string;
-        //         node.value = `'${node.value}'`;
-        //         node.parent.children.push(node);
-        //     }
-
-        //     node = { value: '', parent, children: [] };
-
-        // } else if (c === '}' && expression[i + 1] === '}') {
-        //     i++;
-        //     node.parent.children.push(node);
-        //     node = { value: '', parent, children: [], mode: true };
-        // }
-
-        // if (node.mode) continue;
-
         if (
+            c === '{' && next === '{' &&
+            node.type !== $string
+        ) {
+            i++;
+
+            if (node.value) {
+                node.execute = () => node.value;
+                node.parent.children.push(node);
+            }
+
+            node = { value: '', parent };
+        } else if (
+            c === '}' && next === '}' &&
+            node.type !== $string
+        ) {
+            i++;
+            node.type = node.type || 'variable';
+            node.execute = traverse.bind(null, data, node.value);
+            node.parent.children.push(node);
+            node = { value: '', parent };
+        }
+
+        else if (
             node.type === $string ||
             (/['`"]/.test(c) && !node.value)
         ) {
@@ -105,17 +96,12 @@ export default function (expression: string, data: any) {
                 node.value += c;
                 finish(node, data);
                 node.parent.children.push(node);
-                // node = null;
                 node = { value: '', parent };
-                // } else if (!node) {
-                // node = { value: c, type: $string, start: c, parent };
             } else {
                 node.value += c;
                 node.type = $string;
             }
         } else if (
-            // (/[0-9.]/.test(c) && !node) ||
-            // node?.type === $number && /[0-9.]/.test(c)
             node.type === $number ||
             (/[0-9.]/.test(c) && !node.value)
         ) {
@@ -125,22 +111,12 @@ export default function (expression: string, data: any) {
             } else {
                 node = { value: '', parent };
             }
-
-            // if (node) {
-            //     node.value += c;
-            // } else {
-            //     node = { value: c, type: $number, dots: 0, parent };
-            // }
             // if (c === '.') node.dots++;
             // if (node.dots > 1) throw new SyntaxError(node.value);
-
         } else if (',' === c) {
-            // if (node) {
             finish(node, data);
             node.parent.children.push(node);
             node = { value: '', parent };
-            // }
-            // node = null;
         } else if ('(' === c) {
             node.children = [];
             node.type = $function;
@@ -148,50 +124,37 @@ export default function (expression: string, data: any) {
             node.parent.children.push(node);
             parent = node;
             node = { value: '', parent };
-            // node = null;
         } else if (')' === c) {
-            // if (node) {
             finish(node, data);
             node.parent.children.push(node);
             parent = node.parent;
             node = { value: '', parent };
-            // } else {
-            //     parent = parent.parent;
-            // }
-            // node = null;
         } else if (/\s/.test(c)) {
             continue;
         } else {
             node.value += c;
-
-            // if (node) {
-            //     node.value += c;
-            // } else {
-            //     node = { value: c, parent, children: [] };
-            // }
         }
 
     }
 
-    return tree[0].execute;
+    return tree.execute;
 };
 
 // start: test
 const m = {
+    n1: 1,
+    n: { n2: 2 },
+
     foo: 'sFoo',
     bar: 'sBar',
-    one: function (two, oneDotTwo) {
-        return `sOne ${two} ${oneDotTwo + 2}`;
-    },
-    two: function (foo, three) {
-        return `sTwo ${foo} ${three}`;
-    },
-    three: function (bar, helloWorld) {
-        return `sThree ${bar} ${helloWorld + 's'}`;
-    },
+    one: (two, oneDotTwo) => `sOne ${two} ${oneDotTwo + 2}`,
+    two: (foo, three) => `sTwo ${foo} ${three}`,
+    three: (bar, helloWorld) => `sThree ${bar} ${helloWorld + 's'}`,
 };
-const s = `one(two(foo, three(bar, 'hello world')), 1.2)`;
-// window.t = parse(s, m);
-// console.log(t);
+
+console.log(expression(`{{n1}}`, m)());
+console.log(expression(`{{n.n2}}`, m)());
+console.log(expression(`one(two(foo, three(bar, 'hello world')), 1.2)`, m)());
+
 //end: test
 
