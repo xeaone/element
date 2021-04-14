@@ -1,13 +1,13 @@
 // import Batcher from '../batcher';
 import Binder from '../binder';
 
-const submit = async function (event, binder) {
+const submit = async function (event, binder, method) {
     event.preventDefault();
 
     const data = {};
     const elements = event.target.querySelectorAll('*');
     for (let i = 0; i < elements.length; i++) {
-        const element = elements[i];
+        const element = elements[ i ];
 
         if (
             (!element.type && element.nodeName !== 'TEXTAREA') ||
@@ -16,7 +16,7 @@ const submit = async function (event, binder) {
             !element.type
         ) continue;
 
-        const attribute = element.attributes['o-value'];
+        const attribute = element.attributes[ 'o-value' ];
         const b = Binder.get(attribute);
 
         console.warn('todo: need to get a value for selects');
@@ -24,22 +24,22 @@ const submit = async function (event, binder) {
         const value = (
             b ? b.data : (
                 element.files ? (
-                    element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]
+                    element.attributes[ 'multiple' ] ? Array.prototype.slice.call(element.files) : element.files[ 0 ]
                 ) : element.value
             )
         );
 
-        const name = element.name || (b ? b.values[b.values.length - 1] : null);
+        const name = element.name || (b ? b.values[ b.values.length - 1 ] : null);
 
         if (!name) continue;
-        data[name] = value;
+        data[ name ] = value;
     }
 
     // if (typeof binder.data === 'function') {
     //     await binder.data.call(binder.container, data, event);
     // }
 
-    const method = binder.data;
+    // const method = binder.data;
     if (typeof method === 'function') {
         await method.call(binder.container, event, data);
     }
@@ -51,12 +51,12 @@ const submit = async function (event, binder) {
     return false;
 };
 
-const reset = async function (binder, event) {
+const reset = async function (binder, event, method) {
     event.preventDefault();
 
     const elements = event.target.querySelectorAll('*');
     for (let i = 0, l = elements.length; i < l; i++) {
-        const element = elements[i];
+        const element = elements[ i ];
         const name = element.nodeName;
         const type = element.type;
 
@@ -91,7 +91,6 @@ const reset = async function (binder, event) {
 
     }
 
-    const method = binder.data;
     if (typeof method === 'function') {
         await method.call(binder.container, event);
     }
@@ -100,8 +99,8 @@ const reset = async function (binder, event) {
 
 export default function (binder) {
 
-    const read = function () {
-        binder.target[binder.name] = null;
+    const read = async function () {
+        binder.target[ binder.name ] = null;
         const name = binder.name.slice(2);
 
         if (binder.meta.method) {
@@ -124,15 +123,17 @@ export default function (binder) {
         //     });
         // };
 
+        const method = await binder.expression();
+
         binder.meta.method = event => {
             if (name === 'reset') {
                 return reset.call(binder.container, event, binder);
             } else if (name === 'submit') {
                 return submit.call(binder.container, event, binder);
             } else {
-                return binder.data.call(binder.container, event);
+                return method.call(binder.container, event);
             }
-        }
+        };
 
         binder.target.addEventListener(name, binder.meta.method);
     };

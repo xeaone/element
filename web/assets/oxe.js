@@ -82,7 +82,7 @@
         }
     };
     const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
-    const traverse = function (data, paths) {
+    const traverse$1 = function (data, paths) {
         paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
         if (!paths.length) {
             return data;
@@ -91,7 +91,7 @@
             return undefined;
         }
         else {
-            return traverse(data[paths[0]], paths.slice(1));
+            return traverse$1(data[paths[0]], paths.slice(1));
         }
     };
     const match = function (source, target) {
@@ -312,7 +312,7 @@
         let data, checked;
         return {
             async read() {
-                data = await binder.data;
+                data = await binder.expression();
                 if (!binder.meta.setup) {
                     binder.meta.setup = true;
                     binder.target.addEventListener('input', event => Binder.render(binder, event));
@@ -358,7 +358,7 @@
         };
     }
 
-    const bools = [
+    const booleans = [
         'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
         'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
         'indeterminate', 'inert', 'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nohref', 'noresize', 'noshade', 'hidden',
@@ -366,21 +366,18 @@
         'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
     ];
     function Default (binder) {
-        let data, bool;
+        let data, boolean;
         return {
             async read() {
-                data = await binder.data;
-                bool = bools.includes(binder.type);
-                if (bool) {
+                data = await binder.expression();
+                boolean = booleans.includes(binder.type);
+                if (boolean) {
                     data = data ? true : false;
-                }
-                else {
-                    data = binder.display(data);
                 }
             },
             async write() {
                 binder.target[binder.type] = data;
-                if (bool) {
+                if (boolean) {
                     if (data)
                         binder.target.setAttribute(binder.type, '');
                     else
@@ -495,7 +492,7 @@
         };
     }
 
-    const submit = async function (event, binder) {
+    const submit = async function (event, binder, method) {
         event.preventDefault();
         const data = {};
         const elements = event.target.querySelectorAll('*');
@@ -515,7 +512,6 @@
                 continue;
             data[name] = value;
         }
-        const method = binder.data;
         if (typeof method === 'function') {
             await method.call(binder.container, event, data);
         }
@@ -524,7 +520,7 @@
         }
         return false;
     };
-    const reset = async function (binder, event) {
+    const reset = async function (binder, event, method) {
         event.preventDefault();
         const elements = event.target.querySelectorAll('*');
         for (let i = 0, l = elements.length; i < l; i++) {
@@ -562,18 +558,18 @@
                 binder.data = '';
             }
         }
-        const method = binder.data;
         if (typeof method === 'function') {
             await method.call(binder.container, event);
         }
     };
     function on (binder) {
-        const read = function () {
+        const read = async function () {
             binder.target[binder.name] = null;
             const name = binder.name.slice(2);
             if (binder.meta.method) {
                 binder.target.removeEventListener(name, binder.meta.method);
             }
+            const method = await binder.expression();
             binder.meta.method = event => {
                 if (name === 'reset') {
                     return reset.call(binder.container, event, binder);
@@ -582,7 +578,7 @@
                     return submit.call(binder.container, event, binder);
                 }
                 else {
-                    return binder.data.call(binder.container, event);
+                    return method.call(binder.container, event);
                 }
             };
             binder.target.addEventListener(name, binder.meta.method);
@@ -594,7 +590,8 @@
         let data;
         return {
             async read() {
-                data = toString(binder.data);
+                data = await binder.expression();
+                data = toString(data);
             },
             async write() {
                 if (data === binder.target.textContent)
@@ -755,6 +752,152 @@
         }
     }
 
+    const $string = 'string';
+    const $number = 'number';
+    const $variable = 'variable';
+    const $function = 'function';
+    const traverse = function (data, paths) {
+        paths = typeof paths === 'string' ? paths.split(/\.|\[|\]/) : paths;
+        if (!paths.length) {
+            return data;
+        }
+        else if (typeof data !== 'object') {
+            return undefined;
+        }
+        else {
+            return traverse(data[paths[0]], paths.slice(1));
+        }
+    };
+    const finish = function (node, data) {
+        if (node.value === 'NaN') {
+            node.type = 'nan';
+            node.execute = () => NaN;
+        }
+        else if (node.value === 'null') {
+            node.type = 'null';
+            node.execute = () => null;
+        }
+        else if (node.value === 'true') {
+            node.execute = () => true;
+            node.type = 'boolean';
+        }
+        else if (node.value === 'false') {
+            node.type = 'boolean';
+            node.execute = () => false;
+        }
+        else if (node.value === 'undefined') {
+            node.type = 'undefined';
+            node.execute = () => undefined;
+        }
+        else if (node.type === $number) {
+            node.execute = () => Number(node.value);
+        }
+        else if (node.type === $string) {
+            node.execute = () => node.value;
+        }
+        else if (node.type === $function) {
+            node.execute = (...args) => traverse(data, node.value)(...node.children.map(child => child.execute(...args)), ...args);
+        }
+        else {
+            node.type = $variable;
+            node.execute = () => traverse(data, node.value);
+        }
+    };
+    function expression(expression, data) {
+        const tree = { type: 'tree', children: [], value: null, parent: null };
+        let inside = false;
+        let node = { value: '', parent: tree, children: [] };
+        for (let i = 0; i < expression.length; i++) {
+            const c = expression[i];
+            const next = expression[i + 1];
+            const previous = expression[i - 1];
+            if (inside === false &&
+                c === '{' && next === '{') {
+                i++;
+                if (node.value) {
+                    finish(node, data);
+                    node.parent.children.push(node);
+                }
+                inside = true;
+                node = { value: '', parent: node.parent };
+            }
+            else if (inside === true &&
+                c === '}' && next === '}') {
+                i++;
+                if (node.value) {
+                    finish(node, data);
+                    node.parent.children.push(node);
+                }
+                inside = false;
+                node = { value: '', parent: node.parent };
+            }
+            else if (inside === false) {
+                node.value += c;
+                node.type = $string;
+            }
+            else if (/'|`|"/.test(c) && !node.type || node.type === $string) {
+                node.type = $string;
+                node.value += c;
+                if (node.value.length > 1 && node.value[0] === c && previous !== '\\') {
+                    node.value = node.value.slice(1, -1);
+                    finish(node, data);
+                    node.parent.children.push(node);
+                    node = { value: '', parent: node.parent };
+                }
+            }
+            else if (/[0-9.]/.test(c) && !node.type || node.type === $number) {
+                node.type = $number;
+                node.value += c;
+                if (!/[0-9.]/.test(next)) {
+                    finish(node, data);
+                    node.parent.children.push(node);
+                    node = { value: '', parent: node.parent };
+                }
+            }
+            else if (',' === c) {
+                if (node.value) {
+                    finish(node, data);
+                    node.parent.children.push(node);
+                    node = { value: '', parent: node.parent };
+                }
+            }
+            else if ('(' === c) {
+                node.children = [];
+                node.type = $function;
+                finish(node, data);
+                node.parent.children.push(node);
+                node = { value: '', parent: node };
+            }
+            else if (')' === c) {
+                if (node.value) {
+                    finish(node, data);
+                    node.parent.children.push(node);
+                }
+                node = { value: '', parent: node.parent.parent };
+            }
+            else if (/\s/.test(c)) {
+                continue;
+            }
+            else if (/[a-zA-Z$_]/.test(c) && !node.type || node.type === $variable) {
+                node.type = $variable;
+                node.value += c;
+            }
+            else {
+                node.value += c;
+            }
+        }
+        if (node.type) {
+            node.execute = function (value) { return value; }.bind(null, node.value);
+            tree.children.push(node);
+        }
+        if (tree.children.length === 1) {
+            return (...args) => tree.children[0].execute(...args);
+        }
+        else {
+            return (...args) => tree.children.map(child => child.execute(...args)).join('');
+        }
+    }
+
     const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
     const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
     const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
@@ -824,8 +967,8 @@
             const parameters = value.match(PARAMETER_PATTERNS);
             if (!parameters)
                 return console.error(`Oxe.binder.bind - value ${value} is not valid`);
-            console.log(parameters);
             const type = name.startsWith('on') ? 'on' : name;
+            const expression$1 = expression(value, container.data);
             for (let index = 0; index < parameters.length; index++) {
                 let parameter = parameters[index].replace(this.syntaxReplace, '');
                 const args = parameter.replace(eachPattern, '').split(Instructions);
@@ -842,6 +985,7 @@
                         _meta: { busy: false },
                         get busy() { return this._meta.busy; },
                         set busy(busy) { this._meta.busy = busy; },
+                        expression: expression$1,
                         args,
                         path,
                         key, keys,
@@ -885,10 +1029,10 @@
                                 return Number(arg);
                             if (/^("|'|`).*?(`|'|")$/.test(arg))
                                 return arg.slice(1, -1);
-                            return traverse(this.container.data, arg);
+                            return traverse$1(this.container.data, arg);
                         },
                         get data() {
-                            const parentValue = traverse(this.container.data, this.parentKeys);
+                            const parentValue = traverse$1(this.container.data, this.parentKeys);
                             const childValue = parentValue?.[this.childKey];
                             if (typeof childValue === 'function') {
                                 return event => {
@@ -903,7 +1047,7 @@
                             }
                         },
                         set data(value) {
-                            const parentValue = traverse(this.container.data, this.parentKeys);
+                            const parentValue = traverse$1(this.container.data, this.parentKeys);
                             const childValue = parentValue?.[this.childKey];
                             if (typeof childValue === 'function') {
                                 parentValue[this.childKey] = event => {

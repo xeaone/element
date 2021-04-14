@@ -5,7 +5,7 @@ export default function (binder, event) {
     let data, value, checked;
     return {
         async read () {
-            data = await binder.data;
+            data = await binder.expression();
 
             if (!binder.meta.setup) {
                 binder.meta.setup = true;
@@ -28,7 +28,6 @@ export default function (binder, event) {
             }
 
             console.log('checked', data);
-
 
         },
         async write () {

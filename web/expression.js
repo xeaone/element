@@ -34,9 +34,9 @@ const finish = function (node, data) {
     } else if (node.type === $number) {
         node.execute = () => Number(node.value);
     } else if (node.type === $string) {
-        node.execute = () => node.value.slice(1, -1);
+        node.execute = () => node.value;
     } else if (node.type === $function) {
-        node.execute = () => traverse(data, node.value)(...node.children.map(child => child.execute()));
+        node.execute = (...args) => traverse(data, node.value)(...node.children.map(child => child.execute(...args)), ...args);
     } else {
         node.type = $variable;
         node.execute = () => traverse(data, node.value);
@@ -47,92 +47,88 @@ export default function expression (expression, data) {
     const tree = { type: 'tree', children: [], value: null, parent: null };
 
     let inside = false;
-    let parent = tree;
-    let node = { value: '', parent, children: [] };
+    let node = { value: '', parent: tree, children: [] };
 
     for (let i = 0; i < expression.length; i++) {
         const c = expression[ i ];
         const next = expression[ i + 1 ];
-
-        if (
-            inside === true &&
-            node.type !== $string &&
-            /\s/.test(c)
-        ) continue;
+        const previous = expression[ i - 1 ];
 
         if (
             inside === false &&
-            node.type !== $string &&
             c === '{' && next === '{'
         ) {
             i++;
 
             if (node.value) {
-                node.execute = function (value) { return value; }.bind(null, node.value);
+                finish(node, data);
                 node.parent.children.push(node);
             }
 
             inside = true;
-            node = { value: '', parent };
+            node = { value: '', parent: node.parent };
         } else if (
             inside === true &&
-            node.type !== $string &&
             c === '}' && next === '}'
         ) {
             i++;
 
-            node.type = node.type || 'variable';
-            node.execute = traverse.bind(null, data, node.value);
-            node.parent.children.push(node);
-
-            inside = false;
-            node = { value: '', parent };
-        } else {
-            node.value += c;
-        }
-
-        if (inside === false) continue;
-
-        if (
-            node.type === $string ||
-            (/['`"]/.test(c) && !node.value && !node.type)
-        ) {
-            node.type = $string;
-
-            if (node.value[ 0 ] === c && expression[ i - 1 ] !== '\\') {
+            if (node.value) {
                 finish(node, data);
                 node.parent.children.push(node);
-                node = { value: '', parent };
             }
 
-        } else if (
-            node.type === $number ||
-            (/[0-9.]/.test(c) && !node.value && !node.type)
-        ) {
+            inside = false;
+            node = { value: '', parent: node.parent };
+        } else if (inside === false) {
+            node.value += c;
+            node.type = $string;
+        } else if (/'|`|"/.test(c) && !node.type || node.type === $string) {
+            node.type = $string;
+            node.value += c;
+
+            if (node.value.length > 1 && node.value[ 0 ] === c && previous !== '\\') {
+                node.value = node.value.slice(1, -1);
+                finish(node, data);
+                node.parent.children.push(node);
+                node = { value: '', parent: node.parent };
+            }
+
+        } else if (/[0-9.]/.test(c) && !node.type || node.type === $number) {
             node.type = $number;
+            node.value += c;
 
             if (!/[0-9.]/.test(next)) {
                 finish(node, data);
                 node.parent.children.push(node);
-                node = { value: '', parent };
+                node = { value: '', parent: node.parent };
             }
 
         } else if (',' === c) {
-            finish(node, data);
-            node.parent.children.push(node);
-            node = { value: '', parent };
+            if (node.value) {
+                finish(node, data);
+                node.parent.children.push(node);
+                node = { value: '', parent: node.parent };
+            }
         } else if ('(' === c) {
             node.children = [];
             node.type = $function;
             finish(node, data);
             node.parent.children.push(node);
-            parent = node;
-            node = { value: '', parent };
+            node = { value: '', parent: node };
         } else if (')' === c) {
-            finish(node, data);
-            node.parent.children.push(node);
-            parent = node.parent;
-            node = { value: '', parent };
+            if (node.value) {
+                finish(node, data);
+                node.parent.children.push(node);
+            }
+            node = { value: '', parent: node.parent.parent };
+        } else if (/\s/.test(c)) {
+            continue;
+        } else if (/[a-zA-Z$_]/.test(c) && !node.type || node.type === $variable) {
+            node.type = $variable;
+            node.value += c;
+        } else {
+            node.value += c;
         }
 
     }
@@ -144,9 +140,9 @@ export default function expression (expression, data) {
     console.log(tree);
 
     if (tree.children.length === 1) {
-        return () => tree.children[ 0 ].execute();
+        return (...args) => tree.children[ 0 ].execute(...args);
     } else {
-        return () => tree.children.map(child => child.execute()).join('');
+        return (...args) => tree.children.map(child => child.execute(...args)).join('');
     }
 
 };
@@ -160,16 +156,17 @@ const m = {
 
     foo: 'sFoo',
     bar: 'sBar',
-    one: (two, oneDotTwo) => `sOne ${two} ${oneDotTwo + 2}`,
+    one: (two, oneDotTwo, blue) => `sOne ${two} ${oneDotTwo + 2} ${blue}`,
     two: (foo, three) => `sTwo ${foo} ${three}`,
     three: (bar, helloWorld) => `sThree ${bar} ${helloWorld + 's'}`,
 };
 
-console.log(expression(`hello {{ w }}.`, m)());
-
-console.log(expression(`{{n1}}`, m)());
+// console.log(expression(`hello {{w}}.`, m)());
+// console.log(expression(`{{n1}}`, m)());
 // console.log(expression(`{{n.n2}}`, m)());
-// console.log(expression(`one(two(foo, three(bar, 'hello world')), 1.2)`, m)());
+console.log(
+    expression(`{{one(two(foo, three(bar, 'hello world')), 1.2)}}`, m)('blue')
+);
 
 //end: test
 

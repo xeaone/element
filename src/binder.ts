@@ -10,6 +10,7 @@ import html from './binder/html';
 import on from './binder/on';
 import text from './binder/text';
 import value from './binder/value';
+import Expression from './expression';
 
 // const PIPE = /\s?\|\s?/;
 // const PIPES = /\s?,\s?|\s+/;
@@ -52,7 +53,7 @@ export default new class Binder {
         if (binders) {
             for (const name in binders) {
                 if (name in this.binders === false) {
-                    this.binders[name] = binders[name].bind(this);
+                    this.binders[ name ] = binders[ name ].bind(this);
                 }
             }
         }
@@ -68,7 +69,7 @@ export default new class Binder {
         else binder.busy = true;
 
         const type = binder.type in this.binders ? binder.type : 'default';
-        const render = this.binders[type](binder, ...extra);
+        const render = this.binders[ type ](binder, ...extra);
 
         if (render) {
             const context = {};
@@ -95,12 +96,12 @@ export default new class Binder {
 
         const parameters = value.match(PARAMETER_PATTERNS);
         if (!parameters) return console.error(`Oxe.binder.bind - value ${value} is not valid`);
-        console.log(parameters);
 
         const type = name.startsWith('on') ? 'on' : name;
+        const expression = Expression(value, container.data);
 
         for (let index = 0; index < parameters.length; index++) {
-            let parameter = parameters[index].replace(this.syntaxReplace, '');
+            let parameter = parameters[ index ].replace(this.syntaxReplace, '');
 
             const args = parameter.replace(eachPattern, '').split(Instructions);
 
@@ -119,9 +120,9 @@ export default new class Binder {
                 if (isNative.test(path)) continue;
 
                 const keys = path.split('.');
-                const [key] = keys.slice(-1);
-                const parameter = parameters[index];
-                const childKey = keys.slice(-1)[0];
+                const [ key ] = keys.slice(-1);
+                const parameter = parameters[ index ];
+                const childKey = keys.slice(-1)[ 0 ];
                 const parentKeys = keys.slice(0, -1);
 
                 const binder = Object.freeze({
@@ -130,6 +131,8 @@ export default new class Binder {
                     _meta: { busy: false },
                     get busy () { return this._meta.busy; },
                     set busy (busy) { this._meta.busy = busy; },
+
+                    expression,
 
                     args,
                     path,
@@ -172,7 +175,7 @@ export default new class Binder {
                     },
                     get data () {
                         const parentValue = traverse(this.container.data, this.parentKeys);
-                        const childValue = parentValue?.[this.childKey];
+                        const childValue = parentValue?.[ this.childKey ];
 
                         if (typeof childValue === 'function') {
                             return event => {
@@ -186,16 +189,16 @@ export default new class Binder {
                     },
                     set data (value: any) {
                         const parentValue = traverse(this.container.data, this.parentKeys);
-                        const childValue = parentValue?.[this.childKey];
+                        const childValue = parentValue?.[ this.childKey ];
 
                         if (typeof childValue === 'function') {
-                            parentValue[this.childKey] = event => {
+                            parentValue[ this.childKey ] = event => {
                                 const args = this.args.map(arg => this.parse(arg, this.container.data));
                                 if (event) args.unshift(event);
                                 return childValue.apply(this.container, args);
                             };
                         } else {
-                            parentValue[this.childKey] = value;
+                            parentValue[ this.childKey ] = value;
                         }
                     }
                 });
@@ -221,7 +224,7 @@ export default new class Binder {
         if (type === EN) {
             const attributes = (node as Element).attributes;
             for (let i = 0; i < attributes.length; i++) {
-                const attribute = attributes[i];
+                const attribute = attributes[ i ];
                 this.unbind(attribute);
             }
         }
@@ -270,7 +273,7 @@ export default new class Binder {
 
             const attributes = (node as Element).attributes;
             for (let i = 0; i < attributes.length; i++) {
-                const attribute = attributes[i];
+                const attribute = attributes[ i ];
                 const { name, value } = attribute;
 
                 if (
