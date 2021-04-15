@@ -39,7 +39,7 @@ export default new class Binder {
 
     binders = {
         checked,
-        class: Class,
+        // class: Class,
         default: Default,
         each,
         html,
@@ -94,127 +94,129 @@ export default new class Binder {
             return;
         }
 
-        const parameters = value.match(PARAMETER_PATTERNS);
-        if (!parameters) return console.error(`Oxe.binder.bind - value ${value} is not valid`);
+        // const parameters = value.match(PARAMETER_PATTERNS);
+        // if (!parameters) return console.error(`Oxe.binder.bind - value ${value} is not valid`);
 
         const type = name.startsWith('on') ? 'on' : name;
-        const expression = Expression(value, container.data);
+        // const expression = Expression(value, container.data);
 
-        for (let index = 0; index < parameters.length; index++) {
-            let parameter = parameters[ index ].replace(this.syntaxReplace, '');
+        const tree = Expression(value, container.data);
 
-            const args = parameter.replace(eachPattern, '').split(Instructions);
+        // for (let index = 0; index < parameters.length; index++) {
+        // let parameter = parameters[ index ].replace(this.syntaxReplace, '');
+        // const args = parameter.replace(eachPattern, '').split(Instructions);
 
-            // const args = [];
-            // if (parameter.includes(')')) {
-            //     args.push(...parameter.replace(/.*?\((.*?)\)/, '$1').split(/\s*,\s*/));
-            //     parameter = parameter.replace(/\(.*?\)/, '');
-            // }
+        // const args = [];
+        // if (parameter.includes(')')) {
+        //     args.push(...parameter.replace(/.*?\((.*?)\)/, '$1').split(/\s*,\s*/));
+        //     parameter = parameter.replace(/\(.*?\)/, '');
+        // }
 
-            // if (parameter.includes(' of ') || parameter.includes(' in ')) {
-            //     parameter = parameter.replace(eachPattern, '');
-            // }
+        // if (parameter.includes(' of ') || parameter.includes(' in ')) {
+        //     parameter = parameter.replace(eachPattern, '');
+        // }
 
-            // const paths = [parameter];
-            for (const path of args) {
-                if (isNative.test(path)) continue;
+        // const paths = [parameter];
+        for (const path of tree.paths) {
+            // for (const path of args) {
+            if (isNative.test(path)) continue;
 
-                const keys = path.split('.');
-                const [ key ] = keys.slice(-1);
-                const parameter = parameters[ index ];
-                const childKey = keys.slice(-1)[ 0 ];
-                const parentKeys = keys.slice(0, -1);
+            const keys = path.split('.');
+            const [ key ] = keys.slice(-1);
+            // const parameter = parameters[ index ];
+            const childKey = keys.slice(-1)[ 0 ];
+            const parentKeys = keys.slice(0, -1);
 
-                const binder = Object.freeze({
+            const binder = Object.freeze({
 
-                    meta: {},
-                    _meta: { busy: false },
-                    get busy () { return this._meta.busy; },
-                    set busy (busy) { this._meta.busy = busy; },
+                meta: {},
+                _meta: { busy: false },
+                get busy () { return this._meta.busy; },
+                set busy (busy) { this._meta.busy = busy; },
 
-                    expression,
+                expression: tree.execute,
 
-                    args,
-                    path,
-                    key, keys,
-                    name, value,
-                    childKey, parentKeys,
-                    parameter, parameters,
+                // args,
+                path,
+                key, keys,
+                name, value,
+                childKey, parentKeys,
+                // parameter, parameters,
 
-                    type,
-                    target,
-                    container,
-                    render: self.render,
-                    getAttribute (name: string) {
-                        const node = (target as any).getAttributeNode(name);
-                        if (!node) return undefined;
-                        const data = (self.data?.get(node) as any)?.data;
-                        return data === undefined ? node.value : data;
-                    },
-                    display (data: any) {
-                        if (data === null || data === undefined) return '';
-                        let value = this.value;
-                        this.parameters.forEach(parameter => {
-                            value = value.replace(
-                                parameter, parameter === this.parameter ?
-                                data :
-                                this.parse(parameter.replace(self.syntaxReplace, ''))
-                            );
-                        });
-                        return value;
-                    },
-                    parse (arg) {
-                        if (arg === 'NaN') return NaN;
-                        if (arg === 'null') return null;
-                        if (arg === 'true') return true;
-                        if (arg === 'false') return false;
-                        if (arg === 'undefined') return undefined;
-                        if (/^[0-9]+(\.[0-9]+)?$/.test(arg)) return Number(arg);
-                        if (/^("|'|`).*?(`|'|")$/.test(arg)) return arg.slice(1, -1);
-                        return traverse(this.container.data, arg);
-                    },
-                    get data () {
-                        const parentValue = traverse(this.container.data, this.parentKeys);
-                        const childValue = parentValue?.[ this.childKey ];
+                type,
+                target,
+                container,
+                render: self.render,
+                getAttribute (name: string) {
+                    const node = (target as any).getAttributeNode(name);
+                    if (!node) return undefined;
+                    const data = (self.data?.get(node) as any)?.data;
+                    return data === undefined ? node.value : data;
+                },
+                // display (data: any) {
+                //     if (data === null || data === undefined) return '';
+                //     let value = this.value;
+                //     this.parameters.forEach(parameter => {
+                //         value = value.replace(
+                //             parameter, parameter === this.parameter ?
+                //             data :
+                //             this.parse(parameter.replace(self.syntaxReplace, ''))
+                //         );
+                //     });
+                //     return value;
+                // },
+                // parse (arg) {
+                //     if (arg === 'NaN') return NaN;
+                //     if (arg === 'null') return null;
+                //     if (arg === 'true') return true;
+                //     if (arg === 'false') return false;
+                //     if (arg === 'undefined') return undefined;
+                //     if (/^[0-9]+(\.[0-9]+)?$/.test(arg)) return Number(arg);
+                //     if (/^("|'|`).*?(`|'|")$/.test(arg)) return arg.slice(1, -1);
+                //     return traverse(this.container.data, arg);
+                // },
+                get data () {
+                    const parentValue = traverse(this.container.data, this.parentKeys);
+                    const childValue = parentValue?.[ this.childKey ];
 
-                        if (typeof childValue === 'function') {
-                            return event => {
-                                const args = this.args.map(arg => this.parse(arg, this.container.data));
-                                if (event) args.unshift(event);
-                                return childValue.apply(this.container, args);
-                            };
-                        } else {
-                            return childValue;
-                        }
-                    },
-                    set data (value: any) {
-                        const parentValue = traverse(this.container.data, this.parentKeys);
-                        const childValue = parentValue?.[ this.childKey ];
-
-                        if (typeof childValue === 'function') {
-                            parentValue[ this.childKey ] = event => {
-                                const args = this.args.map(arg => this.parse(arg, this.container.data));
-                                if (event) args.unshift(event);
-                                return childValue.apply(this.container, args);
-                            };
-                        } else {
-                            parentValue[ this.childKey ] = value;
-                        }
+                    if (typeof childValue === 'function') {
+                        return event => {
+                            const args = this.args.map(arg => this.parse(arg, this.container.data));
+                            if (event) args.unshift(event);
+                            return childValue.apply(this.container, args);
+                        };
+                    } else {
+                        return childValue;
                     }
-                });
+                },
+                set data (value: any) {
+                    const parentValue = traverse(this.container.data, this.parentKeys);
+                    const childValue = parentValue?.[ this.childKey ];
 
-                this.data.set(pointer, binder);
-                this.render(binder);
+                    if (typeof childValue === 'function') {
+                        parentValue[ this.childKey ] = event => {
+                            const args = this.args.map(arg => this.parse(arg, this.container.data));
+                            if (event) args.unshift(event);
+                            return childValue.apply(this.container, args);
+                        };
+                    } else {
+                        parentValue[ this.childKey ] = value;
+                    }
+                }
+            });
 
-                // if (target.nodeName.includes('-')) {
-                //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
-                // } else {
-                //     this.render(binder);
-                // }
-                // return path;
-            }
+            this.data.set(pointer, binder);
+            this.render(binder);
 
+            // if (target.nodeName.includes('-')) {
+            //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
+            // } else {
+            //     this.render(binder);
+            // }
+            // return path;
         }
+
+        // }
 
     }
 

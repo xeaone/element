@@ -339,25 +339,6 @@
         };
     }
 
-    function Class (binder) {
-        let data;
-        return {
-            async read() {
-                data = await binder.data;
-                if (typeof data !== 'string')
-                    data = data ? binder.key : '';
-                if (data === binder.target.className) {
-                    this.write = false;
-                    return;
-                }
-            },
-            async write() {
-                binder.target.className = data;
-                binder.target.setAttribute('class', data);
-            }
-        };
-    }
-
     const booleans = [
         'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
         'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
@@ -366,17 +347,18 @@
         'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
     ];
     function Default (binder) {
-        let data, boolean;
+        let data, result, boolean;
         return {
             async read() {
                 data = await binder.expression();
                 boolean = booleans.includes(binder.type);
+                console.log(binder, data);
                 if (boolean) {
                     data = data ? true : false;
                 }
             },
             async write() {
-                binder.target[binder.type] = data;
+                binder.target[binder.type] = result;
                 if (boolean) {
                     if (data)
                         binder.target.setAttribute(binder.type, '');
@@ -706,7 +688,6 @@
             return {
                 async read() {
                     data = await binder.data;
-                    data = await binder.display(data);
                     console.log(data);
                 },
                 async write() {
@@ -768,7 +749,7 @@
             return traverse(data[paths[0]], paths.slice(1));
         }
     };
-    const finish = function (node, data) {
+    const finish = function (node, data, tree) {
         if (node.value === 'NaN') {
             node.type = 'nan';
             node.execute = () => NaN;
@@ -778,8 +759,8 @@
             node.execute = () => null;
         }
         else if (node.value === 'true') {
-            node.execute = () => true;
             node.type = 'boolean';
+            node.execute = () => true;
         }
         else if (node.value === 'false') {
             node.type = 'boolean';
@@ -796,15 +777,17 @@
             node.execute = () => node.value;
         }
         else if (node.type === $function) {
+            tree.paths.push(node.value);
             node.execute = (...args) => traverse(data, node.value)(...node.children.map(child => child.execute(...args)), ...args);
         }
         else {
             node.type = $variable;
+            tree.paths.push(node.value);
             node.execute = () => traverse(data, node.value);
         }
     };
     function expression(expression, data) {
-        const tree = { type: 'tree', children: [], value: null, parent: null };
+        const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, execute: null };
         let inside = false;
         let node = { value: '', parent: tree, children: [] };
         for (let i = 0; i < expression.length; i++) {
@@ -815,7 +798,7 @@
                 c === '{' && next === '{') {
                 i++;
                 if (node.value) {
-                    finish(node, data);
+                    finish(node, data, tree);
                     node.parent.children.push(node);
                 }
                 inside = true;
@@ -825,7 +808,7 @@
                 c === '}' && next === '}') {
                 i++;
                 if (node.value) {
-                    finish(node, data);
+                    finish(node, data, tree);
                     node.parent.children.push(node);
                 }
                 inside = false;
@@ -840,7 +823,7 @@
                 node.value += c;
                 if (node.value.length > 1 && node.value[0] === c && previous !== '\\') {
                     node.value = node.value.slice(1, -1);
-                    finish(node, data);
+                    finish(node, data, tree);
                     node.parent.children.push(node);
                     node = { value: '', parent: node.parent };
                 }
@@ -849,14 +832,14 @@
                 node.type = $number;
                 node.value += c;
                 if (!/[0-9.]/.test(next)) {
-                    finish(node, data);
+                    finish(node, data, tree);
                     node.parent.children.push(node);
                     node = { value: '', parent: node.parent };
                 }
             }
             else if (',' === c) {
                 if (node.value) {
-                    finish(node, data);
+                    finish(node, data, tree);
                     node.parent.children.push(node);
                     node = { value: '', parent: node.parent };
                 }
@@ -864,13 +847,13 @@
             else if ('(' === c) {
                 node.children = [];
                 node.type = $function;
-                finish(node, data);
+                finish(node, data, tree);
                 node.parent.children.push(node);
                 node = { value: '', parent: node };
             }
             else if (')' === c) {
                 if (node.value) {
-                    finish(node, data);
+                    finish(node, data, tree);
                     node.parent.children.push(node);
                 }
                 node = { value: '', parent: node.parent.parent };
@@ -891,17 +874,15 @@
             tree.children.push(node);
         }
         if (tree.children.length === 1) {
-            return (...args) => tree.children[0].execute(...args);
+            tree.execute = (...args) => tree.children[0].execute(...args);
         }
         else {
-            return (...args) => tree.children.map(child => child.execute(...args)).join('');
+            tree.execute = (...args) => tree.children.map(child => child.execute(...args)).join('');
         }
+        return tree;
     }
 
-    const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
     const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
-    const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
-    const eachPattern = /.*?\s+(of|in)\s+/;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     var Binder = new class Binder {
@@ -914,7 +895,6 @@
             this.syntaxReplace = new RegExp('{{|}}', 'g');
             this.binders = {
                 checked,
-                class: Class,
                 default: Default,
                 each,
                 html,
@@ -964,107 +944,69 @@
                 target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
                 return;
             }
-            const parameters = value.match(PARAMETER_PATTERNS);
-            if (!parameters)
-                return console.error(`Oxe.binder.bind - value ${value} is not valid`);
             const type = name.startsWith('on') ? 'on' : name;
-            const expression$1 = expression(value, container.data);
-            for (let index = 0; index < parameters.length; index++) {
-                let parameter = parameters[index].replace(this.syntaxReplace, '');
-                const args = parameter.replace(eachPattern, '').split(Instructions);
-                for (const path of args) {
-                    if (isNative.test(path))
-                        continue;
-                    const keys = path.split('.');
-                    const [key] = keys.slice(-1);
-                    const parameter = parameters[index];
-                    const childKey = keys.slice(-1)[0];
-                    const parentKeys = keys.slice(0, -1);
-                    const binder = Object.freeze({
-                        meta: {},
-                        _meta: { busy: false },
-                        get busy() { return this._meta.busy; },
-                        set busy(busy) { this._meta.busy = busy; },
-                        expression: expression$1,
-                        args,
-                        path,
-                        key, keys,
-                        name, value,
-                        childKey, parentKeys,
-                        parameter, parameters,
-                        type,
-                        target,
-                        container,
-                        render: self.render,
-                        getAttribute(name) {
-                            const node = target.getAttributeNode(name);
-                            if (!node)
-                                return undefined;
-                            const data = self.data?.get(node)?.data;
-                            return data === undefined ? node.value : data;
-                        },
-                        display(data) {
-                            if (data === null || data === undefined)
-                                return '';
-                            let value = this.value;
-                            this.parameters.forEach(parameter => {
-                                value = value.replace(parameter, parameter === this.parameter ?
-                                    data :
-                                    this.parse(parameter.replace(self.syntaxReplace, '')));
-                            });
-                            return value;
-                        },
-                        parse(arg) {
-                            if (arg === 'NaN')
-                                return NaN;
-                            if (arg === 'null')
-                                return null;
-                            if (arg === 'true')
-                                return true;
-                            if (arg === 'false')
-                                return false;
-                            if (arg === 'undefined')
-                                return undefined;
-                            if (/^[0-9]+(\.[0-9]+)?$/.test(arg))
-                                return Number(arg);
-                            if (/^("|'|`).*?(`|'|")$/.test(arg))
-                                return arg.slice(1, -1);
-                            return traverse$1(this.container.data, arg);
-                        },
-                        get data() {
-                            const parentValue = traverse$1(this.container.data, this.parentKeys);
-                            const childValue = parentValue?.[this.childKey];
-                            if (typeof childValue === 'function') {
-                                return event => {
-                                    const args = this.args.map(arg => this.parse(arg, this.container.data));
-                                    if (event)
-                                        args.unshift(event);
-                                    return childValue.apply(this.container, args);
-                                };
-                            }
-                            else {
-                                return childValue;
-                            }
-                        },
-                        set data(value) {
-                            const parentValue = traverse$1(this.container.data, this.parentKeys);
-                            const childValue = parentValue?.[this.childKey];
-                            if (typeof childValue === 'function') {
-                                parentValue[this.childKey] = event => {
-                                    const args = this.args.map(arg => this.parse(arg, this.container.data));
-                                    if (event)
-                                        args.unshift(event);
-                                    return childValue.apply(this.container, args);
-                                };
-                            }
-                            else {
-                                parentValue[this.childKey] = value;
-                            }
+            const tree = expression(value, container.data);
+            for (const path of tree.paths) {
+                if (isNative.test(path))
+                    continue;
+                const keys = path.split('.');
+                const [key] = keys.slice(-1);
+                const childKey = keys.slice(-1)[0];
+                const parentKeys = keys.slice(0, -1);
+                const binder = Object.freeze({
+                    meta: {},
+                    _meta: { busy: false },
+                    get busy() { return this._meta.busy; },
+                    set busy(busy) { this._meta.busy = busy; },
+                    expression: tree.execute,
+                    path,
+                    key, keys,
+                    name, value,
+                    childKey, parentKeys,
+                    type,
+                    target,
+                    container,
+                    render: self.render,
+                    getAttribute(name) {
+                        const node = target.getAttributeNode(name);
+                        if (!node)
+                            return undefined;
+                        const data = self.data?.get(node)?.data;
+                        return data === undefined ? node.value : data;
+                    },
+                    get data() {
+                        const parentValue = traverse$1(this.container.data, this.parentKeys);
+                        const childValue = parentValue?.[this.childKey];
+                        if (typeof childValue === 'function') {
+                            return event => {
+                                const args = this.args.map(arg => this.parse(arg, this.container.data));
+                                if (event)
+                                    args.unshift(event);
+                                return childValue.apply(this.container, args);
+                            };
                         }
-                    });
-                    this.data.set(pointer, binder);
-                    this.render(binder);
-                }
+                        else {
+                            return childValue;
+                        }
+                    },
+                    set data(value) {
+                        const parentValue = traverse$1(this.container.data, this.parentKeys);
+                        const childValue = parentValue?.[this.childKey];
+                        if (typeof childValue === 'function') {
+                            parentValue[this.childKey] = event => {
+                                const args = this.args.map(arg => this.parse(arg, this.container.data));
+                                if (event)
+                                    args.unshift(event);
+                                return childValue.apply(this.container, args);
+                            };
+                        }
+                        else {
+                            parentValue[this.childKey] = value;
+                        }
+                    }
+                });
+                this.data.set(pointer, binder);
+                this.render(binder);
             }
         }
         async remove(node) {

@@ -9,12 +9,14 @@ const booleans = [
 ];
 
 export default function (binder) {
-    let data, boolean;
+    let data, result, boolean;
     return {
         async read () {
             // data = await binder.data;
             data = await binder.expression();
             boolean = booleans.includes(binder.type);
+
+            console.log(binder, data);
 
             if (boolean) {
                 data = data ? true : false;
@@ -22,10 +24,14 @@ export default function (binder) {
                 // data = data === null || data === undefined ? '' : data;
                 // data = binder.display(data);
             }
+            // else if (typeof data === 'boolean') {
+            //     console.log(binder.key);
+            //     result = data ? binder.key : '';
+            // }
 
         },
         async write () {
-            binder.target[ binder.type ] = data;
+            binder.target[ binder.type ] = result;
 
             if (boolean) {
                 if (data) binder.target.setAttribute(binder.type, '');

@@ -19,7 +19,7 @@ const input = function (binder) {
         binder.data = toNumber(binder.target.value);
     } else if (type === 'file') {
         const multiple = binder.target.multiple;
-        binder.data = multiple ? [...binder.target.files] : binder.target.files[0];
+        binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
     } else {
         binder.data = binder.target.value;
     }
@@ -67,9 +67,9 @@ export default function (binder, event) {
                 ctx.unselects = [];
 
                 for (let i = 0; i < ctx.options.length; i++) {
-                    const node = ctx.options[i];
+                    const node = ctx.options[ i ];
                     const selected = node.selected;
-                    const attribute = node.attributes['o-value'] || node.attributes['value'];
+                    const attribute = node.attributes[ 'o-value' ] || node.attributes[ 'value' ];
                     const option = Binder.get(attribute) || { get data () { return node.value; }, set data (data) { node.value = data; } };
                     if (ctx.multiple) {
                         const index = Index(binder.data, option.data);
@@ -264,7 +264,7 @@ export default function (binder, event) {
         return {
             async read () {
                 data = await binder.data;
-                data = await binder.display(data);
+                // data = await binder.display(data);
                 console.log(data);
             },
             async write () {
@@ -290,7 +290,7 @@ export default function (binder, event) {
             read (ctx) {
                 ctx.data = binder.data;
                 ctx.multiple = binder.target.multiple;
-                ctx.value = ctx.multiple ? [...binder.target.files] : binder.target.files[0];
+                ctx.value = ctx.multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
             }
         };
     } else {

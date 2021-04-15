@@ -14,21 +14,15 @@ export default function (binder, event) {
 
             if (isBoolean(data)) {
                 checked = event ? binder.target.checked : data;
-                // } else {
-                //     value = binder.getAttribute('value');
-                //     checked = match(data, value);
             }
 
             if (event) {
                 if (isBoolean(data)) {
                     binder.data = checked;
-                    // } else {
-                    // binder.data = value;
                 }
             }
 
             console.log('checked', data);
-
         },
         async write () {
             binder.target.checked = checked;

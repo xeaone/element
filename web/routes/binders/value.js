@@ -50,13 +50,7 @@ export default class BinderValueRoute extends Component {
         <br>
         <br>
 
-        <strong>type="checkbox" As Boolean</strong>
-        <div>{{checkbox}}</div>
-        <input checked="{{checkbox}}" type="checkbox" oninput="{{checkboxInput}}">
-        <i>checked attribute linked to boolean on model with no value attribute.</i>
-        <br>
-        <input value="{{checkbox}}" checked="{{checkbox}}" type="checkbox" oninput="{{checkboxInput}}">
-        <i>checked boolean value and checked attribute</i>
+>
 
         <br>
         <br>

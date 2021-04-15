@@ -1,3 +1,12 @@
+body {
+	font-size: 15px;
+}
+body > * {
+	font-size: 1rem;
+	color: dimgray;
+	box-sizing: border-box;
+	font-family: sans-serif;
+}
 html, body {
 	flex: 1;
     margin: 0;
@@ -8,11 +17,6 @@ html, body {
 	overflow-x: hidden;
     flex-direction: column;
 	background-color: white;
-}
-body > * {
-	color: dimgray;
-	box-sizing: border-box;
-	font-family: sans-serif;
 }
 a {
 	cursor: pointer;
@@ -39,11 +43,15 @@ h2 {
 	font-size: 2.9rem;
 	margin: 3rem 0 1rem 0;
 }
-hr {
-	margin: 3rem 0;
+h3 {
+	font-weight: 300;
+	font-size: 2.9rem;
+	margin: 3rem 0 2rem 0;
+	border-bottom: solid 2px lightgray;
 }
 pre {
-	flex: 1 0;
+	/* flex: 1 0; */
+	padding: 1rem;
     overflow-x: auto;
 	font-family: monospace !important;
 	background-color: whitesmoke !important;
@@ -51,11 +59,19 @@ pre {
 main {
     width: 100%;
 	margin: 5vh auto;
-	max-width: 900px;
 }
 main > :first-child {
     display: block;
     padding: 0 5vw;
+}
+section {
+	margin: 1rem auto;
+    padding: 1rem;
+    /* height: 100vh; */
+    display: flex;
+	max-width: 1000px;
+    flex-direction: column;
+    justify-content: center;
 }
 .title {
 	display: block;

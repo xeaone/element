@@ -24,7 +24,7 @@ const traverse = function (data, paths) {
     }
 };
 
-const finish = function (node, data) {
+const finish = function (node, data, tree) {
     if (node.value === 'NaN') {
         node.type = 'nan';
         node.execute = () => NaN;
@@ -32,8 +32,8 @@ const finish = function (node, data) {
         node.type = 'null';
         node.execute = () => null;
     } else if (node.value === 'true') {
-        node.execute = () => true;
         node.type = 'boolean';
+        node.execute = () => true;
     } else if (node.value === 'false') {
         node.type = 'boolean';
         node.execute = () => false;
@@ -45,15 +45,24 @@ const finish = function (node, data) {
     } else if (node.type === $string) {
         node.execute = () => node.value;
     } else if (node.type === $function) {
+        tree.paths.push(node.value);
         node.execute = (...args) => traverse(data, node.value)(...node.children.map(child => child.execute(...args)), ...args);
     } else {
         node.type = $variable;
+        tree.paths.push(node.value);
         node.execute = () => traverse(data, node.value);
+        // node.display = () => {
+        //     const result = traverse(data, node.value);
+        //     return tree.children.length === 1 ? result :
+        //         typeof result === 'boolean' && result ? node.value.split('.').slice(-1)[ 0 ] :
+        //             typeof result === 'boolean' && !result ? '' :
+        //                 result;
+        // };
     }
 };
 
 export default function expression (expression, data) {
-    const tree = { type: 'tree', children: [], value: null, parent: null };
+    const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, execute: null };
 
     let inside = false;
     let node: Node = { value: '', parent: tree, children: [] };
@@ -70,7 +79,7 @@ export default function expression (expression, data) {
             i++;
 
             if (node.value) {
-                finish(node, data);
+                finish(node, data, tree);
                 node.parent.children.push(node);
             }
 
@@ -83,7 +92,7 @@ export default function expression (expression, data) {
             i++;
 
             if (node.value) {
-                finish(node, data);
+                finish(node, data, tree);
                 node.parent.children.push(node);
             }
 
@@ -98,7 +107,7 @@ export default function expression (expression, data) {
 
             if (node.value.length > 1 && node.value[ 0 ] === c && previous !== '\\') {
                 node.value = node.value.slice(1, -1);
-                finish(node, data);
+                finish(node, data, tree);
                 node.parent.children.push(node);
                 node = { value: '', parent: node.parent };
             }
@@ -108,26 +117,26 @@ export default function expression (expression, data) {
             node.value += c;
 
             if (!/[0-9.]/.test(next)) {
-                finish(node, data);
+                finish(node, data, tree);
                 node.parent.children.push(node);
                 node = { value: '', parent: node.parent };
             }
 
         } else if (',' === c) {
             if (node.value) {
-                finish(node, data);
+                finish(node, data, tree);
                 node.parent.children.push(node);
                 node = { value: '', parent: node.parent };
             }
         } else if ('(' === c) {
             node.children = [];
             node.type = $function;
-            finish(node, data);
+            finish(node, data, tree);
             node.parent.children.push(node);
             node = { value: '', parent: node };
         } else if (')' === c) {
             if (node.value) {
-                finish(node, data);
+                finish(node, data, tree);
                 node.parent.children.push(node);
             }
             node = { value: '', parent: node.parent.parent };
@@ -148,11 +157,12 @@ export default function expression (expression, data) {
     }
 
     if (tree.children.length === 1) {
-        return (...args) => tree.children[ 0 ].execute(...args);
+        tree.execute = (...args) => tree.children[ 0 ].execute(...args);
     } else {
-        return (...args) => tree.children.map(child => child.execute(...args)).join('');
+        tree.execute = (...args) => tree.children.map(child => child.execute(...args)).join('');
     }
 
+    return tree;
 };
 
 // start: test
