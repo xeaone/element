@@ -13,38 +13,33 @@ export default class BindersRoute extends Component {
         checked: false,
         checkboxInput () { console.log(this.data.checked); },
 
-        fontColor: 'blue',
-        borderColor: 'red',
-        styleChange () {
-            this.data.fontColor = Color();
-            this.data.borderColor = Color();
+        style: {
+            color: Color(),
+            change: () => this.data.style.color = Color(),
         },
 
         class: {
             active: true,
-            update: active => active ? 'active' : '',
-
+            lightgreen: 'lightgreen',
+            lightblue: active => active ? 'lightblue' : '',
             toggle: () => this.data.class.active = !this.data.class.active,
         },
-        classBoolean: true,
-        classString: 'string',
-
 
     };
 
     css = /*css*/`
         .default {
-            border: solid 2px black;
+            border: solid 5px transparent;
         }
-        .active {
-            background: lightblue;
+        .lightblue {
+            border-color: lightblue;
         }
-        .string {
-            background: lightgreen;
+        .lightgreen {
+            border-color: lightgreen;
         }
     `;
 
-    html = /*html*/`
+    html = /*html*/ `
 
         <section id="text">
             <h3>Text Binder</h3>
@@ -55,12 +50,10 @@ export default class BindersRoute extends Component {
         <section id="checked">
             <h3>Checked Binder</h3>
             <strong>Checked</strong>
-            <pre>checked="{{checked}}"</pre>
-
+            <pre>checked="{ {checked} }"</pre>
             <br>
             <input checked="{{checked}}" type="checkbox" oninput="{{checkboxInput}}">
             <i>checked attribute linked to boolean on model with no value attribute.</i>
-
             <br>
             <input value="{{checked}}" checked="{{checked}}" type="checkbox" oninput="{{checkboxInput}}">
             <i>checked boolean value and checked attribute</i>
@@ -68,25 +61,22 @@ export default class BindersRoute extends Component {
 
         <section id="style">
             <h2>Style Binder</h2>
-
             <br>
-            <div style="color: {{fontColor}}">style="color: {{fontColor}}"</div>
-
+            <pre style="color: {{style.color}}">style="color: { {style.color} }"</pre>
             <br>
-            <button style="border: solid 0.5rem {{borderColor}}" onclick="{{styleChange}}">style="border: solid 0.5rem {{borderColor}}"</button>
+            <button onclick="{{style.change}}">Change Color</button>
         </section>
 
         <section id="class">
-            <h2>Class Binder</h2>
-
-            <div class="default {{classString}}">class="default {{classString}}"</div>
-            <div class="{{class.active}}">class="{{class.active}}"</div>
-            <div class="default {{class.active}}">class="default {{class.active}}"</div>
-            <div class="default {{class.update(class.active)}}">class="default {{class.update(class.active)}}"</div>
-            <button onclick="{{class.toggle}}">Toggle Class</button>
+            <h3>Class Binder</h3>
+            <br>
+            <pre class="default {{class.lightgreen}}">class="default { {class.lightgreen} }"</pre>
+            <br>
+            <pre class="default {{class.lightblue(class.active)}}">class="default { {class.lightblue(class.active)} }"</pre>
+            <br>
+            <button onclick="{{class.toggle}}">Toggle Active</button>
         </section>
 
     `;
 
 };
-

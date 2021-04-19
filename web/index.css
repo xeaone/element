@@ -1,16 +1,19 @@
-body {
-	font-size: 15px;
+/* :root {
+} */
+html, body {
+    margin: 0;
+    padding: 0;
+	font-size: 16px;
 }
 body > * {
 	font-size: 1rem;
 	color: dimgray;
 	box-sizing: border-box;
 	font-family: sans-serif;
+	transition: all linear 150ms;
 }
-html, body {
+body {
 	flex: 1;
-    margin: 0;
-    padding: 0;
 	width: 100vw;
 	display: flex;
 	min-height: 100vh;
@@ -44,6 +47,7 @@ h2 {
 	margin: 3rem 0 1rem 0;
 }
 h3 {
+    padding: 1rem 0;
 	font-weight: 300;
 	font-size: 2.9rem;
 	margin: 3rem 0 2rem 0;
@@ -72,6 +76,20 @@ section {
 	max-width: 1000px;
     flex-direction: column;
     justify-content: center;
+}
+button {
+    margin: auto;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+	font-size: 1rem;
+	font-weight: 600;
+	color: dimgray;
+	border-radius: 5px;
+    background: darkorange;
+}
+button:hover {
+	filter: saturate(0.6);
 }
 .title {
 	display: block;

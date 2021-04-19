@@ -352,9 +352,11 @@
             async read() {
                 data = await binder.expression();
                 boolean = booleans.includes(binder.type);
-                console.log(binder, data);
                 if (boolean) {
                     data = data ? true : false;
+                }
+                else {
+                    data = toString(data);
                 }
             },
             async write() {
@@ -450,11 +452,8 @@
                 if (data === undefined || data === null) {
                     data = '';
                 }
-                else if (typeof data === 'object') {
-                    data = JSON.stringify(data);
-                }
-                else if (typeof data !== 'string') {
-                    data = String(data);
+                else {
+                    data = toString(data);
                 }
             },
             write() {
@@ -883,6 +882,7 @@
     }
 
     const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
+    const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     var Binder = new class Binder {
@@ -940,7 +940,7 @@
         }
         async bind(target, name, value, container, pointer) {
             const self = this;
-            if (/^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/.test(value)) {
+            if (isSyntaxNative.test(value)) {
                 target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
                 return;
             }

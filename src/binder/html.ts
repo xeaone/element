@@ -1,21 +1,20 @@
 import Binder from '../binder';
+import { toString } from '../tool';
 
 export default function (binder) {
     let data;
     return {
-        read() {
+        read () {
             data = binder.data;
 
             if (data === undefined || data === null) {
                 data = '';
-            } else if (typeof data === 'object') {
-                data = JSON.stringify(data);
-            } else if (typeof data !== 'string') {
-                data = String(data);
+            } else {
+                data = toString(data);
             }
 
         },
-        write() {
+        write () {
 
             while (binder.target.firstChild) {
                 const node = binder.target.removeChild(binder.target.firstChild);

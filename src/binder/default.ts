@@ -1,4 +1,4 @@
-// import { toString } from '../tool';
+import { toString } from '../tool';
 
 const booleans = [
     'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
@@ -16,13 +16,15 @@ export default function (binder) {
             data = await binder.expression();
             boolean = booleans.includes(binder.type);
 
-            console.log(binder, data);
+            // console.log(binder, data);
 
             if (boolean) {
                 data = data ? true : false;
                 // } else {
                 // data = data === null || data === undefined ? '' : data;
                 // data = binder.display(data);
+            } else {
+                data = toString(data);
             }
             // else if (typeof data === 'boolean') {
             //     console.log(binder.key);
