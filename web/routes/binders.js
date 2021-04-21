@@ -1,4 +1,4 @@
-
+import Escape from '../../modules/escape.js';
 import Color from '../../modules/color.js';
 
 const { Component } = Oxe;
@@ -22,8 +22,17 @@ export default class BindersRoute extends Component {
             active: true,
             lightgreen: 'lightgreen',
             lightblue: active => active ? 'lightblue' : '',
-            toggle: () => this.data.class.active = !this.data.class.active,
+            toggle () {
+                console.log('class toggle');
+                console.log(this.data.class.active);
+                this.data.class.active = !this.data.class.active;
+            },
         },
+
+        value: {
+            text: 'hello world',
+            upper (text) { this.data.value.text = text.toUpperCase(); },
+        }
 
     };
 
@@ -64,17 +73,32 @@ export default class BindersRoute extends Component {
             <br>
             <pre style="color: {{style.color}}">style="color: { {style.color} }"</pre>
             <br>
-            <button onclick="{{style.change}}">Change Color</button>
+            <button onclick="{{style.change()}}">Change Color</button>
         </section>
 
         <section id="class">
             <h3>Class Binder</h3>
             <br>
-            <pre class="default {{class.lightgreen}}">class="default { {class.lightgreen} }"</pre>
+            <pre class="default {{class.lightgreen}}">${Escape(`class="default { {class.lightgreen} }"`)}</pre>
             <br>
-            <pre class="default {{class.lightblue(class.active)}}">class="default { {class.lightblue(class.active)} }"</pre>
+            <pre class="default {{class.lightblue(class.active)}}">${Escape(`class="default {{class.lightblue(class.active)}}"`)}</pre>
             <br>
-            <button onclick="{{class.toggle}}">Toggle Active</button>
+            <button onclick="{{class.toggle()}}">Toggle Active</button>
+        </section>
+
+        <section id="value">
+            <h3>Value Binder</h3>
+            <br>
+            <pre>
+                ${Escape(`
+                <div>{{value.text}}</div>
+                <input value="{{value.text}}" type="text" oninput="{{value.upper(value.text)}}">
+                `)}
+            </pre>
+            <br>
+            <div>{{value.text}}</div>
+            <br>
+            <input value="{{value.text}}" type="text" oninput="{{value.upper(value.text)}}">
         </section>
 
     `;

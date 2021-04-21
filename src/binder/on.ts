@@ -1,7 +1,6 @@
-// import Batcher from '../batcher';
 import Binder from '../binder';
 
-const submit = async function (event, binder, method) {
+const submit = async function (event, binder) {
     event.preventDefault();
 
     const data = {};
@@ -35,14 +34,7 @@ const submit = async function (event, binder, method) {
         data[ name ] = value;
     }
 
-    // if (typeof binder.data === 'function') {
-    //     await binder.data.call(binder.container, data, event);
-    // }
-
-    // const method = binder.data;
-    if (typeof method === 'function') {
-        await method.call(binder.container, event, data);
-    }
+    await binder.expression(binder.container, event);
 
     if (binder.getAttribute('reset')) {
         event.target.reset();
@@ -51,7 +43,7 @@ const submit = async function (event, binder, method) {
     return false;
 };
 
-const reset = async function (binder, event, method) {
+const reset = async function (binder, event) {
     event.preventDefault();
 
     const elements = event.target.querySelectorAll('*');
@@ -91,15 +83,13 @@ const reset = async function (binder, event, method) {
 
     }
 
-    if (typeof method === 'function') {
-        await method.call(binder.container, event);
-    }
-
+    return binder.expression(binder.container, event);
 };
 
 export default function (binder) {
 
     const read = async function () {
+
         binder.target[ binder.name ] = null;
         const name = binder.name.slice(2);
 
@@ -107,31 +97,13 @@ export default function (binder) {
             binder.target.removeEventListener(name, binder.meta.method);
         }
 
-        // binder.meta.method = (event) => {
-        //     Batcher.batch({
-        //         read (ctx) {
-        //             ctx.data = binder.data;
-        //             ctx.container = binder.container;
-        //             if (typeof ctx.data !== 'function') {
-        //                 ctx.write = false;
-        //                 return;
-        //             }
-        //         },
-        //         write (ctx) {
-        //             ctx.data.call(ctx.container, event);
-        //         }
-        //     });
-        // };
-
-        const method = await binder.expression();
-
         binder.meta.method = event => {
             if (name === 'reset') {
                 return reset.call(binder.container, event, binder);
             } else if (name === 'submit') {
                 return submit.call(binder.container, event, binder);
             } else {
-                return method.call(binder.container, event);
+                return binder.expression(binder.container, event);
             }
         };
 
@@ -140,13 +112,3 @@ export default function (binder) {
 
     return { read };
 }
-
-// export default function (binder) {
-//     return {
-//         read () {
-
-//         },
-//         write () {
-//         }
-//     };
-// }

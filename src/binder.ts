@@ -139,6 +139,7 @@ export default new class Binder {
                 expression: tree.execute,
 
                 // args,
+                tree,
                 path,
                 key, keys,
                 name, value,

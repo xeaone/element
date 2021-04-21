@@ -473,9 +473,8 @@
         };
     }
 
-    const submit = async function (event, binder, method) {
+    const submit = async function (event, binder) {
         event.preventDefault();
-        const data = {};
         const elements = event.target.querySelectorAll('*');
         for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
@@ -487,21 +486,18 @@
             const attribute = element.attributes['o-value'];
             const b = Binder.get(attribute);
             console.warn('todo: need to get a value for selects');
-            const value = (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
+            (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
             const name = element.name || (b ? b.values[b.values.length - 1] : null);
             if (!name)
                 continue;
-            data[name] = value;
         }
-        if (typeof method === 'function') {
-            await method.call(binder.container, event, data);
-        }
+        await binder.expression(binder.container, event);
         if (binder.getAttribute('reset')) {
             event.target.reset();
         }
         return false;
     };
-    const reset = async function (binder, event, method) {
+    const reset = async function (binder, event) {
         event.preventDefault();
         const elements = event.target.querySelectorAll('*');
         for (let i = 0, l = elements.length; i < l; i++) {
@@ -539,9 +535,7 @@
                 binder.data = '';
             }
         }
-        if (typeof method === 'function') {
-            await method.call(binder.container, event);
-        }
+        return binder.expression(binder.container, event);
     };
     function on (binder) {
         const read = async function () {
@@ -550,7 +544,6 @@
             if (binder.meta.method) {
                 binder.target.removeEventListener(name, binder.meta.method);
             }
-            const method = await binder.expression();
             binder.meta.method = event => {
                 if (name === 'reset') {
                     return reset.call(binder.container, event, binder);
@@ -559,7 +552,7 @@
                     return submit.call(binder.container, event, binder);
                 }
                 else {
-                    return method.call(binder.container, event);
+                    return binder.expression(binder.container, event);
                 }
             };
             binder.target.addEventListener(name, binder.meta.method);
@@ -777,7 +770,7 @@
         }
         else if (node.type === $function) {
             tree.paths.push(node.value);
-            node.execute = (...args) => traverse(data, node.value)(...node.children.map(child => child.execute(...args)), ...args);
+            node.execute = (context, ...args) => traverse(data, node.value).call(context, ...node.children.map(child => child.execute(context), ...args));
         }
         else {
             node.type = $variable;
@@ -959,6 +952,7 @@
                     get busy() { return this._meta.busy; },
                     set busy(busy) { this._meta.busy = busy; },
                     expression: tree.execute,
+                    tree,
                     path,
                     key, keys,
                     name, value,

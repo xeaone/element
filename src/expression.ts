@@ -46,7 +46,7 @@ const finish = function (node, data, tree) {
         node.execute = () => node.value;
     } else if (node.type === $function) {
         tree.paths.push(node.value);
-        node.execute = (...args) => traverse(data, node.value)(...node.children.map(child => child.execute(...args)), ...args);
+        node.execute = (context, ...args) => traverse(data, node.value).call(context, ...node.children.map(child => child.execute(context), ...args));
     } else {
         node.type = $variable;
         tree.paths.push(node.value);
