@@ -65,6 +65,7 @@ pre {
 main {
     width: 100%;
 	margin: 5vh auto;
+	max-width: 1200px;
 }
 main > :first-child {
     display: block;
