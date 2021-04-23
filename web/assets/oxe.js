@@ -312,10 +312,10 @@
         let data, checked;
         return {
             async read() {
-                data = await binder.expression();
+                data = await binder.compute();
                 if (!binder.meta.setup) {
                     binder.meta.setup = true;
-                    binder.target.addEventListener('input', event => Binder.render(binder, event));
+                    binder.target.addEventListener('input', event => binder.render(event));
                 }
                 if (isBoolean(data)) {
                     checked = event ? binder.target.checked : data;
@@ -325,7 +325,6 @@
                         binder.data = checked;
                     }
                 }
-                console.log('checked', data);
             },
             async write() {
                 binder.target.checked = checked;
@@ -350,8 +349,8 @@
         let data, result, boolean;
         return {
             async read() {
-                data = await binder.expression();
-                boolean = booleans.includes(binder.type);
+                data = await binder.compute();
+                boolean = booleans.includes(binder.name);
                 if (boolean) {
                     data = data ? true : false;
                 }
@@ -360,15 +359,15 @@
                 }
             },
             async write() {
-                binder.target[binder.type] = result;
+                binder.target[binder.name] = result;
                 if (boolean) {
                     if (data)
-                        binder.target.setAttribute(binder.type, '');
+                        binder.target.setAttribute(binder.name, '');
                     else
-                        binder.target.removeAttribute(binder.type);
+                        binder.target.removeAttribute(binder.name);
                 }
                 else {
-                    binder.target.setAttribute(binder.type, data);
+                    binder.target.setAttribute(binder.name, data);
                 }
             }
         };
@@ -491,7 +490,7 @@
             if (!name)
                 continue;
         }
-        await binder.expression(binder.container, event);
+        await binder.compute(binder.container, event);
         if (binder.getAttribute('reset')) {
             event.target.reset();
         }
@@ -535,7 +534,7 @@
                 binder.data = '';
             }
         }
-        return binder.expression(binder.container, event);
+        return binder.compute(binder.container, event);
     };
     function on (binder) {
         const read = async function () {
@@ -552,7 +551,7 @@
                     return submit.call(binder.container, event, binder);
                 }
                 else {
-                    return binder.expression(binder.container, event);
+                    return binder.compute(binder.container, event);
                 }
             };
             binder.target.addEventListener(name, binder.meta.method);
@@ -564,7 +563,7 @@
         let data;
         return {
             async read() {
-                data = await binder.expression();
+                data = await binder.compute();
                 data = toString(data);
             },
             async write() {
@@ -680,7 +679,6 @@
             return {
                 async read() {
                     data = await binder.data;
-                    console.log(data);
                 },
                 async write() {
                     binder.target.value = data;
@@ -744,42 +742,42 @@
     const finish = function (node, data, tree) {
         if (node.value === 'NaN') {
             node.type = 'nan';
-            node.execute = () => NaN;
+            node.compute = () => NaN;
         }
         else if (node.value === 'null') {
             node.type = 'null';
-            node.execute = () => null;
+            node.compute = () => null;
         }
         else if (node.value === 'true') {
             node.type = 'boolean';
-            node.execute = () => true;
+            node.compute = () => true;
         }
         else if (node.value === 'false') {
             node.type = 'boolean';
-            node.execute = () => false;
+            node.compute = () => false;
         }
         else if (node.value === 'undefined') {
             node.type = 'undefined';
-            node.execute = () => undefined;
+            node.compute = () => undefined;
         }
         else if (node.type === $number) {
-            node.execute = () => Number(node.value);
+            node.compute = () => Number(node.value);
         }
         else if (node.type === $string) {
-            node.execute = () => node.value;
+            node.compute = () => node.value;
         }
         else if (node.type === $function) {
             tree.paths.push(node.value);
-            node.execute = (context, ...args) => traverse(data, node.value).call(context, ...node.children.map(child => child.execute(context), ...args));
+            node.compute = (context, ...args) => traverse(data, node.value).call(context, ...node.children.map(child => child.compute(context), ...args));
         }
         else {
             node.type = $variable;
             tree.paths.push(node.value);
-            node.execute = () => traverse(data, node.value);
+            node.compute = () => traverse(data, node.value);
         }
     };
     function expression(expression, data) {
-        const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, execute: null };
+        const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, compute: null };
         let inside = false;
         let node = { value: '', parent: tree, children: [] };
         for (let i = 0; i < expression.length; i++) {
@@ -862,14 +860,14 @@
             }
         }
         if (node.type) {
-            node.execute = function (value) { return value; }.bind(null, node.value);
+            node.compute = function (value) { return value; }.bind(null, node.value);
             tree.children.push(node);
         }
         if (tree.children.length === 1) {
-            tree.execute = (...args) => tree.children[0].execute(...args);
+            tree.compute = (...args) => tree.children[0].compute(...args);
         }
         else {
-            tree.execute = (...args) => tree.children.map(child => child.execute(...args)).join('');
+            tree.compute = (...args) => tree.children.map(child => child.compute(...args)).join('');
         }
         return tree;
     }
@@ -909,25 +907,6 @@
         get(node) {
             return this.data.get(node);
         }
-        async render(binder, ...extra) {
-            if (binder.busy)
-                return;
-            else
-                binder.busy = true;
-            const type = binder.type in this.binders ? binder.type : 'default';
-            const render = this.binders[type](binder, ...extra);
-            if (render) {
-                const context = {};
-                Batcher.batch(async () => {
-                    if (render.read)
-                        await render.read(context);
-                }, async () => {
-                    if (render.write)
-                        await render.write(context);
-                    binder.busy = false;
-                });
-            }
-        }
         async unbind(node) {
             return this.data.delete(node);
         }
@@ -937,8 +916,25 @@
                 target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
                 return;
             }
-            const type = name.startsWith('on') ? 'on' : name;
             const tree = expression(value, container.data);
+            const type = name.startsWith('on') ? 'on' : name in self.binders ? name : 'default';
+            const action = self.binders[type];
+            const render = async function (...extra) {
+                if (this.busy)
+                    return;
+                else
+                    this.busy = true;
+                const { read, write } = this.action(this, ...extra);
+                const context = {};
+                Batcher.batch(async () => {
+                    if (read)
+                        await read(context);
+                }, async () => {
+                    if (write)
+                        await write(context);
+                    this.busy = false;
+                });
+            };
             for (const path of tree.paths) {
                 if (isNative.test(path))
                     continue;
@@ -946,12 +942,10 @@
                 const [key] = keys.slice(-1);
                 const childKey = keys.slice(-1)[0];
                 const parentKeys = keys.slice(0, -1);
-                const binder = Object.freeze({
+                const binder = {
                     meta: {},
-                    _meta: { busy: false },
-                    get busy() { return this._meta.busy; },
-                    set busy(busy) { this._meta.busy = busy; },
-                    expression: tree.execute,
+                    busy: false,
+                    compute: tree.compute,
                     tree,
                     path,
                     key, keys,
@@ -960,14 +954,8 @@
                     type,
                     target,
                     container,
-                    render: self.render,
-                    getAttribute(name) {
-                        const node = target.getAttributeNode(name);
-                        if (!node)
-                            return undefined;
-                        const data = self.data?.get(node)?.data;
-                        return data === undefined ? node.value : data;
-                    },
+                    action,
+                    render,
                     get data() {
                         const parentValue = traverse$1(this.container.data, this.parentKeys);
                         const childValue = parentValue?.[this.childKey];
@@ -998,9 +986,9 @@
                             parentValue[this.childKey] = value;
                         }
                     }
-                });
+                };
                 this.data.set(pointer, binder);
-                this.render(binder);
+                binder.render();
             }
         }
         async remove(node) {
@@ -1170,7 +1158,7 @@
             this.data = Observer.clone(__classPrivateFieldGet(this, _data$1), (_, path) => {
                 Binder.data.forEach(binder => {
                     if (binder.container === this && binder.path.startsWith(path)) {
-                        Binder.render(binder);
+                        binder.render();
                     }
                 });
             });

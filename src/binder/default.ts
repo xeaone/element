@@ -12,34 +12,24 @@ export default function (binder) {
     let data, result, boolean;
     return {
         async read () {
-            // data = await binder.data;
-            data = await binder.expression();
-            boolean = booleans.includes(binder.type);
-
-            // console.log(binder, data);
+            data = await binder.compute();
+            boolean = booleans.includes(binder.name);
 
             if (boolean) {
                 data = data ? true : false;
-                // } else {
-                // data = data === null || data === undefined ? '' : data;
-                // data = binder.display(data);
             } else {
                 data = toString(data);
             }
-            // else if (typeof data === 'boolean') {
-            //     console.log(binder.key);
-            //     result = data ? binder.key : '';
-            // }
 
         },
         async write () {
-            binder.target[ binder.type ] = result;
+            binder.target[ binder.name ] = result;
 
             if (boolean) {
-                if (data) binder.target.setAttribute(binder.type, '');
-                else binder.target.removeAttribute(binder.type);
+                if (data) binder.target.setAttribute(binder.name, '');
+                else binder.target.removeAttribute(binder.name);
             } else {
-                binder.target.setAttribute(binder.type, data);
+                binder.target.setAttribute(binder.name, data);
             }
 
         }

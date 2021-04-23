@@ -1,10 +1,15 @@
 
 export default function Code (...args) {
+    let data;
     let [ cb ] = args.slice(-1);
 
-    let data = args
-        .slice(0, -1)
-        .join('\n')
+    if (typeof cb === 'boolean') {
+        data = args.slice(0, -1).join('\n');
+    } else {
+        data = args.join('\n');
+    }
+
+    data = data
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')

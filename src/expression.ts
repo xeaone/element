@@ -9,7 +9,7 @@ type Node = {
     parent?: Node,
     value?: string,
     children?: any[],
-    execute?: () => any,
+    compute?: () => any,
 };
 
 const traverse = function (data, paths) {
@@ -27,30 +27,30 @@ const traverse = function (data, paths) {
 const finish = function (node, data, tree) {
     if (node.value === 'NaN') {
         node.type = 'nan';
-        node.execute = () => NaN;
+        node.compute = () => NaN;
     } else if (node.value === 'null') {
         node.type = 'null';
-        node.execute = () => null;
+        node.compute = () => null;
     } else if (node.value === 'true') {
         node.type = 'boolean';
-        node.execute = () => true;
+        node.compute = () => true;
     } else if (node.value === 'false') {
         node.type = 'boolean';
-        node.execute = () => false;
+        node.compute = () => false;
     } else if (node.value === 'undefined') {
         node.type = 'undefined';
-        node.execute = () => undefined;
+        node.compute = () => undefined;
     } else if (node.type === $number) {
-        node.execute = () => Number(node.value);
+        node.compute = () => Number(node.value);
     } else if (node.type === $string) {
-        node.execute = () => node.value;
+        node.compute = () => node.value;
     } else if (node.type === $function) {
         tree.paths.push(node.value);
-        node.execute = (context, ...args) => traverse(data, node.value).call(context, ...node.children.map(child => child.execute(context), ...args));
+        node.compute = (context, ...args) => traverse(data, node.value).call(context, ...node.children.map(child => child.compute(context), ...args));
     } else {
         node.type = $variable;
         tree.paths.push(node.value);
-        node.execute = () => traverse(data, node.value);
+        node.compute = () => traverse(data, node.value);
         // node.display = () => {
         //     const result = traverse(data, node.value);
         //     return tree.children.length === 1 ? result :
@@ -62,7 +62,7 @@ const finish = function (node, data, tree) {
 };
 
 export default function expression (expression, data) {
-    const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, execute: null };
+    const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, compute: null };
 
     let inside = false;
     let node: Node = { value: '', parent: tree, children: [] };
@@ -152,14 +152,14 @@ export default function expression (expression, data) {
     }
 
     if (node.type) {
-        node.execute = function (value) { return value; }.bind(null, node.value);
+        node.compute = function (value) { return value; }.bind(null, node.value);
         tree.children.push(node);
     }
 
     if (tree.children.length === 1) {
-        tree.execute = (...args) => tree.children[ 0 ].execute(...args);
+        tree.compute = (...args) => tree.children[ 0 ].compute(...args);
     } else {
-        tree.execute = (...args) => tree.children.map(child => child.execute(...args)).join('');
+        tree.compute = (...args) => tree.children.map(child => child.compute(...args)).join('');
     }
 
     return tree;

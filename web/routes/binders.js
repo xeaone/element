@@ -13,6 +13,7 @@ export default class BindersRoute extends Component {
         text: 'Hello World',
 
         // checkbox
+        check: 'checked',
         checked: false,
         checkResult: checked => checked ? 'checked' : '',
         checkInput () { console.log(this.data.checked); },
@@ -42,6 +43,7 @@ export default class BindersRoute extends Component {
         }
     `;
 
+    // <input value="{{checked}}" {{check}} type="checkbox" oninput="{{checkInput}}"></input>
     html = /*html*/ `
 
         <section id="text">
@@ -85,10 +87,6 @@ export default class BindersRoute extends Component {
                 <div>{{value.text}}</div>
                 <input value="{{value.text}}" type="text" oninput="{{value.upper(value.text)}}">
             `, true)}</pre>
-            <pre style="white-space: pre-line;">${Code(`
-                <div>{{value.text}}</div>
-                <input value="{{value.text}}" type="text" oninput="{{value.upper(value.text)}}">
-            `)}</pre>
             <br>
             <div>{{value.text}}</div>
             <br>

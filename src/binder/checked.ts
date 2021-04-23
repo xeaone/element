@@ -5,11 +5,12 @@ export default function (binder, event) {
     let data, value, checked;
     return {
         async read () {
-            data = await binder.expression();
+            data = await binder.compute();
 
             if (!binder.meta.setup) {
                 binder.meta.setup = true;
-                binder.target.addEventListener('input', event => Binder.render(binder, event));
+                binder.target.addEventListener('input', event => binder.render(event));
+                // binder.target.addEventListener('input', event => Binder.render(binder, event));
             }
 
             if (isBoolean(data)) {
@@ -22,7 +23,6 @@ export default function (binder, event) {
                 }
             }
 
-            console.log('checked', data);
         },
         async write () {
             binder.target.checked = checked;

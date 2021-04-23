@@ -5,8 +5,8 @@ import Css from './css';
 export default class Component extends HTMLElement {
 
     static attributes: [];
-    static get observedAttributes() { return this.attributes; }
-    static set observedAttributes(attributes) { this.attributes = attributes; }
+    static get observedAttributes () { return this.attributes; }
+    static set observedAttributes (attributes) { this.attributes = attributes; }
 
     #root: any;
     #css: string;
@@ -33,10 +33,10 @@ export default class Component extends HTMLElement {
     adopt: boolean = false;
     shadow: boolean = false;
 
-    get root() { return this.#root; }
-    get binder() { return Binder; }
+    get root () { return this.#root; }
+    get binder () { return Binder; }
 
-    constructor() {
+    constructor () {
         super();
 
         if (this.#shadow && 'attachShadow' in document.body) {
@@ -49,7 +49,7 @@ export default class Component extends HTMLElement {
 
     }
 
-    async render() {
+    async render () {
 
         this.#html = this.#html ?? this.html;
         this.#data = this.#data ?? this.data;
@@ -60,9 +60,10 @@ export default class Component extends HTMLElement {
         this.data = Observer.clone(this.#data, (_, path) => {
             Binder.data.forEach(binder => {
                 if (binder.container === this && binder.path.startsWith(path)) {
+                    binder.render();
                     // if (binder.container === this && binder.path.includes(path)) {
                     // if (binder.container === this && binder.path === path) {
-                    Binder.render(binder);
+                    // Binder.render(binder);
                 }
             });
         });
@@ -88,7 +89,7 @@ export default class Component extends HTMLElement {
             const defaultSlot = clone.querySelector('slot:not([name])');
 
             for (let i = 0; i < templateSlots.length; i++) {
-                const templateSlot = templateSlots[i];
+                const templateSlot = templateSlots[ i ];
                 const name = templateSlot.getAttribute('name');
                 const instanceSlot = this.querySelector('[slot="' + name + '"]');
                 if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
@@ -114,20 +115,20 @@ export default class Component extends HTMLElement {
 
     }
 
-    async attributeChangedCallback(name, from, to) {
+    async attributeChangedCallback (name, from, to) {
         await this.#attributed(name, from, to);
     }
 
-    async adoptedCallback() {
+    async adoptedCallback () {
         if (this.#adopted) await this.#adopted();
     }
 
-    async disconnectedCallback() {
+    async disconnectedCallback () {
         Css.detach(this.#name);
         if (this.#disconnected) await this.#disconnected();
     }
 
-    async connectedCallback() {
+    async connectedCallback () {
         this.#css = this.#css ?? this.css;
 
         Css.attach(this.#name, this.#css);

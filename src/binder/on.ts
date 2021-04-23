@@ -34,7 +34,7 @@ const submit = async function (event, binder) {
         data[ name ] = value;
     }
 
-    await binder.expression(binder.container, event);
+    await binder.compute(binder.container, event);
 
     if (binder.getAttribute('reset')) {
         event.target.reset();
@@ -83,7 +83,7 @@ const reset = async function (binder, event) {
 
     }
 
-    return binder.expression(binder.container, event);
+    return binder.compute(binder.container, event);
 };
 
 export default function (binder) {
@@ -103,7 +103,7 @@ export default function (binder) {
             } else if (name === 'submit') {
                 return submit.call(binder.container, event, binder);
             } else {
-                return binder.expression(binder.container, event);
+                return binder.compute(binder.container, event);
             }
         };
 

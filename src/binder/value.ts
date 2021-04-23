@@ -265,7 +265,7 @@ export default function (binder, event) {
             async read () {
                 data = await binder.data;
                 // data = await binder.display(data);
-                console.log(data);
+                // console.log(data);
             },
             async write () {
                 binder.target.value = data;
