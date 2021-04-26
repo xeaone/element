@@ -30,7 +30,15 @@ export default class BindersRoute extends Component {
         value: {
             text: 'hello world',
             upper (text) { this.data.value.text = text.toUpperCase(); },
-        }
+        },
+
+        fruits: [
+            { name: 'apple' },
+            { name: 'orange' },
+            { name: 'tomato' }
+        ],
+
+        selectResult: '',
 
     };
 
@@ -93,6 +101,33 @@ export default class BindersRoute extends Component {
             <input value="{{value.text}}" type="text" oninput="{{value.upper(value.text)}}">
         </section>
 
+        <section id="each">
+            <h3>Each Binder</h3>
+            <br>
+            <pre>${Code(`Fruits: each="{{key, index, fruit of fruits}}"`, true)}</pre>
+            <div each="{{key, index, fruit of fruits}}">
+                <div id="{{fruit.name}}">
+                    <strong>Key: </strong>{{key}},
+                    <strong>Index: </strong>{{index}},
+                    <strong>Value: </strong>{{fruit.name}}
+                </div>
+            </div>
+        </section>
+
+        <section id="select">
+            <h3>Select Binder</h3>
+            <br>
+            <div>{{selectResult}}</div>
+            <select value="{{selectResult}}">
+                <option value="tree">Tree</option>
+                <option value="cactus">Cactus</option>
+            </select>
+        </section>
+
     `;
 
 };
+
+
+
+

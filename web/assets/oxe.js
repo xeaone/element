@@ -94,41 +94,6 @@
             return traverse$1(data[paths[0]], paths.slice(1));
         }
     };
-    const match = function (source, target) {
-        if (source === target) {
-            return true;
-        }
-        const sourceType = typeof source;
-        const targetType = typeof target;
-        if (sourceType !== targetType) {
-            return false;
-        }
-        if (sourceType !== 'object' || targetType !== 'object') {
-            return source === target;
-        }
-        if (source.constructor !== target.constructor) {
-            return false;
-        }
-        const sourceKeys = Object.keys(source);
-        const targetKeys = Object.keys(target);
-        if (sourceKeys.length !== targetKeys.length) {
-            return false;
-        }
-        for (let i = 0; i < sourceKeys.length; i++) {
-            const name = sourceKeys[i];
-            if (!match(source[name], target[name]))
-                return false;
-        }
-        return true;
-    };
-    const index$1 = function (items, item) {
-        for (let i = 0; i < items.length; i++) {
-            if (match(items[i], item)) {
-                return i;
-            }
-        }
-        return -1;
-    };
 
     const methods = ['push', 'pop', 'splice', 'shift', 'unshift', 'reverse'];
     const get = function (tasks, handler, path, target, property) {
@@ -615,50 +580,6 @@
                     }
                     ctx.selects = [];
                     ctx.unselects = [];
-                    for (let i = 0; i < ctx.options.length; i++) {
-                        const node = ctx.options[i];
-                        const selected = node.selected;
-                        const attribute = node.attributes['o-value'] || node.attributes['value'];
-                        const option = Binder.get(attribute) || { get data() { return node.value; }, set data(data) { node.value = data; } };
-                        if (ctx.multiple) {
-                            const index = index$1(binder.data, option.data);
-                            if (event) {
-                                if (selected && index === -1) {
-                                    binder.data.push(option.data);
-                                }
-                                else if (!selected && index !== -1) {
-                                    binder.data.splice(index, 1);
-                                }
-                            }
-                            else {
-                                if (index === -1) {
-                                    ctx.unselects.push(node);
-                                }
-                                else {
-                                    ctx.selects.push(node);
-                                }
-                            }
-                        }
-                        else {
-                            const match$1 = match(binder.data, option.data);
-                            if (event) {
-                                if (selected && !match$1) {
-                                    binder.data = option.data;
-                                }
-                                else if (!selected && match$1) {
-                                    continue;
-                                }
-                            }
-                            else {
-                                if (match$1) {
-                                    ctx.selects.push(node);
-                                }
-                                else {
-                                    ctx.unselects.push(node);
-                                }
-                            }
-                        }
-                    }
                 },
                 write(ctx) {
                     const { selects, unselects } = ctx;
@@ -696,7 +617,6 @@
                     ctx.value = toString(ctx.data);
                     binder.target.value = ctx.value;
                     binder.target.setAttribute('value', ctx.value);
-                    binder.meta.busy = false;
                 }
             };
         }
@@ -717,7 +637,6 @@
                 },
                 write(ctx) {
                     binder.target.value = ctx.data ?? '';
-                    binder.meta.busy = false;
                 }
             };
         }
@@ -780,6 +699,7 @@
         const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, compute: null };
         let inside = false;
         let node = { value: '', parent: tree, children: [] };
+        expression = expression.replace(/{{.*\s+(of|in)\s+/, '{{');
         for (let i = 0; i < expression.length; i++) {
             const c = expression[i];
             const next = expression[i + 1];

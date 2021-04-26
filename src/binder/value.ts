@@ -28,18 +28,9 @@ const input = function (binder) {
 export default function (binder, event) {
     const type = binder.target.type;
 
-    // if (binder.meta.busy) {
-    //     console.log('busy value');
-    //     return;
-    // } else {
-    //     binder.meta.busy = true;
-    // }
-
     if (!binder.meta.setup) {
         binder.meta.setup = true;
         binder.target.addEventListener('input', () => input(binder));
-        // binder.target.addEventListener('input', event => Binder.render(binder, event));
-        // binder.target.addEventListener('change', event => Binder.render(binder, event));
     }
 
     if (type === 'select-one' || type === 'select-multiple') {
@@ -66,47 +57,47 @@ export default function (binder, event) {
                 ctx.selects = [];
                 ctx.unselects = [];
 
-                for (let i = 0; i < ctx.options.length; i++) {
-                    const node = ctx.options[ i ];
-                    const selected = node.selected;
-                    const attribute = node.attributes[ 'o-value' ] || node.attributes[ 'value' ];
-                    const option = Binder.get(attribute) || { get data () { return node.value; }, set data (data) { node.value = data; } };
-                    if (ctx.multiple) {
-                        const index = Index(binder.data, option.data);
-                        if (event) {
-                            if (selected && index === -1) {
-                                binder.data.push(option.data);
-                            } else if (!selected && index !== -1) {
-                                binder.data.splice(index, 1);
-                            }
-                        } else {
-                            if (index === -1) {
-                                ctx.unselects.push(node);
-                                // option.selected = false;
-                            } else {
-                                ctx.selects.push(node);
-                                // option.selected = true;
-                            }
-                        }
-                    } else {
-                        const match = Match(binder.data, option.data);
-                        if (event) {
-                            if (selected && !match) {
-                                binder.data = option.data;
-                            } else if (!selected && match) {
-                                continue;
-                            }
-                        } else {
-                            if (match) {
-                                ctx.selects.push(node);
-                                // option.selected = true;
-                            } else {
-                                ctx.unselects.push(node);
-                                // option.selected = false;
-                            }
-                        }
-                    }
-                }
+                // for (let i = 0; i < ctx.options.length; i++) {
+                //     const node = ctx.options[ i ];
+                //     const selected = node.selected;
+                //     const attribute = node.attributes[ 'o-value' ] || node.attributes[ 'value' ];
+                //     const option = Binder.get(attribute) || { get data () { return node.value; }, set data (data) { node.value = data; } };
+                //     if (ctx.multiple) {
+                //         const index = Index(binder.data, option.data);
+                //         if (event) {
+                //             if (selected && index === -1) {
+                //                 binder.data.push(option.data);
+                //             } else if (!selected && index !== -1) {
+                //                 binder.data.splice(index, 1);
+                //             }
+                //         } else {
+                //             if (index === -1) {
+                //                 ctx.unselects.push(node);
+                //                 // option.selected = false;
+                //             } else {
+                //                 ctx.selects.push(node);
+                //                 // option.selected = true;
+                //             }
+                //         }
+                //     } else {
+                //         const match = Match(binder.data, option.data);
+                //         if (event) {
+                //             if (selected && !match) {
+                //                 binder.data = option.data;
+                //             } else if (!selected && match) {
+                //                 continue;
+                //             }
+                //         } else {
+                //             if (match) {
+                //                 ctx.selects.push(node);
+                //                 // option.selected = true;
+                //             } else {
+                //                 ctx.unselects.push(node);
+                //                 // option.selected = false;
+                //             }
+                //         }
+                //     }
+                // }
 
                 // if (binder.data === ctx.data) {
                 //     return ctx.write = false;
@@ -264,8 +255,6 @@ export default function (binder, event) {
         return {
             async read () {
                 data = await binder.data;
-                // data = await binder.display(data);
-                // console.log(data);
             },
             async write () {
                 binder.target.value = data;
@@ -282,7 +271,6 @@ export default function (binder, event) {
                 ctx.value = toString(ctx.data);
                 binder.target.value = ctx.value;
                 binder.target.setAttribute('value', ctx.value);
-                binder.meta.busy = false;
             }
         };
     } else if (type === 'file') {
@@ -371,10 +359,8 @@ export default function (binder, event) {
                 //         }
                 //     }
                 // }
-                // select.meta.busy = false;
 
                 binder.target.value = ctx.data ?? '';
-                binder.meta.busy = false;
             }
         };
     }

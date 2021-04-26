@@ -3,7 +3,7 @@ import { traverse } from './tool';
 import Batcher from './batcher';
 
 import checked from './binder/checked';
-import Class from './binder/class';
+// import Class from './binder/class';
 import Default from './binder/default';
 import each from './binder/each';
 import html from './binder/html';
@@ -20,8 +20,8 @@ import Expression from './expression';
 const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
 // const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
 const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
-const eachPattern = /.*?\s+(of|in)\s+/;
 
+const isEach = /.*?\s+(of|in)\s+/;
 const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
 const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
 

@@ -67,6 +67,9 @@ export default function expression (expression, data) {
     let inside = false;
     let node: Node = { value: '', parent: tree, children: [] };
 
+    // each of/in fix
+    expression = expression.replace(/{{.*\s+(of|in)\s+/, '{{');
+
     for (let i = 0; i < expression.length; i++) {
         const c = expression[ i ];
         const next = expression[ i + 1 ];
