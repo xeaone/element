@@ -541,57 +541,77 @@
 
     const input = function (binder) {
         const type = binder.target.type;
-        if (type === 'select-one' || type === 'select-multiple') ;
+        console.log('event', type);
+        let data;
+        if (type === 'select-one') {
+            data = binder.data = binder.target.value;
+        }
+        else if (type === 'select-multiple') {
+            data = binder.data = [...binder.target.selectedOptions].map(o => o.value);
+            console.log(binder);
+            data = data.join(',');
+        }
         else if (type === 'checkbox' || type === 'radio') {
-            binder.data = to(binder.data, binder.target.value);
+            data = binder.data = to(binder.data, binder.target.value);
         }
         else if (type === 'number') {
-            binder.data = toNumber(binder.target.value);
+            data = binder.data = toNumber(binder.target.value);
         }
         else if (type === 'file') {
             const multiple = binder.target.multiple;
-            binder.data = multiple ? [...binder.target.files] : binder.target.files[0];
+            data = binder.data = multiple ? [...binder.target.files] : binder.target.files[0];
+            data = multiple ? data.join(',') : data;
         }
         else {
-            binder.data = binder.target.value;
+            data = binder.data = binder.target.value;
         }
+        binder.target.setAttribute('value', data);
     };
-    function value (binder, event) {
+    function value (binder) {
+        console.log('not event');
         const type = binder.target.type;
-        if (!binder.meta.setup) {
-            binder.meta.setup = true;
+        if (!binder.meta.listener) {
+            binder.meta.listener = true;
             binder.target.addEventListener('input', () => input(binder));
         }
-        if (type === 'select-one' || type === 'select-multiple') {
+        if (type === 'select-one') {
             return {
-                read(ctx) {
-                    console.log(event);
-                    console.log(binder.target);
-                    console.log(binder.data);
-                    ctx.selectBinder = binder;
-                    ctx.select = binder.target;
-                    ctx.options = binder.target.options;
-                    ctx.multiple = binder.target.multiple;
-                    if (ctx.multiple && binder.data instanceof Array === false) {
-                        ctx.data = binder.data = [];
+                async read(ctx) {
+                    ctx.data = await binder.compute();
+                    ctx.value = binder.target.value;
+                },
+                async write(ctx) {
+                    let value;
+                    if ('' === ctx.data || null === ctx.data || undefined === ctx.data) {
+                        value = binder.data = ctx.value;
                     }
                     else {
-                        ctx.data = binder.data;
+                        value = binder.target.value = ctx.data;
                     }
-                    ctx.selects = [];
-                    ctx.unselects = [];
+                    binder.target.setAttribute('value', value);
+                }
+            };
+        }
+        else if (type === 'select-multiple') {
+            return {
+                async read(ctx) {
+                    ctx.data = await binder.compute();
+                    ctx.options = [...binder.target.options];
+                    ctx.value = [...binder.target.selectedOptions].map(o => o.value);
                 },
-                write(ctx) {
-                    const { selects, unselects } = ctx;
-                    selects.forEach(option => {
-                        option.selected = true;
-                        console.log(option, option.selected, 'select');
-                    });
-                    unselects.forEach(option => {
-                        option.selected = false;
-                        console.log(option, option.selected, 'unselects');
-                    });
-                    binder.meta.busy = false;
+                async write(ctx) {
+                    let value;
+                    if (!(ctx.data?.constructor instanceof Array) || !ctx.data.length) {
+                        value = binder.data = ctx.value;
+                    }
+                    else {
+                        value = '';
+                        ctx.options.forEach((o, i) => {
+                            o.selected = o.value == ctx.data[i];
+                            value += `${o.value},`;
+                        });
+                    }
+                    binder.target.setAttribute('value', value);
                 }
             };
         }
@@ -836,7 +856,7 @@
                 target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
                 return;
             }
-            const tree = expression(value, container.data);
+            const { compute, paths } = expression(value, container.data);
             const type = name.startsWith('on') ? 'on' : name in self.binders ? name : 'default';
             const action = self.binders[type];
             const render = async function (...extra) {
@@ -855,7 +875,7 @@
                     this.busy = false;
                 });
             };
-            for (const path of tree.paths) {
+            for (const path of paths) {
                 if (isNative.test(path))
                     continue;
                 const keys = path.split('.');
@@ -865,8 +885,7 @@
                 const binder = {
                     meta: {},
                     busy: false,
-                    compute: tree.compute,
-                    tree,
+                    compute,
                     path,
                     key, keys,
                     name, value,

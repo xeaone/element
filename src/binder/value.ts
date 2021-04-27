@@ -1,4 +1,4 @@
-import { index as Index, match as Match } from '../tool';
+import { index as Index, match as Match, toBoolean } from '../tool';
 import Binder from '../binder';
 // import Includes from '../tool/includes';
 
@@ -10,245 +10,80 @@ import {
 
 const input = function (binder) {
     const type = binder.target.type;
+    console.log('event', type);
+    let data;
 
-    if (type === 'select-one' || type === 'select-multiple') {
-
+    if (type === 'select-one') {
+        data = binder.data = binder.target.value;
+    } else if (type === 'select-multiple') {
+        data = binder.data = [ ...binder.target.selectedOptions ].map(o => o.value);
+        console.log(binder);
+        data = data.join(',');
     } else if (type === 'checkbox' || type === 'radio') {
-        binder.data = to(binder.data, binder.target.value);
+        // data = binder.data = toBoolean(binder.target.value);
+        data = binder.data = to(binder.data, binder.target.value);
     } else if (type === 'number') {
-        binder.data = toNumber(binder.target.value);
+        data = binder.data = toNumber(binder.target.value);
     } else if (type === 'file') {
         const multiple = binder.target.multiple;
-        binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
+        data = binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
+        data = multiple ? data.join(',') : data;
     } else {
-        binder.data = binder.target.value;
+        data = binder.data = binder.target.value;
     }
+
+    binder.target.setAttribute('value', data);
 };
 
-export default function (binder, event) {
+export default function (binder) {
+    console.log('not event');
     const type = binder.target.type;
 
-    if (!binder.meta.setup) {
-        binder.meta.setup = true;
+    if (!binder.meta.listener) {
+        binder.meta.listener = true;
         binder.target.addEventListener('input', () => input(binder));
     }
 
-    if (type === 'select-one' || type === 'select-multiple') {
+    if (type === 'select-one') {
         return {
-            read (ctx) {
+            async read (ctx) {
+                ctx.data = await binder.compute();
+                ctx.value = binder.target.value;
+            },
+            async write (ctx) {
+                let value;
 
-                console.log(event);
-                console.log(binder.target);
-                console.log(binder.data);
-
-                ctx.selectBinder = binder;
-                ctx.select = binder.target;
-                ctx.options = binder.target.options;
-                ctx.multiple = binder.target.multiple;
-
-                if (ctx.multiple && binder.data instanceof Array === false) {
-                    ctx.data = binder.data = [];
-                    // binder.meta.busy = false;
-                    // throw new Error(`Oxe - invalid o-value ${binder.keys.join('.')} multiple select requires array`);
+                if ('' === ctx.data || null === ctx.data || undefined === ctx.data) {
+                    value = binder.data = ctx.value;
                 } else {
-                    ctx.data = binder.data;
+                    value = binder.target.value = ctx.data;
                 }
 
-                ctx.selects = [];
-                ctx.unselects = [];
-
-                // for (let i = 0; i < ctx.options.length; i++) {
-                //     const node = ctx.options[ i ];
-                //     const selected = node.selected;
-                //     const attribute = node.attributes[ 'o-value' ] || node.attributes[ 'value' ];
-                //     const option = Binder.get(attribute) || { get data () { return node.value; }, set data (data) { node.value = data; } };
-                //     if (ctx.multiple) {
-                //         const index = Index(binder.data, option.data);
-                //         if (event) {
-                //             if (selected && index === -1) {
-                //                 binder.data.push(option.data);
-                //             } else if (!selected && index !== -1) {
-                //                 binder.data.splice(index, 1);
-                //             }
-                //         } else {
-                //             if (index === -1) {
-                //                 ctx.unselects.push(node);
-                //                 // option.selected = false;
-                //             } else {
-                //                 ctx.selects.push(node);
-                //                 // option.selected = true;
-                //             }
-                //         }
-                //     } else {
-                //         const match = Match(binder.data, option.data);
-                //         if (event) {
-                //             if (selected && !match) {
-                //                 binder.data = option.data;
-                //             } else if (!selected && match) {
-                //                 continue;
-                //             }
-                //         } else {
-                //             if (match) {
-                //                 ctx.selects.push(node);
-                //                 // option.selected = true;
-                //             } else {
-                //                 ctx.unselects.push(node);
-                //                 // option.selected = false;
-                //             }
-                //         }
-                //     }
-                // }
-
-                // if (binder.data === ctx.data) {
-                //     return ctx.write = false;
-                // }
-
-                // for (let i = 0; i < ctx.options.length; i++) {
-                //     const target = ctx.options[i];
-                //     const attribute = target.attributes['o-value'] || target.attributes['value'];
-                //     Binder.render(
-                //         Binder.get(attribute) ||
-                //         { meta: {}, target, get data () { return target.value; }, set data (data) { target.value = data; } },
-                //         event
-                //     );
-                // }
-
-                // binder.meta.busy = false;
-            },
-            write (ctx) {
-                const { selects, unselects } = ctx;
-
-                selects.forEach(option => {
-                    option.selected = true;
-                    console.log(option, option.selected, 'select');
-                });
-
-                unselects.forEach(option => {
-                    option.selected = false;
-                    console.log(option, option.selected, 'unselects');
-                });
-
-                // const { options, multiple, selectBinder } = ctx;
-                //
-                // for (let i = 0; i < options.length; i++) {
-                //     const option = options[i];
-                //     const selected = option.selected;
-                //
-                //     const attribute = option.attributes['o-value'] || option.attributes['value'];
-                //     const optionBinder = Binder.get(attribute) || { get data () { return option.value; }, set data (data) { option.value = data; } };
-                //
-                //     if (multiple) {
-                //         const index = Index(ctx.data, optionBinder.data);
-                //         if (event) {
-                //             if (selected && index === -1) {
-                //                 ctx.data.push(optionBinder.data);
-                //             } else if (!selected && index !== -1) {
-                //                 ctx.data.splice(index, 1);
-                //             }
-                //         } else {
-                //             if (index === -1) {
-                //                 option.selected = false;
-                //             } else {
-                //                 option.selected = true;
-                //             }
-                //         }
-                //     } else {
-                //         const match = match(ctx.data, optionBinder.data);
-                //         if (event) {
-                //             if (selected && !match) {
-                //                 binder.data = optionBinder.data;
-                //                 break;
-                //             }
-                //         } else {
-                //             if (match) {
-                //                 option.selected = true;
-                //             } else {
-                //                 option.selected = false;
-                //             }
-                //         }
-                //     }
-                // }
-
-                // if (binder.data !== data) {
-                //     binder.data = data;
-                // }
-
-                binder.meta.busy = false;
+                binder.target.setAttribute('value', value);
             }
-            //
-            //     const fallback = [];
-            //     const multiple = ctx.multiple;
-            //     const options = ctx.options;
-            //     for (let i = 0; i < options.length; i++) {
-            //
-            //         const option = options[i];
-            //         const selected = option.selected;
-            //         const optionBinder = Binder.get(option, 'value');
-            //         const value = optionBinder ? optionBinder.data : option.value;
-            //
-            //         if (option.hasAttribute('selected')) {
-            //             fallback.push({ option, value });
-            //         }
-            //
-            //         // console.log(binder.data, value, binder.data===value);
-            //
-            //         if (e) {
-            //             if (multiple) {
-            //                 if (selected) {
-            //                     const includes = Includes(binder.data, value);
-            //                     if (!includes) {
-            //                         binder.data.push(value);
-            //                     }
-            //                 } else {
-            //                     const index = Index(binder.data, value);
-            //                     if (index !== -1) {
-            //                         binder.data.splice(index, 1);
-            //                     }
-            //                 }
-            //             } else {
-            //                 if (selected) {
-            //                     binder.data = value;
-            //                     break;
-            //                 }
-            //             }
-            //         } else {
-            //             if (multiple) {
-            //                 const includes = Includes(binder.data, value);
-            //                 if (includes) {
-            //                     option.selected = true;
-            //                 } else {
-            //                     option.selected = false;
-            //                 }
-            //             } else {
-            //                 const match = match(binder.data, value);
-            //                 if (match) {
-            //                     option.selected = true;
-            //                     break;
-            //                 }
-            //             }
-            //         }
-            //     }
-            //
-            //     if (ctx.selectedIndex === -1) {
-            //         if (multiple) {
-            //             for (let i = 0; i < fallback.length; i++) {
-            //                 const { option, value } = fallback[i];
-            //                 if (e) {
-            //                     binder.data.push(value);
-            //                 } else {
-            //                     option.selected = true;
-            //                 }
-            //             }
-            //         } else {
-            //             // const { option, value } = fallback[0] || ctx.options[0];
-            //             // if (e) {
-            //             //     binder.data = value;
-            //             // } else {
-            //             //     option.selected = true;
-            //             // }
-            //         }
-            //     }
-            //
+        };
+    } else if (type === 'select-multiple') {
+        return {
+            async read (ctx) {
+                ctx.data = await binder.compute();
+                ctx.options = [ ...binder.target.options ];
+                ctx.value = [ ...binder.target.selectedOptions ].map(o => o.value);
+            },
+            async write (ctx) {
+                let value;
+
+                if (!(ctx.data?.constructor instanceof Array) || !ctx.data.length) {
+                    value = binder.data = ctx.value;
+                } else {
+                    value = '';
+                    ctx.options.forEach((o, i) => {
+                        o.selected = o.value == ctx.data[ i ];
+                        value += `${o.value},`;
+                    });
+                }
+
+                binder.target.setAttribute('value', value);
+            }
         };
     } else if (type === 'checkbox' || type === 'radio') {
         let data;

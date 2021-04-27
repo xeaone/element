@@ -96,7 +96,7 @@ export default new class Binder {
             return;
         }
 
-        const tree = Expression(value, container.data);
+        const { compute, paths } = Expression(value, container.data);
         const type = name.startsWith('on') ? 'on' : name in self.binders ? name : 'default';
         const action = self.binders[ type ];
 
@@ -126,7 +126,7 @@ export default new class Binder {
         //     return;
         // }
 
-        for (const path of tree.paths) {
+        for (const path of paths) {
             if (isNative.test(path)) continue;
 
             const keys = path.split('.');
@@ -137,8 +137,7 @@ export default new class Binder {
             const binder = {
                 meta: {},
                 busy: false,
-                compute: tree.compute,
-                tree,
+                compute,
                 path,
                 key, keys,
                 name, value,

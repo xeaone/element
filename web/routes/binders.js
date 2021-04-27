@@ -38,7 +38,9 @@ export default class BindersRoute extends Component {
             { name: 'tomato' }
         ],
 
-        selectResult: '',
+        // selectResult: '',
+        selectResult: 'tree',
+        // selectResult: 'cactus',
 
     };
 
@@ -121,6 +123,14 @@ export default class BindersRoute extends Component {
             <select value="{{selectResult}}">
                 <option value="tree">Tree</option>
                 <option value="cactus">Cactus</option>
+            </select>
+            <br>
+            <div>{{multipleSelectResult}}</div>
+            <select value="{{multipleSelectResult}}" multiple>
+                <option value="volvo">Volvo</option>
+                <option value="saab">Saab</option>
+                <option value="opel">Opel</option>
+                <option value="audi">Audi</option>
             </select>
         </section>
 
