@@ -10,7 +10,7 @@ export default function (binder) {
 
             if (!binder.meta.setup) {
                 // const [variable, index, key] = binder.value.replace(/{{|}}|\s+of\s+\w+/g, '').split(/\s*,\s*/);
-                const [key, index, variable] = binder.value.slice(2, -2).replace(/\s+of\s+.*/, '').split(/\s*,\s*/);
+                const [ variable, index, key ] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
 
                 binder.meta.variable = variable;
                 binder.meta.index = index;
@@ -63,7 +63,7 @@ export default function (binder) {
             } else if (binder.meta.currentLength < binder.meta.targetLength) {
                 while (binder.meta.currentLength < binder.meta.targetLength) {
                     const index = binder.meta.currentLength;
-                    const key = binder.meta.keys[index] ?? index;
+                    const key = binder.meta.keys[ index ] ?? index;
                     const variable = `${binder.path}.${key}`;
 
                     let clone = binder.meta.templateString;
@@ -76,6 +76,8 @@ export default function (binder) {
                     clone.match(syntax)?.forEach(match => clone = clone.replace(match,
                         match.replace(rVariable, variable).replace(rIndex, index).replace(rKey, key)
                     ));
+
+                    console.log(clone);
 
                     const template = document.createElement('template');
                     template.innerHTML = clone;

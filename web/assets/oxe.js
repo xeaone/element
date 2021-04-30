@@ -344,7 +344,7 @@
             async read() {
                 data = binder.data;
                 if (!binder.meta.setup) {
-                    const [key, index, variable] = binder.value.slice(2, -2).replace(/\s+of\s+.*/, '').split(/\s*,\s*/);
+                    const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
                     binder.meta.variable = variable;
                     binder.meta.index = index;
                     binder.meta.key = key;
@@ -395,6 +395,7 @@
                         const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
                         const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
                         clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(rVariable, variable).replace(rIndex, index).replace(rKey, key)));
+                        console.log(clone);
                         const template = document.createElement('template');
                         template.innerHTML = clone;
                         for (const node of template.content.childNodes) {
@@ -968,6 +969,7 @@
             }
             else if (type === EN) {
                 let skip = false;
+                const binds = [];
                 const attributes = node.attributes;
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
@@ -979,10 +981,14 @@
                             ||
                                 name.indexOf(`${this.prefix}each`) === 0) {
                             skip = true;
+                            binds.unshift(this.bind.bind(this, node, name, value, container, attribute));
                         }
-                        this.bind(node, name, value, container, attribute);
+                        else {
+                            binds.push(this.bind.bind(this, node, name, value, container, attribute));
+                        }
                     }
                 }
+                await Promise.all(binds.map(bind => bind()));
                 if (skip)
                     return;
                 let child = node.firstChild;

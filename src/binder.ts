@@ -249,29 +249,31 @@ export default new class Binder {
         } else if (type === EN) {
             let skip = false;
 
+            const binds = [];
             const attributes = (node as Element).attributes;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
                 const { name, value } = attribute;
-
                 if (
                     name.indexOf(this.prefix) === 0 ||
                     (name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1) ||
                     (value.indexOf(this.syntaxStart) !== -1 && value.indexOf(this.syntaxEnd) !== -1)
                 ) {
-
                     if (
                         name.indexOf('each') === 0
                         ||
                         name.indexOf(`${this.prefix}each`) === 0
                     ) {
                         skip = true;
+                        binds.unshift(this.bind.bind(this, node, name, value, container, attribute));
+                    } else {
+                        binds.push(this.bind.bind(this, node, name, value, container, attribute));
                     }
-
-                    this.bind(node, name, value, container, attribute);
                 }
-
             }
+
+            // for (const bind of binds) bind();
+            await Promise.all(binds.map(bind => bind()));
 
             if (skip) return;
 

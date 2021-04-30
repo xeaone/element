@@ -132,6 +132,11 @@ export default class BindersRoute extends Component {
                 <option value="opel">Opel</option>
                 <option value="audi">Audi</option>
             </select>
+            <br>
+            <div>{{selectForResult}}</div>
+            <select value="{{selectForResult}}" each="{{fruit of fruits}}">
+                <option value="{{fruit.name}}">{{fruit.name}}</option>
+            </select>
         </section>
 
     `;
