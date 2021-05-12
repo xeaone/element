@@ -1,65 +1,48 @@
-import Escape from '../modules/escape.js';
+import Code from '../modules/code.js';
 import Say from '../modules/say.js';
 
 const { Component } = Oxe;
 
-// imprt Say from '../modules/say.js';
+var home = Code(`
+	// routes/index.js
 
-var home = Escape(`
-	// home.js
-	exprt default {
-		path: '/',
+	export default {
 		title: 'Home',
-		component: {
-			name: 'r-home',
-			template: \`
-				<h1 o-text="title"></h1>
-				<button o-on-click="greet">Greet</button>
-			\`,
-			model: {
-				greeting: 'Old Hello World'
-			},
-			methods: {
-				greet: function () {
-					console.log(this.data.greeting);
-				}
-			},
-			created: function () {
+		html: \`
+			<h1>{{title}}</h1>
+			<button onclick="{{greet()}}">Greet</button>
+		\`,
+		data: {
+			greeting: 'Old Hello World',
+			greet () {
 				console.log(this.data.greeting);
-				this.data.greeting = 'New Hello World';
 			}
+		},
+		created () {
+			this.data.greeting = 'New Hello World';
 		}
 	};
 
+`, true);
 
-`);
-
-var indexjs = Escape(`
+var indexjs = Code(`
 	// index.js
-    imprt "./elements/e-menu.js";
-	imprt Home from './home.js';
 
-	Oxe.setup({
-		loader: {
-			type: 'es' // required to rewrite import exports
-		},
-		router: {
-			routes: [
-				Home,
-				'error' // dynamically loads and resolves to /routes/error.js
-			]
-		}
-	}).catch(console.error);
+	Oxe.location.listen({
+		target: 'main',
+		folder: 'routes'
+	});
+
 `);
 
-var indexhtml = Escape(`
+var indexhtml = Code(`
 	<!-- index.html -->
 	<html>
 	<head>
 
 		<base href="/">
 		<script src="./poly.min.js" defer></script>
-		<script src="./oxe.min.js" o-setup="./index.js, es" defer></script>
+		<script src="./oxe.min.js" defer></script>
 
 	</head>
 	<body>
@@ -78,10 +61,10 @@ var indexhtml = Escape(`
 
 export default class IndexRoute extends Component {
 
-	static title = 'Oxe';
-	static description = 'A mighty tiny web components framework/library.';
+	title = 'Oxe';
+	description = 'A mighty tiny web components framework/library.';
 
-	async connected() {
+	async connected () {
 		Say('index connected');
 	}
 
@@ -93,17 +76,14 @@ export default class IndexRoute extends Component {
 
 		<strong>Features</strong>
 		<ul>
-			<li>Small size</li>
-			<li>Front end routing</li>
-			<li>Configuration based</li>
-			<li>Optional module loading</li>
-			<li>Optional in browser ES6/ESM module rewrites</li>
-			<li>Optional in browser Template string rewrites</li>
+			<li>Small file size</li>
+			<li>Simple smart front end routing</li>
+			<li>Dynamic ES6/ESM module rewrites</li>
+			<li>Dynamic Template string rewrites</li>
 		</ul>
 
 		<strong>Support</strong>
 		<ul>
-			<li>IE10~</li>
 			<li>IE11</li>
 			<li>Chrome</li>
 			<li>Firefox</li>
@@ -154,6 +134,6 @@ export default class IndexRoute extends Component {
 		<pre>
 			<code class="language-html">${indexhtml}</code>
 		</pre>
-	`
+	`;
 
 }

@@ -1,4 +1,4 @@
-import Say from '../modules/say.js';
+import Say from '../web/modules/say.js';
 
 export default {
     title: 'Test',

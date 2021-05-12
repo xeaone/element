@@ -147,12 +147,6 @@ export default new class Binder {
                 container,
                 action,
                 render,
-                // getAttribute (name: string) {
-                //     const node = (target as any).getAttributeNode(name);
-                //     if (!node) return undefined;
-                //     const data = (self.data?.get(node) as any)?.data;
-                //     return data === undefined ? node.value : data;
-                // },
                 get data () {
                     const parentValue = traverse(this.container.data, this.parentKeys);
                     const childValue = parentValue?.[ this.childKey ];

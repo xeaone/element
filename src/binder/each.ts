@@ -9,7 +9,6 @@ export default function (binder) {
             data = binder.data;
 
             if (!binder.meta.setup) {
-                // const [variable, index, key] = binder.value.replace(/{{|}}|\s+of\s+\w+/g, '').split(/\s*,\s*/);
                 const [ variable, index, key ] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
 
                 binder.meta.variable = variable;
@@ -87,14 +86,6 @@ export default function (binder) {
 
                     // const template = document.createElement('template');
                     // template.innerHTML = clone;
-
-                    // const tasks = [];
-                    // for (const node of template.content.childNodes) {
-                    //     tasks.push(Binder.add(node, binder.container));
-                    // }
-                    // await Promise.all(tasks);
-                    // binder.target.appendChild(template.content);
-
                     // for (const node of template.content.childNodes) {
                     //     Binder.add(node, binder.container);
                     //     binder.target.appendChild(node);

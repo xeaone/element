@@ -2,7 +2,7 @@ const { Component } = Oxe;
 
 export default class AnyRoute extends Component {
 
-    static title = 'Error';
+    title = 'Error';
 
     html = /*html*/`
         <h1>404</h1>
