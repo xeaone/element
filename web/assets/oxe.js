@@ -196,7 +196,7 @@
     const reads = [];
     const writes = [];
     const options = {
-        time: 1000 / 60,
+        time: 16,
         pending: false
     };
     const setup = function (options = {}) {
@@ -226,6 +226,8 @@
         while (read = this.reads.shift()) {
             if (read)
                 readTasks.push(read());
+            if ((performance.now() - time) > this.time)
+                return this.tick(this.flush);
             reads++;
         }
         await Promise.all(readTasks);
@@ -235,6 +237,8 @@
         while (write = this.writes.shift()) {
             if (write)
                 writeTasks.push(write());
+            if ((performance.now() - time) > this.time)
+                return this.tick(this.flush);
             if (++writes === reads)
                 break;
         }
@@ -242,8 +246,11 @@
         if (this.reads.length === 0 && this.writes.length === 0) {
             this.options.pending = false;
         }
-        else {
+        else if ((performance.now() - time) > this.time) {
             return this.tick(this.flush);
+        }
+        else {
+            return this.flush(time);
         }
     };
     const remove = function (tasks, task) {
@@ -374,17 +381,20 @@
             },
             async write() {
                 if (binder.meta.currentLength > binder.meta.targetLength) {
+                    const nodes = [];
                     while (binder.meta.currentLength > binder.meta.targetLength) {
                         let count = binder.meta.templateLength;
                         while (count--) {
                             const node = binder.target.lastChild;
                             binder.target.removeChild(node);
-                            Binder.remove(node);
+                            nodes.push(node);
                         }
                         binder.meta.currentLength--;
                     }
+                    nodes.forEach(node => Binder.remove(node));
                 }
                 else if (binder.meta.currentLength < binder.meta.targetLength) {
+                    let html = '';
                     while (binder.meta.currentLength < binder.meta.targetLength) {
                         const index = binder.meta.currentLength;
                         const key = binder.meta.keys[index] ?? index;
@@ -394,16 +404,18 @@
                         const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
                         const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
                         const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
-                        clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(rVariable, variable).replace(rIndex, index).replace(rKey, key)));
-                        console.log(clone);
-                        const template = document.createElement('template');
-                        template.innerHTML = clone;
-                        for (const node of template.content.childNodes) {
-                            Binder.add(node, binder.container);
-                            binder.target.appendChild(node);
-                        }
+                        clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(rVariable, variable)
+                            .replace(rIndex, index)
+                            .replace(rKey, key)));
+                        html += clone;
                         binder.meta.currentLength++;
                     }
+                    const template = document.createElement('template');
+                    template.innerHTML = html;
+                    for (const node of template.content.childNodes) {
+                        Binder.add(node, binder.container);
+                    }
+                    binder.target.appendChild(template.content);
                 }
             }
         };
@@ -440,7 +452,8 @@
 
     const submit = async function (event, binder) {
         event.preventDefault();
-        const elements = event.target.querySelectorAll('*');
+        const { target } = event;
+        const elements = target.querySelectorAll('*');
         for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
             if ((!element.type && element.nodeName !== 'TEXTAREA') ||
@@ -457,14 +470,15 @@
                 continue;
         }
         await binder.compute(binder.container, event);
-        if (binder.getAttribute('reset')) {
-            event.target.reset();
+        if (target.getAttribute('reset')) {
+            target.reset();
         }
         return false;
     };
     const reset = async function (binder, event) {
         event.preventDefault();
-        const elements = event.target.querySelectorAll('*');
+        const { target } = event;
+        const elements = target.querySelectorAll('*');
         for (let i = 0, l = elements.length; i < l; i++) {
             const element = elements[i];
             const name = element.nodeName;

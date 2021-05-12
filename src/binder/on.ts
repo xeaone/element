@@ -2,9 +2,10 @@ import Binder from '../binder';
 
 const submit = async function (event, binder) {
     event.preventDefault();
+    const { target } = event;
 
     const data = {};
-    const elements = event.target.querySelectorAll('*');
+    const elements = target.querySelectorAll('*');
     for (let i = 0; i < elements.length; i++) {
         const element = elements[ i ];
 
@@ -36,8 +37,8 @@ const submit = async function (event, binder) {
 
     await binder.compute(binder.container, event);
 
-    if (binder.getAttribute('reset')) {
-        event.target.reset();
+    if (target.getAttribute('reset')) {
+        target.reset();
     }
 
     return false;
@@ -45,8 +46,9 @@ const submit = async function (event, binder) {
 
 const reset = async function (binder, event) {
     event.preventDefault();
+    const { target } = event;
 
-    const elements = event.target.querySelectorAll('*');
+    const elements = target.querySelectorAll('*');
     for (let i = 0, l = elements.length; i < l; i++) {
         const element = elements[ i ];
         const name = element.nodeName;

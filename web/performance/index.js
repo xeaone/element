@@ -2,20 +2,38 @@ const { Component, Define } = Oxe;
 
 class OLoop extends Component {
 
-    static attributes = ['test'];
+    static attributes = [ 'test' ];
 
     data = {
         items: [],
         message: '',
         count: 1000,
-        push() {
+        raw () {
+            console.log('raw');
+            console.time('raw');
+            const template = document.createElement('template');
+            let html = '';
+            for (var i = 0; i < this.data.count; i++) {
+                html += `
+                    <div class="box">
+                        <div>${i}</div>
+                    </div>
+                `;
+            }
+            template.innerHTML = html;
+            const raw = document.getElementById('raw');
+            raw.appendChild(template.content);
+            console.timeEnd('raw');
+        },
+        push () {
             console.time('push');
 
             for (var i = 0; i < this.data.count; i++) this.data.items.push({ number: i });
 
             console.timeEnd('push');
+
         },
-        overwrite() {
+        overwrite () {
             console.time('overwrite');
 
             var items = [];
@@ -24,23 +42,24 @@ class OLoop extends Component {
 
             console.timeEnd('overwrite');
         }
-    }
+    };
 
     html = /*html*/`
 
         <slot name="main">Main Default</slot>
 
-        <h3><span>{{count}}</span> Inputs two way binded</h3>
+        <h3><span>{{count}}</span> Inputs two way bound</h3>
 
-        <form onsubmit="{{push(1)}}">
+        <form onsubmit="{{push()}}">
             <input value="{{count}}" type="number">
             <input type="submit" value="Push">
         </form>
 
         <br>
 
-        <button onclick="{{push}}">Push</button>
-        <button onclick="{{overwrite}}">Overwrite</button>
+        <button onclick="{{raw()}}">raw</button>
+        <button onclick="{{push()}}">Push</button>
+        <button onclick="{{overwrite()}}">Overwrite</button>
 
         <div each="{{item of items}}">
             <div class="box">
@@ -48,13 +67,16 @@ class OLoop extends Component {
             </div>
         </div>
 
-    `
+        <div id="raw">
+        </div>
 
-    async attributed() {
+    `;
+
+    async attributed () {
         console.log(arguments);
     }
 
-    async connected() {
+    async connected () {
         console.log('connected');
     }
 

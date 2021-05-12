@@ -49,18 +49,22 @@ export default function (binder) {
         async write () {
 
             if (binder.meta.currentLength > binder.meta.targetLength) {
+                const nodes = [];
                 while (binder.meta.currentLength > binder.meta.targetLength) {
                     let count = binder.meta.templateLength;
 
                     while (count--) {
                         const node = binder.target.lastChild;
                         binder.target.removeChild(node);
-                        Binder.remove(node);
+                        nodes.push(node);
+                        // Binder.remove(node);
                     }
 
                     binder.meta.currentLength--;
                 }
+                nodes.forEach(node => Binder.remove(node));
             } else if (binder.meta.currentLength < binder.meta.targetLength) {
+                let html = '';
                 while (binder.meta.currentLength < binder.meta.targetLength) {
                     const index = binder.meta.currentLength;
                     const key = binder.meta.keys[ index ] ?? index;
@@ -73,14 +77,16 @@ export default function (binder) {
                     const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
                     const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
 
-                    clone.match(syntax)?.forEach(match => clone = clone.replace(match,
-                        match.replace(rVariable, variable).replace(rIndex, index).replace(rKey, key)
-                    ));
+                    clone.match(syntax)?.forEach(match =>
+                        clone = clone.replace(match,
+                            match.replace(rVariable, variable)
+                                .replace(rIndex, index)
+                                .replace(rKey, key)));
 
-                    console.log(clone);
+                    html += clone;
 
-                    const template = document.createElement('template');
-                    template.innerHTML = clone;
+                    // const template = document.createElement('template');
+                    // template.innerHTML = clone;
 
                     // const tasks = [];
                     // for (const node of template.content.childNodes) {
@@ -89,13 +95,20 @@ export default function (binder) {
                     // await Promise.all(tasks);
                     // binder.target.appendChild(template.content);
 
-                    for (const node of template.content.childNodes) {
-                        Binder.add(node, binder.container);
-                        binder.target.appendChild(node);
-                    }
+                    // for (const node of template.content.childNodes) {
+                    //     Binder.add(node, binder.container);
+                    //     binder.target.appendChild(node);
+                    // }
 
                     binder.meta.currentLength++;
                 }
+
+                const template = document.createElement('template');
+                template.innerHTML = html;
+                for (const node of template.content.childNodes) {
+                    Binder.add(node, binder.container);
+                }
+                binder.target.appendChild(template.content);
 
             }
 
