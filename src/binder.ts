@@ -19,9 +19,9 @@ import Expression from './expression';
 // const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
 const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
 // const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
-const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
+// const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
 
-const isEach = /.*?\s+(of|in)\s+/;
+// const isEach = /.*?\s+(of|in)\s+/;
 const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
 const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
 
@@ -89,7 +89,7 @@ export default new class Binder {
     }
 
     async bind (target: Node, name: string, value: string, container: any, pointer: Node | Attr) {
-        const self = this;
+        const self = this, renders = [];
 
         if (isSyntaxNative.test(value)) {
             target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
@@ -107,7 +107,7 @@ export default new class Binder {
             const { read, write } = this.action(this, ...extra);
             const context = {};
 
-            Batcher.batch(async () => {
+            return Batcher.batch(async () => {
                 if (read) await read(context);
             }, async () => {
                 if (write) await write(context);
@@ -178,7 +178,7 @@ export default new class Binder {
             };
 
             this.data.set(pointer, binder);
-            binder.render();
+            renders.push(binder.render());
 
             // if (target.nodeName.includes('-')) {
             //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
@@ -188,6 +188,7 @@ export default new class Binder {
             // return path;
         }
 
+        return Promise.all(renders);
     }
 
     async remove (node: Node) {

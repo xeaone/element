@@ -4,8 +4,10 @@ import Binder from '../binder';
 
 export default function (binder) {
     let data;
+
     return {
         async read () {
+
             data = binder.data;
 
             if (!binder.meta.setup) {
@@ -48,34 +50,35 @@ export default function (binder) {
         async write () {
 
             if (binder.meta.currentLength > binder.meta.targetLength) {
-                const nodes = [];
+                const tasks = [];
                 while (binder.meta.currentLength > binder.meta.targetLength) {
                     let count = binder.meta.templateLength;
 
                     while (count--) {
                         const node = binder.target.lastChild;
                         binder.target.removeChild(node);
-                        nodes.push(node);
+                        tasks.push(Binder.remove(node));
                         // Binder.remove(node);
                     }
 
                     binder.meta.currentLength--;
                 }
-                nodes.forEach(node => Binder.remove(node));
+                await Promise.all(tasks);
             } else if (binder.meta.currentLength < binder.meta.targetLength) {
+                console.time('each');
+
                 let html = '';
                 while (binder.meta.currentLength < binder.meta.targetLength) {
                     const index = binder.meta.currentLength;
                     const key = binder.meta.keys[ index ] ?? index;
                     const variable = `${binder.path}.${key}`;
 
-                    let clone = binder.meta.templateString;
-
                     const rKey = new RegExp(`\\b(${binder.meta.key})\\b`, 'g');
                     const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
                     const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
                     const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
 
+                    let clone = binder.meta.templateString;
                     clone.match(syntax)?.forEach(match =>
                         clone = clone.replace(match,
                             match.replace(rVariable, variable)
@@ -83,24 +86,22 @@ export default function (binder) {
                                 .replace(rKey, key)));
 
                     html += clone;
-
-                    // const template = document.createElement('template');
-                    // template.innerHTML = clone;
-                    // for (const node of template.content.childNodes) {
-                    //     Binder.add(node, binder.container);
-                    //     binder.target.appendChild(node);
-                    // }
-
                     binder.meta.currentLength++;
                 }
 
                 const template = document.createElement('template');
                 template.innerHTML = html;
-                for (const node of template.content.childNodes) {
-                    Binder.add(node, binder.container);
-                }
-                binder.target.appendChild(template.content);
 
+                console.time('map');
+                // this is faster and both ways we get {{}} notations
+                template.content.childNodes.forEach(node => Binder.add(node, binder.container));
+                binder.target.appendChild(template.content);
+                // await Promise.all([ ...template.content.childNodes ]
+                //     .map(node => Binder.add(node, binder.container)))
+                //     .then(binder.target.appendChild(template.content));
+                console.timeEnd('map');
+
+                console.timeEnd('each');
             }
 
         }

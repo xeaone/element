@@ -95,25 +95,23 @@
         }
     };
 
-    const methods = ['push', 'pop', 'splice', 'shift', 'unshift', 'reverse'];
-    const get = function (tasks, handler, path, target, property) {
-        if (isArray(target) && methods.indexOf(property) !== -1) {
-            tasks.push(handler.bind(null, target, path.slice(0, -1)));
+    const run$1 = async function (tasks) {
+        let task;
+        while (task = tasks.shift()) {
+            task();
         }
-        return target[property];
     };
     const set = function (tasks, handler, path, target, property, value) {
-        if (target[property] === value) {
+        if (property === 'length') {
+            property = '';
+            path = path.slice(0, -1);
+        }
+        else if (target[property] === value) {
             return true;
         }
         target[property] = create(value, handler, path + property, tasks);
-        if (tasks.length) {
-            Promise.resolve().then(() => {
-                let task;
-                while (task = tasks.shift())
-                    task();
-            }).catch(console.error);
-        }
+        if (tasks.length)
+            run$1(tasks);
         return true;
     };
     const create = function (source, handler, path, tasks) {
@@ -138,19 +136,11 @@
         else {
             isNative = true;
         }
-        if (!path && tasks.length) {
-            Promise.resolve().then(() => {
-                let task;
-                while (task = tasks.shift())
-                    task();
-            }).catch(console.error);
-        }
+        if (!path && tasks.length)
+            run$1(tasks);
         if (isNative)
             return source;
-        return new Proxy(source, {
-            get: get.bind(get, tasks, handler, path),
-            set: set.bind(set, tasks, handler, path)
-        });
+        return new Proxy(source, { set: set.bind(set, tasks, handler, path) });
     };
     const clone = function (source, handler, path, tasks) {
         path = path || '';
@@ -177,21 +167,15 @@
         else {
             isNative = true;
         }
-        if (!path && tasks.length) {
-            Promise.resolve().then(() => {
-                let task;
-                while (task = tasks.shift())
-                    task();
-            }).catch(console.error);
-        }
+        if (!path && tasks.length)
+            run$1(tasks);
         if (isNative)
             return source;
-        return new Proxy(target, {
-            get: get.bind(get, tasks, handler, path),
-            set: set.bind(set, tasks, handler, path)
-        });
+        return new Proxy(target, { set: set.bind(set, tasks, handler, path) });
     };
-    var Observer = { get, set, create, clone };
+    var Observer = {
+        set, create, clone
+    };
 
     const reads = [];
     const writes = [];
@@ -199,8 +183,8 @@
         time: 16,
         pending: false
     };
-    const setup = function (options = {}) {
-        this.options.time = options.time || this.options.time;
+    const setup = function (data = {}) {
+        options.time = data.time || options.time;
     };
     const tick = function (method) {
         return new Promise((resolve, reject) => {
@@ -222,31 +206,28 @@
     const flush = async function (time) {
         const readTasks = [];
         let read;
-        let reads = 0;
         while (read = this.reads.shift()) {
             if (read)
                 readTasks.push(read());
-            if ((performance.now() - time) > this.time)
+            if ((performance.now() - time) > options.time)
                 return this.tick(this.flush);
-            reads++;
         }
         await Promise.all(readTasks);
         const writeTasks = [];
         let write;
-        let writes = 0;
         while (write = this.writes.shift()) {
             if (write)
                 writeTasks.push(write());
-            if ((performance.now() - time) > this.time)
+            if ((performance.now() - time) > options.time)
                 return this.tick(this.flush);
-            if (++writes === reads)
+            if (writeTasks.length === readTasks.length)
                 break;
         }
         await Promise.all(writeTasks);
         if (this.reads.length === 0 && this.writes.length === 0) {
             this.options.pending = false;
         }
-        else if ((performance.now() - time) > this.time) {
+        else if ((performance.now() - time) > options.time) {
             return this.tick(this.flush);
         }
         else {
@@ -260,12 +241,12 @@
     const clear = function (task) {
         return this.remove(this.reads, task) || this.remove(this.writes, task);
     };
-    const batch = function (read, write) {
+    const batch = async function (read, write) {
         if (!read && !write)
             return;
         this.reads.push(read);
         this.writes.push(write);
-        this.schedule().catch(console.error);
+        return this.schedule();
     };
     var Batcher = Object.freeze({
         reads,
@@ -381,29 +362,30 @@
             },
             async write() {
                 if (binder.meta.currentLength > binder.meta.targetLength) {
-                    const nodes = [];
+                    const tasks = [];
                     while (binder.meta.currentLength > binder.meta.targetLength) {
                         let count = binder.meta.templateLength;
                         while (count--) {
                             const node = binder.target.lastChild;
                             binder.target.removeChild(node);
-                            nodes.push(node);
+                            tasks.push(Binder.remove(node));
                         }
                         binder.meta.currentLength--;
                     }
-                    nodes.forEach(node => Binder.remove(node));
+                    await Promise.all(tasks);
                 }
                 else if (binder.meta.currentLength < binder.meta.targetLength) {
+                    console.time('each');
                     let html = '';
                     while (binder.meta.currentLength < binder.meta.targetLength) {
                         const index = binder.meta.currentLength;
                         const key = binder.meta.keys[index] ?? index;
                         const variable = `${binder.path}.${key}`;
-                        let clone = binder.meta.templateString;
                         const rKey = new RegExp(`\\b(${binder.meta.key})\\b`, 'g');
                         const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
                         const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
                         const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
+                        let clone = binder.meta.templateString;
                         clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(rVariable, variable)
                             .replace(rIndex, index)
                             .replace(rKey, key)));
@@ -412,10 +394,11 @@
                     }
                     const template = document.createElement('template');
                     template.innerHTML = html;
-                    for (const node of template.content.childNodes) {
-                        Binder.add(node, binder.container);
-                    }
+                    console.time('map');
+                    template.content.childNodes.forEach(node => Binder.add(node, binder.container));
                     binder.target.appendChild(template.content);
+                    console.timeEnd('map');
+                    console.timeEnd('each');
                 }
             }
         };
@@ -866,7 +849,7 @@
             return this.data.delete(node);
         }
         async bind(target, name, value, container, pointer) {
-            const self = this;
+            const self = this, renders = [];
             if (isSyntaxNative.test(value)) {
                 target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
                 return;
@@ -881,7 +864,7 @@
                     this.busy = true;
                 const { read, write } = this.action(this, ...extra);
                 const context = {};
-                Batcher.batch(async () => {
+                return Batcher.batch(async () => {
                     if (read)
                         await read(context);
                 }, async () => {
@@ -942,8 +925,9 @@
                     }
                 };
                 this.data.set(pointer, binder);
-                binder.render();
+                renders.push(binder.render());
             }
+            return Promise.all(renders);
         }
         async remove(node) {
             const type = node.nodeType;
