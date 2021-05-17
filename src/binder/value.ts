@@ -38,6 +38,7 @@ const input = function (binder) {
 export default function (binder) {
     console.log('not event');
     const type = binder.target.type;
+    const ctx = {};
 
     if (!binder.meta.listener) {
         binder.meta.listener = true;
@@ -46,11 +47,11 @@ export default function (binder) {
 
     if (type === 'select-one') {
         return {
-            async read (ctx) {
+            async read () {
                 ctx.data = await binder.compute();
                 ctx.value = binder.target.value;
             },
-            async write (ctx) {
+            async write () {
                 let value;
 
                 if ('' === ctx.data || null === ctx.data || undefined === ctx.data) {
@@ -64,12 +65,12 @@ export default function (binder) {
         };
     } else if (type === 'select-multiple') {
         return {
-            async read (ctx) {
+            async read () {
                 ctx.data = await binder.compute();
                 ctx.options = [ ...binder.target.options ];
                 ctx.value = [ ...binder.target.selectedOptions ].map(o => o.value);
             },
-            async write (ctx) {
+            async write () {
                 let value;
 
                 if (!(ctx.data?.constructor instanceof Array) || !ctx.data.length) {
@@ -98,11 +99,11 @@ export default function (binder) {
         };
     } else if (type === 'number') {
         return {
-            read (ctx) {
+            read () {
                 ctx.data = binder.data;
                 ctx.value = toNumber(binder.target.value);
             },
-            write (ctx) {
+            write () {
                 ctx.value = toString(ctx.data);
                 binder.target.value = ctx.value;
                 binder.target.setAttribute('value', ctx.value);
@@ -110,7 +111,7 @@ export default function (binder) {
         };
     } else if (type === 'file') {
         return {
-            read (ctx) {
+            read () {
                 ctx.data = binder.data;
                 ctx.multiple = binder.target.multiple;
                 ctx.value = ctx.multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
@@ -118,7 +119,7 @@ export default function (binder) {
         };
     } else {
         return {
-            read (ctx) {
+            read () {
                 // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') return ctx.write = false;
 
                 ctx.data = binder.data;
@@ -155,7 +156,7 @@ export default function (binder) {
                 // }
 
             },
-            write (ctx) {
+            write () {
                 // const { select, selected, multiple } = ctx;
 
                 // if (select) {

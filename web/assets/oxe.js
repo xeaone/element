@@ -179,12 +179,9 @@
 
     const reads = [];
     const writes = [];
-    const options = {
-        time: 16,
-        pending: false
-    };
+    let max = 16;
+    let pending = false;
     const setup = function (data = {}) {
-        options.time = data.time || options.time;
     };
     const tick = function (method) {
         return new Promise((resolve, reject) => {
@@ -197,41 +194,37 @@
         });
     };
     const schedule = async function () {
-        if (this.options.pending)
+        if (pending)
             return;
         else
-            this.options.pending = true;
-        return this.tick(this.flush);
+            pending = true;
+        return tick(flush);
     };
     const flush = async function (time) {
         const readTasks = [];
         let read;
-        while (read = this.reads.shift()) {
-            if (read)
-                readTasks.push(read());
-            if ((performance.now() - time) > options.time)
-                return this.tick(this.flush);
+        while (read = reads.shift()) {
+            readTasks.push(read());
+            if ((performance.now() - time) > max)
+                return tick(flush);
         }
         await Promise.all(readTasks);
         const writeTasks = [];
         let write;
-        while (write = this.writes.shift()) {
-            if (write)
-                writeTasks.push(write());
-            if ((performance.now() - time) > options.time)
-                return this.tick(this.flush);
-            if (writeTasks.length === readTasks.length)
-                break;
+        while (write = writes.shift()) {
+            writeTasks.push(write());
+            if ((performance.now() - time) > max)
+                return tick(flush);
         }
         await Promise.all(writeTasks);
-        if (this.reads.length === 0 && this.writes.length === 0) {
-            this.options.pending = false;
+        if (reads.length === 0 && writes.length === 0) {
+            pending = false;
         }
-        else if ((performance.now() - time) > options.time) {
-            return this.tick(this.flush);
+        else if ((performance.now() - time) > max) {
+            return tick(flush);
         }
         else {
-            return this.flush(time);
+            return flush(time);
         }
     };
     const remove = function (tasks, task) {
@@ -239,19 +232,34 @@
         return !!~index && !!tasks.splice(index, 1);
     };
     const clear = function (task) {
-        return this.remove(this.reads, task) || this.remove(this.writes, task);
+        return remove(reads, task) || remove(writes, task);
     };
     const batch = async function (read, write) {
         if (!read && !write)
             return;
-        this.reads.push(read);
-        this.writes.push(write);
-        return this.schedule();
+        return new Promise((resolve) => {
+            let readDone = read ? false : true;
+            let writeDone = write ? false : true;
+            if (read)
+                reads.push(async () => {
+                    await read();
+                    readDone = true;
+                    if (readDone && writeDone)
+                        resolve();
+                });
+            if (write)
+                writes.push(async () => {
+                    await write();
+                    writeDone = true;
+                    if (readDone && writeDone)
+                        resolve();
+                });
+            schedule();
+        });
     };
     var Batcher = Object.freeze({
         reads,
         writes,
-        options,
         setup,
         tick,
         schedule,
@@ -327,20 +335,19 @@
     }
 
     function each (binder) {
-        let data;
+        binder.busy = true;
         return {
-            async read() {
-                data = binder.data;
+            async write() {
                 if (!binder.meta.setup) {
                     const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
                     binder.meta.variable = variable;
                     binder.meta.index = index;
                     binder.meta.key = key;
-                    binder.meta.keys = [];
+                    binder.meta.keys = binder.meta.keys || [];
                     binder.meta.counts = [];
                     binder.meta.setup = true;
-                    binder.meta.targetLength = 0;
-                    binder.meta.currentLength = 0;
+                    binder.meta.targetLength = binder.meta.targetLength || 0;
+                    binder.meta.currentLength = binder.meta.currentLength || 0;
                     binder.meta.templateLength = 0;
                     binder.meta.templateString = '';
                     let node;
@@ -352,6 +359,7 @@
                         binder.target.removeChild(node);
                     }
                 }
+                let data = binder.data;
                 if (data instanceof Array) {
                     binder.meta.targetLength = data.length;
                 }
@@ -359,8 +367,6 @@
                     binder.meta.keys = Object.keys(data || {});
                     binder.meta.targetLength = binder.meta.keys.length;
                 }
-            },
-            async write() {
                 if (binder.meta.currentLength > binder.meta.targetLength) {
                     const tasks = [];
                     while (binder.meta.currentLength > binder.meta.targetLength) {
@@ -375,7 +381,7 @@
                     await Promise.all(tasks);
                 }
                 else if (binder.meta.currentLength < binder.meta.targetLength) {
-                    console.time('each');
+                    console.time(`each ${binder.meta.targetLength}`);
                     let html = '';
                     while (binder.meta.currentLength < binder.meta.targetLength) {
                         const index = binder.meta.currentLength;
@@ -394,12 +400,13 @@
                     }
                     const template = document.createElement('template');
                     template.innerHTML = html;
-                    console.time('map');
-                    template.content.childNodes.forEach(node => Binder.add(node, binder.container));
+                    const tasks = [];
+                    template.content.childNodes.forEach(node => tasks.push(Binder.add(node, binder.container)));
+                    await Promise.all(tasks);
                     binder.target.appendChild(template.content);
-                    console.timeEnd('map');
-                    console.timeEnd('each');
+                    console.timeEnd(`each ${binder.meta.targetLength}`);
                 }
+                binder.busy = false;
             }
         };
     }
@@ -523,13 +530,9 @@
     }
 
     function text (binder) {
-        let data;
         return {
-            async read() {
-                data = await binder.compute();
-                data = toString(data);
-            },
             async write() {
+                const data = toString(await binder.compute());
                 if (data === binder.target.textContent)
                     return;
                 binder.target.textContent = data;
@@ -568,17 +571,18 @@
     function value (binder) {
         console.log('not event');
         const type = binder.target.type;
+        const ctx = {};
         if (!binder.meta.listener) {
             binder.meta.listener = true;
             binder.target.addEventListener('input', () => input(binder));
         }
         if (type === 'select-one') {
             return {
-                async read(ctx) {
+                async read() {
                     ctx.data = await binder.compute();
                     ctx.value = binder.target.value;
                 },
-                async write(ctx) {
+                async write() {
                     let value;
                     if ('' === ctx.data || null === ctx.data || undefined === ctx.data) {
                         value = binder.data = ctx.value;
@@ -592,12 +596,12 @@
         }
         else if (type === 'select-multiple') {
             return {
-                async read(ctx) {
+                async read() {
                     ctx.data = await binder.compute();
                     ctx.options = [...binder.target.options];
                     ctx.value = [...binder.target.selectedOptions].map(o => o.value);
                 },
-                async write(ctx) {
+                async write() {
                     let value;
                     if (!(ctx.data?.constructor instanceof Array) || !ctx.data.length) {
                         value = binder.data = ctx.value;
@@ -627,11 +631,11 @@
         }
         else if (type === 'number') {
             return {
-                read(ctx) {
+                read() {
                     ctx.data = binder.data;
                     ctx.value = toNumber(binder.target.value);
                 },
-                write(ctx) {
+                write() {
                     ctx.value = toString(ctx.data);
                     binder.target.value = ctx.value;
                     binder.target.setAttribute('value', ctx.value);
@@ -640,7 +644,7 @@
         }
         else if (type === 'file') {
             return {
-                read(ctx) {
+                read() {
                     ctx.data = binder.data;
                     ctx.multiple = binder.target.multiple;
                     ctx.value = ctx.multiple ? [...binder.target.files] : binder.target.files[0];
@@ -649,11 +653,11 @@
         }
         else {
             return {
-                read(ctx) {
+                read() {
                     ctx.data = binder.data;
                     ctx.value = binder.target.value;
                 },
-                write(ctx) {
+                write() {
                     binder.target.value = ctx.data ?? '';
                 }
             };
@@ -858,20 +862,8 @@
             const type = name.startsWith('on') ? 'on' : name in self.binders ? name : 'default';
             const action = self.binders[type];
             const render = async function (...extra) {
-                if (this.busy)
-                    return;
-                else
-                    this.busy = true;
                 const { read, write } = this.action(this, ...extra);
-                const context = {};
-                return Batcher.batch(async () => {
-                    if (read)
-                        await read(context);
-                }, async () => {
-                    if (write)
-                        await write(context);
-                    this.busy = false;
-                });
+                return Batcher.batch(read, write);
             };
             for (const path of paths) {
                 if (isNative.test(path))
@@ -958,42 +950,42 @@
                     return;
                 if (end + this.syntaxStart.length !== node.textContent.length) {
                     const split = node.splitText(end + this.syntaxEnd.length);
-                    this.bind(node, 'text', node.textContent, container, node);
-                    this.add(split, container);
+                    const value = node.textContent;
+                    node.textContent = '';
+                    await this.bind(node, 'text', value, container, node);
+                    return this.add(split, container);
                 }
                 else {
-                    this.bind(node, 'text', node.textContent, container, node);
+                    const value = node.textContent;
+                    node.textContent = '';
+                    await this.bind(node, 'text', value, container, node);
                 }
             }
             else if (type === EN) {
+                const tasks = [];
                 let skip = false;
-                const binds = [];
                 const attributes = node.attributes;
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
                     const { name, value } = attribute;
-                    if (name.indexOf(this.prefix) === 0 ||
-                        (name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1) ||
-                        (value.indexOf(this.syntaxStart) !== -1 && value.indexOf(this.syntaxEnd) !== -1)) {
-                        if (name.indexOf('each') === 0
-                            ||
-                                name.indexOf(`${this.prefix}each`) === 0) {
+                    if (name.startsWith(this.prefix) ||
+                        (name.includes(this.syntaxStart) && name.includes(this.syntaxEnd)) ||
+                        (value.includes(this.syntaxStart) && value.includes(this.syntaxEnd))) {
+                        if (name.indexOf('each') === 0 ||
+                            name.indexOf(`${this.prefix}each`) === 0) {
                             skip = true;
-                            binds.unshift(this.bind.bind(this, node, name, value, container, attribute));
                         }
-                        else {
-                            binds.push(this.bind.bind(this, node, name, value, container, attribute));
-                        }
+                        tasks.push(this.bind(node, name, value, container, attribute));
                     }
                 }
-                await Promise.all(binds.map(bind => bind()));
                 if (skip)
-                    return;
+                    return Promise.all(tasks);
                 let child = node.firstChild;
                 while (child) {
-                    this.add(child, container);
+                    tasks.push(this.add(child, container));
                     child = child.nextSibling;
                 }
+                return Promise.all(tasks);
             }
         }
     };
@@ -1100,7 +1092,7 @@
             __classPrivateFieldSet(this, _shadow, __classPrivateFieldGet(this, _shadow) ?? this.shadow);
             this.data = Observer.clone(__classPrivateFieldGet(this, _data$1), (_, path) => {
                 Binder.data.forEach(binder => {
-                    if (binder.container === this && binder.path.startsWith(path)) {
+                    if (binder.container === this && binder.path === path && !binder.busy) {
                         binder.render();
                     }
                 });
@@ -1776,12 +1768,23 @@
         };
     }
     if (!window.String.prototype.startsWith) {
-        Object.defineProperty(window.String.prototype, 'startsWith', {
-            value: function (search, rawPos) {
-                var pos = rawPos > 0 ? rawPos | 0 : 0;
-                return this.substring(pos, pos + search.length) === search;
+        window.String.prototype.startsWith = function startsWith(search, rawPos) {
+            var pos = rawPos > 0 ? rawPos | 0 : 0;
+            return this.substring(pos, pos + search.length) === search;
+        };
+    }
+    if (!window.String.prototype.includes) {
+        window.String.prototype.includes = function includes(search, start) {
+            if (search instanceof RegExp)
+                throw TypeError('first argument must not be a RegExp');
+            if (start === undefined) {
+                start = 0;
             }
-        });
+            return this.indexOf(search, start) !== -1;
+        };
+    }
+    if (window.NodeList && !window.NodeList.prototype.forEach) {
+        window.NodeList.prototype.forEach = window.Array.prototype.forEach;
     }
     var index = Object.freeze(new class Oxe {
         constructor() {

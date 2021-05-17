@@ -10,6 +10,7 @@ import Css from './css';
 declare global {
     interface Window {
         Reflect: any;
+        NodeList: any;
         CustomEvent: any;
     }
 }
@@ -49,6 +50,10 @@ if (!window.String.prototype.includes) {
         if (start === undefined) { start = 0; }
         return this.indexOf(search, start) !== -1;
     };
+}
+
+if (window.NodeList && !window.NodeList.prototype.forEach) {
+    window.NodeList.prototype.forEach = window.Array.prototype.forEach;
 }
 
 export default Object.freeze(new class Oxe {

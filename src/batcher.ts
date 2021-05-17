@@ -1,19 +1,15 @@
 
-// schedules a new read/write batch if one is not pending
-
 const reads = [];
 const writes = [];
 
-const options = {
-    time: 16,
-    pending: false
-};
+let max = 16;
+let pending = false;
 
 const setup = function (data: any = {}) {
-    options.time = data.time || options.time;
+    max ?? data.max;
 };
 
-const tick = function (method: () => void) {
+const tick = function (method: (time: number) => void) {
     return new Promise((resolve, reject) => {
         window.requestAnimationFrame(time => {
             Promise.resolve()
@@ -24,68 +20,39 @@ const tick = function (method: () => void) {
     });
 };
 
-// const schedule = async function () {
-//     if (this.options.pending) return;
-//     else this.options.pending = true;
-//     return this.flush();
-// };
-
-// const flush = async function (time) {
-
-//     const readTasks = [];
-//     let read;
-//     while (read = this.reads.shift()) {
-//         if (read) readTasks.push(this.tick(read));
-//     }
-//     await Promise.all(readTasks);
-
-//     const writeTasks = [];
-//     let write;
-//     while (write = this.writes.shift()) {
-//         if (write) writeTasks.push(this.tick(write));
-//         if (writeTasks.length === readTasks.length) break;
-//     }
-//     await Promise.all(writeTasks);
-
-//     if (this.reads.length === 0 && this.writes.length === 0) {
-//         this.options.pending = false;
-//     } else {
-//         return this.flush(time);
-//     }
-
-// };
-
 const schedule = async function () {
-    if (this.options.pending) return;
-    else this.options.pending = true;
-    return this.tick(this.flush);
+    if (pending) return;
+    else pending = true;
+    return tick(flush);
 };
 
 const flush = async function (time) {
 
     const readTasks = [];
     let read;
-    while (read = this.reads.shift()) {
-        if (read) readTasks.push(read());
-        if ((performance.now() - time) > options.time) return this.tick(this.flush);
+    while (read = reads.shift()) {
+        // if (read) readTasks.push(read());
+        readTasks.push(read());
+        if ((performance.now() - time) > max) return tick(flush);
     }
     await Promise.all(readTasks);
 
     const writeTasks = [];
     let write;
-    while (write = this.writes.shift()) {
-        if (write) writeTasks.push(write());
-        if ((performance.now() - time) > options.time) return this.tick(this.flush);
-        if (writeTasks.length === readTasks.length) break;
+    while (write = writes.shift()) {
+        // if (write) writeTasks.push(write());
+        writeTasks.push(write());
+        if ((performance.now() - time) > max) return tick(flush);
+        //     if (writeTasks.length === readTasks.length) break;
     }
     await Promise.all(writeTasks);
 
-    if (this.reads.length === 0 && this.writes.length === 0) {
-        this.options.pending = false;
-    } else if ((performance.now() - time) > options.time) {
-        return this.tick(this.flush);
+    if (reads.length === 0 && writes.length === 0) {
+        pending = false;
+    } else if ((performance.now() - time) > max) {
+        return tick(flush);
     } else {
-        return this.flush(time);
+        return flush(time);
     }
 
 };
@@ -96,24 +63,40 @@ const remove = function (tasks, task) {
 };
 
 const clear = function (task) {
-    return this.remove(this.reads, task) || this.remove(this.writes, task);
+    return remove(reads, task) || remove(writes, task);
 };
 
 const batch = async function (read, write) {
 
     if (!read && !write) return;
 
-    this.reads.push(read);
-    this.writes.push(write);
+    return new Promise((resolve: any) => {
+        let readDone = read ? false : true;
+        let writeDone = write ? false : true;
 
-    return this.schedule();
-    // return this.schedule().catch(console.error);
+        if (read) reads.push(async () => {
+            await read();
+            readDone = true;
+            if (readDone && writeDone) resolve();
+        });
+
+        if (write) writes.push(async () => {
+            await write();
+            writeDone = true;
+            if (readDone && writeDone) resolve();
+        });
+
+        schedule();
+    });
+
+    // this.reads.push(read);
+    // this.writes.push(write);
+    // return this.schedule();
 };
 
 export default Object.freeze({
     reads,
     writes,
-    options,
     setup,
     tick,
     schedule,

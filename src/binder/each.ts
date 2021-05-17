@@ -1,14 +1,10 @@
 import Binder from '../binder';
 
-// const variablePattern = /\s*\{\{\s*(.*?)\s+.*/;
-
 export default function (binder) {
-    let data;
+    binder.busy = true;
 
     return {
-        async read () {
-
-            data = binder.data;
+        async write () {
 
             if (!binder.meta.setup) {
                 const [ variable, index, key ] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
@@ -17,11 +13,11 @@ export default function (binder) {
                 binder.meta.index = index;
                 binder.meta.key = key;
 
-                binder.meta.keys = [];
+                binder.meta.keys = binder.meta.keys || [];
                 binder.meta.counts = [];
                 binder.meta.setup = true;
-                binder.meta.targetLength = 0;
-                binder.meta.currentLength = 0;
+                binder.meta.targetLength = binder.meta.targetLength || 0;
+                binder.meta.currentLength = binder.meta.currentLength || 0;
                 binder.meta.templateLength = 0;
                 binder.meta.templateString = '';
                 // binder.meta.templateString = binder.target.innerHTML;
@@ -39,15 +35,13 @@ export default function (binder) {
 
             }
 
+            let data = binder.data;
             if (data instanceof Array) {
                 binder.meta.targetLength = data.length;
             } else {
                 binder.meta.keys = Object.keys(data || {});
                 binder.meta.targetLength = binder.meta.keys.length;
             }
-
-        },
-        async write () {
 
             if (binder.meta.currentLength > binder.meta.targetLength) {
                 const tasks = [];
@@ -65,7 +59,7 @@ export default function (binder) {
                 }
                 await Promise.all(tasks);
             } else if (binder.meta.currentLength < binder.meta.targetLength) {
-                console.time('each');
+                console.time(`each ${binder.meta.targetLength}`);
 
                 let html = '';
                 while (binder.meta.currentLength < binder.meta.targetLength) {
@@ -92,18 +86,25 @@ export default function (binder) {
                 const template = document.createElement('template');
                 template.innerHTML = html;
 
-                console.time('map');
-                // this is faster and both ways we get {{}} notations
-                template.content.childNodes.forEach(node => Binder.add(node, binder.container));
-                binder.target.appendChild(template.content);
-                // await Promise.all([ ...template.content.childNodes ]
-                //     .map(node => Binder.add(node, binder.container)))
-                //     .then(binder.target.appendChild(template.content));
-                console.timeEnd('map');
+                // template.content.childNodes.forEach(node => Binder.add(node, binder.container));
+                // binder.target.appendChild(template.content);
 
-                console.timeEnd('each');
+                const tasks = [];
+                // for (const node of template.content.childNodes) {
+                //     tasks.push(Binder.add(node, binder.container));
+                // }
+                template.content.childNodes.forEach(node => tasks.push(Binder.add(node, binder.container)));
+                await Promise.all(tasks);
+
+                // await Promise.all([ ...template.content.childNodes ]
+                //     .map(node => Binder.add(node, binder.container)));
+
+                binder.target.appendChild(template.content);
+
+                console.timeEnd(`each ${binder.meta.targetLength}`);
             }
 
+            binder.busy = false;
         }
     };
-}
+};

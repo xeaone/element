@@ -101,18 +101,29 @@ export default new class Binder {
         const action = self.binders[ type ];
 
         const render = async function (...extra) {
-            if (this.busy) return;
-            else this.busy = true;
+            // if (this.busy) console.log('busy', this.name, this.value);
+            // if (this.busy) return;
+            // else this.busy = true;
 
             const { read, write } = this.action(this, ...extra);
-            const context = {};
+            // const context = {};
 
-            return Batcher.batch(async () => {
-                if (read) await read(context);
-            }, async () => {
-                if (write) await write(context);
-                this.busy = false;
-            });
+            // return new Promise((resolve: any) => {
+            //     window.requestAnimationFrame(async () => {
+            //         if (read) await read();
+            //         if (write) await write();
+            //         resolve();
+            //     });
+            // });
+
+            return Batcher.batch(read, write);
+
+            // return Batcher.batch(async () => {
+            //     if (read) await read(context);
+            // }, async () => {
+            //     if (write) await write(context);
+            //     this.busy = false;
+            // });
         };
 
         // if ((name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1)) {
@@ -226,58 +237,65 @@ export default new class Binder {
             const start = node.textContent.indexOf(this.syntaxStart);
             if (start === -1) return;
 
-            // if (start !== 0) node = node.splitText(start);
             if (start !== 0) node = (node as Text).splitText(start);
 
             const end = node.textContent.indexOf(this.syntaxEnd);
             if (end === -1) return;
 
             if (end + this.syntaxStart.length !== node.textContent.length) {
-                // const split = node.splitText(end + this.syntaxEnd.length);
                 const split = (node as Text).splitText(end + this.syntaxEnd.length);
-                this.bind(node, 'text', node.textContent, container, node);
-                this.add(split, container);
+                const value = node.textContent;
+                node.textContent = '';
+                await this.bind(node, 'text', value, container, node);
+                return this.add(split, container);
             } else {
-                this.bind(node, 'text', node.textContent, container, node);
+                const value = node.textContent;
+                node.textContent = '';
+                await this.bind(node, 'text', value, container, node);
             }
 
         } else if (type === EN) {
+            const tasks = [];
             let skip = false;
 
-            const binds = [];
             const attributes = (node as Element).attributes;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
                 const { name, value } = attribute;
                 if (
-                    name.indexOf(this.prefix) === 0 ||
-                    (name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1) ||
-                    (value.indexOf(this.syntaxStart) !== -1 && value.indexOf(this.syntaxEnd) !== -1)
+                    name.startsWith(this.prefix) ||
+                    (name.includes(this.syntaxStart) && name.includes(this.syntaxEnd)) ||
+                    (value.includes(this.syntaxStart) && value.includes(this.syntaxEnd))
+                    // (name.indexOf(this.syntaxStart) !== -1 && name.indexOf(this.syntaxEnd) !== -1) ||
+                    // (value.indexOf(this.syntaxStart) !== -1 && value.indexOf(this.syntaxEnd) !== -1)
                 ) {
                     if (
-                        name.indexOf('each') === 0
-                        ||
+                        name.indexOf('each') === 0 ||
                         name.indexOf(`${this.prefix}each`) === 0
                     ) {
                         skip = true;
-                        binds.unshift(this.bind.bind(this, node, name, value, container, attribute));
-                    } else {
-                        binds.push(this.bind.bind(this, node, name, value, container, attribute));
+                        //     binds.unshift(this.bind.bind(this, node, name, value, container, attribute));
+                        // } else {
+                        // binds.push(this.bind.bind(this, node, name, value, container, attribute));
                     }
+                    tasks.push(this.bind(node, name, value, container, attribute));
+                    // this.bind(node, name, value, container, attribute);
                 }
             }
 
             // for (const bind of binds) bind();
-            await Promise.all(binds.map(bind => bind()));
+            // await Promise.all(binds.map(bind => bind()));
+            // Promise.all(binds.map(bind => bind()));
 
-            if (skip) return;
+            if (skip) return Promise.all(tasks);
 
             let child = node.firstChild;
             while (child) {
-                this.add(child, container);
+                tasks.push(this.add(child, container));
                 child = child.nextSibling;
             }
 
+            return Promise.all(tasks);
         }
     }
 
