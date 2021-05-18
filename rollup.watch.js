@@ -32,7 +32,7 @@ export default [
             typescript({
                 sourceMap: false,
                 declaration: false,
-                removeComments: true,
+                removeComments: false,
                 noEmitHelpers: true,
                 module: 'es6',
                 // target: 'es2015',
@@ -41,4 +41,4 @@ export default [
             })
         ]
     }
-]
+];

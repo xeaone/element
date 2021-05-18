@@ -31,7 +31,6 @@ class OLoop extends Component {
             for (var i = 0; i < this.data.count; i++) this.data.items.push({ number: i });
 
             console.timeEnd('push');
-
         },
         overwrite () {
             console.time('overwrite');

@@ -20,7 +20,6 @@ const run = async function (tasks: task[]) {
 };
 
 const set = function (tasks: task[], handler, path, target, property, value) {
-    // console.log('set', path, property, value, target[ property ] === value);
 
     if (property === 'length') {
         property = '';

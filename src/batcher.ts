@@ -27,25 +27,26 @@ const schedule = async function () {
 };
 
 const flush = async function (time) {
+    const tasks = [];
 
-    const readTasks = [];
+    // const readTasks = [];
     let read;
     while (read = reads.shift()) {
         // if (read) readTasks.push(read());
-        readTasks.push(read());
+        tasks.push(read());
         if ((performance.now() - time) > max) return tick(flush);
     }
-    await Promise.all(readTasks);
+    await Promise.all(tasks);
 
-    const writeTasks = [];
+    // const writeTasks = [];
     let write;
     while (write = writes.shift()) {
         // if (write) writeTasks.push(write());
-        writeTasks.push(write());
+        tasks.push(write());
         if ((performance.now() - time) > max) return tick(flush);
         //     if (writeTasks.length === readTasks.length) break;
     }
-    await Promise.all(writeTasks);
+    await Promise.all(tasks);
 
     if (reads.length === 0 && writes.length === 0) {
         pending = false;
@@ -71,20 +72,42 @@ const batch = async function (read, write) {
     if (!read && !write) return;
 
     return new Promise((resolve: any) => {
-        let readDone = read ? false : true;
-        let writeDone = write ? false : true;
 
-        if (read) reads.push(async () => {
-            await read();
-            readDone = true;
-            if (readDone && writeDone) resolve();
-        });
+        if (read) {
+            reads.push(async () => {
+                await read();
+                if (write) {
+                    writes.push(async () => {
+                        await write();
+                        resolve();
+                    });
+                }
+            });
+        } else {
+            writes.push(async () => {
+                await write();
+                resolve();
+            });
+        }
 
-        if (write) writes.push(async () => {
-            await write();
-            writeDone = true;
-            if (readDone && writeDone) resolve();
-        });
+        // let readDone = read ? false : true;
+        // let writeDone = write ? false : true;
+
+        // if (read) {
+        //     reads.push(async () => {
+        //         await read();
+        //         readDone = true;
+        //         if (readDone && writeDone) resolve();
+        //     });
+        // }
+
+        // if (write) {
+        //     writes.push(async () => {
+        //         await write();
+        //         writeDone = true;
+        //         if (readDone && writeDone) resolve();
+        //     });
+        // }
 
         schedule();
     });

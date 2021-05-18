@@ -88,9 +88,8 @@ const reset = async function (binder, event) {
     return binder.compute(binder.container, event);
 };
 
-export default function (binder) {
-
-    const read = async function () {
+export default {
+    async read (binder) {
 
         binder.target[ binder.name ] = null;
         const name = binder.name.slice(2);
@@ -110,7 +109,5 @@ export default function (binder) {
         };
 
         binder.target.addEventListener(name, binder.meta.method);
-    };
-
-    return { read };
-}
+    }
+};

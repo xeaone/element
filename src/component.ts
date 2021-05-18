@@ -60,6 +60,8 @@ export default class Component extends HTMLElement {
         this.data = Observer.clone(this.#data, (_, path) => {
             Binder.data.forEach(binder => {
                 if (binder.container === this && binder.path === path && !binder.busy) {
+                    // if (binder.container === this && binder.path === path) {
+                    // if (binder.container === this && binder.path.startsWith(path)) {
                     // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
                     binder.render();
                 }

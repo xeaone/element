@@ -65,7 +65,7 @@ export default class BindersRoute extends Component {
         <section id="checked">
             <h3>Checked Binder</h3>
             <br>
-            <pre>${Code(`value="{{checked}}" checked="{{checked}}"`, true)}</pre>
+            <pre>${Code(`<input value="{{checked}}" checked="{{checked}}" type="checkbox">`, true)}</pre>
             <pre>value="{{checked}}" {{checkResult(checked)}}</pre>
             <br>
             <input value="{{checked}}" checked="{{checked}}" type="checkbox" oninput="{{checkInput}}">
@@ -133,10 +133,12 @@ export default class BindersRoute extends Component {
                 <option value="audi">Audi</option>
             </select>
             <br>
+        <!--
             <div>{{selectForResult}}</div>
             <select value="{{selectForResult}}" each="{{fruit of fruits}}">
                 <option value="{{fruit.name}}">{{fruit.name}}</option>
             </select>
+        -->
         </section>
 
     `;

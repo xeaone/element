@@ -46,41 +46,10 @@
         return value;
     }
 
-    const isMap = (data) => data?.constructor === Map;
-    const isDate = (data) => data?.constructor === Date;
     const isArray = (data) => data?.constructor === Array;
-    const isString = (data) => data?.constructor === String;
-    const isNumber = (data) => data?.constructor === Number;
     const isObject = (data) => data?.constructor === Object;
-    const isBoolean = (data) => data?.constructor === Boolean;
-    const toArray = (data) => JSON.parse(data);
-    const toObject = (data) => JSON.parse(data);
-    const toBoolean = (data) => data === 'true';
-    const toDate = (data) => new Date(Number(data));
-    const toMap = (data) => new Map(JSON.parse(data));
     const toString = (data) => typeof data === 'string' ? data : JSON.stringify(data);
     const toNumber = (data) => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
-    const to = function (source, target) {
-        try {
-            if (isMap(source))
-                return toMap(target);
-            if (isDate(source))
-                return toDate(target);
-            if (isArray(source))
-                return toArray(target);
-            if (isString(source))
-                return toString(target);
-            if (isObject(source))
-                return toObject(target);
-            if (isNumber(source))
-                return toNumber(target);
-            if (isBoolean(source))
-                return toBoolean(target);
-        }
-        catch {
-            return target;
-        }
-    };
     const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
     const traverse$1 = function (data, paths) {
         paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
@@ -94,7 +63,30 @@
             return traverse$1(data[paths[0]], paths.slice(1));
         }
     };
+    // export const events = function (target: Element, name: string, detail?: any, options?: any) {
+    //     options = options || { detail: null };
+    //     options.detail = detail === undefined ? null : detail;
+    //     target.dispatchEvent(new window.CustomEvent(name, options));
+    // };
+    // export default function extension (path:string) {
+    //     const position = path.lastIndexOf('.');
+    //     return position > 0 ? path.slice(position + 1) : '';
+    // }
+    // export default function normalize (path:string) {
+    //     return path
+    //         .replace(/\/+/g, '/')
+    //         .replace(/\/$/g, '')
+    //         || '.';
+    // }
 
+    // const methods = [ 'push', 'pop', 'splice', 'shift', 'unshift', 'reverse' ];
+    // const get = function (tasks, handler, path, target, property) {
+    //     if (isArray(target) && methods.indexOf(property) !== -1) {
+    //         console.log('get', path);
+    //         tasks.push(handler.bind(null, target, path.slice(0, -1)));
+    //     }
+    //     return target[ property ];
+    // };
     const run$1 = async function (tasks) {
         let task;
         while (task = tasks.shift()) {
@@ -118,6 +110,15 @@
         path = path || '';
         tasks = tasks || [];
         tasks.push(handler.bind(null, source, path));
+        // if (!isObject(source) && !isArray(source)) {
+        //     if (!path && tasks.length) {
+        //         Promise.resolve().then(() => {
+        //             let task; while (task = tasks.shift()) task();
+        //         }).catch(console.error);
+        //     }
+        //     return source;
+        // }
+        // path = path ? path + '.' : '';
         let isNative = false;
         if (isArray(source)) {
             path = path ? path + '.' : '';
@@ -146,6 +147,15 @@
         path = path || '';
         tasks = tasks || [];
         tasks.push(handler.bind(null, source, path));
+        // if (!isObject(source) && !isArray(source)) {
+        //     if (!path && tasks.length) {
+        //         Promise.resolve().then(() => {
+        //             let task; while (task = tasks.shift()) task();
+        //         }).catch(console.error);
+        //     }
+        //     return source;
+        // }
+        // path = path ? path + '.' : '';
         let target;
         let isNative = false;
         if (isArray(source)) {
@@ -174,495 +184,9 @@
         return new Proxy(target, { set: set.bind(set, tasks, handler, path) });
     };
     var Observer = {
+        // get,
         set, create, clone
     };
-
-    const reads = [];
-    const writes = [];
-    let max = 16;
-    let pending = false;
-    const setup = function (data = {}) {
-    };
-    const tick = function (method) {
-        return new Promise((resolve, reject) => {
-            window.requestAnimationFrame(time => {
-                Promise.resolve()
-                    .then(method.bind(this, time))
-                    .then(resolve)
-                    .catch(reject);
-            });
-        });
-    };
-    const schedule = async function () {
-        if (pending)
-            return;
-        else
-            pending = true;
-        return tick(flush);
-    };
-    const flush = async function (time) {
-        const readTasks = [];
-        let read;
-        while (read = reads.shift()) {
-            readTasks.push(read());
-            if ((performance.now() - time) > max)
-                return tick(flush);
-        }
-        await Promise.all(readTasks);
-        const writeTasks = [];
-        let write;
-        while (write = writes.shift()) {
-            writeTasks.push(write());
-            if ((performance.now() - time) > max)
-                return tick(flush);
-        }
-        await Promise.all(writeTasks);
-        if (reads.length === 0 && writes.length === 0) {
-            pending = false;
-        }
-        else if ((performance.now() - time) > max) {
-            return tick(flush);
-        }
-        else {
-            return flush(time);
-        }
-    };
-    const remove = function (tasks, task) {
-        const index = tasks.indexOf(task);
-        return !!~index && !!tasks.splice(index, 1);
-    };
-    const clear = function (task) {
-        return remove(reads, task) || remove(writes, task);
-    };
-    const batch = async function (read, write) {
-        if (!read && !write)
-            return;
-        return new Promise((resolve) => {
-            let readDone = read ? false : true;
-            let writeDone = write ? false : true;
-            if (read)
-                reads.push(async () => {
-                    await read();
-                    readDone = true;
-                    if (readDone && writeDone)
-                        resolve();
-                });
-            if (write)
-                writes.push(async () => {
-                    await write();
-                    writeDone = true;
-                    if (readDone && writeDone)
-                        resolve();
-                });
-            schedule();
-        });
-    };
-    var Batcher = Object.freeze({
-        reads,
-        writes,
-        setup,
-        tick,
-        schedule,
-        flush,
-        remove,
-        clear,
-        batch
-    });
-
-    function checked (binder, event) {
-        let data, checked;
-        return {
-            async read() {
-                data = await binder.compute();
-                if (!binder.meta.setup) {
-                    binder.meta.setup = true;
-                    binder.target.addEventListener('input', event => binder.render(event));
-                }
-                if (isBoolean(data)) {
-                    checked = event ? binder.target.checked : data;
-                }
-                if (event) {
-                    if (isBoolean(data)) {
-                        binder.data = checked;
-                    }
-                }
-            },
-            async write() {
-                binder.target.checked = checked;
-                if (checked) {
-                    binder.target.setAttribute('checked', '');
-                }
-                else {
-                    binder.target.removeAttribute('checked');
-                }
-            }
-        };
-    }
-
-    const booleans = [
-        'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
-        'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
-        'indeterminate', 'inert', 'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nohref', 'noresize', 'noshade', 'hidden',
-        'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly', 'required', 'reversed', 'scoped', 'seamless', 'selected',
-        'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
-    ];
-    function Default (binder) {
-        let data, result, boolean;
-        return {
-            async read() {
-                data = await binder.compute();
-                boolean = booleans.includes(binder.name);
-                if (boolean) {
-                    data = data ? true : false;
-                }
-                else {
-                    data = toString(data);
-                }
-            },
-            async write() {
-                binder.target[binder.name] = result;
-                if (boolean) {
-                    if (data)
-                        binder.target.setAttribute(binder.name, '');
-                    else
-                        binder.target.removeAttribute(binder.name);
-                }
-                else {
-                    binder.target.setAttribute(binder.name, data);
-                }
-            }
-        };
-    }
-
-    function each (binder) {
-        binder.busy = true;
-        return {
-            async write() {
-                if (!binder.meta.setup) {
-                    const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
-                    binder.meta.variable = variable;
-                    binder.meta.index = index;
-                    binder.meta.key = key;
-                    binder.meta.keys = binder.meta.keys || [];
-                    binder.meta.counts = [];
-                    binder.meta.setup = true;
-                    binder.meta.targetLength = binder.meta.targetLength || 0;
-                    binder.meta.currentLength = binder.meta.currentLength || 0;
-                    binder.meta.templateLength = 0;
-                    binder.meta.templateString = '';
-                    let node;
-                    while (node = binder.target.firstChild) {
-                        if (node.nodeType === 1 || (node.nodeType === 3 && /\S/.test(node.nodeValue))) {
-                            binder.meta.templateString += node.outerHTML;
-                            binder.meta.templateLength++;
-                        }
-                        binder.target.removeChild(node);
-                    }
-                }
-                let data = binder.data;
-                if (data instanceof Array) {
-                    binder.meta.targetLength = data.length;
-                }
-                else {
-                    binder.meta.keys = Object.keys(data || {});
-                    binder.meta.targetLength = binder.meta.keys.length;
-                }
-                if (binder.meta.currentLength > binder.meta.targetLength) {
-                    const tasks = [];
-                    while (binder.meta.currentLength > binder.meta.targetLength) {
-                        let count = binder.meta.templateLength;
-                        while (count--) {
-                            const node = binder.target.lastChild;
-                            binder.target.removeChild(node);
-                            tasks.push(Binder.remove(node));
-                        }
-                        binder.meta.currentLength--;
-                    }
-                    await Promise.all(tasks);
-                }
-                else if (binder.meta.currentLength < binder.meta.targetLength) {
-                    console.time(`each ${binder.meta.targetLength}`);
-                    let html = '';
-                    while (binder.meta.currentLength < binder.meta.targetLength) {
-                        const index = binder.meta.currentLength;
-                        const key = binder.meta.keys[index] ?? index;
-                        const variable = `${binder.path}.${key}`;
-                        const rKey = new RegExp(`\\b(${binder.meta.key})\\b`, 'g');
-                        const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
-                        const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
-                        const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
-                        let clone = binder.meta.templateString;
-                        clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(rVariable, variable)
-                            .replace(rIndex, index)
-                            .replace(rKey, key)));
-                        html += clone;
-                        binder.meta.currentLength++;
-                    }
-                    const template = document.createElement('template');
-                    template.innerHTML = html;
-                    const tasks = [];
-                    template.content.childNodes.forEach(node => tasks.push(Binder.add(node, binder.container)));
-                    await Promise.all(tasks);
-                    binder.target.appendChild(template.content);
-                    console.timeEnd(`each ${binder.meta.targetLength}`);
-                }
-                binder.busy = false;
-            }
-        };
-    }
-
-    function html (binder) {
-        let data;
-        return {
-            read() {
-                data = binder.data;
-                if (data === undefined || data === null) {
-                    data = '';
-                }
-                else {
-                    data = toString(data);
-                }
-            },
-            write() {
-                while (binder.target.firstChild) {
-                    const node = binder.target.removeChild(binder.target.firstChild);
-                    Binder.remove(node);
-                }
-                const fragment = document.createDocumentFragment();
-                const parser = document.createElement('div');
-                parser.innerHTML = data;
-                while (parser.firstElementChild) {
-                    Binder.add(parser.firstElementChild, { container: binder.container });
-                    fragment.appendChild(parser.firstElementChild);
-                }
-                binder.target.appendChild(fragment);
-            }
-        };
-    }
-
-    const submit = async function (event, binder) {
-        event.preventDefault();
-        const { target } = event;
-        const elements = target.querySelectorAll('*');
-        for (let i = 0; i < elements.length; i++) {
-            const element = elements[i];
-            if ((!element.type && element.nodeName !== 'TEXTAREA') ||
-                element.type === 'submit' ||
-                element.type === 'button' ||
-                !element.type)
-                continue;
-            const attribute = element.attributes['o-value'];
-            const b = Binder.get(attribute);
-            console.warn('todo: need to get a value for selects');
-            (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
-            const name = element.name || (b ? b.values[b.values.length - 1] : null);
-            if (!name)
-                continue;
-        }
-        await binder.compute(binder.container, event);
-        if (target.getAttribute('reset')) {
-            target.reset();
-        }
-        return false;
-    };
-    const reset = async function (binder, event) {
-        event.preventDefault();
-        const { target } = event;
-        const elements = target.querySelectorAll('*');
-        for (let i = 0, l = elements.length; i < l; i++) {
-            const element = elements[i];
-            const name = element.nodeName;
-            const type = element.type;
-            if (!type && name !== 'TEXTAREA' ||
-                type === 'submit' ||
-                type === 'button' ||
-                !type) {
-                continue;
-            }
-            const binder = Binder.get(element)?.get('value');
-            if (!binder) {
-                if (type === 'select-one' || type === 'select-multiple') {
-                    element.selectedIndex = null;
-                }
-                else if (type === 'radio' || type === 'checkbox') {
-                    element.checked = false;
-                }
-                else {
-                    element.value = null;
-                }
-            }
-            else if (type === 'select-one') {
-                binder.data = null;
-            }
-            else if (type === 'select-multiple') {
-                binder.data = [];
-            }
-            else if (type === 'radio' || type === 'checkbox') {
-                binder.data = false;
-            }
-            else {
-                binder.data = '';
-            }
-        }
-        return binder.compute(binder.container, event);
-    };
-    function on (binder) {
-        const read = async function () {
-            binder.target[binder.name] = null;
-            const name = binder.name.slice(2);
-            if (binder.meta.method) {
-                binder.target.removeEventListener(name, binder.meta.method);
-            }
-            binder.meta.method = event => {
-                if (name === 'reset') {
-                    return reset.call(binder.container, event, binder);
-                }
-                else if (name === 'submit') {
-                    return submit.call(binder.container, event, binder);
-                }
-                else {
-                    return binder.compute(binder.container, event);
-                }
-            };
-            binder.target.addEventListener(name, binder.meta.method);
-        };
-        return { read };
-    }
-
-    function text (binder) {
-        return {
-            async write() {
-                const data = toString(await binder.compute());
-                if (data === binder.target.textContent)
-                    return;
-                binder.target.textContent = data;
-            }
-        };
-    }
-
-    const input = function (binder) {
-        const type = binder.target.type;
-        console.log('event', type);
-        let data;
-        if (type === 'select-one') {
-            data = binder.data = binder.target.value;
-        }
-        else if (type === 'select-multiple') {
-            data = binder.data = [...binder.target.selectedOptions].map(o => o.value);
-            console.log(binder);
-            data = data.join(',');
-        }
-        else if (type === 'checkbox' || type === 'radio') {
-            data = binder.data = to(binder.data, binder.target.value);
-        }
-        else if (type === 'number') {
-            data = binder.data = toNumber(binder.target.value);
-        }
-        else if (type === 'file') {
-            const multiple = binder.target.multiple;
-            data = binder.data = multiple ? [...binder.target.files] : binder.target.files[0];
-            data = multiple ? data.join(',') : data;
-        }
-        else {
-            data = binder.data = binder.target.value;
-        }
-        binder.target.setAttribute('value', data);
-    };
-    function value (binder) {
-        console.log('not event');
-        const type = binder.target.type;
-        const ctx = {};
-        if (!binder.meta.listener) {
-            binder.meta.listener = true;
-            binder.target.addEventListener('input', () => input(binder));
-        }
-        if (type === 'select-one') {
-            return {
-                async read() {
-                    ctx.data = await binder.compute();
-                    ctx.value = binder.target.value;
-                },
-                async write() {
-                    let value;
-                    if ('' === ctx.data || null === ctx.data || undefined === ctx.data) {
-                        value = binder.data = ctx.value;
-                    }
-                    else {
-                        value = binder.target.value = ctx.data;
-                    }
-                    binder.target.setAttribute('value', value);
-                }
-            };
-        }
-        else if (type === 'select-multiple') {
-            return {
-                async read() {
-                    ctx.data = await binder.compute();
-                    ctx.options = [...binder.target.options];
-                    ctx.value = [...binder.target.selectedOptions].map(o => o.value);
-                },
-                async write() {
-                    let value;
-                    if (!(ctx.data?.constructor instanceof Array) || !ctx.data.length) {
-                        value = binder.data = ctx.value;
-                    }
-                    else {
-                        value = '';
-                        ctx.options.forEach((o, i) => {
-                            o.selected = o.value == ctx.data[i];
-                            value += `${o.value},`;
-                        });
-                    }
-                    binder.target.setAttribute('value', value);
-                }
-            };
-        }
-        else if (type === 'checkbox' || type === 'radio') {
-            let data;
-            return {
-                async read() {
-                    data = await binder.data;
-                },
-                async write() {
-                    binder.target.value = data;
-                    binder.target.setAttribute('value', data);
-                }
-            };
-        }
-        else if (type === 'number') {
-            return {
-                read() {
-                    ctx.data = binder.data;
-                    ctx.value = toNumber(binder.target.value);
-                },
-                write() {
-                    ctx.value = toString(ctx.data);
-                    binder.target.value = ctx.value;
-                    binder.target.setAttribute('value', ctx.value);
-                }
-            };
-        }
-        else if (type === 'file') {
-            return {
-                read() {
-                    ctx.data = binder.data;
-                    ctx.multiple = binder.target.multiple;
-                    ctx.value = ctx.multiple ? [...binder.target.files] : binder.target.files[0];
-                }
-            };
-        }
-        else {
-            return {
-                read() {
-                    ctx.data = binder.data;
-                    ctx.value = binder.target.value;
-                },
-                write() {
-                    binder.target.value = ctx.data ?? '';
-                }
-            };
-        }
-    }
 
     const $string = 'string';
     const $number = 'number';
@@ -715,12 +239,20 @@
             node.type = $variable;
             tree.paths.push(node.value);
             node.compute = () => traverse(data, node.value);
+            // node.display = () => {
+            //     const result = traverse(data, node.value);
+            //     return tree.children.length === 1 ? result :
+            //         typeof result === 'boolean' && result ? node.value.split('.').slice(-1)[ 0 ] :
+            //             typeof result === 'boolean' && !result ? '' :
+            //                 result;
+            // };
         }
     };
     function expression(expression, data) {
         const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, compute: null };
         let inside = false;
         let node = { value: '', parent: tree, children: [] };
+        // each of/in fix
         expression = expression.replace(/{{.*\s+(of|in)\s+/, '{{');
         for (let i = 0; i < expression.length; i++) {
             const c = expression[i];
@@ -813,11 +345,614 @@
         }
         return tree;
     }
+    // start: test
+    // const m = {
+    //     n1: 1,
+    //     n: { n2: 2 },
+    //     w: 'world',
+    //     foo: 'sFoo',
+    //     bar: 'sBar',
+    //     one: (two, oneDotTwo, blue) => `sOne ${two} ${oneDotTwo + 2} ${blue}`,
+    //     two: (foo, three) => `sTwo ${foo} ${three}`,
+    //     three: (bar, helloWorld) => `sThree ${bar} ${helloWorld + 's'}`,
+    // };
+    // console.log(expression(`hello {{w}}.`, m)());
+    // console.log(expression(`{{n1}}`, m)());
+    // console.log(expression(`{{n.n2}}`, m)());
+    // console.log(expression(`{{one(two(foo, three(bar, 'hello world')), 1.2)}}`, m)('blue'));
+    //end: test
 
+    const reads = [];
+    const writes = [];
+    let max = 16;
+    let pending = false;
+    const setup = function (data = {}) {
+    };
+    const tick = function (method) {
+        return new Promise((resolve, reject) => {
+            window.requestAnimationFrame(time => {
+                Promise.resolve()
+                    .then(method.bind(this, time))
+                    .then(resolve)
+                    .catch(reject);
+            });
+        });
+    };
+    const schedule = async function () {
+        if (pending)
+            return;
+        else
+            pending = true;
+        return tick(flush);
+    };
+    const flush = async function (time) {
+        const tasks = [];
+        // const readTasks = [];
+        let read;
+        while (read = reads.shift()) {
+            // if (read) readTasks.push(read());
+            tasks.push(read());
+            if ((performance.now() - time) > max)
+                return tick(flush);
+        }
+        await Promise.all(tasks);
+        // const writeTasks = [];
+        let write;
+        while (write = writes.shift()) {
+            // if (write) writeTasks.push(write());
+            tasks.push(write());
+            if ((performance.now() - time) > max)
+                return tick(flush);
+            //     if (writeTasks.length === readTasks.length) break;
+        }
+        await Promise.all(tasks);
+        if (reads.length === 0 && writes.length === 0) {
+            pending = false;
+        }
+        else if ((performance.now() - time) > max) {
+            return tick(flush);
+        }
+        else {
+            return flush(time);
+        }
+    };
+    const remove = function (tasks, task) {
+        const index = tasks.indexOf(task);
+        return !!~index && !!tasks.splice(index, 1);
+    };
+    const clear = function (task) {
+        return remove(reads, task) || remove(writes, task);
+    };
+    const batch = async function (read, write) {
+        if (!read && !write)
+            return;
+        return new Promise((resolve) => {
+            if (read) {
+                reads.push(async () => {
+                    await read();
+                    if (write) {
+                        writes.push(async () => {
+                            await write();
+                            resolve();
+                        });
+                    }
+                });
+            }
+            else {
+                writes.push(async () => {
+                    await write();
+                    resolve();
+                });
+            }
+            // let readDone = read ? false : true;
+            // let writeDone = write ? false : true;
+            // if (read) {
+            //     reads.push(async () => {
+            //         await read();
+            //         readDone = true;
+            //         if (readDone && writeDone) resolve();
+            //     });
+            // }
+            // if (write) {
+            //     writes.push(async () => {
+            //         await write();
+            //         writeDone = true;
+            //         if (readDone && writeDone) resolve();
+            //     });
+            // }
+            schedule();
+        });
+        // this.reads.push(read);
+        // this.writes.push(write);
+        // return this.schedule();
+    };
+    var Batcher = Object.freeze({
+        reads,
+        writes,
+        setup,
+        tick,
+        schedule,
+        flush,
+        remove,
+        clear,
+        batch
+    });
+
+    const booleans = [
+        'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
+        'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
+        'indeterminate', 'inert', 'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nohref', 'noresize', 'noshade', 'hidden',
+        'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly', 'required', 'reversed', 'scoped', 'seamless', 'selected',
+        'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
+    ];
+    var standard = {
+        async write(binder) {
+            let data = await binder.compute();
+            const boolean = booleans.includes(binder.name);
+            if (boolean) {
+                data = data ? true : false;
+            }
+            else {
+                data = toString(data);
+            }
+            // binder.target[ binder.name ] = result;
+            if (boolean) {
+                if (data)
+                    binder.target.setAttribute(binder.name, '');
+                else
+                    binder.target.removeAttribute(binder.name);
+            }
+            else {
+                binder.target.setAttribute(binder.name, data);
+            }
+        }
+    };
+
+    var checked = {
+        async setup(binder) {
+            binder.target.addEventListener('input', async () => {
+                const data = binder.data = binder.target.checked;
+                binder.target.toggleAttribute('checked', data);
+            });
+        },
+        async write(binder) {
+            const data = await binder.compute();
+            binder.target.checked = data;
+            binder.target.toggleAttribute('checked', data);
+        }
+    };
+
+    // import Includes from '../tool/includes';
+    const input = function (binder) {
+        const type = binder.target.type;
+        let data;
+        if (type === 'select-one') {
+            data = binder.data = binder.target.value;
+        }
+        else if (type === 'select-multiple') {
+            data = binder.data = [...binder.target.selectedOptions].map(o => o.value);
+            data = data.join(',');
+        }
+        else if (type === 'checkbox' || type === 'radio') ;
+        else if (type === 'number') {
+            data = binder.data = toNumber(binder.target.value);
+        }
+        else if (type === 'file') {
+            const multiple = binder.target.multiple;
+            data = binder.data = multiple ? [...binder.target.files] : binder.target.files[0];
+            data = multiple ? data.join(',') : data;
+        }
+        else {
+            data = binder.data = binder.target.value;
+        }
+        binder.target.setAttribute('value', data);
+    };
+    var value = {
+        async setup(binder) {
+            binder.target.addEventListener('input', () => input(binder));
+        },
+        // async read (binder) {
+        // },
+        async write(binder, context) {
+            const type = binder.target.type;
+            const data = await binder.compute();
+            if (type === 'select-one') {
+                let value;
+                if ('' === data || null === data || undefined === data) {
+                    value = binder.data = binder.target.value;
+                }
+                else {
+                    value = binder.target.value = data;
+                }
+                binder.target.setAttribute('value', value);
+            }
+            else if (type === 'select-multiple') ;
+            else if (type === 'checkbox' || type === 'radio') ;
+            else {
+                binder.target.value = data ?? '';
+                binder.target.toggleAttribute('value', data);
+            }
+        }
+    };
+    // export default function (binder) {
+    //     console.log('not event');
+    //     const type = binder.target.type;
+    //     const ctx = {};
+    //     if (!binder.meta.listener) {
+    //         binder.meta.listener = true;
+    //         binder.target.addEventListener('input', () => input(binder));
+    //     }
+    //     if (type === 'select-one') {
+    //         return {
+    //             async read () {
+    //                 ctx.data = await binder.compute();
+    //                 ctx.value = binder.target.value;
+    //             },
+    //             async write () {
+    //                 let value;
+    //                 if ('' === ctx.data || null === ctx.data || undefined === ctx.data) {
+    //                     value = binder.data = ctx.value;
+    //                 } else {
+    //                     value = binder.target.value = ctx.data;
+    //                 }
+    //                 binder.target.setAttribute('value', value);
+    //             }
+    //         };
+    //     } else if (type === 'select-multiple') {
+    //         return {
+    //             async read () {
+    //                 ctx.data = await binder.compute();
+    //                 ctx.options = [ ...binder.target.options ];
+    //                 ctx.value = [ ...binder.target.selectedOptions ].map(o => o.value);
+    //             },
+    //             async write () {
+    //                 let value;
+    //                 if (!(ctx.data?.constructor instanceof Array) || !ctx.data.length) {
+    //                     value = binder.data = ctx.value;
+    //                 } else {
+    //                     value = '';
+    //                     ctx.options.forEach((o, i) => {
+    //                         o.selected = o.value == ctx.data[ i ];
+    //                         value += `${o.value},`;
+    //                     });
+    //                 }
+    //                 binder.target.setAttribute('value', value);
+    //             }
+    //         };
+    //     } else if (type === 'checkbox' || type === 'radio') {
+    //         let data;
+    //         return {
+    //             async read () {
+    //                 data = await binder.data;
+    //             },
+    //             async write () {
+    //                 binder.target.value = data;
+    //                 binder.target.setAttribute('value', data);
+    //             }
+    //         };
+    //     } else if (type === 'number') {
+    //         return {
+    //             read () {
+    //                 ctx.data = binder.data;
+    //                 ctx.value = toNumber(binder.target.value);
+    //             },
+    //             write () {
+    //                 ctx.value = toString(ctx.data);
+    //                 binder.target.value = ctx.value;
+    //                 binder.target.setAttribute('value', ctx.value);
+    //             }
+    //         };
+    //     } else if (type === 'file') {
+    //         return {
+    //             read () {
+    //                 ctx.data = binder.data;
+    //                 ctx.multiple = binder.target.multiple;
+    //                 ctx.value = ctx.multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
+    //             }
+    //         };
+    //     } else {
+    //         return {
+    //             read () {
+    //                 // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') return ctx.write = false;
+    //                 ctx.data = binder.data;
+    //                 ctx.value = binder.target.value;
+    //                 // ctx.match = match(ctx.data, ctx.value);
+    //                 // ctx.selected = binder.target.selected;
+    //                 // if (ctx.match) {
+    //                 //     binder.meta.busy = false;
+    //                 //     ctx.write = false;
+    //                 //     return;
+    //                 // }
+    //                 // if (
+    //                 //     binder.target.parentElement &&
+    //                 //     (binder.target.parentElement.type === 'select-one'||
+    //                 //     binder.target.parentElement.type === 'select-multiple')
+    //                 // ) {
+    //                 //     ctx.select = binder.target.parentElement;
+    //                 // } else if (
+    //                 //     binder.target.parentElement &&
+    //                 //     binder.target.parentElement.parentElement &&
+    //                 //     (binder.target.parentElement.parentElement.type === 'select-one'||
+    //                 //     binder.target.parentElement.parentElement.type === 'select-multiple')
+    //                 // ) {
+    //                 //     ctx.select = binder.target.parentElement.parentElement;
+    //                 // }
+    //                 //
+    //                 // if (ctx.select) {
+    //                 //     const attribute = ctx.select.attributes['o-value'] || ctx.select.attributes['value'];
+    //                 //     if (!attribute) return ctx.write = false;
+    //                 //     ctx.select = Binder.get(attribute);
+    //                 //     ctx.multiple = ctx.select.target.multiple;
+    //                 // }
+    //             },
+    //             write () {
+    //                 // const { select, selected, multiple } = ctx;
+    //                 // if (select) {
+    //                 //     if (multiple) {
+    //                 //         const index = Index(select.data, ctx.data);
+    //                 //         if (event) {
+    //                 //             if (selected && index === -1) {
+    //                 //                 select.data.push(ctx.data);
+    //                 //             } else if (!selected && index !== -1) {
+    //                 //                 select.data.splice(index, 1);
+    //                 //             }
+    //                 //         } else {
+    //                 //             if (index === -1) {
+    //                 //                 binder.target.selected = false;
+    //                 //             } else {
+    //                 //                 binder.target.selected = true;
+    //                 //             }
+    //                 //         }
+    //                 //     } else {
+    //                 //         const match = match(select.data, ctx.data);
+    //                 //         if (event) {
+    //                 //             // console.log(match);
+    //                 //             // console.log(select.data);
+    //                 //             // console.log(ctx.data);
+    //                 //             if (selected !== match) {
+    //                 //                 select.data = ctx.data;
+    //                 //                 // console.log(select.data);
+    //                 //                 // throw 'stop';
+    //                 //             }
+    //                 //         } else {
+    //                 //             if (match) {
+    //                 //                 binder.target.selected = true;
+    //                 //             } else {
+    //                 //                 binder.target.selected = false;
+    //                 //             }
+    //                 //         }
+    //                 //     }
+    //                 // }
+    //                 binder.target.value = ctx.data ?? '';
+    //             }
+    //         };
+    //     }
+    // }
+
+    var each = {
+        async setup(binder) {
+            const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
+            binder.meta.variable = variable;
+            binder.meta.index = index;
+            binder.meta.key = key;
+            binder.meta.keys = binder.meta.keys || [];
+            binder.meta.counts = [];
+            binder.meta.setup = true;
+            binder.meta.targetLength = 0;
+            binder.meta.currentLength = 0;
+            binder.meta.templateLength = 0;
+            binder.meta.templateString = '';
+            // binder.meta.templateString = binder.target.innerHTML;
+            // binder.meta.templateLength = binder.target.childNodes.length;
+            // binder.meta.variable = binder.value.replace(variablePattern, '$1');
+            let node;
+            while (node = binder.target.firstChild) {
+                if (node.nodeType === 1 || (node.nodeType === 3 && /\S/.test(node.nodeValue))) {
+                    binder.meta.templateString += node.outerHTML;
+                    binder.meta.templateLength++;
+                }
+                binder.target.removeChild(node);
+            }
+        },
+        async before(binder) {
+            binder.busy = true;
+        },
+        async write(binder) {
+            let data = binder.data;
+            if (data instanceof Array) {
+                binder.meta.targetLength = data.length;
+            }
+            else {
+                binder.meta.keys = Object.keys(data || {});
+                binder.meta.targetLength = binder.meta.keys.length;
+            }
+            if (binder.meta.currentLength > binder.meta.targetLength) {
+                const tasks = [];
+                while (binder.meta.currentLength > binder.meta.targetLength) {
+                    let count = binder.meta.templateLength;
+                    while (count--) {
+                        const node = binder.target.lastChild;
+                        binder.target.removeChild(node);
+                        tasks.push(Binder.remove(node));
+                    }
+                    binder.meta.currentLength--;
+                }
+                await Promise.all(tasks);
+            }
+            else if (binder.meta.currentLength < binder.meta.targetLength) {
+                console.time(`each ${binder.meta.targetLength}`);
+                // const tasks = [];
+                // const template = document.createElement('template');
+                let html = '';
+                while (binder.meta.currentLength < binder.meta.targetLength) {
+                    const index = binder.meta.currentLength;
+                    const key = binder.meta.keys[index] ?? index;
+                    const variable = `${binder.path}.${key}`;
+                    const rKey = new RegExp(`\\b(${binder.meta.key})\\b`, 'g');
+                    const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
+                    const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
+                    const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
+                    let clone = binder.meta.templateString;
+                    clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(rVariable, variable)
+                        .replace(rIndex, index)
+                        .replace(rKey, key)));
+                    html += clone;
+                    // const item = document.createElement('template');
+                    // item.innerHTML = clone;
+                    // tasks.push(Binder.add(item, binder.container));
+                    binder.meta.currentLength++;
+                }
+                const template = document.createElement('template');
+                template.innerHTML = html;
+                // template.content.childNodes.forEach(node => Binder.add(node, binder.container));
+                // binder.target.appendChild(template.content);
+                const tasks = [];
+                template.content.childNodes.forEach(node => tasks.push(Binder.add(node, binder.container)));
+                await Promise.all(tasks);
+                binder.target.appendChild(template.content);
+                console.timeEnd(`each ${binder.meta.targetLength}`);
+            }
+        },
+        async after(binder) {
+            binder.busy = false;
+        }
+    };
+
+    var html = {
+        async write(binder) {
+            let data = binder.data;
+            if (data === undefined || data === null) {
+                data = '';
+            }
+            else {
+                data = toString(data);
+            }
+            while (binder.target.firstChild) {
+                const node = binder.target.removeChild(binder.target.firstChild);
+                Binder.remove(node);
+            }
+            const fragment = document.createDocumentFragment();
+            const parser = document.createElement('div');
+            parser.innerHTML = data;
+            while (parser.firstElementChild) {
+                Binder.add(parser.firstElementChild, { container: binder.container });
+                fragment.appendChild(parser.firstElementChild);
+            }
+            binder.target.appendChild(fragment);
+        }
+    };
+
+    var text = {
+        async write(binder) {
+            const data = toString(await binder.compute());
+            if (data === binder.target.textContent)
+                return;
+            binder.target.textContent = data;
+        }
+    };
+
+    const submit = async function (event, binder) {
+        event.preventDefault();
+        const { target } = event;
+        const elements = target.querySelectorAll('*');
+        for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            if ((!element.type && element.nodeName !== 'TEXTAREA') ||
+                element.type === 'submit' ||
+                element.type === 'button' ||
+                !element.type)
+                continue;
+            const attribute = element.attributes['o-value'];
+            const b = Binder.get(attribute);
+            console.warn('todo: need to get a value for selects');
+            (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
+            const name = element.name || (b ? b.values[b.values.length - 1] : null);
+            if (!name)
+                continue;
+        }
+        await binder.compute(binder.container, event);
+        if (target.getAttribute('reset')) {
+            target.reset();
+        }
+        return false;
+    };
+    const reset = async function (binder, event) {
+        event.preventDefault();
+        const { target } = event;
+        const elements = target.querySelectorAll('*');
+        for (let i = 0, l = elements.length; i < l; i++) {
+            const element = elements[i];
+            const name = element.nodeName;
+            const type = element.type;
+            if (!type && name !== 'TEXTAREA' ||
+                type === 'submit' ||
+                type === 'button' ||
+                !type) {
+                continue;
+            }
+            const binder = Binder.get(element)?.get('value');
+            if (!binder) {
+                if (type === 'select-one' || type === 'select-multiple') {
+                    element.selectedIndex = null;
+                }
+                else if (type === 'radio' || type === 'checkbox') {
+                    element.checked = false;
+                }
+                else {
+                    element.value = null;
+                }
+            }
+            else if (type === 'select-one') {
+                binder.data = null;
+            }
+            else if (type === 'select-multiple') {
+                binder.data = [];
+            }
+            else if (type === 'radio' || type === 'checkbox') {
+                binder.data = false;
+            }
+            else {
+                binder.data = '';
+            }
+        }
+        return binder.compute(binder.container, event);
+    };
+    var on = {
+        async read(binder) {
+            binder.target[binder.name] = null;
+            const name = binder.name.slice(2);
+            if (binder.meta.method) {
+                binder.target.removeEventListener(name, binder.meta.method);
+            }
+            binder.meta.method = event => {
+                if (name === 'reset') {
+                    return reset.call(binder.container, event, binder);
+                }
+                else if (name === 'submit') {
+                    return submit.call(binder.container, event, binder);
+                }
+                else {
+                    return binder.compute(binder.container, event);
+                }
+            };
+            binder.target.addEventListener(name, binder.meta.method);
+        }
+    };
+
+    // const PIPE = /\s?\|\s?/;
+    // const PIPES = /\s?,\s?|\s+/;
+    // const PATH = /\s?,\s?|\s?\|\s?|\s+/;
+    // const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+    // const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+    // const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
+    // const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
+    // const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
+    // const isEach = /.*?\s+(of|in)\s+/;
     const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
     const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
+    // const AN = Node.ATTRIBUTE_NODE;
     var Binder = new class Binder {
         constructor() {
             this.data = new Map();
@@ -828,43 +963,39 @@
             this.syntaxReplace = new RegExp('{{|}}', 'g');
             this.binders = {
                 checked,
-                default: Default,
+                standard,
+                value,
                 each,
                 html,
-                on,
                 text,
-                value
+                on,
             };
         }
         async setup(options = {}) {
-            const { binders } = options;
-            if (binders) {
-                for (const name in binders) {
-                    if (name in this.binders === false) {
-                        this.binders[name] = binders[name].bind(this);
-                    }
-                }
-            }
+            // const { binders } = options;
+            // if (binders) {
+            //     for (const name in binders) {
+            //         if (name in this.binders === false) {
+            //             this.binders[ name ] = binders[ name ].bind(this);
+            //         }
+            //     }
+            // }
         }
         get(node) {
             return this.data.get(node);
         }
-        async unbind(node) {
-            return this.data.delete(node);
+        async unbind(pointer) {
+            return this.data.delete(pointer);
         }
         async bind(target, name, value, container, pointer) {
-            const self = this, renders = [];
             if (isSyntaxNative.test(value)) {
                 target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
                 return;
             }
             const { compute, paths } = expression(value, container.data);
-            const type = name.startsWith('on') ? 'on' : name in self.binders ? name : 'default';
-            const action = self.binders[type];
-            const render = async function (...extra) {
-                const { read, write } = this.action(this, ...extra);
-                return Batcher.batch(read, write);
-            };
+            const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
+            const { setup, before, read, write, after } = this.binders[type];
+            const renders = [];
             for (const path of paths) {
                 if (isNative.test(path))
                     continue;
@@ -875,49 +1006,44 @@
                 const binder = {
                     meta: {},
                     busy: false,
-                    compute,
-                    path,
-                    key, keys,
-                    name, value,
+                    compute, type, path,
                     childKey, parentKeys,
-                    type,
-                    target,
-                    container,
-                    action,
-                    render,
+                    key, keys, name, value,
+                    target, container,
+                    setup, before, read, write, after,
+                    async render(...args) {
+                        const context = {};
+                        if (binder.before)
+                            await binder.before(binder, context, ...args);
+                        const read = binder.read?.bind(null, binder, context, ...args);
+                        const write = binder.write?.bind(null, binder, context, ...args);
+                        await Batcher.batch(read, write);
+                        if (binder.after)
+                            await binder.after(binder, context, ...args);
+                    },
                     get data() {
                         const parentValue = traverse$1(this.container.data, this.parentKeys);
-                        const childValue = parentValue?.[this.childKey];
-                        if (typeof childValue === 'function') {
-                            return event => {
-                                const args = this.args.map(arg => this.parse(arg, this.container.data));
-                                if (event)
-                                    args.unshift(event);
-                                return childValue.apply(this.container, args);
-                            };
-                        }
-                        else {
-                            return childValue;
-                        }
+                        return parentValue?.[this.childKey];
                     },
                     set data(value) {
                         const parentValue = traverse$1(this.container.data, this.parentKeys);
-                        const childValue = parentValue?.[this.childKey];
-                        if (typeof childValue === 'function') {
-                            parentValue[this.childKey] = event => {
-                                const args = this.args.map(arg => this.parse(arg, this.container.data));
-                                if (event)
-                                    args.unshift(event);
-                                return childValue.apply(this.container, args);
-                            };
-                        }
-                        else {
-                            parentValue[this.childKey] = value;
-                        }
+                        parentValue[this.childKey] = value;
                     }
                 };
                 this.data.set(pointer, binder);
-                renders.push(binder.render());
+                if (binder.setup) {
+                    await binder.setup(binder);
+                    renders.push(binder.render());
+                    // renders.push(binder.setup(binder).then(binder.render));
+                }
+                else {
+                    renders.push(binder.render());
+                }
+                // if (target.nodeName.includes('-')) {
+                //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
+                // } else {
+                //     this.render(binder);
+                // }
             }
             return Promise.all(renders);
         }
@@ -925,8 +1051,7 @@
             const type = node.nodeType;
             if (type === EN) {
                 const attributes = node.attributes;
-                for (let i = 0; i < attributes.length; i++) {
-                    const attribute = attributes[i];
+                for (const attribute of attributes) {
                     this.unbind(attribute);
                 }
             }
@@ -939,6 +1064,11 @@
         }
         async add(node, container) {
             const type = node.nodeType;
+            // if (type === AN) {
+            //     if (node.name.indexOf(this.prefix) === 0) {
+            //         this.bind(node, node.name, node.value, container, attribute);
+            //     }
+            // } else
             if (type === TN) {
                 const start = node.textContent.indexOf(this.syntaxStart);
                 if (start === -1)
@@ -954,31 +1084,42 @@
                     node.textContent = '';
                     await this.bind(node, 'text', value, container, node);
                     return this.add(split, container);
+                    // return Promise.all([
+                    //     this.bind(node, 'text', value, container, node),
+                    //     this.add(split, container)
+                    // ]);
                 }
                 else {
                     const value = node.textContent;
                     node.textContent = '';
-                    await this.bind(node, 'text', value, container, node);
+                    return this.bind(node, 'text', value, container, node);
                 }
             }
             else if (type === EN) {
                 const tasks = [];
-                let skip = false;
                 const attributes = node.attributes;
-                for (let i = 0; i < attributes.length; i++) {
-                    const attribute = attributes[i];
+                let each;
+                for (const attribute of attributes) {
+                    const { name, value } = attribute;
+                    if (name === 'each' || name === `${this.prefix}each`) {
+                        each = await this.bind(node, name, value, container, attribute);
+                        break;
+                    }
+                }
+                for (const attribute of attributes) {
                     const { name, value } = attribute;
                     if (name.startsWith(this.prefix) ||
                         (name.includes(this.syntaxStart) && name.includes(this.syntaxEnd)) ||
                         (value.includes(this.syntaxStart) && value.includes(this.syntaxEnd))) {
-                        if (name.indexOf('each') === 0 ||
-                            name.indexOf(`${this.prefix}each`) === 0) {
-                            skip = true;
+                        if (name === 'each' || name === `${this.prefix}each`) {
+                            continue;
                         }
-                        tasks.push(this.bind(node, name, value, container, attribute));
+                        else {
+                            tasks.push(this.bind(node, name, value, container, attribute));
+                        }
                     }
                 }
-                if (skip)
+                if (each)
                     return Promise.all(tasks);
                 let child = node.firstChild;
                 while (child) {
@@ -1061,6 +1202,11 @@
             _shadow.set(this, void 0);
             _flag.set(this, false);
             _name.set(this, this.nodeName.toLowerCase());
+            // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
+            // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
+            // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
+            // #adopt: boolean = typeof (this as any).adopt === 'boolean' ? (this as any).adopt : false;
+            // #shadow: boolean = typeof (this as any).shadow === 'boolean' ? (this as any).shadow : false;
             _adopted.set(this, typeof this.adopted === 'function' ? this.adopted : null);
             _rendered.set(this, typeof this.rendered === 'function' ? this.rendered : null);
             _connected.set(this, typeof this.connected === 'function' ? this.connected : null);
@@ -1090,9 +1236,13 @@
             __classPrivateFieldSet(this, _data$1, __classPrivateFieldGet(this, _data$1) ?? this.data);
             __classPrivateFieldSet(this, _adopt, __classPrivateFieldGet(this, _adopt) ?? this.adopt);
             __classPrivateFieldSet(this, _shadow, __classPrivateFieldGet(this, _shadow) ?? this.shadow);
+            // this.#data = Observer.create((this as any).data, (_, path) => {
             this.data = Observer.clone(__classPrivateFieldGet(this, _data$1), (_, path) => {
                 Binder.data.forEach(binder => {
                     if (binder.container === this && binder.path === path && !binder.busy) {
+                        // if (binder.container === this && binder.path === path) {
+                        // if (binder.container === this && binder.path.startsWith(path)) {
+                        // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
                         binder.render();
                     }
                 });
@@ -1170,6 +1320,7 @@
     }
     _root = new WeakMap(), _css = new WeakMap(), _html = new WeakMap(), _data$1 = new WeakMap(), _adopt = new WeakMap(), _shadow = new WeakMap(), _flag = new WeakMap(), _name = new WeakMap(), _adopted = new WeakMap(), _rendered = new WeakMap(), _connected = new WeakMap(), _disconnected = new WeakMap(), _attributed = new WeakMap();
 
+    // https://regexr.com/5nj32
     const S_EXPORT = `
 
     ^export\\b
@@ -1186,6 +1337,7 @@
     (\\s*?:}\\s*)?
 
 `.replace(/\s+/g, '');
+    // https://regexr.com/5nj38
     const S_IMPORT = `
 
     import
@@ -1319,7 +1471,7 @@
             if (!importMatch)
                 continue;
             const rawImport = importMatch[0];
-            const nameImport = importMatch[1];
+            const nameImport = importMatch[1]; // default
             let pathImport = importMatch[4] || importMatch[5];
             if (isAbsolute(pathImport)) {
                 pathImport = resolve(pathImport);
@@ -1359,6 +1511,8 @@
         if (!url)
             throw new Error('Oxe.load - url required');
         url = resolve(url);
+        // window.REGULAR_SUPPORT = false;
+        // window.DYNAMIC_SUPPORT = false;
         if (typeof window.DYNAMIC_SUPPORT !== 'boolean') {
             await run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,"); } catch (e) { /*e*/ }');
             window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
@@ -1368,7 +1522,9 @@
             await run(`window.MODULES["${url}"] = import("${url}");`);
             return window.MODULES[url];
         }
+        // console.log('not native import');
         if (window.MODULES[url]) {
+            // maybe clean up
             return window.MODULES[url];
         }
         if (typeof window.REGULAR_SUPPORT !== 'boolean') {
@@ -1428,6 +1584,7 @@
             reload() { window.location.reload(); }
             redirect(href) { window.location.href = href; }
             async listen(option) {
+                // if (!option.target) throw new Error('target required');
                 if ('folder' in option)
                     __classPrivateFieldSet(this, _folder, option.folder);
                 if ('contain' in option)
@@ -1458,6 +1615,8 @@
                 const parser = document.createElement('a');
                 parser.href = href;
                 return {
+                    // path: '',
+                    // path: parser.pathname,
                     href: parser.href,
                     host: parser.host,
                     port: parser.port,
@@ -1466,9 +1625,15 @@
                     protocol: parser.protocol,
                     hostname: parser.hostname,
                     pathname: parser.pathname
+                    // pathname: parser.pathname[0] === '/' ? parser.pathname : '/' + parser.pathname
                 };
+                // location.path = location.pathname + location.search + location.hash;
+                // return location;
             }
             async go(path, options = {}) {
+                // if (options.query) {
+                //     path += Query(options.query);
+                // }
                 const { mode } = options;
                 const location = this.location(path);
                 if (__classPrivateFieldGet(this, _before))
@@ -1500,6 +1665,7 @@
                     load$1 = `${__classPrivateFieldGet(this, _folder)}/${load$1}.js`.replace(/\/+/g, '/');
                     load$1 = absolute(load$1);
                     const component = (await load(load$1)).default;
+                    // need to handle if component not found
                     const name = 'l' + path.replace(/\/+/g, '-');
                     window.customElements.define(name, component);
                     element = window.document.createElement(name);
@@ -1519,11 +1685,13 @@
                 window.scroll(event.state.top, 0);
             }
             async click(event) {
+                // ignore canceled events, modified clicks, and right clicks
                 if (event.target.type ||
                     event.button !== 0 ||
                     event.defaultPrevented ||
                     event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
                     return;
+                // if shadow dom use
                 let target = event.path ? event.path[0] : event.target;
                 let parent = target.parentElement;
                 if (__classPrivateFieldGet(this, _contain)) {
@@ -1552,8 +1720,14 @@
                     target.href.startsWith('ftp:') ||
                     target.href.startsWith('file:)') ||
                     target.href.startsWith('mailto:') ||
-                    !target.href.startsWith(window.location.origin))
+                    !target.href.startsWith(window.location.origin)
+                // ||
+                // (target.hash !== '' &&
+                //     target.origin === window.location.origin &&
+                //     target.pathname === window.location.pathname)
+                )
                     return;
+                // if external is true then default action
                 if (__classPrivateFieldGet(this, _external) &&
                     (__classPrivateFieldGet(this, _external) instanceof RegExp && __classPrivateFieldGet(this, _external).test(target.href) ||
                         typeof __classPrivateFieldGet(this, _external) === 'function' && __classPrivateFieldGet(this, _external).call(this, target.href) ||
@@ -1572,6 +1746,36 @@
         _after = new WeakMap(),
         _before = new WeakMap(),
         _a);
+    // function Query (data) {
+    //     data = data || window.location.search;
+    //     if (typeof data === 'string') {
+    //         const result = {};
+    //         if (data.indexOf('?') === 0) data = data.slice(1);
+    //         const queries = data.split('&');
+    //         for (let i = 0; i < queries.length; i++) {
+    //             const [ name, value ] = queries[i].split('=');
+    //             if (name !== undefined && value !== undefined) {
+    //                 if (name in result) {
+    //                     if (typeof result[name] === 'string') {
+    //                         result[name] = [ value ];
+    //                     } else {
+    //                         result[name].push(value);
+    //                     }
+    //                 } else {
+    //                     result[name] = value;
+    //                 }
+    //             }
+    //         }
+    //         return result;
+    //     } else {
+    //         const result = [];
+    //         for (const key in data) {
+    //             const value = data[key];
+    //             result.push(`${key}=${value}`);
+    //         }
+    //         return `?${result.join('&')}`;
+    //     }
+    // }
 
     var Fetcher = new class Fetcher {
         constructor() {
@@ -1709,6 +1913,8 @@
             Object.defineProperties(context, {
                 result: { enumerable: true, value: result },
                 code: { enumerable: true, value: result.status }
+                // headers: { enumerable: true, value: result.headers }
+                // message: { enumerable: true, value: result.statusText }
             });
             if (!context.responseType) {
                 context.body = result.body;
