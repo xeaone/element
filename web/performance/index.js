@@ -9,7 +9,6 @@ class OLoop extends Component {
         message: '',
         count: 1000,
         raw () {
-            console.log('raw');
             console.time('raw');
             const template = document.createElement('template');
             let html = '';
@@ -17,6 +16,7 @@ class OLoop extends Component {
                 html += `
                     <div class="box">
                         <div>${i}</div>
+                        <input value="${i}">
                     </div>
                 `;
             }
@@ -28,7 +28,9 @@ class OLoop extends Component {
         push () {
             console.time('push');
 
-            for (var i = 0; i < this.data.count; i++) this.data.items.push({ number: i });
+            for (var i = 0; i < this.data.count; i++) {
+                this.data.items.push({ number: i });
+            }
 
             console.timeEnd('push');
         },
@@ -36,7 +38,10 @@ class OLoop extends Component {
             console.time('overwrite');
 
             var items = [];
-            for (var i = 0; i < 10; i++) items.push({ number: i });
+            for (var i = 0; i < this.data.count; i++) {
+                items.push({ number: i });
+            }
+
             this.data.items = items;
 
             console.timeEnd('overwrite');
@@ -48,26 +53,20 @@ class OLoop extends Component {
         <slot name="main">Main Default</slot>
 
         <h3><span>{{count}}</span> Inputs two way bound</h3>
-
-        <form onsubmit="{{push()}}">
-            <input value="{{count}}" type="number">
-            <input type="submit" value="Push">
-        </form>
-
+        <input value="{{count}}" type="number">
         <br>
-
+        <button onclick="{{push()}}">push</button>
+        <button onclick="{{overwrite()}}">overwrite</button>
         <button onclick="{{raw()}}">raw</button>
-        <button onclick="{{push()}}">Push</button>
-        <button onclick="{{overwrite()}}">Overwrite</button>
 
         <div each="{{item of items}}">
             <div class="box">
                 <div>{{item.number}}</div>
+                <input value="{{item.number}}">
             </div>
         </div>
 
-        <div id="raw">
-        </div>
+        <div id="raw"></div>
 
     `;
 

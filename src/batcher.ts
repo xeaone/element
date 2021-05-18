@@ -68,26 +68,18 @@ const clear = function (task) {
 };
 
 const batch = async function (read, write) {
-
-    if (!read && !write) return;
+    // if (!read && !write) return;
 
     return new Promise((resolve: any) => {
 
         if (read) {
             reads.push(async () => {
                 await read();
-                if (write) {
-                    writes.push(async () => {
-                        await write();
-                        resolve();
-                    });
-                }
+                if (write) writes.push(() => write().then(resolve));
+                else resolve();
             });
-        } else {
-            writes.push(async () => {
-                await write();
-                resolve();
-            });
+        } else if (write) {
+            writes.push(() => write().then(resolve));
         }
 
         // let readDone = read ? false : true;
@@ -111,10 +103,6 @@ const batch = async function (read, write) {
 
         schedule();
     });
-
-    // this.reads.push(read);
-    // this.writes.push(write);
-    // return this.schedule();
 };
 
 export default Object.freeze({

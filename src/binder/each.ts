@@ -1,4 +1,3 @@
-import Binder from '../binder';
 
 export default {
     async setup (binder) {
@@ -15,9 +14,6 @@ export default {
         binder.meta.currentLength = 0;
         binder.meta.templateLength = 0;
         binder.meta.templateString = '';
-        // binder.meta.templateString = binder.target.innerHTML;
-        // binder.meta.templateLength = binder.target.childNodes.length;
-        // binder.meta.variable = binder.value.replace(variablePattern, '$1');
 
         let node;
         while (node = binder.target.firstChild) {
@@ -41,6 +37,8 @@ export default {
             binder.meta.targetLength = binder.meta.keys.length;
         }
 
+        binder.busy = false;
+
         if (binder.meta.currentLength > binder.meta.targetLength) {
             const tasks = [];
             while (binder.meta.currentLength > binder.meta.targetLength) {
@@ -49,7 +47,7 @@ export default {
                 while (count--) {
                     const node = binder.target.lastChild;
                     binder.target.removeChild(node);
-                    tasks.push(Binder.remove(node));
+                    tasks.push(binder.remove(node));
                 }
 
                 binder.meta.currentLength--;
@@ -57,9 +55,6 @@ export default {
             await Promise.all(tasks);
         } else if (binder.meta.currentLength < binder.meta.targetLength) {
             console.time(`each ${binder.meta.targetLength}`);
-
-            // const tasks = [];
-            // const template = document.createElement('template');
 
             let html = '';
             while (binder.meta.currentLength < binder.meta.targetLength) {
@@ -81,29 +76,21 @@ export default {
 
                 html += clone;
 
-                // const item = document.createElement('template');
-                // item.innerHTML = clone;
-                // tasks.push(Binder.add(item, binder.container));
-
                 binder.meta.currentLength++;
             }
 
             const template = document.createElement('template');
             template.innerHTML = html;
+            const adopted = document.adoptNode(template.content);
 
-            // template.content.childNodes.forEach(node => Binder.add(node, binder.container));
-            // binder.target.appendChild(template.content);
+            await Promise.all(Array.prototype.map.call(adopted.childNodes, node => binder.add(node, binder.container)));
 
-            const tasks = [];
-            template.content.childNodes.forEach(node => tasks.push(Binder.add(node, binder.container)));
-            await Promise.all(tasks);
-
-            binder.target.appendChild(template.content);
+            binder.target.appendChild(adopted);
             console.timeEnd(`each ${binder.meta.targetLength}`);
         }
 
     },
-    async after (binder) {
-        binder.busy = false;
-    }
+    // async after (binder) {
+    //     binder.busy = false;
+    // }
 };

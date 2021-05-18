@@ -1,4 +1,3 @@
-import Binder from '../binder';
 import { toString } from '../tool';
 
 export default {
@@ -13,7 +12,7 @@ export default {
 
         while (binder.target.firstChild) {
             const node = binder.target.removeChild(binder.target.firstChild);
-            Binder.remove(node);
+            binder.remove(node);
         }
 
         const fragment = document.createDocumentFragment();
@@ -22,7 +21,7 @@ export default {
         parser.innerHTML = data;
 
         while (parser.firstElementChild) {
-            Binder.add(parser.firstElementChild, { container: binder.container });
+            binder.add(parser.firstElementChild, { container: binder.container });
             fragment.appendChild(parser.firstElementChild);
         }
 

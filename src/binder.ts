@@ -26,17 +26,27 @@ const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
-// const AN = Node.ATTRIBUTE_NODE;
+
+interface Binders {
+    setup?: () => Promise<void>;
+    before?: () => Promise<void>;
+    read?: () => Promise<void>;
+    write?: () => Promise<void>;
+    after?: () => Promise<void>;
+}
+interface Options {
+    binders?: Binders;
+}
 
 export default new class Binder {
-
-    data: Map<Node, any> = new Map();
 
     prefix = 'o-';
     syntaxEnd = '}}';
     syntaxStart = '{{';
     prefixReplace = new RegExp('^o-');
     syntaxReplace = new RegExp('{{|}}', 'g');
+    data: Map<Node, any> = new Map();
+    // data: Map<Node | Attr, any> = new Map();
 
     binders = {
         checked,
@@ -48,26 +58,24 @@ export default new class Binder {
         on,
     };
 
-    async setup (options: any = {}) {
-        // const { binders } = options;
-        // if (binders) {
-        //     for (const name in binders) {
-        //         if (name in this.binders === false) {
-        //             this.binders[ name ] = binders[ name ].bind(this);
-        //         }
-        //     }
-        // }
+    async setup (options: Options = {}) {
+        const { binders } = options;
+        for (const name in binders) {
+            if (name in this.binders === false) {
+                this.binders[ name ] = binders[ name ];
+            }
+        }
     }
 
-    get (node) {
-        return this.data.get(node);
+    get (pointer: Node) {
+        return this.data.get(pointer);
     }
 
-    async unbind (pointer: Node | Attr) {
+    async unbind (pointer: Node) {
         return this.data.delete(pointer);
     }
 
-    async bind (target: Node, name: string, value: string, container: any, pointer: Node | Attr) {
+    async bind (target: Node, name: string, value: string, container: any, pointer: Node) {
 
         if (isSyntaxNative.test(value)) {
             target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
@@ -78,9 +86,8 @@ export default new class Binder {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         const { setup, before, read, write, after } = this.binders[ type ];
 
-        const renders = [];
-        for (const path of paths) {
-            if (isNative.test(path)) continue;
+        return Promise.all(paths.map(path => {
+            if (isNative.test(path)) return;
 
             const keys = path.split('.');
             const [ key ] = keys.slice(-1);
@@ -90,17 +97,21 @@ export default new class Binder {
             const binder = {
                 meta: {},
                 busy: false,
+                bindings: this.data,
+                get: this.get.bind(this),
+                add: this.add.bind(this),
+                remove: this.remove.bind(this),
+                target, container,
                 compute, type, path,
                 childKey, parentKeys,
                 key, keys, name, value,
-                target, container,
                 setup, before, read, write, after,
                 async render (...args) {
                     const context = {};
                     if (binder.before) await binder.before(binder, context, ...args);
                     const read = binder.read?.bind(null, binder, context, ...args);
                     const write = binder.write?.bind(null, binder, context, ...args);
-                    await Batcher.batch(read, write);
+                    if (read || write) await Batcher.batch(read, write);
                     if (binder.after) await binder.after(binder, context, ...args);
                 },
                 get data () {
@@ -113,24 +124,19 @@ export default new class Binder {
                 }
             };
 
-            this.data.set(pointer, binder);
-
-            if (binder.setup) {
-                await binder.setup(binder);
-                renders.push(binder.render());
-                // renders.push(binder.setup(binder).then(binder.render));
-            } else {
-                renders.push(binder.render());
+            if (this.data.has(pointer)) {
+                console.warn('duplicate pointers', pointer);
             }
+
+            this.data.set(pointer, binder);
+            return binder.setup ? binder.setup(binder).then(binder.render) : binder.render();
 
             // if (target.nodeName.includes('-')) {
             //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
             // } else {
             //     this.render(binder);
             // }
-        }
-
-        return Promise.all(renders);
+        }));
     }
 
     async remove (node: Node) {
@@ -154,14 +160,7 @@ export default new class Binder {
     }
 
     async add (node: Node, container: any) {
-        const self = this;
         const type = node.nodeType;
-
-        // if (type === AN) {
-        //     if (node.name.indexOf(this.prefix) === 0) {
-        //         this.bind(node, node.name, node.value, container, attribute);
-        //     }
-        // } else
 
         if (type === TN) {
 
@@ -179,10 +178,6 @@ export default new class Binder {
                 node.textContent = '';
                 await this.bind(node, 'text', value, container, node);
                 return this.add(split, container);
-                // return Promise.all([
-                //     this.bind(node, 'text', value, container, node),
-                //     this.add(split, container)
-                // ]);
             } else {
                 const value = node.textContent;
                 node.textContent = '';
@@ -195,7 +190,8 @@ export default new class Binder {
             const attributes = (node as Element).attributes;
 
             let each;
-            for (const attribute of attributes) {
+            for (let i = 0; i < attributes.length; i++) {
+                const attribute = attributes[ i ];
                 const { name, value } = attribute;
                 if (name === 'each' || name === `${this.prefix}each`) {
                     each = await this.bind(node, name, value, container, attribute);
@@ -203,7 +199,8 @@ export default new class Binder {
                 }
             }
 
-            for (const attribute of attributes) {
+            for (let i = 0; i < attributes.length; i++) {
+                const attribute = attributes[ i ];
                 const { name, value } = attribute;
                 if (
                     name.startsWith(this.prefix) ||

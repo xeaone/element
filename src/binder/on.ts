@@ -1,4 +1,3 @@
-import Binder from '../binder';
 
 const submit = async function (event, binder) {
     event.preventDefault();
@@ -6,82 +5,89 @@ const submit = async function (event, binder) {
 
     const data = {};
     const elements = target.querySelectorAll('*');
-    for (let i = 0; i < elements.length; i++) {
-        const element = elements[ i ];
+    for (const element of elements) {
+        const { type, name, nodeName, checked } = element;
+
+        if (!name) continue;
 
         if (
-            (!element.type && element.nodeName !== 'TEXTAREA') ||
-            element.type === 'submit' ||
-            element.type === 'button' ||
-            !element.type
+            (!type && nodeName !== 'TEXTAREA') ||
+            type === 'submit' || type === 'button' || !type
         ) continue;
 
-        const attribute = element.attributes[ 'o-value' ];
-        const b = Binder.get(attribute);
+        // if (type === 'checkbox' && !checked) continue;
+
+        const attribute = element.getAttributeNode('value');
+        const valueBinder = binder.get(attribute);
+        const value = valueBinder ? await valueBinder.compute() : attribute.value;
 
         console.warn('todo: need to get a value for selects');
 
-        const value = (
-            b ? b.data : (
-                element.files ? (
-                    element.attributes[ 'multiple' ] ? Array.prototype.slice.call(element.files) : element.files[ 0 ]
-                ) : element.value
-            )
-        );
+        // const value = (
+        //     valueBinder ? valueBinder.data : (
+        //         element.files ? (
+        //             element.attributes[ 'multiple' ] ? Array.prototype.slice.call(element.files) : element.files[ 0 ]
+        //         ) : element.value
+        //     )
+        // );
 
-        const name = element.name || (b ? b.values[ b.values.length - 1 ] : null);
+        // const name = element.name || (valueBinder ? valueBinder.values[ valueBinder.values.length - 1 ] : null);
 
-        if (!name) continue;
-        data[ name ] = value;
+        let meta = data;
+        name.split(/\s*\.\s*/).forEach((part, index, parts) => {
+            const next = parts[ index + 1 ];
+            if (next) {
+                if (!meta[ part ]) {
+                    meta[ part ] = /[0-9]+/.test(next) ? [] : {};
+                }
+                meta = meta[ part ];
+            } else {
+                meta[ part ] = value;
+            }
+        });
+
     }
 
-    await binder.compute(binder.container, event);
+    const method = await binder.compute(binder.container);
+    await method(event, data);
 
-    if (target.getAttribute('reset')) {
-        target.reset();
-    }
+    if (target.getAttribute('reset')) target.reset();
 
     return false;
 };
 
-const reset = async function (binder, event) {
+const reset = async function (event, binder) {
     event.preventDefault();
     const { target } = event;
 
     const elements = target.querySelectorAll('*');
-    for (let i = 0, l = elements.length; i < l; i++) {
-        const element = elements[ i ];
-        const name = element.nodeName;
-        const type = element.type;
+    for (const element of elements) {
+        const { type, nodeName } = element;
 
         if (
-            !type && name !== 'TEXTAREA' ||
-            type === 'submit' ||
-            type === 'button' ||
-            !type
-        ) {
-            continue;
-        }
+            (!type && nodeName !== 'TEXTAREA') ||
+            type === 'submit' || type === 'button' || !type
+        ) continue;
 
-        const binder = Binder.get(element)?.get('value');
+        // const value = binder.get(element)?.get('value');
 
-        if (!binder) {
-            if (type === 'select-one' || type === 'select-multiple') {
-                element.selectedIndex = null;
-            } else if (type === 'radio' || type === 'checkbox') {
-                element.checked = false;
-            } else {
-                element.value = null;
-            }
-        } else if (type === 'select-one') {
-            binder.data = null;
-        } else if (type === 'select-multiple') {
-            binder.data = [];
+        // if (!value) {
+        if (type === 'select-one' || type === 'select-multiple') {
+            element.selectedIndex = null;
         } else if (type === 'radio' || type === 'checkbox') {
-            binder.data = false;
+            element.checked = false;
         } else {
-            binder.data = '';
+            element.value = null;
         }
+        // } else if (type === 'select-one') {
+        //     value.data = null;
+        // } else if (type === 'select-multiple') {
+        //     value.data = [];
+        // } else if (type === 'radio' || type === 'checkbox') {
+        //     value.data = false;
+        // } else {
+        //     value.data = '';
+        // }
 
     }
 

@@ -46,10 +46,41 @@
         return value;
     }
 
+    const isMap = (data) => data?.constructor === Map;
+    const isDate = (data) => data?.constructor === Date;
     const isArray = (data) => data?.constructor === Array;
+    const isString = (data) => data?.constructor === String;
+    const isNumber = (data) => data?.constructor === Number;
     const isObject = (data) => data?.constructor === Object;
+    const isBoolean = (data) => data?.constructor === Boolean;
+    const toArray = (data) => JSON.parse(data);
+    const toObject = (data) => JSON.parse(data);
+    const toBoolean = (data) => data === 'true';
+    const toDate = (data) => new Date(Number(data));
+    const toMap = (data) => new Map(JSON.parse(data));
     const toString = (data) => typeof data === 'string' ? data : JSON.stringify(data);
     const toNumber = (data) => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
+    const to = function (source, target) {
+        try {
+            if (isMap(source))
+                return toMap(target);
+            if (isDate(source))
+                return toDate(target);
+            if (isArray(source))
+                return toArray(target);
+            if (isString(source))
+                return toString(target);
+            if (isObject(source))
+                return toObject(target);
+            if (isNumber(source))
+                return toNumber(target);
+            if (isBoolean(source))
+                return toBoolean(target);
+        }
+        catch {
+            return target;
+        }
+    };
     const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
     const traverse$1 = function (data, paths) {
         paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
@@ -97,47 +128,38 @@
         if (property === 'length') {
             property = '';
             path = path.slice(0, -1);
+            tasks.push(handler.bind(null, value, path));
+            run$1(tasks);
+            return true;
         }
         else if (target[property] === value) {
             return true;
         }
         target[property] = create(value, handler, path + property, tasks);
-        if (tasks.length)
-            run$1(tasks);
+        run$1(tasks);
         return true;
     };
     const create = function (source, handler, path, tasks) {
         path = path || '';
         tasks = tasks || [];
         tasks.push(handler.bind(null, source, path));
-        // if (!isObject(source) && !isArray(source)) {
-        //     if (!path && tasks.length) {
-        //         Promise.resolve().then(() => {
-        //             let task; while (task = tasks.shift()) task();
-        //         }).catch(console.error);
-        //     }
-        //     return source;
-        // }
-        // path = path ? path + '.' : '';
         let isNative = false;
         if (isArray(source)) {
             path = path ? path + '.' : '';
             for (let key = 0; key < source.length; key++) {
-                tasks.push(handler.bind(null, source[key], path + key));
                 source[key] = create(source[key], handler, path + key, tasks);
             }
         }
         else if (isObject(source)) {
             path = path ? path + '.' : '';
             for (let key in source) {
-                tasks.push(handler.bind(null, source[key], path + key));
                 source[key] = create(source[key], handler, path + key, tasks);
             }
         }
         else {
             isNative = true;
         }
-        if (!path && tasks.length)
+        if (!path)
             run$1(tasks);
         if (isNative)
             return source;
@@ -147,37 +169,26 @@
         path = path || '';
         tasks = tasks || [];
         tasks.push(handler.bind(null, source, path));
-        // if (!isObject(source) && !isArray(source)) {
-        //     if (!path && tasks.length) {
-        //         Promise.resolve().then(() => {
-        //             let task; while (task = tasks.shift()) task();
-        //         }).catch(console.error);
-        //     }
-        //     return source;
-        // }
-        // path = path ? path + '.' : '';
         let target;
         let isNative = false;
         if (isArray(source)) {
             target = [];
             path = path ? path + '.' : '';
             for (let key = 0; key < source.length; key++) {
-                tasks.push(handler.bind(null, source[key], `${path}${key}`));
-                target[key] = create(source[key], handler, `${path}${key}`, tasks);
+                target[key] = clone(source[key], handler, path + key, tasks);
             }
         }
         else if (isObject(source)) {
             target = {};
             path = path ? path + '.' : '';
             for (let key in source) {
-                tasks.push(handler.bind(null, source[key], `${path}${key}`));
-                target[key] = create(source[key], handler, `${path}${key}`, tasks);
+                target[key] = clone(source[key], handler, path + key, tasks);
             }
         }
         else {
             isNative = true;
         }
-        if (!path && tasks.length)
+        if (!path)
             run$1(tasks);
         if (isNative)
             return source;
@@ -424,25 +435,19 @@
         return remove(reads, task) || remove(writes, task);
     };
     const batch = async function (read, write) {
-        if (!read && !write)
-            return;
+        // if (!read && !write) return;
         return new Promise((resolve) => {
             if (read) {
                 reads.push(async () => {
                     await read();
-                    if (write) {
-                        writes.push(async () => {
-                            await write();
-                            resolve();
-                        });
-                    }
+                    if (write)
+                        writes.push(() => write().then(resolve));
+                    else
+                        resolve();
                 });
             }
-            else {
-                writes.push(async () => {
-                    await write();
-                    resolve();
-                });
+            else if (write) {
+                writes.push(() => write().then(resolve));
             }
             // let readDone = read ? false : true;
             // let writeDone = write ? false : true;
@@ -462,9 +467,6 @@
             // }
             schedule();
         });
-        // this.reads.push(read);
-        // this.writes.push(write);
-        // return this.schedule();
     };
     var Batcher = Object.freeze({
         reads,
@@ -491,23 +493,20 @@
             const boolean = booleans.includes(binder.name);
             if (boolean) {
                 data = data ? true : false;
-            }
-            else {
-                data = toString(data);
-            }
-            // binder.target[ binder.name ] = result;
-            if (boolean) {
                 if (data)
                     binder.target.setAttribute(binder.name, '');
                 else
                     binder.target.removeAttribute(binder.name);
             }
             else {
+                data = toString(data);
+                // binder.target[ binder.name ] = data;
                 binder.target.setAttribute(binder.name, data);
             }
         }
     };
 
+    console.warn('toggleing attribute replace attr node');
     var checked = {
         async setup(binder) {
             binder.target.addEventListener('input', async () => {
@@ -533,7 +532,9 @@
             data = binder.data = [...binder.target.selectedOptions].map(o => o.value);
             data = data.join(',');
         }
-        else if (type === 'checkbox' || type === 'radio') ;
+        else if (type === 'checkbox' || type === 'radio') {
+            data = binder.data = to(binder.data, binder.target.value);
+        }
         else if (type === 'number') {
             data = binder.data = toNumber(binder.target.value);
         }
@@ -567,10 +568,10 @@
                 binder.target.setAttribute('value', value);
             }
             else if (type === 'select-multiple') ;
-            else if (type === 'checkbox' || type === 'radio') ;
             else {
-                binder.target.value = data ?? '';
-                binder.target.toggleAttribute('value', data);
+                const value = data ?? '';
+                binder.target.value = value;
+                binder.target.setAttribute('value', value);
             }
         }
     };
@@ -742,9 +743,6 @@
             binder.meta.currentLength = 0;
             binder.meta.templateLength = 0;
             binder.meta.templateString = '';
-            // binder.meta.templateString = binder.target.innerHTML;
-            // binder.meta.templateLength = binder.target.childNodes.length;
-            // binder.meta.variable = binder.value.replace(variablePattern, '$1');
             let node;
             while (node = binder.target.firstChild) {
                 if (node.nodeType === 1 || (node.nodeType === 3 && /\S/.test(node.nodeValue))) {
@@ -766,6 +764,7 @@
                 binder.meta.keys = Object.keys(data || {});
                 binder.meta.targetLength = binder.meta.keys.length;
             }
+            binder.busy = false;
             if (binder.meta.currentLength > binder.meta.targetLength) {
                 const tasks = [];
                 while (binder.meta.currentLength > binder.meta.targetLength) {
@@ -773,7 +772,7 @@
                     while (count--) {
                         const node = binder.target.lastChild;
                         binder.target.removeChild(node);
-                        tasks.push(Binder.remove(node));
+                        tasks.push(binder.remove(node));
                     }
                     binder.meta.currentLength--;
                 }
@@ -781,8 +780,6 @@
             }
             else if (binder.meta.currentLength < binder.meta.targetLength) {
                 console.time(`each ${binder.meta.targetLength}`);
-                // const tasks = [];
-                // const template = document.createElement('template');
                 let html = '';
                 while (binder.meta.currentLength < binder.meta.targetLength) {
                     const index = binder.meta.currentLength;
@@ -797,25 +794,19 @@
                         .replace(rIndex, index)
                         .replace(rKey, key)));
                     html += clone;
-                    // const item = document.createElement('template');
-                    // item.innerHTML = clone;
-                    // tasks.push(Binder.add(item, binder.container));
                     binder.meta.currentLength++;
                 }
                 const template = document.createElement('template');
                 template.innerHTML = html;
-                // template.content.childNodes.forEach(node => Binder.add(node, binder.container));
-                // binder.target.appendChild(template.content);
-                const tasks = [];
-                template.content.childNodes.forEach(node => tasks.push(Binder.add(node, binder.container)));
-                await Promise.all(tasks);
-                binder.target.appendChild(template.content);
+                const adopted = document.adoptNode(template.content);
+                await Promise.all(Array.prototype.map.call(adopted.childNodes, node => binder.add(node, binder.container)));
+                binder.target.appendChild(adopted);
                 console.timeEnd(`each ${binder.meta.targetLength}`);
             }
         },
-        async after(binder) {
-            binder.busy = false;
-        }
+        // async after (binder) {
+        //     binder.busy = false;
+        // }
     };
 
     var html = {
@@ -829,13 +820,13 @@
             }
             while (binder.target.firstChild) {
                 const node = binder.target.removeChild(binder.target.firstChild);
-                Binder.remove(node);
+                binder.remove(node);
             }
             const fragment = document.createDocumentFragment();
             const parser = document.createElement('div');
             parser.innerHTML = data;
             while (parser.firstElementChild) {
-                Binder.add(parser.firstElementChild, { container: binder.container });
+                binder.add(parser.firstElementChild, { container: binder.container });
                 fragment.appendChild(parser.firstElementChild);
             }
             binder.target.appendChild(fragment);
@@ -854,66 +845,77 @@
     const submit = async function (event, binder) {
         event.preventDefault();
         const { target } = event;
+        const data = {};
         const elements = target.querySelectorAll('*');
-        for (let i = 0; i < elements.length; i++) {
-            const element = elements[i];
-            if ((!element.type && element.nodeName !== 'TEXTAREA') ||
-                element.type === 'submit' ||
-                element.type === 'button' ||
-                !element.type)
-                continue;
-            const attribute = element.attributes['o-value'];
-            const b = Binder.get(attribute);
-            console.warn('todo: need to get a value for selects');
-            (b ? b.data : (element.files ? (element.attributes['multiple'] ? Array.prototype.slice.call(element.files) : element.files[0]) : element.value));
-            const name = element.name || (b ? b.values[b.values.length - 1] : null);
+        for (const element of elements) {
+            const { type, name, nodeName, checked } = element;
             if (!name)
                 continue;
+            if ((!type && nodeName !== 'TEXTAREA') ||
+                type === 'submit' || type === 'button' || !type)
+                continue;
+            // if (type === 'checkbox' && !checked) continue;
+            const attribute = element.getAttributeNode('value');
+            const valueBinder = binder.get(attribute);
+            const value = valueBinder ? await valueBinder.compute() : attribute.value;
+            console.warn('todo: need to get a value for selects');
+            // const value = (
+            //     valueBinder ? valueBinder.data : (
+            //         element.files ? (
+            //             element.attributes[ 'multiple' ] ? Array.prototype.slice.call(element.files) : element.files[ 0 ]
+            //         ) : element.value
+            //     )
+            // );
+            // const name = element.name || (valueBinder ? valueBinder.values[ valueBinder.values.length - 1 ] : null);
+            let meta = data;
+            name.split(/\s*\.\s*/).forEach((part, index, parts) => {
+                const next = parts[index + 1];
+                if (next) {
+                    if (!meta[part]) {
+                        meta[part] = /[0-9]+/.test(next) ? [] : {};
+                    }
+                    meta = meta[part];
+                }
+                else {
+                    meta[part] = value;
+                }
+            });
         }
-        await binder.compute(binder.container, event);
-        if (target.getAttribute('reset')) {
+        const method = await binder.compute(binder.container);
+        await method(event, data);
+        if (target.getAttribute('reset'))
             target.reset();
-        }
         return false;
     };
-    const reset = async function (binder, event) {
+    const reset = async function (event, binder) {
         event.preventDefault();
         const { target } = event;
         const elements = target.querySelectorAll('*');
-        for (let i = 0, l = elements.length; i < l; i++) {
-            const element = elements[i];
-            const name = element.nodeName;
-            const type = element.type;
-            if (!type && name !== 'TEXTAREA' ||
-                type === 'submit' ||
-                type === 'button' ||
-                !type) {
+        for (const element of elements) {
+            const { type, nodeName } = element;
+            if ((!type && nodeName !== 'TEXTAREA') ||
+                type === 'submit' || type === 'button' || !type)
                 continue;
-            }
-            const binder = Binder.get(element)?.get('value');
-            if (!binder) {
-                if (type === 'select-one' || type === 'select-multiple') {
-                    element.selectedIndex = null;
-                }
-                else if (type === 'radio' || type === 'checkbox') {
-                    element.checked = false;
-                }
-                else {
-                    element.value = null;
-                }
-            }
-            else if (type === 'select-one') {
-                binder.data = null;
-            }
-            else if (type === 'select-multiple') {
-                binder.data = [];
+            // const value = binder.get(element)?.get('value');
+            // if (!value) {
+            if (type === 'select-one' || type === 'select-multiple') {
+                element.selectedIndex = null;
             }
             else if (type === 'radio' || type === 'checkbox') {
-                binder.data = false;
+                element.checked = false;
             }
             else {
-                binder.data = '';
+                element.value = null;
             }
+            // } else if (type === 'select-one') {
+            //     value.data = null;
+            // } else if (type === 'select-multiple') {
+            //     value.data = [];
+            // } else if (type === 'radio' || type === 'checkbox') {
+            //     value.data = false;
+            // } else {
+            //     value.data = '';
+            // }
         }
         return binder.compute(binder.container, event);
     };
@@ -952,15 +954,15 @@
     const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
-    // const AN = Node.ATTRIBUTE_NODE;
     var Binder = new class Binder {
         constructor() {
-            this.data = new Map();
             this.prefix = 'o-';
             this.syntaxEnd = '}}';
             this.syntaxStart = '{{';
             this.prefixReplace = new RegExp('^o-');
             this.syntaxReplace = new RegExp('{{|}}', 'g');
+            this.data = new Map();
+            // data: Map<Node | Attr, any> = new Map();
             this.binders = {
                 checked,
                 standard,
@@ -972,17 +974,15 @@
             };
         }
         async setup(options = {}) {
-            // const { binders } = options;
-            // if (binders) {
-            //     for (const name in binders) {
-            //         if (name in this.binders === false) {
-            //             this.binders[ name ] = binders[ name ].bind(this);
-            //         }
-            //     }
-            // }
+            const { binders } = options;
+            for (const name in binders) {
+                if (name in this.binders === false) {
+                    this.binders[name] = binders[name];
+                }
+            }
         }
-        get(node) {
-            return this.data.get(node);
+        get(pointer) {
+            return this.data.get(pointer);
         }
         async unbind(pointer) {
             return this.data.delete(pointer);
@@ -995,10 +995,9 @@
             const { compute, paths } = expression(value, container.data);
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const { setup, before, read, write, after } = this.binders[type];
-            const renders = [];
-            for (const path of paths) {
+            return Promise.all(paths.map(path => {
                 if (isNative.test(path))
-                    continue;
+                    return;
                 const keys = path.split('.');
                 const [key] = keys.slice(-1);
                 const childKey = keys.slice(-1)[0];
@@ -1006,10 +1005,14 @@
                 const binder = {
                     meta: {},
                     busy: false,
+                    bindings: this.data,
+                    get: this.get.bind(this),
+                    add: this.add.bind(this),
+                    remove: this.remove.bind(this),
+                    target, container,
                     compute, type, path,
                     childKey, parentKeys,
                     key, keys, name, value,
-                    target, container,
                     setup, before, read, write, after,
                     async render(...args) {
                         const context = {};
@@ -1017,7 +1020,8 @@
                             await binder.before(binder, context, ...args);
                         const read = binder.read?.bind(null, binder, context, ...args);
                         const write = binder.write?.bind(null, binder, context, ...args);
-                        await Batcher.batch(read, write);
+                        if (read || write)
+                            await Batcher.batch(read, write);
                         if (binder.after)
                             await binder.after(binder, context, ...args);
                     },
@@ -1030,22 +1034,17 @@
                         parentValue[this.childKey] = value;
                     }
                 };
+                if (this.data.has(pointer)) {
+                    console.warn('duplicate pointers', pointer);
+                }
                 this.data.set(pointer, binder);
-                if (binder.setup) {
-                    await binder.setup(binder);
-                    renders.push(binder.render());
-                    // renders.push(binder.setup(binder).then(binder.render));
-                }
-                else {
-                    renders.push(binder.render());
-                }
+                return binder.setup ? binder.setup(binder).then(binder.render) : binder.render();
                 // if (target.nodeName.includes('-')) {
                 //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
                 // } else {
                 //     this.render(binder);
                 // }
-            }
-            return Promise.all(renders);
+            }));
         }
         async remove(node) {
             const type = node.nodeType;
@@ -1064,11 +1063,6 @@
         }
         async add(node, container) {
             const type = node.nodeType;
-            // if (type === AN) {
-            //     if (node.name.indexOf(this.prefix) === 0) {
-            //         this.bind(node, node.name, node.value, container, attribute);
-            //     }
-            // } else
             if (type === TN) {
                 const start = node.textContent.indexOf(this.syntaxStart);
                 if (start === -1)
@@ -1084,10 +1078,6 @@
                     node.textContent = '';
                     await this.bind(node, 'text', value, container, node);
                     return this.add(split, container);
-                    // return Promise.all([
-                    //     this.bind(node, 'text', value, container, node),
-                    //     this.add(split, container)
-                    // ]);
                 }
                 else {
                     const value = node.textContent;
@@ -1099,14 +1089,16 @@
                 const tasks = [];
                 const attributes = node.attributes;
                 let each;
-                for (const attribute of attributes) {
+                for (let i = 0; i < attributes.length; i++) {
+                    const attribute = attributes[i];
                     const { name, value } = attribute;
                     if (name === 'each' || name === `${this.prefix}each`) {
                         each = await this.bind(node, name, value, container, attribute);
                         break;
                     }
                 }
-                for (const attribute of attributes) {
+                for (let i = 0; i < attributes.length; i++) {
+                    const attribute = attributes[i];
                     const { name, value } = attribute;
                     if (name.startsWith(this.prefix) ||
                         (name.includes(this.syntaxStart) && name.includes(this.syntaxEnd)) ||
@@ -1236,7 +1228,6 @@
             __classPrivateFieldSet(this, _data$1, __classPrivateFieldGet(this, _data$1) ?? this.data);
             __classPrivateFieldSet(this, _adopt, __classPrivateFieldGet(this, _adopt) ?? this.adopt);
             __classPrivateFieldSet(this, _shadow, __classPrivateFieldGet(this, _shadow) ?? this.shadow);
-            // this.#data = Observer.create((this as any).data, (_, path) => {
             this.data = Observer.clone(__classPrivateFieldGet(this, _data$1), (_, path) => {
                 Binder.data.forEach(binder => {
                     if (binder.container === this && binder.path === path && !binder.busy) {
@@ -1248,15 +1239,17 @@
                 });
             });
             if (__classPrivateFieldGet(this, _adopt) === true) {
-                let child = this.firstElementChild;
+                let child = this.firstChild;
                 while (child) {
                     Binder.add(child, this);
-                    child = child.nextElementSibling;
+                    child = child.nextSibling;
                 }
             }
             const template = document.createElement('template');
             template.innerHTML = __classPrivateFieldGet(this, _html);
-            const clone = template.content.cloneNode(true);
+            // const clone = template.content.cloneNode(true) as DocumentFragment;
+            // const clone = document.importNode(template.content, true);
+            const clone = document.adoptNode(template.content);
             if (!__classPrivateFieldGet(this, _shadow) ||
                 !('attachShadow' in document.body) &&
                     !('createShadowRoot' in document.body)) {
@@ -1285,9 +1278,9 @@
             let child = clone.firstChild;
             while (child) {
                 Binder.add(child, this);
-                __classPrivateFieldGet(this, _root).appendChild(child);
-                child = clone.firstChild;
+                child = child.nextSibling;
             }
+            __classPrivateFieldGet(this, _root).appendChild(clone);
         }
         async attributeChangedCallback(name, from, to) {
             await __classPrivateFieldGet(this, _attributed).call(this, name, from, to);

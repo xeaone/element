@@ -230,7 +230,6 @@ export default new class Location {
 
 }
 
-
 // function Query (data) {
 //     data = data || window.location.search;
 

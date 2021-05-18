@@ -18,8 +18,7 @@ const input = function (binder) {
         data = binder.data = [ ...binder.target.selectedOptions ].map(o => o.value);
         data = data.join(',');
     } else if (type === 'checkbox' || type === 'radio') {
-        // data = binder.data = toBoolean(binder.target.value);
-        // data = binder.data = to(binder.data, binder.target.value);
+        data = binder.data = to(binder.data, binder.target.value);
     } else if (type === 'number') {
         data = binder.data = toNumber(binder.target.value);
     } else if (type === 'file') {
@@ -74,12 +73,13 @@ export default {
             // } else if (type === 'number') {
             //     binder.target.value = data;
             //     binder.target.setAttribute('value', data);
-        } else if (type === 'checkbox' || type === 'radio') {
+            // } else if (type === 'checkbox' || type === 'radio') {
             //     binder.target.value = data;
             //     binder.target.toggleAttribute('value', data);
         } else {
-            binder.target.value = data ?? '';
-            binder.target.toggleAttribute('value', data);
+            const value = data ?? '';
+            binder.target.value = value;
+            binder.target.setAttribute('value', value);
         }
     }
 };

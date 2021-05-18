@@ -56,7 +56,6 @@ export default class Component extends HTMLElement {
         this.#adopt = this.#adopt ?? this.adopt;
         this.#shadow = this.#shadow ?? this.shadow;
 
-        // this.#data = Observer.create((this as any).data, (_, path) => {
         this.data = Observer.clone(this.#data, (_, path) => {
             Binder.data.forEach(binder => {
                 if (binder.container === this && binder.path === path && !binder.busy) {
@@ -69,16 +68,18 @@ export default class Component extends HTMLElement {
         });
 
         if (this.#adopt === true) {
-            let child = this.firstElementChild;
+            let child = this.firstChild;
             while (child) {
                 Binder.add(child, this);
-                child = child.nextElementSibling;
+                child = child.nextSibling;
             }
         }
 
         const template = document.createElement('template');
         template.innerHTML = this.#html;
-        const clone = template.content.cloneNode(true) as DocumentFragment;
+        // const clone = template.content.cloneNode(true) as DocumentFragment;
+        // const clone = document.importNode(template.content, true);
+        const clone = document.adoptNode(template.content);
 
         if (
             !this.#shadow ||
@@ -109,9 +110,10 @@ export default class Component extends HTMLElement {
         let child = clone.firstChild;
         while (child) {
             Binder.add(child, this);
-            this.#root.appendChild(child);
-            child = clone.firstChild;
+            child = child.nextSibling;
         }
+
+        this.#root.appendChild(clone);
 
     }
 

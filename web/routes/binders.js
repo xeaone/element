@@ -42,6 +42,11 @@ export default class BindersRoute extends Component {
         selectResult: 'tree',
         // selectResult: 'cactus',
 
+        agree: false,
+        submit (event, data) {
+            console.log(data);
+        }
+
     };
 
     css = /*css*/`
@@ -139,6 +144,18 @@ export default class BindersRoute extends Component {
                 <option value="{{fruit.name}}">{{fruit.name}}</option>
             </select>
         -->
+        </section>
+
+        <section>
+            <h3>Submit Binder</h3>
+            <br>
+            <form onsubmit="{{submit}}">
+                <input name="name.first" value="{{firstName}}" placeholder="first name">
+                <input name="name.last" value="{{lastName}}" placeholder="last name">
+                <br>
+                <input type="checkbox" name="agree" value="{{agree}}" checked="{{agree}}">Agree?
+                <input type="submit" value="submit">
+            </form>
         </section>
 
     `;

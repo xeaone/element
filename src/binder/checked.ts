@@ -1,4 +1,7 @@
 
+console.warn('toggleing attribute replace attr node');
+
+
 export default {
     async setup (binder) {
         binder.target.addEventListener('input', async () => {

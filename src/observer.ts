@@ -24,13 +24,16 @@ const set = function (tasks: task[], handler, path, target, property, value) {
     if (property === 'length') {
         property = '';
         path = path.slice(0, -1);
+        tasks.push(handler.bind(null, value, path));
+        run(tasks);
+        return true;
     } else if (target[ property ] === value) {
         return true;
     }
 
     target[ property ] = create(value, handler, path + property, tasks);
 
-    if (tasks.length) run(tasks);
+    run(tasks);
 
     return true;
 };
@@ -41,39 +44,25 @@ const create = function (source: any, handler: handler, path?: string, tasks?: t
 
     tasks.push(handler.bind(null, source, path));
 
-    // if (!isObject(source) && !isArray(source)) {
-
-    //     if (!path && tasks.length) {
-    //         Promise.resolve().then(() => {
-    //             let task; while (task = tasks.shift()) task();
-    //         }).catch(console.error);
-    //     }
-
-    //     return source;
-    // }
-    // path = path ? path + '.' : '';
-
     let isNative = false;
 
     if (isArray(source)) {
         path = path ? path + '.' : '';
 
         for (let key = 0; key < source.length; key++) {
-            tasks.push(handler.bind(null, source[ key ], path + key));
             source[ key ] = create(source[ key ], handler, path + key, tasks);
         }
     } else if (isObject(source)) {
         path = path ? path + '.' : '';
 
         for (let key in source) {
-            tasks.push(handler.bind(null, source[ key ], path + key));
             source[ key ] = create(source[ key ], handler, path + key, tasks);
         }
     } else {
         isNative = true;
     }
 
-    if (!path && tasks.length) run(tasks);
+    if (!path) run(tasks);
     if (isNative) return source;
 
     return new Proxy(source, { set: set.bind(set, tasks, handler, path) });
@@ -85,18 +74,6 @@ const clone = function (source: any, handler: handler, path?: string, tasks?: ta
 
     tasks.push(handler.bind(null, source, path));
 
-    // if (!isObject(source) && !isArray(source)) {
-
-    //     if (!path && tasks.length) {
-    //         Promise.resolve().then(() => {
-    //             let task; while (task = tasks.shift()) task();
-    //         }).catch(console.error);
-    //     }
-
-    //     return source;
-    // }
-    // path = path ? path + '.' : '';
-
     let target;
     let isNative = false;
 
@@ -105,22 +82,20 @@ const clone = function (source: any, handler: handler, path?: string, tasks?: ta
         path = path ? path + '.' : '';
 
         for (let key = 0; key < source.length; key++) {
-            tasks.push(handler.bind(null, source[ key ], `${path}${key}`));
-            target[ key ] = create(source[ key ], handler, `${path}${key}`, tasks);
+            target[ key ] = clone(source[ key ], handler, path + key, tasks);
         }
     } else if (isObject(source)) {
         target = {};
         path = path ? path + '.' : '';
 
         for (let key in source) {
-            tasks.push(handler.bind(null, source[ key ], `${path}${key}`));
-            target[ key ] = create(source[ key ], handler, `${path}${key}`, tasks);
+            target[ key ] = clone(source[ key ], handler, path + key, tasks);
         }
     } else {
         isNative = true;
     }
 
-    if (!path && tasks.length) run(tasks);
+    if (!path) run(tasks);
     if (isNative) return source;
 
     return new Proxy(target, { set: set.bind(set, tasks, handler, path) });

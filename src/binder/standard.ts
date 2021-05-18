@@ -15,16 +15,11 @@ export default {
 
         if (boolean) {
             data = data ? true : false;
-        } else {
-            data = toString(data);
-        }
-
-        // binder.target[ binder.name ] = result;
-
-        if (boolean) {
             if (data) binder.target.setAttribute(binder.name, '');
             else binder.target.removeAttribute(binder.name);
         } else {
+            data = toString(data);
+            // binder.target[ binder.name ] = data;
             binder.target.setAttribute(binder.name, data);
         }
 
