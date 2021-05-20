@@ -1657,8 +1657,13 @@
                         load$1 = load$1.slice(1);
                     load$1 = `${__classPrivateFieldGet(this, _folder)}/${load$1}.js`.replace(/\/+/g, '/');
                     load$1 = absolute(load$1);
-                    const component = (await load(load$1)).default;
-                    // need to handle if component not found
+                    let component;
+                    try {
+                        component = (await load(load$1)).default;
+                    }
+                    catch {
+                        component = (await load(absolute(`${__classPrivateFieldGet(this, _folder)}/all.js`))).default;
+                    }
                     const name = 'l' + path.replace(/\/+/g, '-');
                     window.customElements.define(name, component);
                     element = window.document.createElement(name);

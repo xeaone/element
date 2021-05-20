@@ -1,6 +1,6 @@
 const { Component } = Oxe;
 
-export default class AnyRoute extends Component {
+export default class AllRoute extends Component {
 
     title = 'Error';
 

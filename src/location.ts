@@ -8,7 +8,7 @@ type Option = {
     target: string | Element;
     after?: (location: any) => Promise<void>;
     before?: (location: any) => Promise<void>;
-}
+};
 
 const absolute = function (path: string) {
     const a = document.createElement('a');
@@ -27,24 +27,24 @@ export default new class Location {
     #after?: (location: any) => Promise<void>;
     #before?: (location: any) => Promise<void>;
 
-    get hash() { return window.location.hash; }
-    get host() { return window.location.host; }
-    get hostname() { return window.location.hostname; }
-    get href() { return window.location.href; }
-    get origin() { return window.location.origin; }
-    get pathname() { return window.location.pathname; }
-    get port() { return window.location.port; }
-    get protocol() { return window.location.protocol; }
-    get search() { return window.location.search; }
+    get hash () { return window.location.hash; }
+    get host () { return window.location.host; }
+    get hostname () { return window.location.hostname; }
+    get href () { return window.location.href; }
+    get origin () { return window.location.origin; }
+    get pathname () { return window.location.pathname; }
+    get port () { return window.location.port; }
+    get protocol () { return window.location.protocol; }
+    get search () { return window.location.search; }
 
-    toString() { return window.location.href; }
+    toString () { return window.location.href; }
 
-    back() { window.history.back(); }
-    forward() { window.history.forward(); }
-    reload() { window.location.reload(); }
-    redirect(href: string) { window.location.href = href; }
+    back () { window.history.back(); }
+    forward () { window.history.forward(); }
+    reload () { window.location.reload(); }
+    redirect (href: string) { window.location.href = href; }
 
-    async listen(option: Option) {
+    async listen (option: Option) {
 
         // if (!option.target) throw new Error('target required');
         if ('folder' in option) this.#folder = option.folder;
@@ -55,7 +55,6 @@ export default new class Location {
         this.#target = option.target instanceof Element ? option.target : document.body.querySelector(option.target);
 
         if (this.#dynamic) {
-
             window.addEventListener('popstate', this.state.bind(this), true);
 
             if (this.#contain) {
@@ -68,15 +67,15 @@ export default new class Location {
         return this.replace(window.location.href);
     }
 
-    async assign(data: string) {
+    async assign (data: string) {
         return this.go(data, { mode: 'push' });
     }
 
-    async replace(data: string) {
+    async replace (data: string) {
         return this.go(data, { mode: 'replace' });
     }
 
-    private location(href: string = window.location.href) {
+    private location (href: string = window.location.href) {
         const parser = document.createElement('a');
         parser.href = href;
 
@@ -99,7 +98,7 @@ export default new class Location {
         // return location;
     }
 
-    private async go(path: string, options: any = {}) {
+    private async go (path: string, options: any = {}) {
 
         // if (options.query) {
         //     path += Query(options.query);
@@ -111,7 +110,7 @@ export default new class Location {
         if (this.#before) await this.#before(location);
 
         if (!this.#dynamic) {
-            return window.location[mode === 'push' ? 'assign' : mode](location.href);
+            return window.location[ mode === 'push' ? 'assign' : mode ](location.href);
         }
 
         window.history.replaceState({
@@ -119,14 +118,14 @@ export default new class Location {
             top: document.documentElement.scrollTop || document.body.scrollTop || 0
         }, '', window.location.href);
 
-        window.history[mode + 'State']({
+        window.history[ mode + 'State' ]({
             top: 0,
             href: location.href
         }, '', location.href);
 
         let element;
         if (location.pathname in this.#data) {
-            element = this.#data[location.pathname];
+            element = this.#data[ location.pathname ];
         } else {
             const path = location.pathname === '/' ? '/index' : location.pathname;
 
@@ -138,15 +137,18 @@ export default new class Location {
             load = `${this.#folder}/${load}.js`.replace(/\/+/g, '/');
             load = absolute(load);
 
-            const component = (await Load(load)).default;
-
-            // need to handle if component not found
+            let component;
+            try {
+                component = (await Load(load)).default;
+            } catch {
+                component = (await Load(absolute(`${this.#folder}/all.js`))).default;
+            }
 
             const name = 'l' + path.replace(/\/+/g, '-');
             window.customElements.define(name, component);
             element = window.document.createElement(name);
 
-            this.#data[location.pathname] = element;
+            this.#data[ location.pathname ] = element;
         }
 
         if (element.title) window.document.title = element.title;
@@ -160,12 +162,12 @@ export default new class Location {
         if (this.#after) await this.#after(location);
     }
 
-    private async state(event) {
+    private async state (event) {
         await this.replace(event.state.href);
         window.scroll(event.state.top, 0);
     }
 
-    private async click(event) {
+    private async click (event) {
 
         // ignore canceled events, modified clicks, and right clicks
         if (
@@ -176,7 +178,7 @@ export default new class Location {
         ) return;
 
         // if shadow dom use
-        let target = event.path ? event.path[0] : event.target;
+        let target = event.path ? event.path[ 0 ] : event.target;
         let parent = target.parentElement;
 
         if (this.#contain) {
@@ -228,7 +230,7 @@ export default new class Location {
         this.assign(target.href);
     }
 
-}
+};;
 
 // function Query (data) {
 //     data = data || window.location.search;
