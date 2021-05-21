@@ -79,15 +79,15 @@ export default class Component extends HTMLElement {
         template.innerHTML = this.#html;
         // const clone = template.content.cloneNode(true) as DocumentFragment;
         // const clone = document.importNode(template.content, true);
-        const clone = document.adoptNode(template.content);
+        // const clone = document.adoptNode(template.content);
 
         if (
             !this.#shadow ||
             !('attachShadow' in document.body) &&
             !('createShadowRoot' in document.body)
         ) {
-            const templateSlots = clone.querySelectorAll('slot[name]');
-            const defaultSlot = clone.querySelector('slot:not([name])');
+            const templateSlots = template.content.querySelectorAll('slot[name]');
+            const defaultSlot = template.content.querySelector('slot:not([name])');
 
             for (let i = 0; i < templateSlots.length; i++) {
                 const templateSlot = templateSlots[ i ];
@@ -107,13 +107,12 @@ export default class Component extends HTMLElement {
             if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
         }
 
-        let child = clone.firstChild;
+        let child = template.content.firstChild;
         while (child) {
             Binder.add(child, this);
             child = child.nextSibling;
         }
-
-        this.#root.appendChild(clone);
+        this.#root.appendChild(template.content);
 
     }
 

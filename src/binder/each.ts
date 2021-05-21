@@ -81,11 +81,11 @@ export default {
 
             const template = document.createElement('template');
             template.innerHTML = html;
-            const adopted = document.adoptNode(template.content);
+            // const adopted = document.adoptNode(template.content);
 
-            await Promise.all(Array.prototype.map.call(adopted.childNodes, node => binder.add(node, binder.container)));
+            await Promise.all(Array.prototype.map.call(template.content.childNodes, node => binder.add(node, binder.container)));
 
-            binder.target.appendChild(adopted);
+            binder.target.appendChild(template.content);
             console.timeEnd(`each ${binder.meta.targetLength}`);
         }
 

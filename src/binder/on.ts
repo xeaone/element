@@ -4,7 +4,7 @@ const submit = async function (event, binder) {
     const { target } = event;
 
     const data = {};
-    const elements = target.querySelectorAll('*');
+    const elements = [ ...target.querySelectorAll('*') ];
     for (const element of elements) {
         const { type, name, nodeName, checked } = element;
 
@@ -16,6 +16,7 @@ const submit = async function (event, binder) {
         ) continue;
 
         // if (type === 'checkbox' && !checked) continue;
+        if (type === 'radio' && !checked) continue;
 
         const attribute = element.getAttributeNode('value');
         const valueBinder = binder.get(attribute);

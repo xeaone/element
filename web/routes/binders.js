@@ -42,6 +42,7 @@ export default class BindersRoute extends Component {
         selectResult: 'tree',
         // selectResult: 'cactus',
 
+        radio: false,
         agree: false,
         submit (event, data) {
             console.log(data);
@@ -153,7 +154,15 @@ export default class BindersRoute extends Component {
                 <input name="name.first" value="{{firstName}}" placeholder="first name">
                 <input name="name.last" value="{{lastName}}" placeholder="last name">
                 <br>
+                <br>
                 <input type="checkbox" name="agree" value="{{agree}}" checked="{{agree}}">Agree?
+                <br>
+                <br>
+                <input type="radio" name="radio" value="one" checked="{{radio}}">One
+                <br>
+                <input type="radio" name="radio" value="two" checked="{{radio}}">Two
+                <br>
+                <br>
                 <input type="submit" value="submit">
             </form>
         </section>

@@ -798,9 +798,9 @@
                 }
                 const template = document.createElement('template');
                 template.innerHTML = html;
-                const adopted = document.adoptNode(template.content);
-                await Promise.all(Array.prototype.map.call(adopted.childNodes, node => binder.add(node, binder.container)));
-                binder.target.appendChild(adopted);
+                // const adopted = document.adoptNode(template.content);
+                await Promise.all(Array.prototype.map.call(template.content.childNodes, node => binder.add(node, binder.container)));
+                binder.target.appendChild(template.content);
                 console.timeEnd(`each ${binder.meta.targetLength}`);
             }
         },
@@ -846,7 +846,7 @@
         event.preventDefault();
         const { target } = event;
         const data = {};
-        const elements = target.querySelectorAll('*');
+        const elements = [...target.querySelectorAll('*')];
         for (const element of elements) {
             const { type, name, nodeName, checked } = element;
             if (!name)
@@ -855,6 +855,8 @@
                 type === 'submit' || type === 'button' || !type)
                 continue;
             // if (type === 'checkbox' && !checked) continue;
+            if (type === 'radio' && !checked)
+                continue;
             const attribute = element.getAttributeNode('value');
             const valueBinder = binder.get(attribute);
             const value = valueBinder ? await valueBinder.compute() : attribute.value;
@@ -1249,12 +1251,12 @@
             template.innerHTML = __classPrivateFieldGet(this, _html);
             // const clone = template.content.cloneNode(true) as DocumentFragment;
             // const clone = document.importNode(template.content, true);
-            const clone = document.adoptNode(template.content);
+            // const clone = document.adoptNode(template.content);
             if (!__classPrivateFieldGet(this, _shadow) ||
                 !('attachShadow' in document.body) &&
                     !('createShadowRoot' in document.body)) {
-                const templateSlots = clone.querySelectorAll('slot[name]');
-                const defaultSlot = clone.querySelector('slot:not([name])');
+                const templateSlots = template.content.querySelectorAll('slot[name]');
+                const defaultSlot = template.content.querySelector('slot:not([name])');
                 for (let i = 0; i < templateSlots.length; i++) {
                     const templateSlot = templateSlots[i];
                     const name = templateSlot.getAttribute('name');
@@ -1275,12 +1277,12 @@
                 if (defaultSlot)
                     defaultSlot.parentNode.removeChild(defaultSlot);
             }
-            let child = clone.firstChild;
+            let child = template.content.firstChild;
             while (child) {
                 Binder.add(child, this);
                 child = child.nextSibling;
             }
-            __classPrivateFieldGet(this, _root).appendChild(clone);
+            __classPrivateFieldGet(this, _root).appendChild(template.content);
         }
         async attributeChangedCallback(name, from, to) {
             await __classPrivateFieldGet(this, _attributed).call(this, name, from, to);
