@@ -124,7 +124,7 @@
             task();
         }
     };
-    const set = function (tasks, handler, path, target, property, value) {
+    const set$1 = function (tasks, handler, path, target, property, value) {
         if (property === 'length') {
             property = '';
             path = path.slice(0, -1);
@@ -163,7 +163,7 @@
             run$1(tasks);
         if (isNative)
             return source;
-        return new Proxy(source, { set: set.bind(set, tasks, handler, path) });
+        return new Proxy(source, { set: set$1.bind(set$1, tasks, handler, path) });
     };
     const clone = function (source, handler, path, tasks) {
         path = path || '';
@@ -192,11 +192,11 @@
             run$1(tasks);
         if (isNative)
             return source;
-        return new Proxy(target, { set: set.bind(set, tasks, handler, path) });
+        return new Proxy(target, { set: set$1.bind(set$1, tasks, handler, path) });
     };
     var Observer = {
         // get,
-        set, create, clone
+        set: set$1, create, clone
     };
 
     const $string = 'string';
@@ -265,6 +265,8 @@
         let node = { value: '', parent: tree, children: [] };
         // each of/in fix
         expression = expression.replace(/{{.*\s+(of|in)\s+/, '{{');
+        // assignment fix
+        expression = expression.replace(/{{.*?=\s*/, '{{');
         for (let i = 0; i < expression.length; i++) {
             const c = expression[i];
             const next = expression[i + 1];
@@ -509,7 +511,7 @@
     console.warn('toggleing attribute replace attr node');
     var checked = {
         async setup(binder) {
-            binder.target.addEventListener('input', async () => {
+            binder.target.addEventListener('input', async (event) => {
                 const data = binder.data = binder.target.checked;
                 binder.target.toggleAttribute('checked', data);
             });
@@ -522,39 +524,58 @@
     };
 
     // import Includes from '../tool/includes';
-    const input = function (binder) {
+    const set = function (path, data, value) {
+        const keys = path.split('.');
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            const next = keys[i + 1];
+            if (next) {
+                if (!(key in data)) {
+                    data[key] = /[0-9]+/.test(next) ? [] : {};
+                }
+                data = data[key];
+            }
+            else {
+                return data[key] = value;
+            }
+        }
+    };
+    const input = async function (binder) {
+        console.log('input');
         const type = binder.target.type;
-        let data;
+        let value;
+        const path = binder.value.replace(/{{(.*)=.*/, '$1').replace(/\s+/, '');
         if (type === 'select-one') {
-            data = binder.data = binder.target.value;
+            value = binder.data = binder.target.value;
         }
         else if (type === 'select-multiple') {
-            data = binder.data = [...binder.target.selectedOptions].map(o => o.value);
-            data = data.join(',');
+            value = binder.data = [...binder.target.selectedOptions].map(o => o.value);
+            value = value.join(',');
         }
         else if (type === 'checkbox' || type === 'radio') {
-            data = binder.data = to(binder.data, binder.target.value);
+            value = binder.data = to(binder.data, binder.target.value);
         }
         else if (type === 'number') {
-            data = binder.data = toNumber(binder.target.value);
+            value = binder.data = toNumber(binder.target.value);
         }
         else if (type === 'file') {
             const multiple = binder.target.multiple;
-            data = binder.data = multiple ? [...binder.target.files] : binder.target.files[0];
-            data = multiple ? data.join(',') : data;
+            value = binder.data = multiple ? [...binder.target.files] : binder.target.files[0];
+            value = multiple ? value.join(',') : value;
         }
         else {
-            data = binder.data = binder.target.value;
+            // double set is weird
+            value = set(path, binder.container.data, binder.target.value);
+            value = set(path, binder.container.data, await binder.compute());
+            binder.target.value = value;
         }
-        binder.target.setAttribute('value', data);
+        binder.target.setAttribute('value', value);
     };
     var value = {
         async setup(binder) {
             binder.target.addEventListener('input', () => input(binder));
         },
-        // async read (binder) {
-        // },
-        async write(binder, context) {
+        async write(binder) {
             const type = binder.target.type;
             const data = await binder.compute();
             if (type === 'select-one') {

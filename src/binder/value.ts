@@ -8,38 +8,58 @@ import {
     toNumber
 } from '../tool';
 
-const input = function (binder) {
+const set = function (path, data, value) {
+    const keys = path.split('.');
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[ i ];
+        const next = keys[ i + 1 ];
+        if (next) {
+            if (!(key in data)) {
+                data[ key ] = /[0-9]+/.test(next) ? [] : {};
+            }
+            data = data[ key ];
+        } else {
+            return data[ key ] = value;
+        }
+    }
+};
+
+const input = async function (binder) {
+    console.log('input');
+
     const type = binder.target.type;
-    let data;
+    let value;
+
+    const path = binder.value.replace(/{{(.*)=.*/, '$1').replace(/\s+/, '');
 
     if (type === 'select-one') {
-        data = binder.data = binder.target.value;
+        value = binder.data = binder.target.value;
     } else if (type === 'select-multiple') {
-        data = binder.data = [ ...binder.target.selectedOptions ].map(o => o.value);
-        data = data.join(',');
+        value = binder.data = [ ...binder.target.selectedOptions ].map(o => o.value);
+        value = value.join(',');
     } else if (type === 'checkbox' || type === 'radio') {
-        data = binder.data = to(binder.data, binder.target.value);
+        value = binder.data = to(binder.data, binder.target.value);
     } else if (type === 'number') {
-        data = binder.data = toNumber(binder.target.value);
+        value = binder.data = toNumber(binder.target.value);
     } else if (type === 'file') {
         const multiple = binder.target.multiple;
-        data = binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
-        data = multiple ? data.join(',') : data;
+        value = binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
+        value = multiple ? value.join(',') : value;
     } else {
-        data = binder.data = binder.target.value;
+        // double set is weird
+        value = set(path, binder.container.data, binder.target.value);
+        value = set(path, binder.container.data, await binder.compute());
+        binder.target.value = value;
     }
 
-    binder.target.setAttribute('value', data);
+    binder.target.setAttribute('value', value);
 };
 
 export default {
     async setup (binder) {
         binder.target.addEventListener('input', () => input(binder));
     },
-    // async read (binder) {
-
-    // },
-    async write (binder, context) {
+    async write (binder) {
         const type = binder.target.type;
         const data = await binder.compute();
         if (type === 'select-one') {

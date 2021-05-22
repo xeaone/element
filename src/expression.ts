@@ -70,6 +70,9 @@ export default function expression (expression, data) {
     // each of/in fix
     expression = expression.replace(/{{.*\s+(of|in)\s+/, '{{');
 
+    // assignment fix
+    expression = expression.replace(/{{.*?=\s*/, '{{');
+
     for (let i = 0; i < expression.length; i++) {
         const c = expression[ i ];
         const next = expression[ i + 1 ];

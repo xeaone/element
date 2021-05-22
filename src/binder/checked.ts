@@ -3,7 +3,7 @@ console.warn('toggleing attribute replace attr node');
 
 export default {
     async setup (binder) {
-        binder.target.addEventListener('input', async () => {
+        binder.target.addEventListener('input', async event => {
             const data = binder.data = binder.target.checked;
             binder.target.toggleAttribute('checked', data);
         });
