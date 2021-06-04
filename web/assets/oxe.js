@@ -82,7 +82,7 @@
         }
     };
     const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
-    const traverse$1 = function (data, paths) {
+    const traverse = function (data, paths) {
         paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
         if (!paths.length) {
             return data;
@@ -91,7 +91,7 @@
             return undefined;
         }
         else {
-            return traverse$1(data[paths[0]], paths.slice(1));
+            return traverse(data[paths[0]], paths.slice(1));
         }
     };
     // export const events = function (target: Element, name: string, detail?: any, options?: any) {
@@ -203,19 +203,38 @@
     const $number = 'number';
     const $variable = 'variable';
     const $function = 'function';
-    const traverse = function (data, paths) {
-        paths = typeof paths === 'string' ? paths.split(/\.|\[|\]/) : paths;
-        if (!paths.length) {
+    const set = function (path, data, value) {
+        const keys = path.split(/\.|\[|\]/);
+        const l = keys.length;
+        for (let i = 0; i < l; i++) {
+            const key = keys[i];
+            const next = keys[i + 1];
+            if (next) {
+                if (!(key in data)) {
+                    data[key] = /[0-9]+/.test(next) ? [] : {};
+                }
+                data = data[key];
+            }
+            else {
+                return data[key] = value;
+            }
+        }
+    };
+    const get = function (data, path) {
+        const keys = typeof path === 'string' ? path.split(/\.|\[|\]/) : path;
+        if (!keys.length) {
             return data;
         }
         else if (typeof data !== 'object') {
             return undefined;
         }
         else {
-            return traverse(data[paths[0]], paths.slice(1));
+            return get(data[keys[0]], keys.slice(1));
         }
     };
-    const finish = function (node, data, tree) {
+    const finish = function (node, data, tree, assignment) {
+        if (node.type !== $string)
+            node.value = node.value.replace(/\s*/g, '');
         if (node.value === 'NaN') {
             node.type = 'nan';
             node.compute = () => NaN;
@@ -243,30 +262,39 @@
             node.compute = () => node.value;
         }
         else if (node.type === $function) {
+            console.log('push', node.value);
             tree.paths.push(node.value);
-            node.compute = (context, ...args) => traverse(data, node.value).call(context, ...node.children.map(child => child.compute(context), ...args));
+            node.compute = (context, ...args) => {
+                if (assignment) {
+                    return set(assignment, data, get(data, node.value).call(context, ...node.children.map(child => child.compute(context), ...args)));
+                }
+                else {
+                    return get(data, node.value).call(context, ...node.children.map(child => child.compute(context), ...args));
+                }
+            };
         }
         else {
             node.type = $variable;
             tree.paths.push(node.value);
-            node.compute = () => traverse(data, node.value);
-            // node.display = () => {
-            //     const result = traverse(data, node.value);
-            //     return tree.children.length === 1 ? result :
-            //         typeof result === 'boolean' && result ? node.value.split('.').slice(-1)[ 0 ] :
-            //             typeof result === 'boolean' && !result ? '' :
-            //                 result;
-            // };
+            node.compute = (value) => {
+                return value === undefined ? get(data, node.value) : value;
+            };
         }
     };
+    const assignmentPattern = /{{((\w+\s*(\.|\[|\])?\s*)+)=.+}}/;
     function expression(expression, data) {
         const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, compute: null };
         let inside = false;
         let node = { value: '', parent: tree, children: [] };
         // each of/in fix
         expression = expression.replace(/{{.*\s+(of|in)\s+/, '{{');
-        // assignment fix
-        expression = expression.replace(/{{.*?=\s*/, '{{');
+        // assignment handle
+        let assignment;
+        if (expression.includes('=')) {
+            assignment = expression.replace(assignmentPattern, '$1').replace(/\s*/g, '');
+            console.log(assignment);
+            expression = expression.replace(/{{.*?=/, '{{');
+        }
         for (let i = 0; i < expression.length; i++) {
             const c = expression[i];
             const next = expression[i + 1];
@@ -324,7 +352,7 @@
             else if ('(' === c) {
                 node.children = [];
                 node.type = $function;
-                finish(node, data, tree);
+                finish(node, data, tree, assignment);
                 node.parent.children.push(node);
                 node = { value: '', parent: node };
             }
@@ -524,27 +552,27 @@
     };
 
     // import Includes from '../tool/includes';
-    const set = function (path, data, value) {
-        const keys = path.split('.');
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            const next = keys[i + 1];
-            if (next) {
-                if (!(key in data)) {
-                    data[key] = /[0-9]+/.test(next) ? [] : {};
-                }
-                data = data[key];
-            }
-            else {
-                return data[key] = value;
-            }
-        }
-    };
+    // const set = function (path, data, value) {
+    //     const keys = path.split('.');
+    //     const l = keys.length;
+    //     for (let i = 0; i < l; i++) {
+    //         const key = keys[ i ];
+    //         const next = keys[ i + 1 ];
+    //         if (next) {
+    //             if (!(key in data)) {
+    //                 data[ key ] = /[0-9]+/.test(next) ? [] : {};
+    //             }
+    //             data = data[ key ];
+    //         } else {
+    //             return data[ key ] = value;
+    //         }
+    //     }
+    // };
     const input = async function (binder) {
-        console.log('input');
+        // console.log('input');
         const type = binder.target.type;
         let value;
-        const path = binder.value.replace(/{{(.*)=.*/, '$1').replace(/\s+/, '');
+        // const path = binder.value.replace(/{{(.*)=.*/, '$1').replace(/\s+/, '');
         if (type === 'select-one') {
             value = binder.data = binder.target.value;
         }
@@ -564,9 +592,14 @@
             value = multiple ? value.join(',') : value;
         }
         else {
-            // double set is weird
-            value = set(path, binder.container.data, binder.target.value);
-            value = set(path, binder.container.data, await binder.compute());
+            value = await binder.compute(binder.target.value);
+            // if (path) {
+            //     console.log('input', path, binder.target.value);
+            //     value = await binder.compute(binder.target.value);
+            // } else {
+            //     console.log('else');
+            //     value = await binder.compute();
+            // }
             binder.target.value = value;
         }
         binder.target.setAttribute('value', value);
@@ -1049,11 +1082,11 @@
                             await binder.after(binder, context, ...args);
                     },
                     get data() {
-                        const parentValue = traverse$1(this.container.data, this.parentKeys);
+                        const parentValue = traverse(this.container.data, this.parentKeys);
                         return parentValue?.[this.childKey];
                     },
                     set data(value) {
-                        const parentValue = traverse$1(this.container.data, this.parentKeys);
+                        const parentValue = traverse(this.container.data, this.parentKeys);
                         parentValue[this.childKey] = value;
                     }
                 };

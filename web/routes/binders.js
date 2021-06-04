@@ -110,6 +110,8 @@ export default class BindersRoute extends Component {
             <br>
             <input value="{{value.out = value.upper(value.out)}}">
             <!--
+            <input value="{{value.upper(value.out)}}">
+            <input value="{{value.out = value.upper(value.out)}}">
             <input value="{{value.out = value.text}}" oninput="{{value.upper(value.text)}}">
             -->
         </section>

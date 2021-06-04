@@ -8,29 +8,30 @@ import {
     toNumber
 } from '../tool';
 
-const set = function (path, data, value) {
-    const keys = path.split('.');
-    for (let i = 0; i < keys.length; i++) {
-        const key = keys[ i ];
-        const next = keys[ i + 1 ];
-        if (next) {
-            if (!(key in data)) {
-                data[ key ] = /[0-9]+/.test(next) ? [] : {};
-            }
-            data = data[ key ];
-        } else {
-            return data[ key ] = value;
-        }
-    }
-};
+// const set = function (path, data, value) {
+//     const keys = path.split('.');
+//     const l = keys.length;
+//     for (let i = 0; i < l; i++) {
+//         const key = keys[ i ];
+//         const next = keys[ i + 1 ];
+//         if (next) {
+//             if (!(key in data)) {
+//                 data[ key ] = /[0-9]+/.test(next) ? [] : {};
+//             }
+//             data = data[ key ];
+//         } else {
+//             return data[ key ] = value;
+//         }
+//     }
+// };
 
 const input = async function (binder) {
-    console.log('input');
+    // console.log('input');
 
     const type = binder.target.type;
     let value;
 
-    const path = binder.value.replace(/{{(.*)=.*/, '$1').replace(/\s+/, '');
+    // const path = binder.value.replace(/{{(.*)=.*/, '$1').replace(/\s+/, '');
 
     if (type === 'select-one') {
         value = binder.data = binder.target.value;
@@ -46,9 +47,14 @@ const input = async function (binder) {
         value = binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
         value = multiple ? value.join(',') : value;
     } else {
-        // double set is weird
-        value = set(path, binder.container.data, binder.target.value);
-        value = set(path, binder.container.data, await binder.compute());
+        value = await binder.compute(binder.target.value);
+        // if (path) {
+        //     console.log('input', path, binder.target.value);
+        //     value = await binder.compute(binder.target.value);
+        // } else {
+        //     console.log('else');
+        //     value = await binder.compute();
+        // }
         binder.target.value = value;
     }
 
