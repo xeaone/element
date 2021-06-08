@@ -25,7 +25,7 @@ import {
 //     }
 // };
 
-const input = async function (binder) {
+const input = async function (binder, event) {
     // console.log('input');
 
     const type = binder.target.type;
@@ -47,7 +47,11 @@ const input = async function (binder) {
         value = binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
         value = multiple ? value.join(',') : value;
     } else {
-        value = await binder.compute(binder.target.value);
+        value = binder.target.value || '';
+        value = await binder.compute({
+            $e: event, $v: value,
+            $event: event, $value: value
+        });
         // if (path) {
         //     console.log('input', path, binder.target.value);
         //     value = await binder.compute(binder.target.value);
@@ -63,11 +67,17 @@ const input = async function (binder) {
 
 export default {
     async setup (binder) {
-        binder.target.addEventListener('input', () => input(binder));
+        binder.target.addEventListener('input', (event) => input(binder, event));
+    },
+    async before (binder) {
+        const data = await binder.compute({ $v: '', $value: '' });
+        console.log(binder.target, data);
     },
     async write (binder) {
+
         const type = binder.target.type;
-        const data = await binder.compute();
+        const data = await binder.compute({ $v: '', $value: '' });
+
         if (type === 'select-one') {
 
             let value;

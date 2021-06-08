@@ -30,7 +30,7 @@ export default class BindersRoute extends Component {
         value: {
             out: '',
             text: 'hello world',
-            upper (text) { return text.toUpperCase(); },
+            upper (text) { return text?.toUpperCase(); },
         },
 
         fruits: [
@@ -60,20 +60,19 @@ export default class BindersRoute extends Component {
         }
     `;
 
-    // <input value="{{checked}}" {{check}} type="checkbox" oninput="{{checkInput}}"></input>
     html = /*html*/ `
 
         <section id="text">
             <h3>Text Binder</h3>
-            <pre>{{text}}</pre>
-            <pre>${Code(`{{text}}`, true)}</pre>
+            <pre>${Code(`<span>{{text}}</span>`, true)}</pre>
+            <pre>${Code(`<span>{{text}}</span>`)}</pre>
         </section>
 
         <section id="checked">
             <h3>Checked Binder</h3>
             <br>
             <pre>${Code(`<input value="{{checked}}" checked="{{checked}}" type="checkbox">`, true)}</pre>
-            <pre>value="{{checked}}" {{checkResult(checked)}}</pre>
+            <pre>${Code(`<input value="{{checked}}"{{checked ? ' checked' : ''}} type="checkbox">`)}</pre>
             <br>
             <input value="{{checked}}" checked="{{checked}}" type="checkbox" oninput="{{checkInput}}">
             <i>checked boolean value and checked attribute</i>
@@ -82,8 +81,8 @@ export default class BindersRoute extends Component {
         <section id="style">
             <h2>Style Binder</h2>
             <br>
-            <pre style="color: {{color}}">${Code(`style="color: {{color}}"`, true)}</pre>
-            <pre style="color: {{color}}">style="color: {{color}}"</pre>
+            <pre style="color: {{color}}">${Code(`<div style="color: {{color}}">Look at my style</div>`, true)}</pre>
+            <pre style="color: {{color}}">${Code(`<div style="color: {{color}}">Look at my style</div>`)}</pre>
             <br>
             <button onclick="{{styleChange()}}">Change Color</button>
         </section>
@@ -108,7 +107,9 @@ export default class BindersRoute extends Component {
             <div>{{value.out}}</div>
             <div>{{value.text}}</div>
             <br>
-            <input value="{{value.out = value.upper(value.out)}}">
+            <input value="{{value.out = ($value || value.out || '').toUpperCase()}}">
+            <input value="{{value.out = value.upper($event?.target.value)}}">
+            <input value="{{value.upper($value)}}">
             <!--
             <input value="{{value.upper(value.out)}}">
             <input value="{{value.out = value.upper(value.out)}}">
@@ -158,7 +159,7 @@ export default class BindersRoute extends Component {
             <h3>Submit Binder</h3>
             <br>
             <form onsubmit="{{submit}}">
-                <input name="name.first" value="{{ firstName}}" placeholder="first name">
+                <input name="name.first" value="{{firstName}}" placeholder="first name">
                 <input name="name.last" value="{{lastName}}" placeholder="last name">
                 <br>
                 <br>

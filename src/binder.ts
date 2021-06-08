@@ -26,6 +26,7 @@ const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
+const AN = Node.ATTRIBUTE_NODE;
 
 interface Binders {
     setup?: () => Promise<void>;
@@ -77,12 +78,17 @@ export default new class Binder {
 
     async bind (target: Node, name: string, value: string, container: any, pointer: Node) {
 
-        if (isSyntaxNative.test(value)) {
-            target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
-            return;
-        }
+        // if (isSyntaxNative.test(value)) {
+        //     target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
+        //     return;
+        // }
 
         const { compute, paths } = Expression(value, container.data);
+        if (!paths.length && pointer.nodeType === AN) (pointer as Attr).value = await compute();
+        else if (!paths.length) target.textContent = await compute();
+
+        console.log(paths);
+
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         const { setup, before, read, write, after } = this.binders[ type ];
 

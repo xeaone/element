@@ -5,6 +5,7 @@ import Readline from 'readline';
 import ChildProcess from 'child_process';
 
 let WATCHER_BUSY = false;
+let LISTENER_BUSY = false;
 
 Readline.emitKeypressEvents(process.stdin);
 
@@ -27,7 +28,7 @@ export const Execute = async function (command, options) {
 
 export const Spawn = async function (command, options = {}) {
     const commands = command.split(/\s+/);
-    return s(commands[0], commands.slice(1), { ...options, detached: false, stdio: ['ignore', 'inherit', 'inherit'] });
+    return s(commands[ 0 ], commands.slice(1), { ...options, detached: false, stdio: [ 'ignore', 'inherit', 'inherit' ] });
 };
 
 export const Press = async function (key, listener) {
@@ -35,7 +36,11 @@ export const Press = async function (key, listener) {
     process.stdin.setRawMode(true);
     process.stdin.on('keypress', async (name) => {
         if (name === key) {
-            await listener();
+            if (!LISTENER_BUSY) {
+                LISTENER_BUSY = true;
+                await listener();
+                LISTENER_BUSY = false;
+            }
         }
     });
 };
@@ -47,16 +52,23 @@ export const Watch = async function (data, listener) {
         const item = Path.resolve(Path.join(data, path));
 
         if (item.includes('.')) {
-            Fs.watch(item, (type, name) => {
+            Fs.watch(item, async (type, name) => {
                 if (WATCHER_BUSY) {
                     return;
                 } else {
-                    WATCHER_BUSY = true;
-                    Promise.resolve()
-                        .then(() => listener(type, name))
-                        .then(() => WATCHER_BUSY = false)
-                        .catch(console.error)
-                        .then(() => WATCHER_BUSY = false);
+                    try {
+                        WATCHER_BUSY = true;
+                        if (!LISTENER_BUSY) {
+                            LISTENER_BUSY = true;
+                            await listener(type, name);
+                            LISTENER_BUSY = false;
+                        }
+                        WATCHER_BUSY = false;
+                    } catch (error) {
+                        LISTENER_BUSY = false;
+                        WATCHER_BUSY = false;
+                        console.error(error);
+                    }
                 }
             });
         } else {
@@ -74,11 +86,11 @@ export const Argument = async function (args) {
 
     args.forEach(arg => {
         if (arg.includes('=')) {
-            let [name, value] = arg.split('=');
+            let [ name, value ] = arg.split('=');
 
             if (
-                (value[0] === '[' && value[value.length - 1] === ']') ||
-                (value[0] === '{' && value[value.length - 1] === '}')
+                (value[ 0 ] === '[' && value[ value.length - 1 ] === ']') ||
+                (value[ 0 ] === '{' && value[ value.length - 1 ] === '}')
             ) {
                 value = JSON.parse(value);
             } else if (value.includes(',')) {
@@ -89,7 +101,7 @@ export const Argument = async function (args) {
                 value = false;
             }
 
-            result[name] = value;
+            result[ name ] = value;
         }
     });
 

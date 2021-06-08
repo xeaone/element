@@ -1,0 +1,30 @@
+<script src="vue.global.js"></script>
+
+<div id="v-model-basic" class="demo">
+    <input :value="message = 'test'" placeholder="edit me" />
+    <p>Message is: {{ message }}</p>
+</div>
+
+<script>
+    document.title = 'test vue';
+    Vue.createApp({
+        data() {
+            return {
+                message: ''
+            }
+        }
+    }).mount('#v-model-basic')
+</script>
+
+<style>
+    .demo {
+        font-family: sans-serif;
+        border: 1px solid #eee;
+        border-radius: 2px;
+        padding: 20px 30px;
+        margin-top: 1em;
+        margin-bottom: 40px;
+        user-select: none;
+        overflow-x: auto;
+    }
+</style>
