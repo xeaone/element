@@ -14421,7 +14421,7 @@ var Vue = (function (exports) {
             // by the server, the template should not contain any user data.
             template = el ? el.innerHTML : ``;
         }
-        const { code } = compile$1(template, extend({
+        let { code } = compile$1(template, extend({
             hoistStatic: true,
             onError: onError,
             onWarn: e => onError(e, true)
@@ -14439,8 +14439,8 @@ var Vue = (function (exports) {
         // In the global build we know `Vue` is available globally so we can avoid
         // the wildcard object.
         console.log(code);
-        const render = (new Function(code)()
-        );
+        code = code.replace('return function render(_ctx, _cache) {', 'return function render(_ctx, _cache) { console.log(_ctx);');
+        const render = (new Function(code)());
         render._rc = true;
         return (compileCache[ key ] = render);
     }

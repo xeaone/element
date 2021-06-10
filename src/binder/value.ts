@@ -52,6 +52,7 @@ const input = async function (binder, event) {
             $e: event, $v: value,
             $event: event, $value: value
         });
+
         // if (path) {
         //     console.log('input', path, binder.target.value);
         //     value = await binder.compute(binder.target.value);

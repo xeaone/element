@@ -1,7 +1,7 @@
 <script src="vue.global.js"></script>
 
 <div id="v-model-basic" class="demo">
-    <input :value="message = 'test'" placeholder="edit me" />
+    <input :value="message" placeholder="edit me" />
     <p>Message is: {{ message }}</p>
 </div>
 
@@ -10,7 +10,7 @@
     Vue.createApp({
         data() {
             return {
-                message: ''
+                // message: ''
             }
         }
     }).mount('#v-model-basic')

@@ -87,41 +87,73 @@
 //     }
 // };
 
+const ignored = [
+    'this', 'true', 'false', 'null', 'undefined', 'NaN', 'window', 'document',
+    'of', 'in',
 
-const prohibited = [
-    'true', 'false',
     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
     'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
     'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
     'debugger', 'function', 'arguments', 'typeof', 'void'
 ];
 
-const nameIgnores = [ ...prohibited ];
-const pathIgnores = [ '$e', '$event', '$v', '$value', ...prohibited ];
+const nameIgnores = [ ...ignored ];
+const pathIgnores = [
+    '$e', '$event', '$v', '$value',
+    '$f', '$form', '$d', '$data',
+    ...ignored
+];
+
+// does not handle []
+const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
+const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
+
+const referenceFull = /([a-zA-Z_$]+)[a-zA-Z0-9_$.\[\]]*/g;
+const referenceStart = /[a-zA-Z_$]+[a-zA-Z0-9_$]*/g;
+const stringRemove = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/g;
+const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
 
 export default function (expression, data) {
+
+    expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
+
     const matches = expression.match(/{{.*?}}/g);
-    const convert = !expression.trim().startsWith('{{');
+    const convert = !shouldNotConvert.test(expression);
     const paths = [];
     const names = [];
 
     for (let match of matches) {
-        match = match.replace(/".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/g, '');
-        const ps = match.match(/[_$a-zA-Z0-9.\[\]]+/g);
-        if (ps) paths.push(...ps.filter(path => !pathIgnores.includes(path)));
-        const ns = match.replace(/([_$a-zA-Z0-9]+)[_$a-zA-Z0-9.]*/g, '$1').match(/[_$a-zA-Z0-9]+/g);
-        if (ns) names.push(...ns.filter(path => !nameIgnores.includes(path)));
+        match = match.replace(stringRemove, '');
+        const ps = match.match(referenceFull);
+        if (ps) paths.push(...ps.filter(p => !pathIgnores.includes(p)));
+        const ns = match.replace(referenceFull, '$1').match(referenceStart);
+        if (ns) names.push(...ns.filter(n => !nameIgnores.includes(n)));
     }
 
-    let code = convert ? `return "${expression}";` : `return ${expression};`;
-    const replaceWith = convert ? '" + $1 + "' : '$1';
+    let code = expression;
+    code = convert ? `"${code}"` : code;
+    // code = `with($ctx){ return (${code}); }`;
+    code = `return (${code});`;
 
+    const replaceWith = convert ? '" + $1 + "' : '$1';
     matches.forEach(match => code = code.replace(match, match.replace(/{{(.*?)}}/, replaceWith)));
 
     return {
         paths,
         compute (extra?: object) {
-            const values = names.map(name => extra && name in extra ? extra[ name ] : data[ name ]);
+            const values = names.map(name => {
+                if (extra && name in extra) {
+                    return extra[ name ];
+                } else if (data && name in data) {
+                    return data[ name ];
+                } else if (window && name in window) {
+                    return window[ name ];
+                }
+            });
+
+            // return new Function('$ctx', ...names, code)(data, ...values);
+            console.log(code, new Function(...names, code)(...values));
+
             return new Function(...names, code)(...values);
         }
     };
@@ -179,7 +211,7 @@ export default function (expression, data) {
 //         } else if (inside === false) {
 //             node.value += c;
 //             node.type = $string;
-//         } else if (/'|`|"/.test(c) && !node.type || node.type === $string) {
+//         } else if (/'|`| "/.test(c) && !node.type || node.type === $string) {;;
 //             node.type = $string;
 //             node.value += c;
 

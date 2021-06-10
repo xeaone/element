@@ -107,7 +107,7 @@ export default class BindersRoute extends Component {
             <div>{{value.out}}</div>
             <div>{{value.text}}</div>
             <br>
-            <input value="{{value.out = ($value || value.out || '').toUpperCase()}}">
+            <input value="{{value.out = ($value || '').toUpperCase()}}">
             <input value="{{value.out = value.upper($event?.target.value)}}">
             <input value="{{value.upper($value)}}">
             <!--
@@ -117,6 +117,7 @@ export default class BindersRoute extends Component {
             -->
         </section>
 
+            <!--
         <section id="each">
             <h3>Each Binder</h3>
             <br>
@@ -129,6 +130,7 @@ export default class BindersRoute extends Component {
                 </div>
             </div>
         </section>
+            -->
 
         <section id="select">
             <h3>Select Binder</h3>

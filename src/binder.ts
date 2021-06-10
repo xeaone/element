@@ -84,8 +84,12 @@ export default new class Binder {
         // }
 
         const { compute, paths } = Expression(value, container.data);
-        if (!paths.length && pointer.nodeType === AN) (pointer as Attr).value = await compute();
-        else if (!paths.length) target.textContent = await compute();
+
+        if (paths.length === 0 && pointer.nodeType === AN) {
+            return (pointer as Attr).value = await compute();
+        } else if (paths.length === 0) {
+            return target.textContent = await compute();
+        }
 
         console.log(paths);
 
@@ -93,9 +97,12 @@ export default new class Binder {
         const { setup, before, read, write, after } = this.binders[ type ];
 
         return Promise.all(paths.map(path => {
-            if (isNative.test(path)) return;
+            // if (isNative.test(path)) return;
 
-            const keys = path.split('.');
+            // const keys = path.split('.');
+            const keys = path.replace(/\]/g, '').replace(/\[/g, '.').split('.');
+            console.log(keys);
+
             const [ key ] = keys.slice(-1);
             const childKey = keys.slice(-1)[ 0 ];
             const parentKeys = keys.slice(0, -1);

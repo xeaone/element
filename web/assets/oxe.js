@@ -124,7 +124,7 @@
             task();
         }
     };
-    const set = function (tasks, handler, path, target, property, value) {
+    const set = function (tasks, handler, original, path, target, property, value) {
         if (property === 'length') {
             property = '';
             path = path.slice(0, -1);
@@ -135,64 +135,70 @@
         else if (target[property] === value) {
             return true;
         }
-        target[property] = create(value, handler, path + property, tasks);
+        target[property] = create(value, handler, original, path + property, tasks);
         run$1(tasks);
         return true;
     };
-    const create = function (source, handler, path, tasks) {
+    const create = function (source, handler, original, path, tasks) {
+        let init = path ? false : true;
         path = path || '';
         tasks = tasks || [];
         tasks.push(handler.bind(null, source, path));
-        let isNative = false;
         if (isArray(source)) {
             path = path ? path + '.' : '';
+            // original = original || source;
+            original = init ? new Proxy(source, { set: set.bind(set, tasks, handler, original, path) }) : original;
             for (let key = 0; key < source.length; key++) {
-                source[key] = create(source[key], handler, path + key, tasks);
+                source[key] = create(source[key], handler, original, path + key, tasks);
             }
         }
         else if (isObject(source)) {
             path = path ? path + '.' : '';
+            original = init ? new Proxy(source, { set: set.bind(set, tasks, handler, original, path) }) : original;
             for (let key in source) {
-                source[key] = create(source[key], handler, path + key, tasks);
+                source[key] = create(source[key], handler, original, path + key, tasks);
             }
         }
         else {
-            isNative = true;
+            if (!path)
+                run$1(tasks);
+            return typeof source === 'function' ? source.bind(original) : source;
         }
-        if (!path)
-            run$1(tasks);
-        if (isNative)
-            return source;
-        return new Proxy(source, { set: set.bind(set, tasks, handler, path) });
+        return init ? original : new Proxy(source, { set: set.bind(set, tasks, handler, original, path) });
     };
-    const clone = function (source, handler, path, tasks) {
+    const clone = function (source, handler, original, path, tasks) {
+        let init = path ? false : true;
         path = path || '';
         tasks = tasks || [];
         tasks.push(handler.bind(null, source, path));
         let target;
-        let isNative = false;
         if (isArray(source)) {
             target = [];
             path = path ? path + '.' : '';
+            // original = original || target;
+            original = init ? new Proxy(target, { set: set.bind(set, tasks, handler, original, path) }) : original;
             for (let key = 0; key < source.length; key++) {
-                target[key] = clone(source[key], handler, path + key, tasks);
+                target[key] = clone(source[key], handler, original, path + key, tasks);
             }
         }
         else if (isObject(source)) {
             target = {};
             path = path ? path + '.' : '';
+            // original = original || target;
+            original = init ? new Proxy(target, { set: set.bind(set, tasks, handler, original, path) }) : original;
             for (let key in source) {
-                target[key] = clone(source[key], handler, path + key, tasks);
+                target[key] = clone(source[key], handler, original, path + key, tasks);
             }
         }
         else {
-            isNative = true;
+            if (!path)
+                run$1(tasks);
+            return typeof source === 'function' ? source.bind(original) : source;
         }
         if (!path)
             run$1(tasks);
-        if (isNative)
-            return source;
-        return new Proxy(target, { set: set.bind(set, tasks, handler, path) });
+        return init ? original : new Proxy(target, { set: set.bind(set, tasks, handler, original, path) });
+        // return new Proxy(target, { set: set.bind(set, tasks, handler, original, path) });
     };
     var Observer = {
         // get,
@@ -281,36 +287,64 @@
     //         // };
     //     }
     // };
-    const prohibited = [
-        'true', 'false',
+    const ignored = [
+        'this', 'true', 'false', 'null', 'undefined', 'NaN', 'window', 'document',
+        'of', 'in',
         'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
         'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
         'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
         'debugger', 'function', 'arguments', 'typeof', 'void'
     ];
-    const nameIgnores = [...prohibited];
-    const pathIgnores = ['$e', '$event', '$v', '$value', ...prohibited];
+    const nameIgnores = [...ignored];
+    const pathIgnores = [
+        '$e', '$event', '$v', '$value',
+        '$f', '$form', '$d', '$data',
+        ...ignored
+    ];
+    // does not handle []
+    const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
+    const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
+    const referenceFull = /([a-zA-Z_$]+)[a-zA-Z0-9_$.\[\]]*/g;
+    const referenceStart = /[a-zA-Z_$]+[a-zA-Z0-9_$]*/g;
+    const stringRemove = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/g;
+    const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
     function Expression (expression, data) {
+        expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
         const matches = expression.match(/{{.*?}}/g);
-        const convert = !expression.trim().startsWith('{{');
+        const convert = !shouldNotConvert.test(expression);
         const paths = [];
         const names = [];
         for (let match of matches) {
-            match = match.replace(/".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/g, '');
-            const ps = match.match(/[_$a-zA-Z0-9.\[\]]+/g);
+            match = match.replace(stringRemove, '');
+            const ps = match.match(referenceFull);
             if (ps)
-                paths.push(...ps.filter(path => !pathIgnores.includes(path)));
-            const ns = match.replace(/([_$a-zA-Z0-9]+)[_$a-zA-Z0-9.]*/g, '$1').match(/[_$a-zA-Z0-9]+/g);
+                paths.push(...ps.filter(p => !pathIgnores.includes(p)));
+            const ns = match.replace(referenceFull, '$1').match(referenceStart);
             if (ns)
-                names.push(...ns.filter(path => !nameIgnores.includes(path)));
+                names.push(...ns.filter(n => !nameIgnores.includes(n)));
         }
-        let code = convert ? `return "${expression}";` : `return ${expression};`;
+        let code = expression;
+        code = convert ? `"${code}"` : code;
+        // code = `with($ctx){ return (${code}); }`;
+        code = `return (${code});`;
         const replaceWith = convert ? '" + $1 + "' : '$1';
         matches.forEach(match => code = code.replace(match, match.replace(/{{(.*?)}}/, replaceWith)));
         return {
             paths,
             compute(extra) {
-                const values = names.map(name => extra && name in extra ? extra[name] : data[name]);
+                const values = names.map(name => {
+                    if (extra && name in extra) {
+                        return extra[name];
+                    }
+                    else if (data && name in data) {
+                        return data[name];
+                    }
+                    else if (window && name in window) {
+                        return window[name];
+                    }
+                });
+                // return new Function('$ctx', ...names, code)(data, ...values);
+                console.log(code, new Function(...names, code)(...values));
                 return new Function(...names, code)(...values);
             }
         };
@@ -358,7 +392,7 @@
     //         } else if (inside === false) {
     //             node.value += c;
     //             node.type = $string;
-    //         } else if (/'|`|"/.test(c) && !node.type || node.type === $string) {
+    //         } else if (/'|`| "/.test(c) && !node.type || node.type === $string) {;;
     //             node.type = $string;
     //             node.value += c;
     //             if (node.value.length > 1 && node.value[ 0 ] === c && previous !== '\\') {
@@ -821,6 +855,7 @@
 
     var each = {
         async setup(binder) {
+            console.log('each: setup');
             const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
             binder.meta.variable = variable;
             binder.meta.index = index;
@@ -842,10 +877,13 @@
             }
         },
         async before(binder) {
+            console.log('each: before');
             binder.busy = true;
         },
         async write(binder) {
-            let data = binder.data;
+            console.log('each (start): write');
+            // let data = binder.data;
+            let data = await binder.compute();
             if (data instanceof Array) {
                 binder.meta.targetLength = data.length;
             }
@@ -873,7 +911,8 @@
                 while (binder.meta.currentLength < binder.meta.targetLength) {
                     const index = binder.meta.currentLength;
                     const key = binder.meta.keys[index] ?? index;
-                    const variable = `${binder.path}.${key}`;
+                    const variable = `${binder.path}[${key}]`;
+                    // const variable = `${binder.path}.${key}`;
                     const rKey = new RegExp(`\\b(${binder.meta.key})\\b`, 'g');
                     const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
                     const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
@@ -888,7 +927,9 @@
                 const template = document.createElement('template');
                 template.innerHTML = html;
                 // const adopted = document.adoptNode(template.content);
+                console.log(template);
                 await Promise.all(Array.prototype.map.call(template.content.childNodes, node => binder.add(node, binder.container)));
+                console.log('each (end): write');
                 binder.target.appendChild(template.content);
                 console.timeEnd(`each ${binder.meta.targetLength}`);
             }
@@ -972,8 +1013,10 @@
                 }
             });
         }
-        const method = await binder.compute(binder.container);
-        await method(event, data);
+        await binder.compute({
+            $f: data, $form: data,
+            $e: event, $event: event
+        });
         if (target.getAttribute('reset'))
             target.reset();
         return false;
@@ -1008,7 +1051,7 @@
             //     value.data = '';
             // }
         }
-        return binder.compute(binder.container, event);
+        return binder.compute({ $e: event, $event: event });
     };
     var on = {
         async read(binder) {
@@ -1019,29 +1062,19 @@
             }
             binder.meta.method = event => {
                 if (name === 'reset') {
-                    return reset.call(binder.container, event, binder);
+                    return reset(event, binder);
                 }
                 else if (name === 'submit') {
-                    return submit.call(binder.container, event, binder);
+                    return submit(event, binder);
                 }
                 else {
-                    return binder.compute(binder.container, event);
+                    return binder.compute({ $e: event, $event: event });
                 }
             };
             binder.target.addEventListener(name, binder.meta.method);
         }
     };
 
-    // const PIPE = /\s?\|\s?/;
-    // const PIPES = /\s?,\s?|\s+/;
-    // const PATH = /\s?,\s?|\s?\|\s?|\s+/;
-    // const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
-    // const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
-    // const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
-    // const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
-    // const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
-    // const isEach = /.*?\s+(of|in)\s+/;
-    const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
@@ -1084,17 +1117,20 @@
             //     return;
             // }
             const { compute, paths } = Expression(value, container.data);
-            if (!paths.length && pointer.nodeType === AN)
-                pointer.value = await compute();
-            else if (!paths.length)
-                target.textContent = await compute();
+            if (paths.length === 0 && pointer.nodeType === AN) {
+                return pointer.value = await compute();
+            }
+            else if (paths.length === 0) {
+                return target.textContent = await compute();
+            }
             console.log(paths);
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const { setup, before, read, write, after } = this.binders[type];
             return Promise.all(paths.map(path => {
-                if (isNative.test(path))
-                    return;
-                const keys = path.split('.');
+                // if (isNative.test(path)) return;
+                // const keys = path.split('.');
+                const keys = path.replace(/\]/g, '').replace(/\[/g, '.').split('.');
+                console.log(keys);
                 const [key] = keys.slice(-1);
                 const childKey = keys.slice(-1)[0];
                 const parentKeys = keys.slice(0, -1);

@@ -26,10 +26,11 @@ class OLoop extends Component {
             console.timeEnd('raw');
         },
         push () {
+            console.log(this);
             console.time('push');
 
-            for (var i = 0; i < this.data.count; i++) {
-                this.data.items.push({ number: i });
+            for (var i = 0; i < this.count; i++) {
+                this.items.push({ number: i });
             }
 
             console.timeEnd('push');

@@ -49,8 +49,10 @@ const submit = async function (event, binder) {
 
     }
 
-    const method = await binder.compute(binder.container);
-    await method(event, data);
+    await binder.compute({
+        $f: data, $form: data,
+        $e: event, $event: event
+    });
 
     if (target.getAttribute('reset')) target.reset();
 
@@ -92,7 +94,7 @@ const reset = async function (event, binder) {
 
     }
 
-    return binder.compute(binder.container, event);
+    return binder.compute({ $e: event, $event: event });
 };
 
 export default {
@@ -107,11 +109,11 @@ export default {
 
         binder.meta.method = event => {
             if (name === 'reset') {
-                return reset.call(binder.container, event, binder);
+                return reset(event, binder);
             } else if (name === 'submit') {
-                return submit.call(binder.container, event, binder);
+                return submit(event, binder);
             } else {
-                return binder.compute(binder.container, event);
+                return binder.compute({ $e: event, $event: event });
             }
         };
 

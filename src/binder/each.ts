@@ -1,6 +1,8 @@
 
 export default {
     async setup (binder) {
+        console.log('each: setup');
+
         const [ variable, index, key ] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
 
         binder.meta.variable = variable;
@@ -25,11 +27,14 @@ export default {
         }
     },
     async before (binder) {
+        console.log('each: before');
         binder.busy = true;
     },
     async write (binder) {
+        console.log('each (start): write');
 
-        let data = binder.data;
+        // let data = binder.data;
+        let data = await binder.compute();
         if (data instanceof Array) {
             binder.meta.targetLength = data.length;
         } else {
@@ -60,7 +65,8 @@ export default {
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const index = binder.meta.currentLength;
                 const key = binder.meta.keys[ index ] ?? index;
-                const variable = `${binder.path}.${key}`;
+                const variable = `${binder.path}[${key}]`;
+                // const variable = `${binder.path}.${key}`;
 
                 const rKey = new RegExp(`\\b(${binder.meta.key})\\b`, 'g');
                 const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
@@ -68,6 +74,7 @@ export default {
                 const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
 
                 let clone = binder.meta.templateString;
+
                 clone.match(syntax)?.forEach(match =>
                     clone = clone.replace(match,
                         match.replace(rVariable, variable)
@@ -81,9 +88,12 @@ export default {
 
             const template = document.createElement('template');
             template.innerHTML = html;
+
             // const adopted = document.adoptNode(template.content);
 
+            console.log(template);
             await Promise.all(Array.prototype.map.call(template.content.childNodes, node => binder.add(node, binder.container)));
+            console.log('each (end): write');
 
             binder.target.appendChild(template.content);
             console.timeEnd(`each ${binder.meta.targetLength}`);

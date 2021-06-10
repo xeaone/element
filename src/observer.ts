@@ -19,7 +19,7 @@ const run = async function (tasks: task[]) {
     }
 };
 
-const set = function (tasks: task[], handler, path, target, property, value) {
+const set = function (tasks: task[], handler, original, path, target, property, value) {
 
     if (property === 'length') {
         property = '';
@@ -31,74 +31,81 @@ const set = function (tasks: task[], handler, path, target, property, value) {
         return true;
     }
 
-    target[ property ] = create(value, handler, path + property, tasks);
+    target[ property ] = create(value, handler, original, path + property, tasks);
 
     run(tasks);
 
     return true;
 };
 
-const create = function (source: any, handler: handler, path?: string, tasks?: task[]) {
+const create = function (source: any, handler: handler, original?: any, path?: string, tasks?: task[]) {
+    let init = path ? false : true;
+
     path = path || '';
     tasks = tasks || [];
 
     tasks.push(handler.bind(null, source, path));
 
-    let isNative = false;
-
     if (isArray(source)) {
         path = path ? path + '.' : '';
+        // original = original || source;
+        original = init ? new Proxy(source, { set: set.bind(set, tasks, handler, original, path) }) : original;
 
         for (let key = 0; key < source.length; key++) {
-            source[ key ] = create(source[ key ], handler, path + key, tasks);
+            source[ key ] = create(source[ key ], handler, original, path + key, tasks);
         }
     } else if (isObject(source)) {
         path = path ? path + '.' : '';
+        original = init ? new Proxy(source, { set: set.bind(set, tasks, handler, original, path) }) : original;
 
         for (let key in source) {
-            source[ key ] = create(source[ key ], handler, path + key, tasks);
+            source[ key ] = create(source[ key ], handler, original, path + key, tasks);
         }
     } else {
-        isNative = true;
+        if (!path) run(tasks);
+        return typeof source === 'function' ? source.bind(original) : source;
     }
 
-    if (!path) run(tasks);
-    if (isNative) return source;
-
-    return new Proxy(source, { set: set.bind(set, tasks, handler, path) });
+    return init ? original : new Proxy(source, { set: set.bind(set, tasks, handler, original, path) });
 };
 
-const clone = function (source: any, handler: handler, path?: string, tasks?: task[]) {
+const clone = function (source: any, handler: handler, original?: any, path?: string, tasks?: task[]) {
+    let init = path ? false : true;
+
     path = path || '';
     tasks = tasks || [];
 
     tasks.push(handler.bind(null, source, path));
 
     let target;
-    let isNative = false;
 
     if (isArray(source)) {
         target = [];
         path = path ? path + '.' : '';
+        // original = original || target;
+        original = init ? new Proxy(target, { set: set.bind(set, tasks, handler, original, path) }) : original;
 
         for (let key = 0; key < source.length; key++) {
-            target[ key ] = clone(source[ key ], handler, path + key, tasks);
+            target[ key ] = clone(source[ key ], handler, original, path + key, tasks);
         }
     } else if (isObject(source)) {
         target = {};
         path = path ? path + '.' : '';
+        // original = original || target;
+        original = init ? new Proxy(target, { set: set.bind(set, tasks, handler, original, path) }) : original;
 
         for (let key in source) {
-            target[ key ] = clone(source[ key ], handler, path + key, tasks);
+            target[ key ] = clone(source[ key ], handler, original, path + key, tasks);
         }
     } else {
-        isNative = true;
+        if (!path) run(tasks);
+        return typeof source === 'function' ? source.bind(original) : source;
     }
 
     if (!path) run(tasks);
-    if (isNative) return source;
 
-    return new Proxy(target, { set: set.bind(set, tasks, handler, path) });
+    return init ? original : new Proxy(target, { set: set.bind(set, tasks, handler, original, path) });
+    // return new Proxy(target, { set: set.bind(set, tasks, handler, original, path) });
 };
 
 export default {
