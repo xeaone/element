@@ -306,8 +306,13 @@
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
     const referenceFull = /([a-zA-Z_$]+)[a-zA-Z0-9_$.\[\]]*/g;
     const referenceStart = /[a-zA-Z_$]+[a-zA-Z0-9_$]*/g;
-    const stringRemove = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/g;
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
+    // const nativeRemove = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`|\b[0-9.]+\b|\bNaN\b|\btrue\b|\bfalse\b|\bnull\b|\bundefined\b|\bwindow\b|\bdocument\b/g;
+    const numbers = /\b[0-9.]+\b/;
+    const strings = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/;
+    const natives = /|\bNaN\b|\btrue\b|\bfalse\b|\bnull\b|\bundefined\b/;
+    const browsers = /\bwindow(\.[a-zA-Z0-9_$.\[\]]+)?\b|\bdocument([a-zA-Z0-9_$.\[\]]+)?\b/;
+    const nativeRemove = new RegExp(`${strings.source}|${numbers.source}|${natives.source}|${browsers.source}`, 'g');
     function Expression (expression, data) {
         expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
         const matches = expression.match(/{{.*?}}/g);
@@ -315,7 +320,7 @@
         const paths = [];
         const names = [];
         for (let match of matches) {
-            match = match.replace(stringRemove, '');
+            match = match.replace(nativeRemove, '');
             const ps = match.match(referenceFull);
             if (ps)
                 paths.push(...ps.filter(p => !pathIgnores.includes(p)));

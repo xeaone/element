@@ -87,15 +87,7 @@
 //     }
 // };
 
-const ignored = [
-    'this', 'true', 'false', 'null', 'undefined', 'NaN', 'window', 'document',
-    'of', 'in',
-
-    'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
-    'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
-    'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
-    'debugger', 'function', 'arguments', 'typeof', 'void'
-];
+const ignored = ;
 
 const nameIgnores = [ ...ignored ];
 const pathIgnores = [
@@ -110,8 +102,32 @@ const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
 
 const referenceFull = /([a-zA-Z_$]+)[a-zA-Z0-9_$.\[\]]*/g;
 const referenceStart = /[a-zA-Z_$]+[a-zA-Z0-9_$]*/g;
-const stringRemove = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/g;
 const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
+
+//     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
+//     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
+//     'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
+//     'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
+//     'debugger', 'function', 'arguments', 'typeof', 'void'
+
+
+// const numbers = /\b[0-9.]+\b/;
+// const strings = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/;
+// const reference = /([a-zA-Z_$\[\]][a-zA-Z_$0-9]*|\s*("|`|'|{|}|\?\.|\.|\[|\])\s*)+/;
+const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\.|\\.|\\[|\\])\\s*)+';
+const references = new RegExp(reference, 'g');
+const strips = new RegExp([
+    '^\\s*{{|}}\s*$',
+    '".*?[^\\\\]"|\'.*?[^\\\\]\'|`.*?[^\\\\]`', // strings
+    `window(${reference})?|document(${reference})?|this(${reference})?`, // globals
+    `
+    \\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
+    \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
+    \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bconst\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
+    \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
+    \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b
+    `,
+].join('|').replace(/\s|\t|\n/g, ''), 'g');
 
 export default function (expression, data) {
 
@@ -123,11 +139,14 @@ export default function (expression, data) {
     const names = [];
 
     for (let match of matches) {
-        match = match.replace(stringRemove, '');
-        const ps = match.match(referenceFull);
-        if (ps) paths.push(...ps.filter(p => !pathIgnores.includes(p)));
-        const ns = match.replace(referenceFull, '$1').match(referenceStart);
-        if (ns) names.push(...ns.filter(n => !nameIgnores.includes(n)));
+        match = match.replace(strips, '').match(references).forEach(path => {
+            paths.push(path);
+            names.push(path.split(/\.|\[|\?\./)[ 0 ]);
+        });
+
+        // if (ps) paths.push(...ps.filter(p => !pathIgnores.includes(p)));
+        // const ns = match.replace(referenceFull, '$1').match(referenceStart);
+        // if (ns) names.push(...ns.filter(n => !nameIgnores.includes(n)));
     }
 
     let code = expression;
