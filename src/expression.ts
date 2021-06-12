@@ -43,11 +43,7 @@ export default function (expression, data) {
     code = `with($ctx){ return (${code}); }`;
     // code = `return (${code});`;
 
-    // code = `
-    //     try {return (${code});}
-    //     catch (error) {console.error(error);}
-    // `;
-
+    // replace with paths from observed data
     for (let match of matches) {
         match = match.slice(2, -2);
 
@@ -81,7 +77,6 @@ export default function (expression, data) {
             const values = Object.values(extra);
             return new Function('$ctx', ...names, code)(data, ...values);
             // console.log(code, new Function(...names, code)(...values));
-
             // return new Function(...names, code)(...values);
         }
     };

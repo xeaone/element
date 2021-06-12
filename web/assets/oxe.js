@@ -211,10 +211,7 @@
         code = convert ? `'${code}'` : code;
         code = `with($ctx){ return (${code}); }`;
         // code = `return (${code});`;
-        // code = `
-        //     try {return (${code});}
-        //     catch (error) {console.error(error);}
-        // `;
+        // replace with paths from observed data
         for (let match of matches) {
             match = match.slice(2, -2);
             for (const reference of match.replace(strips, '').match(references)) {
