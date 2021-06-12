@@ -12,6 +12,15 @@ type handler = () => void;
 //     return target[ property ];
 // };
 
+type option = {
+    target?: any;
+    tasks: task[];
+    paths: string[];
+    handler: handler;
+};
+
+const isProxy = Symbol("isProxy");
+
 const run = async function (tasks: task[]) {
     let task;
     while (task = tasks.shift()) {
@@ -19,96 +28,89 @@ const run = async function (tasks: task[]) {
     }
 };
 
-const set = function (tasks: task[], handler, original, path, target, property, value) {
+const set = function (option: option, path, target, property, value) {
 
     if (property === 'length') {
-        property = '';
+        // property = '';
         path = path.slice(0, -1);
-        tasks.push(handler.bind(null, value, path));
-        run(tasks);
+        console.log(target, value, path);
+        option.tasks.push(option.handler.bind(null, value, path));
+        // option.tasks.push(option.handler.bind(null, target, path));
+        run(option.tasks);
+        // target[ property ] = value;
         return true;
     } else if (target[ property ] === value) {
         return true;
     }
 
-    target[ property ] = create(value, handler, original, path + property, tasks);
+    if (isArray(target)) {
+        path = `${path.slice(0, -1)}[${property}]`;
+    } else {
+        path = path + property;
+    }
 
-    run(tasks);
+    target[ property ] = create(value, option, path);
+
+    run(option.tasks);
 
     return true;
 };
 
-const create = function (source: any, handler: handler, original?: any, path?: string, tasks?: task[]) {
-    let init = path ? false : true;
+const create = function (source: any, option: option, path: string, setup?: boolean) {
 
-    path = path || '';
-    tasks = tasks || [];
-
-    tasks.push(handler.bind(null, source, path));
-
-    if (isArray(source)) {
-        path = path ? path + '.' : '';
-        // original = original || source;
-        original = init ? new Proxy(source, { set: set.bind(set, tasks, handler, original, path) }) : original;
-
-        for (let key = 0; key < source.length; key++) {
-            source[ key ] = create(source[ key ], handler, original, path + key, tasks);
-        }
-    } else if (isObject(source)) {
-        path = path ? path + '.' : '';
-        original = init ? new Proxy(source, { set: set.bind(set, tasks, handler, original, path) }) : original;
-
-        for (let key in source) {
-            source[ key ] = create(source[ key ], handler, original, path + key, tasks);
-        }
-    } else {
-        if (!path) run(tasks);
-        return typeof source === 'function' ? source.bind(original) : source;
-    }
-
-    return init ? original : new Proxy(source, { set: set.bind(set, tasks, handler, original, path) });
-};
-
-const clone = function (source: any, handler: handler, original?: any, path?: string, tasks?: task[]) {
-    let init = path ? false : true;
-
-    path = path || '';
-    tasks = tasks || [];
-
-    tasks.push(handler.bind(null, source, path));
+    if (path && !option.paths.includes(path)) option.paths.push(path);
 
     let target;
 
-    if (isArray(source)) {
-        target = [];
+    if (source instanceof Array) {
+        target = setup ? [] : source;
+
+        option.tasks.push(option.handler.bind(null, target, path));
+
+        if (!option.target) option.target = target;
         path = path ? path + '.' : '';
-        // original = original || target;
-        original = init ? new Proxy(target, { set: set.bind(set, tasks, handler, original, path) }) : original;
 
         for (let key = 0; key < source.length; key++) {
-            target[ key ] = clone(source[ key ], handler, original, path + key, tasks);
+            target[ key ] = create(source[ key ], option, path + key, setup);
         }
+
+        target = new Proxy(target, { set: set.bind(set, option, path) });
     } else if (isObject(source)) {
-        target = {};
+        target = setup ? {} : source;
+
+        option.tasks.push(option.handler.bind(null, target, path));
+
+        if (!option.target) option.target = target;
         path = path ? path + '.' : '';
-        // original = original || target;
-        original = init ? new Proxy(target, { set: set.bind(set, tasks, handler, original, path) }) : original;
 
         for (let key in source) {
-            target[ key ] = clone(source[ key ], handler, original, path + key, tasks);
+            target[ key ] = create(source[ key ], option, path + key, setup);
         }
+
+        target = new Proxy(target, { set: set.bind(set, option, path) });
     } else {
-        if (!path) run(tasks);
-        return typeof source === 'function' ? source.bind(original) : source;
+        target = typeof source === 'function' ? source.bind(option.target) : source;
+        option.tasks.push(option.handler.bind(null, target, path));
     }
 
-    if (!path) run(tasks);
+    run(option.tasks);
 
-    return init ? original : new Proxy(target, { set: set.bind(set, tasks, handler, original, path) });
-    // return new Proxy(target, { set: set.bind(set, tasks, handler, original, path) });
+    return target;
+};
+
+const observe = function (source: any, handler: handler) {
+    const tasks: task[] = [];
+    const paths: string[] = [];
+    const option: option = { tasks, paths, handler };
+
+    const data = create(source, option, '', true);
+    Object.defineProperty(data, '_paths', { value: paths });
+    console.log(paths);
+    return data;
 };
 
 export default {
     // get,
-    set, create, clone
+    set, create, observe
+
 };

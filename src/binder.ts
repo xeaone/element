@@ -68,64 +68,67 @@ export default new class Binder {
         }
     }
 
-    get (pointer: Node) {
-        return this.data.get(pointer);
+    get (node: Node) {
+        return this.data.get(node);
     }
 
-    async unbind (pointer: Node) {
-        return this.data.delete(pointer);
+    async unbind (node: Node) {
+        return this.data.delete(node);
     }
 
-    async bind (target: Node, name: string, value: string, container: any, pointer: Node) {
+    async bind (node: Node, name: string, value: string, container: any) {
 
         // if (isSyntaxNative.test(value)) {
         //     target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
         //     return;
         // }
+        const owner = node.nodeType === AN ? (node as Attr).ownerElement : node;
 
         const { compute, paths } = Expression(value, container.data);
 
-        if (paths.length === 0 && pointer.nodeType === AN) {
-            return (pointer as Attr).value = await compute();
-        } else if (paths.length === 0) {
-            return target.textContent = await compute();
+        if (paths.length === 0) {
+            if (node.nodeType === AN) return (node as Attr).value = await compute();
+            if (node.nodeType === TN) return node.textContent = await compute();
+            else console.log('node type not handle path length 0');
         }
-
-        console.log(paths);
 
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         const { setup, before, read, write, after } = this.binders[ type ];
 
-        return Promise.all(paths.map(path => {
-            // if (isNative.test(path)) return;
+        return Promise.all(paths.map(async path => {
 
             // const keys = path.split('.');
-            const keys = path.replace(/\]/g, '').replace(/\[/g, '.').split('.');
-            console.log(keys);
+            const keys = path.replace(/\?\.|\]/g, '').replace(/\[/g, '.').split('.');
 
             const [ key ] = keys.slice(-1);
             const childKey = keys.slice(-1)[ 0 ];
             const parentKeys = keys.slice(0, -1);
 
             const binder = {
+                target: owner,
+                node, owner,
+
                 meta: {},
                 busy: false,
                 bindings: this.data,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
                 remove: this.remove.bind(this),
-                target, container,
+                container,
                 compute, type, path,
                 childKey, parentKeys,
                 key, keys, name, value,
                 setup, before, read, write, after,
                 async render (...args) {
+                    if (binder.busy) return;
+                    else binder.busy = true;
                     const context = {};
-                    if (binder.before) await binder.before(binder, context, ...args);
+                    // if (binder.before) await binder.before(binder, context, ...args);
                     const read = binder.read?.bind(null, binder, context, ...args);
                     const write = binder.write?.bind(null, binder, context, ...args);
                     if (read || write) await Batcher.batch(read, write);
-                    if (binder.after) await binder.after(binder, context, ...args);
+                    binder.busy = false;
+                    // if (binder.after) await binder.after(binder, context, ...args);
                 },
                 get data () {
                     const parentValue = traverse(this.container.data, this.parentKeys);
@@ -137,12 +140,16 @@ export default new class Binder {
                 }
             };
 
-            if (this.data.has(pointer)) {
-                console.warn('duplicate pointers', pointer);
+            const duplicate = this.data.get(node);
+            if (duplicate && duplicate.path === path) {
+                console.warn('duplicate binders', node, path);
             }
 
-            this.data.set(pointer, binder);
-            return binder.setup ? binder.setup(binder).then(binder.render) : binder.render();
+            this.data.set(node, binder);
+
+            if (binder.setup) await binder.setup(binder);
+
+            return binder.render();
 
             // if (target.nodeName.includes('-')) {
             //     window.customElements.whenDefined(target.nodeName.toLowerCase()).then(() => this.render(binder));
@@ -189,12 +196,12 @@ export default new class Binder {
                 const split = (node as Text).splitText(end + this.syntaxEnd.length);
                 const value = node.textContent;
                 node.textContent = '';
-                await this.bind(node, 'text', value, container, node);
+                await this.bind(node, 'text', value, container);
                 return this.add(split, container);
             } else {
                 const value = node.textContent;
                 node.textContent = '';
-                return this.bind(node, 'text', value, container, node);
+                return this.bind(node, 'text', value, container);
             }
 
         } else if (type === EN) {
@@ -207,7 +214,8 @@ export default new class Binder {
                 const attribute = attributes[ i ];
                 const { name, value } = attribute;
                 if (name === 'each' || name === `${this.prefix}each`) {
-                    each = await this.bind(node, name, value, container, attribute);
+                    each = await this.bind(attribute, name, value, container);
+                    // each = await this.bind(node, name, value, container, attribute);
                     break;
                 }
             }
@@ -223,7 +231,8 @@ export default new class Binder {
                     if (name === 'each' || name === `${this.prefix}each`) {
                         continue;
                     } else {
-                        tasks.push(this.bind(node, name, value, container, attribute));
+                        tasks.push(this.bind(attribute, name, value, container));
+                        // tasks.push(this.bind(node, name, value, container, attribute));
                     }
                 }
             }

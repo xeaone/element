@@ -1,4 +1,92 @@
 
+const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
+const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
+
+const referenceFull = /([a-zA-Z_$]+)[a-zA-Z0-9_$.\[\]]*/g;
+const referenceStart = /[a-zA-Z_$]+[a-zA-Z0-9_$]*/g;
+const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
+
+//     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
+//     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
+//     'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
+//     'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
+//     'debugger', 'function', 'arguments', 'typeof', 'void'
+
+
+// const numbers = /\b[0-9.]+\b/;
+// const strings = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/;
+// const reference = /([a-zA-Z_$\[\]][a-zA-Z_$0-9]*|\s*("|`|'|{|}|\?\.|\.|\[|\])\s*)+/;
+const part = /([a-zA-Z_$]+)([a-zA-Z0-9_$]*|\s*("|`|'|{|}|\?\s*\.|\.|\[|\])\s*)*/;
+const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
+const references = new RegExp(`${reference}+`, 'g');
+const strips = new RegExp([
+    '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`', // strings
+    `(window|document|this|\\$e|\\$v|\\$f|\\$event|\\$value|\\$form)${reference}*`, // globals and specials
+    `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
+    \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
+    \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bconst\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
+    \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
+    \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
+].join('|').replace(/\s|\t|\n/g, ''), 'g');
+
+export default function (expression, data) {
+
+    expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
+
+    const matches = expression.match(/{{.*?}}/g);
+    const convert = !shouldNotConvert.test(expression);
+    const paths = [];
+    // const names = [];
+
+    let code = expression;
+    code = convert ? `'${code}'` : code;
+    code = `with($ctx){ return (${code}); }`;
+    // code = `return (${code});`;
+
+    // code = `
+    //     try {return (${code});}
+    //     catch (error) {console.error(error);}
+    // `;
+
+    for (let match of matches) {
+        match = match.slice(2, -2);
+
+        for (const reference of match.replace(strips, '').match(references)) {
+            paths.push(reference);
+            // names.push(reference.replace(part, '$1'));
+        }
+
+        code = code.replace(`{{${match}}}`, convert ? `' + ${match} + '` : match);
+    }
+
+    console.log(paths);
+
+    return {
+        paths,
+        compute (extra?: object) {
+            // const values = names.map(name => {
+            //     if (extra && name in extra) {
+            //         return extra[ name ];
+            //     } else if (data && name in data) {
+            //         return data[ name ];
+            //     } else if (window && name in window) {
+            //         return window[ name ];
+            //     }
+            // });
+            extra = Object.assign({
+                $e: undefined, $v: undefined, $f: undefined,
+                $event: undefined, $value: undefined, $form: undefined
+            }, extra);
+            const names = Object.keys(extra);
+            const values = Object.values(extra);
+            return new Function('$ctx', ...names, code)(data, ...values);
+            // console.log(code, new Function(...names, code)(...values));
+
+            // return new Function(...names, code)(...values);
+        }
+    };
+}
+
 // const $string = 'string';
 // const $number = 'number';
 // const $variable = 'variable';
@@ -86,97 +174,6 @@
 //         // };
 //     }
 // };
-
-const ignored = ;
-
-const nameIgnores = [ ...ignored ];
-const pathIgnores = [
-    '$e', '$event', '$v', '$value',
-    '$f', '$form', '$d', '$data',
-    ...ignored
-];
-
-// does not handle []
-const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
-const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-
-const referenceFull = /([a-zA-Z_$]+)[a-zA-Z0-9_$.\[\]]*/g;
-const referenceStart = /[a-zA-Z_$]+[a-zA-Z0-9_$]*/g;
-const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
-
-//     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
-//     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
-//     'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
-//     'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
-//     'debugger', 'function', 'arguments', 'typeof', 'void'
-
-
-// const numbers = /\b[0-9.]+\b/;
-// const strings = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/;
-// const reference = /([a-zA-Z_$\[\]][a-zA-Z_$0-9]*|\s*("|`|'|{|}|\?\.|\.|\[|\])\s*)+/;
-const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\.|\\.|\\[|\\])\\s*)+';
-const references = new RegExp(reference, 'g');
-const strips = new RegExp([
-    '^\\s*{{|}}\s*$',
-    '".*?[^\\\\]"|\'.*?[^\\\\]\'|`.*?[^\\\\]`', // strings
-    `window(${reference})?|document(${reference})?|this(${reference})?`, // globals
-    `
-    \\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
-    \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
-    \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bconst\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
-    \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
-    \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b
-    `,
-].join('|').replace(/\s|\t|\n/g, ''), 'g');
-
-export default function (expression, data) {
-
-    expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
-
-    const matches = expression.match(/{{.*?}}/g);
-    const convert = !shouldNotConvert.test(expression);
-    const paths = [];
-    const names = [];
-
-    for (let match of matches) {
-        match = match.replace(strips, '').match(references).forEach(path => {
-            paths.push(path);
-            names.push(path.split(/\.|\[|\?\./)[ 0 ]);
-        });
-
-        // if (ps) paths.push(...ps.filter(p => !pathIgnores.includes(p)));
-        // const ns = match.replace(referenceFull, '$1').match(referenceStart);
-        // if (ns) names.push(...ns.filter(n => !nameIgnores.includes(n)));
-    }
-
-    let code = expression;
-    code = convert ? `"${code}"` : code;
-    // code = `with($ctx){ return (${code}); }`;
-    code = `return (${code});`;
-
-    const replaceWith = convert ? '" + $1 + "' : '$1';
-    matches.forEach(match => code = code.replace(match, match.replace(/{{(.*?)}}/, replaceWith)));
-
-    return {
-        paths,
-        compute (extra?: object) {
-            const values = names.map(name => {
-                if (extra && name in extra) {
-                    return extra[ name ];
-                } else if (data && name in data) {
-                    return data[ name ];
-                } else if (window && name in window) {
-                    return window[ name ];
-                }
-            });
-
-            // return new Function('$ctx', ...names, code)(data, ...values);
-            console.log(code, new Function(...names, code)(...values));
-
-            return new Function(...names, code)(...values);
-        }
-    };
-}
 
 // const assignmentPattern = /{{((\w+\s*(\.|\[|\])?\s*)+)=.+}}/;
 // export default function expression (expression, data) {

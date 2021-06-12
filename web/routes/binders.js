@@ -141,6 +141,7 @@ export default class BindersRoute extends Component {
                 <option value="cactus">Cactus</option>
             </select>
             <br>
+        <!--
             <div>{{multipleSelectResult}}</div>
             <select value="{{multipleSelectResult}}" multiple>
                 <option value="volvo">Volvo</option>
@@ -149,7 +150,6 @@ export default class BindersRoute extends Component {
                 <option value="audi">Audi</option>
             </select>
             <br>
-        <!--
             <div>{{selectForResult}}</div>
             <select value="{{selectForResult}}" each="{{fruit of fruits}}">
                 <option value="{{fruit.name}}">{{fruit.name}}</option>
@@ -161,8 +161,8 @@ export default class BindersRoute extends Component {
             <h3>Submit Binder</h3>
             <br>
             <form onsubmit="{{submit}}">
-                <input name="name.first" value="{{firstName}}" placeholder="first name">
-                <input name="name.last" value="{{lastName}}" placeholder="last name">
+                <input name="name.first" value="{{firstName = $v}}" placeholder="first name">
+                <input name="name.last" value="{{lastName = $v}}" placeholder="last name">
                 <br>
                 <br>
                 <input type="checkbox" name="agree" value="{{agree}}" checked="{{agree}}">Agree?

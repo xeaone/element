@@ -10,20 +10,12 @@ const setup = function (data: any = {}) {
 };
 
 const tick = function (method: (time: number) => void) {
-    return new Promise((resolve, reject) => {
-        window.requestAnimationFrame(time => {
-            Promise.resolve()
-                .then(method.bind(this, time))
-                .then(resolve)
-                .catch(reject);
+    return new Promise((resolve: any, reject: any) => {
+        window.requestAnimationFrame(async time => {
+            await method(time);
+            resolve();
         });
     });
-};
-
-const schedule = async function () {
-    if (pending) return;
-    else pending = true;
-    return tick(flush);
 };
 
 const flush = async function (time) {
@@ -67,41 +59,34 @@ const clear = function (task) {
     return remove(reads, task) || remove(writes, task);
 };
 
-const batch = async function (read, write) {
-    // if (!read && !write) return;
+const batch = function (read, write) {
+    if (!read && !write) throw new Error('read or write required');
 
-    return new Promise((resolve: any) => {
+    return new Promise((resolve: any, reject: any) => {
 
         if (read) {
             reads.push(async () => {
                 await read();
-                if (write) writes.push(() => write().then(resolve));
-                else resolve();
+                if (write) {
+                    writes.push(async () => {
+                        await write();
+                        resolve();
+                    });
+                } else {
+                    resolve();
+                }
             });
         } else if (write) {
-            writes.push(() => write().then(resolve));
+            writes.push(async () => {
+                await write();
+                resolve();
+            });
         }
 
-        // let readDone = read ? false : true;
-        // let writeDone = write ? false : true;
-
-        // if (read) {
-        //     reads.push(async () => {
-        //         await read();
-        //         readDone = true;
-        //         if (readDone && writeDone) resolve();
-        //     });
-        // }
-
-        // if (write) {
-        //     writes.push(async () => {
-        //         await write();
-        //         writeDone = true;
-        //         if (readDone && writeDone) resolve();
-        //     });
-        // }
-
-        schedule();
+        if (!pending) {
+            pending = true;
+            tick(flush);
+        }
     });
 };
 
@@ -110,7 +95,6 @@ export default Object.freeze({
     writes,
     setup,
     tick,
-    schedule,
     flush,
     remove,
     clear,

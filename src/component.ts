@@ -56,7 +56,18 @@ export default class Component extends HTMLElement {
         this.#adopt = this.#adopt ?? this.adopt;
         this.#shadow = this.#shadow ?? this.shadow;
 
-        this.data = Observer.clone(this.#data, (_, path) => {
+        // this.data = Observer.clone(this.#data, (_, path) => {
+        //     Binder.data.forEach(binder => {
+        //         if (binder.container === this && binder.path === path && !binder.busy) {
+        //             // if (binder.container === this && binder.path === path) {
+        //             // if (binder.container === this && binder.path.startsWith(path)) {
+        //             // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
+        //             binder.render();
+        //         }
+        //     });
+        // });
+
+        this.data = Observer.observe(this.#data, (_, path) => {
             Binder.data.forEach(binder => {
                 if (binder.container === this && binder.path === path && !binder.busy) {
                     // if (binder.container === this && binder.path === path) {
@@ -66,6 +77,7 @@ export default class Component extends HTMLElement {
                 }
             });
         });
+
 
         if (this.#adopt === true) {
             let child = this.firstChild;
@@ -107,13 +119,15 @@ export default class Component extends HTMLElement {
             if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
         }
 
+        const tasks = [];
         let child = template.content.firstChild;
         while (child) {
-            Binder.add(child, this);
+            tasks.push(Binder.add(child, this));
             child = child.nextSibling;
         }
         this.#root.appendChild(template.content);
 
+        return Promise.all(tasks);
     }
 
     async attributeChangedCallback (name, from, to) {
@@ -130,17 +144,21 @@ export default class Component extends HTMLElement {
     }
 
     async connectedCallback () {
-        this.#css = this.#css ?? this.css;
+        try {
+            this.#css = this.#css ?? this.css;
 
-        Css.attach(this.#name, this.#css);
+            Css.attach(this.#name, this.#css);
 
-        if (this.#flag) {
-            if (this.#connected) await this.#connected();
-        } else {
-            this.#flag = true;
-            await this.render();
-            if (this.#rendered) await this.#rendered();
-            if (this.#connected) await this.#connected();
+            if (this.#flag) {
+                if (this.#connected) await this.#connected();
+            } else {
+                this.#flag = true;
+                await this.render();
+                if (this.#rendered) await this.#rendered();
+                if (this.#connected) await this.#connected();
+            }
+        } catch (error) {
+            console.error(error);
         }
     }
 

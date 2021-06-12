@@ -1,8 +1,8 @@
 <script src="vue.global.js"></script>
 
 <div id="v-model-basic" class="demo">
-    <input :value="message" placeholder="edit me" />
-    <p>Message is: {{ message }}</p>
+    <input :value="hello['world'] = $event?.target.value || 'blue'" placeholder="edit me" />
+    <p>Message is: {{ hello.world }}</p>
 </div>
 
 <script>
@@ -10,6 +10,7 @@
     Vue.createApp({
         data() {
             return {
+                hello: {}
                 // message: ''
             }
         }

@@ -8,11 +8,12 @@ class OLoop extends Component {
         items: [],
         message: '',
         count: 1000,
+        one: { two: 'three' },
         raw () {
             console.time('raw');
             const template = document.createElement('template');
             let html = '';
-            for (var i = 0; i < this.data.count; i++) {
+            for (var i = 0; i < this.count; i++) {
                 html += `
                     <div class="box">
                         <div>${i}</div>
@@ -39,11 +40,11 @@ class OLoop extends Component {
             console.time('overwrite');
 
             var items = [];
-            for (var i = 0; i < this.data.count; i++) {
+            for (var i = 0; i < this.count; i++) {
                 items.push({ number: i });
             }
 
-            this.data.items = items;
+            this.items = items;
 
             console.timeEnd('overwrite');
         }
@@ -63,7 +64,7 @@ class OLoop extends Component {
         <div each="{{item of items}}">
             <div class="box">
                 <div>{{item.number}}</div>
-                <input value="{{item.number}}">
+                <input value="{{item.number = $value || item.number}}"></input>
             </div>
         </div>
 
@@ -72,6 +73,7 @@ class OLoop extends Component {
     `;
 
     async attributed () {
+        console.log(this.data);
         console.log(arguments);
     }
 

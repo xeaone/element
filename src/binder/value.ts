@@ -26,11 +26,9 @@ import {
 // };
 
 const input = async function (binder, event) {
-    // console.log('input');
-
     const type = binder.target.type;
-    let value;
 
+    let value;
     // const path = binder.value.replace(/{{(.*)=.*/, '$1').replace(/\s+/, '');
 
     if (type === 'select-one') {
@@ -68,11 +66,7 @@ const input = async function (binder, event) {
 
 export default {
     async setup (binder) {
-        binder.target.addEventListener('input', (event) => input(binder, event));
-    },
-    async before (binder) {
-        const data = await binder.compute({ $v: '', $value: '' });
-        console.log(binder.target, data);
+        binder.target.addEventListener('input', event => input(binder, event));
     },
     async write (binder) {
 
