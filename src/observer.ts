@@ -15,11 +15,9 @@ type handler = () => void;
 type option = {
     target?: any;
     tasks: task[];
-    paths: string[];
+    // paths: string[];
     handler: handler;
 };
-
-const isProxy = Symbol("isProxy");
 
 const run = async function (tasks: task[]) {
     let task;
@@ -31,9 +29,7 @@ const run = async function (tasks: task[]) {
 const set = function (option: option, path, target, property, value) {
 
     if (property === 'length') {
-        // property = '';
         path = path.slice(0, -1);
-        console.log(target, value, path);
         option.tasks.push(option.handler.bind(null, value, path));
         // option.tasks.push(option.handler.bind(null, target, path));
         run(option.tasks);
@@ -58,7 +54,7 @@ const set = function (option: option, path, target, property, value) {
 
 const create = function (source: any, option: option, path: string, setup?: boolean) {
 
-    if (path && !option.paths.includes(path)) option.paths.push(path);
+    // if (path && !option.paths.includes(path)) option.paths.push(path);
 
     let target;
 
@@ -100,12 +96,12 @@ const create = function (source: any, option: option, path: string, setup?: bool
 
 const observe = function (source: any, handler: handler) {
     const tasks: task[] = [];
-    const paths: string[] = [];
-    const option: option = { tasks, paths, handler };
+    // const paths: string[] = [];
+    const option: option = { tasks, handler };
+    // const option: option = { tasks, paths, handler };
 
     const data = create(source, option, '', true);
-    Object.defineProperty(data, '_paths', { value: paths });
-    console.log(paths);
+    // Object.defineProperty(data, '_paths', { value: paths });
     return data;
 };
 

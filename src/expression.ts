@@ -1,25 +1,16 @@
 
 const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
-const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-
-const referenceFull = /([a-zA-Z_$]+)[a-zA-Z0-9_$.\[\]]*/g;
-const referenceStart = /[a-zA-Z_$]+[a-zA-Z0-9_$]*/g;
 const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
+const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
+const replaceOutsideAndSyntax = /[^{}]*{{|}}[^{}]*/g;
 
-//     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
-//     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
-//     'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
-//     'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
-//     'debugger', 'function', 'arguments', 'typeof', 'void'
-
-
-// const numbers = /\b[0-9.]+\b/;
-// const strings = /".*?[^\\]"|'.*?[^\\]'|`.*?[^\\]`/;
-// const reference = /([a-zA-Z_$\[\]][a-zA-Z_$0-9]*|\s*("|`|'|{|}|\?\.|\.|\[|\])\s*)+/;
-const part = /([a-zA-Z_$]+)([a-zA-Z0-9_$]*|\s*("|`|'|{|}|\?\s*\.|\.|\[|\])\s*)*/;
 const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
-const references = new RegExp(`${reference}+`, 'g');
+const references = new RegExp(`${reference}+(?!.*\\1)`, 'g');
+const replaceExceptAssignment = /.*?([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
+// const assignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=\s*\$(value|v)([^a-zA-Z]|\s+|$)/;
+
 const strips = new RegExp([
+    ';',
     '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`', // strings
     `(window|document|this|\\$e|\\$v|\\$f|\\$event|\\$value|\\$form)${reference}*`, // globals and specials
     `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
@@ -33,33 +24,33 @@ export default function (expression, data) {
 
     expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
 
-    const matches = expression.match(/{{.*?}}/g);
     const convert = !shouldNotConvert.test(expression);
-    const paths = [];
+    // const paths = [];
     // const names = [];
 
+    // possibly replace with paths from observed data
+    const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+    const paths = striped.match(references) || [];
+
+    const assignee = `with ($c) { return (${striped.replace(replaceExceptAssignment, '$1')}); }`;
+
     let code = expression;
+    code = code.replace(/{{/g, convert ? `' +` : '');
+    code = code.replace(/}}/g, convert ? ` + '` : '');
     code = convert ? `'${code}'` : code;
-    code = `with($ctx){ return (${code}); }`;
+    code = `with ($c) { return (${code}); }`;
     // code = `return (${code});`;
 
-    // replace with paths from observed data
-    for (let match of matches) {
-        match = match.slice(2, -2);
-
-        for (const reference of match.replace(strips, '').match(references)) {
-            paths.push(reference);
-            // names.push(reference.replace(part, '$1'));
-        }
-
-        code = code.replace(`{{${match}}}`, convert ? `' + ${match} + '` : match);
-    }
-
     console.log(paths);
+    // console.log(code);
+    // console.log(code.replace(removeOutsideSyntax, ' ').replace(strips, ''));
 
     return {
         paths,
-        compute (extra?: object) {
+        assignee () {
+            return new Function('$c', assignee)(data);
+        },
+        compute (extra?: any) {
             // const values = names.map(name => {
             //     if (extra && name in extra) {
             //         return extra[ name ];
@@ -69,18 +60,22 @@ export default function (expression, data) {
             //         return window[ name ];
             //     }
             // });
-            extra = Object.assign({
-                $e: undefined, $v: undefined, $f: undefined,
-                $event: undefined, $value: undefined, $form: undefined
-            }, extra);
-            const names = Object.keys(extra);
-            const values = Object.values(extra);
-            return new Function('$ctx', ...names, code)(data, ...values);
-            // console.log(code, new Function(...names, code)(...values));
             // return new Function(...names, code)(...values);
+
+            return new Function(
+                '$c', '$e', '$v', '$f', '$event', '$value', '$form', code
+            )(
+                data, extra?.$e, extra?.$v, extra?.$f, extra?.$event, extra?.$value, extra?.$form
+            );
         }
     };
 }
+
+//     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
+//     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
+//     'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
+//     'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
+//     'debugger', 'function', 'arguments', 'typeof', 'void'
 
 // const $string = 'string';
 // const $number = 'number';

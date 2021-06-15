@@ -1,5 +1,5 @@
-import { index as Index, match as Match, toBoolean } from '../tool';
-import Binder from '../binder';
+// import { index as Index, match as Match, toBoolean } from '../tool';
+// import Binder from '../binder';
 // import Includes from '../tool/includes';
 
 import {
@@ -29,35 +29,34 @@ const input = async function (binder, event) {
     const type = binder.target.type;
 
     let value;
-    // const path = binder.value.replace(/{{(.*)=.*/, '$1').replace(/\s+/, '');
 
     if (type === 'select-one') {
-        value = binder.data = binder.target.value;
+        console.log('value event select');
+        value = binder.target.value;
+        value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
+        binder.target.value = value;
     } else if (type === 'select-multiple') {
-        value = binder.data = [ ...binder.target.selectedOptions ].map(o => o.value);
+        value = [ ...binder.target.selectedOptions ].map(option => option.value);
+        value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
         value = value.join(',');
-    } else if (type === 'checkbox' || type === 'radio') {
-        value = binder.data = to(binder.data, binder.target.value);
-    } else if (type === 'number') {
-        value = binder.data = toNumber(binder.target.value);
+        // } else if (type === 'checkbox' || type === 'radio') {
+        //     value = binder.target.value;
+        //     // value = to(binder.data, binder.target.value);
+        //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
+        //     binder.target.value = value;
+        // } else if (type === 'number') {
+        //     // value = toNumber(binder.target.value);
+        //     value = binder.target.value;
+        //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
+        //     binder.target.value = value;
     } else if (type === 'file') {
         const multiple = binder.target.multiple;
-        value = binder.data = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
+        value = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
+        value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
         value = multiple ? value.join(',') : value;
     } else {
-        value = binder.target.value || '';
-        value = await binder.compute({
-            $e: event, $v: value,
-            $event: event, $value: value
-        });
-
-        // if (path) {
-        //     console.log('input', path, binder.target.value);
-        //     value = await binder.compute(binder.target.value);
-        // } else {
-        //     console.log('else');
-        //     value = await binder.compute();
-        // }
+        value = binder.target.value;
+        value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
         binder.target.value = value;
     }
 
@@ -69,19 +68,13 @@ export default {
         binder.target.addEventListener('input', event => input(binder, event));
     },
     async write (binder) {
-
         const type = binder.target.type;
-        const data = await binder.compute({ $v: '', $value: '' });
 
         if (type === 'select-one') {
-
-            let value;
-            if ('' === data || null === data || undefined === data) {
-                value = binder.data = binder.target.value;
-            } else {
-                value = binder.target.value = data;
-            }
-
+            console.log('value write select');
+            let value = binder.assignee() ?? binder.target.selectedOptions[ 0 ]?.value;
+            value = await binder.compute({ $v: value, $value: value });
+            binder.target.value = value;
             binder.target.setAttribute('value', value);
         } else if (type === 'select-multiple') {
 
@@ -108,7 +101,8 @@ export default {
             //     binder.target.value = data;
             //     binder.target.toggleAttribute('value', data);
         } else {
-            const value = data ?? '';
+            let value = binder.assignee() ?? binder.target.value;
+            value = await binder.compute({ $v: value, $value: value });
             binder.target.value = value;
             binder.target.setAttribute('value', value);
         }

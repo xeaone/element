@@ -84,7 +84,7 @@ export default new class Binder {
         // }
         const owner = node.nodeType === AN ? (node as Attr).ownerElement : node;
 
-        const { compute, paths } = Expression(value, container.data);
+        const { assignee, compute, paths } = Expression(value, container.data);
 
         if (paths.length === 0) {
             if (node.nodeType === AN) return (node as Attr).value = await compute();
@@ -115,7 +115,7 @@ export default new class Binder {
                 add: this.add.bind(this),
                 remove: this.remove.bind(this),
                 container,
-                compute, type, path,
+                assignee, compute, type, path,
                 childKey, parentKeys,
                 key, keys, name, value,
                 setup, before, read, write, after,

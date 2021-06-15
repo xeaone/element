@@ -16,7 +16,7 @@ export default class BindersRoute extends Component {
         check: 'checked',
         checked: false,
         checkResult: checked => checked ? 'checked' : '',
-        checkInput () { console.log(this.data.checked); },
+        checkInput () { console.log(this.checked); },
 
         // style
         color: Color(),
@@ -39,15 +39,18 @@ export default class BindersRoute extends Component {
             { name: 'tomato' }
         ],
 
-        // selectResult: '',
-        selectResult: 'tree',
+        selectResult: null,
+        // selectResult: 'tree',
         // selectResult: 'cactus',
 
         radio: false,
         agree: false,
         submit (event, data) {
             console.log(data);
-        }
+        },
+
+        firstName: '',
+        lastName: '',
 
     };
 
@@ -74,7 +77,7 @@ export default class BindersRoute extends Component {
             <pre>${Code(`<input value="{{checked}}" checked="{{checked}}" type="checkbox">`, true)}</pre>
             <pre>${Code(`<input value="{{checked}}"{{checked ? ' checked' : ''}} type="checkbox">`)}</pre>
             <br>
-            <input value="{{checked}}" checked="{{checked}}" type="checkbox" oninput="{{checkInput}}">
+            <input value="{{checked}}" checked="{{checked}}" type="checkbox" oninput="{{checkInput()}}">
             <i>checked boolean value and checked attribute</i>
         </section>
 
@@ -136,7 +139,7 @@ export default class BindersRoute extends Component {
             <h3>Select Binder</h3>
             <br>
             <div>{{selectResult}}</div>
-            <select value="{{selectResult}}">
+            <select value="{{selectResult = $value}}">
                 <option value="tree">Tree</option>
                 <option value="cactus">Cactus</option>
             </select>

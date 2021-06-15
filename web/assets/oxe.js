@@ -46,41 +46,9 @@
         return value;
     }
 
-    const isMap = (data) => data?.constructor === Map;
-    const isDate = (data) => data?.constructor === Date;
     const isArray = (data) => data?.constructor === Array;
-    const isString = (data) => data?.constructor === String;
-    const isNumber = (data) => data?.constructor === Number;
     const isObject = (data) => data?.constructor === Object;
-    const isBoolean = (data) => data?.constructor === Boolean;
-    const toArray = (data) => JSON.parse(data);
-    const toObject = (data) => JSON.parse(data);
-    const toBoolean = (data) => data === 'true';
-    const toDate = (data) => new Date(Number(data));
-    const toMap = (data) => new Map(JSON.parse(data));
     const toString = (data) => typeof data === 'string' ? data : JSON.stringify(data);
-    const toNumber = (data) => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
-    const to = function (source, target) {
-        try {
-            if (isMap(source))
-                return toMap(target);
-            if (isDate(source))
-                return toDate(target);
-            if (isArray(source))
-                return toArray(target);
-            if (isString(source))
-                return toString(target);
-            if (isObject(source))
-                return toObject(target);
-            if (isNumber(source))
-                return toNumber(target);
-            if (isBoolean(source))
-                return toBoolean(target);
-        }
-        catch {
-            return target;
-        }
-    };
     const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
     const traverse = function (data, paths) {
         paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
@@ -118,9 +86,7 @@
     };
     const set = function (option, path, target, property, value) {
         if (property === 'length') {
-            // property = '';
             path = path.slice(0, -1);
-            console.log(target, value, path);
             option.tasks.push(option.handler.bind(null, value, path));
             // option.tasks.push(option.handler.bind(null, target, path));
             run$1(option.tasks);
@@ -141,8 +107,7 @@
         return true;
     };
     const create = function (source, option, path, setup) {
-        if (path && !option.paths.includes(path))
-            option.paths.push(path);
+        // if (path && !option.paths.includes(path)) option.paths.push(path);
         let target;
         if (source instanceof Array) {
             target = setup ? [] : source;
@@ -175,11 +140,11 @@
     };
     const observe = function (source, handler) {
         const tasks = [];
-        const paths = [];
-        const option = { tasks, paths, handler };
+        // const paths: string[] = [];
+        const option = { tasks, handler };
+        // const option: option = { tasks, paths, handler };
         const data = create(source, option, '', true);
-        Object.defineProperty(data, '_paths', { value: paths });
-        console.log(paths);
+        // Object.defineProperty(data, '_paths', { value: paths });
         return data;
     };
     var Observer = {
@@ -188,11 +153,15 @@
     };
 
     const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
-    const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
+    const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
+    const replaceOutsideAndSyntax = /[^{}]*{{|}}[^{}]*/g;
     const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
-    const references = new RegExp(`${reference}+`, 'g');
+    const references = new RegExp(`${reference}+(?!.*\\1)`, 'g');
+    const replaceExceptAssignment = /.*?([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
+    // const assignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=\s*\$(value|v)([^a-zA-Z]|\s+|$)/;
     const strips = new RegExp([
+        ';',
         '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
         `(window|document|this|\\$e|\\$v|\\$f|\\$event|\\$value|\\$form)${reference}*`,
         `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
@@ -203,26 +172,27 @@
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
     function Expression (expression, data) {
         expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
-        const matches = expression.match(/{{.*?}}/g);
         const convert = !shouldNotConvert.test(expression);
-        const paths = [];
+        // const paths = [];
         // const names = [];
+        // possibly replace with paths from observed data
+        const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+        const paths = striped.match(references) || [];
+        const assignee = `with ($c) { return (${striped.replace(replaceExceptAssignment, '$1')}); }`;
         let code = expression;
+        code = code.replace(/{{/g, convert ? `' +` : '');
+        code = code.replace(/}}/g, convert ? ` + '` : '');
         code = convert ? `'${code}'` : code;
-        code = `with($ctx){ return (${code}); }`;
+        code = `with ($c) { return (${code}); }`;
         // code = `return (${code});`;
-        // replace with paths from observed data
-        for (let match of matches) {
-            match = match.slice(2, -2);
-            for (const reference of match.replace(strips, '').match(references)) {
-                paths.push(reference);
-                // names.push(reference.replace(part, '$1'));
-            }
-            code = code.replace(`{{${match}}}`, convert ? `' + ${match} + '` : match);
-        }
         console.log(paths);
+        // console.log(code);
+        // console.log(code.replace(removeOutsideSyntax, ' ').replace(strips, ''));
         return {
             paths,
+            assignee() {
+                return new Function('$c', assignee)(data);
+            },
             compute(extra) {
                 // const values = names.map(name => {
                 //     if (extra && name in extra) {
@@ -233,18 +203,16 @@
                 //         return window[ name ];
                 //     }
                 // });
-                extra = Object.assign({
-                    $e: undefined, $v: undefined, $f: undefined,
-                    $event: undefined, $value: undefined, $form: undefined
-                }, extra);
-                const names = Object.keys(extra);
-                const values = Object.values(extra);
-                return new Function('$ctx', ...names, code)(data, ...values);
-                // console.log(code, new Function(...names, code)(...values));
                 // return new Function(...names, code)(...values);
+                return new Function('$c', '$e', '$v', '$f', '$event', '$value', '$form', code)(data, extra?.$e, extra?.$v, extra?.$f, extra?.$event, extra?.$value, extra?.$form);
             }
         };
     }
+    //     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
+    //     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
+    //     'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
+    //     'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
+    //     'debugger', 'function', 'arguments', 'typeof', 'void'
     // const $string = 'string';
     // const $number = 'number';
     // const $variable = 'variable';
@@ -576,6 +544,8 @@
         }
     };
 
+    // import { index as Index, match as Match, toBoolean } from '../tool';
+    // import Binder from '../binder';
     // import Includes from '../tool/includes';
     // const set = function (path, data, value) {
     //     const keys = path.split('.');
@@ -596,38 +566,36 @@
     const input = async function (binder, event) {
         const type = binder.target.type;
         let value;
-        // const path = binder.value.replace(/{{(.*)=.*/, '$1').replace(/\s+/, '');
         if (type === 'select-one') {
-            value = binder.data = binder.target.value;
+            console.log('value event select');
+            value = binder.target.value;
+            value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
+            binder.target.value = value;
         }
         else if (type === 'select-multiple') {
-            value = binder.data = [...binder.target.selectedOptions].map(o => o.value);
+            value = [...binder.target.selectedOptions].map(option => option.value);
+            value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
             value = value.join(',');
-        }
-        else if (type === 'checkbox' || type === 'radio') {
-            value = binder.data = to(binder.data, binder.target.value);
-        }
-        else if (type === 'number') {
-            value = binder.data = toNumber(binder.target.value);
+            // } else if (type === 'checkbox' || type === 'radio') {
+            //     value = binder.target.value;
+            //     // value = to(binder.data, binder.target.value);
+            //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
+            //     binder.target.value = value;
+            // } else if (type === 'number') {
+            //     // value = toNumber(binder.target.value);
+            //     value = binder.target.value;
+            //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
+            //     binder.target.value = value;
         }
         else if (type === 'file') {
             const multiple = binder.target.multiple;
-            value = binder.data = multiple ? [...binder.target.files] : binder.target.files[0];
+            value = multiple ? [...binder.target.files] : binder.target.files[0];
+            value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
             value = multiple ? value.join(',') : value;
         }
         else {
-            value = binder.target.value || '';
-            value = await binder.compute({
-                $e: event, $v: value,
-                $event: event, $value: value
-            });
-            // if (path) {
-            //     console.log('input', path, binder.target.value);
-            //     value = await binder.compute(binder.target.value);
-            // } else {
-            //     console.log('else');
-            //     value = await binder.compute();
-            // }
+            value = binder.target.value;
+            value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
             binder.target.value = value;
         }
         binder.target.setAttribute('value', value);
@@ -638,20 +606,17 @@
         },
         async write(binder) {
             const type = binder.target.type;
-            const data = await binder.compute({ $v: '', $value: '' });
             if (type === 'select-one') {
-                let value;
-                if ('' === data || null === data || undefined === data) {
-                    value = binder.data = binder.target.value;
-                }
-                else {
-                    value = binder.target.value = data;
-                }
+                console.log('value write select');
+                let value = binder.assignee() ?? binder.target.selectedOptions[0]?.value;
+                value = await binder.compute({ $v: value, $value: value });
+                binder.target.value = value;
                 binder.target.setAttribute('value', value);
             }
             else if (type === 'select-multiple') ;
             else {
-                const value = data ?? '';
+                let value = binder.assignee() ?? binder.target.value;
+                value = await binder.compute({ $v: value, $value: value });
                 binder.target.value = value;
                 binder.target.setAttribute('value', value);
             }
@@ -1061,7 +1026,7 @@
             //     return;
             // }
             const owner = node.nodeType === AN ? node.ownerElement : node;
-            const { compute, paths } = Expression(value, container.data);
+            const { assignee, compute, paths } = Expression(value, container.data);
             if (paths.length === 0) {
                 if (node.nodeType === AN)
                     return node.value = await compute();
@@ -1088,7 +1053,7 @@
                     add: this.add.bind(this),
                     remove: this.remove.bind(this),
                     container,
-                    compute, type, path,
+                    assignee, compute, type, path,
                     childKey, parentKeys,
                     key, keys, name, value,
                     setup, before, read, write, after,
@@ -1325,14 +1290,14 @@
             //     });
             // });
             this.data = Observer.observe(__classPrivateFieldGet(this, _data$1), (_, path) => {
-                Binder.data.forEach(binder => {
+                for (const [, binder] of Binder.data) {
                     if (binder.container === this && binder.path === path && !binder.busy) {
                         // if (binder.container === this && binder.path === path) {
                         // if (binder.container === this && binder.path.startsWith(path)) {
                         // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
                         binder.render();
                     }
-                });
+                }
             });
             if (__classPrivateFieldGet(this, _adopt) === true) {
                 let child = this.firstChild;

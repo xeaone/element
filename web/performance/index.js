@@ -27,7 +27,6 @@ class OLoop extends Component {
             console.timeEnd('raw');
         },
         push () {
-            console.log(this);
             console.time('push');
 
             for (var i = 0; i < this.count; i++) {
