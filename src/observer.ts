@@ -1,7 +1,7 @@
 import { isArray, isObject } from './tool';
 
 type task = () => void;
-type handler = () => void;
+type handler = (path: string) => Promise<void>;
 
 // const methods = [ 'push', 'pop', 'splice', 'shift', 'unshift', 'reverse' ];
 // const get = function (tasks, handler, path, target, property) {
@@ -26,82 +26,81 @@ const run = async function (tasks: task[]) {
     }
 };
 
-const set = function (option: option, path, target, property, value) {
+const set = function (handler: handler, path: string, root: any, target, property, value) {
 
     if (property === 'length') {
-        path = path.slice(0, -1);
-        option.tasks.push(option.handler.bind(null, value, path));
-        // option.tasks.push(option.handler.bind(null, target, path));
-        run(option.tasks);
-        // target[ property ] = value;
+        target[ property ] = value;
+        handler(path);
+        // tasks.push(handler.bind(null, path));
+        // run(tasks);
         return true;
-    } else if (target[ property ] === value) {
+    } else if (target[ property ] === value || `${target[ property ]}${value}` === 'NaNNaN') {
+        // } else if (target[ property ] === value) {
         return true;
     }
 
-    if (isArray(target)) {
-        path = `${path.slice(0, -1)}[${property}]`;
+    if (target?.constructor === Array) {
+        path = path ? `${path}[${property}]` : property;
     } else {
-        path = path + property;
+        path = path ? `${path}.${property}` : property;
     }
 
-    target[ property ] = create(value, option, path);
-
-    run(option.tasks);
+    // const task = handler.bind(null, path);
+    // const tasks = [ task ];
+    target[ property ] = create(value, handler, [], path, root);
+    // target[ property ] = create(value, handler, tasks, path, root);
+    // run(tasks);
 
     return true;
 };
 
-const create = function (source: any, option: option, path: string, setup?: boolean) {
+let w = 0;
+let r = 0;
 
-    // if (path && !option.paths.includes(path)) option.paths.push(path);
-
+const create = function (source: any, handler: handler, tasks: task[], path: string, root: any) {
     let target;
 
-    if (source instanceof Array) {
-        target = setup ? [] : source;
+    const task = path ? handler.bind(null, path) : () => undefined;
+    tasks.push(task);
 
-        option.tasks.push(option.handler.bind(null, target, path));
-
-        if (!option.target) option.target = target;
-        path = path ? path + '.' : '';
+    if (source?.constructor === Array) {
+        target = [];
+        if (!root) root = target;
 
         for (let key = 0; key < source.length; key++) {
-            target[ key ] = create(source[ key ], option, path + key, setup);
+            target[ key ] = create(source[ key ], handler, tasks, path ? `${path}[${key}]` : `${key}`, root);
         }
 
-        target = new Proxy(target, { set: set.bind(set, option, path) });
-    } else if (isObject(source)) {
-        target = setup ? {} : source;
-
-        option.tasks.push(option.handler.bind(null, target, path));
-
-        if (!option.target) option.target = target;
-        path = path ? path + '.' : '';
+        target = new Proxy(target, { set: set.bind(null, handler, path, root) });
+    } else if (source?.constructor === Object) {
+        target = {};
+        if (!root) root = target;
 
         for (let key in source) {
-            target[ key ] = create(source[ key ], option, path + key, setup);
+            target[ key ] = create(source[ key ], handler, tasks, path ? `${path}.${key}` : key, root);
         }
 
-        target = new Proxy(target, { set: set.bind(set, option, path) });
+        target = new Proxy(target, { set: set.bind(null, handler, path, root) });
     } else {
-        target = typeof source === 'function' ? source.bind(option.target) : source;
-        option.tasks.push(option.handler.bind(null, target, path));
+        target = typeof source === 'function' ? source.bind(root) : source;
     }
 
-    run(option.tasks);
+    if (tasks[ 0 ] === task) {
+        console.log('tasks', tasks.length);
+        run(tasks);
+        console.log('tasks', tasks.length);
+        r++;
+        console.log('resolved', r);
+    } else {
+        w++;
+        console.log('waiting', w);
+    }
 
     return target;
 };
 
 const observe = function (source: any, handler: handler) {
-    const tasks: task[] = [];
-    // const paths: string[] = [];
-    const option: option = { tasks, handler };
-    // const option: option = { tasks, paths, handler };
-
-    const data = create(source, option, '', true);
-    // Object.defineProperty(data, '_paths', { value: paths });
+    const data = create(source, handler, [], '', undefined);
     return data;
 };
 

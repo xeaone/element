@@ -2,6 +2,7 @@
 
 <div id="v-model-basic" class="demo">
     <input :value="hello['world'] = $event?.target.value || 'blue'" placeholder="edit me" />
+    <input :value="n=NaN" type="number" placeholder="number" />
     <p>Message is: {{ hello.world }}</p>
 </div>
 
@@ -10,6 +11,7 @@
     Vue.createApp({
         data() {
             return {
+                n: NaN,
                 hello: { world: 'green' }
                 // message: ''
             }

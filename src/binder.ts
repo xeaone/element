@@ -120,14 +120,11 @@ export default new class Binder {
                 key, keys, name, value,
                 setup, before, read, write, after,
                 async render (...args) {
-                    if (binder.busy) return;
-                    else binder.busy = true;
                     const context = {};
                     // if (binder.before) await binder.before(binder, context, ...args);
                     const read = binder.read?.bind(null, binder, context, ...args);
                     const write = binder.write?.bind(null, binder, context, ...args);
                     if (read || write) await Batcher.batch(read, write);
-                    binder.busy = false;
                     // if (binder.after) await binder.after(binder, context, ...args);
                 },
                 get data () {
@@ -209,16 +206,16 @@ export default new class Binder {
             const tasks = [];
             const attributes = (node as Element).attributes;
 
-            let each;
-            for (let i = 0; i < attributes.length; i++) {
-                const attribute = attributes[ i ];
-                const { name, value } = attribute;
-                if (name === 'each' || name === `${this.prefix}each`) {
-                    each = await this.bind(attribute, name, value, container);
-                    // each = await this.bind(node, name, value, container, attribute);
-                    break;
-                }
-            }
+            let each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
+            each = each ? await this.bind(each, each.name, each.value, container) : undefined;
+            // for (let i = 0; i < attributes.length; i++) {
+            //     const attribute = attributes[ i ];
+            //     const { name, value } = attribute;
+            //     if (name === 'each' || name === `${this.prefix}each`) {
+            //         each = await this.bind(attribute, name, value, container);
+            //         break;
+            //     }
+            // }
 
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
@@ -232,7 +229,6 @@ export default new class Binder {
                         continue;
                     } else {
                         tasks.push(this.bind(attribute, name, value, container));
-                        // tasks.push(this.bind(node, name, value, container, attribute));
                     }
                 }
             }

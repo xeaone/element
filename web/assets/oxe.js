@@ -46,9 +46,128 @@
         return value;
     }
 
+    const run$1 = async function (tasks) {
+        let task;
+        while (task = tasks.shift()) {
+            task();
+        }
+    };
+    const set = function (handler, path, root, target, property, value) {
+        if (property === 'length') {
+            target[property] = value;
+            handler(path);
+            // tasks.push(handler.bind(null, path));
+            // run(tasks);
+            return true;
+        }
+        else if (target[property] === value || `${target[property]}${value}` === 'NaNNaN') {
+            // } else if (target[ property ] === value) {
+            return true;
+        }
+        if (target?.constructor === Array) {
+            path = path ? `${path}[${property}]` : property;
+        }
+        else {
+            path = path ? `${path}.${property}` : property;
+        }
+        // const task = handler.bind(null, path);
+        // const tasks = [ task ];
+        target[property] = create(value, handler, [], path, root);
+        // target[ property ] = create(value, handler, tasks, path, root);
+        // run(tasks);
+        return true;
+    };
+    let w = 0;
+    let r = 0;
+    const create = function (source, handler, tasks, path, root) {
+        let target;
+        const task = path ? handler.bind(null, path) : () => undefined;
+        tasks.push(task);
+        if (source?.constructor === Array) {
+            target = [];
+            if (!root)
+                root = target;
+            for (let key = 0; key < source.length; key++) {
+                target[key] = create(source[key], handler, tasks, path ? `${path}[${key}]` : `${key}`, root);
+            }
+            target = new Proxy(target, { set: set.bind(null, handler, path, root) });
+        }
+        else if (source?.constructor === Object) {
+            target = {};
+            if (!root)
+                root = target;
+            for (let key in source) {
+                target[key] = create(source[key], handler, tasks, path ? `${path}.${key}` : key, root);
+            }
+            target = new Proxy(target, { set: set.bind(null, handler, path, root) });
+        }
+        else {
+            target = typeof source === 'function' ? source.bind(root) : source;
+        }
+        if (tasks[0] === task) {
+            console.log('tasks', tasks.length);
+            run$1(tasks);
+            console.log('tasks', tasks.length);
+            r++;
+            console.log('resolved', r);
+        }
+        else {
+            w++;
+            console.log('waiting', w);
+        }
+        return target;
+    };
+    const observe = function (source, handler) {
+        const data = create(source, handler, [], '', undefined);
+        return data;
+    };
+    var Observer = {
+        // get,
+        set, create, observe
+    };
+
+    const isMap = (data) => data?.constructor === Map;
+    const isDate = (data) => data?.constructor === Date;
     const isArray = (data) => data?.constructor === Array;
+    const isString = (data) => data?.constructor === String;
+    const isNumber = (data) => data?.constructor === Number;
     const isObject = (data) => data?.constructor === Object;
-    const toString = (data) => typeof data === 'string' ? data : JSON.stringify(data);
+    const isBoolean = (data) => data?.constructor === Boolean;
+    const isNoneish = (data) => data === null || data === undefined || isNaN(data);
+    const toArray = (data) => JSON.parse(data);
+    const toObject = (data) => JSON.parse(data);
+    const toBoolean = (data) => data ? true : false;
+    const toDate = (data) => new Date(Number(data));
+    const toMap = (data) => new Map(JSON.parse(data));
+    const toString = (data) => typeof data === 'string' ? data :
+        typeof data === 'number' ? Number(data).toString() :
+            typeof data === 'undefined' ? 'undefined' : JSON.stringify(data);
+    const toNumber = (data) => typeof data === 'number' ? data :
+        typeof data !== 'string' ? NaN :
+            /[0-9.-]/.test(data) ? Number(data) : NaN;
+    // export const to = function (source: any, target: any) {
+    const to = function (source, target) {
+        try {
+            if (isMap(source))
+                return toMap(target);
+            if (isDate(source))
+                return toDate(target);
+            if (isArray(source))
+                return toArray(target);
+            if (isString(source))
+                return toString(target);
+            if (isObject(source))
+                return toObject(target);
+            if (isNumber(source))
+                return toNumber(target);
+            if (isBoolean(source))
+                return toBoolean(target);
+            return target;
+        }
+        catch {
+            return target;
+        }
+    };
     const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
     const traverse = function (data, paths) {
         paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
@@ -78,90 +197,16 @@
     //         || '.';
     // }
 
-    const run$1 = async function (tasks) {
-        let task;
-        while (task = tasks.shift()) {
-            task();
-        }
-    };
-    const set = function (option, path, target, property, value) {
-        if (property === 'length') {
-            path = path.slice(0, -1);
-            option.tasks.push(option.handler.bind(null, value, path));
-            // option.tasks.push(option.handler.bind(null, target, path));
-            run$1(option.tasks);
-            // target[ property ] = value;
-            return true;
-        }
-        else if (target[property] === value) {
-            return true;
-        }
-        if (isArray(target)) {
-            path = `${path.slice(0, -1)}[${property}]`;
-        }
-        else {
-            path = path + property;
-        }
-        target[property] = create(value, option, path);
-        run$1(option.tasks);
-        return true;
-    };
-    const create = function (source, option, path, setup) {
-        // if (path && !option.paths.includes(path)) option.paths.push(path);
-        let target;
-        if (source instanceof Array) {
-            target = setup ? [] : source;
-            option.tasks.push(option.handler.bind(null, target, path));
-            if (!option.target)
-                option.target = target;
-            path = path ? path + '.' : '';
-            for (let key = 0; key < source.length; key++) {
-                target[key] = create(source[key], option, path + key, setup);
-            }
-            target = new Proxy(target, { set: set.bind(set, option, path) });
-        }
-        else if (isObject(source)) {
-            target = setup ? {} : source;
-            option.tasks.push(option.handler.bind(null, target, path));
-            if (!option.target)
-                option.target = target;
-            path = path ? path + '.' : '';
-            for (let key in source) {
-                target[key] = create(source[key], option, path + key, setup);
-            }
-            target = new Proxy(target, { set: set.bind(set, option, path) });
-        }
-        else {
-            target = typeof source === 'function' ? source.bind(option.target) : source;
-            option.tasks.push(option.handler.bind(null, target, path));
-        }
-        run$1(option.tasks);
-        return target;
-    };
-    const observe = function (source, handler) {
-        const tasks = [];
-        // const paths: string[] = [];
-        const option = { tasks, handler };
-        // const option: option = { tasks, paths, handler };
-        const data = create(source, option, '', true);
-        // Object.defineProperty(data, '_paths', { value: paths });
-        return data;
-    };
-    var Observer = {
-        // get,
-        set, create, observe
-    };
-
     const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
     const replaceOutsideAndSyntax = /[^{}]*{{|}}[^{}]*/g;
     const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
     const references = new RegExp(`${reference}+(?!.*\\1)`, 'g');
-    const replaceExceptAssignment = /.*?([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
+    const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
     // const assignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=\s*\$(value|v)([^a-zA-Z]|\s+|$)/;
     const strips = new RegExp([
-        ';',
+        ';|:',
         '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
         `(window|document|this|\\$e|\\$v|\\$f|\\$event|\\$value|\\$form)${reference}*`,
         `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
@@ -173,26 +218,21 @@
     function Expression (expression, data) {
         expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
         const convert = !shouldNotConvert.test(expression);
-        // const paths = [];
-        // const names = [];
         // possibly replace with paths from observed data
         const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [];
-        const assignee = `with ($c) { return (${striped.replace(replaceExceptAssignment, '$1')}); }`;
+        console.log(paths);
+        let [, assignment] = striped.match(matchAssignment) || [];
+        assignment = assignment ? `with ($c) { return (${assignment}); }` : undefined;
+        const assignee = assignment ? () => new Function('$c', assignment)(data) : () => undefined;
         let code = expression;
         code = code.replace(/{{/g, convert ? `' +` : '');
         code = code.replace(/}}/g, convert ? ` + '` : '');
         code = convert ? `'${code}'` : code;
         code = `with ($c) { return (${code}); }`;
-        // code = `return (${code});`;
-        console.log(paths);
-        // console.log(code);
-        // console.log(code.replace(removeOutsideSyntax, ' ').replace(strips, ''));
         return {
             paths,
-            assignee() {
-                return new Function('$c', assignee)(data);
-            },
+            assignee,
             compute(extra) {
                 // const values = names.map(name => {
                 //     if (extra && name in extra) {
@@ -204,7 +244,7 @@
                 //     }
                 // });
                 // return new Function(...names, code)(...values);
-                return new Function('$c', '$e', '$v', '$f', '$event', '$value', '$form', code)(data, extra?.$e, extra?.$v, extra?.$f, extra?.$event, extra?.$value, extra?.$form);
+                return new Function('$c', '$e', '$v', '$f', '$event', '$value', '$form', code)(data, extra?.event, extra?.value, extra?.form, extra?.event, extra?.value, extra?.form);
             }
         };
     }
@@ -523,6 +563,7 @@
             }
             else {
                 data = toString(data);
+                data = isNoneish(data) ? '' : data;
                 // binder.target[ binder.name ] = data;
                 binder.target.setAttribute(binder.name, data);
             }
@@ -545,8 +586,6 @@
     };
 
     // import { index as Index, match as Match, toBoolean } from '../tool';
-    // import Binder from '../binder';
-    // import Includes from '../tool/includes';
     // const set = function (path, data, value) {
     //     const keys = path.split('.');
     //     const l = keys.length;
@@ -564,17 +603,19 @@
     //     }
     // };
     const input = async function (binder, event) {
-        const type = binder.target.type;
+        const { target } = binder;
+        const { type } = target;
         let value;
         if (type === 'select-one') {
-            console.log('value event select');
-            value = binder.target.value;
-            value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-            binder.target.value = value;
+            const option = target?.selectedOptions?.[0];
+            value = option ? '$value' in option ? option.$value : option.value : '';
+            value = await binder.compute({ event, value });
+            target.$value = value;
+            target.value = isNoneish(value) ? '' : toString(value);
         }
         else if (type === 'select-multiple') {
-            value = [...binder.target.selectedOptions].map(option => option.value);
-            value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
+            value = [...binder.target.selectedOptions].map(option => '$value' in option ? option.$value : option.value);
+            value = await binder.compute({ event, value });
             value = value.join(',');
             // } else if (type === 'checkbox' || type === 'radio') {
             //     value = binder.target.value;
@@ -590,36 +631,38 @@
         else if (type === 'file') {
             const multiple = binder.target.multiple;
             value = multiple ? [...binder.target.files] : binder.target.files[0];
-            value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-            value = multiple ? value.join(',') : value;
+            value = await binder.compute({ event, value });
+            target.$value = value;
+            target.value = isNoneish(value) ? '' : multiple ? value.join(',') : value;
         }
         else {
-            value = binder.target.value;
-            value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-            binder.target.value = value;
+            value = to(target.$value, target.value);
+            value = await binder.compute({ event, value });
+            target.$value = value;
+            target.value = isNoneish(value) ? '' : toString(value);
         }
-        binder.target.setAttribute('value', value);
+        target.setAttribute('value', target.value);
     };
     var value = {
         async setup(binder) {
             binder.target.addEventListener('input', event => input(binder, event));
         },
         async write(binder) {
-            const type = binder.target.type;
+            const { target } = binder;
+            const { type } = target;
+            let value;
             if (type === 'select-one') {
-                console.log('value write select');
-                let value = binder.assignee() ?? binder.target.selectedOptions[0]?.value;
-                value = await binder.compute({ $v: value, $value: value });
-                binder.target.value = value;
-                binder.target.setAttribute('value', value);
+                const option = target?.selectedOptions?.[0];
+                value = option ? '$value' in option ? option.$value : option.value : '';
             }
             else if (type === 'select-multiple') ;
             else {
-                let value = binder.assignee() ?? binder.target.value;
-                value = await binder.compute({ $v: value, $value: value });
-                binder.target.value = value;
-                binder.target.setAttribute('value', value);
+                value = binder.assignee();
             }
+            value = await binder.compute({ value });
+            target.$value = value;
+            target.value = isNoneish(value) ? '' : toString(value);
+            target.setAttribute('value', target.value);
         }
     };
     // export default function (binder) {
@@ -874,7 +917,8 @@
 
     var text = {
         async write(binder) {
-            const data = toString(await binder.compute());
+            let data = toString(await binder.compute());
+            data = isNoneish(data) ? '' : data;
             if (data === binder.target.textContent)
                 return;
             binder.target.textContent = data;
@@ -884,7 +928,7 @@
     const submit = async function (event, binder) {
         event.preventDefault();
         const { target } = event;
-        const data = {};
+        const form = {};
         const elements = [...target.querySelectorAll('*')];
         for (const element of elements) {
             const { type, name, nodeName, checked } = element;
@@ -908,7 +952,7 @@
             //     )
             // );
             // const name = element.name || (valueBinder ? valueBinder.values[ valueBinder.values.length - 1 ] : null);
-            let meta = data;
+            let meta = form;
             name.split(/\s*\.\s*/).forEach((part, index, parts) => {
                 const next = parts[index + 1];
                 if (next) {
@@ -922,10 +966,7 @@
                 }
             });
         }
-        await binder.compute({
-            $f: data, $form: data,
-            $e: event, $event: event
-        });
+        await binder.compute({ form, event });
         if (target.getAttribute('reset'))
             target.reset();
         return false;
@@ -960,7 +1001,7 @@
             //     value.data = '';
             // }
         }
-        return binder.compute({ $e: event, $event: event });
+        return binder.compute({ event });
     };
     var on = {
         async read(binder) {
@@ -977,7 +1018,7 @@
                     return submit(event, binder);
                 }
                 else {
-                    return binder.compute({ $e: event, $event: event });
+                    return binder.compute({ event });
                 }
             };
             binder.target.addEventListener(name, binder.meta.method);
@@ -1058,17 +1099,12 @@
                     key, keys, name, value,
                     setup, before, read, write, after,
                     async render(...args) {
-                        if (binder.busy)
-                            return;
-                        else
-                            binder.busy = true;
                         const context = {};
                         // if (binder.before) await binder.before(binder, context, ...args);
                         const read = binder.read?.bind(null, binder, context, ...args);
                         const write = binder.write?.bind(null, binder, context, ...args);
                         if (read || write)
                             await Batcher.batch(read, write);
-                        binder.busy = false;
                         // if (binder.after) await binder.after(binder, context, ...args);
                     },
                     get data() {
@@ -1137,16 +1173,16 @@
             else if (type === EN) {
                 const tasks = [];
                 const attributes = node.attributes;
-                let each;
-                for (let i = 0; i < attributes.length; i++) {
-                    const attribute = attributes[i];
-                    const { name, value } = attribute;
-                    if (name === 'each' || name === `${this.prefix}each`) {
-                        each = await this.bind(attribute, name, value, container);
-                        // each = await this.bind(node, name, value, container, attribute);
-                        break;
-                    }
-                }
+                let each = attributes['each'] || attributes[`${this.prefix}each`];
+                each = each ? await this.bind(each, each.name, each.value, container) : undefined;
+                // for (let i = 0; i < attributes.length; i++) {
+                //     const attribute = attributes[ i ];
+                //     const { name, value } = attribute;
+                //     if (name === 'each' || name === `${this.prefix}each`) {
+                //         each = await this.bind(attribute, name, value, container);
+                //         break;
+                //     }
+                // }
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
                     const { name, value } = attribute;
@@ -1158,7 +1194,6 @@
                         }
                         else {
                             tasks.push(this.bind(attribute, name, value, container));
-                            // tasks.push(this.bind(node, name, value, container, attribute));
                         }
                     }
                 }
@@ -1289,16 +1324,19 @@
             //         }
             //     });
             // });
-            this.data = Observer.observe(__classPrivateFieldGet(this, _data$1), (_, path) => {
+            this.data = Observer.observe(__classPrivateFieldGet(this, _data$1), async (path) => {
                 for (const [, binder] of Binder.data) {
                     if (binder.container === this && binder.path === path && !binder.busy) {
                         // if (binder.container === this && binder.path === path) {
                         // if (binder.container === this && binder.path.startsWith(path)) {
                         // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
-                        binder.render();
+                        binder.busy = true;
+                        await binder.render();
+                        binder.busy = false;
                     }
                 }
             });
+            console.log(this.data);
             if (__classPrivateFieldGet(this, _adopt) === true) {
                 let child = this.firstChild;
                 while (child) {

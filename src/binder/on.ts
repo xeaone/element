@@ -3,7 +3,7 @@ const submit = async function (event, binder) {
     event.preventDefault();
     const { target } = event;
 
-    const data = {};
+    const form = {};
     const elements = [ ...target.querySelectorAll('*') ];
     for (const element of elements) {
         const { type, name, nodeName, checked } = element;
@@ -34,7 +34,7 @@ const submit = async function (event, binder) {
 
         // const name = element.name || (valueBinder ? valueBinder.values[ valueBinder.values.length - 1 ] : null);
 
-        let meta = data;
+        let meta = form;
         name.split(/\s*\.\s*/).forEach((part, index, parts) => {
             const next = parts[ index + 1 ];
             if (next) {
@@ -49,10 +49,7 @@ const submit = async function (event, binder) {
 
     }
 
-    await binder.compute({
-        $f: data, $form: data,
-        $e: event, $event: event
-    });
+    await binder.compute({ form, event });
 
     if (target.getAttribute('reset')) target.reset();
 
@@ -94,7 +91,7 @@ const reset = async function (event, binder) {
 
     }
 
-    return binder.compute({ $e: event, $event: event });
+    return binder.compute({ event });
 };
 
 export default {
@@ -113,7 +110,7 @@ export default {
             } else if (name === 'submit') {
                 return submit(event, binder);
             } else {
-                return binder.compute({ $e: event, $event: event });
+                return binder.compute({ event });
             }
         };
 

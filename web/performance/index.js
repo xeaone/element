@@ -27,13 +27,13 @@ class OLoop extends Component {
             console.timeEnd('raw');
         },
         push () {
+            console.log(this);
             console.time('push');
-
             for (var i = 0; i < this.count; i++) {
                 this.items.push({ number: i });
             }
-
             console.timeEnd('push');
+            console.log(this.items);
         },
         overwrite () {
             console.time('overwrite');
@@ -54,7 +54,7 @@ class OLoop extends Component {
         <slot name="main">Main Default</slot>
 
         <h3><span>{{count}}</span> Inputs two way bound</h3>
-        <input value="{{count}}" type="number">
+        <input value="{{count = $value}}" type="number">
         <br>
         <button onclick="{{push()}}">push</button>
         <button onclick="{{overwrite()}}">overwrite</button>
@@ -63,7 +63,7 @@ class OLoop extends Component {
         <div each="{{item of items}}">
             <div class="box">
                 <div>{{item.number}}</div>
-                <input value="{{item.number = $value || item.number}}"></input>
+                <input value="{{item.number = $value}}"></input>
             </div>
         </div>
 

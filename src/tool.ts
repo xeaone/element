@@ -6,16 +6,27 @@ export const isString = (data: any) => data?.constructor === String;
 export const isNumber = (data: any) => data?.constructor === Number;
 export const isObject = (data: any) => data?.constructor === Object;
 export const isBoolean = (data: any) => data?.constructor === Boolean;
+export const isNoneish = (data: any) => data === null || data === undefined || isNaN(data);
 
 export const toArray = (data: any) => JSON.parse(data);
 export const toObject = (data: any) => JSON.parse(data);
-export const toBoolean = (data: any) => data === 'true';
+export const toBoolean = (data: any) => data ? true : false;
 export const toDate = (data: any) => new Date(Number(data));
 export const toMap = (data: any) => new Map(JSON.parse(data));
-export const toString = (data: any) => typeof data === 'string' ? data : JSON.stringify(data);
-export const toNumber = (data: any) => data === '' || typeof data !== 'string' && typeof data !== 'number' ? NaN : Number(data);
 
-export const to = function (source: any, target: any) {
+export const toString = (data: any) =>
+    typeof data === 'string' ? data :
+        typeof data === 'number' ? Number(data).toString() :
+            typeof data === 'undefined' ? 'undefined' : JSON.stringify(data);
+
+export const toNumber = (data: any) =>
+    typeof data === 'number' ? data :
+        typeof data !== 'string' ? NaN :
+            /[0-9.-]/.test(data) ? Number(data) : NaN;
+
+
+// export const to = function (source: any, target: any) {
+export const to = function (source: any, target: string) {
     try {
         if (isMap(source)) return toMap(target);
         if (isDate(source)) return toDate(target);
@@ -24,12 +35,13 @@ export const to = function (source: any, target: any) {
         if (isObject(source)) return toObject(target);
         if (isNumber(source)) return toNumber(target);
         if (isBoolean(source)) return toBoolean(target);
+        return target;
     } catch {
         return target;
     }
 };
 
-export const toDash = (data: string) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
+export const toDash = (data: string) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[ 0 ]}-${c[ 1 ]}`.toLowerCase());
 
 export const base = function () {
     const base = window.document.querySelector('base');
@@ -60,7 +72,7 @@ export const traverse = function (data: any, paths: string[] | string) {
     } else if (typeof data !== 'object') {
         return undefined;
     } else {
-        return traverse(data[paths[0]], paths.slice(1));
+        return traverse(data[ paths[ 0 ] ], paths.slice(1));
     }
 };
 
@@ -93,8 +105,8 @@ export const match = function (source, target) {
     }
 
     for (let i = 0; i < sourceKeys.length; i++) {
-        const name = sourceKeys[i];
-        if (!match(source[name], target[name])) return false;
+        const name = sourceKeys[ i ];
+        if (!match(source[ name ], target[ name ])) return false;
     }
 
     return true;
@@ -103,7 +115,7 @@ export const match = function (source, target) {
 export const includes = function (items, item) {
 
     for (let i = 0; i < items.length; i++) {
-        if (match(items[i], item)) {
+        if (match(items[ i ], item)) {
             return true;
         }
     }
@@ -114,7 +126,7 @@ export const includes = function (items, item) {
 export const index = function (items, item) {
 
     for (let i = 0; i < items.length; i++) {
-        if (match(items[i], item)) {
+        if (match(items[ i ], item)) {
             return i;
         }
     }

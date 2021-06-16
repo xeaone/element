@@ -13,44 +13,44 @@ export default class BindersRoute extends Component {
         text: 'Hello World',
 
         // checkbox
-        check: 'checked',
-        checked: false,
-        checkResult: checked => checked ? 'checked' : '',
-        checkInput () { console.log(this.checked); },
+        // check: 'checked',
+        // checked: false,
+        // checkResult: checked => checked ? 'checked' : '',
+        // checkInput () { console.log(this.checked); },
 
-        // style
-        color: Color(),
-        styleChange: () => this.data.color = Color(),
+        // // style
+        // color: Color(),
+        // styleChange: () => this.color = Color(),
 
-        // class
-        active: true,
-        lightblue: active => active ? 'lightblue' : '',
-        classToggle: () => this.data.active = !this.data.active,
+        // // class
+        // active: true,
+        // lightblue: active => active ? 'lightblue' : '',
+        // classToggle: () => this.active = !this.active,
 
-        value: {
-            out: '',
-            text: 'hello world',
-            upper (text) { return text?.toUpperCase(); },
-        },
+        // value: {
+        //     out: '',
+        //     text: 'hello world',
+        //     upper (text) { return text?.toUpperCase(); },
+        // },
 
-        fruits: [
-            { name: 'apple' },
-            { name: 'orange' },
-            { name: 'tomato' }
-        ],
+        // fruits: [
+        //     { name: 'apple' },
+        //     { name: 'orange' },
+        //     { name: 'tomato' }
+        // ],
 
-        selectResult: null,
-        // selectResult: 'tree',
-        // selectResult: 'cactus',
+        // selectResult: undefined,
+        // // selectResult: 'tree',
+        // // selectResult: 'cactus',
 
-        radio: false,
-        agree: false,
-        submit (event, data) {
-            console.log(data);
-        },
+        // radio: false,
+        // agree: false,
+        // submit (event, data) {
+        //     console.log(data);
+        // },
 
-        firstName: '',
-        lastName: '',
+        // firstName: '',
+        // lastName: '',
 
     };
 
@@ -71,6 +71,7 @@ export default class BindersRoute extends Component {
             <pre>${Code(`<span>{{text}}</span>`)}</pre>
         </section>
 
+        <!--
         <section id="checked">
             <h3>Checked Binder</h3>
             <br>
@@ -110,31 +111,12 @@ export default class BindersRoute extends Component {
             <div>{{value.out}}</div>
             <div>{{value.text}}</div>
             <br>
-            <input value="{{value.out = ($value || '').toUpperCase()}}">
-            <input value="{{value.out = value.upper($event?.target.value)}}">
+            <input value="{{value.out = $value.toUpperCase()}}">
+            <input value="{{value.out = value.upper($event?.target.value ?? '')}}">
             <input value="{{value.upper($value)}}">
-            <!--
-            <input value="{{value.upper(value.out)}}">
-            <input value="{{value.out = value.upper(value.out)}}">
-            <input value="{{value.out = value.text}}" oninput="{{value.upper(value.text)}}">
-            -->
         </section>
 
-            <!--
-        <section id="each">
-            <h3>Each Binder</h3>
-            <br>
-            <pre>${Code(`Fruits: each="{{key, index, fruit of fruits}}"`, true)}</pre>
-            <div each="{{key, index, fruit of fruits}}">
-                <div id="{{fruit.name}}">
-                    <strong>Key: </strong>{{key}},
-                    <strong>Index: </strong>{{index}},
-                    <strong>Value: </strong>{{fruit.name}}
-                </div>
-            </div>
-        </section>
-            -->
-
+        <!--
         <section id="select">
             <h3>Select Binder</h3>
             <br>
@@ -144,7 +126,6 @@ export default class BindersRoute extends Component {
                 <option value="cactus">Cactus</option>
             </select>
             <br>
-        <!--
             <div>{{multipleSelectResult}}</div>
             <select value="{{multipleSelectResult}}" multiple>
                 <option value="volvo">Volvo</option>
@@ -157,7 +138,19 @@ export default class BindersRoute extends Component {
             <select value="{{selectForResult}}" each="{{fruit of fruits}}">
                 <option value="{{fruit.name}}">{{fruit.name}}</option>
             </select>
-        -->
+        </section>
+
+        <section id="each">
+            <h3>Each Binder</h3>
+            <br>
+            <pre>${Code(`Fruits: each="{{key, index, fruit of fruits}}"`, true)}</pre>
+            <div each="{{key, index, fruit of fruits}}">
+                <div id="{{fruit.name}}">
+                    <strong>Key: </strong>{{key}},
+                    <strong>Index: </strong>{{index}},
+                    <strong>Value: </strong>{{fruit.name}}
+                </div>
+            </div>
         </section>
 
         <section>
@@ -179,6 +172,7 @@ export default class BindersRoute extends Component {
                 <input type="submit" value="submit">
             </form>
         </section>
+        -->
 
     `;
 

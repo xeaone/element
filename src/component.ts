@@ -67,18 +67,20 @@ export default class Component extends HTMLElement {
         //     });
         // });
 
-        this.data = Observer.observe(this.#data, (_, path) => {
+        this.data = Observer.observe(this.#data, async path => {
             for (const [ , binder ] of Binder.data) {
                 if (binder.container === this && binder.path === path && !binder.busy) {
                     // if (binder.container === this && binder.path === path) {
                     // if (binder.container === this && binder.path.startsWith(path)) {
                     // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
-                    binder.render();
-
+                    binder.busy = true;
+                    await binder.render();
+                    binder.busy = false;
                 }
             }
         });
 
+        console.log(this.data);
 
         if (this.#adopt === true) {
             let child = this.firstChild;

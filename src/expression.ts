@@ -6,11 +6,11 @@ const replaceOutsideAndSyntax = /[^{}]*{{|}}[^{}]*/g;
 
 const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
 const references = new RegExp(`${reference}+(?!.*\\1)`, 'g');
-const replaceExceptAssignment = /.*?([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
+const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
 // const assignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=\s*\$(value|v)([^a-zA-Z]|\s+|$)/;
 
 const strips = new RegExp([
-    ';',
+    ';|:',
     '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`', // strings
     `(window|document|this|\\$e|\\$v|\\$f|\\$event|\\$value|\\$form)${reference}*`, // globals and specials
     `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
@@ -25,31 +25,25 @@ export default function (expression, data) {
     expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
 
     const convert = !shouldNotConvert.test(expression);
-    // const paths = [];
-    // const names = [];
 
     // possibly replace with paths from observed data
     const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
     const paths = striped.match(references) || [];
+    console.log(paths);
 
-    const assignee = `with ($c) { return (${striped.replace(replaceExceptAssignment, '$1')}); }`;
+    let [ , assignment ] = striped.match(matchAssignment) || [];
+    assignment = assignment ? `with ($c) { return (${assignment}); }` : undefined;
+    const assignee = assignment ? () => new Function('$c', assignment)(data) : () => undefined;
 
     let code = expression;
     code = code.replace(/{{/g, convert ? `' +` : '');
     code = code.replace(/}}/g, convert ? ` + '` : '');
     code = convert ? `'${code}'` : code;
     code = `with ($c) { return (${code}); }`;
-    // code = `return (${code});`;
-
-    console.log(paths);
-    // console.log(code);
-    // console.log(code.replace(removeOutsideSyntax, ' ').replace(strips, ''));
 
     return {
         paths,
-        assignee () {
-            return new Function('$c', assignee)(data);
-        },
+        assignee,
         compute (extra?: any) {
             // const values = names.map(name => {
             //     if (extra && name in extra) {
@@ -61,11 +55,10 @@ export default function (expression, data) {
             //     }
             // });
             // return new Function(...names, code)(...values);
-
             return new Function(
                 '$c', '$e', '$v', '$f', '$event', '$value', '$form', code
             )(
-                data, extra?.$e, extra?.$v, extra?.$f, extra?.$event, extra?.$value, extra?.$form
+                data, extra?.event, extra?.value, extra?.form, extra?.event, extra?.value, extra?.form
             );
         }
     };

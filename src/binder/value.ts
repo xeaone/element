@@ -5,7 +5,8 @@
 import {
     to,
     toString,
-    toNumber
+    toNumber,
+    isNoneish
 } from '../tool';
 
 // const set = function (path, data, value) {
@@ -26,18 +27,19 @@ import {
 // };
 
 const input = async function (binder, event) {
-    const type = binder.target.type;
-
+    const { target } = binder;
+    const { type } = target;
     let value;
 
     if (type === 'select-one') {
-        console.log('value event select');
-        value = binder.target.value;
-        value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-        binder.target.value = value;
+        const option = target?.selectedOptions?.[ 0 ];
+        value = option ? '$value' in option ? option.$value : option.value : '';
+        value = await binder.compute({ event, value });
+        target.$value = value;
+        target.value = isNoneish(value) ? '' : toString(value);
     } else if (type === 'select-multiple') {
-        value = [ ...binder.target.selectedOptions ].map(option => option.value);
-        value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
+        value = [ ...binder.target.selectedOptions ].map(option => '$value' in option ? option.$value : option.value);
+        value = await binder.compute({ event, value });
         value = value.join(',');
         // } else if (type === 'checkbox' || type === 'radio') {
         //     value = binder.target.value;
@@ -52,15 +54,17 @@ const input = async function (binder, event) {
     } else if (type === 'file') {
         const multiple = binder.target.multiple;
         value = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
-        value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-        value = multiple ? value.join(',') : value;
+        value = await binder.compute({ event, value });
+        target.$value = value;
+        target.value = isNoneish(value) ? '' : multiple ? value.join(',') : value;
     } else {
-        value = binder.target.value;
-        value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-        binder.target.value = value;
+        value = to(target.$value, target.value);
+        value = await binder.compute({ event, value });
+        target.$value = value;
+        target.value = isNoneish(value) ? '' : toString(value);
     }
 
-    binder.target.setAttribute('value', value);
+    target.setAttribute('value', target.value);
 };
 
 export default {
@@ -68,14 +72,13 @@ export default {
         binder.target.addEventListener('input', event => input(binder, event));
     },
     async write (binder) {
-        const type = binder.target.type;
+        const { target } = binder;
+        const { type } = target;
+        let value;
 
         if (type === 'select-one') {
-            console.log('value write select');
-            let value = binder.assignee() ?? binder.target.selectedOptions[ 0 ]?.value;
-            value = await binder.compute({ $v: value, $value: value });
-            binder.target.value = value;
-            binder.target.setAttribute('value', value);
+            const option = target?.selectedOptions?.[ 0 ];
+            value = option ? '$value' in option ? option.$value : option.value : '';
         } else if (type === 'select-multiple') {
 
             // let value;
@@ -101,11 +104,13 @@ export default {
             //     binder.target.value = data;
             //     binder.target.toggleAttribute('value', data);
         } else {
-            let value = binder.assignee() ?? binder.target.value;
-            value = await binder.compute({ $v: value, $value: value });
-            binder.target.value = value;
-            binder.target.setAttribute('value', value);
+            value = binder.assignee();
         }
+
+        value = await binder.compute({ value });
+        target.$value = value;
+        target.value = isNoneish(value) ? '' : toString(value);
+        target.setAttribute('value', target.value);
     }
 };
 

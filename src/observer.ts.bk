@@ -1,0 +1,128 @@
+import { isArray, isObject } from './tool';
+
+type handler = (path: string, value: any) => Promise<void>;
+type task = (handler: handler) => Promise<void>;
+
+// const methods = [ 'push', 'pop', 'splice', 'shift', 'unshift', 'reverse' ];
+// const get = function (tasks, handler, path, target, property) {
+//     if (isArray(target) && methods.indexOf(property) !== -1) {
+//         console.log('get', path);
+//         tasks.push(handler.bind(null, target, path.slice(0, -1)));
+//     }
+//     return target[ property ];
+// };
+
+type option = {
+    root?: any;
+    tasks: task[];
+    // paths: string[];
+    handler: handler;
+};
+
+const run = async function (tasks: task[]) {
+    let task;
+    while (task = tasks.shift()) {
+        task();
+    }
+};
+
+const set = function (option: option, path: string, tasks: task[], target, property: string, value: any) {
+    console.log(target, path, property);
+
+    if (property === 'length') {
+        // option.handler(path, value);
+        // option.tasks.push(option.handler.bind(null, path, value));
+        // tasks.after = option.handler.bind(null, path, target);
+        tasks.push(option.handler.bind(null, path));
+        target[ property ] = value;
+        run(tasks);
+        return true;
+    } else if (target[ property ] === value || (isNaN(target[ property ]) && isNaN(value))) {
+        return true;
+    }
+
+    if (target?.constructor === Array) {
+        path = path ? `${path}[${property}]` : property;
+        // path = `${path.slice(0, -1)}[${property}]`;
+    } else {
+        path = path ? `${path}.${property}` : property;
+        // path = path + property;
+    }
+
+    tasks.push(option.handler.bind(null, path));
+    target[ property ] = create(value, option, path, tasks);
+    run(tasks);
+
+    return true;
+};
+
+const create = function (source: any, option: option, path: string, tasks: task[], setup?: boolean) {
+    tasks = tasks || [];
+
+    // if (path && !option.paths.includes(path)) option.paths.push(path);
+
+    let target, task;
+
+    if (source?.constructor === Array) {
+        // if (isArray(source)) {
+        path = path || '';
+        target = [];
+        // option.handler(path, target);
+        // option.tasks.push(option.handler.bind(null, path, target));
+
+        if (!option.root) option.root = target;
+        task = option.handler.bind(null, path, target);
+        tasks.push(task);
+
+        for (let key = 0; key < source.length; key++) {
+            // if (target[ key ] === source[ key ]) continue;
+            target[ key ] = create(source[ key ], option, path ? `${path}.${key}` : `${key}`, tasks, setup);
+        }
+
+        target = new Proxy(target, { set: set.bind(set, option, path, tasks) });
+    } else if (source?.constructor === Object) {
+        path = path || '';
+        target = {};
+        // option.handler(path, target);
+        // option.tasks.push(option.handler.bind(null, path, target));
+
+        if (!option.root) option.root = target;
+        task = option.handler.bind(null, path, target);
+        tasks.push(task);
+
+        for (const key in source) {
+            // if (target[ key ] === source[ key ]) continue;
+            target[ key ] = create(source[ key ], option, path ? `${path}.${key}` : `${key}`, tasks, setup);
+        }
+        target = new Proxy(target, { set: set.bind(set, option, path, tasks) });
+    } else {
+        target = typeof source === 'function' ? source.bind(option.root) : source;
+        // option.handler(path, target);
+        // option.tasks.push(option.handler.bind(null, path, target));
+        tasks.push(option.handler.bind(null, path, target));
+    }
+
+    // if (tasks.length === 1 || tasks[ 0 ] === task) {
+    run(tasks);
+    // }
+
+    return target;
+};
+
+const observe = function (source: any, handler: handler) {
+    const tasks: task[] = [];
+    // const paths: string[] = [];
+    const option: option = { tasks, handler };
+    // const option: option = { tasks, paths, handler };
+
+    const data = create(source, option, '', tasks, true);
+    // run(tasks);
+    // Object.defineProperty(data, '_paths', { value: paths });
+    return data;
+};
+
+export default {
+    // get,
+    set, create, observe
+
+};
