@@ -28,14 +28,14 @@ export default function (expression, data) {
     const paths = striped.match(references) || [];
 
     let [ , assignment ] = striped.match(matchAssignment) || [];
-    assignment = assignment ? `with ($c) { return (${assignment}); }` : undefined;
-    const assignee = assignment ? () => new Function('$c', assignment)(data) : () => undefined;
+    assignment = assignment ? `with ($ctx) { return (${assignment}); }` : undefined;
+    const assignee = assignment ? () => new Function('$ctx', assignment)(data) : () => undefined;
 
     let code = expression;
     code = code.replace(/{{/g, convert ? `' +` : '');
     code = code.replace(/}}/g, convert ? ` + '` : '');
     code = convert ? `'${code}'` : code;
-    code = `with ($c) { return (${code}); }`;
+    code = `with ($ctx) { return (${code}); }`;
 
     return {
         paths,
@@ -52,9 +52,9 @@ export default function (expression, data) {
             // });
             // return new Function(...names, code)(...values);
             return new Function(
-                '$c', '$e', '$v', '$f', '$event', '$value', '$form', code
+                '$ctx', '$e', '$v', '$f', '$c', '$event', '$value', '$form', '$checked', code
             )(
-                data, extra?.event, extra?.value, extra?.form, extra?.event, extra?.value, extra?.form
+                data, extra?.event, extra?.value, extra?.form, extra?.checked, extra?.event, extra?.value, extra?.form, extra?.checked
             );
         }
     };

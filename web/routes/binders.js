@@ -14,7 +14,8 @@ export default class BindersRoute extends Component {
 
         // checkbox
         check: 'checked',
-        checked: false,
+        checked: true,
+        // checked: false,
         checkResult: checked => checked ? 'checked' : '',
         checkInput () { console.log(this.checked); },
 
@@ -74,10 +75,11 @@ export default class BindersRoute extends Component {
         <section id="checked">
             <h3>Checked Binder</h3>
             <br>
-            <pre>${Code(`<input value="{{checked}}" checked="{{checked}}" type="checkbox">`, true)}</pre>
+            <pre>${Code(`<input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox">`, true)}</pre>
             <pre>${Code(`<input value="{{checked}}"{{checked ? ' checked' : ''}} type="checkbox">`)}</pre>
             <br>
             <input value="{{checked}}" checked="{{checked}}" type="checkbox" oninput="{{checkInput()}}">
+            <input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox" oninput="{{checkInput()}}">
             <i>checked boolean value and checked attribute</i>
         </section>
 

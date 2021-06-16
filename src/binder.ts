@@ -11,18 +11,6 @@ import html from './binder/html';
 import text from './binder/text';
 import on from './binder/on';
 
-// const PIPE = /\s?\|\s?/;
-// const PIPES = /\s?,\s?|\s+/;
-// const PATH = /\s?,\s?|\s?\|\s?|\s+/;
-// const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
-// const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
-// const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
-// const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
-// const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
-// const isEach = /.*?\s+(of|in)\s+/;
-// const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
-// const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
-
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
 const AN = Node.ATTRIBUTE_NODE;
@@ -119,14 +107,6 @@ export default new class Binder {
                     const write = binder.write?.bind(null, binder, context, ...args);
                     if (read || write) await Batcher.batch(read, write);
                     // if (binder.after) await binder.after(binder, context, ...args);
-                },
-                get data () {
-                    const parentValue = traverse(this.container.data, this.parentKeys);
-                    return parentValue?.[ this.childKey ];
-                },
-                set data (value: any) {
-                    const parentValue = traverse(this.container.data, this.parentKeys);
-                    parentValue[ this.childKey ] = value;
                 }
             };
 

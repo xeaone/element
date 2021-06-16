@@ -3,14 +3,16 @@ console.warn('toggleing attribute replace attr node');
 
 export default {
     async setup (binder) {
-        binder.target.addEventListener('input', async event => {
-            const data = binder.data = binder.target.checked;
-            binder.target.toggleAttribute('checked', data);
+        binder.target.addEventListener('input', async () => {
+            const checked = binder.target.checked;
+            const computed = await binder.compute({ checked });
+            binder.target.toggleAttribute('checked', computed);
         });
     },
     async write (binder) {
-        const data = await binder.compute();
-        binder.target.checked = data;
-        binder.target.toggleAttribute('checked', data);
+        const checked = binder.assignee();
+        const computed = await binder.compute({ checked });
+        binder.target.checked = computed;
+        binder.target.toggleAttribute('checked', computed);
     }
 };

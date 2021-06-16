@@ -104,77 +104,6 @@
         return target;
     };
 
-    const isMap = (data) => data?.constructor === Map;
-    const isDate = (data) => data?.constructor === Date;
-    const isArray = (data) => data?.constructor === Array;
-    const isString = (data) => data?.constructor === String;
-    const isNumber = (data) => data?.constructor === Number;
-    const isObject = (data) => data?.constructor === Object;
-    const isBoolean = (data) => data?.constructor === Boolean;
-    const isNone = (data) => data === null || data === undefined || `${data}` === 'NaN';
-    const toArray = (data) => JSON.parse(data);
-    const toObject = (data) => JSON.parse(data);
-    const toBoolean = (data) => data ? true : false;
-    const toDate = (data) => new Date(Number(data));
-    const toMap = (data) => new Map(JSON.parse(data));
-    const toString = (data) => typeof data === 'string' ? data :
-        typeof data === 'number' ? Number(data).toString() :
-            typeof data === 'undefined' ? 'undefined' : JSON.stringify(data);
-    const toNumber = (data) => typeof data === 'number' ? data :
-        typeof data !== 'string' ? NaN :
-            /[0-9.-]/.test(data) ? Number(data) : NaN;
-    // export const to = function (source: any, target: any) {
-    const to = function (source, target) {
-        try {
-            if (isMap(source))
-                return toMap(target);
-            if (isDate(source))
-                return toDate(target);
-            if (isArray(source))
-                return toArray(target);
-            if (isString(source))
-                return toString(target);
-            if (isObject(source))
-                return toObject(target);
-            if (isNumber(source))
-                return toNumber(target);
-            if (isBoolean(source))
-                return toBoolean(target);
-            return target;
-        }
-        catch {
-            return target;
-        }
-    };
-    const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
-    const traverse = function (data, paths) {
-        paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
-        if (!paths.length) {
-            return data;
-        }
-        else if (typeof data !== 'object') {
-            return undefined;
-        }
-        else {
-            return traverse(data[paths[0]], paths.slice(1));
-        }
-    };
-    // export const events = function (target: Element, name: string, detail?: any, options?: any) {
-    //     options = options || { detail: null };
-    //     options.detail = detail === undefined ? null : detail;
-    //     target.dispatchEvent(new window.CustomEvent(name, options));
-    // };
-    // export default function extension (path:string) {
-    //     const position = path.lastIndexOf('.');
-    //     return position > 0 ? path.slice(position + 1) : '';
-    // }
-    // export default function normalize (path:string) {
-    //     return path
-    //         .replace(/\/+/g, '/')
-    //         .replace(/\/$/g, '')
-    //         || '.';
-    // }
-
     const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
@@ -198,13 +127,13 @@
         const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [];
         let [, assignment] = striped.match(matchAssignment) || [];
-        assignment = assignment ? `with ($c) { return (${assignment}); }` : undefined;
-        const assignee = assignment ? () => new Function('$c', assignment)(data) : () => undefined;
+        assignment = assignment ? `with ($ctx) { return (${assignment}); }` : undefined;
+        const assignee = assignment ? () => new Function('$ctx', assignment)(data) : () => undefined;
         let code = expression;
         code = code.replace(/{{/g, convert ? `' +` : '');
         code = code.replace(/}}/g, convert ? ` + '` : '');
         code = convert ? `'${code}'` : code;
-        code = `with ($c) { return (${code}); }`;
+        code = `with ($ctx) { return (${code}); }`;
         return {
             paths,
             assignee,
@@ -219,7 +148,7 @@
                 //     }
                 // });
                 // return new Function(...names, code)(...values);
-                return new Function('$c', '$e', '$v', '$f', '$event', '$value', '$form', code)(data, extra?.event, extra?.value, extra?.form, extra?.event, extra?.value, extra?.form);
+                return new Function('$ctx', '$e', '$v', '$f', '$c', '$event', '$value', '$form', '$checked', code)(data, extra?.event, extra?.value, extra?.form, extra?.checked, extra?.event, extra?.value, extra?.form, extra?.checked);
             }
         };
     }
@@ -518,6 +447,65 @@
         batch
     });
 
+    const isMap = (data) => data?.constructor === Map;
+    const isDate = (data) => data?.constructor === Date;
+    const isArray = (data) => data?.constructor === Array;
+    const isString = (data) => data?.constructor === String;
+    const isNumber = (data) => data?.constructor === Number;
+    const isObject = (data) => data?.constructor === Object;
+    const isBoolean = (data) => data?.constructor === Boolean;
+    const isNone = (data) => data === null || data === undefined || `${data}` === 'NaN';
+    const toArray = (data) => JSON.parse(data);
+    const toObject = (data) => JSON.parse(data);
+    const toBoolean = (data) => data ? true : false;
+    const toDate = (data) => new Date(Number(data));
+    const toMap = (data) => new Map(JSON.parse(data));
+    const toString = (data) => typeof data === 'string' ? data :
+        typeof data === 'number' ? Number(data).toString() :
+            typeof data === 'undefined' ? 'undefined' : JSON.stringify(data);
+    const toNumber = (data) => typeof data === 'number' ? data :
+        typeof data !== 'string' ? NaN :
+            /[0-9.-]/.test(data) ? Number(data) : NaN;
+    // export const to = function (source: any, target: any) {
+    const to = function (source, target) {
+        try {
+            if (isMap(source))
+                return toMap(target);
+            if (isDate(source))
+                return toDate(target);
+            if (isArray(source))
+                return toArray(target);
+            if (isString(source))
+                return toString(target);
+            if (isObject(source))
+                return toObject(target);
+            if (isNumber(source))
+                return toNumber(target);
+            if (isBoolean(source))
+                return toBoolean(target);
+            return target;
+        }
+        catch {
+            return target;
+        }
+    };
+    const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
+    // export const events = function (target: Element, name: string, detail?: any, options?: any) {
+    //     options = options || { detail: null };
+    //     options.detail = detail === undefined ? null : detail;
+    //     target.dispatchEvent(new window.CustomEvent(name, options));
+    // };
+    // export default function extension (path:string) {
+    //     const position = path.lastIndexOf('.');
+    //     return position > 0 ? path.slice(position + 1) : '';
+    // }
+    // export default function normalize (path:string) {
+    //     return path
+    //         .replace(/\/+/g, '/')
+    //         .replace(/\/$/g, '')
+    //         || '.';
+    // }
+
     const booleans = [
         'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
         'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
@@ -548,15 +536,17 @@
     console.warn('toggleing attribute replace attr node');
     var checked = {
         async setup(binder) {
-            binder.target.addEventListener('input', async (event) => {
-                const data = binder.data = binder.target.checked;
-                binder.target.toggleAttribute('checked', data);
+            binder.target.addEventListener('input', async () => {
+                const checked = binder.target.checked;
+                const computed = await binder.compute({ checked });
+                binder.target.toggleAttribute('checked', computed);
             });
         },
         async write(binder) {
-            const data = await binder.compute();
-            binder.target.checked = data;
-            binder.target.toggleAttribute('checked', data);
+            const checked = binder.assignee();
+            const computed = await binder.compute({ checked });
+            binder.target.checked = computed;
+            binder.target.toggleAttribute('checked', computed);
         }
     };
 
@@ -983,17 +973,6 @@
         }
     };
 
-    // const PIPE = /\s?\|\s?/;
-    // const PIPES = /\s?,\s?|\s+/;
-    // const PATH = /\s?,\s?|\s?\|\s?|\s+/;
-    // const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
-    // const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
-    // const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
-    // const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
-    // const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
-    // const isEach = /.*?\s+(of|in)\s+/;
-    // const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
-    // const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
@@ -1070,14 +1049,6 @@
                         if (read || write)
                             await Batcher.batch(read, write);
                         // if (binder.after) await binder.after(binder, context, ...args);
-                    },
-                    get data() {
-                        const parentValue = traverse(this.container.data, this.parentKeys);
-                        return parentValue?.[this.childKey];
-                    },
-                    set data(value) {
-                        const parentValue = traverse(this.container.data, this.parentKeys);
-                        parentValue[this.childKey] = value;
                     }
                 };
                 const duplicate = this.data.get(node);
