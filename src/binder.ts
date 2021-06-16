@@ -20,9 +20,8 @@ import on from './binder/on';
 // const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
 // const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
 // const isEach = /.*?\s+(of|in)\s+/;
-
-const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
-const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
+// const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
+// const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -47,7 +46,6 @@ export default new class Binder {
     prefixReplace = new RegExp('^o-');
     syntaxReplace = new RegExp('{{|}}', 'g');
     data: Map<Node, any> = new Map();
-    // data: Map<Node | Attr, any> = new Map();
 
     binders = {
         checked,
@@ -77,11 +75,6 @@ export default new class Binder {
     }
 
     async bind (node: Node, name: string, value: string, container: any) {
-
-        // if (isSyntaxNative.test(value)) {
-        //     target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
-        //     return;
-        // }
         const owner = node.nodeType === AN ? (node as Attr).ownerElement : node;
 
         const { assignee, compute, paths } = Expression(value, container.data);
@@ -89,7 +82,7 @@ export default new class Binder {
         if (paths.length === 0) {
             if (node.nodeType === AN) return (node as Attr).value = await compute();
             if (node.nodeType === TN) return node.textContent = await compute();
-            else console.log('node type not handle path length 0');
+            else console.warn('node type not handled and no paths');
         }
 
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';

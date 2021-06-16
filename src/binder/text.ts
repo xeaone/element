@@ -1,9 +1,9 @@
-import { isNoneish, toString } from '../tool';
+import { isNone, toString } from '../tool';
 
 export default {
     async write (binder) {
         let data = toString(await binder.compute());
-        data = isNoneish(data) ? '' : data;
+        data = isNone(data) ? '' : data;
         if (data === binder.target.textContent) return;
         binder.target.textContent = data;
     }

@@ -6,7 +6,7 @@ export const isString = (data: any) => data?.constructor === String;
 export const isNumber = (data: any) => data?.constructor === Number;
 export const isObject = (data: any) => data?.constructor === Object;
 export const isBoolean = (data: any) => data?.constructor === Boolean;
-export const isNoneish = (data: any) => data === null || data === undefined || isNaN(data);
+export const isNone = (data: any) => data === null || data === undefined || `${data}` === 'NaN';
 
 export const toArray = (data: any) => JSON.parse(data);
 export const toObject = (data: any) => JSON.parse(data);

@@ -1,30 +1,10 @@
-// import { index as Index, match as Match, toBoolean } from '../tool';
-// import Binder from '../binder';
-// import Includes from '../tool/includes';
 
 import {
     to,
     toString,
     toNumber,
-    isNoneish
+    isNone
 } from '../tool';
-
-// const set = function (path, data, value) {
-//     const keys = path.split('.');
-//     const l = keys.length;
-//     for (let i = 0; i < l; i++) {
-//         const key = keys[ i ];
-//         const next = keys[ i + 1 ];
-//         if (next) {
-//             if (!(key in data)) {
-//                 data[ key ] = /[0-9]+/.test(next) ? [] : {};
-//             }
-//             data = data[ key ];
-//         } else {
-//             return data[ key ] = value;
-//         }
-//     }
-// };
 
 const input = async function (binder, event) {
     const { target } = binder;
@@ -36,7 +16,7 @@ const input = async function (binder, event) {
         value = option ? '$value' in option ? option.$value : option.value : '';
         value = await binder.compute({ event, value });
         target.$value = value;
-        target.value = isNoneish(value) ? '' : toString(value);
+        target.value = isNone(value) ? '' : toString(value);
     } else if (type === 'select-multiple') {
         value = [ ...binder.target.selectedOptions ].map(option => '$value' in option ? option.$value : option.value);
         value = await binder.compute({ event, value });
@@ -56,12 +36,12 @@ const input = async function (binder, event) {
         value = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
         value = await binder.compute({ event, value });
         target.$value = value;
-        target.value = isNoneish(value) ? '' : multiple ? value.join(',') : value;
+        target.value = isNone(value) ? '' : multiple ? value.join(',') : value;
     } else {
         value = to(target.$value, target.value);
         value = await binder.compute({ event, value });
         target.$value = value;
-        target.value = isNoneish(value) ? '' : toString(value);
+        target.value = isNone(value) ? '' : toString(value);
     }
 
     target.setAttribute('value', target.value);
@@ -109,7 +89,7 @@ export default {
 
         value = await binder.compute({ value });
         target.$value = value;
-        target.value = isNoneish(value) ? '' : toString(value);
+        target.value = isNone(value) ? '' : toString(value);
         target.setAttribute('value', target.value);
     }
 };

@@ -1,6 +1,7 @@
 <script src="vue.global.js"></script>
 
 <div id="v-model-basic" class="demo">
+    <input :value="one.two()" placeholder="func" />
     <input :value="hello['world'] = $event?.target.value || 'blue'" placeholder="edit me" />
     <input :value="n=NaN" type="number" placeholder="number" />
     <p>Message is: {{ hello.world }}</p>
@@ -11,6 +12,7 @@
     Vue.createApp({
         data() {
             return {
+                one: { three: 'three', two() { console.log(this) } },
                 n: NaN,
                 hello: { world: 'green' }
                 // message: ''

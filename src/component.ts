@@ -9,11 +9,6 @@ export default class Component extends HTMLElement {
     static set observedAttributes (attributes) { this.attributes = attributes; }
 
     #root: any;
-    #css: string;
-    #html: string;
-    #data: object;
-    #adopt: boolean;
-    #shadow: boolean;
     #flag: boolean = false;
     #name: string = this.nodeName.toLowerCase();
     // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
@@ -39,9 +34,9 @@ export default class Component extends HTMLElement {
     constructor () {
         super();
 
-        if (this.#shadow && 'attachShadow' in document.body) {
+        if (this.shadow && 'attachShadow' in document.body) {
             this.#root = this.attachShadow({ mode: 'open' });
-        } else if (this.#shadow && 'createShadowRoot' in document.body) {
+        } else if (this.shadow && 'createShadowRoot' in document.body) {
             this.#root = (this as any).createShadowRoot();
         } else {
             this.#root = this;
@@ -51,28 +46,9 @@ export default class Component extends HTMLElement {
 
     async render () {
 
-        this.#html = this.#html ?? this.html;
-        this.#data = this.#data ?? this.data;
-        this.#adopt = this.#adopt ?? this.adopt;
-        this.#shadow = this.#shadow ?? this.shadow;
-
-        // this.data = Observer.clone(this.#data, (_, path) => {
-        //     Binder.data.forEach(binder => {
-        //         if (binder.container === this && binder.path === path && !binder.busy) {
-        //             // if (binder.container === this && binder.path === path) {
-        //             // if (binder.container === this && binder.path.startsWith(path)) {
-        //             // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
-        //             binder.render();
-        //         }
-        //     });
-        // });
-
-        this.data = Observer.observe(this.#data, async path => {
+        this.data = Observer(this.data, async path => {
             for (const [ , binder ] of Binder.data) {
                 if (binder.container === this && binder.path === path && !binder.busy) {
-                    // if (binder.container === this && binder.path === path) {
-                    // if (binder.container === this && binder.path.startsWith(path)) {
-                    // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
                     binder.busy = true;
                     await binder.render();
                     binder.busy = false;
@@ -80,9 +56,7 @@ export default class Component extends HTMLElement {
             }
         });
 
-        console.log(this.data);
-
-        if (this.#adopt === true) {
+        if (this.adopt) {
             let child = this.firstChild;
             while (child) {
                 Binder.add(child, this);
@@ -91,13 +65,13 @@ export default class Component extends HTMLElement {
         }
 
         const template = document.createElement('template');
-        template.innerHTML = this.#html;
+        template.innerHTML = this.html;
         // const clone = template.content.cloneNode(true) as DocumentFragment;
         // const clone = document.importNode(template.content, true);
         // const clone = document.adoptNode(template.content);
 
         if (
-            !this.#shadow ||
+            !this.shadow ||
             !('attachShadow' in document.body) &&
             !('createShadowRoot' in document.body)
         ) {
@@ -148,9 +122,7 @@ export default class Component extends HTMLElement {
 
     async connectedCallback () {
         try {
-            this.#css = this.#css ?? this.css;
-
-            Css.attach(this.#name, this.#css);
+            Css.attach(this.#name, this.css);
 
             if (this.#flag) {
                 if (this.#connected) await this.#connected();

@@ -1,41 +1,22 @@
-import { isArray, isObject } from './tool';
 
-type task = () => void;
-type handler = (path: string) => Promise<void>;
+type task = (path: string) => Promise<void>;
+type tasks = task[];
 
-// const methods = [ 'push', 'pop', 'splice', 'shift', 'unshift', 'reverse' ];
-// const get = function (tasks, handler, path, target, property) {
-//     if (isArray(target) && methods.indexOf(property) !== -1) {
-//         console.log('get', path);
-//         tasks.push(handler.bind(null, target, path.slice(0, -1)));
-//     }
-//     return target[ property ];
-// };
-
-type option = {
-    target?: any;
-    tasks: task[];
-    // paths: string[];
-    handler: handler;
-};
-
-const run = async function (tasks: task[]) {
+const run = async function (tasks: tasks) {
     let task;
     while (task = tasks.shift()) {
         task();
     }
 };
 
-const set = function (handler: handler, path: string, root: any, target, property, value) {
+// const set = function (task: task, path: string, target, property, value) {
+const set = function (task: task, tasks: tasks, path: string, target, property, value) {
 
     if (property === 'length') {
         target[ property ] = value;
-        handler(path);
-        // tasks.push(handler.bind(null, path));
-        // run(tasks);
+        task(path);
         return true;
     } else if (target[ property ] === value || `${target[ property ]}${value}` === 'NaNNaN') {
-        // } else if (target[ property ] === value) {
         return true;
     }
 
@@ -45,67 +26,48 @@ const set = function (handler: handler, path: string, root: any, target, propert
         path = path ? `${path}.${property}` : property;
     }
 
-    // const task = handler.bind(null, path);
-    // const tasks = [ task ];
-    target[ property ] = create(value, handler, [], path, root);
-    // target[ property ] = create(value, handler, tasks, path, root);
-    // run(tasks);
+    target[ property ] = observer(value, task, tasks, path);
+    // target[ property ] = create(value, task, tasks, path);
+    // target[ property ] = create(value, task, [], path);
 
     return true;
 };
 
-let w = 0;
-let r = 0;
-
-const create = function (source: any, handler: handler, tasks: task[], path: string, root: any) {
+const observer = function (source: any, task: task, tasks: tasks = [], path: string = '') {
     let target;
 
-    const task = path ? handler.bind(null, path) : () => undefined;
-    tasks.push(task);
+    const initial = path ? task.bind(null, path) : () => undefined;
+    tasks.push(initial);
 
     if (source?.constructor === Array) {
-        target = [];
-        if (!root) root = target;
+        target = source;
+        // target = [];
 
         for (let key = 0; key < source.length; key++) {
-            target[ key ] = create(source[ key ], handler, tasks, path ? `${path}[${key}]` : `${key}`, root);
+            target[ key ] = observer(source[ key ], task, tasks, path ? `${path}[${key}]` : `${key}`);
         }
 
-        target = new Proxy(target, { set: set.bind(null, handler, path, root) });
+        target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
+        // target = new Proxy(target, { set: set.bind(null, task, path) });
     } else if (source?.constructor === Object) {
-        target = {};
-        if (!root) root = target;
+        target = source;
+        // target = {};
 
         for (let key in source) {
-            target[ key ] = create(source[ key ], handler, tasks, path ? `${path}.${key}` : key, root);
+            target[ key ] = observer(source[ key ], task, tasks, path ? `${path}.${key}` : key);
         }
 
-        target = new Proxy(target, { set: set.bind(null, handler, path, root) });
+        target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
+        // target = new Proxy(target, { set: set.bind(null, task, path) });
     } else {
-        target = typeof source === 'function' ? source.bind(root) : source;
+        target = source;
     }
 
-    if (tasks[ 0 ] === task) {
-        console.log('tasks', tasks.length);
+    if (tasks[ 0 ] === initial) {
         run(tasks);
-        console.log('tasks', tasks.length);
-        r++;
-        console.log('resolved', r);
-    } else {
-        w++;
-        console.log('waiting', w);
     }
 
     return target;
 };
 
-const observe = function (source: any, handler: handler) {
-    const data = create(source, handler, [], '', undefined);
-    return data;
-};
-
-export default {
-    // get,
-    set, create, observe
-
-};
+export default observer;

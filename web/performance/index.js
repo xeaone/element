@@ -27,24 +27,22 @@ class OLoop extends Component {
             console.timeEnd('raw');
         },
         push () {
-            console.log(this);
             console.time('push');
+            var l;
             for (var i = 0; i < this.count; i++) {
-                this.items.push({ number: i });
+                this.items.push(l = { number: i });
             }
+            l.number = 400;
+            console.log(this.items.slice(-1)[ 0 ] === l, l, this.items.slice(-1)[ 0 ]);
             console.timeEnd('push');
-            console.log(this.items);
         },
         overwrite () {
             console.time('overwrite');
-
             var items = [];
             for (var i = 0; i < this.count; i++) {
                 items.push({ number: i });
             }
-
             this.items = items;
-
             console.timeEnd('overwrite');
         }
     };

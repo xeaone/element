@@ -13,44 +13,44 @@ export default class BindersRoute extends Component {
         text: 'Hello World',
 
         // checkbox
-        // check: 'checked',
-        // checked: false,
-        // checkResult: checked => checked ? 'checked' : '',
-        // checkInput () { console.log(this.checked); },
+        check: 'checked',
+        checked: false,
+        checkResult: checked => checked ? 'checked' : '',
+        checkInput () { console.log(this.checked); },
 
-        // // style
-        // color: Color(),
-        // styleChange: () => this.color = Color(),
+        // style
+        color: Color(),
+        styleChange () { this.color = Color(); },
 
-        // // class
-        // active: true,
-        // lightblue: active => active ? 'lightblue' : '',
-        // classToggle: () => this.active = !this.active,
+        // class
+        active: true,
+        lightblue: active => active ? 'lightblue' : '',
+        classToggle () { this.active = !this.active; },
 
-        // value: {
-        //     out: '',
-        //     text: 'hello world',
-        //     upper (text) { return text?.toUpperCase(); },
-        // },
+        value: {
+            out: '',
+            text: 'hello world',
+            upper: text => text?.toUpperCase(),
+        },
 
-        // fruits: [
-        //     { name: 'apple' },
-        //     { name: 'orange' },
-        //     { name: 'tomato' }
-        // ],
+        fruits: [
+            { name: 'apple' },
+            { name: 'orange' },
+            { name: 'tomato' }
+        ],
 
-        // selectResult: undefined,
-        // // selectResult: 'tree',
-        // // selectResult: 'cactus',
+        selectResult: undefined,
+        // selectResult: 'tree',
+        // selectResult: 'cactus',
 
-        // radio: false,
-        // agree: false,
-        // submit (event, data) {
-        //     console.log(data);
-        // },
+        radio: false,
+        agree: false,
+        submit (event, data) {
+            console.log(data);
+        },
 
-        // firstName: '',
-        // lastName: '',
+        firstName: '',
+        lastName: '',
 
     };
 
@@ -71,7 +71,6 @@ export default class BindersRoute extends Component {
             <pre>${Code(`<span>{{text}}</span>`)}</pre>
         </section>
 
-        <!--
         <section id="checked">
             <h3>Checked Binder</h3>
             <br>

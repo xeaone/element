@@ -7,7 +7,6 @@ const replaceOutsideAndSyntax = /[^{}]*{{|}}[^{}]*/g;
 const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
 const references = new RegExp(`${reference}+(?!.*\\1)`, 'g');
 const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
-// const assignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=\s*\$(value|v)([^a-zA-Z]|\s+|$)/;
 
 const strips = new RegExp([
     ';|:',
@@ -25,11 +24,8 @@ export default function (expression, data) {
     expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
 
     const convert = !shouldNotConvert.test(expression);
-
-    // possibly replace with paths from observed data
     const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
     const paths = striped.match(references) || [];
-    console.log(paths);
 
     let [ , assignment ] = striped.match(matchAssignment) || [];
     assignment = assignment ? `with ($c) { return (${assignment}); }` : undefined;

@@ -52,16 +52,14 @@
             task();
         }
     };
-    const set = function (handler, path, root, target, property, value) {
+    // const set = function (task: task, path: string, target, property, value) {
+    const set = function (task, tasks, path, target, property, value) {
         if (property === 'length') {
             target[property] = value;
-            handler(path);
-            // tasks.push(handler.bind(null, path));
-            // run(tasks);
+            task(path);
             return true;
         }
         else if (target[property] === value || `${target[property]}${value}` === 'NaNNaN') {
-            // } else if (target[ property ] === value) {
             return true;
         }
         if (target?.constructor === Array) {
@@ -70,60 +68,40 @@
         else {
             path = path ? `${path}.${property}` : property;
         }
-        // const task = handler.bind(null, path);
-        // const tasks = [ task ];
-        target[property] = create(value, handler, [], path, root);
-        // target[ property ] = create(value, handler, tasks, path, root);
-        // run(tasks);
+        target[property] = observer(value, task, tasks, path);
+        // target[ property ] = create(value, task, tasks, path);
+        // target[ property ] = create(value, task, [], path);
         return true;
     };
-    let w = 0;
-    let r = 0;
-    const create = function (source, handler, tasks, path, root) {
+    const observer = function (source, task, tasks = [], path = '') {
         let target;
-        const task = path ? handler.bind(null, path) : () => undefined;
-        tasks.push(task);
+        const initial = path ? task.bind(null, path) : () => undefined;
+        tasks.push(initial);
         if (source?.constructor === Array) {
-            target = [];
-            if (!root)
-                root = target;
+            target = source;
+            // target = [];
             for (let key = 0; key < source.length; key++) {
-                target[key] = create(source[key], handler, tasks, path ? `${path}[${key}]` : `${key}`, root);
+                target[key] = observer(source[key], task, tasks, path ? `${path}[${key}]` : `${key}`);
             }
-            target = new Proxy(target, { set: set.bind(null, handler, path, root) });
+            target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
+            // target = new Proxy(target, { set: set.bind(null, task, path) });
         }
         else if (source?.constructor === Object) {
-            target = {};
-            if (!root)
-                root = target;
+            target = source;
+            // target = {};
             for (let key in source) {
-                target[key] = create(source[key], handler, tasks, path ? `${path}.${key}` : key, root);
+                target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : key);
             }
-            target = new Proxy(target, { set: set.bind(null, handler, path, root) });
+            target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
+            // target = new Proxy(target, { set: set.bind(null, task, path) });
         }
         else {
-            target = typeof source === 'function' ? source.bind(root) : source;
+            target = source;
         }
-        if (tasks[0] === task) {
-            console.log('tasks', tasks.length);
+        if (tasks[0] === initial) {
             run$1(tasks);
-            console.log('tasks', tasks.length);
-            r++;
-            console.log('resolved', r);
-        }
-        else {
-            w++;
-            console.log('waiting', w);
         }
         return target;
-    };
-    const observe = function (source, handler) {
-        const data = create(source, handler, [], '', undefined);
-        return data;
-    };
-    var Observer = {
-        // get,
-        set, create, observe
     };
 
     const isMap = (data) => data?.constructor === Map;
@@ -133,7 +111,7 @@
     const isNumber = (data) => data?.constructor === Number;
     const isObject = (data) => data?.constructor === Object;
     const isBoolean = (data) => data?.constructor === Boolean;
-    const isNoneish = (data) => data === null || data === undefined || isNaN(data);
+    const isNone = (data) => data === null || data === undefined || `${data}` === 'NaN';
     const toArray = (data) => JSON.parse(data);
     const toObject = (data) => JSON.parse(data);
     const toBoolean = (data) => data ? true : false;
@@ -204,7 +182,6 @@
     const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
     const references = new RegExp(`${reference}+(?!.*\\1)`, 'g');
     const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
-    // const assignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=\s*\$(value|v)([^a-zA-Z]|\s+|$)/;
     const strips = new RegExp([
         ';|:',
         '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
@@ -218,10 +195,8 @@
     function Expression (expression, data) {
         expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
         const convert = !shouldNotConvert.test(expression);
-        // possibly replace with paths from observed data
         const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [];
-        console.log(paths);
         let [, assignment] = striped.match(matchAssignment) || [];
         assignment = assignment ? `with ($c) { return (${assignment}); }` : undefined;
         const assignee = assignment ? () => new Function('$c', assignment)(data) : () => undefined;
@@ -563,7 +538,7 @@
             }
             else {
                 data = toString(data);
-                data = isNoneish(data) ? '' : data;
+                data = isNone(data) ? '' : data;
                 // binder.target[ binder.name ] = data;
                 binder.target.setAttribute(binder.name, data);
             }
@@ -585,23 +560,6 @@
         }
     };
 
-    // import { index as Index, match as Match, toBoolean } from '../tool';
-    // const set = function (path, data, value) {
-    //     const keys = path.split('.');
-    //     const l = keys.length;
-    //     for (let i = 0; i < l; i++) {
-    //         const key = keys[ i ];
-    //         const next = keys[ i + 1 ];
-    //         if (next) {
-    //             if (!(key in data)) {
-    //                 data[ key ] = /[0-9]+/.test(next) ? [] : {};
-    //             }
-    //             data = data[ key ];
-    //         } else {
-    //             return data[ key ] = value;
-    //         }
-    //     }
-    // };
     const input = async function (binder, event) {
         const { target } = binder;
         const { type } = target;
@@ -611,7 +569,7 @@
             value = option ? '$value' in option ? option.$value : option.value : '';
             value = await binder.compute({ event, value });
             target.$value = value;
-            target.value = isNoneish(value) ? '' : toString(value);
+            target.value = isNone(value) ? '' : toString(value);
         }
         else if (type === 'select-multiple') {
             value = [...binder.target.selectedOptions].map(option => '$value' in option ? option.$value : option.value);
@@ -633,13 +591,13 @@
             value = multiple ? [...binder.target.files] : binder.target.files[0];
             value = await binder.compute({ event, value });
             target.$value = value;
-            target.value = isNoneish(value) ? '' : multiple ? value.join(',') : value;
+            target.value = isNone(value) ? '' : multiple ? value.join(',') : value;
         }
         else {
             value = to(target.$value, target.value);
             value = await binder.compute({ event, value });
             target.$value = value;
-            target.value = isNoneish(value) ? '' : toString(value);
+            target.value = isNone(value) ? '' : toString(value);
         }
         target.setAttribute('value', target.value);
     };
@@ -661,7 +619,7 @@
             }
             value = await binder.compute({ value });
             target.$value = value;
-            target.value = isNoneish(value) ? '' : toString(value);
+            target.value = isNone(value) ? '' : toString(value);
             target.setAttribute('value', target.value);
         }
     };
@@ -918,7 +876,7 @@
     var text = {
         async write(binder) {
             let data = toString(await binder.compute());
-            data = isNoneish(data) ? '' : data;
+            data = isNone(data) ? '' : data;
             if (data === binder.target.textContent)
                 return;
             binder.target.textContent = data;
@@ -1025,6 +983,17 @@
         }
     };
 
+    // const PIPE = /\s?\|\s?/;
+    // const PIPES = /\s?,\s?|\s+/;
+    // const PATH = /\s?,\s?|\s?\|\s?|\s+/;
+    // const VARIABLE_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+    // const PATH_PATTERNS = /[._$a-zA-Z0-9\[\]]+/g;
+    // const PARAMETER_PATTERNS = /{{[._$a-zA-Z0-9,\(\)\[\] ]+}}/g;
+    // const eachPattern = /^\s*[._$a-zA-Z0-9\[\]]+\s+of\s+/;
+    // const Instructions = /(?!\B("|'|`)[^"'`]*)\s*\)*\s*[,\(]\s*(?![^`'"]*(`|'|")\B)/g;
+    // const isEach = /.*?\s+(of|in)\s+/;
+    // const isNative = /^NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9.]+?$/;
+    // const isSyntaxNative = /^\{\{NaN|true|false|null|undefined|\'.*?\'|\".*?\"|\`.*?\`|[0-9]+(\.[0-9]+)?\}\}$/;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
@@ -1036,7 +1005,6 @@
             this.prefixReplace = new RegExp('^o-');
             this.syntaxReplace = new RegExp('{{|}}', 'g');
             this.data = new Map();
-            // data: Map<Node | Attr, any> = new Map();
             this.binders = {
                 checked,
                 standard,
@@ -1062,10 +1030,6 @@
             return this.data.delete(node);
         }
         async bind(node, name, value, container) {
-            // if (isSyntaxNative.test(value)) {
-            //     target.textContent = value.replace(/\{\{\'?\`?\"?|\"?\`?\'?\}\}/g, '');
-            //     return;
-            // }
             const owner = node.nodeType === AN ? node.ownerElement : node;
             const { assignee, compute, paths } = Expression(value, container.data);
             if (paths.length === 0) {
@@ -1074,7 +1038,7 @@
                 if (node.nodeType === TN)
                     return node.textContent = await compute();
                 else
-                    console.log('node type not handle path length 0');
+                    console.warn('node type not handled and no paths');
             }
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const { setup, before, read, write, after } = this.binders[type];
@@ -1209,10 +1173,10 @@
         }
     };
 
-    var _data$2, _style, _support, _a$1;
+    var _data$1, _style, _support, _a$1;
     var Css = new (_a$1 = class Css {
             constructor() {
-                _data$2.set(this, new Map());
+                _data$1.set(this, new Map());
                 _style.set(this, document.createElement('style'));
                 _support.set(this, !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)'));
                 __classPrivateFieldGet(this, _style).appendChild(document.createTextNode(':not(:defined){visibility:hidden;}'));
@@ -1239,7 +1203,7 @@
                 return text;
             }
             detach(name) {
-                const item = __classPrivateFieldGet(this, _data$2).get(name);
+                const item = __classPrivateFieldGet(this, _data$1).get(name);
                 if (!item || item.count === 0)
                     return;
                 item.count--;
@@ -1248,12 +1212,12 @@
                 }
             }
             attach(name, text) {
-                const item = __classPrivateFieldGet(this, _data$2).get(name) || { count: 0, node: this.node(name, text) };
+                const item = __classPrivateFieldGet(this, _data$1).get(name) || { count: 0, node: this.node(name, text) };
                 if (item) {
                     item.count++;
                 }
                 else {
-                    __classPrivateFieldGet(this, _data$2).set(name, item);
+                    __classPrivateFieldGet(this, _data$1).set(name, item);
                 }
                 if (!__classPrivateFieldGet(this, _style).contains(item.node)) {
                     __classPrivateFieldGet(this, _style).appendChild(item.node);
@@ -1263,21 +1227,16 @@
                 return document.createTextNode(this.scope(name, this.transform(text)));
             }
         },
-        _data$2 = new WeakMap(),
+        _data$1 = new WeakMap(),
         _style = new WeakMap(),
         _support = new WeakMap(),
         _a$1);
 
-    var _root, _css, _html, _data$1, _adopt, _shadow, _flag, _name, _adopted, _rendered, _connected, _disconnected, _attributed;
+    var _root, _flag, _name, _adopted, _rendered, _connected, _disconnected, _attributed;
     class Component extends HTMLElement {
         constructor() {
             super();
             _root.set(this, void 0);
-            _css.set(this, void 0);
-            _html.set(this, void 0);
-            _data$1.set(this, void 0);
-            _adopt.set(this, void 0);
-            _shadow.set(this, void 0);
             _flag.set(this, false);
             _name.set(this, this.nodeName.toLowerCase());
             // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
@@ -1295,10 +1254,10 @@
             this.data = {};
             this.adopt = false;
             this.shadow = false;
-            if (__classPrivateFieldGet(this, _shadow) && 'attachShadow' in document.body) {
+            if (this.shadow && 'attachShadow' in document.body) {
                 __classPrivateFieldSet(this, _root, this.attachShadow({ mode: 'open' }));
             }
-            else if (__classPrivateFieldGet(this, _shadow) && 'createShadowRoot' in document.body) {
+            else if (this.shadow && 'createShadowRoot' in document.body) {
                 __classPrivateFieldSet(this, _root, this.createShadowRoot());
             }
             else {
@@ -1310,34 +1269,16 @@
         get root() { return __classPrivateFieldGet(this, _root); }
         get binder() { return Binder; }
         async render() {
-            __classPrivateFieldSet(this, _html, __classPrivateFieldGet(this, _html) ?? this.html);
-            __classPrivateFieldSet(this, _data$1, __classPrivateFieldGet(this, _data$1) ?? this.data);
-            __classPrivateFieldSet(this, _adopt, __classPrivateFieldGet(this, _adopt) ?? this.adopt);
-            __classPrivateFieldSet(this, _shadow, __classPrivateFieldGet(this, _shadow) ?? this.shadow);
-            // this.data = Observer.clone(this.#data, (_, path) => {
-            //     Binder.data.forEach(binder => {
-            //         if (binder.container === this && binder.path === path && !binder.busy) {
-            //             // if (binder.container === this && binder.path === path) {
-            //             // if (binder.container === this && binder.path.startsWith(path)) {
-            //             // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
-            //             binder.render();
-            //         }
-            //     });
-            // });
-            this.data = Observer.observe(__classPrivateFieldGet(this, _data$1), async (path) => {
+            this.data = observer(this.data, async (path) => {
                 for (const [, binder] of Binder.data) {
                     if (binder.container === this && binder.path === path && !binder.busy) {
-                        // if (binder.container === this && binder.path === path) {
-                        // if (binder.container === this && binder.path.startsWith(path)) {
-                        // if (binder.container === this && binder.path.startsWith(path) && !binder.busy) {
                         binder.busy = true;
                         await binder.render();
                         binder.busy = false;
                     }
                 }
             });
-            console.log(this.data);
-            if (__classPrivateFieldGet(this, _adopt) === true) {
+            if (this.adopt) {
                 let child = this.firstChild;
                 while (child) {
                     Binder.add(child, this);
@@ -1345,11 +1286,11 @@
                 }
             }
             const template = document.createElement('template');
-            template.innerHTML = __classPrivateFieldGet(this, _html);
+            template.innerHTML = this.html;
             // const clone = template.content.cloneNode(true) as DocumentFragment;
             // const clone = document.importNode(template.content, true);
             // const clone = document.adoptNode(template.content);
-            if (!__classPrivateFieldGet(this, _shadow) ||
+            if (!this.shadow ||
                 !('attachShadow' in document.body) &&
                     !('createShadowRoot' in document.body)) {
                 const templateSlots = template.content.querySelectorAll('slot[name]');
@@ -1397,8 +1338,7 @@
         }
         async connectedCallback() {
             try {
-                __classPrivateFieldSet(this, _css, __classPrivateFieldGet(this, _css) ?? this.css);
-                Css.attach(__classPrivateFieldGet(this, _name), __classPrivateFieldGet(this, _css));
+                Css.attach(__classPrivateFieldGet(this, _name), this.css);
                 if (__classPrivateFieldGet(this, _flag)) {
                     if (__classPrivateFieldGet(this, _connected))
                         await __classPrivateFieldGet(this, _connected).call(this);
@@ -1417,7 +1357,7 @@
             }
         }
     }
-    _root = new WeakMap(), _css = new WeakMap(), _html = new WeakMap(), _data$1 = new WeakMap(), _adopt = new WeakMap(), _shadow = new WeakMap(), _flag = new WeakMap(), _name = new WeakMap(), _adopted = new WeakMap(), _rendered = new WeakMap(), _connected = new WeakMap(), _disconnected = new WeakMap(), _attributed = new WeakMap();
+    _root = new WeakMap(), _flag = new WeakMap(), _name = new WeakMap(), _adopted = new WeakMap(), _rendered = new WeakMap(), _connected = new WeakMap(), _disconnected = new WeakMap(), _attributed = new WeakMap();
 
     // https://regexr.com/5nj32
     const S_EXPORT = `

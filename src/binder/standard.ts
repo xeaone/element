@@ -1,4 +1,4 @@
-import { isNoneish, toString } from '../tool';
+import { isNone, toString } from '../tool';
 
 const booleans = [
     'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
@@ -19,7 +19,7 @@ export default {
             else binder.target.removeAttribute(binder.name);
         } else {
             data = toString(data);
-            data = isNoneish(data) ? '' : data;
+            data = isNone(data) ? '' : data;
             // binder.target[ binder.name ] = data;
             binder.target.setAttribute(binder.name, data);
         }
