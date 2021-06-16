@@ -18,8 +18,7 @@ export default {
             if (data) binder.target.setAttribute(binder.name, '');
             else binder.target.removeAttribute(binder.name);
         } else {
-            data = toString(data);
-            data = isNone(data) ? '' : data;
+            data = isNone(data) ? '' : toString(data);
             // binder.target[ binder.name ] = data;
             binder.target.setAttribute(binder.name, data);
         }

@@ -24,8 +24,6 @@ export const toNumber = (data: any) =>
         typeof data !== 'string' ? NaN :
             /[0-9.-]/.test(data) ? Number(data) : NaN;
 
-
-// export const to = function (source: any, target: any) {
 export const to = function (source: any, target: string) {
     try {
         if (isMap(source)) return toMap(target);
@@ -41,98 +39,96 @@ export const to = function (source: any, target: string) {
     }
 };
 
-export const toDash = (data: string) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[ 0 ]}-${c[ 1 ]}`.toLowerCase());
+// export const base = function () {
+//     const base = window.document.querySelector('base');
+//     if (base) {
+//         return base.href;
+//     } else {
+//         return window.location.origin + (window.location.pathname ? window.location.pathname : '/');
+//     }
+// };
 
-export const base = function () {
-    const base = window.document.querySelector('base');
-    if (base) {
-        return base.href;
-    } else {
-        return window.location.origin + (window.location.pathname ? window.location.pathname : '/');
-    }
-};
+// export const walker = function (node, callback) {
 
-export const walker = function (node, callback) {
+//     callback(node);
+//     node = node.firstChild;
 
-    callback(node);
-    node = node.firstChild;
+//     while (node) {
+//         walker(node, callback);
+//         node = node.nextSibling;
+//     }
 
-    while (node) {
-        walker(node, callback);
-        node = node.nextSibling;
-    }
+// };
 
-};
+// export const traverse = function (data: any, paths: string[] | string) {
+//     paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
 
-export const traverse = function (data: any, paths: string[] | string) {
-    paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
+//     if (!paths.length) {
+//         return data;
+//     } else if (typeof data !== 'object') {
+//         return undefined;
+//     } else {
+//         return traverse(data[ paths[ 0 ] ], paths.slice(1));
+//     }
+// };
 
-    if (!paths.length) {
-        return data;
-    } else if (typeof data !== 'object') {
-        return undefined;
-    } else {
-        return traverse(data[ paths[ 0 ] ], paths.slice(1));
-    }
-};
+// export const match = function (source, target) {
 
-export const match = function (source, target) {
+//     if (source === target) {
+//         return true;
+//     }
 
-    if (source === target) {
-        return true;
-    }
+//     const sourceType = typeof source;
+//     const targetType = typeof target;
 
-    const sourceType = typeof source;
-    const targetType = typeof target;
+//     if (sourceType !== targetType) {
+//         return false;
+//     }
 
-    if (sourceType !== targetType) {
-        return false;
-    }
+//     if (sourceType !== 'object' || targetType !== 'object') {
+//         return source === target;
+//     }
 
-    if (sourceType !== 'object' || targetType !== 'object') {
-        return source === target;
-    }
+//     if (source.constructor !== target.constructor) {
+//         return false;
+//     }
 
-    if (source.constructor !== target.constructor) {
-        return false;
-    }
+//     const sourceKeys = Object.keys(source);
+//     const targetKeys = Object.keys(target);
 
-    const sourceKeys = Object.keys(source);
-    const targetKeys = Object.keys(target);
+//     if (sourceKeys.length !== targetKeys.length) {
+//         return false;
+//     }
 
-    if (sourceKeys.length !== targetKeys.length) {
-        return false;
-    }
+//     for (let i = 0; i < sourceKeys.length; i++) {
+//         const name = sourceKeys[ i ];
+//         if (!match(source[ name ], target[ name ])) return false;
+//     }
 
-    for (let i = 0; i < sourceKeys.length; i++) {
-        const name = sourceKeys[ i ];
-        if (!match(source[ name ], target[ name ])) return false;
-    }
+//     return true;
+// };
 
-    return true;
-};
+// export const includes = function (items, item) {
 
-export const includes = function (items, item) {
+//     for (let i = 0; i < items.length; i++) {
+//         if (match(items[ i ], item)) {
+//             return true;
+//         }
+//     }
 
-    for (let i = 0; i < items.length; i++) {
-        if (match(items[ i ], item)) {
-            return true;
-        }
-    }
+//     return false;
+// };
 
-    return false;
-};
+// export const index = function (items, item) {
 
-export const index = function (items, item) {
+//     for (let i = 0; i < items.length; i++) {
+//         if (match(items[ i ], item)) {
+//             return i;
+//         }
+//     }
 
-    for (let i = 0; i < items.length; i++) {
-        if (match(items[ i ], item)) {
-            return i;
-        }
-    }
-
-    return -1;
-};
+//     return -1;
+// };
 
 // export const events = function (target: Element, name: string, detail?: any, options?: any) {
 //     options = options || { detail: null };

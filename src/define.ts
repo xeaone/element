@@ -1,11 +1,11 @@
-import { toDash } from './tool';
 import Load from './load';
 
-export default async function Define(component: any) {
+const toDash = (data: string) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[ 0 ]}-${c[ 1 ]}`.toLowerCase());
+
+export default async function Define (component: any) {
     if (typeof component === 'string') {
-        return Promise.resolve()
-            .then(() => Load(component))
-            .then(data => Define(data.default));
+        const loaded = await Load(component);
+        await Define(loaded.default);
     } else if (component instanceof Array) {
         return Promise.all(component.map(data => Define(data)));
     } else {

@@ -1,14 +1,10 @@
-import { toString } from '../tool';
+import { isNone, toString } from '../tool';
 
 export default {
     async write (binder) {
 
-        let data = binder.data;
-        if (data === undefined || data === null) {
-            data = '';
-        } else {
-            data = toString(data);
-        }
+        let data = await binder.compute();
+        data = isNone(data) ? '' : toString(data);
 
         while (binder.target.firstChild) {
             const node = binder.target.removeChild(binder.target.firstChild);

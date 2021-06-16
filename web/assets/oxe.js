@@ -466,7 +466,6 @@
     const toNumber = (data) => typeof data === 'number' ? data :
         typeof data !== 'string' ? NaN :
             /[0-9.-]/.test(data) ? Number(data) : NaN;
-    // export const to = function (source: any, target: any) {
     const to = function (source, target) {
         try {
             if (isMap(source))
@@ -489,7 +488,74 @@
             return target;
         }
     };
-    const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
+    // export const base = function () {
+    //     const base = window.document.querySelector('base');
+    //     if (base) {
+    //         return base.href;
+    //     } else {
+    //         return window.location.origin + (window.location.pathname ? window.location.pathname : '/');
+    //     }
+    // };
+    // export const walker = function (node, callback) {
+    //     callback(node);
+    //     node = node.firstChild;
+    //     while (node) {
+    //         walker(node, callback);
+    //         node = node.nextSibling;
+    //     }
+    // };
+    // export const traverse = function (data: any, paths: string[] | string) {
+    //     paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
+    //     if (!paths.length) {
+    //         return data;
+    //     } else if (typeof data !== 'object') {
+    //         return undefined;
+    //     } else {
+    //         return traverse(data[ paths[ 0 ] ], paths.slice(1));
+    //     }
+    // };
+    // export const match = function (source, target) {
+    //     if (source === target) {
+    //         return true;
+    //     }
+    //     const sourceType = typeof source;
+    //     const targetType = typeof target;
+    //     if (sourceType !== targetType) {
+    //         return false;
+    //     }
+    //     if (sourceType !== 'object' || targetType !== 'object') {
+    //         return source === target;
+    //     }
+    //     if (source.constructor !== target.constructor) {
+    //         return false;
+    //     }
+    //     const sourceKeys = Object.keys(source);
+    //     const targetKeys = Object.keys(target);
+    //     if (sourceKeys.length !== targetKeys.length) {
+    //         return false;
+    //     }
+    //     for (let i = 0; i < sourceKeys.length; i++) {
+    //         const name = sourceKeys[ i ];
+    //         if (!match(source[ name ], target[ name ])) return false;
+    //     }
+    //     return true;
+    // };
+    // export const includes = function (items, item) {
+    //     for (let i = 0; i < items.length; i++) {
+    //         if (match(items[ i ], item)) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // };
+    // export const index = function (items, item) {
+    //     for (let i = 0; i < items.length; i++) {
+    //         if (match(items[ i ], item)) {
+    //             return i;
+    //         }
+    //     }
+    //     return -1;
+    // };
     // export const events = function (target: Element, name: string, detail?: any, options?: any) {
     //     options = options || { detail: null };
     //     options.detail = detail === undefined ? null : detail;
@@ -525,8 +591,7 @@
                     binder.target.removeAttribute(binder.name);
             }
             else {
-                data = toString(data);
-                data = isNone(data) ? '' : data;
+                data = isNone(data) ? '' : toString(data);
                 // binder.target[ binder.name ] = data;
                 binder.target.setAttribute(binder.name, data);
             }
@@ -841,13 +906,8 @@
 
     var html = {
         async write(binder) {
-            let data = binder.data;
-            if (data === undefined || data === null) {
-                data = '';
-            }
-            else {
-                data = toString(data);
-            }
+            let data = await binder.compute();
+            data = isNone(data) ? '' : toString(data);
             while (binder.target.firstChild) {
                 const node = binder.target.removeChild(binder.target.firstChild);
                 binder.remove(node);
@@ -865,8 +925,8 @@
 
     var text = {
         async write(binder) {
-            let data = toString(await binder.compute());
-            data = isNone(data) ? '' : data;
+            let data = await binder.compute();
+            data = isNone(data) ? '' : toString(data);
             if (data === binder.target.textContent)
                 return;
             binder.target.textContent = data;
@@ -1957,11 +2017,11 @@
         }
     };
 
+    const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
     async function Define(component) {
         if (typeof component === 'string') {
-            return Promise.resolve()
-                .then(() => load(component))
-                .then(data => Define(data.default));
+            const loaded = await load(component);
+            await Define(loaded.default);
         }
         else if (component instanceof Array) {
             return Promise.all(component.map(data => Define(data)));

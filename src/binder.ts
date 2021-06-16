@@ -1,5 +1,3 @@
-import { traverse } from './tool';
-
 import Expression from './expression';
 import Batcher from './batcher';
 
