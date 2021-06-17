@@ -89,7 +89,7 @@ export default new class Binder {
 
                 meta: {},
                 busy: false,
-                bindings: this.data,
+                binders: this.data,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
                 remove: this.remove.bind(this),
@@ -178,7 +178,9 @@ export default new class Binder {
             const attributes = (node as Element).attributes;
 
             let each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
-            each = each ? await this.bind(each, each.name, each.value, container) : undefined;
+            each = each ? this.bind(each, each.name, each.value, container) : undefined;
+            // each = each ? await this.bind(each, each.name, each.value, container) : undefined;
+
             // for (let i = 0; i < attributes.length; i++) {
             //     const attribute = attributes[ i ];
             //     const { name, value } = attribute;
@@ -198,13 +200,15 @@ export default new class Binder {
                 ) {
                     if (name === 'each' || name === `${this.prefix}each`) {
                         continue;
+                    } else if (each) {
+                        tasks.push(this.bind.bind(this, attribute, name, value, container));
                     } else {
                         tasks.push(this.bind(attribute, name, value, container));
                     }
                 }
             }
 
-            if (each) return Promise.all(tasks);
+            if (each) return Promise.resolve().then(each).then(() => Promise.all(tasks.map(task => task())));
 
             let child = node.firstChild;
             while (child) {

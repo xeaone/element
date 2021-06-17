@@ -43,6 +43,8 @@ export default class BindersRoute extends Component {
         selectResult: undefined,
         // selectResult: 'tree',
         // selectResult: 'cactus',
+        selectEachResult: undefined,
+        multipleSelectResult: undefined,
 
         radio: false,
         agree: false,
@@ -117,30 +119,6 @@ export default class BindersRoute extends Component {
             <input value="{{value.upper($value)}}">
         </section>
 
-        <!--
-        <section id="select">
-            <h3>Select Binder</h3>
-            <br>
-            <div>{{selectResult}}</div>
-            <select value="{{selectResult = $value}}">
-                <option value="tree">Tree</option>
-                <option value="cactus">Cactus</option>
-            </select>
-            <br>
-            <div>{{multipleSelectResult}}</div>
-            <select value="{{multipleSelectResult}}" multiple>
-                <option value="volvo">Volvo</option>
-                <option value="saab">Saab</option>
-                <option value="opel">Opel</option>
-                <option value="audi">Audi</option>
-            </select>
-            <br>
-            <div>{{selectForResult}}</div>
-            <select value="{{selectForResult}}" each="{{fruit of fruits}}">
-                <option value="{{fruit.name}}">{{fruit.name}}</option>
-            </select>
-        </section>
-
         <section id="each">
             <h3>Each Binder</h3>
             <br>
@@ -154,6 +132,30 @@ export default class BindersRoute extends Component {
             </div>
         </section>
 
+        <section id="select">
+            <h3>Select Binder</h3>
+            <br>
+            <div>{{selectResult}}</div>
+            <select value="{{selectResult = $value}}">
+                <option value="tree">Tree</option>
+                <option value="cactus">Cactus</option>
+            </select>
+            <br>
+            <div>{{selectEachResult}}</div>
+            <select each="{{fruit of fruits}}" value="{{selectEachResult = $value}}" >
+                <option value="{{fruit.name}}">{{fruit.name}}</option>
+            </select>
+            <br>
+            <div>{{multipleSelectResult}}</div>
+            <select value="{{multipleSelectResult= $value}}" multiple>
+                <option value="volvo">Volvo</option>
+                <option value="saab">Saab</option>
+                <option value="opel">Opel</option>
+                <option value="audi">Audi</option>
+            </select>
+        </section>
+
+        <!--
         <section>
             <h3>Submit Binder</h3>
             <br>

@@ -666,7 +666,9 @@
             let value;
             if (type === 'select-one') {
                 const option = target?.selectedOptions?.[0];
-                value = option ? '$value' in option ? option.$value : option.value : '';
+                console.log(option);
+                value = option ? '$value' in option ? option.$value : option.value : undefined;
+                console.log(value);
             }
             else if (type === 'select-multiple') ;
             else {
@@ -898,6 +900,7 @@
                 }
                 const template = document.createElement('template');
                 template.innerHTML = html;
+                // spin this off on to a new batcher instance then await
                 Promise.all(Array.prototype.map.call(template.content.childNodes, async (node) => binder.add(node, binder.container))).then(() => window.requestAnimationFrame(() => binder.target.appendChild(template.content)));
             }
             console.timeEnd(label);
@@ -1092,7 +1095,7 @@
                     node, owner,
                     meta: {},
                     busy: false,
-                    bindings: this.data,
+                    binders: this.data,
                     get: this.get.bind(this),
                     add: this.add.bind(this),
                     remove: this.remove.bind(this),
@@ -1169,7 +1172,8 @@
                 const tasks = [];
                 const attributes = node.attributes;
                 let each = attributes['each'] || attributes[`${this.prefix}each`];
-                each = each ? await this.bind(each, each.name, each.value, container) : undefined;
+                each = each ? this.bind(each, each.name, each.value, container) : undefined;
+                // each = each ? await this.bind(each, each.name, each.value, container) : undefined;
                 // for (let i = 0; i < attributes.length; i++) {
                 //     const attribute = attributes[ i ];
                 //     const { name, value } = attribute;
@@ -1187,13 +1191,16 @@
                         if (name === 'each' || name === `${this.prefix}each`) {
                             continue;
                         }
+                        else if (each) {
+                            tasks.push(this.bind.bind(this, attribute, name, value, container));
+                        }
                         else {
                             tasks.push(this.bind(attribute, name, value, container));
                         }
                     }
                 }
                 if (each)
-                    return Promise.all(tasks);
+                    return Promise.resolve().then(each).then(() => Promise.all(tasks.map(task => task())));
                 let child = node.firstChild;
                 while (child) {
                     tasks.push(this.add(child, container));

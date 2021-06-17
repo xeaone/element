@@ -58,7 +58,11 @@ export default {
 
         if (type === 'select-one') {
             const option = target?.selectedOptions?.[ 0 ];
-            value = option ? '$value' in option ? option.$value : option.value : '';
+            console.log(option);
+
+            value = option ? '$value' in option ? option.$value : option.value : undefined;
+            console.log(value);
+
         } else if (type === 'select-multiple') {
 
             // let value;

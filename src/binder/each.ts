@@ -81,6 +81,8 @@ export default {
             const template = document.createElement('template');
             template.innerHTML = html;
 
+
+            // spin this off on to a new batcher instance then await
             Promise.all(Array.prototype.map.call(template.content.childNodes, async node =>
                 binder.add(node, binder.container))).then(() =>
                     window.requestAnimationFrame(() =>
