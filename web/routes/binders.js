@@ -43,7 +43,8 @@ export default class BindersRoute extends Component {
         selectResult: undefined,
         // selectResult: 'tree',
         // selectResult: 'cactus',
-        selectEachResult: undefined,
+        selectEachResult: 'orange',
+        // selectEachResult: undefined,
         multipleSelectResult: undefined,
 
         radio: false,
@@ -80,9 +81,25 @@ export default class BindersRoute extends Component {
             <pre>${Code(`<input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox">`, true)}</pre>
             <pre>${Code(`<input value="{{checked}}"{{checked ? ' checked' : ''}} type="checkbox">`)}</pre>
             <br>
-            <input value="{{checked}}" checked="{{checked}}" type="checkbox" oninput="{{checkInput()}}">
-            <input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox" oninput="{{checkInput()}}">
-            <i>checked boolean value and checked attribute</i>
+            <label>
+                <input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox" oninput="{{checkInput()}}"> Checkbox
+            </label>
+            <br>
+            <pre>${Code(`
+            <input type="radio" name="radio" value="one">
+            <input type="radio" name="radio" value="two">
+            `, true)}</pre>
+            <pre>${Code(`
+            <input type="radio" name="radio" value="one"{{r1 ? ' checked': ''}}>
+            <input type="radio" name="radio" value="two" >
+            `)}</pre>
+            <br>
+            <label>
+                <input type="radio" name="radio" value="one" checked="{{r1=$c}}"> Radio One
+            </label>
+            <label>
+                <input type="radio" name="radio" value="two"> Radio Two
+            </label>
         </section>
 
         <section id="style">
@@ -123,7 +140,7 @@ export default class BindersRoute extends Component {
             <h3>Each Binder</h3>
             <br>
             <pre>${Code(`Fruits: each="{{key, index, fruit of fruits}}"`, true)}</pre>
-            <div each="{{key, index, fruit of fruits}}">
+            <div id="1" each="{{key, index, fruit of fruits}}">
                 <div id="{{fruit.name}}">
                     <strong>Key: </strong>{{key}},
                     <strong>Index: </strong>{{index}},
@@ -142,7 +159,7 @@ export default class BindersRoute extends Component {
             </select>
             <br>
             <div>{{selectEachResult}}</div>
-            <select each="{{fruit of fruits}}" value="{{selectEachResult = $value}}" >
+            <select id="2" value="{{selectEachResult = $value}}" each="{{fruit of fruits}}" >
                 <option value="{{fruit.name}}">{{fruit.name}}</option>
             </select>
             <br>
@@ -155,7 +172,6 @@ export default class BindersRoute extends Component {
             </select>
         </section>
 
-        <!--
         <section>
             <h3>Submit Binder</h3>
             <br>
@@ -175,7 +191,6 @@ export default class BindersRoute extends Component {
                 <input type="submit" value="submit">
             </form>
         </section>
-        -->
 
     `;
 

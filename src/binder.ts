@@ -13,6 +13,8 @@ const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
 const AN = Node.ATTRIBUTE_NODE;
 
+const empty = /\s*{{\s*}}\s*/;
+
 interface Binders {
     setup?: () => Promise<void>;
     before?: () => Promise<void>;
@@ -25,6 +27,8 @@ interface Options {
 }
 
 export default new class Binder {
+
+    #batcher = new Batcher();
 
     prefix = 'o-';
     syntaxEnd = '}}';
@@ -60,9 +64,7 @@ export default new class Binder {
         return this.data.delete(node);
     }
 
-    async bind (node: Node, name: string, value: string, container: any) {
-        const owner = node.nodeType === AN ? (node as Attr).ownerElement : node;
-
+    async bind (node: Node, name: string, value: string, container: any, batcher?: Batcher) {
         const { assignee, compute, paths } = Expression(value, container.data);
 
         if (paths.length === 0) {
@@ -71,6 +73,7 @@ export default new class Binder {
             else console.warn('node type not handled and no paths');
         }
 
+        const owner = node.nodeType === AN ? (node as Attr).ownerElement : node;
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         const { setup, before, read, write, after } = this.binders[ type ];
 
@@ -89,6 +92,7 @@ export default new class Binder {
 
                 meta: {},
                 busy: false,
+                // batcher: Batcher,
                 binders: this.data,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
@@ -98,12 +102,13 @@ export default new class Binder {
                 childKey, parentKeys,
                 key, keys, name, value,
                 setup, before, read, write, after,
-                async render (...args) {
+                render: async (...args) => {
                     const context = {};
                     // if (binder.before) await binder.before(binder, context, ...args);
                     const read = binder.read?.bind(null, binder, context, ...args);
                     const write = binder.write?.bind(null, binder, context, ...args);
-                    if (read || write) await Batcher.batch(read, write);
+                    // console.log(batcher);
+                    if (read || write) await (batcher || this.#batcher).batch(read, write);
                     // if (binder.after) await binder.after(binder, context, ...args);
                 }
             };
@@ -147,7 +152,7 @@ export default new class Binder {
 
     }
 
-    async add (node: Node, container: any) {
+    async add (node: Node, container: any, batcher?: Batcher) {
         const type = node.nodeType;
 
         if (type === TN) {
@@ -164,12 +169,12 @@ export default new class Binder {
                 const split = (node as Text).splitText(end + this.syntaxEnd.length);
                 const value = node.textContent;
                 node.textContent = '';
-                await this.bind(node, 'text', value, container);
-                return this.add(split, container);
+                if (!empty.test(value)) await this.bind(node, 'text', value, container, batcher);
+                return this.add(split, container, batcher);
             } else {
                 const value = node.textContent;
                 node.textContent = '';
-                return this.bind(node, 'text', value, container);
+                if (!empty.test(value)) await this.bind(node, 'text', value, container, batcher);
             }
 
         } else if (type === EN) {
@@ -178,42 +183,31 @@ export default new class Binder {
             const attributes = (node as Element).attributes;
 
             let each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
-            each = each ? this.bind(each, each.name, each.value, container) : undefined;
-            // each = each ? await this.bind(each, each.name, each.value, container) : undefined;
-
-            // for (let i = 0; i < attributes.length; i++) {
-            //     const attribute = attributes[ i ];
-            //     const { name, value } = attribute;
-            //     if (name === 'each' || name === `${this.prefix}each`) {
-            //         each = await this.bind(attribute, name, value, container);
-            //         break;
-            //     }
-            // }
+            each = each ? await this.bind(each, each.name, each.value, container, batcher) : undefined;
 
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
                 const { name, value } = attribute;
-                if (
-                    name.startsWith(this.prefix) ||
+                if (!name || !value || name === 'each' || name === `${this.prefix}each`) continue;
+
+                if (empty.test(name) || empty.test(value)) {
+                    (node as Element).removeAttributeNode(attribute);
+                    continue;
+                }
+
+                if (name.startsWith(this.prefix) ||
                     (name.includes(this.syntaxStart) && name.includes(this.syntaxEnd)) ||
-                    (value.includes(this.syntaxStart) && value.includes(this.syntaxEnd))
-                ) {
-                    if (name === 'each' || name === `${this.prefix}each`) {
-                        continue;
-                    } else if (each) {
-                        tasks.push(this.bind.bind(this, attribute, name, value, container));
-                    } else {
-                        tasks.push(this.bind(attribute, name, value, container));
-                    }
+                    (value.includes(this.syntaxStart) && value.includes(this.syntaxEnd))) {
+                    tasks.push(this.bind(attribute, name, value, container, batcher));
                 }
             }
 
-            if (each) return Promise.resolve().then(each).then(() => Promise.all(tasks.map(task => task())));
-
-            let child = node.firstChild;
-            while (child) {
-                tasks.push(this.add(child, container));
-                child = child.nextSibling;
+            if (!each) {
+                let child = node.firstChild;
+                while (child) {
+                    tasks.push(this.add(child, container, batcher));
+                    child = child.nextSibling;
+                }
             }
 
             return Promise.all(tasks);

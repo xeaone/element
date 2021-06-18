@@ -35,8 +35,8 @@ export default [
                 removeComments: false,
                 noEmitHelpers: true,
                 module: 'es6',
-                // target: 'es2015',
-                target: 'es2020',
+                // target: 'ES2015',
+                target: 'ESNext',
                 // lib: [ 'es2015', 'es2016', 'dom' ] 
             })
         ]

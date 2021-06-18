@@ -17,10 +17,13 @@ const input = async function (binder, event) {
         value = await binder.compute({ event, value });
         target.$value = value;
         target.value = isNone(value) ? '' : toString(value);
+        target.setAttribute('value', target.value);
     } else if (type === 'select-multiple') {
-        value = [ ...binder.target.selectedOptions ].map(option => '$value' in option ? option.$value : option.value);
+        value = [ ...target.selectedOptions ].map(option => '$value' in option ? option.$value : option.value);
         value = await binder.compute({ event, value });
-        value = value.join(',');
+        target.$value = value;
+        target.setAttribute('value', isNone(value) ? '' : toString(value));
+
         // } else if (type === 'checkbox' || type === 'radio') {
         //     value = binder.target.value;
         //     // value = to(binder.data, binder.target.value);
@@ -37,14 +40,15 @@ const input = async function (binder, event) {
         value = await binder.compute({ event, value });
         target.$value = value;
         target.value = isNone(value) ? '' : multiple ? value.join(',') : value;
+        target.setAttribute('value', target.value);
     } else {
         value = to(target.$value, target.value);
         value = await binder.compute({ event, value });
         target.$value = value;
         target.value = isNone(value) ? '' : toString(value);
+        target.setAttribute('value', target.value);
     }
 
-    target.setAttribute('value', target.value);
 };
 
 export default {
@@ -54,16 +58,32 @@ export default {
     async write (binder) {
         const { target } = binder;
         const { type } = target;
-        let value;
+
+        let value = binder.assignee();
 
         if (type === 'select-one') {
-            const option = target?.selectedOptions?.[ 0 ];
-            console.log(option);
 
-            value = option ? '$value' in option ? option.$value : option.value : undefined;
-            console.log(value);
+            for (const option of target.options) {
+                const optionValue = option ? '$value' in option ? option.$value : option.value : undefined;
+                option.selected = optionValue === value;
+            }
+
+            value = await binder.compute({ value });
+            target.$value = value;
+            target.value = isNone(value) ? '' : toString(value);
+            target.setAttribute('value', target.value);
 
         } else if (type === 'select-multiple') {
+
+            for (let index = 0; index < target.options; index++) {
+                const option = target.options[ index ];
+                const optionValue = option ? '$value' in option ? option.$value : option.value : undefined;
+                option.selected = optionValue === value[ index ];
+            }
+
+            value = await binder.compute({ value });
+            target.$value = value;
+            target.setAttribute('value', isNone(value) ? '' : toString(value));
 
             // let value;
             // if (!(data?.constructor instanceof Array) || !data.length) {
@@ -88,13 +108,12 @@ export default {
             //     binder.target.value = data;
             //     binder.target.toggleAttribute('value', data);
         } else {
-            value = binder.assignee();
+            value = await binder.compute({ value });
+            target.$value = value;
+            target.value = isNone(value) ? '' : toString(value);
+            target.setAttribute('value', target.value);
         }
 
-        value = await binder.compute({ value });
-        target.$value = value;
-        target.value = isNone(value) ? '' : toString(value);
-        target.setAttribute('value', target.value);
     }
 };
 

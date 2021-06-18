@@ -1,3 +1,4 @@
+import Batcher from "../batcher";
 
 export default {
     async setup (binder) {
@@ -26,46 +27,47 @@ export default {
         }
     },
     async write (binder) {
+        const { meta, target } = binder;
 
         let data = await binder.compute();
         if (data instanceof Array) {
-            binder.meta.targetLength = data.length;
+            meta.targetLength = data.length;
         } else {
-            binder.meta.keys = Object.keys(data || {});
-            binder.meta.targetLength = binder.meta.keys.length;
+            meta.keys = Object.keys(data || {});
+            meta.targetLength = meta.keys.length;
         }
 
-        const label = `each ${binder.meta.targetLength}`;
+        const label = `each: id=${target.id} targetLength=${meta.targetLength}`;
         console.time(label);
 
-        binder.busy = false;
+        // binder.busy = false;
 
-        if (binder.meta.currentLength > binder.meta.targetLength) {
-            while (binder.meta.currentLength > binder.meta.targetLength) {
-                let count = binder.meta.templateLength;
+        if (meta.currentLength > meta.targetLength) {
+            while (meta.currentLength > meta.targetLength) {
+                let count = meta.templateLength;
 
                 while (count--) {
-                    const node = binder.target.lastChild;
-                    binder.target.removeChild(node);
+                    const node = target.lastChild;
+                    target.removeChild(node);
                     binder.remove(node);
                 }
 
-                binder.meta.currentLength--;
+                meta.currentLength--;
             }
-        } else if (binder.meta.currentLength < binder.meta.targetLength) {
+        } else if (meta.currentLength < meta.targetLength) {
 
             let html = '';
-            while (binder.meta.currentLength < binder.meta.targetLength) {
-                const index = binder.meta.currentLength;
-                const key = binder.meta.keys[ index ] ?? index;
+            while (meta.currentLength < meta.targetLength) {
+                const index = meta.currentLength;
+                const key = meta.keys[ index ] ?? index;
                 const variable = `${binder.path}[${key}]`;
 
-                const rKey = new RegExp(`\\b(${binder.meta.key})\\b`, 'g');
-                const rIndex = new RegExp(`\\b(${binder.meta.index})\\b`, 'g');
-                const rVariable = new RegExp(`\\b(${binder.meta.variable})\\b`, 'g');
-                const syntax = new RegExp(`{{.*?\\b(${binder.meta.variable}|${binder.meta.index}|${binder.meta.key})\\b.*?}}`, 'g');
+                const rKey = new RegExp(`\\b(${meta.key})\\b`, 'g');
+                const rIndex = new RegExp(`\\b(${meta.index})\\b`, 'g');
+                const rVariable = new RegExp(`\\b(${meta.variable})\\b`, 'g');
+                const syntax = new RegExp(`{{.*?\\b(${meta.variable}|${meta.index}|${meta.key})\\b.*?}}`, 'g');
 
-                let clone = binder.meta.templateString;
+                let clone = meta.templateString;
 
                 clone.match(syntax)?.forEach(match =>
                     clone = clone.replace(match,
@@ -75,18 +77,16 @@ export default {
 
                 html += clone;
 
-                binder.meta.currentLength++;
+                meta.currentLength++;
             }
 
             const template = document.createElement('template');
             template.innerHTML = html;
 
-
-            // spin this off on to a new batcher instance then await
-            Promise.all(Array.prototype.map.call(template.content.childNodes, async node =>
-                binder.add(node, binder.container))).then(() =>
-                    window.requestAnimationFrame(() =>
-                        binder.target.appendChild(template.content)));
+            const batcher = new Batcher();
+            await Promise.all(Array.prototype.map.call(template.content.childNodes, async node =>
+                binder.add(node, binder.container, batcher))).then(() =>
+                    target.appendChild(template.content));
 
         }
         console.timeEnd(label);

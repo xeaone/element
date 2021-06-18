@@ -19,45 +19,63 @@ const strips = new RegExp([
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
 
+export const traverse = function (data: any, path: string, paths?: string[]) {
+    paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
+
+    if (!paths.length) {
+        return data;
+    } else {
+        let part = paths.shift();
+        const conditional = part.endsWith('?');
+        if (conditional && typeof data !== 'object') return undefined;
+        part = conditional ? part.slice(0, -1) : part;
+        return traverse(data[ part ], path, paths);
+    }
+};
+
 export default function (expression, data) {
+    // console.log(expression);
 
     expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
 
     const convert = !shouldNotConvert.test(expression);
     const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
-    const paths = striped.match(references) || [];
 
+    const paths = striped.match(references) || [];
     let [ , assignment ] = striped.match(matchAssignment) || [];
-    assignment = assignment ? `with ($ctx) { return (${assignment}); }` : undefined;
-    const assignee = assignment ? () => new Function('$ctx', assignment)(data) : () => undefined;
+
+    // if (!paths.length && !assignment) return { paths };
+
+    // assignment = assignment ? `with ($ctx) { return (${assignment}); }` : undefined;
+    // const assignee = assignment ? () => new Function('$ctx', assignment)(data) : () => undefined;
+    const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
 
     let code = expression;
     code = code.replace(/{{/g, convert ? `' +` : '');
     code = code.replace(/}}/g, convert ? ` + '` : '');
     code = convert ? `'${code}'` : code;
-    code = `with ($ctx) { return (${code}); }`;
 
-    return {
-        paths,
-        assignee,
-        compute (extra?: any) {
-            // const values = names.map(name => {
-            //     if (extra && name in extra) {
-            //         return extra[ name ];
-            //     } else if (data && name in data) {
-            //         return data[ name ];
-            //     } else if (window && name in window) {
-            //         return window[ name ];
-            //     }
-            // });
-            // return new Function(...names, code)(...values);
-            return new Function(
-                '$ctx', '$e', '$v', '$f', '$c', '$event', '$value', '$form', '$checked', code
-            )(
-                data, extra?.event, extra?.value, extra?.form, extra?.checked, extra?.event, extra?.value, extra?.form, extra?.checked
-            );
+    code = `
+        if ($extra) {
+            var
+            $f = $extra.form, $form = $extra.form,
+            $e = $extra.event, $event = $extra.event,
+            $v = $extra.value, $value = $extra.value,
+            $c = $extra.checked, $checked = $extra.checked;
         }
-    };
+        with ($context) { 
+            return (${code});
+        }
+    `;
+
+    const context = new Proxy(data, {
+        // has: () => true,
+        get: (target, name) => target[ name ] || window[ name ],
+        has: (target, property) => typeof property === 'string' && [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ].includes(property) ? false : true
+    });
+    const compute = new Function('$context', '$extra', code).bind(null, context);
+
+    return { paths, assignee, compute };
 }
 
 //     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
