@@ -41,7 +41,7 @@ export default function (expression, data) {
     const convert = !shouldNotConvert.test(expression);
     const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
 
-    const paths = striped.match(references) || [];
+    const paths = striped.match(references) || [ '' ];
     let [ , assignment ] = striped.match(matchAssignment) || [];
 
     // if (!paths.length && !assignment) return { paths };

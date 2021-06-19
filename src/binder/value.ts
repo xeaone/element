@@ -6,112 +6,110 @@ import {
     isNone
 } from '../tool';
 
+// properties to consider: defaultValue, valueAsDate, valueAsNumber
+
 const input = async function (binder, event) {
-    const { target } = binder;
-    const { type } = target;
-    let value;
+    const { owner } = binder;
+    const { type } = owner;
 
     if (type === 'select-one') {
-        const option = target?.selectedOptions?.[ 0 ];
-        value = option ? '$value' in option ? option.$value : option.value : '';
-        value = await binder.compute({ event, value });
-        target.$value = value;
-        target.value = isNone(value) ? '' : toString(value);
-        target.setAttribute('value', target.value);
+        const [ option ] = owner?.selectedOptions;
+        const value = option && '$value' in option ? option.$value : option?.value || undefined;
+        const computed = await binder.compute({ event, value });
+        owner.$value = computed;
+        owner.value = isNone(computed) ? '' : toString(computed);
+        owner.setAttribute('value', owner.value);
     } else if (type === 'select-multiple') {
-        value = [ ...target.selectedOptions ].map(option => '$value' in option ? option.$value : option.value);
-        value = await binder.compute({ event, value });
-        target.$value = value;
-        target.setAttribute('value', isNone(value) ? '' : toString(value));
 
-        // } else if (type === 'checkbox' || type === 'radio') {
-        //     value = binder.target.value;
-        //     // value = to(binder.data, binder.target.value);
-        //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-        //     binder.target.value = value;
+        const value = [];
+        for (const option of owner?.selectedOptions) {
+            if ('$value' in option) {
+                value.push(option.$value);
+            } else if (option.value) {
+                value.push(option.value);
+            }
+        }
+
+        const computed = await binder.compute({ event, value });
+        owner.$value = computed;
+        owner.setAttribute('value', isNone(computed) ? '' : toString(computed));
+
         // } else if (type === 'number') {
-        //     // value = toNumber(binder.target.value);
-        //     value = binder.target.value;
+        //     // value = toNumber(binder.owner.value);
+        //     value = binder.owner.value;
         //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-        //     binder.target.value = value;
+        //     binder.owner.value = value;
     } else if (type === 'file') {
-        const multiple = binder.target.multiple;
-        value = multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
-        value = await binder.compute({ event, value });
-        target.$value = value;
-        target.value = isNone(value) ? '' : multiple ? value.join(',') : value;
-        target.setAttribute('value', target.value);
+        const { multiple, files } = owner;
+        const value = multiple ? [ ...files ] : files[ 0 ];
+        const computed = await binder.compute({ event, value });
+        owner.$value = computed;
+        owner.value = isNone(computed) ? '' : multiple ? computed.join(',') : computed;
+        owner.setAttribute('value', owner.value);
     } else {
-        value = to(target.$value, target.value);
-        value = await binder.compute({ event, value });
-        target.$value = value;
-        target.value = isNone(value) ? '' : toString(value);
-        target.setAttribute('value', target.value);
+        const value = to(owner.$value, owner.value);
+        const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
+        const computed = await binder.compute({ event, value, checked });
+        owner.$value = computed;
+        owner.value = isNone(computed) ? '' : toString(computed);
+        owner.setAttribute('value', owner.value);
     }
 
 };
 
 export default {
     async setup (binder) {
-        binder.target.addEventListener('input', event => input(binder, event));
+        binder.owner.addEventListener('input', event => input(binder, event));
     },
     async write (binder) {
-        const { target } = binder;
-        const { type } = target;
+        const { owner } = binder;
+        const { type } = owner;
 
-        let value = binder.assignee();
+        const value = binder.assignee();
 
-        if (type === 'select-one') {
+        if (type === 'select-one' || type === 'select-multiple') {
+            const { multiple, options } = owner;
+            owner.selectedIndex = -1;
 
-            for (const option of target.options) {
-                const optionValue = option ? '$value' in option ? option.$value : option.value : undefined;
-                option.selected = optionValue === value;
+            for (const option of options) {
+                const optionValue = '$value' in option ? option.$value : option.value;
+                option.selected = multiple ? value?.includes(optionValue) : optionValue === value;
+                if (!multiple && option.selected) break;
             }
 
-            value = await binder.compute({ value });
-            target.$value = value;
-            target.value = isNone(value) ? '' : toString(value);
-            target.setAttribute('value', target.value);
-
-        } else if (type === 'select-multiple') {
-
-            for (let index = 0; index < target.options; index++) {
-                const option = target.options[ index ];
-                const optionValue = option ? '$value' in option ? option.$value : option.value : undefined;
-                option.selected = optionValue === value[ index ];
+            let computed;
+            if (!multiple && owner.selectedIndex === -1 && value === undefined) {
+                const [ option ] = owner.options;
+                computed = await binder.compute({
+                    value: option ? ('$value' in option ? option.$value : option.value) : undefined
+                });
+            } else {
+                computed = await binder.compute({ value });
             }
 
-            value = await binder.compute({ value });
-            target.$value = value;
-            target.setAttribute('value', isNone(value) ? '' : toString(value));
+            owner.$value = computed;
 
-            // let value;
-            // if (!(data?.constructor instanceof Array) || !data.length) {
-            //     value = binder.data = [ ...binder.target.selectedOptions ].map(o => o.value);
-            // } else {
-            //     value = [ ...binder.target.options ].map((o, i) => {
-            //         o.selected = o.value == data[ i ];
-            //         return o.value;
-            //     });
-            // }
-
-            // value = value.join(',');
-            // binder.target.setAttribute('value', value);
-
+            if (multiple) {
+                owner.setAttribute('value', isNone(computed) ? '' : toString(computed));
+            } else {
+                owner.value = isNone(computed) ? '' : toString(computed);
+                owner.setAttribute('value', owner.value);
+            }
             // } else if (type === 'file') {
-            // context.multiple = binder.target.multiple;
-            // context.value = context.multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
+            // context.multiple = owner.multiple;
+            // context.value = context.multiple ? [ ...owner.files ] : owner.files[ 0 ];
             // } else if (type === 'number') {
-            //     binder.target.value = data;
-            //     binder.target.setAttribute('value', data);
+            //     owner.value = data;
+            //     owner.setAttribute('value', data);
             // } else if (type === 'checkbox' || type === 'radio') {
-            //     binder.target.value = data;
-            //     binder.target.toggleAttribute('value', data);
+            //     owner.value = data;
+            //     owner.toggleAttribute('value', data);
         } else {
-            value = await binder.compute({ value });
-            target.$value = value;
-            target.value = isNone(value) ? '' : toString(value);
-            target.setAttribute('value', target.value);
+            const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
+            const computed = await binder.compute({ value, checked });
+            owner.$value = computed;
+            owner.value = isNone(computed) ? '' : toString(computed);
+            owner.setAttribute('value', owner.value);
         }
 
     }

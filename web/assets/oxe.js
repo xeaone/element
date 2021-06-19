@@ -110,7 +110,7 @@
         expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
         const convert = !shouldNotConvert.test(expression);
         const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
-        const paths = striped.match(references) || [];
+        const paths = striped.match(references) || [''];
         let [, assignment] = striped.match(matchAssignment) || [];
         // if (!paths.length && !assignment) return { paths };
         // assignment = assignment ? `with ($ctx) { return (${assignment}); }` : undefined;
@@ -589,120 +589,161 @@
         }
     };
 
-    console.warn('toggleing attribute replace attr node');
+    // defaultChecked indeterminate
+    const handler = async function (binder, checked, event) {
+        const { owner, node } = binder;
+        const value = '$value' in owner ? owner.$value : owner.value;
+        const computed = await binder.compute({ event, checked, value });
+        const parent = owner.form || owner.getRootNode();
+        const elements = owner.type === 'radio' ? parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`) : [owner];
+        owner.checked = computed;
+        owner.$checked = computed;
+        for (const element of elements) {
+            if (element === owner) {
+                if (owner.checked) {
+                    node.value = '';
+                    owner.setAttributeNode(node);
+                }
+                else {
+                    element.removeAttribute('checked');
+                }
+            }
+            else {
+                element.removeAttribute('checked');
+            }
+        }
+    };
     var checked = {
         async setup(binder) {
-            binder.target.addEventListener('input', async () => {
-                const checked = binder.target.checked;
-                const computed = await binder.compute({ checked });
-                binder.target.toggleAttribute('checked', computed);
+            const { owner } = binder;
+            if (owner.type === 'radio') {
+                const parent = owner.form || owner.getRootNode();
+                const elements = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+                for (const element of elements) {
+                    if (!element._oCheckedListener && !/{{.*?}}/.test(element.getAttribute('checked'))) {
+                        element._oCheckedListener = async () => {
+                            const parent = owner.form || owner.getRootNode();
+                            const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+                            for (const radio of radios) {
+                                const checkedBinder = binder.binders.get(radio.getAttributeNode('checked'));
+                                if (checkedBinder)
+                                    await handler(checkedBinder, radio.checked);
+                            }
+                        };
+                        element.addEventListener('input', element._oCheckedListener);
+                    }
+                }
+            }
+            binder.owner.addEventListener('input', async (event) => {
+                const checked = binder.owner.checked;
+                await handler(binder, checked, event);
             });
         },
         async write(binder) {
             const checked = binder.assignee();
-            const computed = await binder.compute({ checked });
-            binder.target.checked = computed;
-            binder.target.toggleAttribute('checked', computed);
+            await handler(binder, checked);
         }
     };
 
+    // properties to consider: defaultValue, valueAsDate, valueAsNumber
     const input = async function (binder, event) {
-        const { target } = binder;
-        const { type } = target;
-        let value;
+        const { owner } = binder;
+        const { type } = owner;
         if (type === 'select-one') {
-            const option = target?.selectedOptions?.[0];
-            value = option ? '$value' in option ? option.$value : option.value : '';
-            value = await binder.compute({ event, value });
-            target.$value = value;
-            target.value = isNone(value) ? '' : toString(value);
-            target.setAttribute('value', target.value);
+            const [option] = owner?.selectedOptions;
+            const value = option && '$value' in option ? option.$value : option?.value || undefined;
+            const computed = await binder.compute({ event, value });
+            owner.$value = computed;
+            owner.value = isNone(computed) ? '' : toString(computed);
+            owner.setAttribute('value', owner.value);
         }
         else if (type === 'select-multiple') {
-            value = [...target.selectedOptions].map(option => '$value' in option ? option.$value : option.value);
-            value = await binder.compute({ event, value });
-            target.$value = value;
-            target.setAttribute('value', isNone(value) ? '' : toString(value));
-            // } else if (type === 'checkbox' || type === 'radio') {
-            //     value = binder.target.value;
-            //     // value = to(binder.data, binder.target.value);
-            //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-            //     binder.target.value = value;
+            const value = [];
+            for (const option of owner?.selectedOptions) {
+                if ('$value' in option) {
+                    value.push(option.$value);
+                }
+                else if (option.value) {
+                    value.push(option.value);
+                }
+            }
+            const computed = await binder.compute({ event, value });
+            owner.$value = computed;
+            owner.setAttribute('value', isNone(computed) ? '' : toString(computed));
             // } else if (type === 'number') {
-            //     // value = toNumber(binder.target.value);
-            //     value = binder.target.value;
+            //     // value = toNumber(binder.owner.value);
+            //     value = binder.owner.value;
             //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-            //     binder.target.value = value;
+            //     binder.owner.value = value;
         }
         else if (type === 'file') {
-            const multiple = binder.target.multiple;
-            value = multiple ? [...binder.target.files] : binder.target.files[0];
-            value = await binder.compute({ event, value });
-            target.$value = value;
-            target.value = isNone(value) ? '' : multiple ? value.join(',') : value;
-            target.setAttribute('value', target.value);
+            const { multiple, files } = owner;
+            const value = multiple ? [...files] : files[0];
+            const computed = await binder.compute({ event, value });
+            owner.$value = computed;
+            owner.value = isNone(computed) ? '' : multiple ? computed.join(',') : computed;
+            owner.setAttribute('value', owner.value);
         }
         else {
-            value = to(target.$value, target.value);
-            value = await binder.compute({ event, value });
-            target.$value = value;
-            target.value = isNone(value) ? '' : toString(value);
-            target.setAttribute('value', target.value);
+            const value = to(owner.$value, owner.value);
+            const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
+            const computed = await binder.compute({ event, value, checked });
+            owner.$value = computed;
+            owner.value = isNone(computed) ? '' : toString(computed);
+            owner.setAttribute('value', owner.value);
         }
     };
     var value = {
         async setup(binder) {
-            binder.target.addEventListener('input', event => input(binder, event));
+            binder.owner.addEventListener('input', event => input(binder, event));
         },
         async write(binder) {
-            const { target } = binder;
-            const { type } = target;
-            let value = binder.assignee();
-            if (type === 'select-one') {
-                for (const option of target.options) {
-                    const optionValue = option ? '$value' in option ? option.$value : option.value : undefined;
-                    option.selected = optionValue === value;
+            const { owner } = binder;
+            const { type } = owner;
+            const value = binder.assignee();
+            if (type === 'select-one' || type === 'select-multiple') {
+                const { multiple, options } = owner;
+                owner.selectedIndex = -1;
+                for (const option of options) {
+                    const optionValue = '$value' in option ? option.$value : option.value;
+                    option.selected = multiple ? value?.includes(optionValue) : optionValue === value;
+                    if (!multiple && option.selected)
+                        break;
                 }
-                value = await binder.compute({ value });
-                target.$value = value;
-                target.value = isNone(value) ? '' : toString(value);
-                target.setAttribute('value', target.value);
-            }
-            else if (type === 'select-multiple') {
-                for (let index = 0; index < target.options; index++) {
-                    const option = target.options[index];
-                    const optionValue = option ? '$value' in option ? option.$value : option.value : undefined;
-                    option.selected = optionValue === value[index];
+                let computed;
+                if (!multiple && owner.selectedIndex === -1 && value === undefined) {
+                    const [option] = owner.options;
+                    computed = await binder.compute({
+                        value: option ? ('$value' in option ? option.$value : option.value) : undefined
+                    });
                 }
-                value = await binder.compute({ value });
-                target.$value = value;
-                target.setAttribute('value', isNone(value) ? '' : toString(value));
-                // let value;
-                // if (!(data?.constructor instanceof Array) || !data.length) {
-                //     value = binder.data = [ ...binder.target.selectedOptions ].map(o => o.value);
-                // } else {
-                //     value = [ ...binder.target.options ].map((o, i) => {
-                //         o.selected = o.value == data[ i ];
-                //         return o.value;
-                //     });
-                // }
-                // value = value.join(',');
-                // binder.target.setAttribute('value', value);
+                else {
+                    computed = await binder.compute({ value });
+                }
+                owner.$value = computed;
+                if (multiple) {
+                    owner.setAttribute('value', isNone(computed) ? '' : toString(computed));
+                }
+                else {
+                    owner.value = isNone(computed) ? '' : toString(computed);
+                    owner.setAttribute('value', owner.value);
+                }
                 // } else if (type === 'file') {
-                // context.multiple = binder.target.multiple;
-                // context.value = context.multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
+                // context.multiple = owner.multiple;
+                // context.value = context.multiple ? [ ...owner.files ] : owner.files[ 0 ];
                 // } else if (type === 'number') {
-                //     binder.target.value = data;
-                //     binder.target.setAttribute('value', data);
+                //     owner.value = data;
+                //     owner.setAttribute('value', data);
                 // } else if (type === 'checkbox' || type === 'radio') {
-                //     binder.target.value = data;
-                //     binder.target.toggleAttribute('value', data);
+                //     owner.value = data;
+                //     owner.toggleAttribute('value', data);
             }
             else {
-                value = await binder.compute({ value });
-                target.$value = value;
-                target.value = isNone(value) ? '' : toString(value);
-                target.setAttribute('value', target.value);
+                const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
+                const computed = await binder.compute({ value, checked });
+                owner.$value = computed;
+                owner.value = isNone(computed) ? '' : toString(computed);
+                owner.setAttribute('value', owner.value);
             }
         }
     };
@@ -1073,6 +1114,7 @@
             this.prefix = 'o-';
             this.syntaxEnd = '}}';
             this.syntaxStart = '{{';
+            this.syntaxMatch = new RegExp('{{.*?}}');
             this.prefixReplace = new RegExp('^o-');
             this.syntaxReplace = new RegExp('{{|}}', 'g');
             this.data = new Map();
@@ -1103,20 +1145,17 @@
         }
         async bind(node, name, value, container, batcher) {
             const { assignee, compute, paths } = Expression(value, container.data);
-            if (paths.length === 0) {
-                if (node.nodeType === AN)
-                    return node.value = await compute();
-                if (node.nodeType === TN)
-                    return node.textContent = await compute();
-                else
-                    console.warn('node type not handled and no paths');
-            }
+            // if (paths.length === 0) {
+            //     if (node.nodeType === AN) return (node as Attr).value = await compute();
+            //     if (node.nodeType === TN) return node.textContent = await compute();
+            //     else console.warn('node type not handled and no paths');
+            // }
             const owner = node.nodeType === AN ? node.ownerElement : node;
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const { setup, before, read, write, after } = this.binders[type];
             return Promise.all(paths.map(async (path) => {
                 // const keys = path.split('.');
-                const keys = path.replace(/\?\.|\]/g, '').replace(/\[/g, '.').split('.');
+                const keys = path?.replace(/\?\.|\]/g, '').replace(/\[/g, '.').split('.');
                 const [key] = keys.slice(-1);
                 const childKey = keys.slice(-1)[0];
                 const parentKeys = keys.slice(0, -1);
@@ -1125,7 +1164,6 @@
                     node, owner,
                     meta: {},
                     busy: false,
-                    // batcher: Batcher,
                     binders: this.data,
                     get: this.get.bind(this),
                     add: this.add.bind(this),
@@ -1140,7 +1178,6 @@
                         // if (binder.before) await binder.before(binder, context, ...args);
                         const read = binder.read?.bind(null, binder, context, ...args);
                         const write = binder.write?.bind(null, binder, context, ...args);
-                        // console.log(batcher);
                         if (read || write)
                             await (batcher || this.#batcher).batch(read, write);
                         // if (binder.after) await binder.after(binder, context, ...args);
@@ -1150,7 +1187,8 @@
                 if (duplicate && duplicate.path === path) {
                     console.warn('duplicate binders', node, path);
                 }
-                this.data.set(node, binder);
+                if (path)
+                    this.data.set(node, binder);
                 if (binder.setup)
                     await binder.setup(binder);
                 return binder.render();
@@ -1210,16 +1248,13 @@
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
                     const { name, value } = attribute;
-                    if (!name || !value || name === 'each' || name === `${this.prefix}each`)
+                    if (name === 'each' || name === `${this.prefix}each`)
                         continue;
-                    if (empty.test(name) || empty.test(value)) {
-                        node.removeAttributeNode(attribute);
-                        continue;
-                    }
-                    if (name.startsWith(this.prefix) ||
-                        (name.includes(this.syntaxStart) && name.includes(this.syntaxEnd)) ||
-                        (value.includes(this.syntaxStart) && value.includes(this.syntaxEnd))) {
-                        tasks.push(this.bind(attribute, name, value, container, batcher));
+                    // this.syntaxMatch.test(name) || name.startsWith(this.prefix) 
+                    if (this.syntaxMatch.test(value)) {
+                        attribute.value = '';
+                        if (!empty.test(value))
+                            tasks.push(this.bind(attribute, name, value, container, batcher));
                     }
                 }
                 if (!each) {
@@ -2099,6 +2134,27 @@
     if (window.NodeList && !window.NodeList.prototype.forEach) {
         window.NodeList.prototype.forEach = window.Array.prototype.forEach;
     }
+    if (!window.Node.prototype.getRootNode) {
+        window.Node.prototype.getRootNode = function getRootNode(opt) {
+            var composed = typeof opt === 'object' && Boolean(opt.composed);
+            return composed ? getShadowIncludingRoot(this) : getRoot(this);
+        };
+        function getShadowIncludingRoot(node) {
+            var root = getRoot(node);
+            if (isShadowRoot(root))
+                return getShadowIncludingRoot(root.host);
+            return root;
+        }
+        function getRoot(node) {
+            if (node.parentNode != null)
+                return getRoot(node.parentNode);
+            return node;
+        }
+        function isShadowRoot(node) {
+            return node.nodeName === '#document-fragment' && node.constructor.name === 'ShadowRoot';
+        }
+    }
+    console.warn('might need getRootNode polyfill');
     var index = Object.freeze(new class Oxe {
         constructor() {
             this.Component = Component;

@@ -33,6 +33,7 @@ export default new class Binder {
     prefix = 'o-';
     syntaxEnd = '}}';
     syntaxStart = '{{';
+    syntaxMatch = new RegExp('{{.*?}}');
     prefixReplace = new RegExp('^o-');
     syntaxReplace = new RegExp('{{|}}', 'g');
     data: Map<Node, any> = new Map();
@@ -67,11 +68,11 @@ export default new class Binder {
     async bind (node: Node, name: string, value: string, container: any, batcher?: Batcher) {
         const { assignee, compute, paths } = Expression(value, container.data);
 
-        if (paths.length === 0) {
-            if (node.nodeType === AN) return (node as Attr).value = await compute();
-            if (node.nodeType === TN) return node.textContent = await compute();
-            else console.warn('node type not handled and no paths');
-        }
+        // if (paths.length === 0) {
+        //     if (node.nodeType === AN) return (node as Attr).value = await compute();
+        //     if (node.nodeType === TN) return node.textContent = await compute();
+        //     else console.warn('node type not handled and no paths');
+        // }
 
         const owner = node.nodeType === AN ? (node as Attr).ownerElement : node;
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
@@ -80,7 +81,7 @@ export default new class Binder {
         return Promise.all(paths.map(async path => {
 
             // const keys = path.split('.');
-            const keys = path.replace(/\?\.|\]/g, '').replace(/\[/g, '.').split('.');
+            const keys = path?.replace(/\?\.|\]/g, '').replace(/\[/g, '.').split('.');
 
             const [ key ] = keys.slice(-1);
             const childKey = keys.slice(-1)[ 0 ];
@@ -92,7 +93,6 @@ export default new class Binder {
 
                 meta: {},
                 busy: false,
-                // batcher: Batcher,
                 binders: this.data,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
@@ -107,7 +107,6 @@ export default new class Binder {
                     // if (binder.before) await binder.before(binder, context, ...args);
                     const read = binder.read?.bind(null, binder, context, ...args);
                     const write = binder.write?.bind(null, binder, context, ...args);
-                    // console.log(batcher);
                     if (read || write) await (batcher || this.#batcher).batch(read, write);
                     // if (binder.after) await binder.after(binder, context, ...args);
                 }
@@ -118,7 +117,7 @@ export default new class Binder {
                 console.warn('duplicate binders', node, path);
             }
 
-            this.data.set(node, binder);
+            if (path) this.data.set(node, binder);
 
             if (binder.setup) await binder.setup(binder);
 
@@ -188,17 +187,11 @@ export default new class Binder {
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
                 const { name, value } = attribute;
-                if (!name || !value || name === 'each' || name === `${this.prefix}each`) continue;
-
-                if (empty.test(name) || empty.test(value)) {
-                    (node as Element).removeAttributeNode(attribute);
-                    continue;
-                }
-
-                if (name.startsWith(this.prefix) ||
-                    (name.includes(this.syntaxStart) && name.includes(this.syntaxEnd)) ||
-                    (value.includes(this.syntaxStart) && value.includes(this.syntaxEnd))) {
-                    tasks.push(this.bind(attribute, name, value, container, batcher));
+                if (name === 'each' || name === `${this.prefix}each`) continue;
+                // this.syntaxMatch.test(name) || name.startsWith(this.prefix) 
+                if (this.syntaxMatch.test(value)) {
+                    attribute.value = '';
+                    if (!empty.test(value)) tasks.push(this.bind(attribute, name, value, container, batcher));
                 }
             }
 

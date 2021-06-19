@@ -56,6 +56,27 @@ if (window.NodeList && !window.NodeList.prototype.forEach) {
     window.NodeList.prototype.forEach = window.Array.prototype.forEach;
 }
 
+if (!window.Node.prototype.getRootNode) {
+    window.Node.prototype.getRootNode = function getRootNode (opt) {
+        var composed = typeof opt === 'object' && Boolean(opt.composed);
+        return composed ? getShadowIncludingRoot(this) : getRoot(this);
+    };
+    function getShadowIncludingRoot (node) {
+        var root = getRoot(node);
+        if (isShadowRoot(root)) return getShadowIncludingRoot(root.host);
+        return root;
+    }
+    function getRoot (node) {
+        if (node.parentNode != null) return getRoot(node.parentNode);
+        return node;
+    }
+    function isShadowRoot (node) {
+        return node.nodeName === '#document-fragment' && node.constructor.name === 'ShadowRoot';
+    }
+}
+
+console.warn('might need getRootNode polyfill');
+
 export default Object.freeze(new class Oxe {
 
     Component = Component;

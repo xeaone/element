@@ -48,13 +48,12 @@ export default class BindersRoute extends Component {
         multipleSelectResult: undefined,
 
         radio: false,
-        agree: false,
+        agree: true,
+        firstName: 'james',
+        lastName: 'bond',
         submit (event, data) {
             console.log(data);
-        },
-
-        firstName: '',
-        lastName: '',
+        }
 
     };
 
@@ -176,16 +175,18 @@ export default class BindersRoute extends Component {
             <h3>Submit Binder</h3>
             <br>
             <form onsubmit="{{submit}}">
+                <div>{{firstName}}</div>
                 <input name="name.first" value="{{firstName = $v}}" placeholder="first name">
-                <input name="name.last" value="{{lastName = $v}}" placeholder="last name">
+                <div>{{lastName}}</div>
+                <input name="name.last" value="{{$v ?? lastName}}" placeholder="last name">
                 <br>
                 <br>
-                <input type="checkbox" name="agree" value="{{agree}}" checked="{{agree}}">Agree?
+                <input type="checkbox" name="agree" value="{{agree?'yes':'no'}}" checked="{{agree=$c}}">Agree? {{agree?'yes':'no'}}
                 <br>
                 <br>
-                <input type="radio" name="radio" value="one" checked="{{radio}}">One
-                <br>
-                <input type="radio" name="radio" value="two" checked="{{radio}}">Two
+                <strong>Animal:</strong>
+                <input type="radio" name="animal" value="{{'dogs'}}" checked="{{$c}}">Dogs
+                <input type="radio" name="animal" value="cats" checked="{{$c}}">Cats
                 <br>
                 <br>
                 <input type="submit" value="submit">
