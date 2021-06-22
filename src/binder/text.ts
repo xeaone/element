@@ -1,9 +1,12 @@
+import format from '../format';
 
-export default {
+const text = {
     async write (binder) {
         let data = await binder.compute();
-        data = data === undefined ? '' : data;
+        data = format(data);
         if (data === binder.target.textContent) return;
         binder.target.textContent = data;
     }
 };
+
+export default text;

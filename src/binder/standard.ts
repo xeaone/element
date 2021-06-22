@@ -1,4 +1,4 @@
-import { isNone, toString } from '../tool';
+import format from '../format';
 
 const booleans = [
     'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
@@ -8,21 +8,25 @@ const booleans = [
     'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
 ];
 
-export default {
+const standard = {
     async write (binder) {
+        const { name, owner, node } = binder;
+
         let data = await binder.compute();
-        const boolean = booleans.includes(binder.name);
+        const boolean = booleans.includes(name);
 
         if (boolean) {
             data = data ? true : false;
-            if (data) binder.target.setAttribute(binder.name, '');
-            else binder.target.removeAttribute(binder.name);
+            if (data) owner.setAttributeNode(node);
+            else owner.removeAttribute(name);
         } else {
-            data = isNone(data) ? '' : toString(data);
-            // binder.target[ binder.name ] = data;
-            binder.target.setAttribute(binder.name, data);
+            data = format(data);
+            owner[ name ] = data;
+            owner.setAttribute(name, data);
         }
 
     }
 };
+
+export default standard;
 

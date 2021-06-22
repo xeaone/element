@@ -444,93 +444,7 @@
     //     batch
     // });
 
-    const isNone = (data) => data === null || data === undefined || `${data}` === 'NaN';
-    const toString = (data) => typeof data === 'string' ? data :
-        typeof data === 'number' ? Number(data).toString() :
-            typeof data === 'undefined' ? 'undefined' : JSON.stringify(data);
-    // export const base = function () {
-    //     const base = window.document.querySelector('base');
-    //     if (base) {
-    //         return base.href;
-    //     } else {
-    //         return window.location.origin + (window.location.pathname ? window.location.pathname : '/');
-    //     }
-    // };
-    // export const walker = function (node, callback) {
-    //     callback(node);
-    //     node = node.firstChild;
-    //     while (node) {
-    //         walker(node, callback);
-    //         node = node.nextSibling;
-    //     }
-    // };
-    // export const traverse = function (data: any, paths: string[] | string) {
-    //     paths = typeof paths === 'string' ? paths.split(/\.|\[|(\]\.?)/) : paths;
-    //     if (!paths.length) {
-    //         return data;
-    //     } else if (typeof data !== 'object') {
-    //         return undefined;
-    //     } else {
-    //         return traverse(data[ paths[ 0 ] ], paths.slice(1));
-    //     }
-    // };
-    // export const match = function (source, target) {
-    //     if (source === target) {
-    //         return true;
-    //     }
-    //     const sourceType = typeof source;
-    //     const targetType = typeof target;
-    //     if (sourceType !== targetType) {
-    //         return false;
-    //     }
-    //     if (sourceType !== 'object' || targetType !== 'object') {
-    //         return source === target;
-    //     }
-    //     if (source.constructor !== target.constructor) {
-    //         return false;
-    //     }
-    //     const sourceKeys = Object.keys(source);
-    //     const targetKeys = Object.keys(target);
-    //     if (sourceKeys.length !== targetKeys.length) {
-    //         return false;
-    //     }
-    //     for (let i = 0; i < sourceKeys.length; i++) {
-    //         const name = sourceKeys[ i ];
-    //         if (!match(source[ name ], target[ name ])) return false;
-    //     }
-    //     return true;
-    // };
-    // export const includes = function (items, item) {
-    //     for (let i = 0; i < items.length; i++) {
-    //         if (match(items[ i ], item)) {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // };
-    // export const index = function (items, item) {
-    //     for (let i = 0; i < items.length; i++) {
-    //         if (match(items[ i ], item)) {
-    //             return i;
-    //         }
-    //     }
-    //     return -1;
-    // };
-    // export const events = function (target: Element, name: string, detail?: any, options?: any) {
-    //     options = options || { detail: null };
-    //     options.detail = detail === undefined ? null : detail;
-    //     target.dispatchEvent(new window.CustomEvent(name, options));
-    // };
-    // export default function extension (path:string) {
-    //     const position = path.lastIndexOf('.');
-    //     return position > 0 ? path.slice(position + 1) : '';
-    // }
-    // export default function normalize (path:string) {
-    //     return path
-    //         .replace(/\/+/g, '/')
-    //         .replace(/\/$/g, '')
-    //         || '.';
-    // }
+    const format = (data) => data === undefined ? '' : typeof data === 'object' ? JSON.stringify(data) : data;
 
     const booleans = [
         'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
@@ -539,21 +453,22 @@
         'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly', 'required', 'reversed', 'scoped', 'seamless', 'selected',
         'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
     ];
-    var standard = {
+    const standard = {
         async write(binder) {
+            const { name, owner, node } = binder;
             let data = await binder.compute();
-            const boolean = booleans.includes(binder.name);
+            const boolean = booleans.includes(name);
             if (boolean) {
                 data = data ? true : false;
                 if (data)
-                    binder.target.setAttribute(binder.name, '');
+                    owner.setAttributeNode(node);
                 else
-                    binder.target.removeAttribute(binder.name);
+                    owner.removeAttribute(name);
             }
             else {
-                data = isNone(data) ? '' : toString(data);
-                // binder.target[ binder.name ] = data;
-                binder.target.setAttribute(binder.name, data);
+                data = format(data);
+                owner[name] = data;
+                owner.setAttribute(name, data);
             }
         }
     };
@@ -561,7 +476,7 @@
     // defaultChecked indeterminate
     const handler = async function (binder, checked, event) {
         const { owner, node } = binder;
-        const value = '$value' in owner ? owner.$value : owner.value;
+        const { value } = owner;
         const computed = await binder.compute({ event, checked, value });
         const parent = owner.form || owner.getRootNode();
         const elements = owner.type === 'radio' ? parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`) : [owner];
@@ -569,7 +484,6 @@
         for (const element of elements) {
             if (element === owner) {
                 if (owner.checked) {
-                    // node.value = '';
                     owner.setAttributeNode(node);
                 }
                 else {
@@ -581,9 +495,9 @@
             }
         }
     };
-    var checked = {
+    const checked = {
         async setup(binder) {
-            const { owner } = binder;
+            const { owner, binders } = binder;
             if (owner.type === 'radio') {
                 const parent = owner.form || owner.getRootNode();
                 const elements = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
@@ -593,7 +507,7 @@
                             const parent = owner.form || owner.getRootNode();
                             const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
                             for (const radio of radios) {
-                                const checkedBinder = binder.binders.get(radio.getAttributeNode('checked'));
+                                const checkedBinder = binders.get(radio.getAttributeNode('checked'));
                                 if (checkedBinder)
                                     await handler(checkedBinder, radio.checked);
                             }
@@ -617,46 +531,41 @@
     const input = async function (binder, event) {
         const { owner } = binder;
         const { type } = owner;
-        let computed;
+        let display;
         if (type === 'select-one') {
-            const [option] = owner?.selectedOptions;
-            const value = option && '$value' in option ? option.$value : option?.value || undefined;
-            computed = await binder.compute({ event, value });
+            const [option] = owner.selectedOptions;
+            const value = option?.value;
+            const computed = await binder.compute({ event, value });
+            display = format(computed);
         }
         else if (type === 'select-multiple') {
             const value = [];
-            for (const option of owner?.selectedOptions) {
-                if ('$value' in option) {
-                    value.push(option.$value);
-                }
-                else if (option.value) {
-                    value.push(option.value);
-                }
+            for (const option of owner.selectedOptions) {
+                value.push(option.value);
             }
             const computed = await binder.compute({ event, value });
-            owner.setAttribute('value', computed === undefined ? '' : computed);
-            return;
+            display = format(computed);
         }
         else if (type === 'file') {
             const { multiple, files } = owner;
             const value = multiple ? [...files] : files[0];
-            computed = await binder.compute({ event, value });
-            computed = multiple ? computed.join(',') : computed;
+            const computed = await binder.compute({ event, value });
+            display = format(computed);
         }
         else if (type === 'number') {
             const value = Number(owner.value);
-            computed = await binder.compute({ event, value });
+            const computed = await binder.compute({ event, value });
+            display = format(computed);
         }
         else {
-            const value = owner.value;
-            const checked = owner.checked;
-            computed = await binder.compute({ event, value, checked });
+            const { value, checked } = owner;
+            const computed = await binder.compute({ event, value, checked });
+            display = format(computed);
+            owner.value = display;
         }
-        const display = computed === undefined ? '' : computed;
-        owner.value = display;
         owner.setAttribute('value', display);
     };
-    var value = {
+    const value = {
         async setup(binder) {
             binder.owner.addEventListener('input', event => input(binder, event));
         },
@@ -664,206 +573,36 @@
             const { owner } = binder;
             const { type } = owner;
             const value = binder.assignee();
+            let display;
             if (type === 'select-one' || type === 'select-multiple') {
                 const { multiple, options } = owner;
                 owner.selectedIndex = -1;
                 for (const option of options) {
-                    const optionValue = '$value' in option ? option.$value : option.value;
-                    option.selected = multiple ? value?.includes(optionValue) : optionValue === value;
+                    option.selected = multiple ? value?.includes(option.value) : option.value === value;
                     if (!multiple && option.selected)
                         break;
                 }
                 let computed;
                 if (!multiple && owner.selectedIndex === -1 && value === undefined) {
                     const [option] = owner.options;
-                    computed = await binder.compute({
-                        value: option ? ('$value' in option ? option.$value : option.value) : undefined
-                    });
+                    computed = await binder.compute({ value: option?.value });
                 }
                 else {
                     computed = await binder.compute({ value });
                 }
-                owner.$value = computed;
-                if (multiple) {
-                    owner.setAttribute('value', isNone(computed) ? '' : toString(computed));
-                }
-                else {
-                    owner.value = isNone(computed) ? '' : toString(computed);
-                    owner.setAttribute('value', owner.value);
-                }
-                // } else if (type === 'file') {
-                // context.multiple = owner.multiple;
-                // context.value = context.multiple ? [ ...owner.files ] : owner.files[ 0 ];
-                // } else if (type === 'number') {
-                //     owner.value = data;
-                //     owner.setAttribute('value', data);
-                // } else if (type === 'checkbox' || type === 'radio') {
-                //     owner.value = data;
-                //     owner.toggleAttribute('value', data);
+                display = format(computed);
+                if (!multiple)
+                    owner.value = display;
             }
             else {
-                // const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
-                const computed = await binder.compute({ value, checked: owner.checked });
-                const display = computed === undefined ? '' : computed;
+                const { checked } = owner;
+                const computed = await binder.compute({ value, checked });
+                display = format(computed);
                 owner.value = display;
-                owner.setAttribute('value', display);
             }
+            owner.setAttribute('value', display);
         }
     };
-    // export default function (binder) {
-    //     console.log('not event');
-    //     const type = binder.target.type;
-    //     const ctx = {};
-    //     if (!binder.meta.listener) {
-    //         binder.meta.listener = true;
-    //         binder.target.addEventListener('input', () => input(binder));
-    //     }
-    //     if (type === 'select-one') {
-    //         return {
-    //             async read () {
-    //                 ctx.data = await binder.compute();
-    //                 ctx.value = binder.target.value;
-    //             },
-    //             async write () {
-    //                 let value;
-    //                 if ('' === ctx.data || null === ctx.data || undefined === ctx.data) {
-    //                     value = binder.data = ctx.value;
-    //                 } else {
-    //                     value = binder.target.value = ctx.data;
-    //                 }
-    //                 binder.target.setAttribute('value', value);
-    //             }
-    //         };
-    //     } else if (type === 'select-multiple') {
-    //         return {
-    //             async read () {
-    //                 ctx.data = await binder.compute();
-    //                 ctx.options = [ ...binder.target.options ];
-    //                 ctx.value = [ ...binder.target.selectedOptions ].map(o => o.value);
-    //             },
-    //             async write () {
-    //                 let value;
-    //                 if (!(ctx.data?.constructor instanceof Array) || !ctx.data.length) {
-    //                     value = binder.data = ctx.value;
-    //                 } else {
-    //                     value = '';
-    //                     ctx.options.forEach((o, i) => {
-    //                         o.selected = o.value == ctx.data[ i ];
-    //                         value += `${o.value},`;
-    //                     });
-    //                 }
-    //                 binder.target.setAttribute('value', value);
-    //             }
-    //         };
-    //     } else if (type === 'checkbox' || type === 'radio') {
-    //         let data;
-    //         return {
-    //             async read () {
-    //                 data = await binder.data;
-    //             },
-    //             async write () {
-    //                 binder.target.value = data;
-    //                 binder.target.setAttribute('value', data);
-    //             }
-    //         };
-    //     } else if (type === 'number') {
-    //         return {
-    //             read () {
-    //                 ctx.data = binder.data;
-    //                 ctx.value = toNumber(binder.target.value);
-    //             },
-    //             write () {
-    //                 ctx.value = toString(ctx.data);
-    //                 binder.target.value = ctx.value;
-    //                 binder.target.setAttribute('value', ctx.value);
-    //             }
-    //         };
-    //     } else if (type === 'file') {
-    //         return {
-    //             read () {
-    //                 ctx.data = binder.data;
-    //                 ctx.multiple = binder.target.multiple;
-    //                 ctx.value = ctx.multiple ? [ ...binder.target.files ] : binder.target.files[ 0 ];
-    //             }
-    //         };
-    //     } else {
-    //         return {
-    //             read () {
-    //                 // if (binder.target.nodeName === 'O-OPTION' || binder.target.nodeName === 'OPTION') return ctx.write = false;
-    //                 ctx.data = binder.data;
-    //                 ctx.value = binder.target.value;
-    //                 // ctx.match = match(ctx.data, ctx.value);
-    //                 // ctx.selected = binder.target.selected;
-    //                 // if (ctx.match) {
-    //                 //     binder.meta.busy = false;
-    //                 //     ctx.write = false;
-    //                 //     return;
-    //                 // }
-    //                 // if (
-    //                 //     binder.target.parentElement &&
-    //                 //     (binder.target.parentElement.type === 'select-one'||
-    //                 //     binder.target.parentElement.type === 'select-multiple')
-    //                 // ) {
-    //                 //     ctx.select = binder.target.parentElement;
-    //                 // } else if (
-    //                 //     binder.target.parentElement &&
-    //                 //     binder.target.parentElement.parentElement &&
-    //                 //     (binder.target.parentElement.parentElement.type === 'select-one'||
-    //                 //     binder.target.parentElement.parentElement.type === 'select-multiple')
-    //                 // ) {
-    //                 //     ctx.select = binder.target.parentElement.parentElement;
-    //                 // }
-    //                 //
-    //                 // if (ctx.select) {
-    //                 //     const attribute = ctx.select.attributes['o-value'] || ctx.select.attributes['value'];
-    //                 //     if (!attribute) return ctx.write = false;
-    //                 //     ctx.select = Binder.get(attribute);
-    //                 //     ctx.multiple = ctx.select.target.multiple;
-    //                 // }
-    //             },
-    //             write () {
-    //                 // const { select, selected, multiple } = ctx;
-    //                 // if (select) {
-    //                 //     if (multiple) {
-    //                 //         const index = Index(select.data, ctx.data);
-    //                 //         if (event) {
-    //                 //             if (selected && index === -1) {
-    //                 //                 select.data.push(ctx.data);
-    //                 //             } else if (!selected && index !== -1) {
-    //                 //                 select.data.splice(index, 1);
-    //                 //             }
-    //                 //         } else {
-    //                 //             if (index === -1) {
-    //                 //                 binder.target.selected = false;
-    //                 //             } else {
-    //                 //                 binder.target.selected = true;
-    //                 //             }
-    //                 //         }
-    //                 //     } else {
-    //                 //         const match = match(select.data, ctx.data);
-    //                 //         if (event) {
-    //                 //             // console.log(match);
-    //                 //             // console.log(select.data);
-    //                 //             // console.log(ctx.data);
-    //                 //             if (selected !== match) {
-    //                 //                 select.data = ctx.data;
-    //                 //                 // console.log(select.data);
-    //                 //                 // throw 'stop';
-    //                 //             }
-    //                 //         } else {
-    //                 //             if (match) {
-    //                 //                 binder.target.selected = true;
-    //                 //             } else {
-    //                 //                 binder.target.selected = false;
-    //                 //             }
-    //                 //         }
-    //                 //     }
-    //                 // }
-    //                 binder.target.value = ctx.data ?? '';
-    //             }
-    //         };
-    //     }
-    // }
 
     var each = {
         async setup(binder) {
@@ -938,10 +677,13 @@
         }
     };
 
-    var html = {
+    const html = {
         async write(binder) {
             let data = await binder.compute();
-            data = isNone(data) ? '' : toString(data);
+            if (typeof data !== 'string') {
+                data = '';
+                console.error('html binder requires a string');
+            }
             while (binder.target.firstChild) {
                 const node = binder.target.removeChild(binder.target.firstChild);
                 binder.remove(node);
@@ -957,10 +699,10 @@
         }
     };
 
-    var text = {
+    const text = {
         async write(binder) {
             let data = await binder.compute();
-            data = data === undefined ? '' : data;
+            data = format(data);
             if (data === binder.target.textContent)
                 return;
             binder.target.textContent = data;

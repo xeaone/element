@@ -1,10 +1,12 @@
-import { isNone, toString } from '../tool';
 
-export default {
+const html = {
     async write (binder) {
-
         let data = await binder.compute();
-        data = isNone(data) ? '' : toString(data);
+
+        if (typeof data !== 'string') {
+            data = '';
+            console.error('html binder requires a string');
+        }
 
         while (binder.target.firstChild) {
             const node = binder.target.removeChild(binder.target.firstChild);
@@ -24,3 +26,5 @@ export default {
         binder.target.appendChild(fragment);
     }
 };
+
+export default html;

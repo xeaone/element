@@ -3,7 +3,7 @@
 const handler = async function (binder, checked, event?: Event) {
 
     const { owner, node } = binder;
-    const value = '$value' in owner ? owner.$value : owner.value;
+    const { value } = owner;
     const computed = await binder.compute({ event, checked, value });
 
     const parent = owner.form || owner.getRootNode();
@@ -14,7 +14,6 @@ const handler = async function (binder, checked, event?: Event) {
     for (const element of elements) {
         if (element === owner) {
             if (owner.checked) {
-                // node.value = '';
                 owner.setAttributeNode(node);
             } else {
                 element.removeAttribute('checked');
@@ -26,9 +25,9 @@ const handler = async function (binder, checked, event?: Event) {
 
 };
 
-export default {
+const checked = {
     async setup (binder) {
-        const { owner } = binder;
+        const { owner, binders } = binder;
 
         if (owner.type === 'radio') {
             const parent = owner.form || owner.getRootNode();
@@ -39,7 +38,7 @@ export default {
                         const parent = owner.form || owner.getRootNode();
                         const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
                         for (const radio of radios) {
-                            const checkedBinder = binder.binders.get(radio.getAttributeNode('checked'));
+                            const checkedBinder = binders.get(radio.getAttributeNode('checked'));
                             if (checkedBinder) await handler(checkedBinder, radio.checked);
                         }
                     };
@@ -58,3 +57,5 @@ export default {
         await handler(binder, checked);
     }
 };
+
+export default checked;
