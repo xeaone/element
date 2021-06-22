@@ -44,10 +44,9 @@ export default function (expression, data) {
     const paths = striped.match(references) || [ '' ];
     let [ , assignment ] = striped.match(matchAssignment) || [];
 
-    // if (!paths.length && !assignment) return { paths };
-
     // assignment = assignment ? `with ($ctx) { return (${assignment}); }` : undefined;
     // const assignee = assignment ? () => new Function('$ctx', assignment)(data) : () => undefined;
+
     const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
 
     let code = expression;
@@ -55,28 +54,37 @@ export default function (expression, data) {
     code = code.replace(/}}/g, convert ? ` + '` : '');
     code = convert ? `'${code}'` : code;
 
+    // if ($extra) {
+    //     $context.$f = $extra.form, $context.$form = $extra.form,
+    //     $context.$e = $extra.event, $context.$event = $extra.event,
+    //     $context.$v = $extra.value, $context.$value = $extra.value,
+    //     $context.$c = $extra.checked, $context.$checked = $extra.checked;
+    // }
+
     code = `
         if ($extra) {
             var
             $f = $extra.form, $form = $extra.form,
             $e = $extra.event, $event = $extra.event,
             $v = $extra.value, $value = $extra.value,
-            $c = $extra.checked, $checked = $extra.checked;
+            $c = $extra.checked, $checked = $extra.checked
         }
-        with ($context) { 
+        with ($context) {
             return (${code});
         }
     `;
 
     const context = new Proxy(data, {
         // has: () => true,
-        get: (target, name) => target[ name ] || window[ name ],
+        // get: (target, name) => name in data ? data[ name ] : name in target ? target[ name ] : name in window ? window[ name ] : undefined,
+        get: (target, name) => name in data ? data[ name ] : name in window ? window[ name ] : undefined,
         has: (target, property) => typeof property === 'string' && [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ].includes(property) ? false : true
     });
+
     const compute = new Function('$context', '$extra', code).bind(null, context);
 
     return { paths, assignee, compute };
-}
+};;
 
 //     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
 //     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',

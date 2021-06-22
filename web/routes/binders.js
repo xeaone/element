@@ -77,8 +77,8 @@ export default class BindersRoute extends Component {
         <section id="checked">
             <h3>Checked Binder</h3>
             <br>
-            <pre>${Code(`<input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox">`, true)}</pre>
-            <pre>${Code(`<input value="{{checked}}"{{checked ? ' checked' : ''}} type="checkbox">`)}</pre>
+            <pre>${Code(`<input type="checkbox" value="{{checked}}" checked="{{checked = $checked}}">`, true)}</pre>
+            <pre>${Code(`<input type="checkbox" value="{{checked}}"{{checked ? ' checked' : ''}}>`)}</pre>
             <br>
             <label>
                 <input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox" oninput="{{checkInput()}}"> Checkbox
@@ -90,14 +90,14 @@ export default class BindersRoute extends Component {
             `, true)}</pre>
             <pre>${Code(`
             <input type="radio" name="radio" value="one"{{r1 ? ' checked': ''}}>
-            <input type="radio" name="radio" value="two" >
+            <input type="radio" name="radio" value="two"{{r2 ? ' checked': ''}}>
             `)}</pre>
             <br>
             <label>
                 <input type="radio" name="radio" value="one" checked="{{r1=$c}}"> Radio One
             </label>
             <label>
-                <input type="radio" name="radio" value="two"> Radio Two
+                <input type="radio" name="radio" value="two" checked="{{r2=$c}}"> Radio Two
             </label>
         </section>
 

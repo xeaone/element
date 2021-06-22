@@ -112,7 +112,6 @@
         const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [''];
         let [, assignment] = striped.match(matchAssignment) || [];
-        // if (!paths.length && !assignment) return { paths };
         // assignment = assignment ? `with ($ctx) { return (${assignment}); }` : undefined;
         // const assignee = assignment ? () => new Function('$ctx', assignment)(data) : () => undefined;
         const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
@@ -120,21 +119,28 @@
         code = code.replace(/{{/g, convert ? `' +` : '');
         code = code.replace(/}}/g, convert ? ` + '` : '');
         code = convert ? `'${code}'` : code;
+        // if ($extra) {
+        //     $context.$f = $extra.form, $context.$form = $extra.form,
+        //     $context.$e = $extra.event, $context.$event = $extra.event,
+        //     $context.$v = $extra.value, $context.$value = $extra.value,
+        //     $context.$c = $extra.checked, $context.$checked = $extra.checked;
+        // }
         code = `
         if ($extra) {
             var
             $f = $extra.form, $form = $extra.form,
             $e = $extra.event, $event = $extra.event,
             $v = $extra.value, $value = $extra.value,
-            $c = $extra.checked, $checked = $extra.checked;
+            $c = $extra.checked, $checked = $extra.checked
         }
-        with ($context) { 
+        with ($context) {
             return (${code});
         }
     `;
         const context = new Proxy(data, {
             // has: () => true,
-            get: (target, name) => target[name] || window[name],
+            // get: (target, name) => name in data ? data[ name ] : name in target ? target[ name ] : name in window ? window[ name ] : undefined,
+            get: (target, name) => name in data ? data[name] : name in window ? window[name] : undefined,
             has: (target, property) => typeof property === 'string' && ['$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked'].includes(property) ? false : true
         });
         const compute = new Function('$context', '$extra', code).bind(null, context);
@@ -438,47 +444,10 @@
     //     batch
     // });
 
-    const isMap = (data) => data?.constructor === Map;
-    const isDate = (data) => data?.constructor === Date;
-    const isArray = (data) => data?.constructor === Array;
-    const isString = (data) => data?.constructor === String;
-    const isNumber = (data) => data?.constructor === Number;
-    const isObject = (data) => data?.constructor === Object;
-    const isBoolean = (data) => data?.constructor === Boolean;
     const isNone = (data) => data === null || data === undefined || `${data}` === 'NaN';
-    const toArray = (data) => JSON.parse(data);
-    const toObject = (data) => JSON.parse(data);
-    const toBoolean = (data) => data ? true : false;
-    const toDate = (data) => new Date(Number(data));
-    const toMap = (data) => new Map(JSON.parse(data));
     const toString = (data) => typeof data === 'string' ? data :
         typeof data === 'number' ? Number(data).toString() :
             typeof data === 'undefined' ? 'undefined' : JSON.stringify(data);
-    const toNumber = (data) => typeof data === 'number' ? data :
-        typeof data !== 'string' ? NaN :
-            /[0-9.-]/.test(data) ? Number(data) : NaN;
-    const to = function (source, target) {
-        try {
-            if (isMap(source))
-                return toMap(target);
-            if (isDate(source))
-                return toDate(target);
-            if (isArray(source))
-                return toArray(target);
-            if (isString(source))
-                return toString(target);
-            if (isObject(source))
-                return toObject(target);
-            if (isNumber(source))
-                return toNumber(target);
-            if (isBoolean(source))
-                return toBoolean(target);
-            return target;
-        }
-        catch {
-            return target;
-        }
-    };
     // export const base = function () {
     //     const base = window.document.querySelector('base');
     //     if (base) {
@@ -597,11 +566,10 @@
         const parent = owner.form || owner.getRootNode();
         const elements = owner.type === 'radio' ? parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`) : [owner];
         owner.checked = computed;
-        owner.$checked = computed;
         for (const element of elements) {
             if (element === owner) {
                 if (owner.checked) {
-                    node.value = '';
+                    // node.value = '';
                     owner.setAttributeNode(node);
                 }
                 else {
@@ -634,8 +602,8 @@
                     }
                 }
             }
-            binder.owner.addEventListener('input', async (event) => {
-                const checked = binder.owner.checked;
+            owner.addEventListener('input', async (event) => {
+                const checked = owner.checked;
                 await handler(binder, checked, event);
             });
         },
@@ -649,13 +617,11 @@
     const input = async function (binder, event) {
         const { owner } = binder;
         const { type } = owner;
+        let computed;
         if (type === 'select-one') {
             const [option] = owner?.selectedOptions;
             const value = option && '$value' in option ? option.$value : option?.value || undefined;
-            const computed = await binder.compute({ event, value });
-            owner.$value = computed;
-            owner.value = isNone(computed) ? '' : toString(computed);
-            owner.setAttribute('value', owner.value);
+            computed = await binder.compute({ event, value });
         }
         else if (type === 'select-multiple') {
             const value = [];
@@ -668,30 +634,27 @@
                 }
             }
             const computed = await binder.compute({ event, value });
-            owner.$value = computed;
-            owner.setAttribute('value', isNone(computed) ? '' : toString(computed));
-            // } else if (type === 'number') {
-            //     // value = toNumber(binder.owner.value);
-            //     value = binder.owner.value;
-            //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-            //     binder.owner.value = value;
+            owner.setAttribute('value', computed === undefined ? '' : computed);
+            return;
         }
         else if (type === 'file') {
             const { multiple, files } = owner;
             const value = multiple ? [...files] : files[0];
-            const computed = await binder.compute({ event, value });
-            owner.$value = computed;
-            owner.value = isNone(computed) ? '' : multiple ? computed.join(',') : computed;
-            owner.setAttribute('value', owner.value);
+            computed = await binder.compute({ event, value });
+            computed = multiple ? computed.join(',') : computed;
+        }
+        else if (type === 'number') {
+            const value = Number(owner.value);
+            computed = await binder.compute({ event, value });
         }
         else {
-            const value = to(owner.$value, owner.value);
-            const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
-            const computed = await binder.compute({ event, value, checked });
-            owner.$value = computed;
-            owner.value = isNone(computed) ? '' : toString(computed);
-            owner.setAttribute('value', owner.value);
+            const value = owner.value;
+            const checked = owner.checked;
+            computed = await binder.compute({ event, value, checked });
         }
+        const display = computed === undefined ? '' : computed;
+        owner.value = display;
+        owner.setAttribute('value', display);
     };
     var value = {
         async setup(binder) {
@@ -739,11 +702,11 @@
                 //     owner.toggleAttribute('value', data);
             }
             else {
-                const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
-                const computed = await binder.compute({ value, checked });
-                owner.$value = computed;
-                owner.value = isNone(computed) ? '' : toString(computed);
-                owner.setAttribute('value', owner.value);
+                // const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
+                const computed = await binder.compute({ value, checked: owner.checked });
+                const display = computed === undefined ? '' : computed;
+                owner.value = display;
+                owner.setAttribute('value', display);
             }
         }
     };
@@ -997,7 +960,7 @@
     var text = {
         async write(binder) {
             let data = await binder.compute();
-            data = isNone(data) ? '' : toString(data);
+            data = data === undefined ? '' : data;
             if (data === binder.target.textContent)
                 return;
             binder.target.textContent = data;

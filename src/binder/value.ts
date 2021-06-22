@@ -11,14 +11,12 @@ import {
 const input = async function (binder, event) {
     const { owner } = binder;
     const { type } = owner;
+    let computed;
 
     if (type === 'select-one') {
         const [ option ] = owner?.selectedOptions;
         const value = option && '$value' in option ? option.$value : option?.value || undefined;
-        const computed = await binder.compute({ event, value });
-        owner.$value = computed;
-        owner.value = isNone(computed) ? '' : toString(computed);
-        owner.setAttribute('value', owner.value);
+        computed = await binder.compute({ event, value });
     } else if (type === 'select-multiple') {
 
         const value = [];
@@ -31,30 +29,26 @@ const input = async function (binder, event) {
         }
 
         const computed = await binder.compute({ event, value });
-        owner.$value = computed;
-        owner.setAttribute('value', isNone(computed) ? '' : toString(computed));
-
-        // } else if (type === 'number') {
-        //     // value = toNumber(binder.owner.value);
-        //     value = binder.owner.value;
-        //     value = await binder.compute({ $e: event, $event: event, $v: value, $value: value });
-        //     binder.owner.value = value;
+        owner.setAttribute('value', computed === undefined ? '' : computed);
+        return;
     } else if (type === 'file') {
         const { multiple, files } = owner;
         const value = multiple ? [ ...files ] : files[ 0 ];
-        const computed = await binder.compute({ event, value });
-        owner.$value = computed;
-        owner.value = isNone(computed) ? '' : multiple ? computed.join(',') : computed;
-        owner.setAttribute('value', owner.value);
+        computed = await binder.compute({ event, value });
+        computed = multiple ? computed.join(',') : computed;
+    } else if (type === 'number') {
+        const value = Number(owner.value);
+        computed = await binder.compute({ event, value });
     } else {
-        const value = to(owner.$value, owner.value);
-        const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
-        const computed = await binder.compute({ event, value, checked });
-        owner.$value = computed;
-        owner.value = isNone(computed) ? '' : toString(computed);
-        owner.setAttribute('value', owner.value);
+        const value = owner.value;
+        const checked = owner.checked;
+        computed = await binder.compute({ event, value, checked });
     }
 
+    const display = computed === undefined ? '' : computed;
+
+    owner.value = display;
+    owner.setAttribute('value', display);
 };
 
 export default {
@@ -105,11 +99,11 @@ export default {
             //     owner.value = data;
             //     owner.toggleAttribute('value', data);
         } else {
-            const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
-            const computed = await binder.compute({ value, checked });
-            owner.$value = computed;
-            owner.value = isNone(computed) ? '' : toString(computed);
-            owner.setAttribute('value', owner.value);
+            // const checked = type === 'checkbox' || type === 'radio' ? ('$checked' in owner ? owner.$checked : owner.checked) : undefined;
+            const computed = await binder.compute({ value, checked: owner.checked });
+            const display = computed === undefined ? '' : computed;
+            owner.value = display;
+            owner.setAttribute('value', display);
         }
 
     }
