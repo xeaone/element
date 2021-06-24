@@ -27,25 +27,25 @@ const handler = async function (binder, checked, event?: Event) {
 
 const checked = {
     async setup (binder) {
-        const { owner, binders } = binder;
+        const { owner, get } = binder;
 
-        if (owner.type === 'radio') {
-            const parent = owner.form || owner.getRootNode();
-            const elements = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
-            for (const element of elements) {
-                if (!element._oCheckedListener && !/{{.*?}}/.test(element.getAttribute('checked'))) {
-                    element._oCheckedListener = async () => {
-                        const parent = owner.form || owner.getRootNode();
-                        const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
-                        for (const radio of radios) {
-                            const checkedBinder = binders.get(radio.getAttributeNode('checked'));
-                            if (checkedBinder) await handler(checkedBinder, radio.checked);
-                        }
-                    };
-                    element.addEventListener('input', element._oCheckedListener);
-                }
-            }
-        }
+        // if (owner.type === 'radio') {
+        //     const parent = owner.form || owner.getRootNode();
+        //     const elements = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+        //     for (const element of elements) {
+        //         if (!element._oCheckedListener && !/{{.*?}}/.test(element.getAttribute('checked'))) {
+        //             element._oCheckedListener = async () => {
+        //                 const parent = owner.form || owner.getRootNode();
+        //                 const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+        //                 for (const radio of radios) {
+        //                     const checkedBinder = get(radio.getAttributeNode('checked'));
+        //                     if (checkedBinder) await handler(checkedBinder, radio.checked);
+        //                 }
+        //             };
+        //             element.addEventListener('input', element._oCheckedListener);
+        //         }
+        //     }
+        // }
 
         owner.addEventListener('input', async (event) => {
             const checked = owner.checked;

@@ -3,72 +3,52 @@ import Say from '../modules/say.js';
 
 const { Component } = Oxe;
 
-var home = Code(`
-	// routes/index.js
+var indexRoute = Code(`
+    const { Component } = Oxe;
 
-	export default {
-		title: 'Home',
-		html: \`
+	export default IndexRoute extends Component {
+		title = 'Index Route'
+		html = \`
 			<h1>{{title}}</h1>
 			<button onclick="{{greet()}}">Greet</button>
-		\`,
-		data: {
-			greeting: 'Old Hello World',
-			greet () {
-				console.log(this.data.greeting);
-			}
-		},
-		created () {
-			this.data.greeting = 'New Hello World';
+		\`
+		data = {
+			greeting: '',
+			greet () { this.greeting = 'Hola Mundo'; }
 		}
-	};
-
+		created () {
+			this.data.greeting = 'Hello World';
+		}
+	}
 `, true);
 
-var indexjs = Code(`
-	// index.js
-
+var indexJs = Code(`
 	Oxe.location.listen({
 		target: 'main',
 		folder: 'routes'
 	});
-
 `);
 
-var indexhtml = Code(`
-	<!-- index.html -->
+var indexHtml = Code(`
 	<html>
 	<head>
-
-		<base href="/">
-		<script src="./poly.min.js" defer></script>
-		<script src="./oxe.min.js" defer></script>
-
+		<script src="/oxe.min.js" defer></script>
+		<script src="/index.js" defer></script>
 	</head>
 	<body>
-
-		<e-menu>
-			<ul>
-				<li><a href="/home">Home</a></li>
-			</ul>
-		</e-menu>
-
 		<main></main>
-
 	</body>
 	</html>
 `);
 
 export default class IndexRoute extends Component {
 
-	title = 'Oxe';
-	description = 'A mighty tiny web components framework/library.';
+    async connected () { Say('index connected'); }
 
-	async connected () {
-		Say('index connected');
-	}
+    title = 'Oxe';
+    description = 'A mighty tiny web components framework/library.';
 
-	html = /*html*/`
+    html = /*html*/`
 		<h2>Overview</h2>
 
 		<strong>Synopsis</strong>
@@ -126,13 +106,13 @@ export default class IndexRoute extends Component {
 
 		<h2>Example</h2>
 		<pre>
-			<code class="language-js">${home}</code>
+			<code class="language-js">${indexRoute}</code>
 		</pre>
 		<pre>
-			<code class="language-js">${indexjs}</code>
+			<code class="language-js">${indexJs}</code>
 		</pre>
 		<pre>
-			<code class="language-html">${indexhtml}</code>
+			<code class="language-html">${indexHtml}</code>
 		</pre>
 	`;
 

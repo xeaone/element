@@ -84,7 +84,8 @@
     const strips = new RegExp([
         ';|:',
         '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
-        `(window|document|this|\\$e|\\$v|\\$f|\\$event|\\$value|\\$form)${reference}*`,
+        // `(window|document|this|\\$event|\\$value|\\$form|\\$e|\\$v|\\$f)${reference}*`, // globals and specials
+        `(window|document|this|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${reference}*`,
         `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
     \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
     \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bconst\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
@@ -105,46 +106,40 @@
             return traverse(data[part], path, paths);
         }
     };
-    function Expression (expression, data) {
-        // console.log(expression);
-        expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
-        const convert = !shouldNotConvert.test(expression);
-        const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+    function Expression (statement, data) {
+        statement = isOfIn.test(statement) ? statement.replace(replaceOfIn, '{{$2}}') : statement;
+        const convert = !shouldNotConvert.test(statement);
+        const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [''];
         let [, assignment] = striped.match(matchAssignment) || [];
-        // assignment = assignment ? `with ($ctx) { return (${assignment}); }` : undefined;
-        // const assignee = assignment ? () => new Function('$ctx', assignment)(data) : () => undefined;
-        const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
-        let code = expression;
-        code = code.replace(/{{/g, convert ? `' +` : '');
-        code = code.replace(/}}/g, convert ? ` + '` : '');
-        code = convert ? `'${code}'` : code;
-        // if ($extra) {
-        //     $context.$f = $extra.form, $context.$form = $extra.form,
-        //     $context.$e = $extra.event, $context.$event = $extra.event,
-        //     $context.$v = $extra.value, $context.$value = $extra.value,
-        //     $context.$c = $extra.checked, $context.$checked = $extra.checked;
-        // }
-        code = `
-        if ($extra) {
-            var
-            $f = $extra.form, $form = $extra.form,
-            $e = $extra.event, $event = $extra.event,
-            $v = $extra.value, $value = $extra.value,
-            $c = $extra.checked, $checked = $extra.checked
-        }
-        with ($context) {
-            return (${code});
-        }
-    `;
+        assignment = assignment?.replace(/\s/g, '');
+        // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
+        // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
+        const assignee = assignment ? () => traverse.bind(null, data, assignment) : () => undefined;
         const context = new Proxy(data, {
             // has: () => true,
             // get: (target, name) => name in data ? data[ name ] : name in target ? target[ name ] : name in window ? window[ name ] : undefined,
             get: (target, name) => name in data ? data[name] : name in window ? window[name] : undefined,
             has: (target, property) => typeof property === 'string' && ['$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked'].includes(property) ? false : true
         });
+        let code = statement;
+        code = code.replace(/{{/g, convert ? `' +` : '');
+        code = code.replace(/}}/g, convert ? ` + '` : '');
+        code = convert ? `'${code}'` : code;
+        code = `
+        var $f, $form, $e, $event, $v, $value, $c, $checked;
+        if ($extra) {
+            $f = $extra.form, $form = $extra.form,
+            $e = $extra.event, $event = $extra.event,
+            $v = $extra.value, $value = $extra.value,
+            $c = $extra.checked, $checked = $extra.checked;
+        }
+        with ($context) {
+            return ${code};
+        }
+    `;
         const compute = new Function('$context', '$extra', code).bind(null, context);
-        return { paths, assignee, compute };
+        return { compute, assignee, paths };
     }
     //     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
     //     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
@@ -497,25 +492,24 @@
     };
     const checked = {
         async setup(binder) {
-            const { owner, binders } = binder;
-            if (owner.type === 'radio') {
-                const parent = owner.form || owner.getRootNode();
-                const elements = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
-                for (const element of elements) {
-                    if (!element._oCheckedListener && !/{{.*?}}/.test(element.getAttribute('checked'))) {
-                        element._oCheckedListener = async () => {
-                            const parent = owner.form || owner.getRootNode();
-                            const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
-                            for (const radio of radios) {
-                                const checkedBinder = binders.get(radio.getAttributeNode('checked'));
-                                if (checkedBinder)
-                                    await handler(checkedBinder, radio.checked);
-                            }
-                        };
-                        element.addEventListener('input', element._oCheckedListener);
-                    }
-                }
-            }
+            const { owner, get } = binder;
+            // if (owner.type === 'radio') {
+            //     const parent = owner.form || owner.getRootNode();
+            //     const elements = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+            //     for (const element of elements) {
+            //         if (!element._oCheckedListener && !/{{.*?}}/.test(element.getAttribute('checked'))) {
+            //             element._oCheckedListener = async () => {
+            //                 const parent = owner.form || owner.getRootNode();
+            //                 const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+            //                 for (const radio of radios) {
+            //                     const checkedBinder = get(radio.getAttributeNode('checked'));
+            //                     if (checkedBinder) await handler(checkedBinder, radio.checked);
+            //                 }
+            //             };
+            //             element.addEventListener('input', element._oCheckedListener);
+            //         }
+            //     }
+            // }
             owner.addEventListener('input', async (event) => {
                 const checked = owner.checked;
                 await handler(binder, checked, event);
@@ -573,6 +567,7 @@
             const { owner } = binder;
             const { type } = owner;
             const value = binder.assignee();
+            const event = { target: { value } };
             let display;
             if (type === 'select-one' || type === 'select-multiple') {
                 const { multiple, options } = owner;
@@ -596,7 +591,7 @@
             }
             else {
                 const { checked } = owner;
-                const computed = await binder.compute({ value, checked });
+                const computed = await binder.compute({ event, value, checked });
                 display = format(computed);
                 owner.value = display;
             }
@@ -823,6 +818,8 @@
             this.prefixReplace = new RegExp('^o-');
             this.syntaxReplace = new RegExp('{{|}}', 'g');
             this.data = new Map();
+            this.nodeBinders = new Map();
+            this.pathBinders = new Map();
             this.binders = {
                 checked,
                 standard,
@@ -842,14 +839,19 @@
                 }
             }
         }
-        get(node) {
-            return this.data.get(node);
+        get(data) {
+            if (typeof data === 'string') {
+                return this.pathBinders.get(data);
+            }
+            else {
+                return this.nodeBinders.get(data);
+            }
         }
         async unbind(node) {
             return this.data.delete(node);
         }
         async bind(node, name, value, container, batcher) {
-            const { assignee, compute, paths } = Expression(value, container.data);
+            const { compute, assignee, paths } = Expression(value, container.data);
             // if (paths.length === 0) {
             //     if (node.nodeType === AN) return (node as Attr).value = await compute();
             //     if (node.nodeType === TN) return node.textContent = await compute();
@@ -859,24 +861,23 @@
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const { setup, before, read, write, after } = this.binders[type];
             return Promise.all(paths.map(async (path) => {
-                // const keys = path.split('.');
-                const keys = path?.replace(/\?\.|\]/g, '').replace(/\[/g, '.').split('.');
-                const [key] = keys.slice(-1);
-                const childKey = keys.slice(-1)[0];
-                const parentKeys = keys.slice(0, -1);
+                // const keys = path?.replace(/\?\.|\]/g, '').replace(/\[/g, '.').split('.');
+                // const [ key ] = keys.slice(-1);
+                // const childKey = keys.slice(-1)[ 0 ];
+                // const parentKeys = keys.slice(0, -1);
                 const binder = {
                     target: owner,
                     node, owner,
                     meta: {},
                     busy: false,
-                    binders: this.data,
+                    // binders: this.data,
                     get: this.get.bind(this),
                     add: this.add.bind(this),
                     remove: this.remove.bind(this),
-                    container,
-                    assignee, compute, type, path,
-                    childKey, parentKeys,
-                    key, keys, name, value,
+                    container, type,
+                    compute, assignee, path,
+                    // childKey, parentKeys, key, keys,
+                    name, value,
                     setup, before, read, write, after,
                     render: async (...args) => {
                         const context = {};
@@ -892,8 +893,14 @@
                 if (duplicate && duplicate.path === path) {
                     console.warn('duplicate binders', node, path);
                 }
-                if (path)
-                    this.data.set(node, binder);
+                if (path) {
+                    if (!this.nodeBinders.has(node))
+                        this.nodeBinders.set(node, new Map());
+                    this.nodeBinders.get(node).set(path, binder);
+                    if (!this.pathBinders.has(path))
+                        this.pathBinders.set(path, new Map());
+                    this.pathBinders.get(path).set(node, binder);
+                }
                 if (binder.setup)
                     await binder.setup(binder);
                 return binder.render();
@@ -1036,16 +1043,16 @@
             super();
             this.#flag = false;
             this.#name = this.nodeName.toLowerCase();
+            // #adopted: () => void;
+            // #rendered: () => void;
+            // #connected: () => void;
+            // #disconnected: () => void;
+            // #attributed: (name: string, from: string, to: string) => void;
             // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
             // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
             // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
             // #adopt: boolean = typeof (this as any).adopt === 'boolean' ? (this as any).adopt : false;
             // #shadow: boolean = typeof (this as any).shadow === 'boolean' ? (this as any).shadow : false;
-            this.#adopted = typeof this.adopted === 'function' ? this.adopted : null;
-            this.#rendered = typeof this.rendered === 'function' ? this.rendered : null;
-            this.#connected = typeof this.connected === 'function' ? this.connected : null;
-            this.#disconnected = typeof this.disconnected === 'function' ? this.disconnected : null;
-            this.#attributed = typeof this.attributed === 'function' ? this.attributed : null;
             this.css = '';
             this.html = '';
             this.data = {};
@@ -1066,22 +1073,17 @@
         #root;
         #flag;
         #name;
-        // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
-        // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
-        // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
-        // #adopt: boolean = typeof (this as any).adopt === 'boolean' ? (this as any).adopt : false;
-        // #shadow: boolean = typeof (this as any).shadow === 'boolean' ? (this as any).shadow : false;
-        #adopted;
-        #rendered;
-        #connected;
-        #disconnected;
-        #attributed;
         get root() { return this.#root; }
         get binder() { return Binder; }
         async render() {
             this.data = observer(this.data, async (path) => {
-                for (const [, binder] of Binder.data) {
-                    if (binder.container === this && binder.path === path && !binder.busy) {
+                const binders = Binder.get(path);
+                if (!binders)
+                    return;
+                for (const [, binder] of binders) {
+                    if (!binder.busy) {
+                        // if (binder.path === path && !binder.busy) {
+                        // if (binder.container === this && binder.path === path && !binder.busy) {
                         binder.busy = true;
                         await binder.render();
                         binder.busy = false;
@@ -1097,9 +1099,6 @@
             }
             const template = document.createElement('template');
             template.innerHTML = this.html;
-            // const clone = template.content.cloneNode(true) as DocumentFragment;
-            // const clone = document.importNode(template.content, true);
-            // const clone = document.adoptNode(template.content);
             if (!this.shadow ||
                 !('attachShadow' in document.body) &&
                     !('createShadowRoot' in document.body)) {
@@ -1135,31 +1134,31 @@
             return Promise.all(tasks);
         }
         async attributeChangedCallback(name, from, to) {
-            await this.#attributed(name, from, to);
+            await this.attributed(name, from, to);
         }
         async adoptedCallback() {
-            if (this.#adopted)
-                await this.#adopted();
+            if (this.adopted)
+                await this.adopted();
         }
         async disconnectedCallback() {
             Css.detach(this.#name);
-            if (this.#disconnected)
-                await this.#disconnected();
+            if (this.disconnected)
+                await this.disconnected();
         }
         async connectedCallback() {
             try {
                 Css.attach(this.#name, this.css);
                 if (this.#flag) {
-                    if (this.#connected)
-                        await this.#connected();
+                    if (this.connected)
+                        await this.connected();
                 }
                 else {
                     this.#flag = true;
                     await this.render();
-                    if (this.#rendered)
-                        await this.#rendered();
-                    if (this.#connected)
-                        await this.#connected();
+                    if (this.rendered)
+                        await this.rendered();
+                    if (this.connected)
+                        await this.connected();
                 }
             }
             catch (error) {
@@ -1167,6 +1166,142 @@
             }
         }
     }
+    // export default function decorate (target) {
+    //     Object.defineProperties(target.prototype, {
+    //         observedAttributes: {
+    //             get () {
+    //                 console.log('goa', target.attributes, this);
+    //                 return target.attributes;
+    //             },
+    //             set (attributes) {
+    //                 console.log('soa', attributes);
+    //                 target.attributes = attributes;
+    //             }
+    //         },
+    //         $name: { value: this.nodeName.toLowerCase() }
+    //     });
+    //     // #root: any;
+    //     // #flag: boolean = false;
+    //     // adopted: () => void;
+    //     // rendered: () => void;
+    //     // connected: () => void;
+    //     // disconnected: () => void;
+    //     // attributed: (name: string, from: string, to: string) => void;
+    //     // css: string = '';
+    //     // html: string = '';
+    //     // data: object = {};
+    //     // adopt: boolean = false;
+    //     // shadow: boolean = false;
+    //     // get root() { return this.#root; }
+    //     // get binder() { return Binder; }
+    //     // constructor() {
+    //     //     super();
+    //     //     if (this.shadow && 'attachShadow' in document.body) {
+    //     //         this.#root = this.attachShadow({ mode: 'open' });
+    //     //     } else if (this.shadow && 'createShadowRoot' in document.body) {
+    //     //         this.#root = (this as any).createShadowRoot();
+    //     //     } else {
+    //     //         this.#root = this;
+    //     //     }
+    //     // }
+    //     Object.defineProperties(target, {
+    //         $render: {
+    //             value: async function () {
+    //                 if (this.shadow && 'attachShadow' in document.body) {
+    //                     this.$root = this.attachShadow({ mode: 'open' });
+    //                 } else if (this.shadow && 'createShadowRoot' in document.body) {
+    //                     this.$root = (this as any).createShadowRoot();
+    //                 } else {
+    //                     this.$root = this;
+    //                 }
+    //                 this.data = Observer(this.data, async path => {
+    //                     for (const [ , binder ] of Binder.data) {
+    //                         if (binder.container === this && binder.path === path && !binder.busy) {
+    //                             binder.busy = true;
+    //                             await binder.render();
+    //                             binder.busy = false;
+    //                         }
+    //                     }
+    //                 });
+    //                 if (this.adopt) {
+    //                     let child = this.firstChild;
+    //                     while (child) {
+    //                         Binder.add(child, this);
+    //                         child = child.nextSibling;
+    //                     }
+    //                 }
+    //                 const template = document.createElement('template');
+    //                 template.innerHTML = this.html;
+    //                 // const clone = template.content.cloneNode(true) as DocumentFragment;
+    //                 // const clone = document.importNode(template.content, true);
+    //                 // const clone = document.adoptNode(template.content);
+    //                 if (
+    //                     !this.shadow ||
+    //                     !('attachShadow' in document.body) &&
+    //                     !('createShadowRoot' in document.body)
+    //                 ) {
+    //                     const templateSlots = template.content.querySelectorAll('slot[name]');
+    //                     const defaultSlot = template.content.querySelector('slot:not([name])');
+    //                     for (let i = 0; i < templateSlots.length; i++) {
+    //                         const templateSlot = templateSlots[ i ];
+    //                         const name = templateSlot.getAttribute('name');
+    //                         const instanceSlot = this.querySelector('[slot="' + name + '"]');
+    //                         if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+    //                         else templateSlot.parentNode.removeChild(templateSlot);
+    //                     }
+    //                     if (this.children.length) {
+    //                         while (this.firstChild) {
+    //                             if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+    //                             else this.removeChild(this.firstChild);
+    //                         }
+    //                     }
+    //                     if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
+    //                 }
+    //                 const tasks = [];
+    //                 let child = template.content.firstChild;
+    //                 while (child) {
+    //                     tasks.push(Binder.add(child, this));
+    //                     child = child.nextSibling;
+    //                 }
+    //                 this.$root.appendChild(template.content);
+    //                 return Promise.all(tasks);
+    //             }
+    //         },
+    //         attributeChangedCallback: {
+    //             value: async function (name: string, from: string, to: string) {
+    //                 await this.attributed(name, from, to);
+    //             }
+    //         },
+    //         adoptedCallback: {
+    //             value: async function () {
+    //                 if (this.adopted) await this.adopted();
+    //             }
+    //         },
+    //         disconnectedCallback: {
+    //             value: async function () {
+    //                 Css.detach(this.$name);
+    //                 if (this.disconnected) await this.disconnected();
+    //             }
+    //         },
+    //         connectedCallback: {
+    //             value: async function () {
+    //                 try {
+    //                     Css.attach(this.$name, this.css);
+    //                     if (this.$flag) {
+    //                         if (this.connected) await this.connected();
+    //                     } else {
+    //                         this.$flag = true;
+    //                         await this.render();
+    //                         if (this.rendered) await this.rendered();
+    //                         if (this.connected) await this.connected();
+    //                     }
+    //                 } catch (error) {
+    //                     console.error(error);
+    //                 }
+    //             }
+    //         }
+    //     });
+    // }
 
     // https://regexr.com/5nj32
     const S_EXPORT = `
@@ -1859,7 +1994,6 @@
             return node.nodeName === '#document-fragment' && node.constructor.name === 'ShadowRoot';
         }
     }
-    console.warn('might need getRootNode polyfill');
     var index = Object.freeze(new class Oxe {
         constructor() {
             this.Component = Component;

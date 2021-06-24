@@ -5,6 +5,9 @@ const { Component } = Oxe;
 
 export default class BindersRoute extends Component {
 
+    static attributes = [ 'test' ];
+    async attributed () { console.log(arguments); }
+
     title = 'Binders';
 
     data = {
@@ -130,11 +133,12 @@ export default class BindersRoute extends Component {
             <div>{{value.out}}</div>
             <div>{{value.text}}</div>
             <br>
-            <input value="{{value.out = $value.toUpperCase()}}">
-            <input value="{{value.out = value.upper($event?.target.value ?? '')}}">
+            <input value="{{value.out = ($value ?? '').toUpperCase() }}">
+            <input value="{{value.out = value.upper($value)}}">
             <input value="{{value.upper($value)}}">
         </section>
 
+        <!--
         <section id="each">
             <h3>Each Binder</h3>
             <br>
@@ -192,6 +196,7 @@ export default class BindersRoute extends Component {
                 <input type="submit" value="submit">
             </form>
         </section>
+        -->
 
     `;
 

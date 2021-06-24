@@ -38,6 +38,9 @@ export default new class Binder {
     syntaxReplace = new RegExp('{{|}}', 'g');
     data: Map<Node, any> = new Map();
 
+    nodeBinders: Map<Node, Map<string, any>> = new Map();
+    pathBinders: Map<string, Map<Node, any>> = new Map();
+
     binders = {
         checked,
         standard,
@@ -57,8 +60,12 @@ export default new class Binder {
         }
     }
 
-    get (node: Node) {
-        return this.data.get(node);
+    get (data: any) {
+        if (typeof data === 'string') {
+            return this.pathBinders.get(data);
+        } else {
+            return this.nodeBinders.get(data);
+        }
     }
 
     async unbind (node: Node) {
@@ -66,7 +73,7 @@ export default new class Binder {
     }
 
     async bind (node: Node, name: string, value: string, container: any, batcher?: Batcher) {
-        const { assignee, compute, paths } = Expression(value, container.data);
+        const { compute, assignee, paths } = Expression(value, container.data);
 
         // if (paths.length === 0) {
         //     if (node.nodeType === AN) return (node as Attr).value = await compute();
@@ -80,27 +87,24 @@ export default new class Binder {
 
         return Promise.all(paths.map(async path => {
 
-            // const keys = path.split('.');
-            const keys = path?.replace(/\?\.|\]/g, '').replace(/\[/g, '.').split('.');
-
-            const [ key ] = keys.slice(-1);
-            const childKey = keys.slice(-1)[ 0 ];
-            const parentKeys = keys.slice(0, -1);
+            // const keys = path?.replace(/\?\.|\]/g, '').replace(/\[/g, '.').split('.');
+            // const [ key ] = keys.slice(-1);
+            // const childKey = keys.slice(-1)[ 0 ];
+            // const parentKeys = keys.slice(0, -1);
 
             const binder = {
                 target: owner,
                 node, owner,
-
                 meta: {},
                 busy: false,
-                binders: this.data,
+                // binders: this.data,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
                 remove: this.remove.bind(this),
-                container,
-                assignee, compute, type, path,
-                childKey, parentKeys,
-                key, keys, name, value,
+                container, type,
+                compute, assignee, path,
+                // childKey, parentKeys, key, keys,
+                name, value,
                 setup, before, read, write, after,
                 render: async (...args) => {
                     const context = {};
@@ -117,7 +121,13 @@ export default new class Binder {
                 console.warn('duplicate binders', node, path);
             }
 
-            if (path) this.data.set(node, binder);
+            if (path) {
+                if (!this.nodeBinders.has(node)) this.nodeBinders.set(node, new Map());
+                this.nodeBinders.get(node).set(path, binder);
+
+                if (!this.pathBinders.has(path)) this.pathBinders.set(path, new Map());
+                this.pathBinders.get(path).set(node, binder);
+            }
 
             if (binder.setup) await binder.setup(binder);
 

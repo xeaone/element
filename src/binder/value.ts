@@ -49,6 +49,7 @@ const value = {
         const { type } = owner;
 
         const value = binder.assignee();
+        const event = { target: { value } };
         let display;
 
         if (type === 'select-one' || type === 'select-multiple') {
@@ -73,7 +74,7 @@ const value = {
 
         } else {
             const { checked } = owner;
-            const computed = await binder.compute({ value, checked });
+            const computed = await binder.compute({ event, value, checked });
             display = format(computed);
             owner.value = display;
         }

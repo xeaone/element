@@ -75,8 +75,6 @@ if (!window.Node.prototype.getRootNode) {
     }
 }
 
-console.warn('might need getRootNode polyfill');
-
 export default Object.freeze(new class Oxe {
 
     Component = Component;

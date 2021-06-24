@@ -11,7 +11,8 @@ const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
 const strips = new RegExp([
     ';|:',
     '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`', // strings
-    `(window|document|this|\\$e|\\$v|\\$f|\\$event|\\$value|\\$form)${reference}*`, // globals and specials
+    // `(window|document|this|\\$event|\\$value|\\$form|\\$e|\\$v|\\$f)${reference}*`, // globals and specials
+    `(window|document|this|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${reference}*`, // globals and specials
     `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
     \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
     \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bconst\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
@@ -19,7 +20,7 @@ const strips = new RegExp([
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
 
-export const traverse = function (data: any, path: string, paths?: string[]) {
+const traverse = function (data: any, path: string, paths?: string[]) {
     paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
 
     if (!paths.length) {
@@ -33,46 +34,19 @@ export const traverse = function (data: any, path: string, paths?: string[]) {
     }
 };
 
-export default function (expression, data) {
-    // console.log(expression);
+export default function (statement: string, data: any) {
+    statement = isOfIn.test(statement) ? statement.replace(replaceOfIn, '{{$2}}') : statement;
 
-    expression = isOfIn.test(expression) ? expression.replace(replaceOfIn, '{{$2}}') : expression;
-
-    const convert = !shouldNotConvert.test(expression);
-    const striped = expression.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+    const convert = !shouldNotConvert.test(statement);
+    const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
 
     const paths = striped.match(references) || [ '' ];
     let [ , assignment ] = striped.match(matchAssignment) || [];
+    assignment = assignment?.replace(/\s/g, '');
 
-    // assignment = assignment ? `with ($ctx) { return (${assignment}); }` : undefined;
-    // const assignee = assignment ? () => new Function('$ctx', assignment)(data) : () => undefined;
-
-    const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
-
-    let code = expression;
-    code = code.replace(/{{/g, convert ? `' +` : '');
-    code = code.replace(/}}/g, convert ? ` + '` : '');
-    code = convert ? `'${code}'` : code;
-
-    // if ($extra) {
-    //     $context.$f = $extra.form, $context.$form = $extra.form,
-    //     $context.$e = $extra.event, $context.$event = $extra.event,
-    //     $context.$v = $extra.value, $context.$value = $extra.value,
-    //     $context.$c = $extra.checked, $context.$checked = $extra.checked;
-    // }
-
-    code = `
-        if ($extra) {
-            var
-            $f = $extra.form, $form = $extra.form,
-            $e = $extra.event, $event = $extra.event,
-            $v = $extra.value, $value = $extra.value,
-            $c = $extra.checked, $checked = $extra.checked
-        }
-        with ($context) {
-            return (${code});
-        }
-    `;
+    // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
+    // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
+    const assignee = assignment ? () => traverse.bind(null, data, assignment) : () => undefined;
 
     const context = new Proxy(data, {
         // has: () => true,
@@ -81,9 +55,25 @@ export default function (expression, data) {
         has: (target, property) => typeof property === 'string' && [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ].includes(property) ? false : true
     });
 
+    let code = statement;
+    code = code.replace(/{{/g, convert ? `' +` : '');
+    code = code.replace(/}}/g, convert ? ` + '` : '');
+    code = convert ? `'${code}'` : code;
+    code = `
+        var $f, $form, $e, $event, $v, $value, $c, $checked;
+        if ($extra) {
+            $f = $extra.form, $form = $extra.form,
+            $e = $extra.event, $event = $extra.event,
+            $v = $extra.value, $value = $extra.value,
+            $c = $extra.checked, $checked = $extra.checked;
+        }
+        with ($context) {
+            return ${code};
+        }
+    `;
     const compute = new Function('$context', '$extra', code).bind(null, context);
 
-    return { paths, assignee, compute };
+    return { compute, assignee, paths };
 };;
 
 //     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
