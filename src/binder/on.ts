@@ -58,12 +58,11 @@ const submit = async function (event, binder) {
 
 const reset = async function (event, binder) {
     event.preventDefault();
-    const { target } = event;
+    const target = event.target;
 
-    const elements = target.querySelectorAll('*');
-    for (const element of elements) {
+    const elements = target.elements;
+    for (let element of elements) {
         const { type, nodeName } = element;
-
         if (
             (!type && nodeName !== 'TEXTAREA') ||
             type === 'submit' || type === 'button' || !type
@@ -71,24 +70,17 @@ const reset = async function (event, binder) {
 
         // const value = binder.get(element)?.get('value');
 
-        // if (!value) {
-        if (type === 'select-one' || type === 'select-multiple') {
-            element.selectedIndex = null;
+        if (type === 'select-one') {
+            element.selectedIndex = 0;
+        } else if (type === 'select-multiple') {
+            element.selectedIndex = -1;
         } else if (type === 'radio' || type === 'checkbox') {
             element.checked = false;
         } else {
-            element.value = null;
+            element.value = undefined;
         }
-        // } else if (type === 'select-one') {
-        //     value.data = null;
-        // } else if (type === 'select-multiple') {
-        //     value.data = [];
-        // } else if (type === 'radio' || type === 'checkbox') {
-        //     value.data = false;
-        // } else {
-        //     value.data = '';
-        // }
 
+        element.dispatchEvent(new Event('input'));
     }
 
     return binder.compute({ event });

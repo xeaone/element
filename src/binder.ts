@@ -141,10 +141,8 @@ export default new class Binder {
 
     }
 
-    async add (node: Node, container: any, thread: any) {
+    async add (node: Node, container: any, thread?: any) {
         const type = node.nodeType;
-
-        // thread = thread === true ? Batcher.thread() : thread;
 
         if (type === TN) {
 
