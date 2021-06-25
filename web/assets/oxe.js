@@ -527,11 +527,11 @@
         binder.busy = true;
         const { owner } = binder;
         const { type } = owner;
-        let display;
+        let display, computed;
         if (type === 'select-one') {
             const [option] = owner.selectedOptions;
             const value = option?.value;
-            const computed = await binder.compute({ event, value });
+            computed = await binder.compute({ event, value });
             display = format(computed);
         }
         else if (type === 'select-multiple') {
@@ -539,7 +539,7 @@
             for (const option of owner.selectedOptions) {
                 value.push(option.value);
             }
-            const computed = await binder.compute({ event, value });
+            computed = await binder.compute({ event, value });
             display = format(computed);
             // } else if (type === 'file') {
             //     const { multiple, files } = owner;
@@ -549,17 +549,19 @@
         }
         else {
             const { checked } = owner;
-            const isNumberType = numberTypes.includes(type);
-            const value = isNumberType ? owner.valueAsNumber : owner.value;
-            const computed = await binder.compute({ event, value, checked });
+            const isNumber = owner.$typeof !== 'string' && numberTypes.includes(type);
+            const value = isNumber ? owner.valueAsNumber : owner.value;
+            computed = await binder.compute({ event, value, checked });
             display = format(computed);
-            if (isNumberType) {
+            if (numberTypes.includes(type) && typeof computed !== 'string') {
                 owner.valueAsNumber = computed;
             }
             else {
                 owner.value = display;
             }
         }
+        owner.$value = computed;
+        owner.$typeof = typeof computed;
         owner.setAttribute('value', display);
         binder.busy = false;
     };
@@ -570,7 +572,7 @@
         async write(binder) {
             const { owner } = binder;
             const { type } = owner;
-            let display;
+            let display, computed;
             if (type === 'select-one') {
                 const value = binder.assignee();
                 const { options } = owner;
@@ -579,7 +581,7 @@
                         break;
                 }
                 const [option] = owner.selectedOptions;
-                const computed = await binder.compute({ value: option?.value });
+                computed = await binder.compute({ value: option?.value });
                 display = format(computed);
                 owner.value = display;
             }
@@ -589,21 +591,23 @@
                 for (const option of options) {
                     option.selected = value?.includes(option.value);
                 }
-                const computed = await binder.compute({ value });
+                computed = await binder.compute({ value });
                 display = format(computed);
             }
             else {
                 const { checked } = owner;
                 const value = binder.assignee();
-                const computed = await binder.compute({ value, checked });
+                computed = await binder.compute({ value, checked });
                 display = format(computed);
-                if (numberTypes.includes(type)) {
+                if (numberTypes.includes(type) && typeof computed !== 'string') {
                     owner.valueAsNumber = computed;
                 }
                 else {
                     owner.value = display;
                 }
             }
+            owner.$value = computed;
+            owner.$typeof = typeof computed;
             owner.setAttribute('value', display);
         }
     };
@@ -704,9 +708,9 @@
 
     const submit = async function (event, binder) {
         event.preventDefault();
-        const { target } = event;
         const form = {};
-        const elements = [...target.querySelectorAll('*')];
+        const target = event.target;
+        const elements = target?.elements || target?.form?.elements;
         for (const element of elements) {
             const { type, name, nodeName, checked } = element;
             if (!name)
@@ -714,32 +718,31 @@
             if ((!type && nodeName !== 'TEXTAREA') ||
                 type === 'submit' || type === 'button' || !type)
                 continue;
-            // if (type === 'checkbox' && !checked) continue;
             if (type === 'radio' && !checked)
                 continue;
-            const attribute = element.getAttributeNode('value');
-            const valueBinder = binder.get(attribute);
-            const value = valueBinder ? await valueBinder.compute() : attribute.value;
-            console.warn('todo: need to get a value for selects');
-            // const value = (
-            //     valueBinder ? valueBinder.data : (
-            //         element.files ? (
-            //             element.attributes[ 'multiple' ] ? Array.prototype.slice.call(element.files) : element.files[ 0 ]
-            //         ) : element.value
-            //     )
-            // );
-            // const name = element.name || (valueBinder ? valueBinder.values[ valueBinder.values.length - 1 ] : null);
-            let meta = form;
+            if (type === 'checkbox' && !checked)
+                continue;
+            let value;
+            if ('$value' in element) {
+                value = element.$value === 'object' ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
+            }
+            else if (type === 'select-multiple') {
+                value = [];
+                for (const option of element.selectedOptions) {
+                    value.push('$value' in option ? option.$value === 'object' ? JSON.parse(JSON.stringify(option.$value)) : option.$value : option.value);
+                }
+            }
+            let data = form;
             name.split(/\s*\.\s*/).forEach((part, index, parts) => {
                 const next = parts[index + 1];
                 if (next) {
-                    if (!meta[part]) {
-                        meta[part] = /[0-9]+/.test(next) ? [] : {};
+                    if (!data[part]) {
+                        data[part] = /[0-9]+/.test(next) ? [] : {};
                     }
-                    meta = meta[part];
+                    data = data[part];
                 }
                 else {
-                    meta[part] = value;
+                    data[part] = value;
                 }
             });
         }
@@ -751,13 +754,12 @@
     const reset = async function (event, binder) {
         event.preventDefault();
         const target = event.target;
-        const elements = target.elements;
-        for (let element of elements) {
+        const elements = target?.elements || target?.form?.elements;
+        for (const element of elements) {
             const { type, nodeName } = element;
             if ((!type && nodeName !== 'TEXTAREA') ||
                 type === 'submit' || type === 'button' || !type)
                 continue;
-            // const value = binder.get(element)?.get('value');
             if (type === 'select-one') {
                 element.selectedIndex = 0;
             }
@@ -772,7 +774,8 @@
             }
             element.dispatchEvent(new Event('input'));
         }
-        return binder.compute({ event });
+        await binder.compute({ event });
+        return false;
     };
     const read = async function (binder) {
         binder.owner[binder.name] = null;

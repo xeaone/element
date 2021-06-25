@@ -47,7 +47,7 @@ export default class BindersRoute extends Component {
         // selectResult: 'cactus',
         selectEachResult: 'orange',
         // selectEachResult: undefined,
-        multipleSelectResult: undefined,
+        // multipleSelectResult: undefined,
 
         radio: false,
         agree: true,
@@ -189,6 +189,10 @@ export default class BindersRoute extends Component {
                 <strong>Animal:</strong>
                 <input type="radio" name="animal" value="{{'dogs'}}" checked="{{$c}}">Dogs
                 <input type="radio" name="animal" value="cats" checked="{{$c}}">Cats
+                <br>
+                <br>
+                <div>{{favoriteNumber}}</div>
+                <input name="favoriteNumber" type="number" value="{{favoriteNumber = $value}}">
                 <br>
                 <br>
                 <input type="submit" value="submit">

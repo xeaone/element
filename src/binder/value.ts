@@ -7,12 +7,12 @@ const input = async function (binder, event) {
 
     const { owner } = binder;
     const { type } = owner;
-    let display;
+    let display, computed;
 
     if (type === 'select-one') {
         const [ option ] = owner.selectedOptions;
         const value = option?.value;
-        const computed = await binder.compute({ event, value });
+        computed = await binder.compute({ event, value });
         display = format(computed);
     } else if (type === 'select-multiple') {
 
@@ -21,7 +21,7 @@ const input = async function (binder, event) {
             value.push(option.value);
         }
 
-        const computed = await binder.compute({ event, value });
+        computed = await binder.compute({ event, value });
         display = format(computed);
         // } else if (type === 'file') {
         //     const { multiple, files } = owner;
@@ -30,17 +30,19 @@ const input = async function (binder, event) {
         //     display = format(computed);
     } else {
         const { checked } = owner;
-        const isNumberType = numberTypes.includes(type);
-        const value = isNumberType ? owner.valueAsNumber : owner.value;
-        const computed = await binder.compute({ event, value, checked });
+        const isNumber = owner.$typeof !== 'string' && numberTypes.includes(type);
+        const value = isNumber ? owner.valueAsNumber : owner.value;
+        computed = await binder.compute({ event, value, checked });
         display = format(computed);
-        if (isNumberType) {
+        if (numberTypes.includes(type) && typeof computed !== 'string') {
             owner.valueAsNumber = computed;
         } else {
             owner.value = display;
         }
     }
 
+    owner.$value = computed;
+    owner.$typeof = typeof computed;
     owner.setAttribute('value', display);
     binder.busy = false;
 };
@@ -53,7 +55,7 @@ const value = {
         const { owner } = binder;
         const { type } = owner;
 
-        let display;
+        let display, computed;
 
         if (type === 'select-one') {
             const value = binder.assignee();
@@ -64,7 +66,7 @@ const value = {
             }
 
             const [ option ] = owner.selectedOptions;
-            const computed = await binder.compute({ value: option?.value });
+            computed = await binder.compute({ value: option?.value });
 
             display = format(computed);
             owner.value = display;
@@ -76,20 +78,22 @@ const value = {
                 option.selected = value?.includes(option.value);
             }
 
-            const computed = await binder.compute({ value });
+            computed = await binder.compute({ value });
             display = format(computed);
         } else {
             const { checked } = owner;
             const value = binder.assignee();
-            const computed = await binder.compute({ value, checked });
+            computed = await binder.compute({ value, checked });
             display = format(computed);
-            if (numberTypes.includes(type)) {
+            if (numberTypes.includes(type) && typeof computed !== 'string') {
                 owner.valueAsNumber = computed;
             } else {
                 owner.value = display;
             }
         }
 
+        owner.$value = computed;
+        owner.$typeof = typeof computed;
         owner.setAttribute('value', display);
     }
 };

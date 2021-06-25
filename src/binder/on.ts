@@ -1,10 +1,11 @@
 
 const submit = async function (event, binder) {
     event.preventDefault();
-    const { target } = event;
 
     const form = {};
-    const elements = [ ...target.querySelectorAll('*') ];
+    const target = event.target;
+    const elements = target?.elements || target?.form?.elements;
+
     for (const element of elements) {
         const { type, name, nodeName, checked } = element;
 
@@ -15,35 +16,29 @@ const submit = async function (event, binder) {
             type === 'submit' || type === 'button' || !type
         ) continue;
 
-        // if (type === 'checkbox' && !checked) continue;
         if (type === 'radio' && !checked) continue;
+        if (type === 'checkbox' && !checked) continue;
 
-        const attribute = element.getAttributeNode('value');
-        const valueBinder = binder.get(attribute);
-        const value = valueBinder ? await valueBinder.compute() : attribute.value;
+        let value;
+        if ('$value' in element) {
+            value = element.$value === 'object' ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
+        } else if (type === 'select-multiple') {
+            value = [];
+            for (const option of element.selectedOptions) {
+                value.push('$value' in option ? option.$value === 'object' ? JSON.parse(JSON.stringify(option.$value)) : option.$value : option.value);
+            }
+        }
 
-        console.warn('todo: need to get a value for selects');
-
-        // const value = (
-        //     valueBinder ? valueBinder.data : (
-        //         element.files ? (
-        //             element.attributes[ 'multiple' ] ? Array.prototype.slice.call(element.files) : element.files[ 0 ]
-        //         ) : element.value
-        //     )
-        // );
-
-        // const name = element.name || (valueBinder ? valueBinder.values[ valueBinder.values.length - 1 ] : null);
-
-        let meta = form;
+        let data = form;
         name.split(/\s*\.\s*/).forEach((part, index, parts) => {
             const next = parts[ index + 1 ];
             if (next) {
-                if (!meta[ part ]) {
-                    meta[ part ] = /[0-9]+/.test(next) ? [] : {};
+                if (!data[ part ]) {
+                    data[ part ] = /[0-9]+/.test(next) ? [] : {};
                 }
-                meta = meta[ part ];
+                data = data[ part ];
             } else {
-                meta[ part ] = value;
+                data[ part ] = value;
             }
         });
 
@@ -58,17 +53,17 @@ const submit = async function (event, binder) {
 
 const reset = async function (event, binder) {
     event.preventDefault();
-    const target = event.target;
 
-    const elements = target.elements;
-    for (let element of elements) {
+    const target = event.target;
+    const elements = target?.elements || target?.form?.elements;
+
+    for (const element of elements) {
         const { type, nodeName } = element;
+
         if (
             (!type && nodeName !== 'TEXTAREA') ||
             type === 'submit' || type === 'button' || !type
         ) continue;
-
-        // const value = binder.get(element)?.get('value');
 
         if (type === 'select-one') {
             element.selectedIndex = 0;
@@ -83,7 +78,9 @@ const reset = async function (event, binder) {
         element.dispatchEvent(new Event('input'));
     }
 
-    return binder.compute({ event });
+    await binder.compute({ event });
+
+    return false;
 };
 
 const read = async function (binder) {
