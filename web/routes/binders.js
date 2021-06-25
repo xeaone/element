@@ -32,7 +32,6 @@ export default class BindersRoute extends Component {
         classToggle () { this.active = !this.active; },
 
         value: {
-            out: '',
             text: 'hello world',
             upper: text => text?.toUpperCase(),
         },
@@ -127,18 +126,17 @@ export default class BindersRoute extends Component {
             <br>
             <pre style="white-space: pre-line;">${Code(`
                 <div>{{value.text}}</div>
-                <input value="{{value.text}}" oninput="{{value.upper(value.text)}}">
+                <input value="{{value.text = $value.toUpperCase() }}">
+                <input value="{{(value.text = $value).toLowerCase()}}"
             `, true)}</pre>
             <br>
-            <div>{{value.out}}</div>
             <div>{{value.text}}</div>
             <br>
-            <input value="{{value.out = ($value ?? '').toUpperCase() }}">
-            <input value="{{value.out = value.upper($value)}}">
-            <input value="{{value.upper($value)}}">
+            <input value="{{value.text = $value.toUpperCase() }}">
+            <input value="{{(value.text = $value).toLowerCase()}}">
+            <input type="number" value="{{value.number = $value}}" oninput="{{console.log(value.number)}}">
         </section>
 
-        <!--
         <section id="each">
             <h3>Each Binder</h3>
             <br>
@@ -196,7 +194,6 @@ export default class BindersRoute extends Component {
                 <input type="submit" value="submit">
             </form>
         </section>
-        -->
 
     `;
 

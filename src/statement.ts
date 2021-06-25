@@ -11,7 +11,6 @@ const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
 const strips = new RegExp([
     ';|:',
     '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`', // strings
-    // `(window|document|this|\\$event|\\$value|\\$form|\\$e|\\$v|\\$f)${reference}*`, // globals and specials
     `(window|document|this|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${reference}*`, // globals and specials
     `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
     \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
@@ -40,13 +39,13 @@ export default function (statement: string, data: any) {
     const convert = !shouldNotConvert.test(statement);
     const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
 
-    const paths = striped.match(references) || [ '' ];
+    const paths = striped.match(references) || [];
     let [ , assignment ] = striped.match(matchAssignment) || [];
     assignment = assignment?.replace(/\s/g, '');
 
     // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
     // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
-    const assignee = assignment ? () => traverse.bind(null, data, assignment) : () => undefined;
+    const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
 
     const context = new Proxy(data, {
         // has: () => true,
@@ -68,13 +67,13 @@ export default function (statement: string, data: any) {
             $c = $extra.checked, $checked = $extra.checked;
         }
         with ($context) {
-            return ${code};
+            return (${code});
         }
     `;
     const compute = new Function('$context', '$extra', code).bind(null, context);
 
     return { compute, assignee, paths };
-};;
+};
 
 //     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
 //     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',

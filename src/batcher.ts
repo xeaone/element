@@ -1,8 +1,9 @@
 
-export default class Batcher {
+export default new class Batcher {
 
     #reads = [];
     #writes = [];
+    #thread?: Batcher;
 
     #max = 16;
     #pending = false;
@@ -20,8 +21,12 @@ export default class Batcher {
     //     return this.remove(this.#reads, task) || this.remove(this.#writes, task);
     // }
 
+    thread () {
+        return this.#thread = this.#thread || new Batcher();
+    }
+
     tick (method: (time: number) => void) {
-        return new Promise((resolve: any, reject: any) => {
+        return new Promise((resolve: any) => {
             window.requestAnimationFrame(async time => {
                 await method.call(this, time);
                 resolve();
@@ -87,7 +92,7 @@ export default class Batcher {
         });
     }
 
-}
+};;
 
 // export default Object.freeze({
 //     reads,

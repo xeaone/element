@@ -1,30 +1,24 @@
 
-const html = {
-    async write (binder) {
-        let data = await binder.compute();
+const write = async function (binder) {
+    let data = await binder.compute();
 
-        if (typeof data !== 'string') {
-            data = '';
-            console.error('html binder requires a string');
-        }
-
-        while (binder.target.firstChild) {
-            const node = binder.target.removeChild(binder.target.firstChild);
-            binder.remove(node);
-        }
-
-        const fragment = document.createDocumentFragment();
-        const parser = document.createElement('div');
-
-        parser.innerHTML = data;
-
-        while (parser.firstElementChild) {
-            binder.add(parser.firstElementChild, { container: binder.container });
-            fragment.appendChild(parser.firstElementChild);
-        }
-
-        binder.target.appendChild(fragment);
+    if (typeof data !== 'string') {
+        data = '';
+        console.warn('html binder requires a string');
     }
+
+    while (binder.owner.firstChild) {
+        const node = binder.owner.removeChild(binder.owner.firstChild);
+        binder.remove(node);
+    }
+
+    const template = document.createElement('template');
+    template.innerHTML = data;
+
+    await Promise.all(Array.prototype.map.call(template.content.childNodes, async node =>
+        binder.add(node, binder.container, true))).then(() =>
+            binder.owner.appendChild(template.content));
+
 };
 
-export default html;
+export default { write };

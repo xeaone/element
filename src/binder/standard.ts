@@ -8,25 +8,23 @@ const booleans = [
     'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
 ];
 
-const standard = {
-    async write (binder) {
-        const { name, owner, node } = binder;
+const write = async function (binder) {
+    const { name, owner, node } = binder;
 
-        let data = await binder.compute();
-        const boolean = booleans.includes(name);
+    let data = await binder.compute();
+    const boolean = booleans.includes(name);
 
-        if (boolean) {
-            data = data ? true : false;
-            if (data) owner.setAttributeNode(node);
-            else owner.removeAttribute(name);
-        } else {
-            data = format(data);
-            owner[ name ] = data;
-            owner.setAttribute(name, data);
-        }
-
+    if (boolean) {
+        data = data ? true : false;
+        if (data) owner.setAttributeNode(node);
+        else owner.removeAttribute(name);
+    } else {
+        data = format(data);
+        owner[ name ] = data;
+        owner.setAttribute(name, data);
     }
+
 };
 
-export default standard;
+export default { write };
 
