@@ -3,7 +3,6 @@ export default new class Batcher {
 
     #reads = [];
     #writes = [];
-    #thread?: Batcher;
 
     #max = 16;
     #pending = false;
@@ -21,8 +20,8 @@ export default new class Batcher {
     //     return this.remove(this.#reads, task) || this.remove(this.#writes, task);
     // }
 
-    thread () {
-        return this.#thread = this.#thread || new Batcher();
+    instance () {
+        return new Batcher();
     }
 
     tick (method: (time: number) => void) {

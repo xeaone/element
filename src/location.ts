@@ -44,7 +44,7 @@ export default new class Location {
     reload () { window.location.reload(); }
     redirect (href: string) { window.location.href = href; }
 
-    async listen (option: Option) {
+    async setup (option: Option) {
 
         // if (!option.target) throw new Error('target required');
         if ('folder' in option) this.#folder = option.folder;
@@ -104,7 +104,7 @@ export default new class Location {
         //     path += Query(options.query);
         // }
 
-        const { mode } = options;
+        const mode = options.mode || 'push';
         const location = this.location(path);
 
         if (this.#before) await this.#before(location);

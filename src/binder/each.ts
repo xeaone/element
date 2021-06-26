@@ -79,9 +79,8 @@ const write = async function (binder) {
         const template = document.createElement('template');
         template.innerHTML = html;
 
-        await Promise.all(Array.prototype.map.call(template.content.childNodes, async node =>
-            binder.add(node, binder.container, true))).then(() =>
-                owner.appendChild(template.content));
+        await binder.adds(template.content.childNodes, binder.container);
+        owner.appendChild(template.content);
 
     }
     console.timeEnd(label);

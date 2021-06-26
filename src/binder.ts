@@ -66,6 +66,12 @@ export default new class Binder {
         }
     }
 
+    async adds (nodes: [], container: any) {
+        const batcher = Batcher.instance();
+        return Promise.all(Array.prototype.map.call(nodes, async node =>
+            this.add(node, container, batcher)));
+    }
+
     async unbind (node: Node) {
         // need to figureout how to handle boolean attributes
         const nodeBinders = this.nodeBinders.get(node);
@@ -78,7 +84,7 @@ export default new class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, name: string, value: string, container: any, thread?: any) {
+    async bind (node: Node, name: string, value: string, container: any, batcher?: any) {
         const { compute, assignee, paths } = Statement(value, container.data);
 
         if (!paths.length) paths.push('');
@@ -99,12 +105,13 @@ export default new class Binder {
                 setup, before, read, write, after,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
+                adds: this.adds.bind(this),
                 remove: this.remove.bind(this),
                 render: async (...args) => {
                     const context = {};
                     const read = binder.read?.bind(null, binder, context, ...args);
                     const write = binder.write?.bind(null, binder, context, ...args);
-                    if (read || write) await (thread ? Batcher.thread() : Batcher).batch(read, write);
+                    if (read || write) await (batcher || Batcher).batch(read, write);
                 }
             };
 
@@ -141,7 +148,7 @@ export default new class Binder {
 
     }
 
-    async add (node: Node, container: any, thread?: any) {
+    async add (node: Node, container: any, batcher?: any) {
         const type = node.nodeType;
 
         if (type === TN) {
@@ -158,12 +165,12 @@ export default new class Binder {
                 const split = (node as Text).splitText(end + this.syntaxEnd.length);
                 const value = node.textContent;
                 node.textContent = '';
-                if (!empty.test(value)) await this.bind(node, 'text', value, container, thread);
-                return this.add(split, container, thread);
+                if (!empty.test(value)) await this.bind(node, 'text', value, container, batcher);
+                return this.add(split, container, batcher);
             } else {
                 const value = node.textContent;
                 node.textContent = '';
-                if (!empty.test(value)) await this.bind(node, 'text', value, container, thread);
+                if (!empty.test(value)) await this.bind(node, 'text', value, container, batcher);
             }
 
         } else if (type === EN) {
@@ -172,7 +179,7 @@ export default new class Binder {
             const attributes = (node as Element).attributes;
 
             let each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
-            each = each ? await this.bind(each, each.name, each.value, container, thread) : undefined;
+            each = each ? await this.bind(each, each.name, each.value, container, batcher) : undefined;
 
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
@@ -181,14 +188,14 @@ export default new class Binder {
                 // this.syntaxMatch.test(name) || name.startsWith(this.prefix) 
                 if (this.syntaxMatch.test(value)) {
                     attribute.value = '';
-                    if (!empty.test(value)) tasks.push(this.bind(attribute, name, value, container, thread));
+                    if (!empty.test(value)) tasks.push(this.bind(attribute, name, value, container, batcher));
                 }
             }
 
             if (!each) {
                 let child = node.firstChild;
                 while (child) {
-                    tasks.push(this.add(child, container, thread));
+                    tasks.push(this.add(child, container, batcher));
                     child = child.nextSibling;
                 }
             }

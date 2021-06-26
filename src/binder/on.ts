@@ -27,6 +27,8 @@ const submit = async function (event, binder) {
             for (const option of element.selectedOptions) {
                 value.push('$value' in option ? option.$value === 'object' ? JSON.parse(JSON.stringify(option.$value)) : option.$value : option.value);
             }
+        } else {
+            value = element.value;
         }
 
         let data = form;

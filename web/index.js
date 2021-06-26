@@ -3,7 +3,7 @@
 //     console.log('route:after');
 // });
 
-Oxe.location.listen({
+Oxe.location.setup({
     target: 'main',
     folder: 'routes'
 });

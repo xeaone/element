@@ -352,7 +352,6 @@
         }
         #reads;
         #writes;
-        #thread;
         #max;
         #pending;
         // remove (tasks, task) {
@@ -362,8 +361,8 @@
         // clear (task) {
         //     return this.remove(this.#reads, task) || this.remove(this.#writes, task);
         // }
-        thread() {
-            return this.#thread = this.#thread || new Batcher();
+        instance() {
+            return new Batcher();
         }
         tick(method) {
             return new Promise((resolve) => {
@@ -675,7 +674,8 @@
             }
             const template = document.createElement('template');
             template.innerHTML = html;
-            await Promise.all(Array.prototype.map.call(template.content.childNodes, async (node) => binder.add(node, binder.container, true))).then(() => owner.appendChild(template.content));
+            await binder.adds(template.content.childNodes, binder.container);
+            owner.appendChild(template.content);
         }
         console.timeEnd(label);
     };
@@ -731,6 +731,9 @@
                 for (const option of element.selectedOptions) {
                     value.push('$value' in option ? option.$value === 'object' ? JSON.parse(JSON.stringify(option.$value)) : option.$value : option.value);
                 }
+            }
+            else {
+                value = element.value;
             }
             let data = form;
             name.split(/\s*\.\s*/).forEach((part, index, parts) => {
@@ -839,6 +842,10 @@
                 return this.nodeBinders.get(data);
             }
         }
+        async adds(nodes, container) {
+            const batcher = Batcher.instance();
+            return Promise.all(Array.prototype.map.call(nodes, async (node) => this.add(node, container, batcher)));
+        }
         async unbind(node) {
             // need to figureout how to handle boolean attributes
             const nodeBinders = this.nodeBinders.get(node);
@@ -849,7 +856,7 @@
             }
             this.nodeBinders.delete(node);
         }
-        async bind(node, name, value, container, thread) {
+        async bind(node, name, value, container, batcher) {
             const { compute, assignee, paths } = Statement(value, container.data);
             if (!paths.length)
                 paths.push('');
@@ -867,13 +874,14 @@
                     setup, before, read, write, after,
                     get: this.get.bind(this),
                     add: this.add.bind(this),
+                    adds: this.adds.bind(this),
                     remove: this.remove.bind(this),
                     render: async (...args) => {
                         const context = {};
                         const read = binder.read?.bind(null, binder, context, ...args);
                         const write = binder.write?.bind(null, binder, context, ...args);
                         if (read || write)
-                            await (thread ? Batcher.thread() : Batcher).batch(read, write);
+                            await (batcher || Batcher).batch(read, write);
                     }
                 };
                 if (path) {
@@ -904,7 +912,7 @@
                 child = child.nextSibling;
             }
         }
-        async add(node, container, thread) {
+        async add(node, container, batcher) {
             const type = node.nodeType;
             if (type === TN) {
                 const start = node.textContent.indexOf(this.syntaxStart);
@@ -920,21 +928,21 @@
                     const value = node.textContent;
                     node.textContent = '';
                     if (!empty.test(value))
-                        await this.bind(node, 'text', value, container, thread);
-                    return this.add(split, container, thread);
+                        await this.bind(node, 'text', value, container, batcher);
+                    return this.add(split, container, batcher);
                 }
                 else {
                     const value = node.textContent;
                     node.textContent = '';
                     if (!empty.test(value))
-                        await this.bind(node, 'text', value, container, thread);
+                        await this.bind(node, 'text', value, container, batcher);
                 }
             }
             else if (type === EN) {
                 const tasks = [];
                 const attributes = node.attributes;
                 let each = attributes['each'] || attributes[`${this.prefix}each`];
-                each = each ? await this.bind(each, each.name, each.value, container, thread) : undefined;
+                each = each ? await this.bind(each, each.name, each.value, container, batcher) : undefined;
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
                     const { name, value } = attribute;
@@ -944,13 +952,13 @@
                     if (this.syntaxMatch.test(value)) {
                         attribute.value = '';
                         if (!empty.test(value))
-                            tasks.push(this.bind(attribute, name, value, container, thread));
+                            tasks.push(this.bind(attribute, name, value, container, batcher));
                     }
                 }
                 if (!each) {
                     let child = node.firstChild;
                     while (child) {
-                        tasks.push(this.add(child, container, thread));
+                        tasks.push(this.add(child, container, batcher));
                         child = child.nextSibling;
                     }
                 }
@@ -1547,7 +1555,7 @@
         forward() { window.history.forward(); }
         reload() { window.location.reload(); }
         redirect(href) { window.location.href = href; }
-        async listen(option) {
+        async setup(option) {
             // if (!option.target) throw new Error('target required');
             if ('folder' in option)
                 this.#folder = option.folder;
@@ -1598,7 +1606,7 @@
             // if (options.query) {
             //     path += Query(options.query);
             // }
-            const { mode } = options;
+            const mode = options.mode || 'push';
             const location = this.location(path);
             if (this.#before)
                 await this.#before(location);

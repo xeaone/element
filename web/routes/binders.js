@@ -53,8 +53,8 @@ export default class BindersRoute extends Component {
         agree: true,
         firstName: 'james',
         lastName: 'bond',
-        submit (event, data) {
-            console.log(data);
+        submit (form) {
+            console.log(form);
         }
 
     };
@@ -176,7 +176,7 @@ export default class BindersRoute extends Component {
         <section>
             <h3>Submit Binder</h3>
             <br>
-            <form onsubmit="{{submit}}">
+            <form onsubmit="{{submit($form)}}">
                 <div>{{firstName}}</div>
                 <input name="name.first" value="{{firstName = $v}}" placeholder="first name">
                 <div>{{lastName}}</div>
