@@ -66,12 +66,6 @@ export default new class Binder {
         }
     }
 
-    async adds (nodes: [], container: any) {
-        const batcher = Batcher.instance();
-        return Promise.all(Array.prototype.map.call(nodes, async node =>
-            this.add(node, container, batcher)));
-    }
-
     async unbind (node: Node) {
         // need to figureout how to handle boolean attributes
         const nodeBinders = this.nodeBinders.get(node);
@@ -93,8 +87,8 @@ export default new class Binder {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         const { setup, before, read, write, after } = this.binders[ type ];
 
-        return Promise.all(paths.map(async path => {
-
+        const tasks = [];
+        for (const path of paths) {
             const binder = {
                 meta: {},
                 node, owner,
@@ -105,13 +99,16 @@ export default new class Binder {
                 setup, before, read, write, after,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
-                adds: this.adds.bind(this),
                 remove: this.remove.bind(this),
                 render: async (...args) => {
+                    if (binder.busy) return;
+                    binder.busy = true;
                     const context = {};
                     const read = binder.read?.bind(null, binder, context, ...args);
                     const write = binder.write?.bind(null, binder, context, ...args);
-                    if (read || write) await (batcher || Batcher).batch(read, write);
+                    if (read || write) await Batcher.batch(read, write);
+                    binder.busy = false;
+                    // if (read || write) Batcher.batch(read, write);
                 }
             };
 
@@ -122,10 +119,15 @@ export default new class Binder {
                 this.pathBinders.get(path).set(node, binder);
             }
 
-            if (binder.setup) await binder.setup(binder);
+            if (binder.setup) {
+                tasks.push(Promise.resolve().then(binder.setup.bind(null, binder)).then(binder.render));
+            } else {
+                tasks.push(binder.render());
+            }
 
-            return binder.render();
-        }));
+        }
+
+        return Promise.all(tasks);
     }
 
     async remove (node: Node) {
@@ -178,13 +180,14 @@ export default new class Binder {
             const tasks = [];
             const attributes = (node as Element).attributes;
 
-            let each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
-            each = each ? await this.bind(each, each.name, each.value, container, batcher) : undefined;
-
+            // let each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
+            // each = each ? await this.bind(each, each.name, each.value, container, batcher) : undefined;
+            let each;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
                 const { name, value } = attribute;
-                if (name === 'each' || name === `${this.prefix}each`) continue;
+                // if (name === 'each' || name === `${this.prefix}each`) continue;
+                if (name === 'each' || name === `${this.prefix}each`) each = true;
                 // this.syntaxMatch.test(name) || name.startsWith(this.prefix) 
                 if (this.syntaxMatch.test(value)) {
                     attribute.value = '';
@@ -200,7 +203,7 @@ export default new class Binder {
                 }
             }
 
-            return Promise.all(tasks);
+            Promise.all(tasks);
         }
     }
 

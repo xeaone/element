@@ -58,7 +58,6 @@ class OLoop extends Component {
         <div each="{{item of items}}">
             <div class="box">
                 <div>{{item.number}}</div>
-                <input value="{{item.number = $value}}"></input>
             </div>
         </div>
 
@@ -66,6 +65,7 @@ class OLoop extends Component {
 
     `;
 
+    // <input value="{{item.number = $value}}"></input>
     async attributed () {
         console.log(this.data);
         console.log(arguments);

@@ -56,13 +56,7 @@ export default class Component extends HTMLElement {
             const binders = Binder.get(path);
             if (!binders) return;
             for (const [ , binder ] of binders) {
-                if (!binder.busy) {
-                    // if (binder.path === path && !binder.busy) {
-                    // if (binder.container === this && binder.path === path && !binder.busy) {
-                    binder.busy = true;
-                    await binder.render();
-                    binder.busy = false;
-                }
+                await binder.render();
             }
         });
 
@@ -136,7 +130,7 @@ export default class Component extends HTMLElement {
             } else {
                 this.#flag = true;
                 await this.render();
-                if (this.rendered) await this.rendered();
+                // if (this.rendered) await this.rendered();
                 if (this.connected) await this.connected();
             }
         } catch (error) {

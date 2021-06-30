@@ -20,10 +20,6 @@ export default new class Batcher {
     //     return this.remove(this.#reads, task) || this.remove(this.#writes, task);
     // }
 
-    instance () {
-        return new Batcher();
-    }
-
     tick (method: (time: number) => void) {
         return new Promise((resolve: any) => {
             window.requestAnimationFrame(async time => {
@@ -39,32 +35,31 @@ export default new class Batcher {
         let read;
         while (read = this.#reads.shift()) {
             tasks.push(read());
-            if ((performance.now() - time) > this.#max) return this.tick(this.flush);
+            // if ((performance.now() - time) > this.#max) return this.tick(this.flush);
         }
         await Promise.all(tasks);
 
         let write;
         while (write = this.#writes.shift()) {
             tasks.push(write());
-            if ((performance.now() - time) > this.#max) return this.tick(this.flush);
+            // if ((performance.now() - time) > this.#max) return this.tick(this.flush);
         }
         await Promise.all(tasks);
 
         if (this.#reads.length === 0 && this.#writes.length === 0) {
             this.#pending = false;
-        } else if ((performance.now() - time) > this.#max) {
-            return this.tick(this.flush);
+            // } else if ((performance.now() - time) > this.#max) {
+            // return this.tick(this.flush);
         } else {
             return this.flush(time);
         }
 
     }
 
-    batch (read, write) {
+    async batch (read, write) {
         if (!read && !write) throw new Error('read or write required');
 
-        return new Promise((resolve: any, reject: any) => {
-
+        return new Promise((resolve: any) => {
             if (read) {
                 this.#reads.push(async () => {
                     await read();
@@ -91,7 +86,7 @@ export default new class Batcher {
         });
     }
 
-};;
+};
 
 // export default Object.freeze({
 //     reads,

@@ -5,11 +5,11 @@ type tasks = task[];
 const run = async function (tasks: tasks) {
     let task;
     while (task = tasks.shift()) {
-        task();
+        // task();
+        await task();
     }
 };
 
-// const set = function (task: task, path: string, target, property, value) {
 const set = function (task: task, tasks: tasks, path: string, target, property, value) {
 
     if (property === 'length') {
@@ -27,8 +27,6 @@ const set = function (task: task, tasks: tasks, path: string, target, property, 
     }
 
     target[ property ] = observer(value, task, tasks, path);
-    // target[ property ] = create(value, task, tasks, path);
-    // target[ property ] = create(value, task, [], path);
 
     return true;
 };
@@ -41,24 +39,20 @@ const observer = function (source: any, task: task, tasks: tasks = [], path: str
 
     if (source?.constructor === Array) {
         target = source;
-        // target = [];
 
         for (let key = 0; key < source.length; key++) {
             target[ key ] = observer(source[ key ], task, tasks, path ? `${path}[${key}]` : `${key}`);
         }
 
         target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
-        // target = new Proxy(target, { set: set.bind(null, task, path) });
     } else if (source?.constructor === Object) {
         target = source;
-        // target = {};
 
         for (let key in source) {
             target[ key ] = observer(source[ key ], task, tasks, path ? `${path}.${key}` : key);
         }
 
         target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
-        // target = new Proxy(target, { set: set.bind(null, task, path) });
     } else {
         target = source;
     }
