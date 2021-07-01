@@ -1,0 +1,107 @@
+<style>
+    html>* {
+        margin: 0;
+        padding: 0;
+        text-align: center;
+    }
+
+    body,
+    o-loop {
+        width: 100%;
+        height: 3000px;
+        display: block;
+    }
+
+    .box {
+        width: 60px;
+        margin: 1px;
+        padding: 1px;
+        font-size: 12px;
+        text-align: center;
+        display: inline-block;
+        background: lightgray;
+    }
+
+    .box input {
+        width: 90%;
+        margin: auto;
+        display: block;
+    }
+</style>
+
+<div id="scope">
+    <h3>{{count}} bound elements</h3>
+    <input v-model="count" type="number">
+    <br>
+
+    <button v-on:click="push">push</button>
+    <button v-on:click="overwrite">overwrite</button>
+    <button v-on:click="raw">raw</button>
+
+    <div id="raw"></div>
+
+    <div id="push">
+        <div class="box" v-for="item in items">
+            <div>{{item.number}}</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- <div id="scope" class="demo">
+    <input :value="one.two()" placeholder="func" />
+    <input :value="hello['world'] = $event?.target.value || 'blue'" placeholder="edit me" />
+    <input :value="n=NaN" type="number" placeholder="number" />
+    <p>Message is: {{ hello.world }}</p>
+</div> -->
+
+<!-- <script src="vue.global.js"></script> -->
+<script src="https://unpkg.com/vue@next"></script>
+<script>
+    Vue.createApp({
+        data() {
+            return {
+                items: [],
+                message: '',
+                count: 1000,
+                one: { two: 'three' },
+            }
+        },
+        methods: {
+            raw() {
+                console.time('raw');
+                const template = document.createElement('template');
+                let html = '';
+                for (var i = 0; i < this.count; i++) {
+                    html += `
+                    <div class="box">
+                        <div>${i}</div>
+                        <input value="${i}">
+                    </div>
+                `;
+                }
+                template.innerHTML = html;
+                const raw = document.getElementById('raw');
+                raw.appendChild(template.content);
+                console.timeEnd('raw');
+            },
+            push() {
+                console.time('push');
+                for (var i = 0; i < this.count; i++) {
+                    this.items.push({ number: i });
+                }
+                console.timeEnd('push');
+            },
+            overwrite() {
+                console.time('overwrite');
+                var items = [];
+                for (var i = 0; i < this.count; i++) {
+                    items.push({ number: i });
+                }
+                this.items = items;
+                console.timeEnd('overwrite');
+            }
+        }
+
+    }).mount('#scope')
+</script>

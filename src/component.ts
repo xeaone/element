@@ -53,19 +53,24 @@ export default class Component extends HTMLElement {
     async render () {
 
         this.data = Observer(this.data, async path => {
+            // console.log(path);
             const binders = Binder.get(path);
             if (!binders) return;
+            const tasks = [];
             for (const [ , binder ] of binders) {
-                await binder.render();
+                tasks.push(binder.render());
+                // binder.render();
             }
+            return Promise.all(tasks);
         });
 
         if (this.adopt) {
-            let child = this.firstChild;
-            while (child) {
-                Binder.add(child, this);
-                child = child.nextSibling;
-            }
+            Binder.adds(this.childNodes, this);
+            // let child = this.firstChild;
+            // while (child) {
+            //     Binder.add(child, this);
+            //     child = child.nextSibling;
+            // }
         }
 
         const template = document.createElement('template');
@@ -97,15 +102,17 @@ export default class Component extends HTMLElement {
             if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
         }
 
-        const tasks = [];
-        let child = template.content.firstChild;
-        while (child) {
-            tasks.push(Binder.add(child, this));
-            child = child.nextSibling;
-        }
+        // const tasks = [];
+        // let child = template.content.firstChild;
+        // while (child) {
+        //     tasks.push(Binder.add(child, this));
+        //     child = child.nextSibling;
+        // }
+
+        Binder.adds(template.content.childNodes, this);
         this.#root.appendChild(template.content);
 
-        return Promise.all(tasks);
+        // return Promise.all(tasks);
     }
 
     async attributeChangedCallback (name: string, from: string, to: string) {

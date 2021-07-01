@@ -17,54 +17,92 @@
 }(this, (function () { 'use strict';
 
     const run$1 = async function (tasks) {
+        // let task = tasks.shift();
+        // if (task) await task();
         let task;
         while (task = tasks.shift()) {
             // task();
             await task();
         }
     };
+    // const get = function (task: task, tasks: tasks, path: string, target, property) {
+    //     if (target.constructor === Array && methods.includes(property)) {
+    //         const method = target[ property ];
+    //         return function (...args) {
+    //             task(path);
+    //             method.apply(target, args);
+    //         };
+    //     }
+    //     return target[ property ];
+    // };
     const set = function (task, tasks, path, target, property, value) {
         if (property === 'length') {
-            target[property] = value;
-            task(path);
+            // const old = target[ property ];
+            // console.log(old, value, property);
+            // if (tasks.length === 0) {
+            //     console.log('LENGTH');
+            //     setTimeout(() => {
+            //         task(path);
+            //     });
+            // }
             return true;
         }
         else if (target[property] === value || `${target[property]}${value}` === 'NaNNaN') {
             return true;
         }
+        let initial;
+        if (!tasks.length) {
+            initial = () => { };
+            tasks.push(initial);
+        }
         if (target?.constructor === Array) {
-            path = path ? `${path}[${property}]` : property;
+            target[property] = observer(value, task, tasks, path ? `${path}[${property}]` : property);
         }
         else {
-            path = path ? `${path}.${property}` : property;
+            target[property] = observer(value, task, tasks, path ? `${path}.${property}` : property);
         }
-        target[property] = observer(value, task, tasks, path);
+        if (path)
+            tasks.push(task.bind(null, path));
+        if (tasks[0] === initial)
+            run$1(tasks);
         return true;
     };
     const observer = function (source, task, tasks = [], path = '') {
         let target;
-        const initial = path ? task.bind(null, path) : () => undefined;
-        tasks.push(initial);
+        let initial;
+        if (!tasks.length) {
+            initial = () => { };
+            tasks.push(initial);
+        }
         if (source?.constructor === Array) {
             target = source;
             for (let key = 0; key < source.length; key++) {
                 target[key] = observer(source[key], task, tasks, path ? `${path}[${key}]` : `${key}`);
             }
-            target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
+            target = new Proxy(target, {
+                set: set.bind(null, task, tasks, path),
+                // get: get.bind(null, task, tasks, path)
+            });
         }
         else if (source?.constructor === Object) {
             target = source;
             for (let key in source) {
                 target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : key);
             }
-            target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
+            target = new Proxy(target, {
+                set: set.bind(null, task, tasks, path),
+                // get: get.bind(null, task, tasks, path)
+            });
         }
         else {
             target = source;
         }
-        if (tasks[0] === initial) {
+        if (path)
+            tasks.push(task.bind(null, path));
+        if (tasks[0] === initial)
             run$1(tasks);
-        }
+        // if (path) Promise.resolve().then(task.bind(null, path)).then(run.bind(null, tasks));
+        // else Promise.resolve().then(run.bind(null, tasks));
         return target;
     };
 
@@ -336,99 +374,6 @@
     // console.log(expression(`{{one(two(foo, three(bar, 'hello world')), 1.2)}}`, m)('blue'));
     //end: test
 
-    var Batcher = new class Batcher {
-        constructor(data = {}) {
-            this.#reads = [];
-            this.#writes = [];
-            this.#max = 16;
-            this.#pending = false;
-            this.#max ?? data.max;
-        }
-        #reads;
-        #writes;
-        #max;
-        #pending;
-        // remove (tasks, task) {
-        //     const index = tasks.indexOf(task);
-        //     return !!~index && !!tasks.splice(index, 1);
-        // }
-        // clear (task) {
-        //     return this.remove(this.#reads, task) || this.remove(this.#writes, task);
-        // }
-        tick(method) {
-            return new Promise((resolve) => {
-                window.requestAnimationFrame(async (time) => {
-                    await method.call(this, time);
-                    resolve();
-                });
-            });
-        }
-        ;
-        async flush(time) {
-            const tasks = [];
-            let read;
-            while (read = this.#reads.shift()) {
-                tasks.push(read());
-                // if ((performance.now() - time) > this.#max) return this.tick(this.flush);
-            }
-            await Promise.all(tasks);
-            let write;
-            while (write = this.#writes.shift()) {
-                tasks.push(write());
-                // if ((performance.now() - time) > this.#max) return this.tick(this.flush);
-            }
-            await Promise.all(tasks);
-            if (this.#reads.length === 0 && this.#writes.length === 0) {
-                this.#pending = false;
-                // } else if ((performance.now() - time) > this.#max) {
-                // return this.tick(this.flush);
-            }
-            else {
-                return this.flush(time);
-            }
-        }
-        async batch(read, write) {
-            if (!read && !write)
-                throw new Error('read or write required');
-            return new Promise((resolve) => {
-                if (read) {
-                    this.#reads.push(async () => {
-                        await read();
-                        if (write) {
-                            this.#writes.push(async () => {
-                                await write();
-                                resolve();
-                            });
-                        }
-                        else {
-                            resolve();
-                        }
-                    });
-                }
-                else if (write) {
-                    this.#writes.push(async () => {
-                        await write();
-                        resolve();
-                    });
-                }
-                if (!this.#pending) {
-                    this.#pending = true;
-                    this.tick(this.flush);
-                }
-            });
-        }
-    };
-    // export default Object.freeze({
-    //     reads,
-    //     writes,
-    //     setup,
-    //     tick,
-    //     flush,
-    //     remove,
-    //     clear,
-    //     batch
-    // });
-
     const format = (data) => data === undefined ? '' : typeof data === 'object' ? JSON.stringify(data) : data;
 
     const booleans = [
@@ -438,7 +383,7 @@
         'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly', 'required', 'reversed', 'scoped', 'seamless', 'selected',
         'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
     ];
-    const write$5 = async function (binder) {
+    const standard = async function (binder) {
         const { name, owner, node } = binder;
         let data = await binder.compute();
         const boolean = booleans.includes(name);
@@ -455,7 +400,6 @@
             owner.setAttribute(name, data);
         }
     };
-    var standard = { write: write$5 };
 
     const handler = async function (binder, checked, event) {
         binder.busy = true;
@@ -471,43 +415,43 @@
         }
         binder.busy = false;
     };
-    const setup$2 = async function (binder) {
-        const { owner } = binder;
-        owner.removeAttribute('checked');
-        owner.addEventListener('input', async (event) => {
-            const checked = owner.checked;
-            await handler(binder, checked, event);
-        });
-        if (owner.type === 'radio') {
-            const parent = owner.form || owner.getRootNode();
-            const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
-            owner.addEventListener('input', async () => {
-                for (const radio of radios) {
-                    const radioBinders = binder.get(radio.getAttributeNode('checked'));
-                    if (radioBinders) {
-                        for (const [, radioBinder] of radioBinders) {
-                            radioBinder.busy = true;
-                            await radioBinder.compute({ checked: radio.checked, value: radio.value });
-                            radioBinder.busy = false;
-                        }
-                    }
-                    else {
-                        if (radio.checked) {
-                            radio.setAttribute('checked', '');
+    const checked = async function (binder) {
+        const { owner, meta } = binder;
+        if (!meta.setup) {
+            meta.setup = true;
+            owner.removeAttribute('checked');
+            owner.addEventListener('input', async (event) => {
+                const checked = owner.checked;
+                await handler(binder, checked, event);
+            });
+            if (owner.type === 'radio') {
+                const parent = owner.form || owner.getRootNode();
+                const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+                owner.addEventListener('input', async () => {
+                    for (const radio of radios) {
+                        const radioBinders = binder.get(radio.getAttributeNode('checked'));
+                        if (radioBinders) {
+                            for (const [, radioBinder] of radioBinders) {
+                                radioBinder.busy = true;
+                                await radioBinder.compute({ checked: radio.checked, value: radio.value });
+                                radioBinder.busy = false;
+                            }
                         }
                         else {
-                            radio.removeAttribute('checked');
+                            if (radio.checked) {
+                                radio.setAttribute('checked', '');
+                            }
+                            else {
+                                radio.removeAttribute('checked');
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         }
-    };
-    const write$4 = async function (binder) {
         const checked = binder.assignee();
         await handler(binder, checked);
     };
-    var checked = { setup: setup$2, write: write$4 };
 
     const numberTypes = ['date', 'datetime-local', 'month', 'number', 'range', 'time', 'week'];
     const input = async function (binder, event) {
@@ -552,23 +496,20 @@
         owner.setAttribute('value', display);
         binder.busy = false;
     };
-    const setup$1 = async function (binder) {
-        binder.owner.addEventListener('$render', () => binder.render());
-        binder.owner.addEventListener('input', event => input(binder, event));
-    };
-    const read$1 = async function (binder, context) {
-        const { owner } = binder;
-        context.options = owner.options;
-        context.selected = owner.selectedOptions;
-    };
-    const write$3 = async function (binder, context) {
-        const { owner } = binder;
+    const value = async function value(binder) {
+        const { owner, meta } = binder;
         const { type } = owner;
+        if (!meta.setup) {
+            meta.setup = true;
+            binder.owner.addEventListener('$render', () => binder.render());
+            binder.owner.addEventListener('input', event => input(binder, event));
+        }
         let display, computed;
         if (type === 'select-one') {
             // if (!context.options.length) return;
             const value = binder.assignee();
-            for (const option of context.options) {
+            for (const option of owner.options) {
+                // for (const option of context.options) {
                 if (option.selected = option.value === value)
                     break;
             }
@@ -601,31 +542,79 @@
         owner.$typeof = typeof computed;
         owner.setAttribute('value', display);
     };
-    var value = { setup: setup$1, read: read$1, write: write$3 };
+    // const setup = async function (binder) {
+    //     binder.owner.addEventListener('$render', () => binder.render());
+    //     binder.owner.addEventListener('input', event => input(binder, event));
+    // };
+    // const read = async function (binder, context) {
+    //     const { owner } = binder;
+    //     context.options = owner.options;
+    //     context.selected = owner.selectedOptions;
+    // };
+    // const write = async function (binder, context) {
+    //     const { owner } = binder;
+    //     const { type } = owner;
+    //     let display, computed;
+    //     if (type === 'select-one') {
+    //         // if (!context.options.length) return;
+    //         const value = binder.assignee();
+    //         for (const option of context.options) {
+    //             if (option.selected = option.value === value) break;
+    //         }
+    //         computed = await binder.compute({ value: value });
+    //         display = format(computed);
+    //         owner.value = display;
+    //     } else if (type === 'select-multiple') {
+    //         const value = binder.assignee();
+    //         const { options } = owner;
+    //         for (const option of options) {
+    //             option.selected = value?.includes(option.value);
+    //         }
+    //         computed = await binder.compute({ value });
+    //         display = format(computed);
+    //     } else {
+    //         const { checked } = owner;
+    //         const value = binder.assignee();
+    //         computed = await binder.compute({ value, checked });
+    //         display = format(computed);
+    //         if (numberTypes.includes(type) && typeof computed !== 'string') {
+    //             owner.valueAsNumber = computed;
+    //         } else {
+    //             owner.value = display;
+    //         }
+    //     }
+    //     owner.$value = computed;
+    //     owner.$typeof = typeof computed;
+    //     owner.setAttribute('value', display);
+    // };
+    // export default { setup, read, write };
 
-    const setup = async function (binder) {
-        const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
-        binder.meta.variable = variable;
-        binder.meta.index = index;
-        binder.meta.key = key;
-        binder.meta.keys = binder.meta.keys || [];
-        binder.meta.counts = [];
-        binder.meta.setup = true;
-        binder.meta.targetLength = 0;
-        binder.meta.currentLength = 0;
-        binder.meta.templateLength = 0;
-        binder.meta.templateString = '';
-        let node;
-        while (node = binder.owner.firstChild) {
-            if (node.nodeType === 1 || (node.nodeType === 3 && /\S/.test(node.nodeValue))) {
-                binder.meta.templateString += node.outerHTML;
-                binder.meta.templateLength++;
-            }
-            binder.owner.removeChild(node);
-        }
-    };
-    const write$2 = async function (binder) {
+    const each = async function each(binder) {
         const { meta, owner } = binder;
+        if (!meta.setup) {
+            meta.setup = true;
+            const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
+            meta.variable = variable;
+            meta.index = index;
+            meta.key = key;
+            meta.keys = meta.keys || [];
+            meta.counts = [];
+            meta.setup = true;
+            meta.targetLength = 0;
+            meta.currentLength = 0;
+            meta.templateLength = 0;
+            meta.templateString = '';
+            meta.templateText = '';
+            meta.templateElement = document.createElement('template');
+            let node;
+            while (node = owner.firstChild) {
+                if (node.nodeType === 1 || (node.nodeType === 3 && /\S/.test(node.nodeValue))) {
+                    meta.templateString += node.outerHTML;
+                    meta.templateLength++;
+                }
+                owner.removeChild(node);
+            }
+        }
         let data = await binder.compute();
         if (data instanceof Array) {
             meta.targetLength = data.length;
@@ -646,7 +635,6 @@
             }
         }
         else if (meta.currentLength < meta.targetLength) {
-            let html = '';
             while (meta.currentLength < meta.targetLength) {
                 const index = meta.currentLength;
                 const key = meta.keys[index] ?? index;
@@ -659,30 +647,29 @@
                 clone.match(syntax)?.forEach(match => clone = clone.replace(match, match.replace(rVariable, variable)
                     .replace(rIndex, index)
                     .replace(rKey, key)));
-                html += clone;
+                meta.templateText += clone;
                 meta.currentLength++;
             }
-            const template = document.createElement('template');
-            template.innerHTML = html;
-            Promise.all(Array.prototype.map.call(template.content.childNodes, async (node) => binder.add(node, binder.container))).then(() => {
-                owner.appendChild(template.content);
-                if (owner.nodeName === 'SELECT') {
-                    owner.dispatchEvent(new Event('$render'));
-                }
-            });
-            // const tasks = [];
-            // for (const node of template.content.childNodes) {
-            //     tasks.push(binder.add(node, binder.container));
-            // }
-            // Promise.all(tasks).then(() => {
+            if (meta.currentLength === meta.targetLength) {
+                meta.templateElement.innerHTML = meta.templateText;
+                meta.templateText = '';
+                // binder.adds(meta.templateElement.content.childNodes, binder.container).then(() => {
+                //     owner.appendChild(meta.templateElement.content);
+                //     if (owner.nodeName === 'SELECT') owner.dispatchEvent(new Event('$render'));
+                // });
+                owner.appendChild(meta.templateElement.content);
+            }
+            // const template = document.createElement('template');
+            // template.innerHTML = html;
+            // binder.adds(template.content.childNodes, binder.container).then(() => {
             //     owner.appendChild(template.content);
-            //     owner.dispatchEvent(new Event('$each'));
+            //     if (owner.nodeName === 'SELECT') owner.dispatchEvent(new Event('$render'));
             // });
         }
     };
-    var each = { setup, write: write$2 };
+    // export default { setup, write };
 
-    const write$1 = async function (binder) {
+    const html = async function (binder) {
         let data = await binder.compute();
         if (typeof data !== 'string') {
             data = '';
@@ -696,16 +683,21 @@
         template.innerHTML = data;
         await Promise.all(Array.prototype.map.call(template.content.childNodes, async (node) => binder.add(node, binder.container, true))).then(() => binder.owner.appendChild(template.content));
     };
-    var html = { write: write$1 };
 
-    const write = async function (binder) {
+    const text = async function text(binder) {
         let data = await binder.compute();
         data = format(data);
         if (data === binder.owner.textContent)
             return;
         binder.owner.textContent = data;
     };
-    var text = { write };
+    // const write = async function (binder) {
+    //     let data = await binder.compute();
+    //     data = format(data);
+    //     if (data === binder.owner.textContent) return;
+    //     binder.owner.textContent = data;
+    // };
+    // export default { write };
 
     const submit = async function (event, binder) {
         event.preventDefault();
@@ -781,7 +773,7 @@
         await binder.compute({ event });
         return false;
     };
-    const read = async function (binder) {
+    const on = async function on(binder) {
         binder.owner[binder.name] = null;
         const name = binder.name.slice(2);
         if (binder.meta.method) {
@@ -800,7 +792,24 @@
         };
         binder.owner.addEventListener(name, binder.meta.method);
     };
-    var on = { read };
+    // const read = async function (binder) {
+    //     binder.owner[ binder.name ] = null;
+    //     const name = binder.name.slice(2);
+    //     if (binder.meta.method) {
+    //         binder.owner.removeEventListener(name, binder.meta.method);
+    //     }
+    //     binder.meta.method = event => {
+    //         if (name === 'reset') {
+    //             return reset(event, binder);
+    //         } else if (name === 'submit') {
+    //             return submit(event, binder);
+    //         } else {
+    //             return binder.compute({ event });
+    //         }
+    //     };
+    //     binder.owner.addEventListener(name, binder.meta.method);
+    // };
+    // export default { read };
 
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
@@ -853,39 +862,30 @@
             }
             this.nodeBinders.delete(node);
         }
-        async bind(node, name, value, container, batcher) {
+        async bind(node, name, value, container) {
             const { compute, assignee, paths } = Statement(value, container.data);
             if (!paths.length)
                 paths.push('');
             const owner = node.nodeType === AN ? node.ownerElement : node;
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
-            const { setup, before, read, write, after } = this.binders[type];
+            const render = this.binders[type];
             const tasks = [];
             for (const path of paths) {
                 const binder = {
+                    render,
                     meta: {},
                     node, owner,
                     busy: false,
                     container, type,
                     compute, assignee,
                     name, value, paths, path,
-                    setup, before, read, write, after,
+                    // setup, before, read, write, after,
                     get: this.get.bind(this),
                     add: this.add.bind(this),
-                    remove: this.remove.bind(this),
-                    render: async (...args) => {
-                        if (binder.busy)
-                            return;
-                        binder.busy = true;
-                        const context = {};
-                        const read = binder.read?.bind(null, binder, context, ...args);
-                        const write = binder.write?.bind(null, binder, context, ...args);
-                        if (read || write)
-                            await Batcher.batch(read, write);
-                        binder.busy = false;
-                        // if (read || write) Batcher.batch(read, write);
-                    }
+                    adds: this.adds.bind(this),
+                    remove: this.remove.bind(this)
                 };
+                binder.render = render.bind(render, binder);
                 if (path) {
                     if (!this.nodeBinders.has(node))
                         this.nodeBinders.set(node, new Map());
@@ -894,15 +894,11 @@
                     this.nodeBinders.get(node).set(path, binder);
                     this.pathBinders.get(path).set(node, binder);
                 }
-                if (binder.setup) {
-                    tasks.push(Promise.resolve().then(binder.setup.bind(null, binder)).then(binder.render));
-                }
-                else {
-                    tasks.push(binder.render());
-                }
+                tasks.push(binder.render());
             }
             return Promise.all(tasks);
         }
+        ;
         async remove(node) {
             const type = node.nodeType;
             if (type === EN) {
@@ -918,7 +914,15 @@
                 child = child.nextSibling;
             }
         }
-        async add(node, container, batcher) {
+        async adds(nodes, container) {
+            const tasks = [];
+            for (const node of nodes) {
+                tasks.push(this.add(node, container));
+            }
+            return Promise.all(tasks);
+        }
+        async add(node, container) {
+            const promises = [];
             const type = node.nodeType;
             if (type === TN) {
                 const start = node.textContent.indexOf(this.syntaxStart);
@@ -933,45 +937,36 @@
                     const split = node.splitText(end + this.syntaxEnd.length);
                     const value = node.textContent;
                     node.textContent = '';
-                    if (!empty.test(value))
-                        await this.bind(node, 'text', value, container, batcher);
-                    return this.add(split, container, batcher);
+                    // if (!empty.test(value))
+                    promises.push(this.bind(node, 'text', value, container));
+                    promises.push(this.add(split, container));
                 }
                 else {
                     const value = node.textContent;
                     node.textContent = '';
-                    if (!empty.test(value))
-                        await this.bind(node, 'text', value, container, batcher);
+                    // if (!empty.test(value))
+                    promises.push(this.bind(node, 'text', value, container));
                 }
             }
             else if (type === EN) {
-                const tasks = [];
                 const attributes = node.attributes;
-                // let each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
-                // each = each ? await this.bind(each, each.name, each.value, container, batcher) : undefined;
                 let each;
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
                     const { name, value } = attribute;
-                    // if (name === 'each' || name === `${this.prefix}each`) continue;
                     if (name === 'each' || name === `${this.prefix}each`)
                         each = true;
                     // this.syntaxMatch.test(name) || name.startsWith(this.prefix) 
                     if (this.syntaxMatch.test(value)) {
                         attribute.value = '';
                         if (!empty.test(value))
-                            tasks.push(this.bind(attribute, name, value, container, batcher));
+                            promises.push(this.bind(attribute, name, value, container));
                     }
                 }
-                if (!each) {
-                    let child = node.firstChild;
-                    while (child) {
-                        tasks.push(this.add(child, container, batcher));
-                        child = child.nextSibling;
-                    }
-                }
-                Promise.all(tasks);
+                if (!each)
+                    promises.push(this.adds(node.childNodes, container));
             }
+            return Promise.all(promises);
         }
     };
 
@@ -1071,19 +1066,24 @@
         get binder() { return Binder; }
         async render() {
             this.data = observer(this.data, async (path) => {
+                // console.log(path);
                 const binders = Binder.get(path);
                 if (!binders)
                     return;
+                const tasks = [];
                 for (const [, binder] of binders) {
-                    await binder.render();
+                    tasks.push(binder.render());
+                    // binder.render();
                 }
+                return Promise.all(tasks);
             });
             if (this.adopt) {
-                let child = this.firstChild;
-                while (child) {
-                    Binder.add(child, this);
-                    child = child.nextSibling;
-                }
+                Binder.adds(this.childNodes, this);
+                // let child = this.firstChild;
+                // while (child) {
+                //     Binder.add(child, this);
+                //     child = child.nextSibling;
+                // }
             }
             const template = document.createElement('template');
             template.innerHTML = this.html;
@@ -1112,14 +1112,15 @@
                 if (defaultSlot)
                     defaultSlot.parentNode.removeChild(defaultSlot);
             }
-            const tasks = [];
-            let child = template.content.firstChild;
-            while (child) {
-                tasks.push(Binder.add(child, this));
-                child = child.nextSibling;
-            }
+            // const tasks = [];
+            // let child = template.content.firstChild;
+            // while (child) {
+            //     tasks.push(Binder.add(child, this));
+            //     child = child.nextSibling;
+            // }
+            Binder.adds(template.content.childNodes, this);
             this.#root.appendChild(template.content);
-            return Promise.all(tasks);
+            // return Promise.all(tasks);
         }
         async attributeChangedCallback(name, from, to) {
             await this.attributed(name, from, to);
@@ -1745,6 +1746,99 @@
     //         return `?${result.join('&')}`;
     //     }
     // }
+
+    var Batcher = new class Batcher {
+        constructor(data = {}) {
+            this.#reads = [];
+            this.#writes = [];
+            this.#max = 16;
+            this.#pending = false;
+            this.#max ?? data.max;
+        }
+        #reads;
+        #writes;
+        #max;
+        #pending;
+        // remove (tasks, task) {
+        //     const index = tasks.indexOf(task);
+        //     return !!~index && !!tasks.splice(index, 1);
+        // }
+        // clear (task) {
+        //     return this.remove(this.#reads, task) || this.remove(this.#writes, task);
+        // }
+        tick(method) {
+            return new Promise((resolve) => {
+                window.requestAnimationFrame(async (time) => {
+                    await method.call(this, time);
+                    resolve();
+                });
+            });
+        }
+        ;
+        async flush(time) {
+            const tasks = [];
+            let read;
+            while (read = this.#reads.shift()) {
+                tasks.push(read());
+                // if ((performance.now() - time) > this.#max) return this.tick(this.flush);
+            }
+            await Promise.all(tasks);
+            let write;
+            while (write = this.#writes.shift()) {
+                tasks.push(write());
+                // if ((performance.now() - time) > this.#max) return this.tick(this.flush);
+            }
+            await Promise.all(tasks);
+            if (this.#reads.length === 0 && this.#writes.length === 0) {
+                this.#pending = false;
+                // } else if ((performance.now() - time) > this.#max) {
+                // return this.tick(this.flush);
+            }
+            else {
+                return this.flush(time);
+            }
+        }
+        async batch(read, write) {
+            if (!read && !write)
+                throw new Error('read or write required');
+            return new Promise((resolve) => {
+                if (read) {
+                    this.#reads.push(async () => {
+                        await read();
+                        if (write) {
+                            this.#writes.push(async () => {
+                                await write();
+                                resolve();
+                            });
+                        }
+                        else {
+                            resolve();
+                        }
+                    });
+                }
+                else if (write) {
+                    this.#writes.push(async () => {
+                        await write();
+                        resolve();
+                    });
+                }
+                if (!this.#pending) {
+                    this.#pending = true;
+                    this.tick(this.flush);
+                }
+            });
+        }
+    };
+    // export default Object.freeze({
+    //     reads,
+    //     writes,
+    //     setup,
+    //     tick,
+    //     flush,
+    //     remove,
+    //     clear,
+    //     batch
+    // });
 
     var Fetcher = new class Fetcher {
         constructor() {

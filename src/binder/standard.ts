@@ -8,7 +8,7 @@ const booleans = [
     'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
 ];
 
-const write = async function (binder) {
+const standard = async function (binder) {
     const { name, owner, node } = binder;
 
     let data = await binder.compute();
@@ -26,5 +26,5 @@ const write = async function (binder) {
 
 };
 
-export default { write };
+export default standard;
 

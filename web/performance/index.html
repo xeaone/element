@@ -1,59 +1,106 @@
-<!DOCTYPE html>
-<html>
+<base href="/">
+<script>document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/performance/';</script>
 
-<head>
 
-	<base href="/">
+<style>
+	html>* {
+		margin: 0;
+		padding: 0;
+		text-align: center;
+	}
 
-	<script>
-		document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/performance/';
-	</script>
+	body,
+	o-loop {
+		width: 100%;
+		height: 3000px;
+		display: block;
+	}
 
-	<title>Performance</title>
+	.box {
+		width: 60px;
+		margin: 1px;
+		padding: 1px;
+		font-size: 12px;
+		text-align: center;
+		display: inline-block;
+		background: lightgray;
+	}
 
-	<script src="../assets/oxe.js" defer></script>
-	<script src="index.js" defer></script>
+	.box input {
+		width: 90%;
+		margin: auto;
+		display: block;
+	}
+</style>
 
-	<style>
-		html>* {
-			margin: 0;
-			padding: 0;
-			text-align: center;
-		}
+<o-loop></o-loop>
 
-		body,
-		o-loop {
-			width: 100%;
-			height: 3000px;
-			display: block;
-		}
+<script src="../assets/oxe.js"></script>
+<script>
+	const { Component, Define } = Oxe;
 
-		.box {
-			width: 60px;
-			margin: 1px;
-			padding: 1px;
-			font-size: 12px;
-			text-align: center;
-			display: inline-block;
-			background: lightgray;
-		}
+	class OLoop extends Component {
 
-		.box input {
-			width: 90%;
-			margin: auto;
-			display: block;
-		}
-	</style>
+		data = {
+			items: [],
+			message: '',
+			count: 1000,
+			one: { two: 'three' },
+			raw() {
+				console.time('raw');
+				const template = document.createElement('template');
+				let html = '';
+				for (var i = 0; i < this.count; i++) {
+					html += `
+					<div class="box">
+						<div>${i}</div>
+					</div>
+					`;
+				}
+				template.innerHTML = html;
+				const raw = document.getElementById('raw');
+				raw.appendChild(template.content);
+				console.timeEnd('raw');
+			},
+			push() {
+				console.time('push');
+				for (var i = 0; i < this.count; i++) {
+					this.items.push({ number: i });
+				}
+				console.timeEnd('push');
+			},
+			overwrite() {
+				console.time('overwrite');
+				var items = [];
+				for (var i = 0; i < this.count; i++) {
+					items.push({ number: i });
+				}
+				this.items = items;
+				console.timeEnd('overwrite');
+			}
+		};
 
-</head>
+		html = /*html*/`
+        <h3><span>{{count}}</span> bound elements</h3>
+        <input value="{{count = $value}}" type="number">
+        <br>
+        <button onclick="{{push()}}">push</button>
+        <button onclick="{{overwrite()}}">overwrite</button>
+        <button onclick="{{raw()}}">raw</button>
 
-<body>
+        <div each="{{item of items}}">
+            <div class="box">
+                <div>{{item.number}}</div>
+            </div>
+        </div>
 
-	<o-loop test="hello">
-		<span slot="main">Main Slotted</span>
-		<span>test</span>
-	</o-loop>
+        <div id="raw"></div>
+    `;
 
-</body>
+		// <input value="{{item.number = $value}}"></input>
 
-</html>
+	}
+
+	Define(OLoop);
+
+</script>

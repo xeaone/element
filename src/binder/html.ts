@@ -1,5 +1,5 @@
 
-const write = async function (binder) {
+const html = async function (binder) {
     let data = await binder.compute();
 
     if (typeof data !== 'string') {
@@ -21,4 +21,4 @@ const write = async function (binder) {
 
 };
 
-export default { write };
+export default html;

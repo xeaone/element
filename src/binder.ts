@@ -8,6 +8,7 @@ import each from './binder/each';
 import html from './binder/html';
 import text from './binder/text';
 import on from './binder/on';
+import tasks from './tasks';
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -78,39 +79,33 @@ export default new class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, name: string, value: string, container: any, batcher?: any) {
+    async bind (node: Node, name: string, value: string, container: any) {
         const { compute, assignee, paths } = Statement(value, container.data);
 
         if (!paths.length) paths.push('');
 
         const owner = node.nodeType === AN ? (node as Attr).ownerElement : node;
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
-        const { setup, before, read, write, after } = this.binders[ type ];
+        const render = this.binders[ type ];
 
         const tasks = [];
         for (const path of paths) {
             const binder = {
+                render,
                 meta: {},
                 node, owner,
                 busy: false,
                 container, type,
                 compute, assignee,
                 name, value, paths, path,
-                setup, before, read, write, after,
+                // setup, before, read, write, after,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
-                remove: this.remove.bind(this),
-                render: async (...args) => {
-                    if (binder.busy) return;
-                    binder.busy = true;
-                    const context = {};
-                    const read = binder.read?.bind(null, binder, context, ...args);
-                    const write = binder.write?.bind(null, binder, context, ...args);
-                    if (read || write) await Batcher.batch(read, write);
-                    binder.busy = false;
-                    // if (read || write) Batcher.batch(read, write);
-                }
+                adds: this.adds.bind(this),
+                remove: this.remove.bind(this)
             };
+
+            binder.render = render.bind(render, binder);
 
             if (path) {
                 if (!this.nodeBinders.has(node)) this.nodeBinders.set(node, new Map());
@@ -119,16 +114,11 @@ export default new class Binder {
                 this.pathBinders.get(path).set(node, binder);
             }
 
-            if (binder.setup) {
-                tasks.push(Promise.resolve().then(binder.setup.bind(null, binder)).then(binder.render));
-            } else {
-                tasks.push(binder.render());
-            }
-
+            tasks.push(binder.render());
         }
-
         return Promise.all(tasks);
-    }
+
+    };
 
     async remove (node: Node) {
         const type = node.nodeType;
@@ -150,7 +140,16 @@ export default new class Binder {
 
     }
 
-    async add (node: Node, container: any, batcher?: any) {
+    async adds (nodes: NodeList, container) {
+        const tasks = [];
+        for (const node of nodes) {
+            tasks.push(this.add(node, container));
+        }
+        return Promise.all(tasks);
+    }
+
+    async add (node: Node, container: any) {
+        const promises = [];
         const type = node.nodeType;
 
         if (type === TN) {
@@ -167,44 +166,36 @@ export default new class Binder {
                 const split = (node as Text).splitText(end + this.syntaxEnd.length);
                 const value = node.textContent;
                 node.textContent = '';
-                if (!empty.test(value)) await this.bind(node, 'text', value, container, batcher);
-                return this.add(split, container, batcher);
+                // if (!empty.test(value))
+                promises.push(this.bind(node, 'text', value, container));
+                promises.push(this.add(split, container));
             } else {
                 const value = node.textContent;
                 node.textContent = '';
-                if (!empty.test(value)) await this.bind(node, 'text', value, container, batcher);
+                // if (!empty.test(value))
+                promises.push(this.bind(node, 'text', value, container));
             }
 
         } else if (type === EN) {
-
-            const tasks = [];
             const attributes = (node as Element).attributes;
 
-            // let each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
-            // each = each ? await this.bind(each, each.name, each.value, container, batcher) : undefined;
             let each;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
                 const { name, value } = attribute;
-                // if (name === 'each' || name === `${this.prefix}each`) continue;
                 if (name === 'each' || name === `${this.prefix}each`) each = true;
                 // this.syntaxMatch.test(name) || name.startsWith(this.prefix) 
                 if (this.syntaxMatch.test(value)) {
                     attribute.value = '';
-                    if (!empty.test(value)) tasks.push(this.bind(attribute, name, value, container, batcher));
+                    if (!empty.test(value)) promises.push(this.bind(attribute, name, value, container));
                 }
             }
 
-            if (!each) {
-                let child = node.firstChild;
-                while (child) {
-                    tasks.push(this.add(child, container, batcher));
-                    child = child.nextSibling;
-                }
-            }
+            if (!each) promises.push(this.adds(node.childNodes, container));
 
-            Promise.all(tasks);
         }
+
+        return Promise.all(promises);
     }
 
 };

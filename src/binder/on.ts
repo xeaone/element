@@ -85,7 +85,7 @@ const reset = async function (event, binder) {
     return false;
 };
 
-const read = async function (binder) {
+const on = async function on (binder) {
 
     binder.owner[ binder.name ] = null;
     const name = binder.name.slice(2);
@@ -107,4 +107,28 @@ const read = async function (binder) {
     binder.owner.addEventListener(name, binder.meta.method);
 };
 
-export default { read };
+export default on;
+
+// const read = async function (binder) {
+
+//     binder.owner[ binder.name ] = null;
+//     const name = binder.name.slice(2);
+
+//     if (binder.meta.method) {
+//         binder.owner.removeEventListener(name, binder.meta.method);
+//     }
+
+//     binder.meta.method = event => {
+//         if (name === 'reset') {
+//             return reset(event, binder);
+//         } else if (name === 'submit') {
+//             return submit(event, binder);
+//         } else {
+//             return binder.compute({ event });
+//         }
+//     };
+
+//     binder.owner.addEventListener(name, binder.meta.method);
+// };
+
+// export default { read };
