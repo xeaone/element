@@ -8,13 +8,13 @@ import each from './binder/each';
 import html from './binder/html';
 import text from './binder/text';
 import on from './binder/on';
-import tasks from './tasks';
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
 const AN = Node.ATTRIBUTE_NODE;
 
-const empty = /\s*{{\s*}}\s*/;
+const emptyAttribute = /\s*{{\s*}}\s*/;
+const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
 
 interface Binders {
     setup?: () => Promise<void>;
@@ -79,8 +79,8 @@ export default new class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, name: string, value: string, container: any) {
-        const { compute, assignee, paths } = Statement(value, container.data);
+    async bind (node: Node, name: string, value: string, container: any, extra?: any) {
+        const { compute, assignee, paths } = Statement(value, container.data, extra);
 
         if (!paths.length) paths.push('');
 
@@ -96,13 +96,16 @@ export default new class Binder {
                 node, owner,
                 busy: false,
                 container, type,
-                compute, assignee,
+                assignee,
                 name, value, paths, path,
-                // setup, before, read, write, after,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
                 adds: this.adds.bind(this),
-                remove: this.remove.bind(this)
+                remove: this.remove.bind(this),
+                compute: async function cacheCompute (...args) {
+                    this.compute = (await compute);
+                    return this.compute(...args);
+                }
             };
 
             binder.render = render.bind(render, binder);
@@ -140,19 +143,24 @@ export default new class Binder {
 
     }
 
-    async adds (nodes: NodeList, container) {
+    async adds (node: Node, container, extra?) {
         const tasks = [];
-        for (const node of nodes) {
-            tasks.push(this.add(node, container));
+        node = node.firstChild;
+        if (!node) return;
+
+        tasks.push(this.add(node, container, extra));
+        while (node = node.nextSibling) {
+            tasks.push(this.add(node, container, extra));
         }
         return Promise.all(tasks);
     }
 
-    async add (node: Node, container: any) {
-        const promises = [];
+    async add (node: Node, container: any, extra?: any) {
         const type = node.nodeType;
+        const tasks = [];
 
         if (type === TN) {
+            if (emptyText.test(node.textContent)) return;
 
             const start = node.textContent.indexOf(this.syntaxStart);
             if (start === -1) return;
@@ -167,13 +175,13 @@ export default new class Binder {
                 const value = node.textContent;
                 node.textContent = '';
                 // if (!empty.test(value))
-                promises.push(this.bind(node, 'text', value, container));
-                promises.push(this.add(split, container));
+                tasks.push(this.bind(node, 'text', value, container, extra));
+                tasks.push(this.add(split, container, extra));
             } else {
                 const value = node.textContent;
                 node.textContent = '';
                 // if (!empty.test(value))
-                promises.push(this.bind(node, 'text', value, container));
+                tasks.push(this.bind(node, 'text', value, container, extra));
             }
 
         } else if (type === EN) {
@@ -187,15 +195,15 @@ export default new class Binder {
                 // this.syntaxMatch.test(name) || name.startsWith(this.prefix) 
                 if (this.syntaxMatch.test(value)) {
                     attribute.value = '';
-                    if (!empty.test(value)) promises.push(this.bind(attribute, name, value, container));
+                    if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
                 }
             }
 
-            if (!each) promises.push(this.adds(node.childNodes, container));
+            if (!each) tasks.push(this.adds(node, container, extra));
 
         }
 
-        return Promise.all(promises);
+        return Promise.all(tasks);
     }
 
 };

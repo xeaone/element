@@ -42,7 +42,7 @@ export default class BindersRoute extends Component {
             { name: 'tomato' }
         ],
 
-        selectResult: undefined,
+        // selectResult: undefined,
         // selectResult: 'tree',
         // selectResult: 'cactus',
         selectEachResult: 'orange',

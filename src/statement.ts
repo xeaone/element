@@ -33,11 +33,17 @@ const traverse = function (data: any, path: string, paths?: string[]) {
     }
 };
 
-export default function (statement: string, data: any) {
+export default function (statement: string, data: any, extra?: any) {
     statement = isOfIn.test(statement) ? statement.replace(replaceOfIn, '{{$2}}') : statement;
 
+    if (extra) {
+        if (extra.keyName) statement = statement.replace(extra.keyName, (s, g1, g2, g3) => g1 + extra.keyValue + g3);
+        if (extra.indexName) statement = statement.replace(extra.indexName, (s, g1, g2, g3) => g1 + extra.indexValue + g3);
+        if (extra.variableName) statement = statement.replace(extra.variableName, (s, g1, g2, g3) => g1 + extra.variableValue + g3);
+    }
+
     const convert = !shouldNotConvert.test(statement);
-    const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+    let striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
 
     const paths = striped.match(references) || [];
     let [ , assignment ] = striped.match(matchAssignment) || [];
@@ -70,9 +76,19 @@ export default function (statement: string, data: any) {
             return (${code});
         }
     `;
-    const compute = new Function('$context', '$extra', code).bind(null, context);
 
-    return { compute, assignee, paths };
+    const compute = async function generateCompute () {
+        return new Function('$context', '$extra', code).bind(null, context);
+    }();
+
+    // const compute = new Function('$context', '$extra', code).bind(null, context);
+    // const compute = new Function('$context', '$extra', code).bind(null, context);
+
+    // const compute = function () {
+    //     return new Function('$context', '$extra', code).bind(null, context);
+    // };
+
+    return { compute, assignee, paths, code, context };
 };
 
 //     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',

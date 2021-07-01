@@ -1,106 +1,105 @@
 <base href="/">
 <script>document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/performance/';</script>
 
-
 <style>
-	html>* {
-		margin: 0;
-		padding: 0;
-		text-align: center;
-	}
+    html>* {
+        margin: 0;
+        padding: 0;
+        text-align: center;
+    }
 
-	body,
-	o-loop {
-		width: 100%;
-		height: 3000px;
-		display: block;
-	}
+    body,
+    o-loop {
+        width: 100%;
+        height: 3000px;
+        display: block;
+    }
 
-	.box {
-		width: 60px;
-		margin: 1px;
-		padding: 1px;
-		font-size: 12px;
-		text-align: center;
-		display: inline-block;
-		background: lightgray;
-	}
+    .box {
+        width: 60px;
+        margin: 1px;
+        padding: 1px;
+        font-size: 12px;
+        text-align: center;
+        display: inline-block;
+        background: lightgray;
+    }
 
-	.box input {
-		width: 90%;
-		margin: auto;
-		display: block;
-	}
+    .box input {
+        width: 90%;
+        margin: auto;
+        display: block;
+    }
 </style>
 
 <o-loop></o-loop>
 
 <script src="../assets/oxe.js"></script>
 <script>
-	const { Component, Define } = Oxe;
+    const { Component, Define } = Oxe;
 
-	class OLoop extends Component {
+    class OLoop extends Component {
 
-		data = {
-			items: [],
-			message: '',
-			count: 1000,
-			one: { two: 'three' },
-			raw() {
-				console.time('raw');
-				const template = document.createElement('template');
-				let html = '';
-				for (var i = 0; i < this.count; i++) {
-					html += `
+        data = {
+            items: [],
+            message: '',
+            count: 1000,
+            one: { two: 'three' },
+            raw() {
+                console.time('raw');
+                const template = document.createElement('template');
+                let html = '';
+                for (var i = 0; i < this.count; i++) {
+                    html += `
 					<div class="box">
 						<div>${i}</div>
 					</div>
 					`;
-				}
-				template.innerHTML = html;
-				const raw = document.getElementById('raw');
-				raw.appendChild(template.content);
-				console.timeEnd('raw');
-			},
-			push() {
-				console.time('push');
-				for (var i = 0; i < this.count; i++) {
-					this.items.push({ number: i });
-				}
-				console.timeEnd('push');
-			},
-			overwrite() {
-				console.time('overwrite');
-				var items = [];
-				for (var i = 0; i < this.count; i++) {
-					items.push({ number: i });
-				}
-				this.items = items;
-				console.timeEnd('overwrite');
-			}
-		};
+                }
+                template.innerHTML = html;
+                const raw = document.getElementById('raw');
+                raw.appendChild(template.content);
+                console.timeEnd('raw');
+            },
+            push() {
+                console.time('push');
+                for (var i = 0; i < this.count; i++) {
+                    this.items.push({ number: i });
+                }
+                console.timeEnd('push');
+            },
+            overwrite() {
+                console.time('overwrite');
+                var items = [];
+                for (var i = 0; i < this.count; i++) {
+                    items.push({ number: i });
+                }
+                this.items = items;
+                console.timeEnd('overwrite');
+            }
+        };
 
-		html = /*html*/`
-        <h3><span>{{count}}</span> bound elements</h3>
-        <input value="{{count = $value}}" type="number">
-        <br>
-        <button onclick="{{push()}}">push</button>
-        <button onclick="{{overwrite()}}">overwrite</button>
-        <button onclick="{{raw()}}">raw</button>
+        html = /*html*/`
+			<h3><span>{{count}}</span> bound elements</h3>
+			<input value="{{count = $value}}" type="number">
+			<br>
+			<button onclick="{{push()}}">push</button>
+			<button onclick="{{overwrite()}}">overwrite</button>
+			<button onclick="{{raw()}}">raw</button>
 
-        <div each="{{item of items}}">
-            <div class="box">
-                <div>{{item.number}}</div>
-            </div>
-        </div>
+			<div each="{{item of items}}">
+			<div class="box">
+				<div>{{item.number}}</div>
+			</div>
+			</div>
 
-        <div id="raw"></div>
-    `;
+			<div id="raw"></div>
+		`;
 
-		// <input value="{{item.number = $value}}"></input>
+        // <input value="{{item.number = $value}}"></input>
 
-	}
+    }
 
-	Define(OLoop);
+    Define(OLoop);
 
 </script>

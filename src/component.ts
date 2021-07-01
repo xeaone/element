@@ -52,20 +52,20 @@ export default class Component extends HTMLElement {
 
     async render () {
 
-        this.data = Observer(this.data, async path => {
+        this.data = Observer(this.data, async function observer (path) {
             // console.log(path);
             const binders = Binder.get(path);
             if (!binders) return;
-            const tasks = [];
+            // const tasks = [];
             for (const [ , binder ] of binders) {
-                tasks.push(binder.render());
-                // binder.render();
+                // tasks.push(binder.render());
+                binder.render();
             }
-            return Promise.all(tasks);
+            // return Promise.all(tasks);
         });
 
         if (this.adopt) {
-            Binder.adds(this.childNodes, this);
+            Binder.adds(this, this);
             // let child = this.firstChild;
             // while (child) {
             //     Binder.add(child, this);
@@ -109,7 +109,7 @@ export default class Component extends HTMLElement {
         //     child = child.nextSibling;
         // }
 
-        Binder.adds(template.content.childNodes, this);
+        Binder.adds(template.content, this);
         this.#root.appendChild(template.content);
 
         // return Promise.all(tasks);
