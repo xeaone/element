@@ -76,7 +76,7 @@
         return target;
     };
 
-    const traverse$1 = function (data, path, paths) {
+    const traverse = function (data, path, paths) {
         paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
         if (!paths.length) {
             return data;
@@ -87,7 +87,7 @@
             if (conditional && typeof data !== 'object')
                 return undefined;
             part = conditional ? part.slice(0, -1) : part;
-            return traverse$1(data[part], path, paths);
+            return traverse(data[part], path, paths);
         }
     };
 
@@ -125,7 +125,7 @@
         assignment = assignment?.replace(/\s/g, '');
         // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
         // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
-        const assignee = assignment ? traverse$1.bind(null, data, assignment) : () => undefined;
+        const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
         const context = new Proxy(data, {
             // has: () => true,
             // get: (target, name) => name in data ? data[ name ] : name in target ? target[ name ] : name in window ? window[ name ] : undefined,
@@ -584,94 +584,19 @@
     // };
     // export default { setup, read, write };
 
-    const emptyAttribute$1 = /\s*{{\s*}}\s*/;
-    const emptyText$1 = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
-    const TN$1 = Node.TEXT_NODE;
-    const EN$1 = Node.ELEMENT_NODE;
-    const prefix = 'o-';
-    const syntaxEnd = '}}';
-    const syntaxStart = '{{';
-    const syntaxMatch = new RegExp('{{.*?}}');
-    const walk = async function (node, paths, path) {
-        const type = node.nodeType;
-        const tasks = [];
-        // if (type === CN) {
-        //     node.parentNode.removeChild(node);
-        // } else
-        if (type === TN$1) {
-            // if (emptyText.test(node.textContent)) node.parentNode.removeChild(node);
-            if (emptyText$1.test(node.textContent))
-                return;
-            const start = node.textContent.indexOf(syntaxStart);
-            if (start === -1)
-                return;
-            if (start !== 0)
-                node = node.splitText(start);
-            const end = node.textContent.indexOf(syntaxEnd);
-            if (end === -1)
-                return;
-            if (end + syntaxStart.length !== node.textContent.length) {
-                const split = node.splitText(end + syntaxEnd.length);
-                // const value = node.textContent;
-                // node.textContent = '';
-                paths.push(path);
-                tasks.push(walk(split, paths, [...path.slice(0, -1), path[path.length - 1]++]));
-            }
-            else {
-                // const value = node.textContent;
-                // node.textContent = '';
-                paths.push(path);
-            }
+    const empty = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
+    const clean = function (node) {
+        for (const child of node.childNodes) {
+            clean(child);
         }
-        else if (type === EN$1) {
-            const attributes = node.attributes;
-            let each;
-            for (let i = 0; i < attributes.length; i++) {
-                const attribute = attributes[i];
-                const { name, value } = attribute;
-                if (name === 'each' || name === `${prefix}each`)
-                    each = true;
-                if (syntaxMatch.test(value)) {
-                    // attribute.value = '';
-                    if (!emptyAttribute$1.test(value)) {
-                        paths.push([...path, 'attributes', i]);
-                    }
-                }
-            }
-            if (!each) {
-                node = node.firstChild;
-                if (!node)
-                    return;
-                let index = 0;
-                tasks.push(walk(node, paths, [...path, 'childNodes', index]));
-                while (node = node.nextSibling) {
-                    index++;
-                    tasks.push(walk(node, paths, [...path, 'childNodes', index]));
-                }
-            }
-        }
-        return Promise.all(tasks);
-    };
-    const traverse = function (data, parts) {
-        if (!parts.length) {
-            return data;
+        if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
+            node.parentNode.removeChild(node);
+            return false;
         }
         else {
-            const part = parts.shift();
-            return traverse(data[part], parts);
+            return true;
         }
     };
-    // const clean = function (node) {
-    //     for (const child of node.childNodes) {
-    //         clean(child);
-    //     }
-    //     if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
-    //         node.parentNode.removeChild(node);
-    //         return false;
-    //     } else {
-    //         return true;
-    //     }
-    // };
     const setup = function (binder) {
         const { meta, owner } = binder;
         const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
@@ -679,6 +604,7 @@
         meta.indexName = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
         meta.variableName = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
         meta.keys = [];
+        meta.tasks = [];
         meta.setup = true;
         meta.targetLength = 0;
         meta.currentLength = 0;
@@ -688,13 +614,12 @@
         let node;
         meta.paths = [];
         while (node = owner.firstChild) {
-            // if (clean(node)) {
-            meta.clone.content.appendChild(node);
-            walk(node, meta.paths, ['childNodes', meta.templateLength]);
-            meta.templateLength++;
-            // }
+            if (clean(node)) {
+                meta.clone.content.appendChild(node);
+                // walk(node, meta.paths, [ 'childNodes', meta.templateLength ]);
+                meta.templateLength++;
+            }
         }
-        console.log(meta.paths);
     };
     const each = async function each(binder) {
         const { meta, owner } = binder;
@@ -729,7 +654,7 @@
             }
         }
         else if (meta.currentLength < meta.targetLength) {
-            const tasks = [];
+            // const tasks = [];
             while (meta.currentLength < meta.targetLength) {
                 const indexValue = meta.currentLength;
                 const keyValue = meta.keys[indexValue] ?? indexValue;
@@ -739,16 +664,23 @@
                 const variableName = meta.variableName;
                 meta.currentLength++;
                 const extra = { keyName, indexName, variableName, indexValue, keyValue, variableValue };
-                const clone = meta.clone.content.cloneNode(true);
-                // binder.adds(clone.childNodes, binder.container, extra);
-                // tasks.push(binder.adds(clone.childNodes, binder.container, extra));
-                for (const path of meta.paths) {
-                    tasks.push(binder.add(traverse(clone, [...path]), binder.container, extra));
+                // const clone = meta.clone.content.cloneNode(true);
+                // let node = clone.firstChild;
+                // while (node) {
+                //     meta.tasks.push(binder.add(node, binder.container, extra));
+                //     node = node.nextSibling;
+                // }
+                // meta.templateElement.content.appendChild(clone);
+                let clone = meta.clone.content.firstChild;
+                while (clone) {
+                    const node = clone.cloneNode(true);
+                    meta.tasks.push(binder.add(node, binder.container, extra));
+                    meta.templateElement.content.appendChild(node);
+                    clone = clone.nextSibling;
                 }
-                meta.templateElement.content.appendChild(clone);
             }
             if (meta.currentLength === meta.targetLength) {
-                Promise.all(tasks).then(function eachFinish() {
+                Promise.all(meta.tasks).then(function eachFinish() {
                     owner.appendChild(meta.templateElement.content);
                     if (owner.nodeName === 'SELECT')
                         owner.dispatchEvent(new Event('$render'));
@@ -971,7 +903,7 @@
                     name, value, paths, path,
                     get: this.get.bind(this),
                     add: this.add.bind(this),
-                    adds: this.adds.bind(this),
+                    // adds: this.adds.bind(this),
                     remove: this.remove.bind(this),
                     compute: async function cacheCompute(...args) {
                         this.compute = (await compute);
@@ -987,6 +919,7 @@
                     this.nodeBinders.get(node).set(path, binder);
                     this.pathBinders.get(path).set(node, binder);
                 }
+                // binder.render();
                 tasks.push(binder.render());
             }
             return Promise.all(tasks);
@@ -1007,17 +940,16 @@
                 child = child.nextSibling;
             }
         }
-        async adds(node, container, extra) {
-            const tasks = [];
-            node = node.firstChild;
-            if (!node)
-                return;
-            tasks.push(this.add(node, container, extra));
-            while (node = node.nextSibling) {
-                tasks.push(this.add(node, container, extra));
-            }
-            return Promise.all(tasks);
-        }
+        // async adds (node: Node, container, extra?) {
+        //     const tasks = [];
+        //     node = node.firstChild;
+        //     if (!node) return;
+        //     tasks.push(this.add(node, container, extra));
+        //     while (node = node.nextSibling) {
+        //         tasks.push(this.add(node, container, extra));
+        //     }
+        //     return Promise.all(tasks);
+        // }
         async add(node, container, extra) {
             const type = node.nodeType;
             const tasks = [];
@@ -1061,20 +993,25 @@
                 let each;
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
-                    const { name, value } = attribute;
+                    const { name } = attribute;
+                    // const { name, value } = attribute;
                     if (name === 'each' || name === `${this.prefix}each`)
                         each = true;
-                    // this.syntaxMatch.test(name) || name.startsWith(this.prefix) 
-                    if (this.syntaxMatch.test(value)) {
-                        attribute.value = '';
-                        if (!emptyAttribute.test(value))
-                            tasks.push(this.bind(attribute, name, value, container, extra));
+                    tasks.push(this.add(attribute, container, extra));
+                    // if (this.syntaxMatch.test(value)) {
+                    //     attribute.value = '';
+                    //     if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
+                    // }
+                }
+                if (!each) {
+                    node = node.firstChild;
+                    while (node) {
+                        tasks.push(this.add(node, container, extra));
+                        node = node.nextSibling;
                     }
                 }
-                if (!each)
-                    tasks.push(this.adds(node, container, extra));
             }
-            return Promise.all(tasks);
+            Promise.all(tasks);
         }
     };
 
@@ -1155,6 +1092,8 @@
             this.data = {};
             this.adopt = false;
             this.shadow = false;
+            this.#binder = Binder;
+            // this.#binder = new Binder();
             if (this.shadow && 'attachShadow' in document.body) {
                 this.#root = this.attachShadow({ mode: 'open' });
             }
@@ -1168,14 +1107,16 @@
         static get observedAttributes() { return this.attributes; }
         static set observedAttributes(attributes) { this.attributes = attributes; }
         #root;
+        #binder;
         #flag;
         #name;
         get root() { return this.#root; }
         get binder() { return Binder; }
         async render() {
-            this.data = observer(this.data, async function observer(path) {
+            const observer$1 = async (path) => {
                 // console.log(path);
-                const binders = Binder.get(path);
+                // const binders = this.#binder.get(path);
+                const binders = this.#binder.pathBinders.get(path);
                 if (!binders)
                     return;
                 // const tasks = [];
@@ -1184,14 +1125,15 @@
                     binder.render();
                 }
                 // return Promise.all(tasks);
-            });
+            };
+            this.data = observer(this.data, observer$1);
             if (this.adopt) {
-                Binder.adds(this, this);
-                // let child = this.firstChild;
-                // while (child) {
-                //     Binder.add(child, this);
-                //     child = child.nextSibling;
-                // }
+                // this.#binder.adds(this, this);
+                let child = this.firstChild;
+                while (child) {
+                    this.#binder.add(child, this);
+                    child = child.nextSibling;
+                }
             }
             const template = document.createElement('template');
             template.innerHTML = this.html;
@@ -1220,15 +1162,15 @@
                 if (defaultSlot)
                     defaultSlot.parentNode.removeChild(defaultSlot);
             }
-            // const tasks = [];
-            // let child = template.content.firstChild;
-            // while (child) {
-            //     tasks.push(Binder.add(child, this));
-            //     child = child.nextSibling;
-            // }
-            Binder.adds(template.content, this);
-            this.#root.appendChild(template.content);
-            // return Promise.all(tasks);
+            const tasks = [];
+            let child = template.content.firstChild;
+            while (child) {
+                tasks.push(this.#binder.add(child, this));
+                child = child.nextSibling;
+            }
+            // this.#binder.adds(template.content, this);
+            const renderDone = () => this.#root.appendChild(template.content);
+            return Promise.all(tasks).then(renderDone);
         }
         async attributeChangedCallback(name, from, to) {
             await this.attributed(name, from, to);

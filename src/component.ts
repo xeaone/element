@@ -1,6 +1,7 @@
 import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
+import BindersRoute from '../web/routes/binders';
 
 export default class Component extends HTMLElement {
 
@@ -9,6 +10,7 @@ export default class Component extends HTMLElement {
     static set observedAttributes (attributes) { this.attributes = attributes; }
 
     #root: any;
+    #binder: any;
     #flag: boolean = false;
     #name: string = this.nodeName.toLowerCase();
 
@@ -40,6 +42,9 @@ export default class Component extends HTMLElement {
     constructor () {
         super();
 
+        this.#binder = Binder;
+        // this.#binder = new Binder();
+
         if (this.shadow && 'attachShadow' in document.body) {
             this.#root = this.attachShadow({ mode: 'open' });
         } else if (this.shadow && 'createShadowRoot' in document.body) {
@@ -52,9 +57,11 @@ export default class Component extends HTMLElement {
 
     async render () {
 
-        this.data = Observer(this.data, async function observer (path) {
+        const observer = async (path) => {
             // console.log(path);
-            const binders = Binder.get(path);
+            // const binders = this.#binder.get(path);
+            const binders = this.#binder.pathBinders.get(path);
+
             if (!binders) return;
             // const tasks = [];
             for (const [ , binder ] of binders) {
@@ -62,15 +69,17 @@ export default class Component extends HTMLElement {
                 binder.render();
             }
             // return Promise.all(tasks);
-        });
+        };
+
+        this.data = Observer(this.data, observer);
 
         if (this.adopt) {
-            Binder.adds(this, this);
-            // let child = this.firstChild;
-            // while (child) {
-            //     Binder.add(child, this);
-            //     child = child.nextSibling;
-            // }
+            // this.#binder.adds(this, this);
+            let child = this.firstChild;
+            while (child) {
+                this.#binder.add(child, this);
+                child = child.nextSibling;
+            }
         }
 
         const template = document.createElement('template');
@@ -102,17 +111,16 @@ export default class Component extends HTMLElement {
             if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
         }
 
-        // const tasks = [];
-        // let child = template.content.firstChild;
-        // while (child) {
-        //     tasks.push(Binder.add(child, this));
-        //     child = child.nextSibling;
-        // }
+        const tasks = [];
+        let child = template.content.firstChild;
+        while (child) {
+            tasks.push(this.#binder.add(child, this));
+            child = child.nextSibling;
+        }
 
-        Binder.adds(template.content, this);
-        this.#root.appendChild(template.content);
-
-        // return Promise.all(tasks);
+        // this.#binder.adds(template.content, this);
+        const renderDone = () => this.#root.appendChild(template.content);
+        return Promise.all(tasks).then(renderDone);
     }
 
     async attributeChangedCallback (name: string, from: string, to: string) {

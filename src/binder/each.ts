@@ -1,4 +1,3 @@
-import traverse from '../traverse';
 
 const empty = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
 
@@ -91,21 +90,20 @@ const traverse = function (data: any, parts?: any[]) {
     }
 };
 
+const clean = function (node) {
 
-// const clean = function (node) {
+    for (const child of node.childNodes) {
+        clean(child);
+    }
 
-//     for (const child of node.childNodes) {
-//         clean(child);
-//     }
+    if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
+        node.parentNode.removeChild(node);
+        return false;
+    } else {
+        return true;
+    }
 
-//     if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
-//         node.parentNode.removeChild(node);
-//         return false;
-//     } else {
-//         return true;
-//     }
-
-// };
+};
 
 const setup = function (binder) {
     const { meta, owner } = binder;
@@ -117,6 +115,7 @@ const setup = function (binder) {
     meta.variableName = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
 
     meta.keys = [];
+    meta.tasks = [];
     meta.setup = true;
     meta.targetLength = 0;
     meta.currentLength = 0;
@@ -128,13 +127,12 @@ const setup = function (binder) {
     let node;
     meta.paths = [];
     while (node = owner.firstChild) {
-        // if (clean(node)) {
-        meta.clone.content.appendChild(node);
-        walk(node, meta.paths, [ 'childNodes', meta.templateLength ]);
-        meta.templateLength++;
-        // }
+        if (clean(node)) {
+            meta.clone.content.appendChild(node);
+            // walk(node, meta.paths, [ 'childNodes', meta.templateLength ]);
+            meta.templateLength++;
+        }
     }
-    console.log(meta.paths);
 
 };
 
@@ -174,7 +172,7 @@ const each = async function each (binder) {
         }
 
     } else if (meta.currentLength < meta.targetLength) {
-        const tasks = [];
+        // const tasks = [];
         while (meta.currentLength < meta.targetLength) {
             const indexValue = meta.currentLength;
             const keyValue = meta.keys[ indexValue ] ?? indexValue;
@@ -186,19 +184,26 @@ const each = async function each (binder) {
             meta.currentLength++;
             const extra = { keyName, indexName, variableName, indexValue, keyValue, variableValue };
 
-            const clone = meta.clone.content.cloneNode(true);
-            // binder.adds(clone.childNodes, binder.container, extra);
-            // tasks.push(binder.adds(clone.childNodes, binder.container, extra));
+            // const clone = meta.clone.content.cloneNode(true);
+            // let node = clone.firstChild;
+            // while (node) {
+            //     meta.tasks.push(binder.add(node, binder.container, extra));
+            //     node = node.nextSibling;
+            // }
+            // meta.templateElement.content.appendChild(clone);
 
-            for (const path of meta.paths) {
-                tasks.push(binder.add(traverse(clone, [ ...path ]), binder.container, extra));
+            let clone = meta.clone.content.firstChild;
+            while (clone) {
+                const node = clone.cloneNode(true);
+                meta.tasks.push(binder.add(node, binder.container, extra));
+                meta.templateElement.content.appendChild(node);
+                clone = clone.nextSibling;
             }
 
-            meta.templateElement.content.appendChild(clone);
         }
 
         if (meta.currentLength === meta.targetLength) {
-            Promise.all(tasks).then(function eachFinish () {
+            Promise.all(meta.tasks).then(function eachFinish () {
                 owner.appendChild(meta.templateElement.content);
                 if (owner.nodeName === 'SELECT') owner.dispatchEvent(new Event('$render'));
             });

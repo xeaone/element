@@ -100,7 +100,7 @@ export default new class Binder {
                 name, value, paths, path,
                 get: this.get.bind(this),
                 add: this.add.bind(this),
-                adds: this.adds.bind(this),
+                // adds: this.adds.bind(this),
                 remove: this.remove.bind(this),
                 compute: async function cacheCompute (...args) {
                     this.compute = (await compute);
@@ -117,10 +117,11 @@ export default new class Binder {
                 this.pathBinders.get(path).set(node, binder);
             }
 
+            // binder.render();
             tasks.push(binder.render());
         }
-        return Promise.all(tasks);
 
+        return Promise.all(tasks);
     };
 
     async remove (node: Node) {
@@ -143,20 +144,19 @@ export default new class Binder {
 
     }
 
-    async adds (node: Node, container, extra?) {
-        const tasks = [];
-        node = node.firstChild;
-        if (!node) return;
+    // async adds (node: Node, container, extra?) {
+    //     const tasks = [];
+    //     node = node.firstChild;
+    //     if (!node) return;
 
-        tasks.push(this.add(node, container, extra));
-        while (node = node.nextSibling) {
-            tasks.push(this.add(node, container, extra));
-        }
-        return Promise.all(tasks);
-    }
+    //     tasks.push(this.add(node, container, extra));
+    //     while (node = node.nextSibling) {
+    //         tasks.push(this.add(node, container, extra));
+    //     }
+    //     return Promise.all(tasks);
+    // }
 
     async add (node: Node, container: any, extra?: any) {
-
         const type = node.nodeType;
         const tasks = [];
 
@@ -198,20 +198,27 @@ export default new class Binder {
             let each;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
-                const { name, value } = attribute;
+                const { name } = attribute;
+                // const { name, value } = attribute;
                 if (name === 'each' || name === `${this.prefix}each`) each = true;
-                // this.syntaxMatch.test(name) || name.startsWith(this.prefix) 
-                if (this.syntaxMatch.test(value)) {
-                    attribute.value = '';
-                    if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
+                tasks.push(this.add(attribute, container, extra));
+                // if (this.syntaxMatch.test(value)) {
+                //     attribute.value = '';
+                //     if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
+                // }
+            }
+
+            if (!each) {
+                node = node.firstChild;
+                while (node) {
+                    tasks.push(this.add(node, container, extra));
+                    node = node.nextSibling;
                 }
             }
 
-            if (!each) tasks.push(this.adds(node, container, extra));
-
         }
 
-        return Promise.all(tasks);
+        Promise.all(tasks);
     }
 
 };
