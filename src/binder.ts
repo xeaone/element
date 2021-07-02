@@ -156,10 +156,18 @@ export default new class Binder {
     }
 
     async add (node: Node, container: any, extra?: any) {
+
         const type = node.nodeType;
         const tasks = [];
 
-        if (type === TN) {
+        if (type === AN) {
+            const attribute = (node as Attr);
+            const { name, value } = attribute;
+            if (this.syntaxMatch.test(value)) {
+                attribute.value = '';
+                if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
+            }
+        } else if (type === TN) {
             if (emptyText.test(node.textContent)) return;
 
             const start = node.textContent.indexOf(this.syntaxStart);

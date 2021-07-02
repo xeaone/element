@@ -1,3 +1,4 @@
+import traverse from './traverse';
 
 const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
 const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
@@ -18,20 +19,6 @@ const strips = new RegExp([
     \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
-
-const traverse = function (data: any, path: string, paths?: string[]) {
-    paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
-
-    if (!paths.length) {
-        return data;
-    } else {
-        let part = paths.shift();
-        const conditional = part.endsWith('?');
-        if (conditional && typeof data !== 'object') return undefined;
-        part = conditional ? part.slice(0, -1) : part;
-        return traverse(data[ part ], path, paths);
-    }
-};
 
 export default function (statement: string, data: any, extra?: any) {
     statement = isOfIn.test(statement) ? statement.replace(replaceOfIn, '{{$2}}') : statement;
@@ -56,8 +43,16 @@ export default function (statement: string, data: any, extra?: any) {
     const context = new Proxy(data, {
         // has: () => true,
         // get: (target, name) => name in data ? data[ name ] : name in target ? target[ name ] : name in window ? window[ name ] : undefined,
-        get: (target, name) => name in data ? data[ name ] : name in window ? window[ name ] : undefined,
-        has: (target, property) => typeof property === 'string' && [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ].includes(property) ? false : true
+        get: (target, name) => {
+            if (name in data) {
+                return data[ name ];
+            } else {
+                return name in window ? window[ name ] : undefined;
+            }
+        },
+        has: (target, property) => {
+            return typeof property === 'string' && [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ].includes(property) ? false : true;
+        }
     });
 
     let code = statement;

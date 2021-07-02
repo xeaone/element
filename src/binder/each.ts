@@ -1,20 +1,111 @@
+import traverse from '../traverse';
 
 const empty = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
 
-const clean = function (node) {
+const emptyAttribute = /\s*{{\s*}}\s*/;
+const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
 
-    for (const child of node.childNodes) {
-        clean(child);
+const TN = Node.TEXT_NODE;
+const EN = Node.ELEMENT_NODE;
+const AN = Node.ATTRIBUTE_NODE;
+const CN = Node.COMMENT_NODE;
+
+const prefix = 'o-';
+const syntaxEnd = '}}';
+const syntaxStart = '{{';
+const syntaxMatch = new RegExp('{{.*?}}');
+const prefixReplace = new RegExp('^o-');
+const syntaxReplace = new RegExp('{{|}}', 'g');
+
+const walk = async function (node: Node, paths: any[][], path: any[]) {
+    const type = node.nodeType;
+    const tasks = [];
+
+    // if (type === CN) {
+    //     node.parentNode.removeChild(node);
+    // } else
+    if (type === TN) {
+        // if (emptyText.test(node.textContent)) node.parentNode.removeChild(node);
+        if (emptyText.test(node.textContent)) return;
+
+        const start = node.textContent.indexOf(syntaxStart);
+        if (start === -1) return;
+
+        if (start !== 0) node = (node as Text).splitText(start);
+
+        const end = node.textContent.indexOf(syntaxEnd);
+        if (end === -1) return;
+
+        if (end + syntaxStart.length !== node.textContent.length) {
+            const split = (node as Text).splitText(end + syntaxEnd.length);
+            // const value = node.textContent;
+            // node.textContent = '';
+            paths.push(path);
+            tasks.push(walk(split, paths, [ ...path.slice(0, -1), path[ path.length - 1 ]++ ]));
+        } else {
+            // const value = node.textContent;
+            // node.textContent = '';
+            paths.push(path);
+        }
+
+    } else if (type === EN) {
+        const attributes = (node as Element).attributes;
+
+        let each;
+        for (let i = 0; i < attributes.length; i++) {
+            const attribute = attributes[ i ];
+            const { name, value } = attribute;
+            if (name === 'each' || name === `${prefix}each`) each = true;
+            if (syntaxMatch.test(value)) {
+                // attribute.value = '';
+                if (!emptyAttribute.test(value)) {
+                    paths.push([ ...path, 'attributes', i ]);
+                }
+            }
+        }
+
+        if (!each) {
+            node = node.firstChild;
+            if (!node) return;
+
+            let index = 0;
+            tasks.push(walk(node, paths, [ ...path, 'childNodes', index ]));
+            while (node = node.nextSibling) {
+                index++;
+                tasks.push(walk(node, paths, [ ...path, 'childNodes', index ]));
+            }
+        }
+
     }
 
-    if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
-        node.parentNode.removeChild(node);
-        return false;
-    } else {
-        return true;
-    }
-
+    return Promise.all(tasks);
 };
+
+
+const traverse = function (data: any, parts?: any[]) {
+    if (!parts.length) {
+        return data;
+    } else {
+        const part = parts.shift();
+        return traverse(data[ part ], parts);
+    }
+};
+
+
+// const clean = function (node) {
+
+//     for (const child of node.childNodes) {
+//         clean(child);
+//     }
+
+//     if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
+//         node.parentNode.removeChild(node);
+//         return false;
+//     } else {
+//         return true;
+//     }
+
+// };
 
 const setup = function (binder) {
     const { meta, owner } = binder;
@@ -35,12 +126,16 @@ const setup = function (binder) {
     meta.templateElement = document.createElement('template');
 
     let node;
+    meta.paths = [];
     while (node = owner.firstChild) {
-        if (clean(node)) {
-            meta.templateLength++;
-            meta.clone.content.appendChild(node);
-        }
+        // if (clean(node)) {
+        meta.clone.content.appendChild(node);
+        walk(node, meta.paths, [ 'childNodes', meta.templateLength ]);
+        meta.templateLength++;
+        // }
     }
+    console.log(meta.paths);
+
 };
 
 const each = async function each (binder) {
@@ -94,7 +189,11 @@ const each = async function each (binder) {
             const clone = meta.clone.content.cloneNode(true);
             // binder.adds(clone.childNodes, binder.container, extra);
             // tasks.push(binder.adds(clone.childNodes, binder.container, extra));
-            tasks.push(binder.adds(clone, binder.container, extra));
+
+            for (const path of meta.paths) {
+                tasks.push(binder.add(traverse(clone, [ ...path ]), binder.container, extra));
+            }
+
             meta.templateElement.content.appendChild(clone);
         }
 

@@ -76,6 +76,21 @@
         return target;
     };
 
+    const traverse$1 = function (data, path, paths) {
+        paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
+        if (!paths.length) {
+            return data;
+        }
+        else {
+            let part = paths.shift();
+            const conditional = part.endsWith('?');
+            if (conditional && typeof data !== 'object')
+                return undefined;
+            part = conditional ? part.slice(0, -1) : part;
+            return traverse$1(data[part], path, paths);
+        }
+    };
+
     const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
@@ -93,20 +108,6 @@
     \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
-    const traverse = function (data, path, paths) {
-        paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
-        if (!paths.length) {
-            return data;
-        }
-        else {
-            let part = paths.shift();
-            const conditional = part.endsWith('?');
-            if (conditional && typeof data !== 'object')
-                return undefined;
-            part = conditional ? part.slice(0, -1) : part;
-            return traverse(data[part], path, paths);
-        }
-    };
     function Statement (statement, data, extra) {
         statement = isOfIn.test(statement) ? statement.replace(replaceOfIn, '{{$2}}') : statement;
         if (extra) {
@@ -124,12 +125,21 @@
         assignment = assignment?.replace(/\s/g, '');
         // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
         // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
-        const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
+        const assignee = assignment ? traverse$1.bind(null, data, assignment) : () => undefined;
         const context = new Proxy(data, {
             // has: () => true,
             // get: (target, name) => name in data ? data[ name ] : name in target ? target[ name ] : name in window ? window[ name ] : undefined,
-            get: (target, name) => name in data ? data[name] : name in window ? window[name] : undefined,
-            has: (target, property) => typeof property === 'string' && ['$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked'].includes(property) ? false : true
+            get: (target, name) => {
+                if (name in data) {
+                    return data[name];
+                }
+                else {
+                    return name in window ? window[name] : undefined;
+                }
+            },
+            has: (target, property) => {
+                return typeof property === 'string' && ['$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked'].includes(property) ? false : true;
+            }
         });
         let code = statement;
         code = code.replace(/{{/g, convert ? `' +` : '');
@@ -574,19 +584,94 @@
     // };
     // export default { setup, read, write };
 
-    const empty = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
-    const clean = function (node) {
-        for (const child of node.childNodes) {
-            clean(child);
+    const emptyAttribute$1 = /\s*{{\s*}}\s*/;
+    const emptyText$1 = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
+    const TN$1 = Node.TEXT_NODE;
+    const EN$1 = Node.ELEMENT_NODE;
+    const prefix = 'o-';
+    const syntaxEnd = '}}';
+    const syntaxStart = '{{';
+    const syntaxMatch = new RegExp('{{.*?}}');
+    const walk = async function (node, paths, path) {
+        const type = node.nodeType;
+        const tasks = [];
+        // if (type === CN) {
+        //     node.parentNode.removeChild(node);
+        // } else
+        if (type === TN$1) {
+            // if (emptyText.test(node.textContent)) node.parentNode.removeChild(node);
+            if (emptyText$1.test(node.textContent))
+                return;
+            const start = node.textContent.indexOf(syntaxStart);
+            if (start === -1)
+                return;
+            if (start !== 0)
+                node = node.splitText(start);
+            const end = node.textContent.indexOf(syntaxEnd);
+            if (end === -1)
+                return;
+            if (end + syntaxStart.length !== node.textContent.length) {
+                const split = node.splitText(end + syntaxEnd.length);
+                // const value = node.textContent;
+                // node.textContent = '';
+                paths.push(path);
+                tasks.push(walk(split, paths, [...path.slice(0, -1), path[path.length - 1]++]));
+            }
+            else {
+                // const value = node.textContent;
+                // node.textContent = '';
+                paths.push(path);
+            }
         }
-        if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
-            node.parentNode.removeChild(node);
-            return false;
+        else if (type === EN$1) {
+            const attributes = node.attributes;
+            let each;
+            for (let i = 0; i < attributes.length; i++) {
+                const attribute = attributes[i];
+                const { name, value } = attribute;
+                if (name === 'each' || name === `${prefix}each`)
+                    each = true;
+                if (syntaxMatch.test(value)) {
+                    // attribute.value = '';
+                    if (!emptyAttribute$1.test(value)) {
+                        paths.push([...path, 'attributes', i]);
+                    }
+                }
+            }
+            if (!each) {
+                node = node.firstChild;
+                if (!node)
+                    return;
+                let index = 0;
+                tasks.push(walk(node, paths, [...path, 'childNodes', index]));
+                while (node = node.nextSibling) {
+                    index++;
+                    tasks.push(walk(node, paths, [...path, 'childNodes', index]));
+                }
+            }
+        }
+        return Promise.all(tasks);
+    };
+    const traverse = function (data, parts) {
+        if (!parts.length) {
+            return data;
         }
         else {
-            return true;
+            const part = parts.shift();
+            return traverse(data[part], parts);
         }
     };
+    // const clean = function (node) {
+    //     for (const child of node.childNodes) {
+    //         clean(child);
+    //     }
+    //     if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
+    //         node.parentNode.removeChild(node);
+    //         return false;
+    //     } else {
+    //         return true;
+    //     }
+    // };
     const setup = function (binder) {
         const { meta, owner } = binder;
         const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
@@ -601,12 +686,15 @@
         meta.clone = document.createElement('template');
         meta.templateElement = document.createElement('template');
         let node;
+        meta.paths = [];
         while (node = owner.firstChild) {
-            if (clean(node)) {
-                meta.templateLength++;
-                meta.clone.content.appendChild(node);
-            }
+            // if (clean(node)) {
+            meta.clone.content.appendChild(node);
+            walk(node, meta.paths, ['childNodes', meta.templateLength]);
+            meta.templateLength++;
+            // }
         }
+        console.log(meta.paths);
     };
     const each = async function each(binder) {
         const { meta, owner } = binder;
@@ -654,7 +742,9 @@
                 const clone = meta.clone.content.cloneNode(true);
                 // binder.adds(clone.childNodes, binder.container, extra);
                 // tasks.push(binder.adds(clone.childNodes, binder.container, extra));
-                tasks.push(binder.adds(clone, binder.container, extra));
+                for (const path of meta.paths) {
+                    tasks.push(binder.add(traverse(clone, [...path]), binder.container, extra));
+                }
                 meta.templateElement.content.appendChild(clone);
             }
             if (meta.currentLength === meta.targetLength) {
@@ -931,7 +1021,16 @@
         async add(node, container, extra) {
             const type = node.nodeType;
             const tasks = [];
-            if (type === TN) {
+            if (type === AN) {
+                const attribute = node;
+                const { name, value } = attribute;
+                if (this.syntaxMatch.test(value)) {
+                    attribute.value = '';
+                    if (!emptyAttribute.test(value))
+                        tasks.push(this.bind(attribute, name, value, container, extra));
+                }
+            }
+            else if (type === TN) {
                 if (emptyText.test(node.textContent))
                     return;
                 const start = node.textContent.indexOf(this.syntaxStart);
