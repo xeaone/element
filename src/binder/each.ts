@@ -1,99 +1,13 @@
 
 const empty = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
+const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
-const emptyAttribute = /\s*{{\s*}}\s*/;
-const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
+const clean = function (node: Node) {
 
-const TN = Node.TEXT_NODE;
-const EN = Node.ELEMENT_NODE;
-const AN = Node.ATTRIBUTE_NODE;
-const CN = Node.COMMENT_NODE;
-
-const prefix = 'o-';
-const syntaxEnd = '}}';
-const syntaxStart = '{{';
-const syntaxMatch = new RegExp('{{.*?}}');
-const prefixReplace = new RegExp('^o-');
-const syntaxReplace = new RegExp('{{|}}', 'g');
-
-const walk = async function (node: Node, paths: any[][], path: any[]) {
-    const type = node.nodeType;
-    const tasks = [];
-
-    // if (type === CN) {
-    //     node.parentNode.removeChild(node);
-    // } else
-    if (type === TN) {
-        // if (emptyText.test(node.textContent)) node.parentNode.removeChild(node);
-        if (emptyText.test(node.textContent)) return;
-
-        const start = node.textContent.indexOf(syntaxStart);
-        if (start === -1) return;
-
-        if (start !== 0) node = (node as Text).splitText(start);
-
-        const end = node.textContent.indexOf(syntaxEnd);
-        if (end === -1) return;
-
-        if (end + syntaxStart.length !== node.textContent.length) {
-            const split = (node as Text).splitText(end + syntaxEnd.length);
-            // const value = node.textContent;
-            // node.textContent = '';
-            paths.push(path);
-            tasks.push(walk(split, paths, [ ...path.slice(0, -1), path[ path.length - 1 ]++ ]));
-        } else {
-            // const value = node.textContent;
-            // node.textContent = '';
-            paths.push(path);
-        }
-
-    } else if (type === EN) {
-        const attributes = (node as Element).attributes;
-
-        let each;
-        for (let i = 0; i < attributes.length; i++) {
-            const attribute = attributes[ i ];
-            const { name, value } = attribute;
-            if (name === 'each' || name === `${prefix}each`) each = true;
-            if (syntaxMatch.test(value)) {
-                // attribute.value = '';
-                if (!emptyAttribute.test(value)) {
-                    paths.push([ ...path, 'attributes', i ]);
-                }
-            }
-        }
-
-        if (!each) {
-            node = node.firstChild;
-            if (!node) return;
-
-            let index = 0;
-            tasks.push(walk(node, paths, [ ...path, 'childNodes', index ]));
-            while (node = node.nextSibling) {
-                index++;
-                tasks.push(walk(node, paths, [ ...path, 'childNodes', index ]));
-            }
-        }
-
-    }
-
-    return Promise.all(tasks);
-};
-
-
-const traverse = function (data: any, parts?: any[]) {
-    if (!parts.length) {
-        return data;
-    } else {
-        const part = parts.shift();
-        return traverse(data[ part ], parts);
-    }
-};
-
-const clean = function (node) {
-
-    for (const child of node.childNodes) {
+    let child = node.firstChild;
+    while (child) {
         clean(child);
+        child = child.nextSibling;
     }
 
     if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
@@ -106,114 +20,109 @@ const clean = function (node) {
 };
 
 const setup = function (binder) {
-    const { meta, owner } = binder;
+    const [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
-    const [ variable, index, key ] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
+    binder.meta.path = path;
+    binder.meta.keyName = key;
+    binder.meta.indexName = index;
+    binder.meta.variableName = variable;
+    binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
+    binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
+    binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
 
-    meta.keyName = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
-    meta.indexName = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
-    meta.variableName = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
+    binder.meta.keys = [];
+    binder.meta.tasks = [];
+    binder.meta.setup = true;
+    binder.meta.targetLength = 0;
+    binder.meta.currentLength = 0;
+    binder.meta.templateLength = 0;
 
-    meta.keys = [];
-    meta.tasks = [];
-    meta.setup = true;
-    meta.targetLength = 0;
-    meta.currentLength = 0;
-    meta.templateLength = 0;
-
-    meta.clone = document.createElement('template');
-    meta.templateElement = document.createElement('template');
+    binder.meta.clone = document.createElement('template');
+    binder.meta.templateElement = document.createElement('template');
 
     let node;
-    meta.paths = [];
-    while (node = owner.firstChild) {
+    while (node = binder.owner.firstChild) {
         if (clean(node)) {
-            meta.clone.content.appendChild(node);
-            // walk(node, meta.paths, [ 'childNodes', meta.templateLength ]);
-            meta.templateLength++;
+            binder.meta.clone.content.appendChild(node);
+            binder.meta.cloneLength++;
         }
     }
 
 };
 
-const each = async function each (binder) {
-    const { meta, owner } = binder;
+const each = async function (binder) {
+    if (!binder.meta.setup) await setup(binder);
 
-    if (!meta.setup) await setup(binder);
+    // const time = `each ${binder.meta.targetLength}`;
+    // console.time(time);
 
-    let data = await binder.compute();
-    // console.log('each', data.length, meta.targetLength);
+    const data = await binder.compute();
+
     if (data instanceof Array) {
-        meta.targetLength = data.length;
+        binder.meta.targetLength = data.length;
     } else {
-        meta.keys = Object.keys(data || {});
-        meta.targetLength = meta.keys.length;
+        binder.meta.keys = Object.keys(data || {});
+        binder.meta.targetLength = binder.meta.keys.length;
     }
 
-    if (meta.currentLength > meta.targetLength) {
-        const tasks = [];
-        while (meta.currentLength > meta.targetLength) {
-            let count = meta.templateLength;
+    if (binder.meta.currentLength > binder.meta.targetLength) {
+        while (binder.meta.currentLength > binder.meta.targetLength) {
+            let count = binder.meta.cloneLength;
 
             while (count--) {
-                const node = owner.lastChild;
-                owner.removeChild(node);
-                tasks.push(binder.remove(node));
+                const node = binder.owner.lastChild;
+                binder.owner.removeChild(node);
+                binder.meta.tasks.push(binder.remove(node));
             }
 
-            meta.currentLength--;
+            binder.meta.currentLength--;
         }
 
-        if (meta.currentLength === meta.targetLength) {
-            Promise.all(tasks).then(function eachFinish () {
-                owner.appendChild(meta.templateElement.content);
-                if (owner.nodeName === 'SELECT') owner.dispatchEvent(new Event('$render'));
-            });
-        }
+    } else if (binder.meta.currentLength < binder.meta.targetLength) {
+        while (binder.meta.currentLength < binder.meta.targetLength) {
+            const indexValue = binder.meta.currentLength;
+            const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
+            const variableValue = `${binder.meta.path}[${keyValue}]`;
+            const extra = {
+                keyValue, indexValue, variableValue,
+                keyName: binder.meta.keyName,
+                indexName: binder.meta.indexName,
+                variableName: binder.meta.variableName,
+                keyPattern: binder.meta.keyPattern,
+                indexPattern: binder.meta.indexPattern,
+                variablePattern: binder.meta.variablePattern,
+            };
 
-    } else if (meta.currentLength < meta.targetLength) {
-        // const tasks = [];
-        while (meta.currentLength < meta.targetLength) {
-            const indexValue = meta.currentLength;
-            const keyValue = meta.keys[ indexValue ] ?? indexValue;
-            const variableValue = `${binder.path}[${keyValue}]`;
-            const keyName = meta.keyName;
-            const indexName = meta.indexName;
-            const variableName = meta.variableName;
+            binder.meta.currentLength++;
 
-            meta.currentLength++;
-            const extra = { keyName, indexName, variableName, indexValue, keyValue, variableValue };
+            const clone = binder.meta.clone.content.cloneNode(true);
+            let node = clone.firstChild;
+            while (node) {
+                binder.meta.tasks.push(binder.add(node, binder.container, extra));
+                node = node.nextSibling;
+            }
+            binder.meta.templateElement.content.appendChild(clone);
 
-            // const clone = meta.clone.content.cloneNode(true);
-            // let node = clone.firstChild;
-            // while (node) {
-            //     meta.tasks.push(binder.add(node, binder.container, extra));
-            //     node = node.nextSibling;
+            // let clone = binder.meta.clone.content.firstChild;
+            // while (clone) {
+            //     const node = clone.cloneNode(true);
+            //     binder.meta.tasks.push(binder.add(node, binder.container, extra));
+            //     binder.meta.templateElement.content.appendChild(node);
+            //     clone = clone.nextSibling;
             // }
-            // meta.templateElement.content.appendChild(clone);
-
-            let clone = meta.clone.content.firstChild;
-            while (clone) {
-                const node = clone.cloneNode(true);
-                meta.tasks.push(binder.add(node, binder.container, extra));
-                meta.templateElement.content.appendChild(node);
-                clone = clone.nextSibling;
-            }
 
         }
 
-        if (meta.currentLength === meta.targetLength) {
-            Promise.all(meta.tasks).then(function eachFinish () {
-                owner.appendChild(meta.templateElement.content);
-                if (owner.nodeName === 'SELECT') owner.dispatchEvent(new Event('$render'));
-            });
-        }
+    }
 
-
+    if (binder.meta.currentLength === binder.meta.targetLength) {
+        // console.timeEnd(time);
+        Promise.all(binder.meta.tasks).then(function eachFinish () {
+            binder.owner.appendChild(binder.meta.templateElement.content);
+            if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$render'));
+        });
     }
 
 };
 
 export default each;
-
-// export default { setup, write };

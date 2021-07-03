@@ -79,36 +79,38 @@ export default new class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, name: string, value: string, container: any, extra?: any) {
-        const { compute, assignee, paths } = Statement(value, container.data, extra);
-
-        if (!paths.length) paths.push('');
+    async bind (node: Node, container: any, extra?: any) {
 
         const owner = node.nodeType === AN ? (node as Attr).ownerElement : node;
+        const name = node.nodeType === AN ? (node as Attr).name : 'text';
+        const value = node.nodeType === AN ? (node as Attr).value : node.textContent;
+
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         const render = this.binders[ type ];
 
+        const get = this.get.bind(this);
+        const add = this.add.bind(this);
+        const remove = this.remove.bind(this);
+
+        const { compute, assignee, paths } = Statement(value, container.data, extra);
+        if (!paths.length) paths.push('');
+
+        const binder = {
+            render,
+            meta: {},
+            node, owner,
+            busy: false,
+            container, type,
+            assignee,
+            name, value, paths,
+            get, add, remove,
+            compute
+        };
+
+        binder.render = render.bind(render, binder);
+
         const tasks = [];
         for (const path of paths) {
-            const binder = {
-                render,
-                meta: {},
-                node, owner,
-                busy: false,
-                container, type,
-                assignee,
-                name, value, paths, path,
-                get: this.get.bind(this),
-                add: this.add.bind(this),
-                // adds: this.adds.bind(this),
-                remove: this.remove.bind(this),
-                compute: async function cacheCompute (...args) {
-                    this.compute = (await compute);
-                    return this.compute(...args);
-                }
-            };
-
-            binder.render = render.bind(render, binder);
 
             if (path) {
                 if (!this.nodeBinders.has(node)) this.nodeBinders.set(node, new Map());
@@ -162,10 +164,10 @@ export default new class Binder {
 
         if (type === AN) {
             const attribute = (node as Attr);
-            const { name, value } = attribute;
+            const { value } = attribute;
             if (this.syntaxMatch.test(value)) {
-                attribute.value = '';
-                if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
+                if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, container, extra));
+                // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
             }
         } else if (type === TN) {
             if (emptyText.test(node.textContent)) return;
@@ -180,16 +182,18 @@ export default new class Binder {
 
             if (end + this.syntaxStart.length !== node.textContent.length) {
                 const split = (node as Text).splitText(end + this.syntaxEnd.length);
-                const value = node.textContent;
-                node.textContent = '';
+                // const value = node.textContent;
+                // node.textContent = '';
                 // if (!empty.test(value))
-                tasks.push(this.bind(node, 'text', value, container, extra));
+                // tasks.push(this.bind(node, 'text', value, container, extra));
+                tasks.push(this.bind(node, container, extra));
                 tasks.push(this.add(split, container, extra));
             } else {
-                const value = node.textContent;
-                node.textContent = '';
+                // const value = node.textContent;
+                // node.textContent = '';
                 // if (!empty.test(value))
-                tasks.push(this.bind(node, 'text', value, container, extra));
+                // tasks.push(this.bind(node, 'text', value, container, extra));
+                tasks.push(this.bind(node, container, extra));
             }
 
         } else if (type === EN) {
@@ -212,6 +216,61 @@ export default new class Binder {
                 node = node.firstChild;
                 while (node) {
                     tasks.push(this.add(node, container, extra));
+                    node = node.nextSibling;
+                }
+            }
+
+        }
+
+        Promise.all(tasks);
+    }
+
+    async walk (node: Node, handle) {
+        const type = node.nodeType;
+        const tasks = [];
+
+        if (type === AN) {
+            const attribute = (node as Attr);
+            const { value } = attribute;
+            if (this.syntaxMatch.test(value)) {
+                attribute.value = '';
+                if (!emptyAttribute.test(value)) tasks.push(handle(attribute));
+            }
+        } else if (type === TN) {
+            if (emptyText.test(node.textContent)) return;
+
+            const start = node.textContent.indexOf(this.syntaxStart);
+            if (start === -1) return;
+
+            if (start !== 0) node = (node as Text).splitText(start);
+
+            const end = node.textContent.indexOf(this.syntaxEnd);
+            if (end === -1) return;
+
+            if (end + this.syntaxStart.length !== node.textContent.length) {
+                const split = (node as Text).splitText(end + this.syntaxEnd.length);
+                node.textContent = '';
+                tasks.push(handle(node));
+                tasks.push(this.walk(split, handle));
+            } else {
+                tasks.push(handle(node));
+            }
+
+        } else if (type === EN) {
+            const attributes = (node as Element).attributes;
+
+            let each;
+            for (let i = 0; i < attributes.length; i++) {
+                const attribute = attributes[ i ];
+                const { name } = attribute;
+                if (name === 'each' || name === `${this.prefix}each`) each = true;
+                tasks.push(this.walk(attribute, handle));
+            }
+
+            if (!each) {
+                node = node.firstChild;
+                while (node) {
+                    tasks.push(this.walk(node, handle);
                     node = node.nextSibling;
                 }
             }

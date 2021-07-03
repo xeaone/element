@@ -108,70 +108,85 @@
     \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
+    const cache = new Map();
     function Statement (statement, data, extra) {
-        statement = isOfIn.test(statement) ? statement.replace(replaceOfIn, '{{$2}}') : statement;
-        if (extra) {
-            if (extra.keyName)
-                statement = statement.replace(extra.keyName, (s, g1, g2, g3) => g1 + extra.keyValue + g3);
-            if (extra.indexName)
-                statement = statement.replace(extra.indexName, (s, g1, g2, g3) => g1 + extra.indexValue + g3);
-            if (extra.variableName)
-                statement = statement.replace(extra.variableName, (s, g1, g2, g3) => g1 + extra.variableValue + g3);
+        if (isOfIn.test(statement)) {
+            statement = statement.replace(replaceOfIn, '{{$2}}');
         }
         const convert = !shouldNotConvert.test(statement);
-        let striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+        let striped = statement;
+        if (extra) {
+            if (extra.keyName)
+                striped = striped.replace(extra.keyPattern, (s, g1, g2, g3) => g1 + extra.keyValue + g3);
+            if (extra.indexName)
+                striped = striped.replace(extra.indexPattern, (s, g1, g2, g3) => g1 + extra.indexValue + g3);
+            if (extra.variableName)
+                striped = striped.replace(extra.variablePattern, (s, g1, g2, g3) => g1 + extra.variableValue + g3);
+        }
+        striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [];
         let [, assignment] = striped.match(matchAssignment) || [];
         assignment = assignment?.replace(/\s/g, '');
         // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
         // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
         const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
-        const context = new Proxy(data, {
-            // has: () => true,
-            // get: (target, name) => name in data ? data[ name ] : name in target ? target[ name ] : name in window ? window[ name ] : undefined,
+        const context = new Proxy({}, {
+            has: () => true,
+            set: (target, name, value) => {
+                if (name[0] === '$') {
+                    target[name] = value;
+                }
+                else {
+                    data[name] = value;
+                }
+                return true;
+            },
             get: (target, name) => {
-                if (name in data) {
+                if (extra?.variableName === name) {
+                    return traverse(data, extra.variableValue);
+                }
+                else if (name in target) {
+                    return target[name];
+                }
+                else if (name in data) {
                     return data[name];
                 }
                 else {
-                    return name in window ? window[name] : undefined;
+                    return window[name];
                 }
-            },
-            has: (target, property) => {
-                return typeof property === 'string' && ['$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked'].includes(property) ? false : true;
             }
         });
-        let code = statement;
-        code = code.replace(/{{/g, convert ? `' +` : '');
-        code = code.replace(/}}/g, convert ? ` + '` : '');
-        code = convert ? `'${code}'` : code;
-        code = `
-        var $f, $form, $e, $event, $v, $value, $c, $checked;
-        if ($extra) {
-            $f = $extra.form, $form = $extra.form,
-            $e = $extra.event, $event = $extra.event,
-            $v = $extra.value, $value = $extra.value,
-            $c = $extra.checked, $checked = $extra.checked;
+        let compute;
+        if (cache.has(statement)) {
+            compute = cache.get(statement).bind(null, context);
         }
-        with ($context) {
-            return (${code});
+        else {
+            let code = statement;
+            code = code.replace(/{{/g, convert ? `' +` : '');
+            code = code.replace(/}}/g, convert ? ` + '` : '');
+            code = convert ? `'${code}'` : code;
+            code = `
+            if ($extra) {
+                $context.$f = $extra.form; $context.$form = $extra.form;
+                $context.$e = $extra.event; $context.$event = $extra.event;
+                $context.$v = $extra.value; $context.$value = $extra.value;
+                $context.$c = $extra.checked; $context.$checked = $extra.checked;
+            }
+            with ($context) {
+                return (${code});
+            }
+        `;
+            compute = new Function('$context', '$extra', code);
+            cache.set(statement, compute);
+            compute = compute.bind(null, context);
         }
-    `;
-        const compute = async function generateCompute() {
-            return new Function('$context', '$extra', code).bind(null, context);
-        }();
-        // const compute = new Function('$context', '$extra', code).bind(null, context);
-        // const compute = new Function('$context', '$extra', code).bind(null, context);
-        // const compute = function () {
-        //     return new Function('$context', '$extra', code).bind(null, context);
-        // };
-        return { compute, assignee, paths, code, context };
+        return { compute, assignee, paths };
     }
-    //     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
+    // 'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
     //     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
     //     'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
     //     'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
-    //     'debugger', 'function', 'arguments', 'typeof', 'void'
+    //     'debugger', 'function', 'arguments', 'typeof', 'void';
     // const $string = 'string';
     // const $number = 'number';
     // const $variable = 'variable';
@@ -231,7 +246,6 @@
     //     } else if (node.type === $string) {
     //         node.compute = () => node.value;
     //     } else if (node.type === $function) {
-    //         console.log('push', node.value);
     //         tree.paths.push(node.value);
     //         node.compute = (context, ...args) => {
     //             if (assignment) {
@@ -241,13 +255,19 @@
     //             }
     //         };
     //     } else {
-    //         console.log(node.value);
     //         node.type = $variable;
     //         tree.paths.push(node.value);
     //         node.compute = (alternate) => {
-    //             return node.value.startsWith('$e') || node.value.startsWith('$event')
-    //                 || node.value.startsWith('$v') || node.value.startsWith('$value')
-    //                 ? get(alternate, node.value) : get(data, node.value);
+    //             console.log(assignment, alternate, node, data);
+    //             const result =
+    //                 node.value.startsWith('$e') || node.value.startsWith('$event') ||
+    //                     node.value.startsWith('$v') || node.value.startsWith('$value')
+    //                     ? get(alternate, node.value.slice(1)) : get(data, node.value);
+    //             if (assignment) {
+    //                 // console.log(set(assignment, data, result));
+    //                 return set(assignment, data, result);
+    //             }
+    //             return result;
     //         };
     //         // node.compute = (value) => {
     //         //     return value === undefined ? get(data, node.value) : value;
@@ -255,7 +275,7 @@
     //     }
     // };
     // const assignmentPattern = /{{((\w+\s*(\.|\[|\])?\s*)+)=.+}}/;
-    // export default function expression (expression, data) {
+    // export default function statement (expression, data) {
     //     const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, compute: null };
     //     let inside = false;
     //     let node: Node = { value: '', parent: tree, children: [] };
@@ -265,7 +285,7 @@
     //     let assignment;
     //     if (expression.includes('=')) {
     //         assignment = expression.replace(assignmentPattern, '$1').replace(/\s*/g, '');
-    //         console.log(assignment);
+    //         tree.assignee = () => get(data, assignment);
     //         expression = expression.replace(/{{.*?=/, '{{');
     //     }
     //     for (let i = 0; i < expression.length; i++) {
@@ -278,7 +298,7 @@
     //         ) {
     //             i++;
     //             if (node.value) {
-    //                 finish(node, data, tree);
+    //                 finish(node, data, tree, assignment);
     //                 node.parent.children.push(node);
     //             }
     //             inside = true;
@@ -289,7 +309,7 @@
     //         ) {
     //             i++;
     //             if (node.value) {
-    //                 finish(node, data, tree);
+    //                 finish(node, data, tree, assignment);
     //                 node.parent.children.push(node);
     //             }
     //             inside = false;
@@ -297,12 +317,12 @@
     //         } else if (inside === false) {
     //             node.value += c;
     //             node.type = $string;
-    //         } else if (/'|`| "/.test(c) && !node.type || node.type === $string) {;;
+    //         } else if (/'|`| "/.test(c) && !node.type || node.type === $string) {
     //             node.type = $string;
     //             node.value += c;
     //             if (node.value.length > 1 && node.value[ 0 ] === c && previous !== '\\') {
     //                 node.value = node.value.slice(1, -1);
-    //                 finish(node, data, tree);
+    //                 finish(node, data, tree, assignment);
     //                 node.parent.children.push(node);
     //                 node = { value: '', parent: node.parent };
     //             }
@@ -310,13 +330,13 @@
     //             node.type = $number;
     //             node.value += c;
     //             if (!/[0-9.]/.test(next)) {
-    //                 finish(node, data, tree);
+    //                 finish(node, data, tree, assignment);
     //                 node.parent.children.push(node);
     //                 node = { value: '', parent: node.parent };
     //             }
     //         } else if (',' === c) {
     //             if (node.value) {
-    //                 finish(node, data, tree);
+    //                 finish(node, data, tree, assignment);
     //                 node.parent.children.push(node);
     //                 node = { value: '', parent: node.parent };
     //             }
@@ -328,7 +348,7 @@
     //             node = { value: '', parent: node };
     //         } else if (')' === c) {
     //             if (node.value) {
-    //                 finish(node, data, tree);
+    //                 finish(node, data, tree, assignment);
     //                 node.parent.children.push(node);
     //             }
     //             node = { value: '', parent: node.parent.parent };
@@ -477,6 +497,7 @@
             const { checked } = owner;
             const isNumber = owner.$typeof !== 'string' && numberTypes.includes(type);
             const value = isNumber ? owner.valueAsNumber : owner.value;
+            // computed = await binder.compute(undefined, event, value, checked);
             computed = await binder.compute({ event, value, checked });
             display = format(computed);
             if (numberTypes.includes(type) && typeof computed !== 'string') {
@@ -524,6 +545,7 @@
         else {
             const { checked } = owner;
             const value = binder.assignee();
+            // computed = await binder.compute(undefined, undefined, value, checked);
             computed = await binder.compute({ value, checked });
             display = format(computed);
             if (numberTypes.includes(type) && typeof computed !== 'string') {
@@ -585,9 +607,12 @@
     // export default { setup, read, write };
 
     const empty = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
+    const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
     const clean = function (node) {
-        for (const child of node.childNodes) {
+        let child = node.firstChild;
+        while (child) {
             clean(child);
+            child = child.nextSibling;
         }
         if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
             node.parentNode.removeChild(node);
@@ -598,97 +623,94 @@
         }
     };
     const setup = function (binder) {
-        const { meta, owner } = binder;
-        const [variable, index, key] = binder.value.slice(2, -2).replace(/\s+(of|in)\s+.*/, '').split(/\s*,\s*/).reverse();
-        meta.keyName = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
-        meta.indexName = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
-        meta.variableName = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
-        meta.keys = [];
-        meta.tasks = [];
-        meta.setup = true;
-        meta.targetLength = 0;
-        meta.currentLength = 0;
-        meta.templateLength = 0;
-        meta.clone = document.createElement('template');
-        meta.templateElement = document.createElement('template');
+        const [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+        binder.meta.path = path;
+        binder.meta.keyName = key;
+        binder.meta.indexName = index;
+        binder.meta.variableName = variable;
+        binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
+        binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
+        binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
+        binder.meta.keys = [];
+        binder.meta.tasks = [];
+        binder.meta.setup = true;
+        binder.meta.targetLength = 0;
+        binder.meta.currentLength = 0;
+        binder.meta.templateLength = 0;
+        binder.meta.clone = document.createElement('template');
+        binder.meta.templateElement = document.createElement('template');
         let node;
-        meta.paths = [];
-        while (node = owner.firstChild) {
+        while (node = binder.owner.firstChild) {
             if (clean(node)) {
-                meta.clone.content.appendChild(node);
-                // walk(node, meta.paths, [ 'childNodes', meta.templateLength ]);
-                meta.templateLength++;
+                binder.meta.clone.content.appendChild(node);
+                binder.meta.cloneLength++;
             }
         }
     };
-    const each = async function each(binder) {
-        const { meta, owner } = binder;
-        if (!meta.setup)
+    const each = async function (binder) {
+        if (!binder.meta.setup)
             await setup(binder);
-        let data = await binder.compute();
-        // console.log('each', data.length, meta.targetLength);
+        // const time = `each ${binder.meta.targetLength}`;
+        // console.time(time);
+        const data = await binder.compute();
         if (data instanceof Array) {
-            meta.targetLength = data.length;
+            binder.meta.targetLength = data.length;
         }
         else {
-            meta.keys = Object.keys(data || {});
-            meta.targetLength = meta.keys.length;
+            binder.meta.keys = Object.keys(data || {});
+            binder.meta.targetLength = binder.meta.keys.length;
         }
-        if (meta.currentLength > meta.targetLength) {
-            const tasks = [];
-            while (meta.currentLength > meta.targetLength) {
-                let count = meta.templateLength;
+        if (binder.meta.currentLength > binder.meta.targetLength) {
+            while (binder.meta.currentLength > binder.meta.targetLength) {
+                let count = binder.meta.cloneLength;
                 while (count--) {
-                    const node = owner.lastChild;
-                    owner.removeChild(node);
-                    tasks.push(binder.remove(node));
+                    const node = binder.owner.lastChild;
+                    binder.owner.removeChild(node);
+                    binder.meta.tasks.push(binder.remove(node));
                 }
-                meta.currentLength--;
-            }
-            if (meta.currentLength === meta.targetLength) {
-                Promise.all(tasks).then(function eachFinish() {
-                    owner.appendChild(meta.templateElement.content);
-                    if (owner.nodeName === 'SELECT')
-                        owner.dispatchEvent(new Event('$render'));
-                });
+                binder.meta.currentLength--;
             }
         }
-        else if (meta.currentLength < meta.targetLength) {
-            // const tasks = [];
-            while (meta.currentLength < meta.targetLength) {
-                const indexValue = meta.currentLength;
-                const keyValue = meta.keys[indexValue] ?? indexValue;
-                const variableValue = `${binder.path}[${keyValue}]`;
-                const keyName = meta.keyName;
-                const indexName = meta.indexName;
-                const variableName = meta.variableName;
-                meta.currentLength++;
-                const extra = { keyName, indexName, variableName, indexValue, keyValue, variableValue };
-                // const clone = meta.clone.content.cloneNode(true);
-                // let node = clone.firstChild;
-                // while (node) {
-                //     meta.tasks.push(binder.add(node, binder.container, extra));
-                //     node = node.nextSibling;
-                // }
-                // meta.templateElement.content.appendChild(clone);
-                let clone = meta.clone.content.firstChild;
-                while (clone) {
-                    const node = clone.cloneNode(true);
-                    meta.tasks.push(binder.add(node, binder.container, extra));
-                    meta.templateElement.content.appendChild(node);
-                    clone = clone.nextSibling;
+        else if (binder.meta.currentLength < binder.meta.targetLength) {
+            while (binder.meta.currentLength < binder.meta.targetLength) {
+                const indexValue = binder.meta.currentLength;
+                const keyValue = binder.meta.keys[indexValue] ?? indexValue;
+                const variableValue = `${binder.meta.path}[${keyValue}]`;
+                const extra = {
+                    keyValue, indexValue, variableValue,
+                    keyName: binder.meta.keyName,
+                    indexName: binder.meta.indexName,
+                    variableName: binder.meta.variableName,
+                    keyPattern: binder.meta.keyPattern,
+                    indexPattern: binder.meta.indexPattern,
+                    variablePattern: binder.meta.variablePattern,
+                };
+                binder.meta.currentLength++;
+                const clone = binder.meta.clone.content.cloneNode(true);
+                let node = clone.firstChild;
+                while (node) {
+                    binder.meta.tasks.push(binder.add(node, binder.container, extra));
+                    node = node.nextSibling;
                 }
+                binder.meta.templateElement.content.appendChild(clone);
+                // let clone = binder.meta.clone.content.firstChild;
+                // while (clone) {
+                //     const node = clone.cloneNode(true);
+                //     binder.meta.tasks.push(binder.add(node, binder.container, extra));
+                //     binder.meta.templateElement.content.appendChild(node);
+                //     clone = clone.nextSibling;
+                // }
             }
-            if (meta.currentLength === meta.targetLength) {
-                Promise.all(meta.tasks).then(function eachFinish() {
-                    owner.appendChild(meta.templateElement.content);
-                    if (owner.nodeName === 'SELECT')
-                        owner.dispatchEvent(new Event('$render'));
-                });
-            }
+        }
+        if (binder.meta.currentLength === binder.meta.targetLength) {
+            // console.timeEnd(time);
+            Promise.all(binder.meta.tasks).then(function eachFinish() {
+                binder.owner.appendChild(binder.meta.templateElement.content);
+                if (binder.owner.nodeName === 'SELECT')
+                    binder.owner.dispatchEvent(new Event('$render'));
+            });
         }
     };
-    // export default { setup, write };
 
     const html = async function (binder) {
         let data = await binder.compute();
@@ -884,33 +906,32 @@
             }
             this.nodeBinders.delete(node);
         }
-        async bind(node, name, value, container, extra) {
+        async bind(node, container, extra) {
+            const owner = node.nodeType === AN ? node.ownerElement : node;
+            const name = node.nodeType === AN ? node.name : 'text';
+            const value = node.nodeType === AN ? node.value : node.textContent;
+            const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
+            const render = this.binders[type];
+            const get = this.get.bind(this);
+            const add = this.add.bind(this);
+            const remove = this.remove.bind(this);
             const { compute, assignee, paths } = Statement(value, container.data, extra);
             if (!paths.length)
                 paths.push('');
-            const owner = node.nodeType === AN ? node.ownerElement : node;
-            const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
-            const render = this.binders[type];
+            const binder = {
+                render,
+                meta: {},
+                node, owner,
+                busy: false,
+                container, type,
+                assignee,
+                name, value, paths,
+                get, add, remove,
+                compute
+            };
+            binder.render = render.bind(render, binder);
             const tasks = [];
             for (const path of paths) {
-                const binder = {
-                    render,
-                    meta: {},
-                    node, owner,
-                    busy: false,
-                    container, type,
-                    assignee,
-                    name, value, paths, path,
-                    get: this.get.bind(this),
-                    add: this.add.bind(this),
-                    // adds: this.adds.bind(this),
-                    remove: this.remove.bind(this),
-                    compute: async function cacheCompute(...args) {
-                        this.compute = (await compute);
-                        return this.compute(...args);
-                    }
-                };
-                binder.render = render.bind(render, binder);
                 if (path) {
                     if (!this.nodeBinders.has(node))
                         this.nodeBinders.set(node, new Map());
@@ -955,11 +976,11 @@
             const tasks = [];
             if (type === AN) {
                 const attribute = node;
-                const { name, value } = attribute;
+                const { value } = attribute;
                 if (this.syntaxMatch.test(value)) {
-                    attribute.value = '';
                     if (!emptyAttribute.test(value))
-                        tasks.push(this.bind(attribute, name, value, container, extra));
+                        tasks.push(this.bind(attribute, container, extra));
+                    // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
                 }
             }
             else if (type === TN) {
@@ -975,17 +996,19 @@
                     return;
                 if (end + this.syntaxStart.length !== node.textContent.length) {
                     const split = node.splitText(end + this.syntaxEnd.length);
-                    const value = node.textContent;
-                    node.textContent = '';
+                    // const value = node.textContent;
+                    // node.textContent = '';
                     // if (!empty.test(value))
-                    tasks.push(this.bind(node, 'text', value, container, extra));
+                    // tasks.push(this.bind(node, 'text', value, container, extra));
+                    tasks.push(this.bind(node, container, extra));
                     tasks.push(this.add(split, container, extra));
                 }
                 else {
-                    const value = node.textContent;
-                    node.textContent = '';
+                    // const value = node.textContent;
+                    // node.textContent = '';
                     // if (!empty.test(value))
-                    tasks.push(this.bind(node, 'text', value, container, extra));
+                    // tasks.push(this.bind(node, 'text', value, container, extra));
+                    tasks.push(this.bind(node, container, extra));
                 }
             }
             else if (type === EN) {
@@ -1007,6 +1030,59 @@
                     node = node.firstChild;
                     while (node) {
                         tasks.push(this.add(node, container, extra));
+                        node = node.nextSibling;
+                    }
+                }
+            }
+            Promise.all(tasks);
+        }
+        async walk(node, handle) {
+            const type = node.nodeType;
+            const tasks = [];
+            if (type === AN) {
+                const attribute = node;
+                const { value } = attribute;
+                if (this.syntaxMatch.test(value)) {
+                    attribute.value = '';
+                    if (!emptyAttribute.test(value))
+                        tasks.push(handle(attribute));
+                }
+            }
+            else if (type === TN) {
+                if (emptyText.test(node.textContent))
+                    return;
+                const start = node.textContent.indexOf(this.syntaxStart);
+                if (start === -1)
+                    return;
+                if (start !== 0)
+                    node = node.splitText(start);
+                const end = node.textContent.indexOf(this.syntaxEnd);
+                if (end === -1)
+                    return;
+                if (end + this.syntaxStart.length !== node.textContent.length) {
+                    const split = node.splitText(end + this.syntaxEnd.length);
+                    node.textContent = '';
+                    tasks.push(handle(node));
+                    tasks.push(this.walk(split, handle));
+                }
+                else {
+                    tasks.push(handle(node));
+                }
+            }
+            else if (type === EN) {
+                const attributes = node.attributes;
+                let each;
+                for (let i = 0; i < attributes.length; i++) {
+                    const attribute = attributes[i];
+                    const { name } = attribute;
+                    if (name === 'each' || name === `${this.prefix}each`)
+                        each = true;
+                    tasks.push(this.walk(attribute, handle));
+                }
+                if (!each) {
+                    node = node.firstChild;
+                    while (node) {
+                        tasks.push(this.walk(node, handle));
                         node = node.nextSibling;
                     }
                 }

@@ -32,6 +32,7 @@ const input = async function (binder, event) {
         const { checked } = owner;
         const isNumber = owner.$typeof !== 'string' && numberTypes.includes(type);
         const value = isNumber ? owner.valueAsNumber : owner.value;
+        // computed = await binder.compute(undefined, event, value, checked);
         computed = await binder.compute({ event, value, checked });
         display = format(computed);
         if (numberTypes.includes(type) && typeof computed !== 'string') {
@@ -84,6 +85,7 @@ const value = async function value (binder) {
     } else {
         const { checked } = owner;
         const value = binder.assignee();
+        // computed = await binder.compute(undefined, undefined, value, checked);
         computed = await binder.compute({ value, checked });
         display = format(computed);
         if (numberTypes.includes(type) && typeof computed !== 'string') {

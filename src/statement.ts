@@ -20,17 +20,24 @@ const strips = new RegExp([
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
 
-export default function (statement: string, data: any, extra?: any) {
-    statement = isOfIn.test(statement) ? statement.replace(replaceOfIn, '{{$2}}') : statement;
+const cache = new Map();
 
-    if (extra) {
-        if (extra.keyName) statement = statement.replace(extra.keyName, (s, g1, g2, g3) => g1 + extra.keyValue + g3);
-        if (extra.indexName) statement = statement.replace(extra.indexName, (s, g1, g2, g3) => g1 + extra.indexValue + g3);
-        if (extra.variableName) statement = statement.replace(extra.variableName, (s, g1, g2, g3) => g1 + extra.variableValue + g3);
+export default function (statement: string, data: any, extra?: any) {
+
+    if (isOfIn.test(statement)) {
+        statement = statement.replace(replaceOfIn, '{{$2}}');
     }
 
     const convert = !shouldNotConvert.test(statement);
-    let striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+    let striped = statement;
+
+    if (extra) {
+        if (extra.keyName) striped = striped.replace(extra.keyPattern, (s, g1, g2, g3) => g1 + extra.keyValue + g3);
+        if (extra.indexName) striped = striped.replace(extra.indexPattern, (s, g1, g2, g3) => g1 + extra.indexValue + g3);
+        if (extra.variableName) striped = striped.replace(extra.variablePattern, (s, g1, g2, g3) => g1 + extra.variableValue + g3);
+    }
+
+    striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
 
     const paths = striped.match(references) || [];
     let [ , assignment ] = striped.match(matchAssignment) || [];
@@ -40,57 +47,61 @@ export default function (statement: string, data: any, extra?: any) {
     // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
     const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
 
-    const context = new Proxy(data, {
-        // has: () => true,
-        // get: (target, name) => name in data ? data[ name ] : name in target ? target[ name ] : name in window ? window[ name ] : undefined,
+    const context = new Proxy({}, {
+        has: () => true,
+        set: (target, name, value) => {
+            if (name[ 0 ] === '$') {
+                target[ name ] = value;
+            } else {
+                data[ name ] = value;
+            }
+            return true;
+        },
         get: (target, name) => {
-            if (name in data) {
+            if (extra?.variableName === name) {
+                return traverse(data, extra.variableValue);
+            } else if (name in target) {
+                return target[ name ];
+            } else if (name in data) {
                 return data[ name ];
             } else {
-                return name in window ? window[ name ] : undefined;
+                return window[ name ];
             }
-        },
-        has: (target, property) => {
-            return typeof property === 'string' && [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ].includes(property) ? false : true;
         }
     });
 
-    let code = statement;
-    code = code.replace(/{{/g, convert ? `' +` : '');
-    code = code.replace(/}}/g, convert ? ` + '` : '');
-    code = convert ? `'${code}'` : code;
-    code = `
-        var $f, $form, $e, $event, $v, $value, $c, $checked;
-        if ($extra) {
-            $f = $extra.form, $form = $extra.form,
-            $e = $extra.event, $event = $extra.event,
-            $v = $extra.value, $value = $extra.value,
-            $c = $extra.checked, $checked = $extra.checked;
-        }
-        with ($context) {
-            return (${code});
-        }
-    `;
+    let compute;
+    if (cache.has(statement)) {
+        compute = cache.get(statement).bind(null, context);
+    } else {
+        let code = statement;
+        code = code.replace(/{{/g, convert ? `' +` : '');
+        code = code.replace(/}}/g, convert ? ` + '` : '');
+        code = convert ? `'${code}'` : code;
+        code = `
+            if ($extra) {
+                $context.$f = $extra.form; $context.$form = $extra.form;
+                $context.$e = $extra.event; $context.$event = $extra.event;
+                $context.$v = $extra.value; $context.$value = $extra.value;
+                $context.$c = $extra.checked; $context.$checked = $extra.checked;
+            }
+            with ($context) {
+                return (${code});
+            }
+        `;
+        compute = new Function('$context', '$extra', code);
+        cache.set(statement, compute);
+        compute = compute.bind(null, context);
+    }
 
-    const compute = async function generateCompute () {
-        return new Function('$context', '$extra', code).bind(null, context);
-    }();
-
-    // const compute = new Function('$context', '$extra', code).bind(null, context);
-    // const compute = new Function('$context', '$extra', code).bind(null, context);
-
-    // const compute = function () {
-    //     return new Function('$context', '$extra', code).bind(null, context);
-    // };
-
-    return { compute, assignee, paths, code, context };
+    return { compute, assignee, paths };
 };
 
-//     'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
+// 'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in',
 //     'do', 'if', 'for', 'let', 'new', 'try', 'var', 'case', 'else', 'with', 'await',
 //     'break', 'catch', 'class', 'const', 'super', 'throw', 'while', 'yield', 'delete',
 //     'export', 'import', 'return', 'switch', 'default', 'extends', 'finally', 'continue',
-//     'debugger', 'function', 'arguments', 'typeof', 'void'
+//     'debugger', 'function', 'arguments', 'typeof', 'void';
 
 // const $string = 'string';
 // const $number = 'number';
@@ -135,6 +146,7 @@ export default function (statement: string, data: any, extra?: any) {
 // };
 
 // const finish = function (node, data, tree, assignment?: string) {
+
 //     if (node.type !== $string) node.value = node.value.replace(/\s*/g, '');
 //     if (node.value === 'NaN') {
 //         node.type = 'nan';
@@ -156,7 +168,6 @@ export default function (statement: string, data: any, extra?: any) {
 //     } else if (node.type === $string) {
 //         node.compute = () => node.value;
 //     } else if (node.type === $function) {
-//         console.log('push', node.value);
 //         tree.paths.push(node.value);
 //         node.compute = (context, ...args) => {
 //             if (assignment) {
@@ -166,13 +177,23 @@ export default function (statement: string, data: any, extra?: any) {
 //             }
 //         };
 //     } else {
-//         console.log(node.value);
 //         node.type = $variable;
 //         tree.paths.push(node.value);
 //         node.compute = (alternate) => {
-//             return node.value.startsWith('$e') || node.value.startsWith('$event')
-//                 || node.value.startsWith('$v') || node.value.startsWith('$value')
-//                 ? get(alternate, node.value) : get(data, node.value);
+
+//             console.log(assignment, alternate, node, data);
+
+//             const result =
+//                 node.value.startsWith('$e') || node.value.startsWith('$event') ||
+//                     node.value.startsWith('$v') || node.value.startsWith('$value')
+//                     ? get(alternate, node.value.slice(1)) : get(data, node.value);
+
+//             if (assignment) {
+//                 // console.log(set(assignment, data, result));
+//                 return set(assignment, data, result);
+//             }
+
+//             return result;
 //         };
 //         // node.compute = (value) => {
 //         //     return value === undefined ? get(data, node.value) : value;
@@ -181,7 +202,7 @@ export default function (statement: string, data: any, extra?: any) {
 // };
 
 // const assignmentPattern = /{{((\w+\s*(\.|\[|\])?\s*)+)=.+}}/;
-// export default function expression (expression, data) {
+// export default function statement (expression, data) {
 //     const tree = { type: 'tree', children: [], paths: [], value: null, parent: null, compute: null };
 
 //     let inside = false;
@@ -194,7 +215,7 @@ export default function (statement: string, data: any, extra?: any) {
 //     let assignment;
 //     if (expression.includes('=')) {
 //         assignment = expression.replace(assignmentPattern, '$1').replace(/\s*/g, '');
-//         console.log(assignment);
+//         tree.assignee = () => get(data, assignment);
 //         expression = expression.replace(/{{.*?=/, '{{');
 //     }
 
@@ -210,7 +231,7 @@ export default function (statement: string, data: any, extra?: any) {
 //             i++;
 
 //             if (node.value) {
-//                 finish(node, data, tree);
+//                 finish(node, data, tree, assignment);
 //                 node.parent.children.push(node);
 //             }
 
@@ -223,7 +244,7 @@ export default function (statement: string, data: any, extra?: any) {
 //             i++;
 
 //             if (node.value) {
-//                 finish(node, data, tree);
+//                 finish(node, data, tree, assignment);
 //                 node.parent.children.push(node);
 //             }
 
@@ -232,13 +253,13 @@ export default function (statement: string, data: any, extra?: any) {
 //         } else if (inside === false) {
 //             node.value += c;
 //             node.type = $string;
-//         } else if (/'|`| "/.test(c) && !node.type || node.type === $string) {;;
+//         } else if (/'|`| "/.test(c) && !node.type || node.type === $string) {
 //             node.type = $string;
 //             node.value += c;
 
 //             if (node.value.length > 1 && node.value[ 0 ] === c && previous !== '\\') {
 //                 node.value = node.value.slice(1, -1);
-//                 finish(node, data, tree);
+//                 finish(node, data, tree, assignment);
 //                 node.parent.children.push(node);
 //                 node = { value: '', parent: node.parent };
 //             }
@@ -248,14 +269,14 @@ export default function (statement: string, data: any, extra?: any) {
 //             node.value += c;
 
 //             if (!/[0-9.]/.test(next)) {
-//                 finish(node, data, tree);
+//                 finish(node, data, tree, assignment);
 //                 node.parent.children.push(node);
 //                 node = { value: '', parent: node.parent };
 //             }
 
 //         } else if (',' === c) {
 //             if (node.value) {
-//                 finish(node, data, tree);
+//                 finish(node, data, tree, assignment);
 //                 node.parent.children.push(node);
 //                 node = { value: '', parent: node.parent };
 //             }
@@ -267,7 +288,7 @@ export default function (statement: string, data: any, extra?: any) {
 //             node = { value: '', parent: node };
 //         } else if (')' === c) {
 //             if (node.value) {
-//                 finish(node, data, tree);
+//                 finish(node, data, tree, assignment);
 //                 node.parent.children.push(node);
 //             }
 //             node = { value: '', parent: node.parent.parent };
