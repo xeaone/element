@@ -1,34 +1,34 @@
 
 type FetcherOption = {
-    path?:string
-    method?:string
-    origin?:string
-    headers?:object
-    acceptType?:string
-    credentials?:string
-    contentType?:string
-    responseType?:string
-    request?:(FetchOption) => void
-    response?:(FetchOption) => void
-}
+    path?: string;
+    method?: string;
+    origin?: string;
+    headers?: object;
+    acceptType?: string;
+    credentials?: string;
+    contentType?: string;
+    responseType?: string;
+    before?: (FetchOption) => any;
+    after?: (FetchOption) => any;
+};
 
 type FetchOption = FetcherOption & {
-    body?:any
-    url?:string
-    aborted?:boolean
-}
+    body?: any;
+    url?: string;
+    aborted?: boolean;
+};
 
 export default new class Fetcher {
 
-    option:FetcherOption = {}
-    
-    readonly types =[
+    option: FetcherOption = {};
+
+    readonly types = [
         'json',
         'text',
         'blob',
         'formData',
         'arrayBuffer'
-    ]
+    ];
 
     readonly mime = {
         xml: 'text/xml; charset=utf-8',
@@ -36,22 +36,22 @@ export default new class Fetcher {
         text: 'text/plain; charset=utf-8',
         json: 'application/json; charset=utf-8',
         js: 'application/javascript; charset=utf-8'
-    }
+    };
 
-    async setup (option:FetcherOption = {}) {
+    async setup (option: FetcherOption = {}) {
         this.option.path = option.path;
         this.option.method = option.method;
         this.option.origin = option.origin;
-        this.option.request = option.request;
+        this.option.before = option.before;
         this.option.headers = option.headers;
-        this.option.response = option.response;
+        this.option.after = option.after;
         this.option.acceptType = option.acceptType;
         this.option.credentials = option.credentials;
         this.option.contentType = option.contentType;
         this.option.responseType = option.responseType;
     }
 
-    async method (method:string, data?:string|object) {
+    async method (method: string, data?: string | object) {
         data = typeof data === 'string' ? { url: data } : data;
         return this.fetch({ ...data, method });
     }
@@ -59,31 +59,31 @@ export default new class Fetcher {
     async get () {
         return this.method('get', ...arguments);
     }
-    
+
     async put () {
         return this.method('put', ...arguments);
     }
-    
+
     async post () {
         return this.method('post', ...arguments);
     }
-    
+
     async head () {
         return this.method('head', ...arguments);
     }
-    
+
     async patch () {
         return this.method('patch', ...arguments);
     }
-    
+
     async delete () {
         return this.method('delete', ...arguments);
     }
-    
+
     async options () {
         return this.method('options', ...arguments);
     }
-    
+
     async connect () {
         return this.method('connect', ...arguments);
     }
@@ -93,18 +93,18 @@ export default new class Fetcher {
 
         for (const name in data) {
             query = query.length > 0 ? query + '&' : query;
-            query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+            query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[ name ]);
         }
 
         return query;
     }
 
-    async fetch (data:FetchOption = {}) {
+    async fetch (data: FetchOption = {}) {
         const { option } = this;
         const context = { ...option, ...data };
 
         if (context.path && typeof context.path === 'string' && context.path.charAt(0) === '/') context.path = context.path.slice(1);
-        if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length-1) === '/') context.origin = context.origin.slice(0, -1);
+        if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length - 1) === '/') context.origin = context.origin.slice(0, -1);
         if (context.path && context.origin && !context.url) context.url = context.origin + '/' + context.path;
 
         if (!context.method) throw new Error('Oxe.fetcher - requires method option');
@@ -121,25 +121,25 @@ export default new class Fetcher {
 
         if (context.contentType) {
             switch (context.contentType) {
-                case 'js': context.headers['Content-Type'] = this.mime.js; break;
-                case 'xml': context.headers['Content-Type'] = this.mime.xml; break;
-                case 'html': context.headers['Content-Type'] = this.mime.html; break;
-                case 'json': context.headers['Content-Type'] = this.mime.json; break;
-                default: context.headers['Content-Type'] = context.contentType;
+                case 'js': context.headers[ 'Content-Type' ] = this.mime.js; break;
+                case 'xml': context.headers[ 'Content-Type' ] = this.mime.xml; break;
+                case 'html': context.headers[ 'Content-Type' ] = this.mime.html; break;
+                case 'json': context.headers[ 'Content-Type' ] = this.mime.json; break;
+                default: context.headers[ 'Content-Type' ] = context.contentType;
             }
         }
 
         if (context.acceptType) {
             switch (context.acceptType) {
-                case 'js': context.headers['Accept'] = this.mime.js; break;
-                case 'xml': context.headers['Accept'] = this.mime.xml; break;
-                case 'html': context.headers['Accept'] = this.mime.html; break;
-                case 'json': context.headers['Accept'] = this.mime.json; break;
-                default: context.headers['Accept'] = context.acceptType;
+                case 'js': context.headers[ 'Accept' ] = this.mime.js; break;
+                case 'xml': context.headers[ 'Accept' ] = this.mime.xml; break;
+                case 'html': context.headers[ 'Accept' ] = this.mime.html; break;
+                case 'json': context.headers[ 'Accept' ] = this.mime.json; break;
+                default: context.headers[ 'Accept' ] = context.acceptType;
             }
         }
 
-        if (typeof option.request === 'function') await option.request(context);
+        if (typeof option.before === 'function') await option.before(context);
         if (context.aborted) return;
 
         if (context.body) {
@@ -176,13 +176,13 @@ export default new class Fetcher {
                 throw new Error('Oxe.fetch - invalid responseType value');
             }
 
-            context.body = await result[type]();
+            context.body = await result[ type ]();
         }
 
-        if (typeof option.response === 'function') await option.response(context);
+        if (typeof option.after === 'function') await option.after(context);
         if (context.aborted) return;
 
         return context;
     }
 
-}
+};

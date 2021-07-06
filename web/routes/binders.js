@@ -102,7 +102,6 @@ export default class BindersRoute extends Component {
                 <input type="radio" name="radio" value="two" checked="{{r2=$c}}"> Radio Two
             </label>
         </section>
-
         <section id="style">
             <h2>Style Binder</h2>
             <br>

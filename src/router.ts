@@ -6,8 +6,8 @@ type Option = {
     dynamic?: boolean;
     external?: string;
     target: string | Element;
-    after?: (location: any) => Promise<void>;
-    before?: (location: any) => Promise<void>;
+    after?: (location: any) => Promise<any>;
+    before?: (location: any) => Promise<any>;
 };
 
 const absolute = function (path: string) {
@@ -16,7 +16,7 @@ const absolute = function (path: string) {
     return a.pathname;
 };
 
-export default new class Location {
+export default new class Router {
 
     #target: Element;
     #data: object = {};
@@ -24,8 +24,8 @@ export default new class Location {
     #dynamic: boolean = true;
     #contain: boolean = false;
     #external: string | RegExp | Function;
-    #after?: (location: any) => Promise<void>;
-    #before?: (location: any) => Promise<void>;
+    #after?: (location: any) => Promise<any>;
+    #before?: (location: any) => Promise<any>;
 
     get hash () { return window.location.hash; }
     get host () { return window.location.host; }
@@ -46,21 +46,22 @@ export default new class Location {
 
     async setup (option: Option) {
 
-        // if (!option.target) throw new Error('target required');
         if ('folder' in option) this.#folder = option.folder;
         if ('contain' in option) this.#contain = option.contain;
         if ('dynamic' in option) this.#dynamic = option.dynamic;
         if ('external' in option) this.#external = option.external;
+        if ('before' in option) this.#before = option.before;
+        if ('after' in option) this.#after = option.after;
 
         this.#target = option.target instanceof Element ? option.target : document.body.querySelector(option.target);
 
         if (this.#dynamic) {
-            window.addEventListener('popstate', this.state.bind(this), true);
+            window.addEventListener('popstate', this.#state.bind(this), true);
 
             if (this.#contain) {
-                this.#target.addEventListener('click', this.click.bind(this), true);
+                this.#target.addEventListener('click', this.#click.bind(this), true);
             } else {
-                window.document.addEventListener('click', this.click.bind(this), true);
+                window.document.addEventListener('click', this.#click.bind(this), true);
             }
         }
 
@@ -68,14 +69,14 @@ export default new class Location {
     }
 
     async assign (data: string) {
-        return this.go(data, { mode: 'push' });
+        return this.#go(data, { mode: 'push' });
     }
 
     async replace (data: string) {
-        return this.go(data, { mode: 'replace' });
+        return this.#go(data, { mode: 'replace' });
     }
 
-    private location (href: string = window.location.href) {
+    #location (href: string = window.location.href) {
         const parser = document.createElement('a');
         parser.href = href;
 
@@ -98,14 +99,14 @@ export default new class Location {
         // return location;
     }
 
-    private async go (path: string, options: any = {}) {
+    async #go (path: string, options: any = {}) {
 
         // if (options.query) {
         //     path += Query(options.query);
         // }
 
         const mode = options.mode || 'push';
-        const location = this.location(path);
+        const location = this.#location(path);
 
         if (this.#before) await this.#before(location);
 
@@ -162,12 +163,12 @@ export default new class Location {
         if (this.#after) await this.#after(location);
     }
 
-    private async state (event) {
+    async #state (event) {
         await this.replace(event.state.href);
         window.scroll(event.state.top, 0);
     }
 
-    private async click (event) {
+    async #click (event) {
 
         // ignore canceled events, modified clicks, and right clicks
         if (

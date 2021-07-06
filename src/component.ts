@@ -85,31 +85,31 @@ export default class Component extends HTMLElement {
         const template = document.createElement('template');
         template.innerHTML = this.html;
 
-        if (
-            !this.shadow ||
-            !('attachShadow' in document.body) &&
-            !('createShadowRoot' in document.body)
-        ) {
-            const templateSlots = template.content.querySelectorAll('slot[name]');
-            const defaultSlot = template.content.querySelector('slot:not([name])');
+        // if (
+        //     !this.shadow ||
+        //     !('attachShadow' in document.body) &&
+        //     !('createShadowRoot' in document.body)
+        // ) {
+        //     const templateSlots = template.content.querySelectorAll('slot[name]');
+        //     const defaultSlot = template.content.querySelector('slot:not([name])');
 
-            for (let i = 0; i < templateSlots.length; i++) {
-                const templateSlot = templateSlots[ i ];
-                const name = templateSlot.getAttribute('name');
-                const instanceSlot = this.querySelector('[slot="' + name + '"]');
-                if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-                else templateSlot.parentNode.removeChild(templateSlot);
-            }
+        //     for (let i = 0; i < templateSlots.length; i++) {
+        //         const templateSlot = templateSlots[ i ];
+        //         const name = templateSlot.getAttribute('name');
+        //         const instanceSlot = this.querySelector('[slot="' + name + '"]');
+        //         if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+        //         else templateSlot.parentNode.removeChild(templateSlot);
+        //     }
 
-            if (this.children.length) {
-                while (this.firstChild) {
-                    if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
-                    else this.removeChild(this.firstChild);
-                }
-            }
+        //     if (this.children.length) {
+        //         while (this.firstChild) {
+        //             if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+        //             else this.removeChild(this.firstChild);
+        //         }
+        //     }
 
-            if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
-        }
+        //     if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
+        // }
 
         const tasks = [];
         let child = template.content.firstChild;
@@ -139,15 +139,11 @@ export default class Component extends HTMLElement {
     async connectedCallback () {
         try {
             Css.attach(this.#name, this.css);
-
-            if (this.#flag) {
-                if (this.connected) await this.connected();
-            } else {
+            if (!this.#flag) {
                 this.#flag = true;
                 await this.render();
-                // if (this.rendered) await this.rendered();
-                if (this.connected) await this.connected();
             }
+            if (this.connected) await this.connected();
         } catch (error) {
             console.error(error);
         }

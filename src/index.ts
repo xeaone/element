@@ -1,5 +1,5 @@
 import Component from './component';
-import Location from './location';
+import Router from './router';
 import Batcher from './batcher';
 import Fetcher from './fetcher';
 import Binder from './binder';
@@ -80,8 +80,8 @@ export default Object.freeze(new class Oxe {
     Component = Component;
     component = Component;
 
-    Location = Location;
-    location = Location;
+    Router = Router;
+    router = Router;
 
     Batcher = Batcher;
     batcher = Batcher;

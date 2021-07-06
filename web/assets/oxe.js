@@ -122,6 +122,7 @@
                 striped = striped.replace(extra.indexPattern, (s, g1, g2, g3) => g1 + extra.indexValue + g3);
             if (extra.variableName)
                 striped = striped.replace(extra.variablePattern, (s, g1, g2, g3) => g1 + extra.variableValue + g3);
+            // console.log(striped);
         }
         striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [];
@@ -142,7 +143,13 @@
                 return true;
             },
             get: (target, name) => {
-                if (extra?.variableName === name) {
+                if (extra?.keyName === name) {
+                    return extra.keyValue;
+                }
+                else if (extra?.indexName === name) {
+                    return extra.indexValue;
+                }
+                else if (extra?.variableName === name) {
                     return traverse(data, extra.variableValue);
                 }
                 else if (name in target) {
@@ -857,13 +864,12 @@
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
-    const emptyAttribute = /\s*{{\s*}}\s*/;
-    const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
     var Binder = new class Binder {
         constructor() {
             this.prefix = 'o-';
             this.syntaxEnd = '}}';
             this.syntaxStart = '{{';
+            this.syntaxLength = 2;
             this.syntaxMatch = new RegExp('{{.*?}}');
             this.prefixReplace = new RegExp('^o-');
             this.syntaxReplace = new RegExp('{{|}}', 'g');
@@ -879,6 +885,50 @@
                 text,
                 on,
             };
+            // async walk (node: Node, handle) {
+            //     const type = node.nodeType;
+            //     const tasks = [];
+            //     if (type === AN) {
+            //         const attribute = (node as Attr);
+            //         const { value } = attribute;
+            //         if (this.syntaxMatch.test(value)) {
+            //             attribute.value = '';
+            //             if (!emptyAttribute.test(value)) tasks.push(handle(attribute));
+            //         }
+            //     } else if (type === TN) {
+            //         if (emptyText.test(node.textContent)) return;
+            //         const start = node.textContent.indexOf(this.syntaxStart);
+            //         if (start === -1) return;
+            //         if (start !== 0) node = (node as Text).splitText(start);
+            //         const end = node.textContent.indexOf(this.syntaxEnd);
+            //         if (end === -1) return;
+            //         if (end + this.syntaxStart.length !== node.textContent.length) {
+            //             const split = (node as Text).splitText(end + this.syntaxEnd.length);
+            //             node.textContent = '';
+            //             tasks.push(handle(node));
+            //             tasks.push(this.walk(split, handle));
+            //         } else {
+            //             tasks.push(handle(node));
+            //         }
+            //     } else if (type === EN) {
+            //         const attributes = (node as Element).attributes;
+            //         let each;
+            //         for (let i = 0; i < attributes.length; i++) {
+            //             const attribute = attributes[ i ];
+            //             const { name } = attribute;
+            //             if (name === 'each' || name === `${this.prefix}each`) each = true;
+            //             tasks.push(this.walk(attribute, handle));
+            //         }
+            //         if (!each) {
+            //             node = node.firstChild;
+            //             while (node) {
+            //                 tasks.push(this.walk(node, handle);
+            //                 node = node.nextSibling;
+            //             }
+            //         }
+            //     }
+            //     Promise.all(tasks);
+            // }
         }
         async setup(options = {}) {
             const { binders } = options;
@@ -961,16 +1011,6 @@
                 child = child.nextSibling;
             }
         }
-        // async adds (node: Node, container, extra?) {
-        //     const tasks = [];
-        //     node = node.firstChild;
-        //     if (!node) return;
-        //     tasks.push(this.add(node, container, extra));
-        //     while (node = node.nextSibling) {
-        //         tasks.push(this.add(node, container, extra));
-        //     }
-        //     return Promise.all(tasks);
-        // }
         async add(node, container, extra) {
             const type = node.nodeType;
             const tasks = [];
@@ -978,14 +1018,12 @@
                 const attribute = node;
                 const { value } = attribute;
                 if (this.syntaxMatch.test(value)) {
-                    if (!emptyAttribute.test(value))
-                        tasks.push(this.bind(attribute, container, extra));
-                    // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
+                    tasks.push(this.bind(attribute, container, extra));
+                    // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, container, extra));
                 }
             }
             else if (type === TN) {
-                if (emptyText.test(node.textContent))
-                    return;
+                // if (emptyText.test(node.textContent)) return;
                 const start = node.textContent.indexOf(this.syntaxStart);
                 if (start === -1)
                     return;
@@ -994,30 +1032,18 @@
                 const end = node.textContent.indexOf(this.syntaxEnd);
                 if (end === -1)
                     return;
-                if (end + this.syntaxStart.length !== node.textContent.length) {
-                    const split = node.splitText(end + this.syntaxEnd.length);
-                    // const value = node.textContent;
-                    // node.textContent = '';
-                    // if (!empty.test(value))
-                    // tasks.push(this.bind(node, 'text', value, container, extra));
-                    tasks.push(this.bind(node, container, extra));
+                if (end + this.syntaxLength !== node.textContent.length) {
+                    const split = node.splitText(end + this.syntaxLength);
                     tasks.push(this.add(split, container, extra));
                 }
-                else {
-                    // const value = node.textContent;
-                    // node.textContent = '';
-                    // if (!empty.test(value))
-                    // tasks.push(this.bind(node, 'text', value, container, extra));
-                    tasks.push(this.bind(node, container, extra));
-                }
+                tasks.push(this.bind(node, container, extra));
             }
             else if (type === EN) {
                 const attributes = node.attributes;
-                let each;
+                let each = false;
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
                     const { name } = attribute;
-                    // const { name, value } = attribute;
                     if (name === 'each' || name === `${this.prefix}each`)
                         each = true;
                     tasks.push(this.add(attribute, container, extra));
@@ -1027,63 +1053,10 @@
                     // }
                 }
                 if (!each) {
-                    node = node.firstChild;
-                    while (node) {
-                        tasks.push(this.add(node, container, extra));
-                        node = node.nextSibling;
-                    }
-                }
-            }
-            Promise.all(tasks);
-        }
-        async walk(node, handle) {
-            const type = node.nodeType;
-            const tasks = [];
-            if (type === AN) {
-                const attribute = node;
-                const { value } = attribute;
-                if (this.syntaxMatch.test(value)) {
-                    attribute.value = '';
-                    if (!emptyAttribute.test(value))
-                        tasks.push(handle(attribute));
-                }
-            }
-            else if (type === TN) {
-                if (emptyText.test(node.textContent))
-                    return;
-                const start = node.textContent.indexOf(this.syntaxStart);
-                if (start === -1)
-                    return;
-                if (start !== 0)
-                    node = node.splitText(start);
-                const end = node.textContent.indexOf(this.syntaxEnd);
-                if (end === -1)
-                    return;
-                if (end + this.syntaxStart.length !== node.textContent.length) {
-                    const split = node.splitText(end + this.syntaxEnd.length);
-                    node.textContent = '';
-                    tasks.push(handle(node));
-                    tasks.push(this.walk(split, handle));
-                }
-                else {
-                    tasks.push(handle(node));
-                }
-            }
-            else if (type === EN) {
-                const attributes = node.attributes;
-                let each;
-                for (let i = 0; i < attributes.length; i++) {
-                    const attribute = attributes[i];
-                    const { name } = attribute;
-                    if (name === 'each' || name === `${this.prefix}each`)
-                        each = true;
-                    tasks.push(this.walk(attribute, handle));
-                }
-                if (!each) {
-                    node = node.firstChild;
-                    while (node) {
-                        tasks.push(this.walk(node, handle));
-                        node = node.nextSibling;
+                    let child = node.firstChild;
+                    while (child) {
+                        tasks.push(this.add(child, container, extra));
+                        child = child.nextSibling;
                     }
                 }
             }
@@ -1213,31 +1186,28 @@
             }
             const template = document.createElement('template');
             template.innerHTML = this.html;
-            if (!this.shadow ||
-                !('attachShadow' in document.body) &&
-                    !('createShadowRoot' in document.body)) {
-                const templateSlots = template.content.querySelectorAll('slot[name]');
-                const defaultSlot = template.content.querySelector('slot:not([name])');
-                for (let i = 0; i < templateSlots.length; i++) {
-                    const templateSlot = templateSlots[i];
-                    const name = templateSlot.getAttribute('name');
-                    const instanceSlot = this.querySelector('[slot="' + name + '"]');
-                    if (instanceSlot)
-                        templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-                    else
-                        templateSlot.parentNode.removeChild(templateSlot);
-                }
-                if (this.children.length) {
-                    while (this.firstChild) {
-                        if (defaultSlot)
-                            defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
-                        else
-                            this.removeChild(this.firstChild);
-                    }
-                }
-                if (defaultSlot)
-                    defaultSlot.parentNode.removeChild(defaultSlot);
-            }
+            // if (
+            //     !this.shadow ||
+            //     !('attachShadow' in document.body) &&
+            //     !('createShadowRoot' in document.body)
+            // ) {
+            //     const templateSlots = template.content.querySelectorAll('slot[name]');
+            //     const defaultSlot = template.content.querySelector('slot:not([name])');
+            //     for (let i = 0; i < templateSlots.length; i++) {
+            //         const templateSlot = templateSlots[ i ];
+            //         const name = templateSlot.getAttribute('name');
+            //         const instanceSlot = this.querySelector('[slot="' + name + '"]');
+            //         if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+            //         else templateSlot.parentNode.removeChild(templateSlot);
+            //     }
+            //     if (this.children.length) {
+            //         while (this.firstChild) {
+            //             if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+            //             else this.removeChild(this.firstChild);
+            //         }
+            //     }
+            //     if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
+            // }
             const tasks = [];
             let child = template.content.firstChild;
             while (child) {
@@ -1263,17 +1233,12 @@
         async connectedCallback() {
             try {
                 Css.attach(this.#name, this.css);
-                if (this.#flag) {
-                    if (this.connected)
-                        await this.connected();
-                }
-                else {
+                if (!this.#flag) {
                     this.#flag = true;
                     await this.render();
-                    // if (this.rendered) await this.rendered();
-                    if (this.connected)
-                        await this.connected();
                 }
+                if (this.connected)
+                    await this.connected();
             }
             catch (error) {
                 console.error(error);
@@ -1615,7 +1580,7 @@
             window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
         }
         if (window.DYNAMIC_SUPPORT === true) {
-            console.log('native import');
+            // console.log('native import');
             await run(`window.MODULES["${url}"] = import("${url}");`);
             return window.MODULES[url];
         }
@@ -1630,11 +1595,11 @@
         }
         let code;
         if (window.REGULAR_SUPPORT) {
-            console.log('noModule: yes');
+            // console.log('noModule: yes');
             code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
         }
         else {
-            console.log('noModule: no');
+            // console.log('noModule: no');
             code = await fetch(url);
             code = transform(code, url);
         }
@@ -1654,7 +1619,7 @@
         a.href = path;
         return a.pathname;
     };
-    var Location = new class Location {
+    var Router = new class Router {
         constructor() {
             this.#data = {};
             this.#folder = '';
@@ -1684,7 +1649,6 @@
         reload() { window.location.reload(); }
         redirect(href) { window.location.href = href; }
         async setup(option) {
-            // if (!option.target) throw new Error('target required');
             if ('folder' in option)
                 this.#folder = option.folder;
             if ('contain' in option)
@@ -1693,25 +1657,29 @@
                 this.#dynamic = option.dynamic;
             if ('external' in option)
                 this.#external = option.external;
+            if ('before' in option)
+                this.#before = option.before;
+            if ('after' in option)
+                this.#after = option.after;
             this.#target = option.target instanceof Element ? option.target : document.body.querySelector(option.target);
             if (this.#dynamic) {
-                window.addEventListener('popstate', this.state.bind(this), true);
+                window.addEventListener('popstate', this.#state.bind(this), true);
                 if (this.#contain) {
-                    this.#target.addEventListener('click', this.click.bind(this), true);
+                    this.#target.addEventListener('click', this.#click.bind(this), true);
                 }
                 else {
-                    window.document.addEventListener('click', this.click.bind(this), true);
+                    window.document.addEventListener('click', this.#click.bind(this), true);
                 }
             }
             return this.replace(window.location.href);
         }
         async assign(data) {
-            return this.go(data, { mode: 'push' });
+            return this.#go(data, { mode: 'push' });
         }
         async replace(data) {
-            return this.go(data, { mode: 'replace' });
+            return this.#go(data, { mode: 'replace' });
         }
-        location(href = window.location.href) {
+        #location(href = window.location.href) {
             const parser = document.createElement('a');
             parser.href = href;
             return {
@@ -1730,12 +1698,12 @@
             // location.path = location.pathname + location.search + location.hash;
             // return location;
         }
-        async go(path, options = {}) {
+        async #go(path, options = {}) {
             // if (options.query) {
             //     path += Query(options.query);
             // }
             const mode = options.mode || 'push';
-            const location = this.location(path);
+            const location = this.#location(path);
             if (this.#before)
                 await this.#before(location);
             if (!this.#dynamic) {
@@ -1785,11 +1753,11 @@
             if (this.#after)
                 await this.#after(location);
         }
-        async state(event) {
+        async #state(event) {
             await this.replace(event.state.href);
             window.scroll(event.state.top, 0);
         }
-        async click(event) {
+        async #click(event) {
             // ignore canceled events, modified clicks, and right clicks
             if (event.target.type ||
                 event.button !== 0 ||
@@ -1988,9 +1956,9 @@
             this.option.path = option.path;
             this.option.method = option.method;
             this.option.origin = option.origin;
-            this.option.request = option.request;
+            this.option.before = option.before;
             this.option.headers = option.headers;
-            this.option.response = option.response;
+            this.option.after = option.after;
             this.option.acceptType = option.acceptType;
             this.option.credentials = option.credentials;
             this.option.contentType = option.contentType;
@@ -2086,8 +2054,8 @@
                     default: context.headers['Accept'] = context.acceptType;
                 }
             }
-            if (typeof option.request === 'function')
-                await option.request(context);
+            if (typeof option.before === 'function')
+                await option.before(context);
             if (context.aborted)
                 return;
             if (context.body) {
@@ -2123,8 +2091,8 @@
                 }
                 context.body = await result[type]();
             }
-            if (typeof option.response === 'function')
-                await option.response(context);
+            if (typeof option.after === 'function')
+                await option.after(context);
             if (context.aborted)
                 return;
             return context;
@@ -2135,7 +2103,7 @@
     async function Define(component) {
         if (typeof component === 'string') {
             const loaded = await load(component);
-            await Define(loaded.default);
+            return Define(loaded.default);
         }
         else if (component instanceof Array) {
             return Promise.all(component.map(data => Define(data)));
@@ -2205,8 +2173,8 @@
         constructor() {
             this.Component = Component;
             this.component = Component;
-            this.Location = Location;
-            this.location = Location;
+            this.Router = Router;
+            this.router = Router;
             this.Batcher = Batcher;
             this.batcher = Batcher;
             this.Fetcher = Fetcher;

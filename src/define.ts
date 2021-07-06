@@ -5,7 +5,7 @@ const toDash = (data: string) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[ 0 ]}-
 export default async function Define (component: any) {
     if (typeof component === 'string') {
         const loaded = await Load(component);
-        await Define(loaded.default);
+        return Define(loaded.default);
     } else if (component instanceof Array) {
         return Promise.all(component.map(data => Define(data)));
     } else {

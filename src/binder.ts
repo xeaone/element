@@ -1,5 +1,5 @@
 import Statement from './statement';
-import Batcher from './batcher';
+// import Batcher from './batcher';
 
 import standard from './binder/standard';
 import checked from './binder/checked';
@@ -32,6 +32,7 @@ export default new class Binder {
     prefix = 'o-';
     syntaxEnd = '}}';
     syntaxStart = '{{';
+    syntaxLength = 2;
     syntaxMatch = new RegExp('{{.*?}}');
     prefixReplace = new RegExp('^o-');
     syntaxReplace = new RegExp('{{|}}', 'g');
@@ -146,19 +147,8 @@ export default new class Binder {
 
     }
 
-    // async adds (node: Node, container, extra?) {
-    //     const tasks = [];
-    //     node = node.firstChild;
-    //     if (!node) return;
-
-    //     tasks.push(this.add(node, container, extra));
-    //     while (node = node.nextSibling) {
-    //         tasks.push(this.add(node, container, extra));
-    //     }
-    //     return Promise.all(tasks);
-    // }
-
     async add (node: Node, container: any, extra?: any) {
+
         const type = node.nodeType;
         const tasks = [];
 
@@ -166,11 +156,11 @@ export default new class Binder {
             const attribute = (node as Attr);
             const { value } = attribute;
             if (this.syntaxMatch.test(value)) {
-                if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, container, extra));
-                // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
+                tasks.push(this.bind(attribute, container, extra));
+                // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, container, extra));
             }
         } else if (type === TN) {
-            if (emptyText.test(node.textContent)) return;
+            // if (emptyText.test(node.textContent)) return;
 
             const start = node.textContent.indexOf(this.syntaxStart);
             if (start === -1) return;
@@ -180,30 +170,20 @@ export default new class Binder {
             const end = node.textContent.indexOf(this.syntaxEnd);
             if (end === -1) return;
 
-            if (end + this.syntaxStart.length !== node.textContent.length) {
-                const split = (node as Text).splitText(end + this.syntaxEnd.length);
-                // const value = node.textContent;
-                // node.textContent = '';
-                // if (!empty.test(value))
-                // tasks.push(this.bind(node, 'text', value, container, extra));
-                tasks.push(this.bind(node, container, extra));
+            if (end + this.syntaxLength !== node.textContent.length) {
+                const split = (node as Text).splitText(end + this.syntaxLength);
                 tasks.push(this.add(split, container, extra));
-            } else {
-                // const value = node.textContent;
-                // node.textContent = '';
-                // if (!empty.test(value))
-                // tasks.push(this.bind(node, 'text', value, container, extra));
-                tasks.push(this.bind(node, container, extra));
             }
+
+            tasks.push(this.bind(node, container, extra));
 
         } else if (type === EN) {
             const attributes = (node as Element).attributes;
 
-            let each;
+            let each = false;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
                 const { name } = attribute;
-                // const { name, value } = attribute;
                 if (name === 'each' || name === `${this.prefix}each`) each = true;
                 tasks.push(this.add(attribute, container, extra));
                 // if (this.syntaxMatch.test(value)) {
@@ -213,10 +193,10 @@ export default new class Binder {
             }
 
             if (!each) {
-                node = node.firstChild;
-                while (node) {
-                    tasks.push(this.add(node, container, extra));
-                    node = node.nextSibling;
+                let child = node.firstChild;
+                while (child) {
+                    tasks.push(this.add(child, container, extra));
+                    child = child.nextSibling;
                 }
             }
 
@@ -225,59 +205,59 @@ export default new class Binder {
         Promise.all(tasks);
     }
 
-    async walk (node: Node, handle) {
-        const type = node.nodeType;
-        const tasks = [];
+    // async walk (node: Node, handle) {
+    //     const type = node.nodeType;
+    //     const tasks = [];
 
-        if (type === AN) {
-            const attribute = (node as Attr);
-            const { value } = attribute;
-            if (this.syntaxMatch.test(value)) {
-                attribute.value = '';
-                if (!emptyAttribute.test(value)) tasks.push(handle(attribute));
-            }
-        } else if (type === TN) {
-            if (emptyText.test(node.textContent)) return;
+    //     if (type === AN) {
+    //         const attribute = (node as Attr);
+    //         const { value } = attribute;
+    //         if (this.syntaxMatch.test(value)) {
+    //             attribute.value = '';
+    //             if (!emptyAttribute.test(value)) tasks.push(handle(attribute));
+    //         }
+    //     } else if (type === TN) {
+    //         if (emptyText.test(node.textContent)) return;
 
-            const start = node.textContent.indexOf(this.syntaxStart);
-            if (start === -1) return;
+    //         const start = node.textContent.indexOf(this.syntaxStart);
+    //         if (start === -1) return;
 
-            if (start !== 0) node = (node as Text).splitText(start);
+    //         if (start !== 0) node = (node as Text).splitText(start);
 
-            const end = node.textContent.indexOf(this.syntaxEnd);
-            if (end === -1) return;
+    //         const end = node.textContent.indexOf(this.syntaxEnd);
+    //         if (end === -1) return;
 
-            if (end + this.syntaxStart.length !== node.textContent.length) {
-                const split = (node as Text).splitText(end + this.syntaxEnd.length);
-                node.textContent = '';
-                tasks.push(handle(node));
-                tasks.push(this.walk(split, handle));
-            } else {
-                tasks.push(handle(node));
-            }
+    //         if (end + this.syntaxStart.length !== node.textContent.length) {
+    //             const split = (node as Text).splitText(end + this.syntaxEnd.length);
+    //             node.textContent = '';
+    //             tasks.push(handle(node));
+    //             tasks.push(this.walk(split, handle));
+    //         } else {
+    //             tasks.push(handle(node));
+    //         }
 
-        } else if (type === EN) {
-            const attributes = (node as Element).attributes;
+    //     } else if (type === EN) {
+    //         const attributes = (node as Element).attributes;
 
-            let each;
-            for (let i = 0; i < attributes.length; i++) {
-                const attribute = attributes[ i ];
-                const { name } = attribute;
-                if (name === 'each' || name === `${this.prefix}each`) each = true;
-                tasks.push(this.walk(attribute, handle));
-            }
+    //         let each;
+    //         for (let i = 0; i < attributes.length; i++) {
+    //             const attribute = attributes[ i ];
+    //             const { name } = attribute;
+    //             if (name === 'each' || name === `${this.prefix}each`) each = true;
+    //             tasks.push(this.walk(attribute, handle));
+    //         }
 
-            if (!each) {
-                node = node.firstChild;
-                while (node) {
-                    tasks.push(this.walk(node, handle);
-                    node = node.nextSibling;
-                }
-            }
+    //         if (!each) {
+    //             node = node.firstChild;
+    //             while (node) {
+    //                 tasks.push(this.walk(node, handle);
+    //                 node = node.nextSibling;
+    //             }
+    //         }
 
-        }
+    //     }
 
-        Promise.all(tasks);
-    }
+    //     Promise.all(tasks);
+    // }
 
 };

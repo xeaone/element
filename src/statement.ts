@@ -35,6 +35,7 @@ export default function (statement: string, data: any, extra?: any) {
         if (extra.keyName) striped = striped.replace(extra.keyPattern, (s, g1, g2, g3) => g1 + extra.keyValue + g3);
         if (extra.indexName) striped = striped.replace(extra.indexPattern, (s, g1, g2, g3) => g1 + extra.indexValue + g3);
         if (extra.variableName) striped = striped.replace(extra.variablePattern, (s, g1, g2, g3) => g1 + extra.variableValue + g3);
+        // console.log(striped);
     }
 
     striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
@@ -58,7 +59,11 @@ export default function (statement: string, data: any, extra?: any) {
             return true;
         },
         get: (target, name) => {
-            if (extra?.variableName === name) {
+            if (extra?.keyName === name) {
+                return extra.keyValue;
+            } else if (extra?.indexName === name) {
+                return extra.indexValue;
+            } else if (extra?.variableName === name) {
                 return traverse(data, extra.variableValue);
             } else if (name in target) {
                 return target[ name ];

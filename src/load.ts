@@ -90,12 +90,12 @@ const isAbsolute = function (path: string) {
 };
 
 const resolve = function (...paths: string[]) {
-    let path = (paths[0] || '').trim();
+    let path = (paths[ 0 ] || '').trim();
 
     for (let i = 1; i < paths.length; i++) {
-        const part = paths[i].trim();
+        const part = paths[ i ].trim();
 
-        if (path[path.length - 1] !== '/' && part[0] !== '/') {
+        if (path[ path.length - 1 ] !== '/' && part[ 0 ] !== '/') {
             path += '/';
         }
 
@@ -135,7 +135,7 @@ const fetch = function (url) {
 
 const run = function (code) {
     return new Promise(function (resolve, reject) {
-        const blob = new Blob([code], { type: 'text/javascript' });
+        const blob = new Blob([ code ], { type: 'text/javascript' });
         const script = document.createElement('script');
 
         if ('noModule' in script) {
@@ -167,7 +167,7 @@ const transform = function (code, url) {
 
     const templateMatches = code.match(R_TEMPLATES) || [];
     for (let i = 0; i < templateMatches.length; i++) {
-        const templateMatch = templateMatches[i];
+        const templateMatch = templateMatches[ i ];
         code = code.replace(
             templateMatch,
             templateMatch
@@ -182,12 +182,12 @@ const transform = function (code, url) {
     const parentImport = url.slice(0, url.lastIndexOf('/') + 1);
     const importMatches = code.match(R_IMPORTS) || [];
     for (let i = 0, l = importMatches.length; i < l; i++) {
-        const importMatch = importMatches[i].match(R_IMPORT);
+        const importMatch = importMatches[ i ].match(R_IMPORT);
         if (!importMatch) continue;
 
-        const rawImport = importMatch[0];
-        const nameImport = importMatch[1]; // default
-        let pathImport = importMatch[4] || importMatch[5];
+        const rawImport = importMatch[ 0 ];
+        const nameImport = importMatch[ 1 ]; // default
+        let pathImport = importMatch[ 4 ] || importMatch[ 5 ];
 
         if (isAbsolute(pathImport)) {
             pathImport = resolve(pathImport);
@@ -204,11 +204,11 @@ const transform = function (code, url) {
     let hasDefault = false;
     const exportMatches = code.match(R_EXPORTS) || [];
     for (let i = 0, l = exportMatches.length; i < l; i++) {
-        const exportMatch = exportMatches[i].match(R_EXPORT) || [];
-        const rawExport = exportMatch[0];
-        const defaultExport = exportMatch[1] || '';
-        const typeExport = exportMatch[2] || '';
-        const nameExport = exportMatch[3] || '';
+        const exportMatch = exportMatches[ i ].match(R_EXPORT) || [];
+        const rawExport = exportMatch[ 0 ];
+        const defaultExport = exportMatch[ 1 ] || '';
+        const typeExport = exportMatch[ 2 ] || '';
+        const nameExport = exportMatch[ 3 ] || '';
         if (defaultExport) {
             if (hasDefault) {
                 code = code.replace(rawExport, `$DEFAULT = ${typeExport} ${nameExport}`);
@@ -242,16 +242,16 @@ const load = async function (url: string) {
     }
 
     if (window.DYNAMIC_SUPPORT === true) {
-        console.log('native import');
+        // console.log('native import');
         await run(`window.MODULES["${url}"] = import("${url}");`);
-        return window.MODULES[url];
+        return window.MODULES[ url ];
     }
 
     // console.log('not native import');
 
-    if (window.MODULES[url]) {
+    if (window.MODULES[ url ]) {
         // maybe clean up
-        return window.MODULES[url];
+        return window.MODULES[ url ];
     }
 
     if (typeof window.REGULAR_SUPPORT !== 'boolean') {
@@ -262,10 +262,10 @@ const load = async function (url: string) {
     let code;
 
     if (window.REGULAR_SUPPORT) {
-        console.log('noModule: yes');
+        // console.log('noModule: yes');
         code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
     } else {
-        console.log('noModule: no');
+        // console.log('noModule: no');
         code = await fetch(url);
         code = transform(code, url);
     }
@@ -276,7 +276,7 @@ const load = async function (url: string) {
         throw new Error(`Oxe.load - failed to import: ${url}`);
     }
 
-    return this.modules[url];
+    return this.modules[ url ];
 };
 
 window.LOAD = window.LOAD || load;
