@@ -22,7 +22,7 @@ const strips = new RegExp([
 
 const cache = new Map();
 
-export default function (statement: string, data: any, extra?: any) {
+export default function (statement: string, data: any, dynamics?: any) {
 
     if (isOfIn.test(statement)) {
         statement = statement.replace(replaceOfIn, '{{$2}}');
@@ -30,13 +30,6 @@ export default function (statement: string, data: any, extra?: any) {
 
     const convert = !shouldNotConvert.test(statement);
     let striped = statement;
-
-    if (extra) {
-        if (extra.keyName) striped = striped.replace(extra.keyPattern, (s, g1, g2, g3) => g1 + extra.keyValue + g3);
-        if (extra.indexName) striped = striped.replace(extra.indexPattern, (s, g1, g2, g3) => g1 + extra.indexValue + g3);
-        if (extra.variableName) striped = striped.replace(extra.variablePattern, (s, g1, g2, g3) => g1 + extra.variableValue + g3);
-        // console.log(striped);
-    }
 
     striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
 
@@ -48,7 +41,7 @@ export default function (statement: string, data: any, extra?: any) {
     // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
     const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
 
-    const context = new Proxy({}, {
+    const context = new Proxy(dynamics || {}, {
         has: () => true,
         set: (target, name, value) => {
             if (name[ 0 ] === '$') {
@@ -59,13 +52,7 @@ export default function (statement: string, data: any, extra?: any) {
             return true;
         },
         get: (target, name) => {
-            if (extra?.keyName === name) {
-                return extra.keyValue;
-            } else if (extra?.indexName === name) {
-                return extra.indexValue;
-            } else if (extra?.variableName === name) {
-                return traverse(data, extra.variableValue);
-            } else if (name in target) {
+            if (name in target) {
                 return target[ name ];
             } else if (name in data) {
                 return data[ name ];
@@ -84,17 +71,17 @@ export default function (statement: string, data: any, extra?: any) {
         code = code.replace(/}}/g, convert ? ` + '` : '');
         code = convert ? `'${code}'` : code;
         code = `
-            if ($extra) {
-                $context.$f = $extra.form; $context.$form = $extra.form;
-                $context.$e = $extra.event; $context.$event = $extra.event;
-                $context.$v = $extra.value; $context.$value = $extra.value;
-                $context.$c = $extra.checked; $context.$checked = $extra.checked;
+            if ($render) {
+                $context.$f = $render.form; $context.$form = $render.form;
+                $context.$e = $render.event; $context.$event = $render.event;
+                $context.$v = $render.value; $context.$value = $render.value;
+                $context.$c = $render.checked; $context.$checked = $render.checked;
             }
             with ($context) {
                 return (${code});
             }
         `;
-        compute = new Function('$context', '$extra', code);
+        compute = new Function('$context', '$render', code);
         cache.set(statement, compute);
         compute = compute.bind(null, context);
     }

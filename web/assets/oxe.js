@@ -110,21 +110,12 @@
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
     const cache = new Map();
-    function Statement (statement, data, extra) {
+    function Statement (statement, data, dynamics) {
         if (isOfIn.test(statement)) {
             statement = statement.replace(replaceOfIn, '{{$2}}');
         }
         const convert = !shouldNotConvert.test(statement);
         let striped = statement;
-        if (extra) {
-            if (extra.keyName)
-                striped = striped.replace(extra.keyPattern, (s, g1, g2, g3) => g1 + extra.keyValue + g3);
-            if (extra.indexName)
-                striped = striped.replace(extra.indexPattern, (s, g1, g2, g3) => g1 + extra.indexValue + g3);
-            if (extra.variableName)
-                striped = striped.replace(extra.variablePattern, (s, g1, g2, g3) => g1 + extra.variableValue + g3);
-            // console.log(striped);
-        }
         striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [];
         let [, assignment] = striped.match(matchAssignment) || [];
@@ -132,7 +123,7 @@
         // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
         // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
         const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
-        const context = new Proxy({}, {
+        const context = new Proxy(dynamics || {}, {
             has: () => true,
             set: (target, name, value) => {
                 if (name[0] === '$') {
@@ -144,16 +135,7 @@
                 return true;
             },
             get: (target, name) => {
-                if (extra?.keyName === name) {
-                    return extra.keyValue;
-                }
-                else if (extra?.indexName === name) {
-                    return extra.indexValue;
-                }
-                else if (extra?.variableName === name) {
-                    return traverse(data, extra.variableValue);
-                }
-                else if (name in target) {
+                if (name in target) {
                     return target[name];
                 }
                 else if (name in data) {
@@ -174,17 +156,17 @@
             code = code.replace(/}}/g, convert ? ` + '` : '');
             code = convert ? `'${code}'` : code;
             code = `
-            if ($extra) {
-                $context.$f = $extra.form; $context.$form = $extra.form;
-                $context.$e = $extra.event; $context.$event = $extra.event;
-                $context.$v = $extra.value; $context.$value = $extra.value;
-                $context.$c = $extra.checked; $context.$checked = $extra.checked;
+            if ($render) {
+                $context.$f = $render.form; $context.$form = $render.form;
+                $context.$e = $render.event; $context.$event = $render.event;
+                $context.$v = $render.value; $context.$value = $render.value;
+                $context.$c = $render.checked; $context.$checked = $render.checked;
             }
             with ($context) {
                 return (${code});
             }
         `;
-            compute = new Function('$context', '$extra', code);
+            compute = new Function('$context', '$render', code);
             cache.set(statement, compute);
             compute = compute.bind(null, context);
         }
@@ -641,25 +623,11 @@
     };
     const setup = function (binder) {
         let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
-        if (binder.extra) {
-            // if (binder.extra.keyName)
-            //     path = path.replace(binder.extra.keyPattern, (s, g1, g2, g3) => g1 + binder.extra.keyValue + g3);
-            // if (binder.extra.indexName)
-            //     path = path.replace(binder.extra.indexPattern, (s, g1, g2, g3) => g1 + binder.extra.indexValue + g3);
-            if (binder.extra.variableName) {
-                path = path.replace(new RegExp(`(.*?)(.*?\\b)(${binder.extra.variableName})(\\b.*?)(.*?)`), (s, g1, g2, g3, g4, g5) => g1 + g2 + binder.extra.variableValue + g4 + g5);
-            }
-            // make sure this works with parent context
-        }
-        binder.meta.path = path;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
         binder.meta.variableName = variable;
-        binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
-        binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
-        binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
+        binder.meta.pathParts = path.split('.');
         binder.meta.keys = [];
-        binder.meta.tasks = [];
         binder.meta.setup = true;
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
@@ -700,7 +668,7 @@
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    binder.meta.tasks.push(binder.remove(node));
+                    tick$3.then(binder.binder.remove.bind(binder, node));
                 }
                 binder.meta.currentLength--;
             }
@@ -709,43 +677,38 @@
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
-                const variableValue = `${binder.meta.path}[${keyValue}]`;
-                const extra = {
-                    keyValue, indexValue, variableValue,
-                    keyName: binder.meta.keyName,
-                    indexName: binder.meta.indexName,
-                    variableName: binder.meta.variableName,
-                    keyPattern: binder.meta.keyPattern,
-                    indexPattern: binder.meta.indexPattern,
-                    variablePattern: binder.meta.variablePattern,
+                const dynamics = {
+                    ...binder.dynamics,
+                    [binder.meta.keyName]: keyValue,
+                    [binder.meta.indexName]: indexValue,
+                    get [binder.meta.variableName]() {
+                        let data = binder.container.data;
+                        for (const part of binder.meta.pathParts) {
+                            if (part in this) {
+                                data = this[part];
+                            }
+                            else if (part in data) {
+                                data = data[part];
+                            }
+                        }
+                        return data[keyValue];
+                    },
                 };
                 binder.meta.currentLength++;
                 const clone = binder.meta.clone.content.cloneNode(true);
                 let node = clone.firstChild;
                 while (node) {
-                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, extra));
-                    // binder.binder.add(node, binder.container, extra);
-                    // binder.meta.tasks.push(binder.add(node, binder.container, extra));
-                    // binder.meta.tasks.push(binder.binder.add(node, binder.container, extra));
+                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
                     node = node.nextSibling;
                 }
                 binder.meta.templateElement.content.appendChild(clone);
-                // let clone = binder.meta.clone.content.firstChild;
-                // while (clone) {
-                //     const node = clone.cloneNode(true);
-                //     binder.meta.tasks.push(binder.add(node, binder.container, extra));
-                //     binder.meta.templateElement.content.appendChild(node);
-                //     clone = clone.nextSibling;
-                // }
             }
         }
         if (binder.meta.currentLength === binder.meta.targetLength) {
             // console.timeEnd(time);
-            // Promise.all(binder.meta.tasks).then(function eachFinish () {
             binder.owner.appendChild(binder.meta.templateElement.content);
             if (binder.owner.nodeName === 'SELECT')
                 binder.owner.dispatchEvent(new Event('$renderEach'));
-            // });
         }
     };
 
@@ -933,7 +896,7 @@
             }
             this.nodeBinders.delete(node);
         }
-        async bind(node, container, extra) {
+        async bind(node, container, dynamics) {
             let owner, name, value;
             if (node.nodeType === AN) {
                 const attribute = node;
@@ -948,10 +911,7 @@
             }
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const render = this.binders[type];
-            // const get = this.get.bind(this);
-            // const add = this.add.bind(this);
-            // const remove = this.remove.bind(this);
-            const { compute, assignee, paths } = Statement(value, container.data, extra);
+            const { compute, assignee, paths } = Statement(value, container.data, dynamics);
             if (!paths.length)
                 paths.push('');
             const binder = {
@@ -963,7 +923,7 @@
                 assignee,
                 name, value, paths,
                 binder: this,
-                // get, add, remove,
+                dynamics,
                 compute
             };
             binder.render = render.bind(render, binder);

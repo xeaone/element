@@ -65,7 +65,7 @@ export default class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, container: any, extra?: any) {
+    async bind (node: Node, container: any, dynamics?: any) {
 
         let owner, name, value;
         if (node.nodeType === AN) {
@@ -82,11 +82,7 @@ export default class Binder {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         const render = this.binders[ type ];
 
-        // const get = this.get.bind(this);
-        // const add = this.add.bind(this);
-        // const remove = this.remove.bind(this);
-
-        const { compute, assignee, paths } = Statement(value, container.data, extra);
+        const { compute, assignee, paths } = Statement(value, container.data, dynamics);
         if (!paths.length) paths.push('');
 
         const binder = {
@@ -98,7 +94,7 @@ export default class Binder {
             assignee,
             name, value, paths,
             binder: this,
-            // get, add, remove,
+            dynamics,
             compute
         };
 
