@@ -1,26 +1,33 @@
 
-const empty = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
+const empty = /^\s*$/;
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
 const clean = function (node: Node) {
-
-    let child = node.firstChild;
-    while (child) {
-        clean(child);
-        child = child.nextSibling;
-    }
-
-    if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
+    if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
         node.parentNode.removeChild(node);
-        return false;
     } else {
-        return true;
+        let child = node.firstChild;
+        while (child) {
+            const next = child.nextSibling;
+            clean(child);
+            child = next;
+        }
     }
-
 };
 
 const setup = function (binder) {
-    const [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+    let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+
+    if (binder.extra) {
+        // if (binder.extra.keyName)
+        //     path = path.replace(binder.extra.keyPattern, (s, g1, g2, g3) => g1 + binder.extra.keyValue + g3);
+        // if (binder.extra.indexName)
+        //     path = path.replace(binder.extra.indexPattern, (s, g1, g2, g3) => g1 + binder.extra.indexValue + g3);
+        if (binder.extra.variableName) {
+            path = path.replace(new RegExp(`(.*?)(.*?\\b)(${binder.extra.variableName})(\\b.*?)(.*?)`), (s, g1, g2, g3, g4, g5) => g1 + g2 + binder.extra.variableValue + g4 + g5);
+        }
+        // make sure this works with parent context
+    }
 
     binder.meta.path = path;
     binder.meta.keyName = key;
@@ -40,11 +47,17 @@ const setup = function (binder) {
     binder.meta.clone = document.createElement('template');
     binder.meta.templateElement = document.createElement('template');
 
-    let node;
-    while (node = binder.owner.firstChild) {
-        if (clean(node)) {
+    let node = binder.owner.firstChild;
+    while (node) {
+        if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
+            const next = node.nextSibling;
+            binder.owner.removeChild(node);
+            node = next;
+        } else {
+            clean(node);
             binder.meta.clone.content.appendChild(node);
             binder.meta.cloneLength++;
+            node = node.nextSibling;
         }
     }
 
@@ -99,6 +112,7 @@ const each = async function (binder) {
             let node = clone.firstChild;
             while (node) {
                 binder.meta.tasks.push(binder.add(node, binder.container, extra));
+                // binder.meta.tasks.push(binder.binder.add(node, binder.container, extra));
                 node = node.nextSibling;
             }
             binder.meta.templateElement.content.appendChild(clone);

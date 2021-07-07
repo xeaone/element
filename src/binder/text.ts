@@ -2,7 +2,7 @@ import format from '../format';
 
 const text = async function text (binder) {
     let data = await binder.compute();
-    data = format(data);
+    data = typeof data === 'string' ? data : format(data);
     if (data === binder.owner.textContent) return;
     binder.owner.textContent = data;
 };

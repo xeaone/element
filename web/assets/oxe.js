@@ -613,24 +613,33 @@
     // };
     // export default { setup, read, write };
 
-    const empty = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
+    const empty = /^\s*$/;
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
     const clean = function (node) {
-        let child = node.firstChild;
-        while (child) {
-            clean(child);
-            child = child.nextSibling;
-        }
-        if (node.nodeType === 8 || node.nodeType === 3 && empty.test(node.nodeValue)) {
+        if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
             node.parentNode.removeChild(node);
-            return false;
         }
         else {
-            return true;
+            let child = node.firstChild;
+            while (child) {
+                const next = child.nextSibling;
+                clean(child);
+                child = next;
+            }
         }
     };
     const setup = function (binder) {
-        const [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+        let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+        if (binder.extra) {
+            // if (binder.extra.keyName)
+            //     path = path.replace(binder.extra.keyPattern, (s, g1, g2, g3) => g1 + binder.extra.keyValue + g3);
+            // if (binder.extra.indexName)
+            //     path = path.replace(binder.extra.indexPattern, (s, g1, g2, g3) => g1 + binder.extra.indexValue + g3);
+            // make sure this works with parent context
+            if (binder.extra.variableName) {
+                path = path.replace(new RegExp(`(.*?)(.*?\\b)(${binder.extra.variableName})(\\b.*?)(.*?)`), (s, g1, g2, g3, g4, g5) => g1 + g2 + binder.extra.variableValue + g4 + g5);
+            }
+        }
         binder.meta.path = path;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
@@ -646,11 +655,18 @@
         binder.meta.templateLength = 0;
         binder.meta.clone = document.createElement('template');
         binder.meta.templateElement = document.createElement('template');
-        let node;
-        while (node = binder.owner.firstChild) {
-            if (clean(node)) {
+        let node = binder.owner.firstChild;
+        while (node) {
+            if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
+                const next = node.nextSibling;
+                binder.owner.removeChild(node);
+                node = next;
+            }
+            else {
+                clean(node);
                 binder.meta.clone.content.appendChild(node);
                 binder.meta.cloneLength++;
+                node = node.nextSibling;
             }
         }
     };
@@ -697,6 +713,7 @@
                 let node = clone.firstChild;
                 while (node) {
                     binder.meta.tasks.push(binder.add(node, binder.container, extra));
+                    // binder.meta.tasks.push(binder.binder.add(node, binder.container, extra));
                     node = node.nextSibling;
                 }
                 binder.meta.templateElement.content.appendChild(clone);
@@ -736,7 +753,7 @@
 
     const text = async function text(binder) {
         let data = await binder.compute();
-        data = format(data);
+        data = typeof data === 'string' ? data : format(data);
         if (data === binder.owner.textContent)
             return;
         binder.owner.textContent = data;
@@ -976,6 +993,7 @@
                 container, type,
                 assignee,
                 name, value, paths,
+                // binder: this,
                 get, add, remove,
                 compute
             };
@@ -1017,25 +1035,26 @@
             if (type === AN) {
                 const attribute = node;
                 const { value } = attribute;
-                if (this.syntaxMatch.test(value)) {
+                if (
+                // value.indexOf(this.syntaxStart) !== -1 &&
+                // value.indexOf(this.syntaxEnd) !== -1
+                this.syntaxMatch.test(value)) {
                     tasks.push(this.bind(attribute, container, extra));
                     // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, container, extra));
                 }
             }
             else if (type === TN) {
-                // if (emptyText.test(node.textContent)) return;
                 const start = node.textContent.indexOf(this.syntaxStart);
                 if (start === -1)
                     return;
-                if (start !== 0)
-                    node = node.splitText(start);
+                // if (start !== 0) node = (node as Text).splitText(start);
                 const end = node.textContent.indexOf(this.syntaxEnd);
                 if (end === -1)
                     return;
-                if (end + this.syntaxLength !== node.textContent.length) {
-                    const split = node.splitText(end + this.syntaxLength);
-                    tasks.push(this.add(split, container, extra));
-                }
+                // if (end + this.syntaxLength !== node.textContent.length) {
+                //     const split = (node as Text).splitText(end + this.syntaxLength);
+                //     tasks.push(this.add(split, container, extra));
+                // }
                 tasks.push(this.bind(node, container, extra));
             }
             else if (type === EN) {

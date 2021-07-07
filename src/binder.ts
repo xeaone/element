@@ -14,7 +14,8 @@ const EN = Node.ELEMENT_NODE;
 const AN = Node.ATTRIBUTE_NODE;
 
 const emptyAttribute = /\s*{{\s*}}\s*/;
-const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
+const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
+// const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
 
 interface Binders {
     setup?: () => Promise<void>;
@@ -104,6 +105,7 @@ export default new class Binder {
             container, type,
             assignee,
             name, value, paths,
+            // binder: this,
             get, add, remove,
             compute
         };
@@ -155,25 +157,28 @@ export default new class Binder {
         if (type === AN) {
             const attribute = (node as Attr);
             const { value } = attribute;
-            if (this.syntaxMatch.test(value)) {
+            if (
+                // value.indexOf(this.syntaxStart) !== -1 &&
+                // value.indexOf(this.syntaxEnd) !== -1
+                this.syntaxMatch.test(value)
+            ) {
                 tasks.push(this.bind(attribute, container, extra));
                 // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, container, extra));
             }
         } else if (type === TN) {
-            // if (emptyText.test(node.textContent)) return;
 
             const start = node.textContent.indexOf(this.syntaxStart);
             if (start === -1) return;
 
-            if (start !== 0) node = (node as Text).splitText(start);
+            // if (start !== 0) node = (node as Text).splitText(start);
 
             const end = node.textContent.indexOf(this.syntaxEnd);
             if (end === -1) return;
 
-            if (end + this.syntaxLength !== node.textContent.length) {
-                const split = (node as Text).splitText(end + this.syntaxLength);
-                tasks.push(this.add(split, container, extra));
-            }
+            // if (end + this.syntaxLength !== node.textContent.length) {
+            //     const split = (node as Text).splitText(end + this.syntaxLength);
+            //     tasks.push(this.add(split, container, extra));
+            // }
 
             tasks.push(this.bind(node, container, extra));
 
