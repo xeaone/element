@@ -32,7 +32,7 @@ const checked = async function (binder) {
             const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
             owner.addEventListener('input', async () => {
                 for (const radio of radios) {
-                    const radioBinders = binder.get(radio.getAttributeNode('checked'));
+                    const radioBinders = binder.binder.get(radio.getAttributeNode('checked'));
                     if (radioBinders) {
                         for (const [ , radioBinder ] of radioBinders) {
                             radioBinder.busy = true;

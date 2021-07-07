@@ -54,8 +54,13 @@ const value = async function value (binder) {
 
     if (!meta.setup) {
         meta.setup = true;
-        binder.owner.addEventListener('$render', () => binder.render());
-        binder.owner.addEventListener('input', event => input(binder, event));
+
+        if (type === 'select-one' || type === 'select-multiple') {
+            owner.addEventListener('$renderEach', () => binder.render());
+            owner.addEventListener('$renderOption', () => binder.render());
+        }
+
+        owner.addEventListener('input', event => input(binder, event));
     }
 
     let display, computed;
@@ -98,6 +103,14 @@ const value = async function value (binder) {
     owner.$value = computed;
     owner.$typeof = typeof computed;
     owner.setAttribute('value', display);
+
+    if (!meta.first) {
+        meta.first == true;
+        if (owner.parentElement.type === 'select-one' || owner.parentElement.type === 'select-multiple') {
+            owner.parentElement.dispatchEvent(new Event('$renderOption'));
+        }
+    }
+
 };
 
 export default value;

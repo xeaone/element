@@ -16,14 +16,14 @@ var indexRoute = Code(`
 			greeting: '',
 			greet () { this.greeting = 'Hola Mundo'; }
 		}
-		created () {
+		async connected () {
 			this.data.greeting = 'Hello World';
 		}
 	}
 `, true);
 
 var indexJs = Code(`
-	Oxe.location.listen({
+	Oxe.router.setup({
 		target: 'main',
 		folder: 'routes'
 	});
@@ -43,77 +43,77 @@ var indexHtml = Code(`
 
 export default class IndexRoute extends Component {
 
-    async connected () { Say('index connected'); }
+	async connected () { Say('index connected'); }
 
-    title = 'Oxe';
-    description = 'A mighty tiny web components framework/library.';
+	title = 'Oxe';
+	description = 'A mighty tiny web components framework/library.';
 
-    html = /*html*/`
-		<h2>Overview</h2>
+	html = /*html*/`
+	<h2>Overview</h2>
 
-		<strong>Synopsis</strong>
-		<p>A mighty tiny web components framework/library.</p>
+	<strong>Synopsis</strong>
+	<p>A mighty tiny web components framework/library.</p>
 
-		<strong>Features</strong>
-		<ul>
-			<li>Small file size</li>
-			<li>Simple smart front end routing</li>
-			<li>Dynamic ES6/ESM module rewrites</li>
-			<li>Dynamic Template string rewrites</li>
-		</ul>
+	<strong>Features</strong>
+	<ul>
+		<li>Small file size</li>
+		<li>Simple smart front end routing</li>
+		<li>Dynamic ES6/ESM module rewrites</li>
+		<li>Dynamic Template string rewrites</li>
+	</ul>
 
-		<strong>Support</strong>
-		<ul>
-			<li>IE11</li>
-			<li>Chrome</li>
-			<li>Firefox</li>
-			<li>Safari 7</li>
-			<li>Mobile Safari</li>
-			<li>Chrome Android</li>
-		</ul>
+	<strong>Support</strong>
+	<ul>
+		<li>IE11</li>
+		<li>Chrome</li>
+		<li>Firefox</li>
+		<li>Safari 7</li>
+		<li>Mobile Safari</li>
+		<li>Chrome Android</li>
+	</ul>
 
-		<strong>Polyfill</strong>
-		<ul>
-			<li>
-				<p>
-					<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.min.js">poly.min.js</a> includes everything need except shadow poly code.
-				</p>
-				<ul>
-					<li>customElements</li>
-					<li>DocumentFragment</li>
-					<li>URL, Promise, fetch</li>
-					<li>HTMLTemplateElement</li>
-					<li>Event, CustomEvent, MouseEvent constructors and Object.assign, Array.from</li>
-				</ul>
-			</li>
-			<li>
-				<p>
-					<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.shadow.min.js">poly.shadow.min.js</a> includes everything.
-				</p>
-				<ul>
-					<li>Webcomponentsjs</li>
-					<li>DocumentFragment</li>
-					<li>URL, Promise, fetch</li>
-				</ul>
-			</li>
-		</ul>
+	<strong>Polyfill</strong>
+	<ul>
+		<li>
+			<p>
+				<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.min.js">poly.min.js</a> includes everything need except shadow poly code.
+			</p>
+			<ul>
+				<li>customElements</li>
+				<li>DocumentFragment</li>
+				<li>URL, Promise, fetch</li>
+				<li>HTMLTemplateElement</li>
+				<li>Event, CustomEvent, MouseEvent constructors and Object.assign, Array.from</li>
+			</ul>
+		</li>
+		<li>
+			<p>
+				<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.shadow.min.js">poly.shadow.min.js</a> includes everything.
+			</p>
+			<ul>
+				<li>Webcomponentsjs</li>
+				<li>DocumentFragment</li>
+				<li>URL, Promise, fetch</li>
+			</ul>
+		</li>
+	</ul>
 
-		<strong>Install</strong>
-		<ul>
-			<li><i>npm install oxe --save</i></li>
-			<li>UMD <i>"dst/oxe.min.js"</i></li>
-		</ul>
+	<strong>Install</strong>
+	<ul>
+		<li><i>npm install oxe --save</i></li>
+		<li>UMD <i>"dst/oxe.min.js"</i></li>
+	</ul>
 
-		<h2>Example</h2>
-		<pre>
-			<code class="language-js">${indexRoute}</code>
-		</pre>
-		<pre>
-			<code class="language-js">${indexJs}</code>
-		</pre>
-		<pre>
-			<code class="language-html">${indexHtml}</code>
-		</pre>
+	<h2>Example</h2>
+	<pre>
+		<code class="language-js">${indexRoute}</code>
+	</pre>
+	<pre>
+		<code class="language-js">${indexJs}</code>
+	</pre>
+	<pre>
+		<code class="language-html">${indexHtml}</code>
+	</pre>
 	`;
 
 }

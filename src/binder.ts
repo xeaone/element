@@ -1,5 +1,4 @@
 import Statement from './statement';
-// import Batcher from './batcher';
 
 import standard from './binder/standard';
 import checked from './binder/checked';
@@ -13,22 +12,17 @@ const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
 const AN = Node.ATTRIBUTE_NODE;
 
-const emptyAttribute = /\s*{{\s*}}\s*/;
-const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
+const tick = Promise.resolve();
+
+// const emptyAttribute = /\s*{{\s*}}\s*/;
+// const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
 // const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
 
-interface Binders {
-    setup?: () => Promise<void>;
-    before?: () => Promise<void>;
-    read?: () => Promise<void>;
-    write?: () => Promise<void>;
-    after?: () => Promise<void>;
-}
 interface Options {
-    binders?: Binders;
+    binders?: () => Promise<void>;
 }
 
-export default new class Binder {
+export default class Binder {
 
     prefix = 'o-';
     syntaxEnd = '}}';
@@ -37,29 +31,19 @@ export default new class Binder {
     syntaxMatch = new RegExp('{{.*?}}');
     prefixReplace = new RegExp('^o-');
     syntaxReplace = new RegExp('{{|}}', 'g');
-    // data: Map<Node, any> = new Map();
 
     nodeBinders: Map<Node, Map<string, any>> = new Map();
     pathBinders: Map<string, Map<Node, any>> = new Map();
 
     binders = {
-        checked,
         standard,
+        checked,
         value,
         each,
         html,
         text,
         on,
     };
-
-    async setup (options: Options = {}) {
-        const { binders } = options;
-        for (const name in binders) {
-            if (name in this.binders === false) {
-                this.binders[ name ] = binders[ name ];
-            }
-        }
-    }
 
     get (data: any) {
         if (typeof data === 'string') {
@@ -83,16 +67,24 @@ export default new class Binder {
 
     async bind (node: Node, container: any, extra?: any) {
 
-        const owner = node.nodeType === AN ? (node as Attr).ownerElement : node;
-        const name = node.nodeType === AN ? (node as Attr).name : 'text';
-        const value = node.nodeType === AN ? (node as Attr).value : node.textContent;
+        let owner, name, value;
+        if (node.nodeType === AN) {
+            const attribute = (node as Attr);
+            owner = attribute.ownerElement;
+            name = attribute.name;
+            value = attribute.value;
+        } else {
+            owner = node;
+            name = 'text';
+            value = node.textContent;
+        }
 
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         const render = this.binders[ type ];
 
-        const get = this.get.bind(this);
-        const add = this.add.bind(this);
-        const remove = this.remove.bind(this);
+        // const get = this.get.bind(this);
+        // const add = this.add.bind(this);
+        // const remove = this.remove.bind(this);
 
         const { compute, assignee, paths } = Statement(value, container.data, extra);
         if (!paths.length) paths.push('');
@@ -105,14 +97,13 @@ export default new class Binder {
             container, type,
             assignee,
             name, value, paths,
-            // binder: this,
-            get, add, remove,
+            binder: this,
+            // get, add, remove,
             compute
         };
 
         binder.render = render.bind(render, binder);
 
-        const tasks = [];
         for (const path of paths) {
 
             if (path) {
@@ -122,11 +113,9 @@ export default new class Binder {
                 this.pathBinders.get(path).set(node, binder);
             }
 
-            // binder.render();
-            tasks.push(binder.render());
+            tick.then(binder.render);
         }
 
-        return Promise.all(tasks);
     };
 
     async remove (node: Node) {
@@ -134,8 +123,9 @@ export default new class Binder {
 
         if (type === EN) {
             const attributes = (node as Element).attributes;
-            for (const attribute of attributes) {
-                this.unbind(attribute);
+            const l = attributes.length;
+            for (let i = 0; i < l; i++) {
+                this.unbind(attributes[ i ]);
             }
         }
 
@@ -150,119 +140,52 @@ export default new class Binder {
     }
 
     async add (node: Node, container: any, extra?: any) {
-
         const type = node.nodeType;
-        const tasks = [];
 
         if (type === AN) {
             const attribute = (node as Attr);
-            const { value } = attribute;
-            if (
-                // value.indexOf(this.syntaxStart) !== -1 &&
-                // value.indexOf(this.syntaxEnd) !== -1
-                this.syntaxMatch.test(value)
-            ) {
-                tasks.push(this.bind(attribute, container, extra));
-                // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, container, extra));
+            if (this.syntaxMatch.test(attribute.value)) {
+                tick.then(this.bind.bind(this, attribute, container, extra));
             }
         } else if (type === TN) {
 
             const start = node.textContent.indexOf(this.syntaxStart);
             if (start === -1) return;
 
-            // if (start !== 0) node = (node as Text).splitText(start);
+            if (start !== 0) node = (node as Text).splitText(start);
 
             const end = node.textContent.indexOf(this.syntaxEnd);
             if (end === -1) return;
 
-            // if (end + this.syntaxLength !== node.textContent.length) {
-            //     const split = (node as Text).splitText(end + this.syntaxLength);
-            //     tasks.push(this.add(split, container, extra));
-            // }
+            if (end + this.syntaxLength !== node.textContent.length) {
+                const split = (node as Text).splitText(end + this.syntaxLength);
+                tick.then(this.add.bind(this, split, container, extra));
+            }
 
-            tasks.push(this.bind(node, container, extra));
-
+            tick.then(this.bind.bind(this, node, container, extra));
         } else if (type === EN) {
-            const attributes = (node as Element).attributes;
-
             let each = false;
-            for (let i = 0; i < attributes.length; i++) {
+
+            const attributes = (node as Element).attributes;
+            const l = attributes.length;
+            for (let i = 0; i < l; i++) {
                 const attribute = attributes[ i ];
-                const { name } = attribute;
-                if (name === 'each' || name === `${this.prefix}each`) each = true;
-                tasks.push(this.add(attribute, container, extra));
-                // if (this.syntaxMatch.test(value)) {
-                //     attribute.value = '';
-                //     if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
-                // }
+                if (attribute.name === 'each' || attribute.name === `${this.prefix}each`) each = true;
+                if (this.syntaxMatch.test(attribute.value)) {
+                    tick.then(this.bind.bind(this, attribute, container, extra));
+                }
             }
 
             if (!each) {
                 let child = node.firstChild;
                 while (child) {
-                    tasks.push(this.add(child, container, extra));
+                    tick.then(this.add.bind(this, child, container, extra));
                     child = child.nextSibling;
                 }
             }
 
         }
 
-        Promise.all(tasks);
     }
-
-    // async walk (node: Node, handle) {
-    //     const type = node.nodeType;
-    //     const tasks = [];
-
-    //     if (type === AN) {
-    //         const attribute = (node as Attr);
-    //         const { value } = attribute;
-    //         if (this.syntaxMatch.test(value)) {
-    //             attribute.value = '';
-    //             if (!emptyAttribute.test(value)) tasks.push(handle(attribute));
-    //         }
-    //     } else if (type === TN) {
-    //         if (emptyText.test(node.textContent)) return;
-
-    //         const start = node.textContent.indexOf(this.syntaxStart);
-    //         if (start === -1) return;
-
-    //         if (start !== 0) node = (node as Text).splitText(start);
-
-    //         const end = node.textContent.indexOf(this.syntaxEnd);
-    //         if (end === -1) return;
-
-    //         if (end + this.syntaxStart.length !== node.textContent.length) {
-    //             const split = (node as Text).splitText(end + this.syntaxEnd.length);
-    //             node.textContent = '';
-    //             tasks.push(handle(node));
-    //             tasks.push(this.walk(split, handle));
-    //         } else {
-    //             tasks.push(handle(node));
-    //         }
-
-    //     } else if (type === EN) {
-    //         const attributes = (node as Element).attributes;
-
-    //         let each;
-    //         for (let i = 0; i < attributes.length; i++) {
-    //             const attribute = attributes[ i ];
-    //             const { name } = attribute;
-    //             if (name === 'each' || name === `${this.prefix}each`) each = true;
-    //             tasks.push(this.walk(attribute, handle));
-    //         }
-
-    //         if (!each) {
-    //             node = node.firstChild;
-    //             while (node) {
-    //                 tasks.push(this.walk(node, handle);
-    //                 node = node.nextSibling;
-    //             }
-    //         }
-
-    //     }
-
-    //     Promise.all(tasks);
-    // }
 
 };

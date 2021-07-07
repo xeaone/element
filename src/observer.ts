@@ -2,6 +2,8 @@
 type task = (path?: string) => Promise<any>;
 type tasks = task[];
 
+const tick = Promise.resolve();
+
 // const run = async function (tasks: tasks) {
 //     let task;
 //     while (task = tasks.shift()) {
@@ -30,7 +32,7 @@ const set = function (task: task, tasks: tasks, path: string, target, property, 
         target[ property ] = observer(value, task, tasks, path ? `${path}.${property}` : property);
     }
 
-    Promise.resolve().then(task.bind(null, path));
+    tick.then(task.bind(null, path));
     // if (path) tasks.push(task.bind(null, path, length));
     // if (tasks[ 0 ] === initial) run(tasks);
 
@@ -66,7 +68,7 @@ const observer = function (source: any, task: task, tasks: tasks = [], path: str
         target = source;
     }
 
-    Promise.resolve().then(task.bind(null, path));
+    tick.then(task.bind(null, path));
     // if (path) tasks.push(task.bind(null, path));
     // if (tasks[ 0 ] === initial) run(tasks);
 

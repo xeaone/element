@@ -1,7 +1,8 @@
 import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
-import BindersRoute from '../web/routes/binders';
+
+const tick = Promise.resolve();
 
 export default class Component extends HTMLElement {
 
@@ -42,8 +43,7 @@ export default class Component extends HTMLElement {
     constructor () {
         super();
 
-        this.#binder = Binder;
-        // this.#binder = new Binder();
+        this.#binder = new Binder();
 
         if (this.shadow && 'attachShadow' in document.body) {
             this.#root = this.attachShadow({ mode: 'open' });
@@ -58,26 +58,20 @@ export default class Component extends HTMLElement {
     async render () {
 
         const observer = async (path) => {
-            // console.log(path);
-            // const binders = this.#binder.get(path);
             const binders = this.#binder.pathBinders.get(path);
-
             if (!binders) return;
-            // const tasks = [];
+
             for (const [ , binder ] of binders) {
-                // tasks.push(binder.render());
-                binder.render();
+                tick.then(binder.render);
             }
-            // return Promise.all(tasks);
         };
 
         this.data = Observer(this.data, observer);
 
         if (this.adopt) {
-            // this.#binder.adds(this, this);
             let child = this.firstChild;
             while (child) {
-                this.#binder.add(child, this);
+                tick.then(this.#binder.add.bind(this.#binder, child, this));
                 child = child.nextSibling;
             }
         }
@@ -85,42 +79,39 @@ export default class Component extends HTMLElement {
         const template = document.createElement('template');
         template.innerHTML = this.html;
 
-        // if (
-        //     !this.shadow ||
-        //     !('attachShadow' in document.body) &&
-        //     !('createShadowRoot' in document.body)
-        // ) {
-        //     const templateSlots = template.content.querySelectorAll('slot[name]');
-        //     const defaultSlot = template.content.querySelector('slot:not([name])');
+        if (
+            !this.shadow ||
+            !('attachShadow' in document.body) &&
+            !('createShadowRoot' in document.body)
+        ) {
+            const templateSlots = template.content.querySelectorAll('slot[name]');
+            const defaultSlot = template.content.querySelector('slot:not([name])');
 
-        //     for (let i = 0; i < templateSlots.length; i++) {
-        //         const templateSlot = templateSlots[ i ];
-        //         const name = templateSlot.getAttribute('name');
-        //         const instanceSlot = this.querySelector('[slot="' + name + '"]');
-        //         if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-        //         else templateSlot.parentNode.removeChild(templateSlot);
-        //     }
+            for (let i = 0; i < templateSlots.length; i++) {
+                const templateSlot = templateSlots[ i ];
+                const name = templateSlot.getAttribute('name');
+                const instanceSlot = this.querySelector('[slot="' + name + '"]');
+                if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+                else templateSlot.parentNode.removeChild(templateSlot);
+            }
 
-        //     if (this.children.length) {
-        //         while (this.firstChild) {
-        //             if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
-        //             else this.removeChild(this.firstChild);
-        //         }
-        //     }
+            if (this.children.length) {
+                while (this.firstChild) {
+                    if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+                    else this.removeChild(this.firstChild);
+                }
+            }
 
-        //     if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
-        // }
+            if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
+        }
 
-        const tasks = [];
         let child = template.content.firstChild;
         while (child) {
-            tasks.push(this.#binder.add(child, this));
+            tick.then(this.#binder.add.bind(this.#binder, child, this));
             child = child.nextSibling;
         }
 
-        // this.#binder.adds(template.content, this);
-        const renderDone = () => this.#root.appendChild(template.content);
-        return Promise.all(tasks).then(renderDone);
+        this.#root.appendChild(template.content);
     }
 
     async attributeChangedCallback (name: string, from: string, to: string) {

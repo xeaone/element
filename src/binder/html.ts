@@ -1,3 +1,4 @@
+const tick = Promise.resolve();
 
 const html = async function (binder) {
     let data = await binder.compute();
@@ -9,16 +10,19 @@ const html = async function (binder) {
 
     while (binder.owner.firstChild) {
         const node = binder.owner.removeChild(binder.owner.firstChild);
-        binder.remove(node);
+        binder.binder.remove(node);
     }
 
     const template = document.createElement('template');
     template.innerHTML = data;
 
-    await Promise.all(Array.prototype.map.call(template.content.childNodes, async node =>
-        binder.add(node, binder.container, true))).then(() =>
-            binder.owner.appendChild(template.content));
+    let node = template.content.firstChild;
+    while (node) {
+        tick.then(binder.binder.add.bind(binder.binder, node, binder.container));
+        node = node.nextSibling;
+    }
 
+    binder.owner.appendChild(template.content);
 };
 
 export default html;

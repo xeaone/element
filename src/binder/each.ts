@@ -2,6 +2,8 @@
 const empty = /^\s*$/;
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
+const tick = Promise.resolve();
+
 const clean = function (node: Node) {
     if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
         node.parentNode.removeChild(node);
@@ -111,7 +113,10 @@ const each = async function (binder) {
             const clone = binder.meta.clone.content.cloneNode(true);
             let node = clone.firstChild;
             while (node) {
-                binder.meta.tasks.push(binder.add(node, binder.container, extra));
+                tick.then(binder.binder.add.bind(binder.binder, node, binder.container, extra));
+                // binder.binder.add(node, binder.container, extra);
+
+                // binder.meta.tasks.push(binder.add(node, binder.container, extra));
                 // binder.meta.tasks.push(binder.binder.add(node, binder.container, extra));
                 node = node.nextSibling;
             }
@@ -131,10 +136,10 @@ const each = async function (binder) {
 
     if (binder.meta.currentLength === binder.meta.targetLength) {
         // console.timeEnd(time);
-        Promise.all(binder.meta.tasks).then(function eachFinish () {
-            binder.owner.appendChild(binder.meta.templateElement.content);
-            if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$render'));
-        });
+        // Promise.all(binder.meta.tasks).then(function eachFinish () {
+        binder.owner.appendChild(binder.meta.templateElement.content);
+        if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$renderEach'));
+        // });
     }
 
 };

@@ -1,39 +1,41 @@
 import Component from './component';
-import Router from './router';
-import Batcher from './batcher';
 import Fetcher from './fetcher';
-import Binder from './binder';
+import Router from './router';
 import Define from './define';
 import Load from './load';
 import Css from './css';
 
-declare global {
-    interface Window {
-        Reflect: any;
-        NodeList: any;
-        CustomEvent: any;
-    }
-}
+// declare global {
+//     interface Window {
+//         Reflect: any;
+//         NodeList: any;
+//         CustomEvent: any;
+//     }
+// }
 
-if (typeof window.CustomEvent !== 'function') {
-    window.CustomEvent = function CustomEvent (event, options) {
-        'use strict';
-        options = options || { bubbles: false, cancelable: false, detail: null };
-        var customEvent = document.createEvent('CustomEvent');
-        customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
-        return customEvent;
-    };
-}
+// if (typeof window.CustomEvent !== 'function') {
+//     window.CustomEvent = function CustomEvent (event, options) {
+//         'use strict';
+//         options = options || { bubbles: false, cancelable: false, detail: null };
+//         var customEvent = document.createEvent('CustomEvent');
+//         customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
+//         return customEvent;
+//     };
+// }
 
-if (typeof window.Reflect !== 'object' && typeof window.Reflect.construct !== 'function') {
-    window.Reflect = window.Reflect || {};
-    window.Reflect.construct = function construct (parent, args, child) {
-        'use strict';
-        var target = child === undefined ? parent : child;
-        var prototype = Object.create(target.prototype || Object.prototype);
-        return Function.prototype.apply.call(parent, prototype, args) || prototype;
-    };
-}
+// if (typeof window.Reflect !== 'object' && typeof window.Reflect.construct !== 'function') {
+//     window.Reflect = window.Reflect || {};
+//     window.Reflect.construct = function construct (parent, args, child) {
+//         'use strict';
+//         var target = child === undefined ? parent : child;
+//         var prototype = Object.create(target.prototype || Object.prototype);
+//         return Function.prototype.apply.call(parent, prototype, args) || prototype;
+//     };
+// }
+
+// if (window.NodeList && !window.NodeList.prototype.forEach) {
+//     window.NodeList.prototype.forEach = window.Array.prototype.forEach;
+// }
 
 if (!window.String.prototype.startsWith) {
     window.String.prototype.startsWith = function startsWith (search, rawPos) {
@@ -50,10 +52,6 @@ if (!window.String.prototype.includes) {
         if (start === undefined) { start = 0; }
         return this.indexOf(search, start) !== -1;
     };
-}
-
-if (window.NodeList && !window.NodeList.prototype.forEach) {
-    window.NodeList.prototype.forEach = window.Array.prototype.forEach;
 }
 
 if (!window.Node.prototype.getRootNode) {
@@ -80,17 +78,11 @@ export default Object.freeze(new class Oxe {
     Component = Component;
     component = Component;
 
-    Router = Router;
-    router = Router;
-
-    Batcher = Batcher;
-    batcher = Batcher;
-
     Fetcher = Fetcher;
     fetcher = Fetcher;
 
-    Binder = Binder;
-    binder = Binder;
+    Router = Router;
+    router = Router;
 
     Define = Define;
     define = Define;

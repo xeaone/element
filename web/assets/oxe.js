@@ -16,6 +16,7 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
+    const tick$4 = Promise.resolve();
     // const run = async function (tasks: tasks) {
     //     let task;
     //     while (task = tasks.shift()) {
@@ -41,7 +42,7 @@
         else {
             target[property] = observer(value, task, tasks, path ? `${path}.${property}` : property);
         }
-        Promise.resolve().then(task.bind(null, path));
+        tick$4.then(task.bind(null, path));
         // if (path) tasks.push(task.bind(null, path, length));
         // if (tasks[ 0 ] === initial) run(tasks);
         return true;
@@ -70,7 +71,7 @@
         else {
             target = source;
         }
-        Promise.resolve().then(task.bind(null, path));
+        tick$4.then(task.bind(null, path));
         // if (path) tasks.push(task.bind(null, path));
         // if (tasks[ 0 ] === initial) run(tasks);
         return target;
@@ -451,7 +452,7 @@
                 const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
                 owner.addEventListener('input', async () => {
                     for (const radio of radios) {
-                        const radioBinders = binder.get(radio.getAttributeNode('checked'));
+                        const radioBinders = binder.binder.get(radio.getAttributeNode('checked'));
                         if (radioBinders) {
                             for (const [, radioBinder] of radioBinders) {
                                 radioBinder.busy = true;
@@ -524,8 +525,11 @@
         const { type } = owner;
         if (!meta.setup) {
             meta.setup = true;
-            binder.owner.addEventListener('$render', () => binder.render());
-            binder.owner.addEventListener('input', event => input(binder, event));
+            if (type === 'select-one' || type === 'select-multiple') {
+                owner.addEventListener('$renderEach', () => binder.render());
+                owner.addEventListener('$renderOption', () => binder.render());
+            }
+            owner.addEventListener('input', event => input(binder, event));
         }
         let display, computed;
         if (type === 'select-one') {
@@ -565,6 +569,12 @@
         owner.$value = computed;
         owner.$typeof = typeof computed;
         owner.setAttribute('value', display);
+        if (!meta.first) {
+            meta.first == true;
+            if (owner.parentElement.type === 'select-one' || owner.parentElement.type === 'select-multiple') {
+                owner.parentElement.dispatchEvent(new Event('$renderOption'));
+            }
+        }
     };
     // const setup = async function (binder) {
     //     binder.owner.addEventListener('$render', () => binder.render());
@@ -615,6 +625,7 @@
 
     const empty = /^\s*$/;
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
+    const tick$3 = Promise.resolve();
     const clean = function (node) {
         if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
             node.parentNode.removeChild(node);
@@ -635,10 +646,10 @@
             //     path = path.replace(binder.extra.keyPattern, (s, g1, g2, g3) => g1 + binder.extra.keyValue + g3);
             // if (binder.extra.indexName)
             //     path = path.replace(binder.extra.indexPattern, (s, g1, g2, g3) => g1 + binder.extra.indexValue + g3);
-            // make sure this works with parent context
             if (binder.extra.variableName) {
                 path = path.replace(new RegExp(`(.*?)(.*?\\b)(${binder.extra.variableName})(\\b.*?)(.*?)`), (s, g1, g2, g3, g4, g5) => g1 + g2 + binder.extra.variableValue + g4 + g5);
             }
+            // make sure this works with parent context
         }
         binder.meta.path = path;
         binder.meta.keyName = key;
@@ -712,7 +723,9 @@
                 const clone = binder.meta.clone.content.cloneNode(true);
                 let node = clone.firstChild;
                 while (node) {
-                    binder.meta.tasks.push(binder.add(node, binder.container, extra));
+                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, extra));
+                    // binder.binder.add(node, binder.container, extra);
+                    // binder.meta.tasks.push(binder.add(node, binder.container, extra));
                     // binder.meta.tasks.push(binder.binder.add(node, binder.container, extra));
                     node = node.nextSibling;
                 }
@@ -728,14 +741,15 @@
         }
         if (binder.meta.currentLength === binder.meta.targetLength) {
             // console.timeEnd(time);
-            Promise.all(binder.meta.tasks).then(function eachFinish() {
-                binder.owner.appendChild(binder.meta.templateElement.content);
-                if (binder.owner.nodeName === 'SELECT')
-                    binder.owner.dispatchEvent(new Event('$render'));
-            });
+            // Promise.all(binder.meta.tasks).then(function eachFinish () {
+            binder.owner.appendChild(binder.meta.templateElement.content);
+            if (binder.owner.nodeName === 'SELECT')
+                binder.owner.dispatchEvent(new Event('$renderEach'));
+            // });
         }
     };
 
+    const tick$2 = Promise.resolve();
     const html = async function (binder) {
         let data = await binder.compute();
         if (typeof data !== 'string') {
@@ -744,27 +758,25 @@
         }
         while (binder.owner.firstChild) {
             const node = binder.owner.removeChild(binder.owner.firstChild);
-            binder.remove(node);
+            binder.binder.remove(node);
         }
         const template = document.createElement('template');
         template.innerHTML = data;
-        await Promise.all(Array.prototype.map.call(template.content.childNodes, async (node) => binder.add(node, binder.container, true))).then(() => binder.owner.appendChild(template.content));
+        let node = template.content.firstChild;
+        while (node) {
+            tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container));
+            node = node.nextSibling;
+        }
+        binder.owner.appendChild(template.content);
     };
 
     const text = async function text(binder) {
         let data = await binder.compute();
-        data = typeof data === 'string' ? data : format(data);
+        data = format(data);
         if (data === binder.owner.textContent)
             return;
         binder.owner.textContent = data;
     };
-    // const write = async function (binder) {
-    //     let data = await binder.compute();
-    //     data = format(data);
-    //     if (data === binder.owner.textContent) return;
-    //     binder.owner.textContent = data;
-    // };
-    // export default { write };
 
     const submit = async function (event, binder) {
         event.preventDefault();
@@ -881,7 +893,8 @@
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
-    var Binder = new class Binder {
+    const tick$1 = Promise.resolve();
+    class Binder {
         constructor() {
             this.prefix = 'o-';
             this.syntaxEnd = '}}';
@@ -890,70 +903,17 @@
             this.syntaxMatch = new RegExp('{{.*?}}');
             this.prefixReplace = new RegExp('^o-');
             this.syntaxReplace = new RegExp('{{|}}', 'g');
-            // data: Map<Node, any> = new Map();
             this.nodeBinders = new Map();
             this.pathBinders = new Map();
             this.binders = {
-                checked,
                 standard,
+                checked,
                 value,
                 each,
                 html,
                 text,
                 on,
             };
-            // async walk (node: Node, handle) {
-            //     const type = node.nodeType;
-            //     const tasks = [];
-            //     if (type === AN) {
-            //         const attribute = (node as Attr);
-            //         const { value } = attribute;
-            //         if (this.syntaxMatch.test(value)) {
-            //             attribute.value = '';
-            //             if (!emptyAttribute.test(value)) tasks.push(handle(attribute));
-            //         }
-            //     } else if (type === TN) {
-            //         if (emptyText.test(node.textContent)) return;
-            //         const start = node.textContent.indexOf(this.syntaxStart);
-            //         if (start === -1) return;
-            //         if (start !== 0) node = (node as Text).splitText(start);
-            //         const end = node.textContent.indexOf(this.syntaxEnd);
-            //         if (end === -1) return;
-            //         if (end + this.syntaxStart.length !== node.textContent.length) {
-            //             const split = (node as Text).splitText(end + this.syntaxEnd.length);
-            //             node.textContent = '';
-            //             tasks.push(handle(node));
-            //             tasks.push(this.walk(split, handle));
-            //         } else {
-            //             tasks.push(handle(node));
-            //         }
-            //     } else if (type === EN) {
-            //         const attributes = (node as Element).attributes;
-            //         let each;
-            //         for (let i = 0; i < attributes.length; i++) {
-            //             const attribute = attributes[ i ];
-            //             const { name } = attribute;
-            //             if (name === 'each' || name === `${this.prefix}each`) each = true;
-            //             tasks.push(this.walk(attribute, handle));
-            //         }
-            //         if (!each) {
-            //             node = node.firstChild;
-            //             while (node) {
-            //                 tasks.push(this.walk(node, handle);
-            //                 node = node.nextSibling;
-            //             }
-            //         }
-            //     }
-            //     Promise.all(tasks);
-            // }
-        }
-        async setup(options = {}) {
-            const { binders } = options;
-            for (const name in binders) {
-                if (name in this.binders === false) {
-                    this.binders[name] = binders[name];
-                }
-            }
         }
         get(data) {
             if (typeof data === 'string') {
@@ -974,14 +934,23 @@
             this.nodeBinders.delete(node);
         }
         async bind(node, container, extra) {
-            const owner = node.nodeType === AN ? node.ownerElement : node;
-            const name = node.nodeType === AN ? node.name : 'text';
-            const value = node.nodeType === AN ? node.value : node.textContent;
+            let owner, name, value;
+            if (node.nodeType === AN) {
+                const attribute = node;
+                owner = attribute.ownerElement;
+                name = attribute.name;
+                value = attribute.value;
+            }
+            else {
+                owner = node;
+                name = 'text';
+                value = node.textContent;
+            }
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const render = this.binders[type];
-            const get = this.get.bind(this);
-            const add = this.add.bind(this);
-            const remove = this.remove.bind(this);
+            // const get = this.get.bind(this);
+            // const add = this.add.bind(this);
+            // const remove = this.remove.bind(this);
             const { compute, assignee, paths } = Statement(value, container.data, extra);
             if (!paths.length)
                 paths.push('');
@@ -993,12 +962,11 @@
                 container, type,
                 assignee,
                 name, value, paths,
-                // binder: this,
-                get, add, remove,
+                binder: this,
+                // get, add, remove,
                 compute
             };
             binder.render = render.bind(render, binder);
-            const tasks = [];
             for (const path of paths) {
                 if (path) {
                     if (!this.nodeBinders.has(node))
@@ -1008,18 +976,17 @@
                     this.nodeBinders.get(node).set(path, binder);
                     this.pathBinders.get(path).set(node, binder);
                 }
-                // binder.render();
-                tasks.push(binder.render());
+                tick$1.then(binder.render);
             }
-            return Promise.all(tasks);
         }
         ;
         async remove(node) {
             const type = node.nodeType;
             if (type === EN) {
                 const attributes = node.attributes;
-                for (const attribute of attributes) {
-                    this.unbind(attribute);
+                const l = attributes.length;
+                for (let i = 0; i < l; i++) {
+                    this.unbind(attributes[i]);
                 }
             }
             this.unbind(node);
@@ -1031,57 +998,49 @@
         }
         async add(node, container, extra) {
             const type = node.nodeType;
-            const tasks = [];
             if (type === AN) {
                 const attribute = node;
-                const { value } = attribute;
-                if (
-                // value.indexOf(this.syntaxStart) !== -1 &&
-                // value.indexOf(this.syntaxEnd) !== -1
-                this.syntaxMatch.test(value)) {
-                    tasks.push(this.bind(attribute, container, extra));
-                    // if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, container, extra));
+                if (this.syntaxMatch.test(attribute.value)) {
+                    tick$1.then(this.bind.bind(this, attribute, container, extra));
                 }
             }
             else if (type === TN) {
                 const start = node.textContent.indexOf(this.syntaxStart);
                 if (start === -1)
                     return;
-                // if (start !== 0) node = (node as Text).splitText(start);
+                if (start !== 0)
+                    node = node.splitText(start);
                 const end = node.textContent.indexOf(this.syntaxEnd);
                 if (end === -1)
                     return;
-                // if (end + this.syntaxLength !== node.textContent.length) {
-                //     const split = (node as Text).splitText(end + this.syntaxLength);
-                //     tasks.push(this.add(split, container, extra));
-                // }
-                tasks.push(this.bind(node, container, extra));
+                if (end + this.syntaxLength !== node.textContent.length) {
+                    const split = node.splitText(end + this.syntaxLength);
+                    tick$1.then(this.add.bind(this, split, container, extra));
+                }
+                tick$1.then(this.bind.bind(this, node, container, extra));
             }
             else if (type === EN) {
-                const attributes = node.attributes;
                 let each = false;
-                for (let i = 0; i < attributes.length; i++) {
+                const attributes = node.attributes;
+                const l = attributes.length;
+                for (let i = 0; i < l; i++) {
                     const attribute = attributes[i];
-                    const { name } = attribute;
-                    if (name === 'each' || name === `${this.prefix}each`)
+                    if (attribute.name === 'each' || attribute.name === `${this.prefix}each`)
                         each = true;
-                    tasks.push(this.add(attribute, container, extra));
-                    // if (this.syntaxMatch.test(value)) {
-                    //     attribute.value = '';
-                    //     if (!emptyAttribute.test(value)) tasks.push(this.bind(attribute, name, value, container, extra));
-                    // }
+                    if (this.syntaxMatch.test(attribute.value)) {
+                        tick$1.then(this.bind.bind(this, attribute, container, extra));
+                    }
                 }
                 if (!each) {
                     let child = node.firstChild;
                     while (child) {
-                        tasks.push(this.add(child, container, extra));
+                        tick$1.then(this.add.bind(this, child, container, extra));
                         child = child.nextSibling;
                     }
                 }
             }
-            Promise.all(tasks);
         }
-    };
+    }
 
     var Css = new class Css {
         constructor() {
@@ -1140,6 +1099,7 @@
         }
     };
 
+    const tick = Promise.resolve();
     class Component extends HTMLElement {
         constructor() {
             super();
@@ -1160,8 +1120,7 @@
             this.data = {};
             this.adopt = false;
             this.shadow = false;
-            this.#binder = Binder;
-            // this.#binder = new Binder();
+            this.#binder = new Binder();
             if (this.shadow && 'attachShadow' in document.body) {
                 this.#root = this.attachShadow({ mode: 'open' });
             }
@@ -1182,60 +1141,54 @@
         get binder() { return Binder; }
         async render() {
             const observer$1 = async (path) => {
-                // console.log(path);
-                // const binders = this.#binder.get(path);
                 const binders = this.#binder.pathBinders.get(path);
                 if (!binders)
                     return;
-                // const tasks = [];
                 for (const [, binder] of binders) {
-                    // tasks.push(binder.render());
-                    binder.render();
+                    tick.then(binder.render);
                 }
-                // return Promise.all(tasks);
             };
             this.data = observer(this.data, observer$1);
             if (this.adopt) {
-                // this.#binder.adds(this, this);
                 let child = this.firstChild;
                 while (child) {
-                    this.#binder.add(child, this);
+                    tick.then(this.#binder.add.bind(this.#binder, child, this));
                     child = child.nextSibling;
                 }
             }
             const template = document.createElement('template');
             template.innerHTML = this.html;
-            // if (
-            //     !this.shadow ||
-            //     !('attachShadow' in document.body) &&
-            //     !('createShadowRoot' in document.body)
-            // ) {
-            //     const templateSlots = template.content.querySelectorAll('slot[name]');
-            //     const defaultSlot = template.content.querySelector('slot:not([name])');
-            //     for (let i = 0; i < templateSlots.length; i++) {
-            //         const templateSlot = templateSlots[ i ];
-            //         const name = templateSlot.getAttribute('name');
-            //         const instanceSlot = this.querySelector('[slot="' + name + '"]');
-            //         if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-            //         else templateSlot.parentNode.removeChild(templateSlot);
-            //     }
-            //     if (this.children.length) {
-            //         while (this.firstChild) {
-            //             if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
-            //             else this.removeChild(this.firstChild);
-            //         }
-            //     }
-            //     if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
-            // }
-            const tasks = [];
+            if (!this.shadow ||
+                !('attachShadow' in document.body) &&
+                    !('createShadowRoot' in document.body)) {
+                const templateSlots = template.content.querySelectorAll('slot[name]');
+                const defaultSlot = template.content.querySelector('slot:not([name])');
+                for (let i = 0; i < templateSlots.length; i++) {
+                    const templateSlot = templateSlots[i];
+                    const name = templateSlot.getAttribute('name');
+                    const instanceSlot = this.querySelector('[slot="' + name + '"]');
+                    if (instanceSlot)
+                        templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
+                    else
+                        templateSlot.parentNode.removeChild(templateSlot);
+                }
+                if (this.children.length) {
+                    while (this.firstChild) {
+                        if (defaultSlot)
+                            defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
+                        else
+                            this.removeChild(this.firstChild);
+                    }
+                }
+                if (defaultSlot)
+                    defaultSlot.parentNode.removeChild(defaultSlot);
+            }
             let child = template.content.firstChild;
             while (child) {
-                tasks.push(this.#binder.add(child, this));
+                tick.then(this.#binder.add.bind(this.#binder, child, this));
                 child = child.nextSibling;
             }
-            // this.#binder.adds(template.content, this);
-            const renderDone = () => this.#root.appendChild(template.content);
-            return Promise.all(tasks).then(renderDone);
+            this.#root.appendChild(template.content);
         }
         async attributeChangedCallback(name, from, to) {
             await this.attributed(name, from, to);
@@ -1400,6 +1353,171 @@
     //         }
     //     });
     // }
+
+    var Fetcher = new class Fetcher {
+        constructor() {
+            this.option = {};
+            this.types = [
+                'json',
+                'text',
+                'blob',
+                'formData',
+                'arrayBuffer'
+            ];
+            this.mime = {
+                xml: 'text/xml; charset=utf-8',
+                html: 'text/html; charset=utf-8',
+                text: 'text/plain; charset=utf-8',
+                json: 'application/json; charset=utf-8',
+                js: 'application/javascript; charset=utf-8'
+            };
+        }
+        async setup(option = {}) {
+            this.option.path = option.path;
+            this.option.method = option.method;
+            this.option.origin = option.origin;
+            this.option.before = option.before;
+            this.option.headers = option.headers;
+            this.option.after = option.after;
+            this.option.acceptType = option.acceptType;
+            this.option.credentials = option.credentials;
+            this.option.contentType = option.contentType;
+            this.option.responseType = option.responseType;
+        }
+        async method(method, data) {
+            data = typeof data === 'string' ? { url: data } : data;
+            return this.fetch({ ...data, method });
+        }
+        async get() {
+            return this.method('get', ...arguments);
+        }
+        async put() {
+            return this.method('put', ...arguments);
+        }
+        async post() {
+            return this.method('post', ...arguments);
+        }
+        async head() {
+            return this.method('head', ...arguments);
+        }
+        async patch() {
+            return this.method('patch', ...arguments);
+        }
+        async delete() {
+            return this.method('delete', ...arguments);
+        }
+        async options() {
+            return this.method('options', ...arguments);
+        }
+        async connect() {
+            return this.method('connect', ...arguments);
+        }
+        async serialize(data) {
+            let query = '';
+            for (const name in data) {
+                query = query.length > 0 ? query + '&' : query;
+                query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+            }
+            return query;
+        }
+        async fetch(data = {}) {
+            const { option } = this;
+            const context = { ...option, ...data };
+            if (context.path && typeof context.path === 'string' && context.path.charAt(0) === '/')
+                context.path = context.path.slice(1);
+            if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length - 1) === '/')
+                context.origin = context.origin.slice(0, -1);
+            if (context.path && context.origin && !context.url)
+                context.url = context.origin + '/' + context.path;
+            if (!context.method)
+                throw new Error('Oxe.fetcher - requires method option');
+            if (!context.url)
+                throw new Error('Oxe.fetcher - requires url or origin and path option');
+            context.aborted = false;
+            context.headers = context.headers || {};
+            context.method = context.method.toUpperCase();
+            Object.defineProperty(context, 'abort', {
+                enumerable: true,
+                value() { context.aborted = true; return context; }
+            });
+            if (context.contentType) {
+                switch (context.contentType) {
+                    case 'js':
+                        context.headers['Content-Type'] = this.mime.js;
+                        break;
+                    case 'xml':
+                        context.headers['Content-Type'] = this.mime.xml;
+                        break;
+                    case 'html':
+                        context.headers['Content-Type'] = this.mime.html;
+                        break;
+                    case 'json':
+                        context.headers['Content-Type'] = this.mime.json;
+                        break;
+                    default: context.headers['Content-Type'] = context.contentType;
+                }
+            }
+            if (context.acceptType) {
+                switch (context.acceptType) {
+                    case 'js':
+                        context.headers['Accept'] = this.mime.js;
+                        break;
+                    case 'xml':
+                        context.headers['Accept'] = this.mime.xml;
+                        break;
+                    case 'html':
+                        context.headers['Accept'] = this.mime.html;
+                        break;
+                    case 'json':
+                        context.headers['Accept'] = this.mime.json;
+                        break;
+                    default: context.headers['Accept'] = context.acceptType;
+                }
+            }
+            if (typeof option.before === 'function')
+                await option.before(context);
+            if (context.aborted)
+                return;
+            if (context.body) {
+                if (context.method === 'GET') {
+                    context.url = context.url + '?' + await this.serialize(context.body);
+                }
+                else if (context.contentType === 'json') {
+                    context.body = JSON.stringify(context.body);
+                }
+            }
+            const result = await window.fetch(context.url, context);
+            Object.defineProperties(context, {
+                result: { enumerable: true, value: result },
+                code: { enumerable: true, value: result.status }
+                // headers: { enumerable: true, value: result.headers }
+                // message: { enumerable: true, value: result.statusText }
+            });
+            if (!context.responseType) {
+                context.body = result.body;
+            }
+            else {
+                const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
+                const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
+                let type;
+                if (responseType === 'json' && contentType.indexOf('json') !== -1) {
+                    type = 'json';
+                }
+                else {
+                    type = responseType || 'text';
+                }
+                if (this.types.indexOf(type) === -1) {
+                    throw new Error('Oxe.fetch - invalid responseType value');
+                }
+                context.body = await result[type]();
+            }
+            if (typeof option.after === 'function')
+                await option.after(context);
+            if (context.aborted)
+                return;
+            return context;
+        }
+    };
 
     // https://regexr.com/5nj32
     const S_EXPORT = `
@@ -1758,7 +1876,7 @@
                 catch {
                     component = (await load(absolute(`${this.#folder}/all.js`))).default;
                 }
-                const name = 'l' + path.replace(/\/+/g, '-');
+                const name = 'router' + path.replace(/\/+/g, '-');
                 window.customElements.define(name, component);
                 element = window.document.createElement(name);
                 this.#data[location.pathname] = element;
@@ -1860,264 +1978,6 @@
     //     }
     // }
 
-    var Batcher = new class Batcher {
-        constructor(data = {}) {
-            this.#reads = [];
-            this.#writes = [];
-            this.#max = 16;
-            this.#pending = false;
-            this.#max ?? data.max;
-        }
-        #reads;
-        #writes;
-        #max;
-        #pending;
-        // remove (tasks, task) {
-        //     const index = tasks.indexOf(task);
-        //     return !!~index && !!tasks.splice(index, 1);
-        // }
-        // clear (task) {
-        //     return this.remove(this.#reads, task) || this.remove(this.#writes, task);
-        // }
-        tick(method) {
-            return new Promise((resolve) => {
-                window.requestAnimationFrame(async (time) => {
-                    await method.call(this, time);
-                    resolve();
-                });
-            });
-        }
-        ;
-        async flush(time) {
-            const tasks = [];
-            let read;
-            while (read = this.#reads.shift()) {
-                tasks.push(read());
-                // if ((performance.now() - time) > this.#max) return this.tick(this.flush);
-            }
-            await Promise.all(tasks);
-            let write;
-            while (write = this.#writes.shift()) {
-                tasks.push(write());
-                // if ((performance.now() - time) > this.#max) return this.tick(this.flush);
-            }
-            await Promise.all(tasks);
-            if (this.#reads.length === 0 && this.#writes.length === 0) {
-                this.#pending = false;
-                // } else if ((performance.now() - time) > this.#max) {
-                // return this.tick(this.flush);
-            }
-            else {
-                return this.flush(time);
-            }
-        }
-        async batch(read, write) {
-            if (!read && !write)
-                throw new Error('read or write required');
-            return new Promise((resolve) => {
-                if (read) {
-                    this.#reads.push(async () => {
-                        await read();
-                        if (write) {
-                            this.#writes.push(async () => {
-                                await write();
-                                resolve();
-                            });
-                        }
-                        else {
-                            resolve();
-                        }
-                    });
-                }
-                else if (write) {
-                    this.#writes.push(async () => {
-                        await write();
-                        resolve();
-                    });
-                }
-                if (!this.#pending) {
-                    this.#pending = true;
-                    this.tick(this.flush);
-                }
-            });
-        }
-    };
-    // export default Object.freeze({
-    //     reads,
-    //     writes,
-    //     setup,
-    //     tick,
-    //     flush,
-    //     remove,
-    //     clear,
-    //     batch
-    // });
-
-    var Fetcher = new class Fetcher {
-        constructor() {
-            this.option = {};
-            this.types = [
-                'json',
-                'text',
-                'blob',
-                'formData',
-                'arrayBuffer'
-            ];
-            this.mime = {
-                xml: 'text/xml; charset=utf-8',
-                html: 'text/html; charset=utf-8',
-                text: 'text/plain; charset=utf-8',
-                json: 'application/json; charset=utf-8',
-                js: 'application/javascript; charset=utf-8'
-            };
-        }
-        async setup(option = {}) {
-            this.option.path = option.path;
-            this.option.method = option.method;
-            this.option.origin = option.origin;
-            this.option.before = option.before;
-            this.option.headers = option.headers;
-            this.option.after = option.after;
-            this.option.acceptType = option.acceptType;
-            this.option.credentials = option.credentials;
-            this.option.contentType = option.contentType;
-            this.option.responseType = option.responseType;
-        }
-        async method(method, data) {
-            data = typeof data === 'string' ? { url: data } : data;
-            return this.fetch({ ...data, method });
-        }
-        async get() {
-            return this.method('get', ...arguments);
-        }
-        async put() {
-            return this.method('put', ...arguments);
-        }
-        async post() {
-            return this.method('post', ...arguments);
-        }
-        async head() {
-            return this.method('head', ...arguments);
-        }
-        async patch() {
-            return this.method('patch', ...arguments);
-        }
-        async delete() {
-            return this.method('delete', ...arguments);
-        }
-        async options() {
-            return this.method('options', ...arguments);
-        }
-        async connect() {
-            return this.method('connect', ...arguments);
-        }
-        async serialize(data) {
-            let query = '';
-            for (const name in data) {
-                query = query.length > 0 ? query + '&' : query;
-                query = query + encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
-            }
-            return query;
-        }
-        async fetch(data = {}) {
-            const { option } = this;
-            const context = { ...option, ...data };
-            if (context.path && typeof context.path === 'string' && context.path.charAt(0) === '/')
-                context.path = context.path.slice(1);
-            if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length - 1) === '/')
-                context.origin = context.origin.slice(0, -1);
-            if (context.path && context.origin && !context.url)
-                context.url = context.origin + '/' + context.path;
-            if (!context.method)
-                throw new Error('Oxe.fetcher - requires method option');
-            if (!context.url)
-                throw new Error('Oxe.fetcher - requires url or origin and path option');
-            context.aborted = false;
-            context.headers = context.headers || {};
-            context.method = context.method.toUpperCase();
-            Object.defineProperty(context, 'abort', {
-                enumerable: true,
-                value() { context.aborted = true; return context; }
-            });
-            if (context.contentType) {
-                switch (context.contentType) {
-                    case 'js':
-                        context.headers['Content-Type'] = this.mime.js;
-                        break;
-                    case 'xml':
-                        context.headers['Content-Type'] = this.mime.xml;
-                        break;
-                    case 'html':
-                        context.headers['Content-Type'] = this.mime.html;
-                        break;
-                    case 'json':
-                        context.headers['Content-Type'] = this.mime.json;
-                        break;
-                    default: context.headers['Content-Type'] = context.contentType;
-                }
-            }
-            if (context.acceptType) {
-                switch (context.acceptType) {
-                    case 'js':
-                        context.headers['Accept'] = this.mime.js;
-                        break;
-                    case 'xml':
-                        context.headers['Accept'] = this.mime.xml;
-                        break;
-                    case 'html':
-                        context.headers['Accept'] = this.mime.html;
-                        break;
-                    case 'json':
-                        context.headers['Accept'] = this.mime.json;
-                        break;
-                    default: context.headers['Accept'] = context.acceptType;
-                }
-            }
-            if (typeof option.before === 'function')
-                await option.before(context);
-            if (context.aborted)
-                return;
-            if (context.body) {
-                if (context.method === 'GET') {
-                    context.url = context.url + '?' + await this.serialize(context.body);
-                }
-                else if (context.contentType === 'json') {
-                    context.body = JSON.stringify(context.body);
-                }
-            }
-            const result = await window.fetch(context.url, context);
-            Object.defineProperties(context, {
-                result: { enumerable: true, value: result },
-                code: { enumerable: true, value: result.status }
-                // headers: { enumerable: true, value: result.headers }
-                // message: { enumerable: true, value: result.statusText }
-            });
-            if (!context.responseType) {
-                context.body = result.body;
-            }
-            else {
-                const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
-                const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
-                let type;
-                if (responseType === 'json' && contentType.indexOf('json') !== -1) {
-                    type = 'json';
-                }
-                else {
-                    type = responseType || 'text';
-                }
-                if (this.types.indexOf(type) === -1) {
-                    throw new Error('Oxe.fetch - invalid responseType value');
-                }
-                context.body = await result[type]();
-            }
-            if (typeof option.after === 'function')
-                await option.after(context);
-            if (context.aborted)
-                return;
-            return context;
-        }
-    };
-
     const toDash = (data) => data.replace(/[a-zA-Z][A-Z]/g, c => `${c[0]}-${c[1]}`.toLowerCase());
     async function Define(component) {
         if (typeof component === 'string') {
@@ -2133,22 +1993,34 @@
         }
     }
 
-    if (typeof window.CustomEvent !== 'function') {
-        window.CustomEvent = function CustomEvent(event, options) {
-            options = options || { bubbles: false, cancelable: false, detail: null };
-            var customEvent = document.createEvent('CustomEvent');
-            customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
-            return customEvent;
-        };
-    }
-    if (typeof window.Reflect !== 'object' && typeof window.Reflect.construct !== 'function') {
-        window.Reflect = window.Reflect || {};
-        window.Reflect.construct = function construct(parent, args, child) {
-            var target = child === undefined ? parent : child;
-            var prototype = Object.create(target.prototype || Object.prototype);
-            return Function.prototype.apply.call(parent, prototype, args) || prototype;
-        };
-    }
+    // declare global {
+    //     interface Window {
+    //         Reflect: any;
+    //         NodeList: any;
+    //         CustomEvent: any;
+    //     }
+    // }
+    // if (typeof window.CustomEvent !== 'function') {
+    //     window.CustomEvent = function CustomEvent (event, options) {
+    //         'use strict';
+    //         options = options || { bubbles: false, cancelable: false, detail: null };
+    //         var customEvent = document.createEvent('CustomEvent');
+    //         customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
+    //         return customEvent;
+    //     };
+    // }
+    // if (typeof window.Reflect !== 'object' && typeof window.Reflect.construct !== 'function') {
+    //     window.Reflect = window.Reflect || {};
+    //     window.Reflect.construct = function construct (parent, args, child) {
+    //         'use strict';
+    //         var target = child === undefined ? parent : child;
+    //         var prototype = Object.create(target.prototype || Object.prototype);
+    //         return Function.prototype.apply.call(parent, prototype, args) || prototype;
+    //     };
+    // }
+    // if (window.NodeList && !window.NodeList.prototype.forEach) {
+    //     window.NodeList.prototype.forEach = window.Array.prototype.forEach;
+    // }
     if (!window.String.prototype.startsWith) {
         window.String.prototype.startsWith = function startsWith(search, rawPos) {
             var pos = rawPos > 0 ? rawPos | 0 : 0;
@@ -2164,9 +2036,6 @@
             }
             return this.indexOf(search, start) !== -1;
         };
-    }
-    if (window.NodeList && !window.NodeList.prototype.forEach) {
-        window.NodeList.prototype.forEach = window.Array.prototype.forEach;
     }
     if (!window.Node.prototype.getRootNode) {
         window.Node.prototype.getRootNode = function getRootNode(opt) {
@@ -2192,14 +2061,10 @@
         constructor() {
             this.Component = Component;
             this.component = Component;
-            this.Router = Router;
-            this.router = Router;
-            this.Batcher = Batcher;
-            this.batcher = Batcher;
             this.Fetcher = Fetcher;
             this.fetcher = Fetcher;
-            this.Binder = Binder;
-            this.binder = Binder;
+            this.Router = Router;
+            this.router = Router;
             this.Define = Define;
             this.define = Define;
             this.Load = load;

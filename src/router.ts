@@ -145,7 +145,7 @@ export default new class Router {
                 component = (await Load(absolute(`${this.#folder}/all.js`))).default;
             }
 
-            const name = 'l' + path.replace(/\/+/g, '-');
+            const name = 'router' + path.replace(/\/+/g, '-');
             window.customElements.define(name, component);
             element = window.document.createElement(name);
 
