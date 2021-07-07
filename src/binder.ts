@@ -65,20 +65,7 @@ export default class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, container: any, dynamics?: any) {
-
-        let owner, name, value;
-        if (node.nodeType === AN) {
-            const attribute = (node as Attr);
-            owner = attribute.ownerElement;
-            name = attribute.name;
-            value = attribute.value;
-        } else {
-            owner = node;
-            name = 'text';
-            value = node.textContent;
-        }
-
+    async bind (node: Node, container: any, name, value, owner, dynamics?: any) {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         const render = this.binders[ type ];
 
@@ -117,48 +104,51 @@ export default class Binder {
     async remove (node: Node) {
         const type = node.nodeType;
 
-        if (type === EN) {
+        if (type === AN || type === TN) {
+            tick.then(this.unbind.bind(this, node));
+        } else if (type === EN) {
             const attributes = (node as Element).attributes;
             const l = attributes.length;
             for (let i = 0; i < l; i++) {
-                this.unbind(attributes[ i ]);
+                tick.then(this.unbind.bind(this, attributes[ i ]));
             }
-        }
 
-        this.unbind(node);
+            let child = node.firstChild;
+            while (child) {
+                tick.then(this.remove.bind(this, child));
+                child = child.nextSibling;
+            }
 
-        let child = node.firstChild;
-        while (child) {
-            this.remove(child);
-            child = child.nextSibling;
         }
 
     }
 
-    async add (node: Node, container: any, extra?: any) {
+    async add (node: Node, container: any, dynamics?: any) {
         const type = node.nodeType;
 
         if (type === AN) {
             const attribute = (node as Attr);
-            if (this.syntaxMatch.test(attribute.value)) {
-                tick.then(this.bind.bind(this, attribute, container, extra));
+            const { name, value, ownerElement } = attribute;
+            if (this.syntaxMatch.test(value)) {
+                tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics));
             }
         } else if (type === TN) {
+            const { textContent } = node;
 
-            const start = node.textContent.indexOf(this.syntaxStart);
+            const start = textContent.indexOf(this.syntaxStart);
             if (start === -1) return;
 
             if (start !== 0) node = (node as Text).splitText(start);
 
-            const end = node.textContent.indexOf(this.syntaxEnd);
+            const end = textContent.indexOf(this.syntaxEnd);
             if (end === -1) return;
 
-            if (end + this.syntaxLength !== node.textContent.length) {
+            if (end + this.syntaxLength !== textContent.length) {
                 const split = (node as Text).splitText(end + this.syntaxLength);
-                tick.then(this.add.bind(this, split, container, extra));
+                tick.then(this.add.bind(this, split, container, dynamics));
             }
 
-            tick.then(this.bind.bind(this, node, container, extra));
+            tick.then(this.bind.bind(this, node, container, 'text', textContent, node, dynamics));
         } else if (type === EN) {
             let each = false;
 
@@ -166,16 +156,17 @@ export default class Binder {
             const l = attributes.length;
             for (let i = 0; i < l; i++) {
                 const attribute = attributes[ i ];
-                if (attribute.name === 'each' || attribute.name === `${this.prefix}each`) each = true;
-                if (this.syntaxMatch.test(attribute.value)) {
-                    tick.then(this.bind.bind(this, attribute, container, extra));
+                const { name, value, ownerElement } = attribute;
+                if (name === 'each' || name === `${this.prefix}each`) each = true;
+                if (this.syntaxMatch.test(value)) {
+                    tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics));
                 }
             }
 
             if (!each) {
                 let child = node.firstChild;
                 while (child) {
-                    tick.then(this.add.bind(this, child, container, extra));
+                    tick.then(this.add.bind(this, child, container, dynamics));
                     child = child.nextSibling;
                 }
             }

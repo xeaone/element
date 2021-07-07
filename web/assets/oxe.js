@@ -698,6 +698,7 @@
                 const clone = binder.meta.clone.content.cloneNode(true);
                 let node = clone.firstChild;
                 while (node) {
+                    // binder.binder.add(node, binder.container, dynamics);
                     tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
                     node = node.nextSibling;
                 }
@@ -896,19 +897,7 @@
             }
             this.nodeBinders.delete(node);
         }
-        async bind(node, container, dynamics) {
-            let owner, name, value;
-            if (node.nodeType === AN) {
-                const attribute = node;
-                owner = attribute.ownerElement;
-                name = attribute.name;
-                value = attribute.value;
-            }
-            else {
-                owner = node;
-                name = 'text';
-                value = node.textContent;
-            }
+        async bind(node, container, name, value, owner, dynamics) {
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const render = this.binders[type];
             const { compute, assignee, paths } = Statement(value, container.data, dynamics);
@@ -942,42 +931,46 @@
         ;
         async remove(node) {
             const type = node.nodeType;
-            if (type === EN) {
+            if (type === AN || type === TN) {
+                tick$1.then(this.unbind.bind(this, node));
+            }
+            else if (type === EN) {
                 const attributes = node.attributes;
                 const l = attributes.length;
                 for (let i = 0; i < l; i++) {
-                    this.unbind(attributes[i]);
+                    tick$1.then(this.unbind.bind(this, attributes[i]));
+                }
+                let child = node.firstChild;
+                while (child) {
+                    tick$1.then(this.remove.bind(this, child));
+                    child = child.nextSibling;
                 }
             }
-            this.unbind(node);
-            let child = node.firstChild;
-            while (child) {
-                this.remove(child);
-                child = child.nextSibling;
-            }
         }
-        async add(node, container, extra) {
+        async add(node, container, dynamics) {
             const type = node.nodeType;
             if (type === AN) {
                 const attribute = node;
-                if (this.syntaxMatch.test(attribute.value)) {
-                    tick$1.then(this.bind.bind(this, attribute, container, extra));
+                const { name, value, ownerElement } = attribute;
+                if (this.syntaxMatch.test(value)) {
+                    tick$1.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics));
                 }
             }
             else if (type === TN) {
-                const start = node.textContent.indexOf(this.syntaxStart);
+                const { textContent } = node;
+                const start = textContent.indexOf(this.syntaxStart);
                 if (start === -1)
                     return;
                 if (start !== 0)
                     node = node.splitText(start);
-                const end = node.textContent.indexOf(this.syntaxEnd);
+                const end = textContent.indexOf(this.syntaxEnd);
                 if (end === -1)
                     return;
-                if (end + this.syntaxLength !== node.textContent.length) {
+                if (end + this.syntaxLength !== textContent.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    tick$1.then(this.add.bind(this, split, container, extra));
+                    tick$1.then(this.add.bind(this, split, container, dynamics));
                 }
-                tick$1.then(this.bind.bind(this, node, container, extra));
+                tick$1.then(this.bind.bind(this, node, container, 'text', textContent, node, dynamics));
             }
             else if (type === EN) {
                 let each = false;
@@ -985,16 +978,17 @@
                 const l = attributes.length;
                 for (let i = 0; i < l; i++) {
                     const attribute = attributes[i];
-                    if (attribute.name === 'each' || attribute.name === `${this.prefix}each`)
+                    const { name, value, ownerElement } = attribute;
+                    if (name === 'each' || name === `${this.prefix}each`)
                         each = true;
-                    if (this.syntaxMatch.test(attribute.value)) {
-                        tick$1.then(this.bind.bind(this, attribute, container, extra));
+                    if (this.syntaxMatch.test(value)) {
+                        tick$1.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics));
                     }
                 }
                 if (!each) {
                     let child = node.firstChild;
                     while (child) {
-                        tick$1.then(this.add.bind(this, child, container, extra));
+                        tick$1.then(this.add.bind(this, child, container, dynamics));
                         child = child.nextSibling;
                     }
                 }

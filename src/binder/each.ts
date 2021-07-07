@@ -105,6 +105,7 @@ const each = async function (binder) {
             const clone = binder.meta.clone.content.cloneNode(true);
             let node = clone.firstChild;
             while (node) {
+                // binder.binder.add(node, binder.container, dynamics);
                 tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
                 node = node.nextSibling;
             }
