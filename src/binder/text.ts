@@ -1,6 +1,7 @@
 import format from '../format';
 
 const text = async function text (binder) {
+    // binder.owner.nodeValue = format(await binder.compute());
     let data = await binder.compute();
     binder.owner.nodeValue = format(data);
     // binder.owner.nodeValue = data ?? '';

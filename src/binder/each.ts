@@ -135,7 +135,7 @@ const each = async function (binder) {
                 [ binder.meta.indexName ]: indexValue,
                 get [ binder.meta.variableName ] () {
                     let data = binder.container.data;
-                    for (let part of binder.meta.pathParts) {
+                    for (const part of binder.meta.pathParts) {
                         if (part in this) data = this[ part ];
                         else if (part in data) data = data[ part ];
                     }

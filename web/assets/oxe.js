@@ -56,14 +56,14 @@
         // }
         if (source?.constructor === Array) {
             target = source;
-            for (let key = 0; key < source.length; key++) {
+            for (const key = 0; key < source.length; key++) {
                 target[key] = observer(source[key], task, tasks, path ? `${path}[${key}]` : `${key}`);
             }
             target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
         }
         else if (source?.constructor === Object) {
             target = source;
-            for (let key in source) {
+            for (const key in source) {
                 target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : key);
             }
             target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
@@ -719,7 +719,7 @@
                     [binder.meta.indexName]: indexValue,
                     get [binder.meta.variableName]() {
                         let data = binder.container.data;
-                        for (let part of binder.meta.pathParts) {
+                        for (const part of binder.meta.pathParts) {
                             if (part in this)
                                 data = this[part];
                             else if (part in data)
@@ -793,6 +793,7 @@
     };
 
     const text = async function text(binder) {
+        // binder.owner.nodeValue = format(await binder.compute());
         let data = await binder.compute();
         binder.owner.nodeValue = format(data);
         // binder.owner.nodeValue = data ?? '';
@@ -957,31 +958,31 @@
         }
         async bind(node, container, name, value, owner, dynamics) {
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
-            const render = this.binders[type];
+            // const render = this.binders[ type ];
             const { compute, assignee, paths } = Statement(value, container.data, dynamics);
             if (!paths.length)
                 paths.push('');
             const binder = {
-                render,
-                meta: {},
-                node, owner,
-                busy: false,
-                container, type,
-                assignee,
-                name, value, paths,
-                binder: this,
-                dynamics,
-                compute
+                render: undefined,
+                binder: this, meta: {}, busy: false,
+                type, assignee, compute, paths,
+                node, owner, name, value, dynamics, container,
             };
-            binder.render = render.bind(render, binder);
+            binder.render = this.binders[type].bind(null, binder);
             for (const path of paths) {
                 if (path) {
-                    if (!this.nodeBinders.has(node))
-                        this.nodeBinders.set(node, new Map());
-                    if (!this.pathBinders.has(path))
-                        this.pathBinders.set(path, new Map());
-                    this.nodeBinders.get(node).set(path, binder);
-                    this.pathBinders.get(path).set(node, binder);
+                    if (!this.nodeBinders.has(node)) {
+                        this.nodeBinders.set(node, new Map([[path, binder]]));
+                    }
+                    else {
+                        this.nodeBinders.get(node).set(path, binder);
+                    }
+                    if (!this.pathBinders.has(path)) {
+                        this.pathBinders.set(path, new Map([[node, binder]]));
+                    }
+                    else {
+                        this.pathBinders.get(path).set(node, binder);
+                    }
                 }
                 tick$1.then(binder.render);
                 // binder.render();
@@ -989,11 +990,10 @@
         }
         ;
         async remove(node) {
-            const type = node.nodeType;
-            if (type === AN || type === TN) {
+            if (node.nodeType === AN || node.nodeType === TN) {
                 tick$1.then(this.unbind.bind(this, node));
             }
-            else if (type === EN) {
+            else if (node.nodeType === EN) {
                 const attributes = node.attributes;
                 const l = attributes.length;
                 for (let i = 0; i < l; i++) {
