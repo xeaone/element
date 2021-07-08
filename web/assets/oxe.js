@@ -1796,7 +1796,8 @@
             const queries = window.location.search.slice(1).split('&');
             const result = {};
             for (const query of queries) {
-                const [name, value] = query.split('=');
+                let [name, value] = query.split('=');
+                value = decodeURIComponent(value.replace(/\+/g, ' '));
                 if (name in result) {
                     if (typeof result[name] === 'object') {
                         result[name].push(value);
