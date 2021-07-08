@@ -608,8 +608,52 @@
     // const empty = /^\s*$/;
     const tick$3 = Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
+    // const clean = function (node: Node) {
+    //     if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
+    //         node.parentNode.removeChild(node);
+    //     } else {
+    //         let child = node.firstChild;
+    //         while (child) {
+    //             const next = child.nextSibling;
+    //             clean(child);
+    //             child = next;
+    //         }
+    //     }
+    // };
+    // const walk = function (node: Node, handler: (node: Node, paths) => void, paths = []) {
+    //     let i = 0;
+    //     let child = node.firstChild;
+    //     while (child) {
+    //         if (child.nodeType === Node.TEXT_NODE) {
+    //             const start = child.textContent.indexOf('{{');
+    //             if (start === -1) return;
+    //             if (start !== 0) child = (child as Text).splitText(start);
+    //             const end = child.textContent.indexOf('}}');
+    //             if (end === -1) return;
+    //             if (end + 2 !== child.textContent.length) {
+    //                 (child as Text).splitText(end + 2);
+    //             }
+    //             const childPaths = [ ...paths, 'childNodes', i ];
+    //             handler(child, childPaths);
+    //         } else if (child.nodeType === Node.ELEMENT_NODE) {
+    //             const childPaths = [ ...paths, i ];
+    //             let each = false;
+    //             const attributes = (child as Element).attributes;
+    //             for (let ai = 0; ai < attributes.length; ai++) {
+    //                 const attribute = attributes[ ai ];
+    //                 if (attribute.name === 'each' || attribute.name === 'o-each') each = true;
+    //                 if (/{{.*?}}/.test(attribute.value)) handler(attribute, [ ...childPaths, 'attributes', ai ]);
+    //             }
+    //             if (each) return;
+    //             walk(child, handler, childPaths);
+    //         }
+    //         child = child.nextSibling;
+    //         i++;
+    //     }
+    // };
     const setup = function (binder) {
         let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+        binder.meta.path = path;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
         binder.meta.variableName = variable;
@@ -665,42 +709,45 @@
             }
         }
         else if (binder.meta.currentLength < binder.meta.targetLength) {
+            // let node, clone, dynamics, indexValue, keyValue;
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
                 const dynamics = {
                     ...binder.dynamics,
-                    // [ binder.meta.keyName ]: keyValue,
-                    // [ binder.meta.indexName ]: indexValue,
-                    // get [ binder.meta.variableName ] () {
-                    //     let data = binder.container.data;
-                    //     for (const part of binder.meta.pathParts) {
-                    //         if (part in this) {
-                    //             data = this[ part ];
-                    //         } else if (part in data) {
-                    //             data = data[ part ];
-                    //         }
-                    //     }
-                    //     return data[ keyValue ];
-                    // }
-                };
-                dynamics[binder.meta.keyName] = keyValue;
-                dynamics[binder.meta.indexName] = indexValue;
-                Object.defineProperty(dynamics, binder.meta.variableName, {
-                    get() {
+                    [binder.meta.keyName]: keyValue,
+                    [binder.meta.indexName]: indexValue,
+                    get [binder.meta.variableName]() {
                         let data = binder.container.data;
-                        for (const part of binder.meta.pathParts) {
-                            if (part in this) {
+                        for (let part of binder.meta.pathParts) {
+                            if (part in this)
                                 data = this[part];
-                            }
-                            else if (part in data) {
+                            else if (part in data)
                                 data = data[part];
-                            }
                         }
                         return data[keyValue];
                     }
-                });
+                };
+                // const dynamics = Object.assign({}, binder.dynamics);
+                // dynamics[ binder.meta.keyName ] = keyValue;
+                // dynamics[ binder.meta.indexName ] = indexValue;
+                // Object.defineProperty(dynamics, binder.meta.variableName, {
+                //     get () {
+                //         let data = binder.container.data;
+                //         for (let part of binder.meta.pathParts) {
+                //             if (part in this) data = this[ part ];
+                //             else if (part in data) data = data[ part ];
+                //         }
+                //         return data[ keyValue ];
+                //     }
+                // });
                 binder.meta.currentLength++;
+                // const d = document.createElement('div');
+                // d.className = 'box';
+                // const t = document.createTextNode('{{item.number}}');
+                // tick.then(binder.binder.add.bind(binder.binder, t, binder.container, dynamics));
+                // d.appendChild(t);
+                // binder.meta.templateElement.content.appendChild(d);
                 const clone = binder.meta.clone.content.cloneNode(true);
                 // for (const parts of binder.meta.adds) {
                 //     let node = clone;
@@ -710,6 +757,7 @@
                 let node = clone.firstChild;
                 while (node) {
                     tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
+                    // binder.binder.add(node, binder.container, dynamics);
                     node = node.nextSibling;
                 }
                 binder.meta.templateElement.content.appendChild(clone);
@@ -746,10 +794,9 @@
 
     const text = async function text(binder) {
         let data = await binder.compute();
-        data = format(data);
-        if (data === binder.owner.textContent)
-            return;
-        binder.owner.textContent = data;
+        binder.owner.nodeValue = format(data);
+        // binder.owner.nodeValue = data ?? '';
+        // binder.owner.nodeValue = data === undefined ? '' : data;
     };
 
     const submit = async function (event, binder) {
@@ -864,6 +911,7 @@
     // };
     // export default { read };
 
+    // type NODE = Element | Text | Attr;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
@@ -936,6 +984,7 @@
                     this.pathBinders.get(path).set(node, binder);
                 }
                 tick$1.then(binder.render);
+                // binder.render();
             }
         }
         ;
@@ -958,41 +1007,38 @@
             }
         }
         async add(node, container, dynamics) {
-            const type = node.nodeType;
-            if (type === AN) {
-                const attribute = node;
-                const { name, value, ownerElement } = attribute;
-                if (this.syntaxMatch.test(value)) {
-                    tick$1.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics));
+            if (node.nodeType === AN) {
+                if (this.syntaxMatch.test(node.value)) {
+                    tick$1.then(this.bind.bind(this, node, container, node.name, node.value, node.ownerElement, dynamics));
+                    // this.bind(node, container, (node as Attr).name, (node as Attr).value, (node as Attr).ownerElement, dynamics);
                 }
             }
-            else if (type === TN) {
-                const { textContent } = node;
-                const start = textContent.indexOf(this.syntaxStart);
+            else if (node.nodeType === TN) {
+                const start = node.nodeValue.indexOf(this.syntaxStart);
                 if (start === -1)
                     return;
                 if (start !== 0)
                     node = node.splitText(start);
-                const end = textContent.indexOf(this.syntaxEnd);
+                const end = node.nodeValue.indexOf(this.syntaxEnd);
                 if (end === -1)
                     return;
-                if (end + this.syntaxLength !== textContent.length) {
+                if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
                     tick$1.then(this.add.bind(this, split, container, dynamics));
+                    // this.add(split, container, dynamics, handler);
                 }
-                tick$1.then(this.bind.bind(this, node, container, 'text', textContent, node, dynamics));
+                // this.bind(node, container, 'text', node.nodeValue, node, dynamics);
+                tick$1.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics));
             }
-            else if (type === EN) {
+            else if (node.nodeType === EN) {
                 let each = false;
-                const attributes = node.attributes;
-                const l = attributes.length;
-                for (let i = 0; i < l; i++) {
-                    const attribute = attributes[i];
-                    const { name, value, ownerElement } = attribute;
-                    if (name === 'each' || name === `${this.prefix}each`)
+                for (let i = 0; i < node.attributes.length; i++) {
+                    const attribute = node.attributes[i];
+                    if (attribute.name === 'each' || attribute.name === `${this.prefix}each`)
                         each = true;
-                    if (this.syntaxMatch.test(value)) {
-                        tick$1.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics));
+                    if (this.syntaxMatch.test(attribute.value)) {
+                        tick$1.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics));
+                        // this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics);
                     }
                 }
                 if (each)
@@ -1000,6 +1046,7 @@
                 let child = node.firstChild;
                 while (child) {
                     tick$1.then(this.add.bind(this, child, container, dynamics));
+                    // this.add(child, container, dynamics);
                     child = child.nextSibling;
                 }
             }
@@ -1110,6 +1157,7 @@
                     return;
                 for (const [, binder] of binders) {
                     tick.then(binder.render);
+                    // binder.render();
                 }
             };
             this.data = observer(this.data, observer$1);
@@ -1744,7 +1792,25 @@
         get port() { return window.location.port; }
         get protocol() { return window.location.protocol; }
         get search() { return window.location.search; }
-        toString() { return window.location.href; }
+        get query() {
+            const queries = window.location.search.slice(1).split('&');
+            const result = {};
+            for (const query of queries) {
+                const [name, value] = query.split('=');
+                if (name in result) {
+                    if (typeof result[name] === 'object') {
+                        result[name].push(value);
+                    }
+                    else {
+                        result[name] = [result[name], value];
+                    }
+                }
+                else {
+                    result[name] = value;
+                }
+            }
+            return result;
+        }
         back() { window.history.back(); }
         forward() { window.history.forward(); }
         reload() { window.location.reload(); }

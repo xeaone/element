@@ -37,7 +37,25 @@ export default new class Router {
     get protocol () { return window.location.protocol; }
     get search () { return window.location.search; }
 
-    toString () { return window.location.href; }
+    get query () {
+        const queries = window.location.search.slice(1).split('&');
+        const result = {};
+
+        for (const query of queries) {
+            const [ name, value ] = query.split('=');
+            if (name in result) {
+                if (typeof result[ name ] === 'object') {
+                    result[ name ].push(value);
+                } else {
+                    result[ name ] = [ result[ name ], value ];
+                }
+            } else {
+                result[ name ] = value;
+            }
+        }
+
+        return result;
+    }
 
     back () { window.history.back(); }
     forward () { window.history.forward(); }

@@ -2,9 +2,9 @@ import format from '../format';
 
 const text = async function text (binder) {
     let data = await binder.compute();
-    data = format(data);
-    if (data === binder.owner.textContent) return;
-    binder.owner.textContent = data;
+    binder.owner.nodeValue = format(data);
+    // binder.owner.nodeValue = data ?? '';
+    // binder.owner.nodeValue = data === undefined ? '' : data;
 };
 
 export default text;

@@ -16,47 +16,48 @@ const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 //     }
 // };
 
-const walk = function (node: Node, handler: (node: Node, paths) => void, paths = []) {
-    let i = 0;
-    let child = node.firstChild;
-    while (child) {
-        if (child.nodeType === Node.TEXT_NODE) {
-            const start = child.textContent.indexOf('{{');
-            if (start === -1) return;
+// const walk = function (node: Node, handler: (node: Node, paths) => void, paths = []) {
+//     let i = 0;
+//     let child = node.firstChild;
+//     while (child) {
+//         if (child.nodeType === Node.TEXT_NODE) {
+//             const start = child.textContent.indexOf('{{');
+//             if (start === -1) return;
 
-            if (start !== 0) child = (child as Text).splitText(start);
+//             if (start !== 0) child = (child as Text).splitText(start);
 
-            const end = child.textContent.indexOf('}}');
-            if (end === -1) return;
+//             const end = child.textContent.indexOf('}}');
+//             if (end === -1) return;
 
-            if (end + 2 !== child.textContent.length) {
-                (child as Text).splitText(end + 2);
-            }
-            const childPaths = [ ...paths, 'childNodes', i ];
-            handler(child, childPaths);
-        } else if (child.nodeType === Node.ELEMENT_NODE) {
-            const childPaths = [ ...paths, i ];
-            let each = false;
+//             if (end + 2 !== child.textContent.length) {
+//                 (child as Text).splitText(end + 2);
+//             }
+//             const childPaths = [ ...paths, 'childNodes', i ];
+//             handler(child, childPaths);
+//         } else if (child.nodeType === Node.ELEMENT_NODE) {
+//             const childPaths = [ ...paths, i ];
+//             let each = false;
 
-            const attributes = (child as Element).attributes;
-            for (let ai = 0; ai < attributes.length; ai++) {
-                const attribute = attributes[ ai ];
-                if (attribute.name === 'each' || attribute.name === 'o-each') each = true;
-                if (/{{.*?}}/.test(attribute.value)) handler(attribute, [ ...childPaths, 'attributes', ai ]);
-            }
+//             const attributes = (child as Element).attributes;
+//             for (let ai = 0; ai < attributes.length; ai++) {
+//                 const attribute = attributes[ ai ];
+//                 if (attribute.name === 'each' || attribute.name === 'o-each') each = true;
+//                 if (/{{.*?}}/.test(attribute.value)) handler(attribute, [ ...childPaths, 'attributes', ai ]);
+//             }
 
-            if (each) return;
+//             if (each) return;
 
-            walk(child, handler, childPaths);
-        }
-        child = child.nextSibling;
-        i++;
-    }
-};
+//             walk(child, handler, childPaths);
+//         }
+//         child = child.nextSibling;
+//         i++;
+//     }
+// };
 
 const setup = function (binder) {
     let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
+    binder.meta.path = path;
     binder.meta.keyName = key;
     binder.meta.indexName = index;
     binder.meta.variableName = variable;
@@ -123,43 +124,47 @@ const each = async function (binder) {
         }
 
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
+        // let node, clone, dynamics, indexValue, keyValue;
         while (binder.meta.currentLength < binder.meta.targetLength) {
             const indexValue = binder.meta.currentLength;
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
 
             const dynamics = {
                 ...binder.dynamics,
-                // [ binder.meta.keyName ]: keyValue,
-                // [ binder.meta.indexName ]: indexValue,
-                // get [ binder.meta.variableName ] () {
-                //     let data = binder.container.data;
-                //     for (const part of binder.meta.pathParts) {
-                //         if (part in this) {
-                //             data = this[ part ];
-                //         } else if (part in data) {
-                //             data = data[ part ];
-                //         }
-                //     }
-                //     return data[ keyValue ];
-                // }
-            };
-            dynamics[ binder.meta.keyName ] = keyValue;
-            dynamics[ binder.meta.indexName ] = indexValue;
-            Object.defineProperty(dynamics, binder.meta.variableName, {
-                get () {
+                [ binder.meta.keyName ]: keyValue,
+                [ binder.meta.indexName ]: indexValue,
+                get [ binder.meta.variableName ] () {
                     let data = binder.container.data;
-                    for (const part of binder.meta.pathParts) {
-                        if (part in this) {
-                            data = this[ part ];
-                        } else if (part in data) {
-                            data = data[ part ];
-                        }
+                    for (let part of binder.meta.pathParts) {
+                        if (part in this) data = this[ part ];
+                        else if (part in data) data = data[ part ];
                     }
                     return data[ keyValue ];
                 }
-            });
+            };
+
+            // const dynamics = Object.assign({}, binder.dynamics);
+            // dynamics[ binder.meta.keyName ] = keyValue;
+            // dynamics[ binder.meta.indexName ] = indexValue;
+            // Object.defineProperty(dynamics, binder.meta.variableName, {
+            //     get () {
+            //         let data = binder.container.data;
+            //         for (let part of binder.meta.pathParts) {
+            //             if (part in this) data = this[ part ];
+            //             else if (part in data) data = data[ part ];
+            //         }
+            //         return data[ keyValue ];
+            //     }
+            // });
 
             binder.meta.currentLength++;
+
+            // const d = document.createElement('div');
+            // d.className = 'box';
+            // const t = document.createTextNode('{{item.number}}');
+            // tick.then(binder.binder.add.bind(binder.binder, t, binder.container, dynamics));
+            // d.appendChild(t);
+            // binder.meta.templateElement.content.appendChild(d);
 
             const clone = binder.meta.clone.content.cloneNode(true);
 
@@ -172,6 +177,7 @@ const each = async function (binder) {
             let node = clone.firstChild;
             while (node) {
                 tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
+                // binder.binder.add(node, binder.container, dynamics);
                 node = node.nextSibling;
             }
 

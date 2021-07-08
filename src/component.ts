@@ -63,6 +63,7 @@ export default class Component extends HTMLElement {
 
             for (const [ , binder ] of binders) {
                 tick.then(binder.render);
+                // binder.render();
             }
         };
 

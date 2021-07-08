@@ -8,6 +8,8 @@ import html from './binder/html';
 import text from './binder/text';
 import on from './binder/on';
 
+// type NODE = Element | Text | Attr;
+
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
 const AN = Node.ATTRIBUTE_NODE;
@@ -97,6 +99,7 @@ export default class Binder {
             }
 
             tick.then(binder.render);
+            // binder.render();
         }
 
     };
@@ -123,43 +126,40 @@ export default class Binder {
 
     }
 
-    async add (node: Node, container: any, dynamics?: any) {
-        const type = node.nodeType;
+    async add (node: Node, container: any, dynamics?: object) {
 
-        if (type === AN) {
-            const attribute = (node as Attr);
-            const { name, value, ownerElement } = attribute;
-            if (this.syntaxMatch.test(value)) {
-                tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics));
+        if (node.nodeType === AN) {
+            if (this.syntaxMatch.test((node as Attr).value)) {
+                tick.then(this.bind.bind(this, node, container, (node as Attr).name, (node as Attr).value, (node as Attr).ownerElement, dynamics));
+                // this.bind(node, container, (node as Attr).name, (node as Attr).value, (node as Attr).ownerElement, dynamics);
             }
-        } else if (type === TN) {
-            const { textContent } = node;
+        } else if (node.nodeType === TN) {
 
-            const start = textContent.indexOf(this.syntaxStart);
+            const start = node.nodeValue.indexOf(this.syntaxStart);
             if (start === -1) return;
 
             if (start !== 0) node = (node as Text).splitText(start);
 
-            const end = textContent.indexOf(this.syntaxEnd);
+            const end = node.nodeValue.indexOf(this.syntaxEnd);
             if (end === -1) return;
 
-            if (end + this.syntaxLength !== textContent.length) {
+            if (end + this.syntaxLength !== node.nodeValue.length) {
                 const split = (node as Text).splitText(end + this.syntaxLength);
                 tick.then(this.add.bind(this, split, container, dynamics));
+                // this.add(split, container, dynamics, handler);
             }
 
-            tick.then(this.bind.bind(this, node, container, 'text', textContent, node, dynamics));
-        } else if (type === EN) {
+            // this.bind(node, container, 'text', node.nodeValue, node, dynamics);
+            tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics));
+        } else if (node.nodeType === EN) {
             let each = false;
 
-            const attributes = (node as Element).attributes;
-            const l = attributes.length;
-            for (let i = 0; i < l; i++) {
-                const attribute = attributes[ i ];
-                const { name, value, ownerElement } = attribute;
-                if (name === 'each' || name === `${this.prefix}each`) each = true;
-                if (this.syntaxMatch.test(value)) {
-                    tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics));
+            for (let i = 0; i < (node as Element).attributes.length; i++) {
+                const attribute = (node as Element).attributes[ i ];
+                if (attribute.name === 'each' || attribute.name === `${this.prefix}each`) each = true;
+                if (this.syntaxMatch.test(attribute.value)) {
+                    tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics));
+                    // this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics);
                 }
             }
 
@@ -168,6 +168,7 @@ export default class Binder {
             let child = node.firstChild;
             while (child) {
                 tick.then(this.add.bind(this, child, container, dynamics));
+                // this.add(child, container, dynamics);
                 child = child.nextSibling;
             }
 
