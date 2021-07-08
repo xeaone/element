@@ -56,7 +56,7 @@
         // }
         if (source?.constructor === Array) {
             target = source;
-            for (const key = 0; key < source.length; key++) {
+            for (let key = 0; key < source.length; key++) {
                 target[key] = observer(source[key], task, tasks, path ? `${path}[${key}]` : `${key}`);
             }
             target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
@@ -1155,7 +1155,8 @@
                 const binders = this.#binder.pathBinders.get(path);
                 if (!binders)
                     return;
-                for (const [, binder] of binders) {
+                // console.log(binders.values());
+                for (const binder of binders.values()) {
                     tick.then(binder.render);
                     // binder.render();
                 }

@@ -51,7 +51,7 @@ const observer = function (source: any, task: task, tasks: tasks = [], path: str
     if (source?.constructor === Array) {
         target = source;
 
-        for (const key = 0; key < source.length; key++) {
+        for (let key = 0; key < source.length; key++) {
             target[ key ] = observer(source[ key ], task, tasks, path ? `${path}[${key}]` : `${key}`);
         }
 

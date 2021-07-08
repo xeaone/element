@@ -61,7 +61,9 @@ export default class Component extends HTMLElement {
             const binders = this.#binder.pathBinders.get(path);
             if (!binders) return;
 
-            for (const [ , binder ] of binders) {
+            // console.log(binders.values());
+
+            for (const binder of binders.values()) {
                 tick.then(binder.render);
                 // binder.render();
             }
