@@ -605,22 +605,9 @@
     // };
     // export default { setup, read, write };
 
-    const empty = /^\s*$/;
-    const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
+    // const empty = /^\s*$/;
     const tick$3 = Promise.resolve();
-    const clean = function (node) {
-        if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
-            node.parentNode.removeChild(node);
-        }
-        else {
-            let child = node.firstChild;
-            while (child) {
-                const next = child.nextSibling;
-                clean(child);
-                child = next;
-            }
-        }
-    };
+    const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
     const setup = function (binder) {
         let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
         binder.meta.keyName = key;
@@ -634,19 +621,23 @@
         binder.meta.templateLength = 0;
         binder.meta.clone = document.createElement('template');
         binder.meta.templateElement = document.createElement('template');
+        // binder.meta.adds = [];
+        // let i = 0;
+        // let node = binder.owner.firstChild;
+        // while (node) {
+        //     walk(node, function (child, add) {
+        //         binder.meta.adds.push(add);
+        //     }, [ 'childNodes', i ]);
+        //     binder.meta.clone.content.appendChild(node);
+        //     binder.meta.cloneLength++;
+        //     node = binder.owner.firstChild;
+        //     i++;
+        // }
         let node = binder.owner.firstChild;
         while (node) {
-            if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
-                const next = node.nextSibling;
-                binder.owner.removeChild(node);
-                node = next;
-            }
-            else {
-                clean(node);
-                binder.meta.clone.content.appendChild(node);
-                binder.meta.cloneLength++;
-                node = node.nextSibling;
-            }
+            binder.meta.clone.content.appendChild(node);
+            binder.meta.cloneLength++;
+            node = binder.owner.firstChild;
         }
     };
     const each = async function (binder) {
@@ -679,9 +670,24 @@
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
                 const dynamics = {
                     ...binder.dynamics,
-                    [binder.meta.keyName]: keyValue,
-                    [binder.meta.indexName]: indexValue,
-                    get [binder.meta.variableName]() {
+                    // [ binder.meta.keyName ]: keyValue,
+                    // [ binder.meta.indexName ]: indexValue,
+                    // get [ binder.meta.variableName ] () {
+                    //     let data = binder.container.data;
+                    //     for (const part of binder.meta.pathParts) {
+                    //         if (part in this) {
+                    //             data = this[ part ];
+                    //         } else if (part in data) {
+                    //             data = data[ part ];
+                    //         }
+                    //     }
+                    //     return data[ keyValue ];
+                    // }
+                };
+                dynamics[binder.meta.keyName] = keyValue;
+                dynamics[binder.meta.indexName] = indexValue;
+                Object.defineProperty(dynamics, binder.meta.variableName, {
+                    get() {
                         let data = binder.container.data;
                         for (const part of binder.meta.pathParts) {
                             if (part in this) {
@@ -692,13 +698,17 @@
                             }
                         }
                         return data[keyValue];
-                    },
-                };
+                    }
+                });
                 binder.meta.currentLength++;
                 const clone = binder.meta.clone.content.cloneNode(true);
+                // for (const parts of binder.meta.adds) {
+                //     let node = clone;
+                //     for (const part of parts) node = node[ part ];
+                //     tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
+                // }
                 let node = clone.firstChild;
                 while (node) {
-                    // binder.binder.add(node, binder.container, dynamics);
                     tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
                     node = node.nextSibling;
                 }
@@ -985,12 +995,12 @@
                         tick$1.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics));
                     }
                 }
-                if (!each) {
-                    let child = node.firstChild;
-                    while (child) {
-                        tick$1.then(this.add.bind(this, child, container, dynamics));
-                        child = child.nextSibling;
-                    }
+                if (each)
+                    return;
+                let child = node.firstChild;
+                while (child) {
+                    tick$1.then(this.add.bind(this, child, container, dynamics));
+                    child = child.nextSibling;
                 }
             }
         }

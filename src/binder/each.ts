@@ -1,19 +1,56 @@
 
-const empty = /^\s*$/;
+// const empty = /^\s*$/;
+const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
-const tick = Promise.resolve();
+// const clean = function (node: Node) {
+//     if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
+//         node.parentNode.removeChild(node);
+//     } else {
+//         let child = node.firstChild;
+//         while (child) {
+//             const next = child.nextSibling;
+//             clean(child);
+//             child = next;
+//         }
+//     }
+// };
 
-const clean = function (node: Node) {
-    if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
-        node.parentNode.removeChild(node);
-    } else {
-        let child = node.firstChild;
-        while (child) {
-            const next = child.nextSibling;
-            clean(child);
-            child = next;
+const walk = function (node: Node, handler: (node: Node, paths) => void, paths = []) {
+    let i = 0;
+    let child = node.firstChild;
+    while (child) {
+        if (child.nodeType === Node.TEXT_NODE) {
+            const start = child.textContent.indexOf('{{');
+            if (start === -1) return;
+
+            if (start !== 0) child = (child as Text).splitText(start);
+
+            const end = child.textContent.indexOf('}}');
+            if (end === -1) return;
+
+            if (end + 2 !== child.textContent.length) {
+                (child as Text).splitText(end + 2);
+            }
+            const childPaths = [ ...paths, 'childNodes', i ];
+            handler(child, childPaths);
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+            const childPaths = [ ...paths, i ];
+            let each = false;
+
+            const attributes = (child as Element).attributes;
+            for (let ai = 0; ai < attributes.length; ai++) {
+                const attribute = attributes[ ai ];
+                if (attribute.name === 'each' || attribute.name === 'o-each') each = true;
+                if (/{{.*?}}/.test(attribute.value)) handler(attribute, [ ...childPaths, 'attributes', ai ]);
+            }
+
+            if (each) return;
+
+            walk(child, handler, childPaths);
         }
+        child = child.nextSibling;
+        i++;
     }
 };
 
@@ -34,23 +71,30 @@ const setup = function (binder) {
     binder.meta.clone = document.createElement('template');
     binder.meta.templateElement = document.createElement('template');
 
+    // binder.meta.adds = [];
+    // let i = 0;
+    // let node = binder.owner.firstChild;
+    // while (node) {
+    //     walk(node, function (child, add) {
+    //         binder.meta.adds.push(add);
+    //     }, [ 'childNodes', i ]);
+    //     binder.meta.clone.content.appendChild(node);
+    //     binder.meta.cloneLength++;
+    //     node = binder.owner.firstChild;
+    //     i++;
+    // }
+
     let node = binder.owner.firstChild;
     while (node) {
-        if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
-            const next = node.nextSibling;
-            binder.owner.removeChild(node);
-            node = next;
-        } else {
-            clean(node);
-            binder.meta.clone.content.appendChild(node);
-            binder.meta.cloneLength++;
-            node = node.nextSibling;
-        }
+        binder.meta.clone.content.appendChild(node);
+        binder.meta.cloneLength++;
+        node = binder.owner.firstChild;
     }
 
 };
 
 const each = async function (binder) {
+
     if (!binder.meta.setup) await setup(binder);
 
     // const time = `each ${binder.meta.targetLength}`;
@@ -85,9 +129,24 @@ const each = async function (binder) {
 
             const dynamics = {
                 ...binder.dynamics,
-                [ binder.meta.keyName ]: keyValue,
-                [ binder.meta.indexName ]: indexValue,
-                get [ binder.meta.variableName ] () {
+                // [ binder.meta.keyName ]: keyValue,
+                // [ binder.meta.indexName ]: indexValue,
+                // get [ binder.meta.variableName ] () {
+                //     let data = binder.container.data;
+                //     for (const part of binder.meta.pathParts) {
+                //         if (part in this) {
+                //             data = this[ part ];
+                //         } else if (part in data) {
+                //             data = data[ part ];
+                //         }
+                //     }
+                //     return data[ keyValue ];
+                // }
+            };
+            dynamics[ binder.meta.keyName ] = keyValue;
+            dynamics[ binder.meta.indexName ] = indexValue;
+            Object.defineProperty(dynamics, binder.meta.variableName, {
+                get () {
                     let data = binder.container.data;
                     for (const part of binder.meta.pathParts) {
                         if (part in this) {
@@ -97,18 +156,25 @@ const each = async function (binder) {
                         }
                     }
                     return data[ keyValue ];
-                },
-            };
+                }
+            });
 
             binder.meta.currentLength++;
 
             const clone = binder.meta.clone.content.cloneNode(true);
+
+            // for (const parts of binder.meta.adds) {
+            //     let node = clone;
+            //     for (const part of parts) node = node[ part ];
+            //     tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
+            // }
+
             let node = clone.firstChild;
             while (node) {
-                // binder.binder.add(node, binder.container, dynamics);
                 tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
                 node = node.nextSibling;
             }
+
             binder.meta.templateElement.content.appendChild(clone);
         }
 

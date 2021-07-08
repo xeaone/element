@@ -163,12 +163,12 @@ export default class Binder {
                 }
             }
 
-            if (!each) {
-                let child = node.firstChild;
-                while (child) {
-                    tick.then(this.add.bind(this, child, container, dynamics));
-                    child = child.nextSibling;
-                }
+            if (each) return;
+
+            let child = node.firstChild;
+            while (child) {
+                tick.then(this.add.bind(this, child, container, dynamics));
+                child = child.nextSibling;
             }
 
         }
