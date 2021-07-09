@@ -190,7 +190,7 @@ export default new class Router {
 
         if (this.#after) await this.#after(location);
 
-        window.dispatchEvent(new CustomEvent('oroute', { detail: location }));
+        window.dispatchEvent(new CustomEvent('router', { detail: location }));
     }
 
     async #state (event) {

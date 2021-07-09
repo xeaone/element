@@ -1952,7 +1952,7 @@
             this.#target.appendChild(element);
             if (this.#after)
                 await this.#after(location);
-            window.dispatchEvent(new CustomEvent('oroute', { detail: location }));
+            window.dispatchEvent(new CustomEvent('router', { detail: location }));
         }
         async #state(event) {
             await this.replace(event.state.href);

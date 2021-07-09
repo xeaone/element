@@ -11,7 +11,7 @@ Oxe.fetcher.setup({
     after: () => console.log('fetcher after')
 });
 
-window.addEventListener('oroute', (event) => console.log(event));
+window.addEventListener('router', (event) => console.log(event));
 
 // Oxe.define([
 //     './components/c-foo.js',
