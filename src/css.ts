@@ -14,7 +14,7 @@ export default new class Css {
     scope (name: string, text: string) {
         return text
             .replace(/\t|\n\s*/g, '')
-            .replace(/(^\s*|}\s*|,\s*)(\.?[a-zA-Z_-]+)/g, `$1${name} $2`)
+            // .replace(/(^\s*|}\s*|,\s*)(\.?[a-zA-Z_-]+)/g, `$1${name} $2`)
             .replace(/:host/g, name);
     }
 
@@ -24,11 +24,11 @@ export default new class Css {
             const matches = text.match(/--\w+(?:-+\w+)*:\s*.*?;/g) || [];
 
             for (let i = 0; i < matches.length; i++) {
-                const match = matches[i];
+                const match = matches[ i ];
                 const rule = match.match(/(--\w+(?:-+\w+)*):\s*(.*?);/);
-                const pattern = new RegExp('var\\(' + rule[1] + '\\)', 'g');
-                text = text.replace(rule[0], '');
-                text = text.replace(pattern, rule[2]);
+                const pattern = new RegExp('var\\(' + rule[ 1 ] + '\\)', 'g');
+                text = text.replace(rule[ 0 ], '');
+                text = text.replace(pattern, rule[ 2 ]);
             }
 
         }

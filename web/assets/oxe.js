@@ -1088,7 +1088,7 @@
         scope(name, text) {
             return text
                 .replace(/\t|\n\s*/g, '')
-                .replace(/(^\s*|}\s*|,\s*)(\.?[a-zA-Z_-]+)/g, `$1${name} $2`)
+                // .replace(/(^\s*|}\s*|,\s*)(\.?[a-zA-Z_-]+)/g, `$1${name} $2`)
                 .replace(/:host/g, name);
         }
         transform(text = '') {
