@@ -168,14 +168,19 @@ export default new class Router {
                 }
             }
 
-            const name = 'router' + path.replace(/\/+/g, '-');
+            const name = 'route' + path.replace(/\/+/g, '-');
             window.customElements.define(name, component);
             element = window.document.createElement(name);
 
             this.#data[ location.pathname ] = element;
         }
 
+        const keywords = document.querySelector('meta[name="keywords"]');
+        const description = document.querySelector('meta[name="description"]');
+
         if (element.title) window.document.title = element.title;
+        if (element.keywords && keywords) keywords.setAttribute('content', element.keywords);
+        if (element.description && description) description.setAttribute('content', element.description);
 
         while (this.#target.firstChild) {
             this.#target.removeChild(this.#target.firstChild);

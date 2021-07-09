@@ -6,8 +6,9 @@ const { Component } = Oxe;
 var indexRoute = Code(`
     const { Component } = Oxe;
 
-	export default IndexRoute extends Component {
+	export default Index extends Component {
 		title = 'Index Route'
+        description = 'Index Description'
 		html = \`
 			<h1>{{title}}</h1>
 			<button onclick="{{greet()}}">Greet</button>
@@ -52,12 +53,12 @@ export default class IndexRoute extends Component {
 	<h2>Overview</h2>
 
 	<strong>Synopsis</strong>
-	<p>A mighty tiny web components framework/library that should feel like your using native JS and HTML to write and bind Custom Elements.</p>
+	<p>A mighty tiny web components framework that should feel like your using native JS and HTML to write and bind Custom Elements.</p>
 
 	<strong>Project Goal</strong>
 	<ul>
 		<li>Low learning curve</li>
-		<li>Feel like your not using a framework or library</li>
+		<li>Feel like your not using a framework</li>
 	</ul>
 
 	<strong>Feature Highlight</strong>
@@ -111,15 +112,11 @@ export default class IndexRoute extends Component {
 	</ul>
 
 	<h2>Example</h2>
-	<pre>
-		<code class="language-js">${indexRoute}</code>
-	</pre>
-	<pre>
-		<code class="language-js">${indexJs}</code>
-	</pre>
-	<pre>
-		<code class="language-html">${indexHtml}</code>
-	</pre>
+	<pre>${indexRoute}</pre>
+    <br>
+	<pre>${indexJs}</pre>
+    <br>
+	<pre>${indexHtml}</pre>
 	`;
 
 }
