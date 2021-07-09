@@ -16,6 +16,7 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
+    console.warn('oxe: need to handle delete property');
     const tick$4 = Promise.resolve();
     // const run = async function (tasks: tasks) {
     //     let task;
@@ -123,11 +124,32 @@
         // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
         // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
         const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
-        const context = new Proxy(dynamics || {}, {
+        // const context = new Proxy(dynamics || {}, {
+        //     has: () => true,
+        //     set: (target, name, value) => {
+        //         if (name[ 0 ] === '$') {
+        //             target[ name ] = value;
+        //         } else {
+        //             data[ name ] = value;
+        //         }
+        //         return true;
+        //     },
+        //     get: (target, name) => {
+        //         if (name in target) {
+        //             return target[ name ];
+        //         } else if (name in data) {
+        //             return data[ name ];
+        //         } else {
+        //             return window[ name ];
+        //         }
+        //     }
+        // });
+        dynamics = dynamics || {};
+        const context = new Proxy(data, {
             has: () => true,
             set: (target, name, value) => {
                 if (name[0] === '$') {
-                    target[name] = value;
+                    dynamics[name] = value;
                 }
                 else {
                     data[name] = value;
@@ -135,8 +157,8 @@
                 return true;
             },
             get: (target, name) => {
-                if (name in target) {
-                    return target[name];
+                if (name in dynamics) {
+                    return dynamics[name];
                 }
                 else if (name in data) {
                     return data[name];
@@ -662,7 +684,7 @@
         binder.meta.setup = true;
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
-        binder.meta.templateLength = 0;
+        binder.meta.cloneLength = 0;
         binder.meta.clone = document.createElement('template');
         binder.meta.templateElement = document.createElement('template');
         // binder.meta.adds = [];
@@ -703,7 +725,7 @@
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    tick$3.then(binder.binder.remove.bind(binder, node));
+                    tick$3.then(binder.binder.remove.bind(binder.binder, node));
                 }
                 binder.meta.currentLength--;
             }
@@ -1905,8 +1927,13 @@
                 try {
                     component = (await load(load$1)).default;
                 }
-                catch {
-                    component = (await load(absolute(`${this.#folder}/all.js`))).default;
+                catch (error) {
+                    if (error.message === `Failed to fetch dynamically imported module: ${window.location.origin}${load$1}`) {
+                        component = (await load(absolute(`${this.#folder}/all.js`))).default;
+                    }
+                    else {
+                        throw error;
+                    }
                 }
                 const name = 'router' + path.replace(/\/+/g, '-');
                 window.customElements.define(name, component);

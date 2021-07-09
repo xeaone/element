@@ -83,7 +83,7 @@ export default class BindersRoute extends Component {
             <pre>${Code(`<input type="checkbox" value="{{checked}}"{{checked ? ' checked' : ''}}>`)}</pre>
             <br>
             <label>
-                <input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox" oninput="{{checkInput()}}"> Checkbox
+                <input value="{{checked}}" checked="{{checked = $checked}}" type="checkbox" onchange="{{checkInput()}}"> Checkbox
             </label>
             <br>
             <pre>${Code(`

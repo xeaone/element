@@ -67,7 +67,7 @@ const setup = function (binder) {
     binder.meta.setup = true;
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
-    binder.meta.templateLength = 0;
+    binder.meta.cloneLength = 0;
 
     binder.meta.clone = document.createElement('template');
     binder.meta.templateElement = document.createElement('template');
@@ -117,7 +117,7 @@ const each = async function (binder) {
             while (count--) {
                 const node = binder.owner.lastChild;
                 binder.owner.removeChild(node);
-                tick.then(binder.binder.remove.bind(binder, node));
+                tick.then(binder.binder.remove.bind(binder.binder, node));
             }
 
             binder.meta.currentLength--;

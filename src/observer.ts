@@ -1,3 +1,4 @@
+console.warn('oxe: need to handle delete property');
 
 type task = (path?: string) => Promise<any>;
 type tasks = task[];
