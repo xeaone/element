@@ -189,6 +189,8 @@ export default new class Router {
         this.#target.appendChild(element);
 
         if (this.#after) await this.#after(location);
+
+        window.dispatchEvent(new CustomEvent('oroute', { detail: location }));
     }
 
     async #state (event) {
