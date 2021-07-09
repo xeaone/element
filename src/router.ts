@@ -160,8 +160,12 @@ export default new class Router {
             let component;
             try {
                 component = (await Load(load)).default;
-            } catch {
-                component = (await Load(absolute(`${this.#folder}/all.js`))).default;
+            } catch (error) {
+                if (error.message === `Failed to fetch dynamically imported module: ${window.location.origin}${load}`) {
+                    component = (await Load(absolute(`${this.#folder}/all.js`))).default;
+                } else {
+                    throw error;
+                }
             }
 
             const name = 'router' + path.replace(/\/+/g, '-');
