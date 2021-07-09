@@ -12,21 +12,16 @@ export default class BindersRoute extends Component {
 
     data = {
 
-        // text
         text: 'Hello World',
 
-        // checkbox
-        check: 'checked',
         checked: true,
-        // checked: false,
+        check: 'checked',
         checkResult: checked => checked ? 'checked' : '',
         checkInput () { console.log(this.checked); },
 
-        // style
         color: Color(),
         styleChange () { this.color = Color(); },
 
-        // class
         active: true,
         lightblue: active => active ? 'lightblue' : '',
         classToggle () { this.active = !this.active; },
@@ -42,20 +37,13 @@ export default class BindersRoute extends Component {
             { name: 'tomato' }
         ],
 
-        // selectResult: undefined,
-        // selectResult: 'tree',
-        // selectResult: 'cactus',
         selectEachResult: 'orange',
-        // selectEachResult: undefined,
-        // multipleSelectResult: undefined,
 
         radio: false,
         agree: true,
         firstName: 'james',
         lastName: 'bond',
-        submit (form) {
-            console.log(form);
-        }
+        submit (form) { console.log(form); }
 
     };
 
@@ -123,24 +111,30 @@ export default class BindersRoute extends Component {
         <section id="value">
             <h3>Value Binder</h3>
             <br>
-            <pre style="white-space: pre-line;">${Code(`
-                <div>{{value.text}}</div>
-                <input value="{{value.text = $value.toUpperCase() }}">
-                <input value="{{(value.text = $value).toLowerCase()}}"
-            `, true)}</pre>
+            <pre>${Code(`
+            <strong>{{value.text}}</strong>
+            <input value="{{value.text = $value.toUpperCase() }}">
+            <input value="{{(value.text = $value).toLowerCase()}}">`, true)}</pre>
             <br>
-            <div>{{value.text}}</div>
+            <strong>{{value.text}}</strong>
             <br>
             <input value="{{value.text = $value.toUpperCase() }}">
             <input value="{{(value.text = $value).toLowerCase()}}">
-            <input type="number" value="{{value.number = $value}}" oninput="{{console.log(value.number)}}">
         </section>
 
         <section id="each">
             <h3>Each Binder</h3>
             <br>
-            <pre>${Code(`Fruits: each="{{key, index, fruit of fruits}}"`, true)}</pre>
-            <div id="1" each="{{key, index, fruit of fruits}}">
+            <pre>${Code(`
+            <div each="{{key, index, fruit of fruits}}">
+                <div id="{{fruit.name}}">
+                    <strong>Key: </strong>{{key}},
+                    <strong>Index: </strong>{{index}},
+                    <strong>Value: </strong>{{fruit.name}}
+                </div>
+            </div>`, true)}</pre>
+            <br>
+            <div each="{{key, index, fruit of fruits}}">
                 <div id="{{fruit.name}}">
                     <strong>Key: </strong>{{key}},
                     <strong>Index: </strong>{{index}},
@@ -152,19 +146,41 @@ export default class BindersRoute extends Component {
         <section id="select">
             <h3>Select Binder</h3>
             <br>
+            <pre>${Code(`
+            <div>{{selectResult}}</div>
+            <select value="{{selectResult = $value}}">
+                <option value="tree">Tree</option>
+                <option value="cactus">Cactus</option>
+            </select>`, true)}</pre>
+            <br>
             <div>{{selectResult}}</div>
             <select value="{{selectResult = $value}}">
                 <option value="tree">Tree</option>
                 <option value="cactus">Cactus</option>
             </select>
             <br>
+            <pre>${Code(`
             <div>{{selectEachResult}}</div>
-            <select id="2" value="{{selectEachResult = $value}}" each="{{fruit of fruits}}" >
+            <select value="{{selectEachResult = $value}}" each="{{fruit of fruits}}">
+                <option value="{{fruit.name}}">{{fruit.name}}</option>
+            </select>`, true)}</pre>
+            <br>
+            <div>{{selectEachResult}}</div>
+            <select value="{{selectEachResult = $value}}" each="{{fruit of fruits}}">
                 <option value="{{fruit.name}}">{{fruit.name}}</option>
             </select>
             <br>
+            <pre>${Code(`
             <div>{{multipleSelectResult}}</div>
-            <select value="{{multipleSelectResult= $value}}" multiple>
+            <select value="{{multipleSelectResult = $value}}" multiple>
+                <option value="volvo">Volvo</option>
+                <option value="saab">Saab</option>
+                <option value="opel">Opel</option>
+                <option value="audi">Audi</option>
+            </select>`, true)}</pre>
+            <br>
+            <div>{{multipleSelectResult}}</div>
+            <select value="{{multipleSelectResult = $value}}" multiple>
                 <option value="volvo">Volvo</option>
                 <option value="saab">Saab</option>
                 <option value="opel">Opel</option>

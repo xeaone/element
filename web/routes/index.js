@@ -43,26 +43,32 @@ var indexHtml = Code(`
 
 export default class IndexRoute extends Component {
 
-	async connected () { Say('index connected'); }
+    async connected () { Say('index connected'); }
 
-	title = 'Oxe';
-	description = 'A mighty tiny web components framework/library.';
+    title = 'Oxe';
+    description = 'A mighty tiny web components framework/library.';
 
-	html = /*html*/`
+    html = /*html*/`
 	<h2>Overview</h2>
 
 	<strong>Synopsis</strong>
-	<p>A mighty tiny web components framework/library.</p>
+	<p>A mighty tiny web components framework/library that should feel like your using native JS and HTML to write and bind Custom Elements.</p>
 
-	<strong>Features</strong>
+	<strong>Project Goal</strong>
 	<ul>
-		<li>Small file size</li>
-		<li>Simple smart front end routing</li>
-		<li>Dynamic ES6/ESM module rewrites</li>
-		<li>Dynamic Template string rewrites</li>
+		<li>Low learning curve</li>
+		<li>Feel like your not using a framework or library</li>
 	</ul>
 
-	<strong>Support</strong>
+	<strong>Feature Highlight</strong>
+	<ul>
+		<li>Small file size</li>
+		<li>Zero config smart front end routing</li>
+		<li>Dynamic ES6/ESM module rewrites (Use ES6 modules in browsers that don't have native support)</li>
+		<li>Dynamic Template string rewrites (Use template strings in browsers that don't have native support)</li>
+	</ul>
+
+	<strong>Browser Support</strong>
 	<ul>
 		<li>IE11</li>
 		<li>Chrome</li>
@@ -76,7 +82,7 @@ export default class IndexRoute extends Component {
 	<ul>
 		<li>
 			<p>
-				<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.min.js">poly.min.js</a> includes everything need except shadow poly code.
+				<a href="https://github.com/vokeio/oxe/blob/master/dst/poly.min.js">poly.min.js</a> includes everything you need except shadow poly code.
 			</p>
 			<ul>
 				<li>customElements</li>

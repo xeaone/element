@@ -58,7 +58,7 @@ pre {
 	margin: 0;
 	tab-size: 4;
 	padding: 1rem;
-    overflow-x: auto;
+	overflow-x: auto;
 	/* white-space: pre-line; */
 	font-family: monospace !important;
 	background-color: whitesmoke !important;

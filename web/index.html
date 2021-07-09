@@ -3,51 +3,45 @@
 
 <head>
 
-	<base href="/">
+    <base href="/">
 
-	<script>
-		document.querySelector('base').href = window.location.hostname === 'vokeio.github.io' ? '/oxe/' : '/';
-	</script>
+    <script>
+        document.querySelector('base').href = window.location.hostname === 'vokeio.github.io' ? '/oxe/' : '/';
+    </script>
 
-	<meta charset="utf-8">
-	<meta name="theme-color" content="darkorange">
-	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta charset="utf-8">
+    <meta name="theme-color" content="darkorange">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
 
-	<meta name="keywords" content="oxe, tiny, web, components, framework, library">
-	<meta name="description" content="A mighty tiny web components framework/library">
+    <meta name="keywords" content="oxe, tiny, web, components, framework, library">
+    <meta name="description" content="A mighty tiny web components framework/library">
 
-	<title>Oxe</title>
+    <title>Oxe</title>
 
-	<!-- <script src="./assets/poly.shadow.min.js" defer></script> -->
-	<!-- <script src="./assets/poly.min.js" defer></script> -->
-	<!-- <script src="./assets/oxe.js" o-setup="./index.js" defer></script> -->
+    <!-- <script src="./assets/poly.shadow.min.js" defer></script> -->
+    <!-- <script src="./assets/poly.min.js" defer></script> -->
 
-	<!-- <script type="module" src="./importer/index.js"></script> -->
+    <script src="./assets/oxe.js" defer></script>
+    <script src="./index.js" type="module" defer></script>
 
-	<!-- <script src="./assets/oxe.js" o-setup="./index.js"></script> -->
-	<script src="./assets/oxe.js" defer></script>
-	<!-- <script src="./index.js" defer></script> -->
-	<script src="./index.js" type="module" defer></script>
-	<!-- <script src="./expression.js" tpe="module" defer></script> -->
-
-	<link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="./index.css">
 
 </head>
 
 <body>
 
-	<div class="title">
-		<h1><span>O</span>xe</h1>
-		<h2>A mighty tiny web components framework/library</h2>
-	</div>
+    <div class="title">
+        <h1><span>O</span>xe</h1>
+        <h2>A mighty tiny web components framework/library</h2>
+    </div>
 
-	<div class="menu">
-		<a href="./">Home</a>
-		<a href="./performance" o-external>Performance</a>
-		<a href="./binders">Binders</a>
-	</div>
+    <div class="menu">
+        <a href="./">Home</a>
+        <a href="./performance" o-external>Performance</a>
+        <a href="./binders">Binders</a>
+    </div>
 
-	<main></main>
+    <main></main>
 
 </body>
 
