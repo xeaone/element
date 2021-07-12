@@ -165,7 +165,7 @@ export default new class Fetcher {
             const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
             const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
 
-            let type;
+            let type: string;
             if (responseType === 'json' && contentType.indexOf('json') !== -1) {
                 type = 'json';
             } else {
