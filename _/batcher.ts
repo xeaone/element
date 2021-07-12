@@ -8,7 +8,7 @@ export default new class Batcher {
     #pending = false;
 
     constructor (data: any = {}) {
-        this.#max ?? data.max;
+        this.#max = data.max ?? this.#max;
     }
 
     // remove (tasks, task) {

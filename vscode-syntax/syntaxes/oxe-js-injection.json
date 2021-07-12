@@ -1,0 +1,51 @@
+{
+    "scopeName": "inline.oxe-js-injection",
+    "fileTypes": [
+        "html",
+        "js",
+        "ts",
+        "html",
+        "svg",
+        "xml"
+    ],
+    "injectionSelector": "R:text.html, L:source.js -comment -string, L:source.ts -comment -string",
+    "injections": {
+        "R:text": {
+            "patterns": [
+                {
+                    "match": "<",
+                    "name": "invalid.illegal.bad-angle-bracket.html"
+                }
+            ]
+        },
+        "L:source": {
+            "patterns": [
+                {
+                    "match": "<",
+                    "name": "invalid.illegal.bad-angle-bracket.html"
+                }
+            ]
+        }
+    },
+    "patterns": [
+        {
+            "begin": "({{)",
+            "end": "(}})",
+            "beginCaptures": {
+                "0": {
+                    "name": "text.html.directive"
+                }
+            },
+            "endCaptures": {
+                "0": {
+                    "name": "text.html.directive"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.js"
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,4 @@
+const string = /*html*/`
+    <div onsubmit="{{method()}}" value="{{test}}">{{ var foo = 'bar' }}</div>
+    <div onsubmit="{{method()}}" value=" {{test}}">{{ var foo = 'bar'}}</div>
+`;

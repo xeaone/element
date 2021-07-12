@@ -29,9 +29,7 @@ export default function (statement: string, data: any, dynamics?: any) {
     }
 
     const convert = !shouldNotConvert.test(statement);
-    let striped = statement;
-
-    striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+    const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
 
     const paths = striped.match(references) || [];
     let [ , assignment ] = striped.match(matchAssignment) || [];

@@ -8,8 +8,8 @@ type FetcherOption = {
     credentials?: string;
     contentType?: string;
     responseType?: string;
-    before?: (FetchOption) => any;
-    after?: (FetchOption) => any;
+    before?: (option: FetchOption) => any;
+    after?: (option: FetchOption) => any;
 };
 
 type FetchOption = FetcherOption & {

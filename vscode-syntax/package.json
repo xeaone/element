@@ -1,0 +1,39 @@
+{
+    "name": "oxe",
+    "displayName": "oxe language syntax",
+    "description": "",
+    "version": "1.0.0",
+    "publisher": "vokeio",
+    "engines": {
+        "vscode": "^1.19.0"
+    },
+    "repository": {
+        "url": ""
+    },
+    "bugs": {
+        "url": ""
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "keywords": [
+        "js",
+        "es6"
+    ],
+    "contributes": {
+        "grammars": [
+            {
+                "injectTo": [
+                    "source.js",
+                    "source.ts",
+                    "text.html"
+                ],
+                "scopeName": "inline.oxe-js-injection",
+                "path": "./syntaxes/oxe-js-injection.json",
+                "embeddedLanguages": {
+                    "meta.embedded.block.javascript": "javascript"
+                }
+            }
+        ]
+    }
+}

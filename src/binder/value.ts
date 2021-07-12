@@ -103,7 +103,7 @@ const value = async function value (binder) {
     owner.setAttribute('value', display);
 
     if (!meta.first) {
-        meta.first == true;
+        meta.first = true;
         if (owner.parentElement.type === 'select-one' || owner.parentElement.type === 'select-multiple') {
             owner.parentElement.dispatchEvent(new Event('$renderOption'));
         }
