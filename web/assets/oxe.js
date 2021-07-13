@@ -405,6 +405,16 @@
                     ...binder.dynamics,
                     [binder.meta.keyName]: keyValue,
                     [binder.meta.indexName]: indexValue,
+                    set [binder.meta.variableName](value) {
+                        let data = binder.container.data;
+                        for (const part of binder.meta.pathParts) {
+                            if (part in this)
+                                data = this[part];
+                            else if (part in data)
+                                data = data[part];
+                        }
+                        data[keyValue] = value;
+                    },
                     get [binder.meta.variableName]() {
                         let data = binder.container.data;
                         for (const part of binder.meta.pathParts) {
@@ -416,19 +426,6 @@
                         return data[keyValue];
                     }
                 };
-                // const dynamics = Object.assign({}, binder.dynamics);
-                // dynamics[ binder.meta.keyName ] = keyValue;
-                // dynamics[ binder.meta.indexName ] = indexValue;
-                // Object.defineProperty(dynamics, binder.meta.variableName, {
-                //     get () {
-                //         let data = binder.container.data;
-                //         for (let part of binder.meta.pathParts) {
-                //             if (part in this) data = this[ part ];
-                //             else if (part in data) data = data[ part ];
-                //         }
-                //         return data[ keyValue ];
-                //     }
-                // });
                 // const d = document.createElement('div');
                 // d.className = 'box';
                 // const t = document.createTextNode('{{item.number}}');
