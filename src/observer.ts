@@ -27,7 +27,7 @@ const set = function (task: task, tasks: tasks, path: string, target, property, 
     //     tasks.push(initial);
     // }
 
-    if (target?.constructor === Array) {
+    if (target instanceof Array) {
         target[ property ] = observer(value, task, tasks, path ? `${path}[${property}]` : property);
     } else {
         target[ property ] = observer(value, task, tasks, path ? `${path}.${property}` : property);
@@ -49,15 +49,15 @@ const observer = function (source: any, task: task, tasks: tasks = [], path: str
     //     tasks.push(initial);
     // }
 
-    if (source?.constructor === Array) {
+    if (source instanceof Array) {
         target = source;
 
-        for (let key = 0; key < source.length; key++) {
+        for (let key = 0, l = source.length; key < l; key++) {
             target[ key ] = observer(source[ key ], task, tasks, path ? `${path}[${key}]` : `${key}`);
         }
 
         target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
-    } else if (source?.constructor === Object) {
+    } else if (typeof source === 'object') {
         target = source;
 
         for (const key in source) {

@@ -39,31 +39,10 @@ export default function (statement: string, data: any, dynamics?: any) {
     // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
     const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
 
-    // const context = new Proxy(dynamics || {}, {
-    //     has: () => true,
-    //     set: (target, name, value) => {
-    //         if (name[ 0 ] === '$') {
-    //             target[ name ] = value;
-    //         } else {
-    //             data[ name ] = value;
-    //         }
-    //         return true;
-    //     },
-    //     get: (target, name) => {
-    //         if (name in target) {
-    //             return target[ name ];
-    //         } else if (name in data) {
-    //             return data[ name ];
-    //         } else {
-    //             return window[ name ];
-    //         }
-    //     }
-    // });
-
     dynamics = dynamics || {};
     const context = new Proxy(data, {
         has: () => true,
-        set: (target, name, value) => {
+        set: (_, name, value) => {
             if (name[ 0 ] === '$') {
                 dynamics[ name ] = value;
             } else {
@@ -71,7 +50,7 @@ export default function (statement: string, data: any, dynamics?: any) {
             }
             return true;
         },
-        get: (target, name) => {
+        get: (_, name) => {
             if (name in dynamics) {
                 return dynamics[ name ];
             } else if (name in data) {

@@ -37,7 +37,7 @@
         //     initial = () => { };
         //     tasks.push(initial);
         // }
-        if (target?.constructor === Array) {
+        if (target instanceof Array) {
             target[property] = observer(value, task, tasks, path ? `${path}[${property}]` : property);
         }
         else {
@@ -55,14 +55,14 @@
         //     initial = () => { };
         //     tasks.push(initial);
         // }
-        if (source?.constructor === Array) {
+        if (source instanceof Array) {
             target = source;
-            for (let key = 0; key < source.length; key++) {
+            for (let key = 0, l = source.length; key < l; key++) {
                 target[key] = observer(source[key], task, tasks, path ? `${path}[${key}]` : `${key}`);
             }
             target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
         }
-        else if (source?.constructor === Object) {
+        else if (typeof source === 'object') {
             target = source;
             for (const key in source) {
                 target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : key);
@@ -77,6 +77,532 @@
         // if (tasks[ 0 ] === initial) run(tasks);
         return target;
     };
+
+    const format = (data) => data === undefined ? '' : typeof data === 'object' ? JSON.stringify(data) : data;
+
+    const booleans = [
+        'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
+        'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
+        'indeterminate', 'inert', 'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nohref', 'noresize', 'noshade', 'hidden',
+        'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly', 'required', 'reversed', 'scoped', 'seamless', 'selected',
+        'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
+    ];
+    const standard = async function (binder) {
+        const { name, owner, node } = binder;
+        let data = await binder.compute();
+        const boolean = booleans.includes(name);
+        if (boolean) {
+            data = data ? true : false;
+            if (data)
+                owner.setAttributeNode(node);
+            else
+                owner.removeAttribute(name);
+        }
+        else {
+            data = format(data);
+            owner[name] = data;
+            owner.setAttribute(name, data);
+        }
+    };
+
+    const handler = async function (binder, checked, event) {
+        // binder.busy = true;
+        const { owner, node } = binder;
+        const { value } = owner;
+        const computed = await binder.compute({ event, checked, value });
+        owner.checked = computed;
+        if (owner.checked) {
+            owner.setAttributeNode(node);
+        }
+        else {
+            owner.removeAttribute('checked');
+        }
+        // binder.busy = false;
+    };
+    const checked = async function (binder) {
+        const { owner, meta } = binder;
+        if (!meta.setup) {
+            meta.setup = true;
+            owner.removeAttribute('checked');
+            owner.addEventListener('input', async (event) => {
+                const checked = owner.checked;
+                await handler(binder, checked, event);
+            });
+            if (owner.type === 'radio') {
+                const parent = owner.form || owner.getRootNode();
+                const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+                owner.addEventListener('input', async () => {
+                    for (const radio of radios) {
+                        const radioBinders = binder.binder.get(radio.getAttributeNode('checked'));
+                        if (radioBinders) {
+                            for (const [, radioBinder] of radioBinders) {
+                                // radioBinder.busy = true;
+                                await radioBinder.compute({ checked: radio.checked, value: radio.value });
+                                // radioBinder.busy = false;
+                            }
+                        }
+                        else {
+                            if (radio.checked) {
+                                radio.setAttribute('checked', '');
+                            }
+                            else {
+                                radio.removeAttribute('checked');
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        const checked = binder.assignee();
+        await handler(binder, checked);
+    };
+
+    const numberTypes = ['date', 'datetime-local', 'month', 'number', 'range', 'time', 'week'];
+    const input = async function (binder, event) {
+        binder.busy = true;
+        const { owner } = binder;
+        const { type } = owner;
+        let display, computed;
+        if (type === 'select-one') {
+            const [option] = owner.selectedOptions;
+            const value = option?.value;
+            computed = await binder.compute({ event, value });
+            display = format(computed);
+        }
+        else if (type === 'select-multiple') {
+            const value = [];
+            for (const option of owner.selectedOptions) {
+                value.push(option.value);
+            }
+            computed = await binder.compute({ event, value });
+            display = format(computed);
+            // } else if (type === 'file') {
+            //     const { multiple, files } = owner;
+            //     const value = multiple ? [ ...files ] : files[ 0 ];
+            //     const computed = await binder.compute({ event, value });
+            //     display = format(computed);
+        }
+        else {
+            const { checked } = owner;
+            const isNumber = owner.$typeof !== 'string' && numberTypes.includes(type);
+            const value = isNumber ? owner.valueAsNumber : owner.value;
+            computed = await binder.compute({ event, value, checked });
+            display = format(computed);
+            if (numberTypes.includes(type) && typeof computed !== 'string') {
+                owner.valueAsNumber = computed;
+            }
+            else {
+                owner.value = display;
+            }
+        }
+        owner.$value = computed;
+        owner.$typeof = typeof computed;
+        owner.setAttribute('value', display);
+        binder.busy = false;
+    };
+    const value = async function value(binder) {
+        const { owner, meta } = binder;
+        const { type } = owner;
+        if (!meta.setup) {
+            meta.setup = true;
+            if (type === 'select-one' || type === 'select-multiple') {
+                owner.addEventListener('$renderEach', () => binder.render());
+                owner.addEventListener('$renderOption', () => binder.render());
+            }
+            owner.addEventListener('input', event => input(binder, event));
+        }
+        let display, computed;
+        if (type === 'select-one') {
+            // if (!context.options.length) return;
+            const value = binder.assignee();
+            for (const option of owner.options) {
+                // for (const option of context.options) {
+                if (option.selected = option.value === value)
+                    break;
+            }
+            computed = await binder.compute({ value: value });
+            display = format(computed);
+            owner.value = display;
+        }
+        else if (type === 'select-multiple') {
+            const value = binder.assignee();
+            const { options } = owner;
+            for (const option of options) {
+                option.selected = value?.includes(option.value);
+            }
+            computed = await binder.compute({ value });
+            display = format(computed);
+        }
+        else {
+            const { checked } = owner;
+            const value = binder.assignee();
+            computed = await binder.compute({ value, checked });
+            display = format(computed);
+            if (numberTypes.includes(type) && typeof computed !== 'string') {
+                owner.valueAsNumber = computed;
+            }
+            else {
+                owner.value = display;
+            }
+        }
+        owner.$value = computed;
+        owner.$typeof = typeof computed;
+        owner.setAttribute('value', display);
+        if (!meta.first) {
+            meta.first = true;
+            if (owner.parentElement.type === 'select-one' || owner.parentElement.type === 'select-multiple') {
+                owner.parentElement.dispatchEvent(new Event('$renderOption'));
+            }
+        }
+    };
+    // const setup = async function (binder) {
+    //     binder.owner.addEventListener('$render', () => binder.render());
+    //     binder.owner.addEventListener('input', event => input(binder, event));
+    // };
+    // const read = async function (binder, context) {
+    //     const { owner } = binder;
+    //     context.options = owner.options;
+    //     context.selected = owner.selectedOptions;
+    // };
+    // const write = async function (binder, context) {
+    //     const { owner } = binder;
+    //     const { type } = owner;
+    //     let display, computed;
+    //     if (type === 'select-one') {
+    //         // if (!context.options.length) return;
+    //         const value = binder.assignee();
+    //         for (const option of context.options) {
+    //             if (option.selected = option.value === value) break;
+    //         }
+    //         computed = await binder.compute({ value: value });
+    //         display = format(computed);
+    //         owner.value = display;
+    //     } else if (type === 'select-multiple') {
+    //         const value = binder.assignee();
+    //         const { options } = owner;
+    //         for (const option of options) {
+    //             option.selected = value?.includes(option.value);
+    //         }
+    //         computed = await binder.compute({ value });
+    //         display = format(computed);
+    //     } else {
+    //         const { checked } = owner;
+    //         const value = binder.assignee();
+    //         computed = await binder.compute({ value, checked });
+    //         display = format(computed);
+    //         if (numberTypes.includes(type) && typeof computed !== 'string') {
+    //             owner.valueAsNumber = computed;
+    //         } else {
+    //             owner.value = display;
+    //         }
+    //     }
+    //     owner.$value = computed;
+    //     owner.$typeof = typeof computed;
+    //     owner.setAttribute('value', display);
+    // };
+    // export default { setup, read, write };
+
+    const tick$3 = Promise.resolve();
+    const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
+    // const clean = function (node: Node) {
+    //     if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
+    //         node.parentNode.removeChild(node);
+    //     } else {
+    //         let child = node.firstChild;
+    //         while (child) {
+    //             const next = child.nextSibling;
+    //             clean(child);
+    //             child = next;
+    //         }
+    //     }
+    // };
+    // const walk = function (node: Node, handler: (node: Node, paths) => void, paths = []) {
+    //     let i = 0;
+    //     let child = node.firstChild;
+    //     while (child) {
+    //         if (child.nodeType === Node.TEXT_NODE) {
+    //             const start = child.textContent.indexOf('{{');
+    //             if (start === -1) return;
+    //             if (start !== 0) child = (child as Text).splitText(start);
+    //             const end = child.textContent.indexOf('}}');
+    //             if (end === -1) return;
+    //             if (end + 2 !== child.textContent.length) {
+    //                 (child as Text).splitText(end + 2);
+    //             }
+    //             const childPaths = [ ...paths, 'childNodes', i ];
+    //             handler(child, childPaths);
+    //         } else if (child.nodeType === Node.ELEMENT_NODE) {
+    //             const childPaths = [ ...paths, i ];
+    //             let each = false;
+    //             const attributes = (child as Element).attributes;
+    //             for (let ai = 0; ai < attributes.length; ai++) {
+    //                 const attribute = attributes[ ai ];
+    //                 if (attribute.name === 'each' || attribute.name === 'o-each') each = true;
+    //                 if (/{{.*?}}/.test(attribute.value)) handler(attribute, [ ...childPaths, 'attributes', ai ]);
+    //             }
+    //             if (each) return;
+    //             walk(child, handler, childPaths);
+    //         }
+    //         child = child.nextSibling;
+    //         i++;
+    //     }
+    // };
+    const setup = function (binder) {
+        let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+        binder.meta.path = path;
+        binder.meta.keyName = key;
+        binder.meta.indexName = index;
+        binder.meta.variableName = variable;
+        binder.meta.pathParts = path.split('.');
+        binder.meta.keys = [];
+        binder.meta.setup = true;
+        binder.meta.targetLength = 0;
+        binder.meta.currentLength = 0;
+        binder.meta.cloneLength = 0;
+        binder.meta.clone = document.createElement('template');
+        binder.meta.templateElement = document.createElement('template');
+        // binder.meta.adds = [];
+        // let i = 0;
+        // let node = binder.owner.firstChild;
+        // while (node) {
+        //     walk(node, function (child, add) {
+        //         binder.meta.adds.push(add);
+        //     }, [ 'childNodes', i ]);
+        //     binder.meta.clone.content.appendChild(node);
+        //     binder.meta.cloneLength++;
+        //     node = binder.owner.firstChild;
+        //     i++;
+        // }
+        let node = binder.owner.firstChild;
+        while (node) {
+            binder.meta.clone.content.appendChild(node);
+            binder.meta.cloneLength++;
+            node = binder.owner.firstChild;
+        }
+    };
+    const each = async function (binder) {
+        if (!binder.meta.setup)
+            await setup(binder);
+        // const time = `each ${binder.meta.targetLength}`;
+        // console.time(time);
+        const data = await binder.compute();
+        if (data instanceof Array) {
+            binder.meta.targetLength = data.length;
+        }
+        else {
+            binder.meta.keys = Object.keys(data || {});
+            binder.meta.targetLength = binder.meta.keys.length;
+        }
+        if (binder.meta.currentLength > binder.meta.targetLength) {
+            while (binder.meta.currentLength > binder.meta.targetLength) {
+                let count = binder.meta.cloneLength;
+                while (count--) {
+                    const node = binder.owner.lastChild;
+                    binder.owner.removeChild(node);
+                    tick$3.then(binder.binder.remove.bind(binder.binder, node));
+                }
+                binder.meta.currentLength--;
+            }
+        }
+        else if (binder.meta.currentLength < binder.meta.targetLength) {
+            while (binder.meta.currentLength < binder.meta.targetLength) {
+                const indexValue = binder.meta.currentLength;
+                const keyValue = binder.meta.keys[indexValue] ?? indexValue;
+                const dynamics = {
+                    ...binder.dynamics,
+                    [binder.meta.keyName]: keyValue,
+                    [binder.meta.indexName]: indexValue,
+                    get [binder.meta.variableName]() {
+                        let data = binder.container.data;
+                        for (const part of binder.meta.pathParts) {
+                            if (part in this)
+                                data = this[part];
+                            else if (part in data)
+                                data = data[part];
+                        }
+                        return data[keyValue];
+                    }
+                };
+                // const dynamics = Object.assign({}, binder.dynamics);
+                // dynamics[ binder.meta.keyName ] = keyValue;
+                // dynamics[ binder.meta.indexName ] = indexValue;
+                // Object.defineProperty(dynamics, binder.meta.variableName, {
+                //     get () {
+                //         let data = binder.container.data;
+                //         for (let part of binder.meta.pathParts) {
+                //             if (part in this) data = this[ part ];
+                //             else if (part in data) data = data[ part ];
+                //         }
+                //         return data[ keyValue ];
+                //     }
+                // });
+                // const d = document.createElement('div');
+                // d.className = 'box';
+                // const t = document.createTextNode('{{item.number}}');
+                // tick.then(binder.binder.add.bind(binder.binder, t, binder.container, dynamics));
+                // d.appendChild(t);
+                // binder.meta.templateElement.content.appendChild(d);
+                const clone = binder.meta.clone.content.cloneNode(true);
+                // for (const parts of binder.meta.adds) {
+                //     let node = clone;
+                //     for (const part of parts) node = node[ part ];
+                //     tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
+                // }
+                let node = clone.firstChild;
+                while (node) {
+                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
+                    // binder.binder.add(node, binder.container, dynamics);
+                    node = node.nextSibling;
+                }
+                binder.meta.templateElement.content.appendChild(clone);
+                binder.meta.currentLength++;
+            }
+        }
+        if (binder.meta.currentLength === binder.meta.targetLength) {
+            // console.timeEnd(time);
+            binder.owner.appendChild(binder.meta.templateElement.content);
+            if (binder.owner.nodeName === 'SELECT')
+                binder.owner.dispatchEvent(new Event('$renderEach'));
+        }
+    };
+
+    const tick$2 = Promise.resolve();
+    const html = async function (binder) {
+        let data = await binder.compute();
+        if (typeof data !== 'string') {
+            data = '';
+            console.warn('html binder requires a string');
+        }
+        while (binder.owner.firstChild) {
+            const node = binder.owner.removeChild(binder.owner.firstChild);
+            binder.binder.remove(node);
+        }
+        const template = document.createElement('template');
+        template.innerHTML = data;
+        let node = template.content.firstChild;
+        while (node) {
+            tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container));
+            node = node.nextSibling;
+        }
+        binder.owner.appendChild(template.content);
+    };
+
+    const text = async function text(binder) {
+        let data = await binder.compute();
+        binder.owner.nodeValue = format(data);
+    };
+
+    const submit = async function (event, binder) {
+        event.preventDefault();
+        const form = {};
+        const target = event.target;
+        const elements = target?.elements || target?.form?.elements;
+        for (const element of elements) {
+            const { type, name, nodeName, checked } = element;
+            if (!name)
+                continue;
+            if ((!type && nodeName !== 'TEXTAREA') ||
+                type === 'submit' || type === 'button' || !type)
+                continue;
+            if (type === 'radio' && !checked)
+                continue;
+            if (type === 'checkbox' && !checked)
+                continue;
+            let value;
+            if ('$value' in element) {
+                value = element.$value === 'object' ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
+            }
+            else if (type === 'select-multiple') {
+                value = [];
+                for (const option of element.selectedOptions) {
+                    value.push('$value' in option ? option.$value === 'object' ? JSON.parse(JSON.stringify(option.$value)) : option.$value : option.value);
+                }
+            }
+            else {
+                value = element.value;
+            }
+            let data = form;
+            name.split(/\s*\.\s*/).forEach((part, index, parts) => {
+                const next = parts[index + 1];
+                if (next) {
+                    if (!data[part]) {
+                        data[part] = /[0-9]+/.test(next) ? [] : {};
+                    }
+                    data = data[part];
+                }
+                else {
+                    data[part] = value;
+                }
+            });
+        }
+        await binder.compute({ form, event });
+        if (target.getAttribute('reset'))
+            target.reset();
+        return false;
+    };
+    const reset = async function (event, binder) {
+        event.preventDefault();
+        const target = event.target;
+        const elements = target?.elements || target?.form?.elements;
+        for (const element of elements) {
+            const { type, nodeName } = element;
+            if ((!type && nodeName !== 'TEXTAREA') ||
+                type === 'submit' || type === 'button' || !type)
+                continue;
+            if (type === 'select-one') {
+                element.selectedIndex = 0;
+            }
+            else if (type === 'select-multiple') {
+                element.selectedIndex = -1;
+            }
+            else if (type === 'radio' || type === 'checkbox') {
+                element.checked = false;
+            }
+            else {
+                element.value = undefined;
+            }
+            element.dispatchEvent(new Event('input'));
+        }
+        await binder.compute({ event });
+        return false;
+    };
+    const on = async function on(binder) {
+        binder.owner[binder.name] = null;
+        const name = binder.name.slice(2);
+        if (binder.meta.method) {
+            binder.owner.removeEventListener(name, binder.meta.method);
+        }
+        binder.meta.method = event => {
+            if (name === 'reset') {
+                return reset(event, binder);
+            }
+            else if (name === 'submit') {
+                return submit(event, binder);
+            }
+            else {
+                return binder.compute({ event });
+            }
+        };
+        binder.owner.addEventListener(name, binder.meta.method);
+    };
+    // const read = async function (binder) {
+    //     binder.owner[ binder.name ] = null;
+    //     const name = binder.name.slice(2);
+    //     if (binder.meta.method) {
+    //         binder.owner.removeEventListener(name, binder.meta.method);
+    //     }
+    //     binder.meta.method = event => {
+    //         if (name === 'reset') {
+    //             return reset(event, binder);
+    //         } else if (name === 'submit') {
+    //             return submit(event, binder);
+    //         } else {
+    //             return binder.compute({ event });
+    //         }
+    //     };
+    //     binder.owner.addEventListener(name, binder.meta.method);
+    // };
+    // export default { read };
 
     const traverse = function (data, path, paths) {
         paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
@@ -116,38 +642,17 @@
             statement = statement.replace(replaceOfIn, '{{$2}}');
         }
         const convert = !shouldNotConvert.test(statement);
-        let striped = statement;
-        striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+        const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [];
         let [, assignment] = striped.match(matchAssignment) || [];
         assignment = assignment?.replace(/\s/g, '');
         // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
         // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
         const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
-        // const context = new Proxy(dynamics || {}, {
-        //     has: () => true,
-        //     set: (target, name, value) => {
-        //         if (name[ 0 ] === '$') {
-        //             target[ name ] = value;
-        //         } else {
-        //             data[ name ] = value;
-        //         }
-        //         return true;
-        //     },
-        //     get: (target, name) => {
-        //         if (name in target) {
-        //             return target[ name ];
-        //         } else if (name in data) {
-        //             return data[ name ];
-        //         } else {
-        //             return window[ name ];
-        //         }
-        //     }
-        // });
         dynamics = dynamics || {};
         const context = new Proxy(data, {
             has: () => true,
-            set: (target, name, value) => {
+            set: (_, name, value) => {
                 if (name[0] === '$') {
                     dynamics[name] = value;
                 }
@@ -156,7 +661,7 @@
                 }
                 return true;
             },
-            get: (target, name) => {
+            get: (_, name) => {
                 if (name in dynamics) {
                     return dynamics[name];
                 }
@@ -401,563 +906,30 @@
     // console.log(expression(`{{one(two(foo, three(bar, 'hello world')), 1.2)}}`, m)('blue'));
     //end: test
 
-    const format = (data) => data === undefined ? '' : typeof data === 'object' ? JSON.stringify(data) : data;
-
-    const booleans = [
-        'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
-        'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
-        'indeterminate', 'inert', 'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nohref', 'noresize', 'noshade', 'hidden',
-        'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly', 'required', 'reversed', 'scoped', 'seamless', 'selected',
-        'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
-    ];
-    const standard = async function (binder) {
-        const { name, owner, node } = binder;
-        let data = await binder.compute();
-        const boolean = booleans.includes(name);
-        if (boolean) {
-            data = data ? true : false;
-            if (data)
-                owner.setAttributeNode(node);
-            else
-                owner.removeAttribute(name);
-        }
-        else {
-            data = format(data);
-            owner[name] = data;
-            owner.setAttribute(name, data);
-        }
-    };
-
-    const handler = async function (binder, checked, event) {
-        binder.busy = true;
-        const { owner, node } = binder;
-        const { value } = owner;
-        const computed = await binder.compute({ event, checked, value });
-        owner.checked = computed;
-        if (owner.checked) {
-            owner.setAttributeNode(node);
-        }
-        else {
-            owner.removeAttribute('checked');
-        }
-        binder.busy = false;
-    };
-    const checked = async function (binder) {
-        const { owner, meta } = binder;
-        if (!meta.setup) {
-            meta.setup = true;
-            owner.removeAttribute('checked');
-            owner.addEventListener('input', async (event) => {
-                const checked = owner.checked;
-                await handler(binder, checked, event);
-            });
-            if (owner.type === 'radio') {
-                const parent = owner.form || owner.getRootNode();
-                const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
-                owner.addEventListener('input', async () => {
-                    for (const radio of radios) {
-                        const radioBinders = binder.binder.get(radio.getAttributeNode('checked'));
-                        if (radioBinders) {
-                            for (const [, radioBinder] of radioBinders) {
-                                radioBinder.busy = true;
-                                await radioBinder.compute({ checked: radio.checked, value: radio.value });
-                                radioBinder.busy = false;
-                            }
-                        }
-                        else {
-                            if (radio.checked) {
-                                radio.setAttribute('checked', '');
-                            }
-                            else {
-                                radio.removeAttribute('checked');
-                            }
-                        }
-                    }
-                });
-            }
-        }
-        const checked = binder.assignee();
-        await handler(binder, checked);
-    };
-
-    const numberTypes = ['date', 'datetime-local', 'month', 'number', 'range', 'time', 'week'];
-    const input = async function (binder, event) {
-        binder.busy = true;
-        const { owner } = binder;
-        const { type } = owner;
-        let display, computed;
-        if (type === 'select-one') {
-            const [option] = owner.selectedOptions;
-            const value = option?.value;
-            computed = await binder.compute({ event, value });
-            display = format(computed);
-        }
-        else if (type === 'select-multiple') {
-            const value = [];
-            for (const option of owner.selectedOptions) {
-                value.push(option.value);
-            }
-            computed = await binder.compute({ event, value });
-            display = format(computed);
-            // } else if (type === 'file') {
-            //     const { multiple, files } = owner;
-            //     const value = multiple ? [ ...files ] : files[ 0 ];
-            //     const computed = await binder.compute({ event, value });
-            //     display = format(computed);
-        }
-        else {
-            const { checked } = owner;
-            const isNumber = owner.$typeof !== 'string' && numberTypes.includes(type);
-            const value = isNumber ? owner.valueAsNumber : owner.value;
-            computed = await binder.compute({ event, value, checked });
-            display = format(computed);
-            if (numberTypes.includes(type) && typeof computed !== 'string') {
-                owner.valueAsNumber = computed;
-            }
-            else {
-                owner.value = display;
-            }
-        }
-        owner.$value = computed;
-        owner.$typeof = typeof computed;
-        owner.setAttribute('value', display);
-        binder.busy = false;
-    };
-    const value = async function value(binder) {
-        const { owner, meta } = binder;
-        const { type } = owner;
-        if (!meta.setup) {
-            meta.setup = true;
-            if (type === 'select-one' || type === 'select-multiple') {
-                owner.addEventListener('$renderEach', () => binder.render());
-                owner.addEventListener('$renderOption', () => binder.render());
-            }
-            owner.addEventListener('input', event => input(binder, event));
-        }
-        let display, computed;
-        if (type === 'select-one') {
-            // if (!context.options.length) return;
-            const value = binder.assignee();
-            for (const option of owner.options) {
-                // for (const option of context.options) {
-                if (option.selected = option.value === value)
-                    break;
-            }
-            computed = await binder.compute({ value: value });
-            display = format(computed);
-            owner.value = display;
-        }
-        else if (type === 'select-multiple') {
-            const value = binder.assignee();
-            const { options } = owner;
-            for (const option of options) {
-                option.selected = value?.includes(option.value);
-            }
-            computed = await binder.compute({ value });
-            display = format(computed);
-        }
-        else {
-            const { checked } = owner;
-            const value = binder.assignee();
-            computed = await binder.compute({ value, checked });
-            display = format(computed);
-            if (numberTypes.includes(type) && typeof computed !== 'string') {
-                owner.valueAsNumber = computed;
-            }
-            else {
-                owner.value = display;
-            }
-        }
-        owner.$value = computed;
-        owner.$typeof = typeof computed;
-        owner.setAttribute('value', display);
-        if (!meta.first) {
-            meta.first == true;
-            if (owner.parentElement.type === 'select-one' || owner.parentElement.type === 'select-multiple') {
-                owner.parentElement.dispatchEvent(new Event('$renderOption'));
-            }
-        }
-    };
-    // const setup = async function (binder) {
-    //     binder.owner.addEventListener('$render', () => binder.render());
-    //     binder.owner.addEventListener('input', event => input(binder, event));
-    // };
-    // const read = async function (binder, context) {
-    //     const { owner } = binder;
-    //     context.options = owner.options;
-    //     context.selected = owner.selectedOptions;
-    // };
-    // const write = async function (binder, context) {
-    //     const { owner } = binder;
-    //     const { type } = owner;
-    //     let display, computed;
-    //     if (type === 'select-one') {
-    //         // if (!context.options.length) return;
-    //         const value = binder.assignee();
-    //         for (const option of context.options) {
-    //             if (option.selected = option.value === value) break;
-    //         }
-    //         computed = await binder.compute({ value: value });
-    //         display = format(computed);
-    //         owner.value = display;
-    //     } else if (type === 'select-multiple') {
-    //         const value = binder.assignee();
-    //         const { options } = owner;
-    //         for (const option of options) {
-    //             option.selected = value?.includes(option.value);
-    //         }
-    //         computed = await binder.compute({ value });
-    //         display = format(computed);
-    //     } else {
-    //         const { checked } = owner;
-    //         const value = binder.assignee();
-    //         computed = await binder.compute({ value, checked });
-    //         display = format(computed);
-    //         if (numberTypes.includes(type) && typeof computed !== 'string') {
-    //             owner.valueAsNumber = computed;
-    //         } else {
-    //             owner.value = display;
-    //         }
-    //     }
-    //     owner.$value = computed;
-    //     owner.$typeof = typeof computed;
-    //     owner.setAttribute('value', display);
-    // };
-    // export default { setup, read, write };
-
-    // const empty = /^\s*$/;
-    const tick$3 = Promise.resolve();
-    const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
-    // const clean = function (node: Node) {
-    //     if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
-    //         node.parentNode.removeChild(node);
-    //     } else {
-    //         let child = node.firstChild;
-    //         while (child) {
-    //             const next = child.nextSibling;
-    //             clean(child);
-    //             child = next;
-    //         }
-    //     }
-    // };
-    // const walk = function (node: Node, handler: (node: Node, paths) => void, paths = []) {
-    //     let i = 0;
-    //     let child = node.firstChild;
-    //     while (child) {
-    //         if (child.nodeType === Node.TEXT_NODE) {
-    //             const start = child.textContent.indexOf('{{');
-    //             if (start === -1) return;
-    //             if (start !== 0) child = (child as Text).splitText(start);
-    //             const end = child.textContent.indexOf('}}');
-    //             if (end === -1) return;
-    //             if (end + 2 !== child.textContent.length) {
-    //                 (child as Text).splitText(end + 2);
-    //             }
-    //             const childPaths = [ ...paths, 'childNodes', i ];
-    //             handler(child, childPaths);
-    //         } else if (child.nodeType === Node.ELEMENT_NODE) {
-    //             const childPaths = [ ...paths, i ];
-    //             let each = false;
-    //             const attributes = (child as Element).attributes;
-    //             for (let ai = 0; ai < attributes.length; ai++) {
-    //                 const attribute = attributes[ ai ];
-    //                 if (attribute.name === 'each' || attribute.name === 'o-each') each = true;
-    //                 if (/{{.*?}}/.test(attribute.value)) handler(attribute, [ ...childPaths, 'attributes', ai ]);
-    //             }
-    //             if (each) return;
-    //             walk(child, handler, childPaths);
-    //         }
-    //         child = child.nextSibling;
-    //         i++;
-    //     }
-    // };
-    const setup = function (binder) {
-        let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
-        binder.meta.path = path;
-        binder.meta.keyName = key;
-        binder.meta.indexName = index;
-        binder.meta.variableName = variable;
-        binder.meta.pathParts = path.split('.');
-        binder.meta.keys = [];
-        binder.meta.setup = true;
-        binder.meta.targetLength = 0;
-        binder.meta.currentLength = 0;
-        binder.meta.cloneLength = 0;
-        binder.meta.clone = document.createElement('template');
-        binder.meta.templateElement = document.createElement('template');
-        // binder.meta.adds = [];
-        // let i = 0;
-        // let node = binder.owner.firstChild;
-        // while (node) {
-        //     walk(node, function (child, add) {
-        //         binder.meta.adds.push(add);
-        //     }, [ 'childNodes', i ]);
-        //     binder.meta.clone.content.appendChild(node);
-        //     binder.meta.cloneLength++;
-        //     node = binder.owner.firstChild;
-        //     i++;
-        // }
-        let node = binder.owner.firstChild;
-        while (node) {
-            binder.meta.clone.content.appendChild(node);
-            binder.meta.cloneLength++;
-            node = binder.owner.firstChild;
-        }
-    };
-    const each = async function (binder) {
-        if (!binder.meta.setup)
-            await setup(binder);
-        // const time = `each ${binder.meta.targetLength}`;
-        // console.time(time);
-        const data = await binder.compute();
-        if (data instanceof Array) {
-            binder.meta.targetLength = data.length;
-        }
-        else {
-            binder.meta.keys = Object.keys(data || {});
-            binder.meta.targetLength = binder.meta.keys.length;
-        }
-        if (binder.meta.currentLength > binder.meta.targetLength) {
-            while (binder.meta.currentLength > binder.meta.targetLength) {
-                let count = binder.meta.cloneLength;
-                while (count--) {
-                    const node = binder.owner.lastChild;
-                    binder.owner.removeChild(node);
-                    tick$3.then(binder.binder.remove.bind(binder.binder, node));
-                }
-                binder.meta.currentLength--;
-            }
-        }
-        else if (binder.meta.currentLength < binder.meta.targetLength) {
-            // let node, clone, dynamics, indexValue, keyValue;
-            while (binder.meta.currentLength < binder.meta.targetLength) {
-                const indexValue = binder.meta.currentLength;
-                const keyValue = binder.meta.keys[indexValue] ?? indexValue;
-                const dynamics = {
-                    ...binder.dynamics,
-                    [binder.meta.keyName]: keyValue,
-                    [binder.meta.indexName]: indexValue,
-                    get [binder.meta.variableName]() {
-                        let data = binder.container.data;
-                        for (const part of binder.meta.pathParts) {
-                            if (part in this)
-                                data = this[part];
-                            else if (part in data)
-                                data = data[part];
-                        }
-                        return data[keyValue];
-                    }
-                };
-                // const dynamics = Object.assign({}, binder.dynamics);
-                // dynamics[ binder.meta.keyName ] = keyValue;
-                // dynamics[ binder.meta.indexName ] = indexValue;
-                // Object.defineProperty(dynamics, binder.meta.variableName, {
-                //     get () {
-                //         let data = binder.container.data;
-                //         for (let part of binder.meta.pathParts) {
-                //             if (part in this) data = this[ part ];
-                //             else if (part in data) data = data[ part ];
-                //         }
-                //         return data[ keyValue ];
-                //     }
-                // });
-                binder.meta.currentLength++;
-                // const d = document.createElement('div');
-                // d.className = 'box';
-                // const t = document.createTextNode('{{item.number}}');
-                // tick.then(binder.binder.add.bind(binder.binder, t, binder.container, dynamics));
-                // d.appendChild(t);
-                // binder.meta.templateElement.content.appendChild(d);
-                const clone = binder.meta.clone.content.cloneNode(true);
-                // for (const parts of binder.meta.adds) {
-                //     let node = clone;
-                //     for (const part of parts) node = node[ part ];
-                //     tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
-                // }
-                let node = clone.firstChild;
-                while (node) {
-                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
-                    // binder.binder.add(node, binder.container, dynamics);
-                    node = node.nextSibling;
-                }
-                binder.meta.templateElement.content.appendChild(clone);
-            }
-        }
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            // console.timeEnd(time);
-            binder.owner.appendChild(binder.meta.templateElement.content);
-            if (binder.owner.nodeName === 'SELECT')
-                binder.owner.dispatchEvent(new Event('$renderEach'));
-        }
-    };
-
-    const tick$2 = Promise.resolve();
-    const html = async function (binder) {
-        let data = await binder.compute();
-        if (typeof data !== 'string') {
-            data = '';
-            console.warn('html binder requires a string');
-        }
-        while (binder.owner.firstChild) {
-            const node = binder.owner.removeChild(binder.owner.firstChild);
-            binder.binder.remove(node);
-        }
-        const template = document.createElement('template');
-        template.innerHTML = data;
-        let node = template.content.firstChild;
-        while (node) {
-            tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container));
-            node = node.nextSibling;
-        }
-        binder.owner.appendChild(template.content);
-    };
-
-    const text = async function text(binder) {
-        // binder.owner.nodeValue = format(await binder.compute());
-        let data = await binder.compute();
-        binder.owner.nodeValue = format(data);
-        // binder.owner.nodeValue = data ?? '';
-        // binder.owner.nodeValue = data === undefined ? '' : data;
-    };
-
-    const submit = async function (event, binder) {
-        event.preventDefault();
-        const form = {};
-        const target = event.target;
-        const elements = target?.elements || target?.form?.elements;
-        for (const element of elements) {
-            const { type, name, nodeName, checked } = element;
-            if (!name)
-                continue;
-            if ((!type && nodeName !== 'TEXTAREA') ||
-                type === 'submit' || type === 'button' || !type)
-                continue;
-            if (type === 'radio' && !checked)
-                continue;
-            if (type === 'checkbox' && !checked)
-                continue;
-            let value;
-            if ('$value' in element) {
-                value = element.$value === 'object' ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
-            }
-            else if (type === 'select-multiple') {
-                value = [];
-                for (const option of element.selectedOptions) {
-                    value.push('$value' in option ? option.$value === 'object' ? JSON.parse(JSON.stringify(option.$value)) : option.$value : option.value);
-                }
-            }
-            else {
-                value = element.value;
-            }
-            let data = form;
-            name.split(/\s*\.\s*/).forEach((part, index, parts) => {
-                const next = parts[index + 1];
-                if (next) {
-                    if (!data[part]) {
-                        data[part] = /[0-9]+/.test(next) ? [] : {};
-                    }
-                    data = data[part];
-                }
-                else {
-                    data[part] = value;
-                }
-            });
-        }
-        await binder.compute({ form, event });
-        if (target.getAttribute('reset'))
-            target.reset();
-        return false;
-    };
-    const reset = async function (event, binder) {
-        event.preventDefault();
-        const target = event.target;
-        const elements = target?.elements || target?.form?.elements;
-        for (const element of elements) {
-            const { type, nodeName } = element;
-            if ((!type && nodeName !== 'TEXTAREA') ||
-                type === 'submit' || type === 'button' || !type)
-                continue;
-            if (type === 'select-one') {
-                element.selectedIndex = 0;
-            }
-            else if (type === 'select-multiple') {
-                element.selectedIndex = -1;
-            }
-            else if (type === 'radio' || type === 'checkbox') {
-                element.checked = false;
-            }
-            else {
-                element.value = undefined;
-            }
-            element.dispatchEvent(new Event('input'));
-        }
-        await binder.compute({ event });
-        return false;
-    };
-    const on = async function on(binder) {
-        binder.owner[binder.name] = null;
-        const name = binder.name.slice(2);
-        if (binder.meta.method) {
-            binder.owner.removeEventListener(name, binder.meta.method);
-        }
-        binder.meta.method = event => {
-            if (name === 'reset') {
-                return reset(event, binder);
-            }
-            else if (name === 'submit') {
-                return submit(event, binder);
-            }
-            else {
-                return binder.compute({ event });
-            }
-        };
-        binder.owner.addEventListener(name, binder.meta.method);
-    };
-    // const read = async function (binder) {
-    //     binder.owner[ binder.name ] = null;
-    //     const name = binder.name.slice(2);
-    //     if (binder.meta.method) {
-    //         binder.owner.removeEventListener(name, binder.meta.method);
-    //     }
-    //     binder.meta.method = event => {
-    //         if (name === 'reset') {
-    //             return reset(event, binder);
-    //         } else if (name === 'submit') {
-    //             return submit(event, binder);
-    //         } else {
-    //             return binder.compute({ event });
-    //         }
-    //     };
-    //     binder.owner.addEventListener(name, binder.meta.method);
-    // };
-    // export default { read };
-
-    // type NODE = Element | Text | Attr;
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
     const tick$1 = Promise.resolve();
+    // const empty = /\s*{{\s*}}\s*/;
     class Binder {
-        constructor() {
-            this.prefix = 'o-';
-            this.syntaxEnd = '}}';
-            this.syntaxStart = '{{';
-            this.syntaxLength = 2;
-            this.syntaxMatch = new RegExp('{{.*?}}');
-            this.prefixReplace = new RegExp('^o-');
-            this.syntaxReplace = new RegExp('{{|}}', 'g');
-            this.nodeBinders = new Map();
-            this.pathBinders = new Map();
-            this.binders = {
-                standard,
-                checked,
-                value,
-                each,
-                html,
-                text,
-                on,
-            };
-        }
+        prefix = 'o-';
+        syntaxEnd = '}}';
+        syntaxStart = '{{';
+        syntaxLength = 2;
+        syntaxMatch = new RegExp('{{.*?}}');
+        prefixReplace = new RegExp('^o-');
+        syntaxReplace = new RegExp('{{|}}', 'g');
+        nodeBinders = new Map();
+        pathBinders = new Map();
+        binders = {
+            standard,
+            checked,
+            value,
+            each,
+            html,
+            text,
+            on,
+        };
         get(data) {
             if (typeof data === 'string') {
                 return this.pathBinders.get(data);
@@ -1015,8 +987,7 @@
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
-                const l = attributes.length;
-                for (let i = 0; i < l; i++) {
+                for (let i = 0; i < attributes.length; i++) {
                     tick$1.then(this.unbind.bind(this, attributes[i]));
                 }
                 let child = node.firstChild;
@@ -1052,8 +1023,9 @@
             }
             else if (node.nodeType === EN) {
                 let each = false;
-                for (let i = 0; i < node.attributes.length; i++) {
-                    const attribute = node.attributes[i];
+                const attributes = node.attributes;
+                for (let i = 0; i < attributes.length; i++) {
+                    const attribute = attributes[i];
                     if (attribute.name === 'each' || attribute.name === `${this.prefix}each`)
                         each = true;
                     if (this.syntaxMatch.test(attribute.value)) {
@@ -1074,17 +1046,14 @@
     }
 
     var Css = new class Css {
+        #data = new Map();
+        #style = document.createElement('style');
+        #support = !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)');
         constructor() {
-            this.#data = new Map();
-            this.#style = document.createElement('style');
-            this.#support = !window.CSS || !window.CSS.supports || !window.CSS.supports('(--t: black)');
             this.#style.appendChild(document.createTextNode(':not(:defined){visibility:hidden;}'));
             this.#style.setAttribute('title', 'oxe');
             document.head.appendChild(this.#style);
         }
-        #data;
-        #style;
-        #support;
         scope(name, text) {
             return text
                 .replace(/\t|\n\s*/g, '')
@@ -1132,25 +1101,37 @@
 
     const tick = Promise.resolve();
     class Component extends HTMLElement {
+        static attributes;
+        static get observedAttributes() { return this.attributes; }
+        static set observedAttributes(attributes) { this.attributes = attributes; }
+        #root;
+        #binder;
+        #flag = false;
+        #name = this.nodeName.toLowerCase();
+        adopted;
+        rendered;
+        connected;
+        disconnected;
+        attributed;
+        // #adopted: () => void;
+        // #rendered: () => void;
+        // #connected: () => void;
+        // #disconnected: () => void;
+        // #attributed: (name: string, from: string, to: string) => void;
+        // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
+        // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
+        // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
+        // #adopt: boolean = typeof (this as any).adopt === 'boolean' ? (this as any).adopt : false;
+        // #shadow: boolean = typeof (this as any).shadow === 'boolean' ? (this as any).shadow : false;
+        css = '';
+        html = '';
+        data = {};
+        adopt = false;
+        shadow = false;
+        get root() { return this.#root; }
+        get binder() { return Binder; }
         constructor() {
             super();
-            this.#flag = false;
-            this.#name = this.nodeName.toLowerCase();
-            // #adopted: () => void;
-            // #rendered: () => void;
-            // #connected: () => void;
-            // #disconnected: () => void;
-            // #attributed: (name: string, from: string, to: string) => void;
-            // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
-            // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
-            // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
-            // #adopt: boolean = typeof (this as any).adopt === 'boolean' ? (this as any).adopt : false;
-            // #shadow: boolean = typeof (this as any).shadow === 'boolean' ? (this as any).shadow : false;
-            this.css = '';
-            this.html = '';
-            this.data = {};
-            this.adopt = false;
-            this.shadow = false;
             this.#binder = new Binder();
             if (this.shadow && 'attachShadow' in document.body) {
                 this.#root = this.attachShadow({ mode: 'open' });
@@ -1162,14 +1143,6 @@
                 this.#root = this;
             }
         }
-        static get observedAttributes() { return this.attributes; }
-        static set observedAttributes(attributes) { this.attributes = attributes; }
-        #root;
-        #binder;
-        #flag;
-        #name;
-        get root() { return this.#root; }
-        get binder() { return Binder; }
         async render() {
             const observer$1 = async (path) => {
                 const binders = this.#binder.pathBinders.get(path);
@@ -1250,161 +1223,23 @@
             }
         }
     }
-    // export default function decorate (target) {
-    //     Object.defineProperties(target.prototype, {
-    //         observedAttributes: {
-    //             get () {
-    //                 console.log('goa', target.attributes, this);
-    //                 return target.attributes;
-    //             },
-    //             set (attributes) {
-    //                 console.log('soa', attributes);
-    //                 target.attributes = attributes;
-    //             }
-    //         },
-    //         $name: { value: this.nodeName.toLowerCase() }
-    //     });
-    //     // #root: any;
-    //     // #flag: boolean = false;
-    //     // adopted: () => void;
-    //     // rendered: () => void;
-    //     // connected: () => void;
-    //     // disconnected: () => void;
-    //     // attributed: (name: string, from: string, to: string) => void;
-    //     // css: string = '';
-    //     // html: string = '';
-    //     // data: object = {};
-    //     // adopt: boolean = false;
-    //     // shadow: boolean = false;
-    //     // get root() { return this.#root; }
-    //     // get binder() { return Binder; }
-    //     // constructor() {
-    //     //     super();
-    //     //     if (this.shadow && 'attachShadow' in document.body) {
-    //     //         this.#root = this.attachShadow({ mode: 'open' });
-    //     //     } else if (this.shadow && 'createShadowRoot' in document.body) {
-    //     //         this.#root = (this as any).createShadowRoot();
-    //     //     } else {
-    //     //         this.#root = this;
-    //     //     }
-    //     // }
-    //     Object.defineProperties(target, {
-    //         $render: {
-    //             value: async function () {
-    //                 if (this.shadow && 'attachShadow' in document.body) {
-    //                     this.$root = this.attachShadow({ mode: 'open' });
-    //                 } else if (this.shadow && 'createShadowRoot' in document.body) {
-    //                     this.$root = (this as any).createShadowRoot();
-    //                 } else {
-    //                     this.$root = this;
-    //                 }
-    //                 this.data = Observer(this.data, async path => {
-    //                     for (const [ , binder ] of Binder.data) {
-    //                         if (binder.container === this && binder.path === path && !binder.busy) {
-    //                             binder.busy = true;
-    //                             await binder.render();
-    //                             binder.busy = false;
-    //                         }
-    //                     }
-    //                 });
-    //                 if (this.adopt) {
-    //                     let child = this.firstChild;
-    //                     while (child) {
-    //                         Binder.add(child, this);
-    //                         child = child.nextSibling;
-    //                     }
-    //                 }
-    //                 const template = document.createElement('template');
-    //                 template.innerHTML = this.html;
-    //                 // const clone = template.content.cloneNode(true) as DocumentFragment;
-    //                 // const clone = document.importNode(template.content, true);
-    //                 // const clone = document.adoptNode(template.content);
-    //                 if (
-    //                     !this.shadow ||
-    //                     !('attachShadow' in document.body) &&
-    //                     !('createShadowRoot' in document.body)
-    //                 ) {
-    //                     const templateSlots = template.content.querySelectorAll('slot[name]');
-    //                     const defaultSlot = template.content.querySelector('slot:not([name])');
-    //                     for (let i = 0; i < templateSlots.length; i++) {
-    //                         const templateSlot = templateSlots[ i ];
-    //                         const name = templateSlot.getAttribute('name');
-    //                         const instanceSlot = this.querySelector('[slot="' + name + '"]');
-    //                         if (instanceSlot) templateSlot.parentNode.replaceChild(instanceSlot, templateSlot);
-    //                         else templateSlot.parentNode.removeChild(templateSlot);
-    //                     }
-    //                     if (this.children.length) {
-    //                         while (this.firstChild) {
-    //                             if (defaultSlot) defaultSlot.parentNode.insertBefore(this.firstChild, defaultSlot);
-    //                             else this.removeChild(this.firstChild);
-    //                         }
-    //                     }
-    //                     if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
-    //                 }
-    //                 const tasks = [];
-    //                 let child = template.content.firstChild;
-    //                 while (child) {
-    //                     tasks.push(Binder.add(child, this));
-    //                     child = child.nextSibling;
-    //                 }
-    //                 this.$root.appendChild(template.content);
-    //                 return Promise.all(tasks);
-    //             }
-    //         },
-    //         attributeChangedCallback: {
-    //             value: async function (name: string, from: string, to: string) {
-    //                 await this.attributed(name, from, to);
-    //             }
-    //         },
-    //         adoptedCallback: {
-    //             value: async function () {
-    //                 if (this.adopted) await this.adopted();
-    //             }
-    //         },
-    //         disconnectedCallback: {
-    //             value: async function () {
-    //                 Css.detach(this.$name);
-    //                 if (this.disconnected) await this.disconnected();
-    //             }
-    //         },
-    //         connectedCallback: {
-    //             value: async function () {
-    //                 try {
-    //                     Css.attach(this.$name, this.css);
-    //                     if (this.$flag) {
-    //                         if (this.connected) await this.connected();
-    //                     } else {
-    //                         this.$flag = true;
-    //                         await this.render();
-    //                         if (this.rendered) await this.rendered();
-    //                         if (this.connected) await this.connected();
-    //                     }
-    //                 } catch (error) {
-    //                     console.error(error);
-    //                 }
-    //             }
-    //         }
-    //     });
-    // }
 
     var Fetcher = new class Fetcher {
-        constructor() {
-            this.option = {};
-            this.types = [
-                'json',
-                'text',
-                'blob',
-                'formData',
-                'arrayBuffer'
-            ];
-            this.mime = {
-                xml: 'text/xml; charset=utf-8',
-                html: 'text/html; charset=utf-8',
-                text: 'text/plain; charset=utf-8',
-                json: 'application/json; charset=utf-8',
-                js: 'application/javascript; charset=utf-8'
-            };
-        }
+        option = {};
+        types = [
+            'json',
+            'text',
+            'blob',
+            'formData',
+            'arrayBuffer'
+        ];
+        mime = {
+            xml: 'text/xml; charset=utf-8',
+            html: 'text/html; charset=utf-8',
+            text: 'text/plain; charset=utf-8',
+            json: 'application/json; charset=utf-8',
+            js: 'application/javascript; charset=utf-8'
+        };
         async setup(option = {}) {
             this.option.path = option.path;
             this.option.method = option.method;
@@ -1463,9 +1298,9 @@
             if (context.path && context.origin && !context.url)
                 context.url = context.origin + '/' + context.path;
             if (!context.method)
-                throw new Error('Oxe.fetcher - requires method option');
+                throw new Error('Oxe.fetcher.fetch - requires method option');
             if (!context.url)
-                throw new Error('Oxe.fetcher - requires url or origin and path option');
+                throw new Error('Oxe.fetcher.fetch - requires url or origin and path option');
             context.aborted = false;
             context.headers = context.headers || {};
             context.method = context.method.toUpperCase();
@@ -1540,7 +1375,7 @@
                     type = responseType || 'text';
                 }
                 if (this.types.indexOf(type) === -1) {
-                    throw new Error('Oxe.fetch - invalid responseType value');
+                    throw new Error('Oxe.fetcher.fetch - invalid responseType value');
                 }
                 context.body = await result[type]();
             }
@@ -1790,17 +1625,11 @@
         return a.pathname;
     };
     var Router = new class Router {
-        constructor() {
-            this.#data = {};
-            this.#folder = '';
-            this.#dynamic = true;
-            this.#contain = false;
-        }
         #target;
-        #data;
-        #folder;
-        #dynamic;
-        #contain;
+        #data = {};
+        #folder = '';
+        #dynamic = true;
+        #contain = false;
         #external;
         #after;
         #before;
@@ -2122,20 +1951,18 @@
         }
     }
     var index = Object.freeze(new class Oxe {
-        constructor() {
-            this.Component = Component;
-            this.component = Component;
-            this.Fetcher = Fetcher;
-            this.fetcher = Fetcher;
-            this.Router = Router;
-            this.router = Router;
-            this.Define = Define;
-            this.define = Define;
-            this.Load = load;
-            this.load = load;
-            this.Css = Css;
-            this.css = Css;
-        }
+        Component = Component;
+        component = Component;
+        Fetcher = Fetcher;
+        fetcher = Fetcher;
+        Router = Router;
+        router = Router;
+        Define = Define;
+        define = Define;
+        Load = load;
+        load = load;
+        Css = Css;
+        css = Css;
     });
 
     return index;

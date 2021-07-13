@@ -1,5 +1,4 @@
 
-// const empty = /^\s*$/;
 const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
@@ -124,7 +123,6 @@ const each = async function (binder) {
         }
 
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        // let node, clone, dynamics, indexValue, keyValue;
         while (binder.meta.currentLength < binder.meta.targetLength) {
             const indexValue = binder.meta.currentLength;
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
@@ -157,8 +155,6 @@ const each = async function (binder) {
             //     }
             // });
 
-            binder.meta.currentLength++;
-
             // const d = document.createElement('div');
             // d.className = 'box';
             // const t = document.createTextNode('{{item.number}}');
@@ -182,6 +178,7 @@ const each = async function (binder) {
             }
 
             binder.meta.templateElement.content.appendChild(clone);
+            binder.meta.currentLength++;
         }
 
     }

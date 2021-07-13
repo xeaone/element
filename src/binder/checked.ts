@@ -1,6 +1,6 @@
 
 const handler = async function (binder, checked, event?: Event) {
-    binder.busy = true;
+    // binder.busy = true;
     const { owner, node } = binder;
     const { value } = owner;
     const computed = await binder.compute({ event, checked, value });
@@ -13,7 +13,7 @@ const handler = async function (binder, checked, event?: Event) {
         owner.removeAttribute('checked');
     }
 
-    binder.busy = false;
+    // binder.busy = false;
 };
 
 const checked = async function (binder) {
@@ -35,9 +35,9 @@ const checked = async function (binder) {
                     const radioBinders = binder.binder.get(radio.getAttributeNode('checked'));
                     if (radioBinders) {
                         for (const [ , radioBinder ] of radioBinders) {
-                            radioBinder.busy = true;
+                            // radioBinder.busy = true;
                             await radioBinder.compute({ checked: radio.checked, value: radio.value });
-                            radioBinder.busy = false;
+                            // radioBinder.busy = false;
                         }
                     } else {
                         if (radio.checked) {

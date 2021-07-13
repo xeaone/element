@@ -1,5 +1,3 @@
-import Statement from './statement';
-
 import standard from './binder/standard';
 import checked from './binder/checked';
 import value from './binder/value';
@@ -7,8 +5,7 @@ import each from './binder/each';
 import html from './binder/html';
 import text from './binder/text';
 import on from './binder/on';
-
-// type NODE = Element | Text | Attr;
+import Statement from './statement';
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -16,13 +13,7 @@ const AN = Node.ATTRIBUTE_NODE;
 
 const tick = Promise.resolve();
 
-// const emptyAttribute = /\s*{{\s*}}\s*/;
-// const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|^$/;
-// const emptyText = /\s+|(\\t)+|(\\r)+|(\\n)+|\s*{{\s*}}\s*|^$/;
-
-interface Options {
-    binders?: () => Promise<void>;
-}
+// const empty = /\s*{{\s*}}\s*/;
 
 export default class Binder {
 
@@ -110,8 +101,7 @@ export default class Binder {
             tick.then(this.unbind.bind(this, node));
         } else if (node.nodeType === EN) {
             const attributes = (node as Element).attributes;
-            const l = attributes.length;
-            for (let i = 0; i < l; i++) {
+            for (let i = 0; i < attributes.length; i++) {
                 tick.then(this.unbind.bind(this, attributes[ i ]));
             }
 
@@ -153,8 +143,9 @@ export default class Binder {
         } else if (node.nodeType === EN) {
             let each = false;
 
-            for (let i = 0; i < (node as Element).attributes.length; i++) {
-                const attribute = (node as Element).attributes[ i ];
+            const attributes = (node as Element).attributes;
+            for (let i = 0; i < attributes.length; i++) {
+                const attribute = attributes[ i ];
                 if (attribute.name === 'each' || attribute.name === `${this.prefix}each`) each = true;
                 if (this.syntaxMatch.test(attribute.value)) {
                     tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics));

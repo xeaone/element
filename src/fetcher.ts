@@ -107,8 +107,8 @@ export default new class Fetcher {
         if (context.origin && typeof context.origin === 'string' && context.origin.charAt(context.origin.length - 1) === '/') context.origin = context.origin.slice(0, -1);
         if (context.path && context.origin && !context.url) context.url = context.origin + '/' + context.path;
 
-        if (!context.method) throw new Error('Oxe.fetcher - requires method option');
-        if (!context.url) throw new Error('Oxe.fetcher - requires url or origin and path option');
+        if (!context.method) throw new Error('Oxe.fetcher.fetch - requires method option');
+        if (!context.url) throw new Error('Oxe.fetcher.fetch - requires url or origin and path option');
 
         context.aborted = false;
         context.headers = context.headers || {};
@@ -173,7 +173,7 @@ export default new class Fetcher {
             }
 
             if (this.types.indexOf(type) === -1) {
-                throw new Error('Oxe.fetch - invalid responseType value');
+                throw new Error('Oxe.fetcher.fetch - invalid responseType value');
             }
 
             context.body = await result[ type ]();
