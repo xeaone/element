@@ -8,6 +8,8 @@ export default class BindersRoute extends Component {
     static attributes = [ 'test' ];
     async attributed () { console.log(arguments); }
 
+    async connected () { console.log('binders connected'); }
+
     title = 'Binders';
 
     data = {

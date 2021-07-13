@@ -32,34 +32,27 @@ export default function (statement: string, data: any, dynamics?: any) {
     const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
 
     const paths = striped.match(references) || [];
-    let [ , assignment ] = striped.match(matchAssignment) || [];
-    assignment = assignment?.replace(/\s/g, '');
-
-    // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
-    // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
-    const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
-
+    ;
     dynamics = dynamics || {};
     const context = new Proxy(data, {
         has: () => true,
         set: (_, name, value) => {
-            if (name[ 0 ] === '$') {
-                dynamics[ name ] = value;
-            } else {
-                data[ name ] = value;
-            }
+            if (name[ 0 ] === '$') dynamics[ name ] = value;
+            else data[ name ] = value;
             return true;
         },
         get: (_, name) => {
-            if (name in dynamics) {
-                return dynamics[ name ];
-            } else if (name in data) {
-                return data[ name ];
-            } else {
-                return window[ name ];
-            }
+            if (name in dynamics) return dynamics[ name ];
+            else if (name in data) return data[ name ];
+            else return window[ name ];
         }
     });
+
+    let [ , assignment ] = striped.match(matchAssignment) || [];
+    assignment = assignment?.replace(/\s/g, '');
+    // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
+    // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
+    const assignee = assignment ? traverse.bind(null, context, assignment) : () => undefined;
 
     let compute;
     if (cache.has(statement)) {

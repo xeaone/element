@@ -2,7 +2,7 @@ import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
 
-const tick = Promise.resolve();
+// const tick = Promise.resolve();
 
 export default class Component extends HTMLElement {
 
@@ -15,16 +15,19 @@ export default class Component extends HTMLElement {
     #flag: boolean = false;
     #name: string = this.nodeName.toLowerCase();
 
-    adopted: () => void;
-    rendered: () => void;
-    connected: () => void;
-    disconnected: () => void;
-    attributed: (name: string, from: string, to: string) => void;
-    // #adopted: () => void;
-    // #rendered: () => void;
-    // #connected: () => void;
-    // #disconnected: () => void;
-    // #attributed: (name: string, from: string, to: string) => void;
+    // this overwrites extends methods
+    // adopted: () => void;
+    // rendered: () => void;
+    // connected: () => void;
+    // disconnected: () => void;
+    // attributed: (name: string, from: string, to: string) => void;
+
+    #adopted: () => void;
+    #rendered: () => void;
+    #connected: () => void;
+    #disconnected: () => void;
+    #attributed: (name: string, from: string, to: string) => void;
+
     // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
     // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
     // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
@@ -44,6 +47,11 @@ export default class Component extends HTMLElement {
         super();
 
         this.#binder = new Binder();
+        this.#adopted = (this as any).adopted;
+        this.#rendered = (this as any).rendered;
+        this.#connected = (this as any).connected;
+        this.#attributed = (this as any).attributed;
+        this.#disconnected = (this as any).disconnected;
 
         if (this.shadow && 'attachShadow' in document.body) {
             this.#root = this.attachShadow({ mode: 'open' });
@@ -56,17 +64,19 @@ export default class Component extends HTMLElement {
     }
 
     async render () {
+        const tasks = [];
 
         const observer = async (path) => {
             const binders = this.#binder.pathBinders.get(path);
             if (!binders) return;
 
-            // console.log(binders.values());
-
+            const tasks = [];
             for (const binder of binders.values()) {
-                tick.then(binder.render);
-                // binder.render();
+                tasks.push(binder.render());
+                // tick.then(binder.render);
             }
+
+            return Promise.all(tasks);
         };
 
         this.data = Observer(this.data, observer);
@@ -74,7 +84,8 @@ export default class Component extends HTMLElement {
         if (this.adopt) {
             let child = this.firstChild;
             while (child) {
-                tick.then(this.#binder.add.bind(this.#binder, child, this));
+                // tick.then(this.#binder.add.bind(this.#binder, child, this));
+                tasks.push(this.#binder.add(child, this));
                 child = child.nextSibling;
             }
         }
@@ -108,26 +119,28 @@ export default class Component extends HTMLElement {
             if (defaultSlot) defaultSlot.parentNode.removeChild(defaultSlot);
         }
 
+
         let child = template.content.firstChild;
         while (child) {
-            tick.then(this.#binder.add.bind(this.#binder, child, this));
+            tasks.push(this.#binder.add(child, this));
             child = child.nextSibling;
         }
 
+        await Promise.all(tasks);
         this.#root.appendChild(template.content);
     }
 
     async attributeChangedCallback (name: string, from: string, to: string) {
-        await this.attributed(name, from, to);
+        await this.#attributed(name, from, to);
     }
 
     async adoptedCallback () {
-        if (this.adopted) await this.adopted();
+        if (this.#adopted) await this.#adopted();
     }
 
     async disconnectedCallback () {
         Css.detach(this.#name);
-        if (this.disconnected) await this.disconnected();
+        if (this.#disconnected) await this.#disconnected();
     }
 
     async connectedCallback () {
@@ -136,8 +149,10 @@ export default class Component extends HTMLElement {
             if (!this.#flag) {
                 this.#flag = true;
                 await this.render();
+                if (this.#rendered) await this.#rendered();
             }
-            if (this.connected) await this.connected();
+
+            if (this.#connected) await this.#connected();
         } catch (error) {
             console.error(error);
         }

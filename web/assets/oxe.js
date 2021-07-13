@@ -17,14 +17,13 @@
 }(this, (function () { 'use strict';
 
     console.warn('oxe: need to handle delete property');
-    const tick$4 = Promise.resolve();
-    // const run = async function (tasks: tasks) {
-    //     let task;
-    //     while (task = tasks.shift()) {
-    //         task();
-    //         // await task();
-    //     }
-    // };
+    // const tick = Promise.resolve();
+    const run$1 = async function (tasks) {
+        let task;
+        while (task = tasks.shift()) {
+            await task();
+        }
+    };
     const set = function (task, tasks, path, target, property, value) {
         if (property === 'length') {
             return true;
@@ -32,37 +31,31 @@
         else if (target[property] === value || `${target[property]}${value}` === 'NaNNaN') {
             return true;
         }
-        // let initial;
-        // if (!tasks.length) {
-        //     initial = () => { };
-        //     tasks.push(initial);
-        // }
-        if (target instanceof Array) {
+        const initial = !tasks.length;
+        tasks.push(task.bind(null, path));
+        if (target?.constructor === Array) {
             target[property] = observer(value, task, tasks, path ? `${path}[${property}]` : property);
         }
         else {
             target[property] = observer(value, task, tasks, path ? `${path}.${property}` : property);
         }
-        tick$4.then(task.bind(null, path));
-        // if (path) tasks.push(task.bind(null, path, length));
-        // if (tasks[ 0 ] === initial) run(tasks);
+        if (initial)
+            run$1(tasks);
+        // tick.then(task.bind(null, path));
         return true;
     };
     const observer = function (source, task, tasks = [], path = '') {
         let target;
-        // let initial;
-        // if (!tasks.length) {
-        //     initial = () => { };
-        //     tasks.push(initial);
-        // }
-        if (source instanceof Array) {
+        const initial = !tasks.length;
+        tasks.push(task.bind(null, path));
+        if (source?.constructor === Array) {
             target = source;
-            for (let key = 0, l = source.length; key < l; key++) {
+            for (let key = 0; key < source.length; key++) {
                 target[key] = observer(source[key], task, tasks, path ? `${path}[${key}]` : `${key}`);
             }
             target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
         }
-        else if (typeof source === 'object') {
+        else if (source?.constructor === Object) {
             target = source;
             for (const key in source) {
                 target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : key);
@@ -72,9 +65,9 @@
         else {
             target = source;
         }
-        tick$4.then(task.bind(null, path));
-        // if (path) tasks.push(task.bind(null, path));
-        // if (tasks[ 0 ] === initial) run(tasks);
+        if (initial)
+            run$1(tasks);
+        // tick.then(task.bind(null, path));
         return target;
     };
 
@@ -302,7 +295,7 @@
     // };
     // export default { setup, read, write };
 
-    const tick$3 = Promise.resolve();
+    const tick$2 = Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
     // const clean = function (node: Node) {
     //     if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
@@ -399,7 +392,7 @@
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    tick$3.then(binder.binder.remove.bind(binder.binder, node));
+                    tick$2.then(binder.binder.remove.bind(binder.binder, node));
                 }
                 binder.meta.currentLength--;
             }
@@ -450,7 +443,7 @@
                 // }
                 let node = clone.firstChild;
                 while (node) {
-                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
+                    tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
                     // binder.binder.add(node, binder.container, dynamics);
                     node = node.nextSibling;
                 }
@@ -466,7 +459,7 @@
         }
     };
 
-    const tick$2 = Promise.resolve();
+    const tick$1 = Promise.resolve();
     const html = async function (binder) {
         let data = await binder.compute();
         if (typeof data !== 'string') {
@@ -481,7 +474,7 @@
         template.innerHTML = data;
         let node = template.content.firstChild;
         while (node) {
-            tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container));
+            tick$1.then(binder.binder.add.bind(binder.binder, node, binder.container));
             node = node.nextSibling;
         }
         binder.owner.appendChild(template.content);
@@ -644,35 +637,30 @@
         const convert = !shouldNotConvert.test(statement);
         const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [];
-        let [, assignment] = striped.match(matchAssignment) || [];
-        assignment = assignment?.replace(/\s/g, '');
-        // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
-        // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
-        const assignee = assignment ? traverse.bind(null, data, assignment) : () => undefined;
         dynamics = dynamics || {};
         const context = new Proxy(data, {
             has: () => true,
             set: (_, name, value) => {
-                if (name[0] === '$') {
+                if (name[0] === '$')
                     dynamics[name] = value;
-                }
-                else {
+                else
                     data[name] = value;
-                }
                 return true;
             },
             get: (_, name) => {
-                if (name in dynamics) {
+                if (name in dynamics)
                     return dynamics[name];
-                }
-                else if (name in data) {
+                else if (name in data)
                     return data[name];
-                }
-                else {
+                else
                     return window[name];
-                }
             }
         });
+        let [, assignment] = striped.match(matchAssignment) || [];
+        assignment = assignment?.replace(/\s/g, '');
+        // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
+        // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
+        const assignee = assignment ? traverse.bind(null, context, assignment) : () => undefined;
         let compute;
         if (cache.has(statement)) {
             compute = cache.get(statement).bind(null, context);
@@ -909,7 +897,7 @@
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
-    const tick$1 = Promise.resolve();
+    const tick = Promise.resolve();
     // const empty = /\s*{{\s*}}\s*/;
     class Binder {
         prefix = 'o-';
@@ -976,23 +964,23 @@
                         this.pathBinders.get(path).set(node, binder);
                     }
                 }
-                tick$1.then(binder.render);
+                tick.then(binder.render);
                 // binder.render();
             }
         }
         ;
         async remove(node) {
             if (node.nodeType === AN || node.nodeType === TN) {
-                tick$1.then(this.unbind.bind(this, node));
+                tick.then(this.unbind.bind(this, node));
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
                 for (let i = 0; i < attributes.length; i++) {
-                    tick$1.then(this.unbind.bind(this, attributes[i]));
+                    tick.then(this.unbind.bind(this, attributes[i]));
                 }
                 let child = node.firstChild;
                 while (child) {
-                    tick$1.then(this.remove.bind(this, child));
+                    tick.then(this.remove.bind(this, child));
                     child = child.nextSibling;
                 }
             }
@@ -1000,7 +988,7 @@
         async add(node, container, dynamics) {
             if (node.nodeType === AN) {
                 if (this.syntaxMatch.test(node.value)) {
-                    tick$1.then(this.bind.bind(this, node, container, node.name, node.value, node.ownerElement, dynamics));
+                    tick.then(this.bind.bind(this, node, container, node.name, node.value, node.ownerElement, dynamics));
                     // this.bind(node, container, (node as Attr).name, (node as Attr).value, (node as Attr).ownerElement, dynamics);
                 }
             }
@@ -1015,11 +1003,11 @@
                     return;
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    tick$1.then(this.add.bind(this, split, container, dynamics));
+                    tick.then(this.add.bind(this, split, container, dynamics));
                     // this.add(split, container, dynamics, handler);
                 }
                 // this.bind(node, container, 'text', node.nodeValue, node, dynamics);
-                tick$1.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics));
+                tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics));
             }
             else if (node.nodeType === EN) {
                 let each = false;
@@ -1029,7 +1017,7 @@
                     if (attribute.name === 'each' || attribute.name === `${this.prefix}each`)
                         each = true;
                     if (this.syntaxMatch.test(attribute.value)) {
-                        tick$1.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics));
+                        tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics));
                         // this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics);
                     }
                 }
@@ -1037,7 +1025,7 @@
                     return;
                 let child = node.firstChild;
                 while (child) {
-                    tick$1.then(this.add.bind(this, child, container, dynamics));
+                    tick.then(this.add.bind(this, child, container, dynamics));
                     // this.add(child, container, dynamics);
                     child = child.nextSibling;
                 }
@@ -1099,7 +1087,7 @@
         }
     };
 
-    const tick = Promise.resolve();
+    // const tick = Promise.resolve();
     class Component extends HTMLElement {
         static attributes;
         static get observedAttributes() { return this.attributes; }
@@ -1108,16 +1096,17 @@
         #binder;
         #flag = false;
         #name = this.nodeName.toLowerCase();
-        adopted;
-        rendered;
-        connected;
-        disconnected;
-        attributed;
-        // #adopted: () => void;
-        // #rendered: () => void;
-        // #connected: () => void;
-        // #disconnected: () => void;
-        // #attributed: (name: string, from: string, to: string) => void;
+        // this overwrites extends methods
+        // adopted: () => void;
+        // rendered: () => void;
+        // connected: () => void;
+        // disconnected: () => void;
+        // attributed: (name: string, from: string, to: string) => void;
+        #adopted;
+        #rendered;
+        #connected;
+        #disconnected;
+        #attributed;
         // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
         // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
         // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
@@ -1133,6 +1122,11 @@
         constructor() {
             super();
             this.#binder = new Binder();
+            this.#adopted = this.adopted;
+            this.#rendered = this.rendered;
+            this.#connected = this.connected;
+            this.#attributed = this.attributed;
+            this.#disconnected = this.disconnected;
             if (this.shadow && 'attachShadow' in document.body) {
                 this.#root = this.attachShadow({ mode: 'open' });
             }
@@ -1144,21 +1138,24 @@
             }
         }
         async render() {
+            const tasks = [];
             const observer$1 = async (path) => {
                 const binders = this.#binder.pathBinders.get(path);
                 if (!binders)
                     return;
-                // console.log(binders.values());
+                const tasks = [];
                 for (const binder of binders.values()) {
-                    tick.then(binder.render);
-                    // binder.render();
+                    tasks.push(binder.render());
+                    // tick.then(binder.render);
                 }
+                return Promise.all(tasks);
             };
             this.data = observer(this.data, observer$1);
             if (this.adopt) {
                 let child = this.firstChild;
                 while (child) {
-                    tick.then(this.#binder.add.bind(this.#binder, child, this));
+                    // tick.then(this.#binder.add.bind(this.#binder, child, this));
+                    tasks.push(this.#binder.add(child, this));
                     child = child.nextSibling;
                 }
             }
@@ -1191,22 +1188,23 @@
             }
             let child = template.content.firstChild;
             while (child) {
-                tick.then(this.#binder.add.bind(this.#binder, child, this));
+                tasks.push(this.#binder.add(child, this));
                 child = child.nextSibling;
             }
+            await Promise.all(tasks);
             this.#root.appendChild(template.content);
         }
         async attributeChangedCallback(name, from, to) {
-            await this.attributed(name, from, to);
+            await this.#attributed(name, from, to);
         }
         async adoptedCallback() {
-            if (this.adopted)
-                await this.adopted();
+            if (this.#adopted)
+                await this.#adopted();
         }
         async disconnectedCallback() {
             Css.detach(this.#name);
-            if (this.disconnected)
-                await this.disconnected();
+            if (this.#disconnected)
+                await this.#disconnected();
         }
         async connectedCallback() {
             try {
@@ -1214,9 +1212,11 @@
                 if (!this.#flag) {
                     this.#flag = true;
                     await this.render();
+                    if (this.#rendered)
+                        await this.#rendered();
                 }
-                if (this.connected)
-                    await this.connected();
+                if (this.#connected)
+                    await this.#connected();
             }
             catch (error) {
                 console.error(error);
