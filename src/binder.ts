@@ -58,18 +58,20 @@ export default class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, container: any, name, value, owner, dynamics?: any) {
+    async bind (node: Node, container: any, name, value, owner, dynamics?: any, rewrites?: any) {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         // const render = this.binders[ type ];
 
-        const { compute, assignee, paths } = Statement(value, container.data, dynamics);
+        const { compute, assignee, paths } = Statement(value, container.data, dynamics, rewrites);
         if (!paths.length) paths.push('');
 
         const binder = {
             render: undefined,
             binder: this, meta: {}, busy: false,
             type, assignee, compute, paths,
-            node, owner, name, value, dynamics, container,
+            node, owner, name, value,
+            dynamics, rewrites,
+            container,
         };
 
         binder.render = this.binders[ type ].bind(null, binder);
@@ -115,12 +117,12 @@ export default class Binder {
 
     }
 
-    async add (node: Node, container: any, dynamics?: object) {
+    async add (node: Node, container: any, dynamics?: any, rewrites?: any) {
 
         if (node.nodeType === AN) {
-            if (this.syntaxMatch.test((node as Attr).value)) {
-                tick.then(this.bind.bind(this, node, container, (node as Attr).name, (node as Attr).value, (node as Attr).ownerElement, dynamics));
-                // this.bind(node, container, (node as Attr).name, (node as Attr).value, (node as Attr).ownerElement, dynamics);
+            const attribute = (node as Attr);
+            if (this.syntaxMatch.test(attribute.value)) {
+                tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
             }
         } else if (node.nodeType === TN) {
 
@@ -134,22 +136,18 @@ export default class Binder {
 
             if (end + this.syntaxLength !== node.nodeValue.length) {
                 const split = (node as Text).splitText(end + this.syntaxLength);
-                tick.then(this.add.bind(this, split, container, dynamics));
-                // this.add(split, container, dynamics, handler);
+                tick.then(this.add.bind(this, split, container, dynamics, rewrites));
             }
 
-            // this.bind(node, container, 'text', node.nodeValue, node, dynamics);
-            tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics));
+            tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
         } else if (node.nodeType === EN) {
             let each = false;
-
             const attributes = (node as Element).attributes;
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
                 if (attribute.name === 'each' || attribute.name === `${this.prefix}each`) each = true;
                 if (this.syntaxMatch.test(attribute.value)) {
-                    tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics));
-                    // this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics);
+                    tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                 }
             }
 
@@ -157,8 +155,7 @@ export default class Binder {
 
             let child = node.firstChild;
             while (child) {
-                tick.then(this.add.bind(this, child, container, dynamics));
-                // this.add(child, container, dynamics);
+                tick.then(this.add.bind(this, child, container, dynamics, rewrites));
                 child = child.nextSibling;
             }
 

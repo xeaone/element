@@ -11,14 +11,14 @@ const input = async function (binder, event) {
 
     if (type === 'select-one') {
         const [ option ] = owner.selectedOptions;
-        const value = option?.value;
+        const value = !option ? undefined : option.$typeof && option.$typeof !== 'string' ? JSON.parse(option.value) : option.value;
         computed = await binder.compute({ event, value });
         display = format(computed);
     } else if (type === 'select-multiple') {
 
         const value = [];
         for (const option of owner.selectedOptions) {
-            value.push(option.value);
+            value.push(option.$typeof && option.$typeof !== 'string' ? JSON.parse(option.value) : option.value);
         }
 
         computed = await binder.compute({ event, value });
@@ -31,7 +31,7 @@ const input = async function (binder, event) {
     } else {
         const { checked } = owner;
         const isNumber = owner.$typeof !== 'string' && numberTypes.includes(type);
-        const value = isNumber ? owner.valueAsNumber : owner.value;
+        const value = isNumber ? owner.valueAsNumber : owner.$typeof && owner.$typeof !== 'string' ? JSON.parse(owner.value) : owner.value;
         computed = await binder.compute({ event, value, checked });
         display = format(computed);
         if (numberTypes.includes(type) && typeof computed !== 'string') {
@@ -65,12 +65,12 @@ const value = async function value (binder) {
     let display, computed;
 
     if (type === 'select-one') {
-        // if (!context.options.length) return;
         const value = binder.assignee();
 
         for (const option of owner.options) {
-            // for (const option of context.options) {
-            if (option.selected = option.value === value) break;
+            if (option.selected = '$value' in option ? option.$value === value : option.value === value) {
+                break;
+            }
         }
 
         computed = await binder.compute({ value: value });
@@ -81,7 +81,7 @@ const value = async function value (binder) {
         const { options } = owner;
 
         for (const option of options) {
-            option.selected = value?.includes(option.value);
+            option.selected = value?.includes('$value' in option ? option.$value : option.value);
         }
 
         computed = await binder.compute({ value });
@@ -112,8 +112,6 @@ const value = async function value (binder) {
 };
 
 export default value;
-
-
 
 // const setup = async function (binder) {
 //     binder.owner.addEventListener('$render', () => binder.render());

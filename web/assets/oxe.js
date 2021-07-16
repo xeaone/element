@@ -24,51 +24,52 @@
             await task();
         }
     };
-    const set = function (task, tasks, path, target, property, value) {
-        if (property === 'length') {
+    const set = function (target, key, value) {
+        if (key === '$path')
+            return true;
+        if (key === '$task')
+            return true;
+        if (key === '$tasks')
+            return true;
+        if (key === '$proxy')
+            return true;
+        if (`${target[key]}${value}` === 'NaNNaN')
+            return true;
+        if (key === 'length') {
+            // target.$tasks.unshift(target.$task.bind(null, target.$path));
+            target.$tasks.push(target.$task.bind(null, target.$path));
             return true;
         }
-        else if (target[property] === value || `${target[property]}${value}` === 'NaNNaN') {
+        if (target[key] === value)
             return true;
-        }
-        const initial = !tasks.length;
-        tasks.push(task.bind(null, path));
-        if (target?.constructor === Array) {
-            target[property] = observer(value, task, tasks, path ? `${path}[${property}]` : property);
+        let path;
+        const isArray = target.constructor === Array;
+        if (isArray)
+            path = target.$path ? `${target.$path}[${key}]` : `${key}`;
+        else
+            path = target.$path ? `${target.$path}.${key}` : `${key}`;
+        const initial = !target.$tasks.length;
+        target.$tasks.push(target.$task.bind(null, path));
+        if (value !== null && value !== undefined && typeof value === 'object' && !value.$proxy) {
+            const copy = value.constructor();
+            copy.$proxy = true;
+            copy.$path = path;
+            copy.$task = target.$task;
+            copy.$tasks = target.$tasks;
+            target[key] = Object.assign(new Proxy(copy, { set }), value);
+            // target[ key ] = new Proxy(value, { set });
         }
         else {
-            target[property] = observer(value, task, tasks, path ? `${path}.${property}` : property);
+            target[key] = value;
         }
         if (initial)
-            run$1(tasks);
-        // tick.then(task.bind(null, path));
+            run$1(target.$tasks);
         return true;
     };
-    const observer = function (source, task, tasks = [], path = '') {
-        let target;
-        const initial = !tasks.length;
-        tasks.push(task.bind(null, path));
-        if (source?.constructor === Array) {
-            target = source;
-            for (let key = 0; key < source.length; key++) {
-                target[key] = observer(source[key], task, tasks, path ? `${path}[${key}]` : `${key}`);
-            }
-            target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
-        }
-        else if (source?.constructor === Object) {
-            target = source;
-            for (const key in source) {
-                target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : key);
-            }
-            target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
-        }
-        else {
-            target = source;
-        }
-        if (initial)
-            run$1(tasks);
-        // tick.then(task.bind(null, path));
-        return target;
+    const observer = function (source, task) {
+        const result = new Proxy({ $task: task, $tasks: [], $path: '' }, { set });
+        Object.assign(result, source);
+        return result;
     };
 
     const format = (data) => data === undefined ? '' : typeof data === 'object' ? JSON.stringify(data) : data;
@@ -158,14 +159,14 @@
         let display, computed;
         if (type === 'select-one') {
             const [option] = owner.selectedOptions;
-            const value = option?.value;
+            const value = !option ? undefined : option.$typeof && option.$typeof !== 'string' ? JSON.parse(option.value) : option.value;
             computed = await binder.compute({ event, value });
             display = format(computed);
         }
         else if (type === 'select-multiple') {
             const value = [];
             for (const option of owner.selectedOptions) {
-                value.push(option.value);
+                value.push(option.$typeof && option.$typeof !== 'string' ? JSON.parse(option.value) : option.value);
             }
             computed = await binder.compute({ event, value });
             display = format(computed);
@@ -178,7 +179,7 @@
         else {
             const { checked } = owner;
             const isNumber = owner.$typeof !== 'string' && numberTypes.includes(type);
-            const value = isNumber ? owner.valueAsNumber : owner.value;
+            const value = isNumber ? owner.valueAsNumber : owner.$typeof && owner.$typeof !== 'string' ? JSON.parse(owner.value) : owner.value;
             computed = await binder.compute({ event, value, checked });
             display = format(computed);
             if (numberTypes.includes(type) && typeof computed !== 'string') {
@@ -206,12 +207,11 @@
         }
         let display, computed;
         if (type === 'select-one') {
-            // if (!context.options.length) return;
             const value = binder.assignee();
             for (const option of owner.options) {
-                // for (const option of context.options) {
-                if (option.selected = option.value === value)
+                if (option.selected = '$value' in option ? option.$value === value : option.value === value) {
                     break;
+                }
             }
             computed = await binder.compute({ value: value });
             display = format(computed);
@@ -221,7 +221,7 @@
             const value = binder.assignee();
             const { options } = owner;
             for (const option of options) {
-                option.selected = value?.includes(option.value);
+                option.selected = value?.includes('$value' in option ? option.$value : option.value);
             }
             computed = await binder.compute({ value });
             display = format(computed);
@@ -297,51 +297,11 @@
 
     const tick$2 = Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
-    // const clean = function (node: Node) {
-    //     if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
-    //         node.parentNode.removeChild(node);
-    //     } else {
-    //         let child = node.firstChild;
-    //         while (child) {
-    //             const next = child.nextSibling;
-    //             clean(child);
-    //             child = next;
-    //         }
-    //     }
-    // };
-    // const walk = function (node: Node, handler: (node: Node, paths) => void, paths = []) {
-    //     let i = 0;
-    //     let child = node.firstChild;
-    //     while (child) {
-    //         if (child.nodeType === Node.TEXT_NODE) {
-    //             const start = child.textContent.indexOf('{{');
-    //             if (start === -1) return;
-    //             if (start !== 0) child = (child as Text).splitText(start);
-    //             const end = child.textContent.indexOf('}}');
-    //             if (end === -1) return;
-    //             if (end + 2 !== child.textContent.length) {
-    //                 (child as Text).splitText(end + 2);
-    //             }
-    //             const childPaths = [ ...paths, 'childNodes', i ];
-    //             handler(child, childPaths);
-    //         } else if (child.nodeType === Node.ELEMENT_NODE) {
-    //             const childPaths = [ ...paths, i ];
-    //             let each = false;
-    //             const attributes = (child as Element).attributes;
-    //             for (let ai = 0; ai < attributes.length; ai++) {
-    //                 const attribute = attributes[ ai ];
-    //                 if (attribute.name === 'each' || attribute.name === 'o-each') each = true;
-    //                 if (/{{.*?}}/.test(attribute.value)) handler(attribute, [ ...childPaths, 'attributes', ai ]);
-    //             }
-    //             if (each) return;
-    //             walk(child, handler, childPaths);
-    //         }
-    //         child = child.nextSibling;
-    //         i++;
-    //     }
-    // };
     const setup = function (binder) {
         let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+        binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
+        binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
+        binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
         binder.meta.path = path;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
@@ -354,18 +314,6 @@
         binder.meta.cloneLength = 0;
         binder.meta.clone = document.createElement('template');
         binder.meta.templateElement = document.createElement('template');
-        // binder.meta.adds = [];
-        // let i = 0;
-        // let node = binder.owner.firstChild;
-        // while (node) {
-        //     walk(node, function (child, add) {
-        //         binder.meta.adds.push(add);
-        //     }, [ 'childNodes', i ]);
-        //     binder.meta.clone.content.appendChild(node);
-        //     binder.meta.cloneLength++;
-        //     node = binder.owner.firstChild;
-        //     i++;
-        // }
         let node = binder.owner.firstChild;
         while (node) {
             binder.meta.clone.content.appendChild(node);
@@ -401,6 +349,7 @@
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
+                const variableValue = `${binder.meta.path}[${keyValue}]`;
                 const dynamics = {
                     ...binder.dynamics,
                     [binder.meta.keyName]: keyValue,
@@ -426,21 +375,24 @@
                         return data[keyValue];
                     }
                 };
+                const rewrites = [...(binder.rewrites || [])];
+                if (binder.meta.indexPattern)
+                    rewrites.push([binder.meta.indexPattern, indexValue]);
+                if (binder.meta.keyPattern)
+                    rewrites.push([binder.meta.keyPattern, keyValue]);
+                if (binder.meta.variablePattern)
+                    rewrites.push([binder.meta.variablePattern, variableValue]);
                 // const d = document.createElement('div');
                 // d.className = 'box';
                 // const t = document.createTextNode('{{item.number}}');
                 // tick.then(binder.binder.add.bind(binder.binder, t, binder.container, dynamics));
                 // d.appendChild(t);
-                // binder.meta.templateElement.content.appendChild(d);
+                // binder.meta.templateElement.content.appendChild(d)
                 const clone = binder.meta.clone.content.cloneNode(true);
-                // for (const parts of binder.meta.adds) {
-                //     let node = clone;
-                //     for (const part of parts) node = node[ part ];
-                //     tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
-                // }
                 let node = clone.firstChild;
                 while (node) {
-                    tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
+                    tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
+                    // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
                     // binder.binder.add(node, binder.container, dynamics);
                     node = node.nextSibling;
                 }
@@ -626,31 +578,41 @@
     \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
+    // const ignores = [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ];
     const cache = new Map();
-    function Statement (statement, data, dynamics) {
+    function Statement (statement, data, dynamics, rewrites) {
         if (isOfIn.test(statement)) {
             statement = statement.replace(replaceOfIn, '{{$2}}');
         }
         const convert = !shouldNotConvert.test(statement);
-        const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+        let striped = statement;
+        if (rewrites) {
+            for (const [pattern, value] of rewrites) {
+                striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
+            }
+        }
+        striped = striped.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
         const paths = striped.match(references) || [];
         dynamics = dynamics || {};
         const context = new Proxy(data, {
-            has: () => true,
-            set: (_, name, value) => {
-                if (name[0] === '$')
-                    dynamics[name] = value;
-                else
-                    data[name] = value;
+            has: (_, key) => {
                 return true;
             },
-            get: (_, name) => {
-                if (name in dynamics)
-                    return dynamics[name];
-                else if (name in data)
-                    return data[name];
+            set: (_, key, value) => {
+                if (key[0] === '$')
+                    dynamics[key] = value;
                 else
-                    return window[name];
+                    data[key] = value;
+                return true;
+            },
+            get: (_, key) => {
+                // console.log(data.$path, data[ key ]?.$path, key);
+                if (key in dynamics)
+                    return dynamics[key];
+                else if (key in data)
+                    return data[key];
+                else
+                    return window[key];
             }
         });
         let [, assignment] = striped.match(matchAssignment) || [];
@@ -933,17 +895,19 @@
             }
             this.nodeBinders.delete(node);
         }
-        async bind(node, container, name, value, owner, dynamics) {
+        async bind(node, container, name, value, owner, dynamics, rewrites) {
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             // const render = this.binders[ type ];
-            const { compute, assignee, paths } = Statement(value, container.data, dynamics);
+            const { compute, assignee, paths } = Statement(value, container.data, dynamics, rewrites);
             if (!paths.length)
                 paths.push('');
             const binder = {
                 render: undefined,
                 binder: this, meta: {}, busy: false,
                 type, assignee, compute, paths,
-                node, owner, name, value, dynamics, container,
+                node, owner, name, value,
+                dynamics, rewrites,
+                container,
             };
             binder.render = this.binders[type].bind(null, binder);
             for (const path of paths) {
@@ -982,11 +946,11 @@
                 }
             }
         }
-        async add(node, container, dynamics) {
+        async add(node, container, dynamics, rewrites) {
             if (node.nodeType === AN) {
-                if (this.syntaxMatch.test(node.value)) {
-                    tick.then(this.bind.bind(this, node, container, node.name, node.value, node.ownerElement, dynamics));
-                    // this.bind(node, container, (node as Attr).name, (node as Attr).value, (node as Attr).ownerElement, dynamics);
+                const attribute = node;
+                if (this.syntaxMatch.test(attribute.value)) {
+                    tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                 }
             }
             else if (node.nodeType === TN) {
@@ -1000,11 +964,9 @@
                     return;
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    tick.then(this.add.bind(this, split, container, dynamics));
-                    // this.add(split, container, dynamics, handler);
+                    tick.then(this.add.bind(this, split, container, dynamics, rewrites));
                 }
-                // this.bind(node, container, 'text', node.nodeValue, node, dynamics);
-                tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics));
+                tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
             }
             else if (node.nodeType === EN) {
                 let each = false;
@@ -1014,16 +976,14 @@
                     if (attribute.name === 'each' || attribute.name === `${this.prefix}each`)
                         each = true;
                     if (this.syntaxMatch.test(attribute.value)) {
-                        tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics));
-                        // this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics);
+                        tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                     }
                 }
                 if (each)
                     return;
                 let child = node.firstChild;
                 while (child) {
-                    tick.then(this.add.bind(this, child, container, dynamics));
-                    // this.add(child, container, dynamics);
+                    tick.then(this.add.bind(this, child, container, dynamics, rewrites));
                     child = child.nextSibling;
                 }
             }
@@ -1346,8 +1306,9 @@
             if (context.body) {
                 if (context.method === 'GET') {
                     context.url = context.url + '?' + await this.serialize(context.body);
+                    // } else if (context.contentType === 'json') {
                 }
-                else if (context.contentType === 'json') {
+                else if (typeof context.body === 'object') {
                     context.body = JSON.stringify(context.body);
                 }
             }
@@ -1358,24 +1319,18 @@
                 // headers: { enumerable: true, value: result.headers }
                 // message: { enumerable: true, value: result.statusText }
             });
-            if (!context.responseType) {
-                context.body = result.body;
-            }
-            else {
-                const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
-                const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
-                let type;
-                if (responseType === 'json' && contentType.indexOf('json') !== -1) {
-                    type = 'json';
-                }
-                else {
-                    type = responseType || 'text';
-                }
-                if (this.types.indexOf(type) === -1) {
-                    throw new Error('Oxe.fetcher.fetch - invalid responseType value');
-                }
-                context.body = await result[type]();
-            }
+            const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
+            const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
+            let type;
+            if (responseType)
+                type = responseType;
+            else if (contentType.includes('application/json'))
+                type = 'json';
+            else if (contentType.includes('text/plain'))
+                type = 'text';
+            if (!this.types.includes(type))
+                throw new Error('Oxe.fetcher.fetch - invalid responseType');
+            context.body = await result[type]();
             if (typeof option.after === 'function')
                 await option.after(context);
             if (context.aborted)

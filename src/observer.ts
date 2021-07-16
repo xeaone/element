@@ -12,59 +12,50 @@ const run = async function (tasks: tasks) {
     }
 };
 
-const set = function (task: task, tasks: tasks, path: string, target, property, value) {
+const set = function (target: any, key: string, value: any) {
+    if (key === '$path') return true;
+    if (key === '$task') return true;
+    if (key === '$tasks') return true;
+    if (key === '$proxy') return true;
+    if (`${target[ key ]}${value}` === 'NaNNaN') return true;
 
-    if (property === 'length') {
-        return true;
-    } else if (target[ property ] === value || `${target[ property ]}${value}` === 'NaNNaN') {
+    if (key === 'length') {
+        // target.$tasks.unshift(target.$task.bind(null, target.$path));
+        target.$tasks.push(target.$task.bind(null, target.$path));
         return true;
     }
 
-    const initial = !tasks.length;
-    tasks.push(task.bind(null, path));
+    if (target[ key ] === value) return true;
 
-    if (target?.constructor === Array) {
-        target[ property ] = observer(value, task, tasks, path ? `${path}[${property}]` : property);
+    let path;
+    const isArray = target.constructor === Array;
+    if (isArray) path = target.$path ? `${target.$path}[${key}]` : `${key}`;
+    else path = target.$path ? `${target.$path}.${key}` : `${key}`;
+
+    const initial = !target.$tasks.length;
+    target.$tasks.push(target.$task.bind(null, path));
+
+    if (value !== null && value !== undefined && typeof value === 'object' && !value.$proxy) {
+        const copy = value.constructor();
+        copy.$proxy = true;
+        copy.$path = path;
+        copy.$task = target.$task;
+        copy.$tasks = target.$tasks;
+        target[ key ] = Object.assign(new Proxy(copy, { set }), value);
+        // target[ key ] = new Proxy(value, { set });
     } else {
-        target[ property ] = observer(value, task, tasks, path ? `${path}.${property}` : property);
+        target[ key ] = value;
     }
 
-    if (initial) run(tasks);
-    // tick.then(task.bind(null, path));
+    if (initial) run(target.$tasks);
 
     return true;
 };
 
-const observer = function (source: any, task: task, tasks: tasks = [], path: string = '') {
-    let target;
-
-    const initial = !tasks.length;
-    tasks.push(task.bind(null, path));
-
-    if (source?.constructor === Array) {
-        target = source;
-
-        for (let key = 0; key < source.length; key++) {
-            target[ key ] = observer(source[ key ], task, tasks, path ? `${path}[${key}]` : `${key}`);
-        }
-
-        target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
-    } else if (source?.constructor === Object) {
-        target = source;
-
-        for (const key in source) {
-            target[ key ] = observer(source[ key ], task, tasks, path ? `${path}.${key}` : key);
-        }
-
-        target = new Proxy(target, { set: set.bind(null, task, tasks, path) });
-    } else {
-        target = source;
-    }
-
-    if (initial) run(tasks);
-    // tick.then(task.bind(null, path));
-
-    return target;
+const observer = function (source: any, task: task) {
+    const result = new Proxy({ $task: task, $tasks: [], $path: '' }, { set });
+    Object.assign(result, source);
+    return result;
 };
 
 export default observer;

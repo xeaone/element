@@ -39,6 +39,7 @@ export default class BindersRoute extends Component {
             { name: 'tomato' }
         ],
 
+        selectedPlant: null,
         selectEachResult: 'orange',
 
         radio: false,
@@ -150,13 +151,13 @@ export default class BindersRoute extends Component {
             <br>
             <pre>${Code(`
             <div>{{selectResult}}</div>
-            <select value="{{selectResult = $value}}">
+            <select value="{{selectedPlant = $value}}">
                 <option value="tree">Tree</option>
                 <option value="cactus">Cactus</option>
             </select>`, true)}</pre>
             <br>
             <div>{{selectResult}}</div>
-            <select value="{{selectResult = $value}}">
+            <select value="{{selectedPlant = $value}}">
                 <option value="tree">Tree</option>
                 <option value="cactus">Cactus</option>
             </select>

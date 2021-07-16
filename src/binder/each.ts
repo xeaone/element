@@ -2,59 +2,12 @@
 const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
-// const clean = function (node: Node) {
-//     if (node.nodeType === Node.COMMENT_NODE || node.nodeType === Node.TEXT_NODE && empty.test(node.nodeValue)) {
-//         node.parentNode.removeChild(node);
-//     } else {
-//         let child = node.firstChild;
-//         while (child) {
-//             const next = child.nextSibling;
-//             clean(child);
-//             child = next;
-//         }
-//     }
-// };
-
-// const walk = function (node: Node, handler: (node: Node, paths) => void, paths = []) {
-//     let i = 0;
-//     let child = node.firstChild;
-//     while (child) {
-//         if (child.nodeType === Node.TEXT_NODE) {
-//             const start = child.textContent.indexOf('{{');
-//             if (start === -1) return;
-
-//             if (start !== 0) child = (child as Text).splitText(start);
-
-//             const end = child.textContent.indexOf('}}');
-//             if (end === -1) return;
-
-//             if (end + 2 !== child.textContent.length) {
-//                 (child as Text).splitText(end + 2);
-//             }
-//             const childPaths = [ ...paths, 'childNodes', i ];
-//             handler(child, childPaths);
-//         } else if (child.nodeType === Node.ELEMENT_NODE) {
-//             const childPaths = [ ...paths, i ];
-//             let each = false;
-
-//             const attributes = (child as Element).attributes;
-//             for (let ai = 0; ai < attributes.length; ai++) {
-//                 const attribute = attributes[ ai ];
-//                 if (attribute.name === 'each' || attribute.name === 'o-each') each = true;
-//                 if (/{{.*?}}/.test(attribute.value)) handler(attribute, [ ...childPaths, 'attributes', ai ]);
-//             }
-
-//             if (each) return;
-
-//             walk(child, handler, childPaths);
-//         }
-//         child = child.nextSibling;
-//         i++;
-//     }
-// };
-
 const setup = function (binder) {
     let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+
+    binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
+    binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
+    binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
 
     binder.meta.path = path;
     binder.meta.keyName = key;
@@ -70,19 +23,6 @@ const setup = function (binder) {
 
     binder.meta.clone = document.createElement('template');
     binder.meta.templateElement = document.createElement('template');
-
-    // binder.meta.adds = [];
-    // let i = 0;
-    // let node = binder.owner.firstChild;
-    // while (node) {
-    //     walk(node, function (child, add) {
-    //         binder.meta.adds.push(add);
-    //     }, [ 'childNodes', i ]);
-    //     binder.meta.clone.content.appendChild(node);
-    //     binder.meta.cloneLength++;
-    //     node = binder.owner.firstChild;
-    //     i++;
-    // }
 
     let node = binder.owner.firstChild;
     while (node) {
@@ -126,6 +66,8 @@ const each = async function (binder) {
         while (binder.meta.currentLength < binder.meta.targetLength) {
             const indexValue = binder.meta.currentLength;
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
+            const variableValue = `${binder.meta.path}[${keyValue}]`;
+
 
             const dynamics = {
                 ...binder.dynamics,
@@ -149,24 +91,23 @@ const each = async function (binder) {
                 }
             };
 
+            const rewrites = [ ...(binder.rewrites || []) ];
+            if (binder.meta.indexPattern) rewrites.push([ binder.meta.indexPattern, indexValue ]);
+            if (binder.meta.keyPattern) rewrites.push([ binder.meta.keyPattern, keyValue ]);
+            if (binder.meta.variablePattern) rewrites.push([ binder.meta.variablePattern, variableValue ]);
+
             // const d = document.createElement('div');
             // d.className = 'box';
             // const t = document.createTextNode('{{item.number}}');
             // tick.then(binder.binder.add.bind(binder.binder, t, binder.container, dynamics));
             // d.appendChild(t);
-            // binder.meta.templateElement.content.appendChild(d);
+            // binder.meta.templateElement.content.appendChild(d)
 
             const clone = binder.meta.clone.content.cloneNode(true);
-
-            // for (const parts of binder.meta.adds) {
-            //     let node = clone;
-            //     for (const part of parts) node = node[ part ];
-            //     tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
-            // }
-
             let node = clone.firstChild;
             while (node) {
-                tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
+                tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
+                // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
                 // binder.binder.add(node, binder.container, dynamics);
                 node = node.nextSibling;
             }

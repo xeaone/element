@@ -20,31 +20,44 @@ const strips = new RegExp([
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
 
+// const ignores = [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ];
+
 const cache = new Map();
 
-export default function (statement: string, data: any, dynamics?: any) {
+export default function (statement: string, data: any, dynamics?: any, rewrites?: any) {
 
     if (isOfIn.test(statement)) {
         statement = statement.replace(replaceOfIn, '{{$2}}');
     }
 
     const convert = !shouldNotConvert.test(statement);
-    const striped = statement.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
+    let striped = statement;
+
+    if (rewrites) {
+        for (const [ pattern, value ] of rewrites) {
+            striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
+        }
+    }
+
+    striped = striped.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
 
     const paths = striped.match(references) || [];
-    ;
+
     dynamics = dynamics || {};
     const context = new Proxy(data, {
-        has: () => true,
-        set: (_, name, value) => {
-            if (name[ 0 ] === '$') dynamics[ name ] = value;
-            else data[ name ] = value;
+        has: (_, key) => {
             return true;
         },
-        get: (_, name) => {
-            if (name in dynamics) return dynamics[ name ];
-            else if (name in data) return data[ name ];
-            else return window[ name ];
+        set: (_, key, value) => {
+            if (key[ 0 ] === '$') dynamics[ key ] = value;
+            else data[ key ] = value;
+            return true;
+        },
+        get: (_, key) => {
+            // console.log(data.$path, data[ key ]?.$path, key);
+            if (key in dynamics) return dynamics[ key ];
+            else if (key in data) return data[ key ];
+            else return window[ key ];
         }
     });
 

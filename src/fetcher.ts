@@ -145,7 +145,8 @@ export default new class Fetcher {
         if (context.body) {
             if (context.method === 'GET') {
                 context.url = context.url + '?' + await this.serialize(context.body);
-            } else if (context.contentType === 'json') {
+                // } else if (context.contentType === 'json') {
+            } else if (typeof context.body === 'object') {
                 context.body = JSON.stringify(context.body);
             }
         }
@@ -159,25 +160,17 @@ export default new class Fetcher {
             // message: { enumerable: true, value: result.statusText }
         });
 
-        if (!context.responseType) {
-            context.body = result.body;
-        } else {
-            const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
-            const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
+        const responseType = context.responseType === 'buffer' ? 'arrayBuffer' : context.responseType || '';
+        const contentType = result.headers.get('content-type') || result.headers.get('Content-Type') || '';
 
-            let type: string;
-            if (responseType === 'json' && contentType.indexOf('json') !== -1) {
-                type = 'json';
-            } else {
-                type = responseType || 'text';
-            }
+        let type: string;
+        if (responseType) type = responseType;
+        else if (contentType.includes('application/json')) type = 'json';
+        else if (contentType.includes('text/plain')) type = 'text';
 
-            if (this.types.indexOf(type) === -1) {
-                throw new Error('Oxe.fetcher.fetch - invalid responseType value');
-            }
+        if (!this.types.includes(type)) throw new Error('Oxe.fetcher.fetch - invalid responseType');
 
-            context.body = await result[ type ]();
-        }
+        context.body = await result[ type ]();
 
         if (typeof option.after === 'function') await option.after(context);
         if (context.aborted) return;
