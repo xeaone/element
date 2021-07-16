@@ -42,12 +42,7 @@
         }
         if (target[key] === value)
             return true;
-        let path;
-        const isArray = target.constructor === Array;
-        if (isArray)
-            path = target.$path ? `${target.$path}[${key}]` : `${key}`;
-        else
-            path = target.$path ? `${target.$path}.${key}` : `${key}`;
+        const path = target.$path ? `${target.$path}.${key}` : `${key}`;
         const initial = !target.$tasks.length;
         target.$tasks.push(target.$task.bind(null, path));
         if (value !== null && value !== undefined && typeof value === 'object' && !value.$proxy) {
@@ -72,19 +67,20 @@
         return result;
     };
 
-    const format = (data) => data === undefined ? '' : typeof data === 'object' ? JSON.stringify(data) : data;
-
-    const booleans = [
+    var booleanTypes = [
         'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'compact', 'controls', 'declare', 'default',
         'defaultchecked', 'defaultmuted', 'defaultselected', 'defer', 'disabled', 'draggable', 'enabled', 'formnovalidate',
         'indeterminate', 'inert', 'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nohref', 'noresize', 'noshade', 'hidden',
         'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly', 'required', 'reversed', 'scoped', 'seamless', 'selected',
         'sortable', 'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible'
     ];
+
+    const format = (data) => data === undefined ? '' : typeof data === 'object' ? JSON.stringify(data) : data;
+
     const standard = async function (binder) {
         const { name, owner, node } = binder;
         let data = await binder.compute();
-        const boolean = booleans.includes(name);
+        const boolean = booleanTypes.includes(name);
         if (boolean) {
             data = data ? true : false;
             if (data)
@@ -151,7 +147,9 @@
         await handler(binder, checked);
     };
 
-    const numberTypes = ['date', 'datetime-local', 'month', 'number', 'range', 'time', 'week'];
+    var numberTypes = ['date', 'datetime-local', 'month', 'number', 'range', 'time', 'week'];
+
+    console.warn('need to handle default select-one value');
     const input = async function (binder, event) {
         binder.busy = true;
         const { owner } = binder;
@@ -434,6 +432,16 @@
         binder.owner.nodeValue = format(data);
     };
 
+    const getValue = (element) => {
+        if (!element)
+            return undefined;
+        else if ('$value' in element)
+            return typeof element.$value === 'object' ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
+        else if (numberTypes.includes(element.type))
+            return element.valueAsNumber;
+        else
+            return element.value;
+    };
     const submit = async function (event, binder) {
         event.preventDefault();
         const form = {};
@@ -452,13 +460,17 @@
                 continue;
             let value;
             if ('$value' in element) {
-                value = element.$value === 'object' ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
+                value = getValue(element);
             }
             else if (type === 'select-multiple') {
                 value = [];
                 for (const option of element.selectedOptions) {
-                    value.push('$value' in option ? option.$value === 'object' ? JSON.parse(JSON.stringify(option.$value)) : option.$value : option.value);
+                    value.push(getValue(option));
                 }
+            }
+            else if (type === 'select-one') {
+                const [option] = element.selectedOptions;
+                value = getValue(option);
             }
             else {
                 value = element.value;
@@ -546,30 +558,40 @@
     // };
     // export default { read };
 
-    const traverse = function (data, path, paths) {
-        paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
-        if (!paths.length) {
+    // const traverse = function (data: any, path: string, paths?: string[]) {
+    //     paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
+    //     if (!paths.length) {
+    //         return data;
+    //     } else {
+    //         let part = paths.shift();
+    //         const conditional = part.endsWith('?');
+    //         if (conditional && typeof data !== 'object') return undefined;
+    //         part = conditional ? part.slice(0, -1) : part;
+    //         return traverse(data[ part ], path, paths);
+    //     }
+    // };
+    const traverse = function (data, path) {
+        const parts = typeof path === 'string' ? path.split('.') : path;
+        const part = parts.shift();
+        if (!part) {
             return data;
         }
         else {
-            let part = paths.shift();
-            const conditional = part.endsWith('?');
-            if (conditional && typeof data !== 'object')
-                return undefined;
-            part = conditional ? part.slice(0, -1) : part;
-            return traverse(data[part], path, paths);
+            return typeof data === 'object' ? traverse(data[part], parts) : undefined;
         }
     };
 
     const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-    const replaceOutsideAndSyntax = /[^{}]*{{|}}[^{}]*/g;
+    const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)/g;
+    // |({.*?})|(\s*\(+)+\s*)|(\s*(\=)+\s*)|(\s*(\:)+\s*)|(\s*(\?)+\s*)
+    const replaceSeperators = /\?\.\[|\]\?\.|\?\.|\s*\.\s*|\s*\[\s*|\s*\]\s*/g;
     const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
     const references = new RegExp(`${reference}+(?!.*\\1)`, 'g');
     const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
     const strips = new RegExp([
-        ';|:',
+        // ';|:',
         '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
         `(window|document|this|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${reference}*`,
         `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
@@ -584,20 +606,9 @@
         if (isOfIn.test(statement)) {
             statement = statement.replace(replaceOfIn, '{{$2}}');
         }
-        const convert = !shouldNotConvert.test(statement);
-        let striped = statement;
-        if (rewrites) {
-            for (const [pattern, value] of rewrites) {
-                striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
-            }
-        }
-        striped = striped.replace(replaceOutsideAndSyntax, ' ').replace(strips, '');
-        const paths = striped.match(references) || [];
         dynamics = dynamics || {};
         const context = new Proxy(data, {
-            has: (_, key) => {
-                return true;
-            },
+            has: () => true,
             set: (_, key, value) => {
                 if (key[0] === '$')
                     dynamics[key] = value;
@@ -606,7 +617,6 @@
                 return true;
             },
             get: (_, key) => {
-                // console.log(data.$path, data[ key ]?.$path, key);
                 if (key in dynamics)
                     return dynamics[key];
                 else if (key in data)
@@ -615,10 +625,15 @@
                     return window[key];
             }
         });
-        let [, assignment] = striped.match(matchAssignment) || [];
-        assignment = assignment?.replace(/\s/g, '');
-        // assignment = assignment ? `with ($context) { return (${assignment}); }` : undefined;
-        // const assignee = assignment ? () => new Function('$context', assignment)(data) : () => undefined;
+        const convert = !shouldNotConvert.test(statement);
+        let striped = statement.replace(replaceSeperators, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
+        if (rewrites) {
+            for (const [pattern, value] of rewrites) {
+                striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
+            }
+        }
+        const paths = striped.match(references) || [];
+        const [, assignment] = striped.match(matchAssignment) || [];
         const assignee = assignment ? traverse.bind(null, context, assignment) : () => undefined;
         let compute;
         if (cache.has(statement)) {
@@ -626,9 +641,10 @@
         }
         else {
             let code = statement;
-            code = code.replace(/{{/g, convert ? `' +` : '');
-            code = code.replace(/}}/g, convert ? ` + '` : '');
+            code = code.replace(/{{/g, convert ? `' + (` : '(');
+            code = code.replace(/}}/g, convert ? `) + '` : ')');
             code = convert ? `'${code}'` : code;
+            // console.log([ statement, code, striped, paths ].join('\n'));
             code = `
             if ($render) {
                 $context.$f = $render.form; $context.$form = $render.form;
@@ -637,11 +653,29 @@
                 $context.$c = $render.checked; $context.$checked = $render.checked;
             }
             with ($context) {
-                return (${code});
+                return ${code};
             }
         `;
             compute = new Function('$context', '$render', code);
             cache.set(statement, compute);
+            // try {
+            //     const handler = {
+            //         has: () => true,
+            //         apply: () => undefined,
+            //         set: () => {
+            //             return true;
+            //         },
+            //         get: (target, key) => {
+            //             if (typeof key === 'string' && target[ key ] === undefined) {
+            //                 const $path = target.$path ? `${target.$path}.${key}` : key;
+            //                 console.log(key, $path);
+            //                 target[ key ] = new Proxy({ $path }, handler);
+            //             }
+            //             return target[ key ];
+            //         }
+            //     };
+            //     compute(new Proxy({ $path: '' }, handler));
+            // } catch { }
             compute = compute.bind(null, context);
         }
         return { compute, assignee, paths };

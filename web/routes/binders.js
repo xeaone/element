@@ -22,7 +22,7 @@ export default class BindersRoute extends Component {
         checkInput () { console.log(this.checked); },
 
         color: Color(),
-        styleChange () { this.color = Color(); },
+        colorChange () { this.color = Color(); },
 
         active: true,
         lightblue: active => active ? 'lightblue' : '',
@@ -93,20 +93,23 @@ export default class BindersRoute extends Component {
                 <input type="radio" name="radio" value="two" checked="{{r2=$c}}"> Radio Two
             </label>
         </section>
+
         <section id="style">
             <h2>Style Binder</h2>
             <br>
             <pre style="color: {{color}}">${Code(`<div style="color: {{color}}">Look at my style</div>`, true)}</pre>
             <pre style="color: {{color}}">${Code(`<div style="color: {{color}}">Look at my style</div>`)}</pre>
             <br>
-            <button onclick="{{styleChange()}}">Change Color</button>
+            <button onclick="{{colorChange()}}">Change Color</button>
         </section>
 
         <section id="class">
             <h3>Class Binder</h3>
             <br>
             <pre class="default {{lightblue(active)}}">${Code(`class="default {{lightblue(active)}}"`, true)}</pre>
-            <pre class="default {{lightblue(active)}}">class="default {{lightblue(active)}}"</pre>
+            <pre class="default {{lightblue(active)}}">${Code(`class="default {{lightblue(active)}}"`)}</pre>
+            <pre class="default {{active ? 'lightblue' : ''}}">${Code(`class="default {{active ? 'lightblue' : ''}}"`, true)}</pre>
+            <pre class="default {{active ? 'lightblue' : ''}}">${Code(`class="default {{active ? 'lightblue' : ''}}"`)}</pre>
             <br>
             <button onclick="{{classToggle()}}">Toggle Active</button>
         </section>
@@ -156,7 +159,7 @@ export default class BindersRoute extends Component {
                 <option value="cactus">Cactus</option>
             </select>`, true)}</pre>
             <br>
-            <div>{{selectResult}}</div>
+            <div>{{selectedPlant}}</div>
             <select value="{{selectedPlant = $value}}">
                 <option value="tree">Tree</option>
                 <option value="cactus">Cactus</option>

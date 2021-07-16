@@ -27,11 +27,7 @@ const set = function (target: any, key: string, value: any) {
 
     if (target[ key ] === value) return true;
 
-    let path;
-    const isArray = target.constructor === Array;
-    if (isArray) path = target.$path ? `${target.$path}[${key}]` : `${key}`;
-    else path = target.$path ? `${target.$path}.${key}` : `${key}`;
-
+    const path = target.$path ? `${target.$path}.${key}` : `${key}`;
     const initial = !target.$tasks.length;
     target.$tasks.push(target.$task.bind(null, path));
 

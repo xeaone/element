@@ -1,6 +1,7 @@
+import numberTypes from '../types/number';
 import format from '../format';
 
-const numberTypes = [ 'date', 'datetime-local', 'month', 'number', 'range', 'time', 'week' ];
+console.warn('need to handle default select-one value');
 
 const input = async function (binder, event) {
     binder.busy = true;
