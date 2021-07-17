@@ -17,6 +17,10 @@
 }(this, (function () { 'use strict';
 
     console.warn('oxe: need to handle delete property');
+    const $path = Symbol('$path');
+    const $task = Symbol('$task');
+    const $tasks = Symbol('$tasks');
+    const $proxy = Symbol('$proxy');
     // const tick = Promise.resolve();
     const run$1 = async function (tasks) {
         let task;
@@ -24,47 +28,56 @@
             await task();
         }
     };
-    const set = function (target, key, value) {
-        if (key === '$path')
+    const set = function (target, key, value, receiver) {
+        if (key === $path)
             return true;
-        if (key === '$task')
+        if (key === $task)
             return true;
-        if (key === '$tasks')
+        if (key === $tasks)
             return true;
-        if (key === '$proxy')
+        if (key === $proxy)
             return true;
-        if (`${target[key]}${value}` === 'NaNNaN')
+        if (key === 'length')
+            return target[$tasks].push(target[$task].bind(null, target[$path]));
+        const current = target[key];
+        if (current !== current && value !== value)
             return true;
-        if (key === 'length') {
-            // target.$tasks.unshift(target.$task.bind(null, target.$path));
-            target.$tasks.push(target.$task.bind(null, target.$path));
+        if (current === value)
             return true;
-        }
-        if (target[key] === value)
-            return true;
-        const path = target.$path ? `${target.$path}.${key}` : `${key}`;
-        const initial = !target.$tasks.length;
-        target.$tasks.push(target.$task.bind(null, path));
-        if (value !== null && value !== undefined && typeof value === 'object' && !value.$proxy) {
-            const copy = value.constructor();
-            copy.$proxy = true;
-            copy.$path = path;
-            copy.$task = target.$task;
-            copy.$tasks = target.$tasks;
-            target[key] = Object.assign(new Proxy(copy, { set }), value);
-            // target[ key ] = new Proxy(value, { set });
+        const path = target[$path] ? `${target[$path]}.${key}` : `${key}`;
+        const initial = !target[$tasks].length;
+        target[$tasks].push(target[$task].bind(null, path));
+        if (value && typeof value === 'object' && !value[$proxy]) {
+            value[$path] = path;
+            value[$proxy] = true;
+            value[$task] = target[$task];
+            value[$tasks] = target[$tasks];
+            target[key] = new Proxy(value, handler$1);
+            // const proxy = new Proxy(value, handler);
+            // target[ key ] = Object.assign(proxy, value);
         }
         else {
             target[key] = value;
         }
         if (initial)
-            run$1(target.$tasks);
+            run$1(target[$tasks]);
         return true;
     };
+    const handler$1 = { set };
     const observer = function (source, task) {
-        const result = new Proxy({ $task: task, $tasks: [], $path: '' }, { set });
-        Object.assign(result, source);
-        return result;
+        // source[ $path ] = '';
+        // source[ $tasks ] = [];
+        // source[ $task ] = task;
+        // source[ $proxy ] = true;
+        // return new Proxy(source, { set });
+        const proxy = new Proxy({
+            [$path]: '',
+            [$tasks]: [],
+            [$task]: task,
+            [$proxy]: true
+        }, handler$1);
+        Object.assign(proxy, source);
+        return proxy;
     };
 
     var booleanTypes = [
@@ -619,10 +632,9 @@
             get: (_, key) => {
                 if (key in dynamics)
                     return dynamics[key];
-                else if (key in data)
+                if (key in data)
                     return data[key];
-                else
-                    return window[key];
+                return window[key];
             }
         });
         const convert = !shouldNotConvert.test(statement);

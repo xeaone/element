@@ -42,8 +42,8 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
         },
         get: (_, key) => {
             if (key in dynamics) return dynamics[ key ];
-            else if (key in data) return data[ key ];
-            else return window[ key ];
+            if (key in data) return data[ key ];
+            return window[ key ];
         }
     });
 
