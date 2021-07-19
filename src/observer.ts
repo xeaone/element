@@ -29,12 +29,22 @@ const set = function (target: any, key: any, value: any, receiver: any) {
     const current = target[ key ];
     if (current !== current && value !== value) return true; // NaN check
     if (current === value && target[ $setup ]) return true;
+    // if (current === value) return true;
 
     const path = target[ $path ] ? `${target[ $path ]}.${key}` : `${key}`;
     const initial = !target[ $tasks ].length;
     target[ $tasks ].push(target[ $task ].bind(null, path));
 
     if (value && typeof value === 'object' && !value[ $proxy ]) {
+        // const clone = value.constructor();
+        // clone[ $path ] = path;
+        // clone[ $proxy ] = true;
+        // clone[ $task ] = target[ $task ];
+        // clone[ $tasks ] = target[ $tasks ];
+        // const proxy = new Proxy(clone, handler);
+        // Object.assign(proxy, value);
+        // target[ key ] = proxy;
+
         value[ $path ] = path;
         value[ $proxy ] = true;
         value[ $setup ] = false;

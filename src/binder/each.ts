@@ -68,11 +68,10 @@ const each = async function (binder) {
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
             const variableValue = `${binder.meta.path}[${keyValue}]`;
 
-
             const dynamics = {
                 ...binder.dynamics,
-                [ binder.meta.keyName ]: keyValue,
-                [ binder.meta.indexName ]: indexValue,
+                get [ binder.meta.keyName ] () { return keyValue; },
+                get [ binder.meta.indexName ] () { return indexValue; },
                 set [ binder.meta.variableName ] (value) {
                     let data = binder.container.data;
                     for (const part of binder.meta.pathParts) {
