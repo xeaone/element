@@ -43,6 +43,7 @@ export default new class Router {
 
         for (const query of queries) {
             let [ name, value ] = query.split('=');
+            name = decodeURIComponent(name.replace(/\+/g, ' '));
             value = decodeURIComponent(value.replace(/\+/g, ' '));
             if (name in result) {
                 if (typeof result[ name ] === 'object') {
