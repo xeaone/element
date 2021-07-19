@@ -16,11 +16,9 @@
 const traverse = function (data: any, path: string | string[]) {
     const parts = typeof path === 'string' ? path.split('.') : path;
     const part = parts.shift();
-    if (!part) {
-        return data;
-    } else {
-        return typeof data === 'object' ? traverse(data[ part ], parts) : undefined;
-    }
+    if (!part) return data;
+    if (typeof data === 'object') return traverse(data[ part ], parts);
+    return undefined;
 };
 
 export default traverse;
