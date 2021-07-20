@@ -1,10 +1,21 @@
-import numberTypes from '../types/number';
 import format from '../format';
+import numberTypes from '../types/number';
 
 console.warn('need to handle default select-one value');
 
+const stampFromView = function (data: number) {
+    const date = new Date(data);
+    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
+        date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
+};
+
+const stampToView = function (data: number) {
+    const date = new Date(data);
+    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(),
+        date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds())).getTime();
+};
+
 const input = async function (binder, event) {
-    binder.busy = true;
 
     const { owner } = binder;
     const { type } = owner;
@@ -29,23 +40,30 @@ const input = async function (binder, event) {
         //     const value = multiple ? [ ...files ] : files[ 0 ];
         //     const computed = await binder.compute({ event, value });
         //     display = format(computed);
+    } else if (type === 'number' || type === 'range') {
+        computed = await binder.compute({ event, value: owner.valueAsNumber });
+        owner.valueAsNumber = computed;
+        display = owner.value;
+    } else if (numberTypes.includes(type)) {
+        const value = owner.$typeof === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
+
+        computed = await binder.compute({ event, value });
+
+        if (owner.$typeof === 'string') owner.value = computed;
+        else owner.valueAsNumber = stampToView(computed);
+
+        display = owner.value;
     } else {
         const { checked } = owner;
-        const isNumber = owner.$typeof !== 'string' && numberTypes.includes(type);
-        const value = isNumber ? owner.valueAsNumber : owner.$typeof && owner.$typeof !== 'string' ? JSON.parse(owner.value) : owner.value;
+        const value = owner.$typeof && owner.$typeof !== 'string' ? JSON.parse(owner.value) : owner.value;
         computed = await binder.compute({ event, value, checked });
         display = format(computed);
-        if (numberTypes.includes(type) && typeof computed !== 'string') {
-            owner.valueAsNumber = computed;
-        } else {
-            owner.value = display;
-        }
+        owner.value = display;
     }
 
     owner.$value = computed;
     owner.$typeof = typeof computed;
     owner.setAttribute('value', display);
-    binder.busy = false;
 };
 
 const value = async function value (binder) {
@@ -87,21 +105,33 @@ const value = async function value (binder) {
 
         computed = await binder.compute({ value });
         display = format(computed);
+    } else if (type === 'number' || type === 'range') {
+        const value = binder.assignee();
+        computed = await binder.compute({ value });
+        owner.valueAsNumber = computed;
+        display = owner.value;
+    } else if (numberTypes.includes(type)) {
+        const value = binder.assignee();
+
+        computed = await binder.compute({ value });
+
+        if (typeof computed === 'string') owner.value = computed;
+        else owner.valueAsNumber = stampToView(computed);
+
+        display = owner.value;
     } else {
         const { checked } = owner;
         const value = binder.assignee();
         computed = await binder.compute({ value, checked });
         display = format(computed);
-        if (numberTypes.includes(type) && typeof computed !== 'string') {
-            owner.valueAsNumber = computed;
-        } else {
-            owner.value = display;
-        }
+        owner.value = display;
     }
 
     owner.$value = computed;
     owner.$typeof = typeof computed;
     owner.setAttribute('value', display);
+
+    console.log(owner, owner.$typeof);
 
     if (!meta.first) {
         meta.first = true;
