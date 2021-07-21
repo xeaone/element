@@ -22,11 +22,11 @@ const setup = function (binder) {
     // binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
     // binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
 
-    if (binder.rewrites) {
-        for (const [ pattern, value ] of binder.rewrites) {
-            path = path.replace(new RegExp(`(.*?\\b)(${pattern})(\\b.*?)`), (s, g1, g2, g3) => g1 + value + g3);
-        }
-    }
+    // if (binder.rewrites) {
+    //     for (const [ pattern, value ] of binder.rewrites) {
+    //         path = path.replace(new RegExp(`\\b(${pattern})\\b`), value);
+    //     }
+    // }
 
     binder.meta.keyPattern = key ? key : null;
     binder.meta.indexPattern = index ? index : null;
@@ -89,7 +89,6 @@ const each = async function (binder) {
         while (binder.meta.currentLength < binder.meta.targetLength) {
             const indexValue = binder.meta.currentLength;
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
-            // const variableValue = `${binder.meta.path}[${keyValue}]`;
             const variableValue = `${binder.meta.path}.${keyValue}`;
 
             const dynamics = {
@@ -97,7 +96,6 @@ const each = async function (binder) {
                 get [ binder.meta.keyName ] () { return keyValue; },
                 get [ binder.meta.indexName ] () { return indexValue; },
                 set [ binder.meta.variableName ] (value) {
-                    // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                     let data = binder.container.data;
                     for (const part of binder.meta.pathParts) {
                         if (part in this) data = this[ part ];
@@ -107,22 +105,20 @@ const each = async function (binder) {
                     data[ keyValue ] = value;
                 },
                 get [ binder.meta.variableName ] () {
-                    // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                     let data = binder.container.data;
                     for (const part of binder.meta.pathParts) {
                         if (part in this) data = this[ part ];
                         else if (part in data) data = data[ part ];
                         else return;
                     }
-
                     return data[ keyValue ];
                 }
             };
 
             const rewrites = [ ...(binder.rewrites || []) ];
-            if (binder.meta.indexPattern) rewrites.push([ binder.meta.indexPattern, indexValue ]);
-            if (binder.meta.keyPattern) rewrites.push([ binder.meta.keyPattern, keyValue ]);
-            if (binder.meta.variablePattern) rewrites.push([ binder.meta.variablePattern, variableValue ]);
+            if (binder.meta.indexPattern) rewrites.unshift([ binder.meta.indexPattern, indexValue ]);
+            if (binder.meta.keyPattern) rewrites.unshift([ binder.meta.keyPattern, keyValue ]);
+            if (binder.meta.variablePattern) rewrites.unshift([ binder.meta.variablePattern, variableValue ]);
 
             // const d = document.createElement('div');
             // d.className = 'box';

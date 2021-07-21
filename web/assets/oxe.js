@@ -21,7 +21,6 @@
     const $task = Symbol('$task');
     const $tasks = Symbol('$tasks');
     const $proxy = Symbol('$proxy');
-    const $setup = Symbol('$setup');
     // const tick = Promise.resolve();
     const run$1 = async function (tasks) {
         let task;
@@ -30,6 +29,11 @@
         }
     };
     const set = function (target, key, value, receiver) {
+        // if ($symbols.includes(key)) {
+        //     target[ key ] = value;
+        //     return true;
+        // }
+        // if (typeof key === 'symbol') return true;
         if (key === $path)
             return true;
         if (key === $task)
@@ -38,40 +42,34 @@
             return true;
         if (key === $proxy)
             return true;
-        if (key === $setup)
-            return true;
         if (key === 'length')
             return target[$tasks].push(target[$task].bind(null, target[$path]));
         const current = target[key];
         if (current !== current && value !== value)
             return true; // NaN check
-        if (current === value && target[$setup])
+        // if (current === value && target[ $setup ]) return true;
+        if (current === value)
             return true;
-        // if (current === value) return true;
         const path = target[$path] ? `${target[$path]}.${key}` : `${key}`;
         const initial = !target[$tasks].length;
-        // console.log(path);
-        if (value && typeof value === 'object') {
-            if (value[$proxy])
-                return true;
+        if (value && typeof value === 'object' && !value[$proxy]) {
             target[$tasks].push(target[$task].bind(null, path));
-            // const clone = value.constructor();
-            // clone[ $path ] = path;
-            // clone[ $proxy ] = true;
-            // clone[ $task ] = target[ $task ];
-            // clone[ $tasks ] = target[ $tasks ];
-            // const proxy = new Proxy(clone, handler);
+            const clone = value.constructor();
+            clone[$path] = path;
+            clone[$proxy] = true;
+            clone[$task] = target[$task];
+            clone[$tasks] = target[$tasks];
+            const proxy = new Proxy(clone, handler$1);
+            Object.assign(proxy, value);
+            target[key] = proxy;
+            // this does not work
+            // const proxy = new Proxy(value, handler);
+            // proxy[ $path ] = path;
+            // proxy[ $proxy ] = true;
+            // proxy[ $task ] = target[ $task ];
+            // proxy[ $tasks ] = target[ $tasks ];
             // Object.assign(proxy, value);
             // target[ key ] = proxy;
-            value[$path] = path;
-            value[$proxy] = true;
-            value[$setup] = false;
-            value[$task] = target[$task];
-            value[$tasks] = target[$tasks];
-            const proxy = new Proxy(value, handler$1);
-            Object.assign(proxy, value);
-            value[$setup] = true;
-            target[key] = proxy;
         }
         else {
             target[$tasks].push(target[$task].bind(null, path));
@@ -83,15 +81,21 @@
     };
     const handler$1 = { set };
     const observer = function (source, task) {
-        source[$path] = '';
-        source[$tasks] = [];
-        source[$task] = task;
-        source[$proxy] = true;
-        source[$setup] = false;
-        const proxy = new Proxy(source, handler$1);
+        const clone = source.constructor();
+        clone[$path] = '';
+        clone[$tasks] = [];
+        clone[$task] = task;
+        clone[$proxy] = true;
+        const proxy = new Proxy(clone, handler$1);
         Object.assign(proxy, source);
-        source[$setup] = true;
         return proxy;
+        // source[ $path ] = '';
+        // source[ $tasks ] = [];
+        // source[ $task ] = task;
+        // source[ $proxy ] = true;
+        // const proxy = new Proxy(source, handler);
+        // Object.assign(proxy, source);
+        // return proxy;
     };
 
     var booleanTypes = [
@@ -314,11 +318,11 @@
         // binder.meta.keyPattern = key ? new RegExp(`(;.*?\\b)(${key})(\\b.*?;)`, 'g') : null;
         // binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
         // binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
-        if (binder.rewrites) {
-            for (const [pattern, value] of binder.rewrites) {
-                path = path.replace(new RegExp(`(.*?\\b)(${pattern})(\\b.*?)`), (s, g1, g2, g3) => g1 + value + g3);
-            }
-        }
+        // if (binder.rewrites) {
+        //     for (const [ pattern, value ] of binder.rewrites) {
+        //         path = path.replace(new RegExp(`\\b(${pattern})\\b`), value);
+        //     }
+        // }
         binder.meta.keyPattern = key ? key : null;
         binder.meta.indexPattern = index ? index : null;
         binder.meta.variablePattern = variable ? variable : null;
@@ -369,14 +373,12 @@
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
-                // const variableValue = `${binder.meta.path}[${keyValue}]`;
                 const variableValue = `${binder.meta.path}.${keyValue}`;
                 const dynamics = {
                     ...binder.dynamics,
                     get [binder.meta.keyName]() { return keyValue; },
                     get [binder.meta.indexName]() { return indexValue; },
                     set [binder.meta.variableName](value) {
-                        // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                         let data = binder.container.data;
                         for (const part of binder.meta.pathParts) {
                             if (part in this)
@@ -389,7 +391,6 @@
                         data[keyValue] = value;
                     },
                     get [binder.meta.variableName]() {
-                        // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                         let data = binder.container.data;
                         for (const part of binder.meta.pathParts) {
                             if (part in this)
@@ -404,11 +405,11 @@
                 };
                 const rewrites = [...(binder.rewrites || [])];
                 if (binder.meta.indexPattern)
-                    rewrites.push([binder.meta.indexPattern, indexValue]);
+                    rewrites.unshift([binder.meta.indexPattern, indexValue]);
                 if (binder.meta.keyPattern)
-                    rewrites.push([binder.meta.keyPattern, keyValue]);
+                    rewrites.unshift([binder.meta.keyPattern, keyValue]);
                 if (binder.meta.variablePattern)
-                    rewrites.push([binder.meta.variablePattern, variableValue]);
+                    rewrites.unshift([binder.meta.variablePattern, variableValue]);
                 // const d = document.createElement('div');
                 // d.className = 'box';
                 // const t = document.createTextNode('{{item.number}}');
@@ -595,16 +596,18 @@
     const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-    const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)/g;
+    const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)|\/|\?|:/g;
+    // const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)|\/|\?|:|==|===/g;
+    // const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)/g;
     const seperatorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
     const startReference = '[a-zA-Z_$]+';
     const endReference = `((${seperatorReference})[a-zA-Z_$0-9]+)*`;
-    const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
     const replaceSeperator = new RegExp(`${seperatorReference}`, 'g');
     const references = new RegExp(`${startReference}${endReference}`, 'g');
+    const matchAssignment = new RegExp(`(${startReference}${endReference})\\s*=`);
     const strips = new RegExp([
         '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
-        `(window|document|this|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${endReference}`,
+        `(window|document|this|Math|Date|Number|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${endReference}`,
         `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
     \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
     \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bconst\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
@@ -617,12 +620,17 @@
             statement = statement.replace(replaceOfIn, '{{$2}}');
         }
         dynamics = dynamics || {};
+        const $render = {};
         const context = new Proxy({}, {
             has: () => true,
             set: (target, key, value) => {
-                if (key === '$render')
-                    for (const name in value)
-                        target[`$${name}`] = value[name];
+                if (key === '$render') {
+                    for (const k in value) {
+                        const v = value[k];
+                        $render[`$${k}`] = v;
+                        $render[`$${k[0]}`] = v;
+                    }
+                }
                 else if (key in dynamics)
                     dynamics[key] = value;
                 else
@@ -630,8 +638,8 @@
                 return true;
             },
             get: (target, key) => {
-                if (key in target)
-                    return target[key];
+                if (key in $render)
+                    return $render[key];
                 if (key in dynamics)
                     return dynamics[key];
                 if (key in data)
@@ -643,19 +651,15 @@
         let striped = statement.replace(replaceSeperator, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
         if (rewrites) {
             for (const [pattern, value] of rewrites) {
-                striped = striped.replace(new RegExp(`(;.*?\\b)(${pattern})(\\b.*?;)`, 'g'), (s, g1, g2, g3) => g1 + value + g3);
-                // striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
+                striped = striped.replace(new RegExp(`\\b(${pattern})\\b`, 'g'), value);
             }
-            // console.log(statement, striped, rewrites, striped.match(references) || []);
+            // console.log(statement, striped, rewrites, striped.match(references), striped.match(matchAssignment));
         }
         const paths = striped.match(references) || [];
         const [, assignment] = striped.match(matchAssignment) || [];
         const assignee = assignment ? traverse.bind(null, context, assignment) : () => undefined;
-        let compute;
-        if (cache.has(statement)) {
-            compute = cache.get(statement).bind(null, context);
-        }
-        else {
+        let compute = cache.get(statement);
+        if (!compute) {
             let code = statement;
             code = code.replace(/{{/g, convert ? `' + (` : '(');
             code = code.replace(/}}/g, convert ? `) + '` : ')');
@@ -663,26 +667,8 @@
             code = `if ($render) $context.$render = $render;\nwith ($context) { return ${code}; }`;
             compute = new Function('$context', '$render', code);
             cache.set(statement, compute);
-            // try {
-            //     const handler = {
-            //         has: () => true,
-            //         apply: () => undefined,
-            //         set: () => {
-            //             return true;
-            //         },
-            //         get: (target, key) => {
-            //             if (typeof key === 'string' && target[ key ] === undefined) {
-            //                 const $path = target.$path ? `${target.$path}.${key}` : key;
-            //                 console.log(key, $path);
-            //                 target[ key ] = new Proxy({ $path }, handler);
-            //             }
-            //             return target[ key ];
-            //         }
-            //     };
-            //     compute(new Proxy({ $path: '' }, handler));
-            // } catch { }
-            compute = compute.bind(null, context);
         }
+        compute = compute.bind(null, context);
         return { compute, assignee, paths };
     }
 
@@ -930,6 +916,7 @@
         async render() {
             const tasks = [];
             const observer$1 = async (path) => {
+                // console.log(path);
                 const binders = this.#binder.pathBinders.get(path);
                 if (!binders)
                     return;
