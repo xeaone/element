@@ -53,7 +53,8 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
 
     if (rewrites) {
         for (const [ pattern, value ] of rewrites) {
-            striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
+            striped = striped.replace(new RegExp(`(;.*?\\b)(${pattern})(\\b.*?;)`, 'g'), (s, g1, g2, g3) => g1 + value + g3);
+            // striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
         }
         // console.log(statement, striped, rewrites, striped.match(references) || []);
     }

@@ -311,9 +311,17 @@
         // binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
         // binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
         // binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
-        binder.meta.keyPattern = key ? new RegExp(`(;.*?\\b)(${key})(\\b.*?;)`, 'g') : null;
-        binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
-        binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
+        // binder.meta.keyPattern = key ? new RegExp(`(;.*?\\b)(${key})(\\b.*?;)`, 'g') : null;
+        // binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
+        // binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
+        if (binder.rewrites) {
+            for (const [pattern, value] of binder.rewrites) {
+                path = path.replace(new RegExp(`(.*?\\b)(${pattern})(\\b.*?)`), (s, g1, g2, g3) => g1 + value + g3);
+            }
+        }
+        binder.meta.keyPattern = key ? key : null;
+        binder.meta.indexPattern = index ? index : null;
+        binder.meta.variablePattern = variable ? variable : null;
         binder.meta.path = path;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
@@ -635,7 +643,8 @@
         let striped = statement.replace(replaceSeperator, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
         if (rewrites) {
             for (const [pattern, value] of rewrites) {
-                striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
+                striped = striped.replace(new RegExp(`(;.*?\\b)(${pattern})(\\b.*?;)`, 'g'), (s, g1, g2, g3) => g1 + value + g3);
+                // striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
             }
             // console.log(statement, striped, rewrites, striped.match(references) || []);
         }
