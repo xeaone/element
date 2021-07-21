@@ -612,15 +612,14 @@
         const context = new Proxy({}, {
             has: () => true,
             set: (target, key, value) => {
-                if (key === '$render') {
-                    for (const name in value) {
+                if (key === '$render')
+                    for (const name in value)
                         target[`$${name}`] = value[name];
-                    }
-                    return true;
-                }
-                if (key in dynamics)
-                    return dynamics[key] = value;
-                return data[key] = value;
+                else if (key in dynamics)
+                    dynamics[key] = value;
+                else
+                    data[key] = value;
+                return true;
             },
             get: (target, key) => {
                 if (key in target)
