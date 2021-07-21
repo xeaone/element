@@ -2,14 +2,14 @@
 const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
-const traverse = function (data: any, parent, path: string | string[]) {
-    const parts = typeof path === 'string' ? path.split('.') : path;
-    const part = parts.shift();
-    if (!part) return data;
-    if (part in parent) return traverse(data, parent[ part ], parts);
-    if (typeof data === 'object') return traverse(data[ part ], parent, parts);
-    return undefined;
-};
+// const traverse = function (data: any, parent, path: string | string[]) {
+//     const parts = typeof path === 'string' ? path.split('.') : path;
+//     const part = parts.shift();
+//     if (!part) return data;
+//     if (part in parent) return traverse(data, parent[ part ], parts);
+//     if (typeof data === 'object') return traverse(data[ part ], parent, parts);
+//     return undefined;
+// };
 
 const setup = function (binder) {
     let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
@@ -89,7 +89,6 @@ const each = async function (binder) {
                 set [ binder.meta.variableName ] (value) {
                     // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                     let data = binder.container.data;
-                    // console.log(keyValue, value, data);
                     for (const part of binder.meta.pathParts) {
                         if (part in this) data = this[ part ];
                         else if (part in data) data = data[ part ];
@@ -100,7 +99,6 @@ const each = async function (binder) {
                 get [ binder.meta.variableName ] () {
                     // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                     let data = binder.container.data;
-                    // console.log(keyValue, data);
                     for (const part of binder.meta.pathParts) {
                         if (part in this) data = this[ part ];
                         else if (part in data) data = data[ part ];

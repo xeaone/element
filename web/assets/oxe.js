@@ -298,6 +298,14 @@
 
     const tick$2 = Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
+    // const traverse = function (data: any, parent, path: string | string[]) {
+    //     const parts = typeof path === 'string' ? path.split('.') : path;
+    //     const part = parts.shift();
+    //     if (!part) return data;
+    //     if (part in parent) return traverse(data, parent[ part ], parts);
+    //     if (typeof data === 'object') return traverse(data[ part ], parent, parts);
+    //     return undefined;
+    // };
     const setup = function (binder) {
         let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
         // binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
@@ -362,7 +370,6 @@
                     set [binder.meta.variableName](value) {
                         // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                         let data = binder.container.data;
-                        // console.log(keyValue, value, data);
                         for (const part of binder.meta.pathParts) {
                             if (part in this)
                                 data = this[part];
@@ -376,7 +383,6 @@
                     get [binder.meta.variableName]() {
                         // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                         let data = binder.container.data;
-                        // console.log(keyValue, data);
                         for (const part of binder.meta.pathParts) {
                             if (part in this)
                                 data = this[part];
@@ -567,8 +573,9 @@
     //         return traverse(data[ part ], path, paths);
     //     }
     // };
+    const seperator = /\s*\??\s*\.?\s*\[\s*|\s*\]\s*\??\s*\.?\s*|\s*\??\s*\.\s*/;
     const traverse = function (data, path) {
-        const parts = typeof path === 'string' ? path.split('.') : path;
+        const parts = typeof path === 'string' ? path.split(seperator) : path;
         const part = parts.shift();
         if (!part)
             return data;
@@ -581,22 +588,21 @@
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
     const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)/g;
-    // |({.*?})|(\s*\(+)+\s*)|(\s*(\=)+\s*)|(\s*(\:)+\s*)|(\s*(\?)+\s*)
-    const replaceSeperators = /\?\.\[|\]\?\.|\?\.|\s*\.\s*|\s*\[\s*|\s*\]\s*/g;
-    const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
-    const references = new RegExp(`${reference}+(?!.*\\1)`, 'g');
+    const seperatorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
+    const startReference = '[a-zA-Z_$]+';
+    const endReference = `((${seperatorReference})[a-zA-Z_$0-9]+)*`;
     const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
+    const replaceSeperator = new RegExp(`${seperatorReference}`, 'g');
+    const references = new RegExp(`${startReference}${endReference}`, 'g');
     const strips = new RegExp([
-        // ';|:',
         '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
-        `(window|document|this|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${reference}*`,
+        `(window|document|this|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${endReference}`,
         `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
     \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
     \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bconst\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
     \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
-    // const ignores = [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ];
     const cache = new Map();
     function Statement (statement, data, dynamics, rewrites) {
         if (isOfIn.test(statement)) {
@@ -606,14 +612,12 @@
         const context = new Proxy({}, {
             has: () => true,
             set: (target, key, value) => {
-                // console.log(key, JSON.stringify(value));
                 if (key === '$render') {
                     for (const name in value) {
                         target[`$${name}`] = value[name];
                     }
                     return true;
                 }
-                // if (key[ 0 ] === '$') return dynamics[ key ] = value;
                 if (key in dynamics)
                     return dynamics[key] = value;
                 return data[key] = value;
@@ -629,13 +633,12 @@
             }
         });
         const convert = !shouldNotConvert.test(statement);
-        let striped = statement.replace(replaceSeperators, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
+        let striped = statement.replace(replaceSeperator, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
         if (rewrites) {
-            // console.log(rewrites);
             for (const [pattern, value] of rewrites) {
                 striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
             }
-            // console.log(striped);
+            // console.log(statement, striped, rewrites, striped.match(references) || []);
         }
         const paths = striped.match(references) || [];
         const [, assignment] = striped.match(matchAssignment) || [];
@@ -922,6 +925,7 @@
                 const binders = this.#binder.pathBinders.get(path);
                 if (!binders)
                     return;
+                // console.log(binders);
                 const tasks = [];
                 for (const binder of binders.values()) {
                     tasks.push(binder.render());

@@ -69,6 +69,7 @@ export default class Component extends HTMLElement {
         const observer = async (path) => {
             const binders = this.#binder.pathBinders.get(path);
             if (!binders) return;
+            // console.log(binders);
 
             const tasks = [];
             for (const binder of binders.values()) {

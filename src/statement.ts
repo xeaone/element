@@ -4,25 +4,24 @@ const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
 const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
 const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
 const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)/g;
-// |({.*?})|(\s*\(+)+\s*)|(\s*(\=)+\s*)|(\s*(\:)+\s*)|(\s*(\?)+\s*)
-const replaceSeperators = /\?\.\[|\]\?\.|\?\.|\s*\.\s*|\s*\[\s*|\s*\]\s*/g;
 
-const reference = '([a-zA-Z_$\\[\\]][a-zA-Z_$0-9]*|\\s*("|`|\'|{|}|\\?\\s*\\.|\\.|\\[|\\])\\s*)';
-const references = new RegExp(`${reference}+(?!.*\\1)`, 'g');
+const seperatorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
+const startReference = '[a-zA-Z_$]+';
+const endReference = `((${seperatorReference})[a-zA-Z_$0-9]+)*`;
+
 const matchAssignment = /([a-zA-Z0-9$_.'`"\[\]]+)\s*=([^=]+|$)/;
+const replaceSeperator = new RegExp(`${seperatorReference}`, 'g');
+const references = new RegExp(`${startReference}${endReference}`, 'g');
 
 const strips = new RegExp([
-    // ';|:',
     '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`', // strings
-    `(window|document|this|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${reference}*`, // globals and specials
+    `(window|document|this|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${endReference}`, // globals and specials
     `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
     \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
     \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bconst\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
     \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
-
-// const ignores = [ '$f', '$e', '$v', '$c', '$form', '$event', '$value', '$checked' ];
 
 const cache = new Map();
 
@@ -36,8 +35,6 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
     const context = new Proxy({}, {
         has: () => true,
         set: (target, key, value) => {
-            // console.log(key, JSON.stringify(value));
-
             if (key === '$render') {
                 for (const name in value) {
                     target[ `$${name}` ] = value[ name ];
@@ -45,7 +42,6 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
                 return true;
             }
 
-            // if (key[ 0 ] === '$') return dynamics[ key ] = value;
             if (key in dynamics) return dynamics[ key ] = value;
             return data[ key ] = value;
         },
@@ -58,14 +54,13 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
     });
 
     const convert = !shouldNotConvert.test(statement);
-    let striped = statement.replace(replaceSeperators, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
+    let striped = statement.replace(replaceSeperator, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
 
     if (rewrites) {
-        // console.log(rewrites);
         for (const [ pattern, value ] of rewrites) {
             striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
         }
-        // console.log(striped);
+        // console.log(statement, striped, rewrites, striped.match(references) || []);
     }
 
     const paths = striped.match(references) || [];
