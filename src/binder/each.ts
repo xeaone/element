@@ -2,12 +2,25 @@
 const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
+const traverse = function (data: any, parent, path: string | string[]) {
+    const parts = typeof path === 'string' ? path.split('.') : path;
+    const part = parts.shift();
+    if (!part) return data;
+    if (part in parent) return traverse(data, parent[ part ], parts);
+    if (typeof data === 'object') return traverse(data[ part ], parent, parts);
+    return undefined;
+};
+
 const setup = function (binder) {
     let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
-    binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
-    binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
-    binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
+    // binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
+    // binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
+    // binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
+
+    binder.meta.keyPattern = key ? new RegExp(`(;.*?\\b)(${key})(\\b.*?;)`, 'g') : null;
+    binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
+    binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
 
     binder.meta.path = path;
     binder.meta.keyName = key;
@@ -66,26 +79,34 @@ const each = async function (binder) {
         while (binder.meta.currentLength < binder.meta.targetLength) {
             const indexValue = binder.meta.currentLength;
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
-            const variableValue = `${binder.meta.path}[${keyValue}]`;
+            // const variableValue = `${binder.meta.path}[${keyValue}]`;
+            const variableValue = `${binder.meta.path}.${keyValue}`;
 
             const dynamics = {
                 ...binder.dynamics,
                 get [ binder.meta.keyName ] () { return keyValue; },
                 get [ binder.meta.indexName ] () { return indexValue; },
                 set [ binder.meta.variableName ] (value) {
+                    // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                     let data = binder.container.data;
+                    // console.log(keyValue, value, data);
                     for (const part of binder.meta.pathParts) {
                         if (part in this) data = this[ part ];
                         else if (part in data) data = data[ part ];
+                        else return;
                     }
                     data[ keyValue ] = value;
                 },
                 get [ binder.meta.variableName ] () {
+                    // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                     let data = binder.container.data;
+                    // console.log(keyValue, data);
                     for (const part of binder.meta.pathParts) {
                         if (part in this) data = this[ part ];
                         else if (part in data) data = data[ part ];
+                        else return;
                     }
+
                     return data[ keyValue ];
                 }
             };

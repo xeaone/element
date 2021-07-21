@@ -33,14 +33,24 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
     }
 
     dynamics = dynamics || {};
-    const context = new Proxy(data, {
+    const context = new Proxy({}, {
         has: () => true,
-        set: (_, key, value) => {
-            if (key[ 0 ] === '$') dynamics[ key ] = value;
-            else data[ key ] = value;
-            return true;
+        set: (target, key, value) => {
+            // console.log(key, JSON.stringify(value));
+
+            if (key === '$render') {
+                for (const name in value) {
+                    target[ `$${name}` ] = value[ name ];
+                }
+                return true;
+            }
+
+            // if (key[ 0 ] === '$') return dynamics[ key ] = value;
+            if (key in dynamics) return dynamics[ key ] = value;
+            return data[ key ] = value;
         },
-        get: (_, key) => {
+        get: (target, key) => {
+            if (key in target) return target[ key ];
             if (key in dynamics) return dynamics[ key ];
             if (key in data) return data[ key ];
             return window[ key ];
@@ -51,9 +61,11 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
     let striped = statement.replace(replaceSeperators, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
 
     if (rewrites) {
+        // console.log(rewrites);
         for (const [ pattern, value ] of rewrites) {
             striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
         }
+        // console.log(striped);
     }
 
     const paths = striped.match(references) || [];
@@ -68,20 +80,7 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
         code = code.replace(/{{/g, convert ? `' + (` : '(');
         code = code.replace(/}}/g, convert ? `) + '` : ')');
         code = convert ? `'${code}'` : code;
-
-        // console.log([ statement, code, striped, paths ].join('\n'));
-
-        code = `
-            if ($render) {
-                $context.$f = $render.form; $context.$form = $render.form;
-                $context.$e = $render.event; $context.$event = $render.event;
-                $context.$v = $render.value; $context.$value = $render.value;
-                $context.$c = $render.checked; $context.$checked = $render.checked;
-            }
-            with ($context) {
-                return ${code};
-            }
-        `;
+        code = `if ($render) $context.$render = $render;\nwith ($context) { return ${code}; }`;
         compute = new Function('$context', '$render', code);
         cache.set(statement, compute);
 
@@ -106,7 +105,6 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
         // } catch { }
 
         compute = compute.bind(null, context);
-
 
     }
 

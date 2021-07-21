@@ -1,6 +1,5 @@
 
 const handler = async function (binder, checked, event?: Event) {
-    // binder.busy = true;
     const { owner, node } = binder;
     const { value } = owner;
     const computed = await binder.compute({ event, checked, value });
@@ -13,7 +12,6 @@ const handler = async function (binder, checked, event?: Event) {
         owner.removeAttribute('checked');
     }
 
-    // binder.busy = false;
 };
 
 const checked = async function (binder) {

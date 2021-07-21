@@ -50,8 +50,11 @@
         // if (current === value) return true;
         const path = target[$path] ? `${target[$path]}.${key}` : `${key}`;
         const initial = !target[$tasks].length;
-        target[$tasks].push(target[$task].bind(null, path));
-        if (value && typeof value === 'object' && !value[$proxy]) {
+        // console.log(path);
+        if (value && typeof value === 'object') {
+            if (value[$proxy])
+                return true;
+            target[$tasks].push(target[$task].bind(null, path));
             // const clone = value.constructor();
             // clone[ $path ] = path;
             // clone[ $proxy ] = true;
@@ -71,6 +74,7 @@
             target[key] = proxy;
         }
         else {
+            target[$tasks].push(target[$task].bind(null, path));
             target[key] = value;
         }
         if (initial)
@@ -119,7 +123,6 @@
     };
 
     const handler = async function (binder, checked, event) {
-        // binder.busy = true;
         const { owner, node } = binder;
         const { value } = owner;
         const computed = await binder.compute({ event, checked, value });
@@ -130,7 +133,6 @@
         else {
             owner.removeAttribute('checked');
         }
-        // binder.busy = false;
     };
     const checked = async function (binder) {
         const { owner, meta } = binder;
@@ -286,7 +288,6 @@
         owner.$value = computed;
         owner.$typeof = typeof computed;
         owner.setAttribute('value', display);
-        console.log(owner, owner.$typeof);
         if (!meta.first) {
             meta.first = true;
             if (owner.parentElement.type === 'select-one' || owner.parentElement.type === 'select-multiple') {
@@ -294,60 +295,17 @@
             }
         }
     };
-    // const setup = async function (binder) {
-    //     binder.owner.addEventListener('$render', () => binder.render());
-    //     binder.owner.addEventListener('input', event => input(binder, event));
-    // };
-    // const read = async function (binder, context) {
-    //     const { owner } = binder;
-    //     context.options = owner.options;
-    //     context.selected = owner.selectedOptions;
-    // };
-    // const write = async function (binder, context) {
-    //     const { owner } = binder;
-    //     const { type } = owner;
-    //     let display, computed;
-    //     if (type === 'select-one') {
-    //         // if (!context.options.length) return;
-    //         const value = binder.assignee();
-    //         for (const option of context.options) {
-    //             if (option.selected = option.value === value) break;
-    //         }
-    //         computed = await binder.compute({ value: value });
-    //         display = format(computed);
-    //         owner.value = display;
-    //     } else if (type === 'select-multiple') {
-    //         const value = binder.assignee();
-    //         const { options } = owner;
-    //         for (const option of options) {
-    //             option.selected = value?.includes(option.value);
-    //         }
-    //         computed = await binder.compute({ value });
-    //         display = format(computed);
-    //     } else {
-    //         const { checked } = owner;
-    //         const value = binder.assignee();
-    //         computed = await binder.compute({ value, checked });
-    //         display = format(computed);
-    //         if (numberTypes.includes(type) && typeof computed !== 'string') {
-    //             owner.valueAsNumber = computed;
-    //         } else {
-    //             owner.value = display;
-    //         }
-    //     }
-    //     owner.$value = computed;
-    //     owner.$typeof = typeof computed;
-    //     owner.setAttribute('value', display);
-    // };
-    // export default { setup, read, write };
 
     const tick$2 = Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
     const setup = function (binder) {
         let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
-        binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
-        binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
-        binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
+        // binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
+        // binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
+        // binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
+        binder.meta.keyPattern = key ? new RegExp(`(;.*?\\b)(${key})(\\b.*?;)`, 'g') : null;
+        binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
+        binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
         binder.meta.path = path;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
@@ -395,28 +353,37 @@
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
-                const variableValue = `${binder.meta.path}[${keyValue}]`;
+                // const variableValue = `${binder.meta.path}[${keyValue}]`;
+                const variableValue = `${binder.meta.path}.${keyValue}`;
                 const dynamics = {
                     ...binder.dynamics,
                     get [binder.meta.keyName]() { return keyValue; },
                     get [binder.meta.indexName]() { return indexValue; },
                     set [binder.meta.variableName](value) {
+                        // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                         let data = binder.container.data;
+                        // console.log(keyValue, value, data);
                         for (const part of binder.meta.pathParts) {
                             if (part in this)
                                 data = this[part];
                             else if (part in data)
                                 data = data[part];
+                            else
+                                return;
                         }
                         data[keyValue] = value;
                     },
                     get [binder.meta.variableName]() {
+                        // const data = traverse(binder.container.data, this, binder.meta.pathParts.slice());
                         let data = binder.container.data;
+                        // console.log(keyValue, data);
                         for (const part of binder.meta.pathParts) {
                             if (part in this)
                                 data = this[part];
                             else if (part in data)
                                 data = data[part];
+                            else
+                                return;
                         }
                         return data[keyValue];
                     }
@@ -587,24 +554,6 @@
         };
         binder.owner.addEventListener(name, binder.meta.method);
     };
-    // const read = async function (binder) {
-    //     binder.owner[ binder.name ] = null;
-    //     const name = binder.name.slice(2);
-    //     if (binder.meta.method) {
-    //         binder.owner.removeEventListener(name, binder.meta.method);
-    //     }
-    //     binder.meta.method = event => {
-    //         if (name === 'reset') {
-    //             return reset(event, binder);
-    //         } else if (name === 'submit') {
-    //             return submit(event, binder);
-    //         } else {
-    //             return binder.compute({ event });
-    //         }
-    //     };
-    //     binder.owner.addEventListener(name, binder.meta.method);
-    // };
-    // export default { read };
 
     // const traverse = function (data: any, path: string, paths?: string[]) {
     //     paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
@@ -654,16 +603,24 @@
             statement = statement.replace(replaceOfIn, '{{$2}}');
         }
         dynamics = dynamics || {};
-        const context = new Proxy(data, {
+        const context = new Proxy({}, {
             has: () => true,
-            set: (_, key, value) => {
-                if (key[0] === '$')
-                    dynamics[key] = value;
-                else
-                    data[key] = value;
-                return true;
+            set: (target, key, value) => {
+                // console.log(key, JSON.stringify(value));
+                if (key === '$render') {
+                    for (const name in value) {
+                        target[`$${name}`] = value[name];
+                    }
+                    return true;
+                }
+                // if (key[ 0 ] === '$') return dynamics[ key ] = value;
+                if (key in dynamics)
+                    return dynamics[key] = value;
+                return data[key] = value;
             },
-            get: (_, key) => {
+            get: (target, key) => {
+                if (key in target)
+                    return target[key];
                 if (key in dynamics)
                     return dynamics[key];
                 if (key in data)
@@ -674,9 +631,11 @@
         const convert = !shouldNotConvert.test(statement);
         let striped = statement.replace(replaceSeperators, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
         if (rewrites) {
+            // console.log(rewrites);
             for (const [pattern, value] of rewrites) {
                 striped = striped.replace(pattern, (s, g1, g2, g3) => g1 + value + g3);
             }
+            // console.log(striped);
         }
         const paths = striped.match(references) || [];
         const [, assignment] = striped.match(matchAssignment) || [];
@@ -690,18 +649,7 @@
             code = code.replace(/{{/g, convert ? `' + (` : '(');
             code = code.replace(/}}/g, convert ? `) + '` : ')');
             code = convert ? `'${code}'` : code;
-            // console.log([ statement, code, striped, paths ].join('\n'));
-            code = `
-            if ($render) {
-                $context.$f = $render.form; $context.$form = $render.form;
-                $context.$e = $render.event; $context.$event = $render.event;
-                $context.$v = $render.value; $context.$value = $render.value;
-                $context.$c = $render.checked; $context.$checked = $render.checked;
-            }
-            with ($context) {
-                return ${code};
-            }
-        `;
+            code = `if ($render) $context.$render = $render;\nwith ($context) { return ${code}; }`;
             compute = new Function('$context', '$render', code);
             cache.set(statement, compute);
             // try {
@@ -1469,8 +1417,11 @@
         get protocol() { return window.location.protocol; }
         get search() { return window.location.search; }
         get query() {
-            const queries = window.location.search.slice(1).split('&');
             const result = {};
+            const search = window.location.search;
+            if (!search)
+                return result;
+            const queries = search.slice(1).split('&');
             for (const query of queries) {
                 let [name, value] = query.split('=');
                 name = decodeURIComponent(name.replace(/\+/g, ' '));

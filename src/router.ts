@@ -38,9 +38,12 @@ export default new class Router {
     get search () { return window.location.search; }
 
     get query () {
-        const queries = window.location.search.slice(1).split('&');
         const result = {};
+        const search = window.location.search;
 
+        if (!search) return result;
+
+        const queries = search.slice(1).split('&');
         for (const query of queries) {
             let [ name, value ] = query.split('=');
             name = decodeURIComponent(name.replace(/\+/g, ' '));

@@ -33,9 +33,13 @@ const set = function (target: any, key: any, value: any, receiver: any) {
 
     const path = target[ $path ] ? `${target[ $path ]}.${key}` : `${key}`;
     const initial = !target[ $tasks ].length;
-    target[ $tasks ].push(target[ $task ].bind(null, path));
+    // console.log(path);
 
-    if (value && typeof value === 'object' && !value[ $proxy ]) {
+    if (value && typeof value === 'object') {
+        if (value[ $proxy ]) return true;
+
+        target[ $tasks ].push(target[ $task ].bind(null, path));
+
         // const clone = value.constructor();
         // clone[ $path ] = path;
         // clone[ $proxy ] = true;
@@ -55,6 +59,7 @@ const set = function (target: any, key: any, value: any, receiver: any) {
         value[ $setup ] = true;
         target[ key ] = proxy;
     } else {
+        target[ $tasks ].push(target[ $task ].bind(null, path));
         target[ key ] = value;
     }
 
