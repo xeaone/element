@@ -1,9 +1,8 @@
-import numberTypes from '../types/number';
 
-const getValue = (element) => {
+const Value = function (element) {
     if (!element) return undefined;
-    else if ('$value' in element) return typeof element.$value === 'object' ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
-    else if (numberTypes.includes(element.type)) return element.valueAsNumber;
+    else if ('$value' in element) return element.$value ? JSON.parse(JSON.stringify(element.$value)) : element.$value;
+    else if (element.type === 'number' || element.type === 'range') return element.valueAsNumber;
     else return element.value;
 };
 
@@ -29,15 +28,15 @@ const submit = async function (event, binder) {
 
         let value;
         if ('$value' in element) {
-            value = getValue(element);
+            value = Value(element);
         } else if (type === 'select-multiple') {
             value = [];
             for (const option of element.selectedOptions) {
-                value.push(getValue(option));
+                value.push(Value(option));
             }
         } else if (type === 'select-one') {
             const [ option ] = element.selectedOptions;
-            value = getValue(option);
+            value = Value(option);
         } else {
             value = element.value;
         }

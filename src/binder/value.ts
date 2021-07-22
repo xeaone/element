@@ -1,5 +1,5 @@
 import format from '../format';
-import numberTypes from '../types/number';
+import dateTypes from '../types/date';
 
 console.warn('need to handle default select-one value');
 
@@ -15,6 +15,22 @@ const stampToView = function (data: number) {
         date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds())).getTime();
 };
 
+// const valueFromView = function (element) {
+//     if (!element) return undefined;
+//     else if ('$value' in element) {
+//         if (typeof element.$value === 'string') {
+//             return element.value;
+//         } else {
+//             JSON.parse(element.value);
+//         }
+//     }
+//     else if (element.type === 'number' || element.type === 'range') {
+//         return element.valueAsNumber;
+//     } else {
+//         return element.value;
+//     }
+// };
+
 const input = async function (binder, event) {
 
     const { owner } = binder;
@@ -23,46 +39,37 @@ const input = async function (binder, event) {
 
     if (type === 'select-one') {
         const [ option ] = owner.selectedOptions;
-        const value = !option ? undefined : option.$typeof && option.$typeof !== 'string' ? JSON.parse(option.value) : option.value;
+        const value = option ? '$value' in option ? option.$value : option.value : undefined;
         computed = await binder.compute({ event, value });
         display = format(computed);
     } else if (type === 'select-multiple') {
 
         const value = [];
         for (const option of owner.selectedOptions) {
-            value.push(option.$typeof && option.$typeof !== 'string' ? JSON.parse(option.value) : option.value);
+            value.push('$value' in option ? option.$value : option.value);
         }
 
         computed = await binder.compute({ event, value });
         display = format(computed);
-        // } else if (type === 'file') {
-        //     const { multiple, files } = owner;
-        //     const value = multiple ? [ ...files ] : files[ 0 ];
-        //     const computed = await binder.compute({ event, value });
-        //     display = format(computed);
     } else if (type === 'number' || type === 'range') {
         computed = await binder.compute({ event, value: owner.valueAsNumber });
         owner.valueAsNumber = computed;
         display = owner.value;
-    } else if (numberTypes.includes(type)) {
-        const value = owner.$typeof === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
-
+    } else if (dateTypes.includes(type)) {
+        const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
         computed = await binder.compute({ event, value });
-
         if (owner.$typeof === 'string') owner.value = computed;
         else owner.valueAsNumber = stampToView(computed);
-
         display = owner.value;
     } else {
         const { checked } = owner;
-        const value = owner.$typeof && owner.$typeof !== 'string' ? JSON.parse(owner.value) : owner.value;
+        const value = owner.$value !== null && owner.$value !== undefined && typeof owner.$value !== 'string' ? JSON.parse(owner.value) : owner.value;
         computed = await binder.compute({ event, value, checked });
         display = format(computed);
         owner.value = display;
     }
 
     owner.$value = computed;
-    owner.$typeof = typeof computed;
     owner.setAttribute('value', display);
 };
 
@@ -110,14 +117,11 @@ const value = async function value (binder) {
         computed = await binder.compute({ value });
         owner.valueAsNumber = computed;
         display = owner.value;
-    } else if (numberTypes.includes(type)) {
+    } else if (dateTypes.includes(type)) {
         const value = binder.assignee();
-
         computed = await binder.compute({ value });
-
         if (typeof computed === 'string') owner.value = computed;
         else owner.valueAsNumber = stampToView(computed);
-
         display = owner.value;
     } else {
         const { checked } = owner;
@@ -128,7 +132,6 @@ const value = async function value (binder) {
     }
 
     owner.$value = computed;
-    owner.$typeof = typeof computed;
     owner.setAttribute('value', display);
 
     if (!meta.first) {
