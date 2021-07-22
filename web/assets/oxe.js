@@ -486,21 +486,18 @@
         const target = event.target;
         const elements = target?.elements || target?.form?.elements;
         for (const element of elements) {
-            const { type, name, nodeName, checked } = element;
+            const { type, name, checked, hidden } = element;
             if (!name)
                 continue;
-            if ((!type && nodeName !== 'TEXTAREA') ||
-                type === 'submit' || type === 'button' || !type)
+            if (hidden)
                 continue;
             if (type === 'radio' && !checked)
                 continue;
-            if (type === 'checkbox' && !checked)
+            if (type === 'submit' || type === 'button')
                 continue;
+            // if (type === 'checkbox' && !checked) continue;
             let value;
-            if ('$value' in element) {
-                value = Value(element);
-            }
-            else if (type === 'select-multiple') {
+            if (type === 'select-multiple') {
                 value = [];
                 for (const option of element.selectedOptions) {
                     value.push(Value(option));
@@ -511,7 +508,7 @@
                 value = Value(option);
             }
             else {
-                value = element.value;
+                value = Value(element);
             }
             let data = form;
             name.split(/\s*\.\s*/).forEach((part, index, parts) => {
