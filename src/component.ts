@@ -70,7 +70,7 @@ export default class Component extends HTMLElement {
             // console.log(path);
             const binders = this.#binder.pathBinders.get(path);
             if (!binders) return;
-            // console.log(binders);
+            // console.log(path, binders);
 
             const tasks = [];
             for (const binder of binders.values()) {

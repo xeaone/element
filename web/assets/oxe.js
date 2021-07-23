@@ -28,12 +28,14 @@
             await task();
         }
     };
+    // const get = function (target, key) {
+    //     if (typeof target[ key ] === 'object' && target[ key ] !== null) {
+    //         return new Proxy(target[ key ], handler);
+    //     } else {
+    //         return target[ key ];
+    //     }
+    // };
     const set = function (target, key, value, receiver) {
-        // if ($symbols.includes(key)) {
-        //     target[ key ] = value;
-        //     return true;
-        // }
-        // if (typeof key === 'symbol') return true;
         if (key === $path)
             return true;
         if (key === $task)
@@ -47,12 +49,13 @@
         const current = target[key];
         if (current !== current && value !== value)
             return true; // NaN check
-        // if (current === value && target[ $setup ]) return true;
+        // if (current === value && target[ $proxy ]) return true;
         if (current === value)
             return true;
         const path = target[$path] ? `${target[$path]}.${key}` : `${key}`;
         const initial = !target[$tasks].length;
-        if (value && typeof value === 'object' && !value[$proxy]) {
+        if (value && typeof value === 'object') {
+            // if (value && typeof value === 'object' && !value[ $proxy ]) {
             target[$tasks].push(target[$task].bind(null, path));
             const clone = value.constructor();
             clone[$path] = path;
@@ -222,13 +225,16 @@
         }
         else if (type === 'number' || type === 'range') {
             computed = await binder.compute({ event, value: owner.valueAsNumber });
-            owner.valueAsNumber = computed;
+            if (typeof computed === 'number')
+                owner.valueAsNumber = computed;
+            else
+                owner.value = computed;
             display = owner.value;
         }
         else if (dateTypes.includes(type)) {
             const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
             computed = await binder.compute({ event, value });
-            if (owner.$typeof === 'string')
+            if (typeof owner.$value === 'string')
                 owner.value = computed;
             else
                 owner.valueAsNumber = stampToView(computed);
@@ -257,21 +263,33 @@
         }
         let display, computed;
         if (type === 'select-one') {
-            const value = binder.assignee();
+            let value = binder.assignee();
+            // const value = binder.assignee();
             for (const option of owner.options) {
-                if (option.selected = '$value' in option ? option.$value === value : option.value === value) {
+                const optionValue = '$value' in option ? option.$value : option.value;
+                if (option.selected = optionValue === value) {
+                    // isSelected = true;
                     break;
                 }
             }
-            computed = await binder.compute({ value: value });
+            // console.log(owner, owner.selectedOptions.length, owner.selectedOptions[ 0 ]);
+            // if (!isSelected) {
+            // if (owner.options.length && !isSelected) {
+            if (owner.options.length && !owner.selectedOptions.length) {
+                const [option] = owner.options;
+                value = '$value' in option ? option.$value : option.value;
+                // console.log(option, option.$value, option.value);
+                option.selected = true;
+            }
+            computed = await binder.compute({ value });
             display = format(computed);
             owner.value = display;
         }
         else if (type === 'select-multiple') {
             const value = binder.assignee();
-            const { options } = owner;
-            for (const option of options) {
-                option.selected = value?.includes('$value' in option ? option.$value : option.value);
+            for (const option of owner.options) {
+                const optionValue = '$value' in option ? option.$value : option.value;
+                option.selected = value?.includes(optionValue);
             }
             computed = await binder.compute({ value });
             display = format(computed);
@@ -279,7 +297,10 @@
         else if (type === 'number' || type === 'range') {
             const value = binder.assignee();
             computed = await binder.compute({ value });
-            owner.valueAsNumber = computed;
+            if (typeof computed === 'number')
+                owner.valueAsNumber = computed;
+            else
+                owner.value = computed;
             display = owner.value;
         }
         else if (dateTypes.includes(type)) {
@@ -344,6 +365,8 @@
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
         binder.meta.cloneLength = 0;
+        // binder.meta.cloneLength = binder.owner.$cloneLength;
+        // binder.meta.clone = binder.owner.$clone;
         binder.meta.clone = document.createElement('template');
         binder.meta.templateElement = document.createElement('template');
         let node = binder.owner.firstChild;
@@ -439,8 +462,7 @@
         if (binder.meta.currentLength === binder.meta.targetLength) {
             // console.timeEnd(time);
             binder.owner.appendChild(binder.meta.templateElement.content);
-            if (binder.owner.nodeName === 'SELECT')
-                binder.owner.dispatchEvent(new Event('$renderEach'));
+            // if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$renderEach'));
         }
     };
 
@@ -793,14 +815,22 @@
                 tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
             }
             else if (node.nodeType === EN) {
-                let each = false;
                 const attributes = node.attributes;
+                const each = attributes['each'] || attributes[`${this.prefix}each`];
+                if (each) {
+                    await this.bind(each, container, each.name, each.value, each.ownerElement, dynamics, rewrites);
+                }
                 for (let i = 0; i < attributes.length; i++) {
                     const attribute = attributes[i];
-                    if (attribute.name === 'each' || attribute.name === `${this.prefix}each`)
-                        each = true;
-                    if (this.syntaxMatch.test(attribute.value)) {
-                        tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    const { name, value, ownerElement } = attribute;
+                    if (name === 'each' || name === `${this.prefix}each`)
+                        continue;
+                    if (this.syntaxMatch.test(value)) {
+                        if (name.startsWith('on')) {
+                            node[name] = null;
+                            attribute.value = '';
+                        }
+                        tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics, rewrites));
                     }
                 }
                 if (each)
@@ -925,7 +955,7 @@
                 const binders = this.#binder.pathBinders.get(path);
                 if (!binders)
                     return;
-                // console.log(binders);
+                // console.log(path, binders);
                 const tasks = [];
                 for (const binder of binders.values()) {
                     tasks.push(binder.render());

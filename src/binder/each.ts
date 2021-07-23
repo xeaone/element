@@ -43,7 +43,9 @@ const setup = function (binder) {
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
     binder.meta.cloneLength = 0;
+    // binder.meta.cloneLength = binder.owner.$cloneLength;
 
+    // binder.meta.clone = binder.owner.$clone;
     binder.meta.clone = document.createElement('template');
     binder.meta.templateElement = document.createElement('template');
 
@@ -145,7 +147,7 @@ const each = async function (binder) {
     if (binder.meta.currentLength === binder.meta.targetLength) {
         // console.timeEnd(time);
         binder.owner.appendChild(binder.meta.templateElement.content);
-        if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$renderEach'));
+        // if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$renderEach'));
     }
 
 };

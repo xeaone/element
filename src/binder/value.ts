@@ -53,12 +53,13 @@ const input = async function (binder, event) {
         display = format(computed);
     } else if (type === 'number' || type === 'range') {
         computed = await binder.compute({ event, value: owner.valueAsNumber });
-        owner.valueAsNumber = computed;
+        if (typeof computed === 'number') owner.valueAsNumber = computed;
+        else owner.value = computed;
         display = owner.value;
     } else if (dateTypes.includes(type)) {
         const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
         computed = await binder.compute({ event, value });
-        if (owner.$typeof === 'string') owner.value = computed;
+        if (typeof owner.$value === 'string') owner.value = computed;
         else owner.valueAsNumber = stampToView(computed);
         display = owner.value;
     } else {
@@ -91,23 +92,36 @@ const value = async function value (binder) {
     let display, computed;
 
     if (type === 'select-one') {
-        const value = binder.assignee();
+        let value = binder.assignee();
+        // const value = binder.assignee();
 
         for (const option of owner.options) {
-            if (option.selected = '$value' in option ? option.$value === value : option.value === value) {
+            const optionValue = '$value' in option ? option.$value : option.value;
+            if (option.selected = optionValue === value) {
+                // isSelected = true;
                 break;
             }
         }
 
-        computed = await binder.compute({ value: value });
+        // console.log(owner, owner.selectedOptions.length, owner.selectedOptions[ 0 ]);
+        // if (!isSelected) {
+        // if (owner.options.length && !isSelected) {
+        if (owner.options.length && !owner.selectedOptions.length) {
+            const [ option ] = owner.options;
+            value = '$value' in option ? option.$value : option.value;
+            // console.log(option, option.$value, option.value);
+            option.selected = true;
+        }
+
+        computed = await binder.compute({ value });
         display = format(computed);
         owner.value = display;
     } else if (type === 'select-multiple') {
         const value = binder.assignee();
-        const { options } = owner;
 
-        for (const option of options) {
-            option.selected = value?.includes('$value' in option ? option.$value : option.value);
+        for (const option of owner.options) {
+            const optionValue = '$value' in option ? option.$value : option.value;
+            option.selected = value?.includes(optionValue);
         }
 
         computed = await binder.compute({ value });
@@ -115,7 +129,8 @@ const value = async function value (binder) {
     } else if (type === 'number' || type === 'range') {
         const value = binder.assignee();
         computed = await binder.compute({ value });
-        owner.valueAsNumber = computed;
+        if (typeof computed === 'number') owner.valueAsNumber = computed;
+        else owner.value = computed;
         display = owner.value;
     } else if (dateTypes.includes(type)) {
         const value = binder.assignee();

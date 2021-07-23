@@ -141,13 +141,20 @@ export default class Binder {
 
             tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
         } else if (node.nodeType === EN) {
-            let each = false;
             const attributes = (node as Element).attributes;
+            const each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
+
+            if (each) {
+                await this.bind(each, container, each.name, each.value, each.ownerElement, dynamics, rewrites);
+            }
+
             for (let i = 0; i < attributes.length; i++) {
                 const attribute = attributes[ i ];
-                if (attribute.name === 'each' || attribute.name === `${this.prefix}each`) each = true;
-                if (this.syntaxMatch.test(attribute.value)) {
-                    tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                const { name, value, ownerElement } = attribute;
+                if (name === 'each' || name === `${this.prefix}each`) continue;
+                if (this.syntaxMatch.test(value)) {
+                    if (name.startsWith('on')) { node[ name ] = null; attribute.value = ''; }
+                    tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics, rewrites));
                 }
             }
 
