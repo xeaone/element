@@ -8,14 +8,12 @@ const $task = Symbol('$task');
 const $tasks = Symbol('$tasks');
 const $proxy = Symbol('$proxy');
 
-// const tick = Promise.resolve();
-
-const run = async function (tasks: tasks) {
-    let task;
-    while (task = tasks.shift()) {
-        await task();
-    }
-};
+// const run = async function (tasks: tasks) {
+//     let task;
+//     while (task = tasks.shift()) {
+//         await task();
+//     }
+// };
 
 // const get = function (target, key) {
 //     if (typeof target[ key ] === 'object' && target[ key ] !== null) {
@@ -25,12 +23,19 @@ const run = async function (tasks: tasks) {
 //     }
 // };
 
-const set = function (target: any, key: any, value: any, receiver: any) {
+const set = function (target: any, key: any, value: any) {
     if (key === $path) return true;
     if (key === $task) return true;
-    if (key === $tasks) return true;
+    // if (key === $tasks) return true;
     if (key === $proxy) return true;
-    if (key === 'length') return target[ $tasks ].push(target[ $task ].bind(null, target[ $path ]));
+
+    // console.log(target[ $path ] ? `${target[ $path ]}.${key}` : `${key}`);
+
+    if (key === 'length') {
+        target[ $task ](target[ $path ]);
+        // target[ $tasks ].push(target[ $task ].bind(null, target[ $path ]));
+        return true;
+    }
 
     const current = target[ key ];
     if (current !== current && value !== value) return true; // NaN check
@@ -38,17 +43,17 @@ const set = function (target: any, key: any, value: any, receiver: any) {
     if (current === value) return true;
 
     const path = target[ $path ] ? `${target[ $path ]}.${key}` : `${key}`;
-    const initial = !target[ $tasks ].length;
+    // const initial = !target[ $tasks ].length;
 
     if (value && typeof value === 'object') {
         // if (value && typeof value === 'object' && !value[ $proxy ]) {
-        target[ $tasks ].push(target[ $task ].bind(null, path));
+        // target[ $tasks ].push(target[ $task ].bind(null, path));
 
         const clone = value.constructor();
         clone[ $path ] = path;
         clone[ $proxy ] = true;
         clone[ $task ] = target[ $task ];
-        clone[ $tasks ] = target[ $tasks ];
+        // clone[ $tasks ] = target[ $tasks ];
         const proxy = new Proxy(clone, handler);
         Object.assign(proxy, value);
         target[ key ] = proxy;
@@ -63,11 +68,12 @@ const set = function (target: any, key: any, value: any, receiver: any) {
         // target[ key ] = proxy;
 
     } else {
-        target[ $tasks ].push(target[ $task ].bind(null, path));
+        // target[ $tasks ].push(target[ $task ].bind(null, path));
         target[ key ] = value;
     }
 
-    if (initial) run(target[ $tasks ]);
+    target[ $task ](path);
+    // if (initial) run(target[ $tasks ]);
 
     return true;
 };
@@ -78,7 +84,7 @@ const observer = function (source: any, task: task) {
 
     const clone = source.constructor();
     clone[ $path ] = '';
-    clone[ $tasks ] = [];
+    // clone[ $tasks ] = [];
     clone[ $task ] = task;
     clone[ $proxy ] = true;
     const proxy = new Proxy(clone, handler);

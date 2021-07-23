@@ -18,6 +18,7 @@ const tick = Promise.resolve();
 export default class Binder {
 
     prefix = 'o-';
+    prefixEach = 'o-each';
     syntaxEnd = '}}';
     syntaxStart = '{{';
     syntaxLength = 2;
@@ -91,6 +92,7 @@ export default class Binder {
                 }
             }
 
+            // binder.render();
             tick.then(binder.render);
             // binder.render();
         }
@@ -118,13 +120,14 @@ export default class Binder {
     }
 
     async add (node: Node, container: any, dynamics?: any, rewrites?: any) {
-        const tasks = [];
+        // const tasks = [];
 
         if (node.nodeType === AN) {
             const attribute = (node as Attr);
             if (this.syntaxMatch.test(attribute.value)) {
-                // tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                // this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites);
+                // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
             }
         } else if (node.nodeType === TN) {
 
@@ -138,45 +141,46 @@ export default class Binder {
 
             if (end + this.syntaxLength !== node.nodeValue.length) {
                 const split = (node as Text).splitText(end + this.syntaxLength);
-                tasks.push(this.add(split, container, dynamics, rewrites));
-                // tick.then(this.add.bind(this, split, container, dynamics, rewrites));
+                tick.then(this.add.bind(this, split, container, dynamics, rewrites));
+                // tasks.push(this.add(split, container, dynamics, rewrites));
+                // this.add(split, container, dynamics, rewrites);
             }
 
-            tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
-            // tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+            tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+            // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+            // this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites);
         } else if (node.nodeType === EN) {
             const attributes = (node as Element).attributes;
-            const each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
+            let each = false;
+            // const each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
+            // if (each) await this.bind(each, container, each.name, each.value, each.ownerElement, dynamics, rewrites);
 
-            if (each) {
-                await this.bind(each, container, each.name, each.value, each.ownerElement, dynamics, rewrites);
-            }
-
-            for (let i = 0; i < attributes.length; i++) {
-                const attribute = attributes[ i ];
-                const { name, value, ownerElement } = attribute;
-                if (name === 'each' || name === `${this.prefix}each`) continue;
-                if (this.syntaxMatch.test(value)) {
-                    if (name.startsWith('on')) { node[ name ] = null; attribute.value = ''; }
-                    tasks.push(this.bind(attribute, container, name, value, ownerElement, dynamics, rewrites));
-                    // tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics, rewrites));
+            for (const attribute of attributes) {
+                if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
+                // if (attribute.name === 'each' || attribute.name === `${this.prefix}each`) continue;
+                if (this.syntaxMatch.test(attribute.value)) {
+                    tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    attribute.value = '';
+                    // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    // this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites);
                 }
             }
 
-            // if (each) return;
+            if (each) return;
 
             if (!each) {
                 let child = node.firstChild;
                 while (child) {
-                    // tick.then(this.add.bind(this, child, container, dynamics, rewrites));
-                    tasks.push(this.add(child, container, dynamics, rewrites));
+                    tick.then(this.add.bind(this, child, container, dynamics, rewrites));
+                    // this.add(child, container, dynamics, rewrites);
+                    // tasks.push(this.add(child, container, dynamics, rewrites));
                     child = child.nextSibling;
                 }
             }
 
         }
 
-        return Promise.all(tasks);
+        // return Promise.all(tasks);
     }
 
 };

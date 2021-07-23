@@ -19,15 +19,13 @@
     console.warn('oxe: need to handle delete property');
     const $path = Symbol('$path');
     const $task = Symbol('$task');
-    const $tasks = Symbol('$tasks');
     const $proxy = Symbol('$proxy');
-    // const tick = Promise.resolve();
-    const run$1 = async function (tasks) {
-        let task;
-        while (task = tasks.shift()) {
-            await task();
-        }
-    };
+    // const run = async function (tasks: tasks) {
+    //     let task;
+    //     while (task = tasks.shift()) {
+    //         await task();
+    //     }
+    // };
     // const get = function (target, key) {
     //     if (typeof target[ key ] === 'object' && target[ key ] !== null) {
     //         return new Proxy(target[ key ], handler);
@@ -35,17 +33,20 @@
     //         return target[ key ];
     //     }
     // };
-    const set = function (target, key, value, receiver) {
+    const set = function (target, key, value) {
         if (key === $path)
             return true;
         if (key === $task)
             return true;
-        if (key === $tasks)
-            return true;
+        // if (key === $tasks) return true;
         if (key === $proxy)
             return true;
-        if (key === 'length')
-            return target[$tasks].push(target[$task].bind(null, target[$path]));
+        // console.log(target[ $path ] ? `${target[ $path ]}.${key}` : `${key}`);
+        if (key === 'length') {
+            target[$task](target[$path]);
+            // target[ $tasks ].push(target[ $task ].bind(null, target[ $path ]));
+            return true;
+        }
         const current = target[key];
         if (current !== current && value !== value)
             return true; // NaN check
@@ -53,15 +54,15 @@
         if (current === value)
             return true;
         const path = target[$path] ? `${target[$path]}.${key}` : `${key}`;
-        const initial = !target[$tasks].length;
+        // const initial = !target[ $tasks ].length;
         if (value && typeof value === 'object') {
             // if (value && typeof value === 'object' && !value[ $proxy ]) {
-            target[$tasks].push(target[$task].bind(null, path));
+            // target[ $tasks ].push(target[ $task ].bind(null, path));
             const clone = value.constructor();
             clone[$path] = path;
             clone[$proxy] = true;
             clone[$task] = target[$task];
-            clone[$tasks] = target[$tasks];
+            // clone[ $tasks ] = target[ $tasks ];
             const proxy = new Proxy(clone, handler$1);
             Object.assign(proxy, value);
             target[key] = proxy;
@@ -75,18 +76,18 @@
             // target[ key ] = proxy;
         }
         else {
-            target[$tasks].push(target[$task].bind(null, path));
+            // target[ $tasks ].push(target[ $task ].bind(null, path));
             target[key] = value;
         }
-        if (initial)
-            run$1(target[$tasks]);
+        target[$task](path);
+        // if (initial) run(target[ $tasks ]);
         return true;
     };
     const handler$1 = { set };
     const observer = function (source, task) {
         const clone = source.constructor();
         clone[$path] = '';
-        clone[$tasks] = [];
+        // clone[ $tasks ] = [];
         clone[$task] = task;
         clone[$proxy] = true;
         const proxy = new Proxy(clone, handler$1);
@@ -394,7 +395,7 @@
             }
         }
         else if (binder.meta.currentLength < binder.meta.targetLength) {
-            const tasks = [];
+            // const tasks = [];
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
@@ -444,8 +445,9 @@
                 const clone = binder.meta.clone.content.cloneNode(true);
                 let node = clone.firstChild;
                 while (node) {
-                    // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
-                    tasks.push(binder.binder.add(node, binder.container, dynamics, rewrites));
+                    // binder.binder.add(node, binder.container, dynamics, rewrites);
+                    tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
+                    // tasks.push(binder.binder.add(node, binder.container, dynamics, rewrites));
                     node = node.nextSibling;
                 }
                 binder.meta.templateElement.content.appendChild(clone);
@@ -453,7 +455,7 @@
             }
             if (binder.meta.currentLength === binder.meta.targetLength) {
                 // console.timeEnd(time);
-                await Promise.all(tasks);
+                // await Promise.all(tasks);
                 binder.owner.appendChild(binder.meta.templateElement.content);
                 // if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$renderEach'));
             }
@@ -700,6 +702,7 @@
     // const empty = /\s*{{\s*}}\s*/;
     class Binder {
         prefix = 'o-';
+        prefixEach = 'o-each';
         syntaxEnd = '}}';
         syntaxStart = '{{';
         syntaxLength = 2;
@@ -765,6 +768,7 @@
                         this.pathBinders.get(path).set(node, binder);
                     }
                 }
+                // binder.render();
                 tick.then(binder.render);
                 // binder.render();
             }
@@ -787,12 +791,13 @@
             }
         }
         async add(node, container, dynamics, rewrites) {
-            const tasks = [];
+            // const tasks = [];
             if (node.nodeType === AN) {
                 const attribute = node;
                 if (this.syntaxMatch.test(attribute.value)) {
-                    // tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                    tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    // this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites);
+                    // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                 }
             }
             else if (node.nodeType === TN) {
@@ -806,45 +811,43 @@
                     return;
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    tasks.push(this.add(split, container, dynamics, rewrites));
-                    // tick.then(this.add.bind(this, split, container, dynamics, rewrites));
+                    tick.then(this.add.bind(this, split, container, dynamics, rewrites));
+                    // tasks.push(this.add(split, container, dynamics, rewrites));
+                    // this.add(split, container, dynamics, rewrites);
                 }
-                tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
-                // tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+                tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+                // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+                // this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites);
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
-                const each = attributes['each'] || attributes[`${this.prefix}each`];
-                if (each) {
-                    await this.bind(each, container, each.name, each.value, each.ownerElement, dynamics, rewrites);
-                }
-                for (let i = 0; i < attributes.length; i++) {
-                    const attribute = attributes[i];
-                    const { name, value, ownerElement } = attribute;
-                    if (name === 'each' || name === `${this.prefix}each`)
-                        continue;
-                    if (this.syntaxMatch.test(value)) {
-                        if (name.startsWith('on')) {
-                            node[name] = null;
-                            attribute.value = '';
-                        }
-                        tasks.push(this.bind(attribute, container, name, value, ownerElement, dynamics, rewrites));
-                        // tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics, rewrites));
+                let each = false;
+                // const each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
+                // if (each) await this.bind(each, container, each.name, each.value, each.ownerElement, dynamics, rewrites);
+                for (const attribute of attributes) {
+                    if (attribute.name === 'each' || attribute.name === this.prefixEach)
+                        each = true;
+                    // if (attribute.name === 'each' || attribute.name === `${this.prefix}each`) continue;
+                    if (this.syntaxMatch.test(attribute.value)) {
+                        tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                        attribute.value = '';
+                        // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                        // this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites);
                     }
                 }
                 if (each)
-                    return Promise.all(tasks);
-                // if (each) return;
+                    return;
                 if (!each) {
                     let child = node.firstChild;
                     while (child) {
-                        // tick.then(this.add.bind(this, child, container, dynamics, rewrites));
-                        tasks.push(this.add(child, container, dynamics, rewrites));
+                        tick.then(this.add.bind(this, child, container, dynamics, rewrites));
+                        // this.add(child, container, dynamics, rewrites);
+                        // tasks.push(this.add(child, container, dynamics, rewrites));
                         child = child.nextSibling;
                     }
                 }
             }
-            return Promise.all(tasks);
+            // return Promise.all(tasks);
         }
     }
 
