@@ -88,6 +88,7 @@ const each = async function (binder) {
         }
 
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
+        const tasks = [];
         while (binder.meta.currentLength < binder.meta.targetLength) {
             const indexValue = binder.meta.currentLength;
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
@@ -128,13 +129,11 @@ const each = async function (binder) {
             // tick.then(binder.binder.add.bind(binder.binder, t, binder.container, dynamics));
             // d.appendChild(t);
             // binder.meta.templateElement.content.appendChild(d)
-
             const clone = binder.meta.clone.content.cloneNode(true);
             let node = clone.firstChild;
             while (node) {
-                tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
-                // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
-                // binder.binder.add(node, binder.container, dynamics);
+                // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
+                tasks.push(binder.binder.add(node, binder.container, dynamics, rewrites));
                 node = node.nextSibling;
             }
 
@@ -142,12 +141,12 @@ const each = async function (binder) {
             binder.meta.currentLength++;
         }
 
-    }
-
-    if (binder.meta.currentLength === binder.meta.targetLength) {
-        // console.timeEnd(time);
-        binder.owner.appendChild(binder.meta.templateElement.content);
-        // if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$renderEach'));
+        if (binder.meta.currentLength === binder.meta.targetLength) {
+            // console.timeEnd(time);
+            await Promise.all(tasks);
+            binder.owner.appendChild(binder.meta.templateElement.content);
+            // if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$renderEach'));
+        }
     }
 
 };

@@ -256,7 +256,7 @@
         if (!meta.setup) {
             meta.setup = true;
             if (type === 'select-one' || type === 'select-multiple') {
-                owner.addEventListener('$renderEach', () => binder.render());
+                // owner.addEventListener('$renderEach', () => binder.render());
                 owner.addEventListener('$renderOption', () => binder.render());
             }
             owner.addEventListener('input', event => input(binder, event));
@@ -264,21 +264,15 @@
         let display, computed;
         if (type === 'select-one') {
             let value = binder.assignee();
-            // const value = binder.assignee();
+            owner.value = undefined;
             for (const option of owner.options) {
                 const optionValue = '$value' in option ? option.$value : option.value;
-                if (option.selected = optionValue === value) {
-                    // isSelected = true;
+                if (option.selected = optionValue === value)
                     break;
-                }
             }
-            // console.log(owner, owner.selectedOptions.length, owner.selectedOptions[ 0 ]);
-            // if (!isSelected) {
-            // if (owner.options.length && !isSelected) {
             if (owner.options.length && !owner.selectedOptions.length) {
                 const [option] = owner.options;
                 value = '$value' in option ? option.$value : option.value;
-                // console.log(option, option.$value, option.value);
                 option.selected = true;
             }
             computed = await binder.compute({ value });
@@ -321,11 +315,10 @@
         }
         owner.$value = computed;
         owner.setAttribute('value', display);
-        if (!meta.first) {
-            meta.first = true;
-            if (owner.parentElement.type === 'select-one' || owner.parentElement.type === 'select-multiple') {
-                owner.parentElement.dispatchEvent(new Event('$renderOption'));
-            }
+        if (owner.parentElement &&
+            (owner.parentElement.type === 'select-one' ||
+                owner.parentElement.type === 'select-multiple')) {
+            owner.parentElement.dispatchEvent(new Event('$renderOption'));
         }
     };
 
@@ -401,6 +394,7 @@
             }
         }
         else if (binder.meta.currentLength < binder.meta.targetLength) {
+            const tasks = [];
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
@@ -450,19 +444,19 @@
                 const clone = binder.meta.clone.content.cloneNode(true);
                 let node = clone.firstChild;
                 while (node) {
-                    tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
-                    // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics));
-                    // binder.binder.add(node, binder.container, dynamics);
+                    // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
+                    tasks.push(binder.binder.add(node, binder.container, dynamics, rewrites));
                     node = node.nextSibling;
                 }
                 binder.meta.templateElement.content.appendChild(clone);
                 binder.meta.currentLength++;
             }
-        }
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            // console.timeEnd(time);
-            binder.owner.appendChild(binder.meta.templateElement.content);
-            // if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$renderEach'));
+            if (binder.meta.currentLength === binder.meta.targetLength) {
+                // console.timeEnd(time);
+                await Promise.all(tasks);
+                binder.owner.appendChild(binder.meta.templateElement.content);
+                // if (binder.owner.nodeName === 'SELECT') binder.owner.dispatchEvent(new Event('$renderEach'));
+            }
         }
     };
 
@@ -793,10 +787,12 @@
             }
         }
         async add(node, container, dynamics, rewrites) {
+            const tasks = [];
             if (node.nodeType === AN) {
                 const attribute = node;
                 if (this.syntaxMatch.test(attribute.value)) {
-                    tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    // tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                 }
             }
             else if (node.nodeType === TN) {
@@ -810,9 +806,11 @@
                     return;
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    tick.then(this.add.bind(this, split, container, dynamics, rewrites));
+                    tasks.push(this.add(split, container, dynamics, rewrites));
+                    // tick.then(this.add.bind(this, split, container, dynamics, rewrites));
                 }
-                tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+                tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+                // tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
@@ -830,17 +828,23 @@
                             node[name] = null;
                             attribute.value = '';
                         }
-                        tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics, rewrites));
+                        tasks.push(this.bind(attribute, container, name, value, ownerElement, dynamics, rewrites));
+                        // tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics, rewrites));
                     }
                 }
                 if (each)
-                    return;
-                let child = node.firstChild;
-                while (child) {
-                    tick.then(this.add.bind(this, child, container, dynamics, rewrites));
-                    child = child.nextSibling;
+                    return Promise.all(tasks);
+                // if (each) return;
+                if (!each) {
+                    let child = node.firstChild;
+                    while (child) {
+                        // tick.then(this.add.bind(this, child, container, dynamics, rewrites));
+                        tasks.push(this.add(child, container, dynamics, rewrites));
+                        child = child.nextSibling;
+                    }
                 }
             }
+            return Promise.all(tasks);
         }
     }
 

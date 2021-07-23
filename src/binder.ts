@@ -118,11 +118,13 @@ export default class Binder {
     }
 
     async add (node: Node, container: any, dynamics?: any, rewrites?: any) {
+        const tasks = [];
 
         if (node.nodeType === AN) {
             const attribute = (node as Attr);
             if (this.syntaxMatch.test(attribute.value)) {
-                tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                // tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
             }
         } else if (node.nodeType === TN) {
 
@@ -136,10 +138,12 @@ export default class Binder {
 
             if (end + this.syntaxLength !== node.nodeValue.length) {
                 const split = (node as Text).splitText(end + this.syntaxLength);
-                tick.then(this.add.bind(this, split, container, dynamics, rewrites));
+                tasks.push(this.add(split, container, dynamics, rewrites));
+                // tick.then(this.add.bind(this, split, container, dynamics, rewrites));
             }
 
-            tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+            tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+            // tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
         } else if (node.nodeType === EN) {
             const attributes = (node as Element).attributes;
             const each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
@@ -154,20 +158,25 @@ export default class Binder {
                 if (name === 'each' || name === `${this.prefix}each`) continue;
                 if (this.syntaxMatch.test(value)) {
                     if (name.startsWith('on')) { node[ name ] = null; attribute.value = ''; }
-                    tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics, rewrites));
+                    tasks.push(this.bind(attribute, container, name, value, ownerElement, dynamics, rewrites));
+                    // tick.then(this.bind.bind(this, attribute, container, name, value, ownerElement, dynamics, rewrites));
                 }
             }
 
-            if (each) return;
+            // if (each) return;
 
-            let child = node.firstChild;
-            while (child) {
-                tick.then(this.add.bind(this, child, container, dynamics, rewrites));
-                child = child.nextSibling;
+            if (!each) {
+                let child = node.firstChild;
+                while (child) {
+                    // tick.then(this.add.bind(this, child, container, dynamics, rewrites));
+                    tasks.push(this.add(child, container, dynamics, rewrites));
+                    child = child.nextSibling;
+                }
             }
 
         }
 
+        return Promise.all(tasks);
     }
 
 };

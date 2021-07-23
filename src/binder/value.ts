@@ -82,7 +82,7 @@ const value = async function value (binder) {
         meta.setup = true;
 
         if (type === 'select-one' || type === 'select-multiple') {
-            owner.addEventListener('$renderEach', () => binder.render());
+            // owner.addEventListener('$renderEach', () => binder.render());
             owner.addEventListener('$renderOption', () => binder.render());
         }
 
@@ -93,23 +93,17 @@ const value = async function value (binder) {
 
     if (type === 'select-one') {
         let value = binder.assignee();
-        // const value = binder.assignee();
+
+        owner.value = undefined;
 
         for (const option of owner.options) {
             const optionValue = '$value' in option ? option.$value : option.value;
-            if (option.selected = optionValue === value) {
-                // isSelected = true;
-                break;
-            }
+            if (option.selected = optionValue === value) break;
         }
 
-        // console.log(owner, owner.selectedOptions.length, owner.selectedOptions[ 0 ]);
-        // if (!isSelected) {
-        // if (owner.options.length && !isSelected) {
         if (owner.options.length && !owner.selectedOptions.length) {
             const [ option ] = owner.options;
             value = '$value' in option ? option.$value : option.value;
-            // console.log(option, option.$value, option.value);
             option.selected = true;
         }
 
@@ -149,11 +143,10 @@ const value = async function value (binder) {
     owner.$value = computed;
     owner.setAttribute('value', display);
 
-    if (!meta.first) {
-        meta.first = true;
-        if (owner.parentElement.type === 'select-one' || owner.parentElement.type === 'select-multiple') {
-            owner.parentElement.dispatchEvent(new Event('$renderOption'));
-        }
+    if (owner.parentElement &&
+        (owner.parentElement.type === 'select-one' ||
+            owner.parentElement.type === 'select-multiple')) {
+        owner.parentElement.dispatchEvent(new Event('$renderOption'));
     }
 
 };
