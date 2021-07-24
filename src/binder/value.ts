@@ -53,7 +53,7 @@ const input = async function (binder, event) {
         display = format(computed);
     } else if (type === 'number' || type === 'range') {
         computed = await binder.compute({ event, value: owner.valueAsNumber });
-        if (typeof computed === 'number') owner.valueAsNumber = computed;
+        if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
         else owner.value = computed;
         display = owner.value;
     } else if (dateTypes.includes(type)) {
@@ -123,7 +123,7 @@ const value = async function value (binder) {
     } else if (type === 'number' || type === 'range') {
         const value = binder.assignee();
         computed = await binder.compute({ value });
-        if (typeof computed === 'number') owner.valueAsNumber = computed;
+        if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
         else owner.value = computed;
         display = owner.value;
     } else if (dateTypes.includes(type)) {
