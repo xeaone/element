@@ -1,103 +1,71 @@
 console.warn('oxe: need to handle delete property');
 
-type task = (path?: string) => Promise<any>;
-type tasks = task[];
+type task = (path: string, index?: number, key?: string, message?: string) => Promise<any>;
 
-const $path = Symbol('$path');
-const $task = Symbol('$task');
-const $tasks = Symbol('$tasks');
-const $proxy = Symbol('$proxy');
+const tick = Promise.resolve();
 
-// const run = async function (tasks: tasks) {
-//     let task;
-//     while (task = tasks.shift()) {
-//         await task();
-//     }
-// };
+const deleteProperty = function (task, path, target: any, key: any) {
 
-// const get = function (target, key) {
-//     if (typeof target[ key ] === 'object' && target[ key ] !== null) {
-//         return new Proxy(target[ key ], handler);
-//     } else {
-//         return target[ key ];
-//     }
-// };
+    const current = target[ key ];
+    if (typeof current === 'object') {
+        for (const k in current) {
+            delete current[ k ];
+        }
+    }
 
-const set = function (target: any, key: any, value: any) {
-    if (key === $path) return true;
-    if (key === $task) return true;
-    // if (key === $tasks) return true;
-    if (key === $proxy) return true;
+    delete target[ key ];
 
-    // console.log(target[ $path ] ? `${target[ $path ]}.${key}` : `${key}`);
+    tick.then(() => task(path ? `${path}.${key}` : `${key}`, 'delete'));
+
+    return true;
+};
+
+const set = function (task, path, target: any, key: any, value: any) {
 
     if (key === 'length') {
-        target[ $task ](target[ $path ]);
-        // target[ $tasks ].push(target[ $task ].bind(null, target[ $path ]));
+        tick.then(() => task(path, 'length'));
         return true;
     }
 
     const current = target[ key ];
     if (current !== current && value !== value) return true; // NaN check
-    // if (current === value && target[ $proxy ]) return true;
     if (current === value) return true;
 
-    const path = target[ $path ] ? `${target[ $path ]}.${key}` : `${key}`;
-    // const initial = !target[ $tasks ].length;
-
     if (value && typeof value === 'object') {
-        // if (value && typeof value === 'object' && !value[ $proxy ]) {
-        // target[ $tasks ].push(target[ $task ].bind(null, path));
 
-        const clone = value.constructor();
-        clone[ $path ] = path;
-        clone[ $proxy ] = true;
-        clone[ $task ] = target[ $task ];
-        // clone[ $tasks ] = target[ $tasks ];
-        const proxy = new Proxy(clone, handler);
-        Object.assign(proxy, value);
-        target[ key ] = proxy;
+        for (const k in current) {
+            delete current[ k ];
+        }
 
-        // this does not work
-        // const proxy = new Proxy(value, handler);
-        // proxy[ $path ] = path;
-        // proxy[ $proxy ] = true;
-        // proxy[ $task ] = target[ $task ];
-        // proxy[ $tasks ] = target[ $tasks ];
-        // Object.assign(proxy, value);
-        // target[ key ] = proxy;
+        target[ key ] = new Proxy(value.constructor(), {
+            set: set.bind(null, task, path ? `${path}.${key}` : `${key}`),
+            deleteProperty: deleteProperty.bind(null, task, path ? `${path}.${key}` : `${key}`)
+        });
+
+        // Object.assign(target[ key ], value);
+
+        for (const k in value) {
+            target[ key ][ k ] = value[ k ];
+        }
 
     } else {
-        // target[ $tasks ].push(target[ $task ].bind(null, path));
         target[ key ] = value;
     }
 
-    target[ $task ](path);
-    // if (initial) run(target[ $tasks ]);
+    tick.then(() => task(path ? `${path}.${key}` : `${key}`, 'set'));
+    // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
 
     return true;
 };
 
-const handler = { set };
-
 const observer = function (source: any, task: task) {
-
     const clone = source.constructor();
-    clone[ $path ] = '';
-    // clone[ $tasks ] = [];
-    clone[ $task ] = task;
-    clone[ $proxy ] = true;
-    const proxy = new Proxy(clone, handler);
+    const proxy = new Proxy(clone, {
+        set: set.bind(null, task, ''),
+        deleteProperty: deleteProperty.bind(null, task, '')
+    });
     Object.assign(proxy, source);
     return proxy;
-
-    // source[ $path ] = '';
-    // source[ $tasks ] = [];
-    // source[ $task ] = task;
-    // source[ $proxy ] = true;
-    // const proxy = new Proxy(source, handler);
-    // Object.assign(proxy, source);
-    // return proxy;
 };
 
 export default observer;

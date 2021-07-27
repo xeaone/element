@@ -27,6 +27,9 @@ const strips = new RegExp([
 
 const cache = new Map();
 
+// const has = () => true;
+// const get = (target, key) => typeof key === 'string' ? new Proxy({}, { has, get }) : undefined;
+
 export default function (statement: string, data: any, dynamics?: any, rewrites?: any) {
 
     if (isOfIn.test(statement)) {
@@ -38,6 +41,7 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
     const context = new Proxy({}, {
         has: () => true,
         set: (target, key, value) => {
+            if (typeof key !== 'string') return true;
             if (key === '$render') {
                 for (const k in value) {
                     const v = value[ k ];
@@ -50,10 +54,14 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
             return true;
         },
         get: (target, key) => {
+            if (typeof key !== 'string') return;
+            console.log(key);
             if (key in $render) return $render[ key ];
             if (key in dynamics) return dynamics[ key ];
             if (key in data) return data[ key ];
-            return window[ key ];
+            if (key in window) return window[ key ];
+            // return new Proxy({}, { has, get });
+            return undefined;
         }
     });
 

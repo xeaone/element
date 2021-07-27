@@ -2,7 +2,7 @@ import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
 
-// const tick = Promise.resolve();
+const tick = Promise.resolve();
 
 export default class Component extends HTMLElement {
 
@@ -66,19 +66,21 @@ export default class Component extends HTMLElement {
     async render () {
         const tasks = [];
 
-        const observer = async (path) => {
-            // console.log(path);
+        const observer = async (path, message) => {
+            // console.log(path, index, key, message);
+
             const binders = this.#binder.pathBinders.get(path);
             if (!binders) return;
-            // console.log(path, binders);
+            // console.log(binders);
 
-            const tasks = [];
+            // const tasks = [];
             for (const binder of binders.values()) {
-                tasks.push(binder.render());
-                // tick.then(binder.render);
+                binder.render(message);
+                // tasks.push(binder.render(message));
+                // tick.then(binder.render.bind(null, message));
             }
 
-            return Promise.all(tasks);
+            // return Promise.all(tasks);
         };
 
         this.data = Observer(this.data, observer);
