@@ -18,55 +18,81 @@
 
     console.warn('oxe: need to handle delete property');
     const tick$3 = Promise.resolve();
-    const deleteProperty = function (task, path, target, key) {
+    const run$1 = async function (tasks) {
+        let task;
+        while (task = tasks.shift()) {
+            task();
+        }
+    };
+    // const unobserve = function (source: any, task: task, tasks: tasks, path: string) {
+    //     if (typeof source === 'object') {
+    //     }
+    // };
+    const deleteProperty = function (task, tasks, path, target, key) {
+        const initial = !tasks.length;
+        tasks.push(task.bind(null, path));
         const current = target[key];
         if (typeof current === 'object') {
-            for (const k in current) {
-                delete current[k];
+            for (const child in current) {
+                delete current[child];
             }
         }
         delete target[key];
-        tick$3.then(() => task(path ? `${path}.${key}` : `${key}`, 'delete'));
+        if (initial)
+            tick$3.then(() => run$1(tasks));
         return true;
     };
-    const set = function (task, path, target, key, value) {
+    const set = function (task, tasks, path, target, key, value) {
         if (key === 'length') {
-            tick$3.then(() => task(path, 'length'));
             return true;
         }
-        const current = target[key];
-        if (current !== current && value !== value)
-            return true; // NaN check
-        if (current === value)
+        else if (target[key] === value || `${target[key]}${value}` === 'NaNNaN') {
             return true;
-        if (value && typeof value === 'object') {
-            for (const k in current) {
-                delete current[k];
+        }
+        const initial = !tasks.length;
+        tasks.push(task.bind(null, path));
+        const current = target[key];
+        if (typeof current === 'object') {
+            for (const child in current) {
+                if (!(child in value))
+                    delete current[child];
             }
-            target[key] = new Proxy(value.constructor(), {
-                set: set.bind(null, task, path ? `${path}.${key}` : `${key}`),
-                deleteProperty: deleteProperty.bind(null, task, path ? `${path}.${key}` : `${key}`)
+        }
+        target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
+        if (initial)
+            tick$3.then(() => run$1(tasks));
+        return true;
+    };
+    const observer = function (source, task, tasks = [], path = '') {
+        let target;
+        const initial = !tasks.length;
+        tasks.push(task.bind(null, path));
+        if (source?.constructor === Array) {
+            target = [];
+            for (let key = 0, length = source.length; key < length; key++) {
+                target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : `${key}`);
+            }
+            target = new Proxy(target, {
+                set: set.bind(null, task, tasks, path),
+                deleteProperty: deleteProperty.bind(null, task, tasks, path)
             });
-            // Object.assign(target[ key ], value);
-            for (const k in value) {
-                target[key][k] = value[k];
+        }
+        else if (source?.constructor === Object) {
+            target = {};
+            for (const key in source) {
+                target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : key);
             }
+            target = new Proxy(target, {
+                set: set.bind(null, task, tasks, path),
+                deleteProperty: deleteProperty.bind(null, task, tasks, path)
+            });
         }
         else {
-            target[key] = value;
+            target = source;
         }
-        tick$3.then(() => task(path ? `${path}.${key}` : `${key}`, 'set'));
-        // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
-        return true;
-    };
-    const observer = function (source, task) {
-        const clone = source.constructor();
-        const proxy = new Proxy(clone, {
-            set: set.bind(null, task, ''),
-            deleteProperty: deleteProperty.bind(null, task, '')
-        });
-        Object.assign(proxy, source);
-        return proxy;
+        if (initial)
+            tick$3.then(() => run$1(tasks));
+        return target;
     };
 
     var booleanTypes = [
@@ -300,12 +326,11 @@
         // binder.meta.keyPattern = key ? new RegExp(`(;.*?\\b)(${key})(\\b.*?;)`, 'g') : null;
         // binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
         // binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
-        // if (binder.rewrites) {
-        //     for (const [ pattern, value ] of binder.rewrites) {
-        //         path = path.replace(new RegExp(`\\b(${pattern})\\b`), value);
-        //     }
-        // }
-        binder.meta.a = [];
+        if (binder.rewrites) {
+            for (const [pattern, value] of binder.rewrites) {
+                path = path.replace(new RegExp(`\\b(${pattern})\\b`, 'g'), value);
+            }
+        }
         binder.meta.keyPattern = key ? key : null;
         binder.meta.indexPattern = index ? index : null;
         binder.meta.variablePattern = variable ? variable : null;
@@ -323,12 +348,12 @@
         binder.meta.templateElement = document.createElement('template');
         let node = binder.owner.firstChild;
         while (node) {
-            binder.meta.clone.content.appendChild(node);
             binder.meta.count++;
+            binder.meta.clone.content.appendChild(node);
             node = binder.owner.firstChild;
         }
     };
-    const each = async function (binder, message) {
+    const each = async function (binder) {
         if (!binder.meta.setup)
             setup(binder);
         // const time = `each ${binder.meta.targetLength}`;
@@ -357,71 +382,35 @@
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
                 const variableValue = `${binder.meta.path}.${keyValue}`;
-                const dynamics = new Proxy({
-                    // ...binder.dynamics,
-                    [binder.meta.keyName]: undefined,
-                    [binder.meta.indexName]: undefined,
-                    [binder.meta.variableName]: undefined,
-                    // get [ binder.meta.keyName ] () { return keyValue; },
-                    // get [ binder.meta.indexName ] () { return indexValue; },
-                    // set [ binder.meta.variableName ] (value) {
-                    //     let data = binder.container.data;
-                    //     for (const part of binder.meta.pathParts) {
-                    //         if (part in this) data = this[ part ];
-                    //         else if (part in data) data = data[ part ];
-                    //         else return;
-                    //     }
-                    //     data[ keyValue ] = value;
-                    // },
-                    // get [ binder.meta.variableName ] () {
-                    //     let data = binder.container.data;
-                    //     for (const part of binder.meta.pathParts) {
-                    //         console.log(part);
-                    //         if (part in this) data = this[ part ];
-                    //         else if (part in data) data = data[ part ];
-                    //         else return;
-                    //     }
-                    //     return data[ keyValue ];
-                    // }
-                }, {
-                    // has: (target, key) => {
-                    //     return binder.meta.keyName === key || binder.meta.indexName === key || binder.meta.variableName || key;
-                    // },
-                    get: (target, key) => {
-                        if (typeof key !== 'string')
-                            return;
-                        if (key === binder.meta.keyName)
-                            return keyValue;
-                        if (key === binder.meta.indexName)
-                            return indexValue;
-                        if (key === binder.meta.variableName) {
-                            let data = binder?.dynamics ?? binder.container.data;
-                            for (const part of binder.meta.pathParts) {
-                                if (part in data)
-                                    data = data[part];
-                                // else return new Proxy({}, { has, get });
-                                else
-                                    return undefined;
-                            }
-                            return data[keyValue];
+                const dynamics = {
+                    [binder.meta.keyName]: keyValue,
+                    [binder.meta.indexName]: indexValue,
+                    set [binder.meta.variableName](value) {
+                        let data = binder.container.data;
+                        // let data = binder?.dynamics ?? binder.container.data;
+                        for (const part of binder.meta.pathParts) {
+                            if (part in data)
+                                data = data[part];
+                            else
+                                return;
                         }
+                        data[keyValue] = value;
                     },
-                    set: (target, key, value) => {
-                        if (typeof key !== 'string')
-                            return;
-                        if (key === binder.meta.variableName) {
-                            let data = binder?.dynamics ?? binder.container.data;
-                            for (const part of binder.meta.pathParts) {
-                                if (part in data)
-                                    data = data[part];
-                                else
-                                    return true;
-                            }
-                            data[keyValue] = value;
-                            return true;
+                    get [binder.meta.variableName]() {
+                        let data = binder.container.data;
+                        // let data = binder?.dynamics ?? binder.container.data;
+                        for (const part of binder.meta.pathParts) {
+                            if (part in data)
+                                data = data[part];
+                            else
+                                return;
                         }
+                        // console.log(data, data[ keyValue ], binder.meta.variableName, binder.meta.pathParts, keyValue);
+                        return data[keyValue];
+                        // return data[ keyValue ] || {};
+                        // return new Proxy(data[ keyValue ] || {}, { has, get });
                     }
-                });
+                };
                 const rewrites = [...(binder.rewrites || [])];
                 if (binder.meta.indexPattern)
                     rewrites.unshift([binder.meta.indexPattern, indexValue]);
@@ -661,7 +650,6 @@
             get: (target, key) => {
                 if (typeof key !== 'string')
                     return;
-                console.log(key);
                 if (key in $render)
                     return $render[key];
                 if (key in dynamics)
@@ -670,7 +658,6 @@
                     return data[key];
                 if (key in window)
                     return window[key];
-                // return new Proxy({}, { has, get });
                 return undefined;
             }
         });
@@ -715,7 +702,6 @@
         syntaxReplace = new RegExp('{{|}}', 'g');
         nodeBinders = new Map();
         pathBinders = new Map();
-        // eachBinders: Map<string, Map<Node, any>> = new Map();
         binders = {
             standard,
             checked,
@@ -728,7 +714,6 @@
         get(data) {
             if (typeof data === 'string') {
                 return this.pathBinders.get(data);
-                // return this.pathBinders.get(data) || this.eachBinders.get(data);
             }
             else {
                 return this.nodeBinders.get(data);
@@ -761,13 +746,6 @@
             binder.render = this.binders[type].bind(null, binder);
             for (const path of paths) {
                 if (path) {
-                    // if (type === 'each') {
-                    //     if (!this.eachBinders.has(path)) {
-                    //         this.eachBinders.set(path, new Map([ [ node, binder ] ]));
-                    //     } else {
-                    //         this.eachBinders.get(path).set(node, binder);
-                    //     }
-                    // } else {
                     if (!this.nodeBinders.has(node)) {
                         this.nodeBinders.set(node, new Map([[path, binder]]));
                     }
@@ -780,9 +758,7 @@
                     else {
                         this.pathBinders.get(path).set(node, binder);
                     }
-                    // }
                 }
-                // binder.render();
                 tick.then(binder.render);
                 // binder.render();
             }
@@ -794,8 +770,8 @@
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
-                for (let i = 0; i < attributes.length; i++) {
-                    tick.then(this.unbind.bind(this, attributes[i]));
+                for (const attribute of attributes) {
+                    tick.then(this.unbind.bind(this, attribute));
                 }
                 let child = node.firstChild;
                 while (child) {
@@ -971,15 +947,15 @@
         }
         async render() {
             const tasks = [];
-            const observer$1 = async (path, message) => {
-                // console.log(path, index, key, message);
+            const observer$1 = async (path) => {
+                // console.log(path);
                 const binders = this.#binder.pathBinders.get(path);
                 if (!binders)
                     return;
-                // console.log(binders);
+                // console.log(path, binders);
                 // const tasks = [];
                 for (const binder of binders.values()) {
-                    binder.render(message);
+                    binder.render();
                     // tasks.push(binder.render(message));
                     // tick.then(binder.render.bind(null, message));
                 }

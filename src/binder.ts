@@ -28,7 +28,6 @@ export default class Binder {
 
     nodeBinders: Map<Node, Map<string, any>> = new Map();
     pathBinders: Map<string, Map<Node, any>> = new Map();
-    // eachBinders: Map<string, Map<Node, any>> = new Map();
 
     binders = {
         standard,
@@ -43,7 +42,6 @@ export default class Binder {
     get (data: any) {
         if (typeof data === 'string') {
             return this.pathBinders.get(data);
-            // return this.pathBinders.get(data) || this.eachBinders.get(data);
         } else {
             return this.nodeBinders.get(data);
         }
@@ -82,13 +80,6 @@ export default class Binder {
         for (const path of paths) {
 
             if (path) {
-                // if (type === 'each') {
-                //     if (!this.eachBinders.has(path)) {
-                //         this.eachBinders.set(path, new Map([ [ node, binder ] ]));
-                //     } else {
-                //         this.eachBinders.get(path).set(node, binder);
-                //     }
-                // } else {
                 if (!this.nodeBinders.has(node)) {
                     this.nodeBinders.set(node, new Map([ [ path, binder ] ]));
                 } else {
@@ -99,10 +90,8 @@ export default class Binder {
                 } else {
                     this.pathBinders.get(path).set(node, binder);
                 }
-                // }
             }
 
-            // binder.render();
             tick.then(binder.render);
             // binder.render();
         }
@@ -115,8 +104,8 @@ export default class Binder {
             tick.then(this.unbind.bind(this, node));
         } else if (node.nodeType === EN) {
             const attributes = (node as Element).attributes;
-            for (let i = 0; i < attributes.length; i++) {
-                tick.then(this.unbind.bind(this, attributes[ i ]));
+            for (const attribute of attributes) {
+                tick.then(this.unbind.bind(this, attribute));
             }
 
             let child = node.firstChild;

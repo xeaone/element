@@ -55,12 +55,10 @@ export default function (statement: string, data: any, dynamics?: any, rewrites?
         },
         get: (target, key) => {
             if (typeof key !== 'string') return;
-            console.log(key);
             if (key in $render) return $render[ key ];
             if (key in dynamics) return dynamics[ key ];
             if (key in data) return data[ key ];
             if (key in window) return window[ key ];
-            // return new Proxy({}, { has, get });
             return undefined;
         }
     });

@@ -66,16 +66,16 @@ export default class Component extends HTMLElement {
     async render () {
         const tasks = [];
 
-        const observer = async (path, message) => {
-            // console.log(path, index, key, message);
+        const observer = async (path) => {
+            // console.log(path);
 
             const binders = this.#binder.pathBinders.get(path);
             if (!binders) return;
-            // console.log(binders);
+            // console.log(path, binders);
 
             // const tasks = [];
             for (const binder of binders.values()) {
-                binder.render(message);
+                binder.render();
                 // tasks.push(binder.render(message));
                 // tick.then(binder.render.bind(null, message));
             }

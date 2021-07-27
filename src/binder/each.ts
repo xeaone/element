@@ -25,13 +25,11 @@ const setup = function (binder) {
     // binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
     // binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
 
-    // if (binder.rewrites) {
-    //     for (const [ pattern, value ] of binder.rewrites) {
-    //         path = path.replace(new RegExp(`\\b(${pattern})\\b`), value);
-    //     }
-    // }
-
-    binder.meta.a = [];
+    if (binder.rewrites) {
+        for (const [ pattern, value ] of binder.rewrites) {
+            path = path.replace(new RegExp(`\\b(${pattern})\\b`, 'g'), value);
+        }
+    }
 
     binder.meta.keyPattern = key ? key : null;
     binder.meta.indexPattern = index ? index : null;
@@ -54,14 +52,14 @@ const setup = function (binder) {
 
     let node = binder.owner.firstChild;
     while (node) {
-        binder.meta.clone.content.appendChild(node);
         binder.meta.count++;
+        binder.meta.clone.content.appendChild(node);
         node = binder.owner.firstChild;
     }
 
 };
 
-const each = async function (binder, message) {
+const each = async function (binder) {
 
     if (!binder.meta.setup) setup(binder);
 
@@ -89,7 +87,6 @@ const each = async function (binder, message) {
 
             binder.meta.currentLength--;
         }
-
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
         while (binder.meta.currentLength < binder.meta.targetLength) {
 
@@ -97,66 +94,31 @@ const each = async function (binder, message) {
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
             const variableValue = `${binder.meta.path}.${keyValue}`;
 
-            const dynamics = new Proxy({
-                // ...binder.dynamics,
-
-                [ binder.meta.keyName ]: undefined,
-                [ binder.meta.indexName ]: undefined,
-                [ binder.meta.variableName ]: undefined,
-
-                // get [ binder.meta.keyName ] () { return keyValue; },
-                // get [ binder.meta.indexName ] () { return indexValue; },
-                // set [ binder.meta.variableName ] (value) {
-                //     let data = binder.container.data;
-                //     for (const part of binder.meta.pathParts) {
-                //         if (part in this) data = this[ part ];
-                //         else if (part in data) data = data[ part ];
-                //         else return;
-                //     }
-                //     data[ keyValue ] = value;
-                // },
-                // get [ binder.meta.variableName ] () {
-                //     let data = binder.container.data;
-                //     for (const part of binder.meta.pathParts) {
-                //         console.log(part);
-                //         if (part in this) data = this[ part ];
-                //         else if (part in data) data = data[ part ];
-                //         else return;
-                //     }
-
-                //     return data[ keyValue ];
-                // }
-            }, {
-                // has: (target, key) => {
-                //     return binder.meta.keyName === key || binder.meta.indexName === key || binder.meta.variableName || key;
-                // },
-                get: (target, key) => {
-                    if (typeof key !== 'string') return;
-                    if (key === binder.meta.keyName) return keyValue;
-                    if (key === binder.meta.indexName) return indexValue;
-                    if (key === binder.meta.variableName) {
-                        let data = binder?.dynamics ?? binder.container.data;
-                        for (const part of binder.meta.pathParts) {
-                            if (part in data) data = data[ part ];
-                            // else return new Proxy({}, { has, get });
-                            else return undefined;
-                        }
-                        return data[ keyValue ];
+            const dynamics = {
+                [ binder.meta.keyName ]: keyValue,
+                [ binder.meta.indexName ]: indexValue,
+                set [ binder.meta.variableName ] (value) {
+                    let data = binder.container.data;
+                    // let data = binder?.dynamics ?? binder.container.data;
+                    for (const part of binder.meta.pathParts) {
+                        if (part in data) data = data[ part ];
+                        else return;
                     }
+                    data[ keyValue ] = value;
                 },
-                set: (target, key, value) => {
-                    if (typeof key !== 'string') return;
-                    if (key === binder.meta.variableName) {
-                        let data = binder?.dynamics ?? binder.container.data;
-                        for (const part of binder.meta.pathParts) {
-                            if (part in data) data = data[ part ];
-                            else return true;
-                        }
-                        data[ keyValue ] = value;
-                        return true;
+                get [ binder.meta.variableName ] () {
+                    let data = binder.container.data;
+                    // let data = binder?.dynamics ?? binder.container.data;
+                    for (const part of binder.meta.pathParts) {
+                        if (part in data) data = data[ part ];
+                        else return;
                     }
+                    // console.log(data, data[ keyValue ], binder.meta.variableName, binder.meta.pathParts, keyValue);
+                    return data[ keyValue ];
+                    // return data[ keyValue ] || {};
+                    // return new Proxy(data[ keyValue ] || {}, { has, get });
                 }
-            });
+            };
 
             const rewrites = [ ...(binder.rewrites || []) ];
             if (binder.meta.indexPattern) rewrites.unshift([ binder.meta.indexPattern, indexValue ]);
@@ -180,7 +142,7 @@ const each = async function (binder, message) {
 
             binder.meta.templateElement.content.appendChild(clone);
             binder.meta.currentLength++;
-        };
+        }
 
         if (binder.meta.busy) return;
         else binder.meta.busy = true;
