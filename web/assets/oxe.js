@@ -576,6 +576,232 @@
         binder.owner.addEventListener(name, binder.meta.method);
     };
 
+    const isString = '\'`"';
+    const referenceSkips = ' ?]';
+    const referenceStart = '_$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const referenceInner = '._$0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const referenceFirstSkips = `
+$event $value $checked $form $e $v $c $f
+window document console location this Math Date Number
+true false null undefined NaN of in do if for
+let new try var case else with await break catch
+class const super throw while yield delete export
+import return switch default extends finally continue
+debugger function arguments typeof void
+`;
+    const parse = function (data, rewrites) {
+        let inString = false;
+        let inSyntax = false;
+        let inReference = false;
+        let skipReference = false;
+        let part = '';
+        let first = '';
+        let reference = '';
+        let check = '';
+        let has = false;
+        const assignees = [];
+        const references = [];
+        let current, next, previous;
+        console.log(data);
+        for (let i = 0, l = data.length; i < l; i++) {
+            current = data[i];
+            next = data[i + 1];
+            previous = data[i - 1];
+            if (inString && first === current && previous !== '\\') {
+                inString = false;
+                first = '';
+            }
+            else if (!inString && isString.indexOf(current) !== -1) {
+                inString = true;
+                first = current;
+                if (skipReference) {
+                    inReference = false;
+                    skipReference = false;
+                    reference = check = part = '';
+                    continue;
+                }
+                inReference = false;
+                check = reference + part;
+                if (check) {
+                    if (check === 'of' || check === 'in') {
+                        references.length = 0;
+                    }
+                    else {
+                        if (!reference.length && referenceFirstSkips.indexOf(part) !== -1) {
+                            reference = check = part = '';
+                        }
+                        else {
+                            console.log(part);
+                            if (rewrites && !reference.length)
+                                for (const [name, value] of rewrites)
+                                    part === name ? part = value : null;
+                            console.log(part);
+                            reference += part;
+                            references.push(reference);
+                            reference = check = part = '';
+                        }
+                    }
+                }
+            }
+            else if (inString) {
+                continue;
+            }
+            else if (!inSyntax && current === '{' && next === '{') {
+                inSyntax = true;
+                i++;
+            }
+            else if (inSyntax && current === '}' && next === '}') {
+                has = true;
+                inSyntax = false;
+                if (skipReference) {
+                    inReference = false;
+                    skipReference = false;
+                    reference = check = part = '';
+                    continue;
+                }
+                inReference = false;
+                check = reference + part;
+                if (check) {
+                    if (check === 'of' || check === 'in') {
+                        references.length = 0;
+                    }
+                    else {
+                        if (!reference.length && referenceFirstSkips.indexOf(part) !== -1) {
+                            reference = check = part = '';
+                        }
+                        else {
+                            console.log(part);
+                            if (rewrites && !reference.length)
+                                for (const [name, value] of rewrites)
+                                    part === name ? part = value : null;
+                            console.log(part);
+                            reference += part;
+                            references.push(reference);
+                            reference = check = part = '';
+                        }
+                    }
+                }
+                i++;
+            }
+            else if (inSyntax) {
+                if (inReference) {
+                    if (current === '.') {
+                        if (!reference.length && referenceFirstSkips.indexOf(part) !== -1) {
+                            skipReference = true;
+                            part = '';
+                        }
+                        else if (!skipReference) {
+                            console.log(part);
+                            if (rewrites && !reference.length)
+                                for (const [name, value] of rewrites)
+                                    part === name ? part = value : null;
+                            console.log(part);
+                            reference += (current + part);
+                            part = '';
+                        }
+                    }
+                    else if (current === '[') {
+                        // } else if (current === '[' || previous === ']') {
+                        if (!reference.length && referenceFirstSkips.indexOf(part) !== -1) {
+                            skipReference = true;
+                            part = '';
+                        }
+                        else if (!skipReference) {
+                            console.log(part);
+                            if (rewrites && !reference.length)
+                                for (const [name, value] of rewrites)
+                                    part === name ? part = value : null;
+                            console.log(part);
+                            reference += ('.' + part);
+                            part = '';
+                        }
+                        // for (const [ name, value ] of rewrites) part === name ? part = value : null;
+                        // reference += ('.' + part);
+                        // reference += '.';
+                    }
+                    else if (referenceInner.indexOf(current) !== -1) {
+                        part += current;
+                        // reference += current;
+                    }
+                    else if (referenceSkips.indexOf(current) !== -1) {
+                        continue;
+                    }
+                    else if (current === '=' && next !== '=') {
+                        if (skipReference) {
+                            inReference = false;
+                            skipReference = false;
+                            reference = check = part = '';
+                            continue;
+                        }
+                        inReference = false;
+                        check = reference + part;
+                        if (check) {
+                            if (check === 'of' || check === 'in') {
+                                references.length = 0;
+                                reference = check = part = '';
+                            }
+                            else {
+                                if (!check.length && referenceFirstSkips.indexOf(part) !== -1) {
+                                    reference = check = part = '';
+                                }
+                                else {
+                                    console.log(part);
+                                    if (rewrites && !reference.length)
+                                        for (const [name, value] of rewrites)
+                                            part === name ? part = value : null;
+                                    console.log(part);
+                                    reference += part;
+                                    assignees.push(reference);
+                                    reference = check = part = '';
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        if (skipReference) {
+                            inReference = false;
+                            skipReference = false;
+                            reference = check = part = '';
+                            continue;
+                        }
+                        inReference = false;
+                        check = reference + part;
+                        if (check) {
+                            if (check === 'of' || check === 'in') {
+                                references.length = 0;
+                                reference = check = part = '';
+                            }
+                            else {
+                                if (!check.length && referenceFirstSkips.indexOf(part) !== -1) {
+                                    reference = check = part = '';
+                                }
+                                else {
+                                    console.log(part);
+                                    if (rewrites && !reference.length)
+                                        for (const [name, value] of rewrites)
+                                            part === name ? part = value : null;
+                                    console.log(part);
+                                    reference += part;
+                                    references.push(reference);
+                                    reference = check = part = '';
+                                }
+                            }
+                        }
+                    }
+                }
+                else {
+                    if (referenceStart.indexOf(current) !== -1) {
+                        inReference = true;
+                        part += current;
+                        // reference += current;
+                    }
+                }
+            }
+        }
+        console.log(has, references, assignees);
+        return { has, references, assignees };
+    };
+
     // const traverse = function (data: any, path: string, paths?: string[]) {
     //     paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
     //     if (!paths.length) {
@@ -602,16 +828,12 @@
     const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-    const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)|\/|\?|:/g;
     // const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)|\/|\?|:|==|===/g;
     // const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)/g;
     const seperatorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
-    const startReference = '[a-zA-Z_$]+';
     const endReference = `((${seperatorReference})[a-zA-Z_$0-9]+)*`;
-    const replaceSeperator = new RegExp(`${seperatorReference}`, 'g');
-    const references = new RegExp(`${startReference}${endReference}`, 'g');
-    const matchAssignment = new RegExp(`(${startReference}${endReference})\\s*=`);
-    const strips = new RegExp([
+    // const matchAssignment = new RegExp(`(${startReference}${endReference})\\s*=`);
+    new RegExp([
         '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
         `(window|document|this|Math|Date|Number|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${endReference}`,
         `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
@@ -623,7 +845,7 @@
     const cache = new Map();
     // const has = () => true;
     // const get = (target, key) => typeof key === 'string' ? new Proxy({}, { has, get }) : undefined;
-    function Statement (statement, data, dynamics, rewrites) {
+    const Statement = function (statement, data, dynamics, rewrites) {
         if (isOfIn.test(statement)) {
             statement = statement.replace(replaceOfIn, '{{$2}}');
         }
@@ -662,16 +884,18 @@
             }
         });
         const convert = !shouldNotConvert.test(statement);
-        let striped = statement.replace(replaceSeperator, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
-        if (rewrites) {
-            for (const [pattern, value] of rewrites) {
-                striped = striped.replace(new RegExp(`\\b(${pattern})\\b`, 'g'), value);
-            }
-            // console.log(statement, striped, rewrites, striped.match(references), striped.match(matchAssignment));
-        }
-        const paths = striped.match(references) || [];
-        const [, assignment] = striped.match(matchAssignment) || [];
-        const assignee = assignment ? traverse.bind(null, context, assignment) : () => undefined;
+        // let striped = statement.replace(replaceSeperator, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
+        // if (rewrites) {
+        //     for (const [ pattern, value ] of rewrites) {
+        //         striped = striped.replace(new RegExp(`\\b(${pattern})\\b`, 'g'), value);
+        //     }
+        // }
+        // // console.log(statement, striped, rewrites, striped.match(references));
+        // const paths = striped.match(references) || [];
+        // const assignment = paths[ 0 ];
+        // // const assignment = hasAssignment.test(striped) ? paths[ 0 ] : undefined;
+        // // const [ , assignment ] = striped.match(matchAssignment) || [];
+        // const assignee = assignment ? traverse.bind(null, context, assignment) : () => undefined;
         let compute = cache.get(statement);
         if (!compute) {
             let code = statement;
@@ -682,9 +906,40 @@
             compute = new Function('$context', '$render', code);
             cache.set(statement, compute);
         }
+        // const getPaths = [];
+        // const setPaths = [];
+        // const ignoresPaths = /^(window|location|console|document|this|Math|Date|Number|\$event|\$value|\$checked|\$form|\$e|\$v|\$c|\$f)\b/;
+        // const proxy = function (path: string = '', ignore: boolean | undefined) {
+        //     return new Proxy(() => { }, { has, set: set.bind(null, path, ignore), get: get.bind(null, path, ignore) });
+        // };
+        // const has = function () {
+        //     return true;
+        // };
+        // const set = function (path, ignore, target, key) {
+        //     if (typeof key !== 'string') return true;
+        //     path = path ? `${path}.${key}` : key;
+        //     ignore = ignore ?? ignoresPaths.test(path);
+        //     if (!ignore && !setPaths.includes(path)) setPaths.push(path);
+        //     target[ key ] = proxy(path, ignore);
+        //     return true;
+        // };
+        // const get = function (path, ignore, target, key) {
+        //     if (typeof key !== 'string') return;
+        //     path = path ? `${path}.${key}` : key;
+        //     ignore = ignore ?? ignoresPaths.test(path);
+        //     if (!ignore && !getPaths.includes(path)) getPaths.push(path);
+        //     return proxy(path, ignore);
+        // };
+        // const proxyPaths = new Proxy({}, { has, set: set.bind(null, '', null), get: get.bind(null, '', null) });
+        // compute.call(null, proxyPaths);
+        // const assignee = setPaths[ 0 ] ? traverse.bind(null, context, setPaths[ 0 ]) : () => undefined;
+        // const paths = getPaths;
         compute = compute.bind(null, context);
+        const parsed = parse(statement, rewrites);
+        const paths = parsed.references;
+        const assignee = parsed.assignees[0] ? traverse.bind(null, context, parsed.assignees[0]) : () => undefined;
         return { compute, assignee, paths };
-    }
+    };
 
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
