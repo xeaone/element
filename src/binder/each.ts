@@ -68,7 +68,7 @@ const each = async function (binder) {
 
     const data = await binder.compute();
 
-    if (data.constructor === Array) {
+    if (data?.constructor === Array) {
         binder.meta.targetLength = data.length;
     } else {
         binder.meta.keys = Object.keys(data || {});
