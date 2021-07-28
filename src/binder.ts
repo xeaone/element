@@ -5,15 +5,16 @@ import each from './binder/each';
 import html from './binder/html';
 import text from './binder/text';
 import on from './binder/on';
-import Statement from './statement';
+import computer from './computer';
+import parser from './parser';
+import contexter from './contexter';
+import traverse from './traverse';
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
 const AN = Node.ATTRIBUTE_NODE;
 
 const tick = Promise.resolve();
-
-// const empty = /\s*{{\s*}}\s*/;
 
 export default class Binder {
 
@@ -63,7 +64,14 @@ export default class Binder {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
         // const render = this.binders[ type ];
 
-        const { compute, assignee, paths } = Statement(value, container.data, dynamics, rewrites);
+        const context = contexter(container.data, dynamics);
+        const parsed = parser(value, rewrites);
+        const compute = computer(value, context);
+        const assignee = parsed.assignees[ 0 ] ? traverse.bind(null, context, parsed.assignees[ 0 ]) : () => undefined;
+        // const assignee = parsed.assignee ? traverse.bind(null, context, parsed.assignee) : () => undefined;
+
+        const paths = parsed.references;
+
         if (!paths.length) paths.push('');
 
         const binder = {

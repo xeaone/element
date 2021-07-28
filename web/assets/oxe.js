@@ -318,17 +318,13 @@
 
     const tick$2 = Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
+    // const has = () => true;
+    // const get = (target, key) => typeof key === 'string' ? new Proxy({}, { has, get }) : undefined;
     const setup = function (binder) {
         let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
-        // binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
-        // binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
-        // binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
-        // binder.meta.keyPattern = key ? new RegExp(`(;.*?\\b)(${key})(\\b.*?;)`, 'g') : null;
-        // binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
-        // binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
         if (binder.rewrites) {
             for (const [pattern, value] of binder.rewrites) {
-                path = path.replace(new RegExp(`\\b(${pattern})\\b`, 'g'), value);
+                path = path.replace(new RegExp(`^(${pattern})\\b`), value);
             }
         }
         binder.meta.keyPattern = key ? key : null;
@@ -359,7 +355,7 @@
         // const time = `each ${binder.meta.targetLength}`;
         // console.time(time);
         const data = await binder.compute();
-        if (data.constructor === Array) {
+        if (data?.constructor === Array) {
             binder.meta.targetLength = data.length;
         }
         else {
@@ -576,19 +572,41 @@
         binder.owner.addEventListener(name, binder.meta.method);
     };
 
+    const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
+    const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
+    const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
+    const cache = new Map();
+    const computer = function (statement, context) {
+        if (isOfIn.test(statement)) {
+            statement = statement.replace(replaceOfIn, '{{$2}}');
+        }
+        let compute = cache.get(statement);
+        if (!compute) {
+            const convert = !shouldNotConvert.test(statement);
+            let code = statement;
+            code = code.replace(/{{/g, convert ? `' + (` : '(');
+            code = code.replace(/}}/g, convert ? `) + '` : ')');
+            code = convert ? `'${code}'` : code;
+            code = `if ($render) $context.$render = $render;\nwith ($context) { return ${code}; }`;
+            compute = new Function('$context', '$render', code);
+            cache.set(statement, compute);
+        }
+        return compute.bind(null, context);
+    };
+
     const isString = '\'`"';
-    const referenceSkips = ' ?]';
+    const isNumber = /^[0-9]+$/;
+    const referenceConnector = '.[]';
     const referenceStart = '_$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const referenceInner = '._$0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const referenceFirstSkips = `
-$event $value $checked $form $e $v $c $f
-window document console location this Math Date Number
-true false null undefined NaN of in do if for
-let new try var case else with await break catch
-class const super throw while yield delete export
-import return switch default extends finally continue
-debugger function arguments typeof void
-`;
+    const referenceInner = '_$0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const referenceFirstSkips = [
+        '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+        'window', 'document', 'console', 'location', 'this', 'Math', 'Date', 'Number',
+        'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in', 'do', 'if', 'for', 'let',
+        'new', 'try', 'var', 'case', 'else', 'with', 'await', 'break', 'catch', 'class', 'const',
+        'super', 'throw', 'while', 'yield', 'delete', 'export', 'import', 'return', 'switch', 'default',
+        'extends', 'finally', 'continue', 'debugger', 'function', 'arguments', 'typeof', 'void'
+    ];
     const parse = function (data, rewrites) {
         let inString = false;
         let inSyntax = false;
@@ -597,12 +615,10 @@ debugger function arguments typeof void
         let part = '';
         let first = '';
         let reference = '';
-        let check = '';
-        let has = false;
         const assignees = [];
         const references = [];
+        data = data.replace(/\s*[?+-]?\s*(\.|=)\s*/g, '$1');
         let current, next, previous;
-        console.log(data);
         for (let i = 0, l = data.length; i < l; i++) {
             current = data[i];
             next = data[i + 1];
@@ -611,36 +627,27 @@ debugger function arguments typeof void
                 inString = false;
                 first = '';
             }
-            else if (!inString && isString.indexOf(current) !== -1) {
+            else if (!inString && isString.includes(current)) {
                 inString = true;
                 first = current;
-                if (skipReference) {
+                if (skipReference || !part || !reference && !part) {
                     inReference = false;
                     skipReference = false;
-                    reference = check = part = '';
+                    reference = part = '';
                     continue;
                 }
                 inReference = false;
-                check = reference + part;
-                if (check) {
-                    if (check === 'of' || check === 'in') {
-                        references.length = 0;
-                    }
-                    else {
-                        if (!reference.length && referenceFirstSkips.indexOf(part) !== -1) {
-                            reference = check = part = '';
-                        }
-                        else {
-                            console.log(part);
-                            if (rewrites && !reference.length)
-                                for (const [name, value] of rewrites)
-                                    part === name ? part = value : null;
-                            console.log(part);
-                            reference += part;
-                            references.push(reference);
-                            reference = check = part = '';
-                        }
-                    }
+                if (!reference && referenceFirstSkips.includes(part)) {
+                    reference = part = '';
+                }
+                else {
+                    if (rewrites && !reference)
+                        for (const [name, value] of rewrites)
+                            part === name ? part = value : null;
+                    reference += (reference ? '.' + part : part);
+                    if (!isNumber.test(reference))
+                        references.push(reference);
+                    reference = part = '';
                 }
             }
             else if (inString) {
@@ -651,204 +658,123 @@ debugger function arguments typeof void
                 i++;
             }
             else if (inSyntax && current === '}' && next === '}') {
-                has = true;
                 inSyntax = false;
-                if (skipReference) {
+                if (skipReference || !part || !reference && !part) {
                     inReference = false;
                     skipReference = false;
-                    reference = check = part = '';
+                    reference = part = '';
                     continue;
                 }
                 inReference = false;
-                check = reference + part;
-                if (check) {
-                    if (check === 'of' || check === 'in') {
-                        references.length = 0;
-                    }
-                    else {
-                        if (!reference.length && referenceFirstSkips.indexOf(part) !== -1) {
-                            reference = check = part = '';
-                        }
-                        else {
-                            console.log(part);
-                            if (rewrites && !reference.length)
-                                for (const [name, value] of rewrites)
-                                    part === name ? part = value : null;
-                            console.log(part);
-                            reference += part;
-                            references.push(reference);
-                            reference = check = part = '';
-                        }
-                    }
+                if (!reference && referenceFirstSkips.includes(part)) {
+                    reference = part = '';
+                }
+                else {
+                    if (rewrites && !reference)
+                        for (const [name, value] of rewrites)
+                            part === name ? part = value : null;
+                    reference += (reference ? '.' + part : part);
+                    if (!isNumber.test(reference))
+                        references.push(reference);
+                    reference = part = '';
                 }
                 i++;
             }
             else if (inSyntax) {
                 if (inReference) {
-                    if (current === '.') {
-                        if (!reference.length && referenceFirstSkips.indexOf(part) !== -1) {
-                            skipReference = true;
-                            part = '';
-                        }
-                        else if (!skipReference) {
-                            console.log(part);
-                            if (rewrites && !reference.length)
-                                for (const [name, value] of rewrites)
-                                    part === name ? part = value : null;
-                            console.log(part);
-                            reference += (current + part);
-                            part = '';
-                        }
-                    }
-                    else if (current === '[') {
-                        // } else if (current === '[' || previous === ']') {
-                        if (!reference.length && referenceFirstSkips.indexOf(part) !== -1) {
-                            skipReference = true;
-                            part = '';
-                        }
-                        else if (!skipReference) {
-                            console.log(part);
-                            if (rewrites && !reference.length)
-                                for (const [name, value] of rewrites)
-                                    part === name ? part = value : null;
-                            console.log(part);
-                            reference += ('.' + part);
-                            part = '';
-                        }
-                        // for (const [ name, value ] of rewrites) part === name ? part = value : null;
-                        // reference += ('.' + part);
-                        // reference += '.';
-                    }
-                    else if (referenceInner.indexOf(current) !== -1) {
-                        part += current;
-                        // reference += current;
-                    }
-                    else if (referenceSkips.indexOf(current) !== -1) {
-                        continue;
-                    }
-                    else if (current === '=' && next !== '=') {
-                        if (skipReference) {
-                            inReference = false;
-                            skipReference = false;
-                            reference = check = part = '';
+                    if (referenceConnector.includes(current)) {
+                        // if ((current === '?' && next === '.') || referenceConnector.includes(current)) {
+                        if (skipReference || !part || !reference && !part)
                             continue;
+                        if (!reference && referenceFirstSkips.includes(part)) {
+                            skipReference = true;
+                            part = '';
                         }
-                        inReference = false;
-                        check = reference + part;
-                        if (check) {
-                            if (check === 'of' || check === 'in') {
-                                references.length = 0;
-                                reference = check = part = '';
-                            }
-                            else {
-                                if (!check.length && referenceFirstSkips.indexOf(part) !== -1) {
-                                    reference = check = part = '';
-                                }
-                                else {
-                                    console.log(part);
-                                    if (rewrites && !reference.length)
-                                        for (const [name, value] of rewrites)
-                                            part === name ? part = value : null;
-                                    console.log(part);
-                                    reference += part;
-                                    assignees.push(reference);
-                                    reference = check = part = '';
-                                }
-                            }
+                        else {
+                            if (rewrites && !reference)
+                                for (const [name, value] of rewrites)
+                                    part === name ? part = value : null;
+                            reference += (reference ? '.' + part : part);
+                            part = '';
                         }
+                    }
+                    else if (referenceInner.includes(current)) {
+                        part += current;
                     }
                     else {
-                        if (skipReference) {
+                        if (skipReference || !part || !reference && !part) {
                             inReference = false;
                             skipReference = false;
-                            reference = check = part = '';
+                            reference = part = '';
                             continue;
                         }
                         inReference = false;
-                        check = reference + part;
-                        if (check) {
-                            if (check === 'of' || check === 'in') {
-                                references.length = 0;
-                                reference = check = part = '';
+                        if (part === 'of' || part === 'in') {
+                            references.length = 0;
+                            reference = part = '';
+                        }
+                        else if (!reference && referenceFirstSkips.includes(part)) {
+                            skipReference = true;
+                            reference = part = '';
+                        }
+                        else {
+                            if (rewrites && reference)
+                                for (const [name, value] of rewrites)
+                                    part === name ? part = value : null;
+                            reference += (reference ? '.' + part : part);
+                            if (!isNumber.test(reference)) {
+                                references.push(reference);
+                                if (current === '=' && next !== '=')
+                                    assignees.push(reference);
                             }
-                            else {
-                                if (!check.length && referenceFirstSkips.indexOf(part) !== -1) {
-                                    reference = check = part = '';
-                                }
-                                else {
-                                    console.log(part);
-                                    if (rewrites && !reference.length)
-                                        for (const [name, value] of rewrites)
-                                            part === name ? part = value : null;
-                                    console.log(part);
-                                    reference += part;
-                                    references.push(reference);
-                                    reference = check = part = '';
-                                }
-                            }
+                            reference = part = '';
                         }
                     }
                 }
                 else {
-                    if (referenceStart.indexOf(current) !== -1) {
+                    if (referenceStart.includes(current)) {
                         inReference = true;
                         part += current;
-                        // reference += current;
                     }
                 }
             }
         }
-        console.log(has, references, assignees);
-        return { has, references, assignees };
+        // console.log(data, references, assignees);
+        return { references, assignees };
     };
-
-    // const traverse = function (data: any, path: string, paths?: string[]) {
-    //     paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
-    //     if (!paths.length) {
-    //         return data;
-    //     } else {
-    //         let part = paths.shift();
-    //         const conditional = part.endsWith('?');
-    //         if (conditional && typeof data !== 'object') return undefined;
-    //         part = conditional ? part.slice(0, -1) : part;
-    //         return traverse(data[ part ], path, paths);
+    // const connectorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
+    // const startReference = '[a-zA-Z_$]+';
+    // const endReference = `((${connectorReference})[a-zA-Z_$0-9]+)*`;
+    // const replaceReferenceConnector = new RegExp(`${connectorReference}`, 'g');
+    // const allReferences = new RegExp(`${startReference}${endReference}`, 'g');
+    // const replaceReferenceSeperator = new RegExp([
+    //     '^[^}}]*{{|}}.*?{{|}}[^{{]*$',
+    //     '[!?+\\-()=]+'
+    // ].join('|'), 'g');
+    // const strips = new RegExp([
+    //     '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`', // strings
+    //     '(var|let|const)\\s+[_$a-zA-Z0-9]+\\s*=?', // variables
+    //     `(window|document|this|Math|Date|Number|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${endReference}`, // globals and specials
+    //     `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
+    //     \\bdo\\b|\\bif\\b|\\bfor\\b|\\bnew\\b|\\btry\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
+    //     \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
+    //     \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
+    //     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
+    // ].join('|').replace(/\s|\t|\n/g, ''), 'g');
+    // const parse = function (data, rewrites?: string[][]) {
+    //     const assignee = data.replace(/{{.*?(\w+)\s*=[^=]*}}/, '$1');
+    //     data = data.replace(strips, '').replace(replaceReferenceConnector, '.').replace(replaceReferenceSeperator, ';');
+    //     if (rewrites) {
+    //         for (const [ name, value ] of rewrites) {
+    //             data = data.replace(new RegExp(`;(${name})\\b`), value);
+    //         }
     //     }
+    //     const references = data.match(allReferences) || [ '' ];
+    //     // console.log(references, assignee);
+    //     return { references, assignee };
     // };
-    const seperator = /\s*\??\s*\.?\s*\[\s*|\s*\]\s*\??\s*\.?\s*|\s*\??\s*\.\s*/;
-    const traverse = function (data, path) {
-        const parts = typeof path === 'string' ? path.split(seperator) : path;
-        const part = parts.shift();
-        if (!part)
-            return data;
-        if (typeof data === 'object')
-            return traverse(data[part], parts);
-        return undefined;
-    };
 
-    const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
-    const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
-    const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-    // const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)|\/|\?|:|==|===/g;
-    // const replaceOutsideAndSyntax = /([^{}]*{{)|(}}[^{}]*)/g;
-    const seperatorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
-    const endReference = `((${seperatorReference})[a-zA-Z_$0-9]+)*`;
-    // const matchAssignment = new RegExp(`(${startReference}${endReference})\\s*=`);
-    new RegExp([
-        '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
-        `(window|document|this|Math|Date|Number|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${endReference}`,
-        `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
-    \\bdo\\b|\\bif\\b|\\bfor\\b|\\blet\\b|\\bnew\\b|\\btry\\b|\\bvar\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
-    \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bconst\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
-    \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
-    \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\bvoid\\b`,
-    ].join('|').replace(/\s|\t|\n/g, ''), 'g');
-    const cache = new Map();
-    // const has = () => true;
-    // const get = (target, key) => typeof key === 'string' ? new Proxy({}, { has, get }) : undefined;
-    const Statement = function (statement, data, dynamics, rewrites) {
-        if (isOfIn.test(statement)) {
-            statement = statement.replace(replaceOfIn, '{{$2}}');
-        }
+    const contexter = function (data, dynamics) {
         dynamics = dynamics || {};
         const $render = {};
         const context = new Proxy({}, {
@@ -883,69 +809,36 @@ debugger function arguments typeof void
                 return undefined;
             }
         });
-        const convert = !shouldNotConvert.test(statement);
-        // let striped = statement.replace(replaceSeperator, '.').replace(replaceOutsideAndSyntax, ';').replace(strips, '');
-        // if (rewrites) {
-        //     for (const [ pattern, value ] of rewrites) {
-        //         striped = striped.replace(new RegExp(`\\b(${pattern})\\b`, 'g'), value);
-        //     }
-        // }
-        // // console.log(statement, striped, rewrites, striped.match(references));
-        // const paths = striped.match(references) || [];
-        // const assignment = paths[ 0 ];
-        // // const assignment = hasAssignment.test(striped) ? paths[ 0 ] : undefined;
-        // // const [ , assignment ] = striped.match(matchAssignment) || [];
-        // const assignee = assignment ? traverse.bind(null, context, assignment) : () => undefined;
-        let compute = cache.get(statement);
-        if (!compute) {
-            let code = statement;
-            code = code.replace(/{{/g, convert ? `' + (` : '(');
-            code = code.replace(/}}/g, convert ? `) + '` : ')');
-            code = convert ? `'${code}'` : code;
-            code = `if ($render) $context.$render = $render;\nwith ($context) { return ${code}; }`;
-            compute = new Function('$context', '$render', code);
-            cache.set(statement, compute);
-        }
-        // const getPaths = [];
-        // const setPaths = [];
-        // const ignoresPaths = /^(window|location|console|document|this|Math|Date|Number|\$event|\$value|\$checked|\$form|\$e|\$v|\$c|\$f)\b/;
-        // const proxy = function (path: string = '', ignore: boolean | undefined) {
-        //     return new Proxy(() => { }, { has, set: set.bind(null, path, ignore), get: get.bind(null, path, ignore) });
-        // };
-        // const has = function () {
-        //     return true;
-        // };
-        // const set = function (path, ignore, target, key) {
-        //     if (typeof key !== 'string') return true;
-        //     path = path ? `${path}.${key}` : key;
-        //     ignore = ignore ?? ignoresPaths.test(path);
-        //     if (!ignore && !setPaths.includes(path)) setPaths.push(path);
-        //     target[ key ] = proxy(path, ignore);
-        //     return true;
-        // };
-        // const get = function (path, ignore, target, key) {
-        //     if (typeof key !== 'string') return;
-        //     path = path ? `${path}.${key}` : key;
-        //     ignore = ignore ?? ignoresPaths.test(path);
-        //     if (!ignore && !getPaths.includes(path)) getPaths.push(path);
-        //     return proxy(path, ignore);
-        // };
-        // const proxyPaths = new Proxy({}, { has, set: set.bind(null, '', null), get: get.bind(null, '', null) });
-        // compute.call(null, proxyPaths);
-        // const assignee = setPaths[ 0 ] ? traverse.bind(null, context, setPaths[ 0 ]) : () => undefined;
-        // const paths = getPaths;
-        compute = compute.bind(null, context);
-        const parsed = parse(statement, rewrites);
-        const paths = parsed.references;
-        const assignee = parsed.assignees[0] ? traverse.bind(null, context, parsed.assignees[0]) : () => undefined;
-        return { compute, assignee, paths };
+        return context;
+    };
+
+    // const traverse = function (data: any, path: string, paths?: string[]) {
+    //     paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
+    //     if (!paths.length) {
+    //         return data;
+    //     } else {
+    //         let part = paths.shift();
+    //         const conditional = part.endsWith('?');
+    //         if (conditional && typeof data !== 'object') return undefined;
+    //         part = conditional ? part.slice(0, -1) : part;
+    //         return traverse(data[ part ], path, paths);
+    //     }
+    // };
+    const seperator = /\s*\??\s*\.?\s*\[\s*|\s*\]\s*\??\s*\.?\s*|\s*\??\s*\.\s*/;
+    const traverse = function (data, path) {
+        const parts = typeof path === 'string' ? path.split(seperator) : path;
+        const part = parts.shift();
+        if (!part)
+            return data;
+        if (typeof data === 'object')
+            return traverse(data[part], parts);
+        return undefined;
     };
 
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
     const tick = Promise.resolve();
-    // const empty = /\s*{{\s*}}\s*/;
     class Binder {
         prefix = 'o-';
         prefixEach = 'o-each';
@@ -987,7 +880,12 @@ debugger function arguments typeof void
         async bind(node, container, name, value, owner, dynamics, rewrites) {
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             // const render = this.binders[ type ];
-            const { compute, assignee, paths } = Statement(value, container.data, dynamics, rewrites);
+            const context = contexter(container.data, dynamics);
+            const parsed = parse(value, rewrites);
+            const compute = computer(value, context);
+            const assignee = parsed.assignees[0] ? traverse.bind(null, context, parsed.assignees[0]) : () => undefined;
+            // const assignee = parsed.assignee ? traverse.bind(null, context, parsed.assignee) : () => undefined;
+            const paths = parsed.references;
             if (!paths.length)
                 paths.push('');
             const binder = {

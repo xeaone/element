@@ -2,32 +2,15 @@
 const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
-// const traverse = function (data: any, parent, path: string | string[]) {
-//     const parts = typeof path === 'string' ? path.split('.') : path;
-//     const part = parts.shift();
-//     if (!part) return data;
-//     if (part in parent) return traverse(data, parent[ part ], parts);
-//     if (typeof data === 'object') return traverse(data[ part ], parent, parts);
-//     return undefined;
-// };
-
-const has = () => true;
-const get = (target, key) => typeof key === 'string' ? new Proxy({}, { has, get }) : undefined;
+// const has = () => true;
+// const get = (target, key) => typeof key === 'string' ? new Proxy({}, { has, get }) : undefined;
 
 const setup = function (binder) {
     let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
-    // binder.meta.keyPattern = key ? new RegExp(`({{.*?\\b)(${key})(\\b.*?}})`, 'g') : null;
-    // binder.meta.indexPattern = index ? new RegExp(`({{.*?\\b)(${index})(\\b.*?}})`, 'g') : null;
-    // binder.meta.variablePattern = variable ? new RegExp(`({{.*?\\b)(${variable})(\\b.*?}})`, 'g') : null;
-
-    // binder.meta.keyPattern = key ? new RegExp(`(;.*?\\b)(${key})(\\b.*?;)`, 'g') : null;
-    // binder.meta.indexPattern = index ? new RegExp(`(;.*?\\b)(${index})(\\b.*?;)`, 'g') : null;
-    // binder.meta.variablePattern = variable ? new RegExp(`(;.*?\\b)(${variable})(\\b.*?;)`, 'g') : null;
-
     if (binder.rewrites) {
         for (const [ pattern, value ] of binder.rewrites) {
-            path = path.replace(new RegExp(`\\b(${pattern})\\b`, 'g'), value);
+            path = path.replace(new RegExp(`^(${pattern})\\b`), value);
         }
     }
 
