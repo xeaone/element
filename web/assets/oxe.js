@@ -1068,6 +1068,8 @@
         #connected;
         #disconnected;
         #attributed;
+        #beforeConnectedEvent = new Event('beforeconnected');
+        #afterConnectedEvent = new Event('afterconnected');
         // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
         // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
         // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
@@ -1179,8 +1181,10 @@
                     if (this.#rendered)
                         await this.#rendered();
                 }
+                this.dispatchEvent(this.#beforeConnectedEvent);
                 if (this.#connected)
                     await this.#connected();
+                this.dispatchEvent(this.#afterConnectedEvent);
             }
             catch (error) {
                 console.error(error);
@@ -1592,6 +1596,8 @@
         #external;
         #after;
         #before;
+        // #afterConnected?: (event: Event) => Promise<any>;
+        // #beforeConnected?: (event: Event) => Promise<any>;
         get hash() { return window.location.hash; }
         get host() { return window.location.host; }
         get hostname() { return window.location.hostname; }
@@ -1642,6 +1648,8 @@
                 this.#before = option.before;
             if ('after' in option)
                 this.#after = option.after;
+            // if ('beforeConnected' in option) this.#beforeConnected = option.beforeConnected;
+            // if ('afterConnected' in option) this.#afterConnected = option.afterConnected;
             this.#target = option.target instanceof Element ? option.target : document.body.querySelector(option.target);
             if (this.#dynamic) {
                 window.addEventListener('popstate', this.#state.bind(this), true);
@@ -1685,22 +1693,9 @@
             // }
             const mode = options.mode || 'push';
             const location = this.#location(path);
-            if (this.#before)
-                await this.#before(location);
-            if (!this.#dynamic) {
-                return window.location[mode === 'push' ? 'assign' : mode](location.href);
-            }
-            window.history.replaceState({
-                href: window.location.href,
-                top: document.documentElement.scrollTop || document.body.scrollTop || 0
-            }, '', window.location.href);
-            window.history[mode + 'State']({
-                top: 0,
-                href: location.href
-            }, '', location.href);
             let element;
             if (location.pathname in this.#data) {
-                element = this.#data[location.pathname];
+                element = this.#data[location.pathname].element;
             }
             else {
                 const path = location.pathname === '/' ? '/index' : location.pathname;
@@ -1728,8 +1723,21 @@
                 const name = 'route' + path.replace(/\/+/g, '-');
                 window.customElements.define(name, component);
                 element = window.document.createElement(name);
-                this.#data[location.pathname] = element;
+                this.#data[location.pathname] = { element };
             }
+            if (this.#before)
+                await this.#before(location, element);
+            if (!this.#dynamic) {
+                return window.location[mode === 'push' ? 'assign' : mode](location.href);
+            }
+            window.history.replaceState({
+                href: window.location.href,
+                top: document.documentElement.scrollTop || document.body.scrollTop || 0
+            }, '', window.location.href);
+            window.history[mode + 'State']({
+                top: 0,
+                href: location.href
+            }, '', location.href);
             const keywords = document.querySelector('meta[name="keywords"]');
             const description = document.querySelector('meta[name="description"]');
             if (element.title)
@@ -1741,9 +1749,13 @@
             while (this.#target.firstChild) {
                 this.#target.removeChild(this.#target.firstChild);
             }
+            if (this.#after) {
+                element.removeEventListener('afterconnected', this.#data[location.pathname].after);
+                const after = this.#after.bind(this.#after, location, element);
+                this.#data[location.pathname].after = after;
+                element.addEventListener('afterconnected', after);
+            }
             this.#target.appendChild(element);
-            if (this.#after)
-                await this.#after(location);
             window.dispatchEvent(new CustomEvent('router', { detail: location }));
         }
         async #state(event) {

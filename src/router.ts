@@ -6,8 +6,10 @@ type Option = {
     dynamic?: boolean;
     external?: string;
     target: string | Element;
-    after?: (location: any) => Promise<any>;
-    before?: (location: any) => Promise<any>;
+    after?: (location: any, target: Element) => Promise<any>;
+    before?: (location: any, target: Element) => Promise<any>;
+    // afterConnected?: (event: any) => Promise<any>;
+    // beforeConnected?: (event: any) => Promise<any>;
 };
 
 const absolute = function (path: string) {
@@ -24,8 +26,10 @@ export default new class Router {
     #dynamic: boolean = true;
     #contain: boolean = false;
     #external: string | RegExp | Function;
-    #after?: (location: any) => Promise<any>;
-    #before?: (location: any) => Promise<any>;
+    #after?: (location: any, target: Element) => Promise<any>;
+    #before?: (location: any, target: Element) => Promise<any>;
+    // #afterConnected?: (event: Event) => Promise<any>;
+    // #beforeConnected?: (event: Event) => Promise<any>;
 
     get hash () { return window.location.hash; }
     get host () { return window.location.host; }
@@ -75,6 +79,8 @@ export default new class Router {
         if ('external' in option) this.#external = option.external;
         if ('before' in option) this.#before = option.before;
         if ('after' in option) this.#after = option.after;
+        // if ('beforeConnected' in option) this.#beforeConnected = option.beforeConnected;
+        // if ('afterConnected' in option) this.#afterConnected = option.afterConnected;
 
         this.#target = option.target instanceof Element ? option.target : document.body.querySelector(option.target);
 
@@ -131,25 +137,9 @@ export default new class Router {
         const mode = options.mode || 'push';
         const location = this.#location(path);
 
-        if (this.#before) await this.#before(location);
-
-        if (!this.#dynamic) {
-            return window.location[ mode === 'push' ? 'assign' : mode ](location.href);
-        }
-
-        window.history.replaceState({
-            href: window.location.href,
-            top: document.documentElement.scrollTop || document.body.scrollTop || 0
-        }, '', window.location.href);
-
-        window.history[ mode + 'State' ]({
-            top: 0,
-            href: location.href
-        }, '', location.href);
-
         let element;
         if (location.pathname in this.#data) {
-            element = this.#data[ location.pathname ];
+            element = this.#data[ location.pathname ].element;
         } else {
             const path = location.pathname === '/' ? '/index' : location.pathname;
 
@@ -176,8 +166,24 @@ export default new class Router {
             window.customElements.define(name, component);
             element = window.document.createElement(name);
 
-            this.#data[ location.pathname ] = element;
+            this.#data[ location.pathname ] = { element };
         }
+
+        if (this.#before) await this.#before(location, element);
+
+        if (!this.#dynamic) {
+            return window.location[ mode === 'push' ? 'assign' : mode ](location.href);
+        }
+
+        window.history.replaceState({
+            href: window.location.href,
+            top: document.documentElement.scrollTop || document.body.scrollTop || 0
+        }, '', window.location.href);
+
+        window.history[ mode + 'State' ]({
+            top: 0,
+            href: location.href
+        }, '', location.href);
 
         const keywords = document.querySelector('meta[name="keywords"]');
         const description = document.querySelector('meta[name="description"]');
@@ -190,9 +196,14 @@ export default new class Router {
             this.#target.removeChild(this.#target.firstChild);
         }
 
-        this.#target.appendChild(element);
+        if (this.#after) {
+            element.removeEventListener('afterconnected', this.#data[ location.pathname ].after);
+            const after = this.#after.bind(this.#after, location, element);
+            this.#data[ location.pathname ].after = after;
+            element.addEventListener('afterconnected', after);
+        }
 
-        if (this.#after) await this.#after(location);
+        this.#target.appendChild(element);
 
         window.dispatchEvent(new CustomEvent('router', { detail: location }));
     }
