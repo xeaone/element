@@ -28,6 +28,9 @@ export default class Component extends HTMLElement {
     #disconnected: () => void;
     #attributed: (name: string, from: string, to: string) => void;
 
+    #beforeConnectedEvent = new Event('beforeconnected');
+    #afterConnectedEvent = new Event('afterconnected');
+
     // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
     // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
     // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
@@ -156,7 +159,9 @@ export default class Component extends HTMLElement {
                 if (this.#rendered) await this.#rendered();
             }
 
+            this.dispatchEvent(this.#beforeConnectedEvent);
             if (this.#connected) await this.#connected();
+            this.dispatchEvent(this.#afterConnectedEvent);
         } catch (error) {
             console.error(error);
         }
