@@ -76,24 +76,30 @@ const input = async function (binder, event) {
 
 const value = async function value (binder) {
     const { owner, meta } = binder;
-    const { type } = owner;
 
     if (!meta.setup) {
         meta.setup = true;
+        meta.type = owner.type;
+        meta.nodeName = owner.nodeName;
 
-        if (type === 'select-one' || type === 'select-multiple') {
-            // owner.addEventListener('$renderEach', () => binder.render());
-            owner.addEventListener('$renderOption', () => binder.render());
+        if (owner.type === 'select-one' || owner.type === 'select-multiple') {
+            owner.addEventListener('$renderSelect', () => binder.render());
         }
 
         owner.addEventListener('input', event => input(binder, event));
     }
 
+    const { type, nodeName } = meta;
+
     let display, computed;
 
     if (type === 'select-one') {
-        let value = binder.assignee();
+        if ('each' in owner.attributes && (
+            typeof owner.$optionsReady !== 'number' ||
+            typeof owner.$optionsLength !== 'number' ||
+            owner.$optionsReady !== owner.$optionsLength)) return;
 
+        let value = binder.assignee();
         owner.value = undefined;
 
         for (const option of owner.options) {
@@ -143,10 +149,13 @@ const value = async function value (binder) {
     owner.$value = computed;
     owner.setAttribute('value', display);
 
-    if (owner.parentElement &&
-        (owner.parentElement.type === 'select-one' ||
-            owner.parentElement.type === 'select-multiple')) {
-        owner.parentElement.dispatchEvent(new Event('$renderOption'));
+    if (nodeName === 'OPTION') {
+        const parent = owner.parentElement?.nodeName === 'SELECT' ? owner?.parentElement :
+            owner.parentElement?.parentElement?.nodeName === 'SELECT' ? owner.parentElement?.parentElement : undefined;
+        if (parent) {
+            parent.$optionsReady++;
+            parent.dispatchEvent(new Event('$renderSelect'));
+        }
     }
 
 };

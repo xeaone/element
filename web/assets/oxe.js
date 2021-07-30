@@ -246,17 +246,22 @@
     };
     const value = async function value(binder) {
         const { owner, meta } = binder;
-        const { type } = owner;
         if (!meta.setup) {
             meta.setup = true;
-            if (type === 'select-one' || type === 'select-multiple') {
-                // owner.addEventListener('$renderEach', () => binder.render());
-                owner.addEventListener('$renderOption', () => binder.render());
+            meta.type = owner.type;
+            meta.nodeName = owner.nodeName;
+            if (owner.type === 'select-one' || owner.type === 'select-multiple') {
+                owner.addEventListener('$renderSelect', () => binder.render());
             }
             owner.addEventListener('input', event => input(binder, event));
         }
+        const { type, nodeName } = meta;
         let display, computed;
         if (type === 'select-one') {
+            if ('each' in owner.attributes && (typeof owner.$optionsReady !== 'number' ||
+                typeof owner.$optionsLength !== 'number' ||
+                owner.$optionsReady !== owner.$optionsLength))
+                return;
             let value = binder.assignee();
             owner.value = undefined;
             for (const option of owner.options) {
@@ -309,10 +314,13 @@
         }
         owner.$value = computed;
         owner.setAttribute('value', display);
-        if (owner.parentElement &&
-            (owner.parentElement.type === 'select-one' ||
-                owner.parentElement.type === 'select-multiple')) {
-            owner.parentElement.dispatchEvent(new Event('$renderOption'));
+        if (nodeName === 'OPTION') {
+            const parent = owner.parentElement?.nodeName === 'SELECT' ? owner?.parentElement :
+                owner.parentElement?.parentElement?.nodeName === 'SELECT' ? owner.parentElement?.parentElement : undefined;
+            if (parent) {
+                parent.$optionsReady++;
+                parent.dispatchEvent(new Event('$renderSelect'));
+            }
         }
     };
 
@@ -320,38 +328,44 @@
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
     // const has = () => true;
     // const get = (target, key) => typeof key === 'string' ? new Proxy({}, { has, get }) : undefined;
-    const setup = function (binder) {
-        let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
-        if (binder.rewrites) {
-            for (const [pattern, value] of binder.rewrites) {
-                path = path.replace(new RegExp(`^(${pattern})\\b`), value);
+    const each = async function (binder) {
+        if (binder.meta.busy)
+            return;
+        else
+            binder.meta.busy = true;
+        if (!binder.meta.setup) {
+            let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+            if (binder.rewrites) {
+                for (const [pattern, value] of binder.rewrites) {
+                    path = path.replace(new RegExp(`^(${pattern})\\b`), value);
+                }
+            }
+            binder.meta.keyPattern = key ? key : null;
+            binder.meta.indexPattern = index ? index : null;
+            binder.meta.variablePattern = variable ? variable : null;
+            binder.meta.path = path;
+            binder.meta.keyName = key;
+            binder.meta.indexName = index;
+            binder.meta.variableName = variable;
+            binder.meta.pathParts = path.split('.');
+            binder.meta.keys = [];
+            binder.meta.count = 0;
+            binder.meta.setup = true;
+            binder.meta.targetLength = 0;
+            binder.meta.currentLength = 0;
+            binder.meta.clone = document.createElement('template');
+            binder.meta.templateElement = document.createElement('template');
+            if (binder.owner.nodeName === 'SELECT') {
+                binder.owner.$optionsReady = null;
+                binder.owner.$optionsLength = 0;
+            }
+            let node = binder.owner.firstChild;
+            while (node) {
+                binder.meta.count++;
+                binder.meta.clone.content.appendChild(node);
+                node = binder.owner.firstChild;
             }
         }
-        binder.meta.keyPattern = key ? key : null;
-        binder.meta.indexPattern = index ? index : null;
-        binder.meta.variablePattern = variable ? variable : null;
-        binder.meta.path = path;
-        binder.meta.keyName = key;
-        binder.meta.indexName = index;
-        binder.meta.variableName = variable;
-        binder.meta.pathParts = path.split('.');
-        binder.meta.keys = [];
-        binder.meta.count = 0;
-        binder.meta.setup = true;
-        binder.meta.targetLength = 0;
-        binder.meta.currentLength = 0;
-        binder.meta.clone = document.createElement('template');
-        binder.meta.templateElement = document.createElement('template');
-        let node = binder.owner.firstChild;
-        while (node) {
-            binder.meta.count++;
-            binder.meta.clone.content.appendChild(node);
-            node = binder.owner.firstChild;
-        }
-    };
-    const each = async function (binder) {
-        if (!binder.meta.setup)
-            setup(binder);
         // const time = `each ${binder.meta.targetLength}`;
         // console.time(time);
         const data = await binder.compute();
@@ -430,13 +444,14 @@
                 binder.meta.templateElement.content.appendChild(clone);
                 binder.meta.currentLength++;
             }
-            if (binder.meta.busy)
-                return;
-            else
-                binder.meta.busy = true;
-            if (binder.meta.currentLength === binder.meta.targetLength) {
-                binder.owner.appendChild(binder.meta.templateElement.content);
-                binder.meta.busy = false;
+        }
+        if (binder.meta.currentLength === binder.meta.targetLength) {
+            binder.owner.appendChild(binder.meta.templateElement.content);
+            binder.meta.busy = false;
+            if (binder.owner.nodeName === 'SELECT') {
+                binder.owner.$optionsReady = binder.owner.$optionsLength;
+                binder.owner.$optionsLength = binder.owner.options.length;
+                binder.owner.dispatchEvent(new Event('$renderSelect'));
             }
         }
     };
