@@ -209,8 +209,8 @@ export default new class Router {
     }
 
     async #state (event) {
-        await this.replace(event.state.href);
-        window.scroll(event.state.top, 0);
+        await this.replace(event.state?.href || window.location.href);
+        window.scroll(event.state?.top || 0, 0);
     }
 
     async #click (event) {
