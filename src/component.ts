@@ -69,9 +69,7 @@ export default class Component extends HTMLElement {
     async render () {
         const tasks = [];
 
-        const observer = async (path) => {
-            // console.log(path);
-
+        const observer = async path => {
             const binders = this.#binder.pathBinders.get(path);
             if (!binders) return;
             // console.log(path, binders);
@@ -79,8 +77,8 @@ export default class Component extends HTMLElement {
             // const tasks = [];
             for (const binder of binders.values()) {
                 binder.render();
-                // tasks.push(binder.render(message));
-                // tick.then(binder.render.bind(null, message));
+                // tasks.push(binder.render());
+                // tick.then(binder.render.bind(null));
             }
 
             // return Promise.all(tasks);

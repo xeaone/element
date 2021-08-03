@@ -8,8 +8,6 @@ type Option = {
     target: string | Element;
     after?: (location: any, target: Element) => Promise<any>;
     before?: (location: any, target: Element) => Promise<any>;
-    // afterConnected?: (event: any) => Promise<any>;
-    // beforeConnected?: (event: any) => Promise<any>;
 };
 
 const absolute = function (path: string) {
@@ -28,8 +26,6 @@ export default new class Router {
     #external: string | RegExp | Function;
     #after?: (location: any, target: Element) => Promise<any>;
     #before?: (location: any, target: Element) => Promise<any>;
-    // #afterConnected?: (event: Event) => Promise<any>;
-    // #beforeConnected?: (event: Event) => Promise<any>;
 
     get hash () { return window.location.hash; }
     get host () { return window.location.host; }
@@ -65,6 +61,8 @@ export default new class Router {
 
         return result;
     }
+
+    // set query (search) { }
 
     back () { window.history.back(); }
     forward () { window.history.forward(); }
@@ -276,7 +274,7 @@ export default new class Router {
         this.assign(target.href);
     }
 
-};;
+};
 
 // function Query (data) {
 //     data = data || window.location.search;
