@@ -44,6 +44,10 @@
     };
     const set = function (task, tasks, path, target, key, value) {
         if (key === 'length') {
+            const initial = !tasks.length;
+            tasks.push(task.bind(null, path ? `${path}.${key}` : key));
+            if (initial)
+                tick$3.then(() => run$1(tasks));
             return true;
         }
         else if (target[key] === value || `${target[key]}${value}` === 'NaNNaN') {
@@ -57,6 +61,9 @@
                 if (!(child in value))
                     delete current[child];
             }
+        }
+        if (value?.constructor === Array) {
+            tasks.push(task.bind(null, path ? `${path}.${key}.length` : `${key}.length`));
         }
         target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
         if (initial)
@@ -1118,7 +1125,6 @@
         async render() {
             const tasks = [];
             const observer$1 = async (path) => {
-                // console.log(path);
                 const binders = this.#binder.pathBinders.get(path);
                 if (!binders)
                     return;
@@ -1126,8 +1132,8 @@
                 // const tasks = [];
                 for (const binder of binders.values()) {
                     binder.render();
-                    // tasks.push(binder.render(message));
-                    // tick.then(binder.render.bind(null, message));
+                    // tasks.push(binder.render());
+                    // tick.then(binder.render.bind(null));
                 }
                 // return Promise.all(tasks);
             };
@@ -1611,8 +1617,6 @@
         #external;
         #after;
         #before;
-        // #afterConnected?: (event: Event) => Promise<any>;
-        // #beforeConnected?: (event: Event) => Promise<any>;
         get hash() { return window.location.hash; }
         get host() { return window.location.host; }
         get hostname() { return window.location.hostname; }
@@ -1646,6 +1650,7 @@
             }
             return result;
         }
+        // set query (search) { }
         back() { window.history.back(); }
         forward() { window.history.forward(); }
         reload() { window.location.reload(); }
@@ -1774,8 +1779,8 @@
             window.dispatchEvent(new CustomEvent('router', { detail: location }));
         }
         async #state(event) {
-            await this.replace(event.state.href);
-            window.scroll(event.state.top, 0);
+            await this.replace(event.state?.href || window.location.href);
+            window.scroll(event.state?.top || 0, 0);
         }
         async #click(event) {
             // ignore canceled events, modified clicks, and right clicks
