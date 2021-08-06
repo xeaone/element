@@ -7,8 +7,8 @@ const referenceInner = '_$0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR
 
 const referenceFirstSkips = [
     '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
-    'window', 'document', 'console', 'location', 'this', 'Math', 'Date', 'Number',
-    'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in', 'do', 'if', 'for', 'let',
+    'window', 'document', 'console', 'location', 'Math', 'Date', 'Number',
+    'this', 'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in', 'do', 'if', 'for', 'let',
     'new', 'try', 'var', 'case', 'else', 'with', 'await', 'break', 'catch', 'class', 'const',
     'super', 'throw', 'while', 'yield', 'delete', 'export', 'import', 'return', 'switch', 'default',
     'extends', 'finally', 'continue', 'debugger', 'function', 'arguments', 'typeof', 'void'
