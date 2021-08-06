@@ -1,59 +1,57 @@
 {
-	"name": "oxe",
-	"version": "5.2.9",
-	"type": "module",
-	"description": "A mighty tiny web components framework/library",
-	"main": "dst/oxe.min.js",
-	"scripts": {
-		"b": "rollup -c rollup.build.js",
-		"w": "node --experimental-modules scripts/watch.js"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/vokeio/oxe.git"
-	},
-	"author": "Alexander Elias",
-	"email": "alex.steven.elis@gmail.com",
-	"license": "MPL-2.0",
-	"bugs": {
-		"url": "https://github.com/vokeio/oxe/issues"
-	},
-	"homepage": "https://github.com/vokeio/oxe#readme",
-	"keywords": [
-		"web",
-		"component",
-		"components",
-		"web-components",
-		"js",
-		"html",
-		"css",
-		"framework",
-		"data-binding",
-		"data",
-		"binding",
-		"routing",
-		"router",
-		"http",
-		"front-end",
-		"x-tag",
-		"polymer",
-		"jenie",
-		"oxe"
-	],
-	"directories": {
-		"docs": "docs",
-		"dst": "dst",
-		"src": "src"
-	},
-	"devDependencies": {
-		"@rollup/plugin-babel": "^5.2.2",
-		"@rollup/plugin-typescript": "^6.1.0",
-		"@webcomponents/custom-elements": "^1.4.3",
-		"@webcomponents/webcomponentsjs": "^2.5.0",
-		"oxe-components": "^4.1.1",
-		"rollup-plugin-terser": "^7.0.2",
-		"rome": "^10.0.7-beta.8",
-		"tslib": "^2.0.3",
-		"typescript": "^4.2.2"
-	}
+    "name": "oxe",
+    "version": "5.2.9",
+    "type": "module",
+    "description": "A mighty tiny web components framework/library",
+    "main": "dst/oxe.min.js",
+    "scripts": {
+        "b": "rollup -c rollup.build.js",
+        "w": "node --experimental-modules scripts/watch.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vokeio/oxe.git"
+    },
+    "author": "Alexander Elias",
+    "email": "alex.steven.elis@gmail.com",
+    "license": "MPL-2.0",
+    "bugs": {
+        "url": "https://github.com/vokeio/oxe/issues"
+    },
+    "homepage": "https://github.com/vokeio/oxe#readme",
+    "keywords": [
+        "web",
+        "component",
+        "components",
+        "web-components",
+        "js",
+        "html",
+        "css",
+        "framework",
+        "data-binding",
+        "data",
+        "binding",
+        "routing",
+        "router",
+        "http",
+        "front-end",
+        "x-tag",
+        "polymer",
+        "jenie",
+        "oxe"
+    ],
+    "directories": {
+        "docs": "docs",
+        "dst": "dst",
+        "src": "src"
+    },
+    "devDependencies": {
+        "@rollup/plugin-babel": "^5.2.2",
+        "@rollup/plugin-typescript": "^6.1.0",
+        "@webcomponents/custom-elements": "^1.4.3",
+        "@webcomponents/webcomponentsjs": "^2.5.0",
+        "rollup-plugin-terser": "^7.0.2",
+        "tslib": "^2.0.3",
+        "typescript": "^4.2.2"
+    }
 }
