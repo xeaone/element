@@ -149,12 +149,8 @@ const parse = function (data, rewrites?: string[][]) {
 
     };
 
-    // console.log(data, references, assignees);
-
     return { references, assignees };
 };
-
-export default parse;
 
 // const connectorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
 // const startReference = '[a-zA-Z_$]+';
@@ -197,4 +193,6 @@ export default parse;
 
 //     return { references, assignee };
 // };
+
+export default parse;
 

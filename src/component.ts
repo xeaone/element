@@ -69,27 +69,24 @@ export default class Component extends HTMLElement {
     async render () {
         const tasks = [];
 
-        const observer = async path => {
+        this.data = Observer(this.data, async path => {
             const binders = this.#binder.pathBinders.get(path);
             if (!binders) return;
             // console.log(path, binders);
 
             // const tasks = [];
-            for (const binder of binders.values()) {
-                binder.render();
+            for (const binder of binders) {
+                // binder.render();
                 // tasks.push(binder.render());
-                // tick.then(binder.render.bind(null));
+                tick.then(binder.render);
             }
 
             // return Promise.all(tasks);
-        };
-
-        this.data = Observer(this.data, observer);
+        });
 
         if (this.adopt) {
             let child = this.firstChild;
             while (child) {
-                // tick.then(this.#binder.add.bind(this.#binder, child, this));
                 tasks.push(this.#binder.add(child, this));
                 child = child.nextSibling;
             }

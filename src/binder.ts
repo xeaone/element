@@ -27,8 +27,10 @@ export default class Binder {
     prefixReplace = new RegExp('^o-');
     syntaxReplace = new RegExp('{{|}}', 'g');
 
-    nodeBinders: Map<Node, Map<string, any>> = new Map();
-    pathBinders: Map<string, Map<Node, any>> = new Map();
+    // nodeBinders: Map<Node, Map<string, any>> = new Map();
+    // pathBinders: Map<string, Map<Node, any>> = new Map();
+    nodeBinders: Map<Node, Set<any>> = new Map();
+    pathBinders: Map<string, Set<any>> = new Map();
 
     binders = {
         standard,
@@ -53,8 +55,10 @@ export default class Binder {
         const nodeBinders = this.nodeBinders.get(node);
         if (!nodeBinders) return;
 
-        for (const [ path ] of nodeBinders) {
-            this.pathBinders.get(path).delete(node);
+        for (const nodeBinder of nodeBinders) {
+            for (const path of nodeBinder.paths) {
+                this.pathBinders.get(path).delete(nodeBinder);
+            }
         }
 
         this.nodeBinders.delete(node);
@@ -72,8 +76,6 @@ export default class Binder {
 
         const paths = parsed.references;
 
-        if (!paths.length) paths.push('');
-
         const binder = {
             render: undefined,
             binder: this, meta: {}, busy: false,
@@ -85,25 +87,23 @@ export default class Binder {
 
         binder.render = this.binders[ type ].bind(null, binder);
 
-        for (const path of paths) {
-
-            if (path) {
-                if (!this.nodeBinders.has(node)) {
-                    this.nodeBinders.set(node, new Map([ [ path, binder ] ]));
-                } else {
-                    this.nodeBinders.get(node).set(path, binder);
-                }
-                if (!this.pathBinders.has(path)) {
-                    this.pathBinders.set(path, new Map([ [ node, binder ] ]));
-                } else {
-                    this.pathBinders.get(path).set(node, binder);
-                }
-            }
-
-            tick.then(binder.render);
-            // binder.render();
+        if (!this.nodeBinders.has(node)) {
+            this.nodeBinders.set(node, new Set([ binder ]));
+        } else {
+            this.nodeBinders.get(node).add(binder);
         }
 
+        for (const path of paths) {
+            if (path) {
+                if (!this.pathBinders.has(path)) {
+                    this.pathBinders.set(path, new Set([ binder ]));
+                } else {
+                    this.pathBinders.get(path).add(binder);
+                }
+            }
+        }
+
+        tick.then(binder.render);
     };
 
     async remove (node: Node) {

@@ -31,7 +31,7 @@ const deleteProperty = function (task: task, tasks: tasks, path: string, target:
 
     delete target[ key ];
 
-    if (initial) tick.then(() => run(tasks));
+    if (initial) tick.then(run.bind(null, tasks));
 
     return true;
 };
@@ -41,7 +41,7 @@ const set = function (task: task, tasks: tasks, path: string, target: any, key, 
     if (key === 'length') {
         const initial = !tasks.length;
         tasks.push(task.bind(null, path ? `${path}.${key}` : key));
-        if (initial) tick.then(() => run(tasks));
+        if (initial) tick.then(run.bind(null, tasks));
         return true;
     } else if (target[ key ] === value || `${target[ key ]}${value}` === 'NaNNaN') {
         return true;
@@ -63,7 +63,7 @@ const set = function (task: task, tasks: tasks, path: string, target: any, key, 
 
     target[ key ] = observer(value, task, tasks, path ? `${path}.${key}` : key);
 
-    if (initial) tick.then(() => run(tasks));
+    if (initial) tick.then(run.bind(null, tasks));
 
     return true;
 };
@@ -100,7 +100,7 @@ const observer = function (source: any, task: task, tasks: tasks = [], path: str
         target = source;
     }
 
-    if (initial) tick.then(() => run(tasks));
+    if (initial) tick.then(run.bind(null, tasks));
 
     return target;
 };

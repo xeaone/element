@@ -14,20 +14,20 @@ const each = async function (binder) {
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
         if (binder.rewrites) {
-            for (const [ pattern, value ] of binder.rewrites) {
-                path = path.replace(new RegExp(`^(${pattern})\\b`), value);
+            for (const [ name, value ] of binder.rewrites) {
+                path = path.replace(new RegExp(`^(${name})\\b`), value);
             }
         }
 
-        binder.meta.keyPattern = key ? key : null;
-        binder.meta.indexPattern = index ? index : null;
-        binder.meta.variablePattern = variable ? variable : null;
+        // binder.meta.keyPattern = key ? key : null;
+        // binder.meta.indexPattern = index ? index : null;
+        // binder.meta.variablePattern = variable ? variable : null;
 
         binder.meta.path = path;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
         binder.meta.variableName = variable;
-        binder.meta.pathParts = path.split('.');
+        // binder.meta.pathParts = path.split('.');
 
         binder.meta.keys = [];
         binder.meta.count = 0;
@@ -82,36 +82,19 @@ const each = async function (binder) {
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
             const variableValue = `${binder.meta.path}.${keyValue}`;
 
-            const dynamics = {
-                [ binder.meta.keyName ]: keyValue,
-                [ binder.meta.indexName ]: indexValue,
-                set [ binder.meta.variableName ] (value) {
-                    let data = binder.container.data;
-                    // let data = binder?.dynamics ?? binder.container.data;
-                    for (const part of binder.meta.pathParts) {
-                        if (part in data) data = data[ part ];
-                        else return;
-                    }
-                    data[ keyValue ] = value;
-                },
-                get [ binder.meta.variableName ] () {
-                    let data = binder.container.data;
-                    // let data = binder?.dynamics ?? binder.container.data;
-                    for (const part of binder.meta.pathParts) {
-                        if (part in data) data = data[ part ];
-                        else return;
-                    }
-                    // console.log(data, data[ keyValue ], binder.meta.variableName, binder.meta.pathParts, keyValue);
-                    return data[ keyValue ];
-                    // return data[ keyValue ] || {};
-                    // return new Proxy(data[ keyValue ] || {}, { has, get });
-                }
-            };
+            const dynamics = {};
+            dynamics[ binder.meta.keyName ] = keyValue;
+            dynamics[ binder.meta.indexName ] = indexValue;
+            Object.defineProperty(dynamics, binder.meta.variableName, {
+                get () { return data[ keyValue ]; },
+                set (value) { data[ keyValue ] = value; }
+            });
 
-            const rewrites = [ ...(binder.rewrites || []) ];
-            if (binder.meta.indexPattern) rewrites.unshift([ binder.meta.indexPattern, indexValue ]);
-            if (binder.meta.keyPattern) rewrites.unshift([ binder.meta.keyPattern, keyValue ]);
-            if (binder.meta.variablePattern) rewrites.unshift([ binder.meta.variablePattern, variableValue ]);
+            const rewrites = [];
+            if (binder.meta.indexName) rewrites.push([ binder.meta.indexName, indexValue ]);
+            if (binder.meta.keyName) rewrites.push([ binder.meta.keyName, keyValue ]);
+            if (binder.meta.variableName) rewrites.push([ binder.meta.variableName, variableValue ]);
+            if (binder.rewrites) rewrites.push(...binder.rewrites);
 
             // const d = document.createElement('div');
             // d.className = 'box';

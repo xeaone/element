@@ -32,7 +32,7 @@ const checked = async function (binder) {
                 for (const radio of radios) {
                     const radioBinders = binder.binder.get(radio.getAttributeNode('checked'));
                     if (radioBinders) {
-                        for (const [ , radioBinder ] of radioBinders) {
+                        for (const radioBinder of radioBinders) {
                             // radioBinder.busy = true;
                             await radioBinder.compute({ checked: radio.checked, value: radio.value });
                             // radioBinder.busy = false;
