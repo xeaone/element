@@ -18,62 +18,50 @@
 
     console.warn('oxe: need to handle delete property');
     const tick$4 = Promise.resolve();
-    const run$1 = async function (tasks) {
-        let task;
-        while (task = tasks.shift()) {
-            task();
-        }
-    };
+    // const run = async function (tasks: tasks) {
+    //     let task;
+    //     while (task = tasks.shift()) {
+    //         task();
+    //     }
+    // };
     // const unobserve = function (source: any, task: task, tasks: tasks, path: string) {
     //     if (typeof source === 'object') {
     //     }
     // };
     const deleteProperty = function (task, tasks, path, target, key) {
         const initial = !tasks.length;
-        tasks.push(task.bind(null, path));
-        const current = target[key];
-        if (typeof current === 'object') {
-            for (const child in current) {
-                delete current[child];
-            }
-        }
+        tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
         delete target[key];
         if (initial)
-            tick$4.then(run$1.bind(null, tasks));
+            tick$4.then(task.bind(null, tasks));
         return true;
     };
     const set = function (task, tasks, path, target, key, value) {
         if (key === 'length') {
             const initial = !tasks.length;
-            tasks.push(task.bind(null, path ? `${path}.${key}` : key));
+            tasks.push({ path, type: 'set' });
+            tasks.push({ path: path ? `${path}.${key}` : key, type: 'set' });
             if (initial)
-                tick$4.then(run$1.bind(null, tasks));
+                tick$4.then(task.bind(null, tasks));
             return true;
         }
         else if (target[key] === value || `${target[key]}${value}` === 'NaNNaN') {
             return true;
         }
-        const initial = !tasks.length;
-        tasks.push(task.bind(null, path));
-        const current = target[key];
-        if (typeof current === 'object') {
-            for (const child in current) {
-                if (!(child in value))
-                    delete current[child];
-            }
-        }
-        if (value?.constructor === Array) {
-            tasks.push(task.bind(null, path ? `${path}.${key}.length` : `${key}.length`));
+        let initial;
+        if (key in target) {
+            initial = !tasks.length;
+            tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
         }
         target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
         if (initial)
-            tick$4.then(run$1.bind(null, tasks));
+            tick$4.then(task.bind(null, tasks));
         return true;
     };
     const observer = function (source, task, tasks = [], path = '') {
         let target;
         const initial = !tasks.length;
-        tasks.push(task.bind(null, path));
+        tasks.push({ path, type: 'set' });
         if (source?.constructor === Array) {
             target = [];
             for (let key = 0, length = source.length; key < length; key++) {
@@ -83,6 +71,7 @@
                 set: set.bind(null, task, tasks, path),
                 deleteProperty: deleteProperty.bind(null, task, tasks, path)
             });
+            tasks.push({ path: `${path}.length`, type: 'set' });
         }
         else if (source?.constructor === Object) {
             target = {};
@@ -98,7 +87,7 @@
             target = source;
         }
         if (initial)
-            tick$4.then(run$1.bind(null, tasks));
+            tick$4.then(task.bind(null, tasks));
         return target;
     };
 
@@ -589,7 +578,17 @@
             code = code.replace(/{{/g, convert ? `' + (` : '(');
             code = code.replace(/}}/g, convert ? `) + '` : ')');
             code = convert ? `'${code}'` : code;
-            code = `if ($render) $context.$render = $render;\nwith ($context) { return ${code}; }\n`;
+            code = `
+        if ($render) $context.$render = $render;
+        with ($context) {
+            try {
+                return ${code};
+            } catch (error) {
+                console.error(error);
+                return undefined;
+            }
+        }
+        `;
             compute = new Function('$context', '$render', code);
             cache.set(statement, compute);
         }
@@ -1078,18 +1077,29 @@
         }
         async render() {
             const tasks = [];
-            this.data = observer(this.data, async (path) => {
-                const binders = this.#binder.pathBinders.get(path);
-                if (!binders)
-                    return;
-                // console.log(path, binders);
-                // const tasks = [];
-                for (const binder of binders) {
-                    // binder.render();
-                    // tasks.push(binder.render());
-                    tick.then(binder.render);
+            this.data = observer(this.data, async (tasks) => {
+                let task;
+                while (task = tasks.shift()) {
+                    const { path, type } = task;
+                    if (type === 'set') {
+                        const binders = this.#binder.pathBinders.get(path);
+                        if (!binders)
+                            continue;
+                        for (const binder of binders) {
+                            tick.then(binder.render);
+                        }
+                    }
+                    else if (type === 'remove') {
+                        const map = this.#binder.pathBinders;
+                        for (const [key, value] of map) {
+                            if (key === path || key.startsWith(`${path}.`) && value) {
+                                for (const binder of value) {
+                                    tick.then(binder.render);
+                                }
+                            }
+                        }
+                    }
                 }
-                // return Promise.all(tasks);
             });
             if (this.adopt) {
                 let child = this.firstChild;

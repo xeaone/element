@@ -69,19 +69,33 @@ export default class Component extends HTMLElement {
     async render () {
         const tasks = [];
 
-        this.data = Observer(this.data, async path => {
-            const binders = this.#binder.pathBinders.get(path);
-            if (!binders) return;
-            // console.log(path, binders);
+        this.data = Observer(this.data, async (tasks) => {
+            let task;
+            while (task = tasks.shift()) {
 
-            // const tasks = [];
-            for (const binder of binders) {
-                // binder.render();
-                // tasks.push(binder.render());
-                tick.then(binder.render);
+                const { path, type } = task;
+
+                if (type === 'set') {
+
+                    const binders = this.#binder.pathBinders.get(path);
+                    if (!binders) continue;
+
+                    for (const binder of binders) {
+                        tick.then(binder.render);
+                    }
+
+                } else if (type === 'remove') {
+                    const map = this.#binder.pathBinders;
+                    for (const [ key, value ] of map) {
+                        if (key === path || key.startsWith(`${path}.`) && value) {
+                            for (const binder of value) {
+                                tick.then(binder.render);
+                            }
+                        }
+                    }
+
+                }
             }
-
-            // return Promise.all(tasks);
         });
 
         if (this.adopt) {

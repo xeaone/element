@@ -22,7 +22,17 @@ const computer = function (statement: string, context: object) {
         code = code.replace(/}}/g, convert ? `) + '` : ')');
         code = convert ? `'${code}'` : code;
 
-        code = `if ($render) $context.$render = $render;\nwith ($context) { return ${code}; }\n`;
+        code = `
+        if ($render) $context.$render = $render;
+        with ($context) {
+            try {
+                return ${code};
+            } catch (error) {
+                console.error(error);
+                return undefined;
+            }
+        }
+        `;
 
         compute = new Function('$context', '$render', code);
 
