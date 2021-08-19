@@ -188,7 +188,7 @@ const parse = function (data, rewrites?: string[][]) {
 
     const references = data.split(/;+/).slice(1, -1) || [];
     // const references = data.match(allReferences) || [ '' ];
-    console.log(data, references);
+    // console.log(data, references);
 
     return { references, assignees: [ assignee ] };
 };

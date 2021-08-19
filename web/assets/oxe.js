@@ -751,7 +751,7 @@
     // const allReferences = new RegExp(`${startReference}${endReference}`, 'g');
     const replaceReferenceConnector = new RegExp(`${connectorReference}`, 'g');
     const matchAssignee = /{{.*?([a-zA-Z0-9.?\[\]]+)\s*=[^=]*}}/;
-    const replaceReferenceSeperator = /\s+|\|+|\/+|\[+|\]+|\(+|\)+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/;
+    const replaceReferenceSeperator = /\s+|\|+|\/+|\[+|\]+|\(+|\)+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g;
     const strips = new RegExp([
         '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
         '(var|let|const)\\s+[_$a-zA-Z0-9]+\\s*=?',
