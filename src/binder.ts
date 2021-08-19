@@ -66,22 +66,22 @@ export default class Binder {
 
     async bind (node: Node, container: any, name, value, owner, dynamics?: any, rewrites?: any) {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
-        // const render = this.binders[ type ];
 
         const context = contexter(container.data, dynamics);
         const parsed = parser(value, rewrites);
         const compute = computer(value, context);
         const assignee = parsed.assignees[ 0 ] ? traverse.bind(null, context, parsed.assignees[ 0 ]) : () => undefined;
-        // const assignee = parsed.assignee ? traverse.bind(null, context, parsed.assignee) : () => undefined;
 
         const paths = parsed.references;
 
         const binder = {
             render: undefined,
             binder: this, meta: {}, busy: false,
-            type, assignee, compute, paths,
+            type,
+            assignee,
+            compute, paths,
             node, owner, name, value,
-            dynamics, rewrites,
+            dynamics, rewrites, context,
             container,
         };
 

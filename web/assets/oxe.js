@@ -336,19 +336,17 @@
                     path = path.replace(new RegExp(`^(${name})\\b`), value);
                 }
             }
-            // binder.meta.keyPattern = key ? key : null;
-            // binder.meta.indexPattern = index ? index : null;
-            // binder.meta.variablePattern = variable ? variable : null;
             binder.meta.path = path;
             binder.meta.keyName = key;
             binder.meta.indexName = index;
             binder.meta.variableName = variable;
-            // binder.meta.pathParts = path.split('.');
+            binder.meta.parts = path.split('.');
             binder.meta.keys = [];
             binder.meta.count = 0;
             binder.meta.setup = true;
             binder.meta.targetLength = 0;
             binder.meta.currentLength = 0;
+            binder.meta.descriptors = binder.dynamics ? Object.getOwnPropertyDescriptors(binder.dynamics) : null;
             binder.meta.clone = document.createElement('template');
             binder.meta.templateElement = document.createElement('template');
             if (binder.owner.nodeName === 'SELECT') {
@@ -389,11 +387,31 @@
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
                 const variableValue = `${binder.meta.path}.${keyValue}`;
                 const dynamics = {};
-                dynamics[binder.meta.keyName] = keyValue;
-                dynamics[binder.meta.indexName] = indexValue;
+                if (binder.meta.descriptors)
+                    Object.defineProperties(dynamics, binder.meta.descriptors);
+                if (binder.meta.keyName)
+                    Object.defineProperty(dynamics, binder.meta.keyName, { value: keyValue, writable: false });
+                if (binder.meta.indexName)
+                    Object.defineProperty(dynamics, binder.meta.indexName, { value: indexValue, writable: false });
                 Object.defineProperty(dynamics, binder.meta.variableName, {
-                    get() { return data[keyValue]; },
-                    set(value) { data[keyValue] = value; }
+                    get() {
+                        let result = binder.container.data;
+                        for (const key of binder.meta.parts) {
+                            result = result[key];
+                            if (!result)
+                                return;
+                        }
+                        return typeof result === 'object' ? result[keyValue] : undefined;
+                    },
+                    set(value) {
+                        let result = binder.container.data;
+                        for (const key of binder.meta.parts) {
+                            result = result[key];
+                            if (!result)
+                                return;
+                        }
+                        typeof result === 'object' ? result[keyValue] = value : undefined;
+                    }
                 });
                 const rewrites = [];
                 if (binder.meta.indexName)
@@ -574,12 +592,22 @@
                 statement = statement.replace(replaceOfIn, '{{$2}}');
             }
             const convert = !shouldNotConvert.test(statement);
+            // const assignee = statement.match(/{{.*?([a-zA-Z0-9.?\[\]]+)\s*=[^=]*}}/)?.[ 1 ];
             let code = statement;
             code = code.replace(/{{/g, convert ? `' + (` : '(');
             code = code.replace(/}}/g, convert ? `) + '` : ')');
             code = convert ? `'${code}'` : code;
+            // $context.$render = $render;
+            // ${assignee ? `if (!$render || !('value' in $render)) $v = $value = ${assignee}` : ''}
+            // ${assignee ? `if (!$render || !('checked' in $render)) $c = $checked = ${assignee}` : ''}
             code = `
-        if ($render) $context.$render = $render;
+        if ($render) {
+            for (let key in $render) {
+                let value = $render[ key ];
+                $context[ '$' + key ] = value;
+                $context[ '$' + key[ 0 ] ] = value;
+            }
+        }
         with ($context) {
             try {
                 return ${code};
@@ -750,7 +778,7 @@
     const contexter = function (data, dynamics) {
         // dynamics = dynamics || {};
         // const context = new Proxy({}, {
-        const context = new Proxy(dynamics || {}, {
+        const context = new Proxy(dynamics ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(dynamics)) : {}, {
             has(target, key) {
                 if (typeof key !== 'string')
                     return true;
@@ -759,13 +787,12 @@
             set: (target, key, value) => {
                 if (typeof key !== 'string')
                     return true;
-                if (key === '$render') {
-                    for (const k in value) {
-                        const v = value[k];
-                        target[`$${k}`] = v;
-                        target[`$${k[0]}`] = v;
-                    }
-                }
+                if (key === '$f' || key === '$form' ||
+                    key === '$e' || key === '$event' ||
+                    key === '$v' || key === '$value' ||
+                    key === '$r' || key === '$render' ||
+                    key === '$c' || key === '$checked')
+                    target[key] = value;
                 // else if (key in dynamics) dynamics[ key ] = value;
                 else if (key in target)
                     target[key] = value;
@@ -786,27 +813,17 @@
         return context;
     };
 
-    // const traverse = function (data: any, path: string, paths?: string[]) {
-    //     paths = paths || path.replace(/\.?\s*\[(.*?)\]/g, '.$1').split('.');
-    //     if (!paths.length) {
-    //         return data;
-    //     } else {
-    //         let part = paths.shift();
-    //         const conditional = part.endsWith('?');
-    //         if (conditional && typeof data !== 'object') return undefined;
-    //         part = conditional ? part.slice(0, -1) : part;
-    //         return traverse(data[ part ], path, paths);
-    //     }
-    // };
     const seperator = /\s*\??\s*\.?\s*\[\s*|\s*\]\s*\??\s*\.?\s*|\s*\??\s*\.\s*/;
     const traverse = function (data, path) {
-        const parts = typeof path === 'string' ? path.split(seperator) : path;
-        const part = parts.shift();
-        if (!part)
-            return data;
-        if (typeof data === 'object')
-            return traverse(data[part], parts);
-        return undefined;
+        if (typeof data !== 'object')
+            return undefined;
+        const keys = typeof path === 'string' ? path.split(seperator) : path;
+        for (const key of keys) {
+            if (typeof data !== 'object')
+                return undefined;
+            data = data[key];
+        }
+        return data;
     };
 
     const TN = Node.TEXT_NODE;
@@ -857,19 +874,19 @@
         }
         async bind(node, container, name, value, owner, dynamics, rewrites) {
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
-            // const render = this.binders[ type ];
             const context = contexter(container.data, dynamics);
             const parsed = parse(value, rewrites);
             const compute = computer(value, context);
             const assignee = parsed.assignees[0] ? traverse.bind(null, context, parsed.assignees[0]) : () => undefined;
-            // const assignee = parsed.assignee ? traverse.bind(null, context, parsed.assignee) : () => undefined;
             const paths = parsed.references;
             const binder = {
                 render: undefined,
                 binder: this, meta: {}, busy: false,
-                type, assignee, compute, paths,
+                type,
+                assignee,
+                compute, paths,
                 node, owner, name, value,
-                dynamics, rewrites,
+                dynamics, rewrites, context,
                 container,
             };
             binder.render = this.binders[type].bind(null, binder);

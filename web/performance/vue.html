@@ -30,6 +30,7 @@
 </style>
 
 <div id="scope">
+
     <h3>{{count}} bound elements</h3>
     <input v-model="count" type="number">
     <br>
@@ -52,6 +53,8 @@
     Vue.createApp({
         data() {
             return {
+                // text: undefined,
+                text: 'text',
                 items: [],
                 message: '',
                 count: 1000,

@@ -16,14 +16,25 @@ const computer = function (statement: string, context: object) {
         }
 
         const convert = !shouldNotConvert.test(statement);
+        // const assignee = statement.match(/{{.*?([a-zA-Z0-9.?\[\]]+)\s*=[^=]*}}/)?.[ 1 ];
 
         let code = statement;
         code = code.replace(/{{/g, convert ? `' + (` : '(');
         code = code.replace(/}}/g, convert ? `) + '` : ')');
         code = convert ? `'${code}'` : code;
 
+        // $context.$render = $render;
+        // ${assignee ? `if (!$render || !('value' in $render)) $v = $value = ${assignee}` : ''}
+        // ${assignee ? `if (!$render || !('checked' in $render)) $c = $checked = ${assignee}` : ''}
+
         code = `
-        if ($render) $context.$render = $render;
+        if ($render) {
+            for (let key in $render) {
+                let value = $render[ key ];
+                $context[ '$' + key ] = value;
+                $context[ '$' + key[ 0 ] ] = value;
+            }
+        }
         with ($context) {
             try {
                 return ${code};

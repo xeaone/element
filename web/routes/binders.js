@@ -34,10 +34,13 @@ export default class BindersRoute extends Component {
         },
 
         fruits: [
-            { name: 'apple' },
-            { name: 'orange' },
-            { name: 'tomato' }
+            [ 'a', 'apple', 'apples' ],
+            [ 'o', 'orange', 'oranges' ],
+            [ 't', 'tomato', 'tomatos' ],
         ],
+        log () {
+            console.log(arguments);
+        },
 
         selectedPlant: null,
         selectEachResult: 'orange',
@@ -141,10 +144,10 @@ export default class BindersRoute extends Component {
             </div>`, true)}</pre>
             <br>
             <div each="{{key, index, fruit of fruits}}">
-                <div id="{{fruit.name}}">
+                <div id="{{fruit[index]}}">
                     <strong>Key: </strong>{{key}},
                     <strong>Index: </strong>{{index}},
-                    <strong>Value: </strong>{{fruit.name}}
+                    <strong>Value: </strong><span each="{{name of fruit}}"><span onclick="{{log(name, fruit)}}">{{name}} </span></span>
                 </div>
             </div>
         </section>
