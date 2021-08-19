@@ -171,12 +171,12 @@ export default class BindersRoute extends Component {
             <pre>${Code(`
             <div>{{selectEachResult}}</div>
             <select value="{{selectEachResult = $value}}" each="{{fruit of fruits}}">
-                <option value="{{fruit.name}}">{{fruit.name}}</option>
+                <option value="{{fruit[0]}}">{{fruit[0]}}</option>
             </select>`, true)}</pre>
             <br>
             <div>{{selectEachResult}}</div>
             <select value="{{selectEachResult = $value}}" each="{{fruit of fruits}}">
-                <option value="{{fruit.name}}">{{fruit.name}}</option>
+                <option value="{{fruit[1]}}">{{fruit[1]}}</option>
             </select>
             <br>
             <pre>${Code(`
