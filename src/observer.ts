@@ -12,15 +12,11 @@ const tick = Promise.resolve();
 //     }
 // };
 
-// const unobserve = function (source: any, task: task, tasks: tasks, path: string) {
-//     if (typeof source === 'object') {
-//     }
-// };
-
 const deleteProperty = function (task: task, tasks: tasks, path: string, target: any, key: any) {
     console.log('deleteProperty');
 
     const initial = !tasks.length;
+    tasks.push({ path: path ? `${path}.${key}.` : `${key}.`, type: 'remove' });
     tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
 
     delete target[ key ];
@@ -42,17 +38,9 @@ const set = function (task: task, tasks: tasks, path: string, target: any, key, 
         return true;
     }
 
-    let initial = !tasks.length;
+    const initial = !tasks.length;
 
-    const current = target[ key ];
-    if (typeof current === 'object') {
-        for (const child in current) {
-            if (!(child in value)) {
-                tasks.push({ path: path ? `${path}.${key}.${child}` : `${key}.${child}`, type: 'remove' });
-            }
-        }
-    }
-
+    tasks.push({ path: path ? `${path}.${key}.` : `${key}.`, type: 'remove' });
     tasks.push({ path: path ? `${path}.${key}` : key, type: 'set' });
 
     target[ key ] = observer(value, task, tasks, path ? `${path}.${key}` : key);

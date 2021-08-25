@@ -24,13 +24,10 @@
     //         task();
     //     }
     // };
-    // const unobserve = function (source: any, task: task, tasks: tasks, path: string) {
-    //     if (typeof source === 'object') {
-    //     }
-    // };
     const deleteProperty = function (task, tasks, path, target, key) {
         console.log('deleteProperty');
         const initial = !tasks.length;
+        tasks.push({ path: path ? `${path}.${key}.` : `${key}.`, type: 'remove' });
         tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
         delete target[key];
         if (initial)
@@ -49,15 +46,8 @@
         else if (target[key] === value || `${target[key]}${value}` === 'NaNNaN') {
             return true;
         }
-        let initial = !tasks.length;
-        const current = target[key];
-        if (typeof current === 'object') {
-            for (const child in current) {
-                if (!(child in value)) {
-                    tasks.push({ path: path ? `${path}.${key}.${child}` : `${key}.${child}`, type: 'remove' });
-                }
-            }
-        }
+        const initial = !tasks.length;
+        tasks.push({ path: path ? `${path}.${key}.` : `${key}.`, type: 'remove' });
         tasks.push({ path: path ? `${path}.${key}` : key, type: 'set' });
         target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
         if (initial)
@@ -1124,8 +1114,7 @@
                     }
                     else if (type === 'remove') {
                         for (const [key, value] of this.#binder.pathBinders) {
-                            if (value && (key === path || key.startsWith(`${path}.`))) {
-                                // console.log(key, path);
+                            if (value && (key === path || path.endsWith('.') ? key.startsWith(`${path}`) : false)) {
                                 for (const binder of value) {
                                     tick.then(binder.render);
                                 }

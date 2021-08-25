@@ -82,8 +82,7 @@ export default class Component extends HTMLElement {
                     }
                 } else if (type === 'remove') {
                     for (const [ key, value ] of this.#binder.pathBinders) {
-                        if (value && (key === path || key.startsWith(`${path}.`))) {
-                            // console.log(key, path);
+                        if (value && (key === path || path.endsWith('.') ? key.startsWith(`${path}`) : false)) {
                             for (const binder of value) {
                                 tick.then(binder.render);
                             }
