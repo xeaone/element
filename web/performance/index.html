@@ -64,7 +64,8 @@
             push() {
                 console.time('push');
                 for (var i = 0; i < this.count; i++) {
-                    this.items.push({ number: i });
+                    this.items.push({ name: i, numbers: [ i ] });
+                    // this.items.push({ number: i });
                 }
                 console.timeEnd('push');
             },
@@ -72,10 +73,14 @@
                 console.time('overwrite');
                 var items = [];
                 for (var i = 0; i < this.count; i++) {
-                    items.push({ number: i });
+                    items.push({ name: i, numbers: [ i ] });
+                    // items.push({ number: i });
                 }
                 this.items = items;
                 console.timeEnd('overwrite');
+            },
+            clear() {
+                this.items = [];
             }
         };
 
@@ -86,12 +91,18 @@
 			<button onclick="{{push()}}">push</button>
 			<button onclick="{{overwrite()}}">overwrite</button>
 			<button onclick="{{raw()}}">raw</button>
+			<button onclick="{{clear()}}">clear</button>
 
-			<div each="{{item of items}}"><div class="box">{{item.number}}</div></div>
+			<div each="{{item of items}}">
+                <div class="box" each="{{number of item.numbers}}">
+                    <i>{{number}} {{item.name}}</i>
+                </div>
+            </div>
 
 			<div id="raw"></div>
 		`;
 
+        // <div each="{{item of items}}"><div class="box">{{ item.number }}</div></div>
         // <input value="{{item.number = $value}}"></input>
 
     }

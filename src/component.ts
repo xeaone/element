@@ -72,22 +72,18 @@ export default class Component extends HTMLElement {
         this.data = Observer(this.data, async (tasks) => {
             let task;
             while (task = tasks.shift()) {
-
                 const { path, type } = task;
-
                 if (type === 'set') {
-
                     const binders = this.#binder.pathBinders.get(path);
-                    if (!binders) continue;
-
-                    for (const binder of binders) {
-                        tick.then(binder.render);
+                    if (binders) {
+                        for (const binder of binders) {
+                            tick.then(binder.render);
+                        }
                     }
-
                 } else if (type === 'remove') {
-                    const map = this.#binder.pathBinders;
-                    for (const [ key, value ] of map) {
-                        if (key === path || key.startsWith(`${path}.`) && value) {
+                    for (const [ key, value ] of this.#binder.pathBinders) {
+                        if (value && (key === path || key.startsWith(`${path}.`))) {
+                            // console.log(key, path);
                             for (const binder of value) {
                                 tick.then(binder.render);
                             }

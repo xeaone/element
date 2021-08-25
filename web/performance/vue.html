@@ -38,11 +38,16 @@
     <button v-on:click="push">push</button>
     <button v-on:click="overwrite">overwrite</button>
     <button v-on:click="raw">raw</button>
+    <button v-on:click="clear">clear</button>
 
     <div id="raw"></div>
 
     <div id="push">
-        <div class="box" v-for="item in items">{{item.number}}</div>
+        <div class="box" v-for="item in items">
+            <div v-for="number of item.numbers">
+                <i>{{7number}} {{item.name}}</i>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -82,7 +87,8 @@
             push() {
                 console.time('push');
                 for (var i = 0; i < this.count; i++) {
-                    this.items.push({ number: i });
+                    // this.items.push({ number: i });
+                    this.items.push({ name: i, numbers: [ i ] });
                 }
                 console.timeEnd('push');
             },
@@ -94,7 +100,10 @@
                 }
                 this.items = items;
                 console.timeEnd('overwrite');
-            }
+            },
+            clear() {
+                this.items = [];
+            },
         }
 
     }).mount('#scope')

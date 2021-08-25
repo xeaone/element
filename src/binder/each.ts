@@ -2,9 +2,6 @@
 const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
-// const has = () => true;
-// const get = (target, key) => typeof key === 'string' ? new Proxy({}, { has, get }) : undefined;
-
 const each = async function (binder) {
 
     if (binder.meta.busy) return;

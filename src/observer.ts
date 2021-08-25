@@ -18,6 +18,7 @@ const tick = Promise.resolve();
 // };
 
 const deleteProperty = function (task: task, tasks: tasks, path: string, target: any, key: any) {
+    console.log('deleteProperty');
 
     const initial = !tasks.length;
     tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
@@ -41,9 +42,9 @@ const set = function (task: task, tasks: tasks, path: string, target: any, key, 
         return true;
     }
 
-    let initial;
+    let initial = !tasks.length;
+
     if (key in target) {
-        initial = !tasks.length;
         tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
     }
 

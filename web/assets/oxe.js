@@ -29,6 +29,7 @@
     //     }
     // };
     const deleteProperty = function (task, tasks, path, target, key) {
+        console.log('deleteProperty');
         const initial = !tasks.length;
         tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
         delete target[key];
@@ -48,9 +49,8 @@
         else if (target[key] === value || `${target[key]}${value}` === 'NaNNaN') {
             return true;
         }
-        let initial;
+        let initial = !tasks.length;
         if (key in target) {
-            initial = !tasks.length;
             tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
         }
         target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
@@ -322,8 +322,6 @@
 
     const tick$3 = Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
-    // const has = () => true;
-    // const get = (target, key) => typeof key === 'string' ? new Proxy({}, { has, get }) : undefined;
     const each = async function (binder) {
         if (binder.meta.busy)
             return;
@@ -612,8 +610,9 @@
             try {
                 return ${code};
             } catch (error) {
-                console.error(error);
-                return undefined;
+                if (error.message.indexOf('Cannot read property') === 0) return undefined;
+                else console.error(error);
+                // return undefined;
             }
         }
         `;
@@ -745,6 +744,7 @@
     //     };
     //     return { references, assignees };
     // };
+    const replaceOf = /{{.*?\sof\s/;
     const connectorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
     const endReference = `((${connectorReference})[a-zA-Z_$0-9]+)*`;
     // const startReference = '[a-zA-Z_$]+';
@@ -763,18 +763,23 @@
     \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\binstanceof\\b|\\bvoid\\b`,
     ].join('|').replace(/\s|\t|\n/g, ''), 'g');
     const parse = function (data, rewrites) {
+        // const o = data;
         const assignee = data.match(matchAssignee)?.[1];
+        data = data.replace(replaceOf, '{{');
         data = data.replace(strips, '');
         data = data.replace(replaceReferenceConnector, '.');
         data = data.replace(replaceReferenceSeperator, ';');
         if (rewrites) {
             for (const [name, value] of rewrites) {
-                data = data.replace(new RegExp(`;(${name})\\b`, 'g'), value);
+                data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
+                // data = data.replace(new RegExp(`(^|[^.a-zA-Z0-9_$])(${name})([^.a-zA-Z0-9_$]|$)`, 'g'), value);
             }
         }
+        // console.log(o, data);
         const references = data.split(/;+/).slice(1, -1) || [];
         // const references = data.match(allReferences) || [ '' ];
         // console.log(data, references);
+        // console.log(o, references);
         return { references, assignees: [assignee] };
     };
 
@@ -1107,16 +1112,16 @@
                     const { path, type } = task;
                     if (type === 'set') {
                         const binders = this.#binder.pathBinders.get(path);
-                        if (!binders)
-                            continue;
-                        for (const binder of binders) {
-                            tick.then(binder.render);
+                        if (binders) {
+                            for (const binder of binders) {
+                                tick.then(binder.render);
+                            }
                         }
                     }
                     else if (type === 'remove') {
-                        const map = this.#binder.pathBinders;
-                        for (const [key, value] of map) {
-                            if (key === path || key.startsWith(`${path}.`) && value) {
+                        for (const [key, value] of this.#binder.pathBinders) {
+                            if (value && (key === path || key.startsWith(`${path}.`))) {
+                                // console.log(key, path);
                                 for (const binder of value) {
                                     tick.then(binder.render);
                                 }

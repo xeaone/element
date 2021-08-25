@@ -152,6 +152,7 @@
 //     return { references, assignees };
 // };
 
+const replaceOf = /{{.*?\sof\s/;
 const connectorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
 const endReference = `((${connectorReference})[a-zA-Z_$0-9]+)*`;
 // const startReference = '[a-zA-Z_$]+';
@@ -173,22 +174,27 @@ const strips = new RegExp([
 ].join('|').replace(/\s|\t|\n/g, ''), 'g');
 
 const parse = function (data, rewrites?: string[][]) {
+    // const o = data;
 
     const assignee = data.match(matchAssignee)?.[ 1 ];
 
+    data = data.replace(replaceOf, '{{');
     data = data.replace(strips, '');
     data = data.replace(replaceReferenceConnector, '.');
     data = data.replace(replaceReferenceSeperator, ';');
 
     if (rewrites) {
         for (const [ name, value ] of rewrites) {
-            data = data.replace(new RegExp(`;(${name})\\b`, 'g'), value);
+            data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
+            // data = data.replace(new RegExp(`(^|[^.a-zA-Z0-9_$])(${name})([^.a-zA-Z0-9_$]|$)`, 'g'), value);
         }
     }
 
+    // console.log(o, data);
     const references = data.split(/;+/).slice(1, -1) || [];
     // const references = data.match(allReferences) || [ '' ];
     // console.log(data, references);
+    // console.log(o, references);
 
     return { references, assignees: [ assignee ] };
 };

@@ -39,8 +39,9 @@ const computer = function (statement: string, context: object) {
             try {
                 return ${code};
             } catch (error) {
-                console.error(error);
-                return undefined;
+                if (error.message.indexOf('Cannot read property') === 0) return undefined;
+                else console.error(error);
+                // return undefined;
             }
         }
         `;
