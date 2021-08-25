@@ -50,9 +50,15 @@
             return true;
         }
         let initial = !tasks.length;
-        if (key in target) {
-            tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
+        const current = target[key];
+        if (typeof current === 'object') {
+            for (const child in current) {
+                if (!(child in value)) {
+                    tasks.push({ path: path ? `${path}.${key}.${child}` : `${key}.${child}`, type: 'remove' });
+                }
+            }
         }
+        tasks.push({ path: path ? `${path}.${key}` : key, type: 'set' });
         target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
         if (initial)
             tick$4.then(task.bind(null, tasks));
@@ -984,14 +990,12 @@
                 }
                 if (each)
                     return;
-                if (!each) {
-                    let child = node.firstChild;
-                    while (child) {
-                        tick$1.then(this.add.bind(this, child, container, dynamics, rewrites));
-                        // this.add(child, container, dynamics, rewrites);
-                        // tasks.push(this.add(child, container, dynamics, rewrites));
-                        child = child.nextSibling;
-                    }
+                let child = node.firstChild;
+                while (child) {
+                    tick$1.then(this.add.bind(this, child, container, dynamics, rewrites));
+                    // this.add(child, container, dynamics, rewrites);
+                    // tasks.push(this.add(child, container, dynamics, rewrites));
+                    child = child.nextSibling;
                 }
             }
             // return Promise.all(tasks);

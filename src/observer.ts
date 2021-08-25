@@ -44,9 +44,16 @@ const set = function (task: task, tasks: tasks, path: string, target: any, key, 
 
     let initial = !tasks.length;
 
-    if (key in target) {
-        tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
+    const current = target[ key ];
+    if (typeof current === 'object') {
+        for (const child in current) {
+            if (!(child in value)) {
+                tasks.push({ path: path ? `${path}.${key}.${child}` : `${key}.${child}`, type: 'remove' });
+            }
+        }
     }
+
+    tasks.push({ path: path ? `${path}.${key}` : key, type: 'set' });
 
     target[ key ] = observer(value, task, tasks, path ? `${path}.${key}` : key);
 
