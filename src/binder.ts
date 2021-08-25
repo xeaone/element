@@ -175,14 +175,12 @@ export default class Binder {
 
             if (each) return;
 
-            if (!each) {
-                let child = node.firstChild;
-                while (child) {
-                    tick.then(this.add.bind(this, child, container, dynamics, rewrites));
-                    // this.add(child, container, dynamics, rewrites);
-                    // tasks.push(this.add(child, container, dynamics, rewrites));
-                    child = child.nextSibling;
-                }
+            let child = node.firstChild;
+            while (child) {
+                tick.then(this.add.bind(this, child, container, dynamics, rewrites));
+                // this.add(child, container, dynamics, rewrites);
+                // tasks.push(this.add(child, container, dynamics, rewrites));
+                child = child.nextSibling;
             }
 
         }
