@@ -16,7 +16,6 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-    console.warn('oxe: need to handle delete property');
     const tick$4 = Promise.resolve();
     // const run = async function (tasks: tasks) {
     //     let task;
@@ -25,10 +24,8 @@
     //     }
     // };
     const deleteProperty = function (task, tasks, path, target, key) {
-        console.log('deleteProperty');
         const initial = !tasks.length;
-        tasks.push({ path: path ? `${path}.${key}.` : `${key}.`, type: 'remove' });
-        tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
+        tasks.push(path ? `${path}.${key}` : key);
         delete target[key];
         if (initial)
             tick$4.then(task.bind(null, tasks));
@@ -37,8 +34,8 @@
     const set = function (task, tasks, path, target, key, value) {
         if (key === 'length') {
             const initial = !tasks.length;
-            tasks.push({ path, type: 'set' });
-            tasks.push({ path: path ? `${path}.${key}` : key, type: 'set' });
+            tasks.push(path);
+            tasks.push(path ? `${path}.${key}` : key);
             if (initial)
                 tick$4.then(task.bind(null, tasks));
             return true;
@@ -47,8 +44,7 @@
             return true;
         }
         const initial = !tasks.length;
-        tasks.push({ path: path ? `${path}.${key}.` : `${key}.`, type: 'remove' });
-        tasks.push({ path: path ? `${path}.${key}` : key, type: 'set' });
+        tasks.push(path ? `${path}.${key}` : key);
         target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
         if (initial)
             tick$4.then(task.bind(null, tasks));
@@ -56,8 +52,6 @@
     };
     const observer = function (source, task, tasks = [], path = '') {
         let target;
-        const initial = !tasks.length;
-        tasks.push({ path, type: 'set' });
         if (source?.constructor === Array) {
             target = [];
             for (let key = 0, length = source.length; key < length; key++) {
@@ -67,7 +61,6 @@
                 set: set.bind(null, task, tasks, path),
                 deleteProperty: deleteProperty.bind(null, task, tasks, path)
             });
-            tasks.push({ path: `${path}.length`, type: 'set' });
         }
         else if (source?.constructor === Object) {
             target = {};
@@ -82,8 +75,6 @@
         else {
             target = source;
         }
-        if (initial)
-            tick$4.then(task.bind(null, tasks));
         return target;
     };
 
@@ -250,6 +241,7 @@
         const { type, nodeName } = meta;
         let display, computed;
         if (type === 'select-one') {
+            console.warn('each check not working correctly');
             if ('each' in owner.attributes && (typeof owner.$optionsReady !== 'number' ||
                 typeof owner.$optionsLength !== 'number' ||
                 owner.$optionsReady !== owner.$optionsLength))
@@ -340,7 +332,6 @@
             binder.meta.setup = true;
             binder.meta.targetLength = 0;
             binder.meta.currentLength = 0;
-            binder.meta.descriptors = binder.dynamics ? Object.getOwnPropertyDescriptors(binder.dynamics) : null;
             binder.meta.clone = document.createElement('template');
             binder.meta.templateElement = document.createElement('template');
             if (binder.owner.nodeName === 'SELECT') {
@@ -380,31 +371,44 @@
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
                 const variableValue = `${binder.meta.path}.${keyValue}`;
-                const dynamics = {};
-                if (binder.meta.descriptors)
-                    Object.defineProperties(dynamics, binder.meta.descriptors);
-                if (binder.meta.keyName)
-                    Object.defineProperty(dynamics, binder.meta.keyName, { value: keyValue, writable: false });
-                if (binder.meta.indexName)
-                    Object.defineProperty(dynamics, binder.meta.indexName, { value: indexValue, writable: false });
-                Object.defineProperty(dynamics, binder.meta.variableName, {
-                    get() {
-                        let result = binder.container.data;
-                        for (const key of binder.meta.parts) {
-                            result = result[key];
-                            if (!result)
-                                return;
-                        }
-                        return typeof result === 'object' ? result[keyValue] : undefined;
+                const dynamics = new Proxy(binder.meta.dynamics || {}, {
+                    has(target, key) {
+                        return key === binder.meta.indexName || key === binder.meta.keyName || key === binder.meta.variableName || key in target;
                     },
-                    set(value) {
-                        let result = binder.container.data;
-                        for (const key of binder.meta.parts) {
-                            result = result[key];
-                            if (!result)
-                                return;
+                    get(target, key) {
+                        if (key === binder.meta.variableName) {
+                            let result = binder.container.data;
+                            for (const key of binder.meta.parts) {
+                                result = result[key];
+                                if (!result)
+                                    return;
+                            }
+                            return typeof result === 'object' ? result[keyValue] : undefined;
                         }
-                        typeof result === 'object' ? result[keyValue] = value : undefined;
+                        else if (key === binder.meta.indexName) {
+                            return indexValue;
+                        }
+                        else if (key === binder.meta.keyName) {
+                            return keyValue;
+                        }
+                        else {
+                            return target[key];
+                        }
+                    },
+                    set(target, key, value) {
+                        if (key === binder.meta.variableName) {
+                            let result = binder.container.data;
+                            for (const key of binder.meta.parts) {
+                                result = result[key];
+                                if (!result)
+                                    return true;
+                            }
+                            typeof result === 'object' ? result[keyValue] = value : undefined;
+                        }
+                        else {
+                            target[key] = value;
+                        }
+                        return true;
                     }
                 });
                 const rewrites = [];
@@ -625,11 +629,13 @@
     // const referenceInner = '_$0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     // const referenceFirstSkips = [
     //     '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
-    //     'window', 'document', 'console', 'location', 'Math', 'Date', 'Number',
-    //     'this', 'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in', 'do', 'if', 'for', 'let',
-    //     'new', 'try', 'var', 'case', 'else', 'with', 'await', 'break', 'catch', 'class', 'const',
+    //     'window', 'document', 'console', 'location',
+    //     'Math', 'Date', 'Number', 'Object', 'Array', 'Infinity',
+    //     'this', 'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in', 'do', 'if', 'for',
+    //     'var', 'let', 'const',
+    //     'new', 'try', 'case', 'else', 'with', 'await', 'break', 'catch', 'class',
     //     'super', 'throw', 'while', 'yield', 'delete', 'export', 'import', 'return', 'switch', 'default',
-    //     'extends', 'finally', 'continue', 'debugger', 'function', 'arguments', 'typeof', 'void'
+    //     'extends', 'finally', 'continue', 'debugger', 'function', 'arguments', 'typeof', 'instanceof', 'void'
     // ];
     // const parse = function (data, rewrites?: string[][]) {
     //     let inString = false;
@@ -738,45 +744,44 @@
     //             }
     //         }
     //     };
+    //     // console.log(o, data, references, assignee);
+    //     // console.log(data, references, assignees);
     //     return { references, assignees };
     // };
-    const replaceOf = /{{.*?\sof\s/;
-    const connectorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
-    const endReference = `((${connectorReference})[a-zA-Z_$0-9]+)*`;
-    // const startReference = '[a-zA-Z_$]+';
-    // const allReferences = new RegExp(`${startReference}${endReference}`, 'g');
-    const replaceReferenceConnector = new RegExp(`${connectorReference}`, 'g');
-    const matchAssignee = /{{.*?([a-zA-Z0-9.?\[\]]+)\s*=[^=]*}}/;
-    const replaceReferenceSeperator = /\s+|\|+|\/+|\[+|\]+|\(+|\)+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g;
-    const strips = new RegExp([
-        '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`',
-        '(var|let|const)\\s+[_$a-zA-Z0-9]+\\s*=?',
-        `(window|document|this|Math|Date|Number|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${endReference}`,
-        `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
-    \\bdo\\b|\\bif\\b|\\bfor\\b|\\bnew\\b|\\btry\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
-    \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
-    \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
-    \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\binstanceof\\b|\\bvoid\\b`,
-    ].join('|').replace(/\s|\t|\n/g, ''), 'g');
+    // const matchAssignee = /{{.*?([a-zA-Z0-9.?\[\]]+)\s*=[^=]*}}/;
+    const matchAssignee = /([a-zA-Z0-9$_.]+)\s*[!%^&*+|/<>-]*=\s*[^=>]/;
+    const replaceEndBracket = /\s*\][^;]*/g;
+    const removeStrings = /".*?[^\\]*"|'.*?[^\\]*\'|`.*?[^\\]*`/g;
+    const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
+    const replaceOutside = /[^{}]*{{.*?\s+of\s+|[^{}]*{{|}}[^{}]*/g;
+    const replaceSeperator = /\s+|\|+|\/+|\(+|\)+|\[+|\^+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g; // \]+
+    const replaceProtected = new RegExp([
+        `;(
+        [0-9]+|
+        \\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+        this|window|document|console|location|Object|Array|Math|Date|Number|String|Boolean|
+        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+        yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
+    )[^;]*;`,
+    ].join('').replace(/\s|\t|\n/g, ''), 'g');
     const parse = function (data, rewrites) {
         // const o = data;
+        data = data.replace(replaceOutside, ';');
+        data = data.replace(removeStrings, '');
+        data = data.replace(normalizeReference, '.$2');
         const assignee = data.match(matchAssignee)?.[1];
-        data = data.replace(replaceOf, '{{');
-        data = data.replace(strips, '');
-        data = data.replace(replaceReferenceConnector, '.');
-        data = data.replace(replaceReferenceSeperator, ';');
+        data = data.replace(replaceSeperator, ';');
+        data = data.replace(replaceEndBracket, ';');
         if (rewrites) {
             for (const [name, value] of rewrites) {
                 data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
-                // data = data.replace(new RegExp(`(^|[^.a-zA-Z0-9_$])(${name})([^.a-zA-Z0-9_$]|$)`, 'g'), value);
             }
         }
-        // console.log(o, data);
+        data = data.replace(replaceProtected, ';');
         const references = data.split(/;+/).slice(1, -1) || [];
-        // const references = data.match(allReferences) || [ '' ];
-        // console.log(data, references);
-        // console.log(o, references);
-        return { references, assignees: [assignee] };
+        const assignees = assignee ? [assignee] : [];
+        // console.log(o, data, references, assignees);
+        return { references, assignees };
     };
 
     const ignores = [
@@ -786,7 +791,9 @@
     const contexter = function (data, dynamics) {
         // dynamics = dynamics || {};
         // const context = new Proxy({}, {
-        const context = new Proxy(dynamics ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(dynamics)) : {}, {
+        const context = new Proxy(dynamics || {}, 
+        // dynamics ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(dynamics)) : {},
+        {
             has(target, key) {
                 if (typeof key !== 'string')
                     return true;
@@ -819,19 +826,6 @@
             }
         });
         return context;
-    };
-
-    const seperator = /\s*\??\s*\.?\s*\[\s*|\s*\]\s*\??\s*\.?\s*|\s*\??\s*\.\s*/;
-    const traverse = function (data, path) {
-        if (typeof data !== 'object')
-            return undefined;
-        const keys = typeof path === 'string' ? path.split(seperator) : path;
-        for (const key of keys) {
-            if (typeof data !== 'object')
-                return undefined;
-            data = data[key];
-        }
-        return data;
     };
 
     const TN = Node.TEXT_NODE;
@@ -885,7 +879,19 @@
             const context = contexter(container.data, dynamics);
             const parsed = parse(value, rewrites);
             const compute = computer(value, context);
-            const assignee = parsed.assignees[0] ? traverse.bind(null, context, parsed.assignees[0]) : () => undefined;
+            // const assignee = parsed.assignees[ 0 ] ? traverse.bind(null, context, parsed.assignees[ 0 ]) : () => undefined;
+            const assignee = () => {
+                if (!parsed.assignees[0])
+                    return;
+                let result = context;
+                const parts = parsed.assignees[0].split('.');
+                for (const part of parts) {
+                    if (typeof result !== 'object')
+                        return;
+                    result = result[part];
+                }
+                return result;
+            };
             const paths = parsed.references;
             const binder = {
                 render: undefined,
@@ -1103,21 +1109,10 @@
             this.data = observer(this.data, async (tasks) => {
                 let task;
                 while (task = tasks.shift()) {
-                    const { path, type } = task;
-                    if (type === 'set') {
-                        const binders = this.#binder.pathBinders.get(path);
-                        if (binders) {
-                            for (const binder of binders) {
+                    for (const [key, value] of this.#binder.pathBinders) {
+                        if (value && (key === task || key.startsWith(`${task}.`))) {
+                            for (const binder of value) {
                                 tick.then(binder.render);
-                            }
-                        }
-                    }
-                    else if (type === 'remove') {
-                        for (const [key, value] of this.#binder.pathBinders) {
-                            if (value && (key === path || path.endsWith('.') ? key.startsWith(`${path}`) : false)) {
-                                for (const binder of value) {
-                                    tick.then(binder.render);
-                                }
                             }
                         }
                     }

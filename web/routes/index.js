@@ -57,13 +57,12 @@ export default class IndexRoute extends Component {
 
 	<strong>Project Goal</strong>
 	<ul>
-		<li>Low learning curve</li>
-		<li>Feel like your not using a framework</li>
+		<li>Easy learning curve</li>
+		<li>Feels like JS and HTML not a framework</li>
 	</ul>
 
 	<strong>Feature Highlight</strong>
 	<ul>
-		<li>Small file size</li>
 		<li>Zero config smart front end routing</li>
 		<li>Dynamic ES6/ESM module rewrites (Use ES6 modules in browsers that don't have native support)</li>
 		<li>Dynamic Template string rewrites (Use template strings in browsers that don't have native support)</li>

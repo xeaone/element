@@ -1,7 +1,6 @@
-console.warn('oxe: need to handle delete property');
 
 type task = (tasks: string[]) => Promise<any>;
-type tasks = { path: string, type: string; }[];
+type tasks = string[];
 
 const tick = Promise.resolve();
 
@@ -13,14 +12,10 @@ const tick = Promise.resolve();
 // };
 
 const deleteProperty = function (task: task, tasks: tasks, path: string, target: any, key: any) {
-    console.log('deleteProperty');
 
     const initial = !tasks.length;
-    tasks.push({ path: path ? `${path}.${key}.` : `${key}.`, type: 'remove' });
-    tasks.push({ path: path ? `${path}.${key}` : key, type: 'remove' });
-
+    tasks.push(path ? `${path}.${key}` : key);
     delete target[ key ];
-
     if (initial) tick.then(task.bind(null, tasks));
 
     return true;
@@ -30,8 +25,8 @@ const set = function (task: task, tasks: tasks, path: string, target: any, key, 
 
     if (key === 'length') {
         const initial = !tasks.length;
-        tasks.push({ path, type: 'set' });
-        tasks.push({ path: path ? `${path}.${key}` : key, type: 'set' });
+        tasks.push(path);
+        tasks.push(path ? `${path}.${key}` : key);
         if (initial) tick.then(task.bind(null, tasks));
         return true;
     } else if (target[ key ] === value || `${target[ key ]}${value}` === 'NaNNaN') {
@@ -39,12 +34,8 @@ const set = function (task: task, tasks: tasks, path: string, target: any, key, 
     }
 
     const initial = !tasks.length;
-
-    tasks.push({ path: path ? `${path}.${key}.` : `${key}.`, type: 'remove' });
-    tasks.push({ path: path ? `${path}.${key}` : key, type: 'set' });
-
+    tasks.push(path ? `${path}.${key}` : key);
     target[ key ] = observer(value, task, tasks, path ? `${path}.${key}` : key);
-
     if (initial) tick.then(task.bind(null, tasks));
 
     return true;
@@ -52,9 +43,6 @@ const set = function (task: task, tasks: tasks, path: string, target: any, key, 
 
 const observer = function (source: any, task: task, tasks: tasks = [], path: string = '') {
     let target;
-
-    const initial = !tasks.length;
-    tasks.push({ path, type: 'set' });
 
     if (source?.constructor === Array) {
         target = [];
@@ -67,8 +55,6 @@ const observer = function (source: any, task: task, tasks: tasks = [], path: str
             set: set.bind(null, task, tasks, path),
             deleteProperty: deleteProperty.bind(null, task, tasks, path)
         });
-
-        tasks.push({ path: `${path}.length`, type: 'set' });
 
     } else if (source?.constructor === Object) {
         target = {};
@@ -85,8 +71,6 @@ const observer = function (source: any, task: task, tasks: tasks = [], path: str
     } else {
         target = source;
     }
-
-    if (initial) tick.then(task.bind(null, tasks));
 
     return target;
 };

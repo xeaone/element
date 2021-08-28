@@ -9,7 +9,8 @@ const contexter = function (data: object, dynamics?: object) {
     // dynamics = dynamics || {};
     // const context = new Proxy({}, {
     const context = new Proxy(
-        dynamics ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(dynamics)) : {},
+        dynamics || {},
+        // dynamics ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(dynamics)) : {},
         {
             has (target, key) {
                 if (typeof key !== 'string') return true;

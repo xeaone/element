@@ -27,7 +27,6 @@ const each = async function (binder) {
         binder.meta.setup = true;
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
-        binder.meta.descriptors = binder.dynamics ? Object.getOwnPropertyDescriptors(binder.dynamics) : null;
 
         binder.meta.clone = document.createElement('template');
         binder.meta.templateElement = document.createElement('template');
@@ -76,26 +75,38 @@ const each = async function (binder) {
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
             const variableValue = `${binder.meta.path}.${keyValue}`;
 
-            const dynamics = {};
-            if (binder.meta.descriptors) Object.defineProperties(dynamics, binder.meta.descriptors);
-            if (binder.meta.keyName) Object.defineProperty(dynamics, binder.meta.keyName, { value: keyValue, writable: false });
-            if (binder.meta.indexName) Object.defineProperty(dynamics, binder.meta.indexName, { value: indexValue, writable: false });
-            Object.defineProperty(dynamics, binder.meta.variableName, {
-                get () {
-                    let result = binder.container.data;
-                    for (const key of binder.meta.parts) {
-                        result = result[ key ];
-                        if (!result) return;
-                    }
-                    return typeof result === 'object' ? result[ keyValue ] : undefined;
+            const dynamics = new Proxy(binder.meta.dynamics || {}, {
+                has (target, key) {
+                    return key === binder.meta.indexName || key === binder.meta.keyName || key === binder.meta.variableName || key in target;
                 },
-                set (value) {
-                    let result = binder.container.data;
-                    for (const key of binder.meta.parts) {
-                        result = result[ key ];
-                        if (!result) return;
+                get (target, key) {
+                    if (key === binder.meta.variableName) {
+                        let result = binder.container.data;
+                        for (const key of binder.meta.parts) {
+                            result = result[ key ];
+                            if (!result) return;
+                        }
+                        return typeof result === 'object' ? result[ keyValue ] : undefined;
+                    } else if (key === binder.meta.indexName) {
+                        return indexValue;
+                    } else if (key === binder.meta.keyName) {
+                        return keyValue;
+                    } else {
+                        return target[ key ];
                     }
-                    typeof result === 'object' ? result[ keyValue ] = value : undefined;
+                },
+                set (target, key, value) {
+                    if (key === binder.meta.variableName) {
+                        let result = binder.container.data;
+                        for (const key of binder.meta.parts) {
+                            result = result[ key ];
+                            if (!result) return true;
+                        }
+                        typeof result === 'object' ? result[ keyValue ] = value : undefined;
+                    } else {
+                        target[ key ] = value;
+                    }
+                    return true;
                 }
             });
 

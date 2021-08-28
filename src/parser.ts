@@ -7,11 +7,13 @@
 
 // const referenceFirstSkips = [
 //     '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
-//     'window', 'document', 'console', 'location', 'Math', 'Date', 'Number',
-//     'this', 'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in', 'do', 'if', 'for', 'let',
-//     'new', 'try', 'var', 'case', 'else', 'with', 'await', 'break', 'catch', 'class', 'const',
+//     'window', 'document', 'console', 'location',
+//     'Math', 'Date', 'Number', 'Object', 'Array', 'Infinity',
+//     'this', 'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in', 'do', 'if', 'for',
+//     'var', 'let', 'const',
+//     'new', 'try', 'case', 'else', 'with', 'await', 'break', 'catch', 'class',
 //     'super', 'throw', 'while', 'yield', 'delete', 'export', 'import', 'return', 'switch', 'default',
-//     'extends', 'finally', 'continue', 'debugger', 'function', 'arguments', 'typeof', 'void'
+//     'extends', 'finally', 'continue', 'debugger', 'function', 'arguments', 'typeof', 'instanceof', 'void'
 // ];
 
 // const parse = function (data, rewrites?: string[][]) {
@@ -149,54 +151,57 @@
 
 //     };
 
+//     // console.log(o, data, references, assignee);
+//     // console.log(data, references, assignees);
+
 //     return { references, assignees };
 // };
 
-const replaceOf = /{{.*?\sof\s/;
-const connectorReference = '\\s*\\??\\s*\\.?\\s*\\[\\s*|\\s*\\]\\s*\\??\\s*\\.?\\s*|\\s*\\??\\s*\\.\\s*';
-const endReference = `((${connectorReference})[a-zA-Z_$0-9]+)*`;
-// const startReference = '[a-zA-Z_$]+';
-// const allReferences = new RegExp(`${startReference}${endReference}`, 'g');
-const replaceReferenceConnector = new RegExp(`${connectorReference}`, 'g');
+// const matchAssignee = /{{.*?([a-zA-Z0-9.?\[\]]+)\s*=[^=]*}}/;
+const matchAssignee = /([a-zA-Z0-9$_.]+)\s*[!%^&*+|/<>-]*=\s*[^=>]/;
 
-const matchAssignee = /{{.*?([a-zA-Z0-9.?\[\]]+)\s*=[^=]*}}/;
-const replaceReferenceSeperator = /\s+|\|+|\/+|\[+|\]+|\(+|\)+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g;
+const replaceEndBracket = /\s*\][^;]*/g;
+const removeStrings = /".*?[^\\]*"|'.*?[^\\]*\'|`.*?[^\\]*`/g;
+const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
+const replaceOutside = /[^{}]*{{.*?\s+of\s+|[^{}]*{{|}}[^{}]*/g;
+const replaceSeperator = /\s+|\|+|\/+|\(+|\)+|\[+|\^+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g; // \]+
 
-const strips = new RegExp([
-    '".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`', // strings
-    '(var|let|const)\\s+[_$a-zA-Z0-9]+\\s*=?', // variables
-    `(window|document|this|Math|Date|Number|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f)${endReference}`, // globals and specials
-    `\\btrue\\b|\\bfalse\\b|\\bnull\\b|\\bundefined\\b|\\bNaN\\b|\\bof\\b|\\bin\\b|
-    \\bdo\\b|\\bif\\b|\\bfor\\b|\\bnew\\b|\\btry\\b|\\bcase\\b|\\belse\\b|\\bwith\\b|\\bawait\\b|
-    \\bbreak\\b|\\bcatch\\b|\\bclass\\b|\\bsuper\\b|\\bthrow\\b|\\bwhile\\b|\\byield\\b|\\bdelete\\b|
-    \\bexport\\b|\\bimport\\b|\\breturn\\b|\\bswitch\\b|\\bdefault\\b|\\bextends\\b|\\bfinally\\b|\\bcontinue\\b|
-    \\bdebugger\\b|\\bfunction\\b|\\barguments\\b|\\btypeof\\b|\\binstanceof\\b|\\bvoid\\b`,
-].join('|').replace(/\s|\t|\n/g, ''), 'g');
+const replaceProtected = new RegExp([
+    `;(
+        [0-9]+|
+        \\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+        this|window|document|console|location|Object|Array|Math|Date|Number|String|Boolean|
+        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+        yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
+    )[^;]*;`,
+].join('').replace(/\s|\t|\n/g, ''), 'g');
 
 const parse = function (data, rewrites?: string[][]) {
     // const o = data;
 
+    data = data.replace(replaceOutside, ';');
+    data = data.replace(removeStrings, '');
+    data = data.replace(normalizeReference, '.$2');
+
     const assignee = data.match(matchAssignee)?.[ 1 ];
 
-    data = data.replace(replaceOf, '{{');
-    data = data.replace(strips, '');
-    data = data.replace(replaceReferenceConnector, '.');
-    data = data.replace(replaceReferenceSeperator, ';');
+    data = data.replace(replaceSeperator, ';');
+    data = data.replace(replaceEndBracket, ';');
 
     if (rewrites) {
         for (const [ name, value ] of rewrites) {
             data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
-            // data = data.replace(new RegExp(`(^|[^.a-zA-Z0-9_$])(${name})([^.a-zA-Z0-9_$]|$)`, 'g'), value);
         }
     }
 
-    // console.log(o, data);
-    const references = data.split(/;+/).slice(1, -1) || [];
-    // const references = data.match(allReferences) || [ '' ];
-    // console.log(data, references);
-    // console.log(o, references);
+    data = data.replace(replaceProtected, ';');
 
-    return { references, assignees: [ assignee ] };
+    const references = data.split(/;+/).slice(1, -1) || [];
+    const assignees = assignee ? [ assignee ] : [];
+
+    // console.log(o, data, references, assignees);
+
+    return { references, assignees };
 };
 
 export default parse;

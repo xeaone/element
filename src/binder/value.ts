@@ -94,12 +94,15 @@ const value = async function value (binder) {
     let display, computed;
 
     if (type === 'select-one') {
+        console.warn('each check not working correctly');
+
         if ('each' in owner.attributes && (
             typeof owner.$optionsReady !== 'number' ||
             typeof owner.$optionsLength !== 'number' ||
             owner.$optionsReady !== owner.$optionsLength)) return;
 
         let value = binder.assignee();
+
         owner.value = undefined;
 
         for (const option of owner.options) {

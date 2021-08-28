@@ -70,7 +70,18 @@ export default class Binder {
         const context = contexter(container.data, dynamics);
         const parsed = parser(value, rewrites);
         const compute = computer(value, context);
-        const assignee = parsed.assignees[ 0 ] ? traverse.bind(null, context, parsed.assignees[ 0 ]) : () => undefined;
+        // const assignee = parsed.assignees[ 0 ] ? traverse.bind(null, context, parsed.assignees[ 0 ]) : () => undefined;
+
+        const assignee = () => {
+            if (!parsed.assignees[ 0 ]) return;
+            let result = context;
+            const parts = parsed.assignees[ 0 ].split('.');
+            for (const part of parts) {
+                if (typeof result !== 'object') return;
+                result = result[ part ];
+            }
+            return result;
+        };
 
         const paths = parsed.references;
 

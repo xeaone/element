@@ -33,14 +33,8 @@ export default class BindersRoute extends Component {
             upper: text => text?.toUpperCase(),
         },
 
-        fruits: [
-            [ 'a', 'apple', 'apples' ],
-            [ 'o', 'orange', 'oranges' ],
-            [ 't', 'tomato', 'tomatos' ],
-        ],
-        log () {
-            console.log(arguments);
-        },
+        fruits: [ 'apple', 'orange', 'tomato' ],
+        log () { console.log(arguments); },
 
         selectedPlant: null,
         selectEachResult: 'orange',
@@ -139,15 +133,15 @@ export default class BindersRoute extends Component {
                 <div id="{{fruit.name}}">
                     <strong>Key: </strong>{{key}},
                     <strong>Index: </strong>{{index}},
-                    <strong>Value: </strong>{{fruit.name}}
+                    <strong>Value: </strong>{{fruit}}
                 </div>
             </div>`, true)}</pre>
             <br>
             <div each="{{key, index, fruit of fruits}}">
-                <div id="{{fruit[index]}}">
+                <div id="{{fruit}}">
                     <strong>Key: </strong>{{key}},
                     <strong>Index: </strong>{{index}},
-                    <strong>Value: </strong><span each="{{name of fruit}}"><span onclick="{{log(name, fruit)}}">{{name}} </span></span>
+                    <strong>Value: </strong>{{fruit}}
                 </div>
             </div>
         </section>
@@ -171,12 +165,12 @@ export default class BindersRoute extends Component {
             <pre>${Code(`
             <div>{{selectEachResult}}</div>
             <select value="{{selectEachResult = $value}}" each="{{fruit of fruits}}">
-                <option value="{{fruit[0]}}">{{fruit[0]}}</option>
+                <option value="{{fruit}}">{{fruit}}</option>
             </select>`, true)}</pre>
             <br>
             <div>{{selectEachResult}}</div>
             <select value="{{selectEachResult = $value}}" each="{{fruit of fruits}}">
-                <option value="{{fruit[1]}}">{{fruit[1]}}</option>
+                <option value="{{fruit}}">{{fruit}}</option>
             </select>
             <br>
             <pre>${Code(`
@@ -202,12 +196,12 @@ export default class BindersRoute extends Component {
             <br>
             <form onsubmit="{{submit($form)}}">
                 <div>{{firstName}}</div>
-                <input name="name.first" value="{{firstName = $v}}" placeholder="first name">
+                <input name="name.first" value="{{firstName = $value}}" placeholder="first name">
                 <div>{{lastName}}</div>
-                <input name="name.last" value="{{$v ?? lastName}}" placeholder="last name">
+                <input name="name.last" value="{{$value ?? lastName}}" placeholder="last name">
                 <br>
                 <br>
-                <input type="checkbox" name="agree" value="{{agree?'yes':'no'}}" checked="{{agree=$c}}">Agree? {{agree?'yes':'no'}}
+                <input type="checkbox" name="agree" value="{{agree ? 'yes' : 'no'}}" checked="{{agree = $c}}">Agree? {{agree ? 'yes': 'no'}}
                 <br>
                 <br>
                 <strong>Animal:</strong>

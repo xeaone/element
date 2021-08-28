@@ -43,11 +43,17 @@
     <div id="raw"></div>
 
     <div id="push">
+
+        <div class="box" v-for="item in items">{{item.number}}</div>
+
+        <!--
         <div class="box" v-for="item in items">
             <div v-for="number of item.numbers">
-                <i>{{7number}} {{item.name}}</i>
+                <i>{{number}} {{item.name}}</i>
             </div>
         </div>
+        -->
+
     </div>
 
 </div>
@@ -87,8 +93,8 @@
             push() {
                 console.time('push');
                 for (var i = 0; i < this.count; i++) {
-                    // this.items.push({ number: i });
-                    this.items.push({ name: i, numbers: [ i ] });
+                    this.items.push({ number: i });
+                    // this.items.push({ name: i, numbers: [ i ] });
                 }
                 console.timeEnd('push');
             },
@@ -97,6 +103,7 @@
                 var items = [];
                 for (var i = 0; i < this.count; i++) {
                     items.push({ number: i });
+                    // items.push({ name: i, numbers: [ i ] });
                 }
                 this.items = items;
                 console.timeEnd('overwrite');
