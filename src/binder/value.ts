@@ -94,12 +94,13 @@ const value = async function value (binder) {
     let display, computed;
 
     if (type === 'select-one') {
-        console.warn('each check not working correctly');
+        if ('each' in owner.attributes && !owner.$ready) return;
 
-        if ('each' in owner.attributes && (
-            typeof owner.$optionsReady !== 'number' ||
-            typeof owner.$optionsLength !== 'number' ||
-            owner.$optionsReady !== owner.$optionsLength)) return;
+        // if ('each' in owner.attributes && (
+        //     typeof owner.$optionsReady !== 'number' ||
+        //     typeof owner.$optionsLength !== 'number' ||
+        //     owner.$optionsReady !== owner.$optionsLength)) return;
+
 
         let value = binder.assignee();
 
@@ -152,14 +153,14 @@ const value = async function value (binder) {
     owner.$value = computed;
     owner.setAttribute('value', display);
 
-    if (nodeName === 'OPTION') {
-        const parent = owner.parentElement?.nodeName === 'SELECT' ? owner?.parentElement :
-            owner.parentElement?.parentElement?.nodeName === 'SELECT' ? owner.parentElement?.parentElement : undefined;
-        if (parent) {
-            parent.$optionsReady++;
-            parent.dispatchEvent(new Event('$renderSelect'));
-        }
-    }
+    // if (nodeName === 'OPTION') {
+    //     const parent = owner.parentElement?.nodeName === 'SELECT' ? owner?.parentElement :
+    //         owner.parentElement?.parentElement?.nodeName === 'SELECT' ? owner.parentElement?.parentElement : undefined;
+    //     if (parent) {
+    //         parent.$optionsReady++;
+    //         parent.dispatchEvent(new Event('$renderSelect'));
+    //     }
+    // }
 
 };
 

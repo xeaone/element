@@ -69,11 +69,11 @@ export default class Component extends HTMLElement {
     async render () {
         const tasks = [];
 
-        this.data = Observer(this.data, async tasks => {
-            let task;
-            while (task = tasks.shift()) {
+        this.data = Observer(this.data, async paths => {
+            let path;
+            while (path = paths.shift()) {
                 for (const [ key, value ] of this.#binder.pathBinders) {
-                    if (value && (key === task || key.startsWith(`${task}.`))) {
+                    if (value && (key === path || key.startsWith(`${path}.`))) {
                         for (const binder of value) {
                             tick.then(binder.render);
                         }
@@ -85,7 +85,8 @@ export default class Component extends HTMLElement {
         if (this.adopt) {
             let child = this.firstChild;
             while (child) {
-                tasks.push(this.#binder.add(child, this));
+                // tasks.push(this.#binder.add(child, this));
+                this.#binder.add(child, this, null, null, tasks);
                 child = child.nextSibling;
             }
         }
@@ -122,7 +123,8 @@ export default class Component extends HTMLElement {
 
         let child = template.content.firstChild;
         while (child) {
-            tasks.push(this.#binder.add(child, this));
+            this.#binder.add(child, this, null, null, tasks);
+            // tasks.push(this.#binder.add(child, this));
             child = child.nextSibling;
         }
 

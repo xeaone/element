@@ -64,7 +64,7 @@ export default class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, container: any, name, value, owner, dynamics?: any, rewrites?: any) {
+    async bind (node: Node, container: any, name, value, owner, dynamics?: any, rewrites?: any, tasks?) {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
 
         const context = contexter(container.data, dynamics);
@@ -114,7 +114,11 @@ export default class Binder {
             }
         }
 
-        tick.then(binder.render);
+        if (tasks) {
+            tasks.push(tick.then(binder.render));
+        } else {
+            return tick.then(binder.render);
+        }
     };
 
     async remove (node: Node) {
@@ -137,15 +141,20 @@ export default class Binder {
 
     }
 
-    async add (node: Node, container: any, dynamics?: any, rewrites?: any) {
-        // const tasks = [];
+    async add (node: Node, container: any, dynamics?: any, rewrites?: any, tasks?) {
+
+        if (!tasks) {
+            var instanceTasks = [];
+        }
 
         if (node.nodeType === AN) {
             const attribute = (node as Attr);
             if (this.syntaxMatch.test(attribute.value)) {
-                tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                // this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites);
-                // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                if (tasks) {
+                    tasks.push(tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites, tasks)));
+                } else {
+                    return this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites, tasks);
+                }
             }
         } else if (node.nodeType === TN) {
 
@@ -159,44 +168,50 @@ export default class Binder {
 
             if (end + this.syntaxLength !== node.nodeValue.length) {
                 const split = (node as Text).splitText(end + this.syntaxLength);
-                tick.then(this.add.bind(this, split, container, dynamics, rewrites));
-                // tasks.push(this.add(split, container, dynamics, rewrites));
-                // this.add(split, container, dynamics, rewrites);
-            }
-
-            tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
-            // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
-            // this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites);
-        } else if (node.nodeType === EN) {
-            const attributes = (node as Element).attributes;
-            let each = false;
-            // const each = attributes[ 'each' ] || attributes[ `${this.prefix}each` ];
-            // if (each) await this.bind(each, container, each.name, each.value, each.ownerElement, dynamics, rewrites);
-
-            for (const attribute of attributes) {
-                if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
-                // if (attribute.name === 'each' || attribute.name === `${this.prefix}each`) continue;
-                if (this.syntaxMatch.test(attribute.value)) {
-                    tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                    attribute.value = '';
-                    // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                    // this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites);
+                if (tasks) {
+                    tasks.push(tick.then(this.add.bind(this, split, container, dynamics, rewrites, tasks)));
+                } else {
+                    instanceTasks.push(this.add(split, container, dynamics, rewrites));
                 }
             }
 
-            if (each) return;
+            if (tasks) {
+                tasks.push(tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites, tasks)));
+            } else {
+                instanceTasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+            }
 
-            let child = node.firstChild;
-            while (child) {
-                tick.then(this.add.bind(this, child, container, dynamics, rewrites));
-                // this.add(child, container, dynamics, rewrites);
-                // tasks.push(this.add(child, container, dynamics, rewrites));
-                child = child.nextSibling;
+        } else if (node.nodeType === EN) {
+            const attributes = (node as Element).attributes;
+            let each = false;
+
+            for (const attribute of attributes) {
+                if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
+                if (this.syntaxMatch.test(attribute.value)) {
+                    if (tasks) {
+                        tasks.push(tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites, tasks)));
+                    } else {
+                        instanceTasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    }
+                    attribute.value = '';
+                }
+            }
+
+            if (!each) {
+                let child = node.firstChild;
+                while (child) {
+                    if (tasks) {
+                        tasks.push(tick.then(this.add.bind(this, child, container, dynamics, rewrites, tasks)));
+                    } else {
+                        instanceTasks.push(this.add(child, container, dynamics, rewrites));
+                    }
+                    child = child.nextSibling;
+                }
             }
 
         }
 
-        // return Promise.all(tasks);
+        return tasks ? undefined : Promise.all(instanceTasks);
     }
 
 };
