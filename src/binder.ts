@@ -8,13 +8,13 @@ import on from './binder/on';
 import computer from './computer';
 import parser from './parser';
 import contexter from './contexter';
-import traverse from './traverse';
+// import traverse from './traverse';
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
 const AN = Node.ATTRIBUTE_NODE;
 
-const tick = Promise.resolve();
+// const tick = Promise.resolve();
 
 export default class Binder {
 
@@ -64,13 +64,12 @@ export default class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, container: any, name, value, owner, dynamics?: any, rewrites?: any, tasks?) {
+    async bind (node: Node, container: any, name, value, owner, dynamics?: any, rewrites?: any) {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
 
         const context = contexter(container.data, dynamics);
         const parsed = parser(value, rewrites);
         const compute = computer(value, context);
-        // const assignee = parsed.assignees[ 0 ] ? traverse.bind(null, context, parsed.assignees[ 0 ]) : () => undefined;
 
         const assignee = () => {
             if (!parsed.assignees[ 0 ]) return;
@@ -114,47 +113,38 @@ export default class Binder {
             }
         }
 
-        if (tasks) {
-            tasks.push(tick.then(binder.render));
-        } else {
-            return tick.then(binder.render);
-        }
+        return binder.render();
     };
 
     async remove (node: Node) {
+        const tasks = [];
 
         if (node.nodeType === AN || node.nodeType === TN) {
-            tick.then(this.unbind.bind(this, node));
+            tasks.push(this.unbind(node));
         } else if (node.nodeType === EN) {
             const attributes = (node as Element).attributes;
             for (const attribute of attributes) {
-                tick.then(this.unbind.bind(this, attribute));
+                tasks.push(this.unbind(attribute));
             }
 
             let child = node.firstChild;
             while (child) {
-                tick.then(this.remove.bind(this, child));
+                tasks.push(this.remove(child));
                 child = child.nextSibling;
             }
 
         }
 
+        return Promise.all(tasks);
     }
 
-    async add (node: Node, container: any, dynamics?: any, rewrites?: any, tasks?) {
-
-        if (!tasks) {
-            var instanceTasks = [];
-        }
+    async add (node: Node, container: any, dynamics?: any, rewrites?: any) {
+        const tasks = [];
 
         if (node.nodeType === AN) {
             const attribute = (node as Attr);
             if (this.syntaxMatch.test(attribute.value)) {
-                if (tasks) {
-                    tasks.push(tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites, tasks)));
-                } else {
-                    return this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites, tasks);
-                }
+                tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
             }
         } else if (node.nodeType === TN) {
 
@@ -168,50 +158,47 @@ export default class Binder {
 
             if (end + this.syntaxLength !== node.nodeValue.length) {
                 const split = (node as Text).splitText(end + this.syntaxLength);
-                if (tasks) {
-                    tasks.push(tick.then(this.add.bind(this, split, container, dynamics, rewrites, tasks)));
-                } else {
-                    instanceTasks.push(this.add(split, container, dynamics, rewrites));
-                }
+                tasks.push(this.add(split, container, dynamics, rewrites));
             }
 
-            if (tasks) {
-                tasks.push(tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites, tasks)));
-            } else {
-                instanceTasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
-            }
-
+            tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
         } else if (node.nodeType === EN) {
             const attributes = (node as Element).attributes;
-            let each = false;
+            const promises = [];
+            let each;
 
             for (const attribute of attributes) {
-                if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
                 if (this.syntaxMatch.test(attribute.value)) {
-                    if (tasks) {
-                        tasks.push(tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites, tasks)));
+                    if (attribute.name === 'each' || attribute.name === this.prefixEach) {
+                        each = this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites);
                     } else {
-                        instanceTasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                        promises.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                     }
                     attribute.value = '';
                 }
             }
 
-            if (!each) {
+            if (each) {
+                tasks.push(each.then(() => {
+                    // return new Promise(function (resolve) {
+                    //     window.requestAnimationFrame(() => {
+                    //         Promise.all(promises.map(p => p())).then(resolve);
+                    //     });
+                    // });
+                    return Promise.all(promises.map(p => p()));
+                }));
+            } else {
+                tasks.push(...promises.map(p => p()));
                 let child = node.firstChild;
                 while (child) {
-                    if (tasks) {
-                        tasks.push(tick.then(this.add.bind(this, child, container, dynamics, rewrites, tasks)));
-                    } else {
-                        instanceTasks.push(this.add(child, container, dynamics, rewrites));
-                    }
+                    tasks.push(this.add(child, container, dynamics, rewrites));
                     child = child.nextSibling;
                 }
             }
 
         }
 
-        return tasks ? undefined : Promise.all(instanceTasks);
+        return Promise.all(tasks);
     }
 
 };

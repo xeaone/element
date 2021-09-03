@@ -40,6 +40,7 @@ const computer = function (statement: string, context: object) {
                 return ${code};
             } catch (error) {
                 if (error.message.indexOf('Cannot read property') === 0) return undefined;
+                else if (error.message.indexOf('Cannot read properties') === 0) return undefined;
                 else console.error(error);
                 // return undefined;
             }

@@ -150,7 +150,7 @@ export default class BindersRoute extends Component {
             <h3>Select Binder</h3>
             <br>
             <pre>${Code(`
-            <div>{{selectResult}}</div>
+            <div>{{selectPlant}}</div>
             <select value="{{selectedPlant = $value}}">
                 <option value="tree">Tree</option>
                 <option value="cactus">Cactus</option>

@@ -85,8 +85,7 @@ export default class Component extends HTMLElement {
         if (this.adopt) {
             let child = this.firstChild;
             while (child) {
-                // tasks.push(this.#binder.add(child, this));
-                this.#binder.add(child, this, null, null, tasks);
+                tasks.push(this.#binder.add(child, this));
                 child = child.nextSibling;
             }
         }
@@ -123,8 +122,7 @@ export default class Component extends HTMLElement {
 
         let child = template.content.firstChild;
         while (child) {
-            this.#binder.add(child, this, null, null, tasks);
-            // tasks.push(this.#binder.add(child, this));
+            tasks.push(this.#binder.add(child, this));
             child = child.nextSibling;
         }
 

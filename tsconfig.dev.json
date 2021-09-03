@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "outDir": "build",
+        "rootDir": "src",
+        "module": "ES6"
+    },
+    "rootDir": "src",
+    "include": [
+        "src/**/*"
+    ]
+}

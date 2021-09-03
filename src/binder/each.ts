@@ -1,11 +1,7 @@
 
-const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
 const each = async function (binder) {
-
-    if (binder.meta.busy) return;
-    else binder.meta.busy = true;
 
     if (!binder.meta.setup) {
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
@@ -33,11 +29,6 @@ const each = async function (binder) {
         binder.meta.queueElement = document.createElement('template');
         binder.meta.templateElement = document.createElement('template');
 
-        // if (binder.owner.nodeName === 'SELECT') {
-        //     binder.owner.$optionsReady = null;
-        //     binder.owner.$optionsLength = 0;
-        // }
-
         let node = binder.owner.firstChild;
         while (node) {
             binder.meta.templateLength++;
@@ -47,10 +38,6 @@ const each = async function (binder) {
 
     }
 
-    // const time = `each ${binder.meta.targetLength}`;
-    // console.time(time);
-
-    const tasks = [];
     const data = await binder.compute();
 
     if (data?.constructor === Array) {
@@ -67,7 +54,7 @@ const each = async function (binder) {
             while (count--) {
                 const node = binder.owner.lastChild;
                 binder.owner.removeChild(node);
-                tick.then(binder.binder.remove.bind(binder.binder, node));
+                binder.meta.tasks.push(binder.binder.remove(node));
             }
 
             binder.meta.currentLength--;
@@ -120,7 +107,6 @@ const each = async function (binder) {
             if (binder.meta.variableName) rewrites.push([ binder.meta.variableName, variableValue ]);
             if (binder.rewrites) rewrites.push(...binder.rewrites);
 
-
             // const d = document.createElement('div');
             // d.className = 'box';
             // const t = document.createTextNode('{{item.number}}');
@@ -128,49 +114,20 @@ const each = async function (binder) {
             // d.appendChild(t);
             // binder.meta.queueElement.content.appendChild(d)
 
-
-            // const template = binder.meta.templateElement.content.cloneNode(true);
-            // let node = template.firstChild;
-            // while (node) {
-            //     // binder.meta.tasks.push(tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites)));
-            //     tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites, binder.meta.tasks));
-            //     node = node.nextSibling;
-            // }
-            // binder.meta.queueElement.content.appendChild(template)
-
-
-            binder.meta.queueElement.content.appendChild(binder.meta.templateElement.content.cloneNode(true));
-            tasks.push(tick.then(function (length, dynamics, rewrites) {
-                const start = length * binder.meta.templateLength;
-                const stop = start + binder.meta.templateLength;
-                let index = start;
-                while (index < stop) {
-                    binder.binder.add(binder.meta.queueElement.content.childNodes[ index ], binder.container, dynamics, rewrites, binder.meta.tasks);
-                    // tick.then(binder.binder.add.bind(binder.binder, binder.meta.queueElement.content.childNodes[ index ], binder.container, dynamics, rewrites, binder.meta.tasks));
-                    index++;
-                }
-            }.bind(null, binder.meta.currentLength, dynamics, rewrites)));
+            for (const child of binder.meta.templateElement.content.childNodes) {
+                const node = child.cloneNode(true);
+                binder.meta.queueElement.content.appendChild(node);
+                binder.meta.tasks.push(binder.binder.add(node, binder.container, dynamics, rewrites));
+            }
 
             binder.meta.currentLength++;
         }
 
-    };
+    }
 
     if (binder.meta.currentLength === binder.meta.targetLength) {
-        tick.then(async () => {
-            await Promise.all(tasks);
-            await Promise.all(binder.meta.tasks);
-
-            binder.owner.appendChild(binder.meta.queueElement.content);
-            binder.meta.busy = false;
-            if (binder.owner.nodeName === 'SELECT') {
-                binder.owner.$ready = true;
-                // binder.owner.$optionsReady = binder.owner.$optionsLength;
-                // binder.owner.$optionsLength = binder.owner.options.length;
-                binder.owner.dispatchEvent(new Event('$renderSelect'));
-            }
-        });
-
+        await Promise.all(binder.meta.tasks);
+        binder.owner.appendChild(binder.meta.queueElement.content);
     }
 
 };

@@ -1,7 +1,7 @@
 import format from '../format';
 import dateTypes from '../types/date';
 
-console.warn('need to handle default select-one value');
+console.warn('might need to buble up option value change to select');
 
 const stampFromView = function (data: number) {
     const date = new Date(data);
@@ -14,22 +14,6 @@ const stampToView = function (data: number) {
     return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(),
         date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds())).getTime();
 };
-
-// const valueFromView = function (element) {
-//     if (!element) return undefined;
-//     else if ('$value' in element) {
-//         if (typeof element.$value === 'string') {
-//             return element.value;
-//         } else {
-//             JSON.parse(element.value);
-//         }
-//     }
-//     else if (element.type === 'number' || element.type === 'range') {
-//         return element.valueAsNumber;
-//     } else {
-//         return element.value;
-//     }
-// };
 
 const input = async function (binder, event) {
 
@@ -81,27 +65,14 @@ const value = async function value (binder) {
         meta.setup = true;
         meta.type = owner.type;
         meta.nodeName = owner.nodeName;
-
-        if (owner.type === 'select-one' || owner.type === 'select-multiple') {
-            owner.addEventListener('$renderSelect', () => binder.render());
-        }
-
         owner.addEventListener('input', event => input(binder, event));
     }
 
-    const { type, nodeName } = meta;
+    const { type } = meta;
 
     let display, computed;
 
     if (type === 'select-one') {
-        if ('each' in owner.attributes && !owner.$ready) return;
-
-        // if ('each' in owner.attributes && (
-        //     typeof owner.$optionsReady !== 'number' ||
-        //     typeof owner.$optionsLength !== 'number' ||
-        //     owner.$optionsReady !== owner.$optionsLength)) return;
-
-
         let value = binder.assignee();
 
         owner.value = undefined;
@@ -152,15 +123,6 @@ const value = async function value (binder) {
 
     owner.$value = computed;
     owner.setAttribute('value', display);
-
-    // if (nodeName === 'OPTION') {
-    //     const parent = owner.parentElement?.nodeName === 'SELECT' ? owner?.parentElement :
-    //         owner.parentElement?.parentElement?.nodeName === 'SELECT' ? owner.parentElement?.parentElement : undefined;
-    //     if (parent) {
-    //         parent.$optionsReady++;
-    //         parent.dispatchEvent(new Event('$renderSelect'));
-    //     }
-    // }
 
 };
 
