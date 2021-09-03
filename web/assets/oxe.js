@@ -16,7 +16,7 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-    const tick$2 = Promise.resolve();
+    const tick$1 = Promise.resolve();
     // const run = async function (tasks: tasks) {
     //     let task;
     //     while (task = tasks.shift()) {
@@ -28,7 +28,7 @@
         tasks.push(path ? `${path}.${key}` : key);
         delete target[key];
         if (initial)
-            tick$2.then(task.bind(null, tasks));
+            tick$1.then(task.bind(null, tasks));
         return true;
     };
     const set = function (task, tasks, path, target, key, value) {
@@ -37,7 +37,7 @@
             tasks.push(path);
             tasks.push(path ? `${path}.${key}` : key);
             if (initial)
-                tick$2.then(task.bind(null, tasks));
+                tick$1.then(task.bind(null, tasks));
             return true;
         }
         else if (target[key] === value || `${target[key]}${value}` === 'NaNNaN') {
@@ -47,7 +47,7 @@
         tasks.push(path ? `${path}.${key}` : key);
         target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
         if (initial)
-            tick$2.then(task.bind(null, tasks));
+            tick$1.then(task.bind(null, tasks));
         return true;
     };
     const observer = function (source, task, tasks = [], path = '') {
@@ -213,68 +213,70 @@
         owner.setAttribute('value', display);
     };
     const value = async function value(binder) {
-        const { owner, meta } = binder;
-        if (!meta.setup) {
-            meta.setup = true;
-            meta.type = owner.type;
-            meta.nodeName = owner.nodeName;
-            owner.addEventListener('input', event => input(binder, event));
-        }
-        const { type } = meta;
-        let display, computed;
-        if (type === 'select-one') {
-            let value = binder.assignee();
-            owner.value = undefined;
-            for (const option of owner.options) {
-                const optionValue = '$value' in option ? option.$value : option.value;
-                if (option.selected = optionValue === value)
-                    break;
+        window.requestAnimationFrame(async () => {
+            const { owner, meta } = binder;
+            if (!meta.setup) {
+                meta.setup = true;
+                meta.type = owner.type;
+                meta.nodeName = owner.nodeName;
+                owner.addEventListener('input', event => input(binder, event));
             }
-            if (owner.options.length && !owner.selectedOptions.length) {
-                const [option] = owner.options;
-                value = '$value' in option ? option.$value : option.value;
-                option.selected = true;
+            const { type } = meta;
+            let display, computed;
+            if (type === 'select-one') {
+                let value = binder.assignee();
+                owner.value = undefined;
+                for (const option of owner.options) {
+                    const optionValue = '$value' in option ? option.$value : option.value;
+                    if (option.selected = optionValue === value)
+                        break;
+                }
+                if (owner.options.length && !owner.selectedOptions.length) {
+                    const [option] = owner.options;
+                    value = '$value' in option ? option.$value : option.value;
+                    option.selected = true;
+                }
+                computed = await binder.compute({ value });
+                display = format(computed);
+                owner.value = display;
             }
-            computed = await binder.compute({ value });
-            display = format(computed);
-            owner.value = display;
-        }
-        else if (type === 'select-multiple') {
-            const value = binder.assignee();
-            for (const option of owner.options) {
-                const optionValue = '$value' in option ? option.$value : option.value;
-                option.selected = value?.includes(optionValue);
+            else if (type === 'select-multiple') {
+                const value = binder.assignee();
+                for (const option of owner.options) {
+                    const optionValue = '$value' in option ? option.$value : option.value;
+                    option.selected = value?.includes(optionValue);
+                }
+                computed = await binder.compute({ value });
+                display = format(computed);
             }
-            computed = await binder.compute({ value });
-            display = format(computed);
-        }
-        else if (type === 'number' || type === 'range') {
-            const value = binder.assignee();
-            computed = await binder.compute({ value });
-            if (typeof computed === 'number' && computed !== Infinity)
-                owner.valueAsNumber = computed;
-            else
-                owner.value = computed;
-            display = owner.value;
-        }
-        else if (dateTypes.includes(type)) {
-            const value = binder.assignee();
-            computed = await binder.compute({ value });
-            if (typeof computed === 'string')
-                owner.value = computed;
-            else
-                owner.valueAsNumber = stampToView(computed);
-            display = owner.value;
-        }
-        else {
-            const { checked } = owner;
-            const value = binder.assignee();
-            computed = await binder.compute({ value, checked });
-            display = format(computed);
-            owner.value = display;
-        }
-        owner.$value = computed;
-        owner.setAttribute('value', display);
+            else if (type === 'number' || type === 'range') {
+                const value = binder.assignee();
+                computed = await binder.compute({ value });
+                if (typeof computed === 'number' && computed !== Infinity)
+                    owner.valueAsNumber = computed;
+                else
+                    owner.value = computed;
+                display = owner.value;
+            }
+            else if (dateTypes.includes(type)) {
+                const value = binder.assignee();
+                computed = await binder.compute({ value });
+                if (typeof computed === 'string')
+                    owner.value = computed;
+                else
+                    owner.valueAsNumber = stampToView(computed);
+                display = owner.value;
+            }
+            else {
+                const { checked } = owner;
+                const value = binder.assignee();
+                computed = await binder.compute({ value, checked });
+                display = format(computed);
+                owner.value = display;
+            }
+            owner.$value = computed;
+            owner.setAttribute('value', display);
+        });
     };
 
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
@@ -399,7 +401,7 @@
         }
     };
 
-    const tick$1 = Promise.resolve();
+    const tick = Promise.resolve();
     const html = async function (binder) {
         let data = await binder.compute();
         if (typeof data !== 'string') {
@@ -414,7 +416,7 @@
         template.innerHTML = data;
         let node = template.content.firstChild;
         while (node) {
-            tick$1.then(binder.binder.add.bind(binder.binder, node, binder.container));
+            tick.then(binder.binder.add.bind(binder.binder, node, binder.container));
             node = node.nextSibling;
         }
         binder.owner.appendChild(template.content);
@@ -847,7 +849,8 @@
             const paths = parsed.references;
             const binder = {
                 render: undefined,
-                binder: this, meta: {}, busy: false,
+                binder: this, meta: {},
+                // busy: false,
                 type,
                 assignee,
                 compute, paths,
@@ -1008,7 +1011,7 @@
         }
     };
 
-    const tick = Promise.resolve();
+    // const tick = Promise.resolve();
     class Component extends HTMLElement {
         static attributes;
         static get observedAttributes() { return this.attributes; }
@@ -1068,7 +1071,7 @@
                     for (const [key, value] of this.#binder.pathBinders) {
                         if (value && (key === path || key.startsWith(`${path}.`))) {
                             for (const binder of value) {
-                                tick.then(binder.render);
+                                binder.render();
                             }
                         }
                     }

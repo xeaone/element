@@ -59,71 +59,73 @@ const input = async function (binder, event) {
 };
 
 const value = async function value (binder) {
-    const { owner, meta } = binder;
+    window.requestAnimationFrame(async () => {
+        const { owner, meta } = binder;
 
-    if (!meta.setup) {
-        meta.setup = true;
-        meta.type = owner.type;
-        meta.nodeName = owner.nodeName;
-        owner.addEventListener('input', event => input(binder, event));
-    }
-
-    const { type } = meta;
-
-    let display, computed;
-
-    if (type === 'select-one') {
-        let value = binder.assignee();
-
-        owner.value = undefined;
-
-        for (const option of owner.options) {
-            const optionValue = '$value' in option ? option.$value : option.value;
-            if (option.selected = optionValue === value) break;
+        if (!meta.setup) {
+            meta.setup = true;
+            meta.type = owner.type;
+            meta.nodeName = owner.nodeName;
+            owner.addEventListener('input', event => input(binder, event));
         }
 
-        if (owner.options.length && !owner.selectedOptions.length) {
-            const [ option ] = owner.options;
-            value = '$value' in option ? option.$value : option.value;
-            option.selected = true;
+        const { type } = meta;
+
+        let display, computed;
+
+        if (type === 'select-one') {
+            let value = binder.assignee();
+
+            owner.value = undefined;
+
+            for (const option of owner.options) {
+                const optionValue = '$value' in option ? option.$value : option.value;
+                if (option.selected = optionValue === value) break;
+            }
+
+            if (owner.options.length && !owner.selectedOptions.length) {
+                const [ option ] = owner.options;
+                value = '$value' in option ? option.$value : option.value;
+                option.selected = true;
+            }
+
+            computed = await binder.compute({ value });
+            display = format(computed);
+            owner.value = display;
+        } else if (type === 'select-multiple') {
+            const value = binder.assignee();
+
+            for (const option of owner.options) {
+                const optionValue = '$value' in option ? option.$value : option.value;
+                option.selected = value?.includes(optionValue);
+            }
+
+            computed = await binder.compute({ value });
+            display = format(computed);
+        } else if (type === 'number' || type === 'range') {
+            const value = binder.assignee();
+            computed = await binder.compute({ value });
+            if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
+            else owner.value = computed;
+            display = owner.value;
+        } else if (dateTypes.includes(type)) {
+            const value = binder.assignee();
+            computed = await binder.compute({ value });
+            if (typeof computed === 'string') owner.value = computed;
+            else owner.valueAsNumber = stampToView(computed);
+            display = owner.value;
+        } else {
+            const { checked } = owner;
+            const value = binder.assignee();
+            computed = await binder.compute({ value, checked });
+            display = format(computed);
+            owner.value = display;
         }
 
-        computed = await binder.compute({ value });
-        display = format(computed);
-        owner.value = display;
-    } else if (type === 'select-multiple') {
-        const value = binder.assignee();
+        owner.$value = computed;
+        owner.setAttribute('value', display);
 
-        for (const option of owner.options) {
-            const optionValue = '$value' in option ? option.$value : option.value;
-            option.selected = value?.includes(optionValue);
-        }
-
-        computed = await binder.compute({ value });
-        display = format(computed);
-    } else if (type === 'number' || type === 'range') {
-        const value = binder.assignee();
-        computed = await binder.compute({ value });
-        if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
-        else owner.value = computed;
-        display = owner.value;
-    } else if (dateTypes.includes(type)) {
-        const value = binder.assignee();
-        computed = await binder.compute({ value });
-        if (typeof computed === 'string') owner.value = computed;
-        else owner.valueAsNumber = stampToView(computed);
-        display = owner.value;
-    } else {
-        const { checked } = owner;
-        const value = binder.assignee();
-        computed = await binder.compute({ value, checked });
-        display = format(computed);
-        owner.value = display;
-    }
-
-    owner.$value = computed;
-    owner.setAttribute('value', display);
-
+    });
 };
 
 export default value;

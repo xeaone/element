@@ -86,7 +86,8 @@ export default class Binder {
 
         const binder = {
             render: undefined,
-            binder: this, meta: {}, busy: false,
+            binder: this, meta: {},
+            // busy: false,
             type,
             assignee,
             compute, paths,
