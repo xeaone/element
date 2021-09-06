@@ -16,38 +16,33 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-    const tick$1 = Promise.resolve();
-    // const run = async function (tasks: tasks) {
-    //     let task;
-    //     while (task = tasks.shift()) {
-    //         task();
-    //     }
-    // };
+    const tick$3 = Promise.resolve();
     const deleteProperty = function (task, tasks, path, target, key) {
-        const initial = !tasks.length;
-        tasks.push(path ? `${path}.${key}` : key);
+        // const initial = !tasks.length;
+        // tasks.push(path ? `${path}.${key}` : key);
+        tick$3.then(task.bind(null, path ? `${path}.${key}` : key));
         delete target[key];
-        if (initial)
-            tick$1.then(task.bind(null, tasks));
+        // if (initial) tick.then(task.bind(null, tasks));
         return true;
     };
     const set = function (task, tasks, path, target, key, value) {
         if (key === 'length') {
-            const initial = !tasks.length;
-            tasks.push(path);
-            tasks.push(path ? `${path}.${key}` : key);
-            if (initial)
-                tick$1.then(task.bind(null, tasks));
+            tick$3.then(task.bind(null, path));
+            tick$3.then(task.bind(null, path ? `${path}.${key}` : key));
+            // const initial = !tasks.length;
+            // tasks.push(path);
+            // tasks.push(path ? `${path}.${key}` : key);
+            // if (initial) tick.then(task.bind(null, tasks));
             return true;
         }
         else if (target[key] === value || `${target[key]}${value}` === 'NaNNaN') {
             return true;
         }
-        const initial = !tasks.length;
-        tasks.push(path ? `${path}.${key}` : key);
+        // const initial = !tasks.length;
+        // tasks.push(path ? `${path}.${key}` : key);
+        tick$3.then(task.bind(null, path ? `${path}.${key}` : key));
         target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
-        if (initial)
-            tick$1.then(task.bind(null, tasks));
+        // if (initial) tick.then(task.bind(null, tasks));
         return true;
     };
     const observer = function (source, task, tasks = [], path = '') {
@@ -158,7 +153,7 @@
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
 
-    console.warn('might need to buble up option value change to select');
+    const renderedValueEvent = new Event('rendered:value');
     const stampFromView = function (data) {
         const date = new Date(data);
         return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
@@ -213,75 +208,91 @@
         owner.setAttribute('value', display);
     };
     const value = async function value(binder) {
-        window.requestAnimationFrame(async () => {
-            const { owner, meta } = binder;
-            if (!meta.setup) {
-                meta.setup = true;
-                meta.type = owner.type;
-                meta.nodeName = owner.nodeName;
-                owner.addEventListener('input', event => input(binder, event));
+        const { owner, meta } = binder;
+        if (!meta.setup) {
+            meta.setup = true;
+            meta.type = owner.type;
+            meta.nodeName = owner.nodeName;
+            owner.addEventListener('input', event => input(binder, event));
+        }
+        const { type } = meta;
+        let display, computed;
+        // console.log(owner, owner.$ready, owner.$length, owner.length, owner.$ready && owner.$length === owner.length);
+        if ('each' in owner.attributes && (!owner.$ready || owner.$length !== owner.length))
+            return;
+        if (type === 'select-one') {
+            let value = binder.assignee();
+            owner.value = undefined;
+            for (const option of owner.options) {
+                const optionValue = '$value' in option ? option.$value : option.value;
+                if (option.selected = optionValue === value)
+                    break;
             }
-            const { type } = meta;
-            let display, computed;
-            if (type === 'select-one') {
-                let value = binder.assignee();
-                owner.value = undefined;
-                for (const option of owner.options) {
-                    const optionValue = '$value' in option ? option.$value : option.value;
-                    if (option.selected = optionValue === value)
-                        break;
-                }
-                if (owner.options.length && !owner.selectedOptions.length) {
-                    const [option] = owner.options;
-                    value = '$value' in option ? option.$value : option.value;
-                    option.selected = true;
-                }
-                computed = await binder.compute({ value });
-                display = format(computed);
-                owner.value = display;
+            if (owner.options.length && !owner.selectedOptions.length) {
+                const [option] = owner.options;
+                value = '$value' in option ? option.$value : option.value;
+                option.selected = true;
             }
-            else if (type === 'select-multiple') {
-                const value = binder.assignee();
-                for (const option of owner.options) {
-                    const optionValue = '$value' in option ? option.$value : option.value;
-                    option.selected = value?.includes(optionValue);
-                }
-                computed = await binder.compute({ value });
-                display = format(computed);
+            computed = await binder.compute({ value });
+            display = format(computed);
+            owner.value = display;
+        }
+        else if (type === 'select-multiple') {
+            const value = binder.assignee();
+            for (const option of owner.options) {
+                const optionValue = '$value' in option ? option.$value : option.value;
+                option.selected = value?.includes(optionValue);
             }
-            else if (type === 'number' || type === 'range') {
-                const value = binder.assignee();
-                computed = await binder.compute({ value });
-                if (typeof computed === 'number' && computed !== Infinity)
-                    owner.valueAsNumber = computed;
-                else
-                    owner.value = computed;
-                display = owner.value;
-            }
-            else if (dateTypes.includes(type)) {
-                const value = binder.assignee();
-                computed = await binder.compute({ value });
-                if (typeof computed === 'string')
-                    owner.value = computed;
-                else
-                    owner.valueAsNumber = stampToView(computed);
-                display = owner.value;
-            }
-            else {
-                const { checked } = owner;
-                const value = binder.assignee();
-                computed = await binder.compute({ value, checked });
-                display = format(computed);
-                owner.value = display;
-            }
-            owner.$value = computed;
-            owner.setAttribute('value', display);
-        });
+            computed = await binder.compute({ value });
+            display = format(computed);
+        }
+        else if (type === 'number' || type === 'range') {
+            const value = binder.assignee();
+            computed = await binder.compute({ value });
+            if (typeof computed === 'number' && computed !== Infinity)
+                owner.valueAsNumber = computed;
+            else
+                owner.value = computed;
+            display = owner.value;
+        }
+        else if (dateTypes.includes(type)) {
+            const value = binder.assignee();
+            computed = await binder.compute({ value });
+            if (typeof computed === 'string')
+                owner.value = computed;
+            else
+                owner.valueAsNumber = stampToView(computed);
+            display = owner.value;
+        }
+        else {
+            const { checked } = owner;
+            const value = binder.assignee();
+            computed = await binder.compute({ value, checked });
+            display = format(computed);
+            owner.value = display;
+        }
+        owner.$value = computed;
+        owner.setAttribute('value', display);
+        if (owner.nodeName === 'OPTION') {
+            owner.dispatchEvent(renderedValueEvent);
+            // let parent;
+            // if (owner?.parentElement.nodeName === 'SELECT') parent = owner.parentElement;
+            // else if (owner?.parentElement.parentElement.nodeName === 'SELECT') parent = owner.parentElement.parentElement;
+            // else return;
+            // // console.log(parent, owner, parent.$ready, parent.$length, parent.length, parent.$ready && parent.$length === parent.length);
+            // if (parent.$length === parent.length) return;
+            // else parent.$length++;
+            // if (!parent.$ready || parent.$length !== parent.length) return;
+            // window.requestAnimationFrame(() => binder.binder.get(parent.attributes.value)?.forEach(b => b.render()));
+        }
     };
 
+    const space = /\s+/;
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
     const each = async function (binder) {
+        binder.owner.$ready = false;
         if (!binder.meta.setup) {
+            binder.owner.$length = 0;
             let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
             if (binder.rewrites) {
                 for (const [name, value] of binder.rewrites) {
@@ -293,7 +304,7 @@
             binder.meta.indexName = index;
             binder.meta.variableName = variable;
             binder.meta.parts = path.split('.');
-            binder.meta.tasks = [];
+            // binder.meta.tasks = [];
             binder.meta.keys = [];
             binder.meta.setup = true;
             binder.meta.targetLength = 0;
@@ -303,8 +314,13 @@
             binder.meta.templateElement = document.createElement('template');
             let node = binder.owner.firstChild;
             while (node) {
-                binder.meta.templateLength++;
-                binder.meta.templateElement.content.appendChild(node);
+                if (space.test(node.nodeValue)) {
+                    binder.owner.removeChild(node);
+                }
+                else {
+                    binder.meta.templateLength++;
+                    binder.meta.templateElement.content.appendChild(node);
+                }
                 node = binder.owner.firstChild;
             }
         }
@@ -322,8 +338,9 @@
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    binder.meta.tasks.push(binder.binder.remove(node));
+                    binder.binder.remove(node);
                 }
+                binder.owner.$length--;
                 binder.meta.currentLength--;
             }
         }
@@ -389,19 +406,32 @@
                 // binder.meta.queueElement.content.appendChild(d)
                 for (const child of binder.meta.templateElement.content.childNodes) {
                     const node = child.cloneNode(true);
+                    // binder.owner.appendChild(node);
                     binder.meta.queueElement.content.appendChild(node);
-                    binder.meta.tasks.push(binder.binder.add(node, binder.container, dynamics, rewrites));
+                    binder.binder.add(node, binder.container, dynamics, rewrites, binder.meta.tasks);
                 }
                 binder.meta.currentLength++;
             }
         }
         if (binder.meta.currentLength === binder.meta.targetLength) {
-            await Promise.all(binder.meta.tasks);
             binder.owner.appendChild(binder.meta.queueElement.content);
+            binder.owner.$ready = true;
+            if (binder.owner.nodeName === 'SELECT') {
+                for (const option of binder.owner.options) {
+                    option.addEventListener('rendered:value', function () {
+                        if (!option.$initialRender)
+                            binder.owner.$length++;
+                        option.$initialRender = true;
+                        if (!binder.owner.$ready || binder.owner.$length !== binder.owner.length)
+                            return;
+                        window.requestAnimationFrame(() => binder.binder.get(binder.owner.attributes.value)?.forEach(b => b.render()));
+                    });
+                }
+            }
         }
     };
 
-    const tick = Promise.resolve();
+    const tick$2 = Promise.resolve();
     const html = async function (binder) {
         let data = await binder.compute();
         if (typeof data !== 'string') {
@@ -416,7 +446,7 @@
         template.innerHTML = data;
         let node = template.content.firstChild;
         while (node) {
-            tick.then(binder.binder.add.bind(binder.binder, node, binder.container));
+            tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container));
             node = node.nextSibling;
         }
         binder.owner.appendChild(template.content);
@@ -702,7 +732,6 @@
     //     // console.log(data, references, assignees);
     //     return { references, assignees };
     // };
-    // const matchAssignee = /{{.*?([a-zA-Z0-9.?\[\]]+)\s*=[^=]*}}/;
     const matchAssignee = /([a-zA-Z0-9$_.]+)\s*[!%^&*+|/<>-]*=\s*[^=>]/;
     const replaceEndBracket = /\s*\][^;]*/g;
     const removeStrings = /".*?[^\\]*"|'.*?[^\\]*\'|`.*?[^\\]*`/g;
@@ -782,22 +811,20 @@
         return context;
     };
 
-    // import traverse from './traverse';
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
-    // const tick = Promise.resolve();
+    const tick$1 = Promise.resolve();
     class Binder {
         prefix = 'o-';
         prefixEach = 'o-each';
+        prefixValue = 'o-value';
         syntaxEnd = '}}';
         syntaxStart = '{{';
         syntaxLength = 2;
         syntaxMatch = new RegExp('{{.*?}}');
         prefixReplace = new RegExp('^o-');
         syntaxReplace = new RegExp('{{|}}', 'g');
-        // nodeBinders: Map<Node, Map<string, any>> = new Map();
-        // pathBinders: Map<string, Map<Node, any>> = new Map();
         nodeBinders = new Map();
         pathBinders = new Map();
         binders = {
@@ -875,33 +902,37 @@
                     }
                 }
             }
-            return binder.render();
+            tick$1.then(binder.render.bind());
+            // return binder.render();
         }
         ;
         async remove(node) {
-            const tasks = [];
+            // const tasks = []
             if (node.nodeType === AN || node.nodeType === TN) {
-                tasks.push(this.unbind(node));
+                tick$1.then(this.unbind.bind(this, node));
+                // tasks.push(this.unbind(node));
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
                 for (const attribute of attributes) {
-                    tasks.push(this.unbind(attribute));
+                    tick$1.then(this.unbind.bind(this, attribute));
+                    // tasks.push(this.unbind(attribute));
                 }
                 let child = node.firstChild;
                 while (child) {
-                    tasks.push(this.remove(child));
+                    // tasks.push(this.remove(child));
+                    tick$1.then(this.remove.bind(this, child));
                     child = child.nextSibling;
                 }
             }
-            return Promise.all(tasks);
         }
         async add(node, container, dynamics, rewrites) {
-            const tasks = [];
+            // const tasks = [];
             if (node.nodeType === AN) {
                 const attribute = node;
                 if (this.syntaxMatch.test(attribute.value)) {
-                    tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    tick$1.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                 }
             }
             else if (node.nodeType === TN) {
@@ -915,45 +946,35 @@
                     return;
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    tasks.push(this.add(split, container, dynamics, rewrites));
+                    // tasks.push(this.add(split, container, dynamics, rewrites));
+                    tick$1.then(this.add.bind(this, split, container, dynamics, rewrites));
                 }
-                tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+                // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+                tick$1.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
-                const promises = [];
-                let each;
+                let each = false;
                 for (const attribute of attributes) {
                     if (this.syntaxMatch.test(attribute.value)) {
-                        if (attribute.name === 'each' || attribute.name === this.prefixEach) {
-                            each = this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites);
-                        }
-                        else {
-                            promises.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                        }
+                        if (attribute.name === 'each' || attribute.name === this.prefixEach)
+                            each = true;
+                        // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                        tick$1.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                         attribute.value = '';
                     }
                 }
-                if (each) {
-                    tasks.push(each.then(() => {
-                        // return new Promise(function (resolve) {
-                        //     window.requestAnimationFrame(() => {
-                        //         Promise.all(promises.map(p => p())).then(resolve);
-                        //     });
-                        // });
-                        return Promise.all(promises.map(p => p()));
-                    }));
-                }
-                else {
-                    tasks.push(...promises.map(p => p()));
-                    let child = node.firstChild;
-                    while (child) {
-                        tasks.push(this.add(child, container, dynamics, rewrites));
-                        child = child.nextSibling;
-                    }
+                if (each)
+                    return;
+                // if (each) return Promise.all(tasks);
+                let child = node.firstChild;
+                while (child) {
+                    // tasks.push(this.add(child, container, dynamics, rewrites));
+                    tick$1.then(this.add.bind(this, child, container, dynamics, rewrites));
+                    child = child.nextSibling;
                 }
             }
-            return Promise.all(tasks);
+            // return Promise.all(tasks);
         }
     }
 
@@ -1011,7 +1032,7 @@
         }
     };
 
-    // const tick = Promise.resolve();
+    const tick = Promise.resolve();
     class Component extends HTMLElement {
         static attributes;
         static get observedAttributes() { return this.attributes; }
@@ -1065,14 +1086,27 @@
         }
         async render() {
             const tasks = [];
-            this.data = observer(this.data, async (paths) => {
-                let path;
-                while (path = paths.shift()) {
-                    for (const [key, value] of this.#binder.pathBinders) {
-                        if (value && (key === path || key.startsWith(`${path}.`))) {
-                            for (const binder of value) {
-                                binder.render();
-                            }
+            // this.data = Observer(this.data, async paths => {
+            //     let path;
+            //     while (path = paths.shift()) {
+            //         for (const [ key, value ] of this.#binder.pathBinders) {
+            //             if (value && (key === path || key.startsWith(`${path}.`))) {
+            //                 for (const binder of value) {
+            //                     // binder.render();
+            //                     tick.then(binder.render.bind());
+            //                     // window.requestAnimationFrame(() => binder.render());
+            //                 }
+            //             }
+            //         }
+            //     }
+            // });
+            this.data = observer(this.data, async (path) => {
+                for (const [key, value] of this.#binder.pathBinders) {
+                    if (value && (key === path || key.startsWith(`${path}.`))) {
+                        for (const binder of value) {
+                            // binder.render();
+                            tick.then(binder.render.bind());
+                            // window.requestAnimationFrame(() => binder.render());
                         }
                     }
                 }

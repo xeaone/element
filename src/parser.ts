@@ -157,7 +157,6 @@
 //     return { references, assignees };
 // };
 
-// const matchAssignee = /{{.*?([a-zA-Z0-9.?\[\]]+)\s*=[^=]*}}/;
 const matchAssignee = /([a-zA-Z0-9$_.]+)\s*[!%^&*+|/<>-]*=\s*[^=>]/;
 
 const replaceEndBracket = /\s*\][^;]*/g;

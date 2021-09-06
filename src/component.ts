@@ -2,7 +2,7 @@ import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
 
-// const tick = Promise.resolve();
+const tick = Promise.resolve();
 
 export default class Component extends HTMLElement {
 
@@ -69,14 +69,28 @@ export default class Component extends HTMLElement {
     async render () {
         const tasks = [];
 
-        this.data = Observer(this.data, async paths => {
-            let path;
-            while (path = paths.shift()) {
-                for (const [ key, value ] of this.#binder.pathBinders) {
-                    if (value && (key === path || key.startsWith(`${path}.`))) {
-                        for (const binder of value) {
-                            binder.render();
-                        }
+        // this.data = Observer(this.data, async paths => {
+        //     let path;
+        //     while (path = paths.shift()) {
+        //         for (const [ key, value ] of this.#binder.pathBinders) {
+        //             if (value && (key === path || key.startsWith(`${path}.`))) {
+        //                 for (const binder of value) {
+        //                     // binder.render();
+        //                     tick.then(binder.render.bind());
+        //                     // window.requestAnimationFrame(() => binder.render());
+        //                 }
+        //             }
+        //         }
+        //     }
+        // });
+
+        this.data = Observer(this.data, async path => {
+            for (const [ key, value ] of this.#binder.pathBinders) {
+                if (value && (key === path || key.startsWith(`${path}.`))) {
+                    for (const binder of value) {
+                        // binder.render();
+                        tick.then(binder.render.bind());
+                        // window.requestAnimationFrame(() => binder.render());
                     }
                 }
             }

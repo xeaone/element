@@ -1,9 +1,13 @@
 
+const space = /\s+/;
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
 const each = async function (binder) {
+    binder.owner.$ready = false;
 
     if (!binder.meta.setup) {
+        binder.owner.$length = 0;
+
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
         if (binder.rewrites) {
@@ -18,7 +22,7 @@ const each = async function (binder) {
         binder.meta.variableName = variable;
         binder.meta.parts = path.split('.');
 
-        binder.meta.tasks = [];
+        // binder.meta.tasks = [];
 
         binder.meta.keys = [];
         binder.meta.setup = true;
@@ -31,8 +35,12 @@ const each = async function (binder) {
 
         let node = binder.owner.firstChild;
         while (node) {
-            binder.meta.templateLength++;
-            binder.meta.templateElement.content.appendChild(node);
+            if (space.test(node.nodeValue)) {
+                binder.owner.removeChild(node);
+            } else {
+                binder.meta.templateLength++;
+                binder.meta.templateElement.content.appendChild(node);
+            }
             node = binder.owner.firstChild;
         }
 
@@ -54,9 +62,10 @@ const each = async function (binder) {
             while (count--) {
                 const node = binder.owner.lastChild;
                 binder.owner.removeChild(node);
-                binder.meta.tasks.push(binder.binder.remove(node));
+                binder.binder.remove(node);
             }
 
+            binder.owner.$length--;
             binder.meta.currentLength--;
         }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
@@ -116,8 +125,9 @@ const each = async function (binder) {
 
             for (const child of binder.meta.templateElement.content.childNodes) {
                 const node = child.cloneNode(true);
+                // binder.owner.appendChild(node);
                 binder.meta.queueElement.content.appendChild(node);
-                binder.meta.tasks.push(binder.binder.add(node, binder.container, dynamics, rewrites));
+                binder.binder.add(node, binder.container, dynamics, rewrites, binder.meta.tasks);
             }
 
             binder.meta.currentLength++;
@@ -126,8 +136,21 @@ const each = async function (binder) {
     }
 
     if (binder.meta.currentLength === binder.meta.targetLength) {
-        await Promise.all(binder.meta.tasks);
         binder.owner.appendChild(binder.meta.queueElement.content);
+
+        binder.owner.$ready = true;
+
+        if (binder.owner.nodeName === 'SELECT') {
+            for (const option of binder.owner.options) {
+                option.addEventListener('rendered:value', function () {
+                    if (!option.$initialRender) binder.owner.$length++;
+                    option.$initialRender = true;
+                    if (!binder.owner.$ready || binder.owner.$length !== binder.owner.length) return;
+                    window.requestAnimationFrame(() => binder.binder.get(binder.owner.attributes.value)?.forEach(b => b.render()));
+                });
+            }
+        }
+
     }
 
 };
