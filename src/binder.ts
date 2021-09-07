@@ -7,7 +7,6 @@ import text from './binder/text';
 import on from './binder/on';
 import computer from './computer';
 import parser from './parser';
-import contexter from './contexter';
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -62,10 +61,9 @@ export default class Binder {
         this.nodeBinders.delete(node);
     }
 
-    async bind (node: Node, container: any, name, value, owner, dynamics?: any, rewrites?: any) {
+    async bind (node: Node, container: any, name, value, owner, context: any, rewrites?: any) {
         const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
 
-        const context = contexter(container.data, dynamics);
         const parsed = parser(value, rewrites);
         const compute = computer(value, context);
 
@@ -84,13 +82,13 @@ export default class Binder {
 
         const binder = {
             render: undefined,
-            binder: this, meta: {},
-            // busy: false,
+            binder: this,
+            meta: {},
             type,
             assignee,
             compute, paths,
             node, owner, name, value,
-            dynamics, rewrites, context,
+            rewrites, context,
             container,
         };
 
@@ -141,15 +139,15 @@ export default class Binder {
 
     }
 
-    async add (node: Node, container: any, dynamics?: any, rewrites?: any) {
+    async add (node: Node, container: any, context: any, rewrites?: any) {
         // const tasks = [];
 
         if (node.nodeType === AN) {
             const attribute = (node as Attr);
             if (this.syntaxMatch.test(attribute.value)) {
                 (node as any).$bound = true;
-                tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
             }
         } else if (node.nodeType === TN) {
 
@@ -163,13 +161,13 @@ export default class Binder {
 
             if (end + this.syntaxLength !== node.nodeValue.length) {
                 const split = (node as Text).splitText(end + this.syntaxLength);
-                // tasks.push(this.add(split, container, dynamics, rewrites));
-                tick.then(this.add.bind(this, split, container, dynamics, rewrites));
+                // tasks.push(this.add(split, container, context, rewrites));
+                tick.then(this.add.bind(this, split, container, context, rewrites));
             }
 
             (node as any).$bound = true;
-            // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
-            tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+            // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
+            tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
         } else if (node.nodeType === EN) {
             const attributes = (node as Element).attributes;
             let each = false;
@@ -178,8 +176,8 @@ export default class Binder {
                 if (this.syntaxMatch.test(attribute.value)) {
                     (node as any).$bound = true;
                     if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
-                    // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                    tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                     attribute.value = '';
                     // } else if (attribute.name === 'value' && node.nodeName === 'OPTION') {
                     // tick.then(this.bind.bind(this, attribute, container, attribute.name, `{{'${attribute.value}'}}`, attribute.ownerElement));
@@ -193,8 +191,8 @@ export default class Binder {
 
             let child = node.firstChild;
             while (child) {
-                // tasks.push(this.add(child, container, dynamics, rewrites));
-                tick.then(this.add.bind(this, child, container, dynamics, rewrites));
+                // tasks.push(this.add(child, container, context, rewrites));
+                tick.then(this.add.bind(this, child, container, context, rewrites));
                 child = child.nextSibling;
             }
 

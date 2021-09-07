@@ -16,6 +16,48 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
+    // const ignores = [
+    //     // '$render', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+    //     'window', 'document', 'console', 'location', 'Math', 'Date', 'Number', 'Array', 'Object', 'Promise'
+    // ];
+    const contexter = function (data) {
+        return new Proxy({}, {
+            has(target, key) {
+                return true;
+                // if (typeof key !== 'string') return true;
+                // return ignores.includes(key) ? false : true;
+            },
+            set: (target, key, value) => {
+                if (typeof key !== 'string')
+                    return true;
+                if (key === '$f' || key === '$form' ||
+                    key === '$e' || key === '$event' ||
+                    key === '$v' || key === '$value' ||
+                    key === '$r' || key === '$render' ||
+                    key === '$c' || key === '$checked')
+                    target[key] = value;
+                else if (key in target)
+                    target[key] = value;
+                else if (key in data)
+                    data[key] = value;
+                // else data[ key ] = value;
+                else
+                    window[key] = value;
+                return true;
+            },
+            get: (target, key) => {
+                if (typeof key !== 'string')
+                    return;
+                if (key in target)
+                    return target[key];
+                if (key in data)
+                    return data[key];
+                // if (key in data) return data[ key ];
+                return window[key];
+            }
+        });
+    };
+
     const tick$4 = Promise.resolve();
     const deleteProperty = function (task, tasks, path, target, key) {
         // const initial = !tasks.length;
@@ -297,10 +339,10 @@
         }
     };
 
-    const tick$3 = Promise.resolve();
     const space = /\s+/;
+    const tick$3 = Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
-    new Event('input', { bubbles: true, cancelable: true });
+    // const inputEvent = new Event('input', { bubbles: true, cancelable: true });
     const each = async function (binder) {
         binder.owner.$ready = false;
         if (!binder.meta.setup) {
@@ -316,7 +358,6 @@
             binder.meta.indexName = index;
             binder.meta.variableName = variable;
             binder.meta.parts = path.split('.');
-            // binder.meta.tasks = [];
             binder.meta.keys = [];
             binder.meta.setup = true;
             binder.meta.targetLength = 0;
@@ -361,13 +402,13 @@
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
                 const variableValue = `${binder.meta.path}.${keyValue}`;
-                const dynamics = new Proxy(binder.meta.dynamics || {}, {
+                const context = new Proxy({}, {
                     has(target, key) {
-                        return key === binder.meta.indexName || key === binder.meta.keyName || key === binder.meta.variableName || key in target;
+                        return true;
                     },
                     get(target, key) {
                         if (key === binder.meta.variableName) {
-                            let result = binder.container.data;
+                            let result = binder.context;
                             for (const key of binder.meta.parts) {
                                 result = result[key];
                                 if (!result)
@@ -382,12 +423,12 @@
                             return keyValue;
                         }
                         else {
-                            return target[key];
+                            return binder.context[key];
                         }
                     },
                     set(target, key, value) {
                         if (key === binder.meta.variableName) {
-                            let result = binder.container.data;
+                            let result = binder.context;
                             for (const key of binder.meta.parts) {
                                 result = result[key];
                                 if (!result)
@@ -396,7 +437,7 @@
                             typeof result === 'object' ? result[keyValue] = value : undefined;
                         }
                         else {
-                            target[key] = value;
+                            binder.context[key] = value;
                         }
                         return true;
                     }
@@ -420,7 +461,7 @@
                     const node = child.cloneNode(true);
                     // binder.owner.appendChild(node);
                     binder.meta.queueElement.content.appendChild(node);
-                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
+                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, context, rewrites));
                 }
                 binder.meta.currentLength++;
             }
@@ -605,6 +646,7 @@
             try {
                 return ${code};
             } catch (error) {
+                console.warn(error);
                 if (error.message.indexOf('Cannot set property') === 0) return undefined;
                 else if (error.message.indexOf('Cannot read property') === 0) return undefined;
                 else if (error.message.indexOf('Cannot set properties') === 0) return undefined;
@@ -755,7 +797,7 @@
         `;(
         [0-9]+|
         \\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-        this|window|document|console|location|Object|Array|Math|Date|Number|String|Boolean|
+        this|window|document|console|location|Object|Array|Math|Date|Number|String|Boolean|Promise|
         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
     )[^;]*;`,
@@ -778,50 +820,6 @@
         const assignees = assignee ? [assignee] : [];
         // console.log(o, data, references, assignees);
         return { references, assignees };
-    };
-
-    const ignores = [
-        // '$render', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
-        'window', 'document', 'console', 'location', 'Math', 'Date', 'Number', 'Array', 'Object'
-    ];
-    const contexter = function (data, dynamics) {
-        // dynamics = dynamics || {};
-        // const context = new Proxy({}, {
-        const context = new Proxy(dynamics || {}, 
-        // dynamics ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(dynamics)) : {},
-        {
-            has(target, key) {
-                if (typeof key !== 'string')
-                    return true;
-                return ignores.includes(key) ? false : true;
-            },
-            set: (target, key, value) => {
-                if (typeof key !== 'string')
-                    return true;
-                if (key === '$f' || key === '$form' ||
-                    key === '$e' || key === '$event' ||
-                    key === '$v' || key === '$value' ||
-                    key === '$r' || key === '$render' ||
-                    key === '$c' || key === '$checked')
-                    target[key] = value;
-                // else if (key in dynamics) dynamics[ key ] = value;
-                else if (key in target)
-                    target[key] = value;
-                else
-                    data[key] = value;
-                return true;
-            },
-            get: (target, key) => {
-                if (typeof key !== 'string')
-                    return;
-                if (key in target)
-                    return target[key];
-                // if (key in dynamics) return dynamics[ key ];
-                if (key in data)
-                    return data[key];
-            }
-        });
-        return context;
     };
 
     const TN = Node.TEXT_NODE;
@@ -869,9 +867,8 @@
             }
             this.nodeBinders.delete(node);
         }
-        async bind(node, container, name, value, owner, dynamics, rewrites) {
+        async bind(node, container, name, value, owner, context, rewrites) {
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
-            const context = contexter(container.data, dynamics);
             const parsed = parse(value, rewrites);
             const compute = computer(value, context);
             const assignee = () => {
@@ -889,13 +886,13 @@
             const paths = parsed.references;
             const binder = {
                 render: undefined,
-                binder: this, meta: {},
-                // busy: false,
+                binder: this,
+                meta: {},
                 type,
                 assignee,
                 compute, paths,
                 node, owner, name, value,
-                dynamics, rewrites, context,
+                rewrites, context,
                 container,
             };
             node.$binder = binder;
@@ -940,14 +937,14 @@
                 }
             }
         }
-        async add(node, container, dynamics, rewrites) {
+        async add(node, container, context, rewrites) {
             // const tasks = [];
             if (node.nodeType === AN) {
                 const attribute = node;
                 if (this.syntaxMatch.test(attribute.value)) {
                     node.$bound = true;
-                    tick$1.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                    // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    tick$1.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                 }
             }
             else if (node.nodeType === TN) {
@@ -961,12 +958,12 @@
                     return;
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    // tasks.push(this.add(split, container, dynamics, rewrites));
-                    tick$1.then(this.add.bind(this, split, container, dynamics, rewrites));
+                    // tasks.push(this.add(split, container, context, rewrites));
+                    tick$1.then(this.add.bind(this, split, container, context, rewrites));
                 }
                 node.$bound = true;
-                // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
-                tick$1.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
+                // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
+                tick$1.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
@@ -976,8 +973,8 @@
                         node.$bound = true;
                         if (attribute.name === 'each' || attribute.name === this.prefixEach)
                             each = true;
-                        // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
-                        tick$1.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                        // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                        tick$1.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                         attribute.value = '';
                         // } else if (attribute.name === 'value' && node.nodeName === 'OPTION') {
                         // tick.then(this.bind.bind(this, attribute, container, attribute.name, `{{'${attribute.value}'}}`, attribute.ownerElement));
@@ -990,8 +987,8 @@
                 // if (each) return Promise.all(tasks);
                 let child = node.firstChild;
                 while (child) {
-                    // tasks.push(this.add(child, container, dynamics, rewrites));
-                    tick$1.then(this.add.bind(this, child, container, dynamics, rewrites));
+                    // tasks.push(this.add(child, container, context, rewrites));
+                    tick$1.then(this.add.bind(this, child, container, context, rewrites));
                     child = child.nextSibling;
                 }
             }
@@ -1132,10 +1129,11 @@
                     }
                 }
             });
+            const context = contexter(this.data);
             if (this.adopt) {
                 let child = this.firstChild;
                 while (child) {
-                    tasks.push(this.#binder.add(child, this));
+                    tasks.push(this.#binder.add(child, this, context));
                     child = child.nextSibling;
                 }
             }
@@ -1168,7 +1166,7 @@
             }
             let child = template.content.firstChild;
             while (child) {
-                tasks.push(this.#binder.add(child, this));
+                tasks.push(this.#binder.add(child, this, context));
                 child = child.nextSibling;
             }
             await Promise.all(tasks);

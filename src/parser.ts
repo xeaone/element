@@ -169,7 +169,7 @@ const replaceProtected = new RegExp([
     `;(
         [0-9]+|
         \\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-        this|window|document|console|location|Object|Array|Math|Date|Number|String|Boolean|
+        this|window|document|console|location|Object|Array|Math|Date|Number|String|Boolean|Promise|
         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
     )[^;]*;`,

@@ -1,7 +1,7 @@
-const tick = Promise.resolve();
 const space = /\s+/;
+const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
-const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+// const inputEvent = new Event('input', { bubbles: true, cancelable: true });
 
 const each = async function (binder) {
     binder.owner.$ready = false;
@@ -22,8 +22,6 @@ const each = async function (binder) {
         binder.meta.indexName = index;
         binder.meta.variableName = variable;
         binder.meta.parts = path.split('.');
-
-        // binder.meta.tasks = [];
 
         binder.meta.keys = [];
         binder.meta.setup = true;
@@ -76,13 +74,13 @@ const each = async function (binder) {
             const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
             const variableValue = `${binder.meta.path}.${keyValue}`;
 
-            const dynamics = new Proxy(binder.meta.dynamics || {}, {
+            const context = new Proxy({}, {
                 has (target, key) {
-                    return key === binder.meta.indexName || key === binder.meta.keyName || key === binder.meta.variableName || key in target;
+                    return true;
                 },
                 get (target, key) {
                     if (key === binder.meta.variableName) {
-                        let result = binder.container.data;
+                        let result = binder.context;
                         for (const key of binder.meta.parts) {
                             result = result[ key ];
                             if (!result) return;
@@ -93,19 +91,19 @@ const each = async function (binder) {
                     } else if (key === binder.meta.keyName) {
                         return keyValue;
                     } else {
-                        return target[ key ];
+                        return binder.context[ key ];
                     }
                 },
                 set (target, key, value) {
                     if (key === binder.meta.variableName) {
-                        let result = binder.container.data;
+                        let result = binder.context;
                         for (const key of binder.meta.parts) {
                             result = result[ key ];
                             if (!result) return true;
                         }
                         typeof result === 'object' ? result[ keyValue ] = value : undefined;
                     } else {
-                        target[ key ] = value;
+                        binder.context[ key ] = value;
                     }
                     return true;
                 }
@@ -128,7 +126,7 @@ const each = async function (binder) {
                 const node = child.cloneNode(true);
                 // binder.owner.appendChild(node);
                 binder.meta.queueElement.content.appendChild(node);
-                tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
+                tick.then(binder.binder.add.bind(binder.binder, node, binder.container, context, rewrites));
             }
 
             binder.meta.currentLength++;

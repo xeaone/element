@@ -1,20 +1,16 @@
 
-const ignores = [
-    // '$render', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
-    'window', 'document', 'console', 'location', 'Math', 'Date', 'Number', 'Array', 'Object'
-];
+// const ignores = [
+//     // '$render', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+//     'window', 'document', 'console', 'location', 'Math', 'Date', 'Number', 'Array', 'Object', 'Promise'
+// ];
 
-const contexter = function (data: object, dynamics?: object) {
-
-    // dynamics = dynamics || {};
-    // const context = new Proxy({}, {
-    const context = new Proxy(
-        dynamics || {},
-        // dynamics ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(dynamics)) : {},
+const contexter = function (data: object) {
+    return new Proxy({},
         {
             has (target, key) {
-                if (typeof key !== 'string') return true;
-                return ignores.includes(key) ? false : true;
+                return true;
+                // if (typeof key !== 'string') return true;
+                // return ignores.includes(key) ? false : true;
             },
             set: (target, key, value) => {
                 if (typeof key !== 'string') return true;
@@ -25,21 +21,21 @@ const contexter = function (data: object, dynamics?: object) {
                     key === '$r' || key === '$render' ||
                     key === '$c' || key === '$checked'
                 ) target[ key ] = value;
-                // else if (key in dynamics) dynamics[ key ] = value;
                 else if (key in target) target[ key ] = value;
-                else data[ key ] = value;
+                else if (key in data) data[ key ] = value;
+                // else data[ key ] = value;
+                else window[ key ] = value;
                 return true;
             },
             get: (target, key) => {
                 if (typeof key !== 'string') return;
                 if (key in target) return target[ key ];
-                // if (key in dynamics) return dynamics[ key ];
                 if (key in data) return data[ key ];
+                // if (key in data) return data[ key ];
+                return window[ key ];
             }
         }
     );
-
-    return context;
 };
 
 export default contexter;

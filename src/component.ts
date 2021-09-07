@@ -1,3 +1,4 @@
+import Contexter from './contexter';
 import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
@@ -96,10 +97,12 @@ export default class Component extends HTMLElement {
             }
         });
 
+        const context = Contexter(this.data);
+
         if (this.adopt) {
             let child = this.firstChild;
             while (child) {
-                tasks.push(this.#binder.add(child, this));
+                tasks.push(this.#binder.add(child, this, context));
                 child = child.nextSibling;
             }
         }
@@ -136,7 +139,7 @@ export default class Component extends HTMLElement {
 
         let child = template.content.firstChild;
         while (child) {
-            tasks.push(this.#binder.add(child, this));
+            tasks.push(this.#binder.add(child, this, context));
             child = child.nextSibling;
         }
 

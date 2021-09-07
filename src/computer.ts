@@ -39,6 +39,7 @@ const computer = function (statement: string, context: object) {
             try {
                 return ${code};
             } catch (error) {
+                console.warn(error);
                 if (error.message.indexOf('Cannot set property') === 0) return undefined;
                 else if (error.message.indexOf('Cannot read property') === 0) return undefined;
                 else if (error.message.indexOf('Cannot set properties') === 0) return undefined;
