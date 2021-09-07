@@ -158,20 +158,20 @@ export default class Component extends HTMLElement {
     }
 
     async connectedCallback () {
-        try {
-            Css.attach(this.#name, this.css);
-            if (!this.#flag) {
-                this.#flag = true;
-                await this.render();
-                if (this.#rendered) await this.#rendered();
-            }
-
-            this.dispatchEvent(this.#beforeConnectedEvent);
-            if (this.#connected) await this.#connected();
-            this.dispatchEvent(this.#afterConnectedEvent);
-        } catch (error) {
-            console.error(error);
+        // try {
+        Css.attach(this.#name, this.css);
+        if (!this.#flag) {
+            this.#flag = true;
+            await this.render();
+            if (this.#rendered) await this.#rendered();
         }
+
+        this.dispatchEvent(this.#beforeConnectedEvent);
+        if (this.#connected) await this.#connected();
+        this.dispatchEvent(this.#afterConnectedEvent);
+        // } catch (error) {
+        //     console.error(error);
+        // }
     }
 
 }

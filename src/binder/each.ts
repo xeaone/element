@@ -1,6 +1,7 @@
-
+const tick = Promise.resolve();
 const space = /\s+/;
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
+const inputEvent = new Event('input', { bubbles: true, cancelable: true });
 
 const each = async function (binder) {
     binder.owner.$ready = false;
@@ -127,7 +128,7 @@ const each = async function (binder) {
                 const node = child.cloneNode(true);
                 // binder.owner.appendChild(node);
                 binder.meta.queueElement.content.appendChild(node);
-                binder.binder.add(node, binder.container, dynamics, rewrites, binder.meta.tasks);
+                tick.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
             }
 
             binder.meta.currentLength++;
@@ -137,18 +138,19 @@ const each = async function (binder) {
 
     if (binder.meta.currentLength === binder.meta.targetLength) {
         binder.owner.appendChild(binder.meta.queueElement.content);
-
         binder.owner.$ready = true;
 
         if (binder.owner.nodeName === 'SELECT') {
             for (const option of binder.owner.options) {
-                option.addEventListener('rendered:value', function () {
-                    if (!option.$initialRender) binder.owner.$length++;
-                    option.$initialRender = true;
-                    if (!binder.owner.$ready || binder.owner.$length !== binder.owner.length) return;
-                    window.requestAnimationFrame(() => binder.binder.get(binder.owner.attributes.value)?.forEach(b => b.render()));
+                if (!('$binder' in option)) continue;
+                option.addEventListener('renderedValue', function () {
+                    // binder.owner.attributes?.value?.$binder.render();
+                    window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
                 });
             }
+
+            // binder.owner.attributes?.value?.$binder.render();
+            window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
         }
 
     }

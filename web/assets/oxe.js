@@ -16,19 +16,19 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-    const tick$3 = Promise.resolve();
+    const tick$4 = Promise.resolve();
     const deleteProperty = function (task, tasks, path, target, key) {
         // const initial = !tasks.length;
         // tasks.push(path ? `${path}.${key}` : key);
-        tick$3.then(task.bind(null, path ? `${path}.${key}` : key));
+        tick$4.then(task.bind(null, path ? `${path}.${key}` : key));
         delete target[key];
         // if (initial) tick.then(task.bind(null, tasks));
         return true;
     };
     const set = function (task, tasks, path, target, key, value) {
         if (key === 'length') {
-            tick$3.then(task.bind(null, path));
-            tick$3.then(task.bind(null, path ? `${path}.${key}` : key));
+            tick$4.then(task.bind(null, path));
+            tick$4.then(task.bind(null, path ? `${path}.${key}` : key));
             // const initial = !tasks.length;
             // tasks.push(path);
             // tasks.push(path ? `${path}.${key}` : key);
@@ -40,7 +40,7 @@
         }
         // const initial = !tasks.length;
         // tasks.push(path ? `${path}.${key}` : key);
-        tick$3.then(task.bind(null, path ? `${path}.${key}` : key));
+        tick$4.then(task.bind(null, path ? `${path}.${key}` : key));
         target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
         // if (initial) tick.then(task.bind(null, tasks));
         return true;
@@ -153,7 +153,7 @@
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
 
-    const renderedValueEvent = new Event('rendered:value');
+    const renderedValueEvent = new Event('renderedValue');
     const stampFromView = function (data) {
         const date = new Date(data);
         return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
@@ -217,22 +217,30 @@
         }
         const { type } = meta;
         let display, computed;
-        // console.log(owner, owner.$ready, owner.$length, owner.length, owner.$ready && owner.$length === owner.length);
-        if ('each' in owner.attributes && (!owner.$ready || owner.$length !== owner.length))
-            return;
+        if (type === 'select-one' || type === 'select-multiple') {
+            if (!owner.length)
+                return;
+            if ('each' in owner.attributes && !owner.$ready)
+                return;
+            for (const option of owner.options) {
+                if (option.attributes.value?.$binder && !option.attributes.value?.$ready)
+                    return;
+            }
+        }
         if (type === 'select-one') {
             let value = binder.assignee();
+            // console.log(value, owner, owner.outerHTML);
             owner.value = undefined;
             for (const option of owner.options) {
                 const optionValue = '$value' in option ? option.$value : option.value;
                 if (option.selected = optionValue === value)
                     break;
             }
-            if (owner.options.length && !owner.selectedOptions.length) {
-                const [option] = owner.options;
-                value = '$value' in option ? option.$value : option.value;
-                option.selected = true;
-            }
+            // if (owner.options.length && !owner.selectedOptions.length) {
+            //     const [ option ] = owner.options;
+            //     value = '$value' in option ? option.$value : option.value;
+            //     option.selected = true;
+            // }
             computed = await binder.compute({ value });
             display = format(computed);
             owner.value = display;
@@ -271,24 +279,28 @@
             display = format(computed);
             owner.value = display;
         }
+        owner.$rendered = true;
         owner.$value = computed;
         owner.setAttribute('value', display);
         if (owner.nodeName === 'OPTION') {
-            owner.dispatchEvent(renderedValueEvent);
-            // let parent;
-            // if (owner?.parentElement.nodeName === 'SELECT') parent = owner.parentElement;
-            // else if (owner?.parentElement.parentElement.nodeName === 'SELECT') parent = owner.parentElement.parentElement;
-            // else return;
-            // // console.log(parent, owner, parent.$ready, parent.$length, parent.length, parent.$ready && parent.$length === parent.length);
-            // if (parent.$length === parent.length) return;
-            // else parent.$length++;
-            // if (!parent.$ready || parent.$length !== parent.length) return;
-            // window.requestAnimationFrame(() => binder.binder.get(parent.attributes.value)?.forEach(b => b.render()));
+            owner.$ready = true;
+            owner.attributes.value.$ready = true;
+            let parent;
+            if (owner.parentElement?.nodeName === 'SELECT')
+                parent = owner.parentElement;
+            else if (owner.parentElement?.parentElement?.nodeName === 'SELECT')
+                parent = owner.parentElement.parentElement;
+            else
+                return owner.dispatchEvent(renderedValueEvent);
+            // parent.attributes.value?.$binder.render();
+            window.requestAnimationFrame(() => parent.attributes.value?.$binder.render());
         }
     };
 
+    const tick$3 = Promise.resolve();
     const space = /\s+/;
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
+    new Event('input', { bubbles: true, cancelable: true });
     const each = async function (binder) {
         binder.owner.$ready = false;
         if (!binder.meta.setup) {
@@ -408,7 +420,7 @@
                     const node = child.cloneNode(true);
                     // binder.owner.appendChild(node);
                     binder.meta.queueElement.content.appendChild(node);
-                    binder.binder.add(node, binder.container, dynamics, rewrites, binder.meta.tasks);
+                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, dynamics, rewrites));
                 }
                 binder.meta.currentLength++;
             }
@@ -418,15 +430,15 @@
             binder.owner.$ready = true;
             if (binder.owner.nodeName === 'SELECT') {
                 for (const option of binder.owner.options) {
-                    option.addEventListener('rendered:value', function () {
-                        if (!option.$initialRender)
-                            binder.owner.$length++;
-                        option.$initialRender = true;
-                        if (!binder.owner.$ready || binder.owner.$length !== binder.owner.length)
-                            return;
-                        window.requestAnimationFrame(() => binder.binder.get(binder.owner.attributes.value)?.forEach(b => b.render()));
+                    if (!('$binder' in option))
+                        continue;
+                    option.addEventListener('renderedValue', function () {
+                        // binder.owner.attributes?.value?.$binder.render();
+                        window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
                     });
                 }
+                // binder.owner.attributes?.value?.$binder.render();
+                window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
             }
         }
     };
@@ -886,6 +898,7 @@
                 dynamics, rewrites, context,
                 container,
             };
+            node.$binder = binder;
             binder.render = this.binders[type].bind(null, binder);
             if (!this.nodeBinders.has(node)) {
                 this.nodeBinders.set(node, new Set([binder]));
@@ -932,8 +945,9 @@
             if (node.nodeType === AN) {
                 const attribute = node;
                 if (this.syntaxMatch.test(attribute.value)) {
-                    // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    node.$bound = true;
                     tick$1.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                    // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                 }
             }
             else if (node.nodeType === TN) {
@@ -950,6 +964,7 @@
                     // tasks.push(this.add(split, container, dynamics, rewrites));
                     tick$1.then(this.add.bind(this, split, container, dynamics, rewrites));
                 }
+                node.$bound = true;
                 // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
                 tick$1.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
             }
@@ -958,11 +973,16 @@
                 let each = false;
                 for (const attribute of attributes) {
                     if (this.syntaxMatch.test(attribute.value)) {
+                        node.$bound = true;
                         if (attribute.name === 'each' || attribute.name === this.prefixEach)
                             each = true;
                         // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                         tick$1.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                         attribute.value = '';
+                        // } else if (attribute.name === 'value' && node.nodeName === 'OPTION') {
+                        // tick.then(this.bind.bind(this, attribute, container, attribute.name, `{{'${attribute.value}'}}`, attribute.ownerElement));
+                        // } else if (attribute.name === 'value' && node.nodeName === 'SELECT') {
+                        // tick.then(this.bind.bind(this, attribute, container, attribute.name, `{{'$value ?? ${attribute.value}'}}`, attribute.ownerElement));
                     }
                 }
                 if (each)
@@ -1167,22 +1187,21 @@
                 await this.#disconnected();
         }
         async connectedCallback() {
-            try {
-                Css.attach(this.#name, this.css);
-                if (!this.#flag) {
-                    this.#flag = true;
-                    await this.render();
-                    if (this.#rendered)
-                        await this.#rendered();
-                }
-                this.dispatchEvent(this.#beforeConnectedEvent);
-                if (this.#connected)
-                    await this.#connected();
-                this.dispatchEvent(this.#afterConnectedEvent);
+            // try {
+            Css.attach(this.#name, this.css);
+            if (!this.#flag) {
+                this.#flag = true;
+                await this.render();
+                if (this.#rendered)
+                    await this.#rendered();
             }
-            catch (error) {
-                console.error(error);
-            }
+            this.dispatchEvent(this.#beforeConnectedEvent);
+            if (this.#connected)
+                await this.#connected();
+            this.dispatchEvent(this.#afterConnectedEvent);
+            // } catch (error) {
+            //     console.error(error);
+            // }
         }
     }
 

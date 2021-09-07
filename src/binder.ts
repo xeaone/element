@@ -94,6 +94,7 @@ export default class Binder {
             container,
         };
 
+        (node as any).$binder = binder;
         binder.render = this.binders[ type ].bind(null, binder);
 
         if (!this.nodeBinders.has(node)) {
@@ -146,8 +147,9 @@ export default class Binder {
         if (node.nodeType === AN) {
             const attribute = (node as Attr);
             if (this.syntaxMatch.test(attribute.value)) {
-                // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                (node as any).$bound = true;
                 tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
+                // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
             }
         } else if (node.nodeType === TN) {
 
@@ -165,6 +167,7 @@ export default class Binder {
                 tick.then(this.add.bind(this, split, container, dynamics, rewrites));
             }
 
+            (node as any).$bound = true;
             // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, dynamics, rewrites));
             tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, dynamics, rewrites));
         } else if (node.nodeType === EN) {
@@ -173,10 +176,15 @@ export default class Binder {
 
             for (const attribute of attributes) {
                 if (this.syntaxMatch.test(attribute.value)) {
+                    (node as any).$bound = true;
                     if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
                     // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                     tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, dynamics, rewrites));
                     attribute.value = '';
+                    // } else if (attribute.name === 'value' && node.nodeName === 'OPTION') {
+                    // tick.then(this.bind.bind(this, attribute, container, attribute.name, `{{'${attribute.value}'}}`, attribute.ownerElement));
+                    // } else if (attribute.name === 'value' && node.nodeName === 'SELECT') {
+                    // tick.then(this.bind.bind(this, attribute, container, attribute.name, `{{'$value ?? ${attribute.value}'}}`, attribute.ownerElement));
                 }
             }
 

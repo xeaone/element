@@ -1,7 +1,7 @@
 import format from '../format';
 import dateTypes from '../types/date';
 
-const renderedValueEvent = new Event('rendered:value');
+const renderedValueEvent = new Event('renderedValue');
 
 const stampFromView = function (data: number) {
     const date = new Date(data);
@@ -72,12 +72,18 @@ const value = async function value (binder) {
 
     let display, computed;
 
-    // console.log(owner, owner.$ready, owner.$length, owner.length, owner.$ready && owner.$length === owner.length);
-    if ('each' in owner.attributes && (!owner.$ready || owner.$length !== owner.length)) return;
+    if (type === 'select-one' || type === 'select-multiple') {
+        if (!owner.length) return;
+        if ('each' in owner.attributes && !owner.$ready) return;
+        for (const option of owner.options) {
+            if (option.attributes.value?.$binder && !option.attributes.value?.$ready) return;
+        }
+    }
 
     if (type === 'select-one') {
         let value = binder.assignee();
 
+        // console.log(value, owner, owner.outerHTML);
         owner.value = undefined;
 
         for (const option of owner.options) {
@@ -85,11 +91,11 @@ const value = async function value (binder) {
             if (option.selected = optionValue === value) break;
         }
 
-        if (owner.options.length && !owner.selectedOptions.length) {
-            const [ option ] = owner.options;
-            value = '$value' in option ? option.$value : option.value;
-            option.selected = true;
-        }
+        // if (owner.options.length && !owner.selectedOptions.length) {
+        //     const [ option ] = owner.options;
+        //     value = '$value' in option ? option.$value : option.value;
+        //     option.selected = true;
+        // }
 
         computed = await binder.compute({ value });
         display = format(computed);
@@ -124,27 +130,21 @@ const value = async function value (binder) {
         owner.value = display;
     }
 
+    owner.$rendered = true;
     owner.$value = computed;
     owner.setAttribute('value', display);
 
     if (owner.nodeName === 'OPTION') {
+        owner.$ready = true;
+        owner.attributes.value.$ready = true;
 
-        owner.dispatchEvent(renderedValueEvent);
+        let parent;
+        if (owner.parentElement?.nodeName === 'SELECT') parent = owner.parentElement;
+        else if (owner.parentElement?.parentElement?.nodeName === 'SELECT') parent = owner.parentElement.parentElement;
+        else return owner.dispatchEvent(renderedValueEvent);
 
-        // let parent;
-
-        // if (owner?.parentElement.nodeName === 'SELECT') parent = owner.parentElement;
-        // else if (owner?.parentElement.parentElement.nodeName === 'SELECT') parent = owner.parentElement.parentElement;
-        // else return;
-
-        // // console.log(parent, owner, parent.$ready, parent.$length, parent.length, parent.$ready && parent.$length === parent.length);
-
-        // if (parent.$length === parent.length) return;
-        // else parent.$length++;
-
-        // if (!parent.$ready || parent.$length !== parent.length) return;
-
-        // window.requestAnimationFrame(() => binder.binder.get(parent.attributes.value)?.forEach(b => b.render()));
+        // parent.attributes.value?.$binder.render();
+        window.requestAnimationFrame(() => parent.attributes.value?.$binder.render());
     }
 
 };
