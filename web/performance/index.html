@@ -1,36 +1,6 @@
 <base href="/">
 <script>document.querySelector('base').href = location.hostname === 'vokeio.github.io' ? '/oxe/performance/' : '/performance/';</script>
-
-<style>
-    html>* {
-        margin: 0;
-        padding: 0;
-        text-align: center;
-    }
-
-    body,
-    o-loop {
-        width: 100%;
-        height: 3000px;
-        display: block;
-    }
-
-    .box {
-        width: 60px;
-        margin: 1px;
-        padding: 1px;
-        font-size: 12px;
-        text-align: center;
-        display: inline-block;
-        background: lightgray;
-    }
-
-    .box input {
-        width: 90%;
-        margin: auto;
-        display: block;
-    }
-</style>
+<link rel="stylesheet" href="./index.css">
 
 <o-loop></o-loop>
 
@@ -85,8 +55,13 @@
         };
 
         html = /*html*/`
+            <div class="wrap">
+                <div class="loader">Loader</div>
+            </div>
+
 			<h3><span>{{count}}</span> bound elements</h3>
 			<input value="{{count = $value}}" type="number">
+
 			<br>
 			<button onclick="{{push()}}">push</button>
 			<button onclick="{{overwrite()}}">overwrite</button>

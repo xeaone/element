@@ -83,7 +83,6 @@ const value = async function value (binder) {
     if (type === 'select-one') {
         let value = binder.assignee();
 
-        // console.log(value, owner, owner.outerHTML);
         owner.value = undefined;
 
         for (const option of owner.options) {
@@ -141,10 +140,11 @@ const value = async function value (binder) {
         let parent;
         if (owner.parentElement?.nodeName === 'SELECT') parent = owner.parentElement;
         else if (owner.parentElement?.parentElement?.nodeName === 'SELECT') parent = owner.parentElement.parentElement;
-        else return owner.dispatchEvent(renderedValueEvent);
+        else return;
+        // else return owner.dispatchEvent(renderedValueEvent);
 
-        // parent.attributes.value?.$binder.render();
-        window.requestAnimationFrame(() => parent.attributes.value?.$binder.render());
+        parent.attributes.value?.$binder.render();
+        // window.requestAnimationFrame(() => parent.attributes.value?.$binder.render());
     }
 
 };

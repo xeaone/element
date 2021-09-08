@@ -70,32 +70,42 @@ export default class Component extends HTMLElement {
     async render () {
         const tasks = [];
 
-        // this.data = Observer(this.data, async paths => {
-        //     let path;
-        //     while (path = paths.shift()) {
-        //         for (const [ key, value ] of this.#binder.pathBinders) {
-        //             if (value && (key === path || key.startsWith(`${path}.`))) {
-        //                 for (const binder of value) {
-        //                     // binder.render();
-        //                     tick.then(binder.render.bind());
-        //                     // window.requestAnimationFrame(() => binder.render());
-        //                 }
-        //             }
-        //         }
-        //     }
-        // });
-
         this.data = Observer(this.data, async path => {
-            for (const [ key, value ] of this.#binder.pathBinders) {
-                if (value && (key === path || key.startsWith(`${path}.`))) {
-                    for (const binder of value) {
-                        // binder.render();
-                        tick.then(binder.render.bind());
+            let binder, binders;
+            for (binders of this.#binder.pathBinders) {
+                if (binders[ 1 ] && (binders[ 0 ] === path || binders[ 0 ].startsWith(`${path}.`))) {
+                    for (binder of binders[ 1 ]) {
+                        binder.render();
+                        // tick.then(binder.render.bind());
                         // window.requestAnimationFrame(() => binder.render());
                     }
                 }
             }
         });
+
+
+        // this.data = Observer(this.data, async paths => {
+        //     let path, binder, binders;
+        //     for (path of paths) {
+        //         binders = this.#binder.pathBinders.get(path);
+        //         if (!binders) continue;
+        //         for (binder of binders) {
+        //             binder.render();
+        //             // tick.then(binder.render.bind());
+        //             // window.requestAnimationFrame(() => binder.render());
+        //         }
+        //     }
+        // });
+
+        // this.data = Observer(this.data, async path => {
+        //     const binders = this.#binder.pathBinders.get(path);
+        //     if (!binders) return;
+        //     for (const binder of binders) {
+        //         binder.render();
+        //         // tick.then(binder.render.bind());
+        //         // window.requestAnimationFrame(() => binder.render());
+        //     }
+        // });
 
         const context = Contexter(this.data);
 

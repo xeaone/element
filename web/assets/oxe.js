@@ -58,41 +58,49 @@
         });
     };
 
-    const tick$4 = Promise.resolve();
+    Promise.resolve();
     const deleteProperty = function (task, tasks, path, target, key) {
         // const initial = !tasks.length;
-        // tasks.push(path ? `${path}.${key}` : key);
-        tick$4.then(task.bind(null, path ? `${path}.${key}` : key));
+        // tasks.push(path ? `${path}.${key}` : `${key}`);
         delete target[key];
-        // if (initial) tick.then(task.bind(null, tasks));
+        // tick.then(task.bind(null, path ? `${path}.${key}` : key));
+        task(path ? `${path}.${key}` : `${key}`);
+        // if (initial) task(tasks.splice(0, tasks.length));
         return true;
     };
     const set = function (task, tasks, path, target, key, value) {
         if (key === 'length') {
-            tick$4.then(task.bind(null, path));
-            tick$4.then(task.bind(null, path ? `${path}.${key}` : key));
             // const initial = !tasks.length;
             // tasks.push(path);
-            // tasks.push(path ? `${path}.${key}` : key);
-            // if (initial) tick.then(task.bind(null, tasks));
+            // tasks.push(path ? `${path}.${key}` : `${key}`);
+            // if (initial) task(tasks.splice(0, tasks.length));
+            task(path);
+            task(path ? `${path}.${key}` : `${key}`);
+            // tick.then(task.bind(null, path));
+            // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
             return true;
         }
         else if (target[key] === value || `${target[key]}${value}` === 'NaNNaN') {
             return true;
         }
         // const initial = !tasks.length;
-        // tasks.push(path ? `${path}.${key}` : key);
-        tick$4.then(task.bind(null, path ? `${path}.${key}` : key));
-        target[key] = observer(value, task, tasks, path ? `${path}.${key}` : key);
-        // if (initial) tick.then(task.bind(null, tasks));
+        // tasks.push(path ? `${path}.${key}` : `${key}`);
+        target[key] = observer(value, task, tasks, path ? `${path}.${key}` : `${key}`);
+        task(path ? `${path}.${key}` : `${key}`);
+        // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
+        // if (initial) task(tasks.splice(0, tasks.length));
         return true;
     };
     const observer = function (source, task, tasks = [], path = '') {
         let target;
+        // const initial = !tasks.length;
         if (source?.constructor === Array) {
             target = [];
             for (let key = 0, length = source.length; key < length; key++) {
+                // tasks.push(path ? `${path}.${key}` : `${key}`);
                 target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : `${key}`);
+                // task(path ? `${path}.${key}` : `${key}`);
+                // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
             }
             target = new Proxy(target, {
                 set: set.bind(null, task, tasks, path),
@@ -102,7 +110,10 @@
         else if (source?.constructor === Object) {
             target = {};
             for (const key in source) {
-                target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : key);
+                // tasks.push(path ? `${path}.${key}` : `${key}`);
+                target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : `${key}`);
+                // task(path ? `${path}.${key}` : `${key}`);
+                // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
             }
             target = new Proxy(target, {
                 set: set.bind(null, task, tasks, path),
@@ -112,6 +123,7 @@
         else {
             target = source;
         }
+        // if (initial) task(tasks.splice(0, tasks.length));
         return target;
     };
 
@@ -195,7 +207,7 @@
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
 
-    const renderedValueEvent = new Event('renderedValue');
+    new Event('renderedValue');
     const stampFromView = function (data) {
         const date = new Date(data);
         return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
@@ -271,7 +283,6 @@
         }
         if (type === 'select-one') {
             let value = binder.assignee();
-            // console.log(value, owner, owner.outerHTML);
             owner.value = undefined;
             for (const option of owner.options) {
                 const optionValue = '$value' in option ? option.$value : option.value;
@@ -333,14 +344,15 @@
             else if (owner.parentElement?.parentElement?.nodeName === 'SELECT')
                 parent = owner.parentElement.parentElement;
             else
-                return owner.dispatchEvent(renderedValueEvent);
-            // parent.attributes.value?.$binder.render();
-            window.requestAnimationFrame(() => parent.attributes.value?.$binder.render());
+                return;
+            // else return owner.dispatchEvent(renderedValueEvent);
+            parent.attributes.value?.$binder.render();
+            // window.requestAnimationFrame(() => parent.attributes.value?.$binder.render());
         }
     };
 
     const space = /\s+/;
-    const tick$3 = Promise.resolve();
+    Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
     // const inputEvent = new Event('input', { bubbles: true, cancelable: true });
     const each = async function (binder) {
@@ -398,6 +410,7 @@
             }
         }
         else if (binder.meta.currentLength < binder.meta.targetLength) {
+            // let indexValue, keyValue, variableValue, context, rewrites, child, node;
             while (binder.meta.currentLength < binder.meta.targetLength) {
                 const indexValue = binder.meta.currentLength;
                 const keyValue = binder.meta.keys[indexValue] ?? indexValue;
@@ -459,32 +472,32 @@
                 // binder.meta.queueElement.content.appendChild(d)
                 for (const child of binder.meta.templateElement.content.childNodes) {
                     const node = child.cloneNode(true);
-                    // binder.owner.appendChild(node);
-                    binder.meta.queueElement.content.appendChild(node);
-                    tick$3.then(binder.binder.add.bind(binder.binder, node, binder.container, context, rewrites));
+                    binder.owner.appendChild(node);
+                    // binder.meta.queueElement.content.appendChild(node);
+                    // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, context, rewrites));
+                    binder.binder.add(node, binder.container, context, rewrites);
                 }
                 binder.meta.currentLength++;
             }
         }
         if (binder.meta.currentLength === binder.meta.targetLength) {
-            binder.owner.appendChild(binder.meta.queueElement.content);
+            // window.requestAnimationFrame(() => binder.owner.appendChild(binder.meta.queueElement.content));
             binder.owner.$ready = true;
             if (binder.owner.nodeName === 'SELECT') {
-                for (const option of binder.owner.options) {
-                    if (!('$binder' in option))
-                        continue;
-                    option.addEventListener('renderedValue', function () {
-                        // binder.owner.attributes?.value?.$binder.render();
-                        window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
-                    });
-                }
-                // binder.owner.attributes?.value?.$binder.render();
-                window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
+                // for (const option of binder.owner.options) {
+                //     if (!('$binder' in option)) continue;
+                //     option.addEventListener('renderedValue', function () {
+                //         binder.owner.attributes?.value?.$binder.render();
+                //         // window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
+                //     });
+                // }
+                binder.owner.attributes?.value?.$binder.render();
+                // window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
             }
         }
     };
 
-    const tick$2 = Promise.resolve();
+    const tick = Promise.resolve();
     const html = async function (binder) {
         let data = await binder.compute();
         if (typeof data !== 'string') {
@@ -499,7 +512,7 @@
         template.innerHTML = data;
         let node = template.content.firstChild;
         while (node) {
-            tick$2.then(binder.binder.add.bind(binder.binder, node, binder.container));
+            tick.then(binder.binder.add.bind(binder.binder, node, binder.container));
             node = node.nextSibling;
         }
         binder.owner.appendChild(template.content);
@@ -646,7 +659,7 @@
             try {
                 return ${code};
             } catch (error) {
-                console.warn(error);
+                // console.warn(error);
                 if (error.message.indexOf('Cannot set property') === 0) return undefined;
                 else if (error.message.indexOf('Cannot read property') === 0) return undefined;
                 else if (error.message.indexOf('Cannot set properties') === 0) return undefined;
@@ -825,7 +838,7 @@
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
-    const tick$1 = Promise.resolve();
+    Promise.resolve();
     class Binder {
         prefix = 'o-';
         prefixEach = 'o-each';
@@ -867,6 +880,7 @@
             }
             this.nodeBinders.delete(node);
         }
+        // bind (node: Node, container: any, name, value, owner, context: any, rewrites?: any) {
         async bind(node, container, name, value, owner, context, rewrites) {
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const parsed = parse(value, rewrites);
@@ -897,6 +911,7 @@
             };
             node.$binder = binder;
             binder.render = this.binders[type].bind(null, binder);
+            // binder.render = window.requestAnimationFrame.bind(null, () => this.binders[ type ](binder));
             if (!this.nodeBinders.has(node)) {
                 this.nodeBinders.set(node, new Set([binder]));
             }
@@ -913,37 +928,43 @@
                     }
                 }
             }
-            tick$1.then(binder.render.bind());
+            binder.render();
+            // tick.then(binder.render.bind());
             // return binder.render();
         }
         ;
         async remove(node) {
             // const tasks = []
             if (node.nodeType === AN || node.nodeType === TN) {
-                tick$1.then(this.unbind.bind(this, node));
+                this.unbind(node);
+                // tick.then(this.unbind.bind(this, node));
                 // tasks.push(this.unbind(node));
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
                 for (const attribute of attributes) {
-                    tick$1.then(this.unbind.bind(this, attribute));
+                    this.unbind(attribute);
+                    // tick.then(this.unbind.bind(this, attribute));
                     // tasks.push(this.unbind(attribute));
                 }
                 let child = node.firstChild;
                 while (child) {
                     // tasks.push(this.remove(child));
-                    tick$1.then(this.remove.bind(this, child));
+                    // tick.then(this.remove.bind(this, child));
+                    this.remove(child);
                     child = child.nextSibling;
                 }
             }
         }
+        // add (node: Node, container: any, context: any, rewrites?: any) {
         async add(node, container, context, rewrites) {
             // const tasks = [];
             if (node.nodeType === AN) {
                 const attribute = node;
                 if (this.syntaxMatch.test(attribute.value)) {
                     node.$bound = true;
-                    tick$1.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
+                    // tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                     // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                 }
             }
@@ -959,11 +980,13 @@
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
                     // tasks.push(this.add(split, container, context, rewrites));
-                    tick$1.then(this.add.bind(this, split, container, context, rewrites));
+                    // tick.then(this.add.bind(this, split, container, context, rewrites));
+                    this.add(split, container, context, rewrites);
                 }
                 node.$bound = true;
                 // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
-                tick$1.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
+                // tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
+                this.bind(node, container, 'text', node.nodeValue, node, context, rewrites);
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
@@ -974,8 +997,8 @@
                         if (attribute.name === 'each' || attribute.name === this.prefixEach)
                             each = true;
                         // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                        tick$1.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                        attribute.value = '';
+                        // tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                        this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
                         // } else if (attribute.name === 'value' && node.nodeName === 'OPTION') {
                         // tick.then(this.bind.bind(this, attribute, container, attribute.name, `{{'${attribute.value}'}}`, attribute.ownerElement));
                         // } else if (attribute.name === 'value' && node.nodeName === 'SELECT') {
@@ -988,7 +1011,8 @@
                 let child = node.firstChild;
                 while (child) {
                     // tasks.push(this.add(child, container, context, rewrites));
-                    tick$1.then(this.add.bind(this, child, container, context, rewrites));
+                    // tick.then(this.add.bind(this, child, container, context, rewrites));
+                    this.add(child, container, context, rewrites);
                     child = child.nextSibling;
                 }
             }
@@ -1050,7 +1074,7 @@
         }
     };
 
-    const tick = Promise.resolve();
+    Promise.resolve();
     class Component extends HTMLElement {
         static attributes;
         static get observedAttributes() { return this.attributes; }
@@ -1104,31 +1128,39 @@
         }
         async render() {
             const tasks = [];
-            // this.data = Observer(this.data, async paths => {
-            //     let path;
-            //     while (path = paths.shift()) {
-            //         for (const [ key, value ] of this.#binder.pathBinders) {
-            //             if (value && (key === path || key.startsWith(`${path}.`))) {
-            //                 for (const binder of value) {
-            //                     // binder.render();
-            //                     tick.then(binder.render.bind());
-            //                     // window.requestAnimationFrame(() => binder.render());
-            //                 }
-            //             }
-            //         }
-            //     }
-            // });
             this.data = observer(this.data, async (path) => {
-                for (const [key, value] of this.#binder.pathBinders) {
-                    if (value && (key === path || key.startsWith(`${path}.`))) {
-                        for (const binder of value) {
-                            // binder.render();
-                            tick.then(binder.render.bind());
+                let binder, binders;
+                for (binders of this.#binder.pathBinders) {
+                    if (binders[1] && (binders[0] === path || binders[0].startsWith(`${path}.`))) {
+                        for (binder of binders[1]) {
+                            binder.render();
+                            // tick.then(binder.render.bind());
                             // window.requestAnimationFrame(() => binder.render());
                         }
                     }
                 }
             });
+            // this.data = Observer(this.data, async paths => {
+            //     let path, binder, binders;
+            //     for (path of paths) {
+            //         binders = this.#binder.pathBinders.get(path);
+            //         if (!binders) continue;
+            //         for (binder of binders) {
+            //             binder.render();
+            //             // tick.then(binder.render.bind());
+            //             // window.requestAnimationFrame(() => binder.render());
+            //         }
+            //     }
+            // });
+            // this.data = Observer(this.data, async path => {
+            //     const binders = this.#binder.pathBinders.get(path);
+            //     if (!binders) return;
+            //     for (const binder of binders) {
+            //         binder.render();
+            //         // tick.then(binder.render.bind());
+            //         // window.requestAnimationFrame(() => binder.render());
+            //     }
+            // });
             const context = contexter(this.data);
             if (this.adopt) {
                 let child = this.firstChild;

@@ -4,6 +4,7 @@ const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 // const inputEvent = new Event('input', { bubbles: true, cancelable: true });
 
 const each = async function (binder) {
+
     binder.owner.$ready = false;
 
     if (!binder.meta.setup) {
@@ -68,6 +69,7 @@ const each = async function (binder) {
             binder.meta.currentLength--;
         }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
+        // let indexValue, keyValue, variableValue, context, rewrites, child, node;
         while (binder.meta.currentLength < binder.meta.targetLength) {
 
             const indexValue = binder.meta.currentLength;
@@ -124,9 +126,10 @@ const each = async function (binder) {
 
             for (const child of binder.meta.templateElement.content.childNodes) {
                 const node = child.cloneNode(true);
-                // binder.owner.appendChild(node);
-                binder.meta.queueElement.content.appendChild(node);
-                tick.then(binder.binder.add.bind(binder.binder, node, binder.container, context, rewrites));
+                binder.owner.appendChild(node);
+                // binder.meta.queueElement.content.appendChild(node);
+                // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, context, rewrites));
+                binder.binder.add(node, binder.container, context, rewrites);
             }
 
             binder.meta.currentLength++;
@@ -135,20 +138,20 @@ const each = async function (binder) {
     }
 
     if (binder.meta.currentLength === binder.meta.targetLength) {
-        binder.owner.appendChild(binder.meta.queueElement.content);
+        // window.requestAnimationFrame(() => binder.owner.appendChild(binder.meta.queueElement.content));
         binder.owner.$ready = true;
 
         if (binder.owner.nodeName === 'SELECT') {
-            for (const option of binder.owner.options) {
-                if (!('$binder' in option)) continue;
-                option.addEventListener('renderedValue', function () {
-                    // binder.owner.attributes?.value?.$binder.render();
-                    window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
-                });
-            }
+            // for (const option of binder.owner.options) {
+            //     if (!('$binder' in option)) continue;
+            //     option.addEventListener('renderedValue', function () {
+            //         binder.owner.attributes?.value?.$binder.render();
+            //         // window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
+            //     });
+            // }
 
-            // binder.owner.attributes?.value?.$binder.render();
-            window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
+            binder.owner.attributes?.value?.$binder.render();
+            // window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
         }
 
     }
