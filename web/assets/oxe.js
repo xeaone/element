@@ -207,7 +207,7 @@
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
 
-    new Event('renderedValue');
+    // const renderedValueEvent = new Event('renderedValue');
     const stampFromView = function (data) {
         const date = new Date(data);
         return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
@@ -1074,7 +1074,7 @@
         }
     };
 
-    Promise.resolve();
+    // const tick = Promise.resolve();
     class Component extends HTMLElement {
         static attributes;
         static get observedAttributes() { return this.attributes; }

@@ -3,7 +3,7 @@ import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
 
-const tick = Promise.resolve();
+// const tick = Promise.resolve();
 
 export default class Component extends HTMLElement {
 

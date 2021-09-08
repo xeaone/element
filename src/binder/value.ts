@@ -1,7 +1,7 @@
 import format from '../format';
 import dateTypes from '../types/date';
 
-const renderedValueEvent = new Event('renderedValue');
+// const renderedValueEvent = new Event('renderedValue');
 
 const stampFromView = function (data: number) {
     const date = new Date(data);
