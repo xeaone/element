@@ -175,8 +175,14 @@ const replaceProtected = new RegExp([
     )[^;]*;`,
 ].join('').replace(/\s|\t|\n/g, ''), 'g');
 
-const parse = function (data, rewrites?: string[][]) {
-    // const o = data;
+const cache = new Map();
+
+const parse = function (data) {
+    let result = cache.get(data);
+    if (result) return result;
+
+    result = {};
+    cache.set(data, result);
 
     data = data.replace(replaceOutside, ';');
     data = data.replace(removeStrings, '');
@@ -187,20 +193,18 @@ const parse = function (data, rewrites?: string[][]) {
     data = data.replace(replaceSeperator, ';');
     data = data.replace(replaceEndBracket, ';');
 
-    if (rewrites) {
-        for (const [ name, value ] of rewrites) {
-            data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
-        }
-    }
+    // if (rewrites) {
+    //     for (const [ name, value ] of rewrites) {
+    //         data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
+    //     }
+    // }
 
     data = data.replace(replaceProtected, ';');
 
-    const references = data.split(/;+/).slice(1, -1) || [];
-    const assignees = assignee ? [ assignee ] : [];
+    result.references = data.split(/;+/).slice(1, -1) || [];
+    result.assignees = assignee ? [ assignee ] : [];
 
-    // console.log(o, data, references, assignees);
-
-    return { references, assignees };
+    return result;
 };
 
 export default parse;

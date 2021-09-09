@@ -9,7 +9,7 @@ const build = async function () {
     console.log('build: start');
     await Execute('npx tsc -p tsconfig.dev.json');
     await Execute('npx rollup -c rollup.dev.js');
-    await Execute('cp web/assets/oxe.js ../qapi/web/assets/oxe.js');
+    // await Execute('cp web/assets/oxe.js ../qapi/web/assets/oxe.js');
     console.log('build: end');
 };
 

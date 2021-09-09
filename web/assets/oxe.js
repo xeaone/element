@@ -58,7 +58,7 @@
         });
     };
 
-    Promise.resolve();
+    // const tick = Promise.resolve();
     const deleteProperty = function (task, tasks, path, target, key) {
         // const initial = !tasks.length;
         // tasks.push(path ? `${path}.${key}` : `${key}`);
@@ -68,6 +68,9 @@
         // if (initial) task(tasks.splice(0, tasks.length));
         return true;
     };
+    // const get = function (task: task, tasks: tasks, path: string, target: any, key, value) {
+    //     return target[ key ];
+    // };
     const set = function (task, tasks, path, target, key, value) {
         if (key === 'length') {
             // const initial = !tasks.length;
@@ -96,7 +99,8 @@
         // const initial = !tasks.length;
         if (source?.constructor === Array) {
             target = [];
-            for (let key = 0, length = source.length; key < length; key++) {
+            // target.$path = `${path}`;
+            for (let key = 0; key < source.length; key++) {
                 // tasks.push(path ? `${path}.${key}` : `${key}`);
                 target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : `${key}`);
                 // task(path ? `${path}.${key}` : `${key}`);
@@ -109,6 +113,7 @@
         }
         else if (source?.constructor === Object) {
             target = {};
+            // target.$path = `${path}`;
             for (const key in source) {
                 // tasks.push(path ? `${path}.${key}` : `${key}`);
                 target[key] = observer(source[key], task, tasks, path ? `${path}.${key}` : `${key}`);
@@ -352,10 +357,8 @@
     };
 
     const space = /\s+/;
-    Promise.resolve();
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
-    // const inputEvent = new Event('input', { bubbles: true, cancelable: true });
-    const each = async function (binder) {
+    const each = async function (binder, data) {
         binder.owner.$ready = false;
         if (!binder.meta.setup) {
             binder.owner.$length = 0;
@@ -370,6 +373,7 @@
             binder.meta.indexName = index;
             binder.meta.variableName = variable;
             binder.meta.parts = path.split('.');
+            binder.meta.tasks = [];
             binder.meta.keys = [];
             binder.meta.setup = true;
             binder.meta.targetLength = 0;
@@ -389,13 +393,15 @@
                 node = binder.owner.firstChild;
             }
         }
-        const data = await binder.compute();
-        if (data?.constructor === Array) {
-            binder.meta.targetLength = data.length;
-        }
-        else {
-            binder.meta.keys = Object.keys(data || {});
-            binder.meta.targetLength = binder.meta.keys.length;
+        if (!data) {
+            data = await binder.compute();
+            if (data?.constructor === Array) {
+                binder.meta.targetLength = data.length;
+            }
+            else {
+                binder.meta.keys = Object.keys(data || {});
+                binder.meta.targetLength = binder.meta.keys.length;
+            }
         }
         if (binder.meta.currentLength > binder.meta.targetLength) {
             while (binder.meta.currentLength > binder.meta.targetLength) {
@@ -410,11 +416,12 @@
             }
         }
         else if (binder.meta.currentLength < binder.meta.targetLength) {
-            // let indexValue, keyValue, variableValue, context, rewrites, child, node;
             while (binder.meta.currentLength < binder.meta.targetLength) {
+                // binder.owner.appendChild(binder.meta.templateElement.content.cloneNode(true));
+                // binder.meta.queueElement.content.appendChild(binder.meta.templateElement.content.cloneNode(true));
                 const indexValue = binder.meta.currentLength;
-                const keyValue = binder.meta.keys[indexValue] ?? indexValue;
-                const variableValue = `${binder.meta.path}.${keyValue}`;
+                const keyValue = binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength;
+                const variableValue = `${binder.meta.path}.${binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength}`;
                 const context = new Proxy({}, {
                     has(target, key) {
                         return true;
@@ -464,35 +471,37 @@
                     rewrites.push([binder.meta.variableName, variableValue]);
                 if (binder.rewrites)
                     rewrites.push(...binder.rewrites);
-                // const d = document.createElement('div');
-                // d.className = 'box';
-                // const t = document.createTextNode('{{item.number}}');
-                // tick.then(binder.binder.add.bind(binder.binder, t, binder.container, dynamics));
-                // d.appendChild(t);
-                // binder.meta.queueElement.content.appendChild(d)
-                for (const child of binder.meta.templateElement.content.childNodes) {
-                    const node = child.cloneNode(true);
-                    binder.owner.appendChild(node);
+                // const stop = indexValue + binder.meta.templateLength;
+                // for (let i = indexValue; i < stop; i++) {
+                const clone = binder.meta.templateElement.content.cloneNode(true);
+                for (const node of clone.childNodes) {
                     // binder.meta.queueElement.content.appendChild(node);
+                    // binder.owner.appendChild(node);
+                    // const node = child.cloneNode(true);
+                    // binder.meta.queueElement.content.replaceChild(node, placeholder);
                     // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, context, rewrites));
-                    binder.binder.add(node, binder.container, context, rewrites);
+                    // binder.binder.add(node, binder.container, context, rewrites);
+                    // binder.meta.tasks.push(binder.binder.add(node, binder.container, context, rewrites));
+                    // binder.meta.tasks.push(binder.binder.add(binder.owner.childNodes[ i ], binder.container, context, rewrites));
+                    binder.meta.tasks.push(binder.binder.add(node, binder.container, context, rewrites));
+                    // binder.binder.add(node, binder.container, context, rewrites);
                 }
+                binder.owner.appendChild(clone);
+                // var d = document.createElement('div');
+                // d.classList.add('box');
+                // var t = document.createTextNode('{{item.number}}');
+                // binder.meta.tasks.push(binder.binder.add(t, binder.container, context, rewrites));
+                // d.appendChild(t);
+                // binder.meta.queueElement.content.appendChild(d);
                 binder.meta.currentLength++;
             }
         }
         if (binder.meta.currentLength === binder.meta.targetLength) {
-            // window.requestAnimationFrame(() => binder.owner.appendChild(binder.meta.queueElement.content));
+            await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
+            binder.owner.appendChild(binder.meta.queueElement.content);
             binder.owner.$ready = true;
             if (binder.owner.nodeName === 'SELECT') {
-                // for (const option of binder.owner.options) {
-                //     if (!('$binder' in option)) continue;
-                //     option.addEventListener('renderedValue', function () {
-                //         binder.owner.attributes?.value?.$binder.render();
-                //         // window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
-                //     });
-                // }
                 binder.owner.attributes?.value?.$binder.render();
-                // window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
             }
         }
     };
@@ -520,7 +529,8 @@
 
     const text = async function text(binder) {
         let data = await binder.compute();
-        binder.owner.nodeValue = format(data);
+        let nodeValue = format(data);
+        binder.owner.nodeValue = nodeValue;
     };
 
     const Value = function (element) {
@@ -631,9 +641,9 @@
     const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
     const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-    const cache = new Map();
+    const cache$1 = new Map();
     const computer = function (statement, context) {
-        let compute = cache.get(statement);
+        let compute = cache$1.get(statement);
         if (!compute) {
             if (isOfIn.test(statement)) {
                 statement = statement.replace(replaceOfIn, '{{$2}}');
@@ -669,7 +679,7 @@
         }
         `;
             compute = new Function('$context', '$render', code);
-            cache.set(statement, compute);
+            cache$1.set(statement, compute);
         }
         return compute.bind(null, context);
     };
@@ -815,30 +825,33 @@
         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
     )[^;]*;`,
     ].join('').replace(/\s|\t|\n/g, ''), 'g');
-    const parse = function (data, rewrites) {
-        // const o = data;
+    const cache = new Map();
+    const parse = function (data) {
+        let result = cache.get(data);
+        if (result)
+            return result;
+        result = {};
+        cache.set(data, result);
         data = data.replace(replaceOutside, ';');
         data = data.replace(removeStrings, '');
         data = data.replace(normalizeReference, '.$2');
         const assignee = data.match(matchAssignee)?.[1];
         data = data.replace(replaceSeperator, ';');
         data = data.replace(replaceEndBracket, ';');
-        if (rewrites) {
-            for (const [name, value] of rewrites) {
-                data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
-            }
-        }
+        // if (rewrites) {
+        //     for (const [ name, value ] of rewrites) {
+        //         data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
+        //     }
+        // }
         data = data.replace(replaceProtected, ';');
-        const references = data.split(/;+/).slice(1, -1) || [];
-        const assignees = assignee ? [assignee] : [];
-        // console.log(o, data, references, assignees);
-        return { references, assignees };
+        result.references = data.split(/;+/).slice(1, -1) || [];
+        result.assignees = assignee ? [assignee] : [];
+        return result;
     };
 
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
-    Promise.resolve();
     class Binder {
         prefix = 'o-';
         prefixEach = 'o-each';
@@ -880,11 +893,18 @@
             }
             this.nodeBinders.delete(node);
         }
-        // bind (node: Node, container: any, name, value, owner, context: any, rewrites?: any) {
         async bind(node, container, name, value, owner, context, rewrites) {
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
-            const parsed = parse(value, rewrites);
-            const compute = computer(value, context);
+            let parsed, compute;
+            compute = computer(value, context); // this is slow
+            parsed = parse(value); // this is slow
+            if (rewrites) {
+                for (const [name, value] of rewrites) {
+                    for (let i = 0; i < parsed.references.length; i++) {
+                        parsed.references[i] = parsed.references[i].replace(new RegExp(`^(${name})\\b`), `${value}`);
+                    }
+                }
+            }
             const assignee = () => {
                 if (!parsed.assignees[0])
                     return;
@@ -897,28 +917,27 @@
                 }
                 return result;
             };
-            const paths = parsed.references;
             const binder = {
                 render: undefined,
                 binder: this,
                 meta: {},
                 type,
                 assignee,
-                compute, paths,
+                compute,
+                paths: parsed.references,
                 node, owner, name, value,
                 rewrites, context,
                 container,
             };
             node.$binder = binder;
             binder.render = this.binders[type].bind(null, binder);
-            // binder.render = window.requestAnimationFrame.bind(null, () => this.binders[ type ](binder));
             if (!this.nodeBinders.has(node)) {
                 this.nodeBinders.set(node, new Set([binder]));
             }
             else {
                 this.nodeBinders.get(node).add(binder);
             }
-            for (const path of paths) {
+            for (const path of parsed.references) {
                 if (path) {
                     if (!this.pathBinders.has(path)) {
                         this.pathBinders.set(path, new Set([binder]));
@@ -928,44 +947,37 @@
                     }
                 }
             }
-            binder.render();
-            // tick.then(binder.render.bind());
-            // return binder.render();
+            return binder.render();
         }
         ;
         async remove(node) {
             // const tasks = []
             if (node.nodeType === AN || node.nodeType === TN) {
                 this.unbind(node);
-                // tick.then(this.unbind.bind(this, node));
                 // tasks.push(this.unbind(node));
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
                 for (const attribute of attributes) {
                     this.unbind(attribute);
-                    // tick.then(this.unbind.bind(this, attribute));
                     // tasks.push(this.unbind(attribute));
                 }
                 let child = node.firstChild;
                 while (child) {
                     // tasks.push(this.remove(child));
-                    // tick.then(this.remove.bind(this, child));
                     this.remove(child);
                     child = child.nextSibling;
                 }
             }
         }
-        // add (node: Node, container: any, context: any, rewrites?: any) {
         async add(node, container, context, rewrites) {
-            // const tasks = [];
+            const tasks = [];
             if (node.nodeType === AN) {
                 const attribute = node;
                 if (this.syntaxMatch.test(attribute.value)) {
                     node.$bound = true;
-                    this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
-                    // tick.then(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                    // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    // this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
+                    tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                 }
             }
             else if (node.nodeType === TN) {
@@ -979,14 +991,12 @@
                     return;
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    // tasks.push(this.add(split, container, context, rewrites));
-                    // tick.then(this.add.bind(this, split, container, context, rewrites));
-                    this.add(split, container, context, rewrites);
+                    tasks.push(this.add(split, container, context, rewrites));
+                    // this.add(split, container, context, rewrites);
                 }
                 node.$bound = true;
-                // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
-                // tick.then(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
-                this.bind(node, container, 'text', node.nodeValue, node, context, rewrites);
+                tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
+                // this.bind(node, container, 'text', node.nodeValue, node, context, rewrites);
             }
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
@@ -996,27 +1006,25 @@
                         node.$bound = true;
                         if (attribute.name === 'each' || attribute.name === this.prefixEach)
                             each = true;
-                        // tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                        // tick.then(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                        this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
+                        tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                        // this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
                         // } else if (attribute.name === 'value' && node.nodeName === 'OPTION') {
                         // tick.then(this.bind.bind(this, attribute, container, attribute.name, `{{'${attribute.value}'}}`, attribute.ownerElement));
                         // } else if (attribute.name === 'value' && node.nodeName === 'SELECT') {
                         // tick.then(this.bind.bind(this, attribute, container, attribute.name, `{{'$value ?? ${attribute.value}'}}`, attribute.ownerElement));
                     }
                 }
+                // if (each) return;
                 if (each)
-                    return;
-                // if (each) return Promise.all(tasks);
+                    return Promise.all(tasks);
                 let child = node.firstChild;
                 while (child) {
-                    // tasks.push(this.add(child, container, context, rewrites));
-                    // tick.then(this.add.bind(this, child, container, context, rewrites));
-                    this.add(child, container, context, rewrites);
+                    tasks.push(this.add(child, container, context, rewrites));
+                    // this.add(child, container, context, rewrites);
                     child = child.nextSibling;
                 }
             }
-            // return Promise.all(tasks);
+            return Promise.all(tasks);
         }
     }
 

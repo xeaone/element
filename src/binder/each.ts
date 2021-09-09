@@ -1,9 +1,7 @@
 const space = /\s+/;
-const tick = Promise.resolve();
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
-// const inputEvent = new Event('input', { bubbles: true, cancelable: true });
 
-const each = async function (binder) {
+const each = async function (binder, data) {
 
     binder.owner.$ready = false;
 
@@ -24,6 +22,7 @@ const each = async function (binder) {
         binder.meta.variableName = variable;
         binder.meta.parts = path.split('.');
 
+        binder.meta.tasks = [];
         binder.meta.keys = [];
         binder.meta.setup = true;
         binder.meta.targetLength = 0;
@@ -46,13 +45,15 @@ const each = async function (binder) {
 
     }
 
-    const data = await binder.compute();
+    if (!data) {
+        data = await binder.compute();
 
-    if (data?.constructor === Array) {
-        binder.meta.targetLength = data.length;
-    } else {
-        binder.meta.keys = Object.keys(data || {});
-        binder.meta.targetLength = binder.meta.keys.length;
+        if (data?.constructor === Array) {
+            binder.meta.targetLength = data.length;
+        } else {
+            binder.meta.keys = Object.keys(data || {});
+            binder.meta.targetLength = binder.meta.keys.length;
+        }
     }
 
     if (binder.meta.currentLength > binder.meta.targetLength) {
@@ -69,13 +70,13 @@ const each = async function (binder) {
             binder.meta.currentLength--;
         }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
-        // let indexValue, keyValue, variableValue, context, rewrites, child, node;
         while (binder.meta.currentLength < binder.meta.targetLength) {
+            // binder.owner.appendChild(binder.meta.templateElement.content.cloneNode(true));
+            // binder.meta.queueElement.content.appendChild(binder.meta.templateElement.content.cloneNode(true));
 
             const indexValue = binder.meta.currentLength;
-            const keyValue = binder.meta.keys[ indexValue ] ?? indexValue;
-            const variableValue = `${binder.meta.path}.${keyValue}`;
-
+            const keyValue = binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength;
+            const variableValue = `${binder.meta.path}.${binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength}`;
             const context = new Proxy({}, {
                 has (target, key) {
                     return true;
@@ -117,20 +118,30 @@ const each = async function (binder) {
             if (binder.meta.variableName) rewrites.push([ binder.meta.variableName, variableValue ]);
             if (binder.rewrites) rewrites.push(...binder.rewrites);
 
-            // const d = document.createElement('div');
-            // d.className = 'box';
-            // const t = document.createTextNode('{{item.number}}');
-            // tick.then(binder.binder.add.bind(binder.binder, t, binder.container, dynamics));
-            // d.appendChild(t);
-            // binder.meta.queueElement.content.appendChild(d)
-
-            for (const child of binder.meta.templateElement.content.childNodes) {
-                const node = child.cloneNode(true);
-                binder.owner.appendChild(node);
+            // const stop = indexValue + binder.meta.templateLength;
+            // for (let i = indexValue; i < stop; i++) {
+            const clone = binder.meta.templateElement.content.cloneNode(true);
+            for (const node of clone.childNodes) {
                 // binder.meta.queueElement.content.appendChild(node);
+                // binder.owner.appendChild(node);
+                // const node = child.cloneNode(true);
+                // binder.meta.queueElement.content.replaceChild(node, placeholder);
                 // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, context, rewrites));
-                binder.binder.add(node, binder.container, context, rewrites);
+                // binder.binder.add(node, binder.container, context, rewrites);
+                // binder.meta.tasks.push(binder.binder.add(node, binder.container, context, rewrites));
+                // binder.meta.tasks.push(binder.binder.add(binder.owner.childNodes[ i ], binder.container, context, rewrites));
+                binder.meta.tasks.push(binder.binder.add(node, binder.container, context, rewrites));
+                // binder.binder.add(node, binder.container, context, rewrites);
             }
+
+            binder.owner.appendChild(clone);
+
+            // var d = document.createElement('div');
+            // d.classList.add('box');
+            // var t = document.createTextNode('{{item.number}}');
+            // binder.meta.tasks.push(binder.binder.add(t, binder.container, context, rewrites));
+            // d.appendChild(t);
+            // binder.meta.queueElement.content.appendChild(d);
 
             binder.meta.currentLength++;
         }
@@ -138,20 +149,13 @@ const each = async function (binder) {
     }
 
     if (binder.meta.currentLength === binder.meta.targetLength) {
-        // window.requestAnimationFrame(() => binder.owner.appendChild(binder.meta.queueElement.content));
+
+        await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
+        binder.owner.appendChild(binder.meta.queueElement.content);
         binder.owner.$ready = true;
 
         if (binder.owner.nodeName === 'SELECT') {
-            // for (const option of binder.owner.options) {
-            //     if (!('$binder' in option)) continue;
-            //     option.addEventListener('renderedValue', function () {
-            //         binder.owner.attributes?.value?.$binder.render();
-            //         // window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
-            //     });
-            // }
-
             binder.owner.attributes?.value?.$binder.render();
-            // window.requestAnimationFrame(() => binder.owner.attributes.value?.$binder.render());
         }
 
     }

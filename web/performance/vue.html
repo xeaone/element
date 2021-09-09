@@ -44,7 +44,7 @@
                 text: 'text',
                 items: [],
                 message: '',
-                count: 1000,
+                count: 100000,
                 one: { two: 'three' },
             }
         },
@@ -83,6 +83,7 @@
                 }
                 this.items = items;
                 console.timeEnd('overwrite');
+                window.model = this;
             },
             clear() {
                 this.items = [];

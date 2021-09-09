@@ -3,7 +3,7 @@ type task = (path: string) => Promise<any>;
 // type task = (tasks: string[]) => Promise<any>;
 type tasks = string[];
 
-const tick = Promise.resolve();
+// const tick = Promise.resolve();
 
 const deleteProperty = function (task: task, tasks: tasks, path: string, target: any, key: any) {
 
@@ -18,6 +18,10 @@ const deleteProperty = function (task: task, tasks: tasks, path: string, target:
 
     return true;
 };
+
+// const get = function (task: task, tasks: tasks, path: string, target: any, key, value) {
+//     return target[ key ];
+// };
 
 const set = function (task: task, tasks: tasks, path: string, target: any, key, value) {
 
@@ -58,8 +62,9 @@ const observer = function (source: any, task: task, tasks: tasks = [], path: str
 
     if (source?.constructor === Array) {
         target = [];
+        // target.$path = `${path}`;
 
-        for (let key = 0, length = source.length; key < length; key++) {
+        for (let key = 0; key < source.length; key++) {
             // tasks.push(path ? `${path}.${key}` : `${key}`);
             target[ key ] = observer(source[ key ], task, tasks, path ? `${path}.${key}` : `${key}`);
             // task(path ? `${path}.${key}` : `${key}`);
@@ -73,6 +78,7 @@ const observer = function (source: any, task: task, tasks: tasks = [], path: str
 
     } else if (source?.constructor === Object) {
         target = {};
+        // target.$path = `${path}`;
 
         for (const key in source) {
             // tasks.push(path ? `${path}.${key}` : `${key}`);
