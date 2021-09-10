@@ -73,7 +73,8 @@ export default class Component extends HTMLElement {
         this.data = Observer(this.data, async path => {
             let binder, binders;
             for (binders of this.#binder.pathBinders) {
-                if (binders[ 1 ] && (binders[ 0 ] === path || binders[ 0 ].startsWith(`${path}.`))) {
+                if (binders[ 1 ] && binders[ 0 ] === path) {
+                    // if (binders[ 1 ] && (binders[ 0 ] === path || binders[ 0 ].startsWith(`${path}.`))) {
                     for (binder of binders[ 1 ]) {
                         binder.render();
                         // tick.then(binder.render.bind());
@@ -107,7 +108,8 @@ export default class Component extends HTMLElement {
         //     }
         // });
 
-        const context = Contexter(this.data);
+        // const context = Contexter(this.data);
+        const context = this.data;
 
         if (this.adopt) {
             let child = this.firstChild;

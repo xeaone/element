@@ -157,52 +157,133 @@
 //     return { references, assignees };
 // };
 
-const matchAssignee = /([a-zA-Z0-9$_.]+)\s*[!%^&*+|/<>-]*=\s*[^=>]/;
 
-const replaceEndBracket = /\s*\][^;]*/g;
-const removeStrings = /".*?[^\\]*"|'.*?[^\\]*\'|`.*?[^\\]*`/g;
-const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
-const replaceOutside = /[^{}]*{{.*?\s+of\s+|[^{}]*{{|}}[^{}]*/g;
-const replaceSeperator = /\s+|\|+|\/+|\(+|\)+|\[+|\^+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g; // \]+
+// const matchAssignee = /([a-zA-Z0-9$_.]+)\s*[!%^&*+|/<>-]*=\s*[^=>]/;
 
-const replaceProtected = new RegExp([
-    `;(
-        [0-9]+|
-        \\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-        this|window|document|console|location|Object|Array|Math|Date|Number|String|Boolean|Promise|
-        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
-        yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
-    )[^;]*;`,
-].join('').replace(/\s|\t|\n/g, ''), 'g');
+// const replaceEndBracket = /\s*\][^;]*/g;
+// const removeStrings = /".*?[^\\]*"|'.*?[^\\]*\'|`.*?[^\\]*`/g;
+// const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
+// const replaceOutside = /[^{}]*{{.*?\s+of\s+|[^{}]*{{|}}[^{}]*/g;
+// const replaceSeperator = /\s+|\|+|\/+|\(+|\)+|\[+|\^+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g; // \]+
+
+// const replaceProtected = new RegExp([
+//     `;(
+//         [0-9]+|
+//         \\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+//         this|window|document|console|location|Object|Array|Math|Date|Number|String|Boolean|Promise|
+//         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+//         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
+//     )[^;]*;`,
+// ].join('').replace(/\s|\t|\n/g, ''), 'g');
+
+// const cache = new Map();
+
+// const parse = function (data) {
+//     let result = cache.get(data);
+//     if (result) return result;
+
+//     result = {};
+//     cache.set(data, result);
+
+//     data = data.replace(replaceOutside, ';');
+//     data = data.replace(removeStrings, '');
+//     data = data.replace(normalizeReference, '.$2');
+
+//     const assignee = data.match(matchAssignee)?.[ 1 ];
+
+//     data = data.replace(replaceSeperator, ';');
+//     data = data.replace(replaceEndBracket, ';');
+
+//     // if (rewrites) {
+//     //     for (const [ name, value ] of rewrites) {
+//     //         data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
+//     //     }
+//     // }
+
+//     data = data.replace(replaceProtected, ';');
+
+//     result.references = data.split(/;+/).slice(1, -1) || [];
+//     result.assignees = assignee ? [ assignee ] : [];
+
+//     return result;
+// };
+
+const skips = new RegExp([
+    `^(
+        window|document|console|location|
+        Object|Array|Math|Date|Number|String|Boolean|Promise|
+        \\$render|\\$event|\\$value|\\$checked|\\$form|\\$r|\\$e|\\$v|\\$c|\\$f
+    )\\b`,
+].join('').replace(/\s|\t|\n/g, ''));
 
 const cache = new Map();
+const has = () => true;
 
-const parse = function (data) {
-    let result = cache.get(data);
-    if (result) return result;
+const set = function (rewrites, sets, gets, path, t, key) {
+    if (typeof key !== 'string') return;
 
-    result = {};
-    cache.set(data, result);
+    path = path ? `${path}.${key}` : `${key}`;
 
-    data = data.replace(replaceOutside, ';');
-    data = data.replace(removeStrings, '');
-    data = data.replace(normalizeReference, '.$2');
+    if (rewrites) {
+        for (const [ name, value ] of rewrites) {
+            path = path === name ? value : path;
+        }
+    }
 
-    const assignee = data.match(matchAssignee)?.[ 1 ];
+    if (!skips.test(path) && !gets.includes(path)) {
+        gets.push(path);
+    }
 
-    data = data.replace(replaceSeperator, ';');
-    data = data.replace(replaceEndBracket, ';');
+    if (!skips.test(path) && !sets.includes(path)) {
+        sets.push(path);
+    }
 
-    // if (rewrites) {
-    //     for (const [ name, value ] of rewrites) {
-    //         data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
-    //     }
-    // }
+    return true;
+};
 
-    data = data.replace(replaceProtected, ';');
+const get = function (rewrites, sets, gets, path, t, key) {
+    if (typeof key !== 'string') return;
 
-    result.references = data.split(/;+/).slice(1, -1) || [];
-    result.assignees = assignee ? [ assignee ] : [];
+    path = path ? `${path}.${key}` : `${key}`;
+
+    if (rewrites) {
+        for (const [ name, value ] of rewrites) {
+            path = path === name ? value : path;
+        }
+    }
+
+    if (!skips.test(path) && !gets.includes(path)) {
+        gets.push(path);
+    }
+
+    return new Proxy(() => undefined,
+        {
+            has,
+            set: set.bind(null, null, sets, gets, path),
+            get: get.bind(null, null, sets, gets, path),
+        }
+    );
+};
+
+const parse = function (value, compute, rewrites) {
+
+    let result = cache.get(value);
+
+    if (!result) {
+        const sets = [];
+        const gets = [];
+
+        const context = new Proxy({}, {
+            has,
+            set: set.bind(null, rewrites, sets, gets, ''),
+            get: get.bind(null, rewrites, sets, gets, '')
+        });
+
+        compute(context);
+
+        result = { gets, sets };
+        cache.set(value, result);
+    }
 
     return result;
 };

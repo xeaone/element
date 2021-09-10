@@ -1,6 +1,8 @@
 const space = /\s+/;
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
+console.warn('move each proxy item to the binder proxy creation');
+
 const each = async function (binder, data) {
 
     binder.owner.$ready = false;

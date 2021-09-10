@@ -60,62 +60,49 @@ export default class Binder {
     }
 
     async bind (node: Node, container: any, name, value, owner, context: any, rewrites?: any) {
-        const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
-
-        let parsed, compute;
-        compute = computer(value, context); // this is slow
-        parsed = parser(value); // this is slow
-
-        if (rewrites) {
-            for (const [ name, value ] of rewrites) {
-                for (let i = 0; i < parsed.references.length; i++) {
-                    parsed.references[ i ] = parsed.references[ i ].replace(new RegExp(`^(${name})\\b`), `${value}`);
-                }
-            }
-        }
-
-        const assignee = () => {
-            if (!parsed.assignees[ 0 ]) return;
-            let result = context;
-            const parts = parsed.assignees[ 0 ].split('.');
-            for (const part of parts) {
-                if (typeof result !== 'object') return;
-                result = result[ part ];
-            }
-            return result;
-        };
 
         const binder = {
             render: undefined,
             binder: this,
             meta: {},
-            type,
-            assignee,
-            compute,
-            paths: parsed.references,
+            type: name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard',
+            binders: this.pathBinders,
+            assignee: () => {
+                return undefined;
+                // if (!parsed.sets[ 0 ]) return;
+                // let result = context;
+                // const parts = parsed.sets[ 0 ].split('.');
+                // for (const part of parts) {
+                //     if (typeof result !== 'object') return;
+                //     result = result[ part ];
+                // }
+                // return result;
+            },
+            compute: undefined,
             node, owner, name, value,
             rewrites, context,
             container,
         };
 
         (node as any).$binder = binder;
-        binder.render = this.binders[ type ].bind(null, binder);
+        binder.compute = computer(binder);
+        binder.render = this.binders[ binder.type ].bind(null, binder);
 
-        if (!this.nodeBinders.has(node)) {
-            this.nodeBinders.set(node, new Set([ binder ]));
-        } else {
-            this.nodeBinders.get(node).add(binder);
-        }
+        // if (!this.nodeBinders.has(node)) {
+        //     this.nodeBinders.set(node, new Set([ binder ]));
+        // } else {
+        //     this.nodeBinders.get(node).add(binder);
+        // }
 
-        for (const path of parsed.references) {
-            if (path) {
-                if (!this.pathBinders.has(path)) {
-                    this.pathBinders.set(path, new Set([ binder ]));
-                } else {
-                    this.pathBinders.get(path).add(binder);
-                }
-            }
-        }
+        // for (const path of parsed.gets) {
+        //     if (path) {
+        //         if (!this.pathBinders.has(path)) {
+        //             this.pathBinders.set(path, new Set([ binder ]));
+        //         } else {
+        //             this.pathBinders.get(path).add(binder);
+        //         }
+        //     }
+        // }
 
         return binder.render();
     };
