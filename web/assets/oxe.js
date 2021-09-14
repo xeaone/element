@@ -375,75 +375,69 @@
             }
         }
         else if (binder.meta.currentLength < binder.meta.targetLength) {
+            let clone, node, rewrites, context, variableValue, keyValue, indexValue;
             while (binder.meta.currentLength < binder.meta.targetLength) {
-                // binder.owner.appendChild(binder.meta.templateElement.content.cloneNode(true));
-                // binder.meta.queueElement.content.appendChild(binder.meta.templateElement.content.cloneNode(true));
-                const indexValue = binder.meta.currentLength;
-                const keyValue = binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength;
-                const variableValue = `${binder.meta.path}.${binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength}`;
-                const context = new Proxy({}, {
-                    has(target, key) {
-                        return true;
-                    },
-                    get(target, key) {
-                        if (key === binder.meta.variableName) {
-                            let result = binder.context;
-                            for (const key of binder.meta.parts) {
-                                result = result[key];
-                                if (!result)
-                                    return;
-                            }
-                            return typeof result === 'object' ? result[keyValue] : undefined;
-                        }
-                        else if (key === binder.meta.indexName) {
-                            return indexValue;
-                        }
-                        else if (key === binder.meta.keyName) {
-                            return keyValue;
-                        }
-                        else {
-                            return binder.context[key];
-                        }
-                    },
-                    set(target, key, value) {
-                        if (key === binder.meta.variableName) {
-                            let result = binder.context;
-                            for (const key of binder.meta.parts) {
-                                result = result[key];
-                                if (!result)
-                                    return true;
-                            }
-                            typeof result === 'object' ? result[keyValue] = value : undefined;
-                        }
-                        else {
-                            binder.context[key] = value;
-                        }
-                        return true;
-                    }
-                });
-                const rewrites = [];
+                indexValue = binder.meta.currentLength;
+                keyValue = binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength;
+                variableValue = `${binder.meta.path}.${binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength}`;
+                context = binder.context;
+                // variableValue = `${binder.meta.path}.${binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength}`;
+                // context = new Proxy({}, {
+                //     has (target, key) {
+                //         return true;
+                //     },
+                //     get: function (binder, indexValue, keyValue, target, key) {
+                //         if (key === binder.meta.variableName) {
+                //             let result = binder.context;
+                //             // let result = binder.container.data;
+                //             for (const key of binder.meta.parts) {
+                //                 result = result[ key ];
+                //                 if (!result) return;
+                //             }
+                //             return typeof result === 'object' ? result[ keyValue ] : undefined;
+                //         } else if (key === binder.meta.indexName) {
+                //             return indexValue;
+                //         } else if (key === binder.meta.keyName) {
+                //             return keyValue;
+                //         } else {
+                //             // return binder.container.data[ key ];
+                //             return binder.context[ key ];
+                //         }
+                //     }.bind(null, binder, indexValue, keyValue),
+                //     set: function (binder, indexValue, keyValue, target, key, value) {
+                //         if (key === binder.meta.variableName) {
+                //             let result = binder.context;
+                //             // let result = binder.container.data;
+                //             for (const key of binder.meta.parts) {
+                //                 result = result[ key ];
+                //                 if (!result) return true;
+                //             }
+                //             typeof result === 'object' ? result[ keyValue ] = value : undefined;
+                //         } else {
+                //             // return binder.container.data[ key ];
+                //             binder.context[ key ] = value;
+                //         }
+                //         return true;
+                //     }.bind(null, binder, indexValue, keyValue),
+                // });
+                rewrites = binder.rewrites?.slice() || [];
                 if (binder.meta.indexName)
-                    rewrites.push([binder.meta.indexName, indexValue]);
+                    rewrites.unshift([binder.meta.indexName, indexValue, 'index']);
                 if (binder.meta.keyName)
-                    rewrites.push([binder.meta.keyName, keyValue]);
+                    rewrites.unshift([binder.meta.keyName, keyValue, 'key']);
                 if (binder.meta.variableName)
-                    rewrites.push([binder.meta.variableName, variableValue]);
-                if (binder.rewrites)
-                    rewrites.push(...binder.rewrites);
-                // const stop = indexValue + binder.meta.templateLength;
-                // for (let i = indexValue; i < stop; i++) {
-                const clone = binder.meta.templateElement.content.cloneNode(true);
-                for (const node of clone.childNodes) {
-                    // binder.meta.queueElement.content.appendChild(node);
-                    // binder.owner.appendChild(node);
-                    // const node = child.cloneNode(true);
-                    // binder.meta.queueElement.content.replaceChild(node, placeholder);
-                    // tick.then(binder.binder.add.bind(binder.binder, node, binder.container, context, rewrites));
-                    // binder.binder.add(node, binder.container, context, rewrites);
-                    // binder.meta.tasks.push(binder.binder.add(node, binder.container, context, rewrites));
-                    // binder.meta.tasks.push(binder.binder.add(binder.owner.childNodes[ i ], binder.container, context, rewrites));
-                    binder.meta.tasks.push(binder.binder.add(node, binder.container, context, rewrites));
-                    // binder.binder.add(node, binder.container, context, rewrites);
+                    rewrites.unshift([binder.meta.variableName, variableValue, 'variable']);
+                // rewrites = [];
+                // if (binder.meta.indexName) rewrites.push([ binder.meta.indexName, indexValue, 'index' ]);
+                // if (binder.meta.keyName) rewrites.push([ binder.meta.keyName, keyValue, 'key' ]);
+                // if (binder.meta.variableName) rewrites.push([ binder.meta.variableName, variableValue, 'variable' ]);
+                // if (binder.rewrites) rewrites.push(...binder.rewrites);
+                clone = binder.meta.templateElement.content.cloneNode(true);
+                node = clone.firstChild;
+                if (node) {
+                    do {
+                        binder.meta.tasks.push(binder.binder.add(node, binder.container, context, rewrites));
+                    } while (node = node.nextSibling);
                 }
                 binder.owner.appendChild(clone);
                 // var d = document.createElement('div');
@@ -611,7 +605,9 @@
     const ignores = [
         'window', 'document', 'console', 'location',
         'Object', 'Array', 'Math', 'Date', 'Number', 'String', 'Boolean', 'Promise',
-        '$render', '$event', '$value', '$checked', '$form', '$r', '$e', '$v', '$c', '$f'
+        // '$binder',
+        '$render',
+        '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f'
     ];
     const bind = async function (binder, path) {
         if (!binder.binders.has(path)) {
@@ -626,37 +622,103 @@
             return true;
         return ignores.includes(key) ? false : true;
     };
-    const set = function (binder, path, target, key, value) {
+    // const set = function (binder, path, target, key, value) {
+    //     if (typeof key !== 'string') return true;
+    //     path = path ? `${path}.${key}` : `${key}`;
+    //     if (binder.rewrites) {
+    //         for (const [ name, value ] of binder.rewrites) {
+    //             path = path === name ? value : path;
+    //         }
+    //     }
+    //     bind(binder, path);
+    //     target[ key ] = value;
+    //     // binder.assignee = () => target[ key ];
+    //     // if (binder.assignee) {}
+    //     return true;
+    // };
+    // const get = function (binder, path, target, key) {
+    //     if (typeof key !== 'string') return;
+    //     path = path ? `${path}.${key}` : `${key}`;
+    //     if (binder.rewrites) {
+    //         for (const [ name, value ] of binder.rewrites) {
+    //             path = path === name ? value : path;
+    //         }
+    //     }
+    //     bind(binder, path);
+    //     const value = target[ key ];
+    //     if (value && typeof value === 'object') {
+    //         return new Proxy(value,
+    //             {
+    //                 // has,
+    //                 set: set.bind(null, binder, path),
+    //                 get: get.bind(null, binder, path),
+    //             }
+    //         );
+    //     } else {
+    //         return value;
+    //     }
+    // };
+    const set = function (path, source, target, key, value) {
+        if (key === '$binder') {
+            target.$binder = value;
+            return true;
+        }
         if (typeof key !== 'string')
             return true;
         path = path ? `${path}.${key}` : `${key}`;
-        if (binder.rewrites) {
-            for (const [name, value] of binder.rewrites) {
-                path = path === name ? value : path;
-            }
-        }
-        bind(binder, path);
-        target[key] = value;
+        // if (target.$binder.rewrites) {
+        //     for (const [ name, value ] of binder.rewrites) {
+        //         path = path === name ? value : path;
+        //     }
+        // }
+        bind(target.$binder, path);
+        source = source || target.$binder.context;
+        source[key] = value;
         // binder.assignee = () => target[ key ];
         // if (binder.assignee) {}
         return true;
     };
-    const get = function (binder, path, target, key) {
+    const get = function (path, source, target, key) {
+        if (key === '$binder') {
+            return target.$binder;
+        }
         if (typeof key !== 'string')
             return;
-        path = path ? `${path}.${key}` : `${key}`;
-        if (binder.rewrites) {
-            for (const [name, value] of binder.rewrites) {
-                path = path === name ? value : path;
+        if (!path && target.$binder.rewrites?.length) {
+            for (const [name, value, type] of target.$binder.rewrites) {
+                if (key === name) {
+                    if (type === 'variable') {
+                        let result = target.$binder.context;
+                        for (const part of value.split('.')) {
+                            result = result[part];
+                            path = path ? `${path}.${part}` : `${part}`;
+                            if (!result)
+                                return;
+                        }
+                        // console.log(name, value, type);
+                        bind(target.$binder, path);
+                        return result;
+                    }
+                    else {
+                        return value;
+                    }
+                }
             }
         }
-        bind(binder, path);
-        const value = target[key];
+        path = path ? `${path}.${key}` : `${key}`;
+        // if (!source && target.$binder.rewrites) {
+        //     for (const [ name, value ] of target.$binder.rewrites) {
+        //         path = path === name ? value : path;
+        //     }
+        //     // console.log(path);
+        // }
+        bind(target.$binder, path);
+        source = source || target.$binder.context;
+        const value = source[key];
         if (value && typeof value === 'object') {
-            return new Proxy(value, {
-                // has,
-                set: set.bind(null, binder, path),
-                get: get.bind(null, binder, path),
+            return new Proxy({ $binder: target.$binder }, {
+                set: set.bind(null, path, value),
+                get: get.bind(null, path, value),
             });
         }
         else {
@@ -678,6 +740,11 @@
             // $context.$render = $render;
             // ${assignee ? `if (!$render || !('value' in $render)) $v = $value = ${assignee}` : ''}
             // ${assignee ? `if (!$render || !('checked' in $render)) $c = $checked = ${assignee}` : ''}
+            // if (binder.rewrites) {
+            //     for (const [ name, value ] of binder.rewrites) {
+            //         code = code.replace(new RegExp(`{{(.*?[^a-zA-Z0-9.$_])?(${name})([^a-zA-Z0-9$_].*?)?}}`, 'g'), value);
+            //     }
+            // }
             code = `
         if ($render) {
             var $form = $f = $render.form;
@@ -685,6 +752,7 @@
             var $value = $v = $render.value;
             var $checked = $c = $render.checked;
         }
+        $context.$binder = $binder;
         with ($context) {
             try {
                 return ${code};
@@ -698,16 +766,26 @@
             }
         }
         `;
-            compute = new Function('$context', '$render', code);
+            compute = new Function('$context', '$binder', '$render', code);
+            compute = compute.bind(null, new Proxy({}, {
+                // compute = compute.bind(null, new Proxy(binder.context, {
+                has,
+                set: set.bind(null, '', null),
+                get: get.bind(null, '', null)
+                // set: set.bind(null, '', binder.container.data),
+                // get: get.bind(null, '', binder.container.data)
+            }));
             cache.set(binder.value, compute);
         }
-        return compute.bind(null, new Proxy(binder.context, {
-            has,
-            set: set.bind(null, binder, ''),
-            get: get.bind(null, binder, '')
-        }));
+        return compute.bind(null, binder);
+        // return compute.bind(null, new Proxy(binder.context, {
+        //     has,
+        //     set: set.bind(null, binder, ''),
+        //     get: get.bind(null, binder, '')
+        // }));
     };
 
+    // import parser from './parser';
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
     const AN = Node.ATTRIBUTE_NODE;
@@ -846,7 +924,8 @@
             else if (node.nodeType === EN) {
                 const attributes = node.attributes;
                 let each = false;
-                for (const attribute of attributes) {
+                let attribute;
+                for (attribute of attributes) {
                     if (this.syntaxMatch.test(attribute.value)) {
                         node.$bound = true;
                         if (attribute.name === 'each' || attribute.name === this.prefixEach)
@@ -863,10 +942,11 @@
                 if (each)
                     return Promise.all(tasks);
                 let child = node.firstChild;
-                while (child) {
-                    tasks.push(this.add(child, container, context, rewrites));
-                    // this.add(child, container, context, rewrites);
-                    child = child.nextSibling;
+                if (child) {
+                    do {
+                        tasks.push(this.add(child, container, context, rewrites));
+                        // this.add(child, container, context, rewrites);
+                    } while (child = child.nextSibling);
                 }
             }
             return Promise.all(tasks);
@@ -927,6 +1007,7 @@
         }
     };
 
+    // import Contexter from './contexter';
     // const tick = Promise.resolve();
     class Component extends HTMLElement {
         static attributes;
@@ -1017,6 +1098,7 @@
             // });
             // const context = Contexter(this.data);
             const context = this.data;
+            // const context = {};
             if (this.adopt) {
                 let child = this.firstChild;
                 while (child) {

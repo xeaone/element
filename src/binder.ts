@@ -6,7 +6,7 @@ import html from './binder/html';
 import text from './binder/text';
 import on from './binder/on';
 import computer from './computer';
-import parser from './parser';
+// import parser from './parser';
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -164,7 +164,8 @@ export default class Binder {
             const attributes = (node as Element).attributes;
             let each = false;
 
-            for (const attribute of attributes) {
+            let attribute;
+            for (attribute of attributes) {
                 if (this.syntaxMatch.test(attribute.value)) {
                     (node as any).$bound = true;
                     if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
@@ -181,10 +182,11 @@ export default class Binder {
             if (each) return Promise.all(tasks);
 
             let child = node.firstChild;
-            while (child) {
-                tasks.push(this.add(child, container, context, rewrites));
-                // this.add(child, container, context, rewrites);
-                child = child.nextSibling;
+            if (child) {
+                do {
+                    tasks.push(this.add(child, container, context, rewrites));
+                    // this.add(child, container, context, rewrites);
+                } while (child = child.nextSibling);
             }
 
         }

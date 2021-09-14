@@ -1,4 +1,4 @@
-import Contexter from './contexter';
+// import Contexter from './contexter';
 import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
@@ -110,6 +110,7 @@ export default class Component extends HTMLElement {
 
         // const context = Contexter(this.data);
         const context = this.data;
+        // const context = {};
 
         if (this.adopt) {
             let child = this.firstChild;
