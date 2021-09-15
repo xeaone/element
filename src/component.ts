@@ -1,9 +1,6 @@
-// import Contexter from './contexter';
 import Observer from './observer';
 import Binder from './binder';
 import Css from './css';
-
-// const tick = Promise.resolve();
 
 export default class Component extends HTMLElement {
 
@@ -70,12 +67,11 @@ export default class Component extends HTMLElement {
     async render () {
         const tasks = [];
 
-        this.data = Observer(this.data, async path => {
-            let binder, binders;
-            for (binders of this.#binder.pathBinders) {
-                if (binders[ 1 ] && binders[ 0 ] === path) {
+        const context = this.data = Observer(this.data, async path => {
+            for (const [ key, value ] of this.#binder.pathBinders) {
+                if (value && key === path) {
                     // if (binders[ 1 ] && (binders[ 0 ] === path || binders[ 0 ].startsWith(`${path}.`))) {
-                    for (binder of binders[ 1 ]) {
+                    for (const binder of value) {
                         binder.render();
                         // tick.then(binder.render.bind());
                         // window.requestAnimationFrame(() => binder.render());
@@ -83,34 +79,6 @@ export default class Component extends HTMLElement {
                 }
             }
         });
-
-
-        // this.data = Observer(this.data, async paths => {
-        //     let path, binder, binders;
-        //     for (path of paths) {
-        //         binders = this.#binder.pathBinders.get(path);
-        //         if (!binders) continue;
-        //         for (binder of binders) {
-        //             binder.render();
-        //             // tick.then(binder.render.bind());
-        //             // window.requestAnimationFrame(() => binder.render());
-        //         }
-        //     }
-        // });
-
-        // this.data = Observer(this.data, async path => {
-        //     const binders = this.#binder.pathBinders.get(path);
-        //     if (!binders) return;
-        //     for (const binder of binders) {
-        //         binder.render();
-        //         // tick.then(binder.render.bind());
-        //         // window.requestAnimationFrame(() => binder.render());
-        //     }
-        // });
-
-        // const context = Contexter(this.data);
-        const context = this.data;
-        // const context = {};
 
         if (this.adopt) {
             let child = this.firstChild;

@@ -108,27 +108,28 @@ export default class Binder {
     };
 
     async remove (node: Node) {
-        // const tasks = []
+        const tasks = [];
 
         if (node.nodeType === AN || node.nodeType === TN) {
-            this.unbind(node);
-            // tasks.push(this.unbind(node));
+            // this.unbind(node);
+            tasks.push(this.unbind(node));
         } else if (node.nodeType === EN) {
             const attributes = (node as Element).attributes;
             for (const attribute of attributes) {
-                this.unbind(attribute);
-                // tasks.push(this.unbind(attribute));
+                // this.unbind(attribute);
+                tasks.push(this.unbind(attribute));
             }
 
             let child = node.firstChild;
             while (child) {
-                // tasks.push(this.remove(child));
-                this.remove(child);
+                tasks.push(this.remove(child));
+                // this.remove(child);
                 child = child.nextSibling;
             }
 
         }
 
+        return Promise.all(tasks);
     }
 
     async add (node: Node, container: any, context: any, rewrites?: any) {
@@ -161,11 +162,10 @@ export default class Binder {
             tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
             // this.bind(node, container, 'text', node.nodeValue, node, context, rewrites);
         } else if (node.nodeType === EN) {
-            const attributes = (node as Element).attributes;
             let each = false;
 
-            let attribute;
-            for (attribute of attributes) {
+            const attributes = (node as Element).attributes;
+            for (const attribute of attributes) {
                 if (this.syntaxMatch.test(attribute.value)) {
                     (node as any).$bound = true;
                     if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
@@ -178,7 +178,6 @@ export default class Binder {
                 }
             }
 
-            // if (each) return;
             if (each) return Promise.all(tasks);
 
             let child = node.firstChild;
