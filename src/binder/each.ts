@@ -11,6 +11,7 @@ const get = function (binder, indexValue, keyValue, target, key) {
     if (key === binder.meta.variableName) {
         let result = binder.context;
         for (const key of binder.meta.parts) {
+
             result = result[ key ];
             if (!result) return;
         }
@@ -46,12 +47,6 @@ const each = async function (binder, data) {
         binder.owner.$length = 0;
 
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
-
-        // if (binder.rewrites) {
-        //     for (const [ name, value ] of binder.rewrites) {
-        //         path = path.replace(new RegExp(`^(${name})\\b`), value);
-        //     }
-        // }
 
         binder.meta.path = path;
         binder.meta.keyName = key;

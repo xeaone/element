@@ -73,6 +73,8 @@ if (!window.Node.prototype.getRootNode) {
     }
 }
 
+(window as any).ValueEmpty = Symbol('ValueEmpty');
+
 export default Object.freeze(new class Oxe {
 
     Component = Component;

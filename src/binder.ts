@@ -62,6 +62,7 @@ export default class Binder {
     async bind (node: Node, container: any, name, value, owner, context: any, rewrites?: any) {
 
         const binder = {
+            paths: new Set(),
             render: undefined,
             binder: this,
             meta: {},

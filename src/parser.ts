@@ -28,6 +28,8 @@ const parse = function (data, rewrites?: string[][]) {
     let first = '';
     let reference = '';
 
+    // const assignees = [];
+    // const references = [];
     const assignees = new Set();
     const references = new Set();
 
@@ -61,6 +63,7 @@ const parse = function (data, rewrites?: string[][]) {
             } else {
                 if (rewrites && !reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
                 reference += (reference ? '.' + part : part);
+                // if (!isNumber.test(reference)) references.push(reference);
                 if (!isNumber.test(reference)) references.add(reference);
                 reference = part = '';
             }
@@ -86,6 +89,7 @@ const parse = function (data, rewrites?: string[][]) {
             } else {
                 if (rewrites && !reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
                 reference += (reference ? '.' + part : part);
+                // if (!isNumber.test(reference)) references.push(reference);
                 if (!isNumber.test(reference)) references.add(reference);
                 reference = part = '';
             }
@@ -122,6 +126,7 @@ const parse = function (data, rewrites?: string[][]) {
 
                     inReference = false;
                     if (part === 'of' || part === 'in') {
+                        // references.length = 0;
                         references.clear();
                         reference = part = '';
                     } else if (!reference && referenceFirstSkips.includes(part)) {
@@ -132,6 +137,8 @@ const parse = function (data, rewrites?: string[][]) {
                         reference += (reference ? '.' + part : part);
 
                         if (!isNumber.test(reference)) {
+                            // references.push(reference);
+                            // if (current === '=' && next !== '=') assignees.push(reference);
                             references.add(reference);
                             if (current === '=' && next !== '=') assignees.add(reference);
                         }
