@@ -38,8 +38,6 @@ const set = function (binder, indexValue, keyValue, target, key, value) {
 
 const each = async function (binder, data) {
 
-    binder.owner.$ready = false;
-
     if (!binder.meta.setup) {
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
@@ -125,7 +123,8 @@ const each = async function (binder, data) {
                 } while (node = node.nextSibling);
             }
 
-            binder.owner.appendChild(clone);
+            binder.meta.queueElement.content.appendChild(clone);
+            // binder.owner.appendChild(clone);
 
             // var d = document.createElement('div');
             // d.classList.add('box');
@@ -140,15 +139,9 @@ const each = async function (binder, data) {
     }
 
     if (binder.meta.currentLength === binder.meta.targetLength) {
-
         await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
         binder.owner.appendChild(binder.meta.queueElement.content);
-
-        if (binder.owner.nodeName === 'SELECT') {
-            binder.owner.$ready = true;
-            binder.owner.attributes?.value?.$binder.render();
-        }
-
+        binder.owner.attributes.value?.$binder.render();
     }
 
 };

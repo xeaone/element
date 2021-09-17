@@ -200,8 +200,6 @@
         owner.setAttribute('value', display);
     };
     const value = async function (binder) {
-        // if (binder.meta.rendering) return;
-        // binder.meta.rendering = true;
         const { owner, meta } = binder;
         if (!meta.setup) {
             meta.setup = true;
@@ -212,17 +210,16 @@
         const { type } = meta;
         let display, computed;
         if (type === 'select-one' || type === 'select-multiple') {
-            if ('each' in owner.attributes && !owner.$ready)
+            if (owner.attributes.each && !owner.attributes.each?.$binder?.ready)
                 return;
-            for (const option of owner.options) {
-                if (option.attributes.value?.$binder && !option.attributes.value?.$ready)
-                    return;
-            }
         }
         if (type === 'select-one') {
             computed = await binder.compute();
             owner.value = undefined;
             for (const option of owner.options) {
+                if (option.attributes.value?.$binder) {
+                    await option.attributes.value.$binder.task;
+                }
                 const optionValue = '$value' in option ? option.$value : option.value;
                 if (option.selected = optionValue === computed)
                     break;
@@ -230,7 +227,7 @@
             if (owner.options.length && !owner.selectedOptions.length) {
                 const [option] = owner.options;
                 option.selected = true;
-                owner.dispatchEvent(new Event('input'));
+                return owner.dispatchEvent(new Event('input'));
             }
             display = format(computed);
             owner.value = display;
@@ -238,6 +235,9 @@
         else if (type === 'select-multiple') {
             computed = await binder.compute();
             for (const option of owner.options) {
+                if (option.attributes.value?.$binder) {
+                    await option.attributes.value.$binder.task;
+                }
                 const optionValue = '$value' in option ? option.$value : option.value;
                 option.selected = computed?.includes(optionValue);
             }
@@ -264,24 +264,10 @@
             display = format(computed);
             owner.value = display;
         }
-        owner.$rendered = true;
         owner.$value = computed;
         if (type === 'checked' || type === 'radio')
             owner.$checked = computed;
         owner.setAttribute('value', display);
-        if (owner.nodeName === 'OPTION') {
-            owner.$ready = true;
-            owner.attributes.value.$ready = true;
-            let parent;
-            if (owner.parentElement?.nodeName === 'SELECT')
-                parent = owner.parentElement;
-            else if (owner.parentElement?.parentElement?.nodeName === 'SELECT')
-                parent = owner.parentElement.parentElement;
-            else
-                return;
-            parent.attributes.value?.$binder.render();
-        }
-        // binder.meta.rendering = false;
     };
 
     const space = /\s+/;
@@ -325,7 +311,6 @@
         return true;
     };
     const each = async function (binder, data) {
-        binder.owner.$ready = false;
         if (!binder.meta.setup) {
             let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
             binder.meta.path = path;
@@ -401,7 +386,8 @@
                         binder.meta.tasks.push(binder.binder.add(node, binder.container, context, rewrites));
                     } while (node = node.nextSibling);
                 }
-                binder.owner.appendChild(clone);
+                binder.meta.queueElement.content.appendChild(clone);
+                // binder.owner.appendChild(clone);
                 // var d = document.createElement('div');
                 // d.classList.add('box');
                 // var t = document.createTextNode('{{item.number}}');
@@ -414,10 +400,7 @@
         if (binder.meta.currentLength === binder.meta.targetLength) {
             await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
             binder.owner.appendChild(binder.meta.queueElement.content);
-            if (binder.owner.nodeName === 'SELECT') {
-                binder.owner.$ready = true;
-                binder.owner.attributes?.value?.$binder.render();
-            }
+            binder.owner.attributes.value?.$binder.render();
         }
     };
 
@@ -578,8 +561,9 @@
         'Reflect', 'Proxy',
     ];
     const bind = async function (binder, path) {
-        if (binder.binders.has(path)) {
-            binder.binders.get(path).add(binder);
+        const binders = binder.binders.get(path);
+        if (binders) {
+            binders.add(binder);
         }
         else {
             binder.binders.set(path, new Set([binder]));
@@ -657,17 +641,22 @@
             code = code.replace(/{{/g, convert ? `' + (` : '(');
             code = code.replace(/}}/g, convert ? `) + '` : ')');
             code = convert ? `'${code}'` : code;
-            // ${assignee? `return ${assignee};` : `return ${code};`}
             code = `
         $instance = $instance || {};
         var $f = $form = $instance.form;
         var $e = $event = $instance.event;
         with ($context) {
             try {
+                ${isValue || isChecked ? `
                 ${isValue ? `var $v = $value = $instance && 'value' in $instance ? $instance.value : ${assignee || 'undefined'};` : ''}
                 ${isChecked ? `var $c = $checked = $instance && 'checked' in $instance ? $instance.checked : ${assignee || 'undefined'};` : ''}
-                return ${code};
-            } catch (error) {
+                if ('value' in $instance || 'checked' in $instance) {
+                    return ${code};
+                } else {
+                    return ${assignee ? assignee : code};
+                }
+            ` : `return ${code};`}
+           } catch (error) {
                 // console.warn(error);
                 if (error.message.indexOf('Cannot set property') === 0) return;
                 else if (error.message.indexOf('Cannot read property') === 0) return;
@@ -733,7 +722,10 @@
             this.nodeBinders.delete(node);
         }
         async bind(node, container, name, value, owner, context, rewrites) {
+            // const self = this;
             const binder = {
+                // busy: true,
+                ready: false,
                 // paths: new Set(),
                 meta: {},
                 binder: this,
@@ -745,7 +737,19 @@
             };
             node.$binder = binder;
             binder.compute = computer(binder);
-            binder.render = this.binders[binder.type].bind(null, binder);
+            // binder.render = this.binders[ binder.type ].bind(null, binder);
+            binder.render = async function () {
+                this.ready = false;
+                this.task = this.binder.binders[this.type](this);
+                this.ready = true;
+                return this.task;
+                // return new Promise(resolve => window.requestAnimationFrame(() => {
+                //     this.ready = false;
+                //     this.task = this.binder.binders[ this.type ](this);
+                //     this.ready = true;
+                //     this.task.then(resolve);
+                // }));
+            };
             if (node.nodeType === AN) {
                 owner.$binders = owner.$binders || new Map();
                 owner.$binders.set(name, binder);
@@ -795,17 +799,21 @@
                 tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
             }
             else if (node.nodeType === EN) {
-                let each = false;
+                // let each = false;
+                // const each = (node as Element).attributes[ 'each' ];
+                // if (each && this.syntaxMatch.test(each.value)) {
+                //     tasks.push(this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites));
+                // }
                 const attributes = node.attributes;
                 for (const attribute of attributes) {
                     if (this.syntaxMatch.test(attribute.value)) {
-                        if (attribute.name === 'each' || attribute.name === this.prefixEach)
-                            each = true;
+                        // if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
                         tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                     }
                 }
-                if (each)
+                if (attributes.each)
                     return Promise.all(tasks);
+                // if (each) return Promise.all(tasks);
                 let child = node.firstChild;
                 if (child) {
                     do {

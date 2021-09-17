@@ -60,8 +60,11 @@ export default class Binder {
     }
 
     async bind (node: Node, container: any, name, value, owner, context: any, rewrites?: any) {
+        // const self = this;
 
         const binder = {
+            // busy: true,
+            ready: false,
             // paths: new Set(),
             meta: {},
             binder: this,
@@ -74,7 +77,19 @@ export default class Binder {
 
         (node as any).$binder = binder;
         binder.compute = computer(binder);
-        binder.render = this.binders[ binder.type ].bind(null, binder);
+        // binder.render = this.binders[ binder.type ].bind(null, binder);
+        binder.render = async function () {
+            this.ready = false;
+            this.task = this.binder.binders[ this.type ](this);
+            this.ready = true;
+            return this.task;
+            // return new Promise(resolve => window.requestAnimationFrame(() => {
+            //     this.ready = false;
+            //     this.task = this.binder.binders[ this.type ](this);
+            //     this.ready = true;
+            //     this.task.then(resolve);
+            // }));
+        };
 
         if (node.nodeType === AN) {
             owner.$binders = owner.$binders || new Map();
@@ -131,17 +146,23 @@ export default class Binder {
 
             tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
         } else if (node.nodeType === EN) {
-            let each = false;
+            // let each = false;
+
+            // const each = (node as Element).attributes[ 'each' ];
+            // if (each && this.syntaxMatch.test(each.value)) {
+            //     tasks.push(this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites));
+            // }
 
             const attributes = (node as Element).attributes;
             for (const attribute of attributes) {
                 if (this.syntaxMatch.test(attribute.value)) {
-                    if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
+                    // if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
                     tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                 }
             }
 
-            if (each) return Promise.all(tasks);
+            if ((attributes as any).each) return Promise.all(tasks);
+            // if (each) return Promise.all(tasks);
 
             let child = node.firstChild;
             if (child) {

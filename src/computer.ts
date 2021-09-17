@@ -26,8 +26,9 @@ const ignores = [
 ];
 
 const bind = async function (binder, path) {
-    if (binder.binders.has(path)) {
-        binder.binders.get(path).add(binder);
+    const binders = binder.binders.get(path);
+    if (binders) {
+        binders.add(binder);
     } else {
         binder.binders.set(path, new Set([ binder ]));
     }
@@ -118,17 +119,22 @@ const computer = function (binder: any) {
         code = code.replace(/}}/g, convert ? `) + '` : ')');
         code = convert ? `'${code}'` : code;
 
-        // ${assignee? `return ${assignee};` : `return ${code};`}
         code = `
         $instance = $instance || {};
         var $f = $form = $instance.form;
         var $e = $event = $instance.event;
         with ($context) {
             try {
+                ${isValue || isChecked ? `
                 ${isValue ? `var $v = $value = $instance && 'value' in $instance ? $instance.value : ${assignee || 'undefined'};` : ''}
                 ${isChecked ? `var $c = $checked = $instance && 'checked' in $instance ? $instance.checked : ${assignee || 'undefined'};` : ''}
-                return ${code};
-            } catch (error) {
+                if ('value' in $instance || 'checked' in $instance) {
+                    return ${code};
+                } else {
+                    return ${assignee ? assignee : code};
+                }
+            ` : `return ${code};`}
+           } catch (error) {
                 // console.warn(error);
                 if (error.message.indexOf('Cannot set property') === 0) return;
                 else if (error.message.indexOf('Cannot read property') === 0) return;

@@ -57,9 +57,6 @@ const input = async function (binder, event) {
 };
 
 const value = async function (binder) {
-    // if (binder.meta.rendering) return;
-    // binder.meta.rendering = true;
-
     const { owner, meta } = binder;
 
     if (!meta.setup) {
@@ -73,10 +70,7 @@ const value = async function (binder) {
     let display, computed;
 
     if (type === 'select-one' || type === 'select-multiple') {
-        if ('each' in owner.attributes && !owner.$ready) return;
-        for (const option of owner.options) {
-            if (option.attributes.value?.$binder && !option.attributes.value?.$ready) return;
-        }
+        if (owner.attributes.each && !owner.attributes.each?.$binder?.ready) return;
     }
 
     if (type === 'select-one') {
@@ -84,6 +78,9 @@ const value = async function (binder) {
         owner.value = undefined;
 
         for (const option of owner.options) {
+            if (option.attributes.value?.$binder) {
+                await option.attributes.value.$binder.task;
+            }
             const optionValue = '$value' in option ? option.$value : option.value;
             if (option.selected = optionValue === computed) break;
         }
@@ -91,7 +88,7 @@ const value = async function (binder) {
         if (owner.options.length && !owner.selectedOptions.length) {
             const [ option ] = owner.options;
             option.selected = true;
-            owner.dispatchEvent(new Event('input'));
+            return owner.dispatchEvent(new Event('input'));
         }
 
         display = format(computed);
@@ -100,6 +97,9 @@ const value = async function (binder) {
         computed = await binder.compute();
 
         for (const option of owner.options) {
+            if (option.attributes.value?.$binder) {
+                await option.attributes.value.$binder.task;
+            }
             const optionValue = '$value' in option ? option.$value : option.value;
             option.selected = computed?.includes(optionValue);
         }
@@ -121,25 +121,11 @@ const value = async function (binder) {
         owner.value = display;
     }
 
-    owner.$rendered = true;
     owner.$value = computed;
 
     if (type === 'checked' || type === 'radio') owner.$checked = computed;
     owner.setAttribute('value', display);
 
-    if (owner.nodeName === 'OPTION') {
-        owner.$ready = true;
-        owner.attributes.value.$ready = true;
-
-        let parent;
-        if (owner.parentElement?.nodeName === 'SELECT') parent = owner.parentElement;
-        else if (owner.parentElement?.parentElement?.nodeName === 'SELECT') parent = owner.parentElement.parentElement;
-        else return;
-
-        parent.attributes.value?.$binder.render();
-    }
-
-    // binder.meta.rendering = false;
 };
 
 export default value;
