@@ -1,8 +1,6 @@
 const space = /\s+/;
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
-console.warn('move each proxy item to the binder proxy creation');
-
 const has = function (target, key) {
     return true;
 };
@@ -10,9 +8,8 @@ const has = function (target, key) {
 const get = function (binder, indexValue, keyValue, target, key) {
     if (key === binder.meta.variableName) {
         let result = binder.context;
-        for (const key of binder.meta.parts) {
-
-            result = result[ key ];
+        for (const part of binder.meta.parts) {
+            result = result[ part ];
             if (!result) return;
         }
         return typeof result === 'object' ? result[ keyValue ] : undefined;
@@ -28,8 +25,8 @@ const get = function (binder, indexValue, keyValue, target, key) {
 const set = function (binder, indexValue, keyValue, target, key, value) {
     if (key === binder.meta.variableName) {
         let result = binder.context;
-        for (const key of binder.meta.parts) {
-            result = result[ key ];
+        for (const part of binder.meta.parts) {
+            result = result[ part ];
             if (!result) return true;
         }
         typeof result === 'object' ? result[ keyValue ] = value : undefined;
@@ -44,8 +41,6 @@ const each = async function (binder, data) {
     binder.owner.$ready = false;
 
     if (!binder.meta.setup) {
-        binder.owner.$length = 0;
-
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
         binder.meta.path = path;
@@ -54,13 +49,12 @@ const each = async function (binder, data) {
         binder.meta.variableName = variable;
         binder.meta.parts = path.split('.');
 
-        binder.meta.tasks = [];
         binder.meta.keys = [];
+        binder.meta.tasks = [];
         binder.meta.setup = true;
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
         binder.meta.templateLength = 0;
-
         binder.meta.queueElement = document.createElement('template');
         binder.meta.templateElement = document.createElement('template');
 
@@ -79,7 +73,6 @@ const each = async function (binder, data) {
 
     if (!data) {
         data = await binder.compute();
-
         if (data?.constructor === Array) {
             binder.meta.targetLength = data.length;
         } else {
@@ -95,10 +88,9 @@ const each = async function (binder, data) {
             while (count--) {
                 const node = binder.owner.lastChild;
                 binder.owner.removeChild(node);
-                binder.binder.remove(node);
+                binder.meta.tasks.push(binder.binder.remove(node));
             }
 
-            binder.owner.$length--;
             binder.meta.currentLength--;
         }
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
@@ -151,9 +143,9 @@ const each = async function (binder, data) {
 
         await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
         binder.owner.appendChild(binder.meta.queueElement.content);
-        binder.owner.$ready = true;
 
         if (binder.owner.nodeName === 'SELECT') {
+            binder.owner.$ready = true;
             binder.owner.attributes?.value?.$binder.render();
         }
 

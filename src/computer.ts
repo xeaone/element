@@ -1,16 +1,17 @@
 // import parser from "./parser";
 
-// const isOfIn = /{{.*?\s+(of|in)\s+.*?}}/;
-const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
-const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
+console.warn('should return just assignee if not $value');
 
 const caches = new Map();
+const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
+const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
+const assigneePattern = /({{.*?)([_$a-zA-Z0-9.?\[\]]+)(\s*[-+?^*%$|\\]?=[-+?^*%$|\\]?\s*[_$a-zA-Z0-9.?\[\]]+.*?}})/;
 
 const ignores = [
     'window', 'document', 'console', 'location',
     '$assignee',
     '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
-    'globalThis', 'Infintiy', 'NaN', 'undefined',
+    'globalThis', 'Infinity', 'NaN', 'undefined',
     'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent ',
     'Error', 'EvalError', 'RangeError', 'ReferenceError', 'SyntaxError', 'TypeError', 'URIError', 'AggregateError',
     'Object', 'Function', 'Boolean', 'Symbole', 'Array',
@@ -24,19 +25,7 @@ const ignores = [
     'Reflect', 'Proxy',
 ];
 
-
-
 const bind = async function (binder, path) {
-
-    if (binder.paths.has(path)) return;
-    else binder.paths.add(path);
-
-    if (binder.rewrites?.length) {
-        for (const [ name, value ] of binder.rewrites) {
-            path = path.replace(new RegExp(`^(${name})\\b`), value);
-        }
-    }
-
     if (binder.binders.has(path)) {
         binder.binders.get(path).add(binder);
     } else {
@@ -52,8 +41,21 @@ const has = function (target, key) {
 const set = function (path, binder, target, key, value) {
     if (typeof key !== 'string') return true;
 
-    path = path ? `${path}.${key}` : `${key}`;
-    bind(binder, path);
+    if (!path && binder.rewrites?.length) {
+
+        let rewrite = key;
+        for (const [ name, value ] of binder.rewrites) {
+            rewrite = rewrite.replace(new RegExp(`^(${name})\\b`), value);
+        }
+
+        for (const part of rewrite.split('.')) {
+            path = path ? `${path}.${part}` : part;
+            bind(binder, path);
+        }
+    } else {
+        path = path ? `${path}.${key}` : `${key}`;
+        bind(binder, path);
+    }
 
     if (target[ key ] !== value) {
         target[ key ] = value;
@@ -63,18 +65,34 @@ const set = function (path, binder, target, key, value) {
 };
 
 const get = function (path, binder, target, key) {
+    // if (typeof key !== 'string') return target[ key ];
     if (typeof key !== 'string') return;
 
-    path = path ? `${path}.${key}` : `${key}`;
-    bind(binder, path);
+    if (!path && binder.rewrites?.length) {
+
+        let rewrite = key;
+        for (const [ name, value ] of binder.rewrites) {
+            rewrite = rewrite.replace(new RegExp(`^(${name})\\b`), value);
+        }
+
+        for (const part of rewrite.split('.')) {
+            path = path ? `${path}.${part}` : part;
+            bind(binder, path);
+        }
+    } else {
+        path = path ? `${path}.${key}` : `${key}`;
+        bind(binder, path);
+    }
 
     const value = target[ key ];
 
-    if (value !== null && typeof value === 'object') {
+    if (value && typeof value === 'object') {
         return new Proxy(value, {
             set: set.bind(null, path, binder),
             get: get.bind(null, path, binder),
         });
+    } else if (typeof value === 'function') {
+        return value.bind(target);
     } else {
         return value;
     }
@@ -92,52 +110,30 @@ const computer = function (binder: any) {
         code = code.replace(replaceOfIn, '{{$2}}');
 
         const convert = !shouldNotConvert.test(code);
-        let assignees = [];
-
-        if (
-            binder.node.name === 'value' ||
-            binder.node.name === 'checked'
-        ) {
-            assignees = code.match(/({{)(.*?)([a-zA-Z0-9.?\[\]]+)\s*[+-]?=[+-]?\s*([^=]*)(}})/) || [];
-        }
+        const isValue = binder.node.name === 'value';
+        const isChecked = binder.node.name === 'checked';
+        const assignee = isValue || isChecked ? code.match(assigneePattern)?.[ 2 ] || '' : '';
 
         code = code.replace(/{{/g, convert ? `' + (` : '(');
         code = code.replace(/}}/g, convert ? `) + '` : ')');
         code = convert ? `'${code}'` : code;
 
-        // ${binder.node.name === 'value' ? `var $v = $value =  $instance.value;` : ``}
-        // ${binder.node.name === 'checked' ? `var $c = $checked =  $instance.checked;` : ``}
-
-        if (
-            binder.node.name === 'value' ||
-            binder.node.name === 'checked'
-        ) {
-            code = `
-            if (!('value' in $instance)) {
-                var $v = $value = ${assignees[ 3 ] || 'undefined || $binder.node.value'};
-                var $c = $checked = ${assignees[ 3 ] || 'undefined || $binder.node.checked'};
-                return ${assignees.length ? assignees[ 2 ] : code} ${assignees.length ? assignees[ 4 ] : ''};
-            } else {
-                var $v = $value = $instance.value;
-                var $c = $checked = $instance.checked;
-                return ${code};
-            }
-            `;
-        } else {
-            code = `return ${code};`;
-        }
-
+        // ${assignee? `return ${assignee};` : `return ${code};`}
         code = `
         $instance = $instance || {};
+        var $f = $form = $instance.form;
+        var $e = $event = $instance.event;
         with ($context) {
             try {
-                ${code}
+                ${isValue ? `var $v = $value = $instance && 'value' in $instance ? $instance.value : ${assignee || 'undefined'};` : ''}
+                ${isChecked ? `var $c = $checked = $instance && 'checked' in $instance ? $instance.checked : ${assignee || 'undefined'};` : ''}
+                return ${code};
             } catch (error) {
-                console.warn(error);
-                if (error.message.indexOf('Cannot set property') === 0) return undefined;
-                else if (error.message.indexOf('Cannot read property') === 0) return undefined;
-                else if (error.message.indexOf('Cannot set properties') === 0) return undefined;
-                else if (error.message.indexOf('Cannot read properties') === 0) return undefined;
+                // console.warn(error);
+                if (error.message.indexOf('Cannot set property') === 0) return;
+                else if (error.message.indexOf('Cannot read property') === 0) return;
+                else if (error.message.indexOf('Cannot set properties') === 0) return;
+                else if (error.message.indexOf('Cannot read properties') === 0) return;
                 else console.error(error);
             }
         }
@@ -145,11 +141,6 @@ const computer = function (binder: any) {
 
         cache = new Function('$context', '$binder', '$instance', code);
         caches.set(binder.value, cache);
-
-        // for (let path of cache.paths) {
-        //     bind(binder, path);
-        // }
-        // return cache.compute.bind(null, binder.context, binder);
     }
 
     const context = new Proxy(binder.context, {

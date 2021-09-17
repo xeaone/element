@@ -73,8 +73,6 @@ export default class Component extends HTMLElement {
                     // if (binders[ 1 ] && (binders[ 0 ] === path || binders[ 0 ].startsWith(`${path}.`))) {
                     for (const binder of value) {
                         binder.render();
-                        // tick.then(binder.render.bind());
-                        // window.requestAnimationFrame(() => binder.render());
                     }
                 }
             }
@@ -142,7 +140,6 @@ export default class Component extends HTMLElement {
     }
 
     async connectedCallback () {
-        // try {
         Css.attach(this.#name, this.css);
         if (!this.#flag) {
             this.#flag = true;
@@ -153,9 +150,6 @@ export default class Component extends HTMLElement {
         this.dispatchEvent(this.#beforeConnectedEvent);
         if (this.#connected) await this.#connected();
         this.dispatchEvent(this.#afterConnectedEvent);
-        // } catch (error) {
-        //     console.error(error);
-        // }
     }
 
 }

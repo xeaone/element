@@ -51,7 +51,6 @@ const submit = async function (event, binder) {
     }
 
     await binder.compute({ form, event });
-
     if (target.getAttribute('reset')) target.reset();
 
     return false;

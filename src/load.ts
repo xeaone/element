@@ -1,13 +1,13 @@
 
-declare global {
-    interface Window {
-        LOAD: any;
-        MODULES: any;
-        REGULAR: any;
-        REGULAR_SUPPORT: any;
-        DYNAMIC_SUPPORT: any;
-    }
-}
+// declare global {
+//     interface Window {
+//         LOAD: any;
+//         MODULES: any;
+//         REGULAR: any;
+//         REGULAR_SUPPORT: any;
+//         DYNAMIC_SUPPORT: any;
+//     }
+// }
 
 // https://regexr.com/5nj32
 const S_EXPORT = `
@@ -64,7 +64,7 @@ const S_IMPORT = `
     (.*?)
     (?:'|")
     (?:\\s*;)?
-   
+
 `.replace(/\s+/g, '');
 
 const R_IMPORT = new RegExp(S_IMPORT);
@@ -236,32 +236,32 @@ const load = async function (url: string) {
     // window.REGULAR_SUPPORT = false;
     // window.DYNAMIC_SUPPORT = false;
 
-    if (typeof window.DYNAMIC_SUPPORT !== 'boolean') {
+    if (typeof (window as any).DYNAMIC_SUPPORT !== 'boolean') {
         await run('try { window.DYNAMIC_SUPPORT = true; import("data:text/javascript;base64,"); } catch (e) { /*e*/ }');
-        window.DYNAMIC_SUPPORT = window.DYNAMIC_SUPPORT || false;
+        (window as any).DYNAMIC_SUPPORT = (window as any).DYNAMIC_SUPPORT || false;
     }
 
-    if (window.DYNAMIC_SUPPORT === true) {
+    if ((window as any).DYNAMIC_SUPPORT === true) {
         // console.log('native import');
         await run(`window.MODULES["${url}"] = import("${url}");`);
-        return window.MODULES[ url ];
+        return (window as any).MODULES[ url ];
     }
 
     // console.log('not native import');
 
-    if (window.MODULES[ url ]) {
+    if ((window as any).MODULES[ url ]) {
         // maybe clean up
-        return window.MODULES[ url ];
+        return (window as any).MODULES[ url ];
     }
 
-    if (typeof window.REGULAR_SUPPORT !== 'boolean') {
+    if (typeof (window as any).REGULAR_SUPPORT !== 'boolean') {
         const script = document.createElement('script');
-        window.REGULAR_SUPPORT = 'noModule' in script;
+        (window as any).REGULAR_SUPPORT = 'noModule' in script;
     }
 
     let code;
 
-    if (window.REGULAR_SUPPORT) {
+    if ((window as any).REGULAR_SUPPORT) {
         // console.log('noModule: yes');
         code = `import * as m from "${url}"; window.MODULES["${url}"] = m;`;
     } else {
@@ -279,7 +279,7 @@ const load = async function (url: string) {
     return this.modules[ url ];
 };
 
-window.LOAD = window.LOAD || load;
-window.MODULES = window.MODULES || {};
+(window as any).LOAD = (window as any).LOAD || load;
+(window as any).MODULES = (window as any).MODULES || {};
 
 export default load;

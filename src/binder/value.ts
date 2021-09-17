@@ -1,8 +1,6 @@
 import format from '../format';
 import dateTypes from '../types/date';
 
-// const renderedValueEvent = new Event('renderedValue');
-
 const stampFromView = function (data: number) {
     const date = new Date(data);
     return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
@@ -35,8 +33,9 @@ const input = async function (binder, event) {
         display = format(computed);
     } else if (type === 'number' || type === 'range') {
         computed = await binder.compute({ event, value: owner.valueAsNumber });
-        if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
-        else owner.value = computed;
+        // if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
+        // else owner.value = computed;
+        owner.value = computed;
         display = owner.value;
     } else if (dateTypes.includes(type)) {
         const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
@@ -44,24 +43,23 @@ const input = async function (binder, event) {
         if (typeof owner.$value === 'string') owner.value = computed;
         else owner.valueAsNumber = stampToView(computed);
         display = owner.value;
-    } else if (type === 'checked') {
-        const { checked } = owner;
-        computed = await binder.compute({ event, checked });
-        console.log(owner, checked, computed);
-        display = format(computed);
-        owner.value = display;
     } else {
         const value = owner.$value !== null && owner.$value !== undefined && typeof owner.$value !== 'string' ? JSON.parse(owner.value) : owner.value;
-        computed = await binder.compute({ event, value });
+        const checked = owner.$checked !== null && owner.$checked !== undefined && typeof owner.$checked !== 'string' ? JSON.parse(owner.checked) : owner.checked;
+        computed = await binder.compute({ event, value, checked });
         display = format(computed);
         owner.value = display;
     }
 
     owner.$value = computed;
+    if (type === 'checked' || type === 'radio') owner.$checked = computed;
     owner.setAttribute('value', display);
 };
 
 const value = async function (binder) {
+    // if (binder.meta.rendering) return;
+    // binder.meta.rendering = true;
+
     const { owner, meta } = binder;
 
     if (!meta.setup) {
@@ -72,11 +70,9 @@ const value = async function (binder) {
     }
 
     const { type } = meta;
-
     let display, computed;
 
     if (type === 'select-one' || type === 'select-multiple') {
-        if (!owner.length) return;
         if ('each' in owner.attributes && !owner.$ready) return;
         for (const option of owner.options) {
             if (option.attributes.value?.$binder && !option.attributes.value?.$ready) return;
@@ -92,11 +88,11 @@ const value = async function (binder) {
             if (option.selected = optionValue === computed) break;
         }
 
-        // if (owner.options.length && !owner.selectedOptions.length) {
-        //     const [ option ] = owner.options;
-        //     value = '$value' in option ? option.$value : option.value;
-        //     option.selected = true;
-        // }
+        if (owner.options.length && !owner.selectedOptions.length) {
+            const [ option ] = owner.options;
+            option.selected = true;
+            owner.dispatchEvent(new Event('input'));
+        }
 
         display = format(computed);
         owner.value = display;
@@ -127,6 +123,8 @@ const value = async function (binder) {
 
     owner.$rendered = true;
     owner.$value = computed;
+
+    if (type === 'checked' || type === 'radio') owner.$checked = computed;
     owner.setAttribute('value', display);
 
     if (owner.nodeName === 'OPTION') {
@@ -137,12 +135,11 @@ const value = async function (binder) {
         if (owner.parentElement?.nodeName === 'SELECT') parent = owner.parentElement;
         else if (owner.parentElement?.parentElement?.nodeName === 'SELECT') parent = owner.parentElement.parentElement;
         else return;
-        // else return owner.dispatchEvent(renderedValueEvent);
 
         parent.attributes.value?.$binder.render();
-        // window.requestAnimationFrame(() => parent.attributes.value?.$binder.render());
     }
 
+    // binder.meta.rendering = false;
 };
 
 export default value;

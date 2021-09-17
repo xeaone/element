@@ -1,12 +1,12 @@
 
-const handler = async function (binder, checked, event?: Event) {
+const flag = Symbol('RadioFlag');
+
+const handler = async function (binder, event?: Event) {
     const { owner, node } = binder;
-    const { value } = owner;
-    const computed = await binder.compute({ event, checked, value });
+    const checked = owner.checked;
+    const computed = await binder.compute(event ? { event, checked } : null);
 
-    owner.checked = computed;
-
-    if (owner.checked) {
+    if (computed) {
         owner.setAttributeNode(node);
     } else {
         owner.removeAttribute('checked');
@@ -15,42 +15,46 @@ const handler = async function (binder, checked, event?: Event) {
 };
 
 const checked = async function (binder) {
-    const { owner, meta } = binder;
+    const { owner } = binder;
 
-    if (!meta.setup) {
-        meta.setup = true;
-        owner.removeAttribute('checked');
-        owner.addEventListener('input', async (event) => {
-            const checked = owner.checked;
-            await handler(binder, checked, event);
-        });
+    if (!binder.meta.setup) {
+        binder.node.value = '';
+        binder.meta.setup = true;
 
         if (owner.type === 'radio') {
-            const parent = owner.form || owner.getRootNode();
-            const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
-            owner.addEventListener('input', async () => {
+            owner.addEventListener('input', async event => {
+                if (event.detail === flag) return handler(binder, event);
+
+                const parent = owner.form || owner.getRootNode();
+                const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+                const input = new CustomEvent('input', { detail: flag });
+
                 for (const radio of radios) {
-                    const radioBinders = binder.binder.get(radio.getAttributeNode('checked'));
-                    if (radioBinders) {
-                        for (const radioBinder of radioBinders) {
-                            // radioBinder.busy = true;
-                            await radioBinder.compute({ checked: radio.checked, value: radio.value });
-                            // radioBinder.busy = false;
-                        }
+                    if (radio === event.target) {
+                        await handler(binder, event);
                     } else {
-                        if (radio.checked) {
-                            radio.setAttribute('checked', '');
+                        const checked = radio?.$binders?.get('checked');
+                        if (checked) {
+                            radio.dispatchEvent(input);
                         } else {
-                            radio.removeAttribute('checked');
+                            radio.checked = !event.target.checked;
+                            if (radio.checked) {
+                                radio.setAttribute('checked', '');
+                            } else {
+                                radio.removeAttribute('checked');
+                            }
                         }
                     }
                 }
+
             });
+        } else {
+            owner.addEventListener('input', event => handler(binder, event));
         }
+
     }
 
-    const checked = binder.assignee();
-    await handler(binder, checked);
+    await handler(binder);
 };
 
 export default checked;

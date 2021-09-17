@@ -5,23 +5,15 @@ import Define from './define';
 import Load from './load';
 import Css from './css';
 
-// declare global {
-//     interface Window {
-//         Reflect: any;
-//         NodeList: any;
-//         CustomEvent: any;
-//     }
-// }
-
-// if (typeof window.CustomEvent !== 'function') {
-//     window.CustomEvent = function CustomEvent (event, options) {
-//         'use strict';
-//         options = options || { bubbles: false, cancelable: false, detail: null };
-//         var customEvent = document.createEvent('CustomEvent');
-//         customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
-//         return customEvent;
-//     };
-// }
+if (typeof window.CustomEvent !== 'function') {
+    (window as any).CustomEvent = function CustomEvent (event, options) {
+        'use strict';
+        options = options || { bubbles: false, cancelable: false, detail: null };
+        var customEvent = document.createEvent('CustomEvent');
+        customEvent.initCustomEvent(event, options.bubbles, options.cancelable, options.detail);
+        return customEvent;
+    };
+}
 
 // if (typeof window.Reflect !== 'object' && typeof window.Reflect.construct !== 'function') {
 //     window.Reflect = window.Reflect || {};
@@ -72,8 +64,6 @@ if (!window.Node.prototype.getRootNode) {
         return node.nodeName === '#document-fragment' && node.constructor.name === 'ShadowRoot';
     }
 }
-
-(window as any).ValueEmpty = Symbol('ValueEmpty');
 
 export default Object.freeze(new class Oxe {
 

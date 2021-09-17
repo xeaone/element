@@ -1,102 +1,61 @@
 
 type task = (path: string) => Promise<any>;
-// type task = (tasks: string[]) => Promise<any>;
 type tasks = string[];
 
-// const tick = Promise.resolve();
-
-const deleteProperty = function (task: task, tasks: tasks, path: string, target: any, key: any) {
-
-    // const initial = !tasks.length;
-    // tasks.push(path ? `${path}.${key}` : `${key}`);
+const deleteProperty = function (task: task, path: string, target: any, key: any) {
 
     delete target[ key ];
-    // tick.then(task.bind(null, path ? `${path}.${key}` : key));
     task(path ? `${path}.${key}` : `${key}`);
-
-    // if (initial) task(tasks.splice(0, tasks.length));
 
     return true;
 };
 
-// const get = function (task: task, tasks: tasks, path: string, target: any, key, value) {
-//     return target[ key ];
-// };
-
-const set = function (task: task, tasks: tasks, path: string, target: any, key, value) {
+const set = function (task: task, path: string, target: any, key, value) {
 
     if (key === 'length') {
-
-        // const initial = !tasks.length;
-        // tasks.push(path);
-        // tasks.push(path ? `${path}.${key}` : `${key}`);
-        // if (initial) task(tasks.splice(0, tasks.length));
-
         task(path);
         task(path ? `${path}.${key}` : `${key}`);
-
-        // tick.then(task.bind(null, path));
-        // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
-
         return true;
     } else if (target[ key ] === value || `${target[ key ]}${value}` === 'NaNNaN') {
         return true;
     }
 
-    // const initial = !tasks.length;
-    // tasks.push(path ? `${path}.${key}` : `${key}`);
-
-    target[ key ] = observer(value, task, tasks, path ? `${path}.${key}` : `${key}`);
+    target[ key ] = observer(value, task, path ? `${path}.${key}` : `${key}`);
     task(path ? `${path}.${key}` : `${key}`);
-    // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
-
-    // if (initial) task(tasks.splice(0, tasks.length));
 
     return true;
 };
 
-const observer = function (source: any, task: task, tasks: tasks = [], path: string = '') {
+const observer = function (source: any, task: task, path: string = '') {
     let target;
-
-    // const initial = !tasks.length;
 
     if (source?.constructor === Array) {
         target = [];
-        // target.$path = `${path}`;
 
-        for (let key = 0; key < source.length; key++) {
-            // tasks.push(path ? `${path}.${key}` : `${key}`);
-            target[ key ] = observer(source[ key ], task, tasks, path ? `${path}.${key}` : `${key}`);
-            // task(path ? `${path}.${key}` : `${key}`);
-            // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
+        for (let key = 0, length = source.length; key < length; key++) {
+            target[ key ] = observer(source[ key ], task, path ? `${path}.${key}` : `${key}`);
         }
 
         target = new Proxy(target, {
-            set: set.bind(null, task, tasks, path),
-            deleteProperty: deleteProperty.bind(null, task, tasks, path)
+            set: set.bind(null, task, path),
+            deleteProperty: deleteProperty.bind(null, task, path)
         });
 
     } else if (source?.constructor === Object) {
         target = {};
-        // target.$path = `${path}`;
 
-        for (const key in source) {
-            // tasks.push(path ? `${path}.${key}` : `${key}`);
-            target[ key ] = observer(source[ key ], task, tasks, path ? `${path}.${key}` : `${key}`);
-            // task(path ? `${path}.${key}` : `${key}`);
-            // tick.then(task.bind(null, path ? `${path}.${key}` : `${key}`));
+        for (let key in source) {
+            target[ key ] = observer(source[ key ], task, path ? `${path}.${key}` : `${key}`);
         }
 
         target = new Proxy(target, {
-            set: set.bind(null, task, tasks, path),
-            deleteProperty: deleteProperty.bind(null, task, tasks, path)
+            set: set.bind(null, task, path),
+            deleteProperty: deleteProperty.bind(null, task, path)
         });
 
     } else {
         target = source;
     }
-
-    // if (initial) task(tasks.splice(0, tasks.length));
 
     return target;
 };
