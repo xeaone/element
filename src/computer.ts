@@ -1,11 +1,12 @@
 // import parser from "./parser";
 
-console.warn('should return just assignee if not $value');
-
 const caches = new Map();
 const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
 const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-const assigneePattern = /({{.*?)([_$a-zA-Z0-9.?\[\]]+)(\s*[-+?^*%$|\\]?=[-+?^*%$|\\]?\s*[_$a-zA-Z0-9.?\[\]]+.*?}})/;
+const assigneePattern = /({{)|(}})|([_$a-zA-Z0-9.?\[\]]+)[-+?^*%|\\ ]*=[-+?^*%|\\ ]*/g;
+
+// infinite loop if assignee has assignment
+// const assigneePattern = /({{.*?)([_$a-zA-Z0-9.?\[\]]+)(\s*[-+?^*%$|\\]?=[-+?^*%$|\\]?\s*[_$a-zA-Z0-9.?\[\]]+.*?}})/;
 
 const ignores = [
     'window', 'document', 'console', 'location',
@@ -66,8 +67,8 @@ const set = function (path, binder, target, key, value) {
 };
 
 const get = function (path, binder, target, key) {
-    // if (typeof key !== 'string') return target[ key ];
-    if (typeof key !== 'string') return;
+    if (typeof key !== 'string') return target[ key ];
+    // if (typeof key !== 'string') return;
 
     if (!path && binder.rewrites?.length) {
 
@@ -105,15 +106,29 @@ const computer = function (binder: any) {
 
     if (!cache) {
         let code = binder.value;
-
         // const parsed = parser(code);
-
         code = code.replace(replaceOfIn, '{{$2}}');
 
         const convert = !shouldNotConvert.test(code);
         const isValue = binder.node.name === 'value';
         const isChecked = binder.node.name === 'checked';
-        const assignee = isValue || isChecked ? code.match(assigneePattern)?.[ 2 ] || '' : '';
+
+        // const assignee = isValue || isChecked ? code.match(assigneePattern)?.[ 2 ] || '' : '';
+
+        let reference = '';
+        let assignment = '';
+        if (isValue || isChecked) {
+            assignment = code.replace(assigneePattern, function (match, bracketLeft, bracketRight, assignee) {
+                if (bracketLeft) {
+                    return '(';
+                } else if (bracketRight) {
+                    return ')';
+                } else {
+                    reference = reference || assignee;
+                    return '';
+                }
+            });
+        }
 
         code = code.replace(/{{/g, convert ? `' + (` : '(');
         code = code.replace(/}}/g, convert ? `) + '` : ')');
@@ -126,16 +141,15 @@ const computer = function (binder: any) {
         with ($context) {
             try {
                 ${isValue || isChecked ? `
-                ${isValue ? `var $v = $value = $instance && 'value' in $instance ? $instance.value : ${assignee || 'undefined'};` : ''}
-                ${isChecked ? `var $c = $checked = $instance && 'checked' in $instance ? $instance.checked : ${assignee || 'undefined'};` : ''}
+                ${isValue ? `var $v = $value = $instance && 'value' in $instance ? $instance.value : ${reference || 'undefined'};` : ''}
+                ${isChecked ? `var $c = $checked = $instance && 'checked' in $instance ? $instance.checked : ${reference || 'undefined'};` : ''}
                 if ('value' in $instance || 'checked' in $instance) {
                     return ${code};
                 } else {
-                    return ${assignee ? assignee : code};
+                    return ${assignment ? assignment : code};
                 }
             ` : `return ${code};`}
            } catch (error) {
-                // console.warn(error);
                 if (error.message.indexOf('Cannot set property') === 0) return;
                 else if (error.message.indexOf('Cannot read property') === 0) return;
                 else if (error.message.indexOf('Cannot set properties') === 0) return;
