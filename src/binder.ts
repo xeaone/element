@@ -1,5 +1,6 @@
 import standard from './binder/standard';
 import checked from './binder/checked';
+import inherit from './binder/inherit';
 import value from './binder/value';
 import each from './binder/each';
 import html from './binder/html';
@@ -31,6 +32,7 @@ export default class Binder {
     binders = {
         standard,
         checked,
+        inherit,
         value,
         each,
         html,

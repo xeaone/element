@@ -1,6 +1,7 @@
 // import parser from "./parser";
 
 const caches = new Map();
+const splitPattern = /\s*{{\s*|\s*}}\s*/;
 const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
 const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
 const assigneePattern = /({{)|(}})|([_$a-zA-Z0-9.?\[\]]+)[-+?^*%|\\ ]*=[-+?^*%|\\ ]*/g;
@@ -109,7 +110,8 @@ const computer = function (binder: any) {
         // const parsed = parser(code);
         code = code.replace(replaceOfIn, '{{$2}}');
 
-        const convert = !shouldNotConvert.test(code);
+        const convert = code.split(splitPattern).filter(part => part).length > 1;
+        // const convert = !shouldNotConvert.test(code);
         const isValue = binder.node.name === 'value';
         const isChecked = binder.node.name === 'checked';
 

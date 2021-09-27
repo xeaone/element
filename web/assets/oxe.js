@@ -143,6 +143,13 @@
         await handler(binder);
     };
 
+    const inherit = async function (binder) {
+        const { owner } = binder;
+        owner.addEventListener('beforeconnected', async () => {
+            Object.assign(owner.data, await binder.compute() || {});
+        });
+    };
+
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
 
     const stampFromView = function (data) {
@@ -539,7 +546,7 @@
 
     // import parser from "./parser";
     const caches = new Map();
-    const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
+    const splitPattern = /\s*{{\s*|\s*}}\s*/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
     const assigneePattern = /({{)|(}})|([_$a-zA-Z0-9.?\[\]]+)[-+?^*%|\\ ]*=[-+?^*%|\\ ]*/g;
     // infinite loop if assignee has assignment
@@ -635,7 +642,8 @@
             let code = binder.value;
             // const parsed = parser(code);
             code = code.replace(replaceOfIn, '{{$2}}');
-            const convert = !shouldNotConvert.test(code);
+            const convert = code.split(splitPattern).filter(part => part).length > 1;
+            // const convert = !shouldNotConvert.test(code);
             const isValue = binder.node.name === 'value';
             const isChecked = binder.node.name === 'checked';
             // const assignee = isValue || isChecked ? code.match(assigneePattern)?.[ 2 ] || '' : '';
@@ -712,6 +720,7 @@
         binders = {
             standard,
             checked,
+            inherit,
             value,
             each,
             html,
