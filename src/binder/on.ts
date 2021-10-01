@@ -11,16 +11,16 @@ const submit = async function (event, binder) {
 
     const form = {};
     const target = event.target;
-    const elements = target?.elements || target?.form?.elements;
+    // const elements = target?.elements || target?.form?.elements;
+    const elements = (target?.form || target)?.querySelectorAll('[name]');
 
     for (const element of elements) {
-        const { type, name, checked, hidden } = element;
+        const { type, name, checked, hidden, nodeName } = element;
 
         if (!name) continue;
         if (hidden) continue;
         if (type === 'radio' && !checked) continue;
         if (type === 'submit' || type === 'button') continue;
-        // if (type === 'checkbox' && !checked) continue;
 
         let value;
         if (type === 'select-multiple') {
@@ -60,15 +60,16 @@ const reset = async function (event, binder) {
     event.preventDefault();
 
     const target = event.target;
-    const elements = target?.elements || target?.form?.elements;
+    // const elements = target?.elements || target?.form?.elements;
+    const elements = (target?.form || target)?.querySelectorAll('[name]');
 
     for (const element of elements) {
-        const { type, nodeName } = element;
+        const { type, name, checked, hidden, nodeName } = element;
 
-        if (
-            (!type && nodeName !== 'TEXTAREA') ||
-            type === 'submit' || type === 'button' || !type
-        ) continue;
+        if (!name) continue;
+        if (hidden) continue;
+        if (type === 'radio' && !checked) continue;
+        if (type === 'submit' || type === 'button') continue;
 
         if (type === 'select-one') {
             element.selectedIndex = 0;
