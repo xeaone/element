@@ -143,12 +143,21 @@
         await handler(binder);
     };
 
+    new Event('inherit');
     const inherit = async function (binder) {
-        const { owner } = binder;
-        owner.addEventListener('beforeconnected', async () => {
-            Object.assign(owner.data, await binder.compute() || {});
-            owner.inherited?.();
-        });
+        binder.node.value = '';
+        // binder.owner.inherited = await binder.compute();
+        // binder.owner.dispatchEvent(event);
+        if (binder.owner.isRendered) {
+            const inherited = await binder.compute();
+            binder.owner.inherited?.(inherited);
+        }
+        else {
+            binder.owner.addEventListener('beforeconnected', async () => {
+                const inherited = await binder.compute();
+                binder.owner.inherited?.(inherited);
+            });
+        }
     };
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
@@ -1035,6 +1044,7 @@
                 await this.render();
                 if (this.#rendered)
                     await this.#rendered();
+                this.isRendered = true;
             }
             this.dispatchEvent(this.#beforeConnectedEvent);
             if (this.#connected)

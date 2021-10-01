@@ -1,10 +1,17 @@
-const inherit = async function (binder) {
-    const { owner } = binder;
+const event = new Event('inherit');
 
-    owner.addEventListener('beforeconnected', async () => {
-        Object.assign(owner.data, await binder.compute() || {});
-        owner.inherited?.();
-    });
+const inherit = async function (binder) {
+    binder.node.value = '';
+
+    if (binder.owner.isRendered) {
+        const inherited = await binder.compute();
+        binder.owner.inherited?.(inherited);
+    } else {
+        binder.owner.addEventListener('beforeconnected', async () => {
+            const inherited = await binder.compute();
+            binder.owner.inherited?.(inherited);
+        });
+    }
 
 };
 

@@ -145,6 +145,7 @@ export default class Component extends HTMLElement {
             this.#flag = true;
             await this.render();
             if (this.#rendered) await this.#rendered();
+            (this as any).isRendered = true;
         }
 
         this.dispatchEvent(this.#beforeConnectedEvent);
