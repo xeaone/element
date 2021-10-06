@@ -1,6 +1,7 @@
 import Load from './load';
 
 type Option = {
+    cache?: boolean;
     folder?: string;
     contain?: boolean;
     dynamic?: boolean;
@@ -21,6 +22,7 @@ export default new class Router {
     #target: Element;
     #data: object = {};
     #folder: string = '';
+    #cache: boolean = true;
     #dynamic: boolean = true;
     #contain: boolean = false;
     #external: string | RegExp | Function;
@@ -77,6 +79,7 @@ export default new class Router {
         if ('external' in option) this.#external = option.external;
         if ('before' in option) this.#before = option.before;
         if ('after' in option) this.#after = option.after;
+        if ('cache' in option) this.#cache = option.cache;
         // if ('beforeConnected' in option) this.#beforeConnected = option.beforeConnected;
         // if ('afterConnected' in option) this.#afterConnected = option.afterConnected;
 
@@ -137,7 +140,8 @@ export default new class Router {
 
         let element;
         if (location.pathname in this.#data) {
-            element = this.#data[ location.pathname ].element;
+            const route = this.#data[ location.pathname ];
+            element = this.#cache ? route.element : window.document.createElement(route.name);
         } else {
             const path = location.pathname === '/' ? '/index' : location.pathname;
 
@@ -164,7 +168,7 @@ export default new class Router {
             window.customElements.define(name, component);
             element = window.document.createElement(name);
 
-            this.#data[ location.pathname ] = { element };
+            this.#data[ location.pathname ] = { element: this.#cache ? element : null, name };
         }
 
         if (this.#before) await this.#before(location, element);

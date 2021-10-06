@@ -26,8 +26,10 @@ export default class Component extends HTMLElement {
     #disconnected: () => void;
     #attributed: (name: string, from: string, to: string) => void;
 
-    #beforeConnectedEvent = new Event('beforeconnected');
+    #afterRenderEvent = new Event('afterrender');
+    #beforeRenderEvent = new Event('beforerender');
     #afterConnectedEvent = new Event('afterconnected');
+    #beforeConnectedEvent = new Event('beforeconnected');
 
     // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
     // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
@@ -70,7 +72,6 @@ export default class Component extends HTMLElement {
         const context = this.data = Observer(this.data, async path => {
             for (const [ key, value ] of this.#binder.pathBinders) {
                 if (value && key === path) {
-                    // if (binders[ 1 ] && (binders[ 0 ] === path || binders[ 0 ].startsWith(`${path}.`))) {
                     for (const binder of value) {
                         binder.render();
                     }
@@ -143,9 +144,11 @@ export default class Component extends HTMLElement {
         Css.attach(this.#name, this.css);
         if (!this.#flag) {
             this.#flag = true;
+            this.dispatchEvent(this.#beforeRenderEvent);
             await this.render();
-            if (this.#rendered) await this.#rendered();
             (this as any).isRendered = true;
+            if (this.#rendered) await this.#rendered();
+            this.dispatchEvent(this.#afterRenderEvent);
         }
 
         this.dispatchEvent(this.#beforeConnectedEvent);

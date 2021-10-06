@@ -42,20 +42,21 @@
             overwrite() {
                 console.time('overwrite');
 
-                var users = [];
-                for (var i = 0; i < 200; i++) {
-                    users.push({ number: i, id: `${i}`, name: `${i}` });
-                }
+                // var users = [];
+                // for (var i = 0; i < 200; i++) {
+                //     users.push({ number: i, id: `${i}`, name: `${i}` });
+                // }
+
+                // var items = [];
+                // for (var i = 0; i < this.count; i++) {
+                //     items.push({ users });
+                // }
 
                 var items = [];
                 for (var i = 0; i < this.count; i++) {
-                    items.push({ users });
+                    items.push({ number: i });
+                    // items.push({ name: i, numbers: [ i ] });
                 }
-                // var items = [];
-                // for (var i = 0; i < this.count; i++) {
-                //     items.push({ number: i });
-                //     // items.push({ name: i, numbers: [ i ] });
-                // }
                 this.items = items;
                 console.timeEnd('overwrite');
             },
@@ -79,14 +80,14 @@
 			<button onclick="{{clear()}}">clear</button>
 
 			<div each="{{item of items}}">
-                <select class="box" value="{{selected}}" each="{{user of item.users}}">
-                    <option value="{{user.id}}">{{user.number}} {{user.name}}</option>
-                </select>
+                <div class="box">{{item.number}}</div>
             </div>
 
             <!--
 			<div each="{{item of items}}">
-                <div class="box">{{item.number}}</div>
+                <select class="box" value="{{selected}}" each="{{user of item.users}}">
+                    <option value="{{user.id}}">{{user.number}} {{user.name}}</option>
+                </select>
             </div>
 
 			<div each="{{item of items}}">

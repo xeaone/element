@@ -21,7 +21,7 @@
         task(path ? `${path}.${key}` : `${key}`);
         return true;
     };
-    const set$2 = function (task, path, target, key, value) {
+    const set$1 = function (task, path, target, key, value) {
         if (key === 'length') {
             task(path);
             task(path ? `${path}.${key}` : `${key}`);
@@ -42,7 +42,7 @@
                 target[key] = observer(source[key], task, path ? `${path}.${key}` : `${key}`);
             }
             target = new Proxy(target, {
-                set: set$2.bind(null, task, path),
+                set: set$1.bind(null, task, path),
                 deleteProperty: deleteProperty.bind(null, task, path)
             });
         }
@@ -52,7 +52,7 @@
                 target[key] = observer(source[key], task, path ? `${path}.${key}` : `${key}`);
             }
             target = new Proxy(target, {
-                set: set$2.bind(null, task, path),
+                set: set$1.bind(null, task, path),
                 deleteProperty: deleteProperty.bind(null, task, path)
             });
         }
@@ -146,18 +146,28 @@
     new Event('inherit');
     const inherit = async function (binder) {
         binder.node.value = '';
-        // binder.owner.inherited = await binder.compute();
-        // binder.owner.dispatchEvent(event);
         if (binder.owner.isRendered) {
+            // console.log(binder.owner.localName, binder.owner.isConnected);
             const inherited = await binder.compute();
             binder.owner.inherited?.(inherited);
         }
         else {
-            binder.owner.addEventListener('beforeconnected', async () => {
+            binder.owner.addEventListener('afterrender', async () => {
+                // console.log(binder.owner.localName, binder.owner.isConnected, 'afterrender', binder);
                 const inherited = await binder.compute();
+                // console.log(inherited, binder);
                 binder.owner.inherited?.(inherited);
             });
         }
+        // if (binder.owner.$isRendered) {
+        //     const inherited = await binder.compute();
+        //     binder.owner.inherited?.(inherited);
+        // } else {
+        //     binder.owner.addEventListener('beforeconnected', async () => {
+        //         const inherited = await binder.compute();
+        //         binder.owner.inherited?.(inherited);
+        //     });
+        // }
     };
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
@@ -292,7 +302,7 @@
     const has$1 = function (target, key) {
         return true;
     };
-    const get$1 = function (binder, indexValue, keyValue, target, key) {
+    const get = function (binder, indexValue, keyValue, target, key) {
         if (key === binder.meta.variableName) {
             let result = binder.context;
             for (const part of binder.meta.parts) {
@@ -312,7 +322,7 @@
             return binder.context[key];
         }
     };
-    const set$1 = function (binder, indexValue, keyValue, target, key, value) {
+    const set = function (binder, indexValue, keyValue, target, key, value) {
         if (key === binder.meta.variableName) {
             let result = binder.context;
             for (const part of binder.meta.parts) {
@@ -383,8 +393,8 @@
                 const variableValue = `${binder.meta.path}.${binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength}`;
                 const context = new Proxy(binder.context, {
                     has: has$1,
-                    get: get$1.bind(null, binder, indexValue, keyValue),
-                    set: set$1.bind(null, binder, indexValue, keyValue),
+                    get: get.bind(null, binder, indexValue, keyValue),
+                    set: set.bind(null, binder, indexValue, keyValue),
                 });
                 const rewrites = binder.rewrites?.slice() || [];
                 // if (binder.meta.indexName) rewrites.unshift([ binder.meta.indexName, indexValue ]);
@@ -414,10 +424,10 @@
                 binder.meta.currentLength++;
             }
         }
-        if (binder.meta.currentLength === binder.meta.targetLength) {
+        if (binder.meta.currentLength === binder.meta.targetLength && binder.meta.tasks.length) {
             await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
             binder.owner.appendChild(binder.meta.queueElement.content);
-            binder.owner.attributes.value?.$binder.render();
+            // binder.owner.attributes.value?.$binder.render();
         }
     };
 
@@ -584,8 +594,72 @@
         'Promise', 'GeneratorFunction', 'AsyncGeneratorFunction', 'Generator', 'AsyncGenerator', 'AsyncFunction',
         'Reflect', 'Proxy',
     ];
+    const has = () => true;
+    const method = () => undefined;
+    const setIgnore = () => true;
+    const getIgnore = () => new Proxy(method, { has, set: setIgnore, get: getIgnore });
+    const setCapture = function (binder, path, target, key) {
+        if (typeof key !== 'string')
+            return true;
+        path = path ? `${path}.${key}` : `${key}`;
+        bind(binder, path);
+        return true;
+    };
+    const getCapture = function (binder, path, target, key) {
+        if (typeof key !== 'string')
+            return;
+        path = path ? `${path}.${key}` : `${key}`;
+        bind(binder, path);
+        return new Proxy(method, {
+            has,
+            set: setCapture.bind(null, binder, path),
+            get: getCapture.bind(null, binder, path),
+        });
+    };
+    const setFirst = function (binder, target, key) {
+        if (!ignores.includes(key)) {
+            if (typeof key !== 'string')
+                return true;
+            bind(binder, `${key}`);
+        }
+        return true;
+    };
+    const getFirst = function (binder, target, key) {
+        if (ignores.includes(key)) {
+            return new Proxy(method, { has, set: setIgnore, get: getIgnore });
+        }
+        else {
+            if (typeof key !== 'string')
+                return target[key];
+            let path = `${key}`;
+            if (binder.rewrites?.length) {
+                for (const [name, value] of binder.rewrites) {
+                    path = path.replace(new RegExp(`^(${name})\\b`), value);
+                }
+                let parts;
+                for (const part of path.split('.')) {
+                    parts = parts ? `${parts}.${part}` : part;
+                    bind(binder, parts);
+                }
+            }
+            else {
+                bind(binder, path);
+            }
+            return new Proxy(method, {
+                has,
+                set: setCapture.bind(null, binder, path),
+                get: getCapture.bind(null, binder, path),
+            });
+        }
+    };
+    const hasLive = function (target, key) {
+        if (typeof key !== 'string')
+            return true;
+        return !ignores.includes(key);
+    };
     const bind = async function (binder, path) {
         const binders = binder.binders.get(path);
+        // binder.paths.push(path);
         if (binders) {
             binders.add(binder);
         }
@@ -593,65 +667,54 @@
             binder.binders.set(path, new Set([binder]));
         }
     };
-    const has = function (target, key) {
-        if (typeof key !== 'string')
-            return true;
-        return ignores.includes(key) ? false : true;
-    };
-    const set = function (path, binder, target, key, value) {
-        if (typeof key !== 'string')
-            return true;
-        if (!path && binder.rewrites?.length) {
-            let rewrite = key;
-            for (const [name, value] of binder.rewrites) {
-                rewrite = rewrite.replace(new RegExp(`^(${name})\\b`), value);
-            }
-            for (const part of rewrite.split('.')) {
-                path = path ? `${path}.${part}` : part;
-                bind(binder, path);
-            }
-        }
-        else {
-            path = path ? `${path}.${key}` : `${key}`;
-            bind(binder, path);
-        }
-        if (target[key] !== value) {
-            target[key] = value;
-        }
-        return true;
-    };
-    const get = function (path, binder, target, key) {
-        if (typeof key !== 'string')
-            return target[key];
-        // if (typeof key !== 'string') return;
-        if (!path && binder.rewrites?.length) {
-            let rewrite = key;
-            for (const [name, value] of binder.rewrites) {
-                rewrite = rewrite.replace(new RegExp(`^(${name})\\b`), value);
-            }
-            for (const part of rewrite.split('.')) {
-                path = path ? `${path}.${part}` : part;
-                bind(binder, path);
-            }
-        }
-        else {
-            path = path ? `${path}.${key}` : `${key}`;
-            bind(binder, path);
-        }
-        const value = target[key];
-        if (value && typeof value === 'object') {
-            return new Proxy(value, {
-                set: set.bind(null, path, binder),
-                get: get.bind(null, path, binder),
-            });
-        }
-        else if (typeof value === 'function') {
-            return value.bind(target);
-        }
-        else {
-            return value;
-        }
-    };
+    // const set = function (path, binder, target, key, value) {
+    //     if (typeof key !== 'string') return true;
+    //     if (!path && binder.rewrites?.length) {
+    //         let rewrite = key;
+    //         for (const [ name, value ] of binder.rewrites) {
+    //             rewrite = rewrite.replace(new RegExp(`^(${name})\\b`), value);
+    //         }
+    //         for (const part of rewrite.split('.')) {
+    //             path = path ? `${path}.${part}` : part;
+    //             bind(binder, path);
+    //         }
+    //     } else {
+    //         path = path ? `${path}.${key}` : `${key}`;
+    //         bind(binder, path);
+    //     }
+    //     if (target[ key ] !== value) {
+    //         target[ key ] = value;
+    //     }
+    //     return true;
+    // };
+    // const get = function (path, binder, target, key) {
+    //     if (typeof key !== 'string') return target[ key ];
+    //     // if (typeof key !== 'string') return;
+    //     if (!path && binder.rewrites?.length) {
+    //         let rewrite = key;
+    //         for (const [ name, value ] of binder.rewrites) {
+    //             rewrite = rewrite.replace(new RegExp(`^(${name})\\b`), value);
+    //         }
+    //         for (const part of rewrite.split('.')) {
+    //             path = path ? `${path}.${part}` : part;
+    //             bind(binder, path);
+    //         }
+    //     } else {
+    //         path = path ? `${path}.${key}` : `${key}`;
+    //         bind(binder, path);
+    //     }
+    //     const value = target[ key ];
+    //     if (value && typeof value === 'object') {
+    //         return new Proxy(value, {
+    //             set: set.bind(null, path, binder),
+    //             get: get.bind(null, path, binder),
+    //         });
+    //     } else if (typeof value === 'function') {
+    //         return value.bind(target);
+    //     } else {
+    //         return value;
+    //     }
+    // };
     const computer = function (binder) {
         let cache = caches.get(binder.value);
         if (!cache) {
@@ -698,6 +761,7 @@
                 }
             ` : `return ${code};`}
            } catch (error) {
+                //console.warn(error);
                 if (error.message.indexOf('Cannot set property') === 0) return;
                 else if (error.message.indexOf('Cannot read property') === 0) return;
                 else if (error.message.indexOf('Cannot set properties') === 0) return;
@@ -709,12 +773,20 @@
             cache = new Function('$context', '$binder', '$instance', code);
             caches.set(binder.value, cache);
         }
-        const context = new Proxy(binder.context, {
-            has: has,
-            set: set.bind(null, '', binder),
-            get: get.bind(null, '', binder)
-        });
-        return cache.bind(null, context, binder);
+        if (binder.cache) {
+            return binder.cache;
+        }
+        else {
+            cache.call(null, new Proxy({}, { has, set: setFirst.bind(null, binder), get: getFirst.bind(null, binder) }), binder);
+            return binder.cache = cache.bind(null, new Proxy(binder.context, { has: hasLive, }), binder);
+        }
+        // const context = new Proxy(binder.context, {
+        //     has: has,
+        //     set: set.bind(null, '', binder),
+        //     get: get.bind(null, '', binder)
+        // });
+        // return cache.bind(null, context, binder);
+        // return cache.bind(null, binder.context, binder);
     };
 
     const TN = Node.TEXT_NODE;
@@ -768,6 +840,7 @@
                 // busy: true,
                 ready: false,
                 // paths: new Set(),
+                // paths: [],
                 meta: {},
                 binder: this,
                 render: undefined,
@@ -821,7 +894,8 @@
             if (node.nodeType === AN) {
                 const attribute = node;
                 if (this.syntaxMatch.test(attribute.value)) {
-                    tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    tasks.push(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                 }
             }
             else if (node.nodeType === TN) {
@@ -835,34 +909,47 @@
                     return;
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    tasks.push(this.add(split, container, context, rewrites));
+                    // tasks.push(this.add(split, container, context, rewrites));
+                    tasks.push(this.add.bind(this, split, container, context, rewrites));
                 }
-                tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
+                // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
+                tasks.push(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
             }
             else if (node.nodeType === EN) {
-                // let each = false;
-                // const each = (node as Element).attributes[ 'each' ];
+                // let each = (node as Element).attributes[ 'each' ];
                 // if (each && this.syntaxMatch.test(each.value)) {
-                //     tasks.push(this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites));
+                //     each = this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
                 // }
+                let each;
                 const attributes = node.attributes;
                 for (const attribute of attributes) {
                     if (this.syntaxMatch.test(attribute.value)) {
-                        // if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
-                        tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                        // if (each) {
+                        //     if (attribute.name === 'each' || attribute.name === this.prefixEach) continue;
+                        //     tasks.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                        // } else {
+                        //     tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                        // }
+                        if (attribute.name === 'each' || attribute.name === this.prefixEach) {
+                            each = this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
+                        }
+                        else {
+                            tasks.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                        }
                     }
                 }
-                if (attributes.each)
-                    return Promise.all(tasks);
-                // if (each) return Promise.all(tasks);
+                if (each)
+                    return each().then(() => Promise.all(tasks.map(task => task())));
                 let child = node.firstChild;
                 if (child) {
                     do {
-                        tasks.push(this.add(child, container, context, rewrites));
+                        // tasks.push(this.add(child, container, context, rewrites));
+                        tasks.push(this.add.bind(this, child, container, context, rewrites));
                     } while (child = child.nextSibling);
                 }
             }
-            return Promise.all(tasks);
+            return Promise.all(tasks.map(task => task()));
+            // return Promise.all(tasks);
         }
     }
 
@@ -939,8 +1026,10 @@
         #connected;
         #disconnected;
         #attributed;
-        #beforeConnectedEvent = new Event('beforeconnected');
+        #afterRenderEvent = new Event('afterrender');
+        #beforeRenderEvent = new Event('beforerender');
         #afterConnectedEvent = new Event('afterconnected');
+        #beforeConnectedEvent = new Event('beforeconnected');
         // #css: string = typeof (this as any).css === 'string' ? (this as any).css : '';
         // #html: string = typeof (this as any).html === 'string' ? (this as any).html : '';
         // #data: object = typeof (this as any).data === 'object' ? (this as any).data : {};
@@ -976,7 +1065,6 @@
             const context = this.data = observer(this.data, async (path) => {
                 for (const [key, value] of this.#binder.pathBinders) {
                     if (value && key === path) {
-                        // if (binders[ 1 ] && (binders[ 0 ] === path || binders[ 0 ].startsWith(`${path}.`))) {
                         for (const binder of value) {
                             binder.render();
                         }
@@ -1041,10 +1129,12 @@
             Css.attach(this.#name, this.css);
             if (!this.#flag) {
                 this.#flag = true;
+                this.dispatchEvent(this.#beforeRenderEvent);
                 await this.render();
+                this.isRendered = true;
                 if (this.#rendered)
                     await this.#rendered();
-                this.isRendered = true;
+                this.dispatchEvent(this.#afterRenderEvent);
             }
             this.dispatchEvent(this.#beforeConnectedEvent);
             if (this.#connected)
@@ -1461,6 +1551,7 @@
         #target;
         #data = {};
         #folder = '';
+        #cache = true;
         #dynamic = true;
         #contain = false;
         #external;
@@ -1517,6 +1608,8 @@
                 this.#before = option.before;
             if ('after' in option)
                 this.#after = option.after;
+            if ('cache' in option)
+                this.#cache = option.cache;
             // if ('beforeConnected' in option) this.#beforeConnected = option.beforeConnected;
             // if ('afterConnected' in option) this.#afterConnected = option.afterConnected;
             this.#target = option.target instanceof Element ? option.target : document.body.querySelector(option.target);
@@ -1564,7 +1657,8 @@
             const location = this.#location(path);
             let element;
             if (location.pathname in this.#data) {
-                element = this.#data[location.pathname].element;
+                const route = this.#data[location.pathname];
+                element = this.#cache ? route.element : window.document.createElement(route.name);
             }
             else {
                 const path = location.pathname === '/' ? '/index' : location.pathname;
@@ -1592,7 +1686,7 @@
                 const name = 'route' + path.replace(/\/+/g, '-');
                 window.customElements.define(name, component);
                 element = window.document.createElement(name);
-                this.#data[location.pathname] = { element };
+                this.#data[location.pathname] = { element: this.#cache ? element : null, name };
             }
             if (this.#before)
                 await this.#before(location, element);

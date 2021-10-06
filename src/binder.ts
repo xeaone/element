@@ -68,6 +68,7 @@ export default class Binder {
             // busy: true,
             ready: false,
             // paths: new Set(),
+            // paths: [],
             meta: {},
             binder: this,
             render: undefined,
@@ -129,7 +130,8 @@ export default class Binder {
         if (node.nodeType === AN) {
             const attribute = (node as Attr);
             if (this.syntaxMatch.test(attribute.value)) {
-                tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                tasks.push(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
             }
         } else if (node.nodeType === TN) {
 
@@ -143,39 +145,51 @@ export default class Binder {
 
             if (end + this.syntaxLength !== node.nodeValue.length) {
                 const split = (node as Text).splitText(end + this.syntaxLength);
-                tasks.push(this.add(split, container, context, rewrites));
+                // tasks.push(this.add(split, container, context, rewrites));
+                tasks.push(this.add.bind(this, split, container, context, rewrites));
             }
 
-            tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
+            // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
+            tasks.push(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
         } else if (node.nodeType === EN) {
-            // let each = false;
 
-            // const each = (node as Element).attributes[ 'each' ];
+            // let each = (node as Element).attributes[ 'each' ];
             // if (each && this.syntaxMatch.test(each.value)) {
-            //     tasks.push(this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites));
+            //     each = this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
             // }
 
+            let each;
             const attributes = (node as Element).attributes;
             for (const attribute of attributes) {
                 if (this.syntaxMatch.test(attribute.value)) {
-                    // if (attribute.name === 'each' || attribute.name === this.prefixEach) each = true;
-                    tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    // if (each) {
+                    //     if (attribute.name === 'each' || attribute.name === this.prefixEach) continue;
+                    //     tasks.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    // } else {
+                    //     tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    // }
+                    if (attribute.name === 'each' || attribute.name === this.prefixEach) {
+                        each = this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
+                    } else {
+                        tasks.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    }
                 }
             }
 
-            if ((attributes as any).each) return Promise.all(tasks);
-            // if (each) return Promise.all(tasks);
+            if (each) return each().then(() => Promise.all(tasks.map(task => task())));
 
             let child = node.firstChild;
             if (child) {
                 do {
-                    tasks.push(this.add(child, container, context, rewrites));
+                    // tasks.push(this.add(child, container, context, rewrites));
+                    tasks.push(this.add.bind(this, child, container, context, rewrites));
                 } while (child = child.nextSibling);
             }
 
         }
 
-        return Promise.all(tasks);
+        return Promise.all(tasks.map(task => task()));
+        // return Promise.all(tasks);
     }
 
 };

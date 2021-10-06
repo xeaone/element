@@ -138,10 +138,10 @@ const each = async function (binder, data) {
 
     }
 
-    if (binder.meta.currentLength === binder.meta.targetLength) {
+    if (binder.meta.currentLength === binder.meta.targetLength && binder.meta.tasks.length) {
         await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
         binder.owner.appendChild(binder.meta.queueElement.content);
-        binder.owner.attributes.value?.$binder.render();
+        // binder.owner.attributes.value?.$binder.render();
     }
 
 };
