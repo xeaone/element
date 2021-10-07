@@ -28,142 +28,148 @@ const ignores = [
 ];
 
 
-const has = () => true;
-const method = () => undefined;
-const setIgnore = () => true;
-const getIgnore = () => new Proxy(method, { has, set: setIgnore, get: getIgnore });
+// const has = () => true;
+// const method = () => undefined;
+// const setIgnore = () => true;
+// const getIgnore = () => new Proxy(method, { has, set: setIgnore, get: getIgnore });
 
-const setCapture = function (binder, path, target, key) {
-    if (typeof key !== 'string') return true;
-    path = path ? `${path}.${key}` : `${key}`;
-    bind(binder, path);
-    return true;
-};
+// const setCapture = function (binder, path, target, key) {
+//     if (typeof key !== 'string') return true;
+//     path = path ? `${path}.${key}` : `${key}`;
+//     bind(binder, path);
+//     return true;
+// };
 
-const getCapture = function (binder, path, target, key) {
-    if (typeof key !== 'string') return;
-    path = path ? `${path}.${key}` : `${key}`;
-    bind(binder, path);
-    return new Proxy(method, {
-        has,
-        set: setCapture.bind(null, binder, path),
-        get: getCapture.bind(null, binder, path),
-    });
-};
+// const getCapture = function (binder, path, target, key) {
+//     if (typeof key !== 'string') return;
+//     path = path ? `${path}.${key}` : `${key}`;
+//     bind(binder, path);
+//     return new Proxy(method, {
+//         has,
+//         set: setCapture.bind(null, binder, path),
+//         get: getCapture.bind(null, binder, path),
+//     });
+// };
 
-const setFirst = function (binder, target, key) {
-    if (!ignores.includes(key)) {
-        if (typeof key !== 'string') return true;
-        bind(binder, `${key}`);
-    }
-    return true;
-};
+// const setFirst = function (binder, target, key) {
+//     if (!ignores.includes(key)) {
+//         if (typeof key !== 'string') return true;
+//         bind(binder, `${key}`);
+//     }
+//     return true;
+// };
 
-const getFirst = function (binder, target, key) {
-    if (ignores.includes(key)) {
-        return new Proxy(method, { has, set: setIgnore, get: getIgnore });
-    } else {
-        if (typeof key !== 'string') return target[ key ];
+// const getFirst = function (binder, target, key) {
+//     if (ignores.includes(key)) {
+//         return new Proxy(method, { has, set: setIgnore, get: getIgnore });
+//     } else {
+//         if (typeof key !== 'string') return target[ key ];
 
-        let path = `${key}`;
-        if (binder.rewrites?.length) {
+//         let path = `${key}`;
+//         if (binder.rewrites?.length) {
 
-            for (const [ name, value ] of binder.rewrites) {
-                path = path.replace(new RegExp(`^(${name})\\b`), value);
-            }
+//             for (const [ name, value ] of binder.rewrites) {
+//                 path = path.replace(new RegExp(`^(${name})\\b`), value);
+//             }
 
-            let parts;
-            for (const part of path.split('.')) {
-                parts = parts ? `${parts}.${part}` : part;
-                bind(binder, parts);
-            }
-        } else {
-            bind(binder, path);
-        }
+//             let parts;
+//             for (const part of path.split('.')) {
+//                 parts = parts ? `${parts}.${part}` : part;
+//                 bind(binder, parts);
+//             }
+//         } else {
+//             bind(binder, path);
+//         }
 
-        return new Proxy(method, {
-            has,
-            set: setCapture.bind(null, binder, path),
-            get: getCapture.bind(null, binder, path),
-        });
-    }
-};
+//         return new Proxy(method, {
+//             has,
+//             set: setCapture.bind(null, binder, path),
+//             get: getCapture.bind(null, binder, path),
+//         });
+//     }
+// };
 
-const hasLive = function (target, key) {
-    if (typeof key !== 'string') return true;
-    return !ignores.includes(key);
-};
+// const hasLive = function (target, key) {
+//     if (typeof key !== 'string') return true;
+//     return !ignores.includes(key);
+// };
 
 const bind = async function (binder, path) {
     const binders = binder.binders.get(path);
-    // binder.paths.push(path);
     if (binders) {
         binders.add(binder);
     } else {
+        binder.paths.push(path);
         binder.binders.set(path, new Set([ binder ]));
     }
 };
 
-// const set = function (path, binder, target, key, value) {
-//     if (typeof key !== 'string') return true;
+const has = function (target, key) {
+    if (typeof key !== 'string') return true;
+    return !ignores.includes(key);
+};
 
-//     if (!path && binder.rewrites?.length) {
+const set = function (path, binder, target, key, value) {
+    if (typeof key !== 'string') return true;
 
-//         let rewrite = key;
-//         for (const [ name, value ] of binder.rewrites) {
-//             rewrite = rewrite.replace(new RegExp(`^(${name})\\b`), value);
-//         }
+    if (!path && binder.rewrites?.length) {
+        path = `${key}`;
 
-//         for (const part of rewrite.split('.')) {
-//             path = path ? `${path}.${part}` : part;
-//             bind(binder, path);
-//         }
-//     } else {
-//         path = path ? `${path}.${key}` : `${key}`;
-//         bind(binder, path);
-//     }
+        for (const [ name, value ] of binder.rewrites) {
+            path = path.replace(new RegExp(`^(${name})\\b`), value);
+        }
 
-//     if (target[ key ] !== value) {
-//         target[ key ] = value;
-//     }
+        let parts;
+        for (const part of path.split('.')) {
+            parts = parts ? `${parts}.${part}` : part;
+            bind(binder, parts);
+        }
+    } else {
+        path = path ? `${path}.${key}` : `${key}`;
+        bind(binder, path);
+    }
 
-//     return true;
-// };
+    if (target[ key ] !== value) {
+        target[ key ] = value;
+    }
 
-// const get = function (path, binder, target, key) {
-//     if (typeof key !== 'string') return target[ key ];
-//     // if (typeof key !== 'string') return;
+    return true;
+};
 
-//     if (!path && binder.rewrites?.length) {
+const get = function (path, binder, target, key) {
+    if (typeof key !== 'string') return target[ key ];
 
-//         let rewrite = key;
-//         for (const [ name, value ] of binder.rewrites) {
-//             rewrite = rewrite.replace(new RegExp(`^(${name})\\b`), value);
-//         }
+    if (!path && binder.rewrites?.length) {
+        path = `${key}`;
 
-//         for (const part of rewrite.split('.')) {
-//             path = path ? `${path}.${part}` : part;
-//             bind(binder, path);
-//         }
-//     } else {
-//         path = path ? `${path}.${key}` : `${key}`;
-//         bind(binder, path);
-//     }
+        for (const [ name, value ] of binder.rewrites) {
+            path = path.replace(new RegExp(`^(${name})\\b`), value);
+        }
 
-//     const value = target[ key ];
+        let parts;
+        for (const part of path.split('.')) {
+            parts = parts ? `${parts}.${part}` : part;
+            bind(binder, parts);
+        }
+    } else {
+        path = path ? `${path}.${key}` : `${key}`;
+        bind(binder, path);
+    }
 
-//     if (value && typeof value === 'object') {
-//         return new Proxy(value, {
-//             set: set.bind(null, path, binder),
-//             get: get.bind(null, path, binder),
-//         });
-//     } else if (typeof value === 'function') {
-//         return value.bind(target);
-//     } else {
-//         return value;
-//     }
+    const value = target[ key ];
 
-// };
+    if (value && typeof value === 'object') {
+        return new Proxy(value, {
+            set: set.bind(null, path, binder),
+            get: get.bind(null, path, binder),
+        });
+    } else if (typeof value === 'function') {
+        return value.bind(target);
+    } else {
+        return value;
+    }
+
+};
 
 const computer = function (binder: any) {
     let cache = caches.get(binder.value);
@@ -199,7 +205,7 @@ const computer = function (binder: any) {
         code = code.replace(/}}/g, convert ? `) + '` : ')');
         code = convert ? `'${code}'` : code;
 
-        code = `
+        binder.code = code = `
         $instance = $instance || {};
         var $f = $form = $instance.form;
         var $e = $event = $instance.event;
@@ -229,22 +235,11 @@ const computer = function (binder: any) {
         caches.set(binder.value, cache);
     }
 
-    if (binder.cache) {
-        return binder.cache;
-    } else {
-        cache.call(null, new Proxy({}, { has, set: setFirst.bind(null, binder), get: getFirst.bind(null, binder) }), binder);
-        return binder.cache = cache.bind(null, new Proxy(binder.context, { has: hasLive, }), binder);
-    }
-
-    // const context = new Proxy(binder.context, {
-    //     has: has,
-    //     set: set.bind(null, '', binder),
-    //     get: get.bind(null, '', binder)
-    // });
-
-    // return cache.bind(null, context, binder);
-
-    // return cache.bind(null, binder.context, binder);
+    return cache.bind(null, new Proxy(binder.context, {
+        has: has,
+        set: set.bind(null, '', binder),
+        get: get.bind(null, '', binder)
+    }), binder);
 };
 
 export default computer;

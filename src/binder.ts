@@ -62,14 +62,11 @@ export default class Binder {
     }
 
     async bind (node: Node, container: any, name, value, owner, context: any, rewrites?: any) {
-        // const self = this;
 
         const binder = {
-            // busy: true,
-            ready: false,
-            // paths: new Set(),
-            // paths: [],
             meta: {},
+            paths: [],
+            ready: true,
             binder: this,
             render: undefined,
             compute: undefined,
@@ -80,18 +77,21 @@ export default class Binder {
 
         (node as any).$binder = binder;
         binder.compute = computer(binder);
-        // binder.render = this.binders[ binder.type ].bind(null, binder);
+
         binder.render = async function () {
+            if (!this.ready) {
+                return this.cancel = async () => {
+                    this.cancel = null;
+                    this.ready = false;
+                    this.task = await this.binder.binders[ this.type ](this);
+                    this.ready = true;
+                    return this.task;
+                };
+            }
             this.ready = false;
-            this.task = this.binder.binders[ this.type ](this);
+            this.task = await this.binder.binders[ this.type ](this);
             this.ready = true;
             return this.task;
-            // return new Promise(resolve => window.requestAnimationFrame(() => {
-            //     this.ready = false;
-            //     this.task = this.binder.binders[ this.type ](this);
-            //     this.ready = true;
-            //     this.task.then(resolve);
-            // }));
         };
 
         if (node.nodeType === AN) {

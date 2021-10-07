@@ -37,6 +37,7 @@ const set = function (binder, indexValue, keyValue, target, key, value) {
 };
 
 const each = async function (binder, data) {
+    if (binder.cancel) return binder.cancel();
 
     if (!binder.meta.setup) {
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
@@ -71,6 +72,7 @@ const each = async function (binder, data) {
 
     if (!data) {
         data = await binder.compute();
+        if (binder.cancel) return binder.cancel();
         if (data?.constructor === Array) {
             binder.meta.targetLength = data.length;
         } else {

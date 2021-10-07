@@ -1,7 +1,11 @@
 const tick = Promise.resolve();
 
 const html = async function (binder) {
+    if (binder.cancel) return binder.cancel();
+
     let data = await binder.compute();
+
+    if (binder.cancel) return binder.cancel();
 
     if (typeof data !== 'string') {
         data = '';

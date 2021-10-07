@@ -90,6 +90,7 @@ const reset = async function (event, binder) {
 };
 
 const on = async function on (binder) {
+    if (binder.cancel) return binder.cancel();
 
     binder.owner[ binder.name ] = null;
     const name = binder.name.slice(2);

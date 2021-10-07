@@ -2,9 +2,13 @@ import booleanTypes from '../types/boolean';
 import format from '../format';
 
 const standard = async function (binder) {
+    if (binder.cancel) return binder.cancel();
+
     const { name, owner, node } = binder;
 
     let data = await binder.compute();
+    if (binder.cancel) return binder.cancel();
+
     const boolean = booleanTypes.includes(name);
 
     if (boolean) {

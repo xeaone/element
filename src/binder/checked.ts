@@ -6,6 +6,8 @@ const handler = async function (binder, event?: Event) {
     const checked = owner.checked;
     const computed = await binder.compute(event ? { event, checked } : null);
 
+    if (binder.cancel) return binder.cancel();
+
     if (computed) {
         owner.setAttributeNode(node);
     } else {
@@ -15,6 +17,7 @@ const handler = async function (binder, event?: Event) {
 };
 
 const checked = async function (binder) {
+    if (binder.cancel) return binder.cancel();
     const { owner } = binder;
 
     if (!binder.meta.setup) {
