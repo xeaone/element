@@ -161,6 +161,9 @@
             return binder.cancel();
         binder.node.value = '';
         if (binder.owner.isRendered) {
+            if (!binder.owner.inherited) {
+                return console.warn(`inherited not implemented ${binder.owner.localName}`);
+            }
             const inherited = await binder.compute();
             if (binder.cancel)
                 return binder.cancel();
@@ -168,6 +171,9 @@
         }
         else {
             binder.owner.addEventListener('afterrender', async () => {
+                if (!binder.owner.inherited) {
+                    return console.warn(`inherited not implemented ${binder.owner.localName}`);
+                }
                 const inherited = await binder.compute();
                 if (binder.cancel)
                     return binder.cancel();
@@ -993,22 +999,21 @@
         }
         detach(name) {
             const item = this.#data.get(name);
-            if (!item || item.count === 0)
+            if (!item)
                 return;
             item.count--;
-            if (item.count === 0 && this.#style.contains(item.node)) {
+            if (item.count === 1) {
                 this.#style.removeChild(item.node);
             }
         }
         attach(name, text) {
-            const item = this.#data.get(name) || { count: 0, node: this.node(name, text) };
+            let item = this.#data.get(name);
             if (item) {
                 item.count++;
             }
             else {
+                item = { count: 1, node: this.node(name, text) };
                 this.#data.set(name, item);
-            }
-            if (!this.#style.contains(item.node)) {
                 this.#style.appendChild(item.node);
             }
         }

@@ -39,25 +39,24 @@ export default new class Css {
     detach (name: string) {
         const item = this.#data.get(name);
 
-        if (!item || item.count === 0) return;
+        if (!item) return;
+
         item.count--;
 
-        if (item.count === 0 && this.#style.contains(item.node)) {
+        if (item.count === 1) {
             this.#style.removeChild(item.node);
         }
 
     }
 
     attach (name: string, text: string) {
-        const item = this.#data.get(name) || { count: 0, node: this.node(name, text) };
+        let item = this.#data.get(name);
 
         if (item) {
             item.count++;
         } else {
+            item = { count: 1, node: this.node(name, text) };
             this.#data.set(name, item);
-        }
-
-        if (!this.#style.contains(item.node)) {
             this.#style.appendChild(item.node);
         }
 

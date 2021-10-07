@@ -142,6 +142,7 @@ export default class Component extends HTMLElement {
 
     async connectedCallback () {
         Css.attach(this.#name, this.css);
+
         if (!this.#flag) {
             this.#flag = true;
             this.dispatchEvent(this.#beforeRenderEvent);
