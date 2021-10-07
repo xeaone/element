@@ -209,8 +209,8 @@ const computer = function (binder: any) {
         $instance = $instance || {};
         var $f = $form = $instance.form;
         var $e = $event = $instance.event;
-        with ($context) {
-            try {
+        try {
+            with ($context) {
                 ${isValue || isChecked ? `
                 ${isValue ? `var $v = $value = $instance && 'value' in $instance ? $instance.value : ${reference || 'undefined'};` : ''}
                 ${isChecked ? `var $c = $checked = $instance && 'checked' in $instance ? $instance.checked : ${reference || 'undefined'};` : ''}
@@ -219,15 +219,15 @@ const computer = function (binder: any) {
                 } else {
                     return ${assignment ? assignment : code};
                 }
-            ` : `return ${code};`}
-           } catch (error) {
-                //console.warn(error);
-                if (error.message.indexOf('Cannot set property') === 0) return;
-                else if (error.message.indexOf('Cannot read property') === 0) return;
-                else if (error.message.indexOf('Cannot set properties') === 0) return;
-                else if (error.message.indexOf('Cannot read properties') === 0) return;
-                else console.error(error);
+                ` : `return ${code};`}
             }
+        } catch (error) {
+            //console.warn(error.message);
+            if (error.message.indexOf('Cannot set property') === 0 ||
+                error.message.indexOf('Cannot read property') === 0 ||
+                error.message.indexOf('Cannot set properties') === 0 ||
+                error.message.indexOf('Cannot read properties') === 0) return;
+            else console.error(error);
         }
         `;
 

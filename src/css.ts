@@ -44,6 +44,7 @@ export default new class Css {
         item.count--;
 
         if (item.count === 1) {
+            this.#data.delete(name);
             this.#style.removeChild(item.node);
         }
 
