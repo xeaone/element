@@ -1,16 +1,17 @@
 type task = (path: string) => Promise<any>;
 
 const get = function (task: task, path: string, target: any, key: any, receiver) {
-    if (target[ key ] && typeof target[ key ] === 'object') {
+    const value = Reflect.get(target, key, receiver);
+    if (value && typeof value === 'object') {
         path = path ? `${path}.${key}` : `${key}`;
-        return new Proxy(Reflect.get(target, key, receiver), {
+        return new Proxy(value, {
             get: get.bind(null, task, path),
             set: set.bind(null, task, path),
             deleteProperty: deleteProperty.bind(null, task, path)
         });
     } else {
         // return target[ key ];
-        return Reflect.get(target, key, receiver);
+        return value;
     }
 };
 
@@ -27,7 +28,8 @@ const set = function (task: task, path: string, target: any, key, value, receive
         task(path);
         task(path ? `${path}.${key}` : `${key}`);
         return true;
-    } else if (Reflect.get(target, key, receiver) === value || target[ key ] === value) {
+    } else if (Reflect.get(target, key, receiver) === value) {
+        // } else if (Reflect.get(target, key, receiver) === value || target[ key ] === value) {
         return true;
     }
 

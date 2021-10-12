@@ -36,7 +36,7 @@ export default class BindersRoute extends Component {
         fruits: [ 'apple', 'orange', 'tomato' ],
         log () { console.log(arguments); },
 
-        selectedPlant: null,
+        selectedPlant: undefined,
         selectEachResult: 'orange',
 
         radio: false,

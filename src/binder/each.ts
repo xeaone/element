@@ -37,7 +37,7 @@ const set = function (binder, indexValue, keyValue, target, key, value) {
 };
 
 const each = async function (binder, data) {
-    if (binder.cancel) return binder.cancel();
+    // if (binder.cancel) return binder.cancel();
 
     if (!binder.meta.setup) {
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
@@ -72,7 +72,7 @@ const each = async function (binder, data) {
 
     if (!data) {
         data = await binder.compute();
-        if (binder.cancel) return binder.cancel();
+        // if (binder.cancel) return binder.cancel();
         if (data?.constructor === Array) {
             binder.meta.targetLength = data.length;
         } else {
@@ -143,7 +143,19 @@ const each = async function (binder, data) {
     if (binder.meta.currentLength === binder.meta.targetLength && binder.meta.tasks.length) {
         await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
         binder.owner.appendChild(binder.meta.queueElement.content);
-        // binder.owner.attributes.value?.$binder.render();
+
+        if (binder.owner.nodeName === 'SELECT') {
+            const bounds = binder.binder.ownerBinders.get(binder.owner);
+            if (bounds) {
+                for (const bound of bounds) {
+                    if (bound.name === 'value') {
+                        bound.render();
+                        break;
+                    }
+                }
+            }
+        }
+
     }
 
 };

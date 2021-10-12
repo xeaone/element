@@ -27,79 +27,12 @@ const ignores = [
     'Reflect', 'Proxy',
 ];
 
-
-// const has = () => true;
-// const method = () => undefined;
-// const setIgnore = () => true;
-// const getIgnore = () => new Proxy(method, { has, set: setIgnore, get: getIgnore });
-
-// const setCapture = function (binder, path, target, key) {
-//     if (typeof key !== 'string') return true;
-//     path = path ? `${path}.${key}` : `${key}`;
-//     bind(binder, path);
-//     return true;
-// };
-
-// const getCapture = function (binder, path, target, key) {
-//     if (typeof key !== 'string') return;
-//     path = path ? `${path}.${key}` : `${key}`;
-//     bind(binder, path);
-//     return new Proxy(method, {
-//         has,
-//         set: setCapture.bind(null, binder, path),
-//         get: getCapture.bind(null, binder, path),
-//     });
-// };
-
-// const setFirst = function (binder, target, key) {
-//     if (!ignores.includes(key)) {
-//         if (typeof key !== 'string') return true;
-//         bind(binder, `${key}`);
-//     }
-//     return true;
-// };
-
-// const getFirst = function (binder, target, key) {
-//     if (ignores.includes(key)) {
-//         return new Proxy(method, { has, set: setIgnore, get: getIgnore });
-//     } else {
-//         if (typeof key !== 'string') return target[ key ];
-
-//         let path = `${key}`;
-//         if (binder.rewrites?.length) {
-
-//             for (const [ name, value ] of binder.rewrites) {
-//                 path = path.replace(new RegExp(`^(${name})\\b`), value);
-//             }
-
-//             let parts;
-//             for (const part of path.split('.')) {
-//                 parts = parts ? `${parts}.${part}` : part;
-//                 bind(binder, parts);
-//             }
-//         } else {
-//             bind(binder, path);
-//         }
-
-//         return new Proxy(method, {
-//             has,
-//             set: setCapture.bind(null, binder, path),
-//             get: getCapture.bind(null, binder, path),
-//         });
-//     }
-// };
-
-// const hasLive = function (target, key) {
-//     if (typeof key !== 'string') return true;
-//     return !ignores.includes(key);
-// };
-
 const bind = async function (binder, path) {
     const binders = binder.binders.get(path);
+    binder.paths.add(path);
     if (binders) {
         binders.add(binder);
     } else {
-        binder.paths.push(path);
         binder.binders.set(path, new Set([ binder ]));
     }
 };
@@ -109,7 +42,7 @@ const has = function (target, key) {
     return !ignores.includes(key);
 };
 
-const set = function (path, binder, target, key, value) {
+const set = function (path, binder, target, key, value, receiver) {
     if (typeof key !== 'string') return true;
 
     if (!path && binder.rewrites?.length) {
@@ -129,14 +62,12 @@ const set = function (path, binder, target, key, value) {
         bind(binder, path);
     }
 
-    if (target[ key ] !== value) {
-        target[ key ] = value;
-    }
+    Reflect.set(target, key, value, target);
 
     return true;
 };
 
-const get = function (path, binder, target, key) {
+const get = function (path, binder, target, key, receiver) {
     if (typeof key !== 'string') return target[ key ];
 
     if (!path && binder.rewrites?.length) {
@@ -156,7 +87,7 @@ const get = function (path, binder, target, key) {
         bind(binder, path);
     }
 
-    const value = target[ key ];
+    const value = Reflect.get(target, key, target);
 
     if (value && typeof value === 'object') {
         return new Proxy(value, {
@@ -212,12 +143,14 @@ const computer = function (binder: any) {
         try {
             with ($context) {
                 ${isValue || isChecked ? `
-                ${isValue ? `var $v = $value = $instance && 'value' in $instance ? $instance.value : ${reference || 'undefined'};` : ''}
-                ${isChecked ? `var $c = $checked = $instance && 'checked' in $instance ? $instance.checked : ${reference || 'undefined'};` : ''}
                 if ('value' in $instance || 'checked' in $instance) {
+                    ${isValue ? `$v = $value = $instance.value;` : ''}
+                    ${isChecked ? `$c = $checked = $instance.checked;` : ''}
                     return ${code};
                 } else {
-                    return ${assignment ? assignment : code};
+                    ${isValue ? `$v = $value = ${reference || 'undefined'};` : ''}
+                    ${isChecked ? `$c = $checked = ${reference || 'undefined'};` : ''}
+                    return ${assignment};
                 }
                 ` : `return ${code};`}
             }

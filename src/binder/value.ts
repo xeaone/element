@@ -1,6 +1,8 @@
 import format from '../format';
 import dateTypes from '../types/date';
 
+const defaultInputEvent = new Event('input');
+
 const stampFromView = function (data: number) {
     const date = new Date(data);
     return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
@@ -14,7 +16,6 @@ const stampToView = function (data: number) {
 };
 
 const input = async function (binder, event) {
-
     const { owner } = binder;
     const { type } = owner;
     let display, computed;
@@ -57,7 +58,7 @@ const input = async function (binder, event) {
 };
 
 const value = async function (binder) {
-    if (binder.cancel) return binder.cancel();
+    // if (binder.cancel) return binder.cancel();
 
     const { owner, meta } = binder;
 
@@ -67,29 +68,23 @@ const value = async function (binder) {
         owner.addEventListener('input', event => input(binder, event));
     }
 
-    // if (binder.owner.type === 'select-one' || binder.owner.type === 'select-multiple') {
-    //     if (owner.attributes.each && !owner.attributes.each?.$binder?.ready) return;
-    // }
-
     const computed = await binder.compute();
-    if (binder.cancel) return binder.cancel();
+    // if (binder.cancel) return binder.cancel();
 
     let display;
     if (binder.owner.type === 'select-one') {
         owner.value = undefined;
+        console.log(binder.value, owner.options.length);
 
         for (const option of owner.options) {
-            // if (option.attributes.value?.$binder) {
-            //     await option.attributes.value.$binder.task;
-            // }
             const optionValue = '$value' in option ? option.$value : option.value;
             if (option.selected = optionValue === computed) break;
         }
 
-        if (owner.options.length && !owner.selectedOptions.length) {
+        if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
             const [ option ] = owner.options;
             option.selected = true;
-            return owner.dispatchEvent(new Event('input'));
+            return owner.dispatchEvent(defaultInputEvent);
         }
 
         display = format(computed);
@@ -97,9 +92,6 @@ const value = async function (binder) {
     } else if (binder.owner.type === 'select-multiple') {
 
         for (const option of owner.options) {
-            // if (option.attributes.value?.$binder) {
-            //     await option.attributes.value.$binder.task;
-            // }
             const optionValue = '$value' in option ? option.$value : option.value;
             option.selected = computed?.includes(optionValue);
         }

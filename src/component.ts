@@ -44,7 +44,7 @@ export default class Component extends HTMLElement {
     shadow: boolean = false;
 
     get root () { return this.#root; }
-    get binder () { return Binder; }
+    get binder () { return this.#binder; }
 
     constructor () {
         super();
@@ -70,12 +70,10 @@ export default class Component extends HTMLElement {
         const tasks = [];
 
         const context = this.data = Observer(this.data, async path => {
-            for (const [ key, value ] of this.#binder.pathBinders) {
-                if (value && key === path) {
-                    for (const binder of value) {
-                        binder.render();
-                    }
-                }
+            const binders = this.#binder.pathBinders.get(path);
+            if (!binders) return;
+            for (const binder of binders) {
+                binder.render();
             }
         });
 

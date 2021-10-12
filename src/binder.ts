@@ -26,7 +26,8 @@ export default class Binder {
     prefixReplace = new RegExp('^o-');
     syntaxReplace = new RegExp('{{|}}', 'g');
 
-    nodeBinders: Map<Node, Set<any>> = new Map();
+    nodeBinders: Map<Node, any> = new Map();
+    ownerBinders: Map<Node, Set<any>> = new Map();
     pathBinders: Map<string, Set<any>> = new Map();
 
     binders = {
@@ -49,25 +50,29 @@ export default class Binder {
     }
 
     async unbind (node: Node) {
-        const nodeBinders = this.nodeBinders.get(node);
-        if (!nodeBinders) return;
+        const ownerBinders = this.ownerBinders.get(node);
+        if (!ownerBinders) return;
 
-        for (const nodeBinder of nodeBinders) {
-            for (const path of nodeBinder.paths) {
-                this.pathBinders.get(path).delete(nodeBinder);
+        for (const ownerBinder of ownerBinders) {
+            this.nodeBinders.delete(ownerBinder.node);
+            for (const path of ownerBinder.paths) {
+                const pathBinders = this.pathBinders.get(path);
+                pathBinders.delete(ownerBinder);
+                if (!pathBinders.size) this.pathBinders.delete(path);
             }
         }
 
         this.nodeBinders.delete(node);
+        this.ownerBinders.delete(node);
     }
 
     async bind (node: Node, container: any, name, value, owner, context: any, rewrites?: any) {
 
         const binder = {
             meta: {},
-            paths: [],
             ready: true,
             binder: this,
+            paths: new Set(),
             render: undefined,
             compute: undefined,
             binders: this.pathBinders,
@@ -79,24 +84,27 @@ export default class Binder {
         binder.compute = computer(binder);
 
         binder.render = async function () {
-            if (!this.ready) {
-                return this.cancel = async () => {
-                    this.cancel = null;
-                    this.ready = false;
-                    this.task = await this.binder.binders[ this.type ](this);
-                    this.ready = true;
-                    return this.task;
-                };
-            }
+            // if (!this.ready) {
+            //     return this.cancel = async () => {
+            //         this.cancel = null;
+            //         this.ready = false;
+            //         this.task = await this.binder.binders[ this.type ](this);
+            //         this.ready = true;
+            //         return this.task;
+            //     };
+            // }
             this.ready = false;
-            this.task = await this.binder.binders[ this.type ](this);
+            await this.binder.binders[ this.type ](this);
             this.ready = true;
-            return this.task;
         };
 
-        if (node.nodeType === AN) {
-            owner.$binders = owner.$binders || new Map();
-            owner.$binders.set(name, binder);
+        this.nodeBinders.set(node, binder);
+
+        const ownerBinders = this.ownerBinders.get(binder.owner);
+        if (ownerBinders) {
+            ownerBinders.add(binder);
+        } else {
+            this.ownerBinders.set(binder.owner, new Set([ binder ]));
         }
 
         return binder.render();
@@ -105,13 +113,16 @@ export default class Binder {
     async remove (node: Node) {
         const tasks = [];
 
-        if (node.nodeType === AN || node.nodeType === TN) {
-            tasks.push(this.unbind(node));
+        // if (node.nodeType === AN) {
+        //     tasks.push(this.unbind(node));
+        if (node.nodeType === TN) {
+            this.unbind(node);
         } else if (node.nodeType === EN) {
-            const attributes = (node as Element).attributes;
-            for (const attribute of attributes) {
-                tasks.push(this.unbind(attribute));
-            }
+            this.unbind(node);
+            // const attributes = (node as Element).attributes;
+            // for (const attribute of attributes) {
+            //     tasks.push(this.unbind(attribute));
+            // }
 
             let child = node.firstChild;
             while (child) {
@@ -153,11 +164,6 @@ export default class Binder {
             tasks.push(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
         } else if (node.nodeType === EN) {
 
-            // let each = (node as Element).attributes[ 'each' ];
-            // if (each && this.syntaxMatch.test(each.value)) {
-            //     each = this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
-            // }
-
             let each;
             const attributes = (node as Element).attributes;
             for (const attribute of attributes) {
@@ -168,6 +174,7 @@ export default class Binder {
                     // } else {
                     //     tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                     // }
+                    if (each) continue;
                     if (attribute.name === 'each' || attribute.name === this.prefixEach) {
                         each = this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
                     } else {
@@ -176,7 +183,7 @@ export default class Binder {
                 }
             }
 
-            if (each) return each().then(() => Promise.all(tasks.map(task => task())));
+            if (each) return Promise.resolve().then(each).then(() => Promise.all(tasks.map(task => task())));
 
             let child = node.firstChild;
             if (child) {

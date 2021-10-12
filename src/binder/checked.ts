@@ -36,7 +36,18 @@ const checked = async function (binder) {
                     if (radio === event.target) {
                         await handler(binder, event);
                     } else {
-                        const checked = radio?.$binders?.get('checked');
+
+                        let checked;
+                        const bounds = binder.binder.ownerBinders.get(binder.owner);
+                        if (bounds) {
+                            for (const bound of bounds) {
+                                if (bound.name === 'checked') {
+                                    checked = bound;
+                                    break;
+                                }
+                            }
+                        }
+
                         if (checked) {
                             radio.dispatchEvent(input);
                         } else {
@@ -47,6 +58,7 @@ const checked = async function (binder) {
                                 radio.removeAttribute('checked');
                             }
                         }
+
                     }
                 }
 

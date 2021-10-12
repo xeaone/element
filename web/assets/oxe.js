@@ -16,55 +16,74 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-    const tick$1 = Promise.resolve();
-    const deleteProperty = function (task, path, target, key) {
-        delete target[key];
-        // task(path ? `${path}.${key}` : `${key}`);
-        tick$1.then(task.bind(this, path ? `${path}.${key}` : `${key}`));
-        return true;
-    };
-    const set$2 = function (task, path, target, key, value) {
-        if (key === 'length') {
-            // task(path);
-            // task(path ? `${path}.${key}` : `${key}`);
-            tick$1.then(task.bind(this, path));
-            tick$1.then(task.bind(this, path ? `${path}.${key}` : `${key}`));
-            return true;
-        }
-        else if (target[key] === value || `${target[key]}${value}` === 'NaNNaN') {
-            return true;
-        }
-        target[key] = observer(value, task, path ? `${path}.${key}` : `${key}`);
-        // task(path ? `${path}.${key}` : `${key}`);
-        tick$1.then(task.bind(this, path ? `${path}.${key}` : `${key}`));
-        return true;
-    };
-    const observer = function (source, task, path = '') {
-        let target;
-        if (source?.constructor === Array) {
-            target = [];
-            for (let key = 0, length = source.length; key < length; key++) {
-                target[key] = observer(source[key], task, path ? `${path}.${key}` : `${key}`);
-            }
-            target = new Proxy(target, {
-                set: set$2.bind(null, task, path),
-                deleteProperty: deleteProperty.bind(null, task, path)
-            });
-        }
-        else if (source?.constructor === Object) {
-            target = {};
-            for (let key in source) {
-                target[key] = observer(source[key], task, path ? `${path}.${key}` : `${key}`);
-            }
-            target = new Proxy(target, {
+    const get$2 = function (task, path, target, key, receiver) {
+        const value = Reflect.get(target, key, receiver);
+        if (value && typeof value === 'object') {
+            path = path ? `${path}.${key}` : `${key}`;
+            return new Proxy(value, {
+                get: get$2.bind(null, task, path),
                 set: set$2.bind(null, task, path),
                 deleteProperty: deleteProperty.bind(null, task, path)
             });
         }
         else {
-            target = source;
+            // return target[ key ];
+            return value;
         }
-        return target;
+    };
+    const deleteProperty = function (task, path, target, key) {
+        // delete target[ key ];
+        Reflect.deleteProperty(target, key);
+        task(path ? `${path}.${key}` : `${key}`);
+        return true;
+    };
+    const set$2 = function (task, path, target, key, value, receiver) {
+        if (key === 'length') {
+            task(path);
+            task(path ? `${path}.${key}` : `${key}`);
+            return true;
+        }
+        else if (Reflect.get(target, key, receiver) === value) {
+            // } else if (Reflect.get(target, key, receiver) === value || target[ key ] === value) {
+            return true;
+        }
+        // target[ key ] = value;
+        // target[ key ] = observer(value, task, path ? `${path}.${key}` : `${key}`);
+        Reflect.set(target, key, value, receiver);
+        task(path ? `${path}.${key}` : `${key}`);
+        return true;
+    };
+    const observer = function (source, task, path = '') {
+        return new Proxy(source, {
+            get: get$2.bind(null, task, path),
+            set: set$2.bind(null, task, path),
+            deleteProperty: deleteProperty.bind(null, task, path)
+        });
+        // if (source && typeof source === 'object') {
+        //     const target = new Proxy(source, {
+        //         set: set.bind(null, task, path),
+        //         deleteProperty: deleteProperty.bind(null, task, path)
+        //     });
+        //     for (const key in source) {
+        //         // target[ key ] = observer(source[ key ], task, path ? `${path}.${key}` : `${key}`);
+        //         const descriptor = Object.getOwnPropertyDescriptor(source, key);
+        //         if ('value' in descriptor) {
+        //             descriptor.value = observer(descriptor.value, task, path ? `${path}.${key}` : `${key}`);
+        //             Object.defineProperty(target, key, descriptor);
+        //         } else {
+        //             descriptor.get = function (g, t, p) {
+        //                 return observer(g(), t, p);
+        //             }.bind(target, descriptor.get.bind(target), task, path ? `${path}.${key}` : `${key}`);
+        //             descriptor.set = function (s, t, p, v) {
+        //                 return observer(s(v), t, p);
+        //             }.bind(target, descriptor.set.bind(target), task, path ? `${path}.${key}` : `${key}`);
+        //             Object.defineProperty(target, key, descriptor);
+        //         }
+        //     }
+        //     return target;
+        // } else {
+        //     return source;
+        // }
     };
 
     var booleanTypes = [
@@ -132,7 +151,16 @@
                             await handler(binder, event);
                         }
                         else {
-                            const checked = radio?.$binders?.get('checked');
+                            let checked;
+                            const bounds = binder.binder.ownerBinders.get(binder.owner);
+                            if (bounds) {
+                                for (const bound of bounds) {
+                                    if (bound.name === 'checked') {
+                                        checked = bound;
+                                        break;
+                                    }
+                                }
+                            }
                             if (checked) {
                                 radio.dispatchEvent(input);
                             }
@@ -184,6 +212,7 @@
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
 
+    const defaultInputEvent = new Event('input');
     const stampFromView = function (data) {
         const date = new Date(data);
         return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
@@ -239,44 +268,34 @@
         owner.setAttribute('value', display);
     };
     const value = async function (binder) {
-        if (binder.cancel)
-            return binder.cancel();
+        // if (binder.cancel) return binder.cancel();
         const { owner, meta } = binder;
         if (!meta.setup) {
             meta.setup = true;
             meta.nodeName = owner.nodeName;
             owner.addEventListener('input', event => input(binder, event));
         }
-        // if (binder.owner.type === 'select-one' || binder.owner.type === 'select-multiple') {
-        //     if (owner.attributes.each && !owner.attributes.each?.$binder?.ready) return;
-        // }
         const computed = await binder.compute();
-        if (binder.cancel)
-            return binder.cancel();
+        // if (binder.cancel) return binder.cancel();
         let display;
         if (binder.owner.type === 'select-one') {
             owner.value = undefined;
+            console.log(binder.value, owner.options.length);
             for (const option of owner.options) {
-                // if (option.attributes.value?.$binder) {
-                //     await option.attributes.value.$binder.task;
-                // }
                 const optionValue = '$value' in option ? option.$value : option.value;
                 if (option.selected = optionValue === computed)
                     break;
             }
-            if (owner.options.length && !owner.selectedOptions.length) {
+            if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
                 const [option] = owner.options;
                 option.selected = true;
-                return owner.dispatchEvent(new Event('input'));
+                return owner.dispatchEvent(defaultInputEvent);
             }
             display = format(computed);
             owner.value = display;
         }
         else if (binder.owner.type === 'select-multiple') {
             for (const option of owner.options) {
-                // if (option.attributes.value?.$binder) {
-                //     await option.attributes.value.$binder.task;
-                // }
                 const optionValue = '$value' in option ? option.$value : option.value;
                 option.selected = computed?.includes(optionValue);
             }
@@ -347,8 +366,7 @@
         return true;
     };
     const each = async function (binder, data) {
-        if (binder.cancel)
-            return binder.cancel();
+        // if (binder.cancel) return binder.cancel();
         if (!binder.meta.setup) {
             let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
             binder.meta.path = path;
@@ -378,8 +396,7 @@
         }
         if (!data) {
             data = await binder.compute();
-            if (binder.cancel)
-                return binder.cancel();
+            // if (binder.cancel) return binder.cancel();
             if (data?.constructor === Array) {
                 binder.meta.targetLength = data.length;
             }
@@ -440,7 +457,17 @@
         if (binder.meta.currentLength === binder.meta.targetLength && binder.meta.tasks.length) {
             await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
             binder.owner.appendChild(binder.meta.queueElement.content);
-            // binder.owner.attributes.value?.$binder.render();
+            if (binder.owner.nodeName === 'SELECT') {
+                const bounds = binder.binder.ownerBinders.get(binder.owner);
+                if (bounds) {
+                    for (const bound of bounds) {
+                        if (bound.name === 'value') {
+                            bound.render();
+                            break;
+                        }
+                    }
+                }
+            }
         }
     };
 
@@ -615,69 +642,13 @@
         'Promise', 'GeneratorFunction', 'AsyncGeneratorFunction', 'Generator', 'AsyncGenerator', 'AsyncFunction',
         'Reflect', 'Proxy',
     ];
-    // const has = () => true;
-    // const method = () => undefined;
-    // const setIgnore = () => true;
-    // const getIgnore = () => new Proxy(method, { has, set: setIgnore, get: getIgnore });
-    // const setCapture = function (binder, path, target, key) {
-    //     if (typeof key !== 'string') return true;
-    //     path = path ? `${path}.${key}` : `${key}`;
-    //     bind(binder, path);
-    //     return true;
-    // };
-    // const getCapture = function (binder, path, target, key) {
-    //     if (typeof key !== 'string') return;
-    //     path = path ? `${path}.${key}` : `${key}`;
-    //     bind(binder, path);
-    //     return new Proxy(method, {
-    //         has,
-    //         set: setCapture.bind(null, binder, path),
-    //         get: getCapture.bind(null, binder, path),
-    //     });
-    // };
-    // const setFirst = function (binder, target, key) {
-    //     if (!ignores.includes(key)) {
-    //         if (typeof key !== 'string') return true;
-    //         bind(binder, `${key}`);
-    //     }
-    //     return true;
-    // };
-    // const getFirst = function (binder, target, key) {
-    //     if (ignores.includes(key)) {
-    //         return new Proxy(method, { has, set: setIgnore, get: getIgnore });
-    //     } else {
-    //         if (typeof key !== 'string') return target[ key ];
-    //         let path = `${key}`;
-    //         if (binder.rewrites?.length) {
-    //             for (const [ name, value ] of binder.rewrites) {
-    //                 path = path.replace(new RegExp(`^(${name})\\b`), value);
-    //             }
-    //             let parts;
-    //             for (const part of path.split('.')) {
-    //                 parts = parts ? `${parts}.${part}` : part;
-    //                 bind(binder, parts);
-    //             }
-    //         } else {
-    //             bind(binder, path);
-    //         }
-    //         return new Proxy(method, {
-    //             has,
-    //             set: setCapture.bind(null, binder, path),
-    //             get: getCapture.bind(null, binder, path),
-    //         });
-    //     }
-    // };
-    // const hasLive = function (target, key) {
-    //     if (typeof key !== 'string') return true;
-    //     return !ignores.includes(key);
-    // };
     const bind = async function (binder, path) {
         const binders = binder.binders.get(path);
+        binder.paths.add(path);
         if (binders) {
             binders.add(binder);
         }
         else {
-            binder.paths.push(path);
             binder.binders.set(path, new Set([binder]));
         }
     };
@@ -686,7 +657,7 @@
             return true;
         return !ignores.includes(key);
     };
-    const set = function (path, binder, target, key, value) {
+    const set = function (path, binder, target, key, value, receiver) {
         if (typeof key !== 'string')
             return true;
         if (!path && binder.rewrites?.length) {
@@ -704,12 +675,10 @@
             path = path ? `${path}.${key}` : `${key}`;
             bind(binder, path);
         }
-        if (target[key] !== value) {
-            target[key] = value;
-        }
+        Reflect.set(target, key, value, target);
         return true;
     };
-    const get = function (path, binder, target, key) {
+    const get = function (path, binder, target, key, receiver) {
         if (typeof key !== 'string')
             return target[key];
         if (!path && binder.rewrites?.length) {
@@ -727,7 +696,7 @@
             path = path ? `${path}.${key}` : `${key}`;
             bind(binder, path);
         }
-        const value = target[key];
+        const value = Reflect.get(target, key, target);
         if (value && typeof value === 'object') {
             return new Proxy(value, {
                 set: set.bind(null, path, binder),
@@ -778,12 +747,14 @@
         try {
             with ($context) {
                 ${isValue || isChecked ? `
-                ${isValue ? `var $v = $value = $instance && 'value' in $instance ? $instance.value : ${reference || 'undefined'};` : ''}
-                ${isChecked ? `var $c = $checked = $instance && 'checked' in $instance ? $instance.checked : ${reference || 'undefined'};` : ''}
                 if ('value' in $instance || 'checked' in $instance) {
+                    ${isValue ? `$v = $value = $instance.value;` : ''}
+                    ${isChecked ? `$c = $checked = $instance.checked;` : ''}
                     return ${code};
                 } else {
-                    return ${assignment ? assignment : code};
+                    ${isValue ? `$v = $value = ${reference || 'undefined'};` : ''}
+                    ${isChecked ? `$c = $checked = ${reference || 'undefined'};` : ''}
+                    return ${assignment};
                 }
                 ` : `return ${code};`}
             }
@@ -821,6 +792,7 @@
         prefixReplace = new RegExp('^o-');
         syntaxReplace = new RegExp('{{|}}', 'g');
         nodeBinders = new Map();
+        ownerBinders = new Map();
         pathBinders = new Map();
         binders = {
             standard,
@@ -841,22 +813,27 @@
             }
         }
         async unbind(node) {
-            const nodeBinders = this.nodeBinders.get(node);
-            if (!nodeBinders)
+            const ownerBinders = this.ownerBinders.get(node);
+            if (!ownerBinders)
                 return;
-            for (const nodeBinder of nodeBinders) {
-                for (const path of nodeBinder.paths) {
-                    this.pathBinders.get(path).delete(nodeBinder);
+            for (const ownerBinder of ownerBinders) {
+                this.nodeBinders.delete(ownerBinder.node);
+                for (const path of ownerBinder.paths) {
+                    const pathBinders = this.pathBinders.get(path);
+                    pathBinders.delete(ownerBinder);
+                    if (!pathBinders.size)
+                        this.pathBinders.delete(path);
                 }
             }
             this.nodeBinders.delete(node);
+            this.ownerBinders.delete(node);
         }
         async bind(node, container, name, value, owner, context, rewrites) {
             const binder = {
                 meta: {},
-                paths: [],
                 ready: true,
                 binder: this,
+                paths: new Set(),
                 render: undefined,
                 compute: undefined,
                 binders: this.pathBinders,
@@ -866,37 +843,43 @@
             node.$binder = binder;
             binder.compute = computer(binder);
             binder.render = async function () {
-                if (!this.ready) {
-                    return this.cancel = async () => {
-                        this.cancel = null;
-                        this.ready = false;
-                        this.task = await this.binder.binders[this.type](this);
-                        this.ready = true;
-                        return this.task;
-                    };
-                }
+                // if (!this.ready) {
+                //     return this.cancel = async () => {
+                //         this.cancel = null;
+                //         this.ready = false;
+                //         this.task = await this.binder.binders[ this.type ](this);
+                //         this.ready = true;
+                //         return this.task;
+                //     };
+                // }
                 this.ready = false;
-                this.task = await this.binder.binders[this.type](this);
+                await this.binder.binders[this.type](this);
                 this.ready = true;
-                return this.task;
             };
-            if (node.nodeType === AN) {
-                owner.$binders = owner.$binders || new Map();
-                owner.$binders.set(name, binder);
+            this.nodeBinders.set(node, binder);
+            const ownerBinders = this.ownerBinders.get(binder.owner);
+            if (ownerBinders) {
+                ownerBinders.add(binder);
+            }
+            else {
+                this.ownerBinders.set(binder.owner, new Set([binder]));
             }
             return binder.render();
         }
         ;
         async remove(node) {
             const tasks = [];
-            if (node.nodeType === AN || node.nodeType === TN) {
-                tasks.push(this.unbind(node));
+            // if (node.nodeType === AN) {
+            //     tasks.push(this.unbind(node));
+            if (node.nodeType === TN) {
+                this.unbind(node);
             }
             else if (node.nodeType === EN) {
-                const attributes = node.attributes;
-                for (const attribute of attributes) {
-                    tasks.push(this.unbind(attribute));
-                }
+                this.unbind(node);
+                // const attributes = (node as Element).attributes;
+                // for (const attribute of attributes) {
+                //     tasks.push(this.unbind(attribute));
+                // }
                 let child = node.firstChild;
                 while (child) {
                     tasks.push(this.remove(child));
@@ -932,10 +915,6 @@
                 tasks.push(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
             }
             else if (node.nodeType === EN) {
-                // let each = (node as Element).attributes[ 'each' ];
-                // if (each && this.syntaxMatch.test(each.value)) {
-                //     each = this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
-                // }
                 let each;
                 const attributes = node.attributes;
                 for (const attribute of attributes) {
@@ -946,6 +925,8 @@
                         // } else {
                         //     tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                         // }
+                        if (each)
+                            continue;
                         if (attribute.name === 'each' || attribute.name === this.prefixEach) {
                             each = this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
                         }
@@ -955,7 +936,7 @@
                     }
                 }
                 if (each)
-                    return each().then(() => Promise.all(tasks.map(task => task())));
+                    return Promise.resolve().then(each).then(() => Promise.all(tasks.map(task => task())));
                 let child = node.firstChild;
                 if (child) {
                     do {
@@ -1057,7 +1038,7 @@
         adopt = false;
         shadow = false;
         get root() { return this.#root; }
-        get binder() { return Binder; }
+        get binder() { return this.#binder; }
         constructor() {
             super();
             this.#binder = new Binder();
@@ -1079,12 +1060,11 @@
         async render() {
             const tasks = [];
             const context = this.data = observer(this.data, async (path) => {
-                for (const [key, value] of this.#binder.pathBinders) {
-                    if (value && key === path) {
-                        for (const binder of value) {
-                            binder.render();
-                        }
-                    }
+                const binders = this.#binder.pathBinders.get(path);
+                if (!binders)
+                    return;
+                for (const binder of binders) {
+                    binder.render();
                 }
             });
             if (this.adopt) {
