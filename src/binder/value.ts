@@ -81,6 +81,7 @@ const value = async function (binder) {
             if (option.selected = optionValue === computed) break;
         }
 
+        // if (owner.options.length && !owner.selectedOptions.length) {
         if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
             const [ option ] = owner.options;
             option.selected = true;
