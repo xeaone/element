@@ -22,12 +22,10 @@ const compare = async function (task: task, from: any, to: any, path: string, ta
         const index = toKeys?.indexOf(key) ?? -1;
         const child = path ? `${path}.${key}` : `${key}`;
         if (index !== -1) {
-            console.log(child, index, key, JSON.stringify(from[ key ]), JSON.stringify(to[ key ]));
             toKeys.splice(index, 1);
             tasks.push(task.bind(null, child, 'render'));
             compares.push(compare(task, from[ key ], to[ key ], child, tasks));
         } else {
-            // console.log(child, index, key, JSON.stringify(from[ key ]));
             tasks.push(task.bind(null, child, 'unrender'));
             compares.push(compare(task, from[ key ], undefined, child, tasks));
         }
@@ -35,7 +33,6 @@ const compare = async function (task: task, from: any, to: any, path: string, ta
 
     for (const key of toKeys) {
         const child = path ? `${path}.${key}` : `${key}`;
-        // console.log('rest', child, key, JSON.stringify(to[ key ]));
         tasks.push(task.bind(null, child, 'render'));
         compares.push(compare(task, undefined, to[ key ], child, tasks));
     }

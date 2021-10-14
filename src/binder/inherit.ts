@@ -25,6 +25,7 @@ const inheritRender = async function (binder) {
 };
 
 const inheritUnrender = async function (binder) {
+
     if (binder.owner.isRendered) {
 
         if (!binder.owner.inherited) {

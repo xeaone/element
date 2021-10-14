@@ -197,10 +197,13 @@ const replaceProtected = new RegExp([
 const cache = new Map();
 
 const parser = function (data, rewrites) {
-    let result = cache.get(data);
-    if (result) return result;
 
-    result = {};
+    if (!rewrites?.length) {
+        const cached = cache.get(data);
+        if (cached) return cached;
+    }
+
+    let result = { references: undefined };
     cache.set(data, result);
 
     data = data.replace(replaceOutside, ';');

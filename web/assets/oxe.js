@@ -34,20 +34,17 @@
             const index = toKeys?.indexOf(key) ?? -1;
             const child = path ? `${path}.${key}` : `${key}`;
             if (index !== -1) {
-                console.log(child, index, key, JSON.stringify(from[key]), JSON.stringify(to[key]));
                 toKeys.splice(index, 1);
                 tasks.push(task.bind(null, child, 'render'));
                 compares.push(compare(task, from[key], to[key], child, tasks));
             }
             else {
-                // console.log(child, index, key, JSON.stringify(from[ key ]));
                 tasks.push(task.bind(null, child, 'unrender'));
                 compares.push(compare(task, from[key], undefined, child, tasks));
             }
         }
         for (const key of toKeys) {
             const child = path ? `${path}.${key}` : `${key}`;
-            // console.log('rest', child, key, JSON.stringify(to[ key ]));
             tasks.push(task.bind(null, child, 'render'));
             compares.push(compare(task, undefined, to[key], child, tasks));
         }
@@ -995,10 +992,12 @@
     ].join('').replace(/\s|\t|\n/g, ''), 'g');
     const cache = new Map();
     const parser = function (data, rewrites) {
-        let result = cache.get(data);
-        if (result)
-            return result;
-        result = {};
+        if (!rewrites?.length) {
+            const cached = cache.get(data);
+            if (cached)
+                return cached;
+        }
+        let result = { references: undefined };
         cache.set(data, result);
         data = data.replace(replaceOutside, ';');
         data = data.replace(removeStrings, '');
@@ -1298,7 +1297,7 @@
             }
         }
         async #observe(path, type) {
-            console.log(type, path);
+            // console.log(type, path);
             const binders = this.#binder.pathBinders.get(path);
             if (!binders)
                 return;
