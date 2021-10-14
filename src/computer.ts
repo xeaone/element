@@ -1,4 +1,3 @@
-// import parser from "./parser";
 
 const caches = new Map();
 const splitPattern = /\s*{{\s*|\s*}}\s*/;
@@ -10,9 +9,8 @@ const assigneePattern = /({{)|(}})|([_$a-zA-Z0-9.?\[\]]+)[-+?^*%|\\ ]*=[-+?^*%|\
 // const assigneePattern = /({{.*?)([_$a-zA-Z0-9.?\[\]]+)(\s*[-+?^*%$|\\]?=[-+?^*%$|\\]?\s*[_$a-zA-Z0-9.?\[\]]+.*?}})/;
 
 const ignores = [
-    'window', 'document', 'console', 'location',
-    '$assignee',
-    '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+    '$assignee', '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+    'this', 'window', 'document', 'console', 'location',
     'globalThis', 'Infinity', 'NaN', 'undefined',
     'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent ',
     'Error', 'EvalError', 'RangeError', 'ReferenceError', 'SyntaxError', 'TypeError', 'URIError', 'AggregateError',
@@ -27,82 +25,82 @@ const ignores = [
     'Reflect', 'Proxy',
 ];
 
-const bind = async function (binder, path) {
-    const binders = binder.binders.get(path);
-    binder.paths.add(path);
-    if (binders) {
-        binders.add(binder);
-    } else {
-        binder.binders.set(path, new Set([ binder ]));
-    }
-};
+// const bind = async function (binder, path) {
+//     const binders = binder.binders.get(path);
+//     // binder.paths.add(path);
+//     if (binders) {
+//         binders.add(binder);
+//     } else {
+//         binder.binders.set(path, new Set([ binder ]));
+//     }
+// };
 
 const has = function (target, key) {
     if (typeof key !== 'string') return true;
     return !ignores.includes(key);
 };
 
-const set = function (path, binder, target, key, value, receiver) {
-    if (typeof key !== 'string') return true;
+// const set = function (path, binder, target, key, value, receiver) {
+//     if (typeof key !== 'string') return true;
 
-    if (!path && binder.rewrites?.length) {
-        path = `${key}`;
+//     if (!path && binder.rewrites?.length) {
+//         path = `${key}`;
 
-        for (const [ name, value ] of binder.rewrites) {
-            path = path.replace(new RegExp(`^(${name})\\b`), value);
-        }
+//         for (const [ name, value ] of binder.rewrites) {
+//             path = path.replace(new RegExp(`^(${name})\\b`), value);
+//         }
 
-        let parts;
-        for (const part of path.split('.')) {
-            parts = parts ? `${parts}.${part}` : part;
-            bind(binder, parts);
-        }
-    } else {
-        path = path ? `${path}.${key}` : `${key}`;
-        bind(binder, path);
-    }
+//         let parts;
+//         for (const part of path.split('.')) {
+//             parts = parts ? `${parts}.${part}` : part;
+//             bind(binder, parts);
+//         }
+//     } else {
+//         path = path ? `${path}.${key}` : `${key}`;
+//         bind(binder, path);
+//     }
 
-    Reflect.set(target, key, value, target);
+//     Reflect.set(target, key, value, target);
 
-    return true;
-};
+//     return true;
+// };
 
-const get = function (path, binder, target, key, receiver) {
-    if (typeof key !== 'string') return target[ key ];
+// const get = function (path, binder, target, key, receiver) {
+//     if (typeof key !== 'string') return target[ key ];
 
-    if (!path && binder.rewrites?.length) {
-        path = `${key}`;
+//     if (!path && binder.rewrites?.length) {
+//         path = `${key}`;
 
-        for (const [ name, value ] of binder.rewrites) {
-            path = path.replace(new RegExp(`^(${name})\\b`), value);
-        }
+//         for (const [ name, value ] of binder.rewrites) {
+//             path = path.replace(new RegExp(`^(${name})\\b`), value);
+//         }
 
-        let parts;
-        for (const part of path.split('.')) {
-            parts = parts ? `${parts}.${part}` : part;
-            bind(binder, parts);
-        }
-    } else {
-        path = path ? `${path}.${key}` : `${key}`;
-        bind(binder, path);
-    }
+//         let parts;
+//         for (const part of path.split('.')) {
+//             parts = parts ? `${parts}.${part}` : part;
+//             bind(binder, parts);
+//         }
+//     } else {
+//         path = path ? `${path}.${key}` : `${key}`;
+//         bind(binder, path);
+//     }
 
-    const value = Reflect.get(target, key, target);
+//     const value = Reflect.get(target, key, target);
 
-    if (value && typeof value === 'object') {
-        return new Proxy(value, {
-            set: set.bind(null, path, binder),
-            get: get.bind(null, path, binder),
-        });
-    } else if (typeof value === 'function') {
-        return value.bind(target);
-    } else {
-        return value;
-    }
+//     if (value && typeof value === 'object') {
+//         return new Proxy(value, {
+//             set: set.bind(null, path, binder),
+//             get: get.bind(null, path, binder),
+//         });
+//     } else if (typeof value === 'function') {
+//         return value.bind(target);
+//     } else {
+//         return value;
+//     }
 
-};
+// };
 
-const computer = function (binder: any) {
+const computer = function (binder) {
     let cache = caches.get(binder.value);
 
     if (!cache) {
@@ -140,7 +138,7 @@ const computer = function (binder: any) {
         $instance = $instance || {};
         var $f = $form = $instance.form;
         var $e = $event = $instance.event;
-        try {
+        // try {
             with ($context) {
                 ${isValue || isChecked ? `
                 if ('value' in $instance || 'checked' in $instance) {
@@ -154,25 +152,22 @@ const computer = function (binder: any) {
                 }
                 ` : `return ${code};`}
             }
-        } catch (error) {
-            //console.warn(error.message);
-            if (error.message.indexOf('Cannot set property') === 0 ||
-                error.message.indexOf('Cannot read property') === 0 ||
-                error.message.indexOf('Cannot set properties') === 0 ||
-                error.message.indexOf('Cannot read properties') === 0) return;
-            else console.error(error);
-        }
+        // } catch (error) {
+        //     //console.warn(error.message);
+        //     if (error.message.indexOf('Cannot set property') === 0 ||
+        //         error.message.indexOf('Cannot read property') === 0 ||
+        //         error.message.indexOf('Cannot set properties') === 0 ||
+        //         error.message.indexOf('Cannot read properties') === 0) return;
+        //     else console.error(error);
+        // }
         `;
 
         cache = new Function('$context', '$binder', '$instance', code);
         caches.set(binder.value, cache);
     }
 
-    return cache.bind(null, new Proxy(binder.context, {
-        has: has,
-        set: set.bind(null, '', binder),
-        get: get.bind(null, '', binder)
-    }), binder);
+    return cache.bind(null, new Proxy(binder.context, { has }), binder);
+    // return cache.bind(null, binder.context, binder);
 };
 
 export default computer;

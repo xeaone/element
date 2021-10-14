@@ -66,21 +66,27 @@ export default class Component extends HTMLElement {
 
     }
 
-    async render () {
+    async #observe (path, type) {
+        console.log(type, path);
+        const binders = this.#binder.pathBinders.get(path);
+        if (!binders) return;
+        for (const binder of binders) {
+            binder[ type ]();
+        }
+    };
+
+    async #render () {
         const tasks = [];
 
-        const context = this.data = Observer(this.data, async path => {
-            const binders = this.#binder.pathBinders.get(path);
-            if (!binders) return;
-            for (const binder of binders) {
-                binder.render();
-            }
-        });
+        this.data = Observer(
+            typeof this.data === 'function' ? await this.data() : this.data,
+            this.#observe.bind(this)
+        );
 
         if (this.adopt) {
             let child = this.firstChild;
             while (child) {
-                tasks.push(this.#binder.add(child, this, context));
+                tasks.push(this.#binder.add(child, this, this.data));
                 child = child.nextSibling;
             }
         }
@@ -117,7 +123,7 @@ export default class Component extends HTMLElement {
 
         let child = template.content.firstChild;
         while (child) {
-            tasks.push(this.#binder.add(child, this, context));
+            tasks.push(this.#binder.add(child, this, this.data));
             child = child.nextSibling;
         }
 
@@ -144,7 +150,7 @@ export default class Component extends HTMLElement {
         if (!this.#flag) {
             this.#flag = true;
             this.dispatchEvent(this.#beforeRenderEvent);
-            await this.render();
+            await this.#render();
             (this as any).isRendered = true;
             if (this.#rendered) await this.#rendered();
             this.dispatchEvent(this.#afterRenderEvent);

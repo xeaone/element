@@ -1,13 +1,10 @@
 import booleanTypes from '../types/boolean';
 import format from '../format';
 
-const standard = async function (binder) {
-    if (binder.cancel) return binder.cancel();
-
+const standardRender = async function (binder) {
     const { name, owner, node } = binder;
 
     let data = await binder.compute();
-    if (binder.cancel) return binder.cancel();
 
     const boolean = booleanTypes.includes(name);
 
@@ -23,5 +20,18 @@ const standard = async function (binder) {
 
 };
 
-export default standard;
+const standardUnrender = async function (binder) {
+    const boolean = booleanTypes.includes(binder.name);
+
+    if (boolean) {
+        binder.owner.removeAttribute(binder.name);
+    } else {
+        binder.owner.setAttribute(binder.name, '');
+    }
+
+};
+
+
+
+export default { render: standardRender, unrender: standardUnrender };
 

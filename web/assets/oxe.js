@@ -16,74 +16,88 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-    const get$2 = function (task, path, target, key, receiver) {
+    const tick$1 = Promise.resolve();
+    const change = async function (task, from, to, type, path) {
+        const tasks = [task.bind(null, path, type)];
+        await compare(task, from, to, path, tasks);
+        return Promise.all(tasks.map(t => t()));
+    };
+    const compare = async function (task, from, to, path, tasks) {
+        const compares = [];
+        const fromIsObject = from && typeof from === 'object';
+        const toIsObject = to && typeof to === 'object';
+        if (!fromIsObject && !toIsObject)
+            return;
+        const fromKeys = fromIsObject ? Object.keys(from) : [];
+        const toKeys = toIsObject ? Object.keys(to) : [];
+        for (const key of fromKeys) {
+            const index = toKeys?.indexOf(key) ?? -1;
+            const child = path ? `${path}.${key}` : `${key}`;
+            if (index !== -1) {
+                console.log(child, index, key, JSON.stringify(from[key]), JSON.stringify(to[key]));
+                toKeys.splice(index, 1);
+                tasks.push(task.bind(null, child, 'render'));
+                compares.push(compare(task, from[key], to[key], child, tasks));
+            }
+            else {
+                // console.log(child, index, key, JSON.stringify(from[ key ]));
+                tasks.push(task.bind(null, child, 'unrender'));
+                compares.push(compare(task, from[key], undefined, child, tasks));
+            }
+        }
+        for (const key of toKeys) {
+            const child = path ? `${path}.${key}` : `${key}`;
+            // console.log('rest', child, key, JSON.stringify(to[ key ]));
+            tasks.push(task.bind(null, child, 'render'));
+            compares.push(compare(task, undefined, to[key], child, tasks));
+        }
+        return Promise.all(compares);
+    };
+    const get = function (task, path, target, key, receiver) {
         const value = Reflect.get(target, key, receiver);
         if (value && typeof value === 'object') {
             path = path ? `${path}.${key}` : `${key}`;
             return new Proxy(value, {
-                get: get$2.bind(null, task, path),
-                set: set$2.bind(null, task, path),
+                get: get.bind(null, task, path),
+                set: set.bind(null, task, path),
                 deleteProperty: deleteProperty.bind(null, task, path)
             });
         }
         else {
-            // return target[ key ];
             return value;
         }
     };
-    const deleteProperty = function (task, path, target, key) {
-        // delete target[ key ];
+    const deleteProperty = function (task, path, target, key, receiver) {
+        const value = Reflect.get(target, key, receiver);
         Reflect.deleteProperty(target, key);
-        task(path ? `${path}.${key}` : `${key}`);
-        return true;
+        tick$1.then(change.bind(null, task, value, undefined, 'unrender', path ? `${path}.${key}` : `${key}`));
+        // change(task, value, undefined, 'unrender', path ? `${path}.${key}` : `${key}`);
+        // task(path ? `${path}.${key}` : `${key}`, 'unrender');
     };
-    const set$2 = function (task, path, target, key, value, receiver) {
+    const set = function (task, path, target, key, to, receiver) {
+        const from = Reflect.get(target, key, receiver);
         if (key === 'length') {
-            task(path);
-            task(path ? `${path}.${key}` : `${key}`);
+            // task(path, 'render');
+            // task(path ? `${path}.${key}` : `${key}`, 'render');
+            tick$1.then(change.bind(null, task, from, to, 'render', path));
+            tick$1.then(change.bind(null, task, from, to, 'render', path ? `${path}.${key}` : `${key}`));
             return true;
         }
-        else if (Reflect.get(target, key, receiver) === value) {
-            // } else if (Reflect.get(target, key, receiver) === value || target[ key ] === value) {
+        else if (from === to) {
             return true;
         }
-        // target[ key ] = value;
-        // target[ key ] = observer(value, task, path ? `${path}.${key}` : `${key}`);
-        Reflect.set(target, key, value, receiver);
-        task(path ? `${path}.${key}` : `${key}`);
+        Reflect.set(target, key, to, receiver);
+        tick$1.then(change.bind(null, task, from, to, 'render', path ? `${path}.${key}` : `${key}`));
+        // change(task, from, to, 'render', path ? `${path}.${key}` : `${key}`);
+        // task(path ? `${path}.${key}` : `${key}`, 'render');
         return true;
     };
     const observer = function (source, task, path = '') {
         return new Proxy(source, {
-            get: get$2.bind(null, task, path),
-            set: set$2.bind(null, task, path),
+            get: get.bind(null, task, path),
+            set: set.bind(null, task, path),
             deleteProperty: deleteProperty.bind(null, task, path)
         });
-        // if (source && typeof source === 'object') {
-        //     const target = new Proxy(source, {
-        //         set: set.bind(null, task, path),
-        //         deleteProperty: deleteProperty.bind(null, task, path)
-        //     });
-        //     for (const key in source) {
-        //         // target[ key ] = observer(source[ key ], task, path ? `${path}.${key}` : `${key}`);
-        //         const descriptor = Object.getOwnPropertyDescriptor(source, key);
-        //         if ('value' in descriptor) {
-        //             descriptor.value = observer(descriptor.value, task, path ? `${path}.${key}` : `${key}`);
-        //             Object.defineProperty(target, key, descriptor);
-        //         } else {
-        //             descriptor.get = function (g, t, p) {
-        //                 return observer(g(), t, p);
-        //             }.bind(target, descriptor.get.bind(target), task, path ? `${path}.${key}` : `${key}`);
-        //             descriptor.set = function (s, t, p, v) {
-        //                 return observer(s(v), t, p);
-        //             }.bind(target, descriptor.set.bind(target), task, path ? `${path}.${key}` : `${key}`);
-        //             Object.defineProperty(target, key, descriptor);
-        //         }
-        //     }
-        //     return target;
-        // } else {
-        //     return source;
-        // }
     };
 
     var booleanTypes = [
@@ -96,13 +110,9 @@
 
     const format = (data) => data === undefined ? '' : typeof data === 'object' ? JSON.stringify(data) : data;
 
-    const standard = async function (binder) {
-        if (binder.cancel)
-            return binder.cancel();
+    const standardRender = async function (binder) {
         const { name, owner, node } = binder;
         let data = await binder.compute();
-        if (binder.cancel)
-            return binder.cancel();
         const boolean = booleanTypes.includes(name);
         if (boolean) {
             data = data ? true : false;
@@ -117,34 +127,38 @@
             owner.setAttribute(name, data);
         }
     };
+    const standardUnrender = async function (binder) {
+        const boolean = booleanTypes.includes(binder.name);
+        if (boolean) {
+            binder.owner.removeAttribute(binder.name);
+        }
+        else {
+            binder.owner.setAttribute(binder.name, '');
+        }
+    };
+    var standard = { render: standardRender, unrender: standardUnrender };
 
     const flag = Symbol('RadioFlag');
     const handler = async function (binder, event) {
-        const { owner, node } = binder;
-        const checked = owner.checked;
+        const checked = binder.owner.checked;
         const computed = await binder.compute(event ? { event, checked } : null);
-        if (binder.cancel)
-            return binder.cancel();
         if (computed) {
-            owner.setAttributeNode(node);
+            binder.owner.setAttributeNode(binder.node);
         }
         else {
-            owner.removeAttribute('checked');
+            binder.owner.removeAttribute('checked');
         }
     };
-    const checked = async function (binder) {
-        if (binder.cancel)
-            return binder.cancel();
-        const { owner } = binder;
+    const checkedRender = async function (binder) {
         if (!binder.meta.setup) {
             binder.node.value = '';
             binder.meta.setup = true;
-            if (owner.type === 'radio') {
-                owner.addEventListener('input', async (event) => {
+            if (binder.owner.type === 'radio') {
+                binder.owner.addEventListener('input', async (event) => {
                     if (event.detail === flag)
                         return handler(binder, event);
-                    const parent = owner.form || owner.getRootNode();
-                    const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+                    const parent = binder.owner.form || binder.owner.getRootNode();
+                    const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
                     const input = new CustomEvent('input', { detail: flag });
                     for (const radio of radios) {
                         if (radio === event.target) {
@@ -178,23 +192,23 @@
                 });
             }
             else {
-                owner.addEventListener('input', event => handler(binder, event));
+                binder.owner.addEventListener('input', event => handler(binder, event));
             }
         }
         await handler(binder);
     };
+    const checkedUnrender = async function (binder) {
+        binder.owner.removeAttribute('checked');
+    };
+    var checked = { render: checkedRender, unrender: checkedUnrender };
 
-    const inherit = async function (binder) {
-        if (binder.cancel)
-            return binder.cancel();
+    const inheritRender = async function (binder) {
         binder.node.value = '';
         if (binder.owner.isRendered) {
             if (!binder.owner.inherited) {
                 return console.warn(`inherited not implemented ${binder.owner.localName}`);
             }
             const inherited = await binder.compute();
-            if (binder.cancel)
-                return binder.cancel();
             binder.owner.inherited?.(inherited);
         }
         else {
@@ -203,12 +217,27 @@
                     return console.warn(`inherited not implemented ${binder.owner.localName}`);
                 }
                 const inherited = await binder.compute();
-                if (binder.cancel)
-                    return binder.cancel();
                 binder.owner.inherited?.(inherited);
             });
         }
     };
+    const inheritUnrender = async function (binder) {
+        if (binder.owner.isRendered) {
+            if (!binder.owner.inherited) {
+                return console.warn(`inherited not implemented ${binder.owner.localName}`);
+            }
+            binder.owner.inherited?.();
+        }
+        else {
+            binder.owner.addEventListener('afterrender', async () => {
+                if (!binder.owner.inherited) {
+                    return console.warn(`inherited not implemented ${binder.owner.localName}`);
+                }
+                binder.owner.inherited?.();
+            });
+        }
+    };
+    var inherit = { render: inheritRender, unrender: inheritUnrender };
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
 
@@ -267,8 +296,7 @@
             owner.$checked = computed;
         owner.setAttribute('value', display);
     };
-    const value = async function (binder) {
-        // if (binder.cancel) return binder.cancel();
+    const valueRender = async function (binder) {
         const { owner, meta } = binder;
         if (!meta.setup) {
             meta.setup = true;
@@ -276,16 +304,15 @@
             owner.addEventListener('input', event => input(binder, event));
         }
         const computed = await binder.compute();
-        // if (binder.cancel) return binder.cancel();
         let display;
         if (binder.owner.type === 'select-one') {
             owner.value = undefined;
-            console.log(binder.value, owner.options.length);
             for (const option of owner.options) {
                 const optionValue = '$value' in option ? option.$value : option.value;
                 if (option.selected = optionValue === computed)
                     break;
             }
+            // if (owner.options.length && !owner.selectedOptions.length) {
             if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
                 const [option] = owner.options;
                 option.selected = true;
@@ -324,13 +351,29 @@
             owner.$checked = computed;
         owner.setAttribute('value', display);
     };
+    const valueUnrender = async function (binder) {
+        if (binder.owner.type === 'select-one' || binder.owner.type === 'select-multiple') {
+            for (const option of binder.owner.options) {
+                option.selected = false;
+            }
+        }
+        binder.owner.value = undefined;
+        binder.owner.$value = undefined;
+        if (binder.owner.type === 'checked' || binder.owner.type === 'radio')
+            binder.owner.$checked = undefined;
+        binder.owner.setAttribute('value', '');
+    };
+    var value = { render: valueRender, unrender: valueUnrender };
 
     const space = /\s+/;
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
-    const has$1 = function (target, key) {
-        return true;
+    const eachHas = function (binder, indexValue, keyValue, target, key) {
+        return key === binder.meta.variableName ||
+            key === binder.meta.indexName ||
+            key === binder.meta.keyName ||
+            key in target;
     };
-    const get$1 = function (binder, indexValue, keyValue, target, key) {
+    const eachGet = function (binder, indexValue, keyValue, target, key) {
         if (key === binder.meta.variableName) {
             let result = binder.context;
             for (const part of binder.meta.parts) {
@@ -350,7 +393,7 @@
             return binder.context[key];
         }
     };
-    const set$1 = function (binder, indexValue, keyValue, target, key, value) {
+    const eachSet = function (binder, indexValue, keyValue, target, key, value) {
         if (key === binder.meta.variableName) {
             let result = binder.context;
             for (const part of binder.meta.parts) {
@@ -360,13 +403,32 @@
             }
             typeof result === 'object' ? result[keyValue] = value : undefined;
         }
+        else if (key === binder.meta.indexName || key === binder.meta.keyName) {
+            return true;
+        }
         else {
             binder.context[key] = value;
         }
         return true;
     };
-    const each = async function (binder, data) {
-        // if (binder.cancel) return binder.cancel();
+    const eachUnrender = async function (binder) {
+        binder.meta.tasks = [];
+        binder.meta.targetLength = 0;
+        binder.meta.currentLength = 0;
+        return Promise.all([
+            (async () => {
+                let node;
+                while (node = binder.owner.lastChild)
+                    binder.binder.remove(binder.owner.removeChild(node));
+            })(),
+            (async () => {
+                let node;
+                while (node = binder.meta.queueElement.content.lastChild)
+                    binder.meta.queueElement.content.removeChild(node);
+            })()
+        ]);
+    };
+    const eachRender = async function (binder, data) {
         if (!binder.meta.setup) {
             let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
             binder.meta.path = path;
@@ -396,7 +458,6 @@
         }
         if (!data) {
             data = await binder.compute();
-            // if (binder.cancel) return binder.cancel();
             if (data?.constructor === Array) {
                 binder.meta.targetLength = data.length;
             }
@@ -411,7 +472,8 @@
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    binder.meta.tasks.push(binder.binder.remove(node));
+                    binder.binder.remove(node);
+                    // binder.meta.tasks.push(binder.binder.remove(node));
                 }
                 binder.meta.currentLength--;
             }
@@ -422,20 +484,17 @@
                 const keyValue = binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength;
                 const variableValue = `${binder.meta.path}.${binder.meta.keys[binder.meta.currentLength] ?? binder.meta.currentLength}`;
                 const context = new Proxy(binder.context, {
-                    has: has$1,
-                    get: get$1.bind(null, binder, indexValue, keyValue),
-                    set: set$1.bind(null, binder, indexValue, keyValue),
+                    has: eachHas.bind(null, binder, indexValue, keyValue),
+                    get: eachGet.bind(null, binder, indexValue, keyValue),
+                    set: eachSet.bind(null, binder, indexValue, keyValue),
                 });
                 const rewrites = binder.rewrites?.slice() || [];
-                // if (binder.meta.indexName) rewrites.unshift([ binder.meta.indexName, indexValue ]);
-                // if (binder.meta.keyName) rewrites.unshift([ binder.meta.keyName, keyValue ]);
+                if (binder.meta.keyName)
+                    rewrites.unshift([binder.meta.keyName, keyValue]);
+                if (binder.meta.indexName)
+                    rewrites.unshift([binder.meta.indexName, indexValue]);
                 if (binder.meta.variableName)
                     rewrites.unshift([binder.meta.variableName, variableValue]);
-                // rewrites = [];
-                // if (binder.meta.indexName) rewrites.push([ binder.meta.indexName, indexValue]);
-                // if (binder.meta.keyName) rewrites.push([ binder.meta.keyName, keyValue ]);
-                // if (binder.meta.variableName) rewrites.push([ binder.meta.variableName, variableValue, 'variable' ]);
-                // if (binder.rewrites) rewrites.push(...binder.rewrites);
                 const clone = binder.meta.templateElement.content.cloneNode(true);
                 let node = clone.firstChild;
                 if (node) {
@@ -470,14 +529,11 @@
             }
         }
     };
+    var each = { render: eachRender, unrender: eachUnrender };
 
     const tick = Promise.resolve();
-    const html = async function (binder) {
-        if (binder.cancel)
-            return binder.cancel();
+    const htmlRender = async function (binder) {
         let data = await binder.compute();
-        if (binder.cancel)
-            return binder.cancel();
         if (typeof data !== 'string') {
             data = '';
             console.warn('html binder requires a string');
@@ -495,15 +551,21 @@
         }
         binder.owner.appendChild(template.content);
     };
+    const htmlUnrender = async function (binder) {
+        let node = binder.owner.firstChild;
+        while (node)
+            binder.owner.removeChild(node);
+    };
+    var html = { render: htmlRender, unrender: htmlUnrender };
 
-    const text = async function text(binder) {
-        if (binder.cancel)
-            return binder.cancel();
+    const textRender = async function (binder) {
         let data = await binder.compute();
-        if (binder.cancel)
-            return binder.cancel();
         binder.owner.nodeValue = format(data);
     };
+    const textUnrender = async function (binder) {
+        binder.owner.nodeValue = '';
+    };
+    var text = { render: textRender, unrender: textUnrender };
 
     const Value = function (element) {
         if (!element)
@@ -596,9 +658,7 @@
         await binder.compute({ event });
         return false;
     };
-    const on = async function on(binder) {
-        if (binder.cancel)
-            return binder.cancel();
+    const onRender = async function (binder) {
         binder.owner[binder.name] = null;
         const name = binder.name.slice(2);
         if (binder.meta.method) {
@@ -617,8 +677,15 @@
         };
         binder.owner.addEventListener(name, binder.meta.method);
     };
+    const onUnrender = async function (binder) {
+        binder.owner[binder.name] = null;
+        const name = binder.name.slice(2);
+        if (binder.meta.method) {
+            binder.owner.removeEventListener(name, binder.meta.method);
+        }
+    };
+    var on = { render: onRender, unrender: onUnrender };
 
-    // import parser from "./parser";
     const caches = new Map();
     const splitPattern = /\s*{{\s*|\s*}}\s*/;
     const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
@@ -626,9 +693,8 @@
     // infinite loop if assignee has assignment
     // const assigneePattern = /({{.*?)([_$a-zA-Z0-9.?\[\]]+)(\s*[-+?^*%$|\\]?=[-+?^*%$|\\]?\s*[_$a-zA-Z0-9.?\[\]]+.*?}})/;
     const ignores = [
-        'window', 'document', 'console', 'location',
-        '$assignee',
-        '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+        '$assignee', '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+        'this', 'window', 'document', 'console', 'location',
         'globalThis', 'Infinity', 'NaN', 'undefined',
         'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent ',
         'Error', 'EvalError', 'RangeError', 'ReferenceError', 'SyntaxError', 'TypeError', 'URIError', 'AggregateError',
@@ -642,74 +708,67 @@
         'Promise', 'GeneratorFunction', 'AsyncGeneratorFunction', 'Generator', 'AsyncGenerator', 'AsyncFunction',
         'Reflect', 'Proxy',
     ];
-    const bind = async function (binder, path) {
-        const binders = binder.binders.get(path);
-        binder.paths.add(path);
-        if (binders) {
-            binders.add(binder);
-        }
-        else {
-            binder.binders.set(path, new Set([binder]));
-        }
-    };
+    // const bind = async function (binder, path) {
+    //     const binders = binder.binders.get(path);
+    //     // binder.paths.add(path);
+    //     if (binders) {
+    //         binders.add(binder);
+    //     } else {
+    //         binder.binders.set(path, new Set([ binder ]));
+    //     }
+    // };
     const has = function (target, key) {
         if (typeof key !== 'string')
             return true;
         return !ignores.includes(key);
     };
-    const set = function (path, binder, target, key, value, receiver) {
-        if (typeof key !== 'string')
-            return true;
-        if (!path && binder.rewrites?.length) {
-            path = `${key}`;
-            for (const [name, value] of binder.rewrites) {
-                path = path.replace(new RegExp(`^(${name})\\b`), value);
-            }
-            let parts;
-            for (const part of path.split('.')) {
-                parts = parts ? `${parts}.${part}` : part;
-                bind(binder, parts);
-            }
-        }
-        else {
-            path = path ? `${path}.${key}` : `${key}`;
-            bind(binder, path);
-        }
-        Reflect.set(target, key, value, target);
-        return true;
-    };
-    const get = function (path, binder, target, key, receiver) {
-        if (typeof key !== 'string')
-            return target[key];
-        if (!path && binder.rewrites?.length) {
-            path = `${key}`;
-            for (const [name, value] of binder.rewrites) {
-                path = path.replace(new RegExp(`^(${name})\\b`), value);
-            }
-            let parts;
-            for (const part of path.split('.')) {
-                parts = parts ? `${parts}.${part}` : part;
-                bind(binder, parts);
-            }
-        }
-        else {
-            path = path ? `${path}.${key}` : `${key}`;
-            bind(binder, path);
-        }
-        const value = Reflect.get(target, key, target);
-        if (value && typeof value === 'object') {
-            return new Proxy(value, {
-                set: set.bind(null, path, binder),
-                get: get.bind(null, path, binder),
-            });
-        }
-        else if (typeof value === 'function') {
-            return value.bind(target);
-        }
-        else {
-            return value;
-        }
-    };
+    // const set = function (path, binder, target, key, value, receiver) {
+    //     if (typeof key !== 'string') return true;
+    //     if (!path && binder.rewrites?.length) {
+    //         path = `${key}`;
+    //         for (const [ name, value ] of binder.rewrites) {
+    //             path = path.replace(new RegExp(`^(${name})\\b`), value);
+    //         }
+    //         let parts;
+    //         for (const part of path.split('.')) {
+    //             parts = parts ? `${parts}.${part}` : part;
+    //             bind(binder, parts);
+    //         }
+    //     } else {
+    //         path = path ? `${path}.${key}` : `${key}`;
+    //         bind(binder, path);
+    //     }
+    //     Reflect.set(target, key, value, target);
+    //     return true;
+    // };
+    // const get = function (path, binder, target, key, receiver) {
+    //     if (typeof key !== 'string') return target[ key ];
+    //     if (!path && binder.rewrites?.length) {
+    //         path = `${key}`;
+    //         for (const [ name, value ] of binder.rewrites) {
+    //             path = path.replace(new RegExp(`^(${name})\\b`), value);
+    //         }
+    //         let parts;
+    //         for (const part of path.split('.')) {
+    //             parts = parts ? `${parts}.${part}` : part;
+    //             bind(binder, parts);
+    //         }
+    //     } else {
+    //         path = path ? `${path}.${key}` : `${key}`;
+    //         bind(binder, path);
+    //     }
+    //     const value = Reflect.get(target, key, target);
+    //     if (value && typeof value === 'object') {
+    //         return new Proxy(value, {
+    //             set: set.bind(null, path, binder),
+    //             get: get.bind(null, path, binder),
+    //         });
+    //     } else if (typeof value === 'function') {
+    //         return value.bind(target);
+    //     } else {
+    //         return value;
+    //     }
+    // };
     const computer = function (binder) {
         let cache = caches.get(binder.value);
         if (!cache) {
@@ -744,7 +803,7 @@
         $instance = $instance || {};
         var $f = $form = $instance.form;
         var $e = $event = $instance.event;
-        try {
+        // try {
             with ($context) {
                 ${isValue || isChecked ? `
                 if ('value' in $instance || 'checked' in $instance) {
@@ -758,23 +817,204 @@
                 }
                 ` : `return ${code};`}
             }
-        } catch (error) {
-            //console.warn(error.message);
-            if (error.message.indexOf('Cannot set property') === 0 ||
-                error.message.indexOf('Cannot read property') === 0 ||
-                error.message.indexOf('Cannot set properties') === 0 ||
-                error.message.indexOf('Cannot read properties') === 0) return;
-            else console.error(error);
-        }
+        // } catch (error) {
+        //     //console.warn(error.message);
+        //     if (error.message.indexOf('Cannot set property') === 0 ||
+        //         error.message.indexOf('Cannot read property') === 0 ||
+        //         error.message.indexOf('Cannot set properties') === 0 ||
+        //         error.message.indexOf('Cannot read properties') === 0) return;
+        //     else console.error(error);
+        // }
         `;
             cache = new Function('$context', '$binder', '$instance', code);
             caches.set(binder.value, cache);
         }
-        return cache.bind(null, new Proxy(binder.context, {
-            has: has,
-            set: set.bind(null, '', binder),
-            get: get.bind(null, '', binder)
-        }), binder);
+        return cache.bind(null, new Proxy(binder.context, { has }), binder);
+        // return cache.bind(null, binder.context, binder);
+    };
+
+    // const isString = '\'`"';
+    // const isNumber = /^[0-9]+$/;
+    // // const isNumber = '0123456789';
+    // const referenceConnector = '.[]';
+    // const referenceStart = '_$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    // const referenceInner = '_$0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    // const referenceFirstSkips = [
+    //     '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+    //     'window', 'document', 'console', 'location',
+    //     'Math', 'Date', 'Number', 'Object', 'Array', 'String', 'Boolean', 'Promise', 'Infinity',
+    //     'this', 'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in', 'do', 'if', 'for',
+    //     'var', 'let', 'const',
+    //     'new', 'try', 'case', 'else', 'with', 'await', 'break', 'catch', 'class',
+    //     'super', 'throw', 'while', 'yield', 'delete', 'export', 'import', 'return', 'switch', 'default',
+    //     'extends', 'finally', 'continue', 'debugger', 'function', 'arguments', 'typeof', 'instanceof', 'void'
+    // ];
+    // const parser = function (data, rewrites?: string[][]) {
+    //     let inString = false;
+    //     let inSyntax = false;
+    //     let inReference = false;
+    //     let skipReference = false;
+    //     let part = '';
+    //     let first = '';
+    //     let reference = '';
+    //     // const assignees = [];
+    //     // const references = [];
+    //     const assignees = new Set();
+    //     const references = new Set();
+    //     data = data.replace(/\s*[?+-]?\s*(\.|=)\s*/g, '$1');
+    //     let current, next, previous;
+    //     for (let i = 0, l = data.length; i < l; i++) {
+    //         current = data[ i ];
+    //         next = data[ i + 1 ];
+    //         previous = data[ i - 1 ];
+    //         if (inString && first === current && previous !== '\\') {
+    //             inString = false;
+    //             first = '';
+    //         } else if (!inString && isString.includes(current)) {
+    //             inString = true;
+    //             first = current;
+    //             if (skipReference || !part || !reference && !part) {
+    //                 inReference = false;
+    //                 skipReference = false;
+    //                 reference = part = '';
+    //                 continue;
+    //             }
+    //             inReference = false;
+    //             if (!reference && referenceFirstSkips.includes(part)) {
+    //                 reference = part = '';
+    //             } else {
+    //                 if (rewrites && !reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
+    //                 reference += (reference ? '.' + part : part);
+    //                 // if (!isNumber.test(reference)) references.push(reference);
+    //                 if (!isNumber.test(reference)) references.add(reference);
+    //                 reference = part = '';
+    //             }
+    //         } else if (inString) {
+    //             continue;
+    //         } else if (!inSyntax && current === '{' && next === '{') {
+    //             inSyntax = true;
+    //             i++;
+    //         } else if (inSyntax && current === '}' && next === '}') {
+    //             inSyntax = false;
+    //             if (skipReference || !part || !reference && !part) {
+    //                 inReference = false;
+    //                 skipReference = false;
+    //                 reference = part = '';
+    //                 continue;
+    //             }
+    //             inReference = false;
+    //             if (!reference && referenceFirstSkips.includes(part)) {
+    //                 reference = part = '';
+    //             } else {
+    //                 if (rewrites && !reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
+    //                 reference += (reference ? '.' + part : part);
+    //                 // if (!isNumber.test(reference)) references.push(reference);
+    //                 if (!isNumber.test(reference)) references.add(reference);
+    //                 reference = part = '';
+    //             }
+    //             i++;
+    //         } else if (inSyntax) {
+    //             if (inReference) {
+    //                 if (referenceConnector.includes(current)) {
+    //                     // if ((current === '?' && next === '.') || referenceConnector.includes(current)) {
+    //                     if (skipReference || !part || !reference && !part) continue;
+    //                     if (!reference && referenceFirstSkips.includes(part)) {
+    //                         skipReference = true;
+    //                         part = '';
+    //                     } else {
+    //                         if (rewrites && !reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
+    //                         reference += (reference ? '.' + part : part);
+    //                         part = '';
+    //                     }
+    //                 } else if (referenceInner.includes(current)) {
+    //                     part += current;
+    //                 } else {
+    //                     if (skipReference || !part || !reference && !part) {
+    //                         inReference = false;
+    //                         skipReference = false;
+    //                         reference = part = '';
+    //                         continue;
+    //                     }
+    //                     inReference = false;
+    //                     if (part === 'of' || part === 'in') {
+    //                         // references.length = 0;
+    //                         references.clear();
+    //                         reference = part = '';
+    //                     } else if (!reference && referenceFirstSkips.includes(part)) {
+    //                         skipReference = true;
+    //                         reference = part = '';
+    //                     } else {
+    //                         if (rewrites && reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
+    //                         reference += (reference ? '.' + part : part);
+    //                         if (!isNumber.test(reference)) {
+    //                             // references.push(reference);
+    //                             // if (current === '=' && next !== '=') assignees.push(reference);
+    //                             references.add(reference);
+    //                             if (current === '=' && next !== '=') assignees.add(reference);
+    //                         }
+    //                         reference = part = '';
+    //                     }
+    //                 }
+    //             } else {
+    //                 if (referenceStart.includes(current)) {
+    //                     inReference = true;
+    //                     part += current;
+    //                 }
+    //             }
+    //         }
+    //     };
+    //     // console.log(data, references, assignees);
+    //     return { references, assignees };
+    // };
+    const replaceEndBracket = /\s*\][^;]*/g;
+    const removeStrings = /".*?[^\\]*"|'.*?[^\\]*\'|`.*?[^\\]*`/g;
+    const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
+    const replaceOutside = /[^{}]*{{.*?\s+of\s+|[^{}]*{{|}}[^{}]*/g;
+    // const matchAssignee = /([a-zA-Z0-9$_.]+)\s*[!%^&*+|/<>-]*=\s*[^=>]/;
+    const replaceSeperator = /\s+|\|+|\/+|\(+|\)+|\[+|\^+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g; // \]+
+    const replaceProtected = new RegExp([
+        `;(
+        \\d+\\.\\d*|\\d*\\.\\d+|\\d+|
+        \\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+        this|window|document|console|location|
+        globalThis|Infinity|NaN|undefined|
+        isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
+        Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
+        Object|Function|Boolean|Symbole|Array|
+        Number|Math|Date|BigInt|
+        String|RegExp|
+        Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
+        Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
+        Map|Set|WeakMap|WeakSet|
+        ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
+        Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
+        Reflect|Proxy|
+        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+        yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
+    )[^;]*;`,
+    ].join('').replace(/\s|\t|\n/g, ''), 'g');
+    const cache = new Map();
+    const parser = function (data, rewrites) {
+        let result = cache.get(data);
+        if (result)
+            return result;
+        result = {};
+        cache.set(data, result);
+        data = data.replace(replaceOutside, ';');
+        data = data.replace(removeStrings, '');
+        data = data.replace(normalizeReference, '.$2');
+        // const assignee = data.match(matchAssignee)?.[ 1 ];
+        data = data.replace(replaceSeperator, ';');
+        data = data.replace(replaceEndBracket, ';');
+        if (rewrites) {
+            for (const [name, value] of rewrites) {
+                data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
+            }
+        }
+        data = data.replace(replaceProtected, ';');
+        result.references = data.split(/;+/).slice(1, -1) || [];
+        // result.assignees = assignee ? [ assignee ] : [];
+        return result;
     };
 
     const TN = Node.TEXT_NODE;
@@ -829,33 +1069,32 @@
             this.ownerBinders.delete(node);
         }
         async bind(node, container, name, value, owner, context, rewrites) {
+            const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
+            const handler = this.binders[type];
+            const parsed = parser(value, rewrites);
             const binder = {
                 meta: {},
                 ready: true,
                 binder: this,
-                paths: new Set(),
-                render: undefined,
                 compute: undefined,
+                render: undefined,
+                unrender: undefined,
+                paths: parsed.references,
                 binders: this.pathBinders,
-                node, owner, name, value, rewrites, context, container,
-                type: name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard',
+                node, owner, name, value, rewrites, context, container, type,
             };
-            node.$binder = binder;
             binder.compute = computer(binder);
-            binder.render = async function () {
-                // if (!this.ready) {
-                //     return this.cancel = async () => {
-                //         this.cancel = null;
-                //         this.ready = false;
-                //         this.task = await this.binder.binders[ this.type ](this);
-                //         this.ready = true;
-                //         return this.task;
-                //     };
-                // }
-                this.ready = false;
-                await this.binder.binders[this.type](this);
-                this.ready = true;
-            };
+            binder.render = handler.render.bind(null, binder);
+            binder.unrender = handler.unrender.bind(null, binder);
+            for (const reference of parsed.references) {
+                const binders = binder.binders.get(reference);
+                if (binders) {
+                    binders.add(binder);
+                }
+                else {
+                    binder.binders.set(reference, new Set([binder]));
+                }
+            }
             this.nodeBinders.set(node, binder);
             const ownerBinders = this.ownerBinders.get(binder.owner);
             if (ownerBinders) {
@@ -868,7 +1107,7 @@
         }
         ;
         async remove(node) {
-            const tasks = [];
+            // const tasks = [];
             // if (node.nodeType === AN) {
             //     tasks.push(this.unbind(node));
             if (node.nodeType === TN) {
@@ -882,11 +1121,12 @@
                 // }
                 let child = node.firstChild;
                 while (child) {
-                    tasks.push(this.remove(child));
+                    this.remove(child);
+                    // tasks.push(this.remove(child));
                     child = child.nextSibling;
                 }
             }
-            return Promise.all(tasks);
+            // return Promise.all(tasks);
         }
         async add(node, container, context, rewrites) {
             const tasks = [];
@@ -1057,20 +1297,23 @@
                 this.#root = this;
             }
         }
-        async render() {
+        async #observe(path, type) {
+            console.log(type, path);
+            const binders = this.#binder.pathBinders.get(path);
+            if (!binders)
+                return;
+            for (const binder of binders) {
+                binder[type]();
+            }
+        }
+        ;
+        async #render() {
             const tasks = [];
-            const context = this.data = observer(this.data, async (path) => {
-                const binders = this.#binder.pathBinders.get(path);
-                if (!binders)
-                    return;
-                for (const binder of binders) {
-                    binder.render();
-                }
-            });
+            this.data = observer(typeof this.data === 'function' ? await this.data() : this.data, this.#observe.bind(this));
             if (this.adopt) {
                 let child = this.firstChild;
                 while (child) {
-                    tasks.push(this.#binder.add(child, this, context));
+                    tasks.push(this.#binder.add(child, this, this.data));
                     child = child.nextSibling;
                 }
             }
@@ -1103,7 +1346,7 @@
             }
             let child = template.content.firstChild;
             while (child) {
-                tasks.push(this.#binder.add(child, this, context));
+                tasks.push(this.#binder.add(child, this, this.data));
                 child = child.nextSibling;
             }
             await Promise.all(tasks);
@@ -1126,7 +1369,7 @@
             if (!this.#flag) {
                 this.#flag = true;
                 this.dispatchEvent(this.#beforeRenderEvent);
-                await this.render();
+                await this.#render();
                 this.isRendered = true;
                 if (this.#rendered)
                     await this.#rendered();

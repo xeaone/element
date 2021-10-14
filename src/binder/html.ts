@@ -1,11 +1,7 @@
 const tick = Promise.resolve();
 
-const html = async function (binder) {
-    if (binder.cancel) return binder.cancel();
-
+const htmlRender = async function (binder) {
     let data = await binder.compute();
-
-    if (binder.cancel) return binder.cancel();
 
     if (typeof data !== 'string') {
         data = '';
@@ -29,4 +25,9 @@ const html = async function (binder) {
     binder.owner.appendChild(template.content);
 };
 
-export default html;
+const htmlUnrender = async function (binder) {
+    let node = binder.owner.firstChild;
+    while (node) binder.owner.removeChild(node);
+};
+
+export default { render: htmlRender, unrender: htmlUnrender };

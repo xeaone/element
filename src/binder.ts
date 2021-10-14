@@ -7,6 +7,7 @@ import html from './binder/html';
 import text from './binder/text';
 import on from './binder/on';
 import computer from './computer';
+import parser from './parser';
 
 const TN = Node.TEXT_NODE;
 const EN = Node.ELEMENT_NODE;
@@ -68,35 +69,34 @@ export default class Binder {
 
     async bind (node: Node, container: any, name, value, owner, context: any, rewrites?: any) {
 
+        const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
+        const handler = this.binders[ type ];
+        const parsed = parser(value, rewrites);
+
         const binder = {
             meta: {},
             ready: true,
             binder: this,
-            paths: new Set(),
-            render: undefined,
             compute: undefined,
+            render: undefined,
+            unrender: undefined,
+            paths: parsed.references,
             binders: this.pathBinders,
-            node, owner, name, value, rewrites, context, container,
-            type: name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard',
+            node, owner, name, value, rewrites, context, container, type,
         };
 
-        (node as any).$binder = binder;
         binder.compute = computer(binder);
+        binder.render = handler.render.bind(null, binder);
+        binder.unrender = handler.unrender.bind(null, binder);
 
-        binder.render = async function () {
-            // if (!this.ready) {
-            //     return this.cancel = async () => {
-            //         this.cancel = null;
-            //         this.ready = false;
-            //         this.task = await this.binder.binders[ this.type ](this);
-            //         this.ready = true;
-            //         return this.task;
-            //     };
-            // }
-            this.ready = false;
-            await this.binder.binders[ this.type ](this);
-            this.ready = true;
-        };
+        for (const reference of parsed.references) {
+            const binders = binder.binders.get(reference);
+            if (binders) {
+                binders.add(binder);
+            } else {
+                binder.binders.set(reference, new Set([ binder ]));
+            }
+        }
 
         this.nodeBinders.set(node, binder);
 
@@ -111,7 +111,7 @@ export default class Binder {
     };
 
     async remove (node: Node) {
-        const tasks = [];
+        // const tasks = [];
 
         // if (node.nodeType === AN) {
         //     tasks.push(this.unbind(node));
@@ -126,13 +126,14 @@ export default class Binder {
 
             let child = node.firstChild;
             while (child) {
-                tasks.push(this.remove(child));
+                this.remove(child);
+                // tasks.push(this.remove(child));
                 child = child.nextSibling;
             }
 
         }
 
-        return Promise.all(tasks);
+        // return Promise.all(tasks);
     }
 
     async add (node: Node, container: any, context: any, rewrites?: any) {

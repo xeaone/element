@@ -2,34 +2,29 @@
 const flag = Symbol('RadioFlag');
 
 const handler = async function (binder, event?: Event) {
-    const { owner, node } = binder;
-    const checked = owner.checked;
+    const checked = binder.owner.checked;
     const computed = await binder.compute(event ? { event, checked } : null);
 
-    if (binder.cancel) return binder.cancel();
-
     if (computed) {
-        owner.setAttributeNode(node);
+        binder.owner.setAttributeNode(binder.node);
     } else {
-        owner.removeAttribute('checked');
+        binder.owner.removeAttribute('checked');
     }
 
 };
 
-const checked = async function (binder) {
-    if (binder.cancel) return binder.cancel();
-    const { owner } = binder;
+const checkedRender = async function (binder) {
 
     if (!binder.meta.setup) {
         binder.node.value = '';
         binder.meta.setup = true;
 
-        if (owner.type === 'radio') {
-            owner.addEventListener('input', async event => {
+        if (binder.owner.type === 'radio') {
+            binder.owner.addEventListener('input', async event => {
                 if (event.detail === flag) return handler(binder, event);
 
-                const parent = owner.form || owner.getRootNode();
-                const radios = parent.querySelectorAll(`[type="radio"][name="${owner.name}"]`);
+                const parent = binder.owner.form || binder.owner.getRootNode();
+                const radios = parent.querySelectorAll(`[type="radio"][name="${binder.owner.name}"]`);
                 const input = new CustomEvent('input', { detail: flag });
 
                 for (const radio of radios) {
@@ -64,7 +59,7 @@ const checked = async function (binder) {
 
             });
         } else {
-            owner.addEventListener('input', event => handler(binder, event));
+            binder.owner.addEventListener('input', event => handler(binder, event));
         }
 
     }
@@ -72,4 +67,8 @@ const checked = async function (binder) {
     await handler(binder);
 };
 
-export default checked;
+const checkedUnrender = async function (binder) {
+    binder.owner.removeAttribute('checked');
+};
+
+export default { render: checkedRender, unrender: checkedUnrender };

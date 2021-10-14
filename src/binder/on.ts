@@ -89,9 +89,7 @@ const reset = async function (event, binder) {
     return false;
 };
 
-const on = async function on (binder) {
-    if (binder.cancel) return binder.cancel();
-
+const onRender = async function (binder) {
     binder.owner[ binder.name ] = null;
     const name = binder.name.slice(2);
 
@@ -112,4 +110,16 @@ const on = async function on (binder) {
     binder.owner.addEventListener(name, binder.meta.method);
 };
 
-export default on;
+const onUnrender = async function (binder) {
+    binder.owner[ binder.name ] = null;
+    const name = binder.name.slice(2);
+
+    if (binder.meta.method) {
+        binder.owner.removeEventListener(name, binder.meta.method);
+    }
+
+};
+
+
+
+export default { render: onRender, unrender: onUnrender };

@@ -57,9 +57,7 @@ const input = async function (binder, event) {
     owner.setAttribute('value', display);
 };
 
-const value = async function (binder) {
-    // if (binder.cancel) return binder.cancel();
-
+const valueRender = async function (binder) {
     const { owner, meta } = binder;
 
     if (!meta.setup) {
@@ -69,12 +67,10 @@ const value = async function (binder) {
     }
 
     const computed = await binder.compute();
-    // if (binder.cancel) return binder.cancel();
 
     let display;
     if (binder.owner.type === 'select-one') {
         owner.value = undefined;
-        console.log(binder.value, owner.options.length);
 
         for (const option of owner.options) {
             const optionValue = '$value' in option ? option.$value : option.value;
@@ -112,10 +108,23 @@ const value = async function (binder) {
     }
 
     owner.$value = computed;
-
     if (binder.owner.type === 'checked' || binder.owner.type === 'radio') owner.$checked = computed;
     owner.setAttribute('value', display);
 
 };
 
-export default value;
+const valueUnrender = async function (binder) {
+
+    if (binder.owner.type === 'select-one' || binder.owner.type === 'select-multiple') {
+        for (const option of binder.owner.options) {
+            option.selected = false;
+        }
+    }
+
+    binder.owner.value = undefined;
+    binder.owner.$value = undefined;
+    if (binder.owner.type === 'checked' || binder.owner.type === 'radio') binder.owner.$checked = undefined;
+    binder.owner.setAttribute('value', '');
+};
+
+export default { render: valueRender, unrender: valueUnrender };

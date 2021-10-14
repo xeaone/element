@@ -1,11 +1,14 @@
 const space = /\s+/;
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
-const has = function (target, key) {
-    return true;
+const eachHas = function (binder, indexValue, keyValue, target, key) {
+    return key === binder.meta.variableName ||
+        key === binder.meta.indexName ||
+        key === binder.meta.keyName ||
+        key in target;
 };
 
-const get = function (binder, indexValue, keyValue, target, key) {
+const eachGet = function (binder, indexValue, keyValue, target, key) {
     if (key === binder.meta.variableName) {
         let result = binder.context;
         for (const part of binder.meta.parts) {
@@ -22,7 +25,7 @@ const get = function (binder, indexValue, keyValue, target, key) {
     }
 };
 
-const set = function (binder, indexValue, keyValue, target, key, value) {
+const eachSet = function (binder, indexValue, keyValue, target, key, value) {
     if (key === binder.meta.variableName) {
         let result = binder.context;
         for (const part of binder.meta.parts) {
@@ -30,14 +33,31 @@ const set = function (binder, indexValue, keyValue, target, key, value) {
             if (!result) return true;
         }
         typeof result === 'object' ? result[ keyValue ] = value : undefined;
+    } else if (key === binder.meta.indexName || key === binder.meta.keyName) {
+        return true;
     } else {
         binder.context[ key ] = value;
     }
     return true;
 };
 
-const each = async function (binder, data) {
-    // if (binder.cancel) return binder.cancel();
+const eachUnrender = async function (binder) {
+    binder.meta.tasks = [];
+    binder.meta.targetLength = 0;
+    binder.meta.currentLength = 0;
+    return Promise.all([
+        (async () => {
+            let node;
+            while (node = binder.owner.lastChild) binder.binder.remove(binder.owner.removeChild(node));
+        })(),
+        (async () => {
+            let node;
+            while (node = binder.meta.queueElement.content.lastChild) binder.meta.queueElement.content.removeChild(node);
+        })()
+    ]);
+};
+
+const eachRender = async function (binder, data) {
 
     if (!binder.meta.setup) {
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
@@ -72,7 +92,6 @@ const each = async function (binder, data) {
 
     if (!data) {
         data = await binder.compute();
-        // if (binder.cancel) return binder.cancel();
         if (data?.constructor === Array) {
             binder.meta.targetLength = data.length;
         } else {
@@ -88,7 +107,8 @@ const each = async function (binder, data) {
             while (count--) {
                 const node = binder.owner.lastChild;
                 binder.owner.removeChild(node);
-                binder.meta.tasks.push(binder.binder.remove(node));
+                binder.binder.remove(node);
+                // binder.meta.tasks.push(binder.binder.remove(node));
             }
 
             binder.meta.currentLength--;
@@ -101,21 +121,15 @@ const each = async function (binder, data) {
 
             const variableValue = `${binder.meta.path}.${binder.meta.keys[ binder.meta.currentLength ] ?? binder.meta.currentLength}`;
             const context = new Proxy(binder.context, {
-                has,
-                get: get.bind(null, binder, indexValue, keyValue),
-                set: set.bind(null, binder, indexValue, keyValue),
+                has: eachHas.bind(null, binder, indexValue, keyValue),
+                get: eachGet.bind(null, binder, indexValue, keyValue),
+                set: eachSet.bind(null, binder, indexValue, keyValue),
             });
 
             const rewrites = binder.rewrites?.slice() || [];
-            // if (binder.meta.indexName) rewrites.unshift([ binder.meta.indexName, indexValue ]);
-            // if (binder.meta.keyName) rewrites.unshift([ binder.meta.keyName, keyValue ]);
+            if (binder.meta.keyName) rewrites.unshift([ binder.meta.keyName, keyValue ]);
+            if (binder.meta.indexName) rewrites.unshift([ binder.meta.indexName, indexValue ]);
             if (binder.meta.variableName) rewrites.unshift([ binder.meta.variableName, variableValue ]);
-
-            // rewrites = [];
-            // if (binder.meta.indexName) rewrites.push([ binder.meta.indexName, indexValue]);
-            // if (binder.meta.keyName) rewrites.push([ binder.meta.keyName, keyValue ]);
-            // if (binder.meta.variableName) rewrites.push([ binder.meta.variableName, variableValue, 'variable' ]);
-            // if (binder.rewrites) rewrites.push(...binder.rewrites);
 
             const clone = binder.meta.templateElement.content.cloneNode(true);
             let node = clone.firstChild;
@@ -160,4 +174,4 @@ const each = async function (binder, data) {
 
 };
 
-export default each;
+export default { render: eachRender, unrender: eachUnrender };
