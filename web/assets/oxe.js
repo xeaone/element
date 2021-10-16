@@ -16,40 +16,38 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-    const tick$1 = Promise.resolve();
-    const change = async function (task, from, to, type, path) {
-        const tasks = [task.bind(null, path, type)];
-        await compare(task, from, to, path, tasks);
-        return Promise.all(tasks.map(t => t()));
-    };
-    const compare = async function (task, from, to, path, tasks) {
-        const compares = [];
-        const fromIsObject = from && typeof from === 'object';
-        const toIsObject = to && typeof to === 'object';
-        if (!fromIsObject && !toIsObject)
-            return;
-        const fromKeys = fromIsObject ? Object.keys(from) : [];
-        const toKeys = toIsObject ? Object.keys(to) : [];
-        for (const key of fromKeys) {
-            const index = toKeys?.indexOf(key) ?? -1;
-            const child = path ? `${path}.${key}` : `${key}`;
-            if (index !== -1) {
-                toKeys.splice(index, 1);
-                tasks.push(task.bind(null, child, 'render'));
-                compares.push(compare(task, from[key], to[key], child, tasks));
-            }
-            else {
-                tasks.push(task.bind(null, child, 'unrender'));
-                compares.push(compare(task, from[key], undefined, child, tasks));
-            }
-        }
-        for (const key of toKeys) {
-            const child = path ? `${path}.${key}` : `${key}`;
-            tasks.push(task.bind(null, child, 'render'));
-            compares.push(compare(task, undefined, to[key], child, tasks));
-        }
-        return Promise.all(compares);
-    };
+    // const tick = Promise.resolve();
+    // const change = async function (task, from, to, type, path) {
+    //     const tasks = [ task.bind(null, path, type) ];
+    //     await compare(task, from, to, path, tasks);
+    //     return Promise.all(tasks.map(t => t()));
+    // };
+    // const compare = async function (task: task, from: any, to: any, path: string, tasks: task[]) {
+    //     const compares = [];
+    //     const fromIsObject = from && typeof from === 'object';
+    //     const toIsObject = to && typeof to === 'object';
+    //     if (!fromIsObject && !toIsObject) return;
+    //     const fromKeys = fromIsObject ? Object.keys(from) : [];
+    //     const toKeys = toIsObject ? Object.keys(to) : [];
+    //     for (const key of fromKeys) {
+    //         const index = toKeys?.indexOf(key) ?? -1;
+    //         const child = path ? `${path}.${key}` : `${key}`;
+    //         if (index !== -1) {
+    //             toKeys.splice(index, 1);
+    //             tasks.push(task.bind(null, child, 'render'));
+    //             compares.push(compare(task, from[ key ], to[ key ], child, tasks));
+    //         } else {
+    //             tasks.push(task.bind(null, child, 'unrender'));
+    //             compares.push(compare(task, from[ key ], undefined, child, tasks));
+    //         }
+    //     }
+    //     for (const key of toKeys) {
+    //         const child = path ? `${path}.${key}` : `${key}`;
+    //         tasks.push(task.bind(null, child, 'render'));
+    //         compares.push(compare(task, undefined, to[ key ], child, tasks));
+    //     }
+    //     return Promise.all(compares);
+    // };
     const get = function (task, path, target, key, receiver) {
         const value = Reflect.get(target, key, receiver);
         if (value && typeof value === 'object') {
@@ -65,27 +63,34 @@
         }
     };
     const deleteProperty = function (task, path, target, key, receiver) {
-        const value = Reflect.get(target, key, receiver);
+        // const value = Reflect.get(target, key, receiver);
         Reflect.deleteProperty(target, key);
-        tick$1.then(change.bind(null, task, value, undefined, 'unrender', path ? `${path}.${key}` : `${key}`));
+        // tick.then(change.bind(null, task, value, undefined, 'unrender', path ? `${path}.${key}` : `${key}`));
         // change(task, value, undefined, 'unrender', path ? `${path}.${key}` : `${key}`);
-        // task(path ? `${path}.${key}` : `${key}`, 'unrender');
+        task(path ? `${path}.${key}` : `${key}`, 'unrender');
     };
     const set = function (task, path, target, key, to, receiver) {
         const from = Reflect.get(target, key, receiver);
         if (key === 'length') {
-            // task(path, 'render');
-            // task(path ? `${path}.${key}` : `${key}`, 'render');
-            tick$1.then(change.bind(null, task, from, to, 'render', path));
-            tick$1.then(change.bind(null, task, from, to, 'render', path ? `${path}.${key}` : `${key}`));
+            task(path, 'render');
+            task(path ? `${path}.${key}` : `${key}`, 'render');
+            // tick.then(change.bind(null, task, from, to, 'render', path));
+            // tick.then(change.bind(null, task, from, to, 'render', path ? `${path}.${key}` : `${key}`));
             return true;
         }
         else if (from === to) {
             return true;
         }
         Reflect.set(target, key, to, receiver);
-        tick$1.then(change.bind(null, task, from, to, 'render', path ? `${path}.${key}` : `${key}`));
+        // tick.then(change.bind(null, task, from, to, 'render', path ? `${path}.${key}` : `${key}`));
         // change(task, from, to, 'render', path ? `${path}.${key}` : `${key}`);
+        if (from !== null && typeof from === 'object' && (to === null || typeof to !== 'object')) {
+            // should render path and unrender path starts with
+            task(path ? `${path}.${key}` : `${key}`, 'overwrite');
+        }
+        else {
+            task(path ? `${path}.${key}` : `${key}`, 'render');
+        }
         // task(path ? `${path}.${key}` : `${key}`, 'render');
         return true;
     };
@@ -108,20 +113,20 @@
     const format = (data) => data === undefined ? '' : typeof data === 'object' ? JSON.stringify(data) : data;
 
     const standardRender = async function (binder) {
-        const { name, owner, node } = binder;
         let data = await binder.compute();
-        const boolean = booleanTypes.includes(name);
+        const boolean = booleanTypes.includes(binder.name);
+        binder.node.value = '';
         if (boolean) {
             data = data ? true : false;
             if (data)
-                owner.setAttributeNode(node);
+                binder.owner.setAttributeNode(binder.node);
             else
-                owner.removeAttribute(name);
+                binder.owner.removeAttribute(binder.name);
         }
         else {
             data = format(data);
-            owner[name] = data;
-            owner.setAttribute(name, data);
+            binder.owner[binder.name] = data;
+            binder.owner.setAttribute(binder.name, data);
         }
     };
     const standardUnrender = async function (binder) {
@@ -138,7 +143,7 @@
     const flag = Symbol('RadioFlag');
     const handler = async function (binder, event) {
         const checked = binder.owner.checked;
-        const computed = await binder.compute(event ? { event, checked } : null);
+        const computed = await binder.compute(event ? { $event: event, $checked: checked } : null);
         if (computed) {
             binder.owner.setAttributeNode(binder.node);
         }
@@ -254,7 +259,7 @@
         if (type === 'select-one') {
             const [option] = owner.selectedOptions;
             const value = option ? '$value' in option ? option.$value : option.value : undefined;
-            computed = await binder.compute({ event, value });
+            computed = await binder.compute({ $event: event, $value: value });
             display = format(computed);
         }
         else if (type === 'select-multiple') {
@@ -262,11 +267,11 @@
             for (const option of owner.selectedOptions) {
                 value.push('$value' in option ? option.$value : option.value);
             }
-            computed = await binder.compute({ event, value });
+            computed = await binder.compute({ $event: event, $value: value });
             display = format(computed);
         }
         else if (type === 'number' || type === 'range') {
-            computed = await binder.compute({ event, value: owner.valueAsNumber });
+            computed = await binder.compute({ $event: event, $value: owner.valueAsNumber });
             // if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
             // else owner.value = computed;
             owner.value = computed;
@@ -274,7 +279,7 @@
         }
         else if (dateTypes.includes(type)) {
             const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
-            computed = await binder.compute({ event, value });
+            computed = await binder.compute({ $event: event, $value: value });
             if (typeof owner.$value === 'string')
                 owner.value = computed;
             else
@@ -284,7 +289,7 @@
         else {
             const value = owner.$value !== null && owner.$value !== undefined && typeof owner.$value !== 'string' ? JSON.parse(owner.value) : owner.value;
             const checked = owner.$checked !== null && owner.$checked !== undefined && typeof owner.$checked !== 'string' ? JSON.parse(owner.checked) : owner.checked;
-            computed = await binder.compute({ event, value, checked });
+            computed = await binder.compute({ $event: event, $value: value, $checked: checked });
             display = format(computed);
             owner.value = display;
         }
@@ -427,11 +432,14 @@
     };
     const eachRender = async function (binder, data) {
         if (!binder.meta.setup) {
+            binder.node.value = '';
             let [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
             binder.meta.path = path;
             binder.meta.keyName = key;
             binder.meta.indexName = index;
             binder.meta.variableName = variable;
+            // binder.meta.variableNamePattern = new RegExp(`;(${variable})\\b`);
+            binder.meta.variableNamePattern = new RegExp(`^${variable}\\b`);
             binder.meta.parts = path.split('.');
             binder.meta.keys = [];
             binder.meta.tasks = [];
@@ -488,10 +496,10 @@
                 const rewrites = binder.rewrites?.slice() || [];
                 if (binder.meta.keyName)
                     rewrites.unshift([binder.meta.keyName, keyValue]);
-                if (binder.meta.indexName)
-                    rewrites.unshift([binder.meta.indexName, indexValue]);
+                // if (binder.meta.indexName) rewrites.unshift([ binder.meta.indexName, indexValue ]);
+                // if (binder.meta.variableName) rewrites.unshift([ binder.meta.variableName, variableValue ]);
                 if (binder.meta.variableName)
-                    rewrites.unshift([binder.meta.variableName, variableValue]);
+                    rewrites.unshift([binder.meta.variableNamePattern, variableValue]);
                 const clone = binder.meta.templateElement.content.cloneNode(true);
                 let node = clone.firstChild;
                 if (node) {
@@ -509,20 +517,9 @@
                 // binder.meta.queueElement.content.appendChild(d);
                 binder.meta.currentLength++;
             }
-        }
-        if (binder.meta.currentLength === binder.meta.targetLength && binder.meta.tasks.length) {
-            await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
-            binder.owner.appendChild(binder.meta.queueElement.content);
-            if (binder.owner.nodeName === 'SELECT') {
-                const bounds = binder.binder.ownerBinders.get(binder.owner);
-                if (bounds) {
-                    for (const bound of bounds) {
-                        if (bound.name === 'value') {
-                            bound.render();
-                            break;
-                        }
-                    }
-                }
+            if (binder.meta.currentLength === binder.meta.targetLength) {
+                await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
+                binder.owner.appendChild(binder.meta.queueElement.content);
             }
         }
     };
@@ -618,7 +615,7 @@
                 }
             });
         }
-        await binder.compute({ form, event });
+        await binder.compute({ $form: form, $event: event });
         if (target.getAttribute('reset'))
             target.reset();
         return false;
@@ -652,12 +649,16 @@
             }
             element.dispatchEvent(new Event('input'));
         }
-        await binder.compute({ event });
+        await binder.compute({ $event: event });
         return false;
     };
     const onRender = async function (binder) {
         binder.owner[binder.name] = null;
         const name = binder.name.slice(2);
+        if (!binder.meta.setup) {
+            binder.meta.setup = true;
+            binder.node.value = '';
+        }
         if (binder.meta.method) {
             binder.owner.removeEventListener(name, binder.meta.method);
         }
@@ -669,7 +670,7 @@
                 return submit(event, binder);
             }
             else {
-                return binder.compute({ event });
+                return binder.compute({ $event: event });
             }
         };
         binder.owner.addEventListener(name, binder.meta.method);
@@ -798,31 +799,38 @@
             code = convert ? `'${code}'` : code;
             binder.code = code = `
         $instance = $instance || {};
-        var $f = $form = $instance.form;
-        var $e = $event = $instance.event;
-        // try {
+        with ($instance) {
             with ($context) {
                 ${isValue || isChecked ? `
-                if ('value' in $instance || 'checked' in $instance) {
-                    ${isValue ? `$v = $value = $instance.value;` : ''}
-                    ${isChecked ? `$c = $checked = $instance.checked;` : ''}
+                if ('$value' in $instance || '$checked' in $instance) {
                     return ${code};
                 } else {
-                    ${isValue ? `$v = $value = ${reference || 'undefined'};` : ''}
-                    ${isChecked ? `$c = $checked = ${reference || 'undefined'};` : ''}
+                    ${isValue ? `$value = ${reference || 'undefined'};` : ''}
+                    ${isChecked ? `$checked = ${reference || 'undefined'};` : ''}
                     return ${assignment};
                 }
                 ` : `return ${code};`}
             }
-        // } catch (error) {
-        //     //console.warn(error.message);
-        //     if (error.message.indexOf('Cannot set property') === 0 ||
-        //         error.message.indexOf('Cannot read property') === 0 ||
-        //         error.message.indexOf('Cannot set properties') === 0 ||
-        //         error.message.indexOf('Cannot read properties') === 0) return;
-        //     else console.error(error);
-        // }
+        }
         `;
+            // binder.code = code = `
+            // $instance = $instance || {};
+            // var $f = $form = $instance.$form;
+            // var $e = $event = $instance.$event;
+            // with ($context) {
+            //     ${isValue || isChecked ? `
+            //     if ('$value' in $instance || '$checked' in $instance) {
+            //         ${isValue ? `$v = $value = $instance.$value;` : ''}
+            //         ${isChecked ? `$c = $checked = $instance.$checked;` : ''}
+            //         return ${code};
+            //     } else {
+            //         ${isValue ? `$v = $value = ${reference || 'undefined'};` : ''}
+            //         ${isChecked ? `$c = $checked = ${reference || 'undefined'};` : ''}
+            //         return ${assignment};
+            //     }
+            //     ` : `return ${code};`}
+            // }
+            // `;
             cache = new Function('$context', '$binder', '$instance', code);
             caches.set(binder.value, cache);
         }
@@ -830,166 +838,81 @@
         // return cache.bind(null, binder.context, binder);
     };
 
-    // const isString = '\'`"';
-    // const isNumber = /^[0-9]+$/;
-    // // const isNumber = '0123456789';
-    // const referenceConnector = '.[]';
-    // const referenceStart = '_$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    // const referenceInner = '_$0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    // const referenceFirstSkips = [
-    //     '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
-    //     'window', 'document', 'console', 'location',
-    //     'Math', 'Date', 'Number', 'Object', 'Array', 'String', 'Boolean', 'Promise', 'Infinity',
-    //     'this', 'true', 'false', 'null', 'undefined', 'NaN', 'of', 'in', 'do', 'if', 'for',
-    //     'var', 'let', 'const',
-    //     'new', 'try', 'case', 'else', 'with', 'await', 'break', 'catch', 'class',
-    //     'super', 'throw', 'while', 'yield', 'delete', 'export', 'import', 'return', 'switch', 'default',
-    //     'extends', 'finally', 'continue', 'debugger', 'function', 'arguments', 'typeof', 'instanceof', 'void'
-    // ];
-    // const parser = function (data, rewrites?: string[][]) {
-    //     let inString = false;
-    //     let inSyntax = false;
-    //     let inReference = false;
-    //     let skipReference = false;
-    //     let part = '';
-    //     let first = '';
-    //     let reference = '';
-    //     // const assignees = [];
-    //     // const references = [];
-    //     const assignees = new Set();
-    //     const references = new Set();
-    //     data = data.replace(/\s*[?+-]?\s*(\.|=)\s*/g, '$1');
-    //     let current, next, previous;
-    //     for (let i = 0, l = data.length; i < l; i++) {
-    //         current = data[ i ];
-    //         next = data[ i + 1 ];
-    //         previous = data[ i - 1 ];
-    //         if (inString && first === current && previous !== '\\') {
-    //             inString = false;
-    //             first = '';
-    //         } else if (!inString && isString.includes(current)) {
-    //             inString = true;
-    //             first = current;
-    //             if (skipReference || !part || !reference && !part) {
-    //                 inReference = false;
-    //                 skipReference = false;
-    //                 reference = part = '';
-    //                 continue;
-    //             }
-    //             inReference = false;
-    //             if (!reference && referenceFirstSkips.includes(part)) {
-    //                 reference = part = '';
-    //             } else {
-    //                 if (rewrites && !reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
-    //                 reference += (reference ? '.' + part : part);
-    //                 // if (!isNumber.test(reference)) references.push(reference);
-    //                 if (!isNumber.test(reference)) references.add(reference);
-    //                 reference = part = '';
-    //             }
-    //         } else if (inString) {
-    //             continue;
-    //         } else if (!inSyntax && current === '{' && next === '{') {
-    //             inSyntax = true;
-    //             i++;
-    //         } else if (inSyntax && current === '}' && next === '}') {
-    //             inSyntax = false;
-    //             if (skipReference || !part || !reference && !part) {
-    //                 inReference = false;
-    //                 skipReference = false;
-    //                 reference = part = '';
-    //                 continue;
-    //             }
-    //             inReference = false;
-    //             if (!reference && referenceFirstSkips.includes(part)) {
-    //                 reference = part = '';
-    //             } else {
-    //                 if (rewrites && !reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
-    //                 reference += (reference ? '.' + part : part);
-    //                 // if (!isNumber.test(reference)) references.push(reference);
-    //                 if (!isNumber.test(reference)) references.add(reference);
-    //                 reference = part = '';
-    //             }
-    //             i++;
-    //         } else if (inSyntax) {
-    //             if (inReference) {
-    //                 if (referenceConnector.includes(current)) {
-    //                     // if ((current === '?' && next === '.') || referenceConnector.includes(current)) {
-    //                     if (skipReference || !part || !reference && !part) continue;
-    //                     if (!reference && referenceFirstSkips.includes(part)) {
-    //                         skipReference = true;
-    //                         part = '';
-    //                     } else {
-    //                         if (rewrites && !reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
-    //                         reference += (reference ? '.' + part : part);
-    //                         part = '';
-    //                     }
-    //                 } else if (referenceInner.includes(current)) {
-    //                     part += current;
-    //                 } else {
-    //                     if (skipReference || !part || !reference && !part) {
-    //                         inReference = false;
-    //                         skipReference = false;
-    //                         reference = part = '';
-    //                         continue;
-    //                     }
-    //                     inReference = false;
-    //                     if (part === 'of' || part === 'in') {
-    //                         // references.length = 0;
-    //                         references.clear();
-    //                         reference = part = '';
-    //                     } else if (!reference && referenceFirstSkips.includes(part)) {
-    //                         skipReference = true;
-    //                         reference = part = '';
-    //                     } else {
-    //                         if (rewrites && reference) for (const [ name, value ] of rewrites) part === name ? part = value : null;
-    //                         reference += (reference ? '.' + part : part);
-    //                         if (!isNumber.test(reference)) {
-    //                             // references.push(reference);
-    //                             // if (current === '=' && next !== '=') assignees.push(reference);
-    //                             references.add(reference);
-    //                             if (current === '=' && next !== '=') assignees.add(reference);
-    //                         }
-    //                         reference = part = '';
-    //                     }
-    //                 }
-    //             } else {
-    //                 if (referenceStart.includes(current)) {
-    //                     inReference = true;
-    //                     part += current;
-    //                 }
-    //             }
-    //         }
-    //     };
-    //     // console.log(data, references, assignees);
-    //     return { references, assignees };
-    // };
-    const replaceEndBracket = /\s*\][^;]*/g;
-    const removeStrings = /".*?[^\\]*"|'.*?[^\\]*\'|`.*?[^\\]*`/g;
     const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
-    const replaceOutside = /[^{}]*{{.*?\s+of\s+|[^{}]*{{|}}[^{}]*/g;
-    // const matchAssignee = /([a-zA-Z0-9$_.]+)\s*[!%^&*+|/<>-]*=\s*[^=>]/;
-    const replaceSeperator = /\s+|\|+|\/+|\(+|\)+|\[+|\^+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g; // \]+
-    const replaceProtected = new RegExp([
-        `;(
-        \\d+\\.\\d*|\\d*\\.\\d+|\\d+|
-        \\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-        this|window|document|console|location|
-        globalThis|Infinity|NaN|undefined|
-        isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
-        Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
-        Object|Function|Boolean|Symbole|Array|
-        Number|Math|Date|BigInt|
-        String|RegExp|
-        Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
-        Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
-        Map|Set|WeakMap|WeakSet|
-        ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
-        Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
-        Reflect|Proxy|
-        true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
-        yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
-    )[^;]*;`,
-    ].join('').replace(/\s|\t|\n/g, ''), 'g');
+    // const replaceEndBracket = /\s*\][^;]*/g;
+    // const replaceString = /".*?[^\\]*"|'.*?[^\\]*\'|`.*?[^\\]*`/g;
+    // const replaceOutside = /[^{}]*{{.*?\s+of\s+|[^{}]*{{|}}[^{}]*/g;
+    // const replaceSeperator = /\s+|\|+|\/+|\(+|\)+|\[+|\^+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g; // \]+
+    // const replaceProtected = new RegExp([
+    //     replaceString.source,
+    //     replaceOutside.source,
+    //     replaceEndBracket.source,
+    //     replaceSeperator.source,
+    //     `(
+    //         \\d+\\.\\d*|\\d*\\.\\d+|\\d+|
+    //         \\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+    //         this|window|document|console|location|
+    //         globalThis|Infinity|NaN|undefined|
+    //         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
+    //         Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
+    //         Object|Function|Boolean|Symbole|Array|
+    //         Number|Math|Date|BigInt|
+    //         String|RegExp|
+    //         Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
+    //         Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
+    //         Map|Set|WeakMap|WeakSet|
+    //         ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
+    //         Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
+    //         Reflect|Proxy|
+    //         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+    //         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
+    //     )\\b`,
+    // ].join('|').replace(/\s|\t|\n/g, ''), 'g');
+    // const replaceProtected = new RegExp([
+    //     `;(
+    //         \\d+\\.\\d*|\\d*\\.\\d+|\\d+|
+    //         \\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+    //         this|window|document|console|location|
+    //         globalThis|Infinity|NaN|undefined|
+    //         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
+    //         Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
+    //         Object|Function|Boolean|Symbole|Array|
+    //         Number|Math|Date|BigInt|
+    //         String|RegExp|
+    //         Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
+    //         Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
+    //         Map|Set|WeakMap|WeakSet|
+    //         ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
+    //         Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
+    //         Reflect|Proxy|
+    //         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+    //         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
+    //     )[^;]*;`,
+    // ].join('').replace(/\s|\t|\n/g, ''), 'g');
+    const referenceMatch = new RegExp([
+        '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
+        '([^{}]*{{.*?\\s+(?:of|in)\\s+)',
+        `(
+        (?:\\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
+            this|window|document|console|location|
+            globalThis|Infinity|NaN|undefined|
+            isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
+            Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
+            Object|Function|Boolean|Symbole|Array|
+            Number|Math|Date|BigInt|
+            String|RegExp|
+            Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
+            Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
+            Map|Set|WeakMap|WeakSet|
+            ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
+            Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
+            Reflect|Proxy|
+            true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
+            yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void)
+        [a-zA-Z0-9$_.?\\[\\]]*
+    )`,
+        '([a-zA-Z$_][a-zA-Z0-9$_.?\\[\\]]*)' // reference
+    ].join('|').replace(/\s|\t|\n/g, ''), 'g');
     const cache = new Map();
     const parser = function (data, rewrites) {
         if (!rewrites?.length) {
@@ -997,29 +920,42 @@
             if (cached)
                 return cached;
         }
-        let result = { references: undefined };
-        cache.set(data, result);
-        data = data.replace(replaceOutside, ';');
-        data = data.replace(removeStrings, '');
+        const references = [];
+        cache.set(data, references);
         data = data.replace(normalizeReference, '.$2');
-        // const assignee = data.match(matchAssignee)?.[ 1 ];
-        data = data.replace(replaceSeperator, ';');
-        data = data.replace(replaceEndBracket, ';');
-        if (rewrites) {
-            for (const [name, value] of rewrites) {
-                data = data.replace(new RegExp(`;(${name})\\b`, 'g'), `;${value}`);
+        // let result = { references: undefined };
+        // cache.set(data, result);
+        // data = data.replace(replaceOutside, ';');
+        // data = data.replace(replaceString, '');
+        // data = data.replace(normalizeReference, '.$2');
+        // data = data.replace(replaceSeperator, ';');
+        // data = data.replace(replaceEndBracket, ';');
+        // data = data.replace(replaceProtected, ';');
+        // if (rewrites) {
+        //     for (const [ name, value ] of rewrites) {
+        //         data = data.replace(name, `;${value}`);
+        //     }
+        // }
+        // result.references = data.split(/;+/).slice(1, -1) || [];
+        let match;
+        while (match = referenceMatch.exec(data)) {
+            let reference = match[4];
+            if (reference) {
+                if (rewrites) {
+                    for (const [name, value] of rewrites) {
+                        reference = reference.replace(name, `${value}`);
+                    }
+                }
+                references.push(reference);
             }
         }
-        data = data.replace(replaceProtected, ';');
-        result.references = data.split(/;+/).slice(1, -1) || [];
-        // result.assignees = assignee ? [ assignee ] : [];
-        return result;
+        // console.log(references);
+        return references;
     };
 
     const TN = Node.TEXT_NODE;
     const EN = Node.ELEMENT_NODE;
-    const AN = Node.ATTRIBUTE_NODE;
-    console.warn('todo:unbind to handle boolean attributes');
+    // const AN = Node.ATTRIBUTE_NODE;
     class Binder {
         prefix = 'o-';
         prefixEach = 'o-each';
@@ -1059,6 +995,8 @@
                 this.nodeBinders.delete(ownerBinder.node);
                 for (const path of ownerBinder.paths) {
                     const pathBinders = this.pathBinders.get(path);
+                    if (!pathBinders)
+                        continue;
                     pathBinders.delete(ownerBinder);
                     if (!pathBinders.size)
                         this.pathBinders.delete(path);
@@ -1070,22 +1008,26 @@
         async bind(node, container, name, value, owner, context, rewrites) {
             const type = name.startsWith('on') ? 'on' : name in this.binders ? name : 'standard';
             const handler = this.binders[type];
-            const parsed = parser(value, rewrites);
             const binder = {
                 meta: {},
                 ready: true,
                 binder: this,
-                compute: undefined,
+                paths: undefined,
                 render: undefined,
+                compute: undefined,
                 unrender: undefined,
-                paths: parsed.references,
                 binders: this.pathBinders,
                 node, owner, name, value, rewrites, context, container, type,
             };
-            binder.compute = computer(binder);
+            const [paths, compute] = await Promise.all([
+                parser(value, rewrites),
+                computer(binder)
+            ]);
+            binder.paths = paths;
+            binder.compute = compute;
             binder.render = handler.render.bind(null, binder);
             binder.unrender = handler.unrender.bind(null, binder);
-            for (const reference of parsed.references) {
+            for (const reference of paths) {
                 const binders = binder.binders.get(reference);
                 if (binders) {
                     binders.add(binder);
@@ -1129,14 +1071,13 @@
         }
         async add(node, container, context, rewrites) {
             const tasks = [];
-            if (node.nodeType === AN) {
-                const attribute = node;
-                if (this.syntaxMatch.test(attribute.value)) {
-                    // tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                    tasks.push(this.bind.bind(this, node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                }
-            }
-            else if (node.nodeType === TN) {
+            // if (node.nodeType === AN) {
+            //     const attribute = (node as Attr);
+            //     if (this.syntaxMatch.test(attribute.value)) {
+            //         tasks.push(this.bind(node, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+            //     }
+            // } else
+            if (node.nodeType === TN) {
                 const start = node.nodeValue.indexOf(this.syntaxStart);
                 if (start === -1)
                     return;
@@ -1147,45 +1088,35 @@
                     return;
                 if (end + this.syntaxLength !== node.nodeValue.length) {
                     const split = node.splitText(end + this.syntaxLength);
-                    // tasks.push(this.add(split, container, context, rewrites));
-                    tasks.push(this.add.bind(this, split, container, context, rewrites));
+                    tasks.push(this.add(split, container, context, rewrites));
                 }
-                // tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
-                tasks.push(this.bind.bind(this, node, container, 'text', node.nodeValue, node, context, rewrites));
+                tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
             }
             else if (node.nodeType === EN) {
-                let each;
                 const attributes = node.attributes;
-                for (const attribute of attributes) {
-                    if (this.syntaxMatch.test(attribute.value)) {
-                        // if (each) {
-                        //     if (attribute.name === 'each' || attribute.name === this.prefixEach) continue;
-                        //     tasks.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                        // } else {
-                        //     tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                        // }
-                        if (each)
-                            continue;
-                        if (attribute.name === 'each' || attribute.name === this.prefixEach) {
-                            each = this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites);
-                        }
-                        else {
+                let each = attributes['each'];
+                if (each) {
+                    each = this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
+                    for (const attribute of attributes) {
+                        if (attribute.name !== 'each' && this.syntaxMatch.test(attribute.value)) {
                             tasks.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                         }
                     }
+                    return each.then(() => Promise.all(tasks.map(task => task())));
                 }
-                if (each)
-                    return Promise.resolve().then(each).then(() => Promise.all(tasks.map(task => task())));
+                for (const attribute of attributes) {
+                    if (this.syntaxMatch.test(attribute.value)) {
+                        tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    }
+                }
                 let child = node.firstChild;
                 if (child) {
                     do {
-                        // tasks.push(this.add(child, container, context, rewrites));
-                        tasks.push(this.add.bind(this, child, container, context, rewrites));
+                        tasks.push(this.add(child, container, context, rewrites));
                     } while (child = child.nextSibling);
                 }
             }
-            return Promise.all(tasks.map(task => task()));
-            // return Promise.all(tasks);
+            return Promise.all(tasks);
         }
     }
 
@@ -1297,12 +1228,36 @@
             }
         }
         async #observe(path, type) {
-            // console.log(type, path);
-            const binders = this.#binder.pathBinders.get(path);
-            if (!binders)
-                return;
-            for (const binder of binders) {
-                binder[type]();
+            for (const [key, value] of this.#binder.pathBinders) {
+                if (!value)
+                    continue;
+                if (type === 'unrender') {
+                    if (key === path || key.startsWith(`${path}.`)) {
+                        for (const binder of value) {
+                            binder.unrender();
+                        }
+                    }
+                }
+                else if (type === 'render') {
+                    if (key === path || key.startsWith(`${path}.`)) {
+                        for (const binder of value) {
+                            // binder.unrender().then(() => binder.render());
+                            binder.render();
+                        }
+                    }
+                }
+                else if (type === 'overwrite') {
+                    if (key === path) {
+                        for (const binder of value) {
+                            binder.render();
+                        }
+                    }
+                    else if (key.startsWith(`${path}.`)) {
+                        for (const binder of value) {
+                            binder.unrender();
+                        }
+                    }
+                }
             }
         }
         ;

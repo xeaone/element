@@ -84,10 +84,10 @@ export default class BindersRoute extends Component {
             `)}</pre>
             <br>
             <label>
-                <input type="radio" name="radio" value="one" checked="{{r1=$c}}"> Radio One
+                <input type="radio" name="radio" value="one" checked="{{r1=$checked}}"> Radio One
             </label>
             <label>
-                <input type="radio" name="radio" value="two" checked="{{r2=$c}}"> Radio Two
+                <input type="radio" name="radio" value="two" checked="{{r2=$checked}}"> Radio Two
             </label>
         </section>
 
@@ -201,12 +201,12 @@ export default class BindersRoute extends Component {
                 <input name="name.last" value="{{$value ?? lastName}}" placeholder="last name">
                 <br>
                 <br>
-                <input type="checkbox" name="agree" value="{{agree ? 'yes' : 'no'}}" checked="{{agree = $c}}">Agree? {{agree ? 'yes': 'no'}}
+                <input type="checkbox" name="agree" value="{{agree ? 'yes' : 'no'}}" checked="{{agree = $checked}}">Agree? {{agree ? 'yes': 'no'}}
                 <br>
                 <br>
                 <strong>Animal:</strong>
-                <input type="radio" name="animal" value="{{'dogs'}}" checked="{{$c}}">Dogs
-                <input type="radio" name="animal" value="cats" checked="{{$c}}">Cats
+                <input type="radio" name="animal" value="{{'dogs'}}" checked="{{$checked}}">Dogs
+                <input type="radio" name="animal" value="cats" checked="{{$checked}}">Cats
                 <br>
                 <br>
                 <div>{{favoriteNumber}}</div>

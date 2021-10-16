@@ -23,31 +23,31 @@ const input = async function (binder, event) {
     if (type === 'select-one') {
         const [ option ] = owner.selectedOptions;
         const value = option ? '$value' in option ? option.$value : option.value : undefined;
-        computed = await binder.compute({ event, value });
+        computed = await binder.compute({ $event: event, $value: value });
         display = format(computed);
     } else if (type === 'select-multiple') {
         const value = [];
         for (const option of owner.selectedOptions) {
             value.push('$value' in option ? option.$value : option.value);
         }
-        computed = await binder.compute({ event, value });
+        computed = await binder.compute({ $event: event, $value: value });
         display = format(computed);
     } else if (type === 'number' || type === 'range') {
-        computed = await binder.compute({ event, value: owner.valueAsNumber });
+        computed = await binder.compute({ $event: event, $value: owner.valueAsNumber });
         // if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
         // else owner.value = computed;
         owner.value = computed;
         display = owner.value;
     } else if (dateTypes.includes(type)) {
         const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
-        computed = await binder.compute({ event, value });
+        computed = await binder.compute({ $event: event, $value: value });
         if (typeof owner.$value === 'string') owner.value = computed;
         else owner.valueAsNumber = stampToView(computed);
         display = owner.value;
     } else {
         const value = owner.$value !== null && owner.$value !== undefined && typeof owner.$value !== 'string' ? JSON.parse(owner.value) : owner.value;
         const checked = owner.$checked !== null && owner.$checked !== undefined && typeof owner.$checked !== 'string' ? JSON.parse(owner.checked) : owner.checked;
-        computed = await binder.compute({ event, value, checked });
+        computed = await binder.compute({ $event: event, $value: value, $checked: checked });
         display = format(computed);
         owner.value = display;
     }

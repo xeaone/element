@@ -67,11 +67,34 @@ export default class Component extends HTMLElement {
     }
 
     async #observe (path, type) {
-        // console.log(type, path);
-        const binders = this.#binder.pathBinders.get(path);
-        if (!binders) return;
-        for (const binder of binders) {
-            binder[ type ]();
+        for (const [ key, value ] of this.#binder.pathBinders) {
+            if (!value) continue;
+
+            if (type === 'unrender') {
+                if (key === path || key.startsWith(`${path}.`)) {
+                    for (const binder of value) {
+                        binder.unrender();
+                    }
+                }
+            } else if (type === 'render') {
+                if (key === path || key.startsWith(`${path}.`)) {
+                    for (const binder of value) {
+                        // binder.unrender().then(() => binder.render());
+                        binder.render();
+                    }
+                }
+            } else if (type === 'overwrite') {
+                if (key === path) {
+                    for (const binder of value) {
+                        binder.render();
+                    }
+                } else if (key.startsWith(`${path}.`)) {
+                    for (const binder of value) {
+                        binder.unrender();
+                    }
+                }
+            }
+
         }
     };
 

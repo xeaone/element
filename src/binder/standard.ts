@@ -2,20 +2,20 @@ import booleanTypes from '../types/boolean';
 import format from '../format';
 
 const standardRender = async function (binder) {
-    const { name, owner, node } = binder;
-
     let data = await binder.compute();
 
-    const boolean = booleanTypes.includes(name);
+    const boolean = booleanTypes.includes(binder.name);
+
+    binder.node.value = '';
 
     if (boolean) {
         data = data ? true : false;
-        if (data) owner.setAttributeNode(node);
-        else owner.removeAttribute(name);
+        if (data) binder.owner.setAttributeNode(binder.node);
+        else binder.owner.removeAttribute(binder.name);
     } else {
         data = format(data);
-        owner[ name ] = data;
-        owner.setAttribute(name, data);
+        binder.owner[ binder.name ] = data;
+        binder.owner.setAttribute(binder.name, data);
     }
 
 };

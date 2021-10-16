@@ -60,12 +60,16 @@ const eachUnrender = async function (binder) {
 const eachRender = async function (binder, data) {
 
     if (!binder.meta.setup) {
+        binder.node.value = '';
+
         let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
         binder.meta.path = path;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
         binder.meta.variableName = variable;
+        // binder.meta.variableNamePattern = new RegExp(`;(${variable})\\b`);
+        binder.meta.variableNamePattern = new RegExp(`^${variable}\\b`);
         binder.meta.parts = path.split('.');
 
         binder.meta.keys = [];
@@ -128,8 +132,9 @@ const eachRender = async function (binder, data) {
 
             const rewrites = binder.rewrites?.slice() || [];
             if (binder.meta.keyName) rewrites.unshift([ binder.meta.keyName, keyValue ]);
-            if (binder.meta.indexName) rewrites.unshift([ binder.meta.indexName, indexValue ]);
-            if (binder.meta.variableName) rewrites.unshift([ binder.meta.variableName, variableValue ]);
+            // if (binder.meta.indexName) rewrites.unshift([ binder.meta.indexName, indexValue ]);
+            // if (binder.meta.variableName) rewrites.unshift([ binder.meta.variableName, variableValue ]);
+            if (binder.meta.variableName) rewrites.unshift([ binder.meta.variableNamePattern, variableValue ]);
 
             const clone = binder.meta.templateElement.content.cloneNode(true);
             let node = clone.firstChild;
@@ -152,22 +157,9 @@ const eachRender = async function (binder, data) {
             binder.meta.currentLength++;
         }
 
-    }
-
-    if (binder.meta.currentLength === binder.meta.targetLength && binder.meta.tasks.length) {
-        await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
-        binder.owner.appendChild(binder.meta.queueElement.content);
-
-        if (binder.owner.nodeName === 'SELECT') {
-            const bounds = binder.binder.ownerBinders.get(binder.owner);
-            if (bounds) {
-                for (const bound of bounds) {
-                    if (bound.name === 'value') {
-                        bound.render();
-                        break;
-                    }
-                }
-            }
+        if (binder.meta.currentLength === binder.meta.targetLength) {
+            await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
+            binder.owner.appendChild(binder.meta.queueElement.content);
         }
 
     }

@@ -136,31 +136,39 @@ const computer = function (binder) {
 
         binder.code = code = `
         $instance = $instance || {};
-        var $f = $form = $instance.form;
-        var $e = $event = $instance.event;
-        // try {
+        with ($instance) {
             with ($context) {
                 ${isValue || isChecked ? `
-                if ('value' in $instance || 'checked' in $instance) {
-                    ${isValue ? `$v = $value = $instance.value;` : ''}
-                    ${isChecked ? `$c = $checked = $instance.checked;` : ''}
+                if ('$value' in $instance || '$checked' in $instance) {
                     return ${code};
                 } else {
-                    ${isValue ? `$v = $value = ${reference || 'undefined'};` : ''}
-                    ${isChecked ? `$c = $checked = ${reference || 'undefined'};` : ''}
+                    ${isValue ? `$value = ${reference || 'undefined'};` : ''}
+                    ${isChecked ? `$checked = ${reference || 'undefined'};` : ''}
                     return ${assignment};
                 }
                 ` : `return ${code};`}
             }
-        // } catch (error) {
-        //     //console.warn(error.message);
-        //     if (error.message.indexOf('Cannot set property') === 0 ||
-        //         error.message.indexOf('Cannot read property') === 0 ||
-        //         error.message.indexOf('Cannot set properties') === 0 ||
-        //         error.message.indexOf('Cannot read properties') === 0) return;
-        //     else console.error(error);
-        // }
+        }
         `;
+
+        // binder.code = code = `
+        // $instance = $instance || {};
+        // var $f = $form = $instance.$form;
+        // var $e = $event = $instance.$event;
+        // with ($context) {
+        //     ${isValue || isChecked ? `
+        //     if ('$value' in $instance || '$checked' in $instance) {
+        //         ${isValue ? `$v = $value = $instance.$value;` : ''}
+        //         ${isChecked ? `$c = $checked = $instance.$checked;` : ''}
+        //         return ${code};
+        //     } else {
+        //         ${isValue ? `$v = $value = ${reference || 'undefined'};` : ''}
+        //         ${isChecked ? `$c = $checked = ${reference || 'undefined'};` : ''}
+        //         return ${assignment};
+        //     }
+        //     ` : `return ${code};`}
+        // }
+        // `;
 
         cache = new Function('$context', '$binder', '$instance', code);
         caches.set(binder.value, cache);

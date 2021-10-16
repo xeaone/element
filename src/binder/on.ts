@@ -50,7 +50,7 @@ const submit = async function (event, binder) {
 
     }
 
-    await binder.compute({ form, event });
+    await binder.compute({ $form: form, $event: event });
     if (target.getAttribute('reset')) target.reset();
 
     return false;
@@ -84,7 +84,7 @@ const reset = async function (event, binder) {
         element.dispatchEvent(new Event('input'));
     }
 
-    await binder.compute({ event });
+    await binder.compute({ $event: event });
 
     return false;
 };
@@ -92,6 +92,11 @@ const reset = async function (event, binder) {
 const onRender = async function (binder) {
     binder.owner[ binder.name ] = null;
     const name = binder.name.slice(2);
+
+    if (!binder.meta.setup) {
+        binder.meta.setup = true;
+        binder.node.value = '';
+    }
 
     if (binder.meta.method) {
         binder.owner.removeEventListener(name, binder.meta.method);
@@ -103,7 +108,7 @@ const onRender = async function (binder) {
         } else if (name === 'submit') {
             return submit(event, binder);
         } else {
-            return binder.compute({ event });
+            return binder.compute({ $event: event });
         }
     };
 
