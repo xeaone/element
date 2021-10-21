@@ -1,15 +1,17 @@
 
 const caches = new Map();
 const splitPattern = /\s*{{\s*|\s*}}\s*/;
-const shouldNotConvert = /^\s*{{[^{}]*}}\s*$/;
-const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-const assigneePattern = /({{)|(}})|([_$a-zA-Z0-9.?\[\]]+)[-+?^*%|\\ ]*=[-+?^*%|\\ ]*/g;
 
-// infinite loop if assignee has assignment
-// const assigneePattern = /({{.*?)([_$a-zA-Z0-9.?\[\]]+)(\s*[-+?^*%$|\\]?=[-+?^*%$|\\]?\s*[_$a-zA-Z0-9.?\[\]]+.*?}})/;
+const instancePattern = /(\$\w+)/;
+const bracketPattern = /({{)|(}})/;
+const eachPattern = /({{.*?\s+(of|in)\s+(.*?)}})/;
+const assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*?)}})/;
+const codePattern = new RegExp(`${eachPattern.source}|${assignmentPattern.source}|${instancePattern.source}|${bracketPattern.source}`, 'g');
 
 const ignores = [
-    '$assignee', '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+    // '$assignee', '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+    // '$e', '$v', '$c', '$f',
+    '$instance', '$event', '$value', '$checked', '$form',
     'this', 'window', 'document', 'console', 'location',
     'globalThis', 'Infinity', 'NaN', 'undefined',
     'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent ',
@@ -25,150 +27,69 @@ const ignores = [
     'Reflect', 'Proxy',
 ];
 
-// const bind = async function (binder, path) {
-//     const binders = binder.binders.get(path);
-//     // binder.paths.add(path);
-//     if (binders) {
-//         binders.add(binder);
-//     } else {
-//         binder.binders.set(path, new Set([ binder ]));
-//     }
-// };
-
 const has = function (target, key) {
     if (typeof key !== 'string') return true;
     return !ignores.includes(key);
 };
-
-// const set = function (path, binder, target, key, value, receiver) {
-//     if (typeof key !== 'string') return true;
-
-//     if (!path && binder.rewrites?.length) {
-//         path = `${key}`;
-
-//         for (const [ name, value ] of binder.rewrites) {
-//             path = path.replace(new RegExp(`^(${name})\\b`), value);
-//         }
-
-//         let parts;
-//         for (const part of path.split('.')) {
-//             parts = parts ? `${parts}.${part}` : part;
-//             bind(binder, parts);
-//         }
-//     } else {
-//         path = path ? `${path}.${key}` : `${key}`;
-//         bind(binder, path);
-//     }
-
-//     Reflect.set(target, key, value, target);
-
-//     return true;
-// };
-
-// const get = function (path, binder, target, key, receiver) {
-//     if (typeof key !== 'string') return target[ key ];
-
-//     if (!path && binder.rewrites?.length) {
-//         path = `${key}`;
-
-//         for (const [ name, value ] of binder.rewrites) {
-//             path = path.replace(new RegExp(`^(${name})\\b`), value);
-//         }
-
-//         let parts;
-//         for (const part of path.split('.')) {
-//             parts = parts ? `${parts}.${part}` : part;
-//             bind(binder, parts);
-//         }
-//     } else {
-//         path = path ? `${path}.${key}` : `${key}`;
-//         bind(binder, path);
-//     }
-
-//     const value = Reflect.get(target, key, target);
-
-//     if (value && typeof value === 'object') {
-//         return new Proxy(value, {
-//             set: set.bind(null, path, binder),
-//             get: get.bind(null, path, binder),
-//         });
-//     } else if (typeof value === 'function') {
-//         return value.bind(target);
-//     } else {
-//         return value;
-//     }
-
-// };
 
 const computer = function (binder) {
     let cache = caches.get(binder.value);
 
     if (!cache) {
         let code = binder.value;
-        // const parsed = parser(code);
-        code = code.replace(replaceOfIn, '{{$2}}');
 
         const convert = code.split(splitPattern).filter(part => part).length > 1;
-        // const convert = !shouldNotConvert.test(code);
-        const isValue = binder.node.name === 'value';
-        const isChecked = binder.node.name === 'checked';
-
-        // const assignee = isValue || isChecked ? code.match(assigneePattern)?.[ 2 ] || '' : '';
 
         let reference = '';
         let assignment = '';
-        if (isValue || isChecked) {
-            assignment = code.replace(assigneePattern, function (match, bracketLeft, bracketRight, assignee) {
-                if (bracketLeft) {
-                    return '(';
-                } else if (bracketRight) {
-                    return ')';
-                } else {
-                    reference = reference || assignee;
-                    return '';
-                }
-            });
-        }
+        let usesInstance = false;
+        // let hasEvent, hasForm, hasValue, hasChecked;
 
-        code = code.replace(/{{/g, convert ? `' + (` : '(');
-        code = code.replace(/}}/g, convert ? `) + '` : ')');
+        code = code.replace(codePattern, function (match, g1, g2, ofInRight, assignee, assigneeLeft, ref, assigneeMiddle, assigneeRight, instance, bracketLeft, bracketRight) {
+            if (bracketLeft) return convert ? `' + (` : '(';
+            if (bracketRight) return convert ? `) + '` : ')';
+            if (ofInRight) return `(${ofInRight})`;
+            if (instance) {
+                usesInstance = true;
+                return match;
+            }
+            if (assignee) {
+                reference = ref;
+                usesInstance = true;
+                assignment = assigneeLeft + assigneeRight;
+                return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
+            }
+        });
+
         code = convert ? `'${code}'` : code;
 
-        binder.code = code = `
-        $instance = $instance || {};
-        with ($instance) {
-            with ($context) {
-                ${isValue || isChecked ? `
-                if ('$value' in $instance || '$checked' in $instance) {
-                    return ${code};
-                } else {
-                    ${isValue ? `$value = ${reference || 'undefined'};` : ''}
-                    ${isChecked ? `$checked = ${reference || 'undefined'};` : ''}
-                    return ${assignment};
+        if (usesInstance) {
+            code = `
+            $instance = $instance || {};
+            with ($instance) {
+                with ($context) {
+                    if ($instance.$assignment) {
+                        return ${code};
+                    } else {
+                        ${binder.node.name === 'value' ? `$instance.$value = ${reference || `undefined`};` : ''}
+                        ${binder.node.name === 'checked' ? `$instance.$checked = ${reference || `undefined`};` : ''}
+                        return ${assignment || code};
+                    }
                 }
-                ` : `return ${code};`}
             }
+            `;
+        } else {
+            code = `with ($context) { return ${code}; }`;
         }
-        `;
 
-        // binder.code = code = `
-        // $instance = $instance || {};
-        // var $f = $form = $instance.$form;
-        // var $e = $event = $instance.$event;
-        // with ($context) {
-        //     ${isValue || isChecked ? `
-        //     if ('$value' in $instance || '$checked' in $instance) {
-        //         ${isValue ? `$v = $value = $instance.$value;` : ''}
-        //         ${isChecked ? `$c = $checked = $instance.$checked;` : ''}
-        //         return ${code};
-        //     } else {
-        //         ${isValue ? `$v = $value = ${reference || 'undefined'};` : ''}
-        //         ${isChecked ? `$c = $checked = ${reference || 'undefined'};` : ''}
-        //         return ${assignment};
-        //     }
-        //     ` : `return ${code};`}
-        // }
-        // `;
+        code = `
+            try {
+                ${code}
+            } catch (error){
+                console.log($binder);
+                console.error(error);
+            }
+        `;
 
         cache = new Function('$context', '$binder', '$instance', code);
         caches.set(binder.value, cache);

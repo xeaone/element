@@ -143,7 +143,7 @@
     const flag = Symbol('RadioFlag');
     const handler = async function (binder, event) {
         const checked = binder.owner.checked;
-        const computed = await binder.compute(event ? { $event: event, $checked: checked } : null);
+        const computed = await binder.compute({ $event: event, $checked: checked, $assignment: true });
         if (computed) {
             binder.owner.setAttributeNode(binder.node);
         }
@@ -205,45 +205,30 @@
     var checked = { render: checkedRender, unrender: checkedUnrender };
 
     const inheritRender = async function (binder) {
-        binder.node.value = '';
-        if (binder.owner.isRendered) {
-            if (!binder.owner.inherited) {
-                return console.warn(`inherited not implemented ${binder.owner.localName}`);
-            }
-            const inherited = await binder.compute();
-            binder.owner.inherited?.(inherited);
+        if (!binder.meta.setup) {
+            binder.meta.setup = true;
+            binder.node.value = '';
         }
-        else {
-            binder.owner.addEventListener('afterrender', async () => {
-                if (!binder.owner.inherited) {
-                    return console.warn(`inherited not implemented ${binder.owner.localName}`);
-                }
-                const inherited = await binder.compute();
-                binder.owner.inherited?.(inherited);
-            });
+        if (!binder.owner.inherited) {
+            return console.warn(`inherited not implemented ${binder.owner.localName}`);
         }
+        const inherited = await binder.compute();
+        binder.owner.inherited?.(inherited);
     };
     const inheritUnrender = async function (binder) {
-        if (binder.owner.isRendered) {
-            if (!binder.owner.inherited) {
-                return console.warn(`inherited not implemented ${binder.owner.localName}`);
-            }
-            binder.owner.inherited?.();
+        if (!binder.owner.inherited) {
+            return console.warn(`inherited not implemented ${binder.owner.localName}`);
         }
-        else {
-            binder.owner.addEventListener('afterrender', async () => {
-                if (!binder.owner.inherited) {
-                    return console.warn(`inherited not implemented ${binder.owner.localName}`);
-                }
-                binder.owner.inherited?.();
-            });
-        }
+        binder.owner.inherited?.();
     };
     var inherit = { render: inheritRender, unrender: inheritUnrender };
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
 
     const defaultInputEvent = new Event('input');
+    const parseable = function (value) {
+        return !isNaN(value) && value !== null && value !== undefined && typeof value !== 'string';
+    };
     const stampFromView = function (data) {
         const date = new Date(data);
         return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds()).getTime();
@@ -259,7 +244,7 @@
         if (type === 'select-one') {
             const [option] = owner.selectedOptions;
             const value = option ? '$value' in option ? option.$value : option.value : undefined;
-            computed = await binder.compute({ $event: event, $value: value });
+            computed = await binder.compute({ $event: event, $value: value, $assignment: true });
             display = format(computed);
         }
         else if (type === 'select-multiple') {
@@ -267,11 +252,11 @@
             for (const option of owner.selectedOptions) {
                 value.push('$value' in option ? option.$value : option.value);
             }
-            computed = await binder.compute({ $event: event, $value: value });
+            computed = await binder.compute({ $event: event, $value: value, $assignment: true });
             display = format(computed);
         }
         else if (type === 'number' || type === 'range') {
-            computed = await binder.compute({ $event: event, $value: owner.valueAsNumber });
+            computed = await binder.compute({ $event: event, $value: owner.valueAsNumber, $assignment: true });
             // if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
             // else owner.value = computed;
             owner.value = computed;
@@ -279,7 +264,7 @@
         }
         else if (dateTypes.includes(type)) {
             const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
-            computed = await binder.compute({ $event: event, $value: value });
+            computed = await binder.compute({ $event: event, $value: value, $assignment: true });
             if (typeof owner.$value === 'string')
                 owner.value = computed;
             else
@@ -287,9 +272,11 @@
             display = owner.value;
         }
         else {
-            const value = owner.$value !== null && owner.$value !== undefined && typeof owner.$value !== 'string' ? JSON.parse(owner.value) : owner.value;
-            const checked = owner.$checked !== null && owner.$checked !== undefined && typeof owner.$checked !== 'string' ? JSON.parse(owner.checked) : owner.checked;
-            computed = await binder.compute({ $event: event, $value: value, $checked: checked });
+            // const value = '$value' in owner && typeof owner.$value !== 'string' ? owner.$value === undefined ? undefined : JSON.parse(owner.value) : owner.value;
+            // const checked = '$checked' in owner && typeof owner.$checked !== 'string' ? owner.$checked === undefined ? undefined : JSON.parse(owner.checked) : owner.checked;
+            const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
+            const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
+            computed = await binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
             display = format(computed);
             owner.value = display;
         }
@@ -302,6 +289,7 @@
         const { owner, meta } = binder;
         if (!meta.setup) {
             meta.setup = true;
+            // binder.node.value = '';
             meta.nodeName = owner.nodeName;
             owner.addEventListener('input', event => input(binder, event));
         }
@@ -311,10 +299,11 @@
             owner.value = undefined;
             for (const option of owner.options) {
                 const optionValue = '$value' in option ? option.$value : option.value;
+                console.log(computed, option.$value, option.value, option.outerHTML, binder.binder.nodeBinders.get(option.getAttributeNode('value')), binder.binder.nodeBinders.get(option.firstChild), option.getAttributeNode('value'));
                 if (option.selected = optionValue === computed)
                     break;
             }
-            // if (owner.options.length && !owner.selectedOptions.length) {
+            console.log(binder.owner, computed, computed === undefined && owner.options.length && !owner.selectedOptions.length);
             if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
                 const [option] = owner.options;
                 option.selected = true;
@@ -472,16 +461,18 @@
             }
         }
         if (binder.meta.currentLength > binder.meta.targetLength) {
+            const tasks = [];
             while (binder.meta.currentLength > binder.meta.targetLength) {
                 let count = binder.meta.templateLength;
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    binder.binder.remove(node);
-                    // binder.meta.tasks.push(binder.binder.remove(node));
+                    // binder.binder.remove(node);
+                    tasks.push(binder.binder.remove(node));
                 }
                 binder.meta.currentLength--;
             }
+            await Promise.all(tasks);
         }
         else if (binder.meta.currentLength < binder.meta.targetLength) {
             while (binder.meta.currentLength < binder.meta.targetLength) {
@@ -686,12 +677,15 @@
 
     const caches = new Map();
     const splitPattern = /\s*{{\s*|\s*}}\s*/;
-    const replaceOfIn = /{{.*?\s+(of|in)\s+(.*?)}}/;
-    const assigneePattern = /({{)|(}})|([_$a-zA-Z0-9.?\[\]]+)[-+?^*%|\\ ]*=[-+?^*%|\\ ]*/g;
-    // infinite loop if assignee has assignment
-    // const assigneePattern = /({{.*?)([_$a-zA-Z0-9.?\[\]]+)(\s*[-+?^*%$|\\]?=[-+?^*%$|\\]?\s*[_$a-zA-Z0-9.?\[\]]+.*?}})/;
+    const instancePattern = /(\$\w+)/;
+    const bracketPattern = /({{)|(}})/;
+    const eachPattern = /({{.*?\s+(of|in)\s+(.*?)}})/;
+    const assignmentPattern = /({{(.*?)([_$a-zA-Z0-9.?\[\]]+)([-+?^*%|\\ ]*=[-+?^*%|\\ ]*)([^<>=].*?)}})/;
+    const codePattern = new RegExp(`${eachPattern.source}|${assignmentPattern.source}|${instancePattern.source}|${bracketPattern.source}`, 'g');
     const ignores = [
-        '$assignee', '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+        // '$assignee', '$instance', '$binder', '$event', '$value', '$checked', '$form', '$e', '$v', '$c', '$f',
+        // '$e', '$v', '$c', '$f',
+        '$instance', '$event', '$value', '$checked', '$form',
         'this', 'window', 'document', 'console', 'location',
         'globalThis', 'Infinity', 'NaN', 'undefined',
         'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent ',
@@ -706,131 +700,66 @@
         'Promise', 'GeneratorFunction', 'AsyncGeneratorFunction', 'Generator', 'AsyncGenerator', 'AsyncFunction',
         'Reflect', 'Proxy',
     ];
-    // const bind = async function (binder, path) {
-    //     const binders = binder.binders.get(path);
-    //     // binder.paths.add(path);
-    //     if (binders) {
-    //         binders.add(binder);
-    //     } else {
-    //         binder.binders.set(path, new Set([ binder ]));
-    //     }
-    // };
     const has = function (target, key) {
         if (typeof key !== 'string')
             return true;
         return !ignores.includes(key);
     };
-    // const set = function (path, binder, target, key, value, receiver) {
-    //     if (typeof key !== 'string') return true;
-    //     if (!path && binder.rewrites?.length) {
-    //         path = `${key}`;
-    //         for (const [ name, value ] of binder.rewrites) {
-    //             path = path.replace(new RegExp(`^(${name})\\b`), value);
-    //         }
-    //         let parts;
-    //         for (const part of path.split('.')) {
-    //             parts = parts ? `${parts}.${part}` : part;
-    //             bind(binder, parts);
-    //         }
-    //     } else {
-    //         path = path ? `${path}.${key}` : `${key}`;
-    //         bind(binder, path);
-    //     }
-    //     Reflect.set(target, key, value, target);
-    //     return true;
-    // };
-    // const get = function (path, binder, target, key, receiver) {
-    //     if (typeof key !== 'string') return target[ key ];
-    //     if (!path && binder.rewrites?.length) {
-    //         path = `${key}`;
-    //         for (const [ name, value ] of binder.rewrites) {
-    //             path = path.replace(new RegExp(`^(${name})\\b`), value);
-    //         }
-    //         let parts;
-    //         for (const part of path.split('.')) {
-    //             parts = parts ? `${parts}.${part}` : part;
-    //             bind(binder, parts);
-    //         }
-    //     } else {
-    //         path = path ? `${path}.${key}` : `${key}`;
-    //         bind(binder, path);
-    //     }
-    //     const value = Reflect.get(target, key, target);
-    //     if (value && typeof value === 'object') {
-    //         return new Proxy(value, {
-    //             set: set.bind(null, path, binder),
-    //             get: get.bind(null, path, binder),
-    //         });
-    //     } else if (typeof value === 'function') {
-    //         return value.bind(target);
-    //     } else {
-    //         return value;
-    //     }
-    // };
     const computer = function (binder) {
         let cache = caches.get(binder.value);
         if (!cache) {
             let code = binder.value;
-            // const parsed = parser(code);
-            code = code.replace(replaceOfIn, '{{$2}}');
             const convert = code.split(splitPattern).filter(part => part).length > 1;
-            // const convert = !shouldNotConvert.test(code);
-            const isValue = binder.node.name === 'value';
-            const isChecked = binder.node.name === 'checked';
-            // const assignee = isValue || isChecked ? code.match(assigneePattern)?.[ 2 ] || '' : '';
             let reference = '';
             let assignment = '';
-            if (isValue || isChecked) {
-                assignment = code.replace(assigneePattern, function (match, bracketLeft, bracketRight, assignee) {
-                    if (bracketLeft) {
-                        return '(';
-                    }
-                    else if (bracketRight) {
-                        return ')';
-                    }
-                    else {
-                        reference = reference || assignee;
-                        return '';
-                    }
-                });
-            }
-            code = code.replace(/{{/g, convert ? `' + (` : '(');
-            code = code.replace(/}}/g, convert ? `) + '` : ')');
-            code = convert ? `'${code}'` : code;
-            binder.code = code = `
-        $instance = $instance || {};
-        with ($instance) {
-            with ($context) {
-                ${isValue || isChecked ? `
-                if ('$value' in $instance || '$checked' in $instance) {
-                    return ${code};
-                } else {
-                    ${isValue ? `$value = ${reference || 'undefined'};` : ''}
-                    ${isChecked ? `$checked = ${reference || 'undefined'};` : ''}
-                    return ${assignment};
+            let usesInstance = false;
+            // let hasEvent, hasForm, hasValue, hasChecked;
+            code = code.replace(codePattern, function (match, g1, g2, ofInRight, assignee, assigneeLeft, ref, assigneeMiddle, assigneeRight, instance, bracketLeft, bracketRight) {
+                if (bracketLeft)
+                    return convert ? `' + (` : '(';
+                if (bracketRight)
+                    return convert ? `) + '` : ')';
+                if (ofInRight)
+                    return `(${ofInRight})`;
+                if (instance) {
+                    usesInstance = true;
+                    return match;
                 }
-                ` : `return ${code};`}
+                if (assignee) {
+                    reference = ref;
+                    usesInstance = true;
+                    assignment = assigneeLeft + assigneeRight;
+                    return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
+                }
+            });
+            code = convert ? `'${code}'` : code;
+            if (usesInstance) {
+                code = `
+            $instance = $instance || {};
+            with ($instance) {
+                with ($context) {
+                    if ($instance.$assignment) {
+                        return ${code};
+                    } else {
+                        ${binder.node.name === 'value' ? `$instance.$value = ${reference || `undefined`};` : ''}
+                        ${binder.node.name === 'checked' ? `$instance.$checked = ${reference || `undefined`};` : ''}
+                        return ${assignment || code};
+                    }
+                }
             }
-        }
+            `;
+            }
+            else {
+                code = `with ($context) { return ${code}; }`;
+            }
+            code = `
+            try {
+                ${code}
+            } catch (error){
+                console.log($binder);
+                console.error(error);
+            }
         `;
-            // binder.code = code = `
-            // $instance = $instance || {};
-            // var $f = $form = $instance.$form;
-            // var $e = $event = $instance.$event;
-            // with ($context) {
-            //     ${isValue || isChecked ? `
-            //     if ('$value' in $instance || '$checked' in $instance) {
-            //         ${isValue ? `$v = $value = $instance.$value;` : ''}
-            //         ${isChecked ? `$c = $checked = $instance.$checked;` : ''}
-            //         return ${code};
-            //     } else {
-            //         ${isValue ? `$v = $value = ${reference || 'undefined'};` : ''}
-            //         ${isChecked ? `$c = $checked = ${reference || 'undefined'};` : ''}
-            //         return ${assignment};
-            //     }
-            //     ` : `return ${code};`}
-            // }
-            // `;
             cache = new Function('$context', '$binder', '$instance', code);
             caches.set(binder.value, cache);
         }
@@ -839,56 +768,6 @@
     };
 
     const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
-    // const replaceEndBracket = /\s*\][^;]*/g;
-    // const replaceString = /".*?[^\\]*"|'.*?[^\\]*\'|`.*?[^\\]*`/g;
-    // const replaceOutside = /[^{}]*{{.*?\s+of\s+|[^{}]*{{|}}[^{}]*/g;
-    // const replaceSeperator = /\s+|\|+|\/+|\(+|\)+|\[+|\^+|\?+|\*+|\++|{+|}+|<+|>+|-+|=+|!+|&+|:+|~+|%+|,+/g; // \]+
-    // const replaceProtected = new RegExp([
-    //     replaceString.source,
-    //     replaceOutside.source,
-    //     replaceEndBracket.source,
-    //     replaceSeperator.source,
-    //     `(
-    //         \\d+\\.\\d*|\\d*\\.\\d+|\\d+|
-    //         \\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-    //         this|window|document|console|location|
-    //         globalThis|Infinity|NaN|undefined|
-    //         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
-    //         Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
-    //         Object|Function|Boolean|Symbole|Array|
-    //         Number|Math|Date|BigInt|
-    //         String|RegExp|
-    //         Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
-    //         Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
-    //         Map|Set|WeakMap|WeakSet|
-    //         ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
-    //         Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
-    //         Reflect|Proxy|
-    //         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
-    //         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
-    //     )\\b`,
-    // ].join('|').replace(/\s|\t|\n/g, ''), 'g');
-    // const replaceProtected = new RegExp([
-    //     `;(
-    //         \\d+\\.\\d*|\\d*\\.\\d+|\\d+|
-    //         \\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
-    //         this|window|document|console|location|
-    //         globalThis|Infinity|NaN|undefined|
-    //         isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|
-    //         Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|AggregateError|
-    //         Object|Function|Boolean|Symbole|Array|
-    //         Number|Math|Date|BigInt|
-    //         String|RegExp|
-    //         Array|Int8Array|Uint8Array|Uint8ClampedArray|Int16Array|Uint16Array|
-    //         Int32Array|Uint32Array|BigInt64Array|BigUint64Array|Float32Array|Float64Array|
-    //         Map|Set|WeakMap|WeakSet|
-    //         ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|
-    //         Promise|GeneratorFunction|AsyncGeneratorFunction|Generator|AsyncGenerator|AsyncFunction|
-    //         Reflect|Proxy|
-    //         true|false|null|undefined|NaN|of|in|do|if|for|new|try|case|else|with|await|break|catch|class|super|throw|while|
-    //         yield|delete|export|import|return|switch|default|extends|finally|continue|debugger|function|arguments|typeof|instanceof|void
-    //     )[^;]*;`,
-    // ].join('').replace(/\s|\t|\n/g, ''), 'g');
     const referenceMatch = new RegExp([
         '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
         '([^{}]*{{.*?\\s+(?:of|in)\\s+)',
@@ -923,20 +802,6 @@
         const references = [];
         cache.set(data, references);
         data = data.replace(normalizeReference, '.$2');
-        // let result = { references: undefined };
-        // cache.set(data, result);
-        // data = data.replace(replaceOutside, ';');
-        // data = data.replace(replaceString, '');
-        // data = data.replace(normalizeReference, '.$2');
-        // data = data.replace(replaceSeperator, ';');
-        // data = data.replace(replaceEndBracket, ';');
-        // data = data.replace(replaceProtected, ';');
-        // if (rewrites) {
-        //     for (const [ name, value ] of rewrites) {
-        //         data = data.replace(name, `;${value}`);
-        //     }
-        // }
-        // result.references = data.split(/;+/).slice(1, -1) || [];
         let match;
         while (match = referenceMatch.exec(data)) {
             let reference = match[4];
@@ -988,6 +853,7 @@
             }
         }
         async unbind(node) {
+            console.log('unbind', node);
             const ownerBinders = this.ownerBinders.get(node);
             if (!ownerBinders)
                 return;
@@ -1027,6 +893,9 @@
             binder.compute = compute;
             binder.render = handler.render.bind(null, binder);
             binder.unrender = handler.unrender.bind(null, binder);
+            if (value === '{{version.id}}') {
+                console.log(owner, owner.parentNode, binder);
+            }
             for (const reference of paths) {
                 const binders = binder.binders.get(reference);
                 if (binders) {
@@ -1070,7 +939,6 @@
             // return Promise.all(tasks);
         }
         async add(node, container, context, rewrites) {
-            const tasks = [];
             // if (node.nodeType === AN) {
             //     const attribute = (node as Attr);
             //     if (this.syntaxMatch.test(attribute.value)) {
@@ -1078,6 +946,7 @@
             //     }
             // } else
             if (node.nodeType === TN) {
+                const tasks = [];
                 const start = node.nodeValue.indexOf(this.syntaxStart);
                 if (start === -1)
                     return;
@@ -1091,32 +960,42 @@
                     tasks.push(this.add(split, container, context, rewrites));
                 }
                 tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
+                return Promise.all(tasks);
             }
             else if (node.nodeType === EN) {
+                const component = node.nodeName.includes('-');
                 const attributes = node.attributes;
-                let each = attributes['each'];
-                if (each) {
-                    each = this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
-                    for (const attribute of attributes) {
-                        if (attribute.name !== 'each' && this.syntaxMatch.test(attribute.value)) {
-                            tasks.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                        }
+                if (component) {
+                    // await window.customElements.whenDefined((node as any).localName);
+                    // await (node as any).whenReady();
+                    if (!node.ready) {
+                        await new Promise((resolve) => node.addEventListener('ready', resolve));
                     }
-                    return each.then(() => Promise.all(tasks.map(task => task())));
                 }
+                const each = attributes['each'];
+                if (each)
+                    await this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
+                if (!each && !component) {
+                    const children = [];
+                    let child = node.firstChild;
+                    if (child) {
+                        do {
+                            children.push(this.add(child, container, context, rewrites));
+                        } while (child = child.nextSibling);
+                    }
+                    await Promise.all(children);
+                }
+                const inherit = attributes['inherit'];
+                if (inherit)
+                    await this.bind(inherit, container, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
+                const tasks = [];
                 for (const attribute of attributes) {
-                    if (this.syntaxMatch.test(attribute.value)) {
+                    if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.syntaxMatch.test(attribute.value)) {
                         tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                     }
                 }
-                let child = node.firstChild;
-                if (child) {
-                    do {
-                        tasks.push(this.add(child, container, context, rewrites));
-                    } while (child = child.nextSibling);
-                }
+                return Promise.all(tasks);
             }
-            return Promise.all(tasks);
         }
     }
 
@@ -1180,7 +1059,9 @@
         static set observedAttributes(attributes) { this.attributes = attributes; }
         #root;
         #binder;
+        // #template: any;
         #flag = false;
+        #ready = false;
         #name = this.nodeName.toLowerCase();
         // this overwrites extends methods
         // adopted: () => void;
@@ -1193,6 +1074,7 @@
         #connected;
         #disconnected;
         #attributed;
+        #readyEvent = new Event('ready');
         #afterRenderEvent = new Event('afterrender');
         #beforeRenderEvent = new Event('beforerender');
         #afterConnectedEvent = new Event('afterconnected');
@@ -1208,6 +1090,7 @@
         adopt = false;
         shadow = false;
         get root() { return this.#root; }
+        get ready() { return this.#ready; }
         get binder() { return this.#binder; }
         constructor() {
             super();
@@ -1226,6 +1109,8 @@
             else {
                 this.#root = this;
             }
+            // this.#template = document.createElement('template');
+            // this.#template.innerHTML = this.html;
         }
         async #observe(path, type) {
             for (const [key, value] of this.#binder.pathBinders) {
@@ -1268,6 +1153,7 @@
                 let child = this.firstChild;
                 while (child) {
                     tasks.push(this.#binder.add(child, this, this.data));
+                    // this.#binder.add(child, this, this.data);
                     child = child.nextSibling;
                 }
             }
@@ -1301,11 +1187,17 @@
             let child = template.content.firstChild;
             while (child) {
                 tasks.push(this.#binder.add(child, this, this.data));
+                // this.#binder.add(child, this, this.data);
                 child = child.nextSibling;
             }
-            await Promise.all(tasks);
             this.#root.appendChild(template.content);
+            await Promise.all(tasks);
         }
+        // async whenReady () {
+        //     if (!this.#ready) {
+        //         return new Promise(resolve => this.addEventListener('afterrender', resolve));
+        //     }
+        // }
         async attributeChangedCallback(name, from, to) {
             await this.#attributed(name, from, to);
         }
@@ -1324,10 +1216,11 @@
                 this.#flag = true;
                 this.dispatchEvent(this.#beforeRenderEvent);
                 await this.#render();
-                this.isRendered = true;
                 if (this.#rendered)
                     await this.#rendered();
                 this.dispatchEvent(this.#afterRenderEvent);
+                this.#ready = true;
+                this.dispatchEvent(this.#readyEvent);
             }
             this.dispatchEvent(this.#beforeConnectedEvent);
             if (this.#connected)

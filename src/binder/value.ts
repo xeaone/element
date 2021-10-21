@@ -3,6 +3,10 @@ import dateTypes from '../types/date';
 
 const defaultInputEvent = new Event('input');
 
+const parseable = function (value) {
+    return !isNaN(value) && value !== null && value !== undefined && typeof value !== 'string';
+};
+
 const stampFromView = function (data: number) {
     const date = new Date(data);
     return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
@@ -23,31 +27,33 @@ const input = async function (binder, event) {
     if (type === 'select-one') {
         const [ option ] = owner.selectedOptions;
         const value = option ? '$value' in option ? option.$value : option.value : undefined;
-        computed = await binder.compute({ $event: event, $value: value });
+        computed = await binder.compute({ $event: event, $value: value, $assignment: true });
         display = format(computed);
     } else if (type === 'select-multiple') {
         const value = [];
         for (const option of owner.selectedOptions) {
             value.push('$value' in option ? option.$value : option.value);
         }
-        computed = await binder.compute({ $event: event, $value: value });
+        computed = await binder.compute({ $event: event, $value: value, $assignment: true });
         display = format(computed);
     } else if (type === 'number' || type === 'range') {
-        computed = await binder.compute({ $event: event, $value: owner.valueAsNumber });
+        computed = await binder.compute({ $event: event, $value: owner.valueAsNumber, $assignment: true });
         // if (typeof computed === 'number' && computed !== Infinity) owner.valueAsNumber = computed;
         // else owner.value = computed;
         owner.value = computed;
         display = owner.value;
     } else if (dateTypes.includes(type)) {
         const value = typeof owner.$value === 'string' ? owner.value : stampFromView(owner.valueAsNumber);
-        computed = await binder.compute({ $event: event, $value: value });
+        computed = await binder.compute({ $event: event, $value: value, $assignment: true });
         if (typeof owner.$value === 'string') owner.value = computed;
         else owner.valueAsNumber = stampToView(computed);
         display = owner.value;
     } else {
-        const value = owner.$value !== null && owner.$value !== undefined && typeof owner.$value !== 'string' ? JSON.parse(owner.value) : owner.value;
-        const checked = owner.$checked !== null && owner.$checked !== undefined && typeof owner.$checked !== 'string' ? JSON.parse(owner.checked) : owner.checked;
-        computed = await binder.compute({ $event: event, $value: value, $checked: checked });
+        // const value = '$value' in owner && typeof owner.$value !== 'string' ? owner.$value === undefined ? undefined : JSON.parse(owner.value) : owner.value;
+        // const checked = '$checked' in owner && typeof owner.$checked !== 'string' ? owner.$checked === undefined ? undefined : JSON.parse(owner.checked) : owner.checked;
+        const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
+        const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
+        computed = await binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
         display = format(computed);
         owner.value = display;
     }
@@ -62,6 +68,7 @@ const valueRender = async function (binder) {
 
     if (!meta.setup) {
         meta.setup = true;
+        // binder.node.value = '';
         meta.nodeName = owner.nodeName;
         owner.addEventListener('input', event => input(binder, event));
     }
@@ -74,10 +81,17 @@ const valueRender = async function (binder) {
 
         for (const option of owner.options) {
             const optionValue = '$value' in option ? option.$value : option.value;
+
+            console.log(computed, option.$value, option.value, option.outerHTML,
+                binder.binder.nodeBinders.get(option.getAttributeNode('value')),
+                binder.binder.nodeBinders.get(option.firstChild),
+                option.getAttributeNode('value'));
+
             if (option.selected = optionValue === computed) break;
         }
 
-        // if (owner.options.length && !owner.selectedOptions.length) {
+        console.log(binder.owner, computed, computed === undefined && owner.options.length && !owner.selectedOptions.length);
+
         if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
             const [ option ] = owner.options;
             option.selected = true;

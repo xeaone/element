@@ -49,6 +49,8 @@ export default class Binder {
     }
 
     async unbind (node: Node) {
+        console.log('unbind', node);
+
         const ownerBinders = this.ownerBinders.get(node);
         if (!ownerBinders) return;
 
@@ -92,6 +94,10 @@ export default class Binder {
         binder.compute = compute;
         binder.render = handler.render.bind(null, binder);
         binder.unrender = handler.unrender.bind(null, binder);
+
+        if (value === '{{version.id}}') {
+            console.log(owner, owner.parentNode, binder);
+        }
 
         for (const reference of paths) {
             const binders = binder.binders.get(reference);
@@ -141,7 +147,6 @@ export default class Binder {
     }
 
     async add (node: Node, container: any, context: any, rewrites?: any) {
-        const tasks = [];
 
         // if (node.nodeType === AN) {
         //     const attribute = (node as Attr);
@@ -150,6 +155,7 @@ export default class Binder {
         //     }
         // } else
         if (node.nodeType === TN) {
+            const tasks = [];
 
             const start = node.nodeValue.indexOf(this.syntaxStart);
             if (start === -1) return;
@@ -165,36 +171,49 @@ export default class Binder {
             }
 
             tasks.push(this.bind(node, container, 'text', node.nodeValue, node, context, rewrites));
+
+            return Promise.all(tasks);
         } else if (node.nodeType === EN) {
+            const component = node.nodeName.includes('-');
             const attributes = (node as Element).attributes;
 
-            let each = attributes[ 'each' ];
-            if (each) {
-                each = this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
-                for (const attribute of attributes) {
-                    if (attribute.name !== 'each' && this.syntaxMatch.test(attribute.value)) {
-                        tasks.push(this.bind.bind(this, attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
-                    }
+            if (component) {
+                // await window.customElements.whenDefined((node as any).localName);
+                // await (node as any).whenReady();
+                if (!(node as any).ready) {
+                    await new Promise((resolve: any) => node.addEventListener('ready', resolve));
                 }
-                return each.then(() => Promise.all(tasks.map(task => task())));
             }
 
+            const each = attributes[ 'each' ];
+            if (each) await this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
+
+            if (!each && !component) {
+                const children = [];
+
+                let child = node.firstChild;
+                if (child) {
+                    do {
+                        children.push(this.add(child, container, context, rewrites));
+                    } while (child = child.nextSibling);
+                }
+
+                await Promise.all(children);
+            }
+
+            const inherit = attributes[ 'inherit' ];
+            if (inherit) await this.bind(inherit, container, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
+
+            const tasks = [];
             for (const attribute of attributes) {
-                if (this.syntaxMatch.test(attribute.value)) {
+                if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.syntaxMatch.test(attribute.value)) {
                     tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                 }
             }
-
-            let child = node.firstChild;
-            if (child) {
-                do {
-                    tasks.push(this.add(child, container, context, rewrites));
-                } while (child = child.nextSibling);
-            }
+            return Promise.all(tasks);
 
         }
 
-        return Promise.all(tasks);
     }
 
 };

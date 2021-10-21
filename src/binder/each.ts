@@ -105,18 +105,20 @@ const eachRender = async function (binder, data) {
     }
 
     if (binder.meta.currentLength > binder.meta.targetLength) {
+        const tasks = [];
         while (binder.meta.currentLength > binder.meta.targetLength) {
             let count = binder.meta.templateLength;
 
             while (count--) {
                 const node = binder.owner.lastChild;
                 binder.owner.removeChild(node);
-                binder.binder.remove(node);
-                // binder.meta.tasks.push(binder.binder.remove(node));
+                // binder.binder.remove(node);
+                tasks.push(binder.binder.remove(node));
             }
 
             binder.meta.currentLength--;
         }
+        await Promise.all(tasks);
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
         while (binder.meta.currentLength < binder.meta.targetLength) {
 

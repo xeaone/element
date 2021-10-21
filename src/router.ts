@@ -167,7 +167,6 @@ export default new class Router {
             const name = 'route' + path.replace(/\/+/g, '-');
             window.customElements.define(name, component);
             element = window.document.createElement(name);
-
             this.#data[ location.pathname ] = { element: this.#cache ? element : null, name };
         }
 

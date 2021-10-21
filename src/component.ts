@@ -10,7 +10,9 @@ export default class Component extends HTMLElement {
 
     #root: any;
     #binder: any;
+    // #template: any;
     #flag: boolean = false;
+    #ready: boolean = false;
     #name: string = this.nodeName.toLowerCase();
 
     // this overwrites extends methods
@@ -26,6 +28,7 @@ export default class Component extends HTMLElement {
     #disconnected: () => void;
     #attributed: (name: string, from: string, to: string) => void;
 
+    #readyEvent = new Event('ready');
     #afterRenderEvent = new Event('afterrender');
     #beforeRenderEvent = new Event('beforerender');
     #afterConnectedEvent = new Event('afterconnected');
@@ -44,6 +47,7 @@ export default class Component extends HTMLElement {
     shadow: boolean = false;
 
     get root () { return this.#root; }
+    get ready () { return this.#ready; }
     get binder () { return this.#binder; }
 
     constructor () {
@@ -63,6 +67,9 @@ export default class Component extends HTMLElement {
         } else {
             this.#root = this;
         }
+
+        // this.#template = document.createElement('template');
+        // this.#template.innerHTML = this.html;
 
     }
 
@@ -110,6 +117,7 @@ export default class Component extends HTMLElement {
             let child = this.firstChild;
             while (child) {
                 tasks.push(this.#binder.add(child, this, this.data));
+                // this.#binder.add(child, this, this.data);
                 child = child.nextSibling;
             }
         }
@@ -147,12 +155,19 @@ export default class Component extends HTMLElement {
         let child = template.content.firstChild;
         while (child) {
             tasks.push(this.#binder.add(child, this, this.data));
+            // this.#binder.add(child, this, this.data);
             child = child.nextSibling;
         }
 
-        await Promise.all(tasks);
         this.#root.appendChild(template.content);
+        await Promise.all(tasks);
     }
+
+    // async whenReady () {
+    //     if (!this.#ready) {
+    //         return new Promise(resolve => this.addEventListener('afterrender', resolve));
+    //     }
+    // }
 
     async attributeChangedCallback (name: string, from: string, to: string) {
         await this.#attributed(name, from, to);
@@ -174,9 +189,10 @@ export default class Component extends HTMLElement {
             this.#flag = true;
             this.dispatchEvent(this.#beforeRenderEvent);
             await this.#render();
-            (this as any).isRendered = true;
             if (this.#rendered) await this.#rendered();
             this.dispatchEvent(this.#afterRenderEvent);
+            this.#ready = true;
+            this.dispatchEvent(this.#readyEvent);
         }
 
         this.dispatchEvent(this.#beforeConnectedEvent);
