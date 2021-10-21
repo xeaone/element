@@ -30,26 +30,24 @@ const cache = new Map();
 
 const parser = function (data, rewrites) {
 
-    if (!rewrites?.length) {
-        const cached = cache.get(data);
-        if (cached) return cached;
+    data = data.replace(normalizeReference, '.$2');
+
+    if (rewrites) {
+        for (const [ name, value ] of rewrites) {
+            data = data.replace(name, `${value}`);
+        }
     }
+
+    const cached = cache.get(data);
+    if (cached) return cached;
 
     const references = [];
     cache.set(data, references);
-    data = data.replace(normalizeReference, '.$2');
 
     let match;
     while (match = referenceMatch.exec(data)) {
         let reference = match[ 4 ];
         if (reference) {
-
-            if (rewrites) {
-                for (const [ name, value ] of rewrites) {
-                    reference = reference.replace(name, `${value}`);
-                }
-            }
-
             references.push(reference);
         }
     }

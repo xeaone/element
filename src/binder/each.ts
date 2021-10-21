@@ -62,15 +62,15 @@ const eachRender = async function (binder, data) {
     if (!binder.meta.setup) {
         binder.node.value = '';
 
-        let [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
+        const [ path, variable, index, key ] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
 
         binder.meta.path = path;
         binder.meta.keyName = key;
         binder.meta.indexName = index;
-        binder.meta.variableName = variable;
-        // binder.meta.variableNamePattern = new RegExp(`;(${variable})\\b`);
-        binder.meta.variableNamePattern = new RegExp(`^${variable}\\b`);
         binder.meta.parts = path.split('.');
+        binder.meta.variableName = variable;
+        binder.meta.variableNamePattern = new RegExp(`(?:[^.a-zA-Z0-9$_\\[\\]])(${variable})\\b`);
+        // binder.meta.variableNamePattern = new RegExp(`^${variable}\\b`);
 
         binder.meta.keys = [];
         binder.meta.tasks = [];
