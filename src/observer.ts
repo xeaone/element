@@ -80,9 +80,10 @@ const set = function (task: task, path: string, target: any, key, to, receiver) 
     // change(task, from, to, 'render', path ? `${path}.${key}` : `${key}`);
 
     if (from !== null && typeof from === 'object' && (to === null || typeof to !== 'object')) {
-        // should render path and unrender path starts with
+        // console.log('overwrite', path, key, from, to);
         task(path ? `${path}.${key}` : `${key}`, 'overwrite');
     } else {
+        // console.log('render', path, key, from, to);
         task(path ? `${path}.${key}` : `${key}`, 'render');
     }
 

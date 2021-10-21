@@ -81,16 +81,8 @@ const valueRender = async function (binder) {
 
         for (const option of owner.options) {
             const optionValue = '$value' in option ? option.$value : option.value;
-
-            console.log(computed, option.$value, option.value, option.outerHTML,
-                binder.binder.nodeBinders.get(option.getAttributeNode('value')),
-                binder.binder.nodeBinders.get(option.firstChild),
-                option.getAttributeNode('value'));
-
             if (option.selected = optionValue === computed) break;
         }
-
-        console.log(binder.owner, computed, computed === undefined && owner.options.length && !owner.selectedOptions.length);
 
         if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
             const [ option ] = owner.options;

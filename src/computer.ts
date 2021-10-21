@@ -39,6 +39,8 @@ const computer = function (binder) {
         let code = binder.value;
 
         const convert = code.split(splitPattern).filter(part => part).length > 1;
+        const isChecked = binder.node.name === 'checked';
+        const isValue = binder.node.name === 'value';
 
         let reference = '';
         let assignment = '';
@@ -54,10 +56,14 @@ const computer = function (binder) {
                 return match;
             }
             if (assignee) {
-                reference = ref;
-                usesInstance = true;
-                assignment = assigneeLeft + assigneeRight;
-                return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
+                if (isValue || isChecked) {
+                    reference = ref;
+                    usesInstance = true;
+                    assignment = assigneeLeft + assigneeRight;
+                    return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
+                } else {
+                    return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
+                }
             }
         });
 
@@ -71,8 +77,8 @@ const computer = function (binder) {
                     if ($instance.$assignment) {
                         return ${code};
                     } else {
-                        ${binder.node.name === 'value' ? `$instance.$value = ${reference || `undefined`};` : ''}
-                        ${binder.node.name === 'checked' ? `$instance.$checked = ${reference || `undefined`};` : ''}
+                        ${isValue ? `$instance.$value = ${reference || `undefined`};` : ''}
+                        ${isChecked ? `$instance.$checked = ${reference || `undefined`};` : ''}
                         return ${assignment || code};
                     }
                 }
@@ -86,7 +92,6 @@ const computer = function (binder) {
             try {
                 ${code}
             } catch (error){
-                console.log($binder);
                 console.error(error);
             }
         `;

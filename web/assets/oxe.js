@@ -85,10 +85,11 @@
         // tick.then(change.bind(null, task, from, to, 'render', path ? `${path}.${key}` : `${key}`));
         // change(task, from, to, 'render', path ? `${path}.${key}` : `${key}`);
         if (from !== null && typeof from === 'object' && (to === null || typeof to !== 'object')) {
-            // should render path and unrender path starts with
+            // console.log('overwrite', path, key, from, to);
             task(path ? `${path}.${key}` : `${key}`, 'overwrite');
         }
         else {
+            // console.log('render', path, key, from, to);
             task(path ? `${path}.${key}` : `${key}`, 'render');
         }
         // task(path ? `${path}.${key}` : `${key}`, 'render');
@@ -299,11 +300,9 @@
             owner.value = undefined;
             for (const option of owner.options) {
                 const optionValue = '$value' in option ? option.$value : option.value;
-                console.log(computed, option.$value, option.value, option.outerHTML, binder.binder.nodeBinders.get(option.getAttributeNode('value')), binder.binder.nodeBinders.get(option.firstChild), option.getAttributeNode('value'));
                 if (option.selected = optionValue === computed)
                     break;
             }
-            console.log(binder.owner, computed, computed === undefined && owner.options.length && !owner.selectedOptions.length);
             if (computed === undefined && owner.options.length && !owner.selectedOptions.length) {
                 const [option] = owner.options;
                 option.selected = true;
@@ -545,10 +544,10 @@
 
     const textRender = async function (binder) {
         let data = await binder.compute();
-        binder.owner.nodeValue = format(data);
+        binder.owner.textContent = format(data);
     };
     const textUnrender = async function (binder) {
-        binder.owner.nodeValue = '';
+        binder.owner.textContent = '';
     };
     var text = { render: textRender, unrender: textUnrender };
 
@@ -710,6 +709,8 @@
         if (!cache) {
             let code = binder.value;
             const convert = code.split(splitPattern).filter(part => part).length > 1;
+            const isChecked = binder.node.name === 'checked';
+            const isValue = binder.node.name === 'value';
             let reference = '';
             let assignment = '';
             let usesInstance = false;
@@ -726,10 +727,15 @@
                     return match;
                 }
                 if (assignee) {
-                    reference = ref;
-                    usesInstance = true;
-                    assignment = assigneeLeft + assigneeRight;
-                    return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
+                    if (isValue || isChecked) {
+                        reference = ref;
+                        usesInstance = true;
+                        assignment = assigneeLeft + assigneeRight;
+                        return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
+                    }
+                    else {
+                        return (convert ? `' + (` : '(') + assigneeLeft + ref + assigneeMiddle + assigneeRight + (convert ? `) + '` : ')');
+                    }
                 }
             });
             code = convert ? `'${code}'` : code;
@@ -741,8 +747,8 @@
                     if ($instance.$assignment) {
                         return ${code};
                     } else {
-                        ${binder.node.name === 'value' ? `$instance.$value = ${reference || `undefined`};` : ''}
-                        ${binder.node.name === 'checked' ? `$instance.$checked = ${reference || `undefined`};` : ''}
+                        ${isValue ? `$instance.$value = ${reference || `undefined`};` : ''}
+                        ${isChecked ? `$instance.$checked = ${reference || `undefined`};` : ''}
                         return ${assignment || code};
                     }
                 }
@@ -756,7 +762,6 @@
             try {
                 ${code}
             } catch (error){
-                console.log($binder);
                 console.error(error);
             }
         `;
@@ -853,7 +858,6 @@
             }
         }
         async unbind(node) {
-            console.log('unbind', node);
             const ownerBinders = this.ownerBinders.get(node);
             if (!ownerBinders)
                 return;
@@ -893,9 +897,6 @@
             binder.compute = compute;
             binder.render = handler.render.bind(null, binder);
             binder.unrender = handler.unrender.bind(null, binder);
-            if (value === '{{version.id}}') {
-                console.log(owner, owner.parentNode, binder);
-            }
             for (const reference of paths) {
                 const binders = binder.binders.get(reference);
                 if (binders) {

@@ -49,8 +49,6 @@ export default class Binder {
     }
 
     async unbind (node: Node) {
-        console.log('unbind', node);
-
         const ownerBinders = this.ownerBinders.get(node);
         if (!ownerBinders) return;
 
@@ -94,10 +92,6 @@ export default class Binder {
         binder.compute = compute;
         binder.render = handler.render.bind(null, binder);
         binder.unrender = handler.unrender.bind(null, binder);
-
-        if (value === '{{version.id}}') {
-            console.log(owner, owner.parentNode, binder);
-        }
 
         for (const reference of paths) {
             const binders = binder.binders.get(reference);
