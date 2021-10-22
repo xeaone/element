@@ -57,7 +57,7 @@ const eachUnrender = async function (binder) {
     ]);
 };
 
-const eachRender = async function (binder, data) {
+const eachRender = async function (binder) {
 
     if (!binder.meta.setup) {
         binder.node.value = '';
@@ -69,7 +69,7 @@ const eachRender = async function (binder, data) {
         binder.meta.indexName = index;
         binder.meta.parts = path.split('.');
         binder.meta.variableName = variable;
-        binder.meta.variableNamePattern = new RegExp(`(?:[^.a-zA-Z0-9$_\\[\\]])(${variable})\\b`);
+        binder.meta.variableNamePattern = new RegExp(`([^.a-zA-Z0-9$_\\[\\]])(${variable})\\b`);
         // binder.meta.variableNamePattern = new RegExp(`^${variable}\\b`);
 
         binder.meta.keys = [];
@@ -94,14 +94,12 @@ const eachRender = async function (binder, data) {
 
     }
 
-    if (!data) {
-        data = await binder.compute();
-        if (data?.constructor === Array) {
-            binder.meta.targetLength = data.length;
-        } else {
-            binder.meta.keys = Object.keys(data || {});
-            binder.meta.targetLength = binder.meta.keys.length;
-        }
+    const data = await binder.compute();
+    if (data?.constructor === Array) {
+        binder.meta.targetLength = data.length;
+    } else {
+        binder.meta.keys = Object.keys(data || {});
+        binder.meta.targetLength = binder.meta.keys.length;
     }
 
     if (binder.meta.currentLength > binder.meta.targetLength) {

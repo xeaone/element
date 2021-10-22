@@ -4,6 +4,8 @@ const normalizeReference = /\s*(\??\.|\[\s*([0-9]+)\s*\])\s*/g;
 const referenceMatch = new RegExp([
     '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)', // string
     '([^{}]*{{.*?\\s+(?:of|in)\\s+)', // of in
+    '((?:^|}}).*?{{)',
+    '(}}.*?(?:{{|$))',
     `(
         (?:\\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
             this|window|document|console|location|
@@ -34,9 +36,11 @@ const parser = function (data, rewrites) {
 
     if (rewrites) {
         for (const [ name, value ] of rewrites) {
-            data = data.replace(name, `${value}`);
+            data = data.replace(name, `$1${value}`);
         }
     }
+
+    // console.log(data);
 
     const cached = cache.get(data);
     if (cached) return cached;
@@ -46,13 +50,14 @@ const parser = function (data, rewrites) {
 
     let match;
     while (match = referenceMatch.exec(data)) {
-        let reference = match[ 4 ];
+        let reference = match[ 6 ];
         if (reference) {
             references.push(reference);
         }
     }
 
     // console.log(references);
+
     return references;
 };
 

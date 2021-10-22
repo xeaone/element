@@ -377,7 +377,7 @@
             })()
         ]);
     };
-    const eachRender = async function (binder, data) {
+    const eachRender = async function (binder) {
         if (!binder.meta.setup) {
             binder.node.value = '';
             const [path, variable, index, key] = binder.value.replace(prepare, '$1,$3').split(/\s*,\s*/).reverse();
@@ -386,7 +386,7 @@
             binder.meta.indexName = index;
             binder.meta.parts = path.split('.');
             binder.meta.variableName = variable;
-            binder.meta.variableNamePattern = new RegExp(`(?:[^.a-zA-Z0-9$_\\[\\]])(${variable})\\b`);
+            binder.meta.variableNamePattern = new RegExp(`([^.a-zA-Z0-9$_\\[\\]])(${variable})\\b`);
             // binder.meta.variableNamePattern = new RegExp(`^${variable}\\b`);
             binder.meta.keys = [];
             binder.meta.tasks = [];
@@ -408,15 +408,13 @@
                 node = binder.owner.firstChild;
             }
         }
-        if (!data) {
-            data = await binder.compute();
-            if (data?.constructor === Array) {
-                binder.meta.targetLength = data.length;
-            }
-            else {
-                binder.meta.keys = Object.keys(data || {});
-                binder.meta.targetLength = binder.meta.keys.length;
-            }
+        const data = await binder.compute();
+        if (data?.constructor === Array) {
+            binder.meta.targetLength = data.length;
+        }
+        else {
+            binder.meta.keys = Object.keys(data || {});
+            binder.meta.targetLength = binder.meta.keys.length;
         }
         if (binder.meta.currentLength > binder.meta.targetLength) {
             const tasks = [];
@@ -733,6 +731,8 @@
     const referenceMatch = new RegExp([
         '(".*?[^\\\\]*"|\'.*?[^\\\\]*\'|`.*?[^\\\\]*`)',
         '([^{}]*{{.*?\\s+(?:of|in)\\s+)',
+        '((?:^|}}).*?{{)',
+        '(}}.*?(?:{{|$))',
         `(
         (?:\\$assignee|\\$instance|\\$binder|\\$event|\\$value|\\$checked|\\$form|\\$e|\\$v|\\$c|\\$f|
             this|window|document|console|location|
@@ -759,9 +759,10 @@
         data = data.replace(normalizeReference, '.$2');
         if (rewrites) {
             for (const [name, value] of rewrites) {
-                data = data.replace(name, `${value}`);
+                data = data.replace(name, `$1${value}`);
             }
         }
+        // console.log(data);
         const cached = cache.get(data);
         if (cached)
             return cached;
@@ -769,7 +770,7 @@
         cache.set(data, references);
         let match;
         while (match = referenceMatch.exec(data)) {
-            let reference = match[4];
+            let reference = match[6];
             if (reference) {
                 references.push(reference);
             }
@@ -1077,6 +1078,7 @@
         async #observe(path, type) {
             const parents = this.#binder.pathBinders.get(path);
             if (parents) {
+                // console.log('path:',path);
                 const parentTasks = [];
                 for (const binder of parents) {
                     if (!binder)
@@ -1089,40 +1091,13 @@
                 if (!children)
                     continue;
                 if (key.startsWith(`${path}.`)) {
+                    // console.log('key:', key);
                     for (const binder of children) {
                         if (!binder)
                             continue;
                         binder[type]();
                     }
                 }
-                // if (type === 'unrender') {
-                //     if (key === path || key.startsWith(`${path}.`)) {
-                //         for (const binder of value) {
-                //             binder.unrender();
-                //         }
-                //     }
-                // } else if (type === 'render') {
-                //     if (key === path || key.startsWith(`${path}.`)) {
-                //         // if (key === path) {
-                //         for (const binder of value) {
-                //             binder.render();
-                //         }
-                //     }
-                // } else if (type === 'overwrite') {
-                //     const parents = [];
-                //     const children = [];
-                //     if (key === path) {
-                //         for (const binder of value) {
-                //             parents.push(binder.render());
-                //         }
-                //     } else if (key.startsWith(`${path}.`)) {
-                //         for (const binder of value) {
-                //             children.push(async function ());
-                //         }
-                //     }
-                //     await Promise.all(parents);
-                //     await Promise.all(children.map(child => child));
-                // }
             }
         }
         ;

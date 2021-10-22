@@ -76,8 +76,8 @@ export default class Component extends HTMLElement {
     async #observe (path, type) {
 
         const parents = this.#binder.pathBinders.get(path);
-
         if (parents) {
+            // console.log('path:',path);
             const parentTasks = [];
             for (const binder of parents) {
                 if (!binder) continue;
@@ -88,44 +88,15 @@ export default class Component extends HTMLElement {
 
         for (const [ key, children ] of this.#binder.pathBinders) {
             if (!children) continue;
-
             if (key.startsWith(`${path}.`)) {
+                // console.log('key:', key);
                 for (const binder of children) {
                     if (!binder) continue;
                     binder[ type ]();
                 }
             }
-
-            // if (type === 'unrender') {
-            //     if (key === path || key.startsWith(`${path}.`)) {
-            //         for (const binder of value) {
-            //             binder.unrender();
-            //         }
-            //     }
-            // } else if (type === 'render') {
-            //     if (key === path || key.startsWith(`${path}.`)) {
-            //         // if (key === path) {
-            //         for (const binder of value) {
-            //             binder.render();
-            //         }
-            //     }
-            // } else if (type === 'overwrite') {
-            //     const parents = [];
-            //     const children = [];
-            //     if (key === path) {
-            //         for (const binder of value) {
-            //             parents.push(binder.render());
-            //         }
-            //     } else if (key.startsWith(`${path}.`)) {
-            //         for (const binder of value) {
-            //             children.push(async function ());
-            //         }
-            //     }
-            //     await Promise.all(parents);
-            //     await Promise.all(children.map(child => child));
-            // }
-
         }
+
     };
 
     async #render () {
