@@ -28,8 +28,7 @@ const ignores = [
 ];
 
 const has = function (target, key) {
-    if (typeof key !== 'string') return true;
-    return !ignores.includes(key);
+    return ignores.includes(key) ? false : key in target;
 };
 
 const computer = function (binder) {

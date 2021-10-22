@@ -16,38 +16,6 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Oxe = factory());
 }(this, (function () { 'use strict';
 
-    // const tick = Promise.resolve();
-    // const change = async function (task, from, to, type, path) {
-    //     const tasks = [ task.bind(null, path, type) ];
-    //     await compare(task, from, to, path, tasks);
-    //     return Promise.all(tasks.map(t => t()));
-    // };
-    // const compare = async function (task: task, from: any, to: any, path: string, tasks: task[]) {
-    //     const compares = [];
-    //     const fromIsObject = from && typeof from === 'object';
-    //     const toIsObject = to && typeof to === 'object';
-    //     if (!fromIsObject && !toIsObject) return;
-    //     const fromKeys = fromIsObject ? Object.keys(from) : [];
-    //     const toKeys = toIsObject ? Object.keys(to) : [];
-    //     for (const key of fromKeys) {
-    //         const index = toKeys?.indexOf(key) ?? -1;
-    //         const child = path ? `${path}.${key}` : `${key}`;
-    //         if (index !== -1) {
-    //             toKeys.splice(index, 1);
-    //             tasks.push(task.bind(null, child, 'render'));
-    //             compares.push(compare(task, from[ key ], to[ key ], child, tasks));
-    //         } else {
-    //             tasks.push(task.bind(null, child, 'unrender'));
-    //             compares.push(compare(task, from[ key ], undefined, child, tasks));
-    //         }
-    //     }
-    //     for (const key of toKeys) {
-    //         const child = path ? `${path}.${key}` : `${key}`;
-    //         tasks.push(task.bind(null, child, 'render'));
-    //         compares.push(compare(task, undefined, to[ key ], child, tasks));
-    //     }
-    //     return Promise.all(compares);
-    // };
     const get = function (task, path, target, key, receiver) {
         const value = Reflect.get(target, key, receiver);
         if (value && typeof value === 'object') {
@@ -63,10 +31,7 @@
         }
     };
     const deleteProperty = function (task, path, target, key, receiver) {
-        // const value = Reflect.get(target, key, receiver);
         Reflect.deleteProperty(target, key);
-        // tick.then(change.bind(null, task, value, undefined, 'unrender', path ? `${path}.${key}` : `${key}`));
-        // change(task, value, undefined, 'unrender', path ? `${path}.${key}` : `${key}`);
         task(path ? `${path}.${key}` : `${key}`, 'unrender');
     };
     const set = function (task, path, target, key, to, receiver) {
@@ -74,25 +39,19 @@
         if (key === 'length') {
             task(path, 'render');
             task(path ? `${path}.${key}` : `${key}`, 'render');
-            // tick.then(change.bind(null, task, from, to, 'render', path));
-            // tick.then(change.bind(null, task, from, to, 'render', path ? `${path}.${key}` : `${key}`));
             return true;
         }
         else if (from === to) {
             return true;
         }
         Reflect.set(target, key, to, receiver);
-        // tick.then(change.bind(null, task, from, to, 'render', path ? `${path}.${key}` : `${key}`));
-        // change(task, from, to, 'render', path ? `${path}.${key}` : `${key}`);
-        if (from !== null && typeof from === 'object' && (to === null || typeof to !== 'object')) {
-            // console.log('overwrite', path, key, from, to);
-            task(path ? `${path}.${key}` : `${key}`, 'overwrite');
-        }
-        else {
-            // console.log('render', path, key, from, to);
-            task(path ? `${path}.${key}` : `${key}`, 'render');
-        }
-        // task(path ? `${path}.${key}` : `${key}`, 'render');
+        // console.log(path, key, from, to);
+        // if (from !== null && typeof from === 'object') {
+        //     task(path ? `${path}.${key}` : `${key}`, 'overwrite');
+        // } else {
+        //     task(path ? `${path}.${key}` : `${key}`, 'render');
+        // }
+        task(path ? `${path}.${key}` : `${key}`, 'render');
         return true;
     };
     const observer = function (source, task, path = '') {
@@ -700,9 +659,7 @@
         'Reflect', 'Proxy',
     ];
     const has = function (target, key) {
-        if (typeof key !== 'string')
-            return true;
-        return !ignores.includes(key);
+        return ignores.includes(key) ? false : key in target;
     };
     const computer = function (binder) {
         let cache = caches.get(binder.value);
@@ -916,7 +873,7 @@
         }
         ;
         async remove(node) {
-            // const tasks = [];
+            const tasks = [];
             // if (node.nodeType === AN) {
             //     tasks.push(this.unbind(node));
             if (node.nodeType === TN) {
@@ -924,18 +881,18 @@
             }
             else if (node.nodeType === EN) {
                 this.unbind(node);
-                // const attributes = (node as Element).attributes;
-                // for (const attribute of attributes) {
-                //     tasks.push(this.unbind(attribute));
-                // }
+                const attributes = node.attributes;
+                for (const attribute of attributes) {
+                    tasks.push(this.unbind(attribute));
+                }
                 let child = node.firstChild;
                 while (child) {
-                    this.remove(child);
-                    // tasks.push(this.remove(child));
+                    // this.remove(child);
+                    tasks.push(this.remove(child));
                     child = child.nextSibling;
                 }
             }
-            // return Promise.all(tasks);
+            return Promise.all(tasks);
         }
         async add(node, container, context, rewrites) {
             // if (node.nodeType === AN) {
@@ -975,25 +932,31 @@
                 if (each)
                     await this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
                 if (!each && !component) {
-                    const children = [];
                     let child = node.firstChild;
                     if (child) {
+                        const children = [];
                         do {
                             children.push(this.add(child, container, context, rewrites));
                         } while (child = child.nextSibling);
+                        await Promise.all(children);
                     }
-                    await Promise.all(children);
+                    // for some reason option values are not rendered
+                    // if (node.nodeName === 'OPTION') {
+                    //     console.log((node as any).outerHTML);
+                    // }
                 }
                 const inherit = attributes['inherit'];
                 if (inherit)
                     await this.bind(inherit, container, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
-                const tasks = [];
-                for (const attribute of attributes) {
-                    if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.syntaxMatch.test(attribute.value)) {
-                        tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                if (attributes.length) {
+                    const tasks = [];
+                    for (const attribute of attributes) {
+                        if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.syntaxMatch.test(attribute.value)) {
+                            tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                        }
                     }
+                    return Promise.all(tasks);
                 }
-                return Promise.all(tasks);
             }
         }
     }
@@ -1112,36 +1075,54 @@
             // this.#template.innerHTML = this.html;
         }
         async #observe(path, type) {
-            for (const [key, value] of this.#binder.pathBinders) {
-                if (!value)
+            const parents = this.#binder.pathBinders.get(path);
+            if (parents) {
+                const parentTasks = [];
+                for (const binder of parents) {
+                    if (!binder)
+                        continue;
+                    parentTasks.push(binder[type]());
+                }
+                await Promise.all(parentTasks);
+            }
+            for (const [key, children] of this.#binder.pathBinders) {
+                if (!children)
                     continue;
-                if (type === 'unrender') {
-                    if (key === path || key.startsWith(`${path}.`)) {
-                        for (const binder of value) {
-                            binder.unrender();
-                        }
+                if (key.startsWith(`${path}.`)) {
+                    for (const binder of children) {
+                        if (!binder)
+                            continue;
+                        binder[type]();
                     }
                 }
-                else if (type === 'render') {
-                    if (key === path || key.startsWith(`${path}.`)) {
-                        for (const binder of value) {
-                            // binder.unrender().then(() => binder.render());
-                            binder.render();
-                        }
-                    }
-                }
-                else if (type === 'overwrite') {
-                    if (key === path) {
-                        for (const binder of value) {
-                            binder.render();
-                        }
-                    }
-                    else if (key.startsWith(`${path}.`)) {
-                        for (const binder of value) {
-                            binder.unrender();
-                        }
-                    }
-                }
+                // if (type === 'unrender') {
+                //     if (key === path || key.startsWith(`${path}.`)) {
+                //         for (const binder of value) {
+                //             binder.unrender();
+                //         }
+                //     }
+                // } else if (type === 'render') {
+                //     if (key === path || key.startsWith(`${path}.`)) {
+                //         // if (key === path) {
+                //         for (const binder of value) {
+                //             binder.render();
+                //         }
+                //     }
+                // } else if (type === 'overwrite') {
+                //     const parents = [];
+                //     const children = [];
+                //     if (key === path) {
+                //         for (const binder of value) {
+                //             parents.push(binder.render());
+                //         }
+                //     } else if (key.startsWith(`${path}.`)) {
+                //         for (const binder of value) {
+                //             children.push(async function ());
+                //         }
+                //     }
+                //     await Promise.all(parents);
+                //     await Promise.all(children.map(child => child));
+                // }
             }
         }
         ;

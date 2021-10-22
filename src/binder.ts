@@ -115,7 +115,7 @@ export default class Binder {
     };
 
     async remove (node: Node) {
-        // const tasks = [];
+        const tasks = [];
 
         // if (node.nodeType === AN) {
         //     tasks.push(this.unbind(node));
@@ -123,21 +123,21 @@ export default class Binder {
             this.unbind(node);
         } else if (node.nodeType === EN) {
             this.unbind(node);
-            // const attributes = (node as Element).attributes;
-            // for (const attribute of attributes) {
-            //     tasks.push(this.unbind(attribute));
-            // }
+            const attributes = (node as Element).attributes;
+            for (const attribute of attributes) {
+                tasks.push(this.unbind(attribute));
+            }
 
             let child = node.firstChild;
             while (child) {
-                this.remove(child);
-                // tasks.push(this.remove(child));
+                // this.remove(child);
+                tasks.push(this.remove(child));
                 child = child.nextSibling;
             }
 
         }
 
-        // return Promise.all(tasks);
+        return Promise.all(tasks);
     }
 
     async add (node: Node, container: any, context: any, rewrites?: any) {
@@ -183,28 +183,33 @@ export default class Binder {
             if (each) await this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
 
             if (!each && !component) {
-                const children = [];
-
                 let child = node.firstChild;
                 if (child) {
+                    const children = [];
                     do {
                         children.push(this.add(child, container, context, rewrites));
                     } while (child = child.nextSibling);
+                    await Promise.all(children);
                 }
 
-                await Promise.all(children);
+                // for some reason option values are not rendered
+                // if (node.nodeName === 'OPTION') {
+                //     console.log((node as any).outerHTML);
+                // }
             }
 
             const inherit = attributes[ 'inherit' ];
             if (inherit) await this.bind(inherit, container, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
 
-            const tasks = [];
-            for (const attribute of attributes) {
-                if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.syntaxMatch.test(attribute.value)) {
-                    tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+            if (attributes.length) {
+                const tasks = [];
+                for (const attribute of attributes) {
+                    if (attribute.name !== 'each' && attribute.name !== 'inherit' && this.syntaxMatch.test(attribute.value)) {
+                        tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
+                    }
                 }
+                return Promise.all(tasks);
             }
-            return Promise.all(tasks);
 
         }
 

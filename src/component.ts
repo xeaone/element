@@ -74,33 +74,56 @@ export default class Component extends HTMLElement {
     }
 
     async #observe (path, type) {
-        for (const [ key, value ] of this.#binder.pathBinders) {
-            if (!value) continue;
 
-            if (type === 'unrender') {
-                if (key === path || key.startsWith(`${path}.`)) {
-                    for (const binder of value) {
-                        binder.unrender();
-                    }
-                }
-            } else if (type === 'render') {
-                if (key === path || key.startsWith(`${path}.`)) {
-                    for (const binder of value) {
-                        // binder.unrender().then(() => binder.render());
-                        binder.render();
-                    }
-                }
-            } else if (type === 'overwrite') {
-                if (key === path) {
-                    for (const binder of value) {
-                        binder.render();
-                    }
-                } else if (key.startsWith(`${path}.`)) {
-                    for (const binder of value) {
-                        binder.unrender();
-                    }
+        const parents = this.#binder.pathBinders.get(path);
+
+        if (parents) {
+            const parentTasks = [];
+            for (const binder of parents) {
+                if (!binder) continue;
+                parentTasks.push(binder[ type ]());
+            }
+            await Promise.all(parentTasks);
+        }
+
+        for (const [ key, children ] of this.#binder.pathBinders) {
+            if (!children) continue;
+
+            if (key.startsWith(`${path}.`)) {
+                for (const binder of children) {
+                    if (!binder) continue;
+                    binder[ type ]();
                 }
             }
+
+            // if (type === 'unrender') {
+            //     if (key === path || key.startsWith(`${path}.`)) {
+            //         for (const binder of value) {
+            //             binder.unrender();
+            //         }
+            //     }
+            // } else if (type === 'render') {
+            //     if (key === path || key.startsWith(`${path}.`)) {
+            //         // if (key === path) {
+            //         for (const binder of value) {
+            //             binder.render();
+            //         }
+            //     }
+            // } else if (type === 'overwrite') {
+            //     const parents = [];
+            //     const children = [];
+            //     if (key === path) {
+            //         for (const binder of value) {
+            //             parents.push(binder.render());
+            //         }
+            //     } else if (key.startsWith(`${path}.`)) {
+            //         for (const binder of value) {
+            //             children.push(async function ());
+            //         }
+            //     }
+            //     await Promise.all(parents);
+            //     await Promise.all(children.map(child => child));
+            // }
 
         }
     };
