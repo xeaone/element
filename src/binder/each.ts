@@ -42,6 +42,7 @@ const eachSet = function (binder, indexValue, keyValue, target, key, value) {
 };
 
 const eachUnrender = async function (binder) {
+    console.log('each unrender');
     binder.meta.tasks = [];
     binder.meta.targetLength = 0;
     binder.meta.currentLength = 0;
@@ -103,19 +104,20 @@ const eachRender = async function (binder) {
     }
 
     if (binder.meta.currentLength > binder.meta.targetLength) {
-        const tasks = [];
         while (binder.meta.currentLength > binder.meta.targetLength) {
             let count = binder.meta.templateLength;
 
             while (count--) {
                 const node = binder.owner.lastChild;
+                if (!node) {
+                    console.log(binder.owner);
+                }
                 binder.owner.removeChild(node);
-                tasks.push(binder.binder.remove(node));
+                binder.meta.tasks.push(binder.binder.remove(node));
             }
 
             binder.meta.currentLength--;
         }
-        await Promise.all(tasks);
     } else if (binder.meta.currentLength < binder.meta.targetLength) {
         while (binder.meta.currentLength < binder.meta.targetLength) {
 
@@ -155,14 +157,12 @@ const eachRender = async function (binder) {
 
             binder.meta.currentLength++;
         }
+    }
 
-        if (binder.meta.currentLength === binder.meta.targetLength) {
-            await Promise.all(binder.meta.tasks);
-            binder.meta.tasks.splice(0, binder.meta.length - 1);
-            binder.owner.appendChild(binder.meta.queueElement.content);
-
-        }
-
+    if (binder.meta.currentLength === binder.meta.targetLength) {
+        await Promise.all(binder.meta.tasks);
+        binder.meta.tasks.splice(0, binder.meta.length - 1);
+        binder.owner.appendChild(binder.meta.queueElement.content);
     }
 
     if (binder.owner.nodeName === 'SELECT') {
