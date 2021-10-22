@@ -49,8 +49,6 @@ const input = async function (binder, event) {
         else owner.valueAsNumber = stampToView(computed);
         display = owner.value;
     } else {
-        // const value = '$value' in owner && typeof owner.$value !== 'string' ? owner.$value === undefined ? undefined : JSON.parse(owner.value) : owner.value;
-        // const checked = '$checked' in owner && typeof owner.$checked !== 'string' ? owner.$checked === undefined ? undefined : JSON.parse(owner.checked) : owner.checked;
         const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
         const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
         computed = await binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
@@ -68,7 +66,6 @@ const valueRender = async function (binder) {
 
     if (!meta.setup) {
         meta.setup = true;
-        // binder.node.value = '';
         meta.nodeName = owner.nodeName;
         owner.addEventListener('input', event => input(binder, event));
     }

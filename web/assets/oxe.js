@@ -232,8 +232,6 @@
             display = owner.value;
         }
         else {
-            // const value = '$value' in owner && typeof owner.$value !== 'string' ? owner.$value === undefined ? undefined : JSON.parse(owner.value) : owner.value;
-            // const checked = '$checked' in owner && typeof owner.$checked !== 'string' ? owner.$checked === undefined ? undefined : JSON.parse(owner.checked) : owner.checked;
             const value = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.value) : owner.value;
             const checked = '$value' in owner && parseable(owner.$value) ? JSON.parse(owner.checked) : owner.checked;
             computed = await binder.compute({ $event: event, $value: value, $checked: checked, $assignment: true });
@@ -249,7 +247,6 @@
         const { owner, meta } = binder;
         if (!meta.setup) {
             meta.setup = true;
-            // binder.node.value = '';
             meta.nodeName = owner.nodeName;
             owner.addEventListener('input', event => input(binder, event));
         }
@@ -423,7 +420,6 @@
                 while (count--) {
                     const node = binder.owner.lastChild;
                     binder.owner.removeChild(node);
-                    // binder.binder.remove(node);
                     tasks.push(binder.binder.remove(node));
                 }
                 binder.meta.currentLength--;
@@ -465,9 +461,13 @@
                 binder.meta.currentLength++;
             }
             if (binder.meta.currentLength === binder.meta.targetLength) {
-                await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
+                await Promise.all(binder.meta.tasks);
+                binder.meta.tasks.splice(0, binder.meta.length - 1);
                 binder.owner.appendChild(binder.meta.queueElement.content);
             }
+        }
+        if (binder.owner.nodeName === 'SELECT') {
+            binder.binder.nodeBinders.get(binder.owner.attributes['value'])?.render();
         }
     };
     var each = { render: eachRender, unrender: eachUnrender };
@@ -920,35 +920,30 @@
                 return Promise.all(tasks);
             }
             else if (node.nodeType === EN) {
-                const component = node.nodeName.includes('-');
                 const attributes = node.attributes;
-                if (component) {
+                const inherit = attributes['inherit'];
+                if (inherit) {
                     // await window.customElements.whenDefined((node as any).localName);
                     // await (node as any).whenReady();
                     if (!node.ready) {
                         await new Promise((resolve) => node.addEventListener('ready', resolve));
                     }
+                    await this.bind(inherit, container, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
                 }
                 const each = attributes['each'];
                 if (each)
                     await this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
-                if (!each && !component) {
+                if (!each && !inherit) {
                     let child = node.firstChild;
                     if (child) {
-                        const children = [];
+                        const tasks = [];
                         do {
-                            children.push(this.add(child, container, context, rewrites));
+                            tasks.push(this.add(child, container, context, rewrites));
                         } while (child = child.nextSibling);
-                        await Promise.all(children);
+                        if (tasks.length)
+                            await Promise.all(tasks);
                     }
-                    // for some reason option values are not rendered
-                    // if (node.nodeName === 'OPTION') {
-                    //     console.log((node as any).outerHTML);
-                    // }
                 }
-                const inherit = attributes['inherit'];
-                if (inherit)
-                    await this.bind(inherit, container, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
                 if (attributes.length) {
                     const tasks = [];
                     for (const attribute of attributes) {
@@ -956,7 +951,8 @@
                             tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                         }
                     }
-                    return Promise.all(tasks);
+                    if (tasks.length)
+                        await Promise.all(tasks);
                 }
             }
         }

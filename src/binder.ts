@@ -168,38 +168,31 @@ export default class Binder {
 
             return Promise.all(tasks);
         } else if (node.nodeType === EN) {
-            const component = node.nodeName.includes('-');
             const attributes = (node as Element).attributes;
 
-            if (component) {
+            const inherit = attributes[ 'inherit' ];
+            if (inherit) {
                 // await window.customElements.whenDefined((node as any).localName);
                 // await (node as any).whenReady();
                 if (!(node as any).ready) {
                     await new Promise((resolve: any) => node.addEventListener('ready', resolve));
                 }
+                await this.bind(inherit, container, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
             }
 
             const each = attributes[ 'each' ];
             if (each) await this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
 
-            if (!each && !component) {
+            if (!each && !inherit) {
                 let child = node.firstChild;
                 if (child) {
-                    const children = [];
+                    const tasks = [];
                     do {
-                        children.push(this.add(child, container, context, rewrites));
+                        tasks.push(this.add(child, container, context, rewrites));
                     } while (child = child.nextSibling);
-                    await Promise.all(children);
+                    if (tasks.length) await Promise.all(tasks);
                 }
-
-                // for some reason option values are not rendered
-                // if (node.nodeName === 'OPTION') {
-                //     console.log((node as any).outerHTML);
-                // }
             }
-
-            const inherit = attributes[ 'inherit' ];
-            if (inherit) await this.bind(inherit, container, inherit.name, inherit.value, inherit.ownerElement, context, rewrites);
 
             if (attributes.length) {
                 const tasks = [];
@@ -208,7 +201,7 @@ export default class Binder {
                         tasks.push(this.bind(attribute, container, attribute.name, attribute.value, attribute.ownerElement, context, rewrites));
                     }
                 }
-                return Promise.all(tasks);
+                if (tasks.length) await Promise.all(tasks);
             }
 
         }

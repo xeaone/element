@@ -110,7 +110,6 @@ const eachRender = async function (binder) {
             while (count--) {
                 const node = binder.owner.lastChild;
                 binder.owner.removeChild(node);
-                // binder.binder.remove(node);
                 tasks.push(binder.binder.remove(node));
             }
 
@@ -158,10 +157,16 @@ const eachRender = async function (binder) {
         }
 
         if (binder.meta.currentLength === binder.meta.targetLength) {
-            await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
+            await Promise.all(binder.meta.tasks);
+            binder.meta.tasks.splice(0, binder.meta.length - 1);
             binder.owner.appendChild(binder.meta.queueElement.content);
+
         }
 
+    }
+
+    if (binder.owner.nodeName === 'SELECT') {
+        binder.binder.nodeBinders.get(binder.owner.attributes[ 'value' ])?.render();
     }
 
 };
