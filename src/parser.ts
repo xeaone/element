@@ -40,8 +40,6 @@ const parser = function (data, rewrites) {
         }
     }
 
-    // console.log(data);
-
     const cached = cache.get(data);
     if (cached) return cached;
 
@@ -56,7 +54,7 @@ const parser = function (data, rewrites) {
         }
     }
 
-    // console.log(references);
+    // console.log(data, references);
 
     return references;
 };

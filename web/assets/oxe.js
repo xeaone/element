@@ -46,8 +46,18 @@
         }
         Reflect.set(target, key, to, receiver);
         // console.log(path, key, from, to);
-        // if (from !== null && typeof from === 'object') {
-        //     task(path ? `${path}.${key}` : `${key}`, 'overwrite');
+        // if (from && typeof from === 'object') {
+        //     if (to && typeof to === 'object') {
+        //         const tasks = [];
+        //         for (const child in from) {
+        //             if (!(child in to)) {
+        //                 tasks.push(task(path ? `${path}.${key}.${child}` : `${key}.${child}`, 'unrender'));
+        //             }
+        //         }
+        //         Promise.all(tasks).then(() => task(path ? `${path}.${key}` : `${key}`, 'render'));
+        //     } else {
+        //         task(path ? `${path}.${key}` : `${key}`, 'unrender').then(() => task(path ? `${path}.${key}` : `${key}`, 'render'));
+        //     }
         // } else {
         //     task(path ? `${path}.${key}` : `${key}`, 'render');
         // }
@@ -764,7 +774,6 @@
                 data = data.replace(name, `$1${value}`);
             }
         }
-        // console.log(data);
         const cached = cache.get(data);
         if (cached)
             return cached;
@@ -777,7 +786,7 @@
                 references.push(reference);
             }
         }
-        // console.log(references);
+        // console.log(data, references);
         return references;
     };
 
