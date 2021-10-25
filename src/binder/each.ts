@@ -1,6 +1,14 @@
 const space = /\s+/;
 const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
 
+const nextFrame = async function () {
+    return new Promise((resolve: any) =>
+        window.requestAnimationFrame(() =>
+            window.requestAnimationFrame(() => resolve())
+        )
+    );
+};
+
 const eachHas = function (binder, indexValue, keyValue, target, key) {
     return key === binder.meta.variableName ||
         key === binder.meta.indexName ||
@@ -157,6 +165,7 @@ const eachRender = async function (binder) {
     if (binder.meta.currentLength === binder.meta.targetLength) {
         await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
         binder.owner.appendChild(binder.meta.queueElement.content);
+        await nextFrame();
     }
 
     if (binder.owner.nodeName === 'SELECT') {

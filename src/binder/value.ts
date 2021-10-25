@@ -66,7 +66,6 @@ const valueRender = async function (binder) {
 
     if (!meta.setup) {
         meta.setup = true;
-        meta.nodeName = owner.nodeName;
         owner.addEventListener('input', event => input(binder, event));
     }
 

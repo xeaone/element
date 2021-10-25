@@ -184,6 +184,7 @@ export default class Binder {
             if (each) await this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
 
             if (!each && !inherit) {
+                if (each) throw new Error('oops');
                 let child = node.firstChild;
                 if (child) {
                     const tasks = [];

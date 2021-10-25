@@ -175,7 +175,8 @@
     var checked = { render: checkedRender, unrender: checkedUnrender };
 
     const inheritRender = async function (binder) {
-        if (!binder.meta.setup) {
+        let setup = binder.meta.setup ?? false;
+        if (!setup) {
             binder.meta.setup = true;
             binder.node.value = '';
         }
@@ -183,7 +184,7 @@
             return console.warn(`inherited not implemented ${binder.owner.localName}`);
         }
         const inherited = await binder.compute();
-        binder.owner.inherited?.(inherited);
+        binder.owner.inherited?.(inherited, setup);
     };
     const inheritUnrender = async function (binder) {
         if (!binder.owner.inherited) {
@@ -257,7 +258,6 @@
         const { owner, meta } = binder;
         if (!meta.setup) {
             meta.setup = true;
-            meta.nodeName = owner.nodeName;
             owner.addEventListener('input', event => input(binder, event));
         }
         const computed = await binder.compute();
@@ -323,6 +323,9 @@
 
     const space = /\s+/;
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
+    const nextFrame = async function () {
+        return new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+    };
     const eachHas = function (binder, indexValue, keyValue, target, key) {
         return key === binder.meta.variableName ||
             key === binder.meta.indexName ||
@@ -471,6 +474,7 @@
         if (binder.meta.currentLength === binder.meta.targetLength) {
             await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
             binder.owner.appendChild(binder.meta.queueElement.content);
+            await nextFrame();
         }
         if (binder.owner.nodeName === 'SELECT') {
             binder.binder.nodeBinders.get(binder.owner.attributes['value'])?.render();
@@ -939,6 +943,8 @@
                 if (each)
                     await this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
                 if (!each && !inherit) {
+                    if (each)
+                        throw new Error('oops');
                     let child = node.firstChild;
                     if (child) {
                         const tasks = [];
