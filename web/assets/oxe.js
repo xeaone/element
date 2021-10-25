@@ -368,7 +368,6 @@
         return true;
     };
     const eachUnrender = async function (binder) {
-        console.log('each unrender');
         binder.meta.tasks = [];
         binder.meta.targetLength = 0;
         binder.meta.currentLength = 0;
@@ -429,9 +428,6 @@
                 let count = binder.meta.templateLength;
                 while (count--) {
                     const node = binder.owner.lastChild;
-                    if (!node) {
-                        console.log(binder.owner);
-                    }
                     binder.owner.removeChild(node);
                     binder.meta.tasks.push(binder.binder.remove(node));
                 }
@@ -463,7 +459,6 @@
                     } while (node = node.nextSibling);
                 }
                 binder.meta.queueElement.content.appendChild(clone);
-                // binder.owner.appendChild(clone);
                 // var d = document.createElement('div');
                 // d.classList.add('box');
                 // var t = document.createTextNode('{{item.number}}');
@@ -474,8 +469,7 @@
             }
         }
         if (binder.meta.currentLength === binder.meta.targetLength) {
-            await Promise.all(binder.meta.tasks);
-            binder.meta.tasks.splice(0, binder.meta.length - 1);
+            await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
             binder.owner.appendChild(binder.meta.queueElement.content);
         }
         if (binder.owner.nodeName === 'SELECT') {
