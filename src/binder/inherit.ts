@@ -1,8 +1,7 @@
 
 const inheritRender = async function (binder) {
 
-    let setup = binder.meta.setup ?? false;
-    if (!setup) {
+    if (!binder.meta.setup) {
         binder.meta.setup = true;
         binder.node.value = '';
     }
@@ -12,7 +11,7 @@ const inheritRender = async function (binder) {
     }
 
     const inherited = await binder.compute();
-    binder.owner.inherited?.(inherited, setup);
+    binder.owner.inherited?.(inherited);
 
 };
 
