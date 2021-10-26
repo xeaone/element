@@ -1,6 +1,8 @@
 import format from '../format';
 import dateTypes from '../types/date';
 
+console.warn('value: setter/getter issue with multiselect');
+
 const defaultInputEvent = new Event('input');
 
 const parseable = function (value) {
@@ -89,7 +91,6 @@ const valueRender = async function (binder) {
         display = format(computed);
         owner.value = display;
     } else if (binder.owner.type === 'select-multiple') {
-
         for (const option of owner.options) {
             const optionValue = '$value' in option ? option.$value : option.value;
             option.selected = computed?.includes(optionValue);

@@ -195,6 +195,7 @@
 
     var dateTypes = ['date', 'datetime-local', 'month', 'time', 'week'];
 
+    console.warn('value: setter/getter issue with multiselect');
     const defaultInputEvent = new Event('input');
     const parseable = function (value) {
         return !isNaN(value) && value !== null && value !== undefined && typeof value !== 'string';
