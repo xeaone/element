@@ -21,6 +21,9 @@ export default class BindersRoute extends Component {
         checkResult: checked => checked ? 'checked' : '',
         checkInput () { console.log(this.checked); },
 
+        r1: undefined,
+        r2: undefined,
+
         color: Color(),
         colorChange () { this.color = Color(); },
 
@@ -38,13 +41,16 @@ export default class BindersRoute extends Component {
 
         selectedPlant: undefined,
         selectEachResult: 'orange',
+        multipleSelectResult: [],
 
         radio: false,
         agree: true,
-        firstName: 'james',
         lastName: 'bond',
-        submit (form) { console.log(form); }
+        firstName: 'james',
+        favoriteNumber: undefined,
+        submit (form) { console.log(form); },
 
+        hyperText: '<strong>Hyper Text Markup Language</strong>',
     };
 
     css = /*css*/`
@@ -215,6 +221,14 @@ export default class BindersRoute extends Component {
                 <br>
                 <input type="submit" value="submit">
             </form>
+        </section>
+
+        <section>
+            <h3>HTML Binder</h3>
+            <br>
+            <pre>${Code(`<div html="{{hyperText}}"></div>`, true)}</pre>
+            <br>
+            <div html="{{hyperText}}"></div>
         </section>
 
     `;
