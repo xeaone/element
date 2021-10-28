@@ -113,7 +113,7 @@
     const flag = Symbol('RadioFlag');
     const handler = async function (binder, event) {
         const checked = binder.owner.checked;
-        const computed = await binder.compute({ $event: event, $checked: checked, $assignment: true });
+        const computed = await binder.compute({ $event: event, $checked: checked, $assignment: !!event });
         if (computed) {
             binder.owner.setAttributeNode(binder.node);
         }
@@ -482,30 +482,37 @@
     };
     var each = { render: eachRender, unrender: eachUnrender };
 
-    const tick = Promise.resolve();
+    Promise.resolve();
     const htmlRender = async function (binder) {
+        const tasks = [];
         let data = await binder.compute();
         if (typeof data !== 'string') {
             data = '';
             console.warn('html binder requires a string');
         }
-        while (binder.owner.firstChild) {
-            const node = binder.owner.removeChild(binder.owner.firstChild);
-            binder.binder.remove(node);
+        let removeChild;
+        while (removeChild = binder.owner.lastChild) {
+            binder.owner.removeChild(removeChild);
+            tasks.push(binder.binder.remove(removeChild));
         }
         const template = document.createElement('template');
         template.innerHTML = data;
-        let node = template.content.firstChild;
-        while (node) {
-            tick.then(binder.binder.add.bind(binder.binder, node, binder.container));
-            node = node.nextSibling;
+        let addChild = template.content.firstChild;
+        while (addChild) {
+            tasks.push(binder.binder.add.bind(binder.binder, addChild, binder.container));
+            addChild = addChild.nextSibling;
         }
+        await Promise.all(tasks);
         binder.owner.appendChild(template.content);
     };
     const htmlUnrender = async function (binder) {
-        let node = binder.owner.firstChild;
-        while (node)
+        const tasks = [];
+        let node;
+        while (node = binder.owner.lastChild) {
+            tasks.push(binder.binder.remove(node));
             binder.owner.removeChild(node);
+        }
+        await Promise.all(tasks);
     };
     var html = { render: htmlRender, unrender: htmlUnrender };
 

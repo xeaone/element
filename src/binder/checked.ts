@@ -3,7 +3,7 @@ const flag = Symbol('RadioFlag');
 
 const handler = async function (binder, event?: Event) {
     const checked = binder.owner.checked;
-    const computed = await binder.compute({ $event: event, $checked: checked, $assignment: true });
+    const computed = await binder.compute({ $event: event, $checked: checked, $assignment: !!event });
 
     if (computed) {
         binder.owner.setAttributeNode(binder.node);
