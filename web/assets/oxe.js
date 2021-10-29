@@ -323,8 +323,15 @@
 
     const space = /\s+/;
     const prepare = /{{\s*(.*?)\s+(of|in)\s+(.*?)\s*}}/;
-    const nextFrame = async function () {
-        return new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+    // const nextFrame = async function () {
+    //     return new Promise((resolve: any) =>
+    //         window.requestAnimationFrame(() =>
+    //             window.requestAnimationFrame(() => resolve())
+    //         )
+    //     );
+    // };
+    const wait = async function () {
+        return new Promise((resolve) => setTimeout(() => resolve(), 0));
     };
     const eachHas = function (binder, indexValue, keyValue, target, key) {
         return key === binder.meta.variableName ||
@@ -474,7 +481,7 @@
         if (binder.meta.currentLength === binder.meta.targetLength) {
             await Promise.all(binder.meta.tasks.splice(0, binder.meta.length - 1));
             binder.owner.appendChild(binder.meta.queueElement.content);
-            await nextFrame();
+            await wait();
         }
         if (binder.owner.nodeName === 'SELECT') {
             binder.binder.nodeBinders.get(binder.owner.attributes['value'])?.render();
@@ -950,8 +957,6 @@
                 if (each)
                     await this.bind(each, container, each.name, each.value, each.ownerElement, context, rewrites);
                 if (!each && !inherit) {
-                    if (each)
-                        throw new Error('oops');
                     let child = node.firstChild;
                     if (child) {
                         const tasks = [];
